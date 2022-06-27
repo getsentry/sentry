@@ -13,7 +13,6 @@ import {
 } from 'sentry/utils/profiling/hooks/useVirtualizedTree/useVirtualizedTree';
 import {VirtualizedTreeNode} from 'sentry/utils/profiling/hooks/useVirtualizedTree/VirtualizedTreeNode';
 import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
-import theme from 'sentry/utils/theme';
 
 import {FrameCallersTableCell} from './frameStack';
 import {FrameStackContextMenu} from './frameStackContextMenu';
@@ -215,7 +214,7 @@ export function FrameStackTable({
           onZoomIntoNodeClick={handleZoomIntoNodeClick}
           contextMenu={contextMenu}
         />
-        <div style={{position: 'relative', height: '100%', background: theme.white}}>
+        <TableItemsContainer>
           <div ref={clickedGhostRowRef} />
           <div ref={hoveredGhostRowRef} />
           <div
@@ -237,11 +236,18 @@ export function FrameStackTable({
               </GhostRowContainer>
             </div>
           </div>
-        </div>
+        </TableItemsContainer>
       </FrameCallersTable>
     </FrameBar>
   );
 }
+
+const TableItemsContainer = styled('div')`
+  position: relative;
+  height: 100%;
+  overflow: hidden;
+  background: ${p => p.theme.white};
+`;
 
 const GhostRowContainer = styled('div')`
   display: flex;

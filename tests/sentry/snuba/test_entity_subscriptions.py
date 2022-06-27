@@ -1,8 +1,13 @@
 import pytest
 from snuba_sdk import And, Column, Condition, Function, Op
 
-from sentry.exceptions import InvalidQuerySubscription, UnsupportedQuerySubscription
+from sentry.exceptions import (
+    InvalidQuerySubscription,
+    InvalidSearchQuery,
+    UnsupportedQuerySubscription,
+)
 from sentry.sentry_metrics import indexer
+from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.utils import resolve, resolve_tag_key
 from sentry.snuba.dataset import EntityKey
 from sentry.snuba.entity_subscription import (
@@ -29,7 +34,9 @@ class EntitySubscriptionTestCase(TestCase):
             "init",
             "crashed",
         ]:
-            indexer.record(self.organization.id, tag)
+            indexer.record(
+                use_case_id=UseCaseKey.RELEASE_HEALTH, org_id=self.organization.id, string=tag
+            )
 
     def test_get_entity_subscriptions_for_sessions_dataset_non_supported_aggregate(self) -> None:
         aggregate = "count(sessions)"
@@ -47,6 +54,48 @@ class EntitySubscriptionTestCase(TestCase):
             get_entity_subscription_for_dataset(
                 dataset=QueryDatasets.SESSIONS, aggregate=aggregate, time_window=3600
             )
+
+    def test_build_snuba_filter_invalid_fields_raise_error(self) -> None:
+        entities = [
+            get_entity_subscription_for_dataset(
+                dataset=QueryDatasets.SESSIONS,
+                aggregate="percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate",
+                time_window=3600,
+                extra_fields={"org_id": self.organization.id},
+            ),
+            get_entity_subscription_for_dataset(
+                dataset=QueryDatasets.METRICS,
+                aggregate="percentage(users_crashed, users) AS _crash_rate_alert_aggregate",
+                time_window=3600,
+                extra_fields={"org_id": self.organization.id},
+            ),
+            get_entity_subscription_for_dataset(
+                dataset=QueryDatasets.EVENTS,
+                aggregate="count_unique(user)",
+                time_window=3600,
+            ),
+        ]
+        for entity in entities:
+            with pytest.raises(InvalidSearchQuery, match="Invalid key for this search: timestamp"):
+                entity.build_snuba_filter("timestamp:-24h", [self.project.id], None)
+
+    def test_build_query_builder_invalid_fields_raise_error(self) -> None:
+        entities = [
+            get_entity_subscription_for_dataset(
+                dataset=QueryDatasets.SESSIONS,
+                aggregate="percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate",
+                time_window=3600,
+                extra_fields={"org_id": self.organization.id},
+            ),
+            get_entity_subscription_for_dataset(
+                dataset=QueryDatasets.EVENTS,
+                aggregate="count_unique(user)",
+                time_window=3600,
+            ),
+        ]
+        for entity in entities:
+            with pytest.raises(InvalidSearchQuery, match="Invalid key for this search: timestamp"):
+                entity.build_query_builder("timestamp:-24h", [self.project.id], None)
 
     def test_get_entity_subscriptions_for_sessions_dataset(self) -> None:
         aggregate = "percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate"

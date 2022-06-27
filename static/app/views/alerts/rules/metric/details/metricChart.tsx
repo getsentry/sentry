@@ -105,8 +105,8 @@ function getRuleChangeSeries(
   }
 
   const seriesData = data[0].data;
-  const seriesStart = moment(seriesData[0].name).valueOf();
-  const ruleChanged = moment(dateModified).valueOf();
+  const seriesStart = new Date(seriesData[0].name).getTime();
+  const ruleChanged = new Date(dateModified).getTime();
 
   if (ruleChanged < seriesStart) {
     return [];

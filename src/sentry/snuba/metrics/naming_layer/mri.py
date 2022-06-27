@@ -19,7 +19,9 @@ metric that is queryable by the API.
 __all__ = ("SessionMRI", "TransactionMRI", "MRI_SCHEMA_REGEX", "MRI_EXPRESSION_REGEX")
 
 import re
+from dataclasses import dataclass
 from enum import Enum
+from typing import Optional
 
 from sentry.snuba.metrics.utils import OP_REGEX
 
@@ -29,8 +31,9 @@ ENTITY_TYPE_REGEX = r"(c|s|d|g|e)"
 # allowed the underscore character, optionally separated by a single dot
 MRI_NAME_REGEX = r"([a-z_]+(?:\.[a-z_]+)*)"
 # ToDo(ahmed): Add a better regex for unit portion for MRI
-MRI_SCHEMA_REGEX = rf"{ENTITY_TYPE_REGEX}:{NAMESPACE_REGEX}/{MRI_NAME_REGEX}@([\w.]*)"
-MRI_EXPRESSION_REGEX = re.compile(rf"^{OP_REGEX}\(({MRI_SCHEMA_REGEX})\)$")
+MRI_SCHEMA_REGEX_STRING = rf"(?P<entity>{ENTITY_TYPE_REGEX}):(?P<namespace>{NAMESPACE_REGEX})/(?P<name>{MRI_NAME_REGEX})@(?P<unit>[\w.]*)"
+MRI_SCHEMA_REGEX = re.compile(MRI_SCHEMA_REGEX_STRING)
+MRI_EXPRESSION_REGEX = re.compile(rf"^{OP_REGEX}\(({MRI_SCHEMA_REGEX_STRING})\)$")
 
 
 class SessionMRI(Enum):
@@ -101,3 +104,24 @@ class TransactionMRI(Enum):
     MISERABLE_USER = "e:transactions/user.miserable@none"
     ALL_USER = "e:transactions/user.all@none"
     USER_MISERY = "e:transactions/user_misery@ratio"
+
+
+@dataclass
+class ParsedMRI:
+    entity: str
+    namespace: str
+    name: str
+    unit: str
+
+
+def parse_mri(mri_string: str) -> Optional[ParsedMRI]:
+    """Parse a mri string to determine its entity, namespace, name and unit"""
+    match = MRI_SCHEMA_REGEX.match(mri_string)
+    if match is None:
+        return None
+
+    return ParsedMRI(**match.groupdict())
+
+
+def is_custom_measurement(parsed_mri: ParsedMRI) -> bool:
+    return parsed_mri.namespace == "custom"

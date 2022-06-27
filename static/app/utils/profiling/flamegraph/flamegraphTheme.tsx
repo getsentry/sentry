@@ -38,6 +38,7 @@ export interface FlamegraphTheme {
     FRAME_FALLBACK_COLOR: [number, number, number, number];
     GRID_FRAME_BACKGROUND_COLOR: string;
     GRID_LINE_COLOR: string;
+    HIGHLIGHTED_LABEL_COLOR: ColorChannels;
     HOVERED_FRAME_BORDER_COLOR: string;
     LABEL_FONT_COLOR: string;
     MINIMAP_POSITION_OVERLAY_BORDER_COLOR: string;
@@ -146,6 +147,7 @@ export const LightFlamegraphTheme: FlamegraphTheme = {
     GRID_FRAME_BACKGROUND_COLOR: 'rgba(255, 255, 255, 0.8)',
     SEARCH_RESULT_FRAME_COLOR: 'vec4(0.99, 0.70, 0.35, 1.0)',
     SELECTED_FRAME_BORDER_COLOR: '#005aff',
+    HIGHLIGHTED_LABEL_COLOR: [255, 255, 0],
     HOVERED_FRAME_BORDER_COLOR: 'rgba(0, 0, 0, 0.8)',
     CURSOR_CROSSHAIR: '#bbbbbb',
     SPAN_FRAME_BORDER: 'rgba(200, 200, 200, 1)',
@@ -204,6 +206,7 @@ export const DarkFlamegraphTheme: FlamegraphTheme = {
     GRID_FRAME_BACKGROUND_COLOR: 'rgba(0, 0, 0, 0.4)',
     SEARCH_RESULT_FRAME_COLOR: 'vec4(0.99, 0.70, 0.35, 0.7)',
     SELECTED_FRAME_BORDER_COLOR: '#3482ea',
+    HIGHLIGHTED_LABEL_COLOR: [255, 255, 0],
     HOVERED_FRAME_BORDER_COLOR: 'rgba(255, 255, 255, 0.8)',
     CURSOR_CROSSHAIR: '#828285',
     SPAN_FRAME_BORDER: '#57575b',

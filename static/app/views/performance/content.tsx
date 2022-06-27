@@ -13,6 +13,7 @@ import {PageFilters, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {PerformanceEventViewProvider} from 'sentry/utils/performance/contexts/performanceEventViewContext';
+import {MeasureAssetsOnTransaction} from 'sentry/utils/performanceForSentry';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
@@ -21,7 +22,11 @@ import withPageFilters from 'sentry/utils/withPageFilters';
 
 import {DEFAULT_STATS_PERIOD, generatePerformanceEventView} from './data';
 import {PerformanceLanding} from './landing';
-import {addRoutePerformanceContext, handleTrendsClick} from './utils';
+import {
+  addRoutePerformanceContext,
+  getSelectedProjectPlatforms,
+  handleTrendsClick,
+} from './utils';
 
 type Props = {
   location: Location;
@@ -85,10 +90,14 @@ function PerformanceContent({selection, location, demoMode}: Props) {
 
   useEffect(() => {
     if (!mounted.current) {
+      const selectedProjects = getSelectedProjectPlatforms(location, projects);
+
       trackAdvancedAnalyticsEvent('performance_views.overview.view', {
         organization,
         show_onboarding: onboardingProject !== undefined,
+        project_platforms: selectedProjects,
       });
+
       loadOrganizationTags(api, organization.slug, selection);
       addRoutePerformanceContext(selection);
       mounted.current = true;
@@ -105,6 +114,8 @@ function PerformanceContent({selection, location, demoMode}: Props) {
     api,
     organization,
     onboardingProject,
+    location,
+    projects,
   ]);
 
   function setError(newError?: string) {
@@ -148,20 +159,27 @@ function PerformanceContent({selection, location, demoMode}: Props) {
                 period: DEFAULT_STATS_PERIOD,
               },
             }}
-            hideGlobalHeader
           >
-            <PerformanceLanding
-              eventView={eventView}
-              setError={setError}
-              handleSearch={handleSearch}
-              handleTrendsClick={() => handleTrendsClick({location, organization})}
-              onboardingProject={onboardingProject}
-              organization={organization}
-              location={location}
-              projects={projects}
-              selection={selection}
-              withStaticFilters={withStaticFilters}
-            />
+            <MeasureAssetsOnTransaction>
+              <PerformanceLanding
+                eventView={eventView}
+                setError={setError}
+                handleSearch={handleSearch}
+                handleTrendsClick={() =>
+                  handleTrendsClick({
+                    location,
+                    organization,
+                    projectPlatforms: getSelectedProjectPlatforms(location, projects),
+                  })
+                }
+                onboardingProject={onboardingProject}
+                organization={organization}
+                location={location}
+                projects={projects}
+                selection={selection}
+                withStaticFilters={withStaticFilters}
+              />
+            </MeasureAssetsOnTransaction>
           </PageFiltersContainer>
         </MEPSettingProvider>
       </PerformanceEventViewProvider>

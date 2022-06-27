@@ -12,7 +12,7 @@ import CompactSelect from 'sentry/components/forms/compactSelect';
 import NumberField from 'sentry/components/forms/numberField';
 import Option from 'sentry/components/forms/selectOption';
 import Link from 'sentry/components/links/link';
-import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import {Panel, PanelAlert, PanelBody, PanelHeader} from 'sentry/components/panels';
 import Truncate from 'sentry/components/truncate';
 import {IconAdd} from 'sentry/icons';
 import {IconSearch} from 'sentry/icons/iconSearch';
@@ -362,7 +362,6 @@ export function SamplingRuleModal({
 
       if (
         condition.category === SamplingInnerName.EVENT_LOCALHOST ||
-        condition.category === SamplingInnerName.EVENT_BROWSER_EXTENSIONS ||
         condition.category === SamplingInnerName.EVENT_WEB_CRAWLERS
       ) {
         return false;
@@ -423,6 +422,10 @@ export function SamplingRuleModal({
               {t('Conditions')}
               <StyledCompactSelect
                 placement="bottom right"
+                triggerProps={{
+                  size: 'small',
+                  'aria-label': t('Add Condition'),
+                }}
                 triggerLabel={
                   <TriggerLabel>
                     <IconAdd isCircled />
@@ -463,25 +466,23 @@ export function SamplingRuleModal({
               />
             </StyledPanelHeader>
             <PanelBody>
+              {ruleWithoutConditionExists && (
+                <PanelAlert type="info">
+                  {t(
+                    'A rule with no conditions already exists. You can edit that existing rule or add a condition to this rule'
+                  )}
+                </PanelAlert>
+              )}
               {!conditions.length ? (
                 <EmptyMessage
                   icon={<IconSearch size="xl" />}
                   title={t('No conditions added')}
-                  description={
-                    ruleWithoutConditionExists
-                      ? tct(
-                          'A rule without conditions already exists. [lineBreak]Add (+) a condition for creating a new rule',
-                          {
-                            lineBreak: <br />,
-                          }
-                        )
-                      : tct(
-                          "if you don't want to add (+) a condition, [lineBreak]simply, add a sample rate below",
-                          {
-                            lineBreak: <br />,
-                          }
-                        )
-                  }
+                  description={tct(
+                    "if you don't want to add (+) a condition, [lineBreak]simply, add a sample rate below",
+                    {
+                      lineBreak: <br />,
+                    }
+                  )}
                 />
               ) : (
                 <Conditions
