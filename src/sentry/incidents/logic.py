@@ -8,7 +8,6 @@ from django.db import transaction
 from django.db.models.signals import post_save
 from django.utils import timezone
 from snuba_sdk import Column, Condition, Limit, Op
-from snuba_sdk.legacy import json_to_snql
 
 from sentry import analytics, audit_log, features, quotas
 from sentry.auth.access import SystemAccess
@@ -54,9 +53,9 @@ from sentry.snuba.subscriptions import (
     update_snuba_query,
 )
 from sentry.snuba.tasks import build_query_builder
-from sentry.utils import json, metrics
+from sentry.utils import metrics
 from sentry.utils.audit import create_audit_entry_from_user
-from sentry.utils.snuba import is_measurement, raw_snql_query
+from sentry.utils.snuba import is_measurement
 
 # We can return an incident as "windowed" which returns a range of points around the start of the incident
 # It attempts to center the start of the incident, only showing earlier data if there isn't enough time
@@ -326,44 +325,6 @@ def build_incident_query_builder(
     return query_builder
 
 
-def build_incident_query_params(
-    incident, entity_subscription, start=None, end=None, windowed_stats=False
-):
-    params = {}
-    params["start"], params["end"] = calculate_incident_time_range(
-        incident, start, end, windowed_stats=windowed_stats
-    )
-
-    project_ids = list(
-        IncidentProject.objects.filter(incident=incident).values_list("project_id", flat=True)
-    )
-    if project_ids:
-        params["project_id"] = project_ids
-
-    snuba_query = incident.alert_rule.snuba_query
-    snuba_filter = entity_subscription.build_snuba_filter(
-        snuba_query.query,
-        snuba_query.environment,
-        params=params,
-    )
-    time_conditions = [
-        [entity_subscription.time_col, ">=", snuba_filter.start],
-        [entity_subscription.time_col, "<", snuba_filter.end],
-    ]
-
-    return {
-        "dataset": snuba_query.dataset,
-        "project": project_ids,
-        "project_id": project_ids,
-        "conditions": snuba_filter.conditions + time_conditions,
-        "filter_keys": snuba_filter.filter_keys,
-        "having": [],
-        "aggregations": snuba_filter.aggregations,
-        "limit": 10000,
-        **entity_subscription.get_entity_extra_params(),
-    }
-
-
 def calculate_incident_time_range(incident, start=None, end=None, windowed_stats=False):
     time_window = (
         incident.alert_rule.snuba_query.time_window if incident.alert_rule is not None else 60
@@ -416,67 +377,20 @@ def get_incident_aggregates(
         time_window=snuba_query.time_window,
         extra_fields={"org_id": incident.organization.id, "event_types": snuba_query.event_types},
     )
-    if features.has("organizations:metric-alert-snql", incident.organization):
-        query_builder = build_incident_query_builder(
-            incident, entity_subscription, start, end, windowed_stats
+    query_builder = build_incident_query_builder(
+        incident, entity_subscription, start, end, windowed_stats
+    )
+    try:
+        results = query_builder.run_query(referrer="incidents.get_incident_aggregates")
+    except Exception:
+        metrics.incr(
+            "incidents.get_incident_aggregates.snql.query.error",
+            tags={
+                "dataset": snuba_query.dataset,
+                "entity": entity_subscription.entity_key.value,
+            },
         )
-        try:
-            results = query_builder.run_query(referrer="incidents.get_incident_aggregates")
-        except Exception:
-            metrics.incr(
-                "incidents.get_incident_aggregates.snql.query.error",
-                tags={
-                    "dataset": snuba_query.dataset,
-                    "entity": entity_subscription.entity_key.value,
-                },
-            )
-            raise
-    else:
-        query_params = build_incident_query_params(
-            incident, entity_subscription, start, end, windowed_stats
-        )
-        query_params["aggregations"][0][2] = "count"
-
-        try:
-            snql_query = json_to_snql(query_params, entity_subscription.entity_key.value)
-            snql_query.validate()
-        except Exception as e:
-            logger.error(
-                "incidents.get_incident_aggregates.snql.parsing.error",
-                extra={
-                    "error": str(e),
-                    "params": json.dumps(query_params),
-                    "dataset": snuba_query.dataset,
-                },
-            )
-            metrics.incr(
-                "incidents.get_incident_aggregates.snql.parsing.error",
-                tags={
-                    "dataset": snuba_query.dataset,
-                    "entity": entity_subscription.entity_key.value,
-                },
-            )
-            raise e
-
-        try:
-            results = raw_snql_query(snql_query, referrer="incidents.get_incident_aggregates")
-        except Exception as e:
-            logger.error(
-                "incidents.get_incident_aggregates.snql.query.error",
-                extra={
-                    "error": str(e),
-                    "params": json.dumps(query_params),
-                    "dataset": snuba_query.dataset,
-                },
-            )
-            metrics.incr(
-                "incidents.get_incident_aggregates.snql.query.error",
-                tags={
-                    "dataset": snuba_query.dataset,
-                    "entity": entity_subscription.entity_key.value,
-                },
-            )
-            raise e
+        raise
 
     aggregated_result = entity_subscription.aggregate_query_results(results["data"], alias="count")
     return aggregated_result[0]
