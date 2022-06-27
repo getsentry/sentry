@@ -2,7 +2,6 @@ import {forwardRef as reactForwardRef} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {Theme} from 'sentry/utils/theme';
@@ -278,6 +277,8 @@ const Label = styled('p')`
   margin-bottom: 0;
   line-height: 1.4;
   white-space: nowrap;
+
+  ${p => p.theme.overflowEllipsis}
 `;
 
 const Details = styled('p')<{isDisabled: boolean; priority: Priority}>`
@@ -285,7 +286,7 @@ const Details = styled('p')<{isDisabled: boolean; priority: Priority}>`
   color: ${p => p.theme.subText};
   line-height: 1.2;
   margin-bottom: 0;
-  ${overflowEllipsis}
+  ${p => p.theme.overflowEllipsis}
 
   ${p => p.priority !== 'default' && `color: ${getTextColor(p)};`}
 `;
