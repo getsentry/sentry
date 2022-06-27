@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {ResponseMeta} from 'sentry/api';
@@ -113,23 +113,9 @@ type Options = {
    */
   shouldReload?: boolean;
   /**
-   * When enabling reloadOnVisible, this flag may be used to turn on and off
-   * the reloading. This is useful if your component only needs to reload when
-   * becoming visible during certain states.
-   *
-   * eslint-disable-next-line react/sort-comp
-   */
-  shouldReloadOnVisible?: boolean;
-  /**
    * should `renderError` render the `detail` attribute of a 400 error
    */
   shouldRenderBadRequests?: boolean;
-};
-
-type MetricsState = {
-  error: boolean;
-  finished: boolean;
-  hasMeasured: boolean;
 };
 
 function renderLoading() {
@@ -139,7 +125,6 @@ function renderLoading() {
 function useApiRequests({
   endpoints = [],
   reloadOnVisible = false,
-  shouldReloadOnVisible = false,
   shouldReload = false,
   shouldRenderBadRequests = false,
   disableErrorReport = true,
@@ -149,15 +134,9 @@ function useApiRequests({
 }: Options): Result {
   const api = useApi();
   const location = useLocation();
-  const routes = useRoutes();
   const params = useParams();
 
-  const [measurement, setMeasurement] = useState<MetricsState>({
-    hasMeasured: false,
-    finished: false,
-    error: false,
-  });
-
+  // Memoize the initialState so we can easily reuse it later
   const initialState = useMemo<State>(
     () => ({
       data: {},
@@ -172,114 +151,39 @@ function useApiRequests({
 
   const [state, setState] = useState<State>({...initialState});
 
-  useEffect(() => {
-    const mount = async () => {
-      try {
-        await fetchData();
-      } catch (error) {
-        setState(prevState => ({...prevState, hasError: true}));
-        throw error;
-      }
-    };
-    if (routes && routes.length) {
-      metric.mark({name: `async-component-${getRouteStringFromRoutes(routes)}`});
-    }
+  // Begin measuring the use of the hook for the given route
+  const triggerMeasurement = useMeasureApiRequests();
 
-    if (reloadOnVisible) {
-      document.addEventListener('visibilitychange', visibilityReloader);
-    }
+  const handleRequestSuccess = useCallback(
+    (
+      {stateKey, data, resp}: {data: any; stateKey: string; resp?: ResponseMeta},
+      initialRequest?: boolean
+    ) => {
+      setState(prevState => {
+        const newState = {
+          ...prevState,
+          data: {
+            ...prevState.data,
+            [stateKey]: data,
+            [`${stateKey}PageLinks`]: resp?.getResponseHeader('Link'),
+          },
+        };
 
-    mount();
+        if (initialRequest) {
+          newState.remainingRequests = prevState.remainingRequests - 1;
+          newState.isLoading = prevState.remainingRequests > 1;
+          newState.isReloading = prevState.isReloading && newState.isLoading;
+          triggerMeasurement({finished: newState.remainingRequests === 0});
+        }
 
-    return () => {
-      // Anything in here is fired on component unmount.
-      api.clear();
-      document.removeEventListener('visibilitychange', visibilityReloader);
-    };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    // Take a measurement from when this component is initially created until it finishes it's first
-    // set of API requests
-    if (!measurement.hasMeasured && measurement.finished && routes) {
-      const routeString = getRouteStringFromRoutes(routes);
-      metric.measure({
-        name: 'app.component.async-component',
-        start: `async-component-${routeString}`,
-        data: {
-          route: routeString,
-          error: measurement.error,
-        },
+        return newState;
       });
-      setMeasurement({...measurement, hasMeasured: true});
-    }
-  }, [measurement, routes]);
 
-  useEffect(() => void remountComponent(), [location.search, location.state, params]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    if (endpoints.length && state.remainingRequests === 0 && !state.hasError) {
-      onLoadAllEndpointsSuccess();
-    }
-  }, [state.remainingRequests, state.hasError, endpoints.length]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Check if we should measure render time for this component
-  function markShouldMeasure({
-    remainingRequests,
-    error,
-  }: {error?: boolean; remainingRequests?: number} = {}) {
-    if (measurement.hasMeasured) {
-      setMeasurement({
-        ...measurement,
-        finished: remainingRequests === 0,
-        error: error || measurement.error,
-      });
-    }
-  }
-
-  function remountComponent() {
-    if (shouldReload) {
-      return reloadData();
-    }
-    setState({...initialState});
-    return fetchData();
-  }
-
-  function visibilityReloader() {
-    return shouldReloadOnVisible && !state.isLoading && !document.hidden && reloadData();
-  }
-
-  function reloadData() {
-    return fetchData({isReloading: true});
-  }
-
-  function handleRequestSuccess(
-    {stateKey, data, resp}: {data: any; stateKey: string; resp?: ResponseMeta},
-    initialRequest?: boolean
-  ) {
-    setState(prevState => {
-      const newState = {
-        ...prevState,
-        data: {
-          ...prevState.data,
-          [stateKey]: data,
-          [`${stateKey}PageLinks`]: resp?.getResponseHeader('Link'),
-        },
-      };
-
-      if (initialRequest) {
-        newState.remainingRequests = prevState.remainingRequests! - 1;
-        newState.isLoading = prevState.remainingRequests! > 1;
-        newState.isReloading = prevState.isReloading && newState.isLoading;
-        markShouldMeasure({remainingRequests: newState.remainingRequests});
-      }
-
-      return newState;
-    });
-
-    // if everything is loaded and we don't have an error, call the callback
-    onRequestSuccess({stateKey, data, resp});
-  }
+      // if everything is loaded and we don't have an error, call the callback
+      onRequestSuccess({stateKey, data, resp});
+    },
+    [onRequestSuccess, triggerMeasurement]
+  );
 
   const handleError = useCallback(
     (error: RequestError, args: EndpointDefinition) => {
@@ -294,7 +198,7 @@ function useApiRequests({
       }
 
       setState(prevState => {
-        const isLoading = prevState.remainingRequests! > 1;
+        const isLoading = prevState.remainingRequests > 1;
         const newState = {
           errors: {
             ...prevState.errors,
@@ -305,69 +209,125 @@ function useApiRequests({
             [stateKey]: null,
           },
           hasError: prevState.hasError || !!error,
-          remainingRequests: prevState.remainingRequests! - 1,
+          remainingRequests: prevState.remainingRequests - 1,
           isLoading,
           isReloading: prevState.isReloading && isLoading,
         };
-        markShouldMeasure({remainingRequests: newState.remainingRequests, error: true});
+        triggerMeasurement({finished: newState.remainingRequests === 0, error: true});
         return newState;
       });
 
       onRequestError(error, args);
     },
-    [markShouldMeasure, onRequestError]
+    [triggerMeasurement, onRequestError]
   );
 
-  async function fetchData(extraState: Partial<State> = {}) {
-    if (!endpoints.length) {
+  const fetchData = useCallback(
+    async (extraState: Partial<State> = {}) => {
+      // Nothing to fetch if enpoints are empty
+      if (!endpoints.length) {
+        setState(prevState => ({
+          ...prevState,
+          data: {},
+          isLoading: false,
+          hasError: false,
+        }));
+
+        return;
+      }
+
+      // Cancel any in flight requests
+      api.clear();
+
       setState(prevState => ({
         ...prevState,
-        isLoading: false,
+        isLoading: true,
         hasError: false,
+        remainingRequests: endpoints.length,
+        ...extraState,
       }));
-      return;
+
+      await Promise.all(
+        endpoints.map(async ([stateKey, endpoint, parameters, options]) => {
+          options = options ?? {};
+          // If you're using nested async components/views make sure to pass the
+          // props through so that the child component has access to props.location
+          const locationQuery = (location && location.query) || {};
+          let query = (parameters && parameters.query) || {};
+          // If paginate option then pass entire `query` object to API call
+          // It should only be expecting `query.cursor` for pagination
+          if ((options.paginate || locationQuery.cursor) && !options.disableEntireQuery) {
+            query = {...locationQuery, ...query};
+          }
+          try {
+            const results = await api.requestPromise(endpoint, {
+              method: 'GET',
+              ...parameters,
+              query,
+              includeAllArgs: true,
+            });
+            const [data, _, resp] = results;
+            handleRequestSuccess({stateKey, data, resp}, true);
+          } catch (error) {
+            handleError(error, [stateKey, endpoint, parameters, options]);
+          }
+        })
+      );
+    },
+    [api, endpoints, handleError, handleRequestSuccess, location]
+  );
+
+  const reloadData = useCallback(() => fetchData({isReloading: true}), [fetchData]);
+
+  const handleMount = useCallback(async () => {
+    try {
+      await fetchData();
+    } catch (error) {
+      setState(prevState => ({...prevState, hasError: true}));
+      throw error;
+    }
+  }, [fetchData]);
+
+  // Trigger fetch on mount
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => void handleMount(), []);
+
+  const handleFullReload = useCallback(() => {
+    if (shouldReload) {
+      return reloadData();
+    }
+    setState({...initialState});
+    return fetchData();
+  }, [initialState, reloadData, fetchData, shouldReload]);
+
+  // Trigger fetch on location or parameter change
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => void handleFullReload(), [location.search, location.state, params]);
+
+  const visibilityReloader = useCallback(
+    () => !state.isLoading && !document.hidden && reloadData(),
+    [state.isLoading, reloadData]
+  );
+
+  // Trigger fetch on visible change when using visibilityReloader
+  useEffect(() => {
+    if (reloadOnVisible) {
+      document.addEventListener('visibilitychange', visibilityReloader);
     }
 
-    // Cancel any in flight requests
-    api.clear();
+    return () => document.removeEventListener('visibilitychange', visibilityReloader);
+  }, [reloadOnVisible, visibilityReloader]);
 
-    setState(prevState => ({
-      ...prevState,
-      isLoading: true,
-      hasError: false,
-      remainingRequests: endpoints.length,
-      ...extraState,
-    }));
-
-    await Promise.all(
-      endpoints.map(async ([stateKey, endpoint, parameters, options]) => {
-        options = options || {};
-        // If you're using nested async components/views make sure to pass the
-        // props through so that the child component has access to props.location
-        const locationQuery = (location && location.query) || {};
-        let query = (parameters && parameters.query) || {};
-        // If paginate option then pass entire `query` object to API call
-        // It should only be expecting `query.cursor` for pagination
-        if ((options.paginate || locationQuery.cursor) && !options.disableEntireQuery) {
-          query = {...locationQuery, ...query};
-        }
-        try {
-          const results = await api.requestPromise(endpoint, {
-            method: 'GET',
-            ...parameters,
-            query,
-            includeAllArgs: true,
-          });
-          const [data, _, resp] = results;
-          handleRequestSuccess({stateKey, data, resp}, true);
-        } catch (error) {
-          handleError(error, [stateKey, endpoint, parameters, options]);
-        }
-      })
-    );
-  }
-
-  const shouldRenderLoading = state.isLoading && (!shouldReload || !state.isReloading);
+  // Trigger onLoadAllEndpointsSuccess when everything has been loaded
+  useEffect(
+    () => {
+      if (endpoints.length && state.remainingRequests === 0 && !state.hasError) {
+        onLoadAllEndpointsSuccess();
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [state.remainingRequests, state.hasError, endpoints.length]
+  );
 
   const renderError = useCallback(
     (error?: Error, disableLog = false): React.ReactElement => {
@@ -417,6 +377,8 @@ function useApiRequests({
     [state.errors, disableErrorReport, shouldRenderBadRequests]
   );
 
+  const shouldRenderLoading = state.isLoading && (!shouldReload || !state.isReloading);
+
   const renderComponent = useCallback(
     (children: React.ReactElement) =>
       shouldRenderLoading
@@ -431,3 +393,75 @@ function useApiRequests({
 }
 
 export default useApiRequests;
+
+type MetricsState = {
+  error: boolean;
+  finished: boolean;
+  hasMeasured: boolean;
+};
+
+type MetricUpdate = Partial<Pick<MetricsState, 'finished' | 'error'>>;
+
+/**
+ * Helper hook that marks a measurement when the component mounts.
+ *
+ * Use the `triggerMeasurement` function to trigger a measurement when the
+ * useApiRequests hook has finished loading all requests. Will only trigger once
+ */
+function useMeasureApiRequests() {
+  const routes = useRoutes();
+
+  const measurement = useRef<MetricsState>({
+    hasMeasured: false,
+    finished: false,
+    error: false,
+  });
+
+  // Start measuring immediately upon mount. We re-mark if the route list has
+  // changed, since the component is now being used under a different route
+  useEffect(() => {
+    // Reset the measurement object
+    measurement.current = {
+      hasMeasured: false,
+      finished: false,
+      error: false,
+    };
+
+    if (routes && routes.length) {
+      metric.mark({name: `async-component-${getRouteStringFromRoutes(routes)}`});
+    }
+  }, [routes]);
+
+  const triggerMeasurement = useCallback(
+    ({finished, error}: MetricUpdate) => {
+      if (!routes) {
+        return;
+      }
+
+      if (finished) {
+        measurement.current.finished = true;
+      }
+
+      if (error) {
+        measurement.current.error = true;
+      }
+
+      if (!measurement.current.hasMeasured && measurement.current.finished) {
+        const routeString = getRouteStringFromRoutes(routes);
+        metric.measure({
+          name: 'app.component.async-component',
+          start: `async-component-${routeString}`,
+          data: {
+            route: routeString,
+            error: measurement.current.error,
+          },
+        });
+
+        measurement.current.hasMeasured = true;
+      }
+    },
+    [routes]
+  );
+
+  return triggerMeasurement;
+}
