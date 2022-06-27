@@ -57,6 +57,7 @@ default_manager.add("auth:register")
 default_manager.add("organizations:create")
 
 # Organization scoped features that are in development or in customer trials.
+default_manager.add("organizations:active-release-notification-opt-in", OrganizationFeature, True)
 default_manager.add("organizations:alert-filters", OrganizationFeature)
 default_manager.add("organizations:alert-crash-free-metrics", OrganizationFeature, True)
 default_manager.add("organizations:alert-release-notification-workflow", OrganizationFeature, True)
@@ -140,11 +141,12 @@ default_manager.add("organizations:set-grouping-config", OrganizationFeature)
 default_manager.add("organizations:slack-overage-notifications", OrganizationFeature, True)
 default_manager.add("organizations:symbol-sources", OrganizationFeature)
 default_manager.add("organizations:team-roles", OrganizationFeature, True)
-default_manager.add("organizations:transaction-metrics-extraction", OrganizationFeature)
+default_manager.add("organizations:transaction-metrics-extraction", OrganizationFeature, True)
 default_manager.add("organizations:unified-span-view", OrganizationFeature, True)
 default_manager.add("organizations:widget-library", OrganizationFeature, True)
 default_manager.add("organizations:widget-viewer-modal", OrganizationFeature, True)
 default_manager.add("organizations:widget-viewer-modal-minimap", OrganizationFeature, True)
+default_manager.add("organizations:dashboard-custom-measurement-widgets", OrganizationFeature, True)
 
 # NOTE: Don't add features down here! Add them to their specific group and sort
 #       them alphabetically! The order features are registered is not important.

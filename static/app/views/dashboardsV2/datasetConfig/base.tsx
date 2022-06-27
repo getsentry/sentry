@@ -60,16 +60,32 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     pageFilters: PageFilters
   ) => TableData;
   /**
+   * Configure enabling/disabling sort/direction options with an
+   * optional message for why it is disabled.
+   */
+  disableSortOptions?: (widgetQuery: WidgetQuery) => {
+    disableSort: boolean;
+    disableSortDirection: boolean;
+    disableSortReason?: string;
+  };
+  /**
    * Used for mapping column names to more desirable
    * values in tables.
    */
   fieldHeaderMap?: Record<string, string>;
   /**
    * Filter the options available to the parameters list
-   * of an aggregate function in a table widget column on the
+   * of an aggregate function in QueryField component on the
    * Widget Builder.
    */
-  filterTableAggregateParams?: (option: FieldValueOption) => boolean;
+  filterAggregateParams?: (option: FieldValueOption) => boolean;
+  /**
+   * Refine the options available in the sort options for timeseries
+   * displays on the 'Sort by' step of the Widget Builder.
+   */
+  filterSeriesSortOptions?: (
+    columns: Set<string>
+  ) => (option: FieldValueOption) => boolean;
   /**
    * Filter the primary options available in a table widget
    * columns on the Widget Builder.
@@ -83,6 +99,13 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     meta: MetaType,
     organization?: Organization
   ) => ReturnType<typeof getFieldRenderer> | null;
+  /**
+   * Field options to display in the Group by selector.
+   */
+  getGroupByFieldOptions?: (
+    organization: Organization,
+    tags?: TagCollection
+  ) => Record<string, SelectValue<FieldValue>>;
   /**
    * Generate the request promises for fetching
    * series data.
@@ -108,6 +131,23 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     cursor?: string,
     referrer?: string
   ) => ReturnType<Client['requestPromise']>;
+  /**
+   * Generate the list of sort options for table
+   * displays on the 'Sort by' step of the Widget Builder.
+   */
+  getTableSortOptions?: (
+    organization: Organization,
+    widgetQuery: WidgetQuery
+  ) => SelectValue<string>[];
+  /**
+   * Generate the list of sort options for timeseries
+   * displays on the 'Sort by' step of the Widget Builder.
+   */
+  getTimeseriesSortOptions?: (
+    organization: Organization,
+    widgetQuery: WidgetQuery,
+    tags?: TagCollection
+  ) => Record<string, SelectValue<FieldValue>>;
   /**
    * Generate the request promises for fetching
    * world map data.

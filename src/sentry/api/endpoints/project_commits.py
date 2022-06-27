@@ -22,17 +22,23 @@ class ProjectCommitsEndpoint(ProjectEndpoint):
                                           commit belongs to.
         :pparam string project_slug: the slug of the project to list the
                                      commits of.
+        :qparam string query: this parameter can be used to create a
+                              "starts with" filter for the commit key.
         """
+        query = request.GET.get("query")
 
         queryset = Commit.objects.filter(
             organization_id=project.organization_id,
             releasecommit__release__releaseproject__project_id=project.id,
-        ).distinct("id")
+        )
+
+        if query:
+            queryset = queryset.filter(key__istartswith=query)
 
         return self.paginate(
             request=request,
             queryset=queryset,
-            order_by=("-id", "-date_added"),
+            order_by=("key", "-date_added") if query else "-date_added",
             on_results=lambda x: serialize(x, request.user),
             paginator_cls=OffsetPaginator,
         )

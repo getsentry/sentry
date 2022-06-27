@@ -5,13 +5,7 @@ from django.db.models import DateTimeField
 from django.utils import timezone
 
 from sentry.eventstore.models import Event
-from sentry.models import (
-    Deploy,
-    Environment,
-    Release,
-    ReleaseEnvironment,
-    ReleaseProjectEnvironment,
-)
+from sentry.models import Deploy, Release, ReleaseEnvironment, ReleaseProjectEnvironment
 from sentry.rules import EventState
 from sentry.rules.conditions.base import EventCondition
 
@@ -30,51 +24,55 @@ class ActiveReleaseEventCondition(EventCondition):
         if not event.group or not event.project:
             return False
 
-        last_release_version: Optional[str] = event.group.get_last_release()
-        if not last_release_version:
+        event_release = Release.objects.filter(
+            organization_id=event.project.organization_id,
+            projects__id=event.project_id,
+            version=event.release,
+        ).first()
+
+        if not event_release:
             return False
 
-        last_release: Release = Release.get(project=event.project, version=last_release_version)
-        if not last_release:
-            return False
-
-        def release_deploy_time(
-            release: Release, env: Optional[Environment]
-        ) -> Optional[DateTimeField]:
+        def release_deploy_time(release: Release, env_id: Optional[int]) -> Optional[DateTimeField]:
             # check deploy -> release first
             # then Release.date_released
             # then EnvironmentRelease.first_seen
-            last_deploy: Deploy = Deploy.objects.filter(id=release.last_deploy_id).first()
+            last_deploy: Deploy = (
+                Deploy.objects.filter(release_id=release.id).order_by("-date_finished").first()
+                or Deploy.objects.filter(id=release.last_deploy_id).first()
+            )
             if last_deploy:
                 return last_deploy.date_finished
             else:
                 if release.date_released:
                     return release.date_released
                 else:
-                    if env:
-                        release_env_project = ReleaseProjectEnvironment.objects.filter(
-                            release_id=release.id, project=release.project_id, environment_id=env.id
+                    if env_id:
+                        release_project_env = ReleaseProjectEnvironment.objects.filter(
+                            release_id=release.id, project=release.project_id, environment_id=env_id
                         ).first()
 
                         release_env = ReleaseEnvironment.objects.filter(
-                            release_id=release.id, environment_id=env.id
+                            release_id=release.id, environment_id=env_id
                         ).first()
 
-                        if release_env_project and release_env_project.first_seen:
-                            return release_env_project.first_seen
+                        if release_project_env and release_project_env.first_seen:
+                            return release_project_env.first_seen
 
                         if release_env and release_env.first_seen:
                             return release_env.first_seen
+
             return None
 
-        deploy_time = release_deploy_time(last_release, event.get_environment())
+        evt_env = event.get_environment()
+        deploy_time = release_deploy_time(event_release, evt_env.id if evt_env else None)
         if deploy_time:
-            return bool(now_minus_1_hour.timestamp() <= deploy_time <= now)
+            return bool(now_minus_1_hour <= deploy_time <= now)
 
         return False
 
     def passes(self, event: Event, state: EventState) -> bool:
-        if self.rule.environment_id is None:  # type: ignore
+        if self.rule and self.rule.environment_id is None:
             return (state.is_new or state.is_regression) and self.is_in_active_release(event)
         else:
             return (

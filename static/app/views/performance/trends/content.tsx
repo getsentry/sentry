@@ -6,9 +6,9 @@ import {Location} from 'history';
 import Alert from 'sentry/components/alert';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import DatePageFilter from 'sentry/components/datePageFilter';
-import DropdownControl, {DropdownItem} from 'sentry/components/dropdownControl';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import SearchBar from 'sentry/components/events/searchBar';
+import CompactSelect from 'sentry/components/forms/compactSelect';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
@@ -215,7 +215,6 @@ class TrendsContent extends Component<Props, State> {
         defaultSelection={{
           datetime: defaultTrendsSelectionDate,
         }}
-        hideGlobalHeader
       >
         <Layout.Header>
           <Layout.HeaderContent>
@@ -251,40 +250,24 @@ class TrendsContent extends Component<Props, State> {
                   onSearch={this.handleSearch}
                   maxQueryLength={MAX_QUERY_LENGTH}
                 />
-                <div data-test-id="trends-dropdown">
-                  <DropdownControl
-                    buttonProps={{prefix: t('Percentile')}}
-                    label={currentTrendFunction.label}
-                  >
-                    {TRENDS_FUNCTIONS.map(({label, field}) => (
-                      <DropdownItem
-                        key={field}
-                        onSelect={this.handleTrendFunctionChange}
-                        eventKey={field}
-                        data-test-id={field}
-                        isActive={field === currentTrendFunction.field}
-                      >
-                        {label}
-                      </DropdownItem>
-                    ))}
-                  </DropdownControl>
-                </div>
-                <DropdownControl
-                  buttonProps={{prefix: t('Parameter')}}
-                  label={currentTrendParameter.label}
-                >
-                  {TRENDS_PARAMETERS.map(({label}) => (
-                    <DropdownItem
-                      key={label}
-                      onSelect={this.handleParameterChange}
-                      eventKey={label}
-                      data-test-id={label}
-                      isActive={label === currentTrendParameter.label}
-                    >
-                      {label}
-                    </DropdownItem>
-                  ))}
-                </DropdownControl>
+                <CompactSelect
+                  triggerProps={{prefix: t('Percentile')}}
+                  value={currentTrendFunction.field}
+                  options={TRENDS_FUNCTIONS.map(({label, field}) => ({
+                    value: field,
+                    label,
+                  }))}
+                  onChange={opt => this.handleTrendFunctionChange(opt.value)}
+                />
+                <CompactSelect
+                  triggerProps={{prefix: t('Parameter')}}
+                  value={currentTrendParameter.label}
+                  options={TRENDS_PARAMETERS.map(({label}) => ({
+                    value: label,
+                    label,
+                  }))}
+                  onChange={opt => this.handleParameterChange(opt.value)}
+                />
               </FilterActions>
               <ListContainer>
                 <ChangedTransactions

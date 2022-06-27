@@ -24,6 +24,8 @@ from sentry.utils.settings import is_self_hosted
 
 logger: logging.Logger = logging.getLogger(__name__)
 
+PREFILLED_SU_MODAL_KEY = "prefilled_su_modal"
+
 
 class AuthIndexEndpoint(Endpoint):
     """
@@ -108,7 +110,9 @@ class AuthIndexEndpoint(Endpoint):
         authenticated = None
 
         def _require_password_or_u2f_check():
-            if not is_self_hosted() and VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON:
+            if (
+                not is_self_hosted() and VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON
+            ) or DISABLE_SSO_CHECK_SU_FORM_FOR_LOCAL_DEV:
                 # Don't need to check password as its only for self-hosted users or if superuser form is turned off
                 return False
             if request.user.has_usable_password():
@@ -127,6 +131,7 @@ class AuthIndexEndpoint(Endpoint):
                 not has_completed_sso(request, Superuser.org_id)
                 and not DISABLE_SSO_CHECK_SU_FORM_FOR_LOCAL_DEV
             ):
+                request.session[PREFILLED_SU_MODAL_KEY] = request.data
                 self._reauthenticate_with_sso(request, Superuser.org_id)
             # below is a special case if the user is a superuser but doesn't have a password or
             # u2f device set up, the only way to authenticate this case is to see if they have a
