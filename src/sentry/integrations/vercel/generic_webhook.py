@@ -21,7 +21,6 @@ from sentry.models import (
 )
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.utils.audit import create_audit_entry
-from sentry.utils.compat import filter
 from sentry.utils.http import absolute_uri
 
 logger = logging.getLogger("sentry.integrations.vercel.uninstall")
@@ -302,7 +301,7 @@ class VercelGenericWebhookEndpoint(Endpoint):
         # for each org integration, search the configs to find one that matches the vercel project of the webhook
         for org_integration in org_integrations:
             project_mappings = org_integration.config.get("project_mappings") or []
-            matched_mappings = filter(lambda x: x[1] == vercel_project_id, project_mappings)
+            matched_mappings = list(filter(lambda x: x[1] == vercel_project_id, project_mappings))
             if matched_mappings:
                 organization = org_integration.organization
                 sentry_project_id = matched_mappings[0][0]

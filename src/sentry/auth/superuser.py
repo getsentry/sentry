@@ -63,6 +63,10 @@ UNSET = object()
 
 ENABLE_SU_UPON_LOGIN_FOR_LOCAL_DEV = getattr(settings, "ENABLE_SU_UPON_LOGIN_FOR_LOCAL_DEV", False)
 
+DISABLE_SSO_CHECK_SU_FORM_FOR_LOCAL_DEV = getattr(
+    settings, "DISABLE_SSO_CHECK_SU_FORM_FOR_LOCAL_DEV", False
+)
+
 
 def is_active_superuser(request):
     if is_system_auth(getattr(request, "auth", None)):
@@ -146,7 +150,8 @@ class Superuser:
         # if we've bound superuser to an organization they must
         # have completed SSO to gain status
         if self.org_id and not has_completed_sso(self.request, self.org_id):
-            return False, "incomplete-sso"
+            if not DISABLE_SSO_CHECK_SU_FORM_FOR_LOCAL_DEV:
+                return False, "incomplete-sso"
         # if there's no IPs configured, we allow assume its the same as *
         if not allowed_ips:
             return True, None
@@ -320,7 +325,7 @@ class Superuser:
         self.is_valid = False
         self.request.session.pop(SESSION_KEY, None)
 
-    def set_logged_in(self, user, current_datetime=None):
+    def set_logged_in(self, user, prefilled_su_modal=None, current_datetime=None):
         """
         Mark a session as superuser-enabled.
         """
@@ -352,23 +357,26 @@ class Superuser:
             enable_and_log_superuser_access()
             return
 
-        try:
-            # need to use json loads as the data is no longer in request.data
-            su_access_json = json.loads(request.body)
-        except json.JSONDecodeError:
-            metrics.incr(
-                "superuser.failure",
-                sample_rate=1.0,
-                tags={"reason": SuperuserAccessFormInvalidJson.code},
-            )
-            raise SuperuserAccessFormInvalidJson()
-        except AttributeError:
-            metrics.incr(
-                "superuser.failure",
-                sample_rate=1.0,
-                tags={"reason": EmptySuperuserAccessForm.code},
-            )
-            raise EmptySuperuserAccessForm()
+        if prefilled_su_modal:
+            su_access_json = prefilled_su_modal
+        else:
+            try:
+                # need to use json loads as the data is no longer in request.data
+                su_access_json = json.loads(request.body)
+            except json.JSONDecodeError:
+                metrics.incr(
+                    "superuser.failure",
+                    sample_rate=1.0,
+                    tags={"reason": SuperuserAccessFormInvalidJson.code},
+                )
+                raise SuperuserAccessFormInvalidJson()
+            except AttributeError:
+                metrics.incr(
+                    "superuser.failure",
+                    sample_rate=1.0,
+                    tags={"reason": EmptySuperuserAccessForm.code},
+                )
+                raise EmptySuperuserAccessForm()
 
         su_access_info = SuperuserAccessSerializer(data=su_access_json)
 

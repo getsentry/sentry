@@ -32,6 +32,8 @@ type Props = RouteComponentProps<{orgId: string}, {}> & {
 };
 
 type State = {
+  alertRuleCount?: number;
+  issueRuleCount?: number;
   ruleList?: CombinedMetricIssueAlerts[];
   teamFilterSearch?: string;
 };
@@ -59,6 +61,17 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
         },
       ],
     ];
+  }
+
+  onRequestSuccess({stateKey, resp}) {
+    if (stateKey === 'ruleList') {
+      const issueRuleCount = resp.getResponseHeader('X-Sentry-Issue-Rule-Hits');
+      const alertRuleCount = resp.getResponseHeader('X-Sentry-Alert-Rule-Hits');
+      this.setState({
+        issueRuleCount: parseInt(issueRuleCount, 10),
+        alertRuleCount: parseInt(alertRuleCount, 10),
+      });
+    }
   }
 
   get projectsFromIncidents() {
@@ -141,7 +154,13 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
       organization,
       router,
     } = this.props;
-    const {loading, ruleList = [], ruleListPageLinks} = this.state;
+    const {
+      loading,
+      ruleList = [],
+      ruleListPageLinks,
+      issueRuleCount,
+      alertRuleCount,
+    } = this.state;
     const {query} = location;
     const hasEditAccess = organization.access.includes('alerts:write');
 
@@ -162,7 +181,10 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
     return (
       <Layout.Body>
         <Layout.Main fullWidth>
-          <HookHeader organization={organization} ruleList={ruleList} />
+          {issueRuleCount !== undefined &&
+            issueRuleCount > 0 &&
+            alertRuleCount === 0 &&
+            !query.name && <HookHeader organization={organization} />}
           <FilterBar
             location={location}
             onChangeFilter={this.handleChangeFilter}
