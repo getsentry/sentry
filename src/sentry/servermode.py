@@ -22,15 +22,7 @@ class ServerComponentMode(Enum):
             return cls.MONOLITH
         if isinstance(mode, ServerComponentMode):
             return mode
-
-        try:
-            obj = getattr(cls, mode)
-            if isinstance(obj, cls):
-                return obj
-        except AttributeError:
-            pass
-
-        raise ValueError(f"Not a {cls.__name__} name: {mode!r}")
+        return cls[mode]
 
     def __str__(self) -> str:
         return self.value
