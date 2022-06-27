@@ -1,10 +1,10 @@
 import {useEffect, useState} from 'react';
 
-import {Client} from 'sentry/api';
+import {Client, ResponseMeta} from 'sentry/api';
 import {t} from 'sentry/locale';
 import {Organization, PageFilters} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
-import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import {TableDataRow, TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 
 import {DatasetConfig} from '../datasetConfig/base';
 import {DEFAULT_TABLE_LIMIT, DisplayType, Widget} from '../types';
@@ -27,7 +27,19 @@ export type GenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
   widget: Widget;
   cursor?: string;
   limit?: number;
-  onDataFetched?: (props: any) => void;
+  onDataFetched?: ({
+    tableResults,
+    timeseriesResults,
+    issuesResults,
+    totalIssuesCount,
+    pageLinks,
+  }: {
+    issuesResults?: TableDataRow[];
+    pageLinks?: string;
+    tableResults?: TableDataWithTitle[];
+    timeseriesResults?: Series[];
+    totalIssuesCount?: string;
+  }) => void;
   processRawResult?: (result: any) => void;
   processRawTableResult?: (result: any) => void;
 };
@@ -73,7 +85,7 @@ function GenericWidgetQueries<SeriesResponse, TableResponse>({
 
   useEffect(() => {
     async function fetchTableData() {
-      const responses = await Promise.all(
+      const responses = await Promise.all<[TableResponse, string, ResponseMeta]>(
         widget.queries.map(query => {
           let requestLimit: number | undefined = limit ?? DEFAULT_TABLE_LIMIT;
           let requestCreator = config.getTableRequest;
@@ -125,7 +137,7 @@ function GenericWidgetQueries<SeriesResponse, TableResponse>({
     }
 
     async function fetchSeriesData() {
-      const responses = await Promise.all(
+      const responses = await Promise.all<SeriesResponse>(
         widget.queries.map((_query, index) => {
           return config.getSeriesRequest!(
             api,
