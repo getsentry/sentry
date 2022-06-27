@@ -45,7 +45,7 @@ const PanelHeader = styled(BasePanelHeader)`
 const PanelBody = styled(BasePanelBody)`
   padding: ${space(1.5)};
   overflow-y: auto;
-  max-height: 100%;
+  max-height: calc(100% - 34px);
   ${SectionHeading} {
     display: none;
   }

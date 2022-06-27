@@ -151,7 +151,7 @@ const PanelHeader = styled(BasePanelHeader)`
 
 const PanelBody = styled(BasePanelBody)`
   overflow-y: auto;
-  max-height: 100%;
+  max-height: calc(100% - 34px);
 `;
 
 const PlaceholderMargin = styled(Placeholder)`
