@@ -336,9 +336,11 @@ def main(num_events=1, extra_events=False, load_trends=False, slow=False):
     dummy_user.set_password("dummy")
     dummy_user.save()
 
+    # team_name, project_names
     mocks = (
         ("Massive Dynamic", ("Ludic Science",)),
-        ("Captain Planet", ("Earth", "Fire", "Wind", "Water", "Heart")),
+        # ("Captain Planet", ("Earth", "Fire", "Wind", "Water", "Heart")),
+        ("Test Team", [f"proj_{i}" for i in range(1000)]),
     )
     project_map = {}
 
