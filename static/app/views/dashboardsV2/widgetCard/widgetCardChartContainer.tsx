@@ -14,10 +14,10 @@ import {TableDataRow, TableDataWithTitle} from 'sentry/utils/discover/discoverQu
 import {Widget, WidgetType} from '../types';
 
 import WidgetCardChart, {AugmentedEChartDataZoomHandler} from './chart';
-import GenericWidgetQueries from './genericWidgetQueries';
 import {IssueWidgetCard} from './issueWidgetCard';
 import IssueWidgetQueries from './issueWidgetQueries';
 import ReleaseWidgetQueries from './releaseWidgetQueries';
+import WidgetQueries from './widgetQueries';
 
 type Props = WithRouterProps & {
   api: Client;
@@ -143,7 +143,7 @@ export function WidgetCardChartContainer({
   }
 
   return (
-    <GenericWidgetQueries
+    <WidgetQueries
       api={api}
       organization={organization}
       widget={widget}
@@ -180,7 +180,7 @@ export function WidgetCardChartContainer({
           </Fragment>
         );
       }}
-    </GenericWidgetQueries>
+    </WidgetQueries>
   );
 }
 

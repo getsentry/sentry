@@ -1,4 +1,4 @@
-import {useContext, useEffect, useState} from 'react';
+import {useEffect, useState} from 'react';
 
 import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
@@ -6,13 +6,10 @@ import {Organization, PageFilters} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 
-import {getDatasetConfig} from '../datasetConfig/base';
+import {DatasetConfig} from '../datasetConfig/base';
 import {DEFAULT_TABLE_LIMIT, DisplayType, Widget} from '../types';
 
-import {DashboardsMEPContext} from './dashboardsMEPContext';
-import {getIsMetricsDataFromSeriesResponse} from './widgetQueries';
-
-type ChildrenProps = {
+export type ChildrenProps = {
   loading: boolean;
   errorMessage?: string;
   pageLinks?: null | string;
@@ -21,15 +18,18 @@ type ChildrenProps = {
   totalCount?: string;
 };
 
-export type GenericWidgetQueriesProps = {
+export type GenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
   api: Client;
   children: (props: ChildrenProps) => JSX.Element;
+  config: DatasetConfig<SeriesResponse, TableResponse>;
   organization: Organization;
   selection: PageFilters;
   widget: Widget;
   cursor?: string;
   limit?: number;
   onDataFetched?: (props: any) => void;
+  processRawResult?: (result: any) => void;
+  processRawTableResult?: (result: any) => void;
 };
 
 function getReferrer(displayType: DisplayType) {
@@ -48,18 +48,19 @@ function getReferrer(displayType: DisplayType) {
   return referrer;
 }
 
-function GenericWidgetQueries({
+function GenericWidgetQueries<SeriesResponse, TableResponse>({
+  config,
   api,
   children,
   cursor,
   limit,
   onDataFetched,
   organization,
+  processRawResult,
+  processRawTableResult,
   selection,
   widget,
-}: GenericWidgetQueriesProps) {
-  const config = getDatasetConfig(widget.widgetType);
-
+}: GenericWidgetQueriesProps<SeriesResponse, TableResponse>) {
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] =
     useState<ChildrenProps['errorMessage']>(undefined);
@@ -68,13 +69,6 @@ function GenericWidgetQueries({
     useState<ChildrenProps['tableResults']>(undefined);
   const [timeseriesResults, setTimeseriesResults] =
     useState<ChildrenProps['timeseriesResults']>(undefined);
-
-  // TODO: Is specific to DISCOVER
-  const context = useContext(DashboardsMEPContext);
-  let setIsMetricsData: undefined | ((value?: boolean) => void);
-  if (context) {
-    setIsMetricsData = context.setIsMetricsData;
-  }
 
   useEffect(() => {
     async function fetchTableData() {
@@ -100,13 +94,9 @@ function GenericWidgetQueries({
 
       // transform the data
       let transformedTableResults: TableDataWithTitle[] = [];
-      let isMetricsData: boolean | undefined;
       let responsePageLinks: string | null = null;
       responses.forEach(([data, _textstatus, resp], i) => {
-        // If one of the queries is sampled, then mark the whole thing as sampled
-        isMetricsData = isMetricsData === false ? false : data.meta?.isMetricsData;
-        setIsMetricsData?.(isMetricsData);
-
+        processRawTableResult?.(data);
         // Cast so we can add the title.
         const transformedData = config.transformTable(
           data,
@@ -146,15 +136,9 @@ function GenericWidgetQueries({
           );
         })
       );
-      let isMetricsData: boolean | undefined;
       const transformedTimeseriesResults: Series[] = [];
       responses.forEach((rawResults, requestIndex) => {
-        // If one of the queries is sampled, then mark the whole thing as sampled
-        isMetricsData =
-          isMetricsData === false
-            ? false
-            : getIsMetricsDataFromSeriesResponse(rawResults);
-        setIsMetricsData?.(isMetricsData);
+        processRawResult?.(rawResults);
         const transformedResult = config.transformSeries!(
           rawResults,
           widget.queries[requestIndex],
@@ -218,8 +202,9 @@ function GenericWidgetQueries({
     limit,
     onDataFetched,
     organization,
+    processRawResult,
+    processRawTableResult,
     selection,
-    setIsMetricsData,
     widget,
     widget.displayType,
   ]);

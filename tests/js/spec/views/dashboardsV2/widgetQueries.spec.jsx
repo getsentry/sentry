@@ -3,8 +3,9 @@ import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
 import {DashboardsMEPContext} from 'sentry/views/dashboardsV2/widgetCard/dashboardsMEPContext';
-import GenericWidgetQueries from 'sentry/views/dashboardsV2/widgetCard/genericWidgetQueries';
-import {flattenMultiSeriesDataWithGrouping} from 'sentry/views/dashboardsV2/widgetCard/widgetQueries';
+import WidgetQueries, {
+  flattenMultiSeriesDataWithGrouping,
+} from 'sentry/views/dashboardsV2/widgetCard/widgetQueries';
 
 describe('Dashboards > WidgetQueries', function () {
   const initialData = initializeOrg({
@@ -91,14 +92,14 @@ describe('Dashboards > WidgetQueries', function () {
       match: [MockApiClient.matchQuery({query: 'event.type:default'})],
     });
     render(
-      <GenericWidgetQueries
+      <WidgetQueries
         api={api}
         widget={multipleQueryWidget}
         organization={initialData.organization}
         selection={selection}
       >
         {() => <div data-test-id="child" />}
-      </GenericWidgetQueries>
+      </WidgetQueries>
     );
 
     // Child should be rendered and 2 requests should be sent.
@@ -122,7 +123,7 @@ describe('Dashboards > WidgetQueries', function () {
 
     let error = '';
     render(
-      <GenericWidgetQueries
+      <WidgetQueries
         api={api}
         widget={multipleQueryWidget}
         organization={initialData.organization}
@@ -132,7 +133,7 @@ describe('Dashboards > WidgetQueries', function () {
           error = errorMessage;
           return <div data-test-id="child" />;
         }}
-      </GenericWidgetQueries>
+      </WidgetQueries>
     );
 
     // Child should be rendered and 2 requests should be sent.
@@ -157,14 +158,14 @@ describe('Dashboards > WidgetQueries', function () {
       },
     };
     render(
-      <GenericWidgetQueries
+      <WidgetQueries
         api={api}
         widget={widget}
         organization={initialData.organization}
         selection={longSelection}
       >
         {() => <div data-test-id="child" />}
-      </GenericWidgetQueries>
+      </WidgetQueries>
     );
 
     // Child should be rendered and interval bumped up.
@@ -191,14 +192,14 @@ describe('Dashboards > WidgetQueries', function () {
     const widget = {...singleQueryWidget, interval: '1m'};
 
     render(
-      <GenericWidgetQueries
+      <WidgetQueries
         api={api}
         widget={widget}
         organization={initialData.organization}
         selection={selection}
       >
         {() => <div data-test-id="child" />}
-      </GenericWidgetQueries>
+      </WidgetQueries>
     );
 
     // Child should be rendered and interval bumped up.
@@ -223,7 +224,7 @@ describe('Dashboards > WidgetQueries', function () {
 
     let childProps = undefined;
     render(
-      <GenericWidgetQueries
+      <WidgetQueries
         api={api}
         widget={tableWidget}
         organization={initialData.organization}
@@ -233,7 +234,7 @@ describe('Dashboards > WidgetQueries', function () {
           childProps = props;
           return <div data-test-id="child" />;
         }}
-      </GenericWidgetQueries>
+      </WidgetQueries>
     );
 
     // Child should be rendered and 1 requests should be sent.
@@ -300,7 +301,7 @@ describe('Dashboards > WidgetQueries', function () {
 
     let childProps = undefined;
     render(
-      <GenericWidgetQueries
+      <WidgetQueries
         api={api}
         widget={widget}
         organization={initialData.organization}
@@ -310,7 +311,7 @@ describe('Dashboards > WidgetQueries', function () {
           childProps = props;
           return <div data-test-id="child" />;
         }}
-      </GenericWidgetQueries>
+      </WidgetQueries>
     );
 
     // Child should be rendered and 2 requests should be sent.
@@ -334,7 +335,7 @@ describe('Dashboards > WidgetQueries', function () {
 
     let childProps = undefined;
     render(
-      <GenericWidgetQueries
+      <WidgetQueries
         api={api}
         widget={{
           title: 'SDK',
@@ -358,7 +359,7 @@ describe('Dashboards > WidgetQueries', function () {
           childProps = props;
           return <div data-test-id="child" />;
         }}
-      </GenericWidgetQueries>
+      </WidgetQueries>
     );
 
     // Child should be rendered and 1 requests should be sent.
@@ -393,7 +394,7 @@ describe('Dashboards > WidgetQueries', function () {
 
     let childProps = undefined;
     render(
-      <GenericWidgetQueries
+      <WidgetQueries
         api={api}
         widget={{
           title: 'SDK',
@@ -417,7 +418,7 @@ describe('Dashboards > WidgetQueries', function () {
           childProps = props;
           return <div data-test-id="child" />;
         }}
-      </GenericWidgetQueries>
+      </WidgetQueries>
     );
 
     // Child should be rendered and 1 requests should be sent.
@@ -483,7 +484,7 @@ describe('Dashboards > WidgetQueries', function () {
 
     let childProps = undefined;
     render(
-      <GenericWidgetQueries
+      <WidgetQueries
         api={api}
         widget={widget}
         organization={initialData.organization}
@@ -493,7 +494,7 @@ describe('Dashboards > WidgetQueries', function () {
           childProps = props;
           return <div data-test-id="child" />;
         }}
-      </GenericWidgetQueries>
+      </WidgetQueries>
     );
 
     // Child should be rendered and 2 requests should be sent.
@@ -517,14 +518,14 @@ describe('Dashboards > WidgetQueries', function () {
       interval: '5m',
     };
     render(
-      <GenericWidgetQueries
+      <WidgetQueries
         api={api}
         widget={barWidget}
         organization={initialData.organization}
         selection={selection}
       >
         {() => <div data-test-id="child" />}
-      </GenericWidgetQueries>
+      </WidgetQueries>
     );
 
     // Child should be rendered and 1 requests should be sent.
@@ -580,14 +581,14 @@ describe('Dashboards > WidgetQueries', function () {
     };
     const child = jest.fn(() => <div data-test-id="child" />);
     render(
-      <GenericWidgetQueries
+      <WidgetQueries
         api={api}
         widget={barWidget}
         organization={initialData.organization}
         selection={selection}
       >
         {child}
-      </GenericWidgetQueries>
+      </WidgetQueries>
     );
 
     await screen.findByTestId('child');
@@ -614,7 +615,7 @@ describe('Dashboards > WidgetQueries', function () {
       interval: '5m',
     };
     render(
-      <GenericWidgetQueries
+      <WidgetQueries
         api={api}
         widget={areaWidget}
         organization={initialData.organization}
@@ -626,7 +627,7 @@ describe('Dashboards > WidgetQueries', function () {
         }}
       >
         {() => <div data-test-id="child" />}
-      </GenericWidgetQueries>
+      </WidgetQueries>
     );
 
     // Child should be rendered and 1 requests should be sent.
@@ -773,7 +774,7 @@ describe('Dashboards > WidgetQueries', function () {
           setIsMetricsData: setIsMetricsMock,
         }}
       >
-        <GenericWidgetQueries
+        <WidgetQueries
           api={api}
           widget={singleQueryWidget}
           organization={{
@@ -783,7 +784,7 @@ describe('Dashboards > WidgetQueries', function () {
           selection={selection}
         >
           {children}
-        </GenericWidgetQueries>
+        </WidgetQueries>
       </DashboardsMEPContext.Provider>
     );
 
@@ -819,7 +820,7 @@ describe('Dashboards > WidgetQueries', function () {
           setIsMetricsData: setIsMetricsMock,
         }}
       >
-        <GenericWidgetQueries
+        <WidgetQueries
           api={api}
           widget={{...singleQueryWidget, displayType: 'table'}}
           organization={{
@@ -829,7 +830,7 @@ describe('Dashboards > WidgetQueries', function () {
           selection={selection}
         >
           {children}
-        </GenericWidgetQueries>
+        </WidgetQueries>
       </DashboardsMEPContext.Provider>
     );
 
@@ -871,14 +872,14 @@ describe('Dashboards > WidgetQueries', function () {
       ],
     };
     render(
-      <GenericWidgetQueries
+      <WidgetQueries
         api={api}
         widget={areaWidget}
         organization={testData.organization}
         selection={selection}
       >
         {() => <div data-test-id="child" />}
-      </GenericWidgetQueries>
+      </WidgetQueries>
     );
 
     // Child should be rendered and 1 requests should be sent.
