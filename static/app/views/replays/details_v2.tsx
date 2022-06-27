@@ -60,11 +60,11 @@ function ReplayDetails() {
   }
 
   return (
-    <ReplayContextProvider replay={replay} initialTimeOffset={initialTimeOffset}>
-      <Page eventSlug={eventSlug} orgId={orgId} event={replay?.getEvent()}>
-        <Layout layout="topbar" />
-      </Page>
-    </ReplayContextProvider>
+    <Page eventSlug={eventSlug} orgId={orgId} event={replay?.getEvent()}>
+      <ReplayContextProvider replay={replay} initialTimeOffset={initialTimeOffset}>
+        <Layout />
+      </ReplayContextProvider>
+    </Page>
   );
 }
 

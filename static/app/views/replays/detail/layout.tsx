@@ -47,14 +47,14 @@ const SIDEBAR_MIN_WIDTH = 325;
 const TOPBAR_MIN_HEIGHT = 325;
 
 type Props = {
-  layout: Layout;
+  layout?: Layout;
   showCrumbs?: boolean;
   showTimeline?: boolean;
   showVideo?: boolean;
 };
 
 function ReplayLayout({
-  layout,
+  layout = 'topbar',
   showCrumbs = true,
   showTimeline = true,
   showVideo = true,
