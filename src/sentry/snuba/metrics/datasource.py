@@ -56,7 +56,7 @@ logger = logging.getLogger(__name__)
 
 def _get_metrics_for_entity(
     entity_key: EntityKey,
-    projects: Sequence[Project],
+    projects: Sequence[int],
     org_id: int,
     start: Optional[datetime] = None,
     end: Optional[datetime] = None,
@@ -124,7 +124,7 @@ def get_available_derived_metrics(
     return found_derived_metrics.intersection(public_derived_metrics)
 
 
-def get_metrics(projects: Sequence[Project]) -> Sequence[MetricMeta]:
+def get_metrics(projects: Sequence[int]) -> Sequence[MetricMeta]:
     assert projects
 
     metrics_meta = []
@@ -176,7 +176,7 @@ def get_metrics(projects: Sequence[Project]) -> Sequence[MetricMeta]:
 
 
 def get_custom_measurements(
-    projects: Sequence[Project],
+    projects: Sequence[int],
     organization: Optional[Organization] = None,
     start: Optional[datetime] = None,
     end: Optional[datetime] = None,
@@ -318,7 +318,7 @@ def _fetch_tags_or_values_per_ids(
             where=where,
             groupby=[Column("metric_id"), Column(column)],
             referrer=referrer,
-            projects=projects,
+            projects=[p.id for p in projects],
             org_id=projects[0].organization_id,
         )
 
