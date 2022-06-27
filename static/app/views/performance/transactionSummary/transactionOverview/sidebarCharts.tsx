@@ -385,6 +385,7 @@ function SidebarChartsContainer({
       organization={organization}
       interval={getInterval(datetimeSelection)}
       showLoading={false}
+      period={requestCommonProps.statsPeriod}
       includePrevious={false}
       yAxis={['apdex()', 'failure_rate()', 'epm()']}
       partial
