@@ -753,10 +753,10 @@ class MetricBuilderBaseTest(MetricsEnhancedPerformanceTestCase):
     def setUp(self):
         super().setUp()
         self.start = datetime.datetime.now(tz=timezone.utc).replace(
-            hour=10, minute=15, second=0, microsecond=0
+            hour=10, minute=0, second=0, microsecond=0
         ) - datetime.timedelta(days=18)
         self.end = datetime.datetime.now(tz=timezone.utc).replace(
-            hour=10, minute=15, second=0, microsecond=0
+            hour=10, minute=0, second=0, microsecond=0
         )
         self.projects = [self.project.id]
         self.params = {
