@@ -41,7 +41,7 @@ type EndpointParams = Partial<PageFilters['datetime']> & {
   statsPeriod?: string | null;
 };
 
-export const IssuesConfig: DatasetConfig<unknown, Group[]> = {
+export const IssuesConfig: DatasetConfig<never, Group[]> = {
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
   getTableRequest,
   getCustomFieldRenderer: getIssueFieldRenderer,
