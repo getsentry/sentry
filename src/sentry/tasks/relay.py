@@ -123,9 +123,8 @@ def compute_configs(organization_id=None, project_id=None, public_key=None):
 
     You must only provide one single argument, not all.
 
-    :returns: A dict mapping all affected public keys to their config.  The dict could
-       contain `None` as value which indicates the config value from cache should be
-       retained.
+    :returns: A dict mapping all affected public keys to their config.  The dict will not
+       contain keys which should be retained in the cache unchanged.
     """
     from sentry.models import Project, ProjectKey
 
@@ -146,8 +145,6 @@ def compute_configs(organization_id=None, project_id=None, public_key=None):
             # cost of re-computation.
             if projectconfig_cache.get(key.public_key) is not None:
                 configs[key.public_key] = compute_projectkey_config(key)
-            else:
-                configs[key.public_key] = None
     elif project_id:
         for key in ProjectKey.objects.filter(project_id=project_id):
             configs[key.public_key] = compute_projectkey_config(key)
@@ -233,11 +230,9 @@ def invalidate_project_config(
     sentry_sdk.set_tag("trigger", trigger)
     sentry_sdk.set_context("kwargs", kwargs)
 
-    configs = compute_configs(
+    updated_configs = compute_configs(
         organization_id=organization_id, project_id=project_id, public_key=public_key
     )
-
-    updated_configs = {key: cfg for key, cfg in configs.items() if cfg is not None}
     projectconfig_cache.set_many(updated_configs)
 
 
