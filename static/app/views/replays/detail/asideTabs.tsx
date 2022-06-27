@@ -18,12 +18,7 @@ const TABS = [t('Breadcrumbs'), t('Tags')];
 function renderTabContent(key: string, loadedReplay: ReplayReader) {
   switch (key) {
     case 'breadcrumbs':
-      return (
-        <Breadcrumbs
-          crumbs={loadedReplay.getRawCrumbs()}
-          event={loadedReplay.getEvent()}
-        />
-      );
+      return <Breadcrumbs />;
     case 'tags':
       return <TagPanel replay={loadedReplay} />;
     default:
