@@ -122,8 +122,8 @@ function WidgetQueries({
   const config = ErrorsAndTransactionsConfig;
   const context = useContext(DashboardsMEPContext);
 
-  let isMetricsData;
-  let setIsMetricsData;
+  let isMetricsData: undefined | boolean;
+  let setIsMetricsData: undefined | ((value?: boolean) => void);
 
   if (context) {
     isMetricsData = context.isMetricsData;
