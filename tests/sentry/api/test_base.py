@@ -173,9 +173,12 @@ class ServerComponentModeTest(APITestCase):
 
     def test_with_active_mode(self):
         self._test_active_on(ServerComponentMode.CUSTOMER, ServerComponentMode.CUSTOMER, True)
+        self._test_active_on(ServerComponentMode.CONTROL, ServerComponentMode.CONTROL, True)
 
     def test_with_inactive_mode(self):
         self._test_active_on(ServerComponentMode.CUSTOMER, ServerComponentMode.CONTROL, False)
+        self._test_active_on(ServerComponentMode.CONTROL, ServerComponentMode.CUSTOMER, False)
 
     def test_with_monolith_mode(self):
         self._test_active_on(ServerComponentMode.CUSTOMER, ServerComponentMode.MONOLITH, True)
+        self._test_active_on(ServerComponentMode.CONTROL, ServerComponentMode.MONOLITH, True)
