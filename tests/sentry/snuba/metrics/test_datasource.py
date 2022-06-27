@@ -101,7 +101,7 @@ class GetCustomMeasurementsTest(MetricsEnhancedPerformanceTestCase):
             timestamp=self.day_ago + timedelta(hours=1, minutes=0),
         )
         result = get_custom_measurements(
-            projects=[self.project.id], organization=self.organization, start=self.day_ago
+            project_ids=[self.project.id], organization_id=self.organization.id, start=self.day_ago
         )
         assert result == [
             {
@@ -140,7 +140,7 @@ class GetCustomMeasurementsTest(MetricsEnhancedPerformanceTestCase):
             timestamp=self.day_ago - timedelta(days=1, minutes=0),
         )
         result = get_custom_measurements(
-            projects=[self.project.id], organization=self.organization, start=self.day_ago
+            project_ids=[self.project.id], organization_id=self.organization.id, start=self.day_ago
         )
         assert result == [
             {
