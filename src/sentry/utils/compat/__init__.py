@@ -1,15 +1,9 @@
 _builtin_map = map
-_builtin_filter = filter
 
 
 def map(a, b, *c):
     # TODO(joshuarli): Remove all this.
     return list(_builtin_map(a, b, *c))
-
-
-def filter(a, b):
-    # TODO(joshuarli): Remove all this.
-    return list(_builtin_filter(a, b))
 
 
 from binascii import crc32 as _crc32

@@ -15,7 +15,6 @@ from sentry.models import OrganizationIntegration, PagerDutyService
 from sentry.pipeline import PipelineView
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.utils import json
-from sentry.utils.compat import filter
 from sentry.utils.http import absolute_uri
 
 from .client import PagerDutyClient
@@ -81,7 +80,9 @@ class PagerDutyIntegration(IntegrationInstallation):
         if "service_table" in data:
             service_rows = data["service_table"]
             # validate fields
-            bad_rows = filter(lambda x: not x["service"] or not x["integration_key"], service_rows)
+            bad_rows = list(
+                filter(lambda x: not x["service"] or not x["integration_key"], service_rows)
+            )
             if bad_rows:
                 raise IntegrationError("Name and key are required")
 
@@ -92,7 +93,7 @@ class PagerDutyIntegration(IntegrationInstallation):
 
                 for service_item in existing_service_items:
                     # find the matching row from the input
-                    matched_rows = filter(lambda x: x["id"] == service_item.id, service_rows)
+                    matched_rows = list(filter(lambda x: x["id"] == service_item.id, service_rows))
                     if matched_rows:
                         matched_row = matched_rows[0]
                         service_item.integration_key = matched_row["integration_key"]
@@ -102,7 +103,7 @@ class PagerDutyIntegration(IntegrationInstallation):
                         service_item.delete()
 
                 # new rows don't have an id
-                new_rows = filter(lambda x: not x["id"], service_rows)
+                new_rows = list(filter(lambda x: not x["id"], service_rows))
                 for row in new_rows:
                     service_name = row["service"]
                     key = row["integration_key"]

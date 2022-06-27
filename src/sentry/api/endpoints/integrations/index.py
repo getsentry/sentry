@@ -5,7 +5,6 @@ from sentry import features, integrations
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.integration import IntegrationProviderSerializer
-from sentry.utils.compat import filter
 
 
 class OrganizationConfigIntegrationsEndpoint(OrganizationEndpoint):
@@ -17,7 +16,7 @@ class OrganizationConfigIntegrationsEndpoint(OrganizationEndpoint):
             feature_flag_name = "organizations:integrations-%s" % provider_key
             return features.has(feature_flag_name, organization, actor=request.user)
 
-        providers = filter(is_provider_enabled, list(integrations.all()))
+        providers = list(filter(is_provider_enabled, list(integrations.all())))
 
         providers.sort(key=lambda i: i.key)
 

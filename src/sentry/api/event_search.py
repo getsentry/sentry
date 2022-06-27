@@ -28,7 +28,7 @@ from sentry.search.utils import (
     parse_numeric_value,
     parse_percentage,
 )
-from sentry.utils.compat import filter, map
+from sentry.utils.compat import map
 from sentry.utils.snuba import (
     Dataset,
     is_duration_measurement,
@@ -251,14 +251,14 @@ def remove_optional_nodes(children):
     def is_not_optional(child):
         return not (isinstance(child, Node) and isinstance(child.expr, Optional))
 
-    return filter(is_not_optional, children)
+    return list(filter(is_not_optional, children))
 
 
 def remove_space(children):
     def is_not_space(text):
         return not (isinstance(text, str) and text == " " * len(text))
 
-    return filter(is_not_space, children)
+    return list(filter(is_not_space, children))
 
 
 def process_list(first, remaining):

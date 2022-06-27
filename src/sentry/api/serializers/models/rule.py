@@ -14,7 +14,6 @@ from sentry.models import (
     actor_type_to_class,
     actor_type_to_string,
 )
-from sentry.utils.compat import filter
 
 
 def _generate_rule_label(project, rule, data):
@@ -133,9 +132,9 @@ class RuleSerializer(Serializer):
             # as part of the rule editor
             "id": str(obj.id) if obj.id else None,
             # conditions pertain to criteria that can trigger an alert
-            "conditions": filter(lambda condition: not _is_filter(condition), all_conditions),
+            "conditions": list(filter(lambda condition: not _is_filter(condition), all_conditions)),
             # filters are not new conditions but are the subset of conditions that pertain to event attributes
-            "filters": filter(lambda condition: _is_filter(condition), all_conditions),
+            "filters": list(filter(lambda condition: _is_filter(condition), all_conditions)),
             "actions": [
                 dict(list(o.items()) + [("name", _generate_rule_label(obj.project, obj, o))])
                 for o in obj.data.get("actions", [])

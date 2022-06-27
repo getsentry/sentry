@@ -10,7 +10,6 @@ from sentry.exceptions import PluginError
 from sentry.http import is_valid_url
 from sentry.integrations import FeatureDescription, IntegrationFeatures
 from sentry.plugins.bases import notify
-from sentry.utils.compat import filter
 
 from .client import WebhookApiClient
 
@@ -25,7 +24,7 @@ Internal Integration.
 def split_urls(value):
     if not value:
         return ()
-    return filter(bool, (url.strip() for url in value.splitlines()))
+    return list(filter(bool, (url.strip() for url in value.splitlines())))
 
 
 def validate_urls(value, **kwargs):
