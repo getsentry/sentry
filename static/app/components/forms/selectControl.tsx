@@ -11,6 +11,7 @@ import Async from 'react-select/async';
 import AsyncCreatable from 'react-select/async-creatable';
 import Creatable from 'react-select/creatable';
 import {useTheme} from '@emotion/react';
+import styled from '@emotion/styled';
 
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconChevron, IconClose} from 'sentry/icons';
@@ -60,6 +61,31 @@ const MultiValueRemove = (
 const SelectLoadingIndicator = () => (
   <LoadingIndicator mini size={20} style={{height: 20, width: 20}} />
 );
+
+const SingleValue = (
+  props: React.ComponentProps<typeof selectComponents.SingleValue>
+) => {
+  const {leadingItems, label} = props.data;
+  return (
+    <selectComponents.SingleValue {...props}>
+      <SingleValueWrap>
+        {leadingItems}
+        <SingleValueLabel>{label}</SingleValueLabel>
+      </SingleValueWrap>
+    </selectComponents.SingleValue>
+  );
+};
+
+const SingleValueWrap = styled('div')`
+  display: grid;
+  grid-auto-flow: column;
+  gap: ${space(1)};
+  align-items: center;
+`;
+
+const SingleValueLabel = styled('div')`
+  ${p => p.theme.overflowEllipsis};
+`;
 
 export type ControlProps<OptionType = GeneralSelectValue> = Omit<
   ReactSelectProps<OptionType>,
@@ -414,6 +440,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
     : labelOrDefaultStyles;
 
   const replacedComponents = {
+    SingleValue,
     ClearIndicator,
     DropdownIndicator,
     MultiValueRemove,

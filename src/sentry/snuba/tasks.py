@@ -177,7 +177,6 @@ def build_query_builder(
 
 def _create_in_snuba(subscription: QuerySubscription) -> str:
     snuba_query = subscription.snuba_query
-    dataset = QueryDatasets(snuba_query.dataset)
     entity_subscription = get_entity_subscription_for_dataset(
         dataset=QueryDatasets(snuba_query.dataset),
         aggregate=snuba_query.aggregate,
@@ -187,12 +186,7 @@ def _create_in_snuba(subscription: QuerySubscription) -> str:
             "event_types": snuba_query.event_types,
         },
     )
-    # TODO: Once metrics work with `QueryBuilder` then use `build_snql_query` by default for all
-    # datasets
-    if (
-        features.has("organizations:metric-alert-snql", subscription.project.organization)
-        and dataset != QueryDatasets.METRICS
-    ):
+    if features.has("organizations:metric-alert-snql", subscription.project.organization):
         snql_query = build_query_builder(
             entity_subscription,
             snuba_query.query,
