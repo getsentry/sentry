@@ -521,7 +521,8 @@ class Release(Model):
         other specialized release.  This for instance lets us treat them
         separately for serialization purposes.
         """
-        return Model.__eq__(self, other) and self._for_project_id == other._for_project_id
+        other_project_id = getattr(other, "_for_project_id", None)
+        return Model.__eq__(self, other) and self._for_project_id == other_project_id
 
     def __hash__(self):
         # https://code.djangoproject.com/ticket/30333
