@@ -24,6 +24,8 @@ from sentry.utils.settings import is_self_hosted
 
 logger: logging.Logger = logging.getLogger(__name__)
 
+PREFILLED_SU_MODAL_KEY = "prefilled_su_modal"
+
 
 class AuthIndexEndpoint(Endpoint):
     """
@@ -127,6 +129,7 @@ class AuthIndexEndpoint(Endpoint):
                 not has_completed_sso(request, Superuser.org_id)
                 and not DISABLE_SSO_CHECK_SU_FORM_FOR_LOCAL_DEV
             ):
+                request.session[PREFILLED_SU_MODAL_KEY] = request.data
                 self._reauthenticate_with_sso(request, Superuser.org_id)
             # below is a special case if the user is a superuser but doesn't have a password or
             # u2f device set up, the only way to authenticate this case is to see if they have a
