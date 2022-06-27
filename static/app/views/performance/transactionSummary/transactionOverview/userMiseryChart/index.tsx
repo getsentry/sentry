@@ -8,11 +8,12 @@ import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import {getInterval, getSeriesSelection} from 'sentry/components/charts/utils';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import {t, tct} from 'sentry/locale';
-import {OrganizationSummary} from 'sentry/types';
+import {t} from 'sentry/locale';
+import {Organization, OrganizationSummary} from 'sentry/types';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import useApi from 'sentry/utils/useApi';
+import {getTermHelp, PERFORMANCE_TERM} from 'sentry/views/performance/data';
 import {getMEPQueryParams} from 'sentry/views/performance/landing/widgets/utils';
 
 import {ViewProps} from '../../../types';
@@ -42,6 +43,7 @@ function UserMiseryChart({
   statsPeriod,
   router,
   queryExtra,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   currentFilter,
   withoutZerofill,
   start: propsStart,
@@ -105,17 +107,11 @@ function UserMiseryChart({
 
   const header = (
     <HeaderTitleLegend>
-      {currentFilter === SpanOperationBreakdownFilter.None
-        ? t('Duration Breakdown')
-        : tct('Span Operation Breakdown - [operationName]', {
-            operationName: currentFilter,
-          })}
+      {t('User Misery')}
       <QuestionTooltip
         size="sm"
         position="top"
-        title={t(
-          `Duration Breakdown reflects transaction durations by percentile over time.`
-        )}
+        title={t(getTermHelp(organization as Organization, PERFORMANCE_TERM.USER_MISERY))}
       />
     </HeaderTitleLegend>
   );
@@ -133,19 +129,22 @@ function UserMiseryChart({
         yAxis={yAxis}
         partial
         withoutZerofill={withoutZerofill}
-        referrer="api.performance.transaction-summary.duration-chart"
+        referrer="api.performance.transaction-summary.user-misery-chart"
         queryExtras={getMEPQueryParams(mepContext)}
       >
-        {({results, errored, loading, reloading, timeframe: timeFrame}) => (
-          <Content
-            series={results}
-            errored={errored}
-            loading={loading}
-            reloading={reloading}
-            timeFrame={timeFrame}
-            {...contentCommonProps}
-          />
-        )}
+        {res => {
+          const {results, errored, loading, reloading, timeframe: timeFrame} = res;
+          return (
+            <Content
+              series={results}
+              errored={errored}
+              loading={loading}
+              reloading={reloading}
+              timeFrame={timeFrame}
+              {...contentCommonProps}
+            />
+          );
+        }}
       </EventsRequest>
     </Fragment>
   );
