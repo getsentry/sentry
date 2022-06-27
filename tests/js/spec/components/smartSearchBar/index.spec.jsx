@@ -1005,6 +1005,8 @@ describe('SmartSearchBar', function () {
 
       mockCursorPosition(searchBarInst, 8);
 
+      searchBar.find('textarea').simulate('focus');
+
       searchBarInst.updateAutoCompleteItems();
 
       await tick();
