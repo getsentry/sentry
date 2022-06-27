@@ -41,7 +41,17 @@ type Layout =
   | 'topbar';
 
 const GrabberColor = encodeURIComponent(theme.gray300);
-const GrabberSVG = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='${GrabberColor}' height='16px' width='16px'%3E%3Ccircle cx='4.73' cy='8' r='1.31'%3E%3C/circle%3E%3Ccircle cx='4.73' cy='1.31' r='1.31'%3E%3C/circle%3E%3Ccircle cx='11.27' cy='8' r='1.31'%3E%3C/circle%3E%3Ccircle cx='11.27' cy='1.31' r='1.31'%3E%3C/circle%3E%3Ccircle cx='4.73' cy='14.69' r='1.31'%3E%3C/circle%3E%3Ccircle cx='11.27' cy='14.69' r='1.31'%3E%3C/circle%3E%3C/svg%3E")`;
+const GrabberSVG =
+  `url('data:image/svg+xml,` +
+  `%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="${GrabberColor}" height="16px" width="16px"%3E` +
+  '%3Ccircle cx="4.73" cy="8" r="1.31"%3E%3C/circle%3E' +
+  '%3Ccircle cx="4.73" cy="1.31" r="1.31"%3E%3C/circle%3E' +
+  '%3Ccircle cx="11.27" cy="8" r="1.31"%3E%3C/circle%3E' +
+  '%3Ccircle cx="11.27" cy="1.31" r="1.31"%3E%3C/circle%3E' +
+  '%3Ccircle cx="4.73" cy="14.69" r="1.31"%3E%3C/circle%3E' +
+  '%3Ccircle cx="11.27" cy="14.69" r="1.31"%3E%3C/circle%3E' +
+  '%3C/svg%3E' +
+  `')`;
 
 const SIDEBAR_MIN_WIDTH = 325;
 const TOPBAR_MIN_HEIGHT = 325;
