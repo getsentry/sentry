@@ -1875,6 +1875,7 @@ class MetricsQueryBuilder(QueryBuilder):
                 limit=self.limit,
                 offset=self.offset,
                 limitby=self.limitby,
+                granularity=self.granularity,
             ),
             flags=Flags(turbo=self.turbo),
         )
@@ -2098,6 +2099,23 @@ class MetricsQueryBuilder(QueryBuilder):
             return 0
         else:
             return None
+
+
+class AlertMetricsQueryBuilder(MetricsQueryBuilder):
+    def __init__(
+        self,
+        *args: Any,
+        granularity: int,
+        **kwargs: Any,
+    ):
+        self._granularity = granularity
+        super().__init__(*args, **kwargs)
+
+    def resolve_limit(self, limit: Optional[int]) -> Optional[Limit]:
+        return None
+
+    def resolve_granularity(self) -> Granularity:
+        return Granularity(self._granularity)
 
 
 class HistogramMetricQueryBuilder(MetricsQueryBuilder):

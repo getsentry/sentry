@@ -177,6 +177,7 @@ class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest, TestCase):
                     dataset=QueryDatasets.METRICS,
                     aggregate=f"percentage({aggregate}_crashed, {aggregate}) AS "
                     f"_crash_rate_alert_aggregate",
+                    query="",
                     time_window=int(timedelta(minutes=time_window).total_seconds()),
                     status=QuerySubscription.Status.CREATING,
                 )
@@ -622,52 +623,119 @@ class BuildSnubaFilterTest(TestCase):
 class BuildSnqlQueryTest(TestCase):
     aggregate_mappings = {
         QueryDatasets.EVENTS: {
-            "count_unique(user)": Function(
-                function="uniq",
-                parameters=[Column(name="tags[sentry:user]")],
-                alias="count_unique_user",
-            ),
+            "count_unique(user)": lambda org_id: [
+                Function(
+                    function="uniq",
+                    parameters=[Column(name="tags[sentry:user]")],
+                    alias="count_unique_user",
+                )
+            ]
         },
         QueryDatasets.TRANSACTIONS: {
-            "count_unique(user)": Function(
-                function="uniq",
-                parameters=[Column(name="user")],
-                alias="count_unique_user",
-            ),
-            "percentile(transaction.duration,.95)": Function(
-                "quantile(0.95)",
-                parameters=[Column(name="duration")],
-                alias="percentile_transaction_duration__95",
-            ),
-            "p95()": Function("quantile(0.95)", parameters=[Column(name="duration")], alias="p95"),
+            "count_unique(user)": lambda org_id: [
+                Function(
+                    function="uniq",
+                    parameters=[Column(name="user")],
+                    alias="count_unique_user",
+                )
+            ],
+            "percentile(transaction.duration,.95)": lambda org_id: [
+                Function(
+                    "quantile(0.95)",
+                    parameters=[Column(name="duration")],
+                    alias="percentile_transaction_duration__95",
+                )
+            ],
+            "p95()": lambda org_id: [
+                Function("quantile(0.95)", parameters=[Column(name="duration")], alias="p95")
+            ],
         },
         QueryDatasets.SESSIONS: {
-            "percentage(sessions_crashed, sessions) as _crash_rate_alert_aggregate": Function(
-                function="if",
-                parameters=[
-                    Function(function="greater", parameters=[Column(name="sessions"), 0]),
-                    Function(
-                        function="divide",
-                        parameters=[Column(name="sessions_crashed"), Column(name="sessions")],
-                    ),
-                    None,
-                ],
-                alias="_crash_rate_alert_aggregate",
-            ),
-            "percentage(users_crashed, users) as _crash_rate_alert_aggregate": Function(
-                function="if",
-                parameters=[
-                    Function(function="greater", parameters=[Column(name="users"), 0]),
-                    Function(
-                        function="divide",
-                        parameters=[Column(name="users_crashed"), Column(name="users")],
-                    ),
-                    None,
-                ],
-                alias="_crash_rate_alert_aggregate",
-            ),
+            "percentage(sessions_crashed, sessions) as _crash_rate_alert_aggregate": lambda org_id: [
+                Function(
+                    function="if",
+                    parameters=[
+                        Function(function="greater", parameters=[Column(name="sessions"), 0]),
+                        Function(
+                            function="divide",
+                            parameters=[Column(name="sessions_crashed"), Column(name="sessions")],
+                        ),
+                        None,
+                    ],
+                    alias="_crash_rate_alert_aggregate",
+                )
+            ],
+            "percentage(users_crashed, users) as _crash_rate_alert_aggregate": lambda org_id: [
+                Function(
+                    function="if",
+                    parameters=[
+                        Function(function="greater", parameters=[Column(name="users"), 0]),
+                        Function(
+                            function="divide",
+                            parameters=[Column(name="users_crashed"), Column(name="users")],
+                        ),
+                        None,
+                    ],
+                    alias="_crash_rate_alert_aggregate",
+                )
+            ],
         },
-        "count()": Function("count", parameters=[], alias="count"),
+        QueryDatasets.METRICS: {
+            "percentage(sessions_crashed, sessions) as _crash_rate_alert_aggregate": lambda org_id: [
+                Function(
+                    function="sumIf",
+                    parameters=[
+                        Column(name="value"),
+                        Function(
+                            function="equals",
+                            parameters=[
+                                Column(name=resolve_tag_key(org_id, "session.status")),
+                                resolve(org_id, "init"),
+                            ],
+                        ),
+                    ],
+                    alias="count",
+                ),
+                Function(
+                    function="sumIf",
+                    parameters=[
+                        Column(name="value"),
+                        Function(
+                            function="equals",
+                            parameters=[
+                                Column(name=resolve_tag_key(org_id, "session.status")),
+                                resolve(org_id, "crashed"),
+                            ],
+                        ),
+                    ],
+                    alias="crashed",
+                ),
+            ],
+            "percentage(users_crashed, users) AS _crash_rate_alert_aggregate": lambda org_id: [
+                Function(
+                    function="uniq",
+                    parameters=[
+                        Column(name="value"),
+                    ],
+                    alias="count",
+                ),
+                Function(
+                    function="uniqIf",
+                    parameters=[
+                        Column(name="value"),
+                        Function(
+                            function="equals",
+                            parameters=[
+                                Column(name=resolve_tag_key(org_id, "session.status")),
+                                resolve(org_id, "crashed"),
+                            ],
+                        ),
+                    ],
+                    alias="crashed",
+                ),
+            ],
+        },
+        "count()": lambda org_id: [Function("count", parameters=[], alias="count")],
     }
 
     def run_test(
@@ -678,6 +746,7 @@ class BuildSnqlQueryTest(TestCase):
         expected_conditions,
         entity_extra_fields=None,
         environment=None,
+        granularity=None,
     ):
         time_window = 3600
         entity_subscription = get_entity_subscription_for_dataset(
@@ -696,7 +765,7 @@ class BuildSnqlQueryTest(TestCase):
                 "project_id": [self.project.id],
             },
         ).get_snql_query()
-        select = [self.string_aggregate_to_snql(dataset, aggregate)]
+        select = self.string_aggregate_to_snql(dataset, aggregate)
         if dataset == QueryDatasets.SESSIONS:
             col_name = "sessions" if "sessions" in aggregate else "users"
             select.insert(
@@ -705,9 +774,9 @@ class BuildSnqlQueryTest(TestCase):
                     function="identity", parameters=[Column(name=col_name)], alias="_total_count"
                 ),
             )
-        # Select order seems to be unstable, so just arbitrarily sort by name so that it's consistent
-        snql_query.query.select.sort(key=lambda q: q.function)
-        assert snql_query.query == Query(
+        # Select order seems to be unstable, so just arbitrarily sort by name, alias so that it's consistent
+        snql_query.query.select.sort(key=lambda q: (q.function, q.alias))
+        expected_query = Query(
             match=Entity(map_aggregate_to_entity_key(dataset, aggregate).value),
             select=select,
             where=expected_conditions,
@@ -715,10 +784,16 @@ class BuildSnqlQueryTest(TestCase):
             having=[],
             orderby=[],
         )
+        if granularity is not None:
+            expected_query = expected_query.set_granularity(granularity)
+        assert snql_query.query == expected_query
 
     def string_aggregate_to_snql(self, dataset, aggregate):
-        return self.aggregate_mappings[dataset].get(
-            aggregate, self.aggregate_mappings.get(aggregate, "")
+        aggregate_builder_func = self.aggregate_mappings[dataset].get(
+            aggregate, self.aggregate_mappings.get(aggregate, lambda org_id: [])
+        )
+        return sorted(
+            aggregate_builder_func(self.organization.id), key=lambda val: (val.function, val.alias)
         )
 
     def test_simple_events(self):
@@ -973,135 +1048,148 @@ class BuildSnqlQueryTest(TestCase):
             environment=env,
         )
 
-    # TODO: Convert these tests once we implement `build_snql_query` for metrics
-    # def test_simple_sessions_for_metrics(self):
-    #     org_id = self.organization.id
-    #     for tag in [SessionMRI.SESSION.value, "session.status", "crashed", "init"]:
-    #         indexer.record(org_id, tag)
-    #     entity_subscription = get_entity_subscription_for_dataset(
-    #         dataset=QueryDatasets.METRICS,
-    #         time_window=3600,
-    #         aggregate="percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate",
-    #         extra_fields={"org_id": org_id},
-    #     )
-    #     snuba_filter = build_snuba_filter(
-    #         entity_subscription,
-    #         query="",
-    #         environment=None,
-    #     )
-    #     session_status = resolve_tag_key(org_id, "session.status")
-    #     session_status_tag_values = resolve_many_weak(org_id, ["crashed", "init"])
-    #     assert snuba_filter
-    #     assert snuba_filter.aggregations == [["sum(value)", None, "value"]]
-    #     assert snuba_filter.conditions == [
-    #         ["metric_id", "=", resolve(org_id, SessionMRI.SESSION.value)],
-    #         [session_status, "IN", session_status_tag_values],
-    #     ]
-    #     assert snuba_filter.groupby == [session_status]
-    #
-    # def test_simple_users_for_metrics(self):
-    #     org_id = self.organization.id
-    #     for tag in [SessionMRI.USER.value, "session.status", "crashed", "init"]:
-    #         indexer.record(org_id, tag)
-    #     entity_subscription = get_entity_subscription_for_dataset(
-    #         dataset=QueryDatasets.METRICS,
-    #         time_window=3600,
-    #         aggregate="percentage(users_crashed, users) AS _crash_rate_alert_aggregate",
-    #         extra_fields={"org_id": org_id},
-    #     )
-    #     snuba_filter = build_snuba_filter(
-    #         entity_subscription,
-    #         query="",
-    #         environment=None,
-    #     )
-    #     session_status = resolve_tag_key(org_id, "session.status")
-    #     session_status_tag_values = resolve_many_weak(org_id, ["crashed", "init"])
-    #     assert snuba_filter
-    #     assert snuba_filter.aggregations == [["uniq(value)", None, "value"]]
-    #     assert snuba_filter.conditions == [
-    #         ["metric_id", "=", resolve(org_id, SessionMRI.USER.value)],
-    #         [session_status, "IN", session_status_tag_values],
-    #     ]
-    #     assert snuba_filter.groupby == [session_status]
-    #
-    # def test_query_and_environment_sessions_metrics(self):
-    #     env = self.create_environment(self.project, name="development")
-    #     org_id = self.organization.id
-    #     for tag in [
-    #         SessionMRI.SESSION.value,
-    #         "session.status",
-    #         "environment",
-    #         "development",
-    #         "init",
-    #         "crashed",
-    #         "release",
-    #         "ahmed@12.2",
-    #     ]:
-    #         indexer.record(org_id, tag)
-    #     entity_subscription = get_entity_subscription_for_dataset(
-    #         dataset=QueryDatasets.METRICS,
-    #         time_window=3600,
-    #         aggregate="percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate",
-    #         extra_fields={"org_id": org_id},
-    #     )
-    #     snuba_filter = build_snuba_filter(
-    #         entity_subscription,
-    #         query="release:ahmed@12.2",
-    #         environment=env,
-    #     )
-    #     assert snuba_filter
-    #     assert snuba_filter.aggregations == [["sum(value)", None, "value"]]
-    #     assert snuba_filter.groupby == [resolve_tag_key(org_id, "session.status")]
-    #     assert snuba_filter.conditions == [
-    #         ["metric_id", "=", resolve(org_id, SessionMRI.SESSION.value)],
-    #         [
-    #             resolve_tag_key(org_id, "session.status"),
-    #             "IN",
-    #             resolve_many_weak(org_id, ["crashed", "init"]),
-    #         ],
-    #         [resolve_tag_key(org_id, "environment"), "=", resolve_weak(org_id, "development")],
-    #         [resolve_tag_key(org_id, "release"), "=", resolve_weak(org_id, "ahmed@12.2")],
-    #     ]
-    #
-    # def test_query_and_environment_users_metrics(self):
-    #     env = self.create_environment(self.project, name="development")
-    #     org_id = self.organization.id
-    #     for tag in [
-    #         SessionMRI.USER.value,
-    #         "session.status",
-    #         "environment",
-    #         "development",
-    #         "init",
-    #         "crashed",
-    #         "release",
-    #         "ahmed@12.2",
-    #     ]:
-    #         indexer.record(org_id, tag)
-    #     entity_subscription = get_entity_subscription_for_dataset(
-    #         dataset=QueryDatasets.METRICS,
-    #         time_window=3600,
-    #         aggregate="percentage(users_crashed, users) AS _crash_rate_alert_aggregate",
-    #         extra_fields={"org_id": org_id},
-    #     )
-    #     snuba_filter = build_snuba_filter(
-    #         entity_subscription,
-    #         query="release:ahmed@12.2",
-    #         environment=env,
-    #     )
-    #     assert snuba_filter
-    #     assert snuba_filter.aggregations == [["uniq(value)", None, "value"]]
-    #     assert snuba_filter.groupby == [resolve_tag_key(org_id, "session.status")]
-    #     assert snuba_filter.conditions == [
-    #         ["metric_id", "=", resolve(org_id, SessionMRI.USER.value)],
-    #         [
-    #             resolve_tag_key(org_id, "session.status"),
-    #             "IN",
-    #             resolve_many_weak(org_id, ["crashed", "init"]),
-    #         ],
-    #         [resolve_tag_key(org_id, "environment"), "=", resolve_weak(org_id, "development")],
-    #         [resolve_tag_key(org_id, "release"), "=", resolve_weak(org_id, "ahmed@12.2")],
-    #     ]
-    #
+    def test_simple_sessions_for_metrics(self):
+        org_id = self.organization.id
+        for tag in [SessionMRI.SESSION.value, "session.status", "crashed", "init"]:
+            _indexer_record(org_id, tag)
+        expected_conditions = [
+            Condition(Column(name="project_id"), Op.IN, (self.project.id,)),
+            Condition(Column(name="org_id"), Op.EQ, self.organization.id),
+            Condition(
+                Column(name="metric_id"),
+                Op.EQ,
+                resolve(self.organization.id, SessionMRI.SESSION.value),
+            ),
+            Condition(
+                Column(name=resolve_tag_key(self.organization.id, "session.status")),
+                Op.IN,
+                resolve_many_weak(self.organization.id, ["crashed", "init"]),
+            ),
+        ]
+        self.run_test(
+            QueryDatasets.METRICS,
+            "percentage(sessions_crashed, sessions) as _crash_rate_alert_aggregate",
+            "",
+            expected_conditions,
+            entity_extra_fields={"org_id": self.organization.id},
+            granularity=10,
+        )
+
+    def test_simple_users_for_metrics(self):
+        org_id = self.organization.id
+        for tag in [SessionMRI.USER.value, "session.status", "crashed"]:
+            _indexer_record(org_id, tag)
+
+        expected_conditions = [
+            Condition(Column(name="project_id"), Op.IN, (self.project.id,)),
+            Condition(Column(name="org_id"), Op.EQ, self.organization.id),
+            Condition(
+                Column(name="metric_id"),
+                Op.EQ,
+                resolve(self.organization.id, SessionMRI.USER.value),
+            ),
+        ]
+        self.run_test(
+            QueryDatasets.METRICS,
+            "percentage(users_crashed, users) AS _crash_rate_alert_aggregate",
+            "",
+            expected_conditions,
+            entity_extra_fields={"org_id": self.organization.id},
+            granularity=10,
+        )
+
+    def test_query_and_environment_sessions_metrics(self):
+        env = self.create_environment(self.project, name="development")
+        org_id = self.organization.id
+        for tag in [
+            SessionMRI.SESSION.value,
+            "session.status",
+            "environment",
+            "development",
+            "init",
+            "crashed",
+            "release",
+            "ahmed@12.2",
+        ]:
+            _indexer_record(org_id, tag)
+
+        expected_conditions = [
+            Condition(
+                Column(name=resolve_tag_key(self.organization.id, "release")),
+                Op.EQ,
+                resolve_weak(self.organization.id, "ahmed@12.2"),
+            ),
+            Condition(Column(name="project_id"), Op.IN, (self.project.id,)),
+            Condition(Column(name="org_id"), Op.EQ, self.organization.id),
+            Condition(
+                Column(name="metric_id"),
+                Op.EQ,
+                resolve(self.organization.id, SessionMRI.SESSION.value),
+            ),
+            Condition(
+                Column(name=resolve_tag_key(self.organization.id, "session.status")),
+                Op.IN,
+                resolve_many_weak(self.organization.id, ["crashed", "init"]),
+            ),
+            Condition(
+                Column(resolve_tag_key(self.organization.id, "environment")),
+                Op.EQ,
+                resolve_weak(self.organization.id, env.name),
+            ),
+        ]
+        self.run_test(
+            QueryDatasets.METRICS,
+            "percentage(sessions_crashed, sessions) as _crash_rate_alert_aggregate",
+            "release:ahmed@12.2",
+            expected_conditions,
+            environment=env,
+            entity_extra_fields={"org_id": self.organization.id},
+            granularity=10,
+        )
+
+    def test_query_and_environment_users_metrics(self):
+        env = self.create_environment(self.project, name="development")
+        org_id = self.organization.id
+        for tag in [
+            SessionMRI.USER.value,
+            "session.status",
+            "environment",
+            "development",
+            "init",
+            "crashed",
+            "release",
+            "ahmed@12.2",
+        ]:
+            _indexer_record(org_id, tag)
+
+        expected_conditions = [
+            Condition(
+                Column(name=resolve_tag_key(self.organization.id, "release")),
+                Op.EQ,
+                resolve_weak(self.organization.id, "ahmed@12.2"),
+            ),
+            Condition(Column(name="project_id"), Op.IN, (self.project.id,)),
+            Condition(Column(name="org_id"), Op.EQ, self.organization.id),
+            Condition(
+                Column(name="metric_id"),
+                Op.EQ,
+                resolve(self.organization.id, SessionMRI.USER.value),
+            ),
+            Condition(
+                Column(resolve_tag_key(self.organization.id, "environment")),
+                Op.EQ,
+                resolve_weak(self.organization.id, env.name),
+            ),
+        ]
+        self.run_test(
+            QueryDatasets.METRICS,
+            "percentage(users_crashed, users) AS _crash_rate_alert_aggregate",
+            "release:ahmed@12.2",
+            expected_conditions,
+            environment=env,
+            entity_extra_fields={"org_id": self.organization.id},
+            granularity=10,
+        )
 
 
 class TestApplyDatasetQueryConditions(TestCase):

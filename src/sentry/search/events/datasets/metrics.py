@@ -259,6 +259,28 @@ class MetricsDatasetConfig(DatasetConfig):
                     ),
                 ),
                 fields.MetricsFunction(
+                    "sumIf",
+                    required_args=[
+                        fields.ColumnTagArg("if_col"),
+                        fields.FunctionArg("if_val"),
+                    ],
+                    calculated_args=[
+                        {
+                            "name": "resolved_val",
+                            "fn": lambda args: self.resolve_value(args["if_val"]),
+                        }
+                    ],
+                    snql_counter=lambda args, alias: Function(
+                        "sumIf",
+                        [
+                            Column("value"),
+                            Function("equals", [args["if_col"], args["resolved_val"]]),
+                        ],
+                        alias,
+                    ),
+                    default_result_type="integer",
+                ),
+                fields.MetricsFunction(
                     "percentile",
                     required_args=[
                         fields.with_default(
@@ -286,6 +308,36 @@ class MetricsDatasetConfig(DatasetConfig):
                         [
                             Column("value"),
                             Function("equals", [Column("metric_id"), args["metric_id"]]),
+                        ],
+                        alias,
+                    ),
+                    default_result_type="integer",
+                ),
+                fields.MetricsFunction(
+                    "uniq",
+                    snql_set=lambda args, alias: Function(
+                        "uniq",
+                        [Column("value")],
+                        alias,
+                    ),
+                ),
+                fields.MetricsFunction(
+                    "uniqIf",
+                    required_args=[
+                        fields.ColumnTagArg("if_col"),
+                        fields.FunctionArg("if_val"),
+                    ],
+                    calculated_args=[
+                        {
+                            "name": "resolved_val",
+                            "fn": lambda args: self.resolve_value(args["if_val"]),
+                        }
+                    ],
+                    snql_set=lambda args, alias: Function(
+                        "uniqIf",
+                        [
+                            Column("value"),
+                            Function("equals", [args["if_col"], args["resolved_val"]]),
                         ],
                         alias,
                     ),
