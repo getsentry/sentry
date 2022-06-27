@@ -1,5 +1,7 @@
 from urllib.parse import urlencode
 
+from selenium.webdriver.common.by import By
+
 from sentry.testutils import AcceptanceTestCase
 from sentry.testutils.factories import get_fixture_path
 
@@ -61,7 +63,7 @@ class EmailTestCase(AcceptanceTestCase):
             # Text output is asserted against static fixture files
             self.browser.get(build_url(url, "txt"))
             self.browser.wait_until("#preview")
-            elem = self.browser.find_element_by_css_selector("#preview pre")
+            elem = self.browser.find_element(by=By.CSS_SELECTOR, value="#preview pre")
             text_src = elem.get_attribute("innerHTML")
 
             fixture_src = read_txt_email_fixture(name)

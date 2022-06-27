@@ -1,3 +1,5 @@
+from selenium.webdriver.common.by import By
+
 from .base import BasePage, ButtonElement, ModalElement
 
 
@@ -7,9 +9,9 @@ class ExampleIntegrationSetupWindowElement(ModalElement):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.name = self.element.find_element_by_name("name")
-        continue_button_element = self.element.find_element_by_css_selector(
-            self.submit_button_selector
+        self.name = self.element.find_element(by=By.NAME, value="name")
+        continue_button_element = self.element.find_element(
+            by=By.CSS_SELECTOR, value=self.submit_button_selector
         )
         self.continue_button = ButtonElement(continue_button_element)
 
@@ -29,7 +31,7 @@ class OrganizationAbstractDetailViewPage(BasePage):
         self.browser.click('[data-test-id="confirm-button"]')
 
     def switch_to_configuration_view(self):
-        self.browser.find_element_by_link_text(self.configurations_text).click()
+        self.browser.find_element(by=By.LINK_TEXT, value=self.configurations_text).click()
 
 
 class OrganizationIntegrationDetailViewPage(OrganizationAbstractDetailViewPage):

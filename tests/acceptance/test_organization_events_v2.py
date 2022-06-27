@@ -5,6 +5,7 @@ from urllib.parse import urlencode
 
 import pytest
 import pytz
+from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 
 from sentry.discover.models import DiscoverSavedQuery
@@ -603,9 +604,9 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             card = self.browser.element(card_selector)
 
             # Open the context menu
-            card.find_element_by_css_selector('[data-test-id="menu-trigger"]').click()
+            card.find_element(by=By.CSS_SELECTOR, value='[data-test-id="menu-trigger"]').click()
             # Delete the query
-            card.find_element_by_css_selector('[data-test-id="delete"]').click()
+            card.find_element(by=By.CSS_SELECTOR, value='[data-test-id="delete"]').click()
 
             # Wait for card to clear
             self.browser.wait_until_not(card_selector)
@@ -630,8 +631,8 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             card = self.browser.element(card_selector)
 
             # Open the context menu, and duplicate
-            card.find_element_by_css_selector('[data-test-id="menu-trigger"]').click()
-            card.find_element_by_css_selector('[data-test-id="duplicate"]').click()
+            card.find_element(by=By.CSS_SELECTOR, value='[data-test-id="menu-trigger"]').click()
+            card.find_element(by=By.CSS_SELECTOR, value='[data-test-id="duplicate"]').click()
 
             duplicate_name = f"{query.name} copy"
 
