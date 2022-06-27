@@ -54,36 +54,33 @@ async function renderModal({
   seriesData?: Series[];
   tableData?: TableDataWithTitle[];
 }) {
-  let rendered;
-  await act(async () => {
-    rendered = render(
-      <div style={{padding: space(4)}}>
-        <WidgetViewerModal
-          Header={stubEl}
-          Footer={stubEl as ModalRenderProps['Footer']}
-          Body={stubEl as ModalRenderProps['Body']}
-          CloseButton={stubEl}
-          closeModal={() => undefined}
-          organization={organization}
-          widget={widget}
-          onEdit={() => undefined}
-          seriesData={seriesData}
-          tableData={tableData}
-          issuesData={issuesData}
-          pageLinks={pageLinks}
-        />
-      </div>,
-      {
-        context: routerContext,
-        organization,
-      }
-    );
-    // Need to wait since WidgetViewerModal will make a request to events-meta
-    // for total events count on mount
-    if (widget.widgetType === WidgetType.DISCOVER) {
-      await waitForMetaToHaveBeenCalled();
+  const rendered = render(
+    <div style={{padding: space(4)}}>
+      <WidgetViewerModal
+        Header={stubEl}
+        Footer={stubEl as ModalRenderProps['Footer']}
+        Body={stubEl as ModalRenderProps['Body']}
+        CloseButton={stubEl}
+        closeModal={() => undefined}
+        organization={organization}
+        widget={widget}
+        onEdit={() => undefined}
+        seriesData={seriesData}
+        tableData={tableData}
+        issuesData={issuesData}
+        pageLinks={pageLinks}
+      />
+    </div>,
+    {
+      context: routerContext,
+      organization,
     }
-  });
+  );
+  // Need to wait since WidgetViewerModal will make a request to events-meta
+  // for total events count on mount
+  if (widget.widgetType === WidgetType.DISCOVER) {
+    await waitForMetaToHaveBeenCalled();
+  }
   return rendered;
 }
 
@@ -234,11 +231,6 @@ describe('Modals -> WidgetViewerModal', function () {
         });
       });
 
-      afterEach(() => {
-        MockApiClient.clearMockResponses();
-        jest.clearAllMocks();
-      });
-
       describe('with eventsv2', function () {
         it('renders Edit and Open buttons', async function () {
           mockEventsv2();
@@ -284,7 +276,7 @@ describe('Modals -> WidgetViewerModal', function () {
         });
 
         it('zooms into the selected time range', async function () {
-          const mock = mockEventsv2();
+          mockEventsv2();
           await renderModal({initialData, widget: mockWidget});
           act(() => {
             // Simulate dataZoom event on chart
@@ -309,11 +301,10 @@ describe('Modals -> WidgetViewerModal', function () {
               },
             })
           );
-          await waitFor(() => expect(mock).toHaveBeenCalled());
         });
 
         it('renders multiquery label and selector', async function () {
-          const mock = mockEventsv2();
+          mockEventsv2();
           await renderModal({initialData, widget: mockWidget});
           expect(
             screen.getByText(
@@ -321,9 +312,6 @@ describe('Modals -> WidgetViewerModal', function () {
             )
           ).toBeInTheDocument();
           expect(screen.getByText('Query Name')).toBeInTheDocument();
-          await waitFor(() => {
-            expect(mock).toHaveBeenCalled();
-          });
         });
 
         it('updates selected query when selected in the query dropdown', async function () {
@@ -408,6 +396,7 @@ describe('Modals -> WidgetViewerModal', function () {
               queries: [{...mockQuery, name: ''}, additionalMockQuery],
             },
           });
+
           expect(ReactEchartsCore).toHaveBeenLastCalledWith(
             expect.objectContaining({
               option: expect.objectContaining({
@@ -427,7 +416,7 @@ describe('Modals -> WidgetViewerModal', function () {
 
         it('zooming on minimap updates location query and updates echart start and end values', async function () {
           initialData.organization.features.push('widget-viewer-modal-minimap');
-          const mock = mockEventsv2();
+          mockEventsv2();
           await renderModal({
             initialData,
             widget: {
@@ -458,11 +447,10 @@ describe('Modals -> WidgetViewerModal', function () {
               },
             })
           );
-          await waitFor(() => expect(mock).toHaveBeenCalled());
         });
 
         it('includes group by in widget viewer table', async function () {
-          const mock = mockEventsv2();
+          mockEventsv2();
           mockWidget.queries = [
             {
               conditions: 'title:/organizations/:orgId/performance/summary/',
@@ -475,7 +463,6 @@ describe('Modals -> WidgetViewerModal', function () {
           ];
           await renderModal({initialData, widget: mockWidget});
           screen.getByText('transaction');
-          await waitFor(() => expect(mock).toHaveBeenCalled());
         });
 
         it('includes order by in widget viewer table if not explicitly selected', async function () {
@@ -1249,10 +1236,7 @@ describe('Modals -> WidgetViewerModal', function () {
     });
 
     it('renders Issue table widget viewer', async function () {
-      const {container} = await renderModal({
-        initialData,
-        widget: mockWidget,
-      });
+      const {container} = await renderModal({initialData, widget: mockWidget});
       expect(container).toSnapshot();
     });
 
@@ -1272,20 +1256,18 @@ describe('Modals -> WidgetViewerModal', function () {
       });
       // Need to manually set the new router location and rerender to simulate the sortable column click
       initialData.router.location.query = {sort: ['freq']};
-      await act(async () => {
-        await rerender(
-          <WidgetViewerModal
-            Header={stubEl}
-            Footer={stubEl as ModalRenderProps['Footer']}
-            Body={stubEl as ModalRenderProps['Body']}
-            CloseButton={stubEl}
-            closeModal={() => undefined}
-            organization={initialData.organization}
-            widget={mockWidget}
-            onEdit={() => undefined}
-          />
-        );
-      });
+      rerender(
+        <WidgetViewerModal
+          Header={stubEl}
+          Footer={stubEl as ModalRenderProps['Footer']}
+          Body={stubEl as ModalRenderProps['Body']}
+          CloseButton={stubEl}
+          closeModal={() => undefined}
+          organization={initialData.organization}
+          widget={mockWidget}
+          onEdit={() => undefined}
+        />
+      );
       expect(issuesMock).toHaveBeenCalledWith(
         '/organizations/org-slug/issues/',
         expect.objectContaining({

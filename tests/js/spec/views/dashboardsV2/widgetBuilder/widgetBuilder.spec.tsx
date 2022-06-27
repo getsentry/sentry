@@ -2279,16 +2279,11 @@ describe('WidgetBuilder', function () {
       userEvent.click(screen.getByText('Add an Equation'));
       userEvent.paste(screen.getAllByPlaceholderText('Alias')[1], 'This should persist');
 
-      // TODO(nar): This isn't good
-      expect(await screen.findAllByText('count()')).toHaveLength(3);
-      await selectEvent.select(
-        (
-          await screen.findAllByText('count()')
-        )[1],
-        /count_unique/
-      );
+      // 1 for the table, 1 for the the column selector, 1 for the sort
+      await waitFor(() => expect(screen.getAllByText('count()')).toHaveLength(3));
+      await selectEvent.select(screen.getAllByText('count()')[1], /count_unique/);
 
-      expect(await screen.findByText('This should persist')).toBeInTheDocument();
+      expect(screen.getByText('This should persist')).toBeInTheDocument();
     });
 
     it('copies over the orderby from the previous query if adding another', async function () {
