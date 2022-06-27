@@ -79,7 +79,7 @@ export function ColumnsStep({
         fields={explodedFields}
         errors={queryErrors}
         fieldOptions={datasetConfig.getTableFieldOptions(organization, tags)}
-        filterAggregateParameters={datasetConfig.filterTableAggregateParams}
+        filterAggregateParameters={datasetConfig.filterAggregateParams}
         filterPrimaryOptions={datasetConfig.filterTableOptions}
         onChange={handleColumnFieldChange}
       />

@@ -16,23 +16,15 @@ import {
   isEquation,
   isEquationAlias,
 } from 'sentry/utils/discover/fields';
-import Measurements from 'sentry/utils/measurements/measurements';
 import useOrganization from 'sentry/utils/useOrganization';
-import {DisplayType, WidgetType} from 'sentry/views/dashboardsV2/types';
+import {getDatasetConfig} from 'sentry/views/dashboardsV2/datasetConfig/base';
+import {DisplayType, WidgetQuery, WidgetType} from 'sentry/views/dashboardsV2/types';
 import {
-  getAmendedFieldOptions,
   SortDirection,
   sortDirections,
 } from 'sentry/views/dashboardsV2/widgetBuilder/utils';
 import ArithmeticInput from 'sentry/views/eventsV2/table/arithmeticInput';
 import {QueryField} from 'sentry/views/eventsV2/table/queryField';
-import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
-
-import {
-  generateReleaseWidgetFieldOptions,
-  SESSIONS_FIELDS,
-  SESSIONS_TAGS,
-} from '../../releaseWidget/fields';
 
 import {CUSTOM_EQUATION_VALUE} from '.';
 
@@ -43,32 +35,30 @@ interface Values {
 
 interface Props {
   displayType: DisplayType;
-  filterPrimaryOptions: React.ComponentProps<typeof QueryField>['filterPrimaryOptions'];
   onChange: (values: Values) => void;
-  sortByOptions: SelectValue<string>[];
   tags: TagCollection;
   values: Values;
+  widgetQuery: WidgetQuery;
   widgetType: WidgetType;
-  disabledReason?: string;
-  disabledSort?: boolean;
-  disabledSortDirection?: boolean;
+  disableSort?: boolean;
+  disableSortDirection?: boolean;
+  disableSortReason?: string;
   hasGroupBy?: boolean;
 }
 
 export function SortBySelectors({
   values,
-  sortByOptions,
   widgetType,
   onChange,
-  disabledReason,
-  disabledSort,
-  disabledSortDirection,
-  hasGroupBy,
-  tags,
-  filterPrimaryOptions,
+  disableSortReason,
+  disableSort,
+  disableSortDirection,
+  widgetQuery,
   displayType,
 }: Props) {
+  const datasetConfig = getDatasetConfig(widgetType);
   const organization = useOrganization();
+  const columnSet = new Set(widgetQuery.columns);
   const [showCustomEquation, setShowCustomEquation] = useState(false);
   const [customEquation, setCustomEquation] = useState<Values>({
     sortBy: `${EQUATION_PREFIX}`,
@@ -85,52 +75,72 @@ export function SortBySelectors({
     setShowCustomEquation(isSortingByEquation);
   }, [values.sortBy, values.sortDirection]);
 
-  function generateEquationOptions(options: Props['sortByOptions']) {
-    return options.reduce((acc, option) => {
-      if (option.value.startsWith('equation')) {
-        acc[`equation:${option.value}`] = {
-          label: option.label,
-          value: {
-            kind: FieldValueKind.EQUATION,
-            meta: {
-              name: option.value,
-            },
-          },
-        };
-      }
-      return acc;
-    }, {});
-  }
-
-  function getSortByField() {
-    if (
-      widgetType === WidgetType.DISCOVER &&
-      ![DisplayType.TABLE, DisplayType.TOP_N].includes(displayType)
-    ) {
-      return (
-        <Measurements>
-          {({measurements}) => (
+  return (
+    <Tooltip title={disableSortReason} disabled={!(disableSortDirection && disableSort)}>
+      <Wrapper>
+        <Tooltip
+          title={disableSortReason}
+          disabled={!disableSortDirection || (disableSortDirection && disableSort)}
+        >
+          <SelectControl
+            name="sortDirection"
+            aria-label="Sort direction"
+            menuPlacement="auto"
+            disabled={disableSortDirection}
+            options={Object.keys(sortDirections).map(value => ({
+              label: sortDirections[value],
+              value,
+            }))}
+            value={values.sortDirection}
+            onChange={(option: SelectValue<SortDirection>) => {
+              onChange({
+                sortBy: values.sortBy,
+                sortDirection: option.value,
+              });
+            }}
+          />
+        </Tooltip>
+        <Tooltip
+          title={disableSortReason}
+          disabled={!disableSort || (disableSortDirection && disableSort)}
+        >
+          {displayType === DisplayType.TABLE ? (
+            <SelectControl
+              name="sortBy"
+              aria-label="Sort by"
+              menuPlacement="auto"
+              disabled={disableSort}
+              placeholder={`${t('Select a column')}\u{2026}`}
+              value={values.sortBy}
+              options={uniqBy(
+                datasetConfig.getTableSortOptions!(organization, widgetQuery),
+                ({value}) => value
+              )}
+              onChange={(option: SelectValue<string>) => {
+                onChange({
+                  sortBy: option.value,
+                  sortDirection: values.sortDirection,
+                });
+              }}
+            />
+          ) : (
             <QueryField
+              disabled={disableSort}
               fieldValue={
                 showCustomEquation
                   ? explodeField({field: CUSTOM_EQUATION_VALUE})
                   : explodeField({field: values.sortBy})
               }
-              fieldOptions={{
-                ...(hasGroupBy
-                  ? {
-                      [`field:${CUSTOM_EQUATION_VALUE}`]: {
-                        label: 'Custom Equation',
-                        value: {
-                          kind: FieldValueKind.EQUATION,
-                          meta: {name: CUSTOM_EQUATION_VALUE},
-                        },
-                      },
-                    }
-                  : {}),
-                ...generateEquationOptions(sortByOptions),
-                ...getAmendedFieldOptions({measurements, organization, tags}),
-              }}
+              fieldOptions={datasetConfig.getTimeseriesSortOptions!(
+                organization,
+                widgetQuery
+              )}
+              filterPrimaryOptions={
+                datasetConfig.filterSeriesSortOptions
+                  ? datasetConfig.filterSeriesSortOptions(columnSet)
+                  : undefined
+              }
+              filterAggregateParameters={datasetConfig.filterAggregateParams}
               onChange={value => {
                 if (value.alias && isEquationAlias(value.alias)) {
                   onChange({
@@ -153,90 +163,9 @@ export function SortBySelectors({
                   sortDirection: values.sortDirection,
                 });
               }}
-              filterPrimaryOptions={filterPrimaryOptions}
             />
           )}
-        </Measurements>
-      );
-    }
-    if (
-      widgetType === WidgetType.RELEASE &&
-      ![DisplayType.TABLE, DisplayType.TOP_N].includes(displayType)
-    ) {
-      return (
-        <Tooltip
-          title={disabledReason}
-          disabled={!disabledSort || (disabledSortDirection && disabledSort)}
-        >
-          <QueryField
-            disabled={disabledSort}
-            fieldValue={explodeField({field: values.sortBy})}
-            fieldOptions={generateReleaseWidgetFieldOptions(
-              Object.values(SESSIONS_FIELDS),
-              SESSIONS_TAGS
-            )}
-            onChange={value => {
-              const parsedValue = generateFieldAsString(value);
-              onChange({
-                sortBy: parsedValue,
-                sortDirection: values.sortDirection,
-              });
-            }}
-            filterPrimaryOptions={filterPrimaryOptions}
-          />
         </Tooltip>
-      );
-    }
-    return (
-      <Tooltip
-        title={disabledReason}
-        disabled={!disabledSort || (disabledSortDirection && disabledSort)}
-      >
-        <SelectControl
-          name="sortBy"
-          aria-label="Sort by"
-          menuPlacement="auto"
-          disabled={disabledSort}
-          placeholder={`${t('Select a column')}\u{2026}`}
-          value={values.sortBy}
-          options={uniqBy(sortByOptions, ({value}) => value)}
-          onChange={(option: SelectValue<string>) => {
-            onChange({
-              sortBy: option.value,
-              sortDirection: values.sortDirection,
-            });
-          }}
-        />
-      </Tooltip>
-    );
-  }
-
-  return (
-    <Tooltip title={disabledReason} disabled={!(disabledSortDirection && disabledSort)}>
-      <Wrapper>
-        <Tooltip
-          title={disabledReason}
-          disabled={!disabledSortDirection || (disabledSortDirection && disabledSort)}
-        >
-          <SelectControl
-            name="sortDirection"
-            aria-label="Sort direction"
-            menuPlacement="auto"
-            disabled={disabledSortDirection}
-            options={Object.keys(sortDirections).map(value => ({
-              label: sortDirections[value],
-              value,
-            }))}
-            value={values.sortDirection}
-            onChange={(option: SelectValue<SortDirection>) => {
-              onChange({
-                sortBy: values.sortBy,
-                sortDirection: option.value,
-              });
-            }}
-          />
-        </Tooltip>
-        {getSortByField()}
         {showCustomEquation && (
           <ArithmeticInputWrapper>
             <ArithmeticInput

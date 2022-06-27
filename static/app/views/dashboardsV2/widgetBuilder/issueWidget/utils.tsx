@@ -26,7 +26,7 @@ export function generateIssueWidgetFieldOptions(
   return fieldOptions;
 }
 
-const ISSUE_WIDGET_SORT_OPTIONS = [
+export const ISSUE_WIDGET_SORT_OPTIONS = [
   IssueSortOptions.DATE,
   IssueSortOptions.NEW,
   IssueSortOptions.FREQ,
