@@ -19,6 +19,8 @@ from typing import (
     Union,
 )
 
+from snuba_sdk import Column, Condition, Op
+
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS, CRASH_RATE_ALERT_SESSION_COUNT_ALIAS
 from sentry.eventstore import Filter
 from sentry.exceptions import InvalidQuerySubscription, UnsupportedQuerySubscription
@@ -28,6 +30,7 @@ from sentry.search.events.filter import get_filter
 from sentry.sentry_metrics.utils import (
     MetricIndexNotFound,
     resolve,
+    resolve_many_weak,
     resolve_tag_key,
     resolve_weak,
     reverse_resolve,
@@ -378,7 +381,15 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
         raise NotImplementedError
 
     @abstractmethod
+    def get_snql_aggregations(self) -> List[str]:
+        raise NotImplementedError
+
+    @abstractmethod
     def get_extra_conditions(self) -> List[List[Any]]:  # TODO: better type?
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_snql_extra_conditions(self) -> List[Condition]:
         raise NotImplementedError
 
     def get_granularity(self) -> int:
@@ -543,14 +554,48 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
         query: str,
         project_ids: Sequence[int],
         environment: Optional[Environment],
-        params: Optional[Mapping[str, Any]] = None,
+        params: Optional[MutableMapping[str, Any]] = None,
     ) -> QueryBuilder:
-        raise NotImplementedError
+        from sentry.search.events.builder import AlertMetricsQueryBuilder
+
+        if params is None:
+            params = {}
+
+        params["project_id"] = project_ids
+        qb = AlertMetricsQueryBuilder(
+            query=query,
+            selected_columns=self.get_snql_aggregations(),
+            params=params,
+            offset=None,
+            skip_time_conditions=True,
+            granularity=self.get_granularity(),
+        )
+        extra_conditions = [
+            Condition(Column("metric_id"), Op.EQ, resolve(self.org_id, self.metric_key.value)),
+            *self.get_snql_extra_conditions(),
+        ]
+        if environment:
+            extra_conditions.append(
+                Condition(
+                    Column(resolve_tag_key(self.org_id, "environment")),
+                    Op.EQ,
+                    resolve_weak(self.org_id, environment.name),
+                )
+            )
+        qb.add_conditions(extra_conditions)
+
+        return qb
 
 
 class MetricsCountersEntitySubscription(BaseMetricsEntitySubscription):
     entity_key: EntityKey = EntityKey.MetricsCounters
     metric_key: SessionMRI = SessionMRI.SESSION
+
+    def get_snql_aggregations(self) -> List[str]:
+        return [
+            "sumIf(session.status, init) as count",
+            "sumIf(session.status, crashed) as crashed",
+        ]
 
     def get_aggregations(self) -> List[List[Optional[str]]]:
         session_status_crashed = resolve(self.org_id, "crashed")
@@ -568,6 +613,15 @@ class MetricsCountersEntitySubscription(BaseMetricsEntitySubscription):
             ],
         ]
 
+    def get_snql_extra_conditions(self) -> List[Condition]:
+        return [
+            Condition(
+                Column(self.session_status),
+                Op.IN,
+                resolve_many_weak(self.org_id, ["crashed", "init"]),
+            ),
+        ]
+
     def get_extra_conditions(self) -> List[List[Any]]:
         crashed = resolve(self.org_id, "crashed")
         init = resolve(self.org_id, "init")
@@ -577,6 +631,12 @@ class MetricsCountersEntitySubscription(BaseMetricsEntitySubscription):
 class MetricsSetsEntitySubscription(BaseMetricsEntitySubscription):
     entity_key: EntityKey = EntityKey.MetricsSets
     metric_key: SessionMRI = SessionMRI.USER
+
+    def get_snql_aggregations(self) -> List[str]:
+        return [
+            "uniq() as count",
+            "uniqIf(session.status, crashed) as crashed",
+        ]
 
     def get_aggregations(self) -> List[List[Optional[str]]]:
         session_status_crashed = resolve(self.org_id, "crashed")
@@ -592,6 +652,9 @@ class MetricsSetsEntitySubscription(BaseMetricsEntitySubscription):
                 "crashed",
             ],
         ]
+
+    def get_snql_extra_conditions(self) -> List[Condition]:
+        return []
 
     def get_extra_conditions(self) -> List[List[Any]]:
         return []

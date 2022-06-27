@@ -235,13 +235,10 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
         except UnsupportedQuerySubscription as e:
             raise serializers.ValidationError(f"{e}")
 
-        if (
-            features.has(
-                "organizations:metric-alert-snql",
-                self.context.get("organization"),
-                actor=self.context.get("user"),
-            )
-            and dataset != QueryDatasets.METRICS
+        if features.has(
+            "organizations:metric-alert-snql",
+            self.context.get("organization"),
+            actor=self.context.get("user"),
         ):
             self._validate_snql_query(data, entity_subscription, projects)
         else:
