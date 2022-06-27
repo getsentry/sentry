@@ -2,6 +2,7 @@ import base64
 
 from django.http import HttpRequest
 from django.test import override_settings
+from pytest import raises
 from rest_framework.response import Response
 
 from sentry.api.base import ApiAvailableOn, Endpoint
@@ -165,11 +166,18 @@ class ServerComponentModeTest(APITestCase):
                 return super().get(request)
 
         with override_settings(SERVER_COMPONENT_MODE=active_mode):
+            request = self.make_request(method="GET")
+
             for endpoint_class in (DecoratedEndpoint, EndpointWithDecoratedMethod):
                 view = endpoint_class.as_view()
-                request = self.make_request(method="GET")
                 response = view(request)
                 assert response.status_code == (200 if expect_to_be_active else 404)
+
+            if not expect_to_be_active:
+                with override_settings(FAIL_ON_UNAVAILABLE_API_CALL=True):
+                    with raises(ApiAvailableOn.ApiAvailabilityError):
+                        DecoratedEndpoint.as_view()(request)
+                    # TODO: Make work with EndpointWithDecoratedMethod
 
     def test_with_active_mode(self):
         self._test_active_on(ServerComponentMode.CUSTOMER, ServerComponentMode.CUSTOMER, True)
