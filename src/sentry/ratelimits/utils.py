@@ -114,7 +114,10 @@ def get_organization_id_from_token(token_id: str) -> int | None:
 
 
 def get_rate_limit_config(
-    endpoint: Type[object], request: Optional[Request] = None, view_args=None, view_kwargs=None
+    endpoint: Type[object],
+    request: Optional[Request] = None,
+    view_args: Any = None,
+    view_kwargs: Any = None,
 ) -> RateLimitConfig | None:
     """Read the rate limit config from the view function to be used for the rate limit check.
 
