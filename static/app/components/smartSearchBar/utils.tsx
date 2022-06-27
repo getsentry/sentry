@@ -279,9 +279,7 @@ export const shortcuts: Shortcut[] = [
     },
     icon: <IconExclamation size="xs" color="gray300" />,
     canRunShortcut: token => {
-      return (
-        token?.type === Token.Filter && !(token as TokenResult<Token.Filter>).negated
-      );
+      return token?.type === Token.Filter && !token.negated;
     },
   },
   {
@@ -292,7 +290,7 @@ export const shortcuts: Shortcut[] = [
     },
     icon: <IconExclamation size="xs" color="gray300" />,
     canRunShortcut: token => {
-      return token?.type === Token.Filter && (token as TokenResult<Token.Filter>).negated;
+      return token?.type === Token.Filter && token.negated;
     },
   },
 
