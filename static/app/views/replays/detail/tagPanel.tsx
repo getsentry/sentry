@@ -30,6 +30,7 @@ function TagPanel({replay}: Props) {
 const Panel = styled(BasePanel)`
   width: 100%;
   height: 100%;
+  overflow: hidden;
 `;
 
 const PanelHeader = styled(BasePanelHeader)`
@@ -44,6 +45,7 @@ const PanelHeader = styled(BasePanelHeader)`
 const PanelBody = styled(BasePanelBody)`
   padding: ${space(1.5)};
   overflow-y: auto;
+  max-height: 100%;
   ${SectionHeading} {
     display: none;
   }
