@@ -62,7 +62,7 @@ jobs:
           python-version: 3.8.12
 
       - name: Cache (yarn)
-        uses: actions/cache@v1 # We are explicitly using v1 due to perf reasons
+        uses: actions/cache@v3
         with:
           path: ${{ steps.info.outputs.yarn-cache-dir }}
           key: devenv-${{ runner.os }}-v1-yarn-${{ hashFiles('yarn.lock') }}
