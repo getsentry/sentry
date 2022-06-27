@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useState} from 'react';
+import {memo, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
@@ -20,7 +20,7 @@ interface FrameStackProps {
   flamegraphRenderer: FlamegraphRenderer;
 }
 
-function FrameStack(props: FrameStackProps) {
+const FrameStack = memo(function FrameStack(props: FrameStackProps) {
   const theme = useFlamegraphTheme();
   const {selectedNode} = useFlamegraphProfilesValue();
 
@@ -164,7 +164,7 @@ function FrameStack(props: FrameStackProps) {
       />
     </FrameDrawer>
   ) : null;
-}
+});
 
 const FrameDrawerLabel = styled('label')`
   display: flex;

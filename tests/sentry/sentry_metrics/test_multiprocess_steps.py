@@ -2,28 +2,28 @@ import logging
 import time
 from copy import deepcopy
 from datetime import datetime, timezone
-from typing import Dict, List, Mapping, MutableMapping, Sequence, Union
+from typing import Dict, List, MutableMapping, Sequence, Union
 from unittest import mock
 from unittest.mock import Mock, call, patch
 
 import pytest
 from arroyo.backends.kafka import KafkaPayload
-from arroyo.backends.local.backend import LocalBroker as Broker
-from arroyo.backends.local.storages.memory import MemoryMessageStorage
 from arroyo.processing.strategies import MessageRejected
-from arroyo.types import Message, Partition, Position, Topic
-from arroyo.utils.clock import TestingClock as Clock
+from arroyo.types import Message, Partition, Topic
 
-from sentry.sentry_metrics.indexer.mock import MockIndexer
-from sentry.sentry_metrics.multiprocess import (
+from sentry.sentry_metrics.configuration import UseCaseKey, get_ingest_config
+from sentry.sentry_metrics.consumers.indexer.common import (
     BatchMessages,
     DuplicateMessage,
     MetricsBatchBuilder,
-    ProduceStep,
+)
+from sentry.sentry_metrics.consumers.indexer.multiprocess import TransformStep
+from sentry.sentry_metrics.consumers.indexer.processing import (
     invalid_metric_tags,
     process_messages,
     valid_metric_name,
 )
+from sentry.sentry_metrics.indexer.mock import MockIndexer
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.utils import json
 
@@ -244,9 +244,14 @@ def __translated_payload(
     org_id = payload["org_id"]
 
     new_tags = {
-        indexer.resolve(org_id, k): indexer.resolve(org_id, v) for k, v in payload["tags"].items()
+        indexer.resolve(
+            use_case_id=UseCaseKey.RELEASE_HEALTH, org_id=org_id, string=k
+        ): indexer.resolve(use_case_id=UseCaseKey.RELEASE_HEALTH, org_id=org_id, string=v)
+        for k, v in payload["tags"].items()
     }
-    payload["metric_id"] = indexer.resolve(org_id, payload["name"])
+    payload["metric_id"] = indexer.resolve(
+        use_case_id=UseCaseKey.RELEASE_HEALTH, org_id=org_id, string=payload["name"]
+    )
     payload["retention_days"] = 90
     payload["tags"] = new_tags
 
@@ -254,7 +259,7 @@ def __translated_payload(
     return payload
 
 
-@patch("sentry.sentry_metrics.multiprocess.get_indexer", return_value=MockIndexer())
+@patch("sentry.sentry_metrics.consumers.indexer.processing.get_indexer", return_value=MockIndexer())
 def test_process_messages(mock_indexer) -> None:
     message_payloads = [counter_payload, distribution_payload, set_payload]
     message_batch = [
@@ -270,7 +275,7 @@ def test_process_messages(mock_indexer) -> None:
     last = message_batch[-1]
     outer_message = Message(last.partition, last.offset, message_batch, last.timestamp)
 
-    new_batch = process_messages(outer_message=outer_message)
+    new_batch = process_messages(use_case_id=UseCaseKey.RELEASE_HEALTH, outer_message=outer_message)
     expected_new_batch = [
         Message(
             m.partition,
@@ -278,13 +283,56 @@ def test_process_messages(mock_indexer) -> None:
             KafkaPayload(
                 None,
                 json.dumps(__translated_payload(message_payloads[i])).encode("utf-8"),
-                [],
+                [("metric_type", message_payloads[i]["type"])],
             ),
             m.timestamp,
         )
         for i, m in enumerate(message_batch)
     ]
     compare_message_batches_ignoring_metadata(new_batch, expected_new_batch)
+
+
+@patch("sentry.sentry_metrics.consumers.indexer.processing.get_indexer", return_value=MockIndexer())
+def test_transform_step(mock_indexer) -> None:
+    config = get_ingest_config(UseCaseKey.RELEASE_HEALTH)
+
+    message_payloads = [counter_payload, distribution_payload, set_payload]
+
+    produce_step = Mock()
+    transform_step = TransformStep(next_step=produce_step, config=config)
+
+    message_batch = [
+        Message(
+            Partition(Topic("topic"), 0),
+            i + 1,
+            KafkaPayload(None, json.dumps(payload).encode("utf-8"), []),
+            datetime.now(),
+        )
+        for i, payload in enumerate(message_payloads)
+    ]
+    expected_new_batch = [
+        Message(
+            m.partition,
+            m.offset,
+            KafkaPayload(
+                None,
+                json.dumps(__translated_payload(message_payloads[i])).encode("utf-8"),
+                [("metric_type", message_payloads[i]["type"])],
+            ),
+            m.timestamp,
+        )
+        for i, m in enumerate(message_batch)
+    ]
+    last = message_batch[-1]
+    outer_message = Message(last.partition, last.offset, message_batch, last.timestamp)
+
+    transform_step.submit(outer_message)
+
+    produce_step_calls = produce_step.submit.call_args_list
+    for i, _ in enumerate(message_batch):
+        compare_messages_ignoring_mapping_metadata(
+            produce_step_calls[i].args[0], expected_new_batch[i]
+        )
 
 
 invalid_payloads = [
@@ -368,9 +416,12 @@ def test_process_messages_invalid_messages(
     outer_message = Message(last.partition, last.offset, message_batch, last.timestamp)
 
     with caplog.at_level(logging.ERROR), mock.patch(
-        "sentry.sentry_metrics.multiprocess.get_indexer", return_value=MockIndexer()
+        "sentry.sentry_metrics.consumers.indexer.processing.get_indexer",
+        return_value=MockIndexer(),
     ):
-        new_batch = process_messages(outer_message=outer_message)
+        new_batch = process_messages(
+            use_case_id=UseCaseKey.RELEASE_HEALTH, outer_message=outer_message
+        )
 
     # we expect just the valid counter_payload msg to be left
     expected_msg = message_batch[0]
@@ -381,89 +432,13 @@ def test_process_messages_invalid_messages(
             KafkaPayload(
                 None,
                 json.dumps(__translated_payload(counter_payload)).encode("utf-8"),
-                [],
+                [("metric_type", "c")],
             ),
             expected_msg.timestamp,
         )
     ]
     compare_message_batches_ignoring_metadata(new_batch, expected_new_batch)
     assert error_text in caplog.text
-
-
-def test_produce_step() -> None:
-    topic = Topic("snuba-metrics")
-    partition = Partition(topic, 0)
-
-    clock = Clock()
-    broker_storage: MemoryMessageStorage[KafkaPayload] = MemoryMessageStorage()
-    broker: Broker[KafkaPayload] = Broker(broker_storage, clock)
-    broker.create_topic(topic, partitions=1)
-    producer = broker.get_producer()
-
-    commit = Mock()
-
-    produce_step = ProduceStep(commit_function=commit, producer=producer)
-
-    message_payloads = [counter_payload, distribution_payload, set_payload]
-    message_batch = [
-        Message(
-            Partition(Topic("topic"), 0),
-            i + 1,
-            KafkaPayload(
-                None, json.dumps(__translated_payload(message_payloads[i])).encode("utf-8"), []
-            ),
-            datetime.now(),
-        )
-        for i, payload in enumerate(message_payloads)
-    ]
-    # the outer message uses the last message's partition, offset, and timestamp
-    last = message_batch[-1]
-    outer_message = Message(last.partition, last.offset, message_batch, last.timestamp)
-
-    # 1. Submit the message (that would have been generated from process_messages)
-    produce_step.submit(outer_message=outer_message)
-
-    # 2. Check that submit created the same number of futures as
-    #    messages in the outer_message (3 in this test). Also check
-    #    that the produced message payloads are as expected.
-    assert len(produce_step._ProduceStep__futures) == 3
-
-    first_message = broker_storage.consume(partition, 0)
-    assert first_message is not None
-
-    second_message = broker_storage.consume(partition, 1)
-    assert second_message is not None
-
-    third_message = broker_storage.consume(partition, 2)
-    assert third_message is not None
-
-    assert broker_storage.consume(partition, 3) is None
-
-    produced_messages = [
-        json.loads(msg.payload.value.decode("utf-8"), use_rapid_json=True)
-        for msg in [first_message, second_message, third_message]
-    ]
-    expected_produced_messages = []
-    for payload in message_payloads:
-        translated = __translated_payload(payload)
-        tags: Mapping[str, int] = {str(k): v for k, v in translated["tags"].items()}
-        translated.update(**{"tags": tags})
-        expected_produced_messages.append(translated)
-
-    assert produced_messages == expected_produced_messages
-
-    # 3. Call poll method, and check that doing so checked that
-    #    futures were ready and successful and therefore messages
-    #    were committed.
-    produce_step.poll()
-    expected_commit_calls = [
-        call({message.partition: Position(message.offset, message.timestamp)})
-        for message in message_batch
-    ]
-    assert commit.call_args_list == expected_commit_calls
-
-    produce_step.close()
-    produce_step.join()
 
 
 def test_valid_metric_name() -> None:

@@ -9,17 +9,19 @@ import {
   MetricsApiResponse,
   Organization,
   PageFilters,
+  SelectValue,
   SessionApiResponse,
   SessionField,
+  SessionsMeta,
 } from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import {TableData} from 'sentry/utils/discover/discoverQuery';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {FieldValueOption} from 'sentry/views/eventsV2/table/queryField';
-import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
+import {FieldValue, FieldValueKind} from 'sentry/views/eventsV2/table/types';
 
-import {DisplayType, WidgetQuery} from '../types';
+import {DisplayType, Widget, WidgetQuery} from '../types';
 import {getWidgetInterval} from '../utils';
 import {ReleaseSearchBar} from '../widgetBuilder/buildSteps/filterResultsStep/releaseSearchBar';
 import {
@@ -30,6 +32,7 @@ import {
   generateReleaseWidgetFieldOptions,
   SESSIONS_FIELDS,
   SESSIONS_TAGS,
+  TAG_SORT_DENY_LIST,
 } from '../widgetBuilder/releaseWidget/fields';
 import {
   derivedMetricsToField,
@@ -60,6 +63,7 @@ export const ReleasesConfig: DatasetConfig<
   SessionApiResponse | MetricsApiResponse
 > = {
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
+  disableSortOptions,
   getTableRequest: (
     api: Client,
     query: WidgetQuery,
@@ -67,34 +71,31 @@ export const ReleasesConfig: DatasetConfig<
     pageFilters: PageFilters,
     limit?: number,
     cursor?: string
-  ) => getReleasesRequest(0, 1, api, query, organization, pageFilters, limit, cursor),
-  getSeriesRequest: (
-    api: Client,
-    query: WidgetQuery,
-    organization: Organization,
-    pageFilters: PageFilters,
-    limit?: number,
-    cursor?: string
-  ) => {
-    const includeTotals = query.columns.length > 0 ? 1 : 0;
-    return getReleasesRequest(
+  ) =>
+    getReleasesRequest(
+      0,
       1,
-      includeTotals,
       api,
       query,
       organization,
       pageFilters,
+      undefined,
       limit,
       cursor
-    );
-  },
+    ),
+  getSeriesRequest: getReleasesSeriesRequest,
+  getTableSortOptions,
+  getTimeseriesSortOptions,
   filterTableOptions: filterPrimaryReleaseTableOptions,
-  filterTableAggregateParams: filterAggregateParams,
+  filterAggregateParams,
   getCustomFieldRenderer: (field, meta) => getFieldRenderer(field, meta, false),
   SearchBar: ReleaseSearchBar,
   getTableFieldOptions: getReleasesTableFieldOptions,
+  getGroupByFieldOptions: (_organization: Organization) =>
+    generateReleaseWidgetFieldOptions([] as SessionsMeta[], SESSIONS_TAGS),
   handleColumnFieldChangeOverride,
   handleOrderByReset: handleReleasesTableOrderByReset,
+  filterSeriesSortOptions,
   supportedDisplayTypes: [
     DisplayType.AREA,
     DisplayType.BAR,
@@ -106,6 +107,107 @@ export const ReleasesConfig: DatasetConfig<
   transformSeries: transformSessionsResponseToSeries,
   transformTable: transformSessionsResponseToTable,
 };
+
+function disableSortOptions(widgetQuery: WidgetQuery) {
+  const {columns} = widgetQuery;
+  if (columns.includes('session.status')) {
+    return {
+      disableSort: true,
+      disableSortDirection: true,
+      disableSortReason: t('Sorting currently not supported with session.status'),
+    };
+  }
+  return {
+    disableSort: false,
+    disableSortDirection: false,
+  };
+}
+
+function getTableSortOptions(_organization: Organization, widgetQuery: WidgetQuery) {
+  const {columns, aggregates} = widgetQuery;
+  const options: SelectValue<string>[] = [];
+  [...aggregates, ...columns]
+    .filter(field => !!field)
+    .filter(field => !DISABLED_SORT.includes(field))
+    .filter(field => !TAG_SORT_DENY_LIST.includes(field))
+    .forEach(field => {
+      options.push({label: field, value: field});
+    });
+
+  return options;
+}
+
+function getTimeseriesSortOptions(_organization: Organization, widgetQuery: WidgetQuery) {
+  const columnSet = new Set(widgetQuery.columns);
+  const releaseFieldOptions = generateReleaseWidgetFieldOptions(
+    Object.values(SESSIONS_FIELDS),
+    SESSIONS_TAGS
+  );
+  const options: Record<string, SelectValue<FieldValue>> = {};
+  Object.entries(releaseFieldOptions).forEach(([key, option]) => {
+    if (['count_healthy', 'count_errored'].includes(option.value.meta.name)) {
+      return;
+    }
+    if (option.value.kind === FieldValueKind.FIELD) {
+      // Only allow sorting by release tag
+      if (option.value.meta.name === 'release' && columnSet.has(option.value.meta.name)) {
+        options[key] = option;
+      }
+      return;
+    }
+    options[key] = option;
+  });
+  return options;
+}
+
+function filterSeriesSortOptions(columns: Set<string>) {
+  return (option: FieldValueOption) => {
+    if (['count_healthy', 'count_errored'].includes(option.value.meta.name)) {
+      return false;
+    }
+    if (option.value.kind === FieldValueKind.FIELD) {
+      // Only allow sorting by release tag
+      return columns.has(option.value.meta.name) && option.value.meta.name === 'release';
+    }
+    return filterPrimaryReleaseTableOptions(option);
+  };
+}
+
+function getReleasesSeriesRequest(
+  api: Client,
+  widget: Widget,
+  queryIndex: number,
+  organization: Organization,
+  pageFilters: PageFilters
+) {
+  const query = widget.queries[queryIndex];
+  const {displayType, limit} = widget;
+
+  const {datetime} = pageFilters;
+  const {start, end, period} = datetime;
+
+  const isCustomReleaseSorting = requiresCustomReleaseSorting(query);
+
+  const includeTotals = query.columns.length > 0 ? 1 : 0;
+  const interval = getWidgetInterval(
+    displayType,
+    {start, end, period},
+    '5m',
+    // requesting low fidelity for release sort because metrics api can't return 100 rows of high fidelity series data
+    isCustomReleaseSorting ? 'low' : undefined
+  );
+
+  return getReleasesRequest(
+    1,
+    includeTotals,
+    api,
+    query,
+    organization,
+    pageFilters,
+    interval,
+    limit
+  );
+}
 
 function filterPrimaryReleaseTableOptions(option: FieldValueOption) {
   return [
@@ -265,6 +367,7 @@ function getReleasesRequest(
   query: WidgetQuery,
   organization: Organization,
   pageFilters: PageFilters,
+  interval?: string,
   limit?: number,
   cursor?: string
 ) {
@@ -308,14 +411,6 @@ function getReleasesRequest(
   //      imposed on the metrics query the user won't see it on the
   //      table/chart/
   //
-
-  const interval = getWidgetInterval(
-    DisplayType.TABLE,
-    {start, end, period},
-    '5m',
-    // requesting low fidelity for release sort because metrics api can't return 100 rows of high fidelity series data
-    isCustomReleaseSorting ? 'low' : undefined
-  );
 
   const {aggregates, injectedFields} = resolveDerivedStatusFields(
     query.aggregates,
