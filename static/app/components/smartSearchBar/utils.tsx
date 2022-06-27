@@ -265,11 +265,10 @@ export const shortcuts: Shortcut[] = [
     shortcutType: ShortcutType.Delete,
     hotkeys: {
       actual: 'option+backspace',
-      display: 'option+backspace',
     },
     icon: <IconDelete size="xs" color="gray300" />,
-    canRunShortcut: tok => {
-      return tok?.type === Token.Filter;
+    canRunShortcut: token => {
+      return token?.type === Token.Filter;
     },
   },
   {
@@ -277,11 +276,12 @@ export const shortcuts: Shortcut[] = [
     shortcutType: ShortcutType.Negate,
     hotkeys: {
       actual: 'option+1',
-      display: 'option+1',
     },
     icon: <IconExclamation size="xs" color="gray300" />,
-    canRunShortcut: tok => {
-      return !!(tok && tok.text[0] !== '!' && tok.type === Token.Filter);
+    canRunShortcut: token => {
+      return (
+        token?.type === Token.Filter && !(token as TokenResult<Token.Filter>).negated
+      );
     },
   },
   {
@@ -289,11 +289,10 @@ export const shortcuts: Shortcut[] = [
     shortcutType: ShortcutType.Negate,
     hotkeys: {
       actual: 'option+1',
-      display: 'option+1',
     },
     icon: <IconExclamation size="xs" color="gray300" />,
-    canRunShortcut: tok => {
-      return !!(tok && tok.text[0] === '!' && tok.type === Token.Filter);
+    canRunShortcut: token => {
+      return token?.type === Token.Filter && (token as TokenResult<Token.Filter>).negated;
     },
   },
 
@@ -301,24 +300,22 @@ export const shortcuts: Shortcut[] = [
     text: 'Previous',
     shortcutType: ShortcutType.Previous,
     hotkeys: {
-      actual: ['option+left'],
-      display: 'option+left',
+      actual: 'option+left',
     },
     icon: <IconArrow direction="left" size="xs" color="gray300" />,
-    canRunShortcut: (tok, count) => {
-      return count > 1 || (count > 0 && tok?.type !== Token.Filter);
+    canRunShortcut: (token, count) => {
+      return count > 1 || (count > 0 && token?.type !== Token.Filter);
     },
   },
   {
     text: 'Next',
     shortcutType: ShortcutType.Next,
     hotkeys: {
-      actual: ['option+right'],
-      display: 'option+right',
+      actual: 'option+right',
     },
     icon: <IconArrow direction="right" size="xs" color="gray300" />,
-    canRunShortcut: (tok, count) => {
-      return count > 1 || (count > 0 && tok?.type !== Token.Filter);
+    canRunShortcut: (token, count) => {
+      return count > 1 || (count > 0 && token?.type !== Token.Filter);
     },
   },
 ];

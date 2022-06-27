@@ -59,6 +59,6 @@ export type Shortcut = {
   text: string;
   hotkeys?: {
     actual: string[] | string;
-    display: string[] | string;
+    display?: string[] | string;
   };
 };
