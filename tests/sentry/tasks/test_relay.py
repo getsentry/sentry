@@ -125,7 +125,8 @@ def test_debounce(
     schedule_build_project_config(public_key=default_projectkey.public_key)
     schedule_build_project_config(public_key=default_projectkey.public_key)
 
-    assert tasks == [{"public_key": default_projectkey.public_key}]
+    assert len(tasks) == 1
+    assert tasks[0]["public_key"] == default_projectkey.public_key
 
 
 @pytest.mark.django_db
@@ -174,8 +175,13 @@ def test_project_update_option(
             "sentry:relay_pii_config", '{"applications": {"$string": ["@creditcard:mask"]}}'
         )
 
+    # They should be recalculated.  Note that oddly enough we actually get the same rule
+    # twice.  once for the org and once for the project
     for cache_key in _cache_keys_for_project(default_project):
-        assert redis_cache.get(cache_key) is None
+        cache = redis_cache.get(cache_key)
+        assert cache["config"]["piiConfig"]["applications"] == {
+            "$string": ["@creditcard:mask", "@creditcard:mask"]
+        }
 
 
 @pytest.mark.django_db
@@ -396,4 +402,6 @@ class TestInvalidationTask:
             )
 
         for cache_key in _cache_keys_for_project(default_project):
-            assert redis_cache.get(cache_key) is None
+            new_cfg = redis_cache.get(cache_key)
+            assert new_cfg is not None
+            assert new_cfg != cfg

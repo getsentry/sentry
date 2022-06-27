@@ -134,7 +134,7 @@ function ProfileDetails() {
 
   const handleSearch = useCallback(
     searchString => {
-      browserHistory.push({
+      browserHistory.replace({
         ...location,
         query: {
           ...location.query,

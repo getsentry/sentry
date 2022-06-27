@@ -45,6 +45,8 @@ MAX_NAME_LENGTH = 200
 MAX_TAG_KEY_LENGTH = 200
 MAX_TAG_VALUE_LENGTH = 200
 
+ACCEPTED_METRIC_TYPES = {"s", "c", "d"}  # set, counter, distribution
+
 logger = logging.getLogger(__name__)
 
 MessageBatch = List[Message[KafkaPayload]]
@@ -286,7 +288,7 @@ class ProduceStep(ProcessingStep[MessageBatch]):  # type: ignore
                 # TODO(meredith): log info for the different errors
                 # that could happen:
                 # * CancelledError (future was cancelled)
-                # * TimeoutError (future timedout)
+                # * TimeoutError (future timed out)
                 # * Exception (the future call raised an exception)
                 raise
             start = time.time()
@@ -416,6 +418,7 @@ def process_messages(
         for partition_offset, message in parsed_payloads_by_offset.items():
             partition_idx, offset = partition_offset
             metric_name = message["name"]
+            metric_type = message["type"]
             org_id = message["org_id"]
             tags = message.get("tags", {})
 
@@ -428,6 +431,14 @@ def process_messages(
                         "partition": partition_idx,
                         "offset": offset,
                     },
+                )
+                skipped_offsets.add(partition_offset)
+                continue
+
+            if metric_type not in ACCEPTED_METRIC_TYPES:
+                logger.error(
+                    "process_messages.invalid_metric_type",
+                    extra={"org_id": org_id, "metric_type": metric_type, "offset": offset},
                 )
                 skipped_offsets.add(partition_offset)
                 continue
@@ -522,6 +533,7 @@ def process_messages(
                 headers=[
                     *message.payload.headers,
                     ("mapping_sources", mapping_header_content),
+                    ("metric_type", new_payload_value["type"]),
                 ],
             )
             new_message = Message(
