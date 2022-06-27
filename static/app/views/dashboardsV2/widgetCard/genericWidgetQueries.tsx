@@ -124,16 +124,14 @@ function GenericWidgetQueries<SeriesResponse, TableResponse>({
         responsePageLinks = resp?.getResponseHeader('Link');
       });
 
-      if (!isMounted) {
-        return;
+      if (isMounted) {
+        onDataFetched?.({
+          tableResults: transformedTableResults,
+          pageLinks: responsePageLinks ?? undefined,
+        });
+        setTableResults(transformedTableResults);
+        setPageLinks(responsePageLinks);
       }
-
-      onDataFetched?.({
-        tableResults: transformedTableResults,
-        pageLinks: responsePageLinks ?? undefined,
-      });
-      setTableResults(transformedTableResults);
-      setPageLinks(responsePageLinks);
     }
 
     async function fetchSeriesData() {
@@ -169,12 +167,10 @@ function GenericWidgetQueries<SeriesResponse, TableResponse>({
         });
       });
 
-      if (!isMounted) {
-        return;
+      if (isMounted) {
+        onDataFetched?.({timeseriesResults: transformedTimeseriesResults});
+        setTimeseriesResults(transformedTimeseriesResults);
       }
-
-      onDataFetched?.({timeseriesResults: transformedTimeseriesResults});
-      setTimeseriesResults(transformedTimeseriesResults);
     }
 
     async function fetchData() {
