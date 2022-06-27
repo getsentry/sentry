@@ -452,10 +452,9 @@ class SmartSearchBar extends Component<Props, State> {
     }
   }
 
-  moveToNextToken = (
-    token: TokenResult<any> | undefined,
-    filterTokens: TokenResult<Token.Filter>[]
-  ) => {
+  moveToNextToken = (filterTokens: TokenResult<Token.Filter>[]) => {
+    const token = this.cursorToken;
+
     if (this.searchInput.current && filterTokens.length > 0) {
       this.searchInput.current.focus();
 
@@ -473,10 +472,104 @@ class SmartSearchBar extends Component<Props, State> {
     }
   };
 
-  runShortcut = (shortcut: Shortcut) => {
+  deleteToken = () => {
     const {query} = this.state;
     const token = this.cursorToken ?? undefined;
+    const filterTokens = this.filterTokens;
+    const hasExecCommand = typeof document.execCommand === 'function';
 
+    if (token && filterTokens.length > 0) {
+      const index = filterTokens.findIndex(tok => tok === token) ?? -1;
+      const newQuery =
+        // We trim to remove any remaining spaces
+        query.slice(0, token.location.start.offset).trim() +
+        (index > 0 && index < filterTokens.length - 1 ? ' ' : '') +
+        query.slice(token.location.end.offset).trim();
+
+      if (this.searchInput.current) {
+        // Only use exec command if exists
+        this.searchInput.current.focus();
+
+        this.searchInput.current.selectionStart = 0;
+        this.searchInput.current.selectionEnd = query.length;
+
+        // Because firefox doesn't support inserting an empty string, we insert a newline character instead
+        // But because of this, only on firefox, if you delete the last token you won't be able to undo.
+        if (
+          (navigator.userAgent.toLowerCase().includes('firefox') &&
+            newQuery.length === 0) ||
+          !hasExecCommand ||
+          !document.execCommand('insertText', false, newQuery)
+        ) {
+          // This will run either when newQuery is empty on firefox or when execCommand fails.
+          this.updateQuery(newQuery);
+        }
+      }
+    }
+  };
+
+  negateToken = () => {
+    const {query} = this.state;
+    const token = this.cursorToken ?? undefined;
+    const hasExecCommand = typeof document.execCommand === 'function';
+
+    if (token && token.type === Token.Filter) {
+      if (token.negated) {
+        if (this.searchInput.current) {
+          this.searchInput.current.focus();
+
+          const tokenCursorOffset = this.cursorPosition - token.key.location.start.offset;
+
+          // Select the whole token so we can replace it.
+          this.searchInput.current.selectionStart = token.location.start.offset;
+          this.searchInput.current.selectionEnd = token.location.end.offset;
+
+          // We can't call insertText with an empty string on Firefox, so we have to do this.
+          if (
+            !hasExecCommand ||
+            !document.execCommand('insertText', false, token.text.slice(1))
+          ) {
+            // Fallback when execCommand fails
+            const newQuery =
+              query.slice(0, token.location.start.offset) +
+              query.slice(token.key.location.start.offset);
+            this.updateQuery(newQuery, this.cursorPosition - 1);
+          }
+
+          // Return the cursor to where it should be
+          const newCursorPosition = token.location.start.offset + tokenCursorOffset;
+          this.searchInput.current.selectionStart = newCursorPosition;
+          this.searchInput.current.selectionEnd = newCursorPosition;
+        }
+      } else {
+        if (this.searchInput.current) {
+          this.searchInput.current.focus();
+
+          const tokenCursorOffset = this.cursorPosition - token.key.location.start.offset;
+
+          this.searchInput.current.selectionStart = token.location.start.offset;
+          this.searchInput.current.selectionEnd = token.location.start.offset;
+
+          if (!hasExecCommand || !document.execCommand('insertText', false, '!')) {
+            // Fallback when execCommand fails
+            const newQuery =
+              query.slice(0, token.key.location.start.offset) +
+              '!' +
+              query.slice(token.key.location.start.offset);
+            this.updateQuery(newQuery, this.cursorPosition + 1);
+          }
+
+          // Return the cursor to where it should be, +1 for the ! character we added
+          const newCursorPosition = token.location.start.offset + tokenCursorOffset + 1;
+          this.searchInput.current.selectionStart = newCursorPosition;
+          this.searchInput.current.selectionEnd = newCursorPosition;
+        }
+      }
+    }
+  };
+
+  runShortcut = (shortcut: Shortcut) => {
+    const token = this.cursorToken;
     const filterTokens = this.filterTokens;
 
     const {shortcutType, canRunShortcut} = shortcut;
@@ -484,104 +577,19 @@ class SmartSearchBar extends Component<Props, State> {
     if (canRunShortcut(token, this.filterTokens.length)) {
       switch (shortcutType) {
         case ShortcutType.Delete: {
-          if (token && filterTokens.length > 0) {
-            const index = filterTokens.findIndex(tok => tok === token) ?? -1;
-            const newQuery =
-              // We trim to remove any remaining spaces
-              query.slice(0, token.location.start.offset).trim() +
-              (index > 0 && index < filterTokens.length - 1 ? ' ' : '') +
-              query.slice(token.location.end.offset).trim();
-
-            if (this.searchInput.current) {
-              // Only use exec command if exists
-              this.searchInput.current.focus();
-
-              this.searchInput.current.selectionStart = 0;
-              this.searchInput.current.selectionEnd = query.length;
-
-              // Because firefox doesn't support inserting an empty string, we insert a newline character instead
-              // But because of this, only on firefox, if you delete the last token you won't be able to undo.
-              if (
-                (navigator.userAgent.toLowerCase().includes('firefox') &&
-                  newQuery.length === 0) ||
-                !hasExecCommand ||
-                !document.execCommand('insertText', false, newQuery)
-              ) {
-                // This will run either when newQuery is empty on firefox or when execCommand fails.
-                this.updateQuery(newQuery);
-              }
-            }
-          }
-
+          this.deleteToken();
           break;
         }
         case ShortcutType.Negate: {
-          if (token && token.type === Token.Filter) {
-            if (token.negated) {
-              if (this.searchInput.current) {
-                this.searchInput.current.focus();
-
-                const tokenCursorOffset =
-                  this.cursorPosition - token.key.location.start.offset;
-
-                // Select the whole token so we can replace it.
-                this.searchInput.current.selectionStart = token.location.start.offset;
-                this.searchInput.current.selectionEnd = token.location.end.offset;
-
-                // We can't call insertText with an empty string on Firefox, so we have to do this.
-                if (
-                  !hasExecCommand ||
-                  !document.execCommand('insertText', false, token.text.slice(1))
-                ) {
-                  // Fallback when execCommand fails
-                  const newQuery =
-                    query.slice(0, token.location.start.offset) +
-                    query.slice(token.key.location.start.offset);
-                  this.updateQuery(newQuery, this.cursorPosition - 1);
-                }
-
-                // Return the cursor to where it should be
-                const newCursorPosition = token.location.start.offset + tokenCursorOffset;
-                this.searchInput.current.selectionStart = newCursorPosition;
-                this.searchInput.current.selectionEnd = newCursorPosition;
-              }
-            } else {
-              if (this.searchInput.current) {
-                this.searchInput.current.focus();
-
-                const tokenCursorOffset =
-                  this.cursorPosition - token.key.location.start.offset;
-
-                this.searchInput.current.selectionStart = token.location.start.offset;
-                this.searchInput.current.selectionEnd = token.location.start.offset;
-
-                if (!hasExecCommand || !document.execCommand('insertText', false, '!')) {
-                  // Fallback when execCommand fails
-                  const newQuery =
-                    query.slice(0, token.key.location.start.offset) +
-                    '!' +
-                    query.slice(token.key.location.start.offset);
-                  this.updateQuery(newQuery, this.cursorPosition + 1);
-                }
-
-                // Return the cursor to where it should be, +1 for the ! character we added
-                const newCursorPosition =
-                  token.location.start.offset + tokenCursorOffset + 1;
-                this.searchInput.current.selectionStart = newCursorPosition;
-                this.searchInput.current.selectionEnd = newCursorPosition;
-              }
-            }
-          }
+          this.negateToken();
           break;
         }
         case ShortcutType.Next: {
-          this.moveToNextToken(token, filterTokens);
-
+          this.moveToNextToken(filterTokens);
           break;
         }
         case ShortcutType.Previous: {
-          this.moveToNextToken(token, filterTokens.reverse());
-
+          this.moveToNextToken(filterTokens.reverse());
           break;
         }
         default:
