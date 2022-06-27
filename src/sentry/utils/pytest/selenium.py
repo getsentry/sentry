@@ -405,23 +405,12 @@ class Browser:
             logger.info("selenium.initialize-cookies")
             self.get("/")
 
-        # XXX(dcramer): PhantomJS does not let us add cookies with the native
-        # selenium API because....
-        # http://stackoverflow.com/questions/37103621/adding-cookies-working-with-firefox-webdriver-but-not-in-phantomjs
-
         # TODO(dcramer): this should be escaped, but idgaf
         logger.info(f"selenium.set-cookie.{name}", extra={"value": value})
-        if isinstance(self.driver, webdriver.PhantomJS):
-            self.driver.execute_script(
-                "document.cookie = '{name}={value}; path={path}; domain={domain}; expires={expires}'; max-age={max_age}\n".format(
-                    **cookie
-                )
-            )
-        else:
-            # XXX(dcramer): chromedriver (of certain versions) is complaining about this being
-            # an invalid kwarg
-            del cookie["secure"]
-            self.driver.add_cookie(cookie)
+        # XXX(dcramer): chromedriver (of certain versions) is complaining about this being
+        # an invalid kwarg
+        del cookie["secure"]
+        self.driver.add_cookie(cookie)
 
 
 def pytest_addoption(parser):
