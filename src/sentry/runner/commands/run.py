@@ -557,8 +557,8 @@ def ingest_consumer(consumer_types, all_consumer_types, **options):
 @click.option("commit_max_batch_time", "--commit-max-batch-time-ms", type=int, default=10000)
 def metrics_streaming_consumer(**options):
     from sentry.sentry_metrics.configuration import UseCaseKey, get_ingest_config
+    from sentry.sentry_metrics.consumers.indexer.multiprocess import get_streaming_metrics_consumer
     from sentry.sentry_metrics.metrics_wrapper import MetricsWrapper
-    from sentry.sentry_metrics.multiprocess import get_streaming_metrics_consumer
     from sentry.utils.metrics import backend, global_tags
 
     ingest_config = get_ingest_config(UseCaseKey(options["ingest_profile"]))
@@ -596,7 +596,7 @@ def profiles_consumer(**options):
 @click.option("commit_max_batch_time", "--commit-max-batch-time-ms", type=int, default=10000)
 @click.option("--topic", default="snuba-metrics", help="Topic to read indexer output from.")
 def last_seen_updater(**options):
-    from sentry.sentry_metrics.last_seen_updater import get_last_seen_updater
+    from sentry.sentry_metrics.consumers.last_seen_updater import get_last_seen_updater
 
     consumer = get_last_seen_updater(**options)
 
