@@ -1,13 +1,15 @@
 """ Classes needed to build a metrics query. Inspired by snuba_sdk.query. """
 import math
+from collections import Mapping
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Literal, Optional, Sequence, Set, Union
+from typing import Literal, Optional, Sequence, Union
 
 from snuba_sdk import Column, Direction, Function, Granularity, Limit, Offset
 from snuba_sdk.conditions import Condition, ConditionGroup
 
 from sentry.api.utils import InvalidParams
+from sentry.snuba.metrics.fields import metric_object_factory
 from sentry.snuba.metrics.fields.base import get_derived_metrics
 from sentry.utils.dates import to_timestamp
 
@@ -17,7 +19,6 @@ from ...release_health.base import AllowedResolution
 from .naming_layer.mapping import get_mri
 from .utils import (
     MAX_POINTS,
-    OP_TO_SNUBA_FUNCTION,
     OPERATIONS,
     UNALLOWED_TAGS,
     DerivedMetricParseException,
@@ -130,26 +131,30 @@ class MetricsQuery(MetricsQueryValidationRunner):
         for orderby in self.orderby:
             self._validate_field(orderby.field)
 
-        orderby_fields, orderby_operations = set(), set()
+        orderby_fields, metric_entities = set(), set()
         for f in self.orderby:
             orderby_fields.add(f.field)
-            if f.field.op:
-                orderby_operations.add(f.field.op)
-        self._validate_snuba_functions_in_one_group(orderby_operations)
+
+            metric_mri = get_mri(f.field.metric_name)
+            # Construct a metrics expression
+            metric_field_obj = metric_object_factory(f.field.op, metric_mri)
+            entity = metric_field_obj.get_entity(self.project_ids)
+
+            if isinstance(entity, Mapping):
+                metric_entities.update(entity.keys())
+            else:
+                metric_entities.add(entity)
+        # If metric entities set contanis more than 1 metric, we can't orderBy these fields
+        if len(metric_entities) > 1:
+            raise InvalidParams(
+                "'orderBy' field functions must be from one group of snuba functions"
+            )
 
         # validate all orderby columns are presented in provided 'fields'
         if set(self.select).issuperset(orderby_fields):
             return
 
         raise InvalidParams("'orderBy' must be one of the provided 'fields'")
-
-    @staticmethod
-    def _validate_snuba_functions_in_one_group(orderby_operations: Set[str]) -> None:
-        for snuba_func in OP_TO_SNUBA_FUNCTION.keys():
-            valid_operations = set(OP_TO_SNUBA_FUNCTION[snuba_func].keys())
-            if orderby_operations.issubset(valid_operations):
-                return
-        raise InvalidParams("'orderBy' field functions must be from one group of snuba functions")
 
     @staticmethod
     def calculate_intervals_len(

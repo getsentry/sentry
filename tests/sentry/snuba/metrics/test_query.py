@@ -207,7 +207,7 @@ def test_validate_order_by_field_in_select():
 
 
 def test_validate_many_order_by_fields_in_select_fails():
-    metric_field_1 = MetricField(op=None, metric_name=SessionMetricKey.HEALTHY.value)
+    metric_field_1 = MetricField(op=None, metric_name=SessionMetricKey.ABNORMAL.value)
     metric_field_2 = MetricField(op=None, metric_name=SessionMetricKey.ALL.value)
     metrics_query_dict = (
         MetricsQueryBuilder()
@@ -227,9 +227,85 @@ def test_validate_many_order_by_fields_in_select_fails():
         MetricsQuery(**metrics_query_dict)
 
 
+def test_validate_many_order_by_fields_in_select_fails_diff_metrics():
+    """
+    The example should fail because session crash free rate is generated from
+    counters entity while p50 of duration will go to distribution
+    """
+    metric_field_1 = MetricField(op=None, metric_name=SessionMetricKey.CRASH_FREE_RATE.value)
+    metric_field_2 = MetricField(op="p50", metric_name=TransactionMetricKey.DURATION.value)
+    metrics_query_dict = (
+        MetricsQueryBuilder()
+        .with_select([metric_field_1, metric_field_2])
+        .with_orderby(
+            [
+                OrderBy(field=metric_field_1, direction=Direction.ASC),
+                OrderBy(field=metric_field_2, direction=Direction.ASC),
+            ]
+        )
+        .to_metrics_query_dict()
+    )
+
+    # Test that ensures an instance of `InvalidParams` is raised when requesting an orderBy field
+    # that is not present in the select
+    with pytest.raises(
+        InvalidParams, match="'orderBy' field functions must be from one group of snuba functions"
+    ):
+        MetricsQuery(**metrics_query_dict)
+
+
+def test_validate_many_order_by_fields_in_select_fails_diff_metrics_2():
+    """
+    This example should fail because session crash free rate is generated from
+    counters while session user crash free rate is generated from sets
+    """
+    metric_field_1 = MetricField(op=None, metric_name=SessionMetricKey.CRASH_FREE_RATE.value)
+    metric_field_2 = MetricField(op=None, metric_name=SessionMetricKey.CRASH_FREE_USER_RATE.value)
+    metrics_query_dict = (
+        MetricsQueryBuilder()
+        .with_select([metric_field_1, metric_field_2])
+        .with_orderby(
+            [
+                OrderBy(field=metric_field_1, direction=Direction.ASC),
+                OrderBy(field=metric_field_2, direction=Direction.ASC),
+            ]
+        )
+        .to_metrics_query_dict()
+    )
+
+    # Test that ensures an instance of `InvalidParams` is raised when requesting an orderBy field
+    # that is not present in the select
+    with pytest.raises(
+        InvalidParams, match="'orderBy' field functions must be from one group of snuba functions"
+    ):
+        MetricsQuery(**metrics_query_dict)
+
+
+def test_validate_many_order_by_fields_in_select_success():
+    """
+    This example should pass because both session crash free rate
+    and sum(session) both go to the entity counters
+    """
+    metric_field_1 = MetricField(op=None, metric_name=SessionMetricKey.CRASH_FREE_RATE.value)
+    metric_field_2 = MetricField(op="sum", metric_name=SessionMetricKey.DURATION.value)
+    metrics_query_dict = (
+        MetricsQueryBuilder()
+        .with_select([metric_field_1, metric_field_2])
+        .with_orderby(
+            [
+                OrderBy(field=metric_field_1, direction=Direction.ASC),
+                OrderBy(field=metric_field_2, direction=Direction.ASC),
+            ]
+        )
+        .to_metrics_query_dict()
+    )
+
+    MetricsQuery(**metrics_query_dict)
+
+
 def test_validate_many_order_by_fields_are_in_select():
     # Validate no exception is raised when all orderBy fields are presented the select
-    metric_field_1 = MetricField(op=None, metric_name=SessionMetricKey.HEALTHY.value)
+    metric_field_1 = MetricField(op=None, metric_name=SessionMetricKey.ABNORMAL.value)
     metric_field_2 = MetricField(op=None, metric_name=SessionMetricKey.ALL.value)
 
     metrics_query_dict = (
