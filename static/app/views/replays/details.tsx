@@ -52,7 +52,7 @@ function ReplayDetails() {
 
   if (!fetching && replay && replay.getRRWebEvents().length < 2) {
     return (
-      <DetailLayout event={replay.getEvent()} orgId={orgId}>
+      <DetailLayout orgId={orgId}>
         <DetailedError
           onRetry={onRetry}
           hideSupportLinks
@@ -74,11 +74,7 @@ function ReplayDetails() {
 
   return (
     <ReplayContextProvider replay={replay} initialTimeOffset={initialTimeOffset}>
-      <DetailLayout
-        event={replay?.getEvent()}
-        orgId={orgId}
-        crumbs={replay?.getRawCrumbs()}
-      >
+      <DetailLayout orgId={orgId}>
         <Layout.Body>
           <Layout.Main ref={fullscreenRef}>
             <ReplayView toggleFullscreen={toggleFullscreen} isFullscreen={isFullscreen} />
@@ -86,7 +82,7 @@ function ReplayDetails() {
 
           <Layout.Side>
             <ErrorBoundary mini>
-              <Breadcrumbs crumbs={replay?.getRawCrumbs()} event={replay?.getEvent()} />
+              <Breadcrumbs />
             </ErrorBoundary>
           </Layout.Side>
 
@@ -99,7 +95,7 @@ function ReplayDetails() {
 
           <StyledLayoutMain fullWidth>
             <ErrorBoundary mini>
-              <FocusArea replay={replay} />
+              <FocusArea />
             </ErrorBoundary>
           </StyledLayoutMain>
         </Layout.Body>
