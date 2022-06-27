@@ -356,7 +356,7 @@ function SidebarChartsContainer({
     api,
     start,
     end,
-    statsPeriod,
+    period: statsPeriod,
     project,
     environment,
     query,
