@@ -7,10 +7,9 @@ import ReplayView from 'sentry/components/replays/replayView';
 import space from 'sentry/styles/space';
 import useFullscreen from 'sentry/utils/replays/hooks/useFullscreen';
 import theme from 'sentry/utils/theme';
-
-import Breadcrumbs from './breadcrumbs';
-import FocusArea from './focusArea';
-import FocusTabs from './focusTabs';
+import Breadcrumbs from 'sentry/views/replays/detail/breadcrumbs';
+import FocusArea from 'sentry/views/replays/detail/focusArea';
+import FocusTabs from 'sentry/views/replays/detail/focusTabs';
 
 type Layout =
   /**
