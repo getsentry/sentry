@@ -274,17 +274,16 @@ def get_title_link(
     link_to_event: bool,
     issue_details: bool,
     notification: BaseNotification | None,
-    referrer: str | None = "slack",
 ) -> str:
     if event and link_to_event:
-        url = group.get_absolute_url(params={"referrer": referrer}, event_id=event.event_id)
+        url = group.get_absolute_url(params={"referrer": "slack"}, event_id=event.event_id)
 
     elif issue_details and notification:
-        notification_referrer = notification.get_referrer(ExternalProviders.SLACK)
-        url = group.get_absolute_url(params={"referrer": notification_referrer})
+        referrer = notification.get_referrer(ExternalProviders.SLACK)
+        url = group.get_absolute_url(params={"referrer": referrer})
 
     else:
-        url = group.get_absolute_url(params={"referrer": referrer})
+        url = group.get_absolute_url(params={"referrer": "slack"})
 
     # Explicitly typing to satisfy mypy.
     url_str: str = url
@@ -425,14 +424,10 @@ class SlackReleaseIssuesMessageBuilder(SlackMessageBuilder):
 
         issue_title = build_attachment_title(obj)
         title_url = get_title_link(
-            self.group,
-            self.event,
-            self.link_to_event,
-            self.issue_details,
-            self.notification,
-            # TODO(workflow): Remove slack_release referrer experiement with flag "organizations:alert-release-notification-workflow"
-            "slack_release",
+            self.group, self.event, self.link_to_event, self.issue_details, self.notification
         )
+        # TODO(workflow): Remove referrer experiement with flag "organizations:alert-release-notification-workflow"
+        title_url = title_url.replace("referrer=slack", "referrer=slack_release")
         release = (
             parse_release(self.last_release.version)["description"]
             if self.last_release
