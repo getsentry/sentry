@@ -138,8 +138,9 @@ describe('Sampling - Modal', function () {
 
     // Close Modal
     userEvent.click(screen.getByLabelText('Close Modal'));
-    await waitForElementToBeRemoved(() =>
-      screen.queryByText('Add Distributed Trace Rule')
+    await waitForElementToBeRemoved(
+      () => screen.queryByText('Add Distributed Trace Rule'),
+      {timeout: 2500}
     );
 
     expect(saveMock).toHaveBeenLastCalledWith(
