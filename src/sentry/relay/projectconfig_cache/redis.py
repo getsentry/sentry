@@ -2,7 +2,7 @@ from sentry.relay.projectconfig_cache.base import ProjectConfigCache
 from sentry.utils import json, metrics, redis
 from sentry.utils.redis import validate_dynamic_cluster
 
-REDIS_CACHE_TIMEOUT = 3600  # 1 hr
+REDIS_CACHE_TIMEOUT = 10  # seconds
 
 
 class RedisProjectConfigCache(ProjectConfigCache):
