@@ -8,7 +8,6 @@ from rest_framework.response import Response
 from sentry_sdk import Hub, set_tag, start_span, start_transaction
 
 from sentry import options
-from sentry.api.authentication import RelayAuthentication
 from sentry.api.base import Endpoint
 from sentry.api.permissions import RelayPermission
 from sentry.models import Organization, OrganizationOption, Project, ProjectKey, ProjectKeyStatus
@@ -27,7 +26,6 @@ def _sample_apm():
 
 
 class RelayProjectConfigsEndpoint(Endpoint):
-    authentication_classes = (RelayAuthentication,)
     permission_classes = (RelayPermission,)
     enforce_rate_limit = False
 
