@@ -1,6 +1,6 @@
 import 'prism-sentry/index.css';
 
-import {Fragment, useEffect, useState} from 'react';
+import {Fragment, useCallback, useEffect, useState} from 'react';
 import {browserHistory} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -106,8 +106,7 @@ function SetupDocs({
 
   const currentPlatform = loadedPlatform ?? project?.platform ?? 'other';
 
-  const fetchData = async () => {
-    // const {platform} = project || {};
+  const fetchData = useCallback(async () => {
     // TODO: add better error handling logic
     if (!project?.platform) {
       return;
@@ -126,11 +125,11 @@ function SetupDocs({
       setHasError(error);
       throw error;
     }
-  };
+  }, [project, api, organization]);
 
   useEffect(() => {
     fetchData();
-  });
+  }, [fetchData]);
 
   if (!project) {
     return null;
