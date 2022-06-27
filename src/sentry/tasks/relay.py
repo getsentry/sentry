@@ -124,24 +124,30 @@ def compute_configs(organization_id=None, project_id=None, public_key=None):
     You must only provide one single argument, not all.
 
     :returns: A dict mapping all affected public keys to their config.  The dict could
-       contain `None` as value which indicates the config should not exist.
+       contain `None` as value which indicates the config value from cache should be
+       retained.
     """
-    from sentry.models import Project, ProjectKey, ProjectKeyStatus
+    from sentry.models import Project, ProjectKey
 
     validate_args(organization_id, project_id, public_key)
     configs = {}
 
     if organization_id:
-        # Currently we do not re-compute all projects in an organization, instead simply
-        # remove the configs and rely on relay requests to lazily re-compute them.  This
-        # because some organisations have too many projects which may not be active.  At
-        # some point this should be handled better.
+        # We want to re-compute all projects in an organization, instead of simply
+        # removing the configs and rely on relay requests to lazily re-compute them.  This
+        # is done because we do want want to delete project configs in `invalidate_project_config`
+        # which might cause the key to disappear and trigger the task again.  Without this behavior
+        # it could be possible that refrequent invalidations cause the task to take excessive time
+        # to complete.
         projects = list(Project.objects.filter(organization_id=organization_id))
         for key in ProjectKey.objects.filter(project__in=projects):
-            if key.status == ProjectKeyStatus.ACTIVE:
-                configs[key.public_key] = None
+            # If we find the config in the cache it means it was active.  As such we want to
+            # recalculate it.  If the config was not there at all, we leave it and avoid the
+            # cost of re-computation.
+            if projectconfig_cache.get(key.public_key) is not None:
+                configs[key.public_key] = compute_projectkey_config(key)
             else:
-                configs[key.public_key] = {"disabled": True}
+                configs[key.public_key] = None
     elif project_id:
         for key in ProjectKey.objects.filter(project_id=project_id):
             configs[key.public_key] = compute_projectkey_config(key)
@@ -231,11 +237,8 @@ def invalidate_project_config(
         organization_id=organization_id, project_id=project_id, public_key=public_key
     )
 
-    deleted_keys = [key for key, cfg in configs.items() if cfg is None]
-    projectconfig_cache.delete_many(deleted_keys)
-
-    configs = {key: cfg for key, cfg in configs.items() if cfg is not None}
-    projectconfig_cache.set_many(configs)
+    updated_configs = {key: cfg for key, cfg in configs.items() if cfg is not None}
+    projectconfig_cache.set_many(updated_configs)
 
 
 def schedule_invalidate_project_config(
