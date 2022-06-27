@@ -41,6 +41,7 @@ export type TeamInsightsEventParameters = {
       | 'shared'
       | 'discarded'
       | 'open_in_discover'
+      | 'assign'
       | ResolutionStatus;
   };
   'issue_details.event_json_clicked': {group_id: number};
