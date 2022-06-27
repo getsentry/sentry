@@ -28,8 +28,7 @@ type Props = WithRouterProps &
   };
 
 /**
- * Fetch and render a stacked area chart that shows duration percentiles over
- * the past 7 days
+ * Fetch and render a stacked area chart that shows user misery over
  */
 function UserMiseryChart({
   project,
