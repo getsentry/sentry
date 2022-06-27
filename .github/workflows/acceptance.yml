@@ -275,17 +275,35 @@ jobs:
     timeout-minutes: 20
     steps:
       # If any jobs we depend on fail, we will fail since this checks triggers Visual Snapshots which is a required check
+      # NOTE: A timeout is considered a failure
       - name: Check for failures
-        if: contains(needs.*.result, 'failure')
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
         run: |
           echo "One of the dependent jobs have failed. You may need to re-run it." && exit 1
 
+      - name: Determine snapshot version
+        id: snapshot_ref
+        run: |
+          random=$(( ( RANDOM % 10 )  + 1 ));
+          echo "::set-output name=ref::$([[ $random -ge 4 ]] && echo "pixelmatch" || echo "odiff")"
+
       - name: Diff snapshots
-        id: visual-snapshots-diff
+        id: visual-snapshots-diff-pixelmatch
         uses: getsentry/action-visual-snapshot@main
         # Run this step only if there are acceptance related code changes
         # Forks are handled in visual-diff.yml
-        if: needs.files-changed.outputs.acceptance == 'true' && github.event.pull_request.head.repo.full_name == 'getsentry/sentry'
+        if: steps.snapshot_ref.outputs.ref == 'pixelmatch' && needs.files-changed.outputs.acceptance == 'true' && github.event.pull_request.head.repo.full_name == 'getsentry/sentry'
+        with:
+          api-token: ${{ secrets.VISUAL_SNAPSHOT_SECRET }}
+          gcs-bucket: 'sentry-visual-snapshots'
+          gcp-service-account-key: ${{ secrets.SNAPSHOT_GOOGLE_SERVICE_ACCOUNT_KEY }}
+
+      - name: Diff snapshots
+        id: visual-snapshots-diff-odiff
+        uses: getsentry/action-visual-snapshot@905b7e3a7fdd913189b9a35dcef51b6b927f9598
+        # Run this step only if there are acceptance related code changes
+        # Forks are handled in visual-diff.yml
+        if: steps.snapshot_ref.outputs.ref == 'odiff' && needs.files-changed.outputs.acceptance == 'true' && github.event.pull_request.head.repo.full_name == 'getsentry/sentry'
         with:
           api-token: ${{ secrets.VISUAL_SNAPSHOT_SECRET }}
           gcs-bucket: 'sentry-visual-snapshots'

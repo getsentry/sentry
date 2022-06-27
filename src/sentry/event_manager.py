@@ -15,7 +15,6 @@ from django.utils.encoding import force_text
 from pytz import UTC
 
 from sentry import (
-    buffer,
     eventstore,
     eventstream,
     eventtypes,
@@ -81,6 +80,7 @@ from sentry.plugins.base import plugins
 from sentry.reprocessing2 import is_reprocessed_event, save_unprocessed_event
 from sentry.signals import first_event_received, first_transaction_received, issue_unresolved
 from sentry.tasks.integrations import kick_off_status_syncs
+from sentry.tasks.process_buffer import buffer_incr
 from sentry.types.activity import ActivityType
 from sentry.utils import json, metrics
 from sentry.utils.cache import cache_key_for_event
@@ -521,13 +521,13 @@ class EventManager:
 
         if job["release"]:
             if job["is_new"]:
-                buffer.incr(
+                buffer_incr(
                     ReleaseProject,
                     {"new_groups": 1},
                     {"release_id": job["release"].id, "project_id": project.id},
                 )
             if job["is_new_group_environment"]:
-                buffer.incr(
+                buffer_incr(
                     ReleaseProjectEnvironment,
                     {"new_issues_count": 1},
                     {
@@ -1397,7 +1397,7 @@ def _handle_regression(group, event, release):
 
 def _process_existing_aggregate(group, event, data, release):
     date = max(event.datetime, group.last_seen)
-    extra = {"last_seen": date, "score": ScoreClause(group), "data": data["data"]}
+    extra = {"last_seen": date, "data": data["data"]}
     if event.search_message and event.search_message != group.message:
         extra["message"] = event.search_message
     if group.level != data["level"]:
@@ -1413,7 +1413,7 @@ def _process_existing_aggregate(group, event, data, release):
 
     update_kwargs = {"times_seen": 1}
 
-    buffer.incr(Group, update_kwargs, {"id": group.id}, extra)
+    buffer_incr(Group, update_kwargs, {"id": group.id}, extra)
 
     return is_regression
 

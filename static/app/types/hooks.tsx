@@ -93,10 +93,15 @@ type CodeOwnersCTAProps = {
   addCodeOwner?: () => void;
   handleRequest?: () => void;
 };
+
+type AlertsHeaderProps = {
+  organization: Organization;
+};
 /**
  * Component wrapping hooks
  */
 export type ComponentHooks = {
+  'component:alerts-header': () => React.ComponentType<AlertsHeaderProps>;
   'component:codeowners-cta': () => React.ComponentType<CodeOwnersCTAProps>;
   'component:dashboards-header': () => React.ComponentType<DashboardHeadersProps>;
   'component:disabled-app-store-connect-multiple': () => React.ComponentType<DisabledAppStoreConnectMultiple>;

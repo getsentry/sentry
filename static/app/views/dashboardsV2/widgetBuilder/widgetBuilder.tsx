@@ -549,6 +549,14 @@ function WidgetBuilder({
   }
 
   function handleDataSetChange(newDataSet: string) {
+    trackAdvancedAnalyticsEvent('dashboards_views.widget_builder.change', {
+      from: source,
+      field: 'dataSet',
+      value: newDataSet,
+      widget_type: widgetType,
+      organization,
+      new_widget: !isEditing,
+    });
     setState(prevState => {
       const newState = cloneDeep(prevState);
       newState.queries.splice(0, newState.queries.length);
@@ -1003,7 +1011,6 @@ function WidgetBuilder({
         defaultSelection={{
           datetime: {start: null, end: null, utc: false, period: DEFAULT_STATS_PERIOD},
         }}
-        hideGlobalHeader
       >
         <PageContentWithoutPadding>
           <Header

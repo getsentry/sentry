@@ -17,6 +17,7 @@ from sentry.notifications.notifications.user_report import UserReportNotificatio
 from sentry.notifications.types import ActionTargetType
 from sentry.plugins.base.structs import Notification
 from sentry.tasks.digests import deliver_digest
+from sentry.types.integrations import ExternalProviders
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -93,7 +94,7 @@ class MailAdapter:
         notifications for the provided project.
         """
         recipients_by_provider = NotificationSetting.objects.get_notification_recipients(project)
-        return {user for users in recipients_by_provider.values() for user in users}
+        return recipients_by_provider.get(ExternalProviders.EMAIL, [])
 
     def get_sendable_user_ids(self, project):
         users = self.get_sendable_user_objects(project)

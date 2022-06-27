@@ -398,7 +398,7 @@ function FlamegraphZoomViewMinimap({
       // rendered on the flamegraph are removed from the view
       setConfigSpaceCursor(null);
 
-      if (evt.metaKey) {
+      if (evt.metaKey || evt.ctrlKey) {
         onMinimapZoom(evt);
         setLastInteraction('zoom');
       } else {

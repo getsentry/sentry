@@ -121,3 +121,7 @@ def parse_mri(mri_string: str) -> Optional[ParsedMRI]:
         return None
 
     return ParsedMRI(**match.groupdict())
+
+
+def is_custom_measurement(parsed_mri: ParsedMRI) -> bool:
+    return parsed_mri.namespace == "custom"
