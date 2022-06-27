@@ -36,18 +36,12 @@ class RelayProjectConfigsEndpoint(Endpoint):
             return self._post(request)
 
     def _post(self, request: Request):
-        relay = request.relay
-        assert relay is not None  # should be provided during Authentication
+        version = "3"
+        full_config_requested = True
 
-        full_config_requested = request.relay_request_data.get("fullConfig")
-
-        if full_config_requested and not relay.is_internal:
-            return Response("Relay unauthorized for full config information", 403)
-
-        version = request.GET.get("version") or "1"
-        set_tag("relay_protocol_version", version)
-
-        if self._should_use_v3(version, request):
+        if True:
+            # print("using v3 endpoint")
+            # if self._should_use_v3(version, request):
             # Always compute the full config. It's invalid to send partial
             # configs to processing relays, and these validate the requests they
             # get with permissions and trim configs down accordingly.
@@ -106,7 +100,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
         return use_v3
 
     def _post_or_schedule_by_key(self, request: Request):
-        public_keys = set(request.relay_request_data.get("publicKeys") or ())
+        public_keys = request.headers.get("publickeys", "").split(":")
 
         proj_configs = {}
         pending = []
@@ -117,11 +111,15 @@ class RelayProjectConfigsEndpoint(Endpoint):
             else:
                 proj_configs[key] = computed
 
-        metrics.incr("relay.project_configs.post_v3.pending", amount=len(pending), sample_rate=1)
-        metrics.incr(
-            "relay.project_configs.post_v3.fetched", amount=len(proj_configs), sample_rate=1
-        )
-        res = {"configs": proj_configs, "pending": pending}
+        res = {
+            "configs": proj_configs,
+            "pending": pending,
+        }
+
+        print(f"amount of configs: {len(proj_configs)}")
+        # print(f"configs: {proj_configs}")
+        print(f"amount of pendings: {len(pending)}")
+        # print(f"pendings: {pending}")
 
         return Response(res, status=200)
 
