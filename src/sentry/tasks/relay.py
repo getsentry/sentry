@@ -143,8 +143,10 @@ def compute_configs(organization_id=None, project_id=None, public_key=None):
             else:
                 configs[key.public_key] = {"disabled": True}
     elif project_id:
-        for key in ProjectKey.objects.filter(project_id=project_id):
-            configs[key.public_key] = compute_projectkey_config(key)
+        for project in Project.objects.filter(id=project_id):
+            for key in ProjectKey.objects.filter(project_id=project_id):
+                key.set_cached_field_value("project", project)
+                configs[key.public_key] = compute_projectkey_config(key)
     elif public_key:
         try:
             key = ProjectKey.objects.get(public_key=public_key)
