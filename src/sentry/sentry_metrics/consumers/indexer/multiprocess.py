@@ -50,8 +50,10 @@ class BatchConsumerStrategyFactory(ProcessingStrategyFactory):  # type: ignore
         self.__commit_max_batch_size = commit_max_batch_size
         self.__config = config
 
-    def create(
-        self, commit: Callable[[Mapping[Partition, Position]], None]
+    def create_with_partitions(
+        self,
+        commit: Callable[[Mapping[Partition, Position]], None],
+        partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
         transform_step = TransformStep(
             next_step=SimpleProduceStep(
