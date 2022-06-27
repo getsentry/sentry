@@ -40,8 +40,8 @@ export type GenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
     timeseriesResults?: Series[];
     totalIssuesCount?: string;
   }) => void;
-  processRawResult?: (result: any) => void;
-  processRawTableResult?: (result: any) => void;
+  processRawSeriesResult?: (result: SeriesResponse) => void;
+  processRawTableResult?: (result: TableResponse) => void;
 };
 
 function getReferrer(displayType: DisplayType) {
@@ -68,7 +68,7 @@ function GenericWidgetQueries<SeriesResponse, TableResponse>({
   limit,
   onDataFetched,
   organization,
-  processRawResult,
+  processRawSeriesResult,
   processRawTableResult,
   selection,
   widget,
@@ -151,7 +151,7 @@ function GenericWidgetQueries<SeriesResponse, TableResponse>({
       );
       const transformedTimeseriesResults: Series[] = [];
       responses.forEach((rawResults, requestIndex) => {
-        processRawResult?.(rawResults);
+        processRawSeriesResult?.(rawResults);
         const transformedResult = config.transformSeries!(
           rawResults,
           widget.queries[requestIndex],
@@ -215,7 +215,7 @@ function GenericWidgetQueries<SeriesResponse, TableResponse>({
     limit,
     onDataFetched,
     organization,
-    processRawResult,
+    processRawSeriesResult,
     processRawTableResult,
     selection,
     widget,

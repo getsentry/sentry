@@ -10,7 +10,11 @@ import {
   PageFilters,
 } from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
-import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import {
+  EventsTableData,
+  TableData,
+  TableDataWithTitle,
+} from 'sentry/utils/discover/discoverQuery';
 
 import {ErrorsAndTransactionsConfig} from '../datasetConfig/errorsAndTransactions';
 import {Widget} from '../types';
@@ -20,7 +24,8 @@ import GenericWidgetQueries, {
   GenericWidgetQueriesChildrenProps,
 } from './genericWidgetQueries';
 
-type RawResult = EventsStats | MultiSeriesEventsStats;
+type SeriesResult = EventsStats | MultiSeriesEventsStats;
+type TableResult = TableData | EventsTableData;
 
 type SeriesWithOrdering = [order: number, series: Series];
 
@@ -53,7 +58,7 @@ export function transformSeries(stats: EventsStats, seriesName: string): Series 
  * }
  */
 export function flattenMultiSeriesDataWithGrouping(
-  result: RawResult,
+  result: SeriesResult,
   queryAlias: string
 ): SeriesWithOrdering[] {
   const seriesWithOrdering: SeriesWithOrdering[] = [];
@@ -79,7 +84,7 @@ export function flattenMultiSeriesDataWithGrouping(
 }
 
 export function getIsMetricsDataFromSeriesResponse(
-  result: RawResult
+  result: SeriesResult
 ): boolean | undefined {
   const multiIsMetricsData = Object.values(result)
     .map(({isMetricsData}) => isMetricsData)
@@ -125,8 +130,8 @@ function WidgetQueries({
     setIsMetricsData = context.setIsMetricsData;
   }
 
-  const processRawResult = useCallback(
-    rawResults => {
+  const processSeriesResult = useCallback(
+    (rawResults: SeriesResult) => {
       // If one of the queries is sampled, then mark the whole thing as sampled
       const isMetricsDataOfCurrResult =
         isMetricsData === false ? false : getIsMetricsDataFromSeriesResponse(rawResults);
@@ -135,8 +140,8 @@ function WidgetQueries({
     [isMetricsData, setIsMetricsData]
   );
 
-  const processRawTableResult = useCallback(
-    rawResults => {
+  const processTableResult = useCallback(
+    (rawResults: TableResult) => {
       // If one of the queries is sampled, then mark the whole thing as sampled
       const isMetricsDataOfCurrResult =
         isMetricsData === false ? false : rawResults.meta?.isMetricsData;
@@ -146,7 +151,7 @@ function WidgetQueries({
   );
 
   return (
-    <GenericWidgetQueries
+    <GenericWidgetQueries<SeriesResult, TableResult>
       config={config}
       api={api}
       organization={organization}
@@ -155,8 +160,8 @@ function WidgetQueries({
       cursor={cursor}
       limit={limit}
       onDataFetched={onDataFetched}
-      processRawResult={processRawResult}
-      processRawTableResult={processRawTableResult}
+      processRawSeriesResult={processSeriesResult}
+      processRawTableResult={processTableResult}
     >
       {children}
     </GenericWidgetQueries>
