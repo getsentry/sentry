@@ -3,8 +3,10 @@ from base64 import b64encode
 from unittest import mock
 
 import pytest
+from django.test import override_settings
 from django.urls import reverse
 from django.utils import timezone
+from freezegun import freeze_time
 from pytz import utc
 from snuba_sdk.column import Column
 from snuba_sdk.conditions import InvalidConditionError
@@ -10981,6 +10983,32 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
             "query": "Did you know you can replace chained or conditions like `field:a OR field:b OR field:c` with `field:[a,b,c]`",
             "columns": None,
         }
+
+    @override_settings(SENTRY_SELF_HOSTED=False)
+    def test_ratelimit(self):
+        query = {
+            "field": ["transaction"],
+            "project": [self.project.id],
+        }
+        with freeze_time("2000-01-01"):
+            for _ in range(50):
+                self.do_request(query, features={"organizations:discover-events-rate-limit": True})
+            response = self.do_request(
+                query, features={"organizations:discover-events-rate-limit": True}
+            )
+            assert response.status_code == 429, response.content
+
+    @override_settings(SENTRY_SELF_HOSTED=False)
+    def test_no_ratelimit(self):
+        query = {
+            "field": ["transaction"],
+            "project": [self.project.id],
+        }
+        with freeze_time("2000-01-01"):
+            for _ in range(50):
+                self.do_request(query)
+            response = self.do_request(query)
+            assert response.status_code == 200, response.content
 
 
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPerformanceTestCase):
