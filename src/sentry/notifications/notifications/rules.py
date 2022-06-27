@@ -163,7 +163,7 @@ class ActiveReleaseAlertNotification(AlertRuleNotification):
     message_builder = "ActiveReleaseIssueNotificationMessageBuilder"
     metrics_key = "release_issue_alert"
     notification_setting_type = NotificationSettingTypes.ISSUE_ALERTS
-    template_path = "sentry/emails/error"
+    template_path = "sentry/emails/release_alert"
 
     def __init__(
         self,
