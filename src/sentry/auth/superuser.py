@@ -320,7 +320,7 @@ class Superuser:
         self.is_valid = False
         self.request.session.pop(SESSION_KEY, None)
 
-    def set_logged_in(self, user, current_datetime=None):
+    def set_logged_in(self, user, prefilled_su_modal=None, current_datetime=None):
         """
         Mark a session as superuser-enabled.
         """
@@ -352,23 +352,26 @@ class Superuser:
             enable_and_log_superuser_access()
             return
 
-        try:
-            # need to use json loads as the data is no longer in request.data
-            su_access_json = json.loads(request.body)
-        except json.JSONDecodeError:
-            metrics.incr(
-                "superuser.failure",
-                sample_rate=1.0,
-                tags={"reason": SuperuserAccessFormInvalidJson.code},
-            )
-            raise SuperuserAccessFormInvalidJson()
-        except AttributeError:
-            metrics.incr(
-                "superuser.failure",
-                sample_rate=1.0,
-                tags={"reason": EmptySuperuserAccessForm.code},
-            )
-            raise EmptySuperuserAccessForm()
+        if prefilled_su_modal:
+            su_access_json = prefilled_su_modal
+        else:
+            try:
+                # need to use json loads as the data is no longer in request.data
+                su_access_json = json.loads(request.body)
+            except json.JSONDecodeError:
+                metrics.incr(
+                    "superuser.failure",
+                    sample_rate=1.0,
+                    tags={"reason": SuperuserAccessFormInvalidJson.code},
+                )
+                raise SuperuserAccessFormInvalidJson()
+            except AttributeError:
+                metrics.incr(
+                    "superuser.failure",
+                    sample_rate=1.0,
+                    tags={"reason": EmptySuperuserAccessForm.code},
+                )
+                raise EmptySuperuserAccessForm()
 
         su_access_info = SuperuserAccessSerializer(data=su_access_json)
 
