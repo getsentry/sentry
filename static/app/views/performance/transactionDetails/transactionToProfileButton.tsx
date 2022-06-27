@@ -4,8 +4,10 @@ import {Client} from 'sentry/api';
 import Button from 'sentry/components/button';
 import {t} from 'sentry/locale';
 import {RequestState} from 'sentry/types/core';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {generateProfileFlamegraphRoute} from 'sentry/utils/profiling/routes';
 import useApi from 'sentry/utils/useApi';
+import useOrganization from 'sentry/utils/useOrganization';
 
 interface Props {
   orgId: string;
@@ -15,6 +17,7 @@ interface Props {
 
 function TransactionToProfileButton({transactionId, orgId, projectId}: Props) {
   const api = useApi();
+  const organization = useOrganization();
 
   const [profileIdState, setProfileIdState] = useState<RequestState<string>>({
     type: 'initial',
@@ -30,13 +33,24 @@ function TransactionToProfileButton({transactionId, orgId, projectId}: Props) {
     return null;
   }
 
+  function handleGoToProfile() {
+    trackAdvancedAnalyticsEvent('profiling_views.go_to_flamegraph', {
+      organization,
+      source: 'transaction_details',
+    });
+  }
+
   const target = generateProfileFlamegraphRoute({
     orgSlug: orgId,
     projectSlug: projectId,
     profileId: profileIdState.data,
   });
 
-  return <Button to={target}>{t('Go to Profile')}</Button>;
+  return (
+    <Button onClick={handleGoToProfile} to={target}>
+      {t('Go to Profile')}
+    </Button>
+  );
 }
 
 type ProfileId = {
