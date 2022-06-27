@@ -1,4 +1,4 @@
-import {useContext} from 'react';
+import {useCallback, useContext} from 'react';
 import omit from 'lodash/omit';
 
 import {Client} from 'sentry/api';
@@ -123,18 +123,25 @@ function WidgetQueries({
     setIsMetricsData = context.setIsMetricsData;
   }
 
-  const processRawResult = rawResults => {
-    // If one of the queries is sampled, then mark the whole thing as sampled
-    const isMetricsDataOfCurrResult =
-      isMetricsData === false ? false : getIsMetricsDataFromSeriesResponse(rawResults);
-    setIsMetricsData?.(isMetricsDataOfCurrResult);
-  };
+  const processRawResult = useCallback(
+    rawResults => {
+      // If one of the queries is sampled, then mark the whole thing as sampled
+      const isMetricsDataOfCurrResult =
+        isMetricsData === false ? false : getIsMetricsDataFromSeriesResponse(rawResults);
+      setIsMetricsData?.(isMetricsDataOfCurrResult);
+    },
+    [isMetricsData, setIsMetricsData]
+  );
 
-  const processRawTableResult = rawResults => {
-    // If one of the queries is sampled, then mark the whole thing as sampled
-    isMetricsData = isMetricsData === false ? false : rawResults.meta?.isMetricsData;
-    setIsMetricsData?.(isMetricsData);
-  };
+  const processRawTableResult = useCallback(
+    rawResults => {
+      // If one of the queries is sampled, then mark the whole thing as sampled
+      const isMetricsDataOfCurrResult =
+        isMetricsData === false ? false : rawResults.meta?.isMetricsData;
+      setIsMetricsData?.(isMetricsDataOfCurrResult);
+    },
+    [isMetricsData, setIsMetricsData]
+  );
 
   return (
     <GenericWidgetQueries
