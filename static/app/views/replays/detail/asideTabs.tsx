@@ -26,7 +26,7 @@ function renderTabContent(key: string, loadedReplay: ReplayReader) {
   }
 }
 
-function TabbedAside({replay}: Props) {
+function AsideTabs({replay}: Props) {
   const [active, setActive] = useState<string>(TABS[0].toLowerCase());
 
   return (
@@ -62,4 +62,4 @@ const Container = styled('div')`
   }
 `;
 
-export default TabbedAside;
+export default AsideTabs;
