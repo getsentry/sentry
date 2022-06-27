@@ -55,8 +55,10 @@ class MetricsConsumerStrategyFactory(ProcessingStrategyFactory):  # type: ignore
         self.__commit_max_batch_size = commit_max_batch_size
         self.__commit_max_batch_time = commit_max_batch_time
 
-    def create(
-        self, commit: Callable[[Mapping[Partition, Position]], None]
+    def create_with_partitions(
+        self,
+        commit: Callable[[Mapping[Partition, Position]], None],
+        partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
         parallel_strategy = ParallelTransformStep(
             partial(process_messages, self.__config.use_case_id),
