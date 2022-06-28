@@ -120,9 +120,14 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
         theme: flamegraphTheme,
       });
 
-      // if the profile we're rendering as a flamegraph has changed, we do not
-      // want to persist the config view
-      if (previousView?.flamegraph.profile === newView.flamegraph.profile) {
+      // if the profile or the config space of the flamegraph has changed, we do not
+      // want to persist the config view. This is to avoid a case where the new config space
+      // is larger than the previous one, meaning the new view could now be zoomed in even
+      // though the user did not fire any zoom events.
+      if (
+        previousView?.flamegraph.profile === newView.flamegraph.profile &&
+        previousView.configSpace.equals(newView.configSpace)
+      ) {
         // if we're still looking at the same profile but only a preference other than
         // left heavy has changed, we do want to persist the config view
         if (previousView.flamegraph.leftHeavy === newView.flamegraph.leftHeavy) {
