@@ -111,6 +111,16 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
         sample_rates = sorted(
             transaction.get("trace.sample_rate") for transaction in root_transactions
         )
+        if len(sample_rates) == 0:
+            return Response(
+                {
+                    "project_breakdown": None,
+                    "sample_size": sample_size,
+                    "null_sample_rate_percentage": None,
+                    "sample_rate_distribution": None,
+                }
+            )
+
         non_null_sample_rates = sorted(
             float(sample_rate) for sample_rate in sample_rates if sample_rate not in {"", None}
         )
