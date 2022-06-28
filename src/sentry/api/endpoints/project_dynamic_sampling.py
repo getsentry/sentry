@@ -84,7 +84,7 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
             selected_columns=[
                 "id",
                 "trace",
-                "count_if(trace.parent_span,equals," '"")',
+                'count_if(trace.parent_span,equals,"")',
                 "trace.sample_rate",
                 "random_number() AS random_number",
             ],
