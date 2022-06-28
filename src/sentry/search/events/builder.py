@@ -1072,7 +1072,9 @@ class QueryBuilder:
         # Tags are never null, but promoted tags are columns and so can be null.
         # To handle both cases, use `ifNull` to convert to an empty string and
         # compare so we need to check for empty values.
-        if isinstance(lhs, Column) and lhs.subscriptable == "tags":
+        is_tag = isinstance(lhs, Column) and lhs.subscriptable == "tags"
+        is_context = isinstance(lhs, Column) and lhs.subscriptable == "contexts"
+        if is_tag:
             if operator not in ["IN", "NOT IN"] and not isinstance(value, str):
                 sentry_sdk.set_tag("query.lhs", lhs)
                 sentry_sdk.set_tag("query.rhs", value)
@@ -1082,7 +1084,7 @@ class QueryBuilder:
 
         # Handle checks for existence
         if search_filter.operator in ("=", "!=") and search_filter.value.value == "":
-            if search_filter.key.is_tag:
+            if is_tag or is_context:
                 return Condition(lhs, Op(search_filter.operator), value)
             else:
                 # If not a tag, we can just check that the column is null.

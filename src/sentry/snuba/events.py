@@ -522,8 +522,8 @@ class Columns(Enum):
     SPAN_ID = Column(
         group_name="events.contexts[trace.span_id]",
         event_name="contexts[trace.span_id]",
-        transaction_name="contexts[trace.span_id]",
-        discover_name="contexts[trace.span_id]",
+        transaction_name="span_id",
+        discover_name="span_id",
         alias="trace.span",
     )
     PARENT_SPAN_ID = Column(
