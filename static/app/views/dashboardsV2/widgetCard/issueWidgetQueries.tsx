@@ -1,5 +1,4 @@
-import {useRef, useState} from 'react';
-import {useEffect} from '@storybook/addons';
+import {useEffect, useState} from 'react';
 
 import {Client} from 'sentry/api';
 import MemberListStore from 'sentry/stores/memberListStore';
@@ -36,14 +35,11 @@ function IssueWidgetQueries({
 }: Props) {
   const [memberListStoreLoaded, setMemberListStoreLoaded] = useState(false);
 
-  const memberListStoreUnlistener = useRef(
-    MemberListStore.listen(() => {
-      setMemberListStoreLoaded(MemberListStore.isLoaded());
-    }, undefined)
-  );
-
   useEffect(() => {
-    return memberListStoreUnlistener.current?.();
+    const unlistener = MemberListStore.listen(() => {
+      setMemberListStoreLoaded(MemberListStore.isLoaded());
+    }, undefined);
+    return () => unlistener();
   }, []);
 
   const config = IssuesConfig;
