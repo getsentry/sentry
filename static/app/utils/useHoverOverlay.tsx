@@ -7,10 +7,9 @@ import {
   useRef,
   useState,
 } from 'react';
+import {PopperProps, usePopper} from 'react-popper';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {useOverlayPosition} from '@react-aria/overlays';
-import {Placement} from '@react-types/overlays';
 
 import domId from 'sentry/utils/domId';
 import {ColorOrAlias} from 'sentry/utils/theme';
@@ -59,7 +58,7 @@ interface UseHoverOverlayProps {
   /**
    * Position for the overlay.
    */
-  position?: Placement;
+  position?: PopperProps<any>['placement'];
   /**
    * Only display the overlay only if the content overflows
    */
@@ -107,18 +106,59 @@ function useHoverOverlay(
   const describeById = useMemo(() => domId(`${overlayType}-`), [overlayType]);
   const theme = useTheme();
 
-  const triggerRef = useRef<HTMLElement | null>(null);
-  const overlayRef = useRef<HTMLDivElement | null>(null);
-
   const isOpen = forceVisible ?? isVisible;
 
-  const {overlayProps, arrowProps, placement} = useOverlayPosition({
-    targetRef: triggerRef,
-    overlayRef,
+  const [triggerElement, setTriggerElement] = useState<HTMLElement | null>(null);
+  const [overlayElement, setOverlayElement] = useState<HTMLElement | null>(null);
+  const [arrowElement, setArrowElement] = useState<HTMLElement | null>(null);
+
+  const modifiers = useMemo(
+    () => [
+      {
+        name: 'hide',
+        enabled: false,
+      },
+      {
+        name: 'computeStyles',
+        options: {
+          // Using the `transform` attribute causes our borders to get blurry
+          // in chrome. See [0]. This just causes it to use `top` / `left`
+          // positions, which should be fine.
+          //
+          // [0]: https://stackoverflow.com/questions/29543142/css3-transformation-blurry-borders
+          gpuAcceleration: false,
+        },
+      },
+      {
+        name: 'arrow',
+        options: {
+          element: arrowElement,
+          // Set padding to avoid the arrow reaching the side of the tooltip
+          // and overflowing out of the rounded border
+          padding: 4,
+        },
+      },
+      {
+        name: 'offset',
+        options: {
+          offset: [0, offset],
+        },
+      },
+      {
+        name: 'preventOverflow',
+        enabled: true,
+        options: {
+          padding: 12,
+          altAxis: true,
+        },
+      },
+    ],
+    [arrowElement, offset]
+  );
+
+  const {styles, state} = usePopper(triggerElement, overlayElement, {
+    modifiers,
     placement: position,
-    offset,
-    isOpen,
-    shouldUpdatePosition: true,
   });
 
   // Delayed open and close time handles
@@ -135,7 +175,7 @@ function useHoverOverlay(
 
   const handleMouseEnter = useCallback(() => {
     // Do nothing if showOnlyOnOverflow and we're not overflowing.
-    if (showOnlyOnOverflow && triggerRef.current && !isOverflown(triggerRef.current)) {
+    if (showOnlyOnOverflow && triggerElement && !isOverflown(triggerElement)) {
       return;
     }
 
@@ -151,7 +191,7 @@ function useHoverOverlay(
       () => setVisible(true),
       delay ?? OPEN_DELAY
     );
-  }, [delay, showOnlyOnOverflow]);
+  }, [delay, showOnlyOnOverflow, triggerElement]);
 
   const handleMouseLeave = useCallback(() => {
     window.clearTimeout(delayOpenTimeoutRef.current);
@@ -179,7 +219,7 @@ function useHoverOverlay(
     (triggerChildren: React.ReactNode) => {
       const props = {
         'aria-describedby': describeById,
-        ref: triggerRef,
+        ref: setTriggerElement,
         onFocus: handleMouseEnter,
         onBlur: handleMouseLeave,
         onPointerEnter: handleMouseEnter,
@@ -226,20 +266,27 @@ function useHoverOverlay(
     ]
   );
 
-  const allOverlayProps = {
+  const overlayProps = {
     id: describeById,
-    ref: overlayRef,
+    ref: setOverlayElement,
+    style: styles.popper,
     onMouseEnter: isHoverable ? handleMouseEnter : undefined,
     onMouseLeave: isHoverable ? handleMouseLeave : undefined,
-    ...overlayProps,
+  };
+
+  const arrowProps = {
+    ref: setArrowElement,
+    style: styles.arrow,
+    'data-placement': state?.placement,
   };
 
   return {
     wrapTrigger,
     isOpen,
+    overlayProps,
     arrowProps,
-    overlayProps: allOverlayProps,
-    placement,
+    placement: state?.placement,
+    arrowData: state?.modifiersData?.arrow,
   };
 }
 

@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 import {ColorOrAlias} from 'sentry/utils/theme';
 
 type Props = {
-  'data-placement': string;
   background?: ColorOrAlias;
   border?: ColorOrAlias;
+  'data-placement'?: string;
   size?: number;
 };
 
@@ -25,9 +25,8 @@ const OverlayArrow = styled('span')<Props>`
     border: solid ${p => p.size! / 2}px transparent;
   }
 
-  &[data-placement='bottom'] {
+  &[data-placement|='bottom'] {
     top: -${p => p.size}px;
-    transform: translateX(-50%);
     &::before {
       bottom: 1px;
       border-bottom-color: ${p => p.theme[p.border!]};
@@ -37,9 +36,8 @@ const OverlayArrow = styled('span')<Props>`
     }
   }
 
-  &[data-placement='top'] {
+  &[data-placement|='top'] {
     bottom: -${p => p.size}px;
-    transform: translateX(-50%);
     &::before {
       top: 1px;
       border-top-color: ${p => p.theme[p.border!]};
@@ -49,9 +47,8 @@ const OverlayArrow = styled('span')<Props>`
     }
   }
 
-  &[data-placement='right'] {
+  &[data-placement|='right'] {
     left: -${p => p.size}px;
-    transform: translateY(-50%);
     &::before {
       right: 1px;
       border-right-color: ${p => p.theme[p.border!]};
@@ -61,9 +58,8 @@ const OverlayArrow = styled('span')<Props>`
     }
   }
 
-  &[data-placement='left'] {
+  &[data-placement|='left'] {
     right: -${p => p.size}px;
-    transform: translateY(-50%);
     &::before {
       left: 1px;
       border-left-color: ${p => p.theme[p.border!]};

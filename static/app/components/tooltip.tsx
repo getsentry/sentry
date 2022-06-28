@@ -37,10 +37,8 @@ export function DO_NOT_USE_TOOLTIP({
   ...hoverOverlayProps
 }: InternalTooltipProps) {
   const theme = useTheme();
-  const {wrapTrigger, isOpen, arrowProps, overlayProps, placement} = useHoverOverlay(
-    'tooltip',
-    hoverOverlayProps
-  );
+  const {wrapTrigger, isOpen, overlayProps, placement, arrowData, arrowProps} =
+    useHoverOverlay('tooltip', hoverOverlayProps);
 
   if (disabled || !title) {
     return <Fragment>{children}</Fragment>;
@@ -49,12 +47,12 @@ export function DO_NOT_USE_TOOLTIP({
   const tooltipContent = isOpen && (
     <PositionWrapper zIndex={theme.zIndex.tooltip} {...overlayProps}>
       <TooltipContent
-        originPointCss={arrowProps.style}
+        originPoint={arrowData}
         placement={placement}
         overlayStyle={overlayStyle}
       >
         {title}
-        <OverlayArrow data-placement={placement} {...arrowProps} />
+        <OverlayArrow {...arrowProps} />
       </TooltipContent>
     </PositionWrapper>
   );

@@ -1,22 +1,24 @@
 import {forwardRef} from 'react';
+import {PopperProps} from 'react-popper';
 import {SerializedStyles} from '@emotion/react';
 import styled from '@emotion/styled';
-import {PlacementAxis} from '@react-types/overlays';
 import {HTMLMotionProps, motion, MotionProps, MotionStyle} from 'framer-motion';
 
 import testableTransition from 'sentry/utils/testableTransition';
+
+type OriginPoint = Partial<{x: number; y: number}>;
 
 interface AnimatedOverlayProps extends HTMLMotionProps<'div'> {
   /**
    * Indicates where the overlay is placed. This is useful for the animation to
    * be animated 'towards' the placment origin, giving it a pleasing effect.
    */
-  placement: PlacementAxis | undefined;
+  placement: PopperProps<any>['placement'];
   /**
    * The CSS styles for the "origin point" over the overlay. Typically this
    * would be the arrow (or tip).
    */
-  originPointCss?: React.CSSProperties;
+  originPoint?: OriginPoint;
   /**
    * Additional style rules for the overlay content.
    */
@@ -48,21 +50,22 @@ const overlayAnimation: MotionProps = {
  * since the direction of the scale isn't towards the reference element
  */
 function computeOriginFromArrow(
-  placement?: PlacementAxis,
-  originPointCss?: React.CSSProperties
+  placement?: PopperProps<any>['placement'],
+  originPoint?: OriginPoint
 ): MotionStyle {
-  const {top, left} = originPointCss ?? {};
+  const simplePlacement = placement?.split('-')[0];
+  const {y, x} = originPoint ?? {};
 
   // XXX: Bottom means the arrow will be pointing up.
-  switch (placement) {
+  switch (simplePlacement) {
     case 'top':
-      return {originX: left ? `${left}px` : '50%', originY: '100%'};
+      return {originX: x ? `${x}px` : '50%', originY: '100%'};
     case 'bottom':
-      return {originX: left ? `${left}px` : '50%', originY: 0};
+      return {originX: x ? `${x}px` : '50%', originY: 0};
     case 'left':
-      return {originX: '100%', originY: top ? `${top}px` : '50%'};
+      return {originX: '100%', originY: y ? `${y}px` : '50%'};
     case 'right':
-      return {originX: 0, originY: top ? `${top}px` : '50%'};
+      return {originX: 0, originY: y ? `${y}px` : '50%'};
     default:
       return {originX: `50%`, originY: '50%'};
   }
@@ -78,7 +81,7 @@ function computeOriginFromArrow(
 const AnimatedOverlay = styled(
   ({
     placement,
-    originPointCss,
+    originPoint,
     style,
     overlayStyle: _overlayStyle,
     ...props
@@ -86,7 +89,7 @@ const AnimatedOverlay = styled(
     <motion.div
       style={{
         ...style,
-        ...computeOriginFromArrow(placement, originPointCss),
+        ...computeOriginFromArrow(placement, originPoint),
       }}
       {...overlayAnimation}
       {...props}
@@ -97,7 +100,7 @@ const AnimatedOverlay = styled(
   ${p => p.overlayStyle as any};
 `;
 
-interface PositionWrapperProps extends React.HTMLAttributes<HTMLDivElement> {
+interface PositionWrapperProps extends HTMLMotionProps<'div'> {
   /**
    * Determines the zindex over the position wrapper
    */
@@ -112,21 +115,7 @@ interface PositionWrapperProps extends React.HTMLAttributes<HTMLDivElement> {
  * events while it is being animated out.
  */
 const PositionWrapper = forwardRef<HTMLDivElement, PositionWrapperProps>(
-  (
-    {
-      // XXX: Some of framer motions props are incompatible with
-      // HTMLAttributes<HTMLDivElement>. Due to the way useOverlayPosition uses
-      // this component it must be compatible with that type.
-      onAnimationStart: _onAnimationStart,
-      onDragStart: _onDragStart,
-      onDragEnd: _onDragEnd,
-      onDrag: _onDrag,
-      zIndex,
-      style,
-      ...props
-    },
-    ref
-  ) => (
+  ({zIndex, style, ...props}, ref) => (
     <motion.div
       {...props}
       ref={ref}
