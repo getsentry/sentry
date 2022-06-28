@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import re
 from abc import ABC, abstractmethod
-from copy import copy
 from dataclasses import dataclass
 from typing import (
     TYPE_CHECKING,
@@ -22,11 +21,8 @@ from typing import (
 from snuba_sdk import Column, Condition, Op
 
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS, CRASH_RATE_ALERT_SESSION_COUNT_ALIAS
-from sentry.eventstore import Filter
 from sentry.exceptions import InvalidQuerySubscription, UnsupportedQuerySubscription
 from sentry.models import Environment
-from sentry.search.events.fields import resolve_field_list
-from sentry.search.events.filter import get_filter
 from sentry.sentry_metrics.utils import (
     MetricIndexNotFound,
     resolve,
@@ -39,7 +35,7 @@ from sentry.snuba.dataset import EntityKey
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.models import QueryDatasets, SnubaQueryEventType
 from sentry.utils import metrics
-from sentry.utils.snuba import Dataset, resolve_column, resolve_snuba_aliases
+from sentry.utils.snuba import Dataset
 
 if TYPE_CHECKING:
     from sentry.search.events.builder import QueryBuilder
@@ -135,15 +131,6 @@ class BaseEntitySubscription(ABC, _EntitySubscription):
         self.time_col = ENTITY_TIME_COLUMNS[self.entity_key]
 
     @abstractmethod
-    def build_snuba_filter(
-        self,
-        query: str,
-        environment: Optional[Environment],
-        params: Optional[Mapping[str, Any]] = None,
-    ) -> Filter:
-        raise NotImplementedError
-
-    @abstractmethod
     def get_entity_extra_params(self) -> Mapping[str, Any]:
         raise NotImplementedError
 
@@ -176,30 +163,6 @@ class BaseEventsAndTransactionEntitySubscription(BaseEntitySubscription, ABC):
         self.event_types = None
         if extra_fields:
             self.event_types = extra_fields.get("event_types")
-
-    def build_snuba_filter(
-        self,
-        query: str,
-        environment: Optional[Environment],
-        params: Optional[Mapping[str, Any]] = None,
-    ) -> Filter:
-        resolve_func = resolve_column(Dataset(self.dataset.value))
-
-        query = apply_dataset_query_conditions(QueryDatasets(self.dataset), query, self.event_types)
-        snuba_filter = get_filter(
-            query, params=params, parser_config_overrides={"blocked_keys": ALERT_BLOCKED_FIELDS}
-        )
-        snuba_filter.update_with(
-            resolve_field_list([self.aggregate], snuba_filter, auto_fields=False)
-        )
-        snuba_filter = resolve_snuba_aliases(snuba_filter, resolve_func)[0]
-        if snuba_filter.group_ids:
-            snuba_filter.conditions.append(
-                ["group_id", "IN", list(map(int, snuba_filter.group_ids))]
-            )
-        if environment:
-            snuba_filter.conditions.append(["environment", "=", environment.name])
-        return snuba_filter
 
     def build_query_builder(
         self,
@@ -264,39 +227,6 @@ class SessionsEntitySubscription(BaseEntitySubscription):
                 "building snuba filter for a metrics subscription"
             )
         self.org_id = extra_fields["org_id"]
-
-    def build_snuba_filter(
-        self,
-        query: str,
-        environment: Optional[Environment],
-        params: Optional[Mapping[str, Any]] = None,
-    ) -> Filter:
-        resolve_func = resolve_column(Dataset(self.dataset.value))
-        aggregations = [self.aggregate]
-        # This aggregation is added to return the total number of sessions in crash
-        # rate alerts that is used to identify if we are below a general minimum alert threshold
-        count_col = re.search(r"(sessions|users)", self.aggregate)
-        if not count_col:
-            raise UnsupportedQuerySubscription(
-                "Only crash free percentage queries are supported for subscriptions"
-                "over the sessions dataset"
-            )
-        count_col_matched = count_col.group()
-
-        aggregations += [f"identity({count_col_matched}) AS {CRASH_RATE_ALERT_SESSION_COUNT_ALIAS}"]
-        functions_acl = ["identity"]
-        snuba_filter = get_filter(
-            query, params=params, parser_config_overrides={"blocked_keys": ALERT_BLOCKED_FIELDS}
-        )
-        snuba_filter.update_with(
-            resolve_field_list(
-                aggregations, snuba_filter, auto_fields=False, functions_acl=functions_acl
-            )
-        )
-        snuba_filter = resolve_snuba_aliases(snuba_filter, resolve_func)[0]
-        if environment:
-            snuba_filter.conditions.append(["environment", "=", environment.name])
-        return snuba_filter
 
     def get_entity_extra_params(self) -> Mapping[str, Any]:
         return {"organization": self.org_id}
@@ -377,15 +307,7 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
         self.time_window = time_window
 
     @abstractmethod
-    def get_aggregations(self) -> List[List[Optional[str]]]:  # TODO: better type?
-        raise NotImplementedError
-
-    @abstractmethod
     def get_snql_aggregations(self) -> List[str]:
-        raise NotImplementedError
-
-    @abstractmethod
-    def get_extra_conditions(self) -> List[List[Any]]:  # TODO: better type?
         raise NotImplementedError
 
     @abstractmethod
@@ -407,50 +329,6 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
         else:
             granularity = 24 * 3600
         return granularity
-
-    def build_snuba_filter(
-        self,
-        query: str,
-        environment: Optional[Environment],
-        params: Optional[Mapping[str, Any]] = None,
-    ) -> Filter:
-        snuba_filter = get_filter(
-            query, params=params, parser_config_overrides={"blocked_keys": ALERT_BLOCKED_FIELDS}
-        )
-        conditions = copy(snuba_filter.conditions)
-        snuba_filter.update_with(
-            {
-                "aggregations": self.get_aggregations(),
-                "conditions": [
-                    ["metric_id", "=", resolve(self.org_id, self.metric_key.value)],
-                ]
-                + self.get_extra_conditions(),
-                "rollup": self.get_granularity(),
-            }
-        )
-        if environment:
-            snuba_filter.conditions.append(
-                [
-                    resolve_tag_key(self.org_id, "environment"),
-                    "=",
-                    resolve_weak(self.org_id, environment.name),
-                ]
-            )
-        if query and len(conditions) > 0:
-            release_conditions = [
-                condition for condition in conditions if condition[0] == "release"
-            ]
-
-            for release_condition in release_conditions:
-                snuba_filter.conditions.append(
-                    [
-                        resolve_tag_key(self.org_id, release_condition[0]),
-                        release_condition[1],
-                        resolve_weak(self.org_id, release_condition[2]),
-                    ]
-                )
-
-        return snuba_filter
 
     def get_entity_extra_params(self) -> Mapping[str, Any]:
         return {
@@ -597,22 +475,6 @@ class MetricsCountersEntitySubscription(BaseMetricsEntitySubscription):
             "sumIf(session.status, crashed) as crashed",
         ]
 
-    def get_aggregations(self) -> List[List[Optional[str]]]:
-        session_status_crashed = resolve(self.org_id, "crashed")
-        session_status_init = resolve(self.org_id, "init")
-        return [
-            [
-                f"sumIf(value, equals({self.session_status}, {session_status_init}))",
-                None,
-                "count",
-            ],
-            [
-                f"sumIf(value, equals({self.session_status}, {session_status_crashed}))",
-                None,
-                "crashed",
-            ],
-        ]
-
     def get_snql_extra_conditions(self) -> List[Condition]:
         return [
             Condition(
@@ -621,11 +483,6 @@ class MetricsCountersEntitySubscription(BaseMetricsEntitySubscription):
                 resolve_many_weak(self.org_id, ["crashed", "init"]),
             ),
         ]
-
-    def get_extra_conditions(self) -> List[List[Any]]:
-        crashed = resolve(self.org_id, "crashed")
-        init = resolve(self.org_id, "init")
-        return [[self.session_status, "IN", [crashed, init]]]
 
 
 class MetricsSetsEntitySubscription(BaseMetricsEntitySubscription):
@@ -638,25 +495,7 @@ class MetricsSetsEntitySubscription(BaseMetricsEntitySubscription):
             "uniqIf(session.status, crashed) as crashed",
         ]
 
-    def get_aggregations(self) -> List[List[Optional[str]]]:
-        session_status_crashed = resolve(self.org_id, "crashed")
-        return [
-            [
-                "uniq(value)",
-                None,
-                "count",
-            ],
-            [
-                f"uniqIf(value, equals({self.session_status}, {session_status_crashed}))",
-                None,
-                "crashed",
-            ],
-        ]
-
     def get_snql_extra_conditions(self) -> List[Condition]:
-        return []
-
-    def get_extra_conditions(self) -> List[List[Any]]:
         return []
 
 

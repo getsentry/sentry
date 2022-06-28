@@ -47,7 +47,6 @@ class OrganizationSerializerTest(TestCase):
             "integrations-ticket-rules",
             "invite-members",
             "invite-members-rate-limits",
-            "metric-alert-snql",
             "minute-resolution-sessions",
             "open-membership",
             "relay",
