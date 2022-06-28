@@ -1,4 +1,5 @@
 import math
+from datetime import timedelta
 
 from django.utils import timezone
 from rest_framework import status
@@ -40,8 +41,8 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
     @staticmethod
     def _get_sample_rates_data(data):
         distribution_functions = {
-            "min": lambda lst: min(lst) if len(lst) > 0 else None,
-            "max": lambda lst: max(lst) if len(lst) > 0 else None,
+            "min": lambda lst: min(lst, default=None),
+            "max": lambda lst: max(lst, default=None),
             "mean": lambda lst: sum(lst) / len(lst) if len(lst) > 0 else None,
             "p50": lambda lst: percentile_fn(data, 0.5),
             "p90": lambda lst: percentile_fn(data, 0.9),
@@ -65,9 +66,11 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
             )
 
         query = request.GET.get("query", "")
-        sample_size = request.GET.get("sampleSize", 10)
+        sample_size = min(request.GET.get("sampleSize", 100), 1000)
         distributed_trace = request.GET.get("distributedTrace", "1") == "1"
-        stats_period = parse_stats_period(request.GET.get("statsPeriod", "72h"))
+        stats_period = min(
+            parse_stats_period(request.GET.get("statsPeriod", "1h")), timedelta(hours=24)
+        )
 
         end_time = timezone.now()
         start_time = end_time - stats_period
