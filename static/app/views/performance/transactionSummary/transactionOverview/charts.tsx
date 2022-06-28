@@ -29,6 +29,7 @@ import DurationChart from './durationChart';
 import DurationPercentileChart from './durationPercentileChart';
 import LatencyChart from './latencyChart';
 import TrendChart from './trendChart';
+import UserMiseryChart from './userMiseryChart';
 import VitalsChart from './vitalsChart';
 
 export enum DisplayModes {
@@ -37,6 +38,7 @@ export enum DisplayModes {
   LATENCY = 'latency',
   TREND = 'trend',
   VITALS = 'vitals',
+  USER_MISERY = 'usermisery',
 }
 
 function generateDisplayOptions(
@@ -49,6 +51,7 @@ function generateDisplayOptions(
       {value: DisplayModes.LATENCY, label: t('Duration Distribution')},
       {value: DisplayModes.TREND, label: t('Trends')},
       {value: DisplayModes.VITALS, label: t('Web Vitals')},
+      {value: DisplayModes.USER_MISERY, label: t('User Misery')},
     ];
   }
 
@@ -218,6 +221,19 @@ function TransactionSummaryCharts({
         )}
         {display === DisplayModes.VITALS && (
           <VitalsChart
+            organization={organization}
+            query={eventView.query}
+            queryExtra={releaseQueryExtra}
+            project={eventView.project}
+            environment={eventView.environment}
+            start={eventView.start}
+            end={eventView.end}
+            statsPeriod={eventView.statsPeriod}
+            withoutZerofill={withoutZerofill}
+          />
+        )}
+        {display === DisplayModes.USER_MISERY && (
+          <UserMiseryChart
             organization={organization}
             query={eventView.query}
             queryExtra={releaseQueryExtra}
