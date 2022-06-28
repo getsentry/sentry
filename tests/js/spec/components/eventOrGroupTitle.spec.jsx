@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 
@@ -13,7 +13,7 @@ describe('EventOrGroupTitle', function () {
   };
 
   it('renders with subtitle when `type = error`', function () {
-    const component = mountWithTheme(
+    const wrapper = render(
       <EventOrGroupTitle
         data={{
           ...data,
@@ -24,11 +24,11 @@ describe('EventOrGroupTitle', function () {
       />
     );
 
-    expect(component).toSnapshot();
+    expect(wrapper.container).toSnapshot();
   });
 
   it('renders with subtitle when `type = csp`', function () {
-    const component = mountWithTheme(
+    const wrapper = render(
       <EventOrGroupTitle
         data={{
           ...data,
@@ -39,11 +39,11 @@ describe('EventOrGroupTitle', function () {
       />
     );
 
-    expect(component).toSnapshot();
+    expect(wrapper.container).toSnapshot();
   });
 
   it('renders with no subtitle when `type = default`', function () {
-    const component = mountWithTheme(
+    const wrapper = render(
       <EventOrGroupTitle
         data={{
           ...data,
@@ -56,7 +56,7 @@ describe('EventOrGroupTitle', function () {
       />
     );
 
-    expect(component).toSnapshot();
+    expect(wrapper.container).toSnapshot();
   });
 
   it('renders with title override', function () {
@@ -64,7 +64,7 @@ describe('EventOrGroupTitle', function () {
       {organization: TestStubs.Organization({features: ['custom-event-title']})},
     ]);
 
-    const component = mountWithTheme(
+    render(
       <EventOrGroupTitle
         data={{
           ...data,
@@ -75,9 +75,9 @@ describe('EventOrGroupTitle', function () {
           },
         }}
       />,
-      routerContext
+      {context: routerContext}
     );
 
-    expect(component.text()).toContain('metadata title');
+    expect(screen.getByText('metadata title')).toBeInTheDocument();
   });
 });
