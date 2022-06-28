@@ -58,10 +58,11 @@ export const NOTIFICATION_SETTING_FIELDS: Record<string, Field> = {
     type: 'select',
     label: t('Delivery Method'),
     choices: [
-      ['email', t('Send to Email')],
-      ['slack', t('Send to Slack')],
-      ['email+slack', t('Send to Email and Slack')],
+      ['email', t('Email')],
+      ['slack', t('Slack')],
+      ['msteams', t('Microsoft Teams')],
     ],
+    multiple: true,
   },
   approval: {
     name: 'approval',

@@ -35,7 +35,6 @@ import {
   isGroupedByProject,
   isSufficientlyComplex,
   mergeNotificationSettings,
-  providerListToString,
 } from 'sentry/views/settings/account/notifications/utils';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
@@ -211,22 +210,24 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
 
   /* Methods responsible for rendering the page. */
 
-  getInitialData(): {[key: string]: string} {
+  getInitialData(): {[key: string]: string | string[]} {
     const {notificationType} = this.props;
     const {notificationSettings} = this.state;
 
-    const initialData = {
+    const initialData: {[key: string]: string | string[]} = {
       [notificationType]: getCurrentDefault(notificationType, notificationSettings),
     };
     if (!isEverythingDisabled(notificationType, notificationSettings)) {
-      initialData.provider = providerListToString(
-        getCurrentProviders(notificationType, notificationSettings)
-      );
+      initialData.provider = getCurrentProviders(notificationType, notificationSettings);
+    } else {
+      initialData.provider = ['email'];
     }
+
     const childTypes: string[] = typeMappedChildren[notificationType] || [];
     childTypes.forEach(childType => {
       initialData[childType] = getCurrentDefault(childType, notificationSettings);
     });
+
     return initialData;
   }
 

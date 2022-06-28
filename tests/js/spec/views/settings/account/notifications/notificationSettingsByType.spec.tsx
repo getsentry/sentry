@@ -66,7 +66,7 @@ describe('NotificationSettingsByType', function () {
     expect(fields.at(0).find('FieldLabel').text()).toEqual('Issue Alerts');
     expect(fields.at(0).find('Select').text()).toEqual('On');
     expect(fields.at(1).find('FieldLabel').text()).toEqual('Delivery Method');
-    expect(fields.at(1).find('Select').text()).toEqual('Send to Email and Slack');
+    expect(fields.at(1).find('Select').text()).toEqual('EmailSlack');
   });
 
   it('should render warning modal when identity not linked', function () {
