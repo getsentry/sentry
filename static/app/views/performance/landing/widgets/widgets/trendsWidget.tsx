@@ -85,7 +85,6 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
       ),
       transform: transformTrendsDiscover,
     }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [props.chartSetting, trendChangeType]
   );
 

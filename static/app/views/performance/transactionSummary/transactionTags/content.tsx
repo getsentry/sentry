@@ -123,7 +123,6 @@ const InnerContent = (
     if (initialTag) {
       changeTagSelected(initialTag);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialTag]);
 
   const handleSearch = (query: string) => {

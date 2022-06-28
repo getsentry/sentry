@@ -55,14 +55,10 @@ function TransactionOverview(props: Props) {
 
   const {location, selection, organization, projects} = props;
 
-  useEffect(
-    () => {
-      loadOrganizationTags(api, organization.slug, selection);
-      addRoutePerformanceContext(selection);
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [selection]
-  );
+  useEffect(() => {
+    loadOrganizationTags(api, organization.slug, selection);
+    addRoutePerformanceContext(selection);
+  }, [selection]);
 
   return (
     <MEPSettingProvider>

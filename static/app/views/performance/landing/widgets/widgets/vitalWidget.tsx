@@ -137,7 +137,6 @@ export function VitalWidget(props: PerformanceWidgetProps) {
         },
         transform: transformDiscoverToList,
       }),
-      // eslint-disable-next-line react-hooks/exhaustive-deps
       [props.eventView, fieldsList, props.organization.slug, mepSetting.memoizationKey]
     ),
     chart: useMemo<QueryDefinition<DataType, WidgetDataResult>>(
@@ -178,7 +177,6 @@ export function VitalWidget(props: PerformanceWidgetProps) {
         },
         transform: transformEventsRequestToVitals,
       }),
-      // eslint-disable-next-line react-hooks/exhaustive-deps
       [props.chartSetting, selectedListIndex, mepSetting.memoizationKey]
     ),
   };
