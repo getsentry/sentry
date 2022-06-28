@@ -60,7 +60,7 @@
     "@types/webpack-dev-server": "^4.7.2",
     "@types/webpack-env": "^1.17.0",
     "@wojtekmaj/enzyme-adapter-react-17": "0.6.1",
-    "ansicolor": "^1.1.100",
+    "ansi-to-react": "^6.1.6",
     "babel-loader": "^8.2.5",
     "babel-plugin-add-react-displayname": "^0.0.5",
     "babel-plugin-transform-react-remove-prop-types": "^0.4.24",
