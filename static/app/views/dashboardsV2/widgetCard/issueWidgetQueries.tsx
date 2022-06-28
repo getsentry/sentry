@@ -36,6 +36,7 @@ function IssueWidgetQueries({
   const [memberListStoreLoaded, setMemberListStoreLoaded] = useState(false);
 
   useEffect(() => {
+    setMemberListStoreLoaded(MemberListStore.isLoaded());
     const unlistener = MemberListStore.listen(() => {
       setMemberListStoreLoaded(MemberListStore.isLoaded());
     }, undefined);
