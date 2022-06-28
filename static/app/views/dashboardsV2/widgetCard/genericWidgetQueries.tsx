@@ -188,7 +188,14 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
           requestLimit = undefined;
           requestCreator = config.getWorldMapRequest;
         }
-        return requestCreator!(
+
+        if (!requestCreator) {
+          throw new Error(
+            t('This display type is not supported by the selected dataset.')
+          );
+        }
+
+        return requestCreator(
           api,
           query,
           organization,
@@ -200,7 +207,6 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
       })
     );
 
-    // transform the data
     let transformedTableResults: TableDataWithTitle[] = [];
     let responsePageLinks: string | null = null;
     responses.forEach(([data, _textstatus, resp], i) => {
@@ -303,7 +309,8 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
     } catch (err) {
       if (this._isMounted) {
         this.setState({
-          errorMessage: err?.responseJSON?.detail || t('An unknown error occurred.'),
+          errorMessage:
+            err?.responseJSON?.detail || err?.message || t('An unknown error occurred.'),
         });
       }
     } finally {
