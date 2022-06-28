@@ -254,6 +254,7 @@ def __translated_payload(
     )
     payload["retention_days"] = 90
     payload["tags"] = new_tags
+    payload["use_case_id"] = "release-health"
 
     del payload["name"]
     return payload

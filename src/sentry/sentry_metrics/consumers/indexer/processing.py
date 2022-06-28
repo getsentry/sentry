@@ -213,6 +213,7 @@ def process_messages(
             new_payload_value["metric_id"] = mapping[org_id][metric_name]
             new_payload_value["retention_days"] = 90
             new_payload_value["mapping_meta"] = output_message_meta
+            new_payload_value["use_case_id"] = use_case_id.value
 
             del new_payload_value["name"]
 
