@@ -20,14 +20,12 @@ function ReplayDetails() {
     t: initialTimeOffset, // Time, in seconds, where the video should start
   } = location.query;
 
-  const {fetchError, fetching, onRetry, replay} = useReplayData({
+  const {fetching, onRetry, replay} = useReplayData({
     eventSlug,
     orgId,
   });
 
   if (!fetching && !replay) {
-    // TODO(replay): Give the user more details when errors happen
-    console.log({fetching, fetchError}); // eslint-disable-line no-console
     return (
       <Page eventSlug={eventSlug} orgId={orgId}>
         <PageContent>
