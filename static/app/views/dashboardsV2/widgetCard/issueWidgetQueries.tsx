@@ -59,7 +59,6 @@ function IssueWidgetQueries({
         cursor={cursor}
         limit={limit}
         onDataFetched={onDataFetched}
-        processRawTableResult={() => {}}
       >
         {({loading, ...rest}) =>
           children({
