@@ -3,6 +3,7 @@ from datetime import timedelta
 
 from django.utils.datastructures import MultiValueDict
 
+from sentry.sentry_metrics import indexer
 from sentry.snuba.metrics.datasource import get_custom_measurements, get_series
 from sentry.snuba.metrics.query_builder import QueryDefinition
 from sentry.testutils import SessionMetricsTestCase, TestCase
@@ -93,10 +94,11 @@ class GetCustomMeasurementsTest(MetricsEnhancedPerformanceTestCase):
         self.day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
 
     def test_simple(self):
+        something_custom_metric = "d:transactions/measurements.something_custom@millisecond"
         self.store_metric(
             1,
             metric="measurements.something_custom",
-            internal_metric="d:custom/measurements.something_custom@millisecond",
+            internal_metric=something_custom_metric,
             entity="metrics_distributions",
             timestamp=self.day_ago + timedelta(hours=1, minutes=0),
         )
@@ -120,14 +122,17 @@ class GetCustomMeasurementsTest(MetricsEnhancedPerformanceTestCase):
                     "p99",
                 ],
                 "unit": "millisecond",
+                "metric_id": indexer.resolve(self.organization.id, something_custom_metric),
             }
         ]
 
     def test_metric_outside_query_daterange(self):
+        something_custom_metric = "d:transactions/measurements.something_custom@millisecond"
+        something_else_metric = ("d:transactions/measurements.something_else@byte",)
         self.store_metric(
             1,
             metric="measurements.something_custom",
-            internal_metric="d:custom/measurements.something_custom@millisecond",
+            internal_metric=something_custom_metric,
             entity="metrics_distributions",
             timestamp=self.day_ago + timedelta(hours=1, minutes=0),
         )
@@ -135,7 +140,7 @@ class GetCustomMeasurementsTest(MetricsEnhancedPerformanceTestCase):
         self.store_metric(
             1,
             metric="measurements.something_else",
-            internal_metric="d:transactions/measurements.something_else@byte",
+            internal_metric=something_else_metric,
             entity="metrics_distributions",
             timestamp=self.day_ago - timedelta(days=1, minutes=0),
         )
@@ -159,5 +164,6 @@ class GetCustomMeasurementsTest(MetricsEnhancedPerformanceTestCase):
                     "p99",
                 ],
                 "unit": "millisecond",
+                "metric_id": indexer.resolve(self.organization.id, something_custom_metric),
             }
         ]

@@ -144,6 +144,7 @@ def get_metrics(projects: Sequence[Project]) -> Sequence[MetricMeta]:
                         type=metric_type,
                         operations=AVAILABLE_OPERATIONS[METRIC_TYPE_TO_ENTITY[metric_type].value],
                         unit=None,  # snuba does not know the unit
+                        metric_id=row["metric_id"],
                     )
                 )
             except InvalidParams:
@@ -170,6 +171,8 @@ def get_metrics(projects: Sequence[Project]) -> Sequence[MetricMeta]:
                 type=derived_metric_obj.result_type,
                 operations=derived_metric_obj.generate_available_operations(),
                 unit=derived_metric_obj.unit,
+                # Derived metrics won't have an id
+                metric_id=None,
             )
         )
     return sorted(metrics_meta, key=itemgetter("name"))
@@ -201,6 +204,7 @@ def get_custom_measurements(
                         type=metric_type,
                         operations=AVAILABLE_OPERATIONS[METRIC_TYPE_TO_ENTITY[metric_type].value],
                         unit=parsed_mri.unit,
+                        metric_id=row["metric_id"],
                     )
                 )
 
