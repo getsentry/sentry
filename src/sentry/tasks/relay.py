@@ -3,6 +3,7 @@ import time
 
 import sentry_sdk
 
+from sentry.models.organization import Organization
 from sentry.relay import projectconfig_cache, projectconfig_debounce_cache
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
@@ -138,16 +139,39 @@ def compute_configs(organization_id=None, project_id=None, public_key=None):
         # which might cause the key to disappear and trigger the task again.  Without this behavior
         # it could be possible that refrequent invalidations cause the task to take excessive time
         # to complete.
-        projects = list(Project.objects.filter(organization_id=organization_id))
-        for key in ProjectKey.objects.filter(project__in=projects):
-            # If we find the config in the cache it means it was active.  As such we want to
-            # recalculate it.  If the config was not there at all, we leave it and avoid the
-            # cost of re-computation.
-            if projectconfig_cache.get(key.public_key) is not None:
-                configs[key.public_key] = compute_projectkey_config(key)
+        for organization in Organization.objects.filter(id=organization_id):
+            for project in Project.objects.filter(organization_id=organization_id):
+                project.set_cached_field_value("organization", organization)
+                for key in ProjectKey.objects.filter(project_id=project.id):
+                    key.set_cached_field_value("project", project)
+                    # If we find the config in the cache it means it was active.  As such we want to
+                    # recalculate it.  If the config was not there at all, we leave it and avoid the
+                    # cost of re-computation.
+                    if projectconfig_cache.get(key.public_key) is not None:
+                        configs[key.public_key] = compute_projectkey_config(key)
+                        action = "recompute"
+                    else:
+                        action = "not-cached"
+                    metrics.incr(
+                        "relay.projectconfig_cache.invalidation.recompute",
+                        tags={"action": action, "scope": "organization"},
+                    )
     elif project_id:
-        for key in ProjectKey.objects.filter(project_id=project_id):
-            configs[key.public_key] = compute_projectkey_config(key)
+        for project in Project.objects.filter(id=project_id):
+            for key in ProjectKey.objects.filter(project_id=project_id):
+                key.set_cached_field_value("project", project)
+                # If we find the config in the cache it means it was active.  As such we want to
+                # recalculate it.  If the config was not there at all, we leave it and avoid the
+                # cost of re-computation.
+                if projectconfig_cache.get(key.public_key) is not None:
+                    configs[key.public_key] = compute_projectkey_config(key)
+                    action = "recompute"
+                else:
+                    action = "not-cached"
+                    metrics.incr(
+                        "relay.projectconfig_cache.invalidation.recompute",
+                        tags={"action": action, "scope": "project"},
+                    )
     elif public_key:
         try:
             key = ProjectKey.objects.get(public_key=public_key)
