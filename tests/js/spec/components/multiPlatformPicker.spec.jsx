@@ -81,11 +81,4 @@ describe('MultiPlatformPicker', function () {
     userEvent.click(screen.getByText('Java'));
     expect(props.addPlatform).not.toHaveBeenCalled();
   });
-
-  it('should sort serverless applications by provider then language', function () {
-    const props = {...baseProps};
-    render(<MultiPlatformPicker {...props} />);
-    userEvent.click(screen.getByText('Serverless'));
-    expect(screen.getByText('AWS Lambda')).toBeInTheDocument();
-  });
 });
