@@ -79,7 +79,7 @@ function Breadcrumbs({}: Props) {
         // XXX: Kind of hacky, but mouseLeave does not fire if you move from a
         // crumb to a tooltip
         clearAllHighlights();
-        highlight({nodeId: item.data.nodeId});
+        highlight({nodeId: item.data.nodeId, annotation: item.data.label ?? ''});
       }
     },
     [setCurrentHoverTime, startTimestamp, highlight, clearAllHighlights]

@@ -16,6 +16,11 @@ import HighlightReplayPlugin from './highlightReplayPlugin';
 type Dimensions = {height: number; width: number};
 type RootElem = null | HTMLDivElement;
 
+type HighlightParams = {
+  nodeId: number;
+  annotation?: string;
+};
+
 // Important: Don't allow context Consumers to access `Replayer` directly.
 // It has state that, when changed, will not trigger a react render.
 // Instead only expose methods that wrap `Replayer` and manage state.
@@ -58,7 +63,7 @@ type ReplayPlayerContextProps = {
   /**
    * Highlight a node in the replay
    */
-  highlight: ({nodeId}: {nodeId: number}) => void;
+  highlight: (args: HighlightParams) => void;
 
   /**
    * Required to be called with a <div> Ref
@@ -202,13 +207,13 @@ export function Provider({children, replay, initialTimeOffset = 0, value = {}}: 
     setFFSpeed(0);
   };
 
-  const highlight = useCallback(({nodeId}: {nodeId: number}) => {
+  const highlight = useCallback(({nodeId, annotation}: HighlightParams) => {
     const replayer = replayerRef.current;
     if (!replayer) {
       return;
     }
 
-    highlightNode({replayer, nodeId});
+    highlightNode({replayer, nodeId, annotation});
   }, []);
 
   const clearAllHighlightsCallback = useCallback(() => {
