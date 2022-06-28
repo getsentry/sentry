@@ -1,6 +1,6 @@
-import {useEffect, useState} from 'react';
+import {useCallback, useEffect, useState} from 'react';
 
-import {Client} from 'sentry/api';
+import {Client, ResponseMeta} from 'sentry/api';
 import MemberListStore from 'sentry/stores/memberListStore';
 import {Group, Organization, PageFilters} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
@@ -45,6 +45,13 @@ function IssueWidgetQueries({
 
   const config = IssuesConfig;
 
+  const processRawTableResult = useCallback(
+    (_rawResult: Group[], response?: ResponseMeta) => {
+      return {totalIssuesCount: response?.getResponseHeader('X-Hits') ?? undefined};
+    },
+    []
+  );
+
   return getDynamicText({
     value: (
       <GenericWidgetQueries<never, Group[]>
@@ -56,6 +63,7 @@ function IssueWidgetQueries({
         cursor={cursor}
         limit={limit}
         onDataFetched={onDataFetched}
+        processRawTableResult={processRawTableResult}
       >
         {({loading, ...rest}) =>
           children({

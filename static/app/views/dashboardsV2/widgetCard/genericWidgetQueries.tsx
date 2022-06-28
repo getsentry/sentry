@@ -57,7 +57,10 @@ export type GenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
     totalIssuesCount?: string;
   }) => void;
   processRawSeriesResult?: (result: SeriesResponse) => void;
-  processRawTableResult?: (result: TableResponse) => void;
+  processRawTableResult?: (
+    result: TableResponse,
+    response?: ResponseMeta
+  ) => void | {totalIssuesCount?: string};
 };
 
 type State<SeriesResponse> = {
@@ -201,8 +204,9 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
     // transform the data
     let transformedTableResults: TableDataWithTitle[] = [];
     let responsePageLinks: string | null = null;
+    let processedData: {totalIssuesCount?: string} | undefined;
     responses.forEach(([data, _textstatus, resp], i) => {
-      processRawTableResult?.(data);
+      processedData = processRawTableResult?.(data, resp) ?? {};
       // Cast so we can add the title.
       const transformedData = config.transformTable(
         data,
@@ -221,6 +225,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
       onDataFetched?.({
         tableResults: transformedTableResults,
         pageLinks: responsePageLinks ?? undefined,
+        ...processedData,
       });
       this.setState({
         tableResults: transformedTableResults,
