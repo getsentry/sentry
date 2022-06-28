@@ -21,7 +21,7 @@ type Props = WithRouterProps & {
   children: (props: ChildProps) => React.ReactNode;
   organization: Organization;
   /**
-   * Specific platforms to filter reults to
+   * Specific platforms to filter results to
    */
   platforms: string[];
   project: Project;

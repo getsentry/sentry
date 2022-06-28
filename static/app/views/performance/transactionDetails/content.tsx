@@ -35,6 +35,7 @@ import {getSelectedProjectPlatforms} from '../utils';
 
 import EventMetas from './eventMetas';
 import FinishSetupAlert from './finishSetupAlert';
+import {TransactionToProfileButton} from './transactionToProfileButton';
 
 type Props = Pick<
   RouteComponentProps<{eventSlug: string}, {}>,
@@ -140,6 +141,8 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     const traceId = event.contexts?.trace?.trace_id ?? '';
     const {start, end} = getTraceTimeRangeFromEvent(event);
 
+    const hasProfilingFeature = organization.features.includes('profiling');
+
     return (
       <TraceMetaQuery
         location={location}
@@ -174,6 +177,13 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                         <Button icon={<IconOpen />} href={eventJsonUrl} external>
                           {t('JSON')} (<FileSize bytes={event.size} />)
                         </Button>
+                      )}
+                      {hasProfilingFeature && (
+                        <TransactionToProfileButton
+                          orgId={organization.slug}
+                          projectId={this.projectId}
+                          transactionId={event.eventID}
+                        />
                       )}
                     </ButtonBar>
                   </Layout.HeaderActions>
