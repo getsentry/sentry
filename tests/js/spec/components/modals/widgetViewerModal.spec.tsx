@@ -9,7 +9,7 @@ import MemberListStore from 'sentry/stores/memberListStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import space from 'sentry/styles/space';
 import {Series} from 'sentry/types/echarts';
-import {TableDataRow, TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {
   DisplayType,
   Widget,
@@ -44,12 +44,10 @@ async function renderModal({
   widget,
   seriesData,
   tableData,
-  issuesData,
   pageLinks,
 }: {
   initialData: any;
   widget: any;
-  issuesData?: TableDataRow[];
   pageLinks?: string;
   seriesData?: Series[];
   tableData?: TableDataWithTitle[];
@@ -67,7 +65,6 @@ async function renderModal({
         onEdit={() => undefined}
         seriesData={seriesData}
         tableData={tableData}
-        issuesData={issuesData}
         pageLinks={pageLinks}
       />
     </div>,
@@ -1228,7 +1225,7 @@ describe('Modals -> WidgetViewerModal', function () {
     it('renders events, status, and title table columns', async function () {
       await renderModal({initialData, widget: mockWidget});
       expect(screen.getByText('title')).toBeInTheDocument();
-      expect(screen.getByText('Error: Failed')).toBeInTheDocument();
+      expect(await screen.findByText('Error: Failed')).toBeInTheDocument();
       expect(screen.getByText('events')).toBeInTheDocument();
       expect(screen.getByText('6')).toBeInTheDocument();
       expect(screen.getByText('status')).toBeInTheDocument();
@@ -1287,13 +1284,13 @@ describe('Modals -> WidgetViewerModal', function () {
 
     it('renders pagination buttons', async function () {
       await renderModal({initialData, widget: mockWidget});
-      expect(screen.getByRole('button', {name: 'Previous'})).toBeInTheDocument();
+      expect(await screen.findByRole('button', {name: 'Previous'})).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Next'})).toBeInTheDocument();
     });
 
     it('paginates to the next page', async function () {
       const {rerender} = await renderModal({initialData, widget: mockWidget});
-      expect(screen.getByText('Error: Failed')).toBeInTheDocument();
+      expect(await screen.findByText('Error: Failed')).toBeInTheDocument();
       userEvent.click(screen.getByRole('button', {name: 'Next'}));
       expect(issuesMock).toHaveBeenCalledTimes(1);
       expect(initialData.router.replace).toHaveBeenCalledWith(
@@ -1327,8 +1324,8 @@ describe('Modals -> WidgetViewerModal', function () {
       });
     });
 
-    it('uses provided issuesData and does not make an issues requests', async function () {
-      await renderModal({initialData, widget: mockWidget, issuesData: []});
+    it('uses provided tableData and does not make an issues requests', async function () {
+      await renderModal({initialData, widget: mockWidget, tableData: []});
       expect(issuesMock).not.toHaveBeenCalled();
     });
 
@@ -1336,7 +1333,7 @@ describe('Modals -> WidgetViewerModal', function () {
       await renderModal({
         initialData,
         widget: mockWidget,
-        issuesData: [],
+        tableData: [],
       });
       expect(issuesMock).not.toHaveBeenCalled();
       userEvent.click(screen.getByText('events'));

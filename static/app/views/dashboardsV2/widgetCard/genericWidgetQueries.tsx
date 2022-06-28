@@ -6,7 +6,7 @@ import {isSelectionEqual} from 'sentry/components/organizations/pageFilters/util
 import {t} from 'sentry/locale';
 import {Organization, PageFilters} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
-import {TableDataRow, TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 
 import {DatasetConfig} from '../datasetConfig/base';
 import {DEFAULT_TABLE_LIMIT, DisplayType, Widget, WidgetQuery} from '../types';
@@ -48,11 +48,9 @@ export type GenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
   onDataFetched?: ({
     tableResults,
     timeseriesResults,
-    issuesResults,
     totalIssuesCount,
     pageLinks,
   }: {
-    issuesResults?: TableDataRow[];
     pageLinks?: string;
     tableResults?: TableDataWithTitle[];
     timeseriesResults?: Series[];
