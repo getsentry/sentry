@@ -1,4 +1,5 @@
 import {useEffect, useState} from 'react';
+import * as Sentry from '@sentry/react';
 
 import {Client} from 'sentry/api';
 import Button from 'sentry/components/button';
@@ -24,9 +25,17 @@ function TransactionToProfileButton({transactionId, orgId, projectId}: Props) {
   });
 
   useEffect(() => {
-    fetchProfileId(api, transactionId, orgId, projectId).then((profileId: ProfileId) => {
-      setProfileIdState({type: 'resolved', data: profileId.profile_id});
-    });
+    fetchProfileId(api, transactionId, orgId, projectId)
+      .then((profileId: ProfileId) => {
+        setProfileIdState({type: 'resolved', data: profileId.profile_id});
+      })
+      .catch(err => {
+        // If there isn't a matching profile, we get a 404. No need to raise an error
+        // in this case, but we should otherwise.
+        if (err.status !== 404) {
+          Sentry.captureException(err);
+        }
+      });
   }, [api, transactionId, orgId, projectId]);
 
   if (profileIdState.type !== 'resolved') {
