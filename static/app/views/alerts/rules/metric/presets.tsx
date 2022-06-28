@@ -1,4 +1,5 @@
 import {Client} from 'sentry/api';
+import {IconBookmark, IconGlobe, IconGraph} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
 import {uniqueId} from 'sentry/utils/guid';
@@ -28,6 +29,7 @@ type PresetContext = {
   timeWindow?: number;
 };
 export type Preset = {
+  Icon: typeof IconGlobe | typeof IconGraph | typeof IconBookmark;
   description: string;
   id: string;
   makeContext(
@@ -69,8 +71,9 @@ async function getHighestVolumeTransaction(
 export const PRESET_AGGREGATES: Preset[] = [
   {
     id: 'p95-highest-volume',
-    title: t('p95 on Highest Volume Transaction'),
-    description: 'Make some noise when your most voluminous transaction gets slow',
+    title: t('Super slow transactions'),
+    description: 'Know when important transactions deviate significantly from normal',
+    Icon: IconGlobe,
     async makeContext(client, project, organization) {
       const transaction = (
         await getHighestVolumeTransaction(client, organization.slug, project.id)
@@ -110,9 +113,10 @@ export const PRESET_AGGREGATES: Preset[] = [
   },
   {
     id: 'throughput-highest-volume',
-    title: t('Throughput on Highest Volume Transaction'),
+    title: t('Throttled throughput'),
     description:
-      'Make some noise when your most voluminous transaction handles less transaction',
+      'Know when the throughput of your most important transactions drops close to 0',
+    Icon: IconGraph,
     async makeContext(client, project, organization) {
       const transaction = (
         await getHighestVolumeTransaction(client, organization.slug, project.id)
@@ -152,8 +156,10 @@ export const PRESET_AGGREGATES: Preset[] = [
   },
   {
     id: 'apdex-highest-volume',
-    title: t('Apdex regression on Highest Volume Transaction'),
-    description: 'Make some noise when your most voluminous transaction regress on apdex',
+    title: t('Apdex in violation'),
+    description:
+      'Know when your Apdex score has moved multiple standard deviations from normal',
+    Icon: IconBookmark,
     async makeContext(client, project, organization) {
       const transaction = (
         await getHighestVolumeTransaction(client, organization.slug, project.id)
