@@ -3,6 +3,7 @@ from unittest import mock
 
 from exam import fixture, patcher
 
+from sentry import options
 from sentry.constants import DataCategory
 from sentry.quotas.base import QuotaConfig, QuotaScope
 from sentry.quotas.redis import RedisQuota, is_rate_limited
@@ -72,16 +73,28 @@ class RedisQuotaTest(TestCase):
         self.get_project_quota.return_value = (100, 10)
         self.get_organization_quota.return_value = (1000, 10)
 
-        # 10 seconds is the default window.
-        # Relay can't reasonably do 1 second, 10 has worked well though.
-        # self.organization.update_option("sentry:project-abuse-quota.window", 10)
+        # A negative quota means reject-all.
+        self.organization.update_option("project-abuse-quota.error-limit", -1)
+        quotas = self.quota.get_quotas(self.project)
+
+        assert quotas[0].id is None
+        assert quotas[0].scope == QuotaScope.PROJECT
+        assert quotas[0].scope_id is None
+        assert quotas[0].categories == {
+            DataCategory.DEFAULT,
+            DataCategory.ERROR,
+            DataCategory.SECURITY,
+        }
+        assert quotas[0].limit == 0
+        assert quotas[0].window is None
+        assert quotas[0].reason_code == "project_abuse_limit"
 
         self.organization.update_option("project-abuse-quota.error-limit", 42)
         quotas = self.quota.get_quotas(self.project)
+
         assert quotas[0].id == "pae"
         assert quotas[0].scope == QuotaScope.PROJECT
         assert quotas[0].scope_id is None
-        # DataCategory.error_categories()
         assert quotas[0].categories == {
             DataCategory.DEFAULT,
             DataCategory.ERROR,
@@ -120,43 +133,59 @@ class RedisQuotaTest(TestCase):
         assert quotas[3].window == 10
         assert quotas[3].reason_code == "project_abuse_limit"
 
-        # Compatibility.
-        self.organization.update_option("getsentry.rate-limit.project-errors", 1)
-        # Shouldn't change because the new options are set.
+        # Let's set the global option for error limits.
+        # Since we already have an org override for it, it shouldn't change anything.
+        options.set("project-abuse-quota.error-limit", 3)
         quotas = self.quota.get_quotas(self.project)
+
+        assert quotas[0].id == "pae"
+        assert quotas[0].limit == 420
+        assert quotas[0].window == 10
+
+        # Let's make the org override unlimited.
+        # The global option should kick in.
+        self.organization.update_option("project-abuse-quota.error-limit", 0)
+        quotas = self.quota.get_quotas(self.project)
+
+        assert quotas[0].id == "pae"
+        assert quotas[0].limit == 30
+        assert quotas[0].window == 10
+
+        # Compatibility: preserve previous getsentry behavior.
+
+        # Let's update the deprecated global setting.
+        # It should take precedence over both the new global option and its org override.
+        options.set("getsentry.rate-limit.project-errors", 1)
+        quotas = self.quota.get_quotas(self.project)
+
         assert quotas[0].id == "pae"
         assert quotas[0].scope == QuotaScope.PROJECT
         assert quotas[0].scope_id is None
-        # DataCategory.error_categories()
         assert quotas[0].categories == {
             DataCategory.DEFAULT,
             DataCategory.ERROR,
             DataCategory.SECURITY,
         }
-        assert quotas[0].limit == 420
+        assert quotas[0].limit == 10
         assert quotas[0].window == 10
         assert quotas[0].reason_code == "project_abuse_limit"
 
-        # Disabling this limit with 0 should result in using the legacy
-        # getsentry.rate-limit.project-errors = 1.
-        self.organization.update_option("project-abuse-quota.error-limit", 0)
-
-        # Also, set the legacy option to a nondefault value, which should be used.
-        self.organization.update_option("getsentry.rate-limit.window", 60)
-        self.organization.refresh_from_db()
-
+        # Let's set the deprecated override for that.
+        self.organization.update_option("sentry:project-error-limit", 2)
+        # Also, let's change the global abuse window.
+        options.set("project-abuse-quota.window", 20)
         quotas = self.quota.get_quotas(self.project)
+
         assert quotas[0].id == "pae"
         assert quotas[0].scope == QuotaScope.PROJECT
         assert quotas[0].scope_id is None
-        # DataCategory.error_categories()
         assert quotas[0].categories == {
             DataCategory.DEFAULT,
             DataCategory.ERROR,
             DataCategory.SECURITY,
         }
-        assert quotas[0].limit == 60
-        assert quotas[0].window == 60
+        assert quotas[0].limit == 40
+        assert quotas[0].window == 20
         assert quotas[0].reason_code == "project_abuse_limit"
 
     @patcher.object(RedisQuota, "get_project_quota")

@@ -125,7 +125,8 @@ def test_debounce(
     schedule_build_project_config(public_key=default_projectkey.public_key)
     schedule_build_project_config(public_key=default_projectkey.public_key)
 
-    assert tasks == [{"public_key": default_projectkey.public_key}]
+    assert len(tasks) == 1
+    assert tasks[0]["public_key"] == default_projectkey.public_key
 
 
 @pytest.mark.django_db

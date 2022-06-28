@@ -10,7 +10,7 @@ from sentry import options
 
 class SubdomainMiddleware:
     """
-    Extracts any subdomain from request.get_host() relative to the `system.url-prefix` option, and attaches it to
+    Extracts any subdomain from request.get_host() relative to the `system.base-hostname` option, and attaches it to
     the request object under request.subdomain.
 
     If no subdomain is extracted, then request.subdomain is None.

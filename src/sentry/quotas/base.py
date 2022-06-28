@@ -326,18 +326,8 @@ class Quota(Service):
 
     def get_project_abuse_quotas(self, org):
         # Per-project abuse quotas for errors, transactions, attachments, sessions.
+        global_abuse_window = options.get("project-abuse-quota.window")
 
-        # Use the old, deprecated option if it's set.
-        abuse_window = options.get("getsentry.rate-limit.window")
-
-        # The registered default for both options is 10,
-        # so we use that to detect if we need to use the new option.
-        # (Relay isn't effective at enforcing 1s windows - 10 seconds has worked well.)
-        if abuse_window == 10:
-            abuse_window = options.get("project-abuse-quota.window")
-
-        # compat_options were previously present in getsentry
-        # for errors and transactions.
         for option, compat_options, id, categories in (
             (
                 "project-abuse-quota.error-limit",
@@ -370,31 +360,47 @@ class Quota(Service):
                 (DataCategory.SESSION,),
             ),
         ):
-            limit = org.get_option(option)
+            limit = 0
+            abuse_window = global_abuse_window
+            # compat_options were previously present in getsentry
+            # for errors and transactions. The first one is the org
+            # option for overriding the global option, the second one.
+            # For now, these deprecated ones take precedence over the new
+            # to preserve existing behavior.
+            if compat_options:
+                limit = org.get_option(compat_options[0])
+                if not limit:
+                    limit = options.get(compat_options[1])
+
             if not limit:
-                for o in compat_options:
-                    limit = org.get_option(o)
-                    if limit:
-                        break
-            if limit:
-                # Negative limits mean reject-all.
-                if limit < 0:
-                    limit = 0
-                    id = None
-                    abuse_window = None
-                else:
-                    limit *= abuse_window
-                yield QuotaConfig(
-                    id=id,
-                    limit=limit,
-                    scope=QuotaScope.PROJECT,
-                    categories=categories,
-                    window=abuse_window,
-                    # XXX: This reason code is hardcoded RateLimitReasonLabel.PROJECT_ABUSE_LIMIT
-                    #      from getsentry. Don't change it here.
-                    #      If it's changed in getsentry, it needs to be synced here.
-                    reason_code="project_abuse_limit",
-                )
+                limit = org.get_option(option)
+                if not limit:
+                    limit = options.get(option)
+
+            if limit == 0:
+                # Unlimited.
+                continue
+
+            # Negative limits mean a reject-all quota, which
+            # cannot have an id.
+            if limit < 0:
+                limit = 0
+                id = None
+                abuse_window = None
+            else:
+                limit *= abuse_window
+
+            yield QuotaConfig(
+                id=id,
+                limit=limit,
+                scope=QuotaScope.PROJECT,
+                categories=categories,
+                window=abuse_window,
+                # XXX: This reason code is hardcoded RateLimitReasonLabel.PROJECT_ABUSE_LIMIT
+                #      from getsentry. Don't change it here.
+                #      If it's changed in getsentry, it needs to be synced here.
+                reason_code="project_abuse_limit",
+            )
 
     def get_project_quota(self, project):
         from sentry.models import Organization, OrganizationOption

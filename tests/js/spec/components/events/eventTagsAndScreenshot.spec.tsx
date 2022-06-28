@@ -115,10 +115,12 @@ describe('EventTagsAndScreenshot', function () {
     organization: {
       role: 'member',
       attachmentsRole: 'member',
-      availableRoles: [
+      orgRoleList: [
         {
           id: 'member',
           name: 'Member',
+          desc: '...',
+          minimumTeamRole: 'contributor',
         },
       ],
     },
