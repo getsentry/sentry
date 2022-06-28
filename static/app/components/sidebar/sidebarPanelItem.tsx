@@ -6,7 +6,7 @@ import space from 'sentry/styles/space';
 
 type Props = {
   /**
-   * Content rendered instaed the panel item
+   * Content rendered instead the panel item
    */
   children?: React.ReactNode;
   /**

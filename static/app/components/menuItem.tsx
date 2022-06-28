@@ -38,7 +38,7 @@ type MenuItemProps = {
    */
   icon?: React.ReactNode;
   /**
-   * Is the item actively seleted?
+   * Is the item actively selected?
    */
   isActive?: boolean;
   /**
@@ -54,7 +54,7 @@ type MenuItemProps = {
    */
   stopPropagation?: boolean;
   /**
-   * The title/tooltipe of the item
+   * The title/tooltip of the item
    */
   title?: string;
 

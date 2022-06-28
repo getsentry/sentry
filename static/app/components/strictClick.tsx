@@ -13,7 +13,7 @@ type State = {
 };
 
 /**
- * Does not fire the onlick event if the mouse has moved outside of the
+ * Does not fire the onclick event if the mouse has moved outside of the
  * original click location upon release.
  *
  * <StrictClick onClick={this.onClickHandler}>

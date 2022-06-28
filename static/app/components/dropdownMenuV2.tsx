@@ -49,7 +49,7 @@ type Props = {
   menuTitle?: string;
   onClose?: () => void;
   /**
-   * Current width of the trigger element. This is used as the menu's minumum
+   * Current width of the trigger element. This is used as the menu's minimum
    * width.
    */
   triggerWidth?: number;

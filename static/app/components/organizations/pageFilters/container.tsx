@@ -108,7 +108,7 @@ function Container({skipLoadLastUsed, children, ...props}: Props) {
     const oldSelectionQuery = extractSelectionParameters(lastQuery.current);
     const newSelectionQuery = extractSelectionParameters(location.query);
 
-    // XXX: This re-initalization is only required in new-page-filters
+    // XXX: This re-initialization is only required in new-page-filters
     // land, since we have implicit pinning in the old land which will
     // cause page filters to commonly reset.
     if (isEmpty(newSelectionQuery) && !isEqual(oldSelectionQuery, newSelectionQuery)) {

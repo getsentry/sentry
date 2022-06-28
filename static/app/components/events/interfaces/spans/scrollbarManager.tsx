@@ -90,7 +90,7 @@ export class Provider extends Component<Props, State> {
 
     const anchoredSpanHash = window.location.hash.split('#')[1];
 
-    // If the user is opening the span tree with an anchor link provided, we need to continously reconnect the observers.
+    // If the user is opening the span tree with an anchor link provided, we need to continuously reconnect the observers.
     // This is because we need to wait for the window to scroll to the anchored span first, or there will be inconsistencies in
     // the spans that are actually considered in the view. The IntersectionObserver API cannot keep up with the speed
     // at which the window scrolls to the anchored span, and will be unable to register the spans that went out of the view.
@@ -101,7 +101,7 @@ export class Provider extends Component<Props, State> {
       this.spansInView.isRootSpanInView = false;
       const anchoredSpanId = window.location.hash.replace(spanTargetHash(''), '');
 
-      // Continously check to see if the anchored span is in the view
+      // Continuously check to see if the anchored span is in the view
       this.anchorCheckInterval = setInterval(() => {
         this.spanBars.forEach(spanBar => spanBar.connectObservers());
 
@@ -395,7 +395,7 @@ export class Provider extends Component<Props, State> {
 
     const virtualScrollbarRect = rectOfContent(this.virtualScrollbar.current);
 
-    // get intitial x-coordinate of the mouse click on the virtual scrollbar
+    // get initial x-coordinate of the mouse click on the virtual scrollbar
     this.initialMouseClickX = Math.abs(event.clientX - virtualScrollbarRect.x);
 
     // prevent the user from selecting things outside the minimap when dragging

@@ -109,7 +109,7 @@ function PlatformPicker(props: PlatformPickerProps) {
           // if both popular, maintain ordering from popular list
           return popularIndex(a) - popularIndex(b);
         }
-        // if one popular, that one shhould be first
+        // if one popular, that one should be first
         if (isPopular(a) !== isPopular(b)) {
           return isPopular(a) ? -1 : 1;
         }

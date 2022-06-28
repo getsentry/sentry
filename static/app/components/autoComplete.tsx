@@ -59,7 +59,7 @@ type GetItemArgs<T> = {
 
 type ChildrenProps<T> = Parameters<DropdownMenu['props']['children']>[0] & {
   /**
-   * Retruns props for the input element that handles searching the items
+   * Returns props for the input element that handles searching the items
    */
   getInputProps: <E extends HTMLInputElement = HTMLInputElement>(
     args: GetInputArgs<E>

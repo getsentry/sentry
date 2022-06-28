@@ -124,7 +124,7 @@ class SuggestedOwners extends AsyncComponent<Props, State> {
   };
 
   /**
-   * Combine the commiter and ownership data into a single array, merging
+   * Combine the committer and ownership data into a single array, merging
    * users who are both owners based on having commits, and owners matching
    * project ownership rules into one array.
    *

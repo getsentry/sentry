@@ -243,7 +243,7 @@ export function getValidOps(
   // If the token is invalid we want to use the possible expected types as our filter type
   const validTypes = filterToken.invalid?.expectedType ?? [filterToken.filter];
 
-  // Determine any interchangable filter types for our valid types
+  // Determine any interchangeable filter types for our valid types
   const interchangeableTypes = validTypes.map(
     type => interchangeableFilterOperators[type] ?? []
   );

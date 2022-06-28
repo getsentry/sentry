@@ -541,7 +541,7 @@ class DebugMeta extends PureComponent<Props, State> {
               size="xs"
               position="top"
               title={t(
-                'A list of dynamic librarys or shared objects loaded into process memory at the time of the crash. Images contribute application code that is referenced in stack traces.'
+                'A list of dynamic libraries or shared objects loaded into process memory at the time of the crash. Images contribute application code that is referenced in stack traces.'
               )}
             />
           </TitleWrapper>

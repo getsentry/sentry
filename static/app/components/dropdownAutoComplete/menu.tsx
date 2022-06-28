@@ -240,7 +240,7 @@ function Menu({
   // emptyHidesInput is set to true.
   const showInput = !hideInput && (hasItems || !emptyHidesInput);
 
-  // Only redefine the autocomplete function if our items list has chagned.
+  // Only redefine the autocomplete function if our items list has changed.
   // This avoids producing a new array on every call.
   const stableItemFilter = useCallback(
     (filterValueOrInput: string) => autoCompleteFilter(items, filterValueOrInput),
@@ -295,7 +295,7 @@ function Menu({
           !busy && !busyItemsStillVisible && filterValueOrInput && !hasResults;
 
         // When virtualization is turned on, we need to pass in the number of
-        // selecteable items for arrow-key limits
+        // selectable items for arrow-key limits
         const itemCount = virtualizedHeight
           ? autoCompleteResults.filter(i => !i.groupLabel).length
           : undefined;

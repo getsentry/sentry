@@ -251,7 +251,7 @@ class SpanTreeModel {
       // For a collapsed span group chain to be useful, we prefer span groupings
       // that are two or more spans.
       // Since there is no concept of "backtracking" when constructing the span tree,
-      // we will need to reconstruct the tree depth information. This is only neccessary
+      // we will need to reconstruct the tree depth information. This is only necessary
       // when the span group chain is hidden/collapsed.
       if (spanNestedGrouping.length === 1) {
         const treeDepthEntry = isOrphanSpan(spanNestedGrouping[0].span)
