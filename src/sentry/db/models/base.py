@@ -179,7 +179,7 @@ class ModelAvailableOn(ModeLimited):
 
     def __call__(self, model_class: Any) -> type:
         if not (isinstance(model_class, type) and issubclass(model_class, BaseModel)):
-            raise TypeError("`@available_on` must decorate a Model class")
+            raise TypeError("`@ModelAvailableOn ` must decorate a Model class")
         assert isinstance(model_class.objects, BaseManager)
 
         model_class.objects = model_class.objects.create_mode_limited_copy(self, self.read_only)
