@@ -102,7 +102,7 @@ class TextCopyInput extends Component<Props> {
      * This however means that the trailing characters with BiDi class O.N. ('Other Neutrals') goes to the other side.
      * Hello! becomes !Hello and vice versa. This is a problem for us when we want to show path in this component, because
      * /user/local/bin becomes user/local/bin/. Wrapping in unicode characters for left-to-righ embedding solves this,
-     * however we need to be aware of them when selecting the text - we are solving that by offseting the selectionRange.
+     * however we need to be aware of them when selecting the text - we are solving that by offsetting the selectionRange.
      */
     const inputValue = rtl ? '\u202A' + children + '\u202C' : children;
 
