@@ -9,6 +9,8 @@ export function getDescription(crumb: Crumb) {
       return `${crumb.data?.from ? `${crumb.data?.from} => ` : ''}${
         crumb.data?.to ?? ''
       }`;
+    case BreadcrumbType.DEFAULT:
+      return JSON.stringify(crumb.data);
     default:
       return crumb.message || '';
   }
