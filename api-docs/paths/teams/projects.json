@@ -67,7 +67,6 @@
                   "rate-limits",
                   "data-forwarding",
                   "similarity-view",
-                  "issue-alerts-targeting",
                   "servicehooks",
                   "minidump",
                   "similarity-indexing"
@@ -171,7 +170,6 @@
                 "rate-limits",
                 "data-forwarding",
                 "similarity-view",
-                "issue-alerts-targeting",
                 "servicehooks",
                 "minidump",
                 "similarity-indexing"
