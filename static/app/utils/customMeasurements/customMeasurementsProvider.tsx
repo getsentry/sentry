@@ -1,9 +1,11 @@
 import {useEffect, useState} from 'react';
+import {Query} from 'history';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
-import {Organization} from 'sentry/types';
+import {Organization, PageFilters} from 'sentry/types';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import {MeasurementCollection} from 'sentry/utils/measurements/measurements';
 import useApi from 'sentry/utils/useApi';
@@ -16,12 +18,19 @@ import {
 function fetchCustomMeasurements(
   api: Client,
   organization: Organization,
-  projects?: number[]
+  selection?: PageFilters
 ): Promise<MeasurementCollection> {
+  const query: Query = selection?.datetime
+    ? {...normalizeDateTimeParams(selection.datetime)}
+    : {};
+
+  if (selection?.projects) {
+    query.project = selection.projects.map(String);
+  }
+
   return api.requestPromise(`/organizations/${organization.slug}/measurements-meta/`, {
-    query: {
-      project: projects,
-    },
+    method: 'GET',
+    query,
   });
 }
 
@@ -30,33 +39,39 @@ type CustomMeasurementsProviderProps = {
     | React.ReactNode
     | ((props: CustomMeasurementsContextValue) => React.ReactNode);
   organization: Organization;
-  projects?: number[];
-  skipLoad?: boolean;
+  selection?: PageFilters;
 };
 
 export function CustomMeasurementsProvider({
   children,
   organization,
-  projects,
-  skipLoad = false,
+  selection,
 }: CustomMeasurementsProviderProps) {
   const api = useApi();
   const [state, setState] = useState({customMeasurements: {}});
 
   useEffect(() => {
-    if (skipLoad) {
-      return undefined;
-    }
-
     let shouldCancelRequest = false;
 
-    fetchCustomMeasurements(api, organization, projects)
+    fetchCustomMeasurements(api, organization, selection)
       .then(response => {
         if (shouldCancelRequest) {
           return;
         }
 
-        setState(oldState => ({...oldState, metas: response}));
+        const newCustomMeasurements = Object.keys(response).reduce<MeasurementCollection>(
+          (acc, customMeasurement) => {
+            acc[customMeasurement] = {
+              key: customMeasurement,
+              name: customMeasurement,
+            };
+
+            return acc;
+          },
+          {}
+        );
+
+        setState({customMeasurements: newCustomMeasurements});
       })
       .catch(e => {
         if (shouldCancelRequest) {
@@ -71,7 +86,7 @@ export function CustomMeasurementsProvider({
     return () => {
       shouldCancelRequest = true;
     };
-  }, [projects, api, skipLoad, organization]);
+  }, [selection, api, organization]);
 
   return (
     <CustomMeasurementsContext.Provider value={state}>
