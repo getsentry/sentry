@@ -147,9 +147,7 @@ class MetricsQuery(MetricsQueryValidationRunner):
                 metric_entities.add(entity)
         # If metric entities set contanis more than 1 metric, we can't orderBy these fields
         if len(metric_entities) > 1:
-            raise InvalidParams(
-                "'orderBy' field functions must be from one group of snuba functions"
-            )
+            raise InvalidParams("Selected 'orderBy' columns must belongs to the same entity")
 
         # validate all orderby columns are presented in provided 'fields'
         if set(self.select).issuperset(orderby_fields):
