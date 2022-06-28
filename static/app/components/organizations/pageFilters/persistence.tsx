@@ -94,7 +94,7 @@ export function setPageFiltersStorage(
 }
 
 /**
- * Retrives the page filters from local storage
+ * Retrieves the page filters from local storage
  */
 export function getPageFilterStorage(orgSlug: string) {
   const localStorageKey = makeLocalStorageKey(orgSlug);
