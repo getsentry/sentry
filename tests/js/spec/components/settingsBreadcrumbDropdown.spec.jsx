@@ -1,80 +1,75 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import BreadcrumbDropdown from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbDropdown';
 
 jest.useFakeTimers();
 
-describe('Settings Breadcrumb Dropdown', function () {
-  let wrapper;
+describe('Settings Breadcrumb Dropdown', () => {
   const selectMock = jest.fn();
   const items = [
     {value: '1', label: 'foo'},
     {value: '2', label: 'bar'},
   ];
 
-  beforeEach(function () {
-    wrapper = mountWithTheme(
+  const createWrapper = () => {
+    return render(
       <BreadcrumbDropdown items={items} name="Test" hasMenu onSelect={selectMock} />
     );
+  };
+
+  it('opens when hovered over crumb', () => {
+    createWrapper();
+    expect(screen.getByText('Test')).toBeInTheDocument();
+    userEvent.hover(screen.getByText('Test'));
+    jest.runAllTimers();
+    expect(screen.getByText('foo')).toBeInTheDocument();
+    expect(screen.getByText('bar')).toBeInTheDocument();
   });
 
-  it('opens when hovered over crumb', function () {
-    wrapper.find('Crumb').simulate('mouseEnter');
+  it('closes after 200ms when mouse leaves crumb', () => {
+    createWrapper();
+    userEvent.hover(screen.getByText('Test'));
     jest.runAllTimers();
-    wrapper.update();
-    expect(wrapper.find('AutoCompleteItem')).toHaveLength(2);
-  });
+    expect(screen.getByText('foo')).toBeInTheDocument();
 
-  it('closes after 200ms when mouse leaves crumb', function () {
-    wrapper.find('Crumb').simulate('mouseEnter');
-    jest.runAllTimers();
-    wrapper.update();
-    expect(wrapper.find('StyledDropdownBubble')).toHaveLength(1);
-
-    wrapper.find('Crumb').simulate('mouseLeave');
+    userEvent.unhover(screen.getByText('Test'));
     jest.advanceTimersByTime(10);
-    wrapper.update();
-    expect(wrapper.find('StyledDropdownBubble')).toHaveLength(0);
+    expect(screen.queryByText('foo')).not.toBeInTheDocument();
   });
 
-  it('closes immediately after selecting an item', function () {
-    wrapper.find('Crumb').simulate('mouseEnter');
+  it('closes immediately after selecting an item', () => {
+    createWrapper();
+    userEvent.hover(screen.getByText('Test'));
     jest.runAllTimers();
-    wrapper.update();
-    expect(wrapper.find('StyledDropdownBubble')).toHaveLength(1);
+    expect(screen.getByText('foo')).toBeInTheDocument();
 
-    wrapper.find('AutoCompleteItem').first().simulate('click');
-    expect(wrapper.find('StyledDropdownBubble')).toHaveLength(0);
+    userEvent.click(screen.getByText('foo'));
+    expect(screen.queryByText('foo')).not.toBeInTheDocument();
   });
 
-  it('stays open when hovered over crumb and then into dropdown menu', function () {
-    wrapper.find('Crumb').simulate('mouseEnter');
+  it('stays open when hovered over crumb and then into dropdown menu', () => {
+    createWrapper();
+    userEvent.hover(screen.getByText('Test'));
     jest.runAllTimers();
-    wrapper.update();
-    expect(wrapper.find('StyledDropdownBubble')).toHaveLength(1);
+    expect(screen.getByText('foo')).toBeInTheDocument();
 
-    wrapper.find('Crumb').simulate('mouseLeave');
-    wrapper.find('StyledDropdownBubble').simulate('mouseEnter');
+    userEvent.hover(screen.getByText('foo'));
     jest.runAllTimers();
-    wrapper.update();
-    expect(wrapper.find('StyledDropdownBubble')).toHaveLength(1);
+    expect(screen.getByText('foo')).toBeInTheDocument();
   });
 
-  it('closes after entering dropdown and then leaving dropdown', function () {
-    wrapper.find('Crumb').simulate('mouseEnter');
+  it('closes after entering dropdown and then leaving dropdown', () => {
+    createWrapper();
+    userEvent.hover(screen.getByText('Test'));
     jest.runAllTimers();
-    wrapper.update();
-    expect(wrapper.find('StyledDropdownBubble')).toHaveLength(1);
+    expect(screen.getByText('foo')).toBeInTheDocument();
 
-    wrapper.find('Crumb').simulate('mouseLeave');
-    wrapper.find('StyledDropdownBubble').simulate('mouseEnter');
+    userEvent.hover(screen.getByText('foo'));
     jest.runAllTimers();
-    wrapper.update();
-    expect(wrapper.find('StyledDropdownBubble')).toHaveLength(1);
+    expect(screen.getByText('foo')).toBeInTheDocument();
+    userEvent.unhover(screen.getByText('foo'));
 
-    wrapper.find('StyledDropdownBubble').simulate('mouseLeave');
     jest.runAllTimers();
-    wrapper.update();
-    expect(wrapper.find('StyledDropdownBubble')).toHaveLength(0);
+    expect(screen.queryByText('foo')).not.toBeInTheDocument();
   });
 });

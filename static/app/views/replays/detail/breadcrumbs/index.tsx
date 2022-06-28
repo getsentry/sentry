@@ -1,4 +1,4 @@
-import {Fragment, useCallback} from 'react';
+import {Fragment, useCallback, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {
@@ -12,8 +12,8 @@ import {relativeTimeInMs} from 'sentry/components/replays/utils';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Crumb} from 'sentry/types/breadcrumbs';
-import {EventTransaction} from 'sentry/types/event';
 import {getPrevBreadcrumb} from 'sentry/utils/replays/getBreadcrumb';
+import {useCurrentItemScroller} from 'sentry/utils/replays/hooks/useCurrentItemScroller';
 
 import BreadcrumbItem from './breadcrumbItem';
 
@@ -27,27 +27,25 @@ function CrumbPlaceholder({number}: {number: number}) {
   );
 }
 
-type Props = {
-  /**
-   * Raw breadcrumbs, `undefined` means it is still loading
-   */
-  crumbs: Crumb[] | undefined;
-  /**
-   * Root replay event, `undefined` means it is still loading
-   */
-  event: EventTransaction | undefined;
-};
+type Props = {};
 
-function Breadcrumbs({event, crumbs: allCrumbs}: Props) {
+function Breadcrumbs({}: Props) {
   const {
-    setCurrentTime,
-    setCurrentHoverTime,
+    clearAllHighlights,
     currentHoverTime,
     currentTime,
     highlight,
     removeHighlight,
-    clearAllHighlights,
+    replay,
+    setCurrentHoverTime,
+    setCurrentTime,
   } = useReplayContext();
+
+  const event = replay?.getEvent();
+  const allCrumbs = replay?.getRawCrumbs();
+
+  const crumbListContainerRef = useRef<HTMLDivElement>(null);
+  useCurrentItemScroller(crumbListContainerRef);
 
   const startTimestamp = event?.startTimestamp || 0;
 
@@ -110,8 +108,7 @@ function Breadcrumbs({event, crumbs: allCrumbs}: Props) {
   return (
     <Panel>
       <PanelHeader>{t('Breadcrumbs')}</PanelHeader>
-
-      <PanelBody>
+      <PanelBody ref={crumbListContainerRef}>
         {!isLoaded && <CrumbPlaceholder number={4} />}
         {isLoaded &&
           crumbs.map(crumb => (
@@ -131,21 +128,10 @@ function Breadcrumbs({event, crumbs: allCrumbs}: Props) {
   );
 }
 
-// FYI: Since the Replay Player has dynamic height based
-// on the width of the window,
-// height: 0; will helps us to reset the height
-// min-height: 100%; will helps us to grow at the same height of Player
 const Panel = styled(BasePanel)`
   width: 100%;
-  display: grid;
-  grid-template-rows: auto 1fr;
-  height: 0;
-  min-height: 100%;
-  @media only screen and (max-width: ${p => p.theme.breakpoints.large}) {
-    height: fit-content;
-    max-height: 400px;
-    margin-top: ${space(2)};
-  }
+  height: 100%;
+  overflow: hidden;
 `;
 
 const PanelHeader = styled(BasePanelHeader)`
@@ -159,6 +145,7 @@ const PanelHeader = styled(BasePanelHeader)`
 
 const PanelBody = styled(BasePanelBody)`
   overflow-y: auto;
+  max-height: calc(100% - 34px);
 `;
 
 const PlaceholderMargin = styled(Placeholder)`

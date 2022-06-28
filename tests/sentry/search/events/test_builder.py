@@ -645,6 +645,63 @@ class QueryBuilderTest(TestCase):
         # field:a or (field:b and event.type:transaction)
         assert constants.QUERY_TIPS["CHAINED_OR"] not in query.tips["query"]
 
+    def test_group_by_not_in_select(self):
+        query = QueryBuilder(
+            Dataset.Discover,
+            self.params,
+            "",
+            selected_columns=[
+                "count()",
+                "event.type",
+            ],
+            groupby_columns=[
+                "transaction",
+            ],
+        )
+        snql_query = query.get_snql_query().query
+        self.assertCountEqual(
+            snql_query.select,
+            [
+                Function("count", [], "count"),
+                AliasedExpression(Column("type"), "event.type"),
+            ],
+        )
+        self.assertCountEqual(
+            snql_query.groupby,
+            [
+                AliasedExpression(Column("type"), "event.type"),
+                Column("transaction"),
+            ],
+        )
+
+    def test_group_by_duplicates_select(self):
+        query = QueryBuilder(
+            Dataset.Discover,
+            self.params,
+            "",
+            selected_columns=[
+                "count()",
+                "transaction",
+            ],
+            groupby_columns=[
+                "transaction",
+            ],
+        )
+        snql_query = query.get_snql_query().query
+        self.assertCountEqual(
+            snql_query.select,
+            [
+                Function("count", [], "count"),
+                Column("transaction"),
+            ],
+        )
+        self.assertCountEqual(
+            snql_query.groupby,
+            [
+                Column("transaction"),
+            ],
+        )
+
 
 def _metric_percentile_definition(
     org_id, quantile, field="transaction.duration", alias=None
@@ -696,10 +753,10 @@ class MetricBuilderBaseTest(MetricsEnhancedPerformanceTestCase):
     def setUp(self):
         super().setUp()
         self.start = datetime.datetime.now(tz=timezone.utc).replace(
-            hour=10, minute=15, second=0, microsecond=0
+            hour=10, minute=0, second=0, microsecond=0
         ) - datetime.timedelta(days=18)
         self.end = datetime.datetime.now(tz=timezone.utc).replace(
-            hour=10, minute=15, second=0, microsecond=0
+            hour=10, minute=0, second=0, microsecond=0
         )
         self.projects = [self.project.id]
         self.params = {
@@ -1993,6 +2050,44 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             use_aggregate_conditions=True,
             # Use dry run for now to not hit indexer
             dry_run=True,
+        )
+
+    def test_group_by_not_in_select(self):
+        query = MetricsQueryBuilder(
+            self.params,
+            "",
+            selected_columns=[
+                "p90(transaction.duration)",
+                "project",
+            ],
+            groupby_columns=[
+                "transaction",
+            ],
+        )
+        snql_query = query.get_snql_query().query
+        project = Function(
+            "transform",
+            [
+                Column("project_id"),
+                [self.project.id],
+                [self.project.slug],
+                "",
+            ],
+            "project",
+        )
+        self.assertCountEqual(
+            snql_query.select,
+            [
+                _metric_percentile_definition(self.organization.id, "90"),
+                project,
+            ],
+        )
+        self.assertCountEqual(
+            snql_query.groupby,
+            [
+                project,
+                Column(f"tags[{indexer.resolve(self.organization.id, 'transaction')}]"),
+            ],
         )
 
 

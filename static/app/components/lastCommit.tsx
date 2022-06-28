@@ -31,7 +31,7 @@ function LastCommit({commit, headerClass}: Props) {
     if (firstLine.length > 100) {
       let truncated = firstLine.substr(0, 90);
       const words = truncated.split(/ /);
-      // try to not have elipsis mid-word
+      // try to not have ellipsis mid-word
       if (words.length > 1) {
         words.pop();
         truncated = words.join(' ');

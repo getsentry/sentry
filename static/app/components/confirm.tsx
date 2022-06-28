@@ -157,7 +157,7 @@ export const openConfirmModal = ({
 
 /**
  * The confirm component is somewhat special in that you can wrap any
- * onClick-able element with this to trigger a interstital confirmation modal.
+ * onClick-able element with this to trigger a interstitial confirmation modal.
  *
  * This is the declarative alternative to using openConfirmModal
  */

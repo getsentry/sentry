@@ -54,7 +54,7 @@ class GroupingComponentFrames extends Component<Props, State> {
                   icon={<IconAdd size="8px" />}
                   onClick={() => this.setState({collapsed: false})}
                 >
-                  {tct('show [numberOfFrames] similiar', {
+                  {tct('show [numberOfFrames] similar', {
                     numberOfFrames: items.length - maxVisibleItems,
                   })}
                 </ToggleCollapse>
@@ -73,7 +73,7 @@ class GroupingComponentFrames extends Component<Props, State> {
               icon={<IconSubtract size="8px" />}
               onClick={() => this.setState({collapsed: true})}
             >
-              {tct('collapse [numberOfFrames] similiar', {
+              {tct('collapse [numberOfFrames] similar', {
                 numberOfFrames: items.length - maxVisibleItems,
               })}
             </ToggleCollapse>

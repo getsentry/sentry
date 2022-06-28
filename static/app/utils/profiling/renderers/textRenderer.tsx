@@ -1,9 +1,11 @@
 import {mat3} from 'gl-matrix';
 
 import {Flamegraph} from '../flamegraph';
+import {FlamegraphSearch} from '../flamegraph/flamegraphStateProvider/flamegraphSearch';
 import {FlamegraphTheme} from '../flamegraph/flamegraphTheme';
-import {FlamegraphFrame} from '../flamegraphFrame';
+import {FlamegraphFrame, getFlamegraphFrameSearchId} from '../flamegraphFrame';
 import {
+  computeHighlightedBounds,
   ELLIPSIS,
   findRangeBinarySearch,
   getContext,
@@ -13,7 +15,7 @@ import {
 } from '../gl/utils';
 
 class TextRenderer {
-  textCache: Record<string, number> = {};
+  textCache: Record<string, TextMetrics> = {};
 
   canvas: HTMLCanvasElement;
   context: CanvasRenderingContext2D;
@@ -29,11 +31,11 @@ class TextRenderer {
     resizeCanvasToDisplaySize(canvas);
   }
 
-  measureAndCacheText(text: string): number {
+  measureAndCacheText(text: string): TextMetrics {
     if (this.textCache[text]) {
       return this.textCache[text];
     }
-    this.textCache[text] = this.context.measureText(text).width;
+    this.textCache[text] = this.context.measureText(text);
     return this.textCache[text];
   }
 
@@ -45,23 +47,25 @@ class TextRenderer {
       return;
     }
 
-    const newMeasuredSize = this.context.measureText(TEST_STRING).width;
+    const newMeasuredSize = this.context.measureText(TEST_STRING);
     if (newMeasuredSize !== this.textCache[TEST_STRING]) {
       this.textCache = {[TEST_STRING]: newMeasuredSize};
     }
   }
 
-  draw(configView: Rect, configViewToPhysicalSpace: mat3): void {
+  draw(
+    configView: Rect,
+    configViewToPhysicalSpace: mat3,
+    flamegraphSearchResults: FlamegraphSearch['results'] | null = null
+  ): void {
     this.maybeInvalidateCache();
 
-    this.context.font = `${this.theme.SIZES.BAR_FONT_SIZE * window.devicePixelRatio}px ${
-      this.theme.FONTS.FRAME_FONT
-    }`;
+    const fontSize = this.theme.SIZES.BAR_FONT_SIZE * window.devicePixelRatio;
+    this.context.font = `${fontSize}px ${this.theme.FONTS.FRAME_FONT}`;
 
     this.context.textBaseline = 'alphabetic';
-    this.context.fillStyle = this.theme.COLORS.LABEL_FONT_COLOR;
 
-    const minWidth = this.measureAndCacheText(ELLIPSIS);
+    const minWidth = this.measureAndCacheText(ELLIPSIS).width;
 
     const SIDE_PADDING = 2 * this.theme.SIZES.BAR_PADDING * window.devicePixelRatio;
     const HALF_SIDE_PADDING = SIDE_PADDING / 2;
@@ -74,7 +78,6 @@ class TextRenderer {
     // 1. We can skip drawing the entire tree if the root frame is not visible
     // 2. We can skip drawing and
     const frames: FlamegraphFrame[] = [...this.flamegraph.roots];
-
     while (frames.length) {
       const frame = frames.pop()!;
 
@@ -126,18 +129,49 @@ class TextRenderer {
       // Offset x by 1x the padding
       const x = frameInPhysicalSpace[0] + HALF_SIDE_PADDING;
 
-      this.context.fillText(
-        trimTextCenter(
-          frame.frame.name,
-          findRangeBinarySearch(
-            {low: 0, high: paddedRectangleWidth},
-            n => this.measureAndCacheText(frame.frame.name.substring(0, n)),
-            paddedRectangleWidth
-          )[0]
-        ),
-        x,
-        y
+      const frameName = frame.frame.name;
+      const trim = trimTextCenter(
+        frameName,
+        findRangeBinarySearch(
+          {low: 0, high: paddedRectangleWidth},
+          n => this.measureAndCacheText(frame.frame.name.substring(0, n)).width,
+          paddedRectangleWidth
+        )[0]
       );
+
+      const {text: trimText} = trim;
+
+      if (flamegraphSearchResults) {
+        const frameId = getFlamegraphFrameSearchId(frame);
+        const frameSearchResult = flamegraphSearchResults[frameId];
+
+        if (frameSearchResult && frameSearchResult.matchIndices.length > 0) {
+          const highlightFillStyle = `rgb(${this.theme.COLORS.HIGHLIGHTED_LABEL_COLOR.join(
+            ', '
+          )})`;
+          this.context.fillStyle = highlightFillStyle;
+
+          for (const matchIndices of frameSearchResult.matchIndices) {
+            const highlightedBounds = computeHighlightedBounds(matchIndices, trim);
+            if (!highlightedBounds) {
+              continue;
+            }
+            const [startIndex, endIndex] = highlightedBounds;
+
+            const frontMatter = trimText.slice(0, startIndex);
+            const highlightOffsetX = this.measureAndCacheText(frontMatter).width;
+            const rectX = x + highlightOffsetX;
+            const rectY = frameInPhysicalSpace[1] + fontSize / 2;
+            const highlightWidth = this.measureAndCacheText(
+              trimText.substring(startIndex, endIndex)
+            ).width;
+            this.context.fillRect(rectX, rectY, highlightWidth, fontSize);
+          }
+        }
+      }
+
+      this.context.fillStyle = this.theme.COLORS.LABEL_FONT_COLOR;
+      this.context.fillText(trimText, x, y);
 
       for (let i = 0; i < frame.children.length; i++) {
         frames.push(frame.children[i]);

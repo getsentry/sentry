@@ -96,6 +96,7 @@ class QueryBuilder:
         params: ParamsType,
         query: Optional[str] = None,
         selected_columns: Optional[List[str]] = None,
+        groupby_columns: Optional[List[str]] = None,
         equations: Optional[List[str]] = None,
         orderby: Optional[List[str]] = None,
         auto_fields: bool = False,
@@ -162,6 +163,7 @@ class QueryBuilder:
             query=query,
             use_aggregate_conditions=use_aggregate_conditions,
             selected_columns=selected_columns,
+            groupby_columns=groupby_columns,
             equations=equations,
             orderby=orderby,
         )
@@ -192,6 +194,7 @@ class QueryBuilder:
         query: Optional[str] = None,
         use_aggregate_conditions: bool = False,
         selected_columns: Optional[List[str]] = None,
+        groupby_columns: Optional[List[str]] = None,
         equations: Optional[List[str]] = None,
         orderby: Optional[List[str]] = None,
     ) -> None:
@@ -210,7 +213,7 @@ class QueryBuilder:
         with sentry_sdk.start_span(op="QueryBuilder", description="resolve_orderby"):
             self.orderby = self.resolve_orderby(orderby)
         with sentry_sdk.start_span(op="QueryBuilder", description="resolve_groupby"):
-            self.groupby = self.resolve_groupby()
+            self.groupby = self.resolve_groupby(groupby_columns)
 
     def load_config(
         self,
@@ -765,13 +768,24 @@ class QueryBuilder:
         else:
             return self.resolve_field(field, alias=alias)
 
-    def resolve_groupby(self) -> List[SelectType]:
+    def resolve_groupby(self, groupby_columns: Optional[List[str]] = None) -> List[SelectType]:
         if self.aggregates:
             self.validate_aggregate_arguments()
+            groupby_columns = (
+                [self.resolve_column(column) for column in groupby_columns]
+                if groupby_columns
+                else []
+            )
             return [
-                c
-                for c in self.columns
-                if c not in self.aggregates and not self.is_equation_column(c)
+                column
+                for column in self.columns
+                if column not in self.aggregates and not self.is_equation_column(column)
+            ] + [
+                column
+                for column in groupby_columns
+                if column not in self.aggregates
+                and not self.is_equation_column(column)
+                and column not in self.columns
             ]
         else:
             return []
@@ -1245,6 +1259,7 @@ class UnresolvedQuery(QueryBuilder):
         query: Optional[str] = None,
         use_aggregate_conditions: bool = False,
         selected_columns: Optional[List[str]] = None,
+        groupby_columns: Optional[List[str]] = None,
         equations: Optional[List[str]] = None,
         orderby: Optional[List[str]] = None,
     ) -> None:
@@ -1288,6 +1303,7 @@ class TimeseriesQueryBuilder(UnresolvedQuery):
         query: Optional[str] = None,
         use_aggregate_conditions: bool = False,
         selected_columns: Optional[List[str]] = None,
+        groupby_columns: Optional[List[str]] = None,
         equations: Optional[List[str]] = None,
         orderby: Optional[List[str]] = None,
     ) -> None:
@@ -1519,13 +1535,13 @@ class HistogramQueryBuilder(QueryBuilder):
         histogram_params: HistogramParams,
         key_column: Optional[str],
         field_names: Optional[List[Union[str, Any, None]]],
-        groupby: Optional[List[str]],
+        groupby_columns: Optional[List[str]],
         *args: Any,
         **kwargs: Any,
     ):
         kwargs["functions_acl"] = kwargs.get("functions_acl", []) + self.base_function_acl
         super().__init__(*args, **kwargs)
-        self.additional_groupby = groupby
+        self.additional_groupby = groupby_columns
         selected_columns = kwargs["selected_columns"]
 
         resolved_histogram = self.resolve_column(histogram_column)
@@ -1553,15 +1569,7 @@ class HistogramQueryBuilder(QueryBuilder):
             OrderBy(resolved_histogram, Direction.ASC)
         ]
 
-        self.groupby = self.resolve_groupby()
-        self.groupby = self.resolve_additional_groupby()
-
-    def resolve_additional_groupby(self) -> List[SelectType]:
-        base_groupby = self.groupby
-        if base_groupby is not None and self.additional_groupby is not None:
-            base_groupby += [self.resolve_column(field) for field in self.additional_groupby]
-
-        return base_groupby
+        self.groupby = self.resolve_groupby(groupby_columns)
 
 
 class SessionsQueryBuilder(QueryBuilder):
@@ -1598,7 +1606,41 @@ class MetricsQueryBuilder(QueryBuilder):
             self.organization_id = self.params["organization_id"]
         else:
             raise InvalidSearchQuery("Organization id required to create a metrics query")
-        self.granularity = self.resolve_granularity()
+
+    def resolve_query(
+        self,
+        query: Optional[str] = None,
+        use_aggregate_conditions: bool = False,
+        selected_columns: Optional[List[str]] = None,
+        groupby_columns: Optional[List[str]] = None,
+        equations: Optional[List[str]] = None,
+        orderby: Optional[List[str]] = None,
+    ) -> None:
+        with sentry_sdk.start_span(op="QueryBuilder", description="resolve_time_conditions"):
+            # Has to be done early, since other conditions depend on start and end
+            self.resolve_time_conditions()
+        with sentry_sdk.start_span(op="QueryBuilder", description="resolve_conditions"):
+            self.where, self.having = self.resolve_conditions(
+                query, use_aggregate_conditions=use_aggregate_conditions
+            )
+        with sentry_sdk.start_span(op="QueryBuilder", description="resolve_granularity"):
+            # Needs to happen before params and after time conditions since granularity can change start&end
+            self.granularity = self.resolve_granularity()
+        with sentry_sdk.start_span(op="QueryBuilder", description="resolve_params"):
+            # params depends on parse_query, and conditions being resolved first since there may be projects in conditions
+            self.where += self.resolve_params()
+        with sentry_sdk.start_span(op="QueryBuilder", description="resolve_columns"):
+            self.columns = self.resolve_select(selected_columns, equations)
+        with sentry_sdk.start_span(op="QueryBuilder", description="resolve_orderby"):
+            self.orderby = self.resolve_orderby(orderby)
+        with sentry_sdk.start_span(op="QueryBuilder", description="resolve_groupby"):
+            self.groupby = self.resolve_groupby(groupby_columns)
+
+        if len(self.metric_ids) > 0:
+            self.where.append(
+                # Metric id is intentionally sorted so we create consistent queries here both for testing & caching
+                Condition(Column("metric_id"), Op.IN, sorted(self.metric_ids))
+            )
 
     def resolve_column_name(self, col: str) -> str:
         if col.startswith("tags["):
@@ -1683,6 +1725,7 @@ class MetricsQueryBuilder(QueryBuilder):
             duration
             >= 86400 * 30
         ):
+            self.start = self.start.replace(hour=0, minute=0, second=0, microsecond=0)
             granularity = 86400
         elif (
             # more than 3 days
@@ -1691,8 +1734,10 @@ class MetricsQueryBuilder(QueryBuilder):
         ):
             # Allow 30 minutes for the daily buckets
             if near_midnight(self.start) and near_midnight(self.end):
+                self.start = self.start.replace(hour=0, minute=0, second=0, microsecond=0)
                 granularity = 86400
             else:
+                self.start = self.start.replace(minute=0, second=0, microsecond=0)
                 granularity = 3600
         elif (
             # more than 12 hours
@@ -1701,6 +1746,7 @@ class MetricsQueryBuilder(QueryBuilder):
             and near_hour(self.start)
             and near_hour(self.end)
         ):
+            self.start = self.start.replace(minute=0, second=0, microsecond=0)
             granularity = 3600
         # We're going from one random minute to another, we could use the 10s bucket, but no reason for that precision
         # here
@@ -1712,15 +1758,6 @@ class MetricsQueryBuilder(QueryBuilder):
         conditions = super().resolve_params()
         conditions.append(Condition(self.column("organization_id"), Op.EQ, self.organization_id))
         return conditions
-
-    def resolve_query(self, *args: Any, **kwargs: Any) -> None:
-        super().resolve_query(*args, **kwargs)
-        # Optimization to add metric ids to the filter
-        if len(self.metric_ids) > 0:
-            self.where.append(
-                # Metric id is intentionally sorted so we create consistent queries here both for testing & caching
-                Condition(Column("metric_id"), Op.IN, sorted(self.metric_ids))
-            )
 
     def resolve_having(
         self, parsed_terms: ParsedTerms, use_aggregate_conditions: bool
@@ -1857,8 +1894,7 @@ class MetricsQueryBuilder(QueryBuilder):
                 select=[
                     column
                     for column in self.columns
-                    if not isinstance(column, CurriedFunction)
-                    or column in primary_framework.functions
+                    if column in primary_framework.functions or column not in self.aggregates
                 ],
                 array_join=self.array_join,
                 where=self.where,
@@ -1868,6 +1904,7 @@ class MetricsQueryBuilder(QueryBuilder):
                 limit=self.limit,
                 offset=self.offset,
                 limitby=self.limitby,
+                granularity=self.granularity,
             ),
             flags=Flags(turbo=self.turbo),
         )
@@ -2001,7 +2038,7 @@ class MetricsQueryBuilder(QueryBuilder):
                 select = [
                     column
                     for column in self.columns
-                    if not isinstance(column, CurriedFunction) or column in query_details.functions
+                    if column in query_details.functions or column not in self.aggregates
                 ]
                 if groupby_values:
                     # We already got the groupby values we want, add them to the conditions to limit our results so we
@@ -2042,6 +2079,7 @@ class MetricsQueryBuilder(QueryBuilder):
                     limit=self.limit,
                     offset=offset,
                     limitby=self.limitby,
+                    granularity=self.granularity,
                 )
                 request = Request(
                     dataset=self.dataset.value,
@@ -2091,6 +2129,23 @@ class MetricsQueryBuilder(QueryBuilder):
             return 0
         else:
             return None
+
+
+class AlertMetricsQueryBuilder(MetricsQueryBuilder):
+    def __init__(
+        self,
+        *args: Any,
+        granularity: int,
+        **kwargs: Any,
+    ):
+        self._granularity = granularity
+        super().__init__(*args, **kwargs)
+
+    def resolve_limit(self, limit: Optional[int]) -> Optional[Limit]:
+        return None
+
+    def resolve_granularity(self) -> Granularity:
+        return Granularity(self._granularity)
 
 
 class HistogramMetricQueryBuilder(MetricsQueryBuilder):

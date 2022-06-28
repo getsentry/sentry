@@ -2,58 +2,36 @@ import {Fragment, useEffect, useRef} from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import isEmpty from 'lodash/isEmpty';
 import isEqual from 'lodash/isEqual';
-import partition from 'lodash/partition';
 
 import {
   initializeUrlState,
+  InitializeUrlStateParams,
   updateDateTime,
   updateEnvironments,
   updateProjects,
 } from 'sentry/actionCreators/pageFilters';
 import DesyncedFilterAlert from 'sentry/components/organizations/pageFilters/desyncedFiltersAlert';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
-import ConfigStore from 'sentry/stores/configStore';
 import {PageContent} from 'sentry/styles/organization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import withOrganization from 'sentry/utils/withOrganization';
 
-import GlobalSelectionHeader from './globalSelectionHeader';
 import {getDatetimeFromState, getStateFromQuery} from './parse';
 import {extractSelectionParameters} from './utils';
 
-type GlobalSelectionHeaderProps = Omit<
-  React.ComponentPropsWithoutRef<typeof GlobalSelectionHeader>,
-  | 'router'
-  | 'memberProjects'
-  | 'nonMemberProjects'
-  | 'selection'
-  | 'projects'
-  | 'loadingProjects'
+type InitializeUrlStateProps = Omit<
+  InitializeUrlStateParams,
+  'memberProjects' | 'queryParams' | 'router' | 'shouldEnforceSingleProject'
 >;
 
 type Props = WithRouterProps &
-  GlobalSelectionHeaderProps & {
+  InitializeUrlStateProps & {
+    children?: React.ReactNode;
     /**
-     * Hide the global header
-     * Mainly used for pages which are using the new style page filters
+     * Slugs of projects to display in project selector
      */
-    hideGlobalHeader?: boolean;
-
-    /**
-     * When used with shouldForceProject it will not persist the project id
-     * to url query parameters on load. This is useful when global selection header
-     * is used for display purposes rather than selection.
-     */
-    skipInitializeUrlParams?: boolean;
-
-    /**
-     * Skip loading from local storage
-     * An example is Issue Details, in the case where it is accessed directly (e.g. from email).
-     * We do not want to load the user's last used env/project in this case, otherwise will
-     * lead to very confusing behavior.
-     */
-    skipLoadLastUsed?: boolean;
+    specificProjectSlugs?: string[];
   };
 
 /**
@@ -70,7 +48,6 @@ function Container({skipLoadLastUsed, children, ...props}: Props) {
     showAbsolute,
     shouldForceProject,
     specificProjectSlugs,
-    hideGlobalHeader,
     skipInitializeUrlParams,
   } = props;
 
@@ -78,27 +55,12 @@ function Container({skipLoadLastUsed, children, ...props}: Props) {
 
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
 
-  const {isSuperuser} = ConfigStore.get('user');
-  const isOrgAdmin = organization.access.includes('org:admin');
   const enforceSingleProject = !organization.features.includes('global-views');
 
   const specifiedProjects = specificProjectSlugs
     ? projects.filter(project => specificProjectSlugs.includes(project.slug))
     : projects;
-
-  const [memberProjects, otherProjects] = partition(
-    specifiedProjects,
-    project => project.isMember
-  );
-
-  const nonMemberProjects = isSuperuser || isOrgAdmin ? otherProjects : [];
-
-  const additionalProps = {
-    loadingProjects: !projectsLoaded,
-    projects,
-    memberProjects,
-    nonMemberProjects,
-  };
+  const memberProjects = specifiedProjects.filter(project => project.isMember);
 
   const doInitialization = () =>
     initializeUrlState({
@@ -146,7 +108,7 @@ function Container({skipLoadLastUsed, children, ...props}: Props) {
     const oldSelectionQuery = extractSelectionParameters(lastQuery.current);
     const newSelectionQuery = extractSelectionParameters(location.query);
 
-    // XXX: This re-initalization is only required in new-page-filters
+    // XXX: This re-initialization is only required in new-page-filters
     // land, since we have implicit pinning in the old land which will
     // cause page filters to commonly reset.
     if (isEmpty(newSelectionQuery) && !isEqual(oldSelectionQuery, newSelectionQuery)) {
@@ -198,8 +160,7 @@ function Container({skipLoadLastUsed, children, ...props}: Props) {
 
   return (
     <Fragment>
-      {!hideGlobalHeader && <GlobalSelectionHeader {...props} {...additionalProps} />}
-      {hideGlobalHeader && <DesyncedFilterAlert router={router} />}
+      <DesyncedFilterAlert router={router} />
       {children}
     </Fragment>
   );

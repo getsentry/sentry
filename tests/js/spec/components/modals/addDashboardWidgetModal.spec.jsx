@@ -685,7 +685,8 @@ describe('Modals -> AddDashboardWidgetModal', function () {
 
     expect(
       wrapper
-        .find('WidgetQueriesForm SelectControl[name="orderby"] SingleValue div')
+        .find('WidgetQueriesForm SelectControl[name="orderby"] SingleValue')
+        .first()
         .text()
     ).toEqual('count() asc');
 

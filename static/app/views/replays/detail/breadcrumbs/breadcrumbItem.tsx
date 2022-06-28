@@ -5,7 +5,7 @@ import BreadcrumbIcon from 'sentry/components/events/interfaces/breadcrumbs/brea
 import {PanelItem} from 'sentry/components/panels';
 import {getDetails} from 'sentry/components/replays/breadcrumbs/utils';
 import PlayerRelativeTime from 'sentry/components/replays/playerRelativeTime';
-import SvgIcon from 'sentry/icons/svgIcon';
+import {SVGIconProps} from 'sentry/icons/svgIcon';
 import space from 'sentry/styles/space';
 import type {Crumb} from 'sentry/types/breadcrumbs';
 
@@ -53,6 +53,7 @@ function BreadcrumbItem({
       onClick={handleClick}
       isHovered={isHovered}
       isSelected={isSelected}
+      aria-current={isSelected}
     >
       <IconWrapper color={crumb.color}>
         <BreadcrumbIcon type={crumb.type} />
@@ -124,9 +125,7 @@ const CrumbItem = styled(PanelItem)<CrumbItemProps>`
 /**
  * Taken `from events/interfaces/.../breadcrumbs/types`
  */
-const IconWrapper = styled('div')<
-  Required<Pick<React.ComponentProps<typeof SvgIcon>, 'color'>>
->`
+const IconWrapper = styled('div')<Required<Pick<SVGIconProps, 'color'>>>`
   display: flex;
   align-items: center;
   justify-content: center;

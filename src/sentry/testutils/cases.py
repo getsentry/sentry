@@ -1090,8 +1090,6 @@ class SessionMetricsTestCase(SnubaTestCase):
             self._push_metric(
                 session, "counter", SessionMRI.SESSION, {"session.status": "init"}, +1
             )
-            if not user_is_nil:
-                self._push_metric(session, "set", SessionMRI.USER, {"session.status": "init"}, user)
 
         status = session["status"]
 
@@ -1102,6 +1100,8 @@ class SessionMetricsTestCase(SnubaTestCase):
                 self._push_metric(
                     session, "set", SessionMRI.USER, {"session.status": "errored"}, user
                 )
+        elif not user_is_nil:
+            self._push_metric(session, "set", SessionMRI.USER, {}, user)
 
         if status in ("abnormal", "crashed"):  # fatal
             self._push_metric(
@@ -1110,7 +1110,7 @@ class SessionMetricsTestCase(SnubaTestCase):
             if not user_is_nil:
                 self._push_metric(session, "set", SessionMRI.USER, {"session.status": status}, user)
 
-        if status != "ok":  # terminal
+        if status == "exited":
             if session["duration"] is not None:
                 self._push_metric(
                     session,
@@ -1119,11 +1119,6 @@ class SessionMetricsTestCase(SnubaTestCase):
                     {"session.status": status},
                     session["duration"],
                 )
-
-        # Also extract user for non-init healthy sessions
-        # (see # https://github.com/getsentry/relay/pull/1275)
-        if session["seq"] > 0 and status in ("ok", "exited") and not user_is_nil:
-            self._push_metric(session, "set", SessionMRI.USER, {"session.status": "ok"}, user)
 
     def bulk_store_sessions(self, sessions):
         for session in sessions:
@@ -1237,13 +1232,15 @@ class MetricsEnhancedPerformanceTestCase(SessionMetricsTestCase, TestCase):
         self,
         value: List[int] | int,
         metric: str = "transaction.duration",
+        internal_metric: Optional[str] = None,
+        entity: Optional[str] = None,
         tags: Optional[Dict[str, str]] = None,
         timestamp: Optional[datetime] = None,
         project: Optional[id] = None,
         use_case_id: UseCaseKey = UseCaseKey.RELEASE_HEALTH,
     ):
-        internal_metric = METRICS_MAP[metric]
-        entity = self.ENTITY_MAP[metric]
+        internal_metric = METRICS_MAP[metric] if internal_metric is None else internal_metric
+        entity = self.ENTITY_MAP[metric] if entity is None else entity
         org_id = self.organization.id
 
         if tags is None:
