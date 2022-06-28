@@ -186,7 +186,7 @@ def compute_projectkey_config(key):
 
 @instrumented_task(
     name="sentry.tasks.relay.invalidate_project_config",
-    queue="relay_config",
+    queue="relay_config_bulk",
     acks_late=True,
     soft_time_limit=25 * 60,  # 25mins
     time_limit=25 * 60 + 5,
