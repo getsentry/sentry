@@ -16,8 +16,7 @@ import useApi from 'sentry/utils/useApi';
 import {getTermHelp, PERFORMANCE_TERM} from 'sentry/views/performance/data';
 import {getMEPQueryParams} from 'sentry/views/performance/landing/widgets/utils';
 import {DurationChart} from 'sentry/views/performance/landing/widgets/widgets/singleFieldAreaWidget';
-
-import {ViewProps} from '../../../types';
+import {ViewProps} from 'sentry/views/performance/types';
 
 type Props = WithRouterProps &
   ViewProps & {
@@ -28,7 +27,7 @@ type Props = WithRouterProps &
   };
 
 /**
- * Fetch and render a stacked area chart that shows user misery over
+ * Fetch and render an area chart that shows user misery over a period
  */
 function UserMiseryChart({
   project,
