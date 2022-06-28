@@ -1606,7 +1606,41 @@ class MetricsQueryBuilder(QueryBuilder):
             self.organization_id = self.params["organization_id"]
         else:
             raise InvalidSearchQuery("Organization id required to create a metrics query")
-        self.granularity = self.resolve_granularity()
+
+    def resolve_query(
+        self,
+        query: Optional[str] = None,
+        use_aggregate_conditions: bool = False,
+        selected_columns: Optional[List[str]] = None,
+        groupby_columns: Optional[List[str]] = None,
+        equations: Optional[List[str]] = None,
+        orderby: Optional[List[str]] = None,
+    ) -> None:
+        with sentry_sdk.start_span(op="QueryBuilder", description="resolve_time_conditions"):
+            # Has to be done early, since other conditions depend on start and end
+            self.resolve_time_conditions()
+        with sentry_sdk.start_span(op="QueryBuilder", description="resolve_conditions"):
+            self.where, self.having = self.resolve_conditions(
+                query, use_aggregate_conditions=use_aggregate_conditions
+            )
+        with sentry_sdk.start_span(op="QueryBuilder", description="resolve_granularity"):
+            # Needs to happen before params and after time conditions since granularity can change start&end
+            self.granularity = self.resolve_granularity()
+        with sentry_sdk.start_span(op="QueryBuilder", description="resolve_params"):
+            # params depends on parse_query, and conditions being resolved first since there may be projects in conditions
+            self.where += self.resolve_params()
+        with sentry_sdk.start_span(op="QueryBuilder", description="resolve_columns"):
+            self.columns = self.resolve_select(selected_columns, equations)
+        with sentry_sdk.start_span(op="QueryBuilder", description="resolve_orderby"):
+            self.orderby = self.resolve_orderby(orderby)
+        with sentry_sdk.start_span(op="QueryBuilder", description="resolve_groupby"):
+            self.groupby = self.resolve_groupby(groupby_columns)
+
+        if len(self.metric_ids) > 0:
+            self.where.append(
+                # Metric id is intentionally sorted so we create consistent queries here both for testing & caching
+                Condition(Column("metric_id"), Op.IN, sorted(self.metric_ids))
+            )
 
     def resolve_column_name(self, col: str) -> str:
         if col.startswith("tags["):
@@ -1691,6 +1725,7 @@ class MetricsQueryBuilder(QueryBuilder):
             duration
             >= 86400 * 30
         ):
+            self.start = self.start.replace(hour=0, minute=0, second=0, microsecond=0)
             granularity = 86400
         elif (
             # more than 3 days
@@ -1699,8 +1734,10 @@ class MetricsQueryBuilder(QueryBuilder):
         ):
             # Allow 30 minutes for the daily buckets
             if near_midnight(self.start) and near_midnight(self.end):
+                self.start = self.start.replace(hour=0, minute=0, second=0, microsecond=0)
                 granularity = 86400
             else:
+                self.start = self.start.replace(minute=0, second=0, microsecond=0)
                 granularity = 3600
         elif (
             # more than 12 hours
@@ -1709,6 +1746,7 @@ class MetricsQueryBuilder(QueryBuilder):
             and near_hour(self.start)
             and near_hour(self.end)
         ):
+            self.start = self.start.replace(minute=0, second=0, microsecond=0)
             granularity = 3600
         # We're going from one random minute to another, we could use the 10s bucket, but no reason for that precision
         # here
@@ -1720,15 +1758,6 @@ class MetricsQueryBuilder(QueryBuilder):
         conditions = super().resolve_params()
         conditions.append(Condition(self.column("organization_id"), Op.EQ, self.organization_id))
         return conditions
-
-    def resolve_query(self, *args: Any, **kwargs: Any) -> None:
-        super().resolve_query(*args, **kwargs)
-        # Optimization to add metric ids to the filter
-        if len(self.metric_ids) > 0:
-            self.where.append(
-                # Metric id is intentionally sorted so we create consistent queries here both for testing & caching
-                Condition(Column("metric_id"), Op.IN, sorted(self.metric_ids))
-            )
 
     def resolve_having(
         self, parsed_terms: ParsedTerms, use_aggregate_conditions: bool
@@ -1875,6 +1904,7 @@ class MetricsQueryBuilder(QueryBuilder):
                 limit=self.limit,
                 offset=self.offset,
                 limitby=self.limitby,
+                granularity=self.granularity,
             ),
             flags=Flags(turbo=self.turbo),
         )
@@ -2049,6 +2079,7 @@ class MetricsQueryBuilder(QueryBuilder):
                     limit=self.limit,
                     offset=offset,
                     limitby=self.limitby,
+                    granularity=self.granularity,
                 )
                 request = Request(
                     dataset=self.dataset.value,
@@ -2098,6 +2129,23 @@ class MetricsQueryBuilder(QueryBuilder):
             return 0
         else:
             return None
+
+
+class AlertMetricsQueryBuilder(MetricsQueryBuilder):
+    def __init__(
+        self,
+        *args: Any,
+        granularity: int,
+        **kwargs: Any,
+    ):
+        self._granularity = granularity
+        super().__init__(*args, **kwargs)
+
+    def resolve_limit(self, limit: Optional[int]) -> Optional[Limit]:
+        return None
+
+    def resolve_granularity(self) -> Granularity:
+        return Granularity(self._granularity)
 
 
 class HistogramMetricQueryBuilder(MetricsQueryBuilder):
