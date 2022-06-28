@@ -58,7 +58,7 @@ function IssueWidgetQueries({
       >
         {({loading, ...rest}) =>
           children({
-            loading: loading && memberListStoreLoaded,
+            loading: loading || !memberListStoreLoaded,
             ...rest,
           })
         }
