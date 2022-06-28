@@ -6104,6 +6104,62 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
             == "Wildcard conditions are not permitted on `trace.parent_span` field"
         )
 
+    def test_has_trace_context(self):
+        project = self.create_project()
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "how to make fast",
+                "timestamp": self.min_ago,
+                "contexts": {
+                    "trace": {
+                        "span_id": "a" * 16,
+                        "trace_id": "b" * 32,
+                    },
+                },
+            },
+            project_id=project.id,
+        )
+
+        query = {"field": ["id", "trace.parent_span"], "query": "has:trace.span"}
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["id"] == "a" * 32
+
+        query = {"field": ["id"], "query": "has:trace.parent_span_id"}
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 0
+
+    def test_not_has_trace_context(self):
+        project = self.create_project()
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "how to make fast",
+                "timestamp": self.min_ago,
+                "contexts": {
+                    "trace": {
+                        "span_id": "a" * 16,
+                        "trace_id": "b" * 32,
+                    },
+                },
+            },
+            project_id=project.id,
+        )
+
+        query = {"field": ["id", "trace.parent_span"], "query": "!has:trace.span"}
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 0
+
+        query = {"field": ["id"], "query": "!has:trace.parent_span_id"}
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["id"] == "a" * 32
+
     @mock.patch("sentry.search.events.builder.raw_snql_query")
     def test_handling_snuba_errors(self, mock_snql_query):
         mock_snql_query.side_effect = RateLimitExceeded("test")
