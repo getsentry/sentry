@@ -259,6 +259,8 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
             self.browser.element('[data-test-id="event.web_crawlers"]').click()
             # Add Custom Tag
             self.browser.element('[aria-autocomplete="list"]').send_keys("Add cus", Keys.ENTER)
+            # Close conditions dropdown
+            self.browser.element('[aria-label="Add Condition"]').click()
 
             # Fill in Content Security Policy
             self.browser.element('[placeholder="ex. file://*, example.com (Multiline)"]').send_keys(
