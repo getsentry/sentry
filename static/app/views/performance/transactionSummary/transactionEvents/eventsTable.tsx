@@ -346,7 +346,7 @@ class EventsTable extends Component<Props, State> {
                   location={location}
                 />
                 <Pagination
-                  disabled={!paginationCaption}
+                  disabled={isLoading}
                   caption={paginationCaption}
                   pageLinks={pageLinks}
                 />

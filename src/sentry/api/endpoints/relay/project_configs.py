@@ -7,7 +7,6 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_sdk import Hub, set_tag, start_span, start_transaction
 
-from sentry import options
 from sentry.api.authentication import RelayAuthentication
 from sentry.api.base import Endpoint
 from sentry.api.permissions import RelayPermission
@@ -90,10 +89,6 @@ class RelayProjectConfigsEndpoint(Endpoint):
         elif no_cache:
             use_v3 = False
             reason = "noCache"
-        elif random.random() >= options.get("relay.project-config-v3-enable"):
-            set_tag("relay_v3_sampled", False)
-            use_v3 = False
-            reason = "sampling"
         else:
             set_tag("relay_v3_sampled", True)
 
