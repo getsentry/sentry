@@ -40,6 +40,13 @@ function renderString(arg: string | number | boolean | Object) {
 export function MessageFormatter({breadcrumb}: MessageFormatterProps) {
   let logMessage = '';
 
+  if (!breadcrumb.data?.arguments) {
+    // There is a possibility that we don't have arguments as we could be receiving an exception type breadcrumb.
+    // In these cases we just need the message prop.
+    logMessage = renderString(breadcrumb.message || '') as string;
+    return <AnnotatedText meta={getMeta(breadcrumb, 'message')} value={logMessage} />;
+  }
+
   // Browser's console formatter only works on the first arg
   const [message, ...args] = breadcrumb.data?.arguments;
 
