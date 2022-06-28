@@ -149,7 +149,7 @@ function useApiRequests({
     [endpoints.length]
   );
 
-  const [state, setState] = useState<State>({...initialState});
+  const [state, setState] = useState<State>(initialState);
 
   // Begin measuring the use of the hook for the given route
   const triggerMeasurement = useMeasureApiRequests();
