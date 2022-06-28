@@ -249,7 +249,7 @@ def test_validate_many_order_by_fields_in_select_fails_diff_metrics():
     # Test that ensures an instance of `InvalidParams` is raised when requesting an orderBy field
     # that is not present in the select
     with pytest.raises(
-        InvalidParams, match="'orderBy' field functions must be from one group of snuba functions"
+        InvalidParams, match="Selected 'orderBy' columns must belongs to the same entity"
     ):
         MetricsQuery(**metrics_query_dict)
 
@@ -276,7 +276,7 @@ def test_validate_many_order_by_fields_in_select_fails_diff_metrics_2():
     # Test that ensures an instance of `InvalidParams` is raised when requesting an orderBy field
     # that is not present in the select
     with pytest.raises(
-        InvalidParams, match="'orderBy' field functions must be from one group of snuba functions"
+        InvalidParams, match="Selected 'orderBy' columns must belongs to the same entity"
     ):
         MetricsQuery(**metrics_query_dict)
 
@@ -360,7 +360,7 @@ def test_validate_snuba_functions_in_one_group_raise_exc():
     # from different snuba function groups
     with pytest.raises(
         InvalidParams,
-        match="'orderBy' field functions must be from one group of snuba functions",
+        match="Selected 'orderBy' columns must belongs to the same entity",
     ):
         MetricsQuery(**metrics_query_dict)
 
