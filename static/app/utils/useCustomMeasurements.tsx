@@ -1,17 +1,15 @@
-import CustomMeasurementsStore from 'sentry/stores/customMeasurementsStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {MeasurementCollection} from 'sentry/utils/measurements/measurements';
+import {useContext} from 'react';
 
-type Result = {
-  customMeasurements: MeasurementCollection;
-};
+import {CustomMeasurementsContext} from 'sentry/utils/customMeasurements/customMeasurementsContext';
 
-function useCustomMeasurements(): Result {
-  const customMeasurements = useLegacyStore(CustomMeasurementsStore);
+export default function useCustomMeasurements() {
+  const customMeasurementsContext = useContext(CustomMeasurementsContext);
 
-  return {
-    customMeasurements,
-  };
+  if (!customMeasurementsContext) {
+    throw new Error(
+      'useCustomMeasurements was called outside of CustomMeasurementsProvider'
+    );
+  }
+
+  return customMeasurementsContext;
 }
-
-export default useCustomMeasurements;

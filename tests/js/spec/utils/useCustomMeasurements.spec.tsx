@@ -1,22 +1,11 @@
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
-import CustomMeasurementsStore from 'sentry/stores/customMeasurementsStore';
 import useCustomMeasurements from 'sentry/utils/useCustomMeasurements';
 
 describe('useCustomMeasurements', function () {
-  beforeEach(() => {
-    CustomMeasurementsStore.reset();
-  });
+  beforeEach(() => {});
 
   it('provides customMeasurements from the custom measurements store', function () {
-    reactHooks.act(
-      () =>
-        void CustomMeasurementsStore.loadCustomMeasurementsSuccess({
-          'measurements.custom.measurement': {functions: ['p99']},
-          'measurements.another.custom.measurement': {functions: ['p99']},
-        })
-    );
-
     const {result} = reactHooks.renderHook(() => useCustomMeasurements());
     const {customMeasurements} = result.current;
 
