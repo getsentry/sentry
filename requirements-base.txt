@@ -73,7 +73,7 @@ brotli==1.0.9
 uWSGI==2.0.19.1
 zstandard==0.18.0
 
-msgpack==1.0.0
+msgpack==1.0.4
 cryptography==3.4.8
 # celery
 billiard==3.6.4
