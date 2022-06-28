@@ -37,13 +37,8 @@ from sentry.incidents.models import (
 from sentry.models import Integration, PagerDutyService, Project, SentryApp
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.fields import resolve_field
-from sentry.search.events.filter import get_filter
 from sentry.shared_integrations.exceptions import DuplicateDisplayNameError
-from sentry.snuba.entity_subscription import (
-    ALERT_BLOCKED_FIELDS,
-    EntitySubscription,
-    get_entity_subscription_for_dataset,
-)
+from sentry.snuba.entity_subscription import EntitySubscription, get_entity_subscription_for_dataset
 from sentry.snuba.models import QueryDatasets
 from sentry.snuba.subscriptions import (
     bulk_create_snuba_subscriptions,
@@ -561,7 +556,6 @@ def create_alert_rule(
         # Since comparison alerts make twice as many queries, run the queries less frequently.
         resolution = DEFAULT_CMP_ALERT_RULE_RESOLUTION
         comparison_delta = int(timedelta(minutes=comparison_delta).total_seconds())
-    validate_alert_rule_query(query, organization, projects)
     if dataset == QueryDatasets.SESSIONS and features.has(
         "organizations:alert-crash-free-metrics", organization, actor=user
     ):
@@ -712,9 +706,6 @@ def update_alert_rule(
     if name:
         updated_fields["name"] = name
     if query is not None:
-        validate_alert_rule_query(
-            query, alert_rule.organization, projects if projects is not None else []
-        )
         updated_query_fields["query"] = query
     if aggregate is not None:
         updated_query_fields["aggregate"] = aggregate
@@ -909,20 +900,6 @@ def delete_alert_rule(alert_rule, user=None):
     if alert_rule.id:
         # Change the incident status asynchronously, which could take awhile with many incidents due to snapshot creations.
         tasks.auto_resolve_snapshot_incidents.apply_async(kwargs={"alert_rule_id": alert_rule.id})
-
-
-def validate_alert_rule_query(query, organization, projects):
-    # TODO: We should add more validation here to reject queries that include
-    # fields that are invalid in alert rules. For now this will just make sure
-    # the query parses correctly.
-    get_filter(
-        query,
-        params={
-            "organization_id": organization.id,
-            "project_id": [p.id for p in projects],
-        },
-        parser_config_overrides={"blocked_keys": ALERT_BLOCKED_FIELDS},
-    )
 
 
 def get_excluded_projects_for_alert_rule(alert_rule):
