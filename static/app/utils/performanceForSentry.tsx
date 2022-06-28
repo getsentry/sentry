@@ -112,15 +112,18 @@ export class PerformanceInteraction {
 export class LongTaskObserver {
   private static observer: PerformanceObserver;
   private static longTaskCount = 0;
+  private static longTaskDuration = 0;
   private static lastTransaction: IdleTransaction | Transaction | undefined;
 
-  static setLongTaskTags(t: IdleTransaction | Transaction) {
-    t.setTag('ui.longTaskCount', LongTaskObserver.longTaskCount);
+  static setLongTaskData(t: IdleTransaction | Transaction) {
     const group =
       [
         1, 2, 5, 10, 25, 50, 100, 150, 200, 250, 300, 400, 500, 600, 700, 800, 900, 1001,
       ].find(n => LongTaskObserver.longTaskCount <= n) || -1;
     t.setTag('ui.longTaskCount.grouped', group < 1001 ? `<=${group}` : `>1000`);
+
+    t.setMeasurement('longTaskCount', LongTaskObserver.longTaskCount, '');
+    t.setMeasurement('longTaskDuration', LongTaskObserver.longTaskDuration, '');
   }
 
   static startPerformanceObserver(): PerformanceObserver | null {
@@ -152,15 +155,17 @@ export class LongTaskObserver {
           if (transaction !== LongTaskObserver.lastTransaction) {
             // If long tasks observer is active and is called while the transaction has changed.
             if (LongTaskObserver.lastTransaction) {
-              LongTaskObserver.setLongTaskTags(LongTaskObserver.lastTransaction);
+              LongTaskObserver.setLongTaskData(LongTaskObserver.lastTransaction);
             }
             LongTaskObserver.longTaskCount = 0;
+            LongTaskObserver.longTaskDuration = 0;
             LongTaskObserver.lastTransaction = transaction;
           }
 
           perfEntries.forEach(entry => {
             const startSeconds = timeOrigin + entry.startTime / 1000;
             LongTaskObserver.longTaskCount++;
+            LongTaskObserver.longTaskDuration += entry.duration;
             transaction.startChild({
               description: `Long Task`,
               op: `ui.sentry.long-task`,
@@ -168,7 +173,7 @@ export class LongTaskObserver {
               endTimestamp: startSeconds + entry.duration / 1000,
             });
           });
-          LongTaskObserver.setLongTaskTags(transaction);
+          LongTaskObserver.setLongTaskData(transaction);
         } catch (_) {
           // Defensive catch.
         }

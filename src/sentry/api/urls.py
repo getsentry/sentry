@@ -270,6 +270,7 @@ from .endpoints.organization_issues_count import OrganizationIssuesCountEndpoint
 from .endpoints.organization_issues_resolved_in_release import (
     OrganizationIssuesResolvedInReleaseEndpoint,
 )
+from .endpoints.organization_measurements_meta import OrganizationMeasurementsMeta
 from .endpoints.organization_member import (
     OrganizationInviteRequestDetailsEndpoint,
     OrganizationInviteRequestIndexEndpoint,
@@ -385,6 +386,7 @@ from .endpoints.project_processingissues import (
 from .endpoints.project_profiling_profile import (
     ProjectProfilingFunctionsEndpoint,
     ProjectProfilingProfileEndpoint,
+    ProjectProfilingTransactionIDProfileIDEndpoint,
 )
 from .endpoints.project_release_commits import ProjectReleaseCommitsEndpoint
 from .endpoints.project_release_details import ProjectReleaseDetailsEndpoint
@@ -1195,6 +1197,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/events-trace-meta/(?P<trace_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
                     OrganizationEventsTraceMetaEndpoint.as_view(),
                     name="sentry-api-0-organization-events-trace-meta",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/measurements-meta/$",
+                    OrganizationMeasurementsMeta.as_view(),
+                    name="sentry-api-0-organization-measurements-meta",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/issues/$",
@@ -2210,6 +2217,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/profiling/profiles/(?P<profile_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
                     ProjectProfilingProfileEndpoint.as_view(),
                     name="sentry-api-0-project-profiling-profile",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/profiling/transactions/(?P<transaction_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
+                    ProjectProfilingTransactionIDProfileIDEndpoint.as_view(),
+                    name="sentry-api-0-project-profiling-transactions",
                 ),
             ]
         ),

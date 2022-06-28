@@ -54,6 +54,7 @@ import {
   getWidgetDiscoverUrl,
   getWidgetIssueUrl,
   getWidgetReleasesUrl,
+  isCustomMeasurementWidget,
 } from 'sentry/views/dashboardsV2/utils';
 import WidgetCardChart, {
   AugmentedEChartDataZoomHandler,
@@ -258,7 +259,7 @@ function WidgetViewerModal(props: Props) {
     : [...columns, ...aggregates];
 
   // Some Discover Widgets (Line, Area, Bar) allow the user to specify an orderby
-  // that is not explicitly selected as an aggregate or column. We need to explictly
+  // that is not explicitly selected as an aggregate or column. We need to explicitly
   // include the orderby in the table widget aggregates and columns otherwise
   // eventsv2 will complain about sorting on an unselected field.
   if (
@@ -979,6 +980,7 @@ function WidgetViewerModal(props: Props) {
                 to={path}
                 priority="primary"
                 type="button"
+                disabled={isCustomMeasurementWidget(widget)}
                 onClick={() => {
                   trackAdvancedAnalyticsEvent(
                     'dashboards_views.widget_viewer.open_source',
