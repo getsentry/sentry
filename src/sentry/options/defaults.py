@@ -394,7 +394,7 @@ register("reprocessing2.drop-delete-old-primary-hash", default=[])
 # e.g. [{"project_id": 2, "message_type": "error"}, {"project_id": 3, "message_type": "transaction"}]
 register("kafka.send-project-events-to-random-partitions", default=[])
 
-# Rate to project_configs_v3
+# Rate to project_configs_v3, no longer used.
 register("relay.project-config-v3-enable", default=0.0)
 
 # Mechanism for dialing up the last-seen-updater, which isn't needed outside
