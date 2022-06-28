@@ -88,7 +88,7 @@ grpcio==1.40.0
 hiredis==0.3.1
 
 # not directly used, but pinned for at least semaphore/symbolic
-cffi==1.14.5
+cffi==1.15.0
 
 # not directly used, but pinned for toronado because it doesn't pin these
 cssutils==2.4.0
