@@ -147,7 +147,7 @@ class BuildGroupAttachmentTest(TestCase):
         release_link = absolute_uri(
             f"/organizations/{group.organization.slug}/releases/{release.version}/?project={group.project_id}"
         )
-        group_link = f"http://testserver/organizations/{group.organization.slug}/issues/{group.id}/?referrer=slack"
+        group_link = f"http://testserver/organizations/{group.organization.slug}/issues/{group.id}/?referrer=slack_release"
         assert attachments["title"] == f"Release <{release_link}|{release.version}> has a new issue"
         assert attachments["text"] == f"<{group_link}|*{group.title}*> \n"
         assert "title_link" not in attachments
