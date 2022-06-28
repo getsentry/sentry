@@ -1,25 +1,57 @@
-import {reactHooks} from 'sentry-test/reactTestingLibrary';
+import {initializeOrg} from 'sentry-test/initializeOrg';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import {CustomMeasurementsProvider} from 'sentry/utils/customMeasurements/customMeasurementsProvider';
 import useCustomMeasurements from 'sentry/utils/useCustomMeasurements';
 
-describe('useCustomMeasurements', function () {
-  beforeEach(() => {});
+function TestComponent({other}: {other: string}) {
+  const {customMeasurements} = useCustomMeasurements();
+  return (
+    <div>
+      <span>{other}</span>
+      {customMeasurements &&
+        Object.keys(customMeasurements).map(customMeasurement => (
+          <em key={customMeasurement}>{customMeasurement}</em>
+        ))}
+    </div>
+  );
+}
 
-  it('provides customMeasurements from the custom measurements store', function () {
-    const {result} = reactHooks.renderHook(() => useCustomMeasurements());
-    const {customMeasurements} = result.current;
-
-    const expected = {
-      'measurements.another.custom.measurement': {
-        key: 'measurements.another.custom.measurement',
-        name: 'measurements.another.custom.measurement',
-      },
+function mockMeasurementsMeta() {
+  return MockApiClient.addMockResponse({
+    url: `/organizations/org-slug/measurements-meta/`,
+    body: {
       'measurements.custom.measurement': {
-        key: 'measurements.custom.measurement',
-        name: 'measurements.custom.measurement',
+        functions: ['p99'],
       },
-    };
+      'measurements.another.custom.measurement': {
+        functions: ['p99'],
+      },
+    },
+  });
+}
 
-    expect(customMeasurements).toEqual(expected);
+describe('useCustomMeasurements', function () {
+  it('provides customMeasurements from the custom measurements context', async function () {
+    const {organization} = initializeOrg();
+    const measurementsMetaMock = mockMeasurementsMeta();
+    render(
+      <CustomMeasurementsProvider organization={organization}>
+        <TestComponent other="value" />
+      </CustomMeasurementsProvider>
+    );
+
+    // Should forward prop
+    expect(screen.getByText('value')).toBeInTheDocument();
+
+    expect(measurementsMetaMock).toHaveBeenCalledTimes(1);
+
+    // Renders custom measurements
+    expect(
+      await screen.findByText('measurements.custom.measurement')
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('measurements.another.custom.measurement')
+    ).toBeInTheDocument();
   });
 });
