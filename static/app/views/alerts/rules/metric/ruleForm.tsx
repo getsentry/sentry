@@ -799,15 +799,17 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
                 organization={organization}
                 project={project}
                 onSelect={(_, context) => {
-                  this.form.setValue('name', context.name);
-                  this.form.setValue('dataset', context.dataset);
-                  this.form.setValue('eventTypes', context.eventTypes as any);
-                  this.form.setValue('aggregate', context.aggregate);
-                  context.comparisonDelta &&
-                    this.form.setValue('comparisonDelta', context.comparisonDelta);
-                  context.timeWindow &&
-                    this.form.setValue('timeWindow', context.timeWindow);
-                  context.query && this.form.setValue('query', context.query);
+                  this.form.setInitialData({
+                    ...this.form.initialData,
+                    name: context.name,
+                    dataset: context.dataset,
+                    eventTypes: context.eventTypes as any,
+                    aggregate: context.aggregate,
+                    comparisonDelta: context.comparisonDelta,
+                    timeWindow: context.timeWindow,
+                    query: context.query,
+                  });
+                  this.form.setValue('comparisonDelta', context.comparisonDelta);
 
                   this.setState({
                     comparisonType: context.comparisonType,
