@@ -43,6 +43,8 @@ export type GenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
   organization: Organization;
   selection: PageFilters;
   widget: Widget;
+  afterFetchSeriesData?: (result: SeriesResponse) => void;
+  afterFetchTableData?: (result: TableResponse) => void;
   cursor?: string;
   limit?: number;
   onDataFetched?: ({
@@ -58,8 +60,6 @@ export type GenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
     timeseriesResults?: Series[];
     totalIssuesCount?: string;
   }) => void;
-  processRawSeriesResult?: (result: SeriesResponse) => void;
-  processRawTableResult?: (result: TableResponse) => void;
 };
 
 type State<SeriesResponse> = {
@@ -177,7 +177,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
       organization,
       selection,
       cursor,
-      processRawTableResult,
+      afterFetchTableData,
       onDataFetched,
     } = this.props;
     const responses = await Promise.all<[TableResponse, string, ResponseMeta]>(
@@ -204,7 +204,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
     let transformedTableResults: TableDataWithTitle[] = [];
     let responsePageLinks: string | null = null;
     responses.forEach(([data, _textstatus, resp], i) => {
-      processRawTableResult?.(data);
+      afterFetchTableData?.(data);
       // Cast so we can add the title.
       const transformedData = config.transformTable(
         data,
@@ -238,7 +238,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
       api,
       organization,
       selection,
-      processRawSeriesResult,
+      afterFetchSeriesData,
       onDataFetched,
     } = this.props;
     const responses = await Promise.all<SeriesResponse>(
@@ -255,7 +255,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
     );
     const transformedTimeseriesResults: Series[] = [];
     responses.forEach((rawResults, requestIndex) => {
-      processRawSeriesResult?.(rawResults);
+      afterFetchSeriesData?.(rawResults);
       const transformedResult = config.transformSeries!(
         rawResults,
         widget.queries[requestIndex],

@@ -133,9 +133,9 @@ function WidgetQueries({
   const processSeriesResult = useCallback(
     (rawResults: SeriesResult) => {
       // If one of the queries is sampled, then mark the whole thing as sampled
-      const isMetricsDataOfCurrResult =
+      const currentResultIsMetricsData =
         isMetricsData === false ? false : getIsMetricsDataFromSeriesResponse(rawResults);
-      setIsMetricsData?.(isMetricsDataOfCurrResult);
+      setIsMetricsData?.(currentResultIsMetricsData);
     },
     [isMetricsData, setIsMetricsData]
   );
@@ -143,9 +143,9 @@ function WidgetQueries({
   const processTableResult = useCallback(
     (rawResults: TableResult) => {
       // If one of the queries is sampled, then mark the whole thing as sampled
-      const isMetricsDataOfCurrResult =
+      const currentResultIsMetricsData =
         isMetricsData === false ? false : rawResults.meta?.isMetricsData;
-      setIsMetricsData?.(isMetricsDataOfCurrResult);
+      setIsMetricsData?.(currentResultIsMetricsData);
     },
     [isMetricsData, setIsMetricsData]
   );
@@ -160,8 +160,8 @@ function WidgetQueries({
       cursor={cursor}
       limit={limit}
       onDataFetched={onDataFetched}
-      processRawSeriesResult={processSeriesResult}
-      processRawTableResult={processTableResult}
+      afterFetchSeriesData={processSeriesResult}
+      afterFetchTableData={processTableResult}
     >
       {children}
     </GenericWidgetQueries>
