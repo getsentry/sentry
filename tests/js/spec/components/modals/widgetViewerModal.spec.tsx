@@ -1234,6 +1234,7 @@ describe('Modals -> WidgetViewerModal', function () {
 
     it('renders Issue table widget viewer', async function () {
       const {container} = await renderModal({initialData, widget: mockWidget});
+      await screen.findByText('Error: Failed');
       expect(container).toSnapshot();
     });
 
