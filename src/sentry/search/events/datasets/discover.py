@@ -372,6 +372,16 @@ class DiscoverDatasetConfig(DatasetConfig):
                     default_result_type="duration",
                 ),
                 SnQLFunction(
+                    "random_number",
+                    snql_aggregate=lambda args, alias: Function(
+                        "rand",
+                        [],
+                        alias,
+                    ),
+                    default_result_type="integer",
+                    private=True,
+                ),
+                SnQLFunction(
                     "avg_range",
                     required_args=[
                         NumericColumn("column"),

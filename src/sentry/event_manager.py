@@ -340,6 +340,8 @@ class EventManager:
 
         if self._data.get("type") == "transaction":
             self._data["project"] = int(project_id)
+            self._data["contexts"]["trace"]["sample_rate"] = random.random() * 0.3 + 0.7
+
             job = {"data": self._data, "start_time": start_time}
             jobs = save_transaction_events([job], projects)
 
