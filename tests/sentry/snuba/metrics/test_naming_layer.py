@@ -112,11 +112,13 @@ def test_invalid_mri_schema_regex(name):
     ],
 )
 def test_parse_mri(name, expected):
-    assert parse_mri(name) == expected
+    parsed_mri = parse_mri(name)
+    assert parsed_mri == expected
+    assert parsed_mri.mri_string == name
 
 
 @pytest.mark.parametrize(
-    "name, expected",
+    "parsed_mri, expected",
     [
         (
             ParsedMRI("d", "transactions", "measurements.stall_longest_time", "millisecond"),
