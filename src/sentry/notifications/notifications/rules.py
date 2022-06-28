@@ -188,3 +188,8 @@ class ActiveReleaseAlertNotification(AlertRuleNotification):
                 title_str += f" (+{len(self.rules) - 1} other)"
 
         return title_str
+
+    def get_context(self) -> MutableMapping[str, Any]:
+        ctx = super().get_context()
+        ctx["last_release"] = self.last_release
+        return ctx
