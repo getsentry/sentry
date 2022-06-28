@@ -223,7 +223,10 @@ class QueryBuilder:
         Mapping[str, Callable[[SearchFilter], Optional[WhereType]]],
     ]:
         from sentry.search.events.datasets.discover import DiscoverDatasetConfig
-        from sentry.search.events.datasets.metrics import MetricsDatasetConfig
+        from sentry.search.events.datasets.metrics import (
+            MetricsDatasetConfig,
+            MetricsLayerDatasetConfig,
+        )
         from sentry.search.events.datasets.sessions import SessionsDatasetConfig
 
         self.config: DatasetConfig
@@ -232,7 +235,10 @@ class QueryBuilder:
         elif self.dataset == Dataset.Sessions:
             self.config = SessionsDatasetConfig(self)
         elif self.dataset == Dataset.Metrics:
-            self.config = MetricsDatasetConfig(self)
+            if hasattr(self, "use_metric_layer") and self.use_metric_layer:
+                self.config = MetricsLayerDatasetConfig(self)
+            else:
+                self.config = MetricsDatasetConfig(self)
         else:
             raise NotImplementedError(f"Data Set configuration not found for {self.dataset}.")
 
@@ -1587,6 +1593,7 @@ class MetricsQueryBuilder(QueryBuilder):
         *args: Any,
         allow_metric_aggregates: Optional[bool] = False,
         dry_run: Optional[bool] = False,
+        use_metric_layer: Optional[bool] = False,
         **kwargs: Any,
     ):
         self.distributions: List[CurriedFunction] = []
@@ -1598,6 +1605,8 @@ class MetricsQueryBuilder(QueryBuilder):
         # Don't do any of the actions that would impact performance in anyway
         # Skips all indexer checks, and won't interact with clickhouse
         self.dry_run = dry_run
+        # Instead of directly constructing the final snql, construct metric_layer snql instead
+        self.use_metric_layer = use_metric_layer
         super().__init__(
             # Dataset is always Metrics
             Dataset.Metrics,
@@ -1638,7 +1647,7 @@ class MetricsQueryBuilder(QueryBuilder):
         with sentry_sdk.start_span(op="QueryBuilder", description="resolve_groupby"):
             self.groupby = self.resolve_groupby(groupby_columns)
 
-        if len(self.metric_ids) > 0:
+        if len(self.metric_ids) > 0 and not self.use_metric_layer:
             self.where.append(
                 # Metric id is intentionally sorted so we create consistent queries here both for testing & caching
                 Condition(Column("metric_id"), Op.IN, sorted(self.metric_ids))
@@ -1815,6 +1824,11 @@ class MetricsQueryBuilder(QueryBuilder):
             if not resolve_only:
                 self.counters.append(resolved_function)
                 # Still add to aggregates so groupby is correct
+                self.aggregates.append(resolved_function)
+            return resolved_function
+        if snql_function.snql_metric_layer is not None:
+            resolved_function = snql_function.snql_metric_layer(arguments, alias)
+            if not resolve_only:
                 self.aggregates.append(resolved_function)
             return resolved_function
         return None

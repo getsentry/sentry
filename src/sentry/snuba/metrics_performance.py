@@ -4,6 +4,7 @@ from typing import Any, Dict, List, Optional, Sequence
 import sentry_sdk
 from snuba_sdk import AliasedExpression
 
+from sentry import features
 from sentry.discover.arithmetic import categorize_columns
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.search.events.builder import (
@@ -77,6 +78,7 @@ def query(
             limit=limit,
             offset=offset,
             dry_run=dry_run,
+            use_metric_layer=features.has("organizations:use-metrics-layer"),
         )
         if dry_run:
             metrics_referrer = referrer + ".dry-run"

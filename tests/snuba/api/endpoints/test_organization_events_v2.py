@@ -11060,6 +11060,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         self.transaction_data = load_data("transaction", timestamp=before_now(minutes=1))
         self.features = {
             "organizations:performance-use-metrics": True,
+            "organizations:use-metrics-layer": True,
         }
 
     def do_request(self, query, features=None):
