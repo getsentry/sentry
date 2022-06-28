@@ -15,7 +15,7 @@ import {
   Trigger,
 } from './types';
 
-type PresetContext = {
+export type PresetContext = {
   aggregate: string;
   comparisonType: AlertRuleComparisonType;
   dataset: Dataset;

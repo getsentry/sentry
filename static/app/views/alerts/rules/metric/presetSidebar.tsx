@@ -1,14 +1,20 @@
+import {useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
+import {Organization, Project} from 'sentry/types';
+import useApi from 'sentry/utils/useApi';
 
-import {Preset, PRESET_AGGREGATES} from './presets';
+import {Preset, PRESET_AGGREGATES, PresetContext} from './presets';
 
 type Props = {
+  organization: Organization;
+  project: Project;
   className?: string;
-  onSelect?(preset: Preset): void;
+  onSelect?(preset: Preset, ctx: PresetContext): void;
 };
 export default function PresetSidebar(props: Props) {
   return (
@@ -19,18 +25,44 @@ export default function PresetSidebar(props: Props) {
           key={preset.id}
           preset={preset}
           index={i}
-          onClick={() => props.onSelect && props.onSelect(preset)}
+          organization={props.organization}
+          project={props.project}
+          onClick={ctx => props.onSelect && props.onSelect(preset, ctx)}
         />
       ))}
     </div>
   );
 }
 
-function PresetSidebarItem(props: {index: number; preset: Preset; onClick?: () => void}) {
+function PresetSidebarItem(props: {
+  index: number;
+  organization: Organization;
+  preset: Preset;
+  project: Project;
+  onClick?: (ctx: PresetContext) => void;
+}) {
   const theme = useTheme();
+  const api = useApi();
+  const [loading, setLoading] = useState(false);
   const iconColor = theme.charts.getColorPalette(PRESET_AGGREGATES.length)[props.index];
   return (
-    <StyledPresetSidebarItemContainer onClick={props.onClick}>
+    <StyledPresetSidebarItemContainer
+      onClick={() => {
+        if (loading) {
+          return;
+        }
+        setLoading(true);
+        props.preset
+          .makeContext(api, props.project, props.organization)
+          .then(props.onClick)
+          .finally(() => setLoading(false));
+      }}
+    >
+      {loading && (
+        <LoadingWrapper>
+          <StyledLoadingIndicator hideMessage />
+        </LoadingWrapper>
+      )}
       <IconWrapper backgroundColor={iconColor}>
         {<props.preset.Icon color="white" />}
       </IconWrapper>
@@ -42,8 +74,25 @@ function PresetSidebarItem(props: {index: number; preset: Preset; onClick?: () =
   );
 }
 
+const LoadingWrapper = styled('div')`
+  position: absolute;
+  background-color: ${p => p.theme.overlayBackgroundAlpha};
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: default;
+`;
+const StyledLoadingIndicator = styled(LoadingIndicator)`
+  margin: 0;
+`;
 const StyledPresetSidebarItemContainer = styled('div')`
   border: 1px solid transparent;
+  position: relative;
+  overflow: hidden;
   border-radius: ${p => p.theme.borderRadius};
   transition: border-color 0.3s ease;
   padding: ${space(2)};

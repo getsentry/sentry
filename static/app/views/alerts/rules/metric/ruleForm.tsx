@@ -796,12 +796,9 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
           return (
             <Fragment>
               <StyledPresetSidebar
-                onSelect={async preset => {
-                  const context = await preset.makeContext(
-                    this.api,
-                    project,
-                    this.props.organization
-                  );
+                organization={organization}
+                project={project}
+                onSelect={(_, context) => {
                   this.form.setValue('name', context.name);
                   this.form.setValue('dataset', context.dataset);
                   this.form.setValue('eventTypes', context.eventTypes as any);
