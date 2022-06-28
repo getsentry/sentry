@@ -12,27 +12,12 @@ from sentry.snuba import discover
 from sentry.utils.dates import parse_stats_period
 
 
-def percentile(N, percent, key=lambda x: x):
-    # Extracted from https://stackoverflow.com/a/2753343
-    """
-    Find the percentile of a list of values.
-
-    @parameter N - is a list of values. Note N MUST BE already sorted.
-    @parameter percent - a float value from 0.0 to 1.0.
-    @parameter key - optional key function to compute value from each element of N.
-
-    @return - the percentile of the values
-    """
-    if not N:
-        return None
-    k = (len(N) - 1) * percent
-    f = math.floor(k)
-    c = math.ceil(k)
-    if f == c:
-        return key(N[int(k)])
-    d0 = key(N[int(f)]) * (c - k)
-    d1 = key(N[int(c)]) * (k - f)
-    return d0 + d1
+def percentile_fn(data, percentile):
+    pecentile_idx = len(data) * percentile
+    if pecentile_idx.is_integer():
+        return data[int(pecentile_idx)]
+    else:
+        return data[int(math.ceil(pecentile_idx)) - 1]
 
 
 class DynamicSamplingPermission(ProjectPermission):
@@ -99,10 +84,12 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
             referrer="dynamic-sampling.distribution.fetch-parent-transactions",
         )["data"]
 
-        sample_rates = [transaction.get("trace.sample_rate") for transaction in root_transactions]
-        non_null_sample_rates = [
+        sample_rates = sorted(
+            transaction.get("trace.sample_rate") for transaction in root_transactions
+        )
+        non_null_sample_rates = sorted(
             float(sample_rate) for sample_rate in sample_rates if sample_rate not in {"", None}
-        ]
+        )
         null_sample_rate_percentage = (
             (len(sample_rates) - len(non_null_sample_rates)) / len(sample_rates) * 100
         )
@@ -154,10 +141,10 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
                 "sample_rate": {
                     "sample_size": len(root_transactions),
                     "null_sample_rate_percentage": null_sample_rate_percentage,
-                    "p50": percentile(non_null_sample_rates, 0.50),
-                    "p90": percentile(non_null_sample_rates, 0.90),
-                    "p95": percentile(non_null_sample_rates, 0.95),
-                    "p99": percentile(non_null_sample_rates, 0.99),
+                    "p50": percentile_fn(non_null_sample_rates, 0.50),
+                    "p90": percentile_fn(non_null_sample_rates, 0.90),
+                    "p95": percentile_fn(non_null_sample_rates, 0.95),
+                    "p99": percentile_fn(non_null_sample_rates, 0.99),
                     "max": max(non_null_sample_rates),
                     "min": min(non_null_sample_rates),
                     "mean": sum(non_null_sample_rates) / len(non_null_sample_rates),
