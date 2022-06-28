@@ -41,8 +41,8 @@ class DashboardDetailPage(BasePage):
 
     def click_dashboard_add_widget_button(self):
         button = self.browser.element('[data-test-id="widget-add"]')
-        self.browser.wait_until_clickable('[data-test-id="widget-add"]')
-        button.click()
+        # HACK: Use JavaScript to execute click to avoid click intercepted issues
+        self.browser.driver.execute_script("arguments[0].click()", button)
         self.wait_until_loaded()
 
     def click_dashboard_header_add_widget_button(self):
