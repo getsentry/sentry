@@ -85,7 +85,7 @@ function getReleasesQuery(releases: Release[]): {
   if (releases.length < 10) {
     return {releaseQueryString: releaseCondition, releasesUsed: releasesArray};
   }
-  if (releases.length > 10 && releaseCondition.length > 2000) {
+  if (releases.length > 10 && releaseCondition.length > 1500) {
     return getReleasesQuery(releases.slice(0, -10));
   }
   return {releaseQueryString: releaseCondition, releasesUsed: releasesArray};
