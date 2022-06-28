@@ -13,6 +13,14 @@ from sentry.utils.dates import parse_stats_period
 
 
 def percentile_fn(data, percentile):
+    """
+    Returns the nth percentile from a sorted list
+
+    :param percentile: A value between 0 and 1
+    :param data: Sorted list of values
+    """
+    if len(data) == 0:
+        return None
     pecentile_idx = len(data) * percentile
     if pecentile_idx.is_integer():
         return data[int(pecentile_idx)]
@@ -28,6 +36,19 @@ class DynamicSamplingPermission(ProjectPermission):
 
 class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
     permission_classes = (DynamicSamplingPermission,)
+
+    @staticmethod
+    def _get_sample_rates_data(data):
+        distribution_functions = {
+            "min": lambda lst: min(lst) if len(lst) > 0 else None,
+            "max": lambda lst: max(lst) if len(lst) > 0 else None,
+            "mean": lambda lst: sum(lst) / len(lst) if len(lst) > 0 else None,
+            "p50": lambda lst: percentile_fn(data, 0.5),
+            "p90": lambda lst: percentile_fn(data, 0.9),
+            "p95": lambda lst: percentile_fn(data, 0.95),
+            "p99": lambda lst: percentile_fn(data, 0.99),
+        }
+        return {key: func(data) for key, func in distribution_functions.items()}
 
     def get(self, request: Request, project) -> Response:
         if not features.has(
@@ -90,9 +111,6 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
         non_null_sample_rates = sorted(
             float(sample_rate) for sample_rate in sample_rates if sample_rate not in {"", None}
         )
-        null_sample_rate_percentage = (
-            (len(sample_rates) - len(non_null_sample_rates)) / len(sample_rates) * 100
-        )
 
         project_breakdown = None
         if distributed_trace:
@@ -138,16 +156,10 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
         return Response(
             {
                 "project_breakdown": project_breakdown,
-                "sample_rate": {
-                    "sample_size": len(root_transactions),
-                    "null_sample_rate_percentage": null_sample_rate_percentage,
-                    "p50": percentile_fn(non_null_sample_rates, 0.50),
-                    "p90": percentile_fn(non_null_sample_rates, 0.90),
-                    "p95": percentile_fn(non_null_sample_rates, 0.95),
-                    "p99": percentile_fn(non_null_sample_rates, 0.99),
-                    "max": max(non_null_sample_rates),
-                    "min": min(non_null_sample_rates),
-                    "mean": sum(non_null_sample_rates) / len(non_null_sample_rates),
-                },
+                "sample_size": sample_size,
+                "null_sample_rate_percentage": (
+                    (sample_size - len(non_null_sample_rates)) / sample_size * 100
+                ),
+                "sample_rate_distributions": self._get_sample_rates_data(non_null_sample_rates),
             }
         )
