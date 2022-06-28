@@ -32,7 +32,7 @@ type ParamsWithTheme = Params & {theme: Theme};
 /**
  * If `blendCorner` is false, then we apply border-radius to all corners
  *
- * Otherwise apply radius to opposite side of `alignMenu` *unles it is fixed width*
+ * Otherwise apply radius to opposite side of `alignMenu` *unless it is fixed width*
  */
 const getMenuBorderRadius = ({
   blendWithActor,
