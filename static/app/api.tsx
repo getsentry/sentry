@@ -245,6 +245,8 @@ type HandleRequestErrorOptions = {
   requestOptions: Readonly<RequestOptions>;
 };
 
+const DEFAULT_BASE_URL = '/api/0';
+
 /**
  * The API client is used to make HTTP requests to Sentry's backend.
  *
@@ -255,7 +257,7 @@ export class Client {
   activeRequests: Record<string, Request>;
 
   constructor(options: ClientOptions = {}) {
-    this.baseUrl = options.baseUrl ?? '/api/0';
+    this.baseUrl = options.baseUrl ?? DEFAULT_BASE_URL;
     this.activeRequests = {};
   }
 
