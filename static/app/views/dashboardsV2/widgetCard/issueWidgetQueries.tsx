@@ -1,13 +1,13 @@
-import {Component} from 'react';
+import {useRef, useState} from 'react';
+import {useEffect} from '@storybook/addons';
 
 import {Client} from 'sentry/api';
 import MemberListStore from 'sentry/stores/memberListStore';
 import {Group, Organization, PageFilters} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
 
-import {getDatasetConfig} from '../datasetConfig/base';
 import {IssuesConfig} from '../datasetConfig/issues';
-import {Widget, WidgetType} from '../types';
+import {Widget} from '../types';
 
 import GenericWidgetQueries, {
   GenericWidgetQueriesChildrenProps,
@@ -24,45 +24,53 @@ type Props = {
   onDataFetched?: (results: {pageLinks?: string; totalIssuesCount?: string}) => void;
 };
 
-class IssueWidgetQueries extends Component<Props> {
-  componentWillUnmount() {
-    this.unlisteners.forEach(unlistener => unlistener?.());
-  }
+function IssueWidgetQueries({
+  children,
+  api,
+  organization,
+  selection,
+  widget,
+  cursor,
+  limit,
+  onDataFetched,
+}: Props) {
+  const [memberListStoreLoaded, setMemberListStoreLoaded] = useState(false);
 
-  unlisteners = [
+  const memberListStoreUnlistener = useRef(
     MemberListStore.listen(() => {
-      this.setState({
-        memberListStoreLoaded: MemberListStore.isLoaded(),
-      });
-    }, undefined),
-  ];
+      setMemberListStoreLoaded(MemberListStore.isLoaded());
+    }, undefined)
+  );
 
-  config = getDatasetConfig(WidgetType.ISSUE);
+  useEffect(() => {
+    return memberListStoreUnlistener.current?.();
+  }, []);
 
-  render() {
-    const config = IssuesConfig;
-    const {children, api, organization, selection, widget, cursor, limit, onDataFetched} =
-      this.props;
+  const config = IssuesConfig;
 
-    return getDynamicText({
-      value: (
-        <GenericWidgetQueries<never, Group[]>
-          config={config}
-          api={api}
-          organization={organization}
-          selection={selection}
-          widget={widget}
-          cursor={cursor}
-          limit={limit}
-          onDataFetched={onDataFetched}
-          processRawTableResult={() => {}}
-        >
-          {children}
-        </GenericWidgetQueries>
-      ),
-      fixed: <div />,
-    });
-  }
+  return getDynamicText({
+    value: (
+      <GenericWidgetQueries<never, Group[]>
+        config={config}
+        api={api}
+        organization={organization}
+        selection={selection}
+        widget={widget}
+        cursor={cursor}
+        limit={limit}
+        onDataFetched={onDataFetched}
+        processRawTableResult={() => {}}
+      >
+        {({loading, ...rest}) =>
+          children({
+            loading: loading && memberListStoreLoaded,
+            ...rest,
+          })
+        }
+      </GenericWidgetQueries>
+    ),
+    fixed: <div />,
+  });
 }
 
 export default IssueWidgetQueries;

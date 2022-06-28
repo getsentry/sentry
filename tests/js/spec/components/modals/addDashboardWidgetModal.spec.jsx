@@ -1278,16 +1278,15 @@ describe('Modals -> AddDashboardWidgetModal', function () {
 
       userEvent.click(screen.getByText('Issues (States, Assignment, Time, etc.)'));
       await tick();
-      // 1 for the column selection, 1 for the table headers
-      expect(screen.getAllByText('issue')).toHaveLength(2);
-      expect(screen.getAllByText('assignee')).toHaveLength(2);
-      expect(screen.getAllByText('title')).toHaveLength(2);
+      expect(screen.getByText('issue')).toBeInTheDocument();
+      expect(screen.getByText('assignee')).toBeInTheDocument();
+      expect(screen.getByText('title')).toBeInTheDocument();
       expect(screen.getAllByRole('button', {name: 'Remove column'}).length).toEqual(2);
       expect(screen.getAllByRole('button', {name: 'Drag to reorder'}).length).toEqual(3);
       userEvent.click(screen.getAllByRole('button', {name: 'Remove column'})[1]);
       userEvent.click(screen.getAllByRole('button', {name: 'Remove column'})[0]);
       await tick();
-      expect(screen.getAllByText('issue')).toHaveLength(2);
+      expect(screen.getByText('issue')).toBeInTheDocument();
       expect(screen.queryByText('assignee')).not.toBeInTheDocument();
       expect(screen.queryByText('title')).not.toBeInTheDocument();
       expect(screen.queryAllByRole('button', {name: 'Remove column'}).length).toEqual(0);
