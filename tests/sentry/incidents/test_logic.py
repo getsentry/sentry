@@ -10,7 +10,6 @@ from exam import fixture, patcher
 from freezegun import freeze_time
 
 from sentry.constants import ObjectStatus
-from sentry.exceptions import InvalidSearchQuery
 from sentry.incidents.events import (
     IncidentCommentCreatedEvent,
     IncidentCreatedEvent,
@@ -496,19 +495,6 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert alert_rule.snuba_query.subscriptions.get().project == new_project
         assert alert_rule.include_all_projects == include_all_projects
 
-    def test_invalid_query(self):
-        with pytest.raises(InvalidSearchQuery):
-            create_alert_rule(
-                self.organization,
-                [self.project],
-                "hi",
-                "has:",
-                "count()",
-                1,
-                AlertRuleThresholdType.ABOVE,
-                1,
-            )
-
     # This test will fail unless real migrations are run. Refer to migration 0061.
     @pytest.mark.skipif(
         not settings.MIGRATIONS_TEST_MIGRATE, reason="requires custom migration 0061"
@@ -670,10 +656,6 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
     def test_empty_query(self):
         alert_rule = update_alert_rule(self.alert_rule, query="")
         assert alert_rule.snuba_query.query == ""
-
-    def test_invalid_query(self):
-        with pytest.raises(InvalidSearchQuery):
-            update_alert_rule(self.alert_rule, query="has:")
 
     def test_delete_projects(self):
         alert_rule = self.create_alert_rule(
