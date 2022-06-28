@@ -236,7 +236,8 @@ _SENTRY_RULES = (
     "sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter",
     "sentry.rules.filters.assigned_to.AssignedToFilter",
     "sentry.rules.filters.latest_release.LatestReleaseFilter",
-    # The following filters are duplicates of their respective conditions and are conditionally shown if the user has issue alert-filters
+    # The following filters are duplicates of their respective conditions
+    # The older versions were deprecated and migrated to these newer filters
     "sentry.rules.filters.event_attribute.EventAttributeFilter",
     "sentry.rules.filters.tagged_event.TaggedEventFilter",
     "sentry.rules.filters.level.LevelFilter",

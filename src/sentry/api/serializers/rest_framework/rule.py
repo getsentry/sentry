@@ -1,6 +1,5 @@
 from rest_framework import serializers
 
-from sentry import features
 from sentry.api.fields.actor import ActorField
 from sentry.api.serializers.rest_framework.list import ListField
 from sentry.constants import MIGRATED_CONDITIONS, SENTRY_APP_ACTIONS, TICKET_ACTIONS
@@ -122,23 +121,20 @@ class RuleSerializer(serializers.Serializer):
                     }
                 )
 
-        # ensure that if a user has alert-filters enabled, they do not use old conditions
-        project = self.context["project"]
+        # ensure that they do not use old conditions
         conditions = attrs.get("conditions", tuple())
-        project_has_filters = features.has("projects:alert-filters", project)
-        if project_has_filters:
-            old_conditions = [
-                condition for condition in conditions if condition["id"] in MIGRATED_CONDITIONS
-            ]
-            if old_conditions:
-                raise serializers.ValidationError(
-                    {
-                        "conditions": "Conditions evaluating an event attribute, tag, or level are outdated please use an appropriate filter instead."
-                    }
-                )
+        old_conditions = [
+            condition for condition in conditions if condition["id"] in MIGRATED_CONDITIONS
+        ]
+        if old_conditions:
+            raise serializers.ValidationError(
+                {
+                    "conditions": "Conditions evaluating an event attribute, tag, or level are outdated please use an appropriate filter instead."
+                }
+            )
 
-        # ensure that if a user has alert-filters enabled, they do not use a 'none' match on conditions
-        if project_has_filters and attrs.get("actionMatch") == "none":
+        # ensure that if a user does not use the deprecated 'none' match on conditions
+        if attrs.get("actionMatch") == "none":
             raise serializers.ValidationError(
                 {
                     "conditions": "The 'none' match on conditions is outdated and no longer supported."
