@@ -1,5 +1,3 @@
-import * as React from 'react';
-
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import {Organization} from 'sentry/types';

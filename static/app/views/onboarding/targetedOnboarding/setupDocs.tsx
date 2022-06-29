@@ -1,5 +1,6 @@
-import {useEffect, useState} from 'react';
-import * as React from 'react';
+import 'prism-sentry/index.css';
+
+import {Fragment, useCallback, useEffect, useState} from 'react';
 import {browserHistory} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -15,6 +16,7 @@ import platforms from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Project} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {Theme} from 'sentry/utils/theme';
 import useApi from 'sentry/utils/useApi';
@@ -22,8 +24,9 @@ import withProjects from 'sentry/utils/withProjects';
 
 import FirstEventFooter from './components/firstEventFooter';
 import FullIntroduction from './components/fullIntroduction';
-import TargetedOnboardingSidebar from './components/sidebar';
+import ProjectSidebarSection from './components/projectSidebarSection';
 import {StepProps} from './types';
+import {usePersistedOnboardingState} from './utils';
 
 /**
  * The documentation will include the following string should it be missing the
@@ -36,10 +39,31 @@ type PlatformDoc = {html: string; link: string};
 type Props = {
   projects: Project[];
   search: string;
+  loadingProjects?: boolean;
 } & StepProps;
 
-function SetupDocs({organization, projects, search}: Props) {
+function SetupDocs({
+  organization,
+  projects: rawProjects,
+  search,
+  loadingProjects,
+}: Props) {
   const api = useApi();
+  const [clientState, setClientState] = usePersistedOnboardingState();
+  const selectedPlatforms = clientState?.selectedPlatforms || [];
+  const platformToProjectIdMap = clientState?.platformToProjectIdMap || {};
+  // id is really slug here
+  const projectSlugs = selectedPlatforms
+    .map(platform => platformToProjectIdMap[platform])
+    .filter((slug): slug is string => slug !== undefined);
+
+  const selectedProjectsSet = new Set(projectSlugs);
+  // get projects in the order they appear in selectedPlatforms
+  const projects = projectSlugs
+    .map(slug => rawProjects.find(project => project.slug === slug))
+    .filter((project): project is Project => project !== undefined);
+
+  // SDK instrumentation
   const [hasError, setHasError] = useState(false);
   const [platformDocs, setPlatformDocs] = useState<PlatformDoc | null>(null);
   const [loadedPlatform, setLoadedPlatform] = useState<PlatformKey | null>(null);
@@ -54,18 +78,35 @@ function SetupDocs({organization, projects, search}: Props) {
     return !!hasFirstEventMap[project.id];
   };
 
-  // TODO: Check no projects
-  const {sub_step: rawSubStep, project_id: rawProjectId} = qs.parse(search);
-  const subStep = rawSubStep === 'integration' ? 'integration' : 'project';
+  const {project_id: rawProjectId} = qs.parse(search);
   const rawProjectIndex = projects.findIndex(p => p.id === rawProjectId);
-  const firstProjectNoError = projects.findIndex(p => !checkProjectHasFirstEvent(p));
+  const firstProjectNoError = projects.findIndex(
+    p => selectedProjectsSet.has(p.slug) && !checkProjectHasFirstEvent(p)
+  );
+  // Select a project based on search params. If non exist, use the first project without first event.
   const projectIndex = rawProjectIndex >= 0 ? rawProjectIndex : firstProjectNoError;
   const project = projects[projectIndex];
-  const {platform} = project || {};
-  const currentPlatform = loadedPlatform ?? platform ?? 'other';
+  // find the next project that doesn't have a first event
+  const nextProject = projects.find(
+    (p, i) => i > projectIndex && !checkProjectHasFirstEvent(p)
+  );
 
-  const fetchData = async () => {
-    // const {platform} = project || {};
+  useEffect(() => {
+    // should not redirect if we don't have an active client state or projects aren't loaded
+    if (!clientState || loadingProjects) {
+      return;
+    }
+    if (
+      // If no projects remaining, then we can leave
+      !project
+    ) {
+      browserHistory.push('/');
+    }
+  });
+
+  const currentPlatform = loadedPlatform ?? project?.platform ?? 'other';
+
+  const fetchData = useCallback(async () => {
     // TODO: add better error handling logic
     if (!project?.platform) {
       return;
@@ -84,22 +125,37 @@ function SetupDocs({organization, projects, search}: Props) {
       setHasError(error);
       throw error;
     }
-  };
+  }, [project, api, organization]);
 
   useEffect(() => {
     fetchData();
-  }, [project]);
+  }, [fetchData]);
 
-  // TODO: add better error handling logic
-  if (!project && subStep === 'project') {
+  if (!project) {
     return null;
   }
 
   const setNewProject = (newProjectId: string) => {
     const searchParams = new URLSearchParams({
+      sub_step: 'project',
       project_id: newProjectId,
     });
     browserHistory.push(`${window.location.pathname}?${searchParams}`);
+    clientState &&
+      setClientState({
+        ...clientState,
+        state: 'projects_selected',
+        url: `setup-docs/?${searchParams}`,
+      });
+  };
+
+  const selectProject = (newProjectId: string) => {
+    const matchedProject = projects.find(p => p.id === newProjectId);
+    trackAdvancedAnalyticsEvent('growth.onboarding_clicked_project_in_sidebar', {
+      organization,
+      platform: matchedProject?.platform || 'unknown',
+    });
+    setNewProject(newProjectId);
   };
 
   const missingExampleWarning = () => {
@@ -135,7 +191,7 @@ function SetupDocs({organization, projects, search}: Props) {
 
   const loadingError = (
     <LoadingError
-      message={t('Failed to load documentation for the %s platform.', platform)}
+      message={t('Failed to load documentation for the %s platform.', project?.platform)}
       onRetry={fetchData}
     />
   );
@@ -147,14 +203,26 @@ function SetupDocs({organization, projects, search}: Props) {
   );
 
   return (
-    <React.Fragment>
+    <Fragment>
       <Wrapper>
-        <TargetedOnboardingSidebar
-          activeProject={project}
-          {...{checkProjectHasFirstEvent, setNewProject}}
-        />
+        <SidebarWrapper>
+          <ProjectSidebarSection
+            projects={projects}
+            selectedPlatformToProjectIdMap={Object.fromEntries(
+              selectedPlatforms.map(platform => [
+                platform,
+                platformToProjectIdMap[platform],
+              ])
+            )}
+            activeProject={project}
+            {...{checkProjectHasFirstEvent, selectProject}}
+          />
+        </SidebarWrapper>
         <MainContent>
-          <FullIntroduction currentPlatform={currentPlatform} />
+          <FullIntroduction
+            currentPlatform={currentPlatform}
+            organization={organization}
+          />
           {getDynamicText({
             value: !hasError ? docs : loadingError,
             fixed: testOnlyAlert,
@@ -166,19 +234,32 @@ function SetupDocs({organization, projects, search}: Props) {
         <FirstEventFooter
           project={project}
           organization={organization}
-          isLast={projectIndex === projects.length - 1}
+          isLast={!nextProject}
           hasFirstEvent={checkProjectHasFirstEvent(project)}
           onClickSetupLater={() => {
-            // TODO: analytics
-            const nextProject = projects.find(
-              (p, index) => !p.firstEvent && index > projectIndex
+            const orgIssuesURL = `/organizations/${organization.slug}/issues/?project=${project.id}`;
+            trackAdvancedAnalyticsEvent(
+              'growth.onboarding_clicked_setup_platform_later',
+              {
+                organization,
+                platform: currentPlatform,
+                project_index: projectIndex,
+              }
             );
-            if (!nextProject) {
-              // TODO: integrations
-              browserHistory.push('/');
+            if (!project.platform || !clientState) {
+              browserHistory.push(orgIssuesURL);
               return;
             }
-            setNewProject(nextProject.id);
+            // if we have a next project, switch to that
+            if (nextProject) {
+              setNewProject(nextProject.id);
+            } else {
+              setClientState({
+                ...clientState,
+                state: 'finished',
+              });
+              browserHistory.push(orgIssuesURL);
+            }
           }}
           handleFirstIssueReceived={() => {
             const newHasFirstEventMap = {...hasFirstEventMap, [project.id]: true};
@@ -186,7 +267,7 @@ function SetupDocs({organization, projects, search}: Props) {
           }}
         />
       )}
-    </React.Fragment>
+    </Fragment>
   );
 }
 
@@ -269,4 +350,18 @@ const MainContent = styled('div')`
   max-width: 850px;
   min-width: 0;
   flex-grow: 1;
+`;
+
+// the number icon will be space(2) + 30px to the left of the margin of center column
+// so we need to offset the right margin by that much
+// also hide the sidebar if the screen is too small
+const SidebarWrapper = styled('div')`
+  margin: ${space(1)} calc(${space(2)} + 30px + ${space(4)}) 0 ${space(2)};
+  @media (max-width: 1150px) {
+    display: none;
+  }
+  flex-basis: 240px;
+  flex-grow: 0;
+  flex-shrink: 0;
+  min-width: 240px;
 `;

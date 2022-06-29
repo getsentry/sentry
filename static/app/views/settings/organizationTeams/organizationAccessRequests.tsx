@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -28,7 +28,7 @@ type HandleOpts = {
   successMessage: string;
 };
 
-class OrganizationAccessRequests extends React.Component<Props, State> {
+class OrganizationAccessRequests extends Component<Props, State> {
   state: State = {
     accessRequestBusy: {},
   };

@@ -1,9 +1,10 @@
+import pytest
 import responses
 
 from sentry.coreapi import APIError
 from sentry.mediators.external_requests import SelectRequester
 from sentry.testutils import TestCase
-from sentry.utils.sentryappwebhookrequests import SentryAppWebhookRequestsBuffer
+from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
 
 
 class TestSelectRequester(TestCase):
@@ -64,7 +65,7 @@ class TestSelectRequester(TestCase):
             content_type="application/json",
         )
 
-        with self.assertRaises(APIError):
+        with pytest.raises(APIError):
             SelectRequester.run(
                 install=self.install,
                 project=self.project,
@@ -82,7 +83,7 @@ class TestSelectRequester(TestCase):
             status=500,
         )
 
-        with self.assertRaises(APIError):
+        with pytest.raises(APIError):
             SelectRequester.run(
                 install=self.install,
                 project=self.project,

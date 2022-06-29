@@ -1,5 +1,7 @@
 from unittest import TestCase
 
+import pytest
+
 from sentry.utils.types import Any, Bool, Dict, Float, Int, InvalidTypeError, Sequence, String
 
 
@@ -34,7 +36,7 @@ class OptionsTypesTest(TestCase):
         assert Bool.test(None) is False
         assert Bool(True) is True
         assert Bool.test("foo") is False
-        with self.assertRaises(InvalidTypeError):
+        with pytest.raises(InvalidTypeError):
             Bool("foo")
 
     def test_int(self):
@@ -42,9 +44,9 @@ class OptionsTypesTest(TestCase):
         assert Int("1") == 1
         assert Int("-1") == -1
         assert Int() == 0
-        with self.assertRaises(InvalidTypeError):
+        with pytest.raises(InvalidTypeError):
             Int("foo")
-        with self.assertRaises(InvalidTypeError):
+        with pytest.raises(InvalidTypeError):
             Int("1.1")
 
     def test_float(self):
@@ -53,14 +55,14 @@ class OptionsTypesTest(TestCase):
         assert Float("-1.1") == -1.1
         assert Float(1) == 1.0
         assert Float() == 0.0
-        with self.assertRaises(InvalidTypeError):
+        with pytest.raises(InvalidTypeError):
             Float("foo")
 
     def test_string(self):
         assert String("foo") == "foo"
         assert String("foo") == "foo"
         assert String() == ""
-        with self.assertRaises(InvalidTypeError):
+        with pytest.raises(InvalidTypeError):
             String(0)
 
     def test_dict(self):
@@ -69,13 +71,13 @@ class OptionsTypesTest(TestCase):
         assert Dict("{foo: bar}") == {"foo": "bar"}
 
         assert Dict() == {}
-        with self.assertRaises(InvalidTypeError):
+        with pytest.raises(InvalidTypeError):
             assert Dict("[]")
-        with self.assertRaises(InvalidTypeError):
+        with pytest.raises(InvalidTypeError):
             assert Dict([])
-        with self.assertRaises(InvalidTypeError):
+        with pytest.raises(InvalidTypeError):
             assert Dict("")
-        with self.assertRaises(InvalidTypeError):
+        with pytest.raises(InvalidTypeError):
             # malformed yaml/json (a plain scalar, "b: ar", cannot contain ": ")
             assert Dict("{foo: b: ar}")
 
@@ -85,12 +87,12 @@ class OptionsTypesTest(TestCase):
         assert Sequence((1, 2, 3)) == (1, 2, 3)
         assert Sequence([1, 2, 3]) == [1, 2, 3]
         assert Sequence("[1,2,3]") == (1, 2, 3)
-        with self.assertRaises(InvalidTypeError):
+        with pytest.raises(InvalidTypeError):
             Sequence("{}")
-        with self.assertRaises(InvalidTypeError):
+        with pytest.raises(InvalidTypeError):
             Sequence({})
-        with self.assertRaises(InvalidTypeError):
+        with pytest.raises(InvalidTypeError):
             Sequence("")
-        with self.assertRaises(InvalidTypeError):
+        with pytest.raises(InvalidTypeError):
             # malformed yaml/json
             Sequence("[1,")

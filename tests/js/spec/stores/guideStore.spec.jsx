@@ -25,10 +25,10 @@ describe('GuideStore', function () {
       },
       {guide: 'issue_stream', seen: true},
     ];
-    GuideStore.onRegisterAnchor('issue_title');
-    GuideStore.onRegisterAnchor('exception');
-    GuideStore.onRegisterAnchor('breadcrumbs');
-    GuideStore.onRegisterAnchor('issue_stream');
+    GuideStore.registerAnchor('issue_number');
+    GuideStore.registerAnchor('exception');
+    GuideStore.registerAnchor('breadcrumbs');
+    GuideStore.registerAnchor('issue_stream');
   });
 
   afterEach(() => {
@@ -36,19 +36,33 @@ describe('GuideStore', function () {
   });
 
   it('should move through the steps in the guide', function () {
-    GuideStore.onFetchSucceeded(data);
+    GuideStore.fetchSucceeded(data);
     // Should pick the first non-seen guide in alphabetic order.
     expect(GuideStore.state.currentStep).toEqual(0);
     expect(GuideStore.state.currentGuide.guide).toEqual('issue');
     // Should prune steps that don't have anchors.
     expect(GuideStore.state.currentGuide.steps).toHaveLength(3);
 
-    GuideStore.onNextStep();
+    GuideStore.nextStep();
     expect(GuideStore.state.currentStep).toEqual(1);
-    GuideStore.onNextStep();
+    GuideStore.nextStep();
     expect(GuideStore.state.currentStep).toEqual(2);
-    GuideStore.onCloseGuide();
+    GuideStore.closeGuide();
     expect(GuideStore.state.currentGuide).toEqual(null);
+  });
+
+  it('should expect anchors to appear in expectedTargets', function () {
+    data = [{guide: 'new_page_filters', seen: false}];
+
+    GuideStore.registerAnchor('new_page_filter_button');
+    GuideStore.fetchSucceeded(data);
+    expect(GuideStore.state.currentStep).toEqual(0);
+    expect(GuideStore.state.currentGuide.guide).toEqual('new_page_filters');
+
+    GuideStore.registerAnchor('new_page_filter_button');
+
+    // Will not prune steps that don't have anchors
+    expect(GuideStore.state.currentGuide.steps).toHaveLength(2);
   });
 
   it('should force show a guide with #assistant', function () {
@@ -60,26 +74,26 @@ describe('GuideStore', function () {
       {guide: 'issue_stream', seen: false},
     ];
 
-    GuideStore.onFetchSucceeded(data);
+    GuideStore.fetchSucceeded(data);
     window.location.hash = '#assistant';
     GuideStore.onURLChange();
     expect(GuideStore.state.currentGuide.guide).toEqual('issue');
-    GuideStore.onCloseGuide();
+    GuideStore.closeGuide();
     expect(GuideStore.state.currentGuide.guide).toEqual('issue_stream');
     window.location.hash = '';
   });
 
   it('should force hide', function () {
     expect(GuideStore.state.forceHide).toEqual(false);
-    GuideStore.onSetForceHide(true);
+    GuideStore.setForceHide(true);
     expect(GuideStore.state.forceHide).toEqual(true);
-    GuideStore.onSetForceHide(false);
+    GuideStore.setForceHide(false);
     expect(GuideStore.state.forceHide).toEqual(false);
   });
 
   it('should record analytics events when guide is cued', function () {
     const spy = jest.spyOn(GuideStore, 'recordCue');
-    GuideStore.onFetchSucceeded(data);
+    GuideStore.fetchSucceeded(data);
     expect(spy).toHaveBeenCalledWith('issue');
 
     expect(trackAnalyticsEvent).toHaveBeenCalledWith({
@@ -95,7 +109,7 @@ describe('GuideStore', function () {
     GuideStore.updateCurrentGuide();
     expect(spy).toHaveBeenCalledTimes(1);
 
-    GuideStore.onNextStep();
+    GuideStore.nextStep();
     expect(spy).toHaveBeenCalledTimes(1);
     spy.mockRestore();
   });
@@ -112,7 +126,7 @@ describe('GuideStore', function () {
       },
     ];
 
-    GuideStore.onFetchSucceeded(data);
+    GuideStore.fetchSucceeded(data);
     expect(GuideStore.state.guides.length).toBe(1);
     expect(GuideStore.state.guides[0].guide).toBe(data[0].guide);
   });

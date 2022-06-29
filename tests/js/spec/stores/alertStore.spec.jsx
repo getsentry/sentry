@@ -8,14 +8,14 @@ describe('AlertStore', function () {
     AlertStore.count = 0;
   });
 
-  describe('onAddAlert()', function () {
+  describe('addAlert()', function () {
     it('should add a new alert with incrementing key', function () {
-      AlertStore.onAddAlert({
+      AlertStore.addAlert({
         message: 'Bzzzzzzp *crash*',
         type: 'error',
       });
 
-      AlertStore.onAddAlert({
+      AlertStore.addAlert({
         message: 'Everything is super',
         type: 'info',
       });
@@ -26,13 +26,13 @@ describe('AlertStore', function () {
     });
 
     it('should not add duplicates when noDuplicates is set', function () {
-      AlertStore.onAddAlert({
+      AlertStore.addAlert({
         id: 'unique-key',
         message: 'Bzzzzzzp *crash*',
         type: 'error',
         noDuplicates: true,
       });
-      AlertStore.onAddAlert({
+      AlertStore.addAlert({
         id: 'unique-key',
         message: 'Bzzzzzzp *crash*',
         type: 'error',
@@ -43,7 +43,7 @@ describe('AlertStore', function () {
     });
   });
 
-  describe('onCloseAlert()', function () {
+  describe('closeAlert()', function () {
     it('should remove alert', function () {
       AlertStore.alerts = [
         {key: 1, message: 'foo', type: 'error'},
@@ -51,7 +51,7 @@ describe('AlertStore', function () {
         {key: 3, message: 'baz', type: 'error'},
       ];
 
-      AlertStore.onCloseAlert(AlertStore.alerts[1]);
+      AlertStore.closeAlert(AlertStore.alerts[1]);
 
       expect(AlertStore.alerts).toHaveLength(2);
       expect(AlertStore.alerts[0].key).toEqual(1);
@@ -59,8 +59,8 @@ describe('AlertStore', function () {
     });
     it('should persist removal of persistent alerts', function () {
       const alert = {key: 1, id: 'test', message: 'foo', type: 'error'};
-      AlertStore.onCloseAlert(alert);
-      AlertStore.onAddAlert(alert);
+      AlertStore.closeAlert(alert);
+      AlertStore.addAlert(alert);
       expect(AlertStore.alerts).toHaveLength(0);
     });
   });

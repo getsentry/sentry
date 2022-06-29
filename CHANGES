@@ -1,3 +1,107 @@
+22.6.0
+------
+
+### Various fixes & improvements
+
+- ref: replace `import_submodules` with explicit `*` imports (#35677) by @asottile-sentry
+- ref: fix linting of fixtures namespace (#35684) by @asottile-sentry
+- ref(sentry app): Rewrite Sentry App Tests (#35664) by @ceorourke
+- feat(discover): Support sum function while querying metrics in discover (#35576) by @edwardgou-sentry
+- ref: re-enable pyc files now that we're on python 3 (#35678) by @asottile-sentry
+- ref: allow explicit relative imports `from .json` (#35676) by @asottile-sentry
+- fix(replays): fix error/durations on Replays for page >1 (#35647) by @SDaian
+- ref(virtualizedtree): compute startindex and avoid wasteful iterations (#35621) by @JonasBa
+- feat: Thread names (#35620) by @loewenheim
+- Revert "Revert "ref: simplify and type flake8 plugin (#35645)" (#35651)" (#35673) by @asottile-sentry
+- fix(cra-metrics): Count all users in metrics alerts (#34957) by @jjbayer
+- feat: Run csharp/il2cpp events through symbolicator (#35615) by @Swatinem
+- ref: upgrade boto* packages to fix conflicts (#34524) by @asottile-sentry
+- ref(stack-trace): Update header style (#35670) by @priscilawebdev
+- fix(relay): Defer cache invalidation up until after DB transaction (#35523) by @untitaker
+- feat(dashboard): Add field options for table cols to config (#35622) by @shruthilayaj
+- fix(projectconfig): Invalidation task deals with deleted project (#35668) by @flub
+- ref(stack-trace): Add new design changes - (#35617) by @priscilawebdev
+- chore(deps): bump @sentry/release-parser from 1.3.0 to 1.3.1 (#35657) by @dependabot
+- chore(deps): bump core-js from 3.22.7 to 3.23.1 (#35656) by @dependabot
+- ref(widget-builder): Replace Feedback Button with FeatureFeedback component (#35571) by @priscilawebdev
+- chore(deps): bump echarts from 5.3.1 to 5.3.3 (#35658) by @dependabot
+- build(deps): bump css-what from 5.0.0 to 5.1.0 (#35623) by @dependabot
+- build(deps-dev): bump @types/node from 17.0.38 to 17.0.42 (#35598) by @dependabot
+
+_Plus 746 more_
+
+22.5.0
+------
+
+### Replays v0 (ongoing)
+
+By: @billyvg (#34407, #34388)
+
+### Various fixes & improvements
+
+- ref(js): Convert DateTime to a FC (#34628) by @evanpurkhiser
+- chore: Update logo for dark or light theme (#34229) by @mattjohnsonpint
+- ref(js): Convert U2fContainer to a FC (#34630) by @evanpurkhiser
+- ref(js): Convert discover eventsV2 Breadcrumbs to a FC (#34629) by @evanpurkhiser
+- ref(js): Convert ProjectPerformanceContainer to a FC (#34624) by @evanpurkhiser
+- ref(js): Convert gridEditable/sortLink to a FC (#34615) by @evanpurkhiser
+- ref(js): Convert LoadingError to a FC (#34626) by @evanpurkhiser
+- ref(js): Convert UnlinkedAlert to a FC (#34632) by @evanpurkhiser
+- ref(js): Convert TagDistributionMeter to a FC (#34627) by @evanpurkhiser
+- style(js): Small formatting adjustment to projectSettingsLayout (#34625) by @evanpurkhiser
+- ref(js): Convert TeamAvatar to a FC (#34623) by @evanpurkhiser
+- ref(js): Convert ValueComponent to a FC (#34620) by @evanpurkhiser
+- ref(js): Convert BreadcrumbTitle to a FC (#34619) by @evanpurkhiser
+- feat(onboarding): Customized cards (#34603) by @Neo-Zhixing
+- ref(js): Convert OnboardingWizardSidebar to a FC (#34609) by @evanpurkhiser
+- chore(dashboard): Default RH field to crash_free_rate (#34285) by @shruthilayaj
+- fix(dashboard): Remove session.status as a filter tag (#34593) by @shruthilayaj
+- fix(discover): Fix bug preventing saving queries with equation (#34580) by @wmak
+- feat(crash_rate_alerts): Add logic to enforce session -> metric alerts (#34534) by @wedamija
+- feat(replays): Better console messages + add string formatting (#34501) by @billyvg
+- fix(dev): also patch invalid escape sequences in selenium.* (#34577) by @asottile-sentry
+- Revert "fix(notifications): Use `metrics_key` (#34572)" (04f013dd) by @getsentry-bot
+- ref(integrations): Update GH and GL feature descriptions (#34578) by @ceorourke
+- feat(alertWizard): Show My Projects in project selector in alert wizard (#34583) by @mikellykels
+
+_Plus 732 more_
+
+22.4.0
+------
+
+### Replays v0 (ongoing)
+
+By: @ryan953 (#33313)
+
+### Various fixes & improvements
+
+- debug(tests): Added some debugging for flakey ado test (#33632) by @AniketDas-Tekky
+- ref(rate limits): Tag DD metric w/ rate limit type (#33621) by @ceorourke
+- ref(access log): Add Datadog metrics (#33644) by @ceorourke
+- ref(reflux): remove index signature (#33407) by @JonasBa
+- feat(flamechart): allow rendering the chart on arbitrary x axis (#33577) by @JonasBa
+- fix(ui): typo on languages (#33628) by @23RoMax
+- fix(ui): Don't show project picker for alert wizard v3 (#33634) by @taylangocmen
+- JSON syntax and OpenAPI spec fixes, to silence (some) swagger/openapi codegen errors. (#28396) by @tesueret-msft
+- fix(alertStatus): Handle alert details page when no project (#33635) by @mikellykels
+- fix(rate limit): Format 429 response correctly (#33629) by @ceorourke
+- fix(workflow): Format metric date to number from query params (#33633) by @scttcper
+- fix(ui): Add % to crash free sessions tooltip (#33624) by @mikellykels
+- feat(replay): Implement the View in Fullscreen button (#33566) by @ryan953
+- feat(workflow): Tidy up projects page design (#33608) by @mikellykels
+- fix(sudo modal): no longer trying to log superuser access on sudo (#33622) by @maxiuyuan
+- feat(perf): Add MEP to transaction summary (#32773) by @k-fish
+- feat(dashboards): Update Release Health dataset to use sessions v2 (#33582) by @shruthilayaj
+- ref(alerts): Use Badge in team filter (#33596) by @vuluongj20
+- feat(onboarding): remove welcome page experiment and use new experience (#33616) by @scefali
+- feat(workflow): Add Undo to issue removal toast (#33249) by @mikellykels
+- ref(page-filters): All environments -> All env (#33568) by @davidenwang
+- ref(perf): Move long-tasks to app-wide (#33614) by @k-fish
+- fix(new-widget-builder-experience): Unnecessary dashboard visit requests (#33619) by @narsaynorath
+- ref(page-filters): Move issues sort options inside table (#33590) by @vuluongj20
+
+_Plus 771 more_
+
 22.3.0
 ------
 

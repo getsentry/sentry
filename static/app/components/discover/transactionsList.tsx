@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location, LocationDescriptor, Query} from 'history';
@@ -121,7 +121,7 @@ type Props = {
   trendView?: TrendView;
 };
 
-class TransactionsList extends React.Component<Props> {
+class _TransactionsList extends Component<Props> {
   static defaultProps = {
     cursorName: 'transactionCursor',
     limit: DEFAULT_TRANSACTION_LIMIT,
@@ -174,7 +174,7 @@ class TransactionsList extends React.Component<Props> {
     } = this.props;
 
     return (
-      <React.Fragment>
+      <Fragment>
         <div>
           <DropdownControl
             button={({isOpen, getActorProps}) => (
@@ -233,7 +233,7 @@ class TransactionsList extends React.Component<Props> {
               </DiscoverButton>
             </GuideAnchor>
           ))}
-      </React.Fragment>
+      </Fragment>
     );
   }
 
@@ -248,13 +248,16 @@ class TransactionsList extends React.Component<Props> {
       generateLink,
       forceLoading,
     } = this.props;
+    const useEvents = organization.features.includes(
+      'performance-frontend-use-events-endpoint'
+    );
 
     const eventView = this.getEventView();
     const columnOrder = eventView.getColumns();
     const cursor = decodeScalar(location.query?.[cursorName]);
 
     const tableRenderer = ({isLoading, pageLinks, tableData}) => (
-      <React.Fragment>
+      <Fragment>
         <Header>
           {this.renderHeader()}
           <StyledPagination
@@ -273,8 +276,9 @@ class TransactionsList extends React.Component<Props> {
           titles={titles}
           generateLink={generateLink}
           handleCellAction={handleCellAction}
+          useAggregateAlias={!useEvents}
         />
-      </React.Fragment>
+      </Fragment>
     );
 
     if (forceLoading) {
@@ -293,6 +297,7 @@ class TransactionsList extends React.Component<Props> {
         limit={limit}
         cursor={cursor}
         referrer="api.discover.transactions-list"
+        useEvents={useEvents}
       >
         {tableRenderer}
       </DiscoverQuery>
@@ -322,7 +327,7 @@ class TransactionsList extends React.Component<Props> {
         limit={5}
       >
         {({isLoading, trendsData, pageLinks}) => (
-          <React.Fragment>
+          <Fragment>
             <Header>
               {this.renderHeader()}
               <StyledPagination
@@ -344,8 +349,9 @@ class TransactionsList extends React.Component<Props> {
                 {field: 'trend_difference()'},
               ])}
               generateLink={generateLink}
+              useAggregateAlias
             />
-          </React.Fragment>
+          </Fragment>
         )}
       </TrendsEventsDiscoverQuery>
     );
@@ -358,9 +364,9 @@ class TransactionsList extends React.Component<Props> {
 
   render() {
     return (
-      <React.Fragment>
+      <Fragment>
         {this.isTrend() ? this.renderTrendsTable() : this.renderTransactionTable()}
-      </React.Fragment>
+      </Fragment>
     );
   }
 }
@@ -379,5 +385,14 @@ const StyledDropdownButton = styled(DropdownButton)`
 const StyledPagination = styled(Pagination)`
   margin: 0 0 0 ${space(1)};
 `;
+
+const TransactionsList = (
+  props: Omit<Props, 'cursorName' | 'limit'> & {
+    cursorName?: Props['cursorName'];
+    limit?: Props['limit'];
+  }
+) => {
+  return <_TransactionsList {...props} />;
+};
 
 export default TransactionsList;

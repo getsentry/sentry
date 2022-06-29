@@ -2,6 +2,7 @@ from hashlib import sha1
 from unittest.mock import patch
 from uuid import uuid4
 
+from sentry.buffer import Buffer
 from sentry.models import (
     Activity,
     Commit,
@@ -17,19 +18,25 @@ from sentry.models import (
     GroupSubscription,
     OrganizationMember,
     Release,
+    ReleaseProject,
     Repository,
     UserEmail,
     UserOption,
     add_group_to_inbox,
 )
+from sentry.signals import buffer_incr_complete
 from sentry.testutils import TestCase
+from sentry.types.activity import ActivityType
 
 
 class ResolveGroupResolutionsTest(TestCase):
     @patch("sentry.tasks.clear_expired_resolutions.clear_expired_resolutions.delay")
     def test_simple(self, mock_delay):
-        release = Release.objects.create(version="a", organization_id=self.project.organization_id)
-        release.add_project(self.project)
+        with self.capture_on_commit_callbacks(execute=True):
+            release = Release.objects.create(
+                version="a", organization_id=self.project.organization_id
+            )
+            release.add_project(self.project)
 
         mock_delay.assert_called_once_with(release_id=release.id)
 
@@ -171,7 +178,7 @@ class ResolvedInCommitTest(TestCase):
         assert GroupAssignee.objects.filter(group=group, user=user).exists()
 
         assert Activity.objects.filter(
-            project=group.project, group=group, type=Activity.ASSIGNED, user=user
+            project=group.project, group=group, type=ActivityType.ASSIGNED.value, user=user
         )[0].data == {
             "assignee": str(user.id),
             "assigneeEmail": user.email,
@@ -204,7 +211,31 @@ class ResolvedInCommitTest(TestCase):
         self.assertResolvedFromCommit(group, commit)
 
         assert not Activity.objects.filter(
-            project=group.project, group=group, type=Activity.ASSIGNED, user=user
+            project=group.project, group=group, type=ActivityType.ASSIGNED.value, user=user
         ).exists()
 
         assert GroupSubscription.objects.filter(group=group, user=user).exists()
+
+
+class ProjectHasReleasesReceiverTest(TestCase):
+    def test(self):
+        buffer = Buffer()
+        rp = ReleaseProject.objects.get_or_create(release=self.release, project=self.project)[0]
+        self.project.flags.has_releases = False
+        self.project.update(flags=self.project.flags)
+        buffer.process(
+            ReleaseProject,
+            {"new_groups": 1},
+            {"release_id": rp.release_id, "project_id": rp.project_id},
+        )
+        self.project.refresh_from_db()
+        assert self.project.flags.has_releases
+
+    def test_deleted_release_project(self):
+        # Should just not raise an error here if the `ReleaseProject` does not exist
+        buffer_incr_complete.send_robust(
+            model=ReleaseProject,
+            columns={},
+            filters={"release_id": -1, "project_id": -2},
+            sender=ReleaseProject,
+        )

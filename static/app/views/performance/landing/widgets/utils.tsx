@@ -1,4 +1,6 @@
+import {objectIsEmpty} from 'sentry/utils';
 import localStorage from 'sentry/utils/localStorage';
+import {MetricsEnhancedSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 
 import {PROJECT_PERFORMANCE_TYPE} from '../../utils';
 
@@ -20,13 +22,44 @@ function setWidgetStorageObject(localObject: Record<string, string>) {
   localStorage.setItem(getContainerLocalStorageObjectKey, JSON.stringify(localObject));
 }
 
-export function getMEPQueryParams(isMEPEnabled: boolean) {
-  return isMEPEnabled
-    ? {
-        metricsEnhanced: '1',
-        preventMetricAggregates: '1', // Disallow any performance request from using aggregates since they aren't currently possible in all visualizations and we don't want to mix modes.
-      }
-    : undefined;
+export function getMEPQueryParams(mepContext: MetricsEnhancedSettingContext) {
+  let queryParams = {};
+  const base = {preventMetricAggregates: '1'};
+  if (mepContext.shouldQueryProvideMEPParams) {
+    queryParams = {
+      ...queryParams,
+      ...base,
+      metricsEnhanced: '1',
+      dataset: 'metricsEnhanced',
+    };
+  }
+  if (mepContext.shouldQueryProvideMEPTransactionParams) {
+    queryParams = {...queryParams, ...base, dataset: 'discover'};
+  }
+  if (mepContext.shouldQueryProvideMEPMetricParams) {
+    queryParams = {...queryParams, ...base, dataset: 'metrics'};
+  }
+
+  // Disallow any performance request from using aggregates since they aren't currently possible in all visualizations and we don't want to mix modes.
+  return objectIsEmpty(queryParams) ? undefined : queryParams;
+}
+
+export const WIDGET_MAP_DENY_LIST = [
+  PerformanceWidgetSetting.MOST_RELATED_ERRORS,
+  PerformanceWidgetSetting.MOST_RELATED_ISSUES,
+];
+
+/**
+ * Some widgets, such as Related Issues, are inherently not possible w/ metrics at the moment since they use event.type:error under the hood.
+ */
+export function getMEPParamsIfApplicable(
+  mepContext: MetricsEnhancedSettingContext,
+  widget: PerformanceWidgetSetting
+) {
+  if (WIDGET_MAP_DENY_LIST.includes(widget)) {
+    return undefined;
+  }
+  return getMEPQueryParams(mepContext);
 }
 
 const getContainerLocalStorageObjectKey = 'landing-chart-container';

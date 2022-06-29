@@ -357,6 +357,7 @@ const appConfig: Configuration = {
               configOverwrite: {
                 compilerOptions: {incremental: true},
               },
+              memoryLimit: 3072,
             },
             devServer: false,
           }),
@@ -451,7 +452,7 @@ const appConfig: Configuration = {
 if (IS_TEST || IS_ACCEPTANCE_TEST || IS_STORYBOOK) {
   appConfig.resolve!.alias!['integration-docs-platforms'] = path.join(
     __dirname,
-    'tests/fixtures/integration-docs/_platforms.json'
+    'fixtures/integration-docs/_platforms.json'
   );
 } else {
   const plugin = new IntegrationDocsFetchPlugin({basePath: __dirname});
@@ -475,6 +476,11 @@ if (
     // since we do not install devDeps there.
     const ReactRefreshWebpackPlugin = require('@pmmmwh/react-refresh-webpack-plugin');
     appConfig.plugins?.push(new ReactRefreshWebpackPlugin());
+
+    // TODO: figure out why defining output breaks hot reloading
+    if (IS_UI_DEV_ONLY) {
+      appConfig.output = {};
+    }
   }
 
   appConfig.devServer = {
@@ -483,17 +489,20 @@ if (
       'Access-Control-Allow-Credentials': 'true',
     },
     // Required for getsentry
-    disableHostCheck: true,
-    contentBase: './src/sentry/static/sentry',
+    allowedHosts: 'all',
+    static: {
+      directory: './src/sentry/static/sentry',
+      watch: true,
+    },
     host: SENTRY_WEBPACK_PROXY_HOST,
-    hot: true,
-    // If below is false, will reload on errors
-    hotOnly: true,
+    // Don't reload on errors
+    hot: 'only',
     port: Number(SENTRY_WEBPACK_PROXY_PORT),
-    stats: 'errors-only',
-    overlay: false,
-    watchOptions: {
-      ignored: ['node_modules'],
+    devMiddleware: {
+      stats: 'errors-only',
+    },
+    client: {
+      overlay: false,
     },
   };
 
@@ -504,7 +513,10 @@ if (
 
     appConfig.devServer = {
       ...appConfig.devServer,
-      publicPath: '/_static/dist/sentry',
+      static: {
+        ...(appConfig.devServer.static as object),
+        publicPath: '/_static/dist/sentry',
+      },
       // syntax for matching is using https://www.npmjs.com/package/micromatch
       proxy: {
         '/api/store/**': relayAddress,
@@ -513,6 +525,7 @@ if (
         '!/_static/dist/sentry/**': backendAddress,
       },
     };
+    appConfig.output!.publicPath = '/_static/dist/sentry/';
   }
 }
 
@@ -528,8 +541,8 @@ if (
 if (IS_UI_DEV_ONLY) {
   // Try and load certificates from mkcert if available. Use $ yarn mkcert-localhost
   const certPath = path.join(__dirname, 'config');
-  const https = !fs.existsSync(path.join(certPath, 'localhost.pem'))
-    ? true
+  const httpsOptions = !fs.existsSync(path.join(certPath, 'localhost.pem'))
+    ? {}
     : {
         key: fs.readFileSync(path.join(certPath, 'localhost-key.pem')),
         cert: fs.readFileSync(path.join(certPath, 'localhost.pem')),
@@ -538,8 +551,13 @@ if (IS_UI_DEV_ONLY) {
   appConfig.devServer = {
     ...appConfig.devServer,
     compress: true,
-    https,
-    publicPath: '/_assets/',
+    server: {
+      type: 'https',
+      options: httpsOptions,
+    },
+    static: {
+      publicPath: '/_assets/',
+    },
     proxy: [
       {
         context: ['/api/', '/avatar/', '/organization-avatar/'],
@@ -558,8 +576,6 @@ if (IS_UI_DEV_ONLY) {
   appConfig.optimization = {
     runtimeChunk: 'single',
   };
-  // TODO: remove target "web" when upgrading to webpack-dev-server v4
-  appConfig.target = 'web';
 }
 
 if (IS_UI_DEV_ONLY || IS_DEPLOY_PREVIEW) {

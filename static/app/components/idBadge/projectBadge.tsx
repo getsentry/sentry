@@ -1,16 +1,17 @@
-import * as React from 'react';
+import {cloneElement} from 'react';
 import styled from '@emotion/styled';
 
 import BadgeDisplayName from 'sentry/components/idBadge/badgeDisplayName';
 import BaseBadge from 'sentry/components/idBadge/baseBadge';
-import Link from 'sentry/components/links/link';
+import Link, {LinkProps} from 'sentry/components/links/link';
 import {Organization} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 
 type BaseBadgeProps = React.ComponentProps<typeof BaseBadge>;
 type Project = NonNullable<BaseBadgeProps['project']>;
 
-type Props = Partial<Omit<BaseBadgeProps, 'project' | 'organization' | 'team'>> & {
+interface Props
+  extends Partial<Omit<BaseBadgeProps, 'project' | 'organization' | 'team'>> {
   project: Project;
   className?: string;
   /**
@@ -23,10 +24,10 @@ type Props = Partial<Omit<BaseBadgeProps, 'project' | 'organization' | 'team'>> 
   hideOverflow?: boolean | string;
   organization?: Organization;
   /**
-   * Overides where the project badge links
+   * Overrides where the project badge links
    */
-  to?: React.ComponentProps<typeof Link>['to'];
-};
+  to?: LinkProps['to'];
+}
 
 const ProjectBadge = ({
   project,
@@ -61,7 +62,7 @@ const ProjectBadge = ({
     );
   }
 
-  return React.cloneElement(badge, {className});
+  return cloneElement(badge, {className});
 };
 
 const StyledLink = styled(Link)`

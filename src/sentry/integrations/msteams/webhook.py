@@ -6,22 +6,12 @@ from rest_framework.exceptions import AuthenticationFailed, NotAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import analytics, eventstore, options
+from sentry import analytics, audit_log, eventstore, options
 from sentry.api import client
 from sentry.api.base import Endpoint
-from sentry.models import (
-    ApiKey,
-    AuditLogEntryEvent,
-    Group,
-    Identity,
-    IdentityProvider,
-    Integration,
-    Project,
-    Rule,
-)
+from sentry.models import ApiKey, Group, Identity, IdentityProvider, Integration, Project, Rule
 from sentry.utils import json, jwt
 from sentry.utils.audit import create_audit_entry
-from sentry.utils.compat import filter
 from sentry.utils.signing import sign
 from sentry.web.decorators import transaction_start
 
@@ -177,7 +167,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
     def handle_personal_member_add(self, request: Request):
         data = request.data
         # only care if our bot is the new member added
-        matches = filter(lambda x: x["id"] == data["recipient"]["id"], data["membersAdded"])
+        matches = list(filter(lambda x: x["id"] == data["recipient"]["id"], data["membersAdded"]))
         if not matches:
             return self.respond(status=204)
 
@@ -192,7 +182,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
         data = request.data
         channel_data = data["channelData"]
         # only care if our bot is the new member added
-        matches = filter(lambda x: x["id"] == data["recipient"]["id"], data["membersAdded"])
+        matches = list(filter(lambda x: x["id"] == data["recipient"]["id"], data["membersAdded"]))
         if not matches:
             return self.respond(status=204)
 
@@ -218,7 +208,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
         data = request.data
         channel_data = data["channelData"]
         # only care if our bot is the new member removed
-        matches = filter(lambda x: x["id"] == data["recipient"]["id"], data["membersRemoved"])
+        matches = list(filter(lambda x: x["id"] == data["recipient"]["id"], data["membersRemoved"]))
         if not matches:
             return self.respond(status=204)
 
@@ -244,7 +234,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
                 request=request,
                 organization=org,
                 target_object=integration.id,
-                event=AuditLogEntryEvent.INTEGRATION_REMOVE,
+                event=audit_log.get_event_id("INTEGRATION_REMOVE"),
                 actor_label="Teams User",
                 data={
                     "provider": integration.provider,
@@ -422,9 +412,11 @@ class MsTeamsWebhookEndpoint(Endpoint):
             # check the ids of the mentions in the entities
             mentioned = (
                 len(
-                    filter(
-                        lambda x: x.get("mentioned", {}).get("id") == recipient_id,
-                        data.get("entities", []),
+                    list(
+                        filter(
+                            lambda x: x.get("mentioned", {}).get("id") == recipient_id,
+                            data.get("entities", []),
+                        )
                     )
                 )
                 > 0

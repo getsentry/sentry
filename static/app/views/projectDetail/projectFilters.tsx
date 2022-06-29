@@ -15,11 +15,11 @@ import {TagValueLoader} from '../issueList/types';
 type Props = {
   onSearch: (q: string) => void;
   query: string;
+  relativeDateOptions: React.ComponentProps<typeof DatePageFilter>['relativeOptions'];
   tagValueLoader: TagValueLoader;
-  hasPageFilters?: boolean;
 };
 
-function ProjectFilters({query, tagValueLoader, onSearch, hasPageFilters}: Props) {
+function ProjectFilters({query, relativeDateOptions, tagValueLoader, onSearch}: Props) {
   const getTagValues = async (tag: Tag, currentQuery: string): Promise<string[]> => {
     const values = await tagValueLoader(tag.key, currentQuery);
     return values.map(({value}) => value);
@@ -27,49 +27,40 @@ function ProjectFilters({query, tagValueLoader, onSearch, hasPageFilters}: Props
 
   return (
     <FiltersWrapper>
-      {hasPageFilters && (
-        <StyledPageFilterBar>
-          <EnvironmentPageFilter />
-          <DatePageFilter alignDropdown="left" />
-        </StyledPageFilterBar>
-      )}
-      <SearchBarWrapper>
-        <GuideAnchor target="releases_search" position="bottom">
-          <SmartSearchBar
-            searchSource="project_filters"
-            query={query}
-            placeholder={t('Search by release version, build, package, or stage')}
-            maxSearchItems={5}
-            hasRecentSearches={false}
-            supportedTags={{
-              ...SEMVER_TAGS,
-              release: {
-                key: 'release',
-                name: 'release',
-              },
-            }}
-            onSearch={onSearch}
-            onGetTagValues={getTagValues}
-          />
-        </GuideAnchor>
-      </SearchBarWrapper>
+      <PageFilterBar>
+        <EnvironmentPageFilter />
+        <DatePageFilter relativeOptions={relativeDateOptions} alignDropdown="left" />
+      </PageFilterBar>
+      <GuideAnchor target="releases_search" position="bottom">
+        <SmartSearchBar
+          searchSource="project_filters"
+          query={query}
+          placeholder={t('Search by release version, build, package, or stage')}
+          maxSearchItems={5}
+          hasRecentSearches={false}
+          supportedTags={{
+            ...SEMVER_TAGS,
+            release: {
+              key: 'release',
+              name: 'release',
+            },
+          }}
+          onSearch={onSearch}
+          onGetTagValues={getTagValues}
+        />
+      </GuideAnchor>
     </FiltersWrapper>
   );
 }
 
-const StyledPageFilterBar = styled(PageFilterBar)`
-  margin-bottom: ${space(1)};
-  margin-right: ${space(1)};
-`;
-
 const FiltersWrapper = styled('div')`
-  display: flex;
-  flex-wrap: wrap;
-`;
+  display: grid;
+  grid-template-columns: minmax(0, max-content) 1fr;
+  gap: ${space(2)};
 
-const SearchBarWrapper = styled('div')`
-  flex: 1;
-  flex-basis: 430px;
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
+    grid-template-columns: minmax(0, 1fr);
+  }
 `;
 
 export default ProjectFilters;

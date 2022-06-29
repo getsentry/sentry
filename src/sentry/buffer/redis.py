@@ -60,7 +60,8 @@ class RedisBuffer(Buffer):
 
     def validate(self):
         try:
-            with self.cluster.all() as client:
+            # wait 10 seconds at most
+            with self.cluster.all(timeout=10) as client:
                 client.ping()
         except Exception as e:
             raise InvalidConfiguration(str(e))
@@ -295,7 +296,7 @@ class RedisBuffer(Buffer):
             # XXX(py3): Note that ``import_string`` explicitly wants a str in
             # python2, so we'll decode (for python3) and then translate back to
             # a byte string (in python2) for import_string.
-            model = import_string(str(values.pop("m").decode("utf-8")))  # NOQA
+            model = import_string(str(values.pop("m").decode("utf-8")))
 
             if values["f"].startswith(b"{"):
                 filters = self._load_values(json.loads(values.pop("f").decode("utf-8")))

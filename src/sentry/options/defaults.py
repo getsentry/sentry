@@ -25,11 +25,13 @@ register("system.secret-key", flags=FLAG_NOSTORE)
 # Absolute URL to the sentry root directory. Should not include a trailing slash.
 register("system.url-prefix", ttl=60, grace=3600, flags=FLAG_REQUIRED | FLAG_PRIORITIZE_DISK)
 register("system.internal-url-prefix", flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
+register("system.base-hostname", flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
+register("system.customer-base-hostname", flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
 register("system.root-api-key", flags=FLAG_PRIORITIZE_DISK)
 register("system.logging-format", default=LoggingFormat.HUMAN, flags=FLAG_NOSTORE)
 # This is used for the chunk upload endpoint
 register("system.upload-url-prefix", flags=FLAG_PRIORITIZE_DISK)
-register("system.maximum-file-size", default=2 ** 31, flags=FLAG_PRIORITIZE_DISK)
+register("system.maximum-file-size", default=2**31, flags=FLAG_PRIORITIZE_DISK)
 
 # Redis
 register(
@@ -67,7 +69,7 @@ register("mail.username", flags=FLAG_REQUIRED | FLAG_ALLOW_EMPTY | FLAG_PRIORITI
 register("mail.password", flags=FLAG_REQUIRED | FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
 register("mail.use-tls", default=False, flags=FLAG_REQUIRED | FLAG_PRIORITIZE_DISK)
 register("mail.use-ssl", default=False, flags=FLAG_REQUIRED | FLAG_PRIORITIZE_DISK)
-register("mail.subject-prefix", default="[Sentry] ", flags=FLAG_PRIORITIZE_DISK)
+register("mail.subject-prefix", default="[Sentry]", flags=FLAG_PRIORITIZE_DISK)
 register("mail.from", default="root@localhost", flags=FLAG_REQUIRED | FLAG_PRIORITIZE_DISK)
 register("mail.list-namespace", type=String, default="localhost", flags=FLAG_NOSTORE)
 register("mail.enable-replies", default=False, flags=FLAG_PRIORITIZE_DISK)
@@ -116,12 +118,6 @@ register(
     default={"url": "http://localhost:3021"},
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK,
 )
-
-# The ratio of requests for which the new stackwalking method should be compared against the old one
-register("symbolicator.compare_stackwalking_methods_rate", default=0.0)
-
-# The ratio of requests that should be stackwalked with rust-minidump (instead of the default breakpad)
-register("symbolicator.rust_minidump_stackwalking_rate", default=0.0)
 
 # Killswitch for symbolication sources, based on a list of source IDs. Meant to be used in extreme
 # situations where it is preferable to break symbolication in a few places as opposed to letting
@@ -210,6 +206,8 @@ register("aws-lambda.python.layer-name", default="SentryPythonServerlessSDK")
 register("aws-lambda.python.layer-version")
 # the region of the host account we use for assuming the role
 register("aws-lambda.host-region", default="us-east-2")
+# the number of threads we should use to install Lambdas
+register("aws-lambda.thread-count", default=100)
 
 # Snuba
 register("snuba.search.pre-snuba-candidates-optimizer", type=Bool, default=False)
@@ -311,6 +309,9 @@ register("processing.can-use-scrubbers", default=True)
 # Note: A value that is neither 0 nor 1 is regarded as 0
 register("store.use-relay-dsn-sample-rate", default=1)
 
+# A rate to apply to any events denoted as experimental to be sent to an experimental dsn.
+register("store.use-experimental-dsn-sample-rate", default=0.0)
+
 # Mock out integrations and services for tests
 register("mocks.jira", default=False)
 
@@ -390,3 +391,20 @@ register("store.save-transactions-ingest-consumer-rate", default=0.0)
 
 # Drop delete_old_primary_hash messages for a particular project.
 register("reprocessing2.drop-delete-old-primary-hash", default=[])
+
+# Send event messages for specific project IDs to random partitions in Kafka
+# contents are a list of project IDs to message types to be randomly assigned
+# e.g. [{"project_id": 2, "message_type": "error"}, {"project_id": 3, "message_type": "transaction"}]
+register("kafka.send-project-events-to-random-partitions", default=[])
+
+# Rate to project_configs_v3, no longer used.
+register("relay.project-config-v3-enable", default=0.0)
+
+# Mechanism for dialing up the last-seen-updater, which isn't needed outside
+# of SaaS (last_seen is a marker for deleting stale customer data)
+register("sentry-metrics.last-seen-updater.accept-rate", default=0.0)
+
+# default brownout crontab for api deprecations
+register("api.deprecation.brownout-cron", default="0 12 * * *", type=String)
+# Brownout duration to be stored in ISO8601 format for durations (See https://en.wikipedia.org/wiki/ISO_8601#Durations)
+register("api.deprecation.brownout-duration", default="PT1M")

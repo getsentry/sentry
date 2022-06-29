@@ -1,14 +1,16 @@
 import {useEffect, useState} from 'react';
 import pick from 'lodash/pick';
 
-import MenuItem from 'sentry/components/menuItem';
+import DropdownButtonV2 from 'sentry/components/dropdownButtonV2';
+import CompactSelect from 'sentry/components/forms/compactSelect';
+import {IconEllipsis} from 'sentry/icons/iconEllipsis';
+import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
 import {usePerformanceDisplayType} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 import useOrganization from 'sentry/utils/useOrganization';
 import withOrganization from 'sentry/utils/withOrganization';
-import ContextMenu from 'sentry/views/dashboardsV2/contextMenu';
 
 import {GenericPerformanceWidgetDataType} from '../types';
 import {_setChartSetting, getChartSetting} from '../utils';
@@ -30,6 +32,7 @@ type Props = {
   organization: Organization;
   rowChartSettings: PerformanceWidgetSetting[];
   setRowChartSettings: (settings: PerformanceWidgetSetting[]) => void;
+  withStaticFilters: boolean;
   chartColor?: string;
   forceDefaultChartSetting?: boolean;
 } & ChartRowProps;
@@ -114,6 +117,7 @@ const _WidgetContainer = (props: Props) => {
     'location',
     'organization',
     'chartHeight',
+    'withStaticFilters',
   ]);
 
   switch (widgetProps.dataType) {
@@ -144,25 +148,41 @@ export const WidgetContainerActions = ({
   setChartSetting: (setting: PerformanceWidgetSetting) => void;
 }) => {
   const organization = useOrganization();
-  const menuOptions: React.ReactNode[] = [];
+  const menuOptions: React.ComponentProps<typeof CompactSelect>['options'] = [];
 
   const settingsMap = WIDGET_DEFINITIONS({organization});
   for (const setting of allowedCharts) {
     const options = settingsMap[setting];
-    menuOptions.push(
-      <MenuItem
-        key={setting}
-        onClick={() => setChartSetting(setting)}
-        isActive={setting === chartSetting}
-        disabled={setting !== chartSetting && rowChartSettings.includes(setting)}
-        data-test-id="performance-widget-menu-item"
-      >
-        {options.title}
-      </MenuItem>
+    menuOptions.push({
+      value: setting,
+      label: options.title,
+      disabled: setting !== chartSetting && rowChartSettings.includes(setting),
+    });
+  }
+
+  function trigger({props, ref}) {
+    return (
+      <DropdownButtonV2
+        ref={ref}
+        {...props}
+        size="xsmall"
+        borderless
+        showChevron={false}
+        icon={<IconEllipsis aria-label={t('More')} />}
+      />
     );
   }
 
-  return <ContextMenu>{menuOptions}</ContextMenu>;
+  return (
+    <CompactSelect
+      onChange={opt => setChartSetting(opt.value)}
+      options={menuOptions}
+      isOptionDisabled={opt => opt.disabled}
+      value={chartSetting}
+      trigger={trigger}
+      placement="bottom right"
+    />
+  );
 };
 
 const WidgetContainer = withOrganization(_WidgetContainer);

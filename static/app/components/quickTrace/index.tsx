@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment} from 'react';
 import {Location, LocationDescriptor} from 'history';
 
 import DropdownLink from 'sentry/components/dropdownLink';
@@ -80,7 +80,7 @@ export default function QuickTrace({
   try {
     parsedQuickTrace = parseQuickTrace(quickTrace, event, organization);
   } catch (error) {
-    return <React.Fragment>{'\u2014'}</React.Fragment>;
+    return <Fragment>{'\u2014'}</Fragment>;
   }
 
   const traceLength = quickTrace.trace && quickTrace.trace.length;
@@ -169,7 +169,7 @@ export default function QuickTrace({
           if (project?.platform) {
             if (BACKEND_PLATFORMS.includes(project.platform as string)) {
               return (
-                <React.Fragment>
+                <Fragment>
                   <MissingServiceNode
                     anchor={anchor}
                     organization={organization}
@@ -177,12 +177,12 @@ export default function QuickTrace({
                     connectorSide="right"
                   />
                   {currentNode}
-                </React.Fragment>
+                </Fragment>
               );
             }
             if (FRONTEND_PLATFORMS.includes(project.platform as string)) {
               return (
-                <React.Fragment>
+                <Fragment>
                   {currentNode}
                   <MissingServiceNode
                     anchor={anchor}
@@ -190,7 +190,7 @@ export default function QuickTrace({
                     platform={project.platform}
                     connectorSide="left"
                   />
-                </React.Fragment>
+                </Fragment>
               );
             }
           }
@@ -546,10 +546,7 @@ function readHideMissingServiceState() {
   return expires > now;
 }
 
-class MissingServiceNode extends React.Component<
-  MissingServiceProps,
-  MissingServiceState
-> {
+class MissingServiceNode extends Component<MissingServiceProps, MissingServiceState> {
   state: MissingServiceState = {
     hideMissing: readHideMissingServiceState(),
   };
@@ -591,9 +588,9 @@ class MissingServiceNode extends React.Component<
     const docsHref =
       docPlatform === null || docPlatform === 'javascript'
         ? 'https://docs.sentry.io/platforms/javascript/performance/connect-services/'
-        : `https://docs.sentry.io/platforms/${docPlatform}/performance#connecting-services`;
+        : `https://docs.sentry.io/platforms/${docPlatform}/performance/connecting-services`;
     return (
-      <React.Fragment>
+      <Fragment>
         {connectorSide === 'left' && <TraceConnector />}
         <DropdownContainer>
           <DropdownLink
@@ -618,7 +615,7 @@ class MissingServiceNode extends React.Component<
           </DropdownLink>
         </DropdownContainer>
         {connectorSide === 'right' && <TraceConnector />}
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

@@ -131,7 +131,7 @@ describe('InviteRequestRow', function () {
     expect(mockApprove).not.toHaveBeenCalled();
   });
 
-  it('non-admin can not approve or deny invite request', async function () {
+  it('non-admin can not approve or deny invite request', function () {
     const wrapper = mountWithTheme(
       <InviteRequestRow
         orgId={orgId}
@@ -158,7 +158,13 @@ describe('InviteRequestRow', function () {
       teams: ['myteam'],
     });
 
-    act(() => void TeamStore.loadInitialData([{slug: 'one'}, {slug: 'two'}]));
+    act(
+      () =>
+        void TeamStore.loadInitialData([
+          {id: '1', slug: 'one'},
+          {id: '2', slug: 'two'},
+        ])
+    );
     const mockUpdate = jest.fn();
 
     const wrapper = mountWithTheme(

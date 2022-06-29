@@ -1,4 +1,3 @@
-import * as React from 'react';
 import Fuse from 'fuse.js';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';

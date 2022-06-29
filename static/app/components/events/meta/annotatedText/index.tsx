@@ -1,4 +1,3 @@
-import * as React from 'react';
 import styled from '@emotion/styled';
 import capitalize from 'lodash/capitalize';
 
@@ -87,7 +86,7 @@ const AnnotatedText = ({value, meta, className, ...props}: Props) => {
   };
 
   return (
-    <span className={className} {...props}>
+    <span role="text" className={className} {...props}>
       {renderValue()}
       {meta?.err && renderErrors(meta.err)}
     </span>

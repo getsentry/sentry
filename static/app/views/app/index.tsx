@@ -1,25 +1,25 @@
-import {lazy, Profiler, Suspense, useEffect, useRef} from 'react';
-import {useHotkeys} from 'react-hotkeys-hook';
+import {lazy, Profiler, Suspense, useCallback, useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {
   displayDeployPreviewAlert,
   displayExperimentalSpaAlert,
-} from 'sentry/actionCreators/deployPreview';
+} from 'sentry/actionCreators/developmentAlerts';
 import {fetchGuides} from 'sentry/actionCreators/guides';
 import {openCommandPalette} from 'sentry/actionCreators/modal';
-import AlertActions from 'sentry/actions/alertActions';
 import {initApiClientErrorHandling} from 'sentry/api';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import GlobalModal from 'sentry/components/globalModal';
 import Indicators from 'sentry/components/indicators';
 import {DEPLOY_PREVIEW_CONFIG, EXPERIMENTAL_SPA} from 'sentry/constants';
+import AlertStore from 'sentry/stores/alertStore';
 import ConfigStore from 'sentry/stores/configStore';
 import HookStore from 'sentry/stores/hookStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {onRenderCallback} from 'sentry/utils/performanceForSentry';
 import useApi from 'sentry/utils/useApi';
+import {useHotkeys} from 'sentry/utils/useHotkeys';
 
 import SystemAlerts from './systemAlerts';
 
@@ -38,37 +38,49 @@ function App({children}: Props) {
   const config = useLegacyStore(ConfigStore);
 
   // Command palette global-shortcut
-  useHotkeys('command+shift+p, command+k, ctrl+shift+p, ctrl+k', e => {
-    openCommandPalette();
-    e.preventDefault();
-  });
+  useHotkeys(
+    [
+      {
+        match: ['command+shift+p', 'command+k', 'ctrl+shift+p', 'ctrl+k'],
+        callback: e => {
+          openCommandPalette();
+          e.preventDefault();
+        },
+      },
+    ],
+    []
+  );
 
   // Theme toggle global shortcut
   useHotkeys(
-    'command+shift+l, ctrl+shift+l',
-    e => {
-      ConfigStore.set('theme', config.theme === 'light' ? 'dark' : 'light');
-      e.preventDefault();
-    },
+    [
+      {
+        match: ['command+shift+l', 'ctrl+shift+l'],
+        callback: e => {
+          ConfigStore.set('theme', config.theme === 'light' ? 'dark' : 'light');
+          e.preventDefault();
+        },
+      },
+    ],
     [config.theme]
   );
 
   /**
    * Loads the users organization list into the OrganizationsStore
    */
-  async function loadOrganizations() {
+  const loadOrganizations = useCallback(async () => {
     try {
       const data = await api.requestPromise('/organizations/', {query: {member: '1'}});
       OrganizationsStore.load(data);
     } catch {
       // TODO: do something?
     }
-  }
+  }, [api]);
 
   /**
    * Creates Alerts for any internal health problems
    */
-  async function checkInternalHealth() {
+  const checkInternalHealth = useCallback(async () => {
     let data: any = null;
 
     try {
@@ -77,13 +89,13 @@ function App({children}: Props) {
       // TODO: do something?
     }
 
-    data?.problems?.forEach?.(problem => {
+    data?.problems?.forEach?.((problem: any) => {
       const {id, message, url} = problem;
       const type = problem.severity === 'critical' ? 'error' : 'warning';
 
-      AlertActions.addAlert({id, message, type, url, opaque: true});
+      AlertStore.addAlert({id, message, type, url, opaque: true});
     });
-  }
+  }, [api]);
 
   useEffect(() => {
     loadOrganizations();
@@ -91,7 +103,7 @@ function App({children}: Props) {
 
     // Show system-level alerts
     config.messages.forEach(msg =>
-      AlertActions.addAlert({message: msg.message, type: msg.level, neverExpire: true})
+      AlertStore.addAlert({message: msg.message, type: msg.level, neverExpire: true})
     );
 
     // The app is running in deploy preview mode
@@ -114,7 +126,7 @@ function App({children}: Props) {
 
     // When the app is unloaded clear the organizationst list
     return () => OrganizationsStore.load([]);
-  }, []);
+  }, [loadOrganizations, checkInternalHealth, config.messages, config.user]);
 
   function clearUpgrade() {
     ConfigStore.set('needsUpgrade', false);
@@ -150,11 +162,12 @@ function App({children}: Props) {
 
   // Used to restore focus to the container after closing the modal
   const mainContainerRef = useRef<HTMLDivElement>(null);
+  const handleModalClose = useCallback(() => mainContainerRef.current?.focus?.(), []);
 
   return (
     <Profiler id="App" onRender={onRenderCallback}>
       <MainContainer tabIndex={-1} ref={mainContainerRef}>
-        <GlobalModal onClose={() => mainContainerRef.current?.focus?.()} />
+        <GlobalModal onClose={handleModalClose} />
         <SystemAlerts className="messages-container" />
         <Indicators className="indicators-container" />
         <ErrorBoundary>{renderBody()}</ErrorBoundary>

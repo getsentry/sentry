@@ -1,4 +1,4 @@
-import {useEffect, useRef} from 'react';
+import {useCallback, useEffect, useRef} from 'react';
 import {createPortal} from 'react-dom';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -47,18 +47,16 @@ interface Props extends React.HTMLAttributes<HTMLDivElement> {
   title?: string;
 }
 
-/**
- * Get the container element of the sidebar that react portals into.
- */
-export const getSidebarPanelContainer = () =>
-  document.getElementById('sidebar-flyout-portal') as HTMLDivElement;
+const getSidebarPortal = () => {
+  let portal = document.getElementById('sidebar-flyout-portal');
 
-const makePortal = () => {
-  const portal = document.createElement('div');
-  portal.setAttribute('id', 'sidebar-flyout-portal');
-  document.body.appendChild(portal);
+  if (!portal) {
+    portal = document.createElement('div');
+    portal.setAttribute('id', 'sidebar-flyout-portal');
+    document.body.appendChild(portal);
+  }
 
-  return portal;
+  return portal as HTMLDivElement;
 };
 
 function SidebarPanel({
@@ -69,28 +67,32 @@ function SidebarPanel({
   children,
   ...props
 }: Props): React.ReactElement {
-  const portalEl = useRef<HTMLDivElement>(getSidebarPanelContainer() || makePortal());
+  const portalEl = useRef<HTMLDivElement>(getSidebarPortal());
 
-  function panelCloseHandler(evt: MouseEvent) {
-    if (!(evt.target instanceof Element)) {
-      return;
-    }
+  const panelCloseHandler = useCallback(
+    (evt: MouseEvent) => {
+      if (!(evt.target instanceof Element)) {
+        return;
+      }
 
-    const panel = getSidebarPanelContainer();
+      if (portalEl.current.contains(evt.target)) {
+        return;
+      }
 
-    if (panel?.contains(evt.target)) {
-      return;
-    }
-
-    hidePanel();
-  }
+      hidePanel();
+    },
+    [hidePanel]
+  );
 
   useEffect(() => {
-    document.addEventListener('click', panelCloseHandler);
+    // Wait one tick to setup the click handler so we don't detect the click
+    // that is bubbling up from opening the panel itself
+    window.setTimeout(() => document.addEventListener('click', panelCloseHandler));
+
     return function cleanup() {
-      document.removeEventListener('click', panelCloseHandler);
+      window.setTimeout(() => document.removeEventListener('click', panelCloseHandler));
     };
-  }, []);
+  }, [panelCloseHandler]);
 
   return createPortal(
     <PanelContainer

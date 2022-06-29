@@ -1,3 +1,4 @@
+import abc
 from urllib.parse import urlparse
 
 from django.contrib import messages
@@ -87,7 +88,7 @@ class SAML2LoginView(AuthView):
 # (sentry) (the typical case) and the Identity Provider. In the second case,
 # the auth assertion is directly posted to the ACS URL. Because the user will
 # not have initiated their SSO flow we must provide a endpoint similar to
-# auth_provider_login, but with support for initing the auth flow.
+# auth_provider_login, but with support for initializing the auth flow.
 class SAML2AcceptACSView(BaseView):
     @method_decorator(csrf_exempt)
     def dispatch(self, request: Request, organization_slug):
@@ -203,7 +204,7 @@ class Attributes:
     LAST_NAME = "last_name"
 
 
-class SAML2Provider(Provider):
+class SAML2Provider(Provider, abc.ABC):
     """
     Base SAML2 Authentication provider. SAML style authentication plugins
     should implement this.
@@ -256,6 +257,7 @@ class SAML2Provider(Provider):
     def get_setup_pipeline(self):
         return self.get_saml_setup_pipeline() + self.get_auth_pipeline()
 
+    @abc.abstractmethod
     def get_saml_setup_pipeline(self):
         """
         Return a list of AuthViews to setup the SAML provider.
@@ -263,7 +265,7 @@ class SAML2Provider(Provider):
         The setup AuthView(s) must bind the `idp` parameter into the helper
         state.
         """
-        raise NotImplementedError
+        pass
 
     def attribute_mapping(self):
         """

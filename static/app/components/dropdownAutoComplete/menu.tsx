@@ -1,5 +1,6 @@
-import * as React from 'react';
+import {useCallback} from 'react';
 import styled from '@emotion/styled';
+import memoize from 'lodash/memoize';
 
 import AutoComplete from 'sentry/components/autoComplete';
 import DropdownBubble from 'sentry/components/dropdownBubble';
@@ -135,11 +136,6 @@ type Props = {
   menuProps?: Parameters<AutoCompleteChildrenArgs['getMenuProps']>[0];
 
   /**
-   * Changes the menu style to have an arrow at the top
-   */
-  menuWithArrow?: boolean;
-
-  /**
    * Minimum menu width, defaults to 250
    */
   minWidth?: number;
@@ -194,7 +190,7 @@ type Props = {
   'virtualizedHeight' | 'virtualizedLabelHeight' | 'itemSize' | 'onScroll'
 >;
 
-const Menu = ({
+function Menu({
   maxHeight = 300,
   emptyMessage = t('No items'),
   searchPlaceholder = t('Filter search'),
@@ -206,7 +202,6 @@ const Menu = ({
   disableLabelPadding = false,
   busy = false,
   busyItemsStillVisible = false,
-  menuWithArrow = false,
   disabled = false,
   subPanel = null,
   itemSize,
@@ -234,158 +229,173 @@ const Menu = ({
   closeOnSelect,
   'data-test-id': dataTestId,
   ...props
-}: Props) => (
-  <AutoComplete
-    onSelect={onSelect}
-    inputIsActor={false}
-    onOpen={onOpen}
-    onClose={onClose}
-    disabled={disabled}
-    closeOnSelect={closeOnSelect}
-    resetInputOnClose
-    {...props}
-  >
-    {({
-      getActorProps,
-      getRootProps,
-      getInputProps,
-      getMenuProps,
-      getItemProps,
-      inputValue,
-      selectedItem,
-      highlightedIndex,
-      isOpen,
-      actions,
-    }) => {
-      // This is the value to use to filter (default to value in filter input)
-      const filterValueOrInput = filterValue ?? inputValue;
+}: Props) {
+  // Can't search if there are no items
+  const hasItems = !!items?.length;
 
-      // Can't search if there are no items
-      const hasItems = !!items?.length;
+  // Items are loading if null
+  const itemsLoading = items === null;
 
-      // Only filter results if menu is open and there are items
-      const autoCompleteResults =
-        (isOpen && hasItems && autoCompleteFilter(items, filterValueOrInput)) || [];
+  // Hide the input when we have no items to filter, only if
+  // emptyHidesInput is set to true.
+  const showInput = !hideInput && (hasItems || !emptyHidesInput);
 
-      // Items are loading if null
-      const itemsLoading = items === null;
+  // Only redefine the autocomplete function if our items list has changed.
+  // This avoids producing a new array on every call.
+  const stableItemFilter = useCallback(
+    (filterValueOrInput: string) => autoCompleteFilter(items, filterValueOrInput),
+    [items]
+  );
 
-      // Has filtered results
-      const hasResults = !!autoCompleteResults.length;
+  // Memoize the filterValueOrInput to the stableItemFilter so that we get the
+  // same list every time when the filter value doesn't change.
+  const getFilteredItems = memoize(stableItemFilter);
 
-      // No items to display
-      const showNoItems = !busy && !filterValueOrInput && !hasItems;
+  return (
+    <AutoComplete
+      onSelect={onSelect}
+      inputIsActor={false}
+      onOpen={onOpen}
+      onClose={onClose}
+      disabled={disabled}
+      closeOnSelect={closeOnSelect}
+      resetInputOnClose
+      {...props}
+    >
+      {({
+        getActorProps,
+        getRootProps,
+        getInputProps,
+        getMenuProps,
+        getItemProps,
+        registerItemCount,
+        registerVisibleItem,
+        inputValue,
+        selectedItem,
+        highlightedIndex,
+        isOpen,
+        actions,
+      }) => {
+        // This is the value to use to filter (default to value in filter input)
+        const filterValueOrInput = filterValue ?? inputValue;
 
-      // Results mean there was an attempt to search
-      const showNoResultsMessage =
-        !busy && !busyItemsStillVisible && filterValueOrInput && !hasResults;
+        // Only filter results if menu is open and there are items. Uses
+        // `getFilteredItems` to ensure we get a stable items list back.
+        const autoCompleteResults =
+          isOpen && hasItems ? getFilteredItems(filterValueOrInput) : [];
 
-      // Hide the input when we have no items to filter, only if
-      // emptyHidesInput is set to true.
-      const showInput = !hideInput && (hasItems || !emptyHidesInput);
+        // Has filtered results
+        const hasResults = !!autoCompleteResults.length;
 
-      // When virtualization is turned on, we need to pass in the number of
-      // selecteable items for arrow-key limits
-      const itemCount = virtualizedHeight
-        ? autoCompleteResults.filter(i => !i.groupLabel).length
-        : undefined;
+        // No items to display
+        const showNoItems = !busy && !filterValueOrInput && !hasItems;
 
-      const renderedFooter =
-        typeof menuFooter === 'function' ? menuFooter({actions}) : menuFooter;
+        // Results mean there was an attempt to search
+        const showNoResultsMessage =
+          !busy && !busyItemsStillVisible && filterValueOrInput && !hasResults;
 
-      return (
-        <AutoCompleteRoot
-          {...getRootProps()}
-          className={rootClassName}
-          disabled={disabled}
-          data-test-id={dataTestId}
-        >
-          {children({
-            getInputProps,
-            getActorProps,
-            actions,
-            isOpen,
-            selectedItem,
-          })}
-          {isOpen && (
-            <StyledDropdownBubble
-              className={className}
-              {...getMenuProps({
-                ...menuProps,
-                itemCount,
-              })}
-              style={style}
-              css={css}
-              blendCorner={blendCorner}
-              detached={detached}
-              alignMenu={alignMenu}
-              menuWithArrow={menuWithArrow}
-              minWidth={minWidth}
-            >
-              <DropdownMainContent minWidth={minWidth}>
-                {itemsLoading && <LoadingIndicator mini />}
-                {showInput && (
-                  <InputWrapper>
-                    <StyledInput
-                      autoFocus
-                      placeholder={searchPlaceholder}
-                      {...getInputProps({...inputProps, onChange})}
-                    />
-                    <InputLoadingWrapper>
-                      {(busy || busyItemsStillVisible) && (
-                        <LoadingIndicator size={16} mini />
-                      )}
-                    </InputLoadingWrapper>
-                    {inputActions}
-                  </InputWrapper>
-                )}
-                <div>
-                  {menuHeader && (
-                    <LabelWithPadding disableLabelPadding={disableLabelPadding}>
-                      {menuHeader}
-                    </LabelWithPadding>
-                  )}
-                  <ItemList data-test-id="autocomplete-list" maxHeight={maxHeight}>
-                    {showNoItems && <EmptyMessage>{emptyMessage}</EmptyMessage>}
-                    {showNoResultsMessage && (
-                      <EmptyMessage>
-                        {noResultsMessage ?? `${emptyMessage} ${t('found')}`}
-                      </EmptyMessage>
-                    )}
-                    {busy && (
-                      <BusyMessage>
-                        <EmptyMessage>{t('Searching\u2026')}</EmptyMessage>
-                      </BusyMessage>
-                    )}
-                    {!busy && (
-                      <List
-                        items={autoCompleteResults}
-                        maxHeight={maxHeight}
-                        highlightedIndex={highlightedIndex}
-                        inputValue={inputValue}
-                        onScroll={onScroll}
-                        getItemProps={getItemProps}
-                        virtualizedLabelHeight={virtualizedLabelHeight}
-                        virtualizedHeight={virtualizedHeight}
-                        itemSize={itemSize}
+        // When virtualization is turned on, we need to pass in the number of
+        // selectable items for arrow-key limits
+        const itemCount = virtualizedHeight
+          ? autoCompleteResults.filter(i => !i.groupLabel).length
+          : undefined;
+
+        const renderedFooter =
+          typeof menuFooter === 'function' ? menuFooter({actions}) : menuFooter;
+
+        // XXX(epurkhiser): Would be better if this happened in a useEffect,
+        // but hooks do not work inside render-prop callbacks.
+        registerItemCount(itemCount);
+
+        return (
+          <AutoCompleteRoot
+            {...getRootProps()}
+            className={rootClassName}
+            disabled={disabled}
+            data-is-open={isOpen}
+            data-test-id={dataTestId}
+          >
+            {children({
+              getInputProps,
+              getActorProps,
+              actions,
+              isOpen,
+              selectedItem,
+            })}
+            {isOpen && (
+              <StyledDropdownBubble
+                className={className}
+                {...getMenuProps(menuProps)}
+                {...{style, css, blendCorner, detached, alignMenu, minWidth}}
+              >
+                <DropdownMainContent minWidth={minWidth}>
+                  {itemsLoading && <LoadingIndicator mini />}
+                  {showInput && (
+                    <InputWrapper>
+                      <StyledInput
+                        autoFocus
+                        placeholder={searchPlaceholder}
+                        {...getInputProps({...inputProps, onChange})}
                       />
-                    )}
-                  </ItemList>
-                  {renderedFooter && (
-                    <LabelWithPadding disableLabelPadding={disableLabelPadding}>
-                      {renderedFooter}
-                    </LabelWithPadding>
+                      <InputLoadingWrapper>
+                        {(busy || busyItemsStillVisible) && (
+                          <LoadingIndicator size={16} mini />
+                        )}
+                      </InputLoadingWrapper>
+                      {inputActions}
+                    </InputWrapper>
                   )}
-                </div>
-              </DropdownMainContent>
-              {subPanel}
-            </StyledDropdownBubble>
-          )}
-        </AutoCompleteRoot>
-      );
-    }}
-  </AutoComplete>
-);
+                  <div>
+                    {menuHeader && (
+                      <LabelWithPadding disableLabelPadding={disableLabelPadding}>
+                        {menuHeader}
+                      </LabelWithPadding>
+                    )}
+                    <ItemList data-test-id="autocomplete-list" maxHeight={maxHeight}>
+                      {showNoItems && <EmptyMessage>{emptyMessage}</EmptyMessage>}
+                      {showNoResultsMessage && (
+                        <EmptyMessage>
+                          {noResultsMessage ?? `${emptyMessage} ${t('found')}`}
+                        </EmptyMessage>
+                      )}
+                      {busy && (
+                        <BusyMessage>
+                          <EmptyMessage>{t('Searching\u2026')}</EmptyMessage>
+                        </BusyMessage>
+                      )}
+                      {!busy && (
+                        <List
+                          items={autoCompleteResults}
+                          {...{
+                            maxHeight,
+                            highlightedIndex,
+                            inputValue,
+                            onScroll,
+                            getItemProps,
+                            registerVisibleItem,
+                            virtualizedLabelHeight,
+                            virtualizedHeight,
+                            itemSize,
+                          }}
+                        />
+                      )}
+                    </ItemList>
+                    {renderedFooter && (
+                      <LabelWithPadding disableLabelPadding={disableLabelPadding}>
+                        {renderedFooter}
+                      </LabelWithPadding>
+                    )}
+                  </div>
+                </DropdownMainContent>
+                {subPanel}
+              </StyledDropdownBubble>
+            )}
+          </AutoCompleteRoot>
+        );
+      }}
+    </AutoComplete>
+  );
+}
 
 export default Menu;
 
@@ -424,9 +434,7 @@ const EmptyMessage = styled('div')`
   text-transform: none;
 `;
 
-export const AutoCompleteRoot = styled(({isOpen: _isOpen, ...props}) => (
-  <div {...props} />
-))`
+export const AutoCompleteRoot = styled('div')<{disabled?: boolean}>`
   position: relative;
   display: inline-block;
   ${p => p.disabled && 'pointer-events: none;'}

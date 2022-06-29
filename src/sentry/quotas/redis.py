@@ -5,7 +5,7 @@ import sentry_sdk
 
 from sentry.constants import DataCategory
 from sentry.quotas.base import NotRateLimited, Quota, QuotaConfig, QuotaScope, RateLimited
-from sentry.utils.compat import map, zip
+from sentry.utils.compat import map
 from sentry.utils.redis import (
     get_dynamic_cluster_from_options,
     load_script,
@@ -46,14 +46,8 @@ class RedisQuota(Quota):
             return self.cluster.get_local_client_for_key(routing_key)
 
     def __get_redis_key(self, quota, timestamp, shift, organization_id):
-        if self.is_redis_cluster:
-            scope_id = quota.scope_id or "" if quota.scope != QuotaScope.ORGANIZATION else ""
-            # new style redis cluster format which always has the organization id in
-            local_key = f"{quota.id}{{{organization_id}}}{scope_id}"
-        else:
-            # legacy key format
-            local_key = f"{quota.id}:{quota.scope_id or organization_id}"
-
+        scope_id = quota.scope_id or "" if quota.scope != QuotaScope.ORGANIZATION else ""
+        local_key = f"{quota.id}{{{organization_id}}}{scope_id}"
         interval = quota.window
         return f"{self.namespace}:{local_key}:{int((timestamp - shift) // interval)}"
 

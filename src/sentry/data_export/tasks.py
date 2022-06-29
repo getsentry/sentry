@@ -4,9 +4,16 @@ import logging
 import tempfile
 from hashlib import sha1
 
+import celery
 import sentry_sdk
+
+# XXX(mdtro): backwards compatible imports for celery 4.4.7, remove after upgrade to 5.2.7
+if celery.version_info >= (5, 2):
+    from celery import current_task
+else:
+    from celery.task import current as current_task
+
 from celery.exceptions import MaxRetriesExceededError
-from celery.task import current
 from django.core.files.base import ContentFile
 from django.db import IntegrityError, router
 from django.utils import timezone
@@ -173,7 +180,7 @@ def assemble_download(
             capture_exception(error)
 
             try:
-                current.retry()
+                current_task.retry()
             except MaxRetriesExceededError:
                 metrics.incr(
                     "dataexport.end",
@@ -290,7 +297,7 @@ def store_export_chunk_as_blob(data_export, bytes_written, fileobj, blob_size=DE
                 # there is a maximum file size allowed, so we need to make sure we don't exceed it
                 # NOTE: there seems to be issues with downloading files larger than 1 GB on slower
                 # networks, limit the export to 1 GB for now to improve reliability
-                if bytes_written + bytes_offset >= min(MAX_FILE_SIZE, 2 ** 30):
+                if bytes_written + bytes_offset >= min(MAX_FILE_SIZE, 2**30):
                     raise ExportDataFileTooBig()
     except ExportDataFileTooBig:
         return 0
@@ -343,9 +350,10 @@ def merge_export_blobs(data_export_id, **kwargs):
                     size += blob.size
                     blob_checksum = sha1(b"")
 
-                    for chunk in blob.getfile().chunks():
-                        blob_checksum.update(chunk)
-                        file_checksum.update(chunk)
+                    with blob.getfile() as f:
+                        for chunk in f.chunks():
+                            blob_checksum.update(chunk)
+                            file_checksum.update(chunk)
 
                     if blob.checksum != blob_checksum.hexdigest():
                         raise AssembleChecksumMismatch("Checksum mismatch")

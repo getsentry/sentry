@@ -1,5 +1,3 @@
-import * as React from 'react';
-
 import AsyncComponent from 'sentry/components/asyncComponent';
 import AvatarList from 'sentry/components/avatar/avatarList';
 import {Member} from 'sentry/types';

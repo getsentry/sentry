@@ -1,5 +1,6 @@
-import * as React from 'react';
+import {PureComponent} from 'react';
 import {findDOMNode} from 'react-dom';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import color from 'color';
 
@@ -16,7 +17,18 @@ type DefaultProps = {
 type Props = {
   clipHeight: number;
   className?: string;
+  /**
+   * When available replaces the default clipFade component
+   */
+  clipFade?: ({showMoreButton}: {showMoreButton: React.ReactNode}) => React.ReactNode;
+  /**
+   * Triggered when user clicks on the show more button
+   */
   onReveal?: () => void;
+  /**
+   * Its trigged when the component is mounted and its height available
+   */
+  onSetRenderedHeight?: (renderedHeight: number) => void;
   renderedHeight?: number;
   title?: string;
 } & DefaultProps;
@@ -27,7 +39,7 @@ type State = {
   renderedHeight?: number;
 };
 
-class ClippedBox extends React.PureComponent<Props, State> {
+class ClippedBox extends PureComponent<Props, State> {
   static defaultProps: DefaultProps = {
     defaultClipped: false,
     clipHeight: 200,
@@ -43,6 +55,7 @@ class ClippedBox extends React.PureComponent<Props, State> {
   componentDidMount() {
     // eslint-disable-next-line react/no-find-dom-node
     const renderedHeight = (findDOMNode(this) as HTMLElement).offsetHeight;
+    this.props.onSetRenderedHeight?.(renderedHeight);
     this.calcHeight(renderedHeight);
   }
 
@@ -110,10 +123,21 @@ class ClippedBox extends React.PureComponent<Props, State> {
 
   render() {
     const {isClipped, isRevealed} = this.state;
-    const {title, children, clipHeight, btnText, className} = this.props;
+    const {title, children, clipHeight, btnText, className, clipFade} = this.props;
+
+    const showMoreButton = (
+      <Button
+        onClick={this.reveal}
+        priority="primary"
+        size="xsmall"
+        aria-label={btnText ?? t('Show More')}
+      >
+        {btnText}
+      </Button>
+    );
 
     return (
-      <ClipWrapper
+      <Wrapper
         clipHeight={clipHeight}
         isClipped={isClipped}
         isRevealed={isRevealed}
@@ -121,50 +145,44 @@ class ClippedBox extends React.PureComponent<Props, State> {
       >
         {title && <Title>{title}</Title>}
         {children}
-        {isClipped && (
-          <ClipFade>
-            <Button
-              onClick={this.reveal}
-              priority="primary"
-              size="xsmall"
-              aria-label={btnText ?? t('Show More')}
-            >
-              {btnText}
-            </Button>
-          </ClipFade>
-        )}
-      </ClipWrapper>
+        {isClipped &&
+          (clipFade?.({showMoreButton}) ?? <ClipFade>{showMoreButton}</ClipFade>)}
+      </Wrapper>
     );
   }
 }
 
 export default ClippedBox;
 
-const ClipWrapper = styled('div', {
+const Wrapper = styled('div', {
   shouldForwardProp: prop =>
     prop !== 'clipHeight' && prop !== 'isClipped' && prop !== 'isRevealed',
 })<State & {clipHeight: number}>`
   position: relative;
+  border-top: 1px solid ${p => p.theme.backgroundSecondary};
   margin-left: -${space(3)};
   margin-right: -${space(3)};
   padding: ${space(2)} ${space(3)} 0;
-  border-top: 1px solid ${p => p.theme.backgroundSecondary};
-  transition: all 5s ease-in-out;
-
-  /* For "Show More" animation */
-  ${p => p.isRevealed && `max-height: 50000px`};
-
-  ${p =>
-    p.isClipped &&
-    `
-    max-height: ${p.clipHeight}px;
-    overflow: hidden;
-  `};
 
   :first-of-type {
     margin-top: -${space(2)};
     border: 0;
   }
+
+  /* For "Show More" animation */
+  ${p =>
+    p.isRevealed &&
+    css`
+      transition: all 5s ease-in-out;
+      max-height: 50000px;
+    `};
+
+  ${p =>
+    p.isClipped &&
+    css`
+      max-height: ${p.clipHeight}px;
+      overflow: hidden;
+    `};
 `;
 
 const Title = styled('h5')`
@@ -184,10 +202,8 @@ const ClipFade = styled('div')`
   );
   text-align: center;
   border-bottom: ${space(1.5)} solid ${p => p.theme.background};
-
   /* Let pointer-events pass through ClipFade to visible elements underneath it */
   pointer-events: none;
-
   /* Ensure pointer-events trigger event listeners on "Expand" button */
   > * {
     pointer-events: auto;

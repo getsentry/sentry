@@ -1,15 +1,14 @@
 __all__ = ["from_user", "from_member", "DEFAULT"]
 
 import abc
-import warnings
 from dataclasses import dataclass
 from functools import cached_property
-from typing import FrozenSet, Iterable, Mapping, Optional, Tuple
+from typing import Collection, FrozenSet, Iterable, Mapping, Optional, Tuple
 
 import sentry_sdk
 from django.conf import settings
 
-from sentry import roles
+from sentry import features, roles
 from sentry.auth.superuser import is_active_superuser
 from sentry.auth.system import is_system_auth
 from sentry.models import (
@@ -17,6 +16,7 @@ from sentry.models import (
     AuthProvider,
     Organization,
     OrganizationMember,
+    OrganizationMemberTeam,
     Project,
     ProjectStatus,
     SentryApp,
@@ -25,6 +25,9 @@ from sentry.models import (
     UserPermission,
     UserRole,
 )
+from sentry.roles import organization_roles
+from sentry.roles.manager import OrganizationRole, TeamRole
+from sentry.utils import metrics
 from sentry.utils.request_cache import request_cache
 
 
@@ -104,12 +107,20 @@ class Access(abc.ABC):
         return self.member.role if self.member else None
 
     @cached_property
+    def _team_memberships(self) -> Mapping[Team, OrganizationMemberTeam]:
+        if self.member is None:
+            return {}
+        return {
+            omt.team: omt
+            for omt in OrganizationMemberTeam.objects.filter(
+                organizationmember=self.member, is_active=True, team__status=TeamStatus.VISIBLE
+            ).select_related("team")
+        }
+
+    @cached_property
     def teams(self) -> FrozenSet[Team]:
         """Return the set of teams in which the user has actual membership."""
-
-        if self.member is None:
-            return frozenset()
-        return frozenset(self.member.get_teams())
+        return frozenset(self._team_memberships.keys())
 
     @cached_property
     def projects(self) -> FrozenSet[Project]:
@@ -144,9 +155,8 @@ class Access(abc.ABC):
         """
         return scope in self.scopes
 
-    def has_team(self, team: Team) -> bool:
-        warnings.warn("has_team() is deprecated in favor of has_team_access", DeprecationWarning)
-        return self.has_team_access(team)
+    def get_organization_role(self) -> Optional[OrganizationRole]:
+        return self.role and organization_roles.get(self.role)
 
     @abc.abstractmethod
     def has_team_access(self, team: Team) -> bool:
@@ -164,7 +174,27 @@ class Access(abc.ABC):
 
         >>> access.has_team_scope(team, 'team:read')
         """
-        return self.has_team_access(team) and self.has_scope(scope)
+        if not self.has_team_access(team):
+            return False
+        if self.has_scope(scope):
+            return True
+
+        membership = self._team_memberships.get(team)
+        if membership is not None and scope in membership.get_scopes():
+            metrics.incr(
+                "team_roles.pass_by_team_scope",
+                tags={"team_role": membership.role, "scope": scope},
+            )
+            return True
+
+        return False
+
+    def has_team_membership(self, team: Team) -> bool:
+        return team in self.teams
+
+    def get_team_role(self, team: Team) -> Optional[TeamRole]:
+        team_member = self._team_memberships.get(team)
+        return team_member and team_member.get_team_role()
 
     @abc.abstractmethod
     def has_project_access(self, project: Project) -> bool:
@@ -196,7 +226,42 @@ class Access(abc.ABC):
 
         >>> access.has_project_scope(project, 'project:read')
         """
-        return self.has_project_access(project) and self.has_scope(scope)
+        return self.has_any_project_scope(project, [scope])
+
+    def has_any_project_scope(self, project: Project, scopes: Collection[str]) -> bool:
+        """
+        Represent if a user should have access with any one of the given scopes to
+        information for the given project.
+
+        For performance's sake, prefer this over multiple calls to `has_project_scope`.
+        """
+        if not self.has_project_access(project):
+            return False
+        if any(self.has_scope(scope) for scope in scopes):
+            return True
+
+        if self.member and features.has("organizations:team-roles", self.member.organization):
+            with sentry_sdk.start_span(op="check_access_for_all_project_teams") as span:
+                memberships = [
+                    self._team_memberships[team]
+                    for team in project.teams.all()
+                    if team in self._team_memberships
+                ]
+                span.set_tag("organization", self.member.organization.id)
+                span.set_tag("organization.slug", self.member.organization.slug)
+                span.set_data("membership_count", len(memberships))
+
+            for membership in memberships:
+                team_scopes = membership.get_scopes()
+                for scope in scopes:
+                    if scope in team_scopes:
+                        metrics.incr(
+                            "team_roles.pass_by_project_scope",
+                            tags={"team_role": membership.role, "scope": scope},
+                        )
+                        return True
+
+        return False
 
     def to_django_context(self) -> Mapping[str, bool]:
         return {s.replace(":", "_"): self.has_scope(s) for s in settings.SENTRY_SCOPES}
@@ -268,6 +333,9 @@ class OrganizationGlobalMembership(OrganizationGlobalAccess):
             Project.objects.filter(organization=self._organization, status=ProjectStatus.VISIBLE)
         )
 
+    def has_team_membership(self, team: Team) -> bool:
+        return self.has_team_access(team)
+
     def has_project_membership(self, project: Project) -> bool:
         return self.has_project_access(project)
 
@@ -335,9 +403,8 @@ def from_request(
             permissions=get_permissions_for_user(request.user.id),
         )
 
-    # TODO: from_auth does not take scopes as a parameter so this fails for anon user
     if hasattr(request, "auth") and not request.user.is_authenticated:
-        return from_auth(request.auth, scopes=scopes)
+        return from_auth(request.auth, organization)
 
     return from_user(request.user, organization, scopes=scopes)
 

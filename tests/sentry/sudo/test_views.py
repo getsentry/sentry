@@ -1,17 +1,16 @@
 from django.template.response import TemplateResponse
 from django.test import override_settings
 
+from fixtures.sudo_testutils import BaseTestCase
 from sudo.forms import SudoForm
 from sudo.settings import REDIRECT_FIELD_NAME, REDIRECT_TO_FIELD_NAME, REDIRECT_URL
 from sudo.views import redirect_to_sudo, sudo
 
-from .base import BaseTestCase
-
 
 @override_settings(
     AUTHENTICATION_BACKENDS=[
-        "tests.sentry.sudo.base.FooPasswordBackend",
-        "tests.sentry.sudo.base.StubPasswordBackend",
+        "fixtures.sudo_testutils.FooPasswordBackend",
+        "fixtures.sudo_testutils.StubPasswordBackend",
     ]
 )
 class SudoViewTestCase(BaseTestCase):
@@ -64,8 +63,7 @@ class SudoViewTestCase(BaseTestCase):
         response = sudo(self.request)
         self.assertEqual(response["Location"], REDIRECT_URL)
         self.request.GET = {
-            REDIRECT_FIELD_NAME: "http://%s\\@mattrobenolt.com"
-            % self.request.get_host(),  # noqa: W605
+            REDIRECT_FIELD_NAME: "http://%s\\@mattrobenolt.com" % self.request.get_host(),
         }
         response = sudo(self.request)
         self.assertEqual(response["Location"], REDIRECT_URL)
@@ -119,7 +117,7 @@ class SudoViewTestCase(BaseTestCase):
         self.assertEqual(response["Location"], REDIRECT_URL)
         self.assertFalse("redirect_to" in self.request.session)
         self.request.session[REDIRECT_TO_FIELD_NAME] = (
-            "http://%s\\@mattrobenolt.com" % self.request.get_host()  # noqa: W605
+            "http://%s\\@mattrobenolt.com" % self.request.get_host()
         )
         response = sudo(self.request)
         self.assertEqual(response["Location"], REDIRECT_URL)

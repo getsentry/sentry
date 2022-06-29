@@ -1,6 +1,5 @@
 from django.urls import reverse
 
-from sentry.mediators.token_exchange import GrantExchanger
 from sentry.models import ApiToken
 from sentry.testutils import APITestCase
 
@@ -60,16 +59,9 @@ class SentryInternalAppTokenCreationTest(APITestCase):
             slug=sentry_app.slug, organization=self.org, user=self.user
         )
 
-        client_id = install.sentry_app.application.client_id
-        user = install.sentry_app.proxy_user
-
-        api_token = GrantExchanger.run(
-            install=install, code=install.api_grant.code, client_id=client_id, user=user
-        )
-
         url = reverse(
             "sentry-api-0-sentry-internal-app-token-details",
-            args=[install.sentry_app.slug, api_token.token],
+            args=[install.sentry_app.slug, install.api_token.token],
         )
 
         self.login_as(user=self.user)

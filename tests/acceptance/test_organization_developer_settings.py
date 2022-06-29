@@ -1,3 +1,5 @@
+from selenium.webdriver.common.by import By
+
 from sentry.testutils import AcceptanceTestCase
 
 
@@ -22,9 +24,10 @@ class OrganizationDeveloperSettingsNewAcceptanceTest(AcceptanceTestCase):
 
     def test_create_new_public_integration(self):
         self.load_page(self.org_developer_settings_path)
+        self.browser.click('[aria-label="Create New Integration"]')
 
-        self.browser.click('[aria-label="New Public Integration"]')
-
+        self.browser.click_when_visible('[data-test-id="public-integration"]')
+        self.browser.click('[aria-label="Next"]')
         self.browser.element('input[name="name"]').send_keys("Tesla")
         self.browser.element('input[name="author"]').send_keys("Elon Musk")
         self.browser.element('input[name="webhookUrl"]').send_keys("https://example.com/webhook")
@@ -35,8 +38,10 @@ class OrganizationDeveloperSettingsNewAcceptanceTest(AcceptanceTestCase):
 
     def test_create_new_internal_integration(self):
         self.load_page(self.org_developer_settings_path)
+        self.browser.click('[aria-label="Create New Integration"]')
 
-        self.browser.click('[aria-label="New Internal Integration"]')
+        self.browser.click_when_visible('[data-test-id="internal-integration"]')
+        self.browser.click('[aria-label="Next"]')
 
         self.browser.element('input[name="name"]').send_keys("Tesla")
 
@@ -82,7 +87,7 @@ class OrganizationDeveloperSettingsEditAcceptanceTest(AcceptanceTestCase):
 
         self.browser.wait_until(".ref-success")
 
-        link = self.browser.find_element_by_link_text("Tesla App")
+        link = self.browser.find_element(by=By.LINK_TEXT, value="Tesla App")
         link.click()
 
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
@@ -99,8 +104,8 @@ class OrganizationDeveloperSettingsEditAcceptanceTest(AcceptanceTestCase):
         self.browser.click('[data-test-id="token-delete"]')
         self.browser.wait_until(".ref-success")
 
-        assert self.browser.find_element_by_xpath(
-            "//div[contains(text(), 'No tokens created yet.')]"
+        assert self.browser.find_element(
+            by=By.XPATH, value="//div[contains(text(), 'No tokens created yet.')]"
         )
 
     def test_add_tokens_internal_app(self):

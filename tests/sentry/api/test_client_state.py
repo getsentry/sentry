@@ -29,12 +29,49 @@ class ClientStateTest(APITestCase):
         assert resp["Content-Type"] == "application/json"
         assert json.loads(resp.content) == {"test": "data"}
 
-    def test_category_not_exist(self):
+        path = reverse(
+            "sentry-api-0-organization-client-state-list",
+            args=[self.organization.slug],
+        )
+        resp = self.client.get(path)
+        assert resp.status_code == 200
+        assert resp.data == {"onboarding": {"test": "data"}}
+
+    def test_null_state(self):
+        path = reverse(
+            "sentry-api-0-organization-client-state-list",
+            args=[self.organization.slug],
+        )
+        resp = self.client.get(path)
+        assert resp.status_code == 200
+        assert resp.data == {}
+
+        path = reverse(
+            "sentry-api-0-organization-client-state", args=[self.organization.slug, "onboarding"]
+        )
+        resp = self.client.get(self.path)
+        assert resp.status_code == 200
+        assert resp["Content-Type"] == "application/json"
+        assert json.loads(resp.content) == {}
+
+    def test_get_category_not_exist(self):
         path = reverse(
             "sentry-api-0-organization-client-state",
             args=[self.organization.slug, "onboarding-aaa"],
         )
         resp = self.client.get(path)
+        assert resp.status_code == 404
+
+    def test_put_category_not_exist(self):
+        path = reverse(
+            "sentry-api-0-organization-client-state",
+            args=[self.organization.slug, "onboarding-aaa"],
+        )
+
+        resp = self.client.put(
+            path,
+            {"test": "Dummy Data"},
+        )
         assert resp.status_code == 404
 
     def test_org_not_exist(self):

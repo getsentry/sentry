@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
@@ -70,8 +70,8 @@ export interface ChoiceMapperProps extends DefaultProps {
    * Example - Selects differ for each of the items available:
    *
    * {
-   *   'my_object_value':  {'colum_key1': {...select1}, 'column_key2': {...select2}},
-   *   'other_object_val': {'colum_key1': {...select3}, 'column_key2': {...select4}},
+   *   'my_object_value':  {'column_key1': {...select1}, 'column_key2': {...select2}},
+   *   'other_object_val': {'column_key1': {...select3}, 'column_key2': {...select4}},
    * }
    */
   mappedSelectors: MappedSelectors;
@@ -100,7 +100,7 @@ export interface ChoiceMapperFieldProps
       'onBlur' | 'onChange' | 'value' | 'formatMessageValue' | 'disabled'
     > {}
 
-export default class ChoiceMapper extends React.Component<ChoiceMapperFieldProps> {
+export default class ChoiceMapper extends Component<ChoiceMapperFieldProps> {
   static defaultProps = defaultProps;
 
   hasValue = (value: InputFieldProps['value']) => defined(value) && !objectIsEmpty(value);
@@ -194,7 +194,7 @@ export default class ChoiceMapper extends React.Component<ChoiceMapperFieldProps
     }
 
     return (
-      <React.Fragment>
+      <Fragment>
         <Header>
           <LabelColumn>
             <HeadingItem>{mappedColumnLabel}</HeadingItem>
@@ -237,7 +237,7 @@ export default class ChoiceMapper extends React.Component<ChoiceMapperFieldProps
             ))}
           </Row>
         ))}
-      </React.Fragment>
+      </Fragment>
     );
   };
 

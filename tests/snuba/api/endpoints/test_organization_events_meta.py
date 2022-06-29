@@ -137,10 +137,8 @@ class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase):
                 )
         assert response.status_code == 400
 
-    @mock.patch("sentry.snuba.discover.raw_query")
     @mock.patch("sentry.search.events.builder.raw_snql_query")
-    def test_handling_snuba_errors(self, mock_query, mock_snql_query):
-        mock_query.side_effect = ParseError("test")
+    def test_handling_snuba_errors(self, mock_snql_query):
         mock_snql_query.side_effect = ParseError("test")
         with self.feature(self.features):
             response = self.client.get(self.url, format="json")
@@ -179,12 +177,6 @@ class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase):
             )
 
             assert len(mock_quantize.mock_calls) == 2
-
-
-class OrganizationEventsMetaEndpointWithSnql(OrganizationEventsMetaEndpoint):
-    def setUp(self):
-        super().setUp()
-        self.features["organizations:discover-use-snql"] = True
 
 
 class OrganizationEventsRelatedIssuesEndpoint(APITestCase, SnubaTestCase):

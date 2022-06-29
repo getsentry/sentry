@@ -1,5 +1,4 @@
-import * as React from 'react';
-import {components as selectComponents} from 'react-select';
+import {Component} from 'react';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
@@ -20,25 +19,7 @@ type State = {
   version: string;
 };
 
-function VersionOption({
-  data,
-  ...props
-}: React.ComponentProps<typeof selectComponents.Option>) {
-  const release = data.release as Release;
-  return (
-    <selectComponents.Option data={data} {...props}>
-      <strong>
-        <Version version={release.version} anchor={false} />
-      </strong>
-      <br />
-      <small>
-        {t('Created')} <TimeSince date={release.dateCreated} />
-      </small>
-    </selectComponents.Option>
-  );
-}
-
-class CustomResolutionModal extends React.Component<Props, State> {
+class CustomResolutionModal extends Component<Props, State> {
   state: State = {
     version: '',
   };
@@ -50,7 +31,12 @@ class CustomResolutionModal extends React.Component<Props, State> {
   onAsyncFieldResults = (results: Release[]) =>
     results.map(release => ({
       value: release.version,
-      label: release.version,
+      label: <Version version={release.version} anchor={false} />,
+      details: (
+        <span>
+          {t('Created')} <TimeSince date={release.dateCreated} />
+        </span>
+      ),
       release,
     }));
 
@@ -80,9 +66,6 @@ class CustomResolutionModal extends React.Component<Props, State> {
             url={url}
             onResults={this.onAsyncFieldResults}
             onQuery={query => ({query})}
-            components={{
-              Option: VersionOption,
-            }}
           />
         </Body>
         <Footer>

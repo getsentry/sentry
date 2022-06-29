@@ -1,4 +1,5 @@
 from selenium.common.exceptions import TimeoutException
+from selenium.webdriver.common.by import By
 
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 from sentry.utils.retries import TimedRetryPolicy
@@ -37,7 +38,7 @@ class OrganizationSwitchTest(AcceptanceTestCase, SnubaTestCase):
         @TimedRetryPolicy.wrap(timeout=20, exceptions=(TimeoutException,))
         def open_project_selector():
             self.browser.click_when_visible(
-                selector='[data-test-id="global-header-project-selector"]'
+                selector='[data-test-id="page-filter-project-selector"]'
             )
             # Check if the automplete-list has shown up, if that fails we
             # want to retry this step.
@@ -47,7 +48,7 @@ class OrganizationSwitchTest(AcceptanceTestCase, SnubaTestCase):
             selector = '[data-test-id="autocomplete-list"] [data-test-id="badge-display-name"]'
             self.browser.wait_until(selector)
 
-            return self.browser.find_elements_by_css_selector(selector)
+            return self.browser.find_elements(by=By.CSS_SELECTOR, value=selector)
 
         transition_urls = [
             OrganizationSwitchTest.url_creator(page, self.organization.slug)

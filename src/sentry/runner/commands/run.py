@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import signal
 import sys
 from concurrent.futures import ThreadPoolExecutor
@@ -13,25 +15,19 @@ from sentry.runner.decorators import configuration, log_options
 DEFAULT_BLOCK_SIZE = int(32 * 1e6)
 
 
-class AddressParamType(click.ParamType):
-    name = "address"
+def _address_validate(
+    ctx: click.Context, param: click.Parameter, value: str | None
+) -> tuple[str | None, int | None]:
+    if value is None:
+        return (None, None)
 
-    def __call__(self, value, param=None, ctx=None):
-        if value is None:
-            return (None, None)
-        return self.convert(value, param, ctx)
-
-    def convert(self, value, param, ctx):
-        if ":" in value:
-            host, port = value.split(":", 1)
-            port = int(port)
-        else:
-            host = value
-            port = None
-        return host, port
-
-
-Address = AddressParamType()
+    if ":" in value:
+        host, port_s = value.split(":", 1)
+        port: int | None = int(port_s)
+    else:
+        host = value
+        port = None
+    return host, port
 
 
 class QueueSetType(click.ParamType):
@@ -76,7 +72,14 @@ def run():
 
 
 @run.command()
-@click.option("--bind", "-b", default=None, help="Bind address.", type=Address)
+@click.option(
+    "--bind",
+    "-b",
+    default=None,
+    help="Bind address.",
+    metavar="ADDRESS",
+    callback=_address_validate,
+)
 @click.option(
     "--workers", "-w", default=0, help="The number of worker processes for handling requests."
 )
@@ -115,7 +118,14 @@ def web(bind, workers, upgrade, with_lock, noinput):
 
 
 @run.command()
-@click.option("--bind", "-b", default=None, help="Bind address.", type=Address)
+@click.option(
+    "--bind",
+    "-b",
+    default=None,
+    help="Bind address.",
+    metavar="ADDRESS",
+    callback=_address_validate,
+)
 @click.option("--upgrade", default=False, is_flag=True, help="Upgrade before starting.")
 @click.option(
     "--noinput", default=False, is_flag=True, help="Do not prompt the user for input of any kind."
@@ -542,17 +552,20 @@ def ingest_consumer(consumer_types, all_consumer_types, **options):
 @click.option("--input-block-size", type=int, default=DEFAULT_BLOCK_SIZE)
 @click.option("--output-block-size", type=int, default=DEFAULT_BLOCK_SIZE)
 @click.option("--factory-name", default="default")
+@click.option("--ingest-profile", default="release-health")
 @click.option("commit_max_batch_size", "--commit-max-batch-size", type=int, default=25000)
 @click.option("commit_max_batch_time", "--commit-max-batch-time-ms", type=int, default=10000)
 def metrics_streaming_consumer(**options):
+    from sentry.sentry_metrics.configuration import UseCaseKey, get_ingest_config
+    from sentry.sentry_metrics.consumers.indexer.multiprocess import get_streaming_metrics_consumer
     from sentry.sentry_metrics.metrics_wrapper import MetricsWrapper
-    from sentry.sentry_metrics.multiprocess import get_streaming_metrics_consumer
-    from sentry.utils.metrics import backend
+    from sentry.utils.metrics import backend, global_tags
 
-    metrics = MetricsWrapper(backend, "sentry_metrics.indexer")
-    configure_metrics(metrics)
+    ingest_config = get_ingest_config(UseCaseKey(options["ingest_profile"]))
+    metrics_wrapper = MetricsWrapper(backend, "sentry_metrics.indexer")
+    configure_metrics(metrics_wrapper)
 
-    streamer = get_streaming_metrics_consumer(**options)
+    streamer = get_streaming_metrics_consumer(indexer_profile=ingest_config, **options)
 
     def handler(signum, frame):
         streamer.signal_shutdown()
@@ -560,7 +573,8 @@ def metrics_streaming_consumer(**options):
     signal.signal(signal.SIGINT, handler)
     signal.signal(signal.SIGTERM, handler)
 
-    streamer.run()
+    with global_tags(_all_threads=True, pipeline=ingest_config.internal_metrics_tag):
+        streamer.run()
 
 
 @run.command("ingest-profiles")
@@ -572,3 +586,24 @@ def profiles_consumer(**options):
     from sentry.profiles.consumer import get_profiles_consumer
 
     get_profiles_consumer(**options).run()
+
+
+@run.command("indexer-last-seen-updater")
+@log_options()
+@configuration
+@batching_kafka_options("indexer-last-seen-updater-consumer")
+@click.option("commit_max_batch_size", "--commit-max-batch-size", type=int, default=25000)
+@click.option("commit_max_batch_time", "--commit-max-batch-time-ms", type=int, default=10000)
+@click.option("--topic", default="snuba-metrics", help="Topic to read indexer output from.")
+def last_seen_updater(**options):
+    from sentry.sentry_metrics.consumers.last_seen_updater import get_last_seen_updater
+
+    consumer = get_last_seen_updater(**options)
+
+    def handler(signum, frame):
+        consumer.signal_shutdown()
+
+    signal.signal(signal.SIGINT, handler)
+    signal.signal(signal.SIGTERM, handler)
+
+    consumer.run()

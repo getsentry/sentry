@@ -1,4 +1,4 @@
-import {useEffect, useRef, useState} from 'react';
+import {useEffect, useMemo, useRef, useState} from 'react';
 import uniqBy from 'lodash/uniqBy';
 
 import {fetchUserTeams} from 'sentry/actionCreators/teams';
@@ -234,7 +234,8 @@ function useTeams({limit, slugs, ids, provideUserTeams}: Options = {}) {
         limit,
       });
 
-      const fetchedTeams = uniqBy([...store.teams, ...results], ({slug}) => slug);
+      // Unique by `id` to avoid duplicates due to renames and state store data
+      const fetchedTeams = uniqBy([...results, ...store.teams], ({id}) => id);
       TeamActions.loadTeams(fetchedTeams);
 
       setState({
@@ -251,21 +252,22 @@ function useTeams({limit, slugs, ids, provideUserTeams}: Options = {}) {
     }
   }
 
-  async function handleSearch(search: string) {
-    if (search === '') {
-      // Reset pagination state to match store if doing an empty search
-      if (state.hasMore !== store.hasMore || state.nextCursor !== store.cursor) {
-        setState({
-          ...state,
-          lastSearch: search,
-          hasMore: store.hasMore,
-          nextCursor: store.cursor,
-        });
-      }
-
-      return;
+  function handleSearch(search: string) {
+    if (search !== '') {
+      return handleFetchAdditionalTeams(search);
     }
-    handleFetchAdditionalTeams(search);
+
+    // Reset pagination state to match store if doing an empty search
+    if (state.hasMore !== store.hasMore || state.nextCursor !== store.cursor) {
+      setState({
+        ...state,
+        lastSearch: search,
+        hasMore: store.hasMore,
+        nextCursor: store.cursor,
+      });
+    }
+
+    return Promise.resolve();
   }
 
   async function handleFetchAdditionalTeams(search?: string) {
@@ -331,13 +333,15 @@ function useTeams({limit, slugs, ids, provideUserTeams}: Options = {}) {
 
   const isSuperuser = isActiveSuperuser();
 
-  const filteredTeams = slugs
-    ? store.teams.filter(t => slugs.includes(t.slug))
-    : ids
-    ? store.teams.filter(t => ids.includes(t.id))
-    : provideUserTeams && !isSuperuser
-    ? store.teams.filter(t => t.isMember)
-    : store.teams;
+  const filteredTeams = useMemo(() => {
+    return slugs
+      ? store.teams.filter(t => slugs.includes(t.slug))
+      : ids
+      ? store.teams.filter(t => ids.includes(t.id))
+      : provideUserTeams && !isSuperuser
+      ? store.teams.filter(t => t.isMember)
+      : store.teams;
+  }, [store.teams, ids, slugs, provideUserTeams, isSuperuser]);
 
   const result: Result = {
     teams: filteredTeams,

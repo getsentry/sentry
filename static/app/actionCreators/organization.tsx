@@ -110,7 +110,7 @@ async function fetchProjectsAndTeams(
  * @param silent Should we silently update the organization (do not clear the
  *               current organization in the store)
  */
-export async function fetchOrganizationDetails(
+export function fetchOrganizationDetails(
   api: Client,
   slug: string,
   silent: boolean,
@@ -119,6 +119,7 @@ export async function fetchOrganizationDetails(
   if (!silent) {
     OrganizationActions.reset();
     ProjectActions.reset();
+    TeamActions.reset();
     PageFiltersActions.reset();
   }
 

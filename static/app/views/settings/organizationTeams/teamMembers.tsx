@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
@@ -22,7 +22,6 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Panel, PanelHeader, PanelItem} from 'sentry/components/panels';
 import {IconSubtract, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {Config, Member, Organization} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
@@ -49,7 +48,7 @@ type State = {
   teamMemberList: Member[];
 };
 
-class TeamMembers extends React.Component<Props, State> {
+class TeamMembers extends Component<Props, State> {
   state: State = {
     loading: true,
     error: false,
@@ -334,7 +333,7 @@ const StyledUserListElement = styled('div')`
 
 const StyledNameOrEmail = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
 `;
 
 const StyledAvatar = styled(props => <UserAvatar {...props} />)`

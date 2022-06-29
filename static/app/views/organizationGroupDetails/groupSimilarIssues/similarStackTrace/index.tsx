@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -41,7 +41,7 @@ type State = {
   v2: boolean;
 };
 
-class SimilarStackTrace extends React.Component<Props, State> {
+class SimilarStackTrace extends Component<Props, State> {
   state: State = {
     similarItems: [],
     filteredSimilarItems: [],
@@ -178,7 +178,7 @@ class SimilarStackTrace extends React.Component<Props, State> {
     const isLoadedSuccessfully = !isError && !isLoading;
     const hasSimilarItems =
       this.hasSimilarityFeature() &&
-      (similarItems.length >= 0 || filteredSimilarItems.length >= 0) &&
+      (similarItems.length > 0 || filteredSimilarItems.length > 0) &&
       isLoadedSuccessfully;
 
     return (

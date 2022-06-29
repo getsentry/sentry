@@ -1,4 +1,3 @@
-import * as React from 'react';
 import {Location, Query} from 'history';
 
 import MarkLine from 'sentry/components/charts/components/markLine';
@@ -12,6 +11,7 @@ import {getAggregateAlias, WebVital} from 'sentry/utils/discover/fields';
 import {Browser} from 'sentry/utils/performance/vitals/constants';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {Color, Theme} from 'sentry/utils/theme';
+import {AlertType} from 'sentry/views/alerts/wizard/options';
 
 export function generateVitalDetailRoute({orgSlug}: {orgSlug: string}): string {
   return `/organizations/${orgSlug}/performance/vitaldetail/`;
@@ -91,6 +91,13 @@ export function vitalNameFromLocation(location: Location): WebVital {
   return WebVital.LCP;
 }
 
+export function getVitalChartTitle(webVital: WebVital): string {
+  if (webVital === WebVital.CLS) {
+    return t('CLS p75');
+  }
+  return t('Duration p75');
+}
+
 export function getVitalDetailTablePoorStatusFunction(vitalName: WebVital): string {
   const vitalThreshold = webVitalPoor[vitalName];
   const statusFunction = `compare_numeric_aggregate(${getAggregateAlias(
@@ -132,6 +139,13 @@ export const vitalAbbreviations: Partial<Record<WebVital, string>> = {
   [WebVital.CLS]: 'CLS',
   [WebVital.FID]: 'FID',
   [WebVital.LCP]: 'LCP',
+};
+
+export const vitalAlertTypes: Partial<Record<WebVital, AlertType>> = {
+  [WebVital.FCP]: 'custom',
+  [WebVital.CLS]: 'cls',
+  [WebVital.FID]: 'fid',
+  [WebVital.LCP]: 'lcp',
 };
 
 export function getMaxOfSeries(series: Series[]) {

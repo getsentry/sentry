@@ -1,4 +1,3 @@
-import * as React from 'react';
 import {css} from '@emotion/react';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';

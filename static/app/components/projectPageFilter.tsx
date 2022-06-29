@@ -5,23 +5,24 @@ import isEqual from 'lodash/isEqual';
 import partition from 'lodash/partition';
 
 import {updateProjects} from 'sentry/actionCreators/pageFilters';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Badge from 'sentry/components/badge';
-import MultipleProjectSelector from 'sentry/components/organizations/multipleProjectSelector';
 import PageFilterDropdownButton from 'sentry/components/organizations/pageFilters/pageFilterDropdownButton';
+import PageFilterPinIndicator from 'sentry/components/organizations/pageFilters/pageFilterPinIndicator';
+import ProjectSelector from 'sentry/components/organizations/projectSelector';
 import PlatformList from 'sentry/components/platformList';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {IconProject} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import space from 'sentry/styles/space';
 import {MinimalProject} from 'sentry/types';
 import {trimSlug} from 'sentry/utils/trimSlug';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 
-type MultipleProjectSelectorProps = React.ComponentProps<typeof MultipleProjectSelector>;
+type ProjectSelectorProps = React.ComponentProps<typeof ProjectSelector>;
 
 type Props = WithRouterProps & {
   /**
@@ -45,6 +46,11 @@ type Props = WithRouterProps & {
    * is used to determine how many projects to show, and how much to truncate.
    */
   maxTitleLength?: number;
+
+  /**
+   * Reset these URL params when we fire actions (custom routing only)
+   */
+  resetParamsOnChange?: string[];
 
   /**
    * A project will be forced from parent component (selection is disabled, and if user
@@ -71,10 +77,11 @@ type Props = WithRouterProps & {
   specificProjectSlugs?: string[];
 };
 
-export function ProjectPageFilter({
+function ProjectPageFilter({
   router,
   specificProjectSlugs,
-  maxTitleLength = 20,
+  maxTitleLength = 30,
+  resetParamsOnChange = [],
   ...otherProps
 }: Props) {
   const [currentSelectedProjects, setCurrentSelectedProjects] = useState<number[] | null>(
@@ -82,23 +89,28 @@ export function ProjectPageFilter({
   );
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
   const organization = useOrganization();
-  const {selection, isReady, desyncedFilters} = useLegacyStore(PageFiltersStore);
+  const {selection, isReady, desyncedFilters} = usePageFilters();
 
-  useEffect(() => {
-    if (!isEqual(selection.projects, currentSelectedProjects)) {
-      setCurrentSelectedProjects(selection.projects);
-    }
-  }, [selection.projects]);
+  useEffect(
+    () => {
+      if (!isEqual(selection.projects, currentSelectedProjects)) {
+        setCurrentSelectedProjects(selection.projects);
+      }
+    },
+    // We only care to update the currentSelectedProjects when the project
+    // selection has changed
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [selection.projects]
+  );
 
   const handleChangeProjects = (newProjects: number[]) => {
     setCurrentSelectedProjects(newProjects);
   };
 
-  const handleUpdateProjects = (newProjects?: number[]) => {
-    // Use newProjects if provided otherwise fallback to current selection
-    updateProjects(newProjects ?? (currentSelectedProjects || []), router, {
+  const handleApplyChange = (newProjects: number[]) => {
+    updateProjects(newProjects, router, {
       save: true,
-      resetParams: [],
+      resetParams: resetParamsOnChange,
       environments: [], // Clear environments when switching projects
     });
   };
@@ -116,7 +128,8 @@ export function ProjectPageFilter({
   const isOrgAdmin = organization.access.includes('org:admin');
   const nonMemberProjects = isSuperuser || isOrgAdmin ? otherProjects : [];
 
-  const customProjectDropdown: MultipleProjectSelectorProps['customDropdownButton'] = ({
+  const customProjectDropdown: ProjectSelectorProps['customDropdownButton'] = ({
+    actions,
     selectedProjects,
     isOpen,
   }) => {
@@ -146,41 +159,52 @@ export function ProjectPageFilter({
     );
 
     return (
-      <PageFilterDropdownButton
-        detached
-        hideBottomBorder={false}
-        isOpen={isOpen}
-        highlighted={desyncedFilters.has('projects')}
+      <GuideAnchor
+        target="new_page_filter_button"
+        position="bottom"
+        onStepComplete={actions.open}
       >
-        <DropdownTitle>
-          {icon}
-          <TitleContainer>{title}</TitleContainer>
-          {selectedProjects.length > projectsToShow.length && (
-            <StyledBadge text={`+${selectedProjects.length - projectsToShow.length}`} />
-          )}
-        </DropdownTitle>
-      </PageFilterDropdownButton>
+        <PageFilterDropdownButton
+          detached
+          hideBottomBorder={false}
+          isOpen={isOpen}
+          highlighted={desyncedFilters.has('projects')}
+          data-test-id="page-filter-project-selector"
+        >
+          <DropdownTitle>
+            <PageFilterPinIndicator filter="projects">{icon}</PageFilterPinIndicator>
+            <TitleContainer>{title}</TitleContainer>
+            {selectedProjects.length > projectsToShow.length && (
+              <StyledBadge text={`+${selectedProjects.length - projectsToShow.length}`} />
+            )}
+          </DropdownTitle>
+        </PageFilterDropdownButton>
+      </GuideAnchor>
     );
   };
 
   const customLoadingIndicator = (
-    <PageFilterDropdownButton showChevron={false} disabled>
+    <PageFilterDropdownButton
+      showChevron={false}
+      disabled
+      data-test-id="page-filter-project-selector-loading"
+    >
       <DropdownTitle>
         <IconProject />
-        {t('Loading\u2026')}
+        <TitleContainer>{t('Loading\u2026')}</TitleContainer>
       </DropdownTitle>
     </PageFilterDropdownButton>
   );
 
   return (
-    <MultipleProjectSelector
+    <ProjectSelector
       organization={organization}
       memberProjects={memberProjects}
       isGlobalSelectionReady={projectsLoaded && isReady}
       nonMemberProjects={nonMemberProjects}
       value={currentSelectedProjects || selection.projects}
       onChange={handleChangeProjects}
-      onUpdate={handleUpdateProjects}
+      onApplyChange={handleApplyChange}
       customDropdownButton={customProjectDropdown}
       customLoadingIndicator={customLoadingIndicator}
       detached
@@ -196,6 +220,7 @@ const TitleContainer = styled('div')`
   text-overflow: ellipsis;
   flex: 1 1 0%;
   margin-left: ${space(1)};
+  text-align: left;
 `;
 
 const DropdownTitle = styled('div')`

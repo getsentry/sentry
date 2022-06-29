@@ -102,14 +102,21 @@ class TeamManager(BaseManager):
         self.process_resource_change(instance, **kwargs)
 
     def process_resource_change(self, instance, **kwargs):
+        from sentry.models import Organization, Project
         from sentry.tasks.codeowners import update_code_owners_schema
 
-        update_code_owners_schema.apply_async(
-            kwargs={
-                "organization": instance.organization,
-                "projects": instance.get_projects(),
-            }
-        )
+        def _spawn_task():
+            try:
+                update_code_owners_schema.apply_async(
+                    kwargs={
+                        "organization": instance.organization,
+                        "projects": instance.get_projects(),
+                    }
+                )
+            except (Organization.DoesNotExist, Project.DoesNotExist):
+                pass
+
+        transaction.on_commit(_spawn_task)
 
 
 # TODO(dcramer): pull in enum library
@@ -159,7 +166,7 @@ class Team(Model):
 
     def save(self, *args, **kwargs):
         if not self.slug:
-            lock = locks.get("slug:team", duration=5)
+            lock = locks.get("slug:team", duration=5, name="team_slug")
             with TimedRetryPolicy(10)(lock.acquire):
                 slugify_instance(self, self.name, organization=self.organization)
         super().save(*args, **kwargs)

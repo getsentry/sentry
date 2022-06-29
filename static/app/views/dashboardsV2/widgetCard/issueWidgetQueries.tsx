@@ -1,36 +1,16 @@
-import * as React from 'react';
+import {Component} from 'react';
 import isEqual from 'lodash/isEqual';
 
 import {Client} from 'sentry/api';
 import {isSelectionEqual} from 'sentry/components/organizations/pageFilters/utils';
 import {t} from 'sentry/locale';
-import GroupStore from 'sentry/stores/groupStore';
 import MemberListStore from 'sentry/stores/memberListStore';
-import {Group, OrganizationSummary, PageFilters} from 'sentry/types';
-import {getUtcDateString} from 'sentry/utils/dates';
+import {Organization, PageFilters} from 'sentry/types';
 import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import {queryToObj} from 'sentry/utils/stream';
-import {DISCOVER_EXCLUSION_FIELDS, IssueSortOptions} from 'sentry/views/issueList/utils';
 
-import {DEFAULT_TABLE_LIMIT, Widget, WidgetQuery} from '../types';
-
-const DEFAULT_SORT = IssueSortOptions.DATE;
-const DEFAULT_EXPAND = ['owners'];
-
-type EndpointParams = Partial<PageFilters['datetime']> & {
-  environment: string[];
-  project: number[];
-  collapse?: string[];
-  cursor?: string;
-  expand?: string[];
-  groupStatsPeriod?: string | null;
-  limit?: number;
-  page?: number | string;
-  query?: string;
-  sort?: string;
-  statsPeriod?: string | null;
-};
+import {getDatasetConfig} from '../datasetConfig/base';
+import {Widget, WidgetQuery, WidgetType} from '../types';
 
 type Props = {
   api: Client;
@@ -41,11 +21,16 @@ type Props = {
     pageLinks?: null | string;
     totalCount?: string;
   }) => React.ReactNode;
-  organization: OrganizationSummary;
+  organization: Organization;
   selection: PageFilters;
   widget: Widget;
   cursor?: string;
   limit?: number;
+  onDataFetched?: (results: {
+    issuesResults?: TableDataRow[];
+    pageLinks?: string;
+    totalIssuesCount?: string;
+  }) => void;
 };
 
 type State = {
@@ -53,11 +38,11 @@ type State = {
   loading: boolean;
   memberListStoreLoaded: boolean;
   pageLinks: null | string;
-  tableResults: Group[];
+  tableResults: TableDataRow[];
   totalCount: null | string;
 };
 
-class IssueWidgetQueries extends React.Component<Props, State> {
+class IssueWidgetQueries extends Component<Props, State> {
   state: State = {
     loading: true,
     errorMessage: undefined,
@@ -96,7 +81,6 @@ class IssueWidgetQueries extends React.Component<Props, State> {
       !isEqual(widget.displayType, prevProps.widget.displayType) ||
       !isEqual(widget.interval, prevProps.widget.interval) ||
       !isEqual(widgetQueries, prevWidgetQueries) ||
-      !isEqual(widget.displayType, prevProps.widget.displayType) ||
       !isSelectionEqual(selection, prevProps.selection) ||
       cursor !== prevProps.cursor
     ) {
@@ -117,131 +101,43 @@ class IssueWidgetQueries extends React.Component<Props, State> {
     }, undefined),
   ];
 
-  transformTableResults(): TableDataRow[] {
-    const {selection, widget} = this.props;
-    const {tableResults} = this.state;
-    GroupStore.add(tableResults);
-    const transformedTableResults: TableDataRow[] = [];
-    tableResults.forEach(
-      ({
-        id,
-        shortId,
-        title,
-        lifetime,
-        filtered,
-        count,
-        userCount,
-        project,
-        annotations,
-        ...resultProps
-      }) => {
-        const transformedResultProps: Omit<TableDataRow, 'id'> = {};
-        Object.keys(resultProps)
-          .filter(key => ['number', 'string'].includes(typeof resultProps[key]))
-          .forEach(key => {
-            transformedResultProps[key] = resultProps[key];
-          });
+  config = getDatasetConfig(WidgetType.ISSUE);
 
-        const transformedTableResult: TableDataRow = {
-          ...transformedResultProps,
-          events: count,
-          users: userCount,
-          id,
-          'issue.id': id,
-          issue: shortId,
-          title,
-          project: project.slug,
-          links: annotations?.join(', '),
-        };
-
-        // Get lifetime stats
-        if (lifetime) {
-          transformedTableResult.lifetimeEvents = lifetime?.count;
-          transformedTableResult.lifetimeUsers = lifetime?.userCount;
-        }
-        // Get filtered stats
-        if (filtered) {
-          transformedTableResult.filteredEvents = filtered?.count;
-          transformedTableResult.filteredUsers = filtered?.userCount;
-        }
-
-        // Discover Url properties
-        const query = widget.queries[0].conditions;
-        const queryTerms: string[] = [];
-        if (typeof query === 'string') {
-          const queryObj = queryToObj(query);
-          for (const queryTag in queryObj) {
-            if (!DISCOVER_EXCLUSION_FIELDS.includes(queryTag)) {
-              const queryVal = queryObj[queryTag].includes(' ')
-                ? `"${queryObj[queryTag]}"`
-                : queryObj[queryTag];
-              queryTerms.push(`${queryTag}:${queryVal}`);
-            }
-          }
-
-          if (queryObj.__text) {
-            queryTerms.push(queryObj.__text);
-          }
-        }
-        transformedTableResult.discoverSearchQuery =
-          (queryTerms.length ? ' ' : '') + queryTerms.join(' ');
-        transformedTableResult.projectId = project.id;
-
-        const {period, start, end} = selection.datetime || {};
-        if (start && end) {
-          transformedTableResult.start = getUtcDateString(start);
-          transformedTableResult.end = getUtcDateString(end);
-        }
-        transformedTableResult.period = period ?? '';
-        transformedTableResults.push(transformedTableResult);
-      }
-    );
-    return transformedTableResults;
-  }
-
-  async fetchIssuesData() {
-    const {selection, api, organization, widget, limit, cursor} = this.props;
+  async fetchTableData() {
+    const {api, organization, selection, widget, limit, cursor, onDataFetched} =
+      this.props;
     this.setState({tableResults: []});
-    // Issue Widgets only support single queries
-    const query = widget.queries[0];
-    const groupListUrl = `/organizations/${organization.slug}/issues/`;
-    const params: EndpointParams = {
-      project: selection.projects,
-      environment: selection.environments,
-      query: query.conditions,
-      sort: query.orderby || DEFAULT_SORT,
-      expand: DEFAULT_EXPAND,
-      limit: limit ?? DEFAULT_TABLE_LIMIT,
-      cursor,
-    };
-
-    if (selection.datetime.period) {
-      params.statsPeriod = selection.datetime.period;
-    }
-    if (selection.datetime.end) {
-      params.end = getUtcDateString(selection.datetime.end);
-    }
-    if (selection.datetime.start) {
-      params.start = getUtcDateString(selection.datetime.start);
-    }
-    if (selection.datetime.utc) {
-      params.utc = selection.datetime.utc;
-    }
 
     try {
-      const [data, _, resp] = await api.requestPromise(groupListUrl, {
-        includeAllArgs: true,
-        method: 'GET',
-        data: {
-          ...params,
-        },
-      });
+      const request = this.config.getTableRequest!(
+        api,
+        widget.queries[0],
+        organization,
+        selection,
+        limit,
+        cursor
+      );
+
+      const [data, _, resp] = await request;
+      const tableResults = this.config.transformTable(
+        data,
+        widget.queries[0],
+        organization,
+        selection
+      );
+      const totalCount = resp?.getResponseHeader('X-Hits') ?? null;
+      const pageLinks = resp?.getResponseHeader('Link') ?? null;
       this.setState({
         loading: false,
         errorMessage: undefined,
-        tableResults: data,
-        totalCount: resp?.getResponseHeader('X-Hits') ?? null,
-        pageLinks: resp?.getResponseHeader('Link') ?? null,
+        tableResults: tableResults.data,
+        totalCount,
+        pageLinks,
+      });
+      onDataFetched?.({
+        issuesResults: tableResults.data,
+        totalIssuesCount: totalCount ?? undefined,
+        pageLinks: pageLinks ?? undefined,
       });
     } catch (response) {
       const errorResponse = response?.responseJSON?.detail ?? null;
@@ -255,18 +151,23 @@ class IssueWidgetQueries extends React.Component<Props, State> {
 
   fetchData() {
     this.setState({loading: true, errorMessage: undefined});
-    this.fetchIssuesData();
+    this.fetchTableData();
   }
 
   render() {
     const {children} = this.props;
-    const {loading, errorMessage, memberListStoreLoaded, pageLinks, totalCount} =
-      this.state;
-    const transformedResults = this.transformTableResults();
+    const {
+      tableResults,
+      loading,
+      errorMessage,
+      memberListStoreLoaded,
+      pageLinks,
+      totalCount,
+    } = this.state;
     return getDynamicText({
       value: children({
         loading: loading || !memberListStoreLoaded,
-        transformedResults,
+        transformedResults: tableResults,
         errorMessage,
         pageLinks,
         totalCount: totalCount ?? undefined,

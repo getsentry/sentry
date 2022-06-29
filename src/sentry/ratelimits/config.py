@@ -2,6 +2,8 @@ import logging
 from dataclasses import dataclass, field
 from typing import Mapping, Union, cast
 
+from django.conf import settings
+
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 _LOGGER = logging.getLogger("sentry.ratelimits.config")
@@ -20,25 +22,27 @@ HttpMethodName = str
 
 RateLimitOverrideDict = Mapping[HttpMethodName, Mapping[RateLimitCategory, RateLimit]]
 
-# This default value is going to shrink over time
-_SENTRY_RATELIMITER_DEFAULT = 470
-
-# The concurrent rate limiter stores a sorted set of requests, don't make this number
-# too large (e.g > 300)
-_SENTRY_CONCURRENT_RATE_LIMIT_DEFAULT = 300
-ENFORCE_CONCURRENT_RATE_LIMITS = False
-
-
-_SENTRY_RATELIMITER_GROUP_DEFAULTS: Mapping[GroupName, Mapping[RateLimitCategory, RateLimit]] = {
-    "default": {
-        category: RateLimit(_SENTRY_RATELIMITER_DEFAULT, 1, _SENTRY_CONCURRENT_RATE_LIMIT_DEFAULT)
-        for category in RateLimitCategory
-    }
+DEFAULT_RATELIMIT = RateLimit(settings.SENTRY_RATELIMITER_DEFAULT, 1)
+SENTRY_RATELIMITER_GROUP_DEFAULTS: Mapping[GroupName, Mapping[RateLimitCategory, RateLimit]] = {
+    "default": {category: DEFAULT_RATELIMIT for category in RateLimitCategory},
+    "CLI": {
+        RateLimitCategory.IP: DEFAULT_RATELIMIT,
+        RateLimitCategory.USER: RateLimit(
+            settings.SENTRY_RATELIMITER_GROUP_CLI,
+            1,
+            settings.SENTRY_CONCURRENT_RATE_LIMIT_GROUP_CLI,
+        ),
+        RateLimitCategory.ORGANIZATION: RateLimit(
+            settings.SENTRY_RATELIMITER_GROUP_CLI,
+            1,
+            settings.SENTRY_CONCURRENT_RATE_LIMIT_GROUP_CLI,
+        ),
+    },
 }
 
 
 def _get_group_defaults() -> Mapping[GroupName, Mapping[RateLimitCategory, RateLimit]]:
-    return _SENTRY_RATELIMITER_GROUP_DEFAULTS
+    return SENTRY_RATELIMITER_GROUP_DEFAULTS
 
 
 def get_default_rate_limits_for_group(group_name: str, category: RateLimitCategory) -> RateLimit:

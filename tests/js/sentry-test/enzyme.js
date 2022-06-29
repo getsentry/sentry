@@ -11,14 +11,20 @@ import {lightTheme} from 'sentry/utils/theme';
  * As we are migrating our tests to React Testing Library,
  * please avoid using `sentry-test/enzyme/mountWithTheme` and use `sentry-test/reactTestingLibrary/render` instead.
  */
-export function mountWithTheme(tree, opts) {
+export function mountWithTheme(tree, opts = {}) {
   const WrappingThemeProvider = props => (
     <CacheProvider value={cache}>
-      <ThemeProvider theme={lightTheme}>{props.children}</ThemeProvider>
+      <ThemeProvider theme={lightTheme}>
+        {opts.wrappingComponent ? (
+          <opts.wrappingComponent>{props.children}</opts.wrappingComponent>
+        ) : (
+          props.children
+        )}
+      </ThemeProvider>
     </CacheProvider>
   );
 
-  return mount(tree, {wrappingComponent: WrappingThemeProvider, ...opts});
+  return mount(tree, {...opts, wrappingComponent: WrappingThemeProvider});
 }
 
 /**

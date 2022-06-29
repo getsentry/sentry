@@ -36,7 +36,6 @@ function mountModal({initialData}, onApply, closeModal, widgets = []) {
 describe('Modals -> DashboardWidgetLibraryModal', function () {
   const initialData = initializeOrg({
     organization: {
-      features: ['widget-library'],
       apdexThreshold: 400,
     },
   });
@@ -49,7 +48,7 @@ describe('Modals -> DashboardWidgetLibraryModal', function () {
     }
   });
 
-  it('opens modal and renders correctly', async function () {
+  it('opens modal and renders correctly', function () {
     // Checking initial modal states
     container = mountModal({initialData});
 
@@ -133,7 +132,7 @@ describe('Modals -> DashboardWidgetLibraryModal', function () {
             aggregates: ['count()'],
             columns: ['transaction'],
             name: '',
-            orderby: '-count',
+            orderby: '-count()',
           },
         ],
         title: 'High Throughput Transactions',

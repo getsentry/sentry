@@ -1,8 +1,17 @@
+from __future__ import annotations
+
 import resource
 from contextlib import contextmanager
 from functools import wraps
+from typing import Any, Callable, Sequence, Type
 
-from celery.task import current
+# XXX(mdtro): backwards compatible imports for celery 4.4.7, remove after upgrade to 5.2.7
+import celery
+
+if celery.version_info >= (5, 2):
+    from celery import current_task
+else:
+    from celery.task import current as current_task
 
 from sentry.celery import app
 from sentry.utils import metrics
@@ -20,6 +29,15 @@ def track_memory_usage(metric, **kwargs):
         yield
     finally:
         metrics.timing(metric, get_rss_usage() - before, **kwargs)
+
+
+def load_model_from_db(cls, instance_or_id, allow_cache=True):
+    """Utility function to allow a task to transition to passing ids rather than model instances."""
+    if isinstance(instance_or_id, int):
+        if hasattr(cls.objects, "get_from_cache") and allow_cache:
+            return cls.objects.get_from_cache(pk=instance_or_id)
+        return cls.objects.get(pk=instance_or_id)
+    return instance_or_id
 
 
 def instrumented_task(name, stat_suffix=None, **kwargs):
@@ -56,7 +74,12 @@ def instrumented_task(name, stat_suffix=None, **kwargs):
     return wrapped
 
 
-def retry(func=None, on=(Exception,), exclude=(), ignore=()):
+def retry(
+    func: Callable[..., Any] | None = None,
+    on: Sequence[Type[Exception]] = (Exception,),
+    exclude: Sequence[Type[Exception]] = (),
+    ignore: Sequence[Type[Exception]] = (Exception,),
+) -> Callable[..., Callable[..., Any]]:
     """
     >>> @retry(on=(Exception,), exclude=(AnotherException,), ignore=(IgnorableException,))
     >>> def my_task():
@@ -77,7 +100,7 @@ def retry(func=None, on=(Exception,), exclude=(), ignore=()):
                 raise
             except on as exc:
                 capture_exception()
-                current.retry(exc=exc)
+                current_task.retry(exc=exc)
 
         return wrapped
 

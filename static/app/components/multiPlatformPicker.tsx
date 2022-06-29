@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import {PlatformIcon} from 'platformicons';
@@ -24,19 +24,47 @@ import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 const PLATFORM_CATEGORIES = [{id: 'all', name: t('All')}, ...categoryList] as const;
 
+// Category needs the all option while CategoryObj does not
+type Category = typeof PLATFORM_CATEGORIES[number]['id'];
+type CategoryObj = typeof categoryList[number];
+type Platform = CategoryObj['platforms'][number];
+
+// create a lookup table for each platform
+const indexByPlatformByCategory = {} as Record<
+  CategoryObj['id'],
+  Record<Platform, number>
+>;
+categoryList.forEach(category => {
+  const indexByPlatform = {} as Record<Platform, number>;
+  indexByPlatformByCategory[category.id] = indexByPlatform;
+  category.platforms.forEach((platform: Platform, index: number) => {
+    indexByPlatform[platform] = index;
+  });
+});
+
+const getIndexOfPlatformInCategory = (
+  category: CategoryObj['id'],
+  platform: PlatformIntegration
+) => {
+  const indexByPlatform = indexByPlatformByCategory[category];
+  return indexByPlatform[platform.id];
+};
+
 const isPopular = (platform: PlatformIntegration) =>
   popularPlatformCategories.includes(
     platform.id as typeof popularPlatformCategories[number]
   );
 
+const popularIndex = (platform: PlatformIntegration) =>
+  getIndexOfPlatformInCategory('popular', platform);
+
 const PlatformList = styled('div')`
   display: grid;
   gap: ${space(1)};
   grid-template-columns: repeat(auto-fill, 112px);
+  justify-content: center;
   margin-bottom: ${space(2)};
 `;
-
-type Category = typeof PLATFORM_CATEGORIES[number]['id'];
 
 interface PlatformPickerProps {
   addPlatform: (key: PlatformKey) => void;
@@ -53,10 +81,10 @@ interface PlatformPickerProps {
 
 function PlatformPicker(props: PlatformPickerProps) {
   const {organization, source} = props;
-  const [category, setCategory] = React.useState<Category>(
+  const [category, setCategory] = useState<Category>(
     props.defaultCategory ?? PLATFORM_CATEGORIES[0].id
   );
-  const [filter, setFilter] = React.useState<string>(
+  const [filter, setFilter] = useState<string>(
     props.noAutoFilter ? '' : (props.platforms[0] || '').split('-')[0]
   );
 
@@ -74,20 +102,57 @@ function PlatformPicker(props: PlatformPickerProps) {
       category === 'all' ||
       (currentCategory?.platforms as undefined | string[])?.includes(platform.id);
 
-    const popularTopOfAllCompare = (a: PlatformIntegration, b: PlatformIntegration) => {
-      // for the all category, put popular ones at the top
+    const customCompares = (a: PlatformIntegration, b: PlatformIntegration) => {
+      // the all category and serverless category both require custom sorts
       if (category === 'all') {
-        if (isPopular(a) !== isPopular(b)) {
-          return isPopular(a) ? -1 : 1;
-        }
+        return popularTopOfAllCompare(a, b);
       }
+      if (category === 'serverless') {
+        return serverlessCompare(a, b);
+      }
+      // maintain ordering otherwise
+      return (
+        getIndexOfPlatformInCategory(category, a) -
+        getIndexOfPlatformInCategory(category, b)
+      );
+    };
+
+    const popularTopOfAllCompare = (a: PlatformIntegration, b: PlatformIntegration) => {
+      // for the all category, put popular ones at the top in the order they appear in the popular list
+      if (isPopular(a) && isPopular(b)) {
+        // if both popular, maintain ordering from popular list
+        return popularIndex(a) - popularIndex(b);
+      }
+      // if one popular, that one should be first
+      if (isPopular(a) !== isPopular(b)) {
+        return isPopular(a) ? -1 : 1;
+      }
+      // since the all list is coming from a different source (platforms.json)
+      // we can't go off the index of the item in platformCategories.tsx since there is no all list
       return a.id.localeCompare(b.id);
+    };
+
+    const serverlessCompare = (a: PlatformIntegration, b: PlatformIntegration) => {
+      // for the serverless category, sort by service, then language
+      // the format of the ids is language-service
+      const aProvider = a.id.split('-')[1];
+      const bProvider = b.id.split('-')[1];
+      // if either of the ids are not hyphenated, standard sort
+      if (!aProvider || !bProvider) {
+        return a.id.localeCompare(b.id);
+      }
+      // compare the portions after the hyphen
+      const compareServices = aProvider.localeCompare(bProvider);
+      // if they have the same service provider
+      if (!compareServices) {
+        return a.id.localeCompare(b.id);
+      }
+      return compareServices;
     };
 
     const filtered = platforms
       .filter(filterLowerCase ? subsetMatch : categoryMatch)
-      .sort(popularTopOfAllCompare);
-
+      .sort(customCompares);
     return props.showOther ? filtered : filtered.filter(({id}) => id !== 'other');
   }
 
@@ -105,10 +170,10 @@ function PlatformPicker(props: PlatformPickerProps) {
     }
   }, DEFAULT_DEBOUNCE_DURATION);
 
-  React.useEffect(logSearch, [filter]);
+  useEffect(logSearch, [filter, logSearch]);
 
   return (
-    <React.Fragment>
+    <Fragment>
       <NavContainer>
         <CategoryNav>
           {PLATFORM_CATEGORIES.map(({id, name}) => (
@@ -188,15 +253,14 @@ function PlatformPicker(props: PlatformPickerProps) {
           )}
         </EmptyMessage>
       )}
-    </React.Fragment>
+    </Fragment>
   );
 }
 
 const NavContainer = styled('div')`
   margin-bottom: ${space(2)};
-  display: grid;
-  gap: ${space(2)};
-  grid-template-columns: 1fr minmax(0, 300px);
+  display: flex;
+  flex-direction: row;
   align-items: start;
   border-bottom: 1px solid ${p => p.theme.border};
 `;
@@ -222,17 +286,34 @@ const SearchBar = styled('div')`
       outline: none;
     }
   }
+
+  max-width: 300px;
+  min-width: 150px;
+  margin-left: auto;
+  flex-shrink: 0;
+  flex-basis: 0;
+  flex-grow: 1;
 `;
 
 const CategoryNav = styled(NavTabs)`
   margin: 0;
   margin-top: 4px;
   white-space: nowrap;
+  overflow-x: scroll;
+  overflow-y: hidden;
+  margin-right: ${space(1)};
+  flex-shrink: 1;
+  flex-grow: 0;
 
   > li {
     float: none;
     display: inline-block;
   }
+  ::-webkit-scrollbar {
+    display: none;
+  }
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 `;
 
 const StyledPlatformIcon = styled(PlatformIcon)`

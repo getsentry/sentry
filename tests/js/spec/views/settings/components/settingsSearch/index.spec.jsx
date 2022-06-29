@@ -19,7 +19,7 @@ describe('SettingsSearch', function () {
   ]);
 
   beforeEach(function () {
-    FormSearchStore.onLoadSearchMap([]);
+    FormSearchStore.loadSearchMap([]);
     MockApiClient.clearMockResponses();
     orgsMock = MockApiClient.addMockResponse({
       url: '/organizations/',
@@ -64,7 +64,7 @@ describe('SettingsSearch', function () {
     });
   });
 
-  it('renders', async function () {
+  it('renders', function () {
     render(<SettingsSearch params={{orgId: 'org-slug'}} />);
 
     // renders input

@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import * as Sentry from '@sentry/react';
 import debounce from 'lodash/debounce';
@@ -289,7 +289,7 @@ type State = {
   searchResults: null | Result[];
 };
 
-class ApiSource extends React.Component<Props, State> {
+class ApiSource extends Component<Props, State> {
   static defaultProps = {
     searchOptions: {},
   };
@@ -327,7 +327,7 @@ class ApiSource extends React.Component<Props, State> {
   api = new Client();
 
   // Debounced method to handle querying all API endpoints (when necessary)
-  doSearch = debounce(async (query: string) => {
+  doSearch = debounce((query: string) => {
     const {params, organization} = this.props;
     const orgId = (params && params.orgId) || (organization && organization.slug);
     let searchUrls = ['/organizations/'];

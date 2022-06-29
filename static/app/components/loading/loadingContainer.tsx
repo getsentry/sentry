@@ -1,31 +1,29 @@
-import * as React from 'react';
 import styled from '@emotion/styled';
 
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import theme from 'sentry/utils/theme';
 
-const defaultProps = {
-  isLoading: false,
-  isReloading: false,
-  maskBackgroundColor: theme.white,
-};
-
-type DefaultProps = Readonly<typeof defaultProps>;
-
-type Props = {
+export type LoadingContainerProps = {
   children?: React.ReactNode;
   className?: string;
-} & DefaultProps;
+  isLoading?: boolean;
+  isReloading?: boolean;
+  maskBackgroundColor?: string;
+};
 
 type MaskProps = {
   isReloading: boolean;
   maskBackgroundColor: string;
 };
 
-export default function LoadingContainer(props: Props) {
-  const {className, children, isReloading, isLoading, maskBackgroundColor} = props;
+export default function LoadingContainer({
+  isLoading = false,
+  isReloading = false,
+  maskBackgroundColor = theme.white,
+  className,
+  children,
+}: LoadingContainerProps) {
   const isLoadingOrReloading = isLoading || isReloading;
-
   return (
     <Container className={className}>
       {isLoadingOrReloading && (
@@ -41,8 +39,6 @@ export default function LoadingContainer(props: Props) {
     </Container>
   );
 }
-
-LoadingContainer.defaultProps = defaultProps;
 
 const Container = styled('div')`
   position: relative;

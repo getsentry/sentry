@@ -1,7 +1,6 @@
 import 'focus-visible';
 import 'docs-ui/index.js';
 
-import {Fragment} from 'react';
 import {DocsContainer, Meta} from '@storybook/addon-docs';
 import {addDecorator, addParameters, DecoratorFn, Parameters} from '@storybook/react';
 import {themes} from '@storybook/theming';
@@ -19,8 +18,19 @@ import {darkTheme, lightTheme, Theme} from 'sentry/utils/theme';
 
 import {DocsGlobalStyles, StoryGlobalStyles} from './globalStyles';
 
+type ExtendedTheme = Theme & {
+  /**
+   * [For Storybook only, do not use inside the app.]
+   *
+   * Substitute for the "background" property in Storybook components
+   * (anything inside docs-ui), since Storybook overrides "background" with
+   * its own object value.
+   */
+  docsBackground?: string;
+};
+
 // Theme decorator for stories
-const withThemeStory: DecoratorFn = (Story, context) => {
+const WithThemeStory: DecoratorFn = (Story, context) => {
   const isDark = useDarkMode();
   const currentTheme = isDark ? darkTheme : lightTheme;
 
@@ -38,12 +48,13 @@ const withThemeStory: DecoratorFn = (Story, context) => {
   );
 };
 
-addDecorator(withThemeStory);
+addDecorator(WithThemeStory);
 
 // Theme decorator for MDX Docs
-const withThemeDocs: DecoratorFn = ({children, context}) => {
+const WithThemeDocs: DecoratorFn = ({children, context}) => {
   const isDark = useDarkMode();
-  const currentTheme = isDark ? darkTheme : lightTheme;
+  const currentTheme: ExtendedTheme = isDark ? darkTheme : lightTheme;
+  currentTheme.docsBackground = currentTheme.background;
 
   // Set @storybook/addon-backgrounds current color based on theme
   if (context.globals.theme) {
@@ -53,23 +64,19 @@ const withThemeDocs: DecoratorFn = ({children, context}) => {
   const {hideToc} = context.parameters;
 
   return (
-    <Fragment>
-      <DocsContainer context={context}>
-        <GlobalStyles isDark={isDark} theme={currentTheme} />
-        <DocsGlobalStyles theme={currentTheme} />
-        <ThemeProvider theme={currentTheme}>{children}</ThemeProvider>
-      </DocsContainer>
-      <ThemeProvider theme={currentTheme}>
-        <TableOfContents hidden={!!hideToc} />
-      </ThemeProvider>
-    </Fragment>
+    <ThemeProvider theme={currentTheme}>
+      <GlobalStyles isDark={isDark} theme={currentTheme} />
+      <DocsGlobalStyles theme={currentTheme} />
+      <DocsContainer context={context}>{children}</DocsContainer>
+      <TableOfContents hidden={!!hideToc} />
+    </ThemeProvider>
   );
 };
 
 // Option defaults:
 addParameters({
   docs: {
-    container: withThemeDocs,
+    container: WithThemeDocs,
     components: {Meta, code: Code, ColorChip, DocsLinks, DoDont, Sample},
   },
   options: {
@@ -199,7 +206,7 @@ const commonTheme = {
   fontBase: '"Rubik", sans-serif',
 };
 
-const getThemeColors = (theme: Theme) => ({
+const getThemeColors = (theme: ExtendedTheme) => ({
   appBg: theme.bodyBackground,
   appContentBg: theme.background,
   appBorderColor: theme.innerBorder,
@@ -227,3 +234,8 @@ export const parameters: Parameters = {
     },
   },
 };
+
+// Configure Emotion to use our theme
+declare module '@emotion/react' {
+  export interface Theme extends ExtendedTheme {}
+}

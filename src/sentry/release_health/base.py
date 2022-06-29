@@ -1,14 +1,35 @@
-from datetime import datetime
-from typing import Literal, Mapping, Optional, Sequence, Set, Tuple, TypedDict, TypeVar, Union
+from __future__ import annotations
 
-from sentry.snuba.sessions_v2 import QueryDefinition
+from dataclasses import dataclass
+from datetime import datetime
+from enum import Enum
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Literal,
+    Mapping,
+    Optional,
+    Sequence,
+    Set,
+    Tuple,
+    TypedDict,
+    TypeVar,
+    Union,
+)
+
+# from sentry.models.organization import Organization
 from sentry.utils.services import Service
+
+if TYPE_CHECKING:
+    from sentry.snuba.sessions_v2 import QueryDefinition
 
 ProjectId = int
 OrganizationId = int
 ReleaseName = str
 EnvironmentName = str
 DateString = str
+
+SnubaAppID = "metrics.release_health"
 
 #: The functions supported by `run_sessions_query`
 SessionsQueryFunction = Literal[
@@ -21,6 +42,10 @@ SessionsQueryFunction = Literal[
     "p95(session.duration)",
     "p99(session.duration)",
     "max(session.duration)",
+    "crash_rate(session)",
+    "crash_rate(user)",
+    "crash_free_rate(session)",
+    "crash_free_rate(user)",
 ]
 
 GroupByFieldName = Literal[
@@ -30,6 +55,21 @@ GroupByFieldName = Literal[
     "session.status",
 ]
 FilterFieldName = Literal["project", "release", "environment"]
+
+
+class AllowedResolution(Enum):
+    one_hour = (3600, "one hour")
+    one_minute = (60, "one minute")
+    ten_seconds = (10, "ten seconds")
+
+
+@dataclass(frozen=True)
+class SessionsQueryConfig:
+    """Backend-dependent config for sessions_v2 query"""
+
+    allowed_resolution: AllowedResolution
+    allow_session_status_query: bool
+    restrict_date_range: bool
 
 
 class SessionsQuery(TypedDict):
@@ -198,6 +238,7 @@ class ReleaseHealthBackend(Service):
         "check_has_health_data",
         "get_release_sessions_time_bounds",
         "check_releases_have_health_data",
+        "sessions_query_config",
         "run_sessions_query",
         "get_release_health_data_overview",
         "get_crash_free_breakdown",
@@ -275,6 +316,10 @@ class ReleaseHealthBackend(Service):
             that. Omit if you're not sure.
         """
 
+        raise NotImplementedError()
+
+    def sessions_query_config(self, organization: Any, start: datetime) -> SessionsQueryConfig:
+        """Return the backend-dependent config for sessions_v2.QueryDefinition"""
         raise NotImplementedError()
 
     def run_sessions_query(

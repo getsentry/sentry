@@ -1,5 +1,4 @@
 import logging
-import os
 import time
 
 import pytest
@@ -36,7 +35,7 @@ class _KafkaAdminWrapper:
         try:
             futures_dict = self.admin_client.delete_topics([topic_name])
             self._sync_wait_on_result(futures_dict)
-        except Exception:  # noqa
+        except Exception:
             _log.warning("Could not delete topic %s", topic_name)
 
     def _sync_wait_on_result(self, futures_dict):
@@ -74,37 +73,19 @@ def kafka_topics_setter():
     """
 
     def set_test_kafka_settings(settings):
-        ingest_events = "ingest-events"
-        settings.KAFKA_INGEST_EVENTS = ingest_events
-        settings.KAFKA_TOPICS[ingest_events] = {"cluster": "default", "topic": ingest_events}
+        settings.KAFKA_INGEST_EVENTS = "ingest-events"
+        settings.KAFKA_TOPICS[settings.KAFKA_INGEST_EVENTS] = {"cluster": "default"}
 
-        ingest_transactions = "ingest-transactions"
-        settings.INGEST_TRANSACTIONS = ingest_transactions
-        settings.KAFKA_TOPICS[ingest_transactions] = {
-            "cluster": "default",
-            "topic": ingest_transactions,
-        }
+        settings.INGEST_TRANSACTIONS = "ingest-transactions"
+        settings.KAFKA_TOPICS[settings.INGEST_TRANSACTIONS] = {"cluster": "default"}
 
-        ingest_attachments = "ingest-attachments"
-        settings.KAFKA_INGEST_ATTACHMENTS = ingest_attachments
-        settings.KAFKA_TOPICS[ingest_attachments] = {
-            "cluster": "default",
-            "topic": ingest_attachments,
-        }
+        settings.KAFKA_INGEST_ATTACHMENTS = "ingest-attachments"
+        settings.KAFKA_TOPICS[settings.KAFKA_INGEST_ATTACHMENTS] = {"cluster": "default"}
 
-        outcomes = "outcomes"
-        settings.KAFKA_OUTCOMES = outcomes
-        settings.KAFKA_TOPICS[outcomes] = {"cluster": "default", "topic": outcomes}
+        settings.KAFKA_OUTCOMES = "outcomes"
+        settings.KAFKA_TOPICS[settings.KAFKA_OUTCOMES] = {"cluster": "default"}
 
     return set_test_kafka_settings
-
-
-@pytest.fixture
-def requires_kafka():
-    pytest.importorskip("confluent_kafka")
-
-    if "SENTRY_KAFKA_HOSTS" not in os.environ:
-        pytest.xfail("test requires SENTRY_KAFKA_HOSTS environment variable which is not set")
 
 
 @pytest.fixture(scope="session")
@@ -219,7 +200,7 @@ def wait_for_ingest_consumer(session_ingest_consumer, task_runner):
             start_wait = time.time()
             with task_runner():
                 while time.time() - start_wait < max_time:
-                    consumer._run_once()  # noqa
+                    consumer._run_once()
                     # check if the condition is satisfied
                     val = exit_predicate()
                     if val is not None:
@@ -228,7 +209,7 @@ def wait_for_ingest_consumer(session_ingest_consumer, task_runner):
             _log.warning(
                 "Ingest consumer waiter timed-out after %d seconds", time.time() - start_wait
             )
-            return None  # timout without any success
+            return None  # timeout without any success
 
         return waiter
 

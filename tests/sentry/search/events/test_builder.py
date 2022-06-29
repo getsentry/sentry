@@ -1,6 +1,8 @@
 import datetime
+import math
 import re
 from typing import List
+from unittest import mock
 
 import pytest
 from django.utils import timezone
@@ -13,11 +15,14 @@ from snuba_sdk.orderby import Direction, LimitBy, OrderBy
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.search.events import constants
 from sentry.search.events.builder import (
+    HistogramMetricQueryBuilder,
     MetricsQueryBuilder,
     QueryBuilder,
     TimeseriesMetricQueryBuilder,
 )
+from sentry.search.events.types import HistogramParams
 from sentry.sentry_metrics import indexer
+from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase, TestCase
 from sentry.utils.snuba import Dataset, QueryOutsideRetentionError
 
@@ -213,9 +218,9 @@ class QueryBuilderTest(TestCase):
         project2 = self.create_project()
         # params is assumed to be validated at this point, so this query should be invalid
         self.params["project_id"] = [project2.id]
-        with self.assertRaisesRegex(
+        with pytest.raises(
             InvalidSearchQuery,
-            re.escape(
+            match=re.escape(
                 f"Invalid query. Project(s) {str(project1.slug)} do not exist or are not actively selected."
             ),
         ):
@@ -377,7 +382,7 @@ class QueryBuilderTest(TestCase):
         old_end = datetime.datetime(2015, 5, 19, 10, 15, 1, tzinfo=timezone.utc)
         old_params = {**self.params, "start": old_start, "end": old_end}
         with self.options({"system.event-retention-days": 10}):
-            with self.assertRaises(QueryOutsideRetentionError):
+            with pytest.raises(QueryOutsideRetentionError):
                 QueryBuilder(
                     Dataset.Discover,
                     old_params,
@@ -405,7 +410,7 @@ class QueryBuilderTest(TestCase):
         )
 
     def test_array_combinator_is_private(self):
-        with self.assertRaisesRegex(InvalidSearchQuery, "sum: no access to private function"):
+        with pytest.raises(InvalidSearchQuery, match="sum: no access to private function"):
             QueryBuilder(
                 Dataset.Discover,
                 self.params,
@@ -414,7 +419,7 @@ class QueryBuilderTest(TestCase):
             )
 
     def test_array_combinator_with_non_array_arg(self):
-        with self.assertRaisesRegex(InvalidSearchQuery, "stuff is not a valid array column"):
+        with pytest.raises(InvalidSearchQuery, match="stuff is not a valid array column"):
             QueryBuilder(
                 Dataset.Discover,
                 self.params,
@@ -481,7 +486,7 @@ class QueryBuilderTest(TestCase):
             sample_rate=0.1,
         )
         assert query.sample_rate == 0.1
-        snql_query = query.get_snql_query()
+        snql_query = query.get_snql_query().query
         snql_query.validate()
         assert snql_query.match.sample == 0.1
 
@@ -495,10 +500,10 @@ class QueryBuilderTest(TestCase):
             ],
             turbo=True,
         )
-        assert query.turbo.value
+        assert query.turbo
         snql_query = query.get_snql_query()
         snql_query.validate()
-        assert snql_query.turbo.value
+        assert snql_query.flags.turbo
 
     def test_auto_aggregation(self):
         query = QueryBuilder(
@@ -511,7 +516,7 @@ class QueryBuilderTest(TestCase):
             auto_aggregations=True,
             use_aggregate_conditions=True,
         )
-        snql_query = query.get_snql_query()
+        snql_query = query.get_snql_query().query
         snql_query.validate()
         self.assertCountEqual(
             snql_query.having,
@@ -539,7 +544,7 @@ class QueryBuilderTest(TestCase):
             auto_aggregations=True,
             use_aggregate_conditions=True,
         )
-        snql_query = query.get_snql_query()
+        snql_query = query.get_snql_query().query
         snql_query.validate()
         self.assertCountEqual(
             snql_query.having,
@@ -576,8 +581,126 @@ class QueryBuilderTest(TestCase):
             use_aggregate_conditions=True,
         )
         # With count_unique only in a condition and no auto_aggregations this should raise a invalid search query
-        with self.assertRaises(InvalidSearchQuery):
+        with pytest.raises(InvalidSearchQuery):
             query.get_snql_query()
+
+    def test_query_chained_or_tip(self):
+        query = QueryBuilder(
+            Dataset.Discover,
+            self.params,
+            "field:a OR field:b OR field:c",
+            selected_columns=[
+                "field",
+            ],
+        )
+        assert constants.QUERY_TIPS["CHAINED_OR"] in query.tips["query"]
+
+    def test_chained_or_with_different_terms(self):
+        query = QueryBuilder(
+            Dataset.Discover,
+            self.params,
+            "field:a or field:b or event.type:transaction or transaction:foo",
+            selected_columns=[
+                "field",
+            ],
+        )
+        # This query becomes something roughly like:
+        # field:a or (field:b or (event.type:transaciton or transaction: foo))
+        assert constants.QUERY_TIPS["CHAINED_OR"] in query.tips["query"]
+
+        query = QueryBuilder(
+            Dataset.Discover,
+            self.params,
+            "event.type:transaction or transaction:foo or field:a or field:b",
+            selected_columns=[
+                "field",
+            ],
+        )
+        assert constants.QUERY_TIPS["CHAINED_OR"] in query.tips["query"]
+
+    def test_chained_or_with_different_terms_with_and(self):
+        query = QueryBuilder(
+            Dataset.Discover,
+            self.params,
+            # There's an implicit and between field:b, and event.type:transaction
+            "field:a or field:b event.type:transaction",
+            selected_columns=[
+                "field",
+            ],
+        )
+        # This query becomes something roughly like:
+        # field:a or (field:b and event.type:transaction)
+        assert constants.QUERY_TIPS["CHAINED_OR"] not in query.tips["query"]
+
+        query = QueryBuilder(
+            Dataset.Discover,
+            self.params,
+            # There's an implicit and between event.type:transaction, and field:a
+            "event.type:transaction field:a or field:b",
+            selected_columns=[
+                "field",
+            ],
+        )
+        # This query becomes something roughly like:
+        # field:a or (field:b and event.type:transaction)
+        assert constants.QUERY_TIPS["CHAINED_OR"] not in query.tips["query"]
+
+    def test_group_by_not_in_select(self):
+        query = QueryBuilder(
+            Dataset.Discover,
+            self.params,
+            "",
+            selected_columns=[
+                "count()",
+                "event.type",
+            ],
+            groupby_columns=[
+                "transaction",
+            ],
+        )
+        snql_query = query.get_snql_query().query
+        self.assertCountEqual(
+            snql_query.select,
+            [
+                Function("count", [], "count"),
+                AliasedExpression(Column("type"), "event.type"),
+            ],
+        )
+        self.assertCountEqual(
+            snql_query.groupby,
+            [
+                AliasedExpression(Column("type"), "event.type"),
+                Column("transaction"),
+            ],
+        )
+
+    def test_group_by_duplicates_select(self):
+        query = QueryBuilder(
+            Dataset.Discover,
+            self.params,
+            "",
+            selected_columns=[
+                "count()",
+                "transaction",
+            ],
+            groupby_columns=[
+                "transaction",
+            ],
+        )
+        snql_query = query.get_snql_query().query
+        self.assertCountEqual(
+            snql_query.select,
+            [
+                Function("count", [], "count"),
+                Column("transaction"),
+            ],
+        )
+        self.assertCountEqual(
+            snql_query.groupby,
+            [
+                Column("transaction"),
+            ],
+        )
 
 
 def _metric_percentile_definition(
@@ -630,10 +753,10 @@ class MetricBuilderBaseTest(MetricsEnhancedPerformanceTestCase):
     def setUp(self):
         super().setUp()
         self.start = datetime.datetime.now(tz=timezone.utc).replace(
-            hour=10, minute=15, second=0, microsecond=0
+            hour=10, minute=0, second=0, microsecond=0
         ) - datetime.timedelta(days=18)
         self.end = datetime.datetime.now(tz=timezone.utc).replace(
-            hour=10, minute=15, second=0, microsecond=0
+            hour=10, minute=0, second=0, microsecond=0
         )
         self.projects = [self.project.id]
         self.params = {
@@ -649,6 +772,15 @@ class MetricBuilderBaseTest(MetricsEnhancedPerformanceTestCase):
             Condition(Column("project_id"), Op.IN, self.projects),
             Condition(Column("org_id"), Op.EQ, self.organization.id),
         ]
+
+        for string in self.METRIC_STRINGS:
+            indexer.record(
+                use_case_id=UseCaseKey.RELEASE_HEALTH, org_id=self.organization.id, string=string
+            )
+
+        indexer.record(
+            use_case_id=UseCaseKey.RELEASE_HEALTH, org_id=self.organization.id, string="transaction"
+        )
 
     def setup_orderby_data(self):
         self.store_metric(
@@ -686,6 +818,26 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         query = MetricsQueryBuilder(self.params, "", selected_columns=[])
         self.assertCountEqual(query.where, self.default_conditions)
 
+    def test_column_resolution(self):
+        query = MetricsQueryBuilder(
+            self.params,
+            "",
+            selected_columns=["tags[transaction]", "transaction"],
+        )
+        self.assertCountEqual(
+            query.columns,
+            [
+                AliasedExpression(
+                    Column(f"tags[{indexer.resolve(self.organization.id, 'transaction')}]"),
+                    "tags[transaction]",
+                ),
+                AliasedExpression(
+                    Column(f"tags[{indexer.resolve(self.organization.id, 'transaction')}]"),
+                    "transaction",
+                ),
+            ],
+        )
+
     def test_simple_aggregates(self):
         query = MetricsQueryBuilder(
             self.params,
@@ -722,6 +874,66 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                 _metric_percentile_definition(self.organization.id, "90", "measurements.fcp"),
                 _metric_percentile_definition(self.organization.id, "95", "measurements.cls"),
                 _metric_percentile_definition(self.organization.id, "99", "measurements.fid"),
+            ],
+        )
+
+    def test_custom_percentile_throws_error(self):
+        with pytest.raises(IncompatibleMetricsQuery):
+            MetricsQueryBuilder(
+                self.params,
+                "",
+                selected_columns=[
+                    "percentile(transaction.duration, 0.11)",
+                ],
+            )
+
+    def test_percentile_function(self):
+        self.maxDiff = None
+        query = MetricsQueryBuilder(
+            self.params,
+            "",
+            selected_columns=[
+                "percentile(transaction.duration, 0.75)",
+            ],
+        )
+        self.assertCountEqual(
+            query.where,
+            [
+                *self.default_conditions,
+                *_metric_conditions(
+                    self.organization.id,
+                    [
+                        "transaction.duration",
+                    ],
+                ),
+            ],
+        )
+        self.assertCountEqual(
+            query.distributions,
+            [
+                Function(
+                    "arrayElement",
+                    [
+                        Function(
+                            "quantilesIf(0.75)",
+                            [
+                                Column("value"),
+                                Function(
+                                    "equals",
+                                    [
+                                        Column("metric_id"),
+                                        indexer.resolve(
+                                            self.organization.id,
+                                            constants.METRICS_MAP["transaction.duration"],
+                                        ),
+                                    ],
+                                ),
+                            ],
+                        ),
+                        1,
+                    ],
+                    "percentile_transaction_duration_0_75",
+                )
             ],
         )
 
@@ -867,9 +1079,9 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         )
 
     def test_missing_transaction_index(self):
-        with self.assertRaisesRegex(
+        with pytest.raises(
             InvalidSearchQuery,
-            re.escape("Tag value was not found"),
+            match=re.escape("Tag value was not found"),
         ):
             MetricsQueryBuilder(
                 self.params,
@@ -878,9 +1090,9 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             )
 
     def test_missing_transaction_index_in_filter(self):
-        with self.assertRaisesRegex(
+        with pytest.raises(
             InvalidSearchQuery,
-            re.escape("Tag value was not found"),
+            match=re.escape("Tag value was not found"),
         ):
             MetricsQueryBuilder(
                 self.params,
@@ -889,7 +1101,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             )
 
     def test_incorrect_parameter_for_metrics(self):
-        with self.assertRaises(IncompatibleMetricsQuery):
+        with pytest.raises(IncompatibleMetricsQuery):
             MetricsQueryBuilder(
                 self.params,
                 f"project:{self.project.slug}",
@@ -918,7 +1130,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         query = MetricsQueryBuilder(self.params)
         assert query.limit.limit == 50
         # anything higher should throw an error
-        with self.assertRaises(IncompatibleMetricsQuery):
+        with pytest.raises(IncompatibleMetricsQuery):
             MetricsQueryBuilder(self.params, limit=10_000)
 
     def test_granularity(self):
@@ -938,21 +1150,135 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         end = datetime.datetime(2015, 5, 19, 0, 0, 0, tzinfo=timezone.utc)
         assert get_granularity(start, end) == 86400, "A day at midnight"
 
+        # If we're doing several days, allow more range
+        start = datetime.datetime(2015, 5, 18, 0, 10, 0, tzinfo=timezone.utc)
+        end = datetime.datetime(2015, 5, 28, 23, 59, 0, tzinfo=timezone.utc)
+        assert get_granularity(start, end) == 86400, "Several days"
+
+        # We're doing a long period, use the biggest granularity
+        start = datetime.datetime(2015, 5, 18, 12, 33, 0, tzinfo=timezone.utc)
+        end = datetime.datetime(2015, 7, 28, 17, 22, 0, tzinfo=timezone.utc)
+        assert get_granularity(start, end) == 86400, "Big range"
+
         # If we're on the start of the hour we should use the hour granularity
         start = datetime.datetime(2015, 5, 18, 23, 0, 0, tzinfo=timezone.utc)
         end = datetime.datetime(2015, 5, 20, 1, 0, 0, tzinfo=timezone.utc)
         assert get_granularity(start, end) == 3600, "On the hour"
 
+        # If we're close to the start of the hour we should use the hour granularity
+        start = datetime.datetime(2015, 5, 18, 23, 3, 0, tzinfo=timezone.utc)
+        end = datetime.datetime(2015, 5, 21, 1, 57, 0, tzinfo=timezone.utc)
+        assert get_granularity(start, end) == 3600, "On the hour, close"
+
+        # A decently long period but not close to hour ends, still use hour bucket
+        start = datetime.datetime(2015, 5, 18, 23, 3, 0, tzinfo=timezone.utc)
+        end = datetime.datetime(2015, 5, 28, 1, 57, 0, tzinfo=timezone.utc)
+        assert get_granularity(start, end) == 3600, "On the hour, long period"
+
         # Even though this is >24h of data, because its a random hour in the middle of the day to the next we use minute
         # granularity
         start = datetime.datetime(2015, 5, 18, 10, 15, 1, tzinfo=timezone.utc)
-        end = datetime.datetime(2015, 5, 19, 15, 15, 1, tzinfo=timezone.utc)
+        end = datetime.datetime(2015, 5, 18, 18, 15, 1, tzinfo=timezone.utc)
         assert get_granularity(start, end) == 60, "A few hours, but random minute"
 
         # Less than a minute, no reason to work hard for such a small window, just use a minute
         start = datetime.datetime(2015, 5, 18, 10, 15, 1, tzinfo=timezone.utc)
-        end = datetime.datetime(2015, 5, 19, 10, 15, 34, tzinfo=timezone.utc)
+        end = datetime.datetime(2015, 5, 18, 10, 15, 34, tzinfo=timezone.utc)
         assert get_granularity(start, end) == 60, "less than a minute"
+
+    def test_granularity_boundaries(self):
+        # Need to pick granularity based on the period
+        def get_granularity(start, end):
+            params = {
+                "organization_id": self.organization.id,
+                "project_id": self.projects,
+                "start": start,
+                "end": end,
+            }
+            query = MetricsQueryBuilder(params)
+            return query.granularity.granularity
+
+        # See resolve_granularity on the MQB to see what these boundaries are
+
+        # Exactly 30d, at the 30 minute boundary
+        start = datetime.datetime(2015, 5, 1, 0, 30, 0, tzinfo=timezone.utc)
+        end = datetime.datetime(2015, 5, 31, 0, 30, 0, tzinfo=timezone.utc)
+        assert get_granularity(start, end) == 86400, "30d at boundary"
+
+        # Near 30d, but 1 hour before the boundary for end
+        start = datetime.datetime(2015, 5, 1, 0, 30, 0, tzinfo=timezone.utc)
+        end = datetime.datetime(2015, 5, 30, 23, 29, 0, tzinfo=timezone.utc)
+        assert get_granularity(start, end) == 3600, "near 30d, but 1 hour before boundary for end"
+
+        # Near 30d, but 1 hour after the boundary for start
+        start = datetime.datetime(2015, 5, 1, 1, 30, 0, tzinfo=timezone.utc)
+        end = datetime.datetime(2015, 5, 31, 0, 30, 0, tzinfo=timezone.utc)
+        assert get_granularity(start, end) == 3600, "near 30d, but 1 hour after boundary for start"
+
+        # Exactly 3d
+        start = datetime.datetime(2015, 5, 1, 0, 30, 0, tzinfo=timezone.utc)
+        end = datetime.datetime(2015, 5, 4, 0, 30, 0, tzinfo=timezone.utc)
+        assert get_granularity(start, end) == 86400, "3d at boundary"
+
+        # Near 3d, but 1 hour before the boundary for end
+        start = datetime.datetime(2015, 5, 1, 0, 30, 0, tzinfo=timezone.utc)
+        end = datetime.datetime(2015, 5, 3, 23, 29, 0, tzinfo=timezone.utc)
+        assert get_granularity(start, end) == 3600, "near 3d, but 1 hour before boundary for end"
+
+        # Near 3d, but 1 hour after the boundary for start
+        start = datetime.datetime(2015, 5, 1, 1, 30, 0, tzinfo=timezone.utc)
+        end = datetime.datetime(2015, 5, 4, 0, 30, 0, tzinfo=timezone.utc)
+        assert get_granularity(start, end) == 3600, "near 3d, but 1 hour after boundary for start"
+
+        # exactly 12 hours
+        start = datetime.datetime(2015, 5, 1, 0, 15, 0, tzinfo=timezone.utc)
+        end = datetime.datetime(2015, 5, 1, 12, 15, 0, tzinfo=timezone.utc)
+        assert get_granularity(start, end) == 3600, "12h at boundary"
+
+        # Near 12h, but 15 minutes before the boundary for end
+        start = datetime.datetime(2015, 5, 1, 0, 15, 0, tzinfo=timezone.utc)
+        end = datetime.datetime(2015, 5, 1, 12, 0, 0, tzinfo=timezone.utc)
+        assert (
+            get_granularity(start, end) == 60
+        ), "12h at boundary, but 15 min before the boundary for end"
+
+        # Near 12h, but 15 minutes after the boundary for start
+        start = datetime.datetime(2015, 5, 1, 0, 30, 0, tzinfo=timezone.utc)
+        end = datetime.datetime(2015, 5, 1, 12, 15, 0, tzinfo=timezone.utc)
+        assert (
+            get_granularity(start, end) == 60
+        ), "12h at boundary, but 15 min after the boundary for start"
+
+    def test_get_snql_query(self):
+        query = MetricsQueryBuilder(self.params, "", selected_columns=["p90(transaction.duration)"])
+        snql_request = query.get_snql_query()
+        assert snql_request.dataset == "metrics"
+        snql_query = snql_request.query
+        self.assertCountEqual(
+            snql_query.select,
+            [
+                _metric_percentile_definition(self.organization.id, "90"),
+            ],
+        )
+        self.assertCountEqual(
+            query.where,
+            [
+                *self.default_conditions,
+                *_metric_conditions(self.organization.id, ["transaction.duration"]),
+            ],
+        )
+
+    def test_get_snql_query_errors_with_multiple_dataset(self):
+        query = MetricsQueryBuilder(
+            self.params, "", selected_columns=["p90(transaction.duration)", "count_unique(user)"]
+        )
+        with pytest.raises(NotImplementedError):
+            query.get_snql_query()
+
+    def test_get_snql_query_errors_with_no_functions(self):
+        query = MetricsQueryBuilder(self.params, "", selected_columns=["project"])
+        with pytest.raises(IncompatibleMetricsQuery):
+            query.get_snql_query()
 
     def test_run_query(self):
         self.store_metric(
@@ -1165,7 +1491,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         }
 
     def test_run_query_with_tag_orderby(self):
-        with self.assertRaises(IncompatibleMetricsQuery):
+        with pytest.raises(IncompatibleMetricsQuery):
             query = MetricsQueryBuilder(
                 self.params,
                 selected_columns=[
@@ -1201,6 +1527,71 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         assert data["tpm"] == 5 / ((self.end - self.start).total_seconds() / 60)
         assert data["tpm"] / 60 == data["tps"]
 
+    def test_count(self):
+        for _ in range(3):
+            self.store_metric(
+                150,
+                timestamp=self.start + datetime.timedelta(minutes=5),
+            )
+            self.store_metric(
+                50,
+                timestamp=self.start + datetime.timedelta(minutes=5),
+            )
+        query = MetricsQueryBuilder(
+            self.params,
+            "",
+            selected_columns=[
+                "count()",
+            ],
+        )
+        result = query.run_query("test_query")
+        data = result["data"][0]
+        assert data["count"] == 6
+
+    def test_avg_duration(self):
+        for _ in range(3):
+            self.store_metric(
+                150,
+                timestamp=self.start + datetime.timedelta(minutes=5),
+            )
+            self.store_metric(
+                50,
+                timestamp=self.start + datetime.timedelta(minutes=5),
+            )
+        query = MetricsQueryBuilder(
+            self.params,
+            "",
+            selected_columns=[
+                "avg(transaction.duration)",
+            ],
+        )
+        result = query.run_query("test_query")
+        data = result["data"][0]
+        assert data["avg_transaction_duration"] == 100
+
+    def test_avg_span_http(self):
+        for _ in range(3):
+            self.store_metric(
+                150,
+                metric="spans.http",
+                timestamp=self.start + datetime.timedelta(minutes=5),
+            )
+            self.store_metric(
+                50,
+                metric="spans.http",
+                timestamp=self.start + datetime.timedelta(minutes=5),
+            )
+        query = MetricsQueryBuilder(
+            self.params,
+            "",
+            selected_columns=[
+                "avg(spans.http)",
+            ],
+        )
+        result = query.run_query("test_query")
+        data = result["data"][0]
+        assert data["avg_spans_http"] == 100
+
     def test_failure_rate(self):
         for _ in range(3):
             self.store_metric(
@@ -1225,6 +1616,24 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         data = result["data"][0]
         assert data["failure_rate"] == 0.5
         assert data["failure_count"] == 3
+
+    def test_run_function_without_having_or_groupby(self):
+        self.store_metric(
+            1,
+            metric="user",
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.start + datetime.timedelta(minutes=5),
+        )
+        query = MetricsQueryBuilder(
+            self.params,
+            "",
+            selected_columns=[
+                "transaction",
+                "count_unique(user)",
+            ],
+        )
+        primary, result = query._create_query_framework()
+        assert primary == "set"
 
     def test_run_query_with_multiple_groupby_orderby_null_values_in_second_entity(self):
         """Since the null value is on count_unique(user) we will still get baz_transaction since we query distributions
@@ -1264,6 +1673,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             "transaction": indexer.resolve(self.organization.id, "baz_transaction"),
             "project": self.project.slug,
             "p95_transaction_duration": 200,
+            "count_unique_user": 0,
         }
         self.assertCountEqual(
             result["meta"],
@@ -1315,7 +1725,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         }
 
     def test_multiple_entity_orderby_fails(self):
-        with self.assertRaises(IncompatibleMetricsQuery):
+        with pytest.raises(IncompatibleMetricsQuery):
             query = MetricsQueryBuilder(
                 self.params,
                 f"project:{self.project.slug}",
@@ -1330,7 +1740,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             query.run_query("test_query")
 
     def test_multiple_entity_query_fails(self):
-        with self.assertRaises(IncompatibleMetricsQuery):
+        with pytest.raises(IncompatibleMetricsQuery):
             query = MetricsQueryBuilder(
                 self.params,
                 "p95(transaction.duration):>5s AND count_unique(user):>0",
@@ -1345,7 +1755,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             query.run_query("test_query")
 
     def test_query_entity_does_not_match_orderby(self):
-        with self.assertRaises(IncompatibleMetricsQuery):
+        with pytest.raises(IncompatibleMetricsQuery):
             query = MetricsQueryBuilder(
                 self.params,
                 "count_unique(user):>0",
@@ -1472,7 +1882,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             "p75(user)",
             "count_web_vitals(user, poor)",
         ]:
-            with self.assertRaises(IncompatibleMetricsQuery):
+            with pytest.raises(IncompatibleMetricsQuery):
                 MetricsQueryBuilder(
                     self.params,
                     "",
@@ -1508,7 +1918,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
 
     def test_error_if_aggregates_disallowed(self):
         def run_query(query, use_aggregate_conditions):
-            with self.assertRaises(IncompatibleMetricsQuery):
+            with pytest.raises(IncompatibleMetricsQuery):
                 MetricsQueryBuilder(
                     self.params,
                     selected_columns=[
@@ -1555,6 +1965,131 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             use_aggregate_conditions=False,
         )
 
+    def test_multiple_dataset_but_no_data(self):
+        """When there's no data from the primary dataset we shouldn't error out"""
+        result = MetricsQueryBuilder(
+            self.params,
+            selected_columns=[
+                "p50()",
+                "count_unique(user)",
+            ],
+            allow_metric_aggregates=False,
+            use_aggregate_conditions=True,
+        ).run_query("test")
+        assert len(result["data"]) == 1
+        data = result["data"][0]
+        assert data["count_unique_user"] == 0
+        # Handled by the discover transform later so its fine that this is nan
+        assert math.isnan(data["p50"])
+
+    @mock.patch("sentry.search.events.builder.raw_snql_query")
+    @mock.patch("sentry.search.events.builder.indexer.resolve", return_value=-1)
+    def test_dry_run_does_not_hit_indexer_or_clickhouse(self, mock_indexer, mock_query):
+        query = MetricsQueryBuilder(
+            self.params,
+            # Include a tag:value search as well since that resolves differently
+            f"project:{self.project.slug} transaction:foo_transaction",
+            selected_columns=[
+                "transaction",
+                "p95(transaction.duration)",
+                "p100(measurements.lcp)",
+                "apdex()",
+                "count_web_vitals(measurements.lcp, good)",
+            ],
+            dry_run=True,
+        )
+        query.run_query("test_query")
+        assert not mock_indexer.called
+        assert not mock_query.called
+
+    @mock.patch("sentry.search.events.builder.indexer.resolve", return_value=-1)
+    def test_multiple_references_only_resolve_index_once(self, mock_indexer):
+        MetricsQueryBuilder(
+            self.params,
+            f"project:{self.project.slug} transaction:foo_transaction transaction:foo_transaction",
+            selected_columns=[
+                "transaction",
+                "count_web_vitals(measurements.lcp, good)",
+                "count_web_vitals(measurements.lcp, good)",
+                "count_web_vitals(measurements.lcp, good)",
+                "count_web_vitals(measurements.lcp, good)",
+                "count_web_vitals(measurements.lcp, good)",
+            ],
+        )
+        self.assertCountEqual(
+            mock_indexer.mock_calls,
+            [
+                mock.call(self.organization.id, "transaction"),
+                mock.call(self.organization.id, "foo_transaction"),
+                mock.call(self.organization.id, constants.METRICS_MAP["measurements.lcp"]),
+                mock.call(self.organization.id, "measurement_rating"),
+                mock.call(self.organization.id, "good"),
+            ],
+        )
+
+    def test_custom_measurement_allowed(self):
+        MetricsQueryBuilder(
+            self.params,
+            selected_columns=[
+                "transaction",
+                "avg(measurements.custom.measurement)",
+                "p50(measurements.custom.measurement)",
+                "p75(measurements.custom.measurement)",
+                "p90(measurements.custom.measurement)",
+                "p95(measurements.custom.measurement)",
+                "p99(measurements.custom.measurement)",
+                "p100(measurements.custom.measurement)",
+                "percentile(measurements.custom.measurement, 0.95)",
+                "sum(measurements.custom.measurement)",
+                "max(measurements.custom.measurement)",
+                "min(measurements.custom.measurement)",
+                "count_unique(user)",
+            ],
+            query="transaction:foo_transaction",
+            allow_metric_aggregates=False,
+            use_aggregate_conditions=True,
+            # Use dry run for now to not hit indexer
+            dry_run=True,
+        )
+
+    def test_group_by_not_in_select(self):
+        query = MetricsQueryBuilder(
+            self.params,
+            "",
+            selected_columns=[
+                "p90(transaction.duration)",
+                "project",
+            ],
+            groupby_columns=[
+                "transaction",
+            ],
+        )
+        snql_query = query.get_snql_query().query
+        project = Function(
+            "transform",
+            [
+                Column("project_id"),
+                [self.project.id],
+                [self.project.slug],
+                "",
+            ],
+            "project",
+        )
+        self.assertCountEqual(
+            snql_query.select,
+            [
+                _metric_percentile_definition(self.organization.id, "90"),
+                project,
+            ],
+        )
+        self.assertCountEqual(
+            snql_query.groupby,
+            [
+                project,
+                Column(f"tags[{indexer.resolve(self.organization.id, 'transaction')}]"),
+            ],
+        )
+
 
 class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
     def test_get_query(self):
@@ -1563,13 +2098,14 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         )
         snql_query = query.get_snql_query()
         assert len(snql_query) == 1
-        assert snql_query[0].where == [
+        query = snql_query[0].query
+        assert query.where == [
             *self.default_conditions,
             *_metric_conditions(self.organization.id, ["transaction.duration"]),
         ]
-        assert snql_query[0].select == [_metric_percentile_definition(self.organization.id, "50")]
-        assert snql_query[0].match.name == "metrics_distributions"
-        assert snql_query[0].granularity.granularity == 60
+        assert query.select == [_metric_percentile_definition(self.organization.id, "50")]
+        assert query.match.name == "metrics_distributions"
+        assert query.granularity.granularity == 60
 
     def test_default_conditions(self):
         query = TimeseriesMetricQueryBuilder(
@@ -1594,15 +2130,15 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         end = datetime.datetime(2015, 5, 19, 0, 0, 0, tzinfo=timezone.utc)
         assert get_granularity(start, end, 30) == 10, "A day at midnight, 30s interval"
         assert get_granularity(start, end, 900) == 60, "A day at midnight, 15min interval"
-        assert get_granularity(start, end, 3600) == 3600, "A day at midnight, 1hr interval"
-        assert get_granularity(start, end, 86400) == 86400, "A day at midnight, 1d interval"
+        assert get_granularity(start, end, 3600) == 60, "A day at midnight, 1hr interval"
+        assert get_granularity(start, end, 86400) == 3600, "A day at midnight, 1d interval"
 
         # If we're on the start of the hour we should use the hour granularity
         start = datetime.datetime(2015, 5, 18, 23, 0, 0, tzinfo=timezone.utc)
         end = datetime.datetime(2015, 5, 20, 1, 0, 0, tzinfo=timezone.utc)
         assert get_granularity(start, end, 30) == 10, "On the hour, 30s interval"
         assert get_granularity(start, end, 900) == 60, "On the hour, 15min interval"
-        assert get_granularity(start, end, 3600) == 3600, "On the hour, 1hr interval"
+        assert get_granularity(start, end, 3600) == 60, "On the hour, 1hr interval"
         assert get_granularity(start, end, 86400) == 3600, "On the hour, 1d interval"
 
         # Even though this is >24h of data, because its a random hour in the middle of the day to the next we use minute
@@ -1617,7 +2153,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             get_granularity(start, end, 3600) == 60
         ), "A few hours, but random minute, 1hr interval"
         assert (
-            get_granularity(start, end, 86400) == 60
+            get_granularity(start, end, 86400) == 3600
         ), "A few hours, but random minute, 1d interval"
 
         # Less than a minute, no reason to work hard for such a small window, just use a minute
@@ -1626,7 +2162,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         assert get_granularity(start, end, 30) == 10, "less than a minute, 30s interval"
         assert get_granularity(start, end, 900) == 60, "less than a minute, 15min interval"
         assert get_granularity(start, end, 3600) == 60, "less than a minute, 1hr interval"
-        assert get_granularity(start, end, 86400) == 60, "less than a minute, 1d interval"
+        assert get_granularity(start, end, 86400) == 3600, "less than a minute, 1d interval"
 
     def test_transaction_in_filter(self):
         query = TimeseriesMetricQueryBuilder(
@@ -1649,9 +2185,9 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         )
 
     def test_missing_transaction_index(self):
-        with self.assertRaisesRegex(
+        with pytest.raises(
             InvalidSearchQuery,
-            re.escape("Tag value was not found"),
+            match=re.escape("Tag value was not found"),
         ):
             TimeseriesMetricQueryBuilder(
                 self.params,
@@ -1661,9 +2197,9 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             )
 
     def test_missing_transaction_index_in_filter(self):
-        with self.assertRaisesRegex(
+        with pytest.raises(
             InvalidSearchQuery,
-            re.escape("Tag value was not found"),
+            match=re.escape("Tag value was not found"),
         ):
             TimeseriesMetricQueryBuilder(
                 self.params,
@@ -1767,9 +2303,11 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         )
 
     def test_run_query_with_hour_interval(self):
-        # See comment on resolve_time_column for explaination of this test
-        self.start = datetime.datetime(2015, 1, 1, 15, 30, 0, tzinfo=timezone.utc)
-        self.end = datetime.datetime(2015, 1, 2, 15, 30, 0, tzinfo=timezone.utc)
+        # See comment on resolve_time_column for explanation of this test
+        self.start = datetime.datetime.now(timezone.utc).replace(
+            hour=15, minute=30, second=0, microsecond=0
+        )
+        self.end = datetime.datetime.fromtimestamp(self.start.timestamp() + 86400, timezone.utc)
         self.params = {
             "organization_id": self.organization.id,
             "project_id": self.projects,
@@ -1790,9 +2328,10 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             selected_columns=["epm(3600)"],
         )
         result = query.run_query("test_query")
+        date_prefix = self.start.strftime("%Y-%m-%dT")
         assert result["data"] == [
-            {"time": "2015-01-01T15:00:00+00:00", "epm_3600": 2 / (3600 / 60)},
-            {"time": "2015-01-01T16:00:00+00:00", "epm_3600": 3 / (3600 / 60)},
+            {"time": f"{date_prefix}15:00:00+00:00", "epm_3600": 2 / (3600 / 60)},
+            {"time": f"{date_prefix}16:00:00+00:00", "epm_3600": 3 / (3600 / 60)},
         ]
         self.assertCountEqual(
             result["meta"],
@@ -1806,8 +2345,10 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         """The base MetricsQueryBuilder with a perfect 1d query will try to use granularity 86400 which is larger than
         the interval of 3600, in this case we want to make sure to use a smaller granularity to get the correct
         result"""
-        self.start = datetime.datetime(2015, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
-        self.end = datetime.datetime(2015, 1, 2, 0, 0, 0, tzinfo=timezone.utc)
+        self.start = datetime.datetime.now(timezone.utc).replace(
+            hour=0, minute=0, second=0, microsecond=0
+        )
+        self.end = datetime.datetime.fromtimestamp(self.start.timestamp() + 86400, timezone.utc)
         self.params = {
             "organization_id": self.organization.id,
             "project_id": self.projects,
@@ -1828,9 +2369,10 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             selected_columns=["epm(3600)"],
         )
         result = query.run_query("test_query")
+        date_prefix = self.start.strftime("%Y-%m-%dT")
         assert result["data"] == [
-            {"time": "2015-01-01T00:00:00+00:00", "epm_3600": 3 / (3600 / 60)},
-            {"time": "2015-01-01T01:00:00+00:00", "epm_3600": 1 / (3600 / 60)},
+            {"time": f"{date_prefix}00:00:00+00:00", "epm_3600": 3 / (3600 / 60)},
+            {"time": f"{date_prefix}01:00:00+00:00", "epm_3600": 1 / (3600 / 60)},
         ]
         self.assertCountEqual(
             result["meta"],
@@ -1888,7 +2430,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
 
     def test_error_if_aggregates_disallowed(self):
         def run_query(query):
-            with self.assertRaises(IncompatibleMetricsQuery):
+            with pytest.raises(IncompatibleMetricsQuery):
                 TimeseriesMetricQueryBuilder(
                     self.params,
                     interval=900,
@@ -1913,3 +2455,109 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             query="transaction:foo_transaction",
             allow_metric_aggregates=False,
         )
+
+    def test_invalid_semver_filter(self):
+        with pytest.raises(InvalidSearchQuery):
+            QueryBuilder(
+                Dataset.Discover,
+                self.params,
+                "user.email:foo@example.com release.build:[1.2.1]",
+                ["user.email", "release"],
+            )
+
+
+class HistogramMetricQueryBuilderTest(MetricBuilderBaseTest):
+    def test_histogram_columns_set_on_builder(self):
+        builder = HistogramMetricQueryBuilder(
+            params=self.params,
+            query="",
+            selected_columns=[
+                "histogram(transaction.duration)",
+                "histogram(measurements.lcp)",
+                "histogram(measurements.fcp) as test",
+            ],
+            histogram_params=HistogramParams(
+                5,
+                100,
+                0,
+                1,  # not used by Metrics
+            ),
+        )
+        self.assertCountEqual(
+            builder.histogram_aliases,
+            [
+                "histogram_transaction_duration",
+                "histogram_measurements_lcp",
+                "test",
+            ],
+        )
+
+    def test_get_query(self):
+        self.store_metric(
+            100,
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.start + datetime.timedelta(minutes=5),
+        )
+        self.store_metric(
+            100,
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.start + datetime.timedelta(minutes=5),
+        )
+        self.store_metric(
+            450,
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.start + datetime.timedelta(minutes=5),
+        )
+
+        query = HistogramMetricQueryBuilder(
+            params=self.params,
+            query="",
+            selected_columns=["histogram(transaction.duration)"],
+            histogram_params=HistogramParams(
+                5,
+                100,
+                0,
+                1,  # not used by Metrics
+            ),
+        )
+        snql_query = query.run_query("test_query")
+        assert len(snql_query["data"]) == 1
+        # This data is intepolated via rebucket_histogram
+        assert snql_query["data"][0]["histogram_transaction_duration"] == [
+            (0.0, 100.0, 0),
+            (100.0, 200.0, 2),
+            (200.0, 300.0, 1),
+            (300.0, 400.0, 1),
+            (400.0, 500.0, 1),
+        ]
+
+    def test_query_normal_distribution(self):
+        for i in range(5):
+            for _ in range((5 - abs(i - 2)) ** 2):
+                self.store_metric(
+                    100 * i + 50,
+                    tags={"transaction": "foo_transaction"},
+                    timestamp=self.start + datetime.timedelta(minutes=5),
+                )
+
+        query = HistogramMetricQueryBuilder(
+            params=self.params,
+            query="",
+            selected_columns=["histogram(transaction.duration)"],
+            histogram_params=HistogramParams(
+                5,
+                100,
+                0,
+                1,  # not used by Metrics
+            ),
+        )
+        snql_query = query.run_query("test_query")
+        assert len(snql_query["data"]) == 1
+        # This data is intepolated via rebucket_histogram
+        assert snql_query["data"][0]["histogram_transaction_duration"] == [
+            (0.0, 100.0, 10),
+            (100.0, 200.0, 17),
+            (200.0, 300.0, 23),
+            (300.0, 400.0, 17),
+            (400.0, 500.0, 10),
+        ]

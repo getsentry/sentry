@@ -4,12 +4,11 @@ from unittest import mock
 import pytest
 import responses
 
+from fixtures.gitlab import GitLabTestCase
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.models import Identity
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import json
-
-from .testutils import GitLabTestCase
 
 GITLAB_CODEOWNERS = {
     "filepath": "CODEOWNERS",
@@ -158,7 +157,7 @@ class GitlabRefreshAuthTest(GitLabTestCase):
             f"https://example.gitlab.com/api/v4/projects/{self.gitlab_id}/repository/files/src%2Ffile.py?ref={ref}",
             status=404,
         )
-        with self.assertRaises(ApiError):
+        with pytest.raises(ApiError):
             self.client.check_file(self.repo, path, ref)
         assert responses.calls[0].response.status_code == 404
 

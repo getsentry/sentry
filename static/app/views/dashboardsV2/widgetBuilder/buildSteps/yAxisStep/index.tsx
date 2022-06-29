@@ -41,12 +41,12 @@ export function YAxisStep({
       description={
         [DisplayType.AREA, DisplayType.BAR, DisplayType.LINE].includes(displayType)
           ? t(
-              "This is the data you'd be visualizing in the display. You can chart multiple overlays if they share a similar unit."
+              "This is the data you'd be visualizing in the display. If the overlay units conflict, the charts will always base it off of the first line."
             )
           : t("This is the data you'd be visualizing in the display.")
       }
     >
-      {dataSet === DataSet.RELEASE ? (
+      {dataSet === DataSet.RELEASES ? (
         <ReleaseYAxisSelector
           widgetType={widgetType}
           displayType={displayType}

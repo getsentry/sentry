@@ -1,4 +1,3 @@
-import * as React from 'react';
 import {withProfiler} from '@sentry/react';
 import classNames from 'classnames';
 

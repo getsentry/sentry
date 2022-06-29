@@ -6,6 +6,10 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
 import {Project} from 'sentry/types';
+import {
+  MEPSetting,
+  MEPState,
+} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import TransactionSummary from 'sentry/views/performance/transactionSummary/transactionOverview';
 
 const teams = [
@@ -142,7 +146,7 @@ describe('Performance > TransactionSummary', function () {
         },
       ],
     });
-    // Transaction list response
+    // Eventsv2 Transaction list response
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/eventsv2/',
       headers: {
@@ -174,7 +178,7 @@ describe('Performance > TransactionSummary', function () {
         },
       ],
     });
-    // Mock totals for status breakdown
+    // Eventsv2 Mock totals for status breakdown
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/eventsv2/',
       body: {
@@ -185,6 +189,100 @@ describe('Performance > TransactionSummary', function () {
         data: [
           {
             count: 2,
+            'transaction.status': 'ok',
+          },
+        ],
+      },
+      match: [
+        (_url, options) => {
+          return options.query?.field?.includes('transaction.status');
+        },
+      ],
+    });
+    // Events Mock totals for the sidebar and other summary data
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {
+        meta: {
+          fields: {
+            'count()': 'number',
+            'apdex()': 'number',
+            'count_miserable_user()': 'number',
+            'user_misery()': 'number',
+            'count_unique_user()': 'number',
+            'p95()': 'number',
+            'failure_rate()': 'number',
+            'tpm()': 'number',
+            project_threshold_config: 'string',
+          },
+        },
+        data: [
+          {
+            'count()': 2,
+            'apdex()': 0.6,
+            'count_miserable_user()': 122,
+            'user_misery()': 0.114,
+            'count_unique_user()': 1,
+            'p95()': 750.123,
+            'failure_rate()': 1,
+            'tpm()': 1,
+            project_threshold_config: ['duration', 300],
+          },
+        ],
+      },
+      match: [
+        (_url, options) => {
+          return options.query?.field?.includes('p95()');
+        },
+      ],
+    });
+    // Events Transaction list response
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      headers: {
+        Link:
+          '<http://localhost/api/0/organizations/org-slug/events/?cursor=2:0:0>; rel="next"; results="true"; cursor="2:0:0",' +
+          '<http://localhost/api/0/organizations/org-slug/events/?cursor=1:0:0>; rel="previous"; results="false"; cursor="1:0:0"',
+      },
+      body: {
+        meta: {
+          fields: {
+            id: 'string',
+            'user.display': 'string',
+            'transaction.duration': 'duration',
+            'project.id': 'integer',
+            timestamp: 'date',
+          },
+        },
+        data: [
+          {
+            id: 'deadbeef',
+            'user.display': 'uhoh@example.com',
+            'transaction.duration': 400,
+            'project.id': 2,
+            timestamp: '2020-05-21T15:31:18+00:00',
+          },
+        ],
+      },
+      match: [
+        (_url, options) => {
+          return options.query?.field?.includes('user.display');
+        },
+      ],
+    });
+    // Events Mock totals for status breakdown
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {
+        meta: {
+          fields: {
+            'transaction.status': 'string',
+            'count()': 'number',
+          },
+        },
+        data: [
+          {
+            'count()': 2,
             'transaction.status': 'ok',
           },
         ],
@@ -266,6 +364,8 @@ describe('Performance > TransactionSummary', function () {
       url: '/organizations/org-slug/events-has-measurements/',
       body: {measurements: false},
     });
+
+    jest.spyOn(MEPSetting, 'get').mockImplementation(() => MEPState.auto);
   });
 
   afterEach(function () {
@@ -278,382 +378,815 @@ describe('Performance > TransactionSummary', function () {
     console.error.mockRestore();
   });
 
-  it('renders basic UI elements', async function () {
-    const {organization, router, routerContext} = initializeData();
+  describe('with eventsv2', function () {
+    it('renders basic UI elements', async function () {
+      const {organization, router, routerContext} = initializeData();
 
-    render(<TestComponent location={router.location} />, {
-      context: routerContext,
-      organization,
+      render(<TestComponent location={router.location} />, {
+        context: routerContext,
+        organization,
+      });
+
+      //  It shows the header
+      await screen.findByText('Transaction Summary');
+      expect(screen.getByRole('heading', {name: '/performance'})).toBeInTheDocument();
+
+      // It shows a chart
+      expect(
+        screen.getByRole('button', {name: 'Display Duration Breakdown'})
+      ).toBeInTheDocument();
+
+      // It shows a searchbar
+      expect(screen.getByLabelText('Search events')).toBeInTheDocument();
+
+      // It shows a table
+      expect(screen.getByTestId('transactions-table')).toBeInTheDocument();
+
+      // Ensure open in discover button exists.
+      expect(screen.getByTestId('transaction-events-open')).toBeInTheDocument();
+
+      // Ensure open issues button exists.
+      expect(screen.getByRole('button', {name: 'Open in Issues'})).toBeInTheDocument();
+
+      // Ensure transaction filter button exists
+      expect(screen.getByText('Filter').closest('button')).toBeInTheDocument();
+
+      // Ensure create alert from discover is hidden without metric alert
+      expect(
+        screen.queryByRole('button', {name: 'Create Alert'})
+      ).not.toBeInTheDocument();
+
+      // Ensure status breakdown exists
+      expect(screen.getByText('Status Breakdown')).toBeInTheDocument();
     });
 
-    //  It shows the header
-    await screen.findByText('Transaction Summary');
-    expect(screen.getByRole('heading', {name: '/performance'})).toBeInTheDocument();
+    it('renders feature flagged UI elements', function () {
+      const {organization, router, routerContext} = initializeData({
+        features: ['incidents'],
+      });
 
-    // It shows a chart
-    expect(screen.getByRole('button', {name: 'Duration Breakdown'})).toBeInTheDocument();
+      render(<TestComponent location={router.location} />, {
+        context: routerContext,
+        organization,
+      });
 
-    // It shows a searchbar
-    expect(screen.getByLabelText('Search events')).toBeInTheDocument();
-
-    // It shows a table
-    expect(screen.getByTestId('transactions-table')).toBeInTheDocument();
-
-    // Ensure open in discover button exists.
-    expect(screen.getByTestId('transaction-events-open')).toBeInTheDocument();
-
-    // Ensure open issues button exists.
-    expect(screen.getByRole('button', {name: 'Open in Issues'})).toBeInTheDocument();
-
-    // Ensure transaction filter button exists
-    expect(screen.getByText('Filter').closest('button')).toBeInTheDocument();
-
-    // Ensure create alert from discover is hidden without metric alert
-    expect(screen.queryByRole('button', {name: 'Create Alert'})).not.toBeInTheDocument();
-
-    // Ensure status breakdown exists
-    expect(screen.getByText('Status Breakdown')).toBeInTheDocument();
-  });
-
-  it('renders feature flagged UI elements', function () {
-    const {organization, router, routerContext} = initializeData({
-      features: ['incidents'],
+      // Ensure create alert from discover is shown with metric alerts
+      expect(screen.getByRole('button', {name: 'Create Alert'})).toBeInTheDocument();
     });
 
-    render(<TestComponent location={router.location} />, {
-      context: routerContext,
-      organization,
-    });
-
-    // Ensure create alert from discover is shown with metric alerts
-    expect(screen.getByRole('button', {name: 'Create Alert'})).toBeInTheDocument();
-  });
-
-  it('renders Web Vitals widget', async function () {
-    const {organization, router, routerContext} = initializeData({
-      project: TestStubs.Project({teams, platform: 'javascript'}),
-      query: {
-        query:
-          'transaction.duration:<15m transaction.op:pageload event.type:transaction transaction:/organizations/:orgId/issues/',
-      },
-    });
-
-    render(<TestComponent location={router.location} />, {
-      context: routerContext,
-      organization,
-    });
-
-    // It renders the web vitals widget
-    await screen.findByRole('heading', {name: 'Web Vitals'});
-
-    const vitalStatues = screen.getAllByTestId('vital-status');
-    expect(vitalStatues).toHaveLength(3);
-
-    expect(vitalStatues[0]).toHaveTextContent('31%');
-    expect(vitalStatues[1]).toHaveTextContent('65%');
-    expect(vitalStatues[2]).toHaveTextContent('3%');
-  });
-
-  it('renders sidebar widgets', async function () {
-    const {organization, router, routerContext} = initializeData();
-
-    render(<TestComponent location={router.location} />, {
-      context: routerContext,
-      organization,
-    });
-
-    // Renders Apdex widget
-    await screen.findByRole('heading', {name: 'Apdex'});
-    expect(screen.getByTestId('apdex-summary-value')).toHaveTextContent('0.6');
-
-    // Renders Failure Rate widget
-    expect(screen.getByRole('heading', {name: 'Failure Rate'})).toBeInTheDocument();
-    expect(screen.getByTestId('failure-rate-summary-value')).toHaveTextContent('100%');
-
-    // Renders TPM widget
-    expect(screen.getByRole('heading', {name: 'TPM'})).toBeInTheDocument();
-    expect(screen.getByTestId('tpm-summary-value')).toHaveTextContent('1 tpm');
-  });
-
-  it('fetches transaction threshold', function () {
-    const {organization, router, routerContext} = initializeData();
-
-    const getTransactionThresholdMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/project-transaction-threshold-override/',
-      method: 'GET',
-      body: {
-        threshold: '800',
-        metric: 'lcp',
-      },
-    });
-
-    const getProjectThresholdMock = MockApiClient.addMockResponse({
-      url: '/projects/org-slug/project-slug/transaction-threshold/configure/',
-      method: 'GET',
-      body: {
-        threshold: '200',
-        metric: 'duration',
-      },
-    });
-
-    render(<TestComponent location={router.location} />, {
-      context: routerContext,
-      organization,
-    });
-
-    expect(getTransactionThresholdMock).toHaveBeenCalledTimes(1);
-    expect(getProjectThresholdMock).not.toHaveBeenCalled();
-  });
-
-  it('fetches project transaction threshdold', async function () {
-    const {organization, router, routerContext} = initializeData();
-
-    const getTransactionThresholdMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/project-transaction-threshold-override/',
-      method: 'GET',
-      statusCode: 404,
-    });
-
-    const getProjectThresholdMock = MockApiClient.addMockResponse({
-      url: '/projects/org-slug/project-slug/transaction-threshold/configure/',
-      method: 'GET',
-      body: {
-        threshold: '200',
-        metric: 'duration',
-      },
-    });
-
-    render(<TestComponent location={router.location} />, {
-      context: routerContext,
-      organization,
-    });
-
-    await screen.findByText('Transaction Summary');
-
-    expect(getTransactionThresholdMock).toHaveBeenCalledTimes(1);
-    expect(getProjectThresholdMock).toHaveBeenCalledTimes(1);
-  });
-
-  it('triggers a navigation on search', function () {
-    const {organization, router, routerContext} = initializeData();
-
-    render(<TestComponent location={router.location} />, {
-      context: routerContext,
-      organization,
-    });
-
-    // Fill out the search box, and submit it.
-    userEvent.type(screen.getByLabelText('Search events'), 'user.email:uhoh*{enter}');
-
-    // Check the navigation.
-    expect(browserHistory.push).toHaveBeenCalledTimes(1);
-    expect(browserHistory.push).toHaveBeenCalledWith({
-      pathname: undefined,
-      query: {
-        transaction: '/performance',
-        project: '2',
-        statsPeriod: '14d',
-        query: 'user.email:uhoh*',
-        transactionCursor: '1:0:0',
-      },
-    });
-  });
-
-  it('can mark a transaction as key', async function () {
-    const {organization, router, routerContext} = initializeData();
-
-    render(<TestComponent location={router.location} />, {
-      context: routerContext,
-      organization,
-    });
-
-    const mockUpdate = MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/key-transactions/`,
-      method: 'POST',
-      body: {},
-    });
-
-    await screen.findByRole('button', {name: 'Star for Team'});
-
-    // Click the key transaction button
-    userEvent.click(screen.getByRole('button', {name: 'Star for Team'}));
-
-    userEvent.click(screen.getByText('team1'));
-
-    // Ensure request was made.
-    expect(mockUpdate).toHaveBeenCalled();
-  });
-
-  it('triggers a navigation on transaction filter', async function () {
-    const {organization, router, routerContext} = initializeData();
-
-    render(<TestComponent location={router.location} />, {
-      context: routerContext,
-      organization,
-    });
-
-    await screen.findByText('Transaction Summary');
-
-    // Open the transaction filter dropdown
-    userEvent.click(screen.getByRole('button', {name: 'Filter Slow Transactions (p95)'}));
-
-    userEvent.click(screen.getByRole('button', {name: 'Slow Transactions (p95)'}));
-
-    // Check the navigation.
-    expect(browserHistory.push).toHaveBeenCalledWith({
-      pathname: undefined,
-      query: {
-        transaction: '/performance',
-        project: '2',
-        showTransactions: 'slow',
-        transactionCursor: undefined,
-      },
-    });
-  });
-
-  it('renders pagination buttons', async function () {
-    const {organization, router, routerContext} = initializeData();
-
-    render(<TestComponent location={router.location} />, {
-      context: routerContext,
-      organization,
-    });
-
-    await screen.findByText('Transaction Summary');
-
-    expect(screen.getByLabelText('Previous')).toBeInTheDocument();
-
-    // Click the 'next' button
-    userEvent.click(screen.getByLabelText('Next'));
-
-    // Check the navigation.
-    expect(browserHistory.push).toHaveBeenCalledWith({
-      pathname: undefined,
-      query: {
-        transaction: '/performance',
-        project: '2',
-        transactionCursor: '2:0:0',
-      },
-    });
-  });
-
-  it('forwards conditions to related issues', async function () {
-    const issueGet = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/issues/?limit=5&project=2&query=tag%3Avalue%20is%3Aunresolved%20transaction%3A%2Fperformance&sort=new&statsPeriod=14d',
-      body: [],
-    });
-
-    const {organization, router, routerContext} = initializeData({
-      query: {query: 'tag:value'},
-    });
-
-    render(<TestComponent location={router.location} />, {
-      context: routerContext,
-      organization,
-    });
-
-    await screen.findByText('Transaction Summary');
-
-    expect(issueGet).toHaveBeenCalled();
-  });
-
-  it('does not forward event type to related issues', async function () {
-    const issueGet = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/issues/?limit=5&project=2&query=tag%3Avalue%20is%3Aunresolved%20transaction%3A%2Fperformance&sort=new&statsPeriod=14d',
-      body: [],
-      match: [
-        (_, options) => {
-          // event.type must NOT be in the query params
-          return !options.query?.query?.includes('event.type');
+    it('renders Web Vitals widget', async function () {
+      const {organization, router, routerContext} = initializeData({
+        project: TestStubs.Project({teams, platform: 'javascript'}),
+        query: {
+          query:
+            'transaction.duration:<15m transaction.op:pageload event.type:transaction transaction:/organizations/:orgId/issues/',
         },
-      ],
+      });
+
+      render(<TestComponent location={router.location} />, {
+        context: routerContext,
+        organization,
+      });
+
+      // It renders the web vitals widget
+      await screen.findByRole('heading', {name: 'Web Vitals'});
+
+      const vitalStatues = screen.getAllByTestId('vital-status');
+      expect(vitalStatues).toHaveLength(3);
+
+      expect(vitalStatues[0]).toHaveTextContent('31%');
+      expect(vitalStatues[1]).toHaveTextContent('65%');
+      expect(vitalStatues[2]).toHaveTextContent('3%');
     });
 
-    const {organization, router, routerContext} = initializeData({
-      query: {query: 'tag:value event.type:transaction'},
+    it('renders sidebar widgets', async function () {
+      const {organization, router, routerContext} = initializeData();
+
+      render(<TestComponent location={router.location} />, {
+        context: routerContext,
+        organization,
+      });
+
+      // Renders Apdex widget
+      await screen.findByRole('heading', {name: 'Apdex'});
+      expect(screen.getByTestId('apdex-summary-value')).toHaveTextContent('0.6');
+
+      // Renders Failure Rate widget
+      expect(screen.getByRole('heading', {name: 'Failure Rate'})).toBeInTheDocument();
+      expect(screen.getByTestId('failure-rate-summary-value')).toHaveTextContent('100%');
+
+      // Renders TPM widget
+      expect(screen.getByRole('heading', {name: 'TPM'})).toBeInTheDocument();
+      expect(screen.getByTestId('tpm-summary-value')).toHaveTextContent('1 tpm');
     });
 
-    render(<TestComponent location={router.location} />, {
-      context: routerContext,
-      organization,
+    it('fetches transaction threshold', function () {
+      const {organization, router, routerContext} = initializeData();
+
+      const getTransactionThresholdMock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/project-transaction-threshold-override/',
+        method: 'GET',
+        body: {
+          threshold: '800',
+          metric: 'lcp',
+        },
+      });
+
+      const getProjectThresholdMock = MockApiClient.addMockResponse({
+        url: '/projects/org-slug/project-slug/transaction-threshold/configure/',
+        method: 'GET',
+        body: {
+          threshold: '200',
+          metric: 'duration',
+        },
+      });
+
+      render(<TestComponent location={router.location} />, {
+        context: routerContext,
+        organization,
+      });
+
+      expect(getTransactionThresholdMock).toHaveBeenCalledTimes(1);
+      expect(getProjectThresholdMock).not.toHaveBeenCalled();
     });
 
-    await screen.findByText('Transaction Summary');
+    it('fetches project transaction threshdold', async function () {
+      const {organization, router, routerContext} = initializeData();
 
-    expect(issueGet).toHaveBeenCalled();
+      const getTransactionThresholdMock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/project-transaction-threshold-override/',
+        method: 'GET',
+        statusCode: 404,
+      });
+
+      const getProjectThresholdMock = MockApiClient.addMockResponse({
+        url: '/projects/org-slug/project-slug/transaction-threshold/configure/',
+        method: 'GET',
+        body: {
+          threshold: '200',
+          metric: 'duration',
+        },
+      });
+
+      render(<TestComponent location={router.location} />, {
+        context: routerContext,
+        organization,
+      });
+
+      await screen.findByText('Transaction Summary');
+
+      expect(getTransactionThresholdMock).toHaveBeenCalledTimes(1);
+      expect(getProjectThresholdMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('triggers a navigation on search', function () {
+      const {organization, router, routerContext} = initializeData();
+
+      render(<TestComponent location={router.location} />, {
+        context: routerContext,
+        organization,
+      });
+
+      // Fill out the search box, and submit it.
+      userEvent.type(screen.getByLabelText('Search events'), 'user.email:uhoh*{enter}');
+
+      // Check the navigation.
+      expect(browserHistory.push).toHaveBeenCalledTimes(1);
+      expect(browserHistory.push).toHaveBeenCalledWith({
+        pathname: undefined,
+        query: {
+          transaction: '/performance',
+          project: '2',
+          statsPeriod: '14d',
+          query: 'user.email:uhoh*',
+          transactionCursor: '1:0:0',
+        },
+      });
+    });
+
+    it('can mark a transaction as key', async function () {
+      const {organization, router, routerContext} = initializeData();
+
+      render(<TestComponent location={router.location} />, {
+        context: routerContext,
+        organization,
+      });
+
+      const mockUpdate = MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/key-transactions/`,
+        method: 'POST',
+        body: {},
+      });
+
+      await screen.findByRole('button', {name: 'Star for Team'});
+
+      // Click the key transaction button
+      userEvent.click(screen.getByRole('button', {name: 'Star for Team'}));
+
+      userEvent.click(screen.getByText('team1'), undefined, {
+        skipPointerEventsCheck: true,
+      });
+
+      // Ensure request was made.
+      expect(mockUpdate).toHaveBeenCalled();
+    });
+
+    it('triggers a navigation on transaction filter', async function () {
+      const {organization, router, routerContext} = initializeData();
+
+      render(<TestComponent location={router.location} />, {
+        context: routerContext,
+        organization,
+      });
+
+      await screen.findByText('Transaction Summary');
+
+      // Open the transaction filter dropdown
+      userEvent.click(
+        screen.getByRole('button', {name: 'Filter Slow Transactions (p95)'})
+      );
+
+      userEvent.click(screen.getByRole('button', {name: 'Slow Transactions (p95)'}));
+
+      // Check the navigation.
+      expect(browserHistory.push).toHaveBeenCalledWith({
+        pathname: undefined,
+        query: {
+          transaction: '/performance',
+          project: '2',
+          showTransactions: 'slow',
+          transactionCursor: undefined,
+        },
+      });
+    });
+
+    it('renders pagination buttons', async function () {
+      const {organization, router, routerContext} = initializeData();
+
+      render(<TestComponent location={router.location} />, {
+        context: routerContext,
+        organization,
+      });
+
+      await screen.findByText('Transaction Summary');
+
+      expect(screen.getByLabelText('Previous')).toBeInTheDocument();
+
+      // Click the 'next' button
+      userEvent.click(screen.getByLabelText('Next'));
+
+      // Check the navigation.
+      expect(browserHistory.push).toHaveBeenCalledWith({
+        pathname: undefined,
+        query: {
+          transaction: '/performance',
+          project: '2',
+          transactionCursor: '2:0:0',
+        },
+      });
+    });
+
+    it('forwards conditions to related issues', async function () {
+      const issueGet = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/?limit=5&project=2&query=tag%3Avalue%20is%3Aunresolved%20transaction%3A%2Fperformance&sort=new&statsPeriod=14d',
+        body: [],
+      });
+
+      const {organization, router, routerContext} = initializeData({
+        query: {query: 'tag:value'},
+      });
+
+      render(<TestComponent location={router.location} />, {
+        context: routerContext,
+        organization,
+      });
+
+      await screen.findByText('Transaction Summary');
+
+      expect(issueGet).toHaveBeenCalled();
+    });
+
+    it('does not forward event type to related issues', async function () {
+      const issueGet = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/?limit=5&project=2&query=tag%3Avalue%20is%3Aunresolved%20transaction%3A%2Fperformance&sort=new&statsPeriod=14d',
+        body: [],
+        match: [
+          (_, options) => {
+            // event.type must NOT be in the query params
+            return !options.query?.query?.includes('event.type');
+          },
+        ],
+      });
+
+      const {organization, router, routerContext} = initializeData({
+        query: {query: 'tag:value event.type:transaction'},
+      });
+
+      render(<TestComponent location={router.location} />, {
+        context: routerContext,
+        organization,
+      });
+
+      await screen.findByText('Transaction Summary');
+
+      expect(issueGet).toHaveBeenCalled();
+    });
+
+    it('renders the suspect spans table if the feature is enabled', async function () {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events-spans-performance/',
+        body: [],
+      });
+
+      const {organization, router, routerContext} = initializeData({
+        features: ['performance-suspect-spans-view'],
+      });
+
+      render(<TestComponent location={router.location} />, {
+        context: routerContext,
+        organization,
+      });
+
+      expect(await screen.findByText('Suspect Spans')).toBeInTheDocument();
+    });
+
+    it('adds search condition on transaction status when clicking on status breakdown', async function () {
+      const {organization, router, routerContext} = initializeData();
+
+      render(<TestComponent location={router.location} />, {
+        context: routerContext,
+        organization,
+      });
+
+      await screen.findByTestId('status-ok');
+
+      userEvent.click(screen.getByTestId('status-ok'));
+
+      expect(browserHistory.push).toHaveBeenCalledTimes(1);
+      expect(browserHistory.push).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({
+            query: expect.stringContaining('transaction.status:ok'),
+          }),
+        })
+      );
+    });
+
+    it('appends tag value to existing query when clicked', async function () {
+      const {organization, router, routerContext} = initializeData();
+
+      render(<TestComponent location={router.location} />, {
+        context: routerContext,
+        organization,
+      });
+
+      await screen.findByText('Tag Summary');
+
+      userEvent.click(
+        screen.getByLabelText('Add the dev segment tag to the search query')
+      );
+      userEvent.click(
+        screen.getByLabelText('Add the bar segment tag to the search query')
+      );
+
+      expect(router.push).toHaveBeenCalledTimes(2);
+
+      expect(router.push).toHaveBeenNthCalledWith(1, {
+        query: {
+          project: '2',
+          query: 'tags[environment]:dev',
+          transaction: '/performance',
+          transactionCursor: '1:0:0',
+        },
+      });
+
+      expect(router.push).toHaveBeenNthCalledWith(2, {
+        query: {
+          project: '2',
+          query: 'foo:bar',
+          transaction: '/performance',
+          transactionCursor: '1:0:0',
+        },
+      });
+    });
   });
 
-  it('renders the suspect spans table if the feature is enabled', async function () {
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-spans-performance/',
-      body: [],
+  describe('with events', function () {
+    it('renders basic UI elements', async function () {
+      const {organization, router, routerContext} = initializeData({
+        features: ['performance-frontend-use-events-endpoint'],
+      });
+
+      render(<TestComponent location={router.location} />, {
+        context: routerContext,
+        organization,
+      });
+
+      //  It shows the header
+      await screen.findByText('Transaction Summary');
+      expect(screen.getByRole('heading', {name: '/performance'})).toBeInTheDocument();
+
+      // It shows a chart
+      expect(
+        screen.getByRole('button', {name: 'Display Duration Breakdown'})
+      ).toBeInTheDocument();
+
+      // It shows a searchbar
+      expect(screen.getByLabelText('Search events')).toBeInTheDocument();
+
+      // It shows a table
+      expect(screen.getByTestId('transactions-table')).toBeInTheDocument();
+
+      // Ensure open in discover button exists.
+      expect(screen.getByTestId('transaction-events-open')).toBeInTheDocument();
+
+      // Ensure open issues button exists.
+      expect(screen.getByRole('button', {name: 'Open in Issues'})).toBeInTheDocument();
+
+      // Ensure transaction filter button exists
+      expect(screen.getByText('Filter').closest('button')).toBeInTheDocument();
+
+      // Ensure create alert from discover is hidden without metric alert
+      expect(
+        screen.queryByRole('button', {name: 'Create Alert'})
+      ).not.toBeInTheDocument();
+
+      // Ensure status breakdown exists
+      expect(screen.getByText('Status Breakdown')).toBeInTheDocument();
     });
 
-    const {organization, router, routerContext} = initializeData({
-      features: ['performance-suspect-spans-view'],
+    it('renders feature flagged UI elements', function () {
+      const {organization, router, routerContext} = initializeData({
+        features: ['incidents', 'performance-frontend-use-events-endpoint'],
+      });
+
+      render(<TestComponent location={router.location} />, {
+        context: routerContext,
+        organization,
+      });
+
+      // Ensure create alert from discover is shown with metric alerts
+      expect(screen.getByRole('button', {name: 'Create Alert'})).toBeInTheDocument();
     });
 
-    render(<TestComponent location={router.location} />, {
-      context: routerContext,
-      organization,
+    it('renders Web Vitals widget', async function () {
+      const {organization, router, routerContext} = initializeData({
+        features: ['performance-frontend-use-events-endpoint'],
+        project: TestStubs.Project({teams, platform: 'javascript'}),
+        query: {
+          query:
+            'transaction.duration:<15m transaction.op:pageload event.type:transaction transaction:/organizations/:orgId/issues/',
+        },
+      });
+
+      render(<TestComponent location={router.location} />, {
+        context: routerContext,
+        organization,
+      });
+
+      // It renders the web vitals widget
+      await screen.findByRole('heading', {name: 'Web Vitals'});
+
+      const vitalStatues = screen.getAllByTestId('vital-status');
+      expect(vitalStatues).toHaveLength(3);
+
+      expect(vitalStatues[0]).toHaveTextContent('31%');
+      expect(vitalStatues[1]).toHaveTextContent('65%');
+      expect(vitalStatues[2]).toHaveTextContent('3%');
     });
 
-    expect(await screen.findByText('Suspect Spans')).toBeInTheDocument();
-  });
+    it('renders sidebar widgets', async function () {
+      const {organization, router, routerContext} = initializeData({
+        features: ['performance-frontend-use-events-endpoint'],
+      });
 
-  it('adds search condition on transaction status when clicking on status breakdown', async function () {
-    const {organization, router, routerContext} = initializeData();
+      render(<TestComponent location={router.location} />, {
+        context: routerContext,
+        organization,
+      });
 
-    render(<TestComponent location={router.location} />, {
-      context: routerContext,
-      organization,
+      // Renders Apdex widget
+      await screen.findByRole('heading', {name: 'Apdex'});
+      expect(screen.getByTestId('apdex-summary-value')).toHaveTextContent('0.6');
+
+      // Renders Failure Rate widget
+      expect(screen.getByRole('heading', {name: 'Failure Rate'})).toBeInTheDocument();
+      expect(screen.getByTestId('failure-rate-summary-value')).toHaveTextContent('100%');
+
+      // Renders TPM widget
+      expect(screen.getByRole('heading', {name: 'TPM'})).toBeInTheDocument();
+      expect(screen.getByTestId('tpm-summary-value')).toHaveTextContent('1 tpm');
     });
 
-    await screen.findByTestId('status-ok');
+    it('fetches transaction threshold', function () {
+      const {organization, router, routerContext} = initializeData({
+        features: ['performance-frontend-use-events-endpoint'],
+      });
 
-    userEvent.click(screen.getByTestId('status-ok'));
+      const getTransactionThresholdMock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/project-transaction-threshold-override/',
+        method: 'GET',
+        body: {
+          threshold: '800',
+          metric: 'lcp',
+        },
+      });
 
-    expect(browserHistory.push).toHaveBeenCalledTimes(1);
-    expect(browserHistory.push).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: expect.objectContaining({
-          query: expect.stringContaining('transaction.status:ok'),
-        }),
-      })
-    );
-  });
+      const getProjectThresholdMock = MockApiClient.addMockResponse({
+        url: '/projects/org-slug/project-slug/transaction-threshold/configure/',
+        method: 'GET',
+        body: {
+          threshold: '200',
+          metric: 'duration',
+        },
+      });
 
-  it('appends tag value to existing query when clicked', async function () {
-    const {organization, router, routerContext} = initializeData();
+      render(<TestComponent location={router.location} />, {
+        context: routerContext,
+        organization,
+      });
 
-    render(<TestComponent location={router.location} />, {
-      context: routerContext,
-      organization,
+      expect(getTransactionThresholdMock).toHaveBeenCalledTimes(1);
+      expect(getProjectThresholdMock).not.toHaveBeenCalled();
     });
 
-    await screen.findByText('Tag Summary');
+    it('fetches project transaction threshdold', async function () {
+      const {organization, router, routerContext} = initializeData({
+        features: ['performance-frontend-use-events-endpoint'],
+      });
 
-    userEvent.click(screen.getByLabelText('Add the dev segment tag to the search query'));
-    userEvent.click(screen.getByLabelText('Add the bar segment tag to the search query'));
+      const getTransactionThresholdMock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/project-transaction-threshold-override/',
+        method: 'GET',
+        statusCode: 404,
+      });
 
-    expect(router.push).toHaveBeenCalledTimes(2);
+      const getProjectThresholdMock = MockApiClient.addMockResponse({
+        url: '/projects/org-slug/project-slug/transaction-threshold/configure/',
+        method: 'GET',
+        body: {
+          threshold: '200',
+          metric: 'duration',
+        },
+      });
 
-    expect(router.push).toHaveBeenNthCalledWith(1, {
-      query: {
-        project: '2',
-        query: 'tags[environment]:dev',
-        transaction: '/performance',
-        transactionCursor: '1:0:0',
-      },
+      render(<TestComponent location={router.location} />, {
+        context: routerContext,
+        organization,
+      });
+
+      await screen.findByText('Transaction Summary');
+
+      expect(getTransactionThresholdMock).toHaveBeenCalledTimes(1);
+      expect(getProjectThresholdMock).toHaveBeenCalledTimes(1);
     });
 
-    expect(router.push).toHaveBeenNthCalledWith(2, {
-      query: {
-        project: '2',
-        query: 'foo:bar',
-        transaction: '/performance',
-        transactionCursor: '1:0:0',
-      },
+    it('triggers a navigation on search', function () {
+      const {organization, router, routerContext} = initializeData({
+        features: ['performance-frontend-use-events-endpoint'],
+      });
+
+      render(<TestComponent location={router.location} />, {
+        context: routerContext,
+        organization,
+      });
+
+      // Fill out the search box, and submit it.
+      userEvent.type(screen.getByLabelText('Search events'), 'user.email:uhoh*{enter}');
+
+      // Check the navigation.
+      expect(browserHistory.push).toHaveBeenCalledTimes(1);
+      expect(browserHistory.push).toHaveBeenCalledWith({
+        pathname: undefined,
+        query: {
+          transaction: '/performance',
+          project: '2',
+          statsPeriod: '14d',
+          query: 'user.email:uhoh*',
+          transactionCursor: '1:0:0',
+        },
+      });
+    });
+
+    it('can mark a transaction as key', async function () {
+      const {organization, router, routerContext} = initializeData({
+        features: ['performance-frontend-use-events-endpoint'],
+      });
+
+      render(<TestComponent location={router.location} />, {
+        context: routerContext,
+        organization,
+      });
+
+      const mockUpdate = MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/key-transactions/`,
+        method: 'POST',
+        body: {},
+      });
+
+      await screen.findByRole('button', {name: 'Star for Team'});
+
+      // Click the key transaction button
+      userEvent.click(screen.getByRole('button', {name: 'Star for Team'}));
+
+      userEvent.click(screen.getByText('team1'), undefined, {
+        skipPointerEventsCheck: true,
+      });
+
+      // Ensure request was made.
+      expect(mockUpdate).toHaveBeenCalled();
+    });
+
+    it('triggers a navigation on transaction filter', async function () {
+      const {organization, router, routerContext} = initializeData({
+        features: ['performance-frontend-use-events-endpoint'],
+      });
+
+      render(<TestComponent location={router.location} />, {
+        context: routerContext,
+        organization,
+      });
+
+      await screen.findByText('Transaction Summary');
+
+      // Open the transaction filter dropdown
+      userEvent.click(
+        screen.getByRole('button', {name: 'Filter Slow Transactions (p95)'})
+      );
+
+      userEvent.click(screen.getByRole('button', {name: 'Slow Transactions (p95)'}));
+
+      // Check the navigation.
+      expect(browserHistory.push).toHaveBeenCalledWith({
+        pathname: undefined,
+        query: {
+          transaction: '/performance',
+          project: '2',
+          showTransactions: 'slow',
+          transactionCursor: undefined,
+        },
+      });
+    });
+
+    it('renders pagination buttons', async function () {
+      const {organization, router, routerContext} = initializeData({
+        features: ['performance-frontend-use-events-endpoint'],
+      });
+
+      render(<TestComponent location={router.location} />, {
+        context: routerContext,
+        organization,
+      });
+
+      await screen.findByText('Transaction Summary');
+
+      expect(screen.getByLabelText('Previous')).toBeInTheDocument();
+
+      // Click the 'next' button
+      userEvent.click(screen.getByLabelText('Next'));
+
+      // Check the navigation.
+      expect(browserHistory.push).toHaveBeenCalledWith({
+        pathname: undefined,
+        query: {
+          transaction: '/performance',
+          project: '2',
+          transactionCursor: '2:0:0',
+        },
+      });
+    });
+
+    it('forwards conditions to related issues', async function () {
+      const issueGet = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/?limit=5&project=2&query=tag%3Avalue%20is%3Aunresolved%20transaction%3A%2Fperformance&sort=new&statsPeriod=14d',
+        body: [],
+      });
+
+      const {organization, router, routerContext} = initializeData({
+        features: ['performance-frontend-use-events-endpoint'],
+        query: {query: 'tag:value'},
+      });
+
+      render(<TestComponent location={router.location} />, {
+        context: routerContext,
+        organization,
+      });
+
+      await screen.findByText('Transaction Summary');
+
+      expect(issueGet).toHaveBeenCalled();
+    });
+
+    it('does not forward event type to related issues', async function () {
+      const issueGet = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/?limit=5&project=2&query=tag%3Avalue%20is%3Aunresolved%20transaction%3A%2Fperformance&sort=new&statsPeriod=14d',
+        body: [],
+        match: [
+          (_, options) => {
+            // event.type must NOT be in the query params
+            return !options.query?.query?.includes('event.type');
+          },
+        ],
+      });
+
+      const {organization, router, routerContext} = initializeData({
+        features: ['performance-frontend-use-events-endpoint'],
+        query: {query: 'tag:value event.type:transaction'},
+      });
+
+      render(<TestComponent location={router.location} />, {
+        context: routerContext,
+        organization,
+      });
+
+      await screen.findByText('Transaction Summary');
+
+      expect(issueGet).toHaveBeenCalled();
+    });
+
+    it('renders the suspect spans table if the feature is enabled', async function () {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events-spans-performance/',
+        body: [],
+      });
+
+      const {organization, router, routerContext} = initializeData({
+        features: [
+          'performance-suspect-spans-view',
+          'performance-frontend-use-events-endpoint',
+        ],
+      });
+
+      render(<TestComponent location={router.location} />, {
+        context: routerContext,
+        organization,
+      });
+
+      expect(await screen.findByText('Suspect Spans')).toBeInTheDocument();
+    });
+
+    it('adds search condition on transaction status when clicking on status breakdown', async function () {
+      const {organization, router, routerContext} = initializeData({
+        features: ['performance-frontend-use-events-endpoint'],
+      });
+
+      render(<TestComponent location={router.location} />, {
+        context: routerContext,
+        organization,
+      });
+
+      await screen.findByTestId('status-ok');
+
+      userEvent.click(screen.getByTestId('status-ok'));
+
+      expect(browserHistory.push).toHaveBeenCalledTimes(1);
+      expect(browserHistory.push).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({
+            query: expect.stringContaining('transaction.status:ok'),
+          }),
+        })
+      );
+    });
+
+    it('appends tag value to existing query when clicked', async function () {
+      const {organization, router, routerContext} = initializeData({
+        features: ['performance-frontend-use-events-endpoint'],
+      });
+
+      render(<TestComponent location={router.location} />, {
+        context: routerContext,
+        organization,
+      });
+
+      await screen.findByText('Tag Summary');
+
+      userEvent.click(
+        screen.getByLabelText('Add the dev segment tag to the search query')
+      );
+      userEvent.click(
+        screen.getByLabelText('Add the bar segment tag to the search query')
+      );
+
+      expect(router.push).toHaveBeenCalledTimes(2);
+
+      expect(router.push).toHaveBeenNthCalledWith(1, {
+        query: {
+          project: '2',
+          query: 'tags[environment]:dev',
+          transaction: '/performance',
+          transactionCursor: '1:0:0',
+        },
+      });
+
+      expect(router.push).toHaveBeenNthCalledWith(2, {
+        query: {
+          project: '2',
+          query: 'foo:bar',
+          transaction: '/performance',
+          transactionCursor: '1:0:0',
+        },
+      });
     });
   });
 });

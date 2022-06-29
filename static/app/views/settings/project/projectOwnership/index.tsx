@@ -16,17 +16,10 @@ import Button from 'sentry/components/button';
 import FeatureBadge from 'sentry/components/featureBadge';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
-import HookOrDefault from 'sentry/components/hookOrDefault';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {
-  CodeOwner,
-  Integration,
-  Organization,
-  Project,
-  RepositoryProjectPathConfig,
-} from 'sentry/types';
+import {CodeOwner, Organization, Project} from 'sentry/types';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import AsyncView from 'sentry/views/asyncView';
 import FeedbackAlert from 'sentry/views/settings/account/notifications/feedbackAlert';
@@ -42,16 +35,9 @@ type Props = {
 } & RouteComponentProps<{orgId: string; projectId: string}, {}>;
 
 type State = {
-  codeMappings: RepositoryProjectPathConfig[];
-  integrations: Integration[];
   ownership: null | any;
   codeowners?: CodeOwner[];
 } & AsyncView['state'];
-
-const CodeOwnersHeader = HookOrDefault({
-  hookName: 'component:codeowners-header',
-  defaultComponent: () => <Fragment />,
-});
 
 class ProjectOwnership extends AsyncView<Props, State> {
   getTitle() {
@@ -63,16 +49,6 @@ class ProjectOwnership extends AsyncView<Props, State> {
     const {organization, project} = this.props;
     const endpoints: ReturnType<AsyncView['getEndpoints']> = [
       ['ownership', `/projects/${organization.slug}/${project.slug}/ownership/`],
-      [
-        'codeMappings',
-        `/organizations/${organization.slug}/code-mappings/`,
-        {query: {project: project.id}},
-      ],
-      [
-        'integrations',
-        `/organizations/${organization.slug}/integrations/`,
-        {query: {features: ['codeowners']}},
-      ],
     ];
     if (organization.features.includes('integrations-codeowners')) {
       endpoints.push([
@@ -85,14 +61,11 @@ class ProjectOwnership extends AsyncView<Props, State> {
   }
 
   handleAddCodeOwner = () => {
-    const {codeMappings, integrations} = this.state;
     openModal(modalProps => (
       <AddCodeOwnerModal
         {...modalProps}
         organization={this.props.organization}
         project={this.props.project}
-        codeMappings={codeMappings}
-        integrations={integrations}
         onSave={this.handleCodeOwnerAdded}
       />
     ));
@@ -101,6 +74,7 @@ class ProjectOwnership extends AsyncView<Props, State> {
   getPlaceholder() {
     return `#example usage
 path:src/example/pipeline/* person@sentry.io #infra
+module:com.module.name.example #sdks
 url:http://example.com/settings/* #product
 tags.sku_class:enterprise #enterprise`;
   }
@@ -332,10 +306,6 @@ tags.sku_class:enterprise #enterprise`;
           }
         />
         <IssueOwnerDetails>{this.getDetail()}</IssueOwnerDetails>
-        <CodeOwnersHeader
-          addCodeOwner={this.handleAddCodeOwner}
-          handleRequest={this.handleAddCodeOwnerRequest}
-        />
 
         <PermissionAlert />
         <FeedbackAlert />

@@ -5,16 +5,16 @@ from django.contrib import messages
 from django.contrib.auth.models import AnonymousUser
 from django.test import Client, RequestFactory
 
+from sentry import audit_log
 from sentry.auth.helper import (
     OK_LINK_IDENTITY,
     AuthHelper,
     AuthHelperSessionStore,
     AuthIdentityHandler,
 )
-from sentry.auth.provider import Provider
+from sentry.auth.providers.dummy import DummyProvider
 from sentry.models import (
     AuditLogEntry,
-    AuditLogEntryEvent,
     AuthIdentity,
     AuthProvider,
     InviteStatus,
@@ -37,7 +37,6 @@ def _set_up_request():
 class AuthIdentityHandlerTest(TestCase):
     def setUp(self):
         self.provider = "dummy"
-        self.provider_obj = Provider(self.provider)
         self.request = _set_up_request()
 
         self.auth_provider = AuthProvider.objects.create(
@@ -60,7 +59,7 @@ class AuthIdentityHandlerTest(TestCase):
     def _handler_with(self, identity):
         return AuthIdentityHandler(
             self.auth_provider,
-            Provider(self.provider),
+            DummyProvider(self.provider),
             self.organization,
             self.request,
             identity,
@@ -221,7 +220,7 @@ class HandleAttachIdentityTest(AuthIdentityHandlerTest):
         assert AuditLogEntry.objects.filter(
             organization=self.organization,
             target_object=auth_identity.id,
-            event=AuditLogEntryEvent.SSO_IDENTITY_LINK,
+            event=audit_log.get_event_id("SSO_IDENTITY_LINK"),
             data=auth_identity.get_audit_log_data(),
         ).exists()
 
@@ -352,7 +351,6 @@ class HandleUnknownIdentityTest(AuthIdentityHandlerTest):
 
 class AuthHelperTest(TestCase):
     def setUp(self):
-        self.organization = self.create_organization()
         self.provider = "dummy"
         self.auth_provider = AuthProvider.objects.create(
             organization=self.organization, provider=self.provider

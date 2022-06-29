@@ -1,4 +1,3 @@
-import * as React from 'react';
 import styled from '@emotion/styled';
 
 import Tooltip from 'sentry/components/tooltip';
@@ -34,7 +33,7 @@ type QuestionProps = {
   Partial<
     Pick<
       React.ComponentProps<typeof Tooltip>,
-      'containerDisplayMode' | 'isHoverable' | 'popperStyle'
+      'containerDisplayMode' | 'isHoverable' | 'overlayStyle'
     >
   >;
 
@@ -42,7 +41,7 @@ function QuestionTooltip({title, size, className, ...tooltipProps}: QuestionProp
   return (
     <QuestionIconContainer size={size} className={className}>
       <Tooltip title={title} {...tooltipProps}>
-        <IconQuestion size={size} />
+        <IconQuestion size={size} data-test-id="more-information" />
       </Tooltip>
     </QuestionIconContainer>
   );

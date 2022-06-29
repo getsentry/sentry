@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from datetime import timedelta
 from enum import IntEnum
-from typing import TYPE_CHECKING, Sequence
+from typing import TYPE_CHECKING, FrozenSet, Sequence
 
 from django.conf import settings
 from django.db import IntegrityError, models, router, transaction
@@ -15,9 +15,15 @@ from django.utils.functional import cached_property
 from bitfield import BitField
 from sentry import features, roles
 from sentry.app import locks
-from sentry.constants import RESERVED_ORGANIZATION_SLUGS, RESERVED_PROJECT_SLUGS
+from sentry.constants import (
+    ALERTS_MEMBER_WRITE_DEFAULT,
+    EVENTS_MEMBER_ADMIN_DEFAULT,
+    RESERVED_ORGANIZATION_SLUGS,
+    RESERVED_PROJECT_SLUGS,
+)
 from sentry.db.models import BaseManager, BoundedPositiveIntegerField, Model, sane_repr
 from sentry.db.models.utils import slugify_instance
+from sentry.roles.manager import Role
 from sentry.utils.http import absolute_uri
 from sentry.utils.retries import TimedRetryPolicy
 
@@ -181,7 +187,7 @@ class Organization(Model):
 
     def save(self, *args, **kwargs):
         if not self.slug:
-            lock = locks.get("slug:organization", duration=5)
+            lock = locks.get("slug:organization", duration=5, name="organization_slug")
             with TimedRetryPolicy(10)(lock.acquire):
                 slugify_instance(self, self.name, reserved=RESERVED_ORGANIZATION_SLUGS)
             super().save(*args, **kwargs)
@@ -479,3 +485,14 @@ class Organization(Model):
 
     def get_url(self):
         return reverse(self.get_url_viewname(), args=[self.slug])
+
+    def get_scopes(self, role: Role) -> FrozenSet[str]:
+        if role.priority > 0:
+            return role.scopes
+
+        scopes = set(role.scopes)
+        if not self.get_option("sentry:events_member_admin", EVENTS_MEMBER_ADMIN_DEFAULT):
+            scopes.discard("event:admin")
+        if not self.get_option("sentry:alerts_member_write", ALERTS_MEMBER_WRITE_DEFAULT):
+            scopes.discard("alerts:write")
+        return frozenset(scopes)

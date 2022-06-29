@@ -18,7 +18,7 @@ describe('App', function () {
     });
 
     MockApiClient.addMockResponse({
-      url: '/assistant/?v2',
+      url: '/assistant/',
       body: [],
     });
 
@@ -28,7 +28,7 @@ describe('App', function () {
     });
   });
 
-  it('renders', async function () {
+  it('renders', function () {
     render(
       <App params={{orgId: 'org-slug'}}>
         <div>placeholder content</div>

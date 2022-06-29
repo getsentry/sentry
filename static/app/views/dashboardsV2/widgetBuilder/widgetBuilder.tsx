@@ -9,12 +9,17 @@ import set from 'lodash/set';
 import {validateWidget} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
-import {fetchMetricsFields, fetchMetricsTags} from 'sentry/actionCreators/metrics';
+import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {generateOrderOptions} from 'sentry/components/dashboards/widgetQueriesForm';
+import DatePageFilter from 'sentry/components/datePageFilter';
+import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import * as Layout from 'sentry/components/layouts/thirds';
 import List from 'sentry/components/list';
+import ListItem from 'sentry/components/list/listItem';
 import LoadingError from 'sentry/components/loadingError';
+import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
@@ -26,18 +31,16 @@ import {
   SelectValue,
   TagCollection,
 } from 'sentry/types';
-import {defined} from 'sentry/utils';
+import {defined, objectIsEmpty} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {
   explodeField,
   generateFieldAsString,
-  getAggregateAlias,
   getColumnsAndAggregates,
   getColumnsAndAggregatesAsStrings,
   QueryFieldValue,
 } from 'sentry/utils/discover/fields';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
-import {SessionMetric} from 'sentry/utils/metrics/fields';
 import useApi from 'sentry/utils/useApi';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withTags from 'sentry/utils/withTags';
@@ -56,12 +59,11 @@ import {
   WidgetQuery,
   WidgetType,
 } from 'sentry/views/dashboardsV2/types';
-import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 import {DEFAULT_STATS_PERIOD} from '../data';
+import {getDatasetConfig} from '../datasetConfig/base';
 
 import {ColumnsStep} from './buildSteps/columnsStep';
-import {DashboardStep} from './buildSteps/dashboardStep';
 import {DataSetStep} from './buildSteps/dataSetStep';
 import {FilterResultsStep} from './buildSteps/filterResultsStep';
 import {GroupByStep} from './buildSteps/groupByStep';
@@ -73,57 +75,25 @@ import {Header} from './header';
 import {
   DataSet,
   DEFAULT_RESULTS_LIMIT,
+  getIsTimeseriesChart,
   getParsedDefaultWidgetQuery,
+  getResultsLimit,
   mapErrors,
+  NEW_DASHBOARD_ID,
   normalizeQueries,
 } from './utils';
 import {WidgetLibrary} from './widgetLibrary';
 
-// Both dashboards and widgets use the 'new' keyword when creating
-const NEW_DASHBOARD_ID = 'new';
-
-function getDataSetQuery(widgetBuilderNewDesign: boolean): Record<DataSet, WidgetQuery> {
-  return {
-    [DataSet.EVENTS]: {
-      name: '',
-      fields: ['count()'],
-      columns: [],
-      fieldAliases: [],
-      aggregates: ['count()'],
-      conditions: '',
-      orderby: widgetBuilderNewDesign ? '-count' : '',
-    },
-    [DataSet.ISSUES]: {
-      name: '',
-      fields: ['issue', 'assignee', 'title'] as string[],
-      columns: ['issue', 'assignee', 'title'],
-      fieldAliases: [],
-      aggregates: [],
-      conditions: '',
-      orderby: widgetBuilderNewDesign ? IssueSortOptions.DATE : '',
-    },
-    [DataSet.RELEASE]: {
-      name: '',
-      fields: [`sum(${SessionMetric.SESSION})`],
-      columns: [],
-      fieldAliases: [],
-      aggregates: [`sum(${SessionMetric.SESSION})`],
-      conditions: '',
-      orderby: widgetBuilderNewDesign ? `-sum(${SessionMetric.SESSION})` : '',
-    },
-  };
-}
-
 const WIDGET_TYPE_TO_DATA_SET = {
   [WidgetType.DISCOVER]: DataSet.EVENTS,
   [WidgetType.ISSUE]: DataSet.ISSUES,
-  [WidgetType.METRICS]: DataSet.RELEASE,
+  [WidgetType.RELEASE]: DataSet.RELEASES,
 };
 
-const DATA_SET_TO_WIDGET_TYPE = {
+export const DATA_SET_TO_WIDGET_TYPE = {
   [DataSet.EVENTS]: WidgetType.DISCOVER,
   [DataSet.ISSUES]: WidgetType.ISSUE,
-  [DataSet.RELEASE]: WidgetType.METRICS,
+  [DataSet.RELEASES]: WidgetType.RELEASE,
 };
 
 interface RouteParams {
@@ -176,6 +146,7 @@ function WidgetBuilder({
   end,
   statsPeriod,
   onSave,
+  route,
   router,
   tags,
 }: Props) {
@@ -185,18 +156,26 @@ function WidgetBuilder({
     location.query.defaultWidgetQuery
   );
 
-  const isEditing = defined(widgetIndex);
-  const widgetIndexNum = Number(widgetIndex);
-  const isValidWidgetIndex =
-    widgetIndexNum >= 0 &&
-    widgetIndexNum < dashboard.widgets.length &&
-    Number.isInteger(widgetIndexNum);
-  const orgSlug = organization.slug;
-
   // Feature flag for new widget builder design. This feature is still a work in progress and not yet available internally.
   const widgetBuilderNewDesign = organization.features.includes(
     'new-widget-builder-experience-design'
   );
+  const hasReleaseHealthFeature = organization.features.includes('dashboards-releases');
+
+  const filteredDashboardWidgets = dashboard.widgets.filter(({widgetType}) => {
+    if (widgetType === WidgetType.RELEASE) {
+      return hasReleaseHealthFeature;
+    }
+    return true;
+  });
+
+  const isEditing = defined(widgetIndex);
+  const widgetIndexNum = Number(widgetIndex);
+  const isValidWidgetIndex =
+    widgetIndexNum >= 0 &&
+    widgetIndexNum < filteredDashboardWidgets.length &&
+    Number.isInteger(widgetIndexNum);
+  const orgSlug = organization.slug;
 
   // Construct PageFilters object using statsPeriod/start/end props so we can
   // render widget graph using saved timeframe from Saved/Prebuilt Query
@@ -214,38 +193,69 @@ function WidgetBuilder({
 
   const api = useApi();
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const [datasetConfig, setDataSetConfig] = useState<ReturnType<typeof getDatasetConfig>>(
+    getDatasetConfig(WidgetType.DISCOVER)
+  );
   const [state, setState] = useState<State>(() => {
-    return {
+    const defaultState: State = {
       title: defaultTitle ?? t('Custom Widget'),
-      displayType: displayType ?? DisplayType.TABLE,
+      displayType:
+        (widgetBuilderNewDesign && displayType === DisplayType.TOP_N
+          ? DisplayType.AREA
+          : displayType) ?? DisplayType.TABLE,
       interval: '5m',
-      queries: [
-        defaultWidgetQuery
-          ? widgetBuilderNewDesign
-            ? {
-                ...defaultWidgetQuery,
-                orderby:
-                  defaultWidgetQuery.orderby ||
-                  generateOrderOptions({
-                    widgetType: WidgetType.DISCOVER,
-                    widgetBuilderNewDesign,
-                    columns: defaultWidgetQuery.columns,
-                    aggregates: defaultWidgetQuery.aggregates,
-                  })[0].value,
-              }
-            : {...defaultWidgetQuery}
-          : {...getDataSetQuery(widgetBuilderNewDesign)[DataSet.EVENTS]},
-      ],
-      limit,
+      queries: [],
+      limit: limit ? Number(limit) : undefined,
       errors: undefined,
       loading: !!notDashboardsOrigin,
       dashboards: [],
       userHasModified: false,
       dataSet: DataSet.EVENTS,
     };
+
+    if (defaultWidgetQuery) {
+      if (widgetBuilderNewDesign) {
+        defaultState.queries = [
+          {
+            ...defaultWidgetQuery,
+            orderby:
+              defaultWidgetQuery.orderby ||
+              generateOrderOptions({
+                widgetType: WidgetType.DISCOVER,
+                widgetBuilderNewDesign,
+                columns: defaultWidgetQuery.columns,
+                aggregates: defaultWidgetQuery.aggregates,
+              })[0].value,
+          },
+        ];
+      } else {
+        defaultState.queries = [{...defaultWidgetQuery}];
+      }
+
+      if (
+        ![DisplayType.TABLE, DisplayType.TOP_N].includes(defaultState.displayType) &&
+        !(
+          getIsTimeseriesChart(defaultState.displayType) &&
+          defaultState.queries[0].columns.length
+        )
+      ) {
+        defaultState.queries[0].orderby = '';
+      }
+    } else {
+      defaultState.queries = [{...datasetConfig.defaultWidgetQuery}];
+    }
+
+    return defaultState;
   });
 
   const [widgetToBeUpdated, setWidgetToBeUpdated] = useState<Widget | null>(null);
+
+  // For analytics around widget library selection
+  const [latestLibrarySelectionTitle, setLatestLibrarySelectionTitle] = useState<
+    string | null
+  >(null);
 
   useEffect(() => {
     trackAdvancedAnalyticsEvent('dashboards_views.widget_builder.opened', {
@@ -253,22 +263,46 @@ function WidgetBuilder({
       new_widget: !isEditing,
     });
 
+    if (objectIsEmpty(tags)) {
+      loadOrganizationTags(api, organization.slug, selection);
+    }
+
     if (isEditing && isValidWidgetIndex) {
-      const widgetFromDashboard = dashboard.widgets[widgetIndexNum];
-      const visualization =
-        widgetBuilderNewDesign && widgetFromDashboard.displayType === DisplayType.TOP_N
-          ? DisplayType.TABLE
-          : widgetFromDashboard.displayType;
-      setState({
-        title: widgetFromDashboard.title,
-        displayType: visualization,
-        interval: widgetFromDashboard.interval,
-        queries: normalizeQueries({
-          displayType: visualization,
+      const widgetFromDashboard = filteredDashboardWidgets[widgetIndexNum];
+
+      let queries;
+      let newDisplayType = widgetFromDashboard.displayType;
+      let newLimit = widgetFromDashboard.limit;
+      if (widgetFromDashboard.displayType === DisplayType.TOP_N) {
+        newLimit = DEFAULT_RESULTS_LIMIT;
+        newDisplayType = DisplayType.AREA;
+
+        queries = normalizeQueries({
+          displayType: newDisplayType,
           queries: widgetFromDashboard.queries,
           widgetType: widgetFromDashboard.widgetType ?? WidgetType.DISCOVER,
           widgetBuilderNewDesign,
-        }),
+        }).map(query => ({
+          ...query,
+          // Use the last aggregate because that's where the y-axis is stored
+          aggregates: query.aggregates.length
+            ? [query.aggregates[query.aggregates.length - 1]]
+            : [],
+        }));
+      } else {
+        queries = normalizeQueries({
+          displayType: newDisplayType,
+          queries: widgetFromDashboard.queries,
+          widgetType: widgetFromDashboard.widgetType ?? WidgetType.DISCOVER,
+          widgetBuilderNewDesign,
+        });
+      }
+
+      setState({
+        title: widgetFromDashboard.title,
+        displayType: newDisplayType,
+        interval: widgetFromDashboard.interval,
+        queries,
         errors: undefined,
         loading: false,
         dashboards: [],
@@ -276,35 +310,80 @@ function WidgetBuilder({
         dataSet: widgetFromDashboard.widgetType
           ? WIDGET_TYPE_TO_DATA_SET[widgetFromDashboard.widgetType]
           : DataSet.EVENTS,
-        limit: widgetFromDashboard.limit,
+        limit: newLimit,
       });
+      setDataSetConfig(getDatasetConfig(widgetFromDashboard.widgetType));
       setWidgetToBeUpdated(widgetFromDashboard);
     }
+    // This should only run once on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
+    async function fetchDashboards() {
+      const promise: Promise<DashboardListItem[]> = api.requestPromise(
+        `/organizations/${organization.slug}/dashboards/`,
+        {
+          method: 'GET',
+          query: {sort: 'myDashboardsAndRecentlyViewed'},
+        }
+      );
+
+      try {
+        const dashboards = await promise;
+        setState(prevState => ({...prevState, dashboards, loading: false}));
+      } catch (error) {
+        const errorMessage = t('Unable to fetch dashboards');
+        addErrorMessage(errorMessage);
+        handleXhrErrorResponse(errorMessage)(error);
+        setState(prevState => ({...prevState, loading: false}));
+      }
+    }
+
     if (notDashboardsOrigin) {
       fetchDashboards();
     }
-  }, [source]);
+
+    if (widgetBuilderNewDesign) {
+      setState(prevState => ({
+        ...prevState,
+        selectedDashboard: {
+          label: dashboard.title,
+          value: dashboard.id || NEW_DASHBOARD_ID,
+        },
+      }));
+    }
+  }, [
+    api,
+    dashboard.id,
+    dashboard.title,
+    notDashboardsOrigin,
+    organization.slug,
+    source,
+    widgetBuilderNewDesign,
+  ]);
 
   useEffect(() => {
     fetchOrgMembers(api, organization.slug, selection.projects?.map(String));
-  }, [selection.projects]);
+  }, [selection.projects, api, organization.slug]);
 
   useEffect(() => {
-    if (widgetBuilderNewDesign) {
-      fetchMetricsTags(api, organization.slug, selection.projects);
-      fetchMetricsFields(api, organization.slug, selection.projects);
-    }
-  }, [selection.projects, organization.slug, widgetBuilderNewDesign]);
+    const onUnload = () => {
+      if (!isSubmitting && state.userHasModified) {
+        return t('You have unsaved changes, are you sure you want to leave?');
+      }
+      return undefined;
+    };
+
+    router.setRouteLeaveHook(route, onUnload);
+  }, [isSubmitting, state.userHasModified, route, router]);
 
   const widgetType =
     state.dataSet === DataSet.EVENTS
       ? WidgetType.DISCOVER
       : state.dataSet === DataSet.ISSUES
       ? WidgetType.ISSUE
-      : WidgetType.METRICS;
+      : WidgetType.RELEASE;
 
   const currentWidget = {
     title: state.title,
@@ -325,11 +404,7 @@ function WidgetBuilder({
     query: isEmpty(queryParamsWithoutSource) ? undefined : queryParamsWithoutSource,
   };
 
-  const isTimeseriesChart = [
-    DisplayType.LINE,
-    DisplayType.BAR,
-    DisplayType.AREA,
-  ].includes(state.displayType);
+  const isTimeseriesChart = getIsTimeseriesChart(state.displayType);
 
   const isTabularChart = [DisplayType.TABLE, DisplayType.TOP_N].includes(
     state.displayType
@@ -338,6 +413,25 @@ function WidgetBuilder({
   function updateFieldsAccordingToDisplayType(newDisplayType: DisplayType) {
     setState(prevState => {
       const newState = cloneDeep(prevState);
+
+      if (!!!datasetConfig.supportedDisplayTypes.includes(newDisplayType)) {
+        // Set to Events dataset if Display Type is not supported by
+        // current dataset
+        set(
+          newState,
+          'queries',
+          normalizeQueries({
+            displayType: newDisplayType,
+            queries: [{...getDatasetConfig(WidgetType.DISCOVER).defaultWidgetQuery}],
+            widgetType: WidgetType.DISCOVER,
+            widgetBuilderNewDesign,
+          })
+        );
+        set(newState, 'dataSet', DataSet.EVENTS);
+        setDataSetConfig(getDatasetConfig(WidgetType.DISCOVER));
+        return {...newState, errors: undefined};
+      }
+
       const normalized = normalizeQueries({
         displayType: newDisplayType,
         queries: prevState.queries,
@@ -350,44 +444,7 @@ function WidgetBuilder({
         normalized.splice(1);
       }
 
-      if (widgetBuilderNewDesign && !isTabularChart && !isTimeseriesChart) {
-        newState.limit = undefined;
-      }
-
-      if (
-        (prevState.displayType === DisplayType.TABLE &&
-          widgetToBeUpdated?.widgetType &&
-          WIDGET_TYPE_TO_DATA_SET[widgetToBeUpdated.widgetType] === DataSet.ISSUES) ||
-        (prevState.dataSet === DataSet.RELEASE &&
-          newDisplayType === DisplayType.WORLD_MAP)
-      ) {
-        // World Map display type only supports Events Dataset
-        // so set state to default events query.
-        set(
-          newState,
-          'queries',
-          normalizeQueries({
-            displayType: newDisplayType,
-            queries: [{...getDataSetQuery(widgetBuilderNewDesign)[DataSet.EVENTS]}],
-            widgetType: WidgetType.DISCOVER,
-            widgetBuilderNewDesign,
-          })
-        );
-        set(newState, 'dataSet', DataSet.EVENTS);
-        return {...newState, errors: undefined};
-      }
-
       if (!prevState.userHasModified) {
-        // If the Widget is an issue widget,
-        if (
-          newDisplayType === DisplayType.TABLE &&
-          widgetToBeUpdated?.widgetType === WidgetType.ISSUE
-        ) {
-          set(newState, 'queries', widgetToBeUpdated.queries);
-          set(newState, 'dataSet', DataSet.ISSUES);
-          return {...newState, errors: undefined};
-        }
-
         // Default widget provided by Add to Dashboard from Discover
         if (defaultWidgetQuery && defaultTableColumns) {
           // If switching to Table visualization, use saved query fields for Y-Axis if user has not made query changes
@@ -398,6 +455,9 @@ function WidgetBuilder({
               query.columns = [...tableQuery.columns];
               query.aggregates = [...tableQuery.aggregates];
               query.fields = [...defaultTableColumns];
+              query.orderby =
+                defaultWidgetQuery.orderby ??
+                (query.fields.length ? `${query.fields[0]}` : '-');
             });
           } else if (newDisplayType === displayType) {
             // When switching back to original display type, default fields back to the fields provided from the discover query
@@ -408,7 +468,10 @@ function WidgetBuilder({
               ];
               query.aggregates = [...defaultWidgetQuery.aggregates];
               query.columns = [...defaultWidgetQuery.columns];
-              if (!!defaultWidgetQuery.orderby) {
+              if (
+                !!defaultWidgetQuery.orderby &&
+                (displayType === DisplayType.TOP_N || defaultWidgetQuery.columns.length)
+              ) {
                 query.orderby = defaultWidgetQuery.orderby;
               }
             });
@@ -416,13 +479,46 @@ function WidgetBuilder({
         }
       }
 
-      if (prevState.dataSet === DataSet.ISSUES) {
-        set(newState, 'dataSet', DataSet.EVENTS);
-      }
-
       set(newState, 'queries', normalized);
 
+      if (widgetBuilderNewDesign) {
+        if (
+          getIsTimeseriesChart(newDisplayType) &&
+          normalized[0].columns.filter(column => !!column).length
+        ) {
+          // If a limit already exists (i.e. going between timeseries) then keep it,
+          // otherwise calculate a limit
+          newState.limit =
+            prevState.limit ??
+            Math.min(
+              getResultsLimit(normalized.length, normalized[0].columns.length),
+              DEFAULT_RESULTS_LIMIT
+            );
+        } else {
+          newState.limit = undefined;
+        }
+      }
+
+      set(newState, 'userHasModified', true);
       return {...newState, errors: undefined};
+    });
+  }
+
+  function getUpdateWidgetIndex() {
+    if (!widgetToBeUpdated) {
+      return -1;
+    }
+
+    return dashboard.widgets.findIndex(widget => {
+      if (defined(widget.id)) {
+        return widget.id === widgetToBeUpdated.id;
+      }
+
+      if (defined(widget.tempId)) {
+        return widget.tempId === widgetToBeUpdated.tempId;
+      }
+
+      return false;
     });
   }
 
@@ -441,6 +537,9 @@ function WidgetBuilder({
     setState(prevState => {
       const newState = cloneDeep(prevState);
       set(newState, field, value);
+      if (field === 'title') {
+        set(newState, 'userHasModified', true);
+      }
       return {...newState, errors: undefined};
     });
 
@@ -450,6 +549,14 @@ function WidgetBuilder({
   }
 
   function handleDataSetChange(newDataSet: string) {
+    trackAdvancedAnalyticsEvent('dashboards_views.widget_builder.change', {
+      from: source,
+      field: 'dataSet',
+      value: newDataSet,
+      widget_type: widgetType,
+      organization,
+      new_widget: !isEditing,
+    });
     setState(prevState => {
       const newState = cloneDeep(prevState);
       newState.queries.splice(0, newState.queries.length);
@@ -459,11 +566,14 @@ function WidgetBuilder({
         set(newState, 'displayType', DisplayType.TABLE);
       }
 
+      const config = getDatasetConfig(DATA_SET_TO_WIDGET_TYPE[newDataSet]);
+      setDataSetConfig(config);
+
       newState.queries.push(
         ...(widgetToBeUpdated?.widgetType &&
         WIDGET_TYPE_TO_DATA_SET[widgetToBeUpdated.widgetType] === newDataSet
           ? widgetToBeUpdated.queries
-          : [{...getDataSetQuery(widgetBuilderNewDesign)[newDataSet]}])
+          : [{...config.defaultWidgetQuery}])
       );
 
       set(newState, 'userHasModified', true);
@@ -474,10 +584,12 @@ function WidgetBuilder({
   function handleAddSearchConditions() {
     setState(prevState => {
       const newState = cloneDeep(prevState);
-      const query = cloneDeep(getDataSetQuery(widgetBuilderNewDesign)[prevState.dataSet]);
+      const config = getDatasetConfig(DATA_SET_TO_WIDGET_TYPE[prevState.dataSet]);
+      const query = cloneDeep(config.defaultWidgetQuery);
       query.fields = prevState.queries[0].fields;
       query.aggregates = prevState.queries[0].aggregates;
       query.columns = prevState.queries[0].columns;
+      query.orderby = prevState.queries[0].orderby;
       newState.queries.push(query);
       return newState;
     });
@@ -496,48 +608,42 @@ function WidgetBuilder({
       const newState = cloneDeep(prevState);
       set(newState, `queries.${queryIndex}`, newQuery);
       set(newState, 'userHasModified', true);
-
-      if (widgetBuilderNewDesign && isTimeseriesChart && queryIndex === 0) {
-        const groupByFields = newQuery.columns.filter(field => !(field === 'equation|'));
-
-        if (groupByFields.length === 0) {
-          set(newState, 'limit', undefined);
-        } else {
-          set(newState, 'limit', newState.limit ?? DEFAULT_RESULTS_LIMIT);
-        }
-      }
       return {...newState, errors: undefined};
     });
   }
 
-  function handleYAxisOrColumnFieldChange(
-    newFields: QueryFieldValue[],
-    isColumn = false
-  ) {
+  function handleColumnFieldChange(newFields: QueryFieldValue[]) {
     const fieldStrings = newFields.map(generateFieldAsString);
-    const aggregateAliasFieldStrings =
-      state.dataSet === DataSet.RELEASE
-        ? fieldStrings
-        : fieldStrings.map(getAggregateAlias);
+    const splitFields = getColumnsAndAggregatesAsStrings(newFields);
+    const newState = cloneDeep(state);
+    let newQuery = cloneDeep(newState.queries[0]);
 
-    const columnsAndAggregates = isColumn
-      ? getColumnsAndAggregatesAsStrings(newFields)
-      : undefined;
+    newQuery.fields = fieldStrings;
+    newQuery.aggregates = splitFields.aggregates;
+    newQuery.columns = splitFields.columns;
+    newQuery.fieldAliases = splitFields.fieldAliases;
 
+    if (datasetConfig.handleColumnFieldChangeOverride) {
+      newQuery = datasetConfig.handleColumnFieldChangeOverride(newQuery);
+    }
+
+    if (datasetConfig.handleOrderByReset) {
+      newQuery = datasetConfig.handleOrderByReset(newQuery, fieldStrings);
+    }
+
+    set(newState, 'queries', [newQuery]);
+    set(newState, 'userHasModified', true);
+    setState(newState);
+  }
+
+  function handleYAxisChange(newFields: QueryFieldValue[]) {
+    const fieldStrings = newFields.map(generateFieldAsString);
     const newState = cloneDeep(state);
 
     const newQueries = state.queries.map(query => {
-      const isDescending = query.orderby.startsWith('-');
-      const orderbyAggregateAliasField = query.orderby.replace('-', '');
-      const prevAggregateAliasFieldStrings = query.aggregates.map(aggregate =>
-        state.dataSet === DataSet.RELEASE ? aggregate : getAggregateAlias(aggregate)
-      );
-      const newQuery = cloneDeep(query);
+      let newQuery = cloneDeep(query);
 
-      if (isColumn) {
-        newQuery.fields = fieldStrings;
-        newQuery.aggregates = columnsAndAggregates?.aggregates ?? [];
-      } else if (state.displayType === DisplayType.TOP_N) {
+      if (state.displayType === DisplayType.TOP_N) {
         // Top N queries use n-1 fields for columns and the nth field for y-axis
         newQuery.fields = [
           ...(newQuery.fields?.slice(0, newQuery.fields.length - 1) ?? []),
@@ -552,34 +658,8 @@ function WidgetBuilder({
         newQuery.aggregates = fieldStrings;
       }
 
-      // Prevent overwriting columns when setting y-axis for time series
-      if (!(widgetBuilderNewDesign && isTimeseriesChart) && isColumn) {
-        newQuery.columns = columnsAndAggregates?.columns ?? [];
-      }
-
-      if (
-        !aggregateAliasFieldStrings.includes(orderbyAggregateAliasField) &&
-        query.orderby !== ''
-      ) {
-        if (prevAggregateAliasFieldStrings.length === newFields.length) {
-          // The Field that was used in orderby has changed. Get the new field.
-          const newOrderByValue =
-            aggregateAliasFieldStrings[
-              prevAggregateAliasFieldStrings.indexOf(orderbyAggregateAliasField)
-            ];
-
-          if (isDescending) {
-            newQuery.orderby = `-${newOrderByValue}`;
-          } else {
-            newQuery.orderby = newOrderByValue;
-          }
-        } else {
-          newQuery.orderby = widgetBuilderNewDesign ? aggregateAliasFieldStrings[0] : '';
-        }
-      }
-
-      if (widgetBuilderNewDesign) {
-        newQuery.fieldAliases = columnsAndAggregates?.fieldAliases ?? [];
+      if (datasetConfig.handleOrderByReset) {
+        newQuery = datasetConfig.handleOrderByReset(newQuery, fieldStrings);
       }
 
       return newQuery;
@@ -588,15 +668,20 @@ function WidgetBuilder({
     set(newState, 'queries', newQueries);
     set(newState, 'userHasModified', true);
 
-    if (widgetBuilderNewDesign && isTimeseriesChart) {
-      const groupByFields = newState.queries[0].columns.filter(
-        field => !(field === 'equation|')
+    const groupByFields = newState.queries[0].columns.filter(
+      field => !(field === 'equation|')
+    );
+    if (groupByFields.length === 0) {
+      set(newState, 'limit', undefined);
+    } else {
+      set(
+        newState,
+        'limit',
+        Math.min(
+          newState.limit ?? DEFAULT_RESULTS_LIMIT,
+          getResultsLimit(newQueries.length, newQueries[0].aggregates.length)
+        )
       );
-      if (groupByFields.length === 0) {
-        set(newState, 'limit', undefined);
-      } else {
-        set(newState, 'limit', newState.limit ?? DEFAULT_RESULTS_LIMIT);
-      }
     }
 
     setState(newState);
@@ -607,30 +692,57 @@ function WidgetBuilder({
 
     const newState = cloneDeep(state);
 
-    state.queries.forEach((query, index) => {
+    const newQueries = state.queries.map(query => {
       const newQuery = cloneDeep(query);
       newQuery.columns = fieldStrings;
-      set(newState, `queries.${index}`, newQuery);
+
+      if (!fieldStrings.length) {
+        // The grouping was cleared, so clear the orderby
+        newQuery.orderby = '';
+      } else if (!newQuery.orderby) {
+        const orderOptions = generateOrderOptions({
+          widgetType: widgetType ?? WidgetType.DISCOVER,
+          widgetBuilderNewDesign,
+          columns: query.columns,
+          aggregates: query.aggregates,
+        });
+        let orderOption: string;
+        // If no orderby options are available because of DISABLED_SORTS
+        if (!!!orderOptions.length && state.dataSet === DataSet.RELEASES) {
+          newQuery.orderby = '';
+        } else {
+          orderOption = orderOptions[0].value;
+          newQuery.orderby = `-${orderOption}`;
+        }
+      }
+      return newQuery;
     });
 
     set(newState, 'userHasModified', true);
+    set(newState, 'queries', newQueries);
 
-    if (widgetBuilderNewDesign && isTimeseriesChart) {
-      const groupByFields = newState.queries[0].columns.filter(
-        field => !(field === 'equation|')
+    const groupByFields = newState.queries[0].columns.filter(
+      field => !(field === 'equation|')
+    );
+
+    if (groupByFields.length === 0) {
+      set(newState, 'limit', undefined);
+    } else {
+      set(
+        newState,
+        'limit',
+        Math.min(
+          newState.limit ?? DEFAULT_RESULTS_LIMIT,
+          getResultsLimit(newQueries.length, newQueries[0].aggregates.length)
+        )
       );
-      if (groupByFields.length === 0) {
-        set(newState, 'limit', undefined);
-      } else {
-        set(newState, 'limit', newState.limit ?? DEFAULT_RESULTS_LIMIT);
-      }
     }
 
     setState(newState);
   }
 
   function handleLimitChange(newLimit: number) {
-    setState({...state, limit: newLimit});
+    setState(prevState => ({...prevState, limit: newLimit}));
   }
 
   function handleSortByChange(newSortBy: string) {
@@ -651,8 +763,10 @@ function WidgetBuilder({
       return;
     }
 
+    setIsSubmitting(true);
     let nextWidgetList = [...dashboard.widgets];
-    nextWidgetList.splice(widgetIndexNum, 1);
+    const updateWidgetIndex = getUpdateWidgetIndex();
+    nextWidgetList.splice(updateWidgetIndex, 1);
     nextWidgetList = generateWidgetsAfterCompaction(nextWidgetList);
 
     onSave(nextWidgetList);
@@ -686,6 +800,15 @@ function WidgetBuilder({
       return;
     }
 
+    if (latestLibrarySelectionTitle) {
+      // User has selected a widget library in this session
+      trackAdvancedAnalyticsEvent('dashboards_views.widget_library.add_widget', {
+        organization,
+        title: latestLibrarySelectionTitle,
+      });
+    }
+
+    setIsSubmitting(true);
     if (notDashboardsOrigin) {
       submitFromSelectedDashboard(widgetData);
       return;
@@ -693,7 +816,7 @@ function WidgetBuilder({
 
     if (!!widgetToBeUpdated) {
       let nextWidgetList = [...dashboard.widgets];
-      const updateIndex = nextWidgetList.indexOf(widgetToBeUpdated);
+      const updateWidgetIndex = getUpdateWidgetIndex();
       const nextWidgetData = {...widgetData, id: widgetToBeUpdated.id};
 
       // Only modify and re-compact if the default height has changed
@@ -701,10 +824,10 @@ function WidgetBuilder({
         getDefaultWidgetHeight(widgetToBeUpdated.displayType) !==
         getDefaultWidgetHeight(widgetData.displayType)
       ) {
-        nextWidgetList[updateIndex] = enforceWidgetHeightValues(nextWidgetData);
+        nextWidgetList[updateWidgetIndex] = enforceWidgetHeightValues(nextWidgetData);
         nextWidgetList = generateWidgetsAfterCompaction(nextWidgetList);
       } else {
-        nextWidgetList[updateIndex] = nextWidgetData;
+        nextWidgetList[updateWidgetIndex] = nextWidgetData;
       }
 
       onSave(nextWidgetList);
@@ -761,26 +884,6 @@ function WidgetBuilder({
         errors: {...state.errors, ...mapErrors(error?.responseJSON ?? {}, {})},
       });
       return false;
-    }
-  }
-
-  async function fetchDashboards() {
-    const promise: Promise<DashboardListItem[]> = api.requestPromise(
-      `/organizations/${organization.slug}/dashboards/`,
-      {
-        method: 'GET',
-        query: {sort: 'myDashboardsAndRecentlyViewed'},
-      }
-    );
-
-    try {
-      const dashboards = await promise;
-      setState({...state, dashboards, loading: false});
-    } catch (error) {
-      const errorMessage = t('Unable to fetch dashboards');
-      addErrorMessage(errorMessage);
-      handleXhrErrorResponse(errorMessage)(error);
-      setState({...state, loading: false});
     }
   }
 
@@ -851,16 +954,6 @@ function WidgetBuilder({
     return false;
   }
 
-  if (isEditing && !isValidWidgetIndex) {
-    return (
-      <SentryDocumentTitle title={dashboard.title} orgSlug={orgSlug}>
-        <PageContent>
-          <LoadingError message={t('The widget you want to edit was not found.')} />
-        </PageContent>
-      </SentryDocumentTitle>
-    );
-  }
-
   const canAddSearchConditions =
     [DisplayType.LINE, DisplayType.AREA, DisplayType.BAR].includes(state.displayType) &&
     state.queries.length < 3;
@@ -891,10 +984,30 @@ function WidgetBuilder({
     ? fields.map((field, index) => explodeField({field, alias: fieldAliases[index]}))
     : [...explodedColumns, ...explodedAggregates];
 
+  const groupByValueSelected = currentWidget.queries.some(query => {
+    const noEmptyColumns = query.columns.filter(column => !!column);
+    return noEmptyColumns.length > 0;
+  });
+
+  // The SortBy field shall only be displayed in tabular visualizations or
+  // on time-series visualizations when at least one groupBy value is selected
+  const displaySortByStep =
+    (widgetBuilderNewDesign && isTimeseriesChart && groupByValueSelected) ||
+    isTabularChart;
+
+  if (isEditing && !isValidWidgetIndex) {
+    return (
+      <SentryDocumentTitle title={dashboard.title} orgSlug={orgSlug}>
+        <PageContent>
+          <LoadingError message={t('The widget you want to edit was not found.')} />
+        </PageContent>
+      </SentryDocumentTitle>
+    );
+  }
+
   return (
     <SentryDocumentTitle title={dashboard.title} orgSlug={orgSlug}>
       <PageFiltersContainer
-        skipLoadLastUsed={organization.features.includes('global-views')}
         defaultSelection={{
           datetime: {start: null, end: null, utc: false, period: DEFAULT_STATS_PERIOD},
         }}
@@ -912,6 +1025,11 @@ function WidgetBuilder({
           <Body>
             <MainWrapper>
               <Main>
+                <StyledPageFilterBar condensed>
+                  <ProjectPageFilter />
+                  <EnvironmentPageFilter />
+                  <DatePageFilter alignDropdown="left" />
+                </StyledPageFilterBar>
                 <BuildSteps symbol="colored-numeric">
                   <VisualizationStep
                     widget={currentWidget}
@@ -922,13 +1040,12 @@ function WidgetBuilder({
                     onChange={newDisplayType => {
                       handleDisplayTypeOrTitleChange('displayType', newDisplayType);
                     }}
-                    widgetBuilderNewDesign={widgetBuilderNewDesign}
                   />
                   <DataSetStep
                     dataSet={state.dataSet}
                     displayType={state.displayType}
                     onChange={handleDataSetChange}
-                    widgetBuilderNewDesign={widgetBuilderNewDesign}
+                    hasReleaseHealthFeature={hasReleaseHealthFeature}
                   />
                   {isTabularChart && (
                     <ColumnsStep
@@ -938,9 +1055,7 @@ function WidgetBuilder({
                       widgetType={widgetType}
                       queryErrors={state.errors?.queries}
                       onQueryChange={handleQueryChange}
-                      onYAxisOrColumnFieldChange={newFields => {
-                        handleYAxisOrColumnFieldChange(newFields, true);
-                      }}
+                      handleColumnFieldChange={handleColumnFieldChange}
                       explodedFields={explodedFields}
                       tags={tags}
                       organization={organization}
@@ -953,7 +1068,7 @@ function WidgetBuilder({
                       widgetType={widgetType}
                       queryErrors={state.errors?.queries}
                       onYAxisChange={newFields => {
-                        handleYAxisOrColumnFieldChange(newFields);
+                        handleYAxisChange(newFields);
                       }}
                       aggregates={explodedAggregates}
                       tags={tags}
@@ -982,9 +1097,10 @@ function WidgetBuilder({
                       onGroupByChange={handleGroupByChange}
                       organization={organization}
                       tags={tags}
+                      dataSet={state.dataSet}
                     />
                   )}
-                  {((widgetBuilderNewDesign && isTimeseriesChart) || isTabularChart) && (
+                  {displaySortByStep && (
                     <SortByStep
                       limit={state.limit}
                       displayType={state.displayType}
@@ -996,20 +1112,7 @@ function WidgetBuilder({
                       onLimitChange={handleLimitChange}
                       organization={organization}
                       widgetType={widgetType}
-                    />
-                  )}
-                  {notDashboardsOrigin && (
-                    <DashboardStep
-                      error={state.errors?.dashboard}
-                      dashboards={state.dashboards}
-                      onChange={selectedDashboard =>
-                        setState({
-                          ...state,
-                          selectedDashboard,
-                          errors: {...state.errors, dashboard: undefined},
-                        })
-                      }
-                      disabled={state.loading}
+                      tags={tags}
                     />
                   )}
                 </BuildSteps>
@@ -1024,8 +1127,13 @@ function WidgetBuilder({
             </MainWrapper>
             <Side>
               <WidgetLibrary
+                organization={organization}
                 widgetBuilderNewDesign={widgetBuilderNewDesign}
-                onWidgetSelect={prebuiltWidget =>
+                onWidgetSelect={prebuiltWidget => {
+                  setLatestLibrarySelectionTitle(prebuiltWidget.title);
+                  setDataSetConfig(
+                    getDatasetConfig(prebuiltWidget.widgetType || WidgetType.DISCOVER)
+                  );
                   setState({
                     ...state,
                     ...prebuiltWidget,
@@ -1033,8 +1141,8 @@ function WidgetBuilder({
                       ? WIDGET_TYPE_TO_DATA_SET[prebuiltWidget.widgetType]
                       : DataSet.EVENTS,
                     userHasModified: false,
-                  })
-                }
+                  });
+                }}
                 bypassOverwriteModal={!state.userHasModified}
               />
             </Side>
@@ -1051,65 +1159,77 @@ const PageContentWithoutPadding = styled(PageContent)`
   padding: 0;
 `;
 
+const StyledPageFilterBar = styled(PageFilterBar)`
+  margin-bottom: ${space(2)};
+`;
+
 const BuildSteps = styled(List)`
   gap: ${space(4)};
   max-width: 100%;
 `;
 
 const Body = styled(Layout.Body)`
-  grid-template-rows: 1fr;
   && {
     gap: 0;
     padding: 0;
   }
 
-  @media (max-width: ${p => p.theme.breakpoints[3]}) {
+  grid-template-rows: 1fr;
+
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
+    grid-template-columns: minmax(100px, auto) 400px;
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
     grid-template-columns: 1fr;
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints[2]}) {
-    /* 325px + 16px + 16px to match Side component width, padding-left and padding-right */
-    grid-template-columns: minmax(100px, auto) calc(325px + ${space(2) + space(2)});
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints[3]}) {
-    /* 325px + 16px + 30px to match Side component width, padding-left and padding-right */
-    grid-template-columns: minmax(100px, auto) calc(325px + ${space(2) + space(4)});
   }
 `;
 
+// HACK: Since we add 30px of padding to the ListItems
+// there is 30px of overlap when the screen is just above 1200px.
+// When we're up to 1230px (1200 + 30 to account for the padding)
+// we decrease the width of ListItems by 30px
 const Main = styled(Layout.Main)`
   max-width: 1000px;
   flex: 1;
 
   padding: ${space(4)} ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
     padding: ${space(4)};
+  }
+
+  @media (max-width: calc(${p => p.theme.breakpoints.large} + ${space(4)})) {
+    ${ListItem} {
+      width: calc(100% - ${space(4)});
+    }
   }
 `;
 
 const Side = styled(Layout.Side)`
   padding: ${space(4)} ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints[3]}) {
+  @media (max-width: ${p => p.theme.breakpoints.large}) {
+    border-top: 1px solid ${p => p.theme.gray200};
+    grid-row: 2/2;
+    grid-column: 1/-1;
+    max-width: 100%;
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
     border-left: 1px solid ${p => p.theme.gray200};
 
     /* to be consistent with Layout.Body in other verticals */
     padding-right: ${space(4)};
-  }
-
-  @media (max-width: ${p => p.theme.breakpoints[3]}) {
-    border-top: 1px solid ${p => p.theme.gray200};
-  }
-
-  @media (max-width: ${p => p.theme.breakpoints[3]}) {
-    grid-row: 2/2;
-    grid-column: 1/1;
+    max-width: 400px;
   }
 `;
 
 const MainWrapper = styled('div')`
   display: flex;
   flex-direction: column;
+
+  @media (max-width: ${p => p.theme.breakpoints.large}) {
+    grid-column: 1/-1;
+  }
 `;

@@ -25,7 +25,11 @@ class BitbucketRepositoryProvider(IntegrationRepositoryProvider):
 
     def get_webhook_secret(self, organization):
         # TODO(LB): Revisit whether Integrations V3 should be using OrganizationOption for storage
-        lock = locks.get(f"bitbucket:webhook-secret:{organization.id}", duration=60)
+        lock = locks.get(
+            f"bitbucket:webhook-secret:{organization.id}",
+            duration=60,
+            name="bitbucket_webhook_secret",
+        )
         with lock.acquire():
             secret = OrganizationOption.objects.get_value(
                 organization=organization, key="bitbucket:webhook_secret"

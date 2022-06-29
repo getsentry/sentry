@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 
 import InputField, {InputFieldProps} from 'sentry/components/forms/inputField';
 import SelectAsyncControl, {
@@ -16,10 +16,7 @@ type SelectAsyncFieldState = {
   results: Result[];
   latestSelection?: GeneralSelectValue;
 };
-class SelectAsyncField extends React.Component<
-  SelectAsyncFieldProps,
-  SelectAsyncFieldState
-> {
+class SelectAsyncField extends Component<SelectAsyncFieldProps, SelectAsyncFieldState> {
   state: SelectAsyncFieldState = {
     results: [],
     latestSelection: undefined,

@@ -1,10 +1,14 @@
-import {DisplayType, WidgetType} from 'sentry/views/dashboardsV2/types';
+import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboardsV2/types';
 import {
   constructWidgetFromQuery,
   eventViewFromWidget,
+  flattenErrors,
+  getDashboardsMEPQueryParams,
   getFieldsFromEquations,
+  getNumEquations,
   getWidgetDiscoverUrl,
   getWidgetIssueUrl,
+  isCustomMeasurementWidget,
 } from 'sentry/views/dashboardsV2/utils';
 
 describe('Dashboards util', () => {
@@ -137,6 +141,19 @@ describe('Dashboards util', () => {
       expect(eventView.fields[1].field).toEqual('count()');
       expect(eventView.query).toEqual('has:geo.country_code');
     });
+    it('handles sorts in function format', () => {
+      const query = {...widget.queries[0], orderby: '-count()'};
+      const eventView = eventViewFromWidget(
+        widget.title,
+        query,
+        selection,
+        widget.displayType
+      );
+      expect(eventView.fields[0].field).toEqual('geo.country_code');
+      expect(eventView.fields[1].field).toEqual('count()');
+      expect(eventView.query).toEqual('has:geo.country_code');
+      expect(eventView.sorts).toEqual([{field: 'count', kind: 'desc'}]);
+    });
   });
 
   describe('getFieldsFromEquations', function () {
@@ -227,6 +244,101 @@ describe('Dashboards util', () => {
       expect(url).toEqual(
         '/organizations/org-slug/issues/?query=is%3Aunresolved&sort=date&statsPeriod=7d'
       );
+    });
+  });
+
+  describe('flattenErrors', function () {
+    it('flattens nested errors', () => {
+      const errorResponse = {
+        widgets: [
+          {
+            title: ['Ensure this field has no more than 3 characters.'],
+          },
+        ],
+      };
+      expect(flattenErrors(errorResponse, {})).toEqual({
+        title: 'Ensure this field has no more than 3 characters.',
+      });
+    });
+    it('does not spread error strings', () => {
+      const errorResponse = 'Dashboard title already taken.';
+      expect(flattenErrors(errorResponse, {})).toEqual({
+        error: 'Dashboard title already taken.',
+      });
+    });
+  });
+
+  describe('getDashboardsMEPQueryParams', function () {
+    it('returns correct params if enabled', function () {
+      expect(getDashboardsMEPQueryParams(true)).toEqual({
+        dataset: 'metricsEnhanced',
+      });
+    });
+    it('returns empty object if disabled', function () {
+      expect(getDashboardsMEPQueryParams(false)).toEqual({});
+    });
+  });
+
+  describe('getNumEquations', function () {
+    it('returns 0 if there are no equations', function () {
+      expect(getNumEquations(['count()', 'epm()', 'count_unique(user)'])).toBe(0);
+    });
+
+    it('returns the count of equations if there are multiple', function () {
+      expect(
+        getNumEquations([
+          'count()',
+          'equation|count_unique(user) * 2',
+          'count_unique(user)',
+          'equation|count_unique(user) * 3',
+        ])
+      ).toBe(2);
+    });
+
+    it('returns 0 if the possible equations array is empty', function () {
+      expect(getNumEquations([])).toBe(0);
+    });
+  });
+
+  describe('isCustomMeasurementWidget', function () {
+    it('returns false on a non custom measurement widget', function () {
+      const widget: Widget = {
+        title: 'Title',
+        interval: '5m',
+        displayType: DisplayType.LINE,
+        widgetType: WidgetType.DISCOVER,
+        queries: [
+          {
+            conditions: '',
+            fields: [],
+            aggregates: ['count()', 'p99(measurements.lcp)'],
+            columns: [],
+            name: 'widget',
+            orderby: '',
+          },
+        ],
+      };
+      expect(isCustomMeasurementWidget(widget)).toBe(false);
+    });
+
+    it('returns true on a custom measurement widget', function () {
+      const widget: Widget = {
+        title: 'Title',
+        interval: '5m',
+        displayType: DisplayType.LINE,
+        widgetType: WidgetType.DISCOVER,
+        queries: [
+          {
+            conditions: '',
+            fields: [],
+            aggregates: ['p99(measurements.custom.measurement)'],
+            columns: [],
+            name: 'widget',
+            orderby: '',
+          },
+        ],
+      };
+      expect(isCustomMeasurementWidget(widget)).toBe(true);
     });
   });
 });

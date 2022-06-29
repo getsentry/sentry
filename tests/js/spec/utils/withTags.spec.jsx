@@ -8,7 +8,7 @@ describe('withTags HoC', function () {
     TagStore.reset();
   });
 
-  it('works', async function () {
+  it('works', function () {
     const MyComponent = ({other, tags}) => {
       return (
         <div>
@@ -30,7 +30,7 @@ describe('withTags HoC', function () {
     expect(screen.getByText('value')).toBeInTheDocument();
 
     act(() => {
-      TagStore.onLoadTagsSuccess([{name: 'Mechanism', key: 'mechanism', count: 1}]);
+      TagStore.loadTagsSuccess([{name: 'Mechanism', key: 'mechanism', count: 1}]);
     });
 
     // Should forward prop

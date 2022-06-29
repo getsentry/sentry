@@ -19,6 +19,7 @@
 
 # Event Ingestion
 /src/sentry/attachments/           @getsentry/owners-ingest
+/src/sentry/api/endpoints/relay/   @getsentry/owners-ingest
 /src/sentry/coreapi.py             @getsentry/owners-ingest
 /src/sentry/ingest/                @getsentry/owners-ingest
 /src/sentry/interfaces/            @getsentry/owners-ingest
@@ -44,6 +45,7 @@
 /.github/                   @getsentry/owners-sentry-dev
 /config/hooks/              @getsentry/owners-sentry-dev
 /scripts/                   @getsentry/owners-sentry-dev
+/tools/                     @getsentry/owners-sentry-dev
 Makefile                    @getsentry/owners-sentry-dev
 .envrc                      @getsentry/owners-sentry-dev
 .pre-commit-config.yaml     @getsentry/owners-sentry-dev
@@ -62,9 +64,10 @@ requirements*.txt   @getsentry/owners-python-build
 pyproject.toml      @getsentry/owners-python-build
 tsconfig.*          @getsentry/owners-js-build
 webpack.config.*    @getsentry/owners-js-build
-package.json        @getsentry/owners-js-build
 babel.config.*      @getsentry/owners-js-build
 build-utils/        @getsentry/owners-js-build
+package.json        @getsentry/owners-js-deps
+yarn.lock           @getsentry/owners-js-deps
 
 # Design
 /static/app/icons/    @getsentry/design
@@ -77,16 +80,9 @@ build-utils/        @getsentry/owners-js-build
 
 # Owners by product feature
 
-# Releases UI
-/static/app/views/releases/                                     @getsentry/owners-releases-ui
-/tests/js/spec/views/releases/                                  @getsentry/owners-releases-ui
-
 ### Issue/Metric Alerts ###
 /static/app/views/settings/projectAlerts/                       @getsentry/workflow
 /tests/js/spec/views/settings/projectAlerts/                    @getsentry/workflow
-
-/static/app/views/settings/incidentRules/                       @getsentry/workflow
-/tests/js/spec/views/settings/incidentRules/                    @getsentry/workflow
 
 /static/app/views/alerts/                                       @getsentry/workflow
 /tests/js/spec/views/alerts/                                    @getsentry/workflow
@@ -116,9 +112,12 @@ build-utils/        @getsentry/owners-js-build
 
 ### Visibility ###
 /src/sentry/api/endpoints/organization_tags.py                  @getsentry/visibility
+/src/sentry/api/endpoints/organization_events_histogram.py      @getsentry/visibility
 /tests/snuba/api/endpoints/                                     @getsentry/visibility
 /src/sentry/api/serializers/snuba.py                            @getsentry/visibility
 /src/sentry/snuba/discover.py                                   @getsentry/visibility
+/src/sentry/snuba/metrics_performance.py                        @getsentry/visibility
+/src/sentry/snuba/metrics_enhanced_performance.py               @getsentry/visibility
 
 /src/sentry/search/events/                                      @getsentry/visibility
 /tests/snuba/search/test_backend.py                             @getsentry/visibility
@@ -157,6 +156,7 @@ build-utils/        @getsentry/owners-js-build
 /src/sentry/api/endpoints/organization_events_facets.py         @getsentry/discover-n-dashboards
 /src/sentry/api/endpoints/organization_events_meta.py           @getsentry/discover-n-dashboards
 /src/sentry/api/endpoints/organization_events_stats.py          @getsentry/discover-n-dashboards
+/src/sentry/api/endpoints/organization_measurements_meta.py     @getsentry/discover-n-dashboards
 
 /src/sentry/discover/                                           @getsentry/discover-n-dashboards
 /tests/sentry/snuba/test_discover.py                            @getsentry/discover-n-dashboards
@@ -196,8 +196,12 @@ build-utils/        @getsentry/owners-js-build
 ### Emerging Tech ###
 
 ###### Replays #######
-/static/app/views/replays/        @getsentry/emerging-technology
-/tests/js/spec/views/replays/     @getsentry/emerging-technology
+/static/app/components/replays/    @getsentry/emerging-technology
+/static/app/utils/replays/         @getsentry/emerging-technology
+/static/app/views/replays/         @getsentry/emerging-technology
+/tests/js/spec/components/replays/ @getsentry/emerging-technology
+/tests/js/spec/utils/replays/      @getsentry/emerging-technology
+/tests/js/spec/views/replays/      @getsentry/emerging-technology
 ###### End of Replays #######
 
 ### End of Emerging Tech ###
@@ -218,6 +222,7 @@ build-utils/        @getsentry/owners-js-build
 /src/sentry/mail/                             @getsentry/ecosystem
 /src/sentry/mediators/                        @getsentry/ecosystem
 /src/sentry/notifications/                    @getsentry/ecosystem @getsentry/growth
+/src/sentry/pipeline/                         @getsentry/ecosystem
 /src/sentry/plugins/                          @getsentry/ecosystem
 /src/sentry/ratelimits/                       @getsentry/ecosystem
 /src/sentry/shared_integrations/              @getsentry/ecosystem
@@ -246,6 +251,9 @@ build-utils/        @getsentry/owners-js-build
 
 /api-docs/                                    @getsentry/ecosystem
 /tests/apidocs/                               @getsentry/ecosystem
+
+/src/sentry/middleware/ratelimit.py           @getsentry/ecosystem
+/src/sentry/middleware/access_log.py          @getsentry/ecosystem
 
 ### End of Ecosystem ###
 
@@ -297,6 +305,9 @@ build-utils/        @getsentry/owners-js-build
 /static/app/views/organizationStats/teamInsights      @getsentry/workflow
 /tests/js/spec/views/organizationStats/teamInsights/  @getsentry/workflow
 
+/static/app/views/releases/                           @getsentry/workflow
+/tests/js/spec/views/releases/                        @getsentry/workflow
+
 ## End of Workflow ##
 
 
@@ -334,20 +345,38 @@ build-utils/        @getsentry/owners-js-build
 
 ### SDK ###
 
-/src/sentry/utils/sdk.py            @getsentry/team-web-backend
+/src/sentry/utils/sdk.py            @getsentry/team-web-sdk-backend
 
 ## End of SDK ##
 
 
-### Metrics ###
+### Telemetry Experience ###
 
-/src/sentry/snuba/metrics/                                            @getsentry/metrics
-/src/sentry/api/endpoints/organization_metrics.py                     @getsentry/metrics
-/tests/sentry/api/endpoints/test_organization_metric_data.py          @getsentry/metrics
-/tests/sentry/api/endpoints/test_organization_metric_details.py       @getsentry/metrics
-/tests/sentry/api/endpoints/test_organization_metric_tag_details.py   @getsentry/metrics
-/tests/sentry/api/endpoints/test_organization_metric_tags.py          @getsentry/metrics
-/tests/sentry/api/endpoints/test_organization_metrics.py              @getsentry/metrics
-/tests/sentry/snuba/metrics/                                          @getsentry/metrics
+/src/sentry/snuba/metrics/                                           @getsentry/telemetry-experience
+/src/sentry/api/endpoints/organization_metrics.py                    @getsentry/telemetry-experience
+/src/sentry/api/endpoints/organization_sessions.py                   @getsentry/telemetry-experience
+/src/sentry/snuba/metrics/query.py                                   @getsentry/telemetry-experience
+/src/sentry/release_health/metrics_sessions_v2.py                    @getsentry/telemetry-experience
+/tests/sentry/api/endpoints/test_organization_metric_data.py         @getsentry/telemetry-experience
+/tests/sentry/api/endpoints/test_organization_metric_details.py      @getsentry/telemetry-experience
+/tests/sentry/api/endpoints/test_organization_metric_tag_details.py  @getsentry/telemetry-experience
+/tests/sentry/api/endpoints/test_organization_metric_tags.py         @getsentry/telemetry-experience
+/tests/sentry/api/endpoints/test_organization_metrics.py             @getsentry/telemetry-experience
+/tests/sentry/snuba/metrics/                                         @getsentry/telemetry-experience
+/tests/snuba/api/endpoints/test_organization_sessions.py             @getsentry/telemetry-experience
 
-### End of Metrics ###
+/static/app/views/settings/project/sampling/                         @getsentry/telemetry-experience
+/tests/js/spec/views/settings/project/sampling/                      @getsentry/telemetry-experience
+/static/app/utils/metrics/                                           @getsentry/telemetry-experience
+/tests/js/spec/utils/metrics/                                        @getsentry/telemetry-experience
+/static/app/actionCreators/metrics.tsx                               @getsentry/telemetry-experience
+/tests/js/spec/actionCreators/metrics.spec.tsx                       @getsentry/telemetry-experience
+/static/app/types/metrics.tsx                                        @getsentry/telemetry-experience
+
+### End of Telemetry Experience ###
+
+### Growth ###
+
+/src/sentry/api/endpoints/client_state.py       @getsentry/growth
+
+### End of Growth ###

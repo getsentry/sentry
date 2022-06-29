@@ -8,7 +8,7 @@ from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import iso_format
 from sentry.tsdb.base import TSDBModel
 from sentry.tsdb.snuba import SnubaTSDB
-from sentry.utils.dates import to_timestamp
+from sentry.utils.dates import to_datetime, to_timestamp
 
 
 def timestamp(d):
@@ -314,16 +314,13 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
             self.proj1group1.id: 1  # Only 1 unique user in the first hour
         }
 
-        assert (
-            self.db.get_distinct_counts_totals(
-                TSDBModel.users_affected_by_project,
-                [self.proj1.id],
-                self.now,
-                self.now + timedelta(hours=4),
-                rollup=3600,
-            )
-            == {self.proj1.id: 2}
-        )
+        assert self.db.get_distinct_counts_totals(
+            TSDBModel.users_affected_by_project,
+            [self.proj1.id],
+            self.now,
+            self.now + timedelta(hours=4),
+            rollup=3600,
+        ) == {self.proj1.id: 2}
 
         assert (
             self.db.get_distinct_counts_totals(
@@ -464,3 +461,51 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
             start = end + timedelta(hours=-1, seconds=rollup)
             self.db.get_data(TSDBModel.group, [1, 2, 3, 4, 5], start, end, rollup=rollup)
             assert snuba.query.call_args[1]["limit"] == 5
+
+
+class AddJitterToSeriesTest(TestCase):
+    def setUp(self):
+        self.db = SnubaTSDB()
+
+    def run_test(self, end, interval, jitter, expected_start, expected_end):
+        end = end.replace(tzinfo=pytz.UTC)
+        start = end - interval
+        rollup, rollup_series = self.db.get_optimal_rollup_series(start, end)
+        series = self.db._add_jitter_to_series(rollup_series, start, rollup, jitter)
+        assert to_datetime(series[0]) == expected_start.replace(tzinfo=pytz.UTC)
+        assert to_datetime(series[-1]) == expected_end.replace(tzinfo=pytz.UTC)
+
+    def test(self):
+        self.run_test(
+            end=datetime(2022, 5, 18, 10, 23, 4),
+            interval=timedelta(hours=1),
+            jitter=5,
+            expected_start=datetime(2022, 5, 18, 9, 22, 55),
+            expected_end=datetime(2022, 5, 18, 10, 22, 55),
+        )
+        self.run_test(
+            end=datetime(2022, 5, 18, 10, 23, 8),
+            interval=timedelta(hours=1),
+            jitter=5,
+            expected_start=datetime(2022, 5, 18, 9, 23, 5),
+            expected_end=datetime(2022, 5, 18, 10, 23, 5),
+        )
+        # Jitter should be the same
+        self.run_test(
+            end=datetime(2022, 5, 18, 10, 23, 8),
+            interval=timedelta(hours=1),
+            jitter=55,
+            expected_start=datetime(2022, 5, 18, 9, 23, 5),
+            expected_end=datetime(2022, 5, 18, 10, 23, 5),
+        )
+        self.run_test(
+            end=datetime(2022, 5, 18, 22, 33, 2),
+            interval=timedelta(minutes=1),
+            jitter=3,
+            expected_start=datetime(2022, 5, 18, 22, 31, 53),
+            expected_end=datetime(2022, 5, 18, 22, 32, 53),
+        )
+
+    def test_empty_series(self):
+        assert self.db._add_jitter_to_series([], datetime(2022, 5, 18, 10, 23, 4), 60, 127) == []
+        assert self.db._add_jitter_to_series([], datetime(2022, 5, 18, 10, 23, 4), 60, None) == []

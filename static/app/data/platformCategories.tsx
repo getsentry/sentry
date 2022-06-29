@@ -26,6 +26,7 @@ export const popularPlatformCategories = [
   'apple-ios',
   'flutter',
   'dart-flutter',
+  'unity',
 ] as const;
 
 export const frontend = [
@@ -39,6 +40,7 @@ export const frontend = [
   'javascript-gatsby',
   'javascript-vue',
   'javascript-nextjs',
+  'unity',
 ] as const;
 
 export const mobile = [
@@ -48,11 +50,13 @@ export const mobile = [
   'capacitor',
   'javascript-cordova',
   'javascript-capacitor',
+  'ionic',
   'react-native',
   'flutter',
   'dart-flutter',
   'unity',
   'dotnet-xamarin',
+  'unreal',
   // Old platforms
   'java-android',
   'cocoa-objc',
@@ -129,6 +133,7 @@ export const desktop = [
   'unity',
   'flutter',
   'kotlin',
+  'unreal',
 ] as const;
 
 const categoryList = [

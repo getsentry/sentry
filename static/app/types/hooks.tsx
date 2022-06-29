@@ -1,6 +1,7 @@
 import type {Route, RouteComponentProps} from 'react-router';
 
 import type {ChildrenRenderFn} from 'sentry/components/acl/feature';
+import type {Guide} from 'sentry/components/assistant/types';
 import type DateRange from 'sentry/components/organizations/timeRangeSelector/dateRange';
 import type SelectorItems from 'sentry/components/organizations/timeRangeSelector/selectorItems';
 import type SidebarItem from 'sentry/components/sidebar/sidebarItem';
@@ -32,7 +33,8 @@ export type Hooks = {_: any} & RouteHooks &
   FeatureDisabledHooks &
   InterfaceChromeHooks &
   OnboardingHooks &
-  SettingsHooks;
+  SettingsHooks &
+  CallbackHooks;
 
 export type HookName = keyof Hooks;
 
@@ -68,11 +70,6 @@ type DisabledMemberTooltipProps = {children: React.ReactNode};
 
 type DashboardHeadersProps = {organization: Organization};
 
-type CodeOwnersHeaderProps = {
-  addCodeOwner: () => void;
-  handleRequest: () => void;
-};
-
 type FirstPartyIntegrationAlertProps = {
   integrations: Integration[];
   hideCTA?: boolean;
@@ -83,11 +80,29 @@ type FirstPartyIntegrationAdditionalCTAProps = {
   integrations: Integration[];
 };
 
+type GuideUpdateCallback = (nextGuide: Guide | null, opts: {dismissed?: boolean}) => void;
+
+type DefaultAlertRuleActionHook = (
+  callback: (showDefaultAction: boolean) => void,
+  organization: Organization
+) => void;
+
+type CodeOwnersCTAProps = {
+  organization: Organization;
+  project: Project;
+  addCodeOwner?: () => void;
+  handleRequest?: () => void;
+};
+
+type AlertsHeaderProps = {
+  organization: Organization;
+};
 /**
  * Component wrapping hooks
  */
 export type ComponentHooks = {
-  'component:codeowners-header': () => React.ComponentType<CodeOwnersHeaderProps>;
+  'component:alerts-header': () => React.ComponentType<AlertsHeaderProps>;
+  'component:codeowners-cta': () => React.ComponentType<CodeOwnersCTAProps>;
   'component:dashboards-header': () => React.ComponentType<DashboardHeadersProps>;
   'component:disabled-app-store-connect-multiple': () => React.ComponentType<DisabledAppStoreConnectMultiple>;
   'component:disabled-custom-symbol-sources': () => React.ComponentType<DisabledCustomSymbolSources>;
@@ -99,6 +114,7 @@ export type ComponentHooks = {
   'component:header-selector-items': () => React.ComponentType<SelectorItemsProps>;
   'component:member-list-header': () => React.ComponentType<MemberListHeaderProps>;
   'component:org-stats-banner': () => React.ComponentType<DashboardHeadersProps>;
+  'component:superuser-access-category': React.FC<any>;
 };
 
 /**
@@ -203,6 +219,16 @@ export type SettingsHooks = {
 };
 
 /**
+ * Callback hooks.
+ * These hooks just call a function that has no return value
+ * and perform some sort of callback logic
+ */
+type CallbackHooks = {
+  'callback:default-action-alert-rule': DefaultAlertRuleActionHook;
+  'callback:on-guide-update': GuideUpdateCallback;
+};
+
+/**
  * Renders a React node with no props
  */
 type GenericComponentHook = () => React.ReactNode;
@@ -295,7 +321,11 @@ type AnalyticsTrackEventV2 = (
      * The Amplitude event name. Set to null if event should not go to Amplitude.
      */
     eventName: string | null;
-    organization: Organization | null;
+    /**
+     * Organization to pass in. If full org object not available, pass in just the Id.
+     * If no org, pass in null.
+     */
+    organization: Organization | string | null;
   },
   options?: {
     /**
@@ -507,8 +537,6 @@ type IntegrationsFeatureGatesHook = () => {
    * This component renders the list of integration features.
    */
   FeatureList: React.ComponentType<IntegrationFeatureListProps>;
-  IntegrationDirectoryFeatureList: React.ComponentType<IntegrationFeatureListProps>;
-  IntegrationDirectoryFeatures: React.ComponentType<IntegrationFeaturesProps>;
   /**
    * This is a render-prop style component that given a set of integration
    * features will call the children function with gating details about the

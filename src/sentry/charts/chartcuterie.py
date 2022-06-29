@@ -10,10 +10,11 @@ from django.conf import settings
 from sentry import options
 from sentry.exceptions import InvalidConfiguration
 from sentry.models.file import get_storage
+from sentry.utils import json
 from sentry.utils.http import absolute_uri
 
 from .base import ChartRenderer, logger
-from .types import ChartType
+from .types import ChartSize, ChartType
 
 
 class Chartcuterie(ChartRenderer):
@@ -51,23 +52,31 @@ class Chartcuterie(ChartRenderer):
         if not self.service_url:
             raise InvalidConfiguration("`chart-rendering.chartcuterie.url` is not configured")
 
-    def generate_chart(self, style: ChartType, data: Any, upload: bool = True) -> Union[str, bytes]:
+    def generate_chart(
+        self, style: ChartType, data: Any, upload: bool = True, size: Optional[ChartSize] = None
+    ) -> Union[str, bytes]:
         request_id = uuid4().hex
 
-        data = {
+        payload = {
             "requestId": request_id,
             "style": style.value,
             "data": data,
         }
+
+        # Override the default size defined by the chart style
+        if size:
+            payload.update(size)
 
         with sentry_sdk.start_span(
             op="charts.chartcuterie.generate_chart",
             description=type(self).__name__,
         ):
 
+            # Using sentry json formatter to handle datetime objects
             resp = requests.post(
                 url=urljoin(self.service_url, "render"),
-                json=data,
+                data=json.dumps(payload, cls=json._default_encoder),
+                headers={"Content-Type": "application/json"},
             )
 
             if resp.status_code == 503 and settings.DEBUG:

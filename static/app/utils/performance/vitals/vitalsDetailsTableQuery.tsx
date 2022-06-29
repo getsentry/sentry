@@ -1,6 +1,4 @@
-import * as React from 'react';
-
-import {MetaType} from 'sentry/utils/discover/eventView';
+import {EventsMetaType} from 'sentry/utils/discover/eventView';
 import GenericDiscoverQuery, {
   DiscoverQueryProps,
   GenericChildrenProps,
@@ -51,7 +49,7 @@ export type TableDataRow = LCPDataRow | FCPDataRow | CLSDataRow | FIDDataRow;
 
 export type TableData = {
   data: Array<TableDataRow>;
-  meta?: MetaType;
+  meta?: EventsMetaType;
 };
 
 type ChildrenProps = Omit<GenericChildrenProps<TableData>, 'tableData'> & {
@@ -63,7 +61,7 @@ type QueryProps = DiscoverQueryProps & {
 };
 
 function VitalsCardsDiscoverQuery(props: QueryProps) {
-  return <GenericDiscoverQuery<TableData, QueryProps> route="eventsv2" {...props} />;
+  return <GenericDiscoverQuery<TableData, QueryProps> route="events" {...props} />;
 }
 
 export default withApi(VitalsCardsDiscoverQuery);

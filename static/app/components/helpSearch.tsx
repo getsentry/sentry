@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Search} from 'sentry/components/search';
@@ -9,17 +9,9 @@ import {IconWindow} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 
-type HelpResult = Parameters<
-  React.ComponentProps<typeof HelpSource>['children']
->[0]['results'][0];
+type ItemRenderer = React.ComponentProps<typeof Search>['renderItem'];
 
-type ResultItemProps = HelpResult & {
-  highlighted: boolean;
-  // TODO(ts): Improve types when we've typed more of the search components
-  itemProps: any;
-};
-
-const renderResult = ({item, matches, itemProps, highlighted}: ResultItemProps) => {
+const renderResult: ItemRenderer = ({item, matches, itemProps, highlighted}) => {
   const sectionHeading =
     item.sectionHeading !== undefined ? (
       <SectionHeading>
@@ -31,25 +23,30 @@ const renderResult = ({item, matches, itemProps, highlighted}: ResultItemProps) 
 
   if (item.empty) {
     return (
-      <React.Fragment>
+      <Fragment>
         {sectionHeading}
         <Empty>{t('No results from %s', item.sectionHeading)}</Empty>
-      </React.Fragment>
+      </Fragment>
     );
   }
 
   return (
-    <React.Fragment>
+    <Fragment>
       {sectionHeading}
       <SearchResultWrapper {...itemProps} highlighted={highlighted}>
         <SearchResult highlighted={highlighted} item={item} matches={matches} />
       </SearchResultWrapper>
-    </React.Fragment>
+    </Fragment>
   );
 };
 
+type Props = Omit<
+  React.ComponentProps<typeof Search>,
+  'sources' | 'minSearch' | 'closeOnSelect' | 'renderItem'
+>;
+
 // TODO(ts): Type based on Search props once that has types
-const HelpSearch = props => (
+const HelpSearch = (props: Props) => (
   <Search
     {...props}
     sources={[HelpSource]}

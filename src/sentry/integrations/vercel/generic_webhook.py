@@ -9,10 +9,9 @@ from requests.exceptions import RequestException
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import VERSION, http, options
+from sentry import VERSION, audit_log, http, options
 from sentry.api.base import Endpoint
 from sentry.models import (
-    AuditLogEntryEvent,
     Integration,
     Organization,
     OrganizationIntegration,
@@ -22,7 +21,6 @@ from sentry.models import (
 )
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.utils.audit import create_audit_entry
-from sentry.utils.compat import filter
 from sentry.utils.http import absolute_uri
 
 logger = logging.getLogger("sentry.integrations.vercel.uninstall")
@@ -211,7 +209,7 @@ class VercelGenericWebhookEndpoint(Endpoint):
                     request=request,
                     organization=orgs[0],
                     target_object=integration.id,
-                    event=AuditLogEntryEvent.INTEGRATION_REMOVE,
+                    event=audit_log.get_event_id("INTEGRATION_REMOVE"),
                     actor_label="Vercel User",
                     data={"provider": integration.provider, "name": integration.name},
                 )
@@ -253,7 +251,7 @@ class VercelGenericWebhookEndpoint(Endpoint):
                 request=request,
                 organization=organization,
                 target_object=integration.id,
-                event=AuditLogEntryEvent.INTEGRATION_REMOVE,
+                event=audit_log.get_event_id("INTEGRATION_REMOVE"),
                 actor_label="Vercel User",
                 data={"provider": integration.provider, "name": integration.name},
             )
@@ -303,7 +301,7 @@ class VercelGenericWebhookEndpoint(Endpoint):
         # for each org integration, search the configs to find one that matches the vercel project of the webhook
         for org_integration in org_integrations:
             project_mappings = org_integration.config.get("project_mappings") or []
-            matched_mappings = filter(lambda x: x[1] == vercel_project_id, project_mappings)
+            matched_mappings = list(filter(lambda x: x[1] == vercel_project_id, project_mappings))
             if matched_mappings:
                 organization = org_integration.organization
                 sentry_project_id = matched_mappings[0][0]

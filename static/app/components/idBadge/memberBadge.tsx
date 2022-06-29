@@ -1,14 +1,12 @@
-import * as React from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
 import UserAvatar from 'sentry/components/avatar/userAvatar';
-import Link from 'sentry/components/links/link';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
+import Link, {LinkProps} from 'sentry/components/links/link';
 import space from 'sentry/styles/space';
 import {AvatarUser, Member} from 'sentry/types';
 
-type Props = {
+interface Props {
   member: Member;
   avatarSize?: UserAvatar['props']['size'];
   className?: string;
@@ -17,7 +15,7 @@ type Props = {
   hideEmail?: boolean;
   orgId?: string;
   useLink?: boolean;
-};
+}
 
 function getMemberUser(member: Member): AvatarUser {
   if (member.user) {
@@ -86,13 +84,14 @@ const StyledEmail = styled('div')`
   font-size: 0.875em;
   margin-top: ${space(0.25)};
   color: ${p => p.theme.gray300};
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
 `;
 
-type NameProps = {
+interface NameProps {
   hideEmail: boolean;
+  to: LinkProps['to'];
   useLink: boolean;
-} & Pick<React.ComponentProps<typeof Link>, 'to'>;
+}
 
 const StyledName = styled(({useLink, to, ...props}: NameProps) => {
   const forwardProps = omit(props, 'hideEmail');
@@ -100,7 +99,7 @@ const StyledName = styled(({useLink, to, ...props}: NameProps) => {
 })`
   font-weight: ${(p: NameProps) => (p.hideEmail ? 'inherit' : 'bold')};
   line-height: 1.15em;
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
 `;
 
 const StyledAvatar = styled(UserAvatar)`

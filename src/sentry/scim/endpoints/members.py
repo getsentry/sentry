@@ -15,7 +15,7 @@ from rest_framework.fields import Field
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import roles
+from sentry import audit_log, roles
 from sentry.api.bases.organizationmember import OrganizationMemberEndpoint
 from sentry.api.endpoints.organization_member.index import OrganizationMemberSerializer
 from sentry.api.exceptions import ConflictError
@@ -33,13 +33,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.parameters import GLOBAL_PARAMS, SCIM_PARAMS
 from sentry.auth.providers.saml2.activedirectory.apps import ACTIVE_DIRECTORY_PROVIDER_NAME
-from sentry.models import (
-    AuditLogEntryEvent,
-    AuthIdentity,
-    AuthProvider,
-    InviteStatus,
-    OrganizationMember,
-)
+from sentry.models import AuthIdentity, AuthProvider, InviteStatus, OrganizationMember
 from sentry.signals import member_invited
 from sentry.utils import json
 from sentry.utils.cursors import SCIMCursor
@@ -127,7 +121,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
                 organization=organization,
                 target_object=member.id,
                 target_user=member.user,
-                event=AuditLogEntryEvent.MEMBER_REMOVE,
+                event=audit_log.get_event_id("MEMBER_REMOVE"),
                 data=audit_data,
             )
 
@@ -412,9 +406,9 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
             organization_id=organization.id,
             target_object=member.id,
             data=member.get_audit_log_data(),
-            event=AuditLogEntryEvent.MEMBER_INVITE
+            event=audit_log.get_event_id("MEMBER_INVITE")
             if settings.SENTRY_ENABLE_INVITES
-            else AuditLogEntryEvent.MEMBER_ADD,
+            else audit_log.get_event_id("MEMBER_ADD"),
         )
 
         if settings.SENTRY_ENABLE_INVITES and result.get("sendInvite"):

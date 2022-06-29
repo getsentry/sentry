@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from unittest import mock
 
 import pytest
@@ -17,33 +17,42 @@ from snuba_sdk import (
     Limit,
     Offset,
     Op,
+    Or,
     OrderBy,
     Query,
 )
 
-from sentry.api.utils import InvalidParams
+from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.indexer.mock import MockIndexer
-from sentry.sentry_metrics.sessions import SessionMetricKey
-from sentry.sentry_metrics.utils import resolve_weak
+from sentry.sentry_metrics.indexer.strings import SHARED_TAG_STRINGS
+from sentry.sentry_metrics.utils import resolve, resolve_tag_key, resolve_weak
 from sentry.snuba.dataset import EntityKey
 from sentry.snuba.metrics import (
     MAX_POINTS,
     OP_TO_SNUBA_FUNCTION,
-    QueryDefinition,
+    MetricsQuery,
     SnubaQueryBuilder,
     SnubaResultConverter,
     get_date_range,
     get_intervals,
     parse_query,
     resolve_tags,
+    translate_meta_results,
 )
 from sentry.snuba.metrics.fields.snql import (
+    abnormal_sessions,
+    addition,
     all_sessions,
+    complement,
     crashed_sessions,
+    division_float,
     errored_preaggr_sessions,
-    percentage,
-    sessions_errored_set,
+    uniq_aggregation_on_metric,
 )
+from sentry.snuba.metrics.naming_layer.mapping import get_mri
+from sentry.snuba.metrics.naming_layer.mri import SessionMRI
+from sentry.snuba.metrics.query import MetricField
+from sentry.snuba.metrics.query_builder import QueryDefinition
 
 
 @dataclass
@@ -53,27 +62,48 @@ class PseudoProject:
 
 
 MOCK_NOW = datetime(2021, 8, 25, 23, 59, tzinfo=pytz.utc)
+ORG_ID = 1
 
 
 def get_entity_of_metric_mocked(_, metric_name):
     return {
         "sentry.sessions.session": EntityKey.MetricsCounters,
+        SessionMRI.SESSION.value: EntityKey.MetricsCounters,
         "sentry.sessions.session.error": EntityKey.MetricsSets,
+        SessionMRI.ERROR.value: EntityKey.MetricsSets,
     }[metric_name]
 
 
 @pytest.mark.parametrize(
     "query_string,expected",
     [
-        ('release:""', [Condition(Column(name="tags[6]"), Op.IN, rhs=[16])]),
-        ("release:myapp@2.0.0", [Condition(Column(name="tags[6]"), Op.IN, rhs=[17])]),
+        (
+            'release:""',
+            [
+                Condition(
+                    Column(name=resolve_tag_key(ORG_ID, "release")),
+                    Op.IN,
+                    rhs=[resolve(ORG_ID, "")],
+                )
+            ],
+        ),
+        (
+            "release:myapp@2.0.0",
+            [Condition(Column(name=resolve_tag_key(ORG_ID, "release")), Op.IN, rhs=[10000])],
+        ),
         (
             "release:myapp@2.0.0 and environment:production",
             [
                 And(
                     [
-                        Condition(Column(name="tags[6]"), Op.IN, rhs=[17]),
-                        Condition(Column(name="tags[2]"), Op.EQ, rhs=5),
+                        Condition(
+                            Column(name=resolve_tag_key(ORG_ID, "release")), Op.IN, rhs=[10000]
+                        ),
+                        Condition(
+                            Column(name=resolve_tag_key(ORG_ID, "environment")),
+                            Op.EQ,
+                            rhs=resolve(ORG_ID, "production"),
+                        ),
                     ]
                 )
             ],
@@ -81,8 +111,12 @@ def get_entity_of_metric_mocked(_, metric_name):
         (
             "release:myapp@2.0.0 environment:production",
             [
-                Condition(Column(name="tags[6]"), Op.IN, rhs=[17]),
-                Condition(Column(name="tags[2]"), Op.EQ, rhs=5),
+                Condition(Column(name=resolve_tag_key(ORG_ID, "release")), Op.IN, rhs=[10000]),
+                Condition(
+                    Column(name=resolve_tag_key(ORG_ID, "environment")),
+                    Op.EQ,
+                    rhs=resolve(ORG_ID, "production"),
+                ),
             ],
         ),
         (
@@ -90,36 +124,80 @@ def get_entity_of_metric_mocked(_, metric_name):
             [
                 And(
                     [
-                        Condition(Column(name="tags[6]"), Op.IN, rhs=[17]),
-                        Condition(Column(name="tags[2]"), Op.EQ, rhs=5),
+                        Condition(
+                            Column(name=resolve_tag_key(ORG_ID, "release")), Op.IN, rhs=[10000]
+                        ),
+                        Condition(
+                            Column(name=resolve_tag_key(ORG_ID, "environment")),
+                            Op.EQ,
+                            rhs=resolve(ORG_ID, "production"),
+                        ),
                     ]
                 ),
             ],
         ),
-        ('transaction:"/bar/:orgId/"', [Condition(Column(name="tags[18]"), Op.EQ, rhs=19)]),
+        (
+            'transaction:"/bar/:orgId/"',
+            [Condition(Column(name=resolve_tag_key(ORG_ID, "transaction")), Op.EQ, rhs=10001)],
+        ),
+        (
+            "release:[production,foo]",
+            [
+                Condition(
+                    Column(name=resolve_tag_key(ORG_ID, "release")),
+                    Op.IN,
+                    rhs=[SHARED_TAG_STRINGS["production"]],
+                )
+            ],
+        ),
+        (
+            "!release:[production,foo]",
+            [
+                Condition(
+                    Column(name=resolve_tag_key(ORG_ID, "release")),
+                    Op.NOT_IN,
+                    rhs=[SHARED_TAG_STRINGS["production"]],
+                )
+            ],
+        ),
+        (
+            "release:[foo]",
+            [
+                Condition(
+                    Column(name=resolve_tag_key(ORG_ID, "release")),
+                    Op.IN,
+                    rhs=[],
+                )
+            ],
+        ),
+        (
+            "release:myapp@2.0.0 or environment:[production,staging]",
+            [
+                Or(
+                    [
+                        Condition(
+                            Column(name=resolve_tag_key(ORG_ID, "release")), Op.IN, rhs=[10000]
+                        ),
+                        Condition(
+                            Column(name=resolve_tag_key(ORG_ID, "environment")),
+                            Op.IN,
+                            rhs=[resolve(ORG_ID, "production"), resolve(ORG_ID, "staging")],
+                        ),
+                    ]
+                ),
+            ],
+        ),
     ],
 )
 def test_parse_query(monkeypatch, query_string, expected):
-    org_id = 666  # mock indexer does not require a real organization ID
+    org_id = ORG_ID
     local_indexer = MockIndexer()
-    for s in ("", "myapp@2.0.0", "transaction", "/bar/:orgId/"):
-        local_indexer.record(1, s)
+    for s in ("myapp@2.0.0", "/bar/:orgId/"):
+        # will be values 10000, 10001 respectively
+        local_indexer.record(use_case_id=UseCaseKey.RELEASE_HEALTH, org_id=org_id, string=s)
     monkeypatch.setattr("sentry.sentry_metrics.indexer.resolve", local_indexer.resolve)
-    parsed = resolve_tags(org_id, parse_query(query_string))
+    parsed = resolve_tags(org_id, parse_query(query_string, []))
     assert parsed == expected
-
-
-@pytest.mark.parametrize(
-    "query_string",
-    [
-        "release:myapp@2.0.0 or session.status:init",
-        "release:myapp@2.0.0 and environment:production or session.status:healthy",
-        "session.status:crashed",
-    ],
-)
-def test_parse_query_invalid(query_string):
-    with pytest.raises(InvalidParams):
-        parse_query(query_string)
 
 
 @freeze_time("2018-12-11 03:21:00")
@@ -134,8 +212,11 @@ def test_round_range():
 
 
 def test_invalid_interval():
-    with pytest.raises(InvalidParams):
-        start, end, interval = get_date_range({"interval": "0d"})
+    # get_date_range is now only responsible for parsing start, end and interval,
+    # and not responsible for validation so just letting it bubble up the ZeroDivisionError if
+    # the requested interval is 0d
+    with pytest.raises(ZeroDivisionError):
+        get_date_range({"interval": "0d"})
 
 
 def test_round_exact():
@@ -154,31 +235,6 @@ def test_exclusive_end():
     assert end == datetime(2021, 2, 25, 0, tzinfo=pytz.utc)
 
 
-@freeze_time("2021-03-05T11:14:17.105Z")
-def test_interval_restrictions():
-    # making sure intervals are cleanly divisible
-    with pytest.raises(
-        InvalidParams, match="The interval should divide one day without a remainder."
-    ):
-        get_date_range({"statsPeriod": "6h", "interval": "59m"})
-
-    with pytest.raises(
-        InvalidParams, match="The interval should divide one day without a remainder."
-    ):
-        get_date_range({"statsPeriod": "4d", "interval": "5h"})
-
-    with pytest.raises(
-        InvalidParams,
-        match="The interval has to be a multiple of the minimum interval of ten seconds.",
-    ):
-        get_date_range({"statsPeriod": "1h", "interval": "9s"})
-
-    with pytest.raises(
-        InvalidParams, match="Your interval and date range would create too many results."
-    ):
-        get_date_range({"statsPeriod": "90d", "interval": "10s"})
-
-
 @freeze_time("2020-12-18T11:14:17.105Z")
 def test_timestamps():
     start, end, interval = get_date_range({"statsPeriod": "1d", "interval": "12h"})
@@ -192,30 +248,29 @@ def test_timestamps():
 def test_build_snuba_query(mock_now, mock_now2, monkeypatch):
     monkeypatch.setattr("sentry.sentry_metrics.indexer.resolve", MockIndexer().resolve)
     # Your typical release health query querying everything
-    query_params = MultiValueDict(
-        {
-            "query": [
-                "release:staging"
-            ],  # weird release but we need a string exising in mock indexer
-            "groupBy": ["environment"],
-            "field": [
-                "sum(sentry.sessions.session)",
-                "count_unique(sentry.sessions.user)",
-                "p95(sentry.sessions.session.duration)",
-            ],
-        }
+    query_definition = MetricsQuery(
+        org_id=1,
+        project_ids=[1],
+        select=[
+            MetricField("sum", "sentry.sessions.session"),
+            MetricField("count_unique", "sentry.sessions.user"),
+            MetricField("p95", "sentry.sessions.session.duration"),
+        ],
+        start=MOCK_NOW - timedelta(days=90),
+        end=MOCK_NOW,
+        granularity=Granularity(3600),
+        where=[Condition(Column("release"), Op.EQ, "staging")],
+        groupby=["environment"],
     )
-    query_definition = QueryDefinition(query_params)
     snuba_queries, _ = SnubaQueryBuilder(
         [PseudoProject(1, 1)], query_definition
     ).get_snuba_queries()
 
-    org_id = 666  # mock indexer does not require a real organization ID
+    org_id = 1
 
     def expected_query(match, select, extra_groupby, metric_name):
         function, column, alias = select
         return Query(
-            dataset="metrics",
             match=Entity(match),
             select=[
                 Function(
@@ -223,24 +278,33 @@ def test_build_snuba_query(mock_now, mock_now2, monkeypatch):
                     [
                         Column("value"),
                         Function(
-                            "equals", [Column("metric_id"), resolve_weak(org_id, metric_name)]
+                            "equals",
+                            [Column("metric_id"), resolve_weak(org_id, get_mri(metric_name))],
                         ),
                     ],
-                    alias=f"{alias}({metric_name})",
+                    alias=f"{alias}({get_mri(metric_name)})",
                 )
             ],
-            groupby=[Column("tags[2]")] + extra_groupby,
+            groupby=[Column(resolve_tag_key(org_id, "environment"))] + extra_groupby,
             where=[
                 Condition(Column("org_id"), Op.EQ, 1),
                 Condition(Column("project_id"), Op.IN, [1]),
-                Condition(Column("timestamp"), Op.GTE, datetime(2021, 5, 28, 0, tzinfo=pytz.utc)),
-                Condition(Column("timestamp"), Op.LT, datetime(2021, 8, 26, 0, tzinfo=pytz.utc)),
-                Condition(Column("tags[6]"), Op.IN, [10]),
-                Condition(Column("metric_id"), Op.IN, [resolve_weak(org_id, metric_name)]),
+                Condition(
+                    Column("timestamp"), Op.GTE, datetime(2021, 5, 27, 23, 59, tzinfo=pytz.utc)
+                ),
+                Condition(
+                    Column("timestamp"), Op.LT, datetime(2021, 8, 25, 23, 59, tzinfo=pytz.utc)
+                ),
+                Condition(
+                    Column(resolve_tag_key(org_id, "release")), Op.EQ, resolve(org_id, "staging")
+                ),
+                Condition(Column("metric_id"), Op.IN, [resolve_weak(org_id, get_mri(metric_name))]),
             ],
-            limit=Limit(MAX_POINTS),
+            # totals: MAX_POINTS // (90d * 24h)
+            # series: totals * (90d * 24h)
+            limit=Limit(4) if not extra_groupby else Limit(8640),
             offset=Offset(0),
-            granularity=Granularity(query_definition.rollup),
+            granularity=query_definition.granularity,
         )
 
     assert snuba_queries["metrics_counters"]["totals"] == expected_query(
@@ -291,10 +355,10 @@ def test_build_snuba_query(mock_now, mock_now2, monkeypatch):
 @mock.patch("sentry.snuba.sessions_v2.get_now", return_value=MOCK_NOW)
 @mock.patch("sentry.api.utils.timezone.now", return_value=MOCK_NOW)
 @mock.patch(
-    "sentry.snuba.metrics.fields.base._get_entity_of_metric_name", get_entity_of_metric_mocked
+    "sentry.snuba.metrics.fields.base._get_entity_of_metric_mri", get_entity_of_metric_mocked
 )
 def test_build_snuba_query_derived_metrics(mock_now, mock_now2, monkeypatch):
-    org_id = 666
+    org_id = 1
     monkeypatch.setattr("sentry.sentry_metrics.indexer.resolve", MockIndexer().resolve)
     # Your typical release health query querying everything
     query_params = MultiValueDict(
@@ -309,48 +373,64 @@ def test_build_snuba_query_derived_metrics(mock_now, mock_now2, monkeypatch):
             "statsPeriod": ["2d"],
         }
     )
-    query_definition = QueryDefinition(query_params)
-    query_builder = SnubaQueryBuilder([PseudoProject(1, 1)], query_definition)
+    query_definition = QueryDefinition([PseudoProject(1, 1)], query_params)
+    query_builder = SnubaQueryBuilder([PseudoProject(1, 1)], query_definition.to_metrics_query())
     snuba_queries, fields_in_entities = query_builder.get_snuba_queries()
     assert fields_in_entities == {
         "metrics_counters": [
-            (None, "session.errored_preaggregated"),
-            (None, "session.crash_free_rate"),
-            (None, "session.all"),
+            (None, SessionMRI.ERRORED_PREAGGREGATED.value),
+            (None, SessionMRI.CRASHED_AND_ABNORMAL.value),
+            (None, SessionMRI.CRASH_FREE_RATE.value),
+            (None, SessionMRI.ALL.value),
         ],
         "metrics_sets": [
-            (None, "session.errored_set"),
+            (None, SessionMRI.ERRORED_SET.value),
         ],
     }
     for key in ("totals", "series"):
         groupby = [] if key == "totals" else [Column("bucketed_time")]
         assert snuba_queries["metrics_counters"][key] == (
             Query(
-                dataset="metrics",
                 match=Entity("metrics_counters"),
                 select=[
                     errored_preaggr_sessions(
                         org_id,
-                        metric_ids=[resolve_weak(org_id, "sentry.sessions.session")],
-                        alias="session.errored_preaggregated",
+                        metric_ids=[resolve_weak(org_id, SessionMRI.SESSION.value)],
+                        alias=SessionMRI.ERRORED_PREAGGREGATED.value,
                     ),
-                    percentage(
+                    addition(
                         crashed_sessions(
                             org_id,
-                            metric_ids=[resolve_weak(org_id, "sentry.sessions.session")],
-                            alias="session.crashed",
+                            metric_ids=[resolve_weak(org_id, SessionMRI.SESSION.value)],
+                            alias=SessionMRI.CRASHED.value,
                         ),
-                        all_sessions(
+                        abnormal_sessions(
                             org_id,
-                            metric_ids=[resolve_weak(org_id, "sentry.sessions.session")],
-                            alias="session.all",
+                            metric_ids=[resolve_weak(org_id, SessionMRI.SESSION.value)],
+                            alias=SessionMRI.ABNORMAL.value,
                         ),
-                        alias="session.crash_free_rate",
+                        alias=SessionMRI.CRASHED_AND_ABNORMAL.value,
+                    ),
+                    complement(
+                        division_float(
+                            crashed_sessions(
+                                org_id,
+                                metric_ids=[resolve_weak(org_id, SessionMRI.SESSION.value)],
+                                alias=SessionMRI.CRASHED.value,
+                            ),
+                            all_sessions(
+                                org_id,
+                                metric_ids=[resolve_weak(org_id, SessionMRI.SESSION.value)],
+                                alias=SessionMRI.ALL.value,
+                            ),
+                            alias=SessionMRI.CRASH_RATE.value,
+                        ),
+                        alias=SessionMRI.CRASH_FREE_RATE.value,
                     ),
                     all_sessions(
                         org_id,
-                        metric_ids=[resolve_weak(org_id, "sentry.sessions.session")],
-                        alias="session.all",
+                        metric_ids=[resolve_weak(org_id, SessionMRI.SESSION.value)],
+                        alias=SessionMRI.ALL.value,
                     ),
                 ],
                 groupby=groupby,
@@ -366,22 +446,21 @@ def test_build_snuba_query_derived_metrics(mock_now, mock_now2, monkeypatch):
                     Condition(
                         Column("metric_id"),
                         Op.IN,
-                        [resolve_weak(org_id, "sentry.sessions.session")],
+                        [resolve_weak(org_id, SessionMRI.SESSION.value)],
                     ),
                 ],
-                limit=Limit(MAX_POINTS),
+                limit=Limit(MAX_POINTS // 2) if key == "totals" else Limit(MAX_POINTS),
                 offset=Offset(0),
                 granularity=Granularity(query_definition.rollup),
             )
         )
         assert snuba_queries["metrics_sets"][key] == (
             Query(
-                dataset="metrics",
                 match=Entity("metrics_sets"),
                 select=[
-                    sessions_errored_set(
-                        metric_ids=[resolve_weak(org_id, "sentry.sessions.session.error")],
-                        alias="session.errored_set",
+                    uniq_aggregation_on_metric(
+                        metric_ids=[resolve_weak(org_id, SessionMRI.ERROR.value)],
+                        alias=SessionMRI.ERRORED_SET.value,
                     ),
                 ],
                 groupby=groupby,
@@ -397,10 +476,10 @@ def test_build_snuba_query_derived_metrics(mock_now, mock_now2, monkeypatch):
                     Condition(
                         Column("metric_id"),
                         Op.IN,
-                        [resolve_weak(org_id, "sentry.sessions.session.error")],
+                        [resolve_weak(org_id, SessionMRI.ERROR.value)],
                     ),
                 ],
-                limit=Limit(MAX_POINTS),
+                limit=Limit(MAX_POINTS // 2) if key == "totals" else Limit(MAX_POINTS),
                 offset=Offset(0),
                 granularity=Granularity(query_definition.rollup),
             )
@@ -421,14 +500,17 @@ def test_build_snuba_query_orderby(mock_now, mock_now2, monkeypatch):
                 "sum(sentry.sessions.session)",
             ],
             "orderBy": ["-sum(sentry.sessions.session)"],
+            "per_page": [2],
         }
     )
-    query_definition = QueryDefinition(query_params, paginator_kwargs={"limit": 3})
+    query_definition = QueryDefinition(
+        [PseudoProject(1, 1)], query_params, paginator_kwargs={"limit": 3}
+    )
     snuba_queries, _ = SnubaQueryBuilder(
-        [PseudoProject(1, 1)], query_definition
+        [PseudoProject(1, 1)], query_definition.to_metrics_query()
     ).get_snuba_queries()
 
-    org_id = 666  # mock indexer does not require a real organization ID
+    org_id = 1
 
     counter_queries = snuba_queries.pop("metrics_counters")
     assert not snuba_queries
@@ -439,25 +521,28 @@ def test_build_snuba_query_orderby(mock_now, mock_now2, monkeypatch):
         OP_TO_SNUBA_FUNCTION["metrics_counters"]["sum"],
         [
             Column("value"),
-            Function("equals", [Column("metric_id"), resolve_weak(org_id, metric_name)]),
+            Function("equals", [Column("metric_id"), resolve_weak(org_id, get_mri(metric_name))]),
         ],
-        alias=f"{op}({metric_name})",
+        alias=f"{op}({get_mri(metric_name)})",
     )
 
     assert counter_queries["totals"] == Query(
-        dataset="metrics",
         match=Entity("metrics_counters"),
         select=[select],
         groupby=[
-            Column("tags[2]"),
+            Column(resolve_tag_key(org_id, "environment")),
         ],
         where=[
             Condition(Column("org_id"), Op.EQ, 1),
             Condition(Column("project_id"), Op.IN, [1]),
-            Condition(Column("timestamp"), Op.GTE, datetime(2021, 5, 28, 0, tzinfo=pytz.utc)),
+            Condition(Column("timestamp"), Op.GTE, datetime(2021, 8, 25, 0, tzinfo=pytz.utc)),
             Condition(Column("timestamp"), Op.LT, datetime(2021, 8, 26, 0, tzinfo=pytz.utc)),
-            Condition(Column("tags[6]", entity=None), Op.IN, [10]),
-            Condition(Column("metric_id"), Op.IN, [9]),
+            Condition(
+                Column(resolve_tag_key(org_id, "release"), entity=None),
+                Op.IN,
+                [resolve(org_id, "staging")],
+            ),
+            Condition(Column("metric_id"), Op.IN, [resolve(org_id, get_mri(metric_name))]),
         ],
         orderby=[OrderBy(select, Direction.DESC)],
         limit=Limit(3),
@@ -465,23 +550,26 @@ def test_build_snuba_query_orderby(mock_now, mock_now2, monkeypatch):
         granularity=Granularity(query_definition.rollup),
     )
     assert counter_queries["series"] == Query(
-        dataset="metrics",
         match=Entity("metrics_counters"),
         select=[select],
         groupby=[
-            Column("tags[2]"),
+            Column(resolve_tag_key(org_id, "environment")),
             Column("bucketed_time"),
         ],
         where=[
             Condition(Column("org_id"), Op.EQ, 1),
             Condition(Column("project_id"), Op.IN, [1]),
-            Condition(Column("timestamp"), Op.GTE, datetime(2021, 5, 28, 0, tzinfo=pytz.utc)),
+            Condition(Column("timestamp"), Op.GTE, datetime(2021, 8, 25, 0, tzinfo=pytz.utc)),
             Condition(Column("timestamp"), Op.LT, datetime(2021, 8, 26, 0, tzinfo=pytz.utc)),
-            Condition(Column("tags[6]", entity=None), Op.IN, [10]),
-            Condition(Column("metric_id"), Op.IN, [9]),
+            Condition(
+                Column(resolve_tag_key(org_id, "release"), entity=None),
+                Op.IN,
+                [resolve(org_id, "staging")],
+            ),
+            Condition(Column("metric_id"), Op.IN, [resolve(org_id, get_mri(metric_name))]),
         ],
         orderby=[OrderBy(select, Direction.DESC)],
-        limit=Limit(6480),
+        limit=Limit(72),
         offset=Offset(0),
         granularity=Granularity(query_definition.rollup),
     )
@@ -498,23 +586,27 @@ def test_build_snuba_query_with_derived_alias(mock_now, mock_now2, monkeypatch):
             "field": [
                 "p95(session.duration)",
             ],
+            "per_page": [2],
         }
     )
-    query_definition = QueryDefinition(query_params, paginator_kwargs={"limit": 3})
+    query_definition = QueryDefinition(
+        [PseudoProject(1, 1)], query_params, paginator_kwargs={"limit": 3}
+    )
     snuba_queries, _ = SnubaQueryBuilder(
-        [PseudoProject(1, 1)], query_definition
+        [PseudoProject(1, 1)], query_definition.to_metrics_query()
     ).get_snuba_queries()
 
-    org_id = 666  # mock indexer does not require a real organization ID
+    org_id = 1
 
     distribution_queries = snuba_queries.pop("metrics_distributions")
     assert not snuba_queries
 
     op = "p95"
-    metric_name = SessionMetricKey.SESSION_DURATION.value
 
     conditions = [
-        Function("equals", [Column("metric_id"), resolve_weak(org_id, metric_name)]),
+        Function(
+            "equals", [Column("metric_id"), resolve_weak(org_id, SessionMRI.RAW_DURATION.value)]
+        ),
         Function(
             "equals",
             (
@@ -530,217 +622,53 @@ def test_build_snuba_query_with_derived_alias(mock_now, mock_now2, monkeypatch):
             Column("value"),
             Function("and", conditions),
         ],
-        alias=f"{op}(session.duration)",
+        alias=f"{op}({SessionMRI.DURATION.value})",
     )
     assert distribution_queries["totals"] == Query(
-        dataset="metrics",
         match=Entity("metrics_distributions"),
         select=[select],
         groupby=[
-            Column("tags[2]"),
+            Column(resolve_tag_key(org_id, "environment")),
         ],
         where=[
             Condition(Column("org_id"), Op.EQ, 1),
             Condition(Column("project_id"), Op.IN, [1]),
-            Condition(Column("timestamp"), Op.GTE, datetime(2021, 5, 28, 0, tzinfo=pytz.utc)),
+            Condition(Column("timestamp"), Op.GTE, datetime(2021, 8, 25, 0, tzinfo=pytz.utc)),
             Condition(Column("timestamp"), Op.LT, datetime(2021, 8, 26, 0, tzinfo=pytz.utc)),
-            Condition(Column("tags[6]", entity=None), Op.IN, [10]),
-            Condition(Column("metric_id"), Op.IN, [7]),
+            Condition(
+                Column(resolve_tag_key(org_id, "release"), entity=None),
+                Op.IN,
+                [resolve(org_id, "staging")],
+            ),
+            Condition(Column("metric_id"), Op.IN, [resolve(org_id, SessionMRI.RAW_DURATION.value)]),
         ],
-        limit=Limit(MAX_POINTS),
+        limit=Limit(3),
         offset=Offset(0),
         granularity=Granularity(query_definition.rollup),
     )
     assert distribution_queries["series"] == Query(
-        dataset="metrics",
         match=Entity("metrics_distributions"),
         select=[select],
         groupby=[
-            Column("tags[2]"),
+            Column(resolve_tag_key(org_id, "environment")),
             Column("bucketed_time"),
         ],
         where=[
             Condition(Column("org_id"), Op.EQ, 1),
             Condition(Column("project_id"), Op.IN, [1]),
-            Condition(Column("timestamp"), Op.GTE, datetime(2021, 5, 28, 0, tzinfo=pytz.utc)),
+            Condition(Column("timestamp"), Op.GTE, datetime(2021, 8, 25, 0, tzinfo=pytz.utc)),
             Condition(Column("timestamp"), Op.LT, datetime(2021, 8, 26, 0, tzinfo=pytz.utc)),
-            Condition(Column("tags[6]", entity=None), Op.IN, [10]),
-            Condition(Column("metric_id"), Op.IN, [7]),
+            Condition(
+                Column(resolve_tag_key(org_id, "release"), entity=None),
+                Op.IN,
+                [resolve(org_id, "staging")],
+            ),
+            Condition(Column("metric_id"), Op.IN, [resolve(org_id, SessionMRI.RAW_DURATION.value)]),
         ],
-        limit=Limit(MAX_POINTS),
+        limit=Limit(72),
         offset=Offset(0),
         granularity=Granularity(query_definition.rollup),
     )
-
-
-@mock.patch("sentry.snuba.sessions_v2.get_now", return_value=MOCK_NOW)
-@mock.patch("sentry.api.utils.timezone.now", return_value=MOCK_NOW)
-def test_translate_results(_1, _2, monkeypatch):
-    monkeypatch.setattr(
-        "sentry.sentry_metrics.indexer.reverse_resolve", MockIndexer().reverse_resolve
-    )
-
-    query_params = MultiValueDict(
-        {
-            "groupBy": ["session.status"],
-            "field": [
-                "sum(sentry.sessions.session)",
-                "max(sentry.sessions.session.duration)",
-                "p50(sentry.sessions.session.duration)",
-                "p95(sentry.sessions.session.duration)",
-            ],
-            "interval": ["1d"],
-            "statsPeriod": ["2d"],
-        }
-    )
-    query_definition = QueryDefinition(query_params)
-    fields_in_entities = {
-        "metrics_counters": [("sum", "sentry.sessions.session")],
-        "metrics_distributions": [
-            ("max", "sentry.sessions.session.duration"),
-            ("p50", "sentry.sessions.session.duration"),
-            ("p95", "sentry.sessions.session.duration"),
-        ],
-    }
-
-    intervals = list(get_intervals(query_definition))
-    results = {
-        "metrics_counters": {
-            "totals": {
-                "data": [
-                    {
-                        "metric_id": 9,  # session
-                        "tags[8]": 4,  # session.status:healthy
-                        "sum(sentry.sessions.session)": 300,
-                    },
-                    {
-                        "metric_id": 9,  # session
-                        "tags[8]": 14,  # session.status:abnormal
-                        "sum(sentry.sessions.session)": 330,
-                    },
-                ],
-            },
-            "series": {
-                "data": [
-                    {
-                        "metric_id": 9,  # session
-                        "tags[8]": 4,
-                        "bucketed_time": "2021-08-24T00:00Z",
-                        "sum(sentry.sessions.session)": 100,
-                    },
-                    {
-                        "metric_id": 9,  # session
-                        "tags[8]": 14,
-                        "bucketed_time": "2021-08-24T00:00Z",
-                        "sum(sentry.sessions.session)": 110,
-                    },
-                    {
-                        "metric_id": 9,  # session
-                        "tags[8]": 4,
-                        "bucketed_time": "2021-08-25T00:00Z",
-                        "sum(sentry.sessions.session)": 200,
-                    },
-                    {
-                        "metric_id": 9,  # session
-                        "tags[8]": 14,
-                        "bucketed_time": "2021-08-25T00:00Z",
-                        "sum(sentry.sessions.session)": 220,
-                    },
-                ],
-            },
-        },
-        "metrics_distributions": {
-            "totals": {
-                "data": [
-                    {
-                        "metric_id": 7,  # session.duration
-                        "tags[8]": 4,
-                        "max(sentry.sessions.session.duration)": 123.4,
-                        "p50(sentry.sessions.session.duration)": [1],
-                        "p95(sentry.sessions.session.duration)": [4],
-                    },
-                    {
-                        "metric_id": 7,  # session.duration
-                        "tags[8]": 14,
-                        "max(sentry.sessions.session.duration)": 456.7,
-                        "p50(sentry.sessions.session.duration)": [1.5],
-                        "p95(sentry.sessions.session.duration)": [4.5],
-                    },
-                ],
-            },
-            "series": {
-                "data": [
-                    {
-                        "metric_id": 7,  # session.duration
-                        "tags[8]": 4,
-                        "bucketed_time": "2021-08-24T00:00Z",
-                        "max(sentry.sessions.session.duration)": 10.1,
-                        "p50(sentry.sessions.session.duration)": [1.1],
-                        "p95(sentry.sessions.session.duration)": [4.1],
-                    },
-                    {
-                        "metric_id": 7,  # session.duration
-                        "tags[8]": 14,
-                        "bucketed_time": "2021-08-24T00:00Z",
-                        "max(sentry.sessions.session.duration)": 20.2,
-                        "p50(sentry.sessions.session.duration)": [1.2],
-                        "p95(sentry.sessions.session.duration)": [4.2],
-                    },
-                    {
-                        "metric_id": 7,  # session.duration
-                        "tags[8]": 4,
-                        "bucketed_time": "2021-08-25T00:00Z",
-                        "max(sentry.sessions.session.duration)": 30.3,
-                        "p50(sentry.sessions.session.duration)": [1.3],
-                        "p95(sentry.sessions.session.duration)": [4.3],
-                    },
-                    {
-                        "metric_id": 7,  # session.duration
-                        "tags[8]": 14,
-                        "bucketed_time": "2021-08-25T00:00Z",
-                        "max(sentry.sessions.session.duration)": 40.4,
-                        "p50(sentry.sessions.session.duration)": [1.4],
-                        "p95(sentry.sessions.session.duration)": [4.4],
-                    },
-                ],
-            },
-        },
-    }
-
-    assert SnubaResultConverter(
-        1, query_definition, fields_in_entities, intervals, results
-    ).translate_results() == [
-        {
-            "by": {"session.status": "healthy"},
-            "totals": {
-                "sum(sentry.sessions.session)": 300,
-                "max(sentry.sessions.session.duration)": 123.4,
-                "p50(sentry.sessions.session.duration)": 1,
-                "p95(sentry.sessions.session.duration)": 4,
-            },
-            "series": {
-                "sum(sentry.sessions.session)": [100, 200],
-                "max(sentry.sessions.session.duration)": [10.1, 30.3],
-                "p50(sentry.sessions.session.duration)": [1.1, 1.3],
-                "p95(sentry.sessions.session.duration)": [4.1, 4.3],
-            },
-        },
-        {
-            "by": {"session.status": "abnormal"},
-            "totals": {
-                "sum(sentry.sessions.session)": 330,
-                "max(sentry.sessions.session.duration)": 456.7,
-                "p50(sentry.sessions.session.duration)": 1.5,
-                "p95(sentry.sessions.session.duration)": 4.5,
-            },
-            "series": {
-                "sum(sentry.sessions.session)": [110, 220],
-                "max(sentry.sessions.session.duration)": [20.2, 40.4],
-                "p50(sentry.sessions.session.duration)": [1.2, 1.4],
-                "p95(sentry.sessions.session.duration)": [4.2, 4.4],
-            },
-        },
-    ]
 
 
 @mock.patch("sentry.snuba.sessions_v2.get_now", return_value=MOCK_NOW)
@@ -762,27 +690,31 @@ def test_translate_results_derived_metrics(_1, _2, monkeypatch):
             "statsPeriod": ["2d"],
         }
     )
-    query_definition = QueryDefinition(query_params)
+    query_definition = QueryDefinition([PseudoProject(1, 1)], query_params)
     fields_in_entities = {
         "metrics_counters": [
-            (None, "session.errored_preaggregated"),
-            (None, "session.crash_free_rate"),
-            (None, "session.all"),
+            (None, SessionMRI.ERRORED_PREAGGREGATED.value),
+            (None, SessionMRI.CRASHED_AND_ABNORMAL.value),
+            (None, SessionMRI.CRASH_FREE_RATE.value),
+            (None, SessionMRI.ALL.value),
         ],
         "metrics_sets": [
-            (None, "session.errored_set"),
+            (None, SessionMRI.ERRORED_SET.value),
         ],
     }
 
-    intervals = list(get_intervals(query_definition))
+    intervals = list(
+        get_intervals(query_definition.start, query_definition.end, query_definition.rollup)
+    )
     results = {
         "metrics_counters": {
             "totals": {
                 "data": [
                     {
-                        "session.crash_free_rate": 0.5,
-                        "session.all": 8.0,
-                        "session.errored_preaggregated": 3,
+                        SessionMRI.CRASH_FREE_RATE.value: 0.5,
+                        SessionMRI.ALL.value: 8.0,
+                        SessionMRI.ERRORED_PREAGGREGATED.value: 3,
+                        SessionMRI.CRASHED_AND_ABNORMAL.value: 0,
                     }
                 ],
             },
@@ -790,15 +722,17 @@ def test_translate_results_derived_metrics(_1, _2, monkeypatch):
                 "data": [
                     {
                         "bucketed_time": "2021-08-24T00:00Z",
-                        "session.crash_free_rate": 0.5,
-                        "session.all": 4,
-                        "session.errored_preaggregated": 1,
+                        SessionMRI.CRASH_FREE_RATE.value: 0.5,
+                        SessionMRI.ALL.value: 4,
+                        SessionMRI.ERRORED_PREAGGREGATED.value: 1,
+                        SessionMRI.CRASHED_AND_ABNORMAL.value: 0,
                     },
                     {
                         "bucketed_time": "2021-08-25T00:00Z",
-                        "session.crash_free_rate": 0.5,
-                        "session.all": 4,
-                        "session.errored_preaggregated": 2,
+                        SessionMRI.CRASH_FREE_RATE.value: 0.5,
+                        SessionMRI.ALL.value: 4,
+                        SessionMRI.ERRORED_PREAGGREGATED.value: 2,
+                        SessionMRI.CRASHED_AND_ABNORMAL.value: 0,
                     },
                 ],
             },
@@ -807,22 +741,22 @@ def test_translate_results_derived_metrics(_1, _2, monkeypatch):
             "totals": {
                 "data": [
                     {
-                        "session.errored_set": 3,
+                        SessionMRI.ERRORED_SET.value: 3,
                     },
                 ],
             },
             "series": {
                 "data": [
-                    {"bucketed_time": "2021-08-24T00:00Z", "session.errored_set": 2},
-                    {"bucketed_time": "2021-08-25T00:00Z", "session.errored_set": 1},
+                    {"bucketed_time": "2021-08-24T00:00Z", SessionMRI.ERRORED_SET.value: 2},
+                    {"bucketed_time": "2021-08-25T00:00Z", SessionMRI.ERRORED_SET.value: 1},
                 ],
             },
         },
     }
 
     assert SnubaResultConverter(
-        1, query_definition, fields_in_entities, intervals, results
-    ).translate_results() == [
+        1, query_definition.to_metrics_query(), fields_in_entities, intervals, results
+    ).translate_result_groups() == [
         {
             "by": {},
             "totals": {
@@ -842,6 +776,7 @@ def test_translate_results_derived_metrics(_1, _2, monkeypatch):
 @mock.patch("sentry.snuba.sessions_v2.get_now", return_value=MOCK_NOW)
 @mock.patch("sentry.api.utils.timezone.now", return_value=MOCK_NOW)
 def test_translate_results_missing_slots(_1, _2, monkeypatch):
+    org_id = 1
     monkeypatch.setattr(
         "sentry.sentry_metrics.indexer.reverse_resolve", MockIndexer().reverse_resolve
     )
@@ -854,10 +789,10 @@ def test_translate_results_missing_slots(_1, _2, monkeypatch):
             "statsPeriod": ["3d"],
         }
     )
-    query_definition = QueryDefinition(query_params)
+    query_definition = QueryDefinition([PseudoProject(1, 1)], query_params)
     fields_in_entities = {
         "metrics_counters": [
-            ("sum", "sentry.sessions.session"),
+            ("sum", SessionMRI.SESSION.value),
         ],
     }
 
@@ -866,33 +801,35 @@ def test_translate_results_missing_slots(_1, _2, monkeypatch):
             "totals": {
                 "data": [
                     {
-                        "metric_id": 9,  # session
-                        "sum(sentry.sessions.session)": 400,
+                        "metric_id": resolve(org_id, SessionMRI.SESSION.value),
+                        f"sum({SessionMRI.SESSION.value})": 400,
                     },
                 ],
             },
             "series": {
                 "data": [
                     {
-                        "metric_id": 9,  # session
+                        "metric_id": resolve(org_id, SessionMRI.SESSION.value),
                         "bucketed_time": "2021-08-23T00:00Z",
-                        "sum(sentry.sessions.session)": 100,
+                        f"sum({SessionMRI.SESSION.value})": 100,
                     },
                     # no data for 2021-08-24
                     {
-                        "metric_id": 9,  # session
+                        "metric_id": resolve(org_id, SessionMRI.SESSION.value),
                         "bucketed_time": "2021-08-25T00:00Z",
-                        "sum(sentry.sessions.session)": 300,
+                        f"sum({SessionMRI.SESSION.value})": 300,
                     },
                 ],
             },
         },
     }
 
-    intervals = list(get_intervals(query_definition))
+    intervals = list(
+        get_intervals(query_definition.start, query_definition.end, query_definition.rollup)
+    )
     assert SnubaResultConverter(
-        1, query_definition, fields_in_entities, intervals, results
-    ).translate_results() == [
+        org_id, query_definition.to_metrics_query(), fields_in_entities, intervals, results
+    ).translate_result_groups() == [
         {
             "by": {},
             "totals": {
@@ -904,3 +841,45 @@ def test_translate_results_missing_slots(_1, _2, monkeypatch):
             },
         },
     ]
+
+
+def test_get_intervals():
+    with pytest.raises(AssertionError):
+        list(get_intervals(MOCK_NOW - timedelta(days=1), MOCK_NOW, -3600))
+
+
+def test_translate_meta_results():
+    meta = [
+        {"name": "p50(d:transactions/measurements.lcp@millisecond)", "type": "Array(Float64)"},
+        {"name": "tags[9223372036854776020]", "type": "UInt64"},
+        {"name": "project_id", "type": "UInt64"},
+        {"name": "metric_id", "type": "UInt64"},
+    ]
+    assert translate_meta_results(meta, {"p50(transaction.measurements.lcp)"}) == sorted(
+        [
+            {"name": "p50(transaction.measurements.lcp)", "type": "Array(Float64)"},
+            {"name": "transaction", "type": "string"},
+            {"name": "project_id", "type": "UInt64"},
+            {"name": "metric_id", "type": "UInt64"},
+        ],
+        key=lambda elem: elem["name"],
+    )
+
+
+def test_translate_meta_results_with_duplicates():
+    meta = [
+        {"name": "p50(d:transactions/measurements.lcp@millisecond)", "type": "Array(Float64)"},
+        {"name": "p50(d:transactions/measurements.lcp@millisecond)", "type": "Array(Float64)"},
+        {"name": "tags[9223372036854776020]", "type": "UInt64"},
+        {"name": "tags[9223372036854776020]", "type": "UInt64"},
+        {"name": "project_id", "type": "UInt64"},
+        {"name": "project_id", "type": "UInt64"},
+    ]
+    assert translate_meta_results(meta, {"p50(transaction.measurements.lcp)"}) == sorted(
+        [
+            {"name": "p50(transaction.measurements.lcp)", "type": "Array(Float64)"},
+            {"name": "transaction", "type": "string"},
+            {"name": "project_id", "type": "UInt64"},
+        ],
+        key=lambda elem: elem["name"],
+    )

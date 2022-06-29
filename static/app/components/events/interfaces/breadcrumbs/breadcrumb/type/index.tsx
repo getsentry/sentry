@@ -1,11 +1,11 @@
 import styled from '@emotion/styled';
 
 import Tooltip from 'sentry/components/tooltip';
-import SvgIcon from 'sentry/icons/svgIcon';
+import {SVGIconProps} from 'sentry/icons/svgIcon';
 
 import Icon from './icon';
 
-type Props = Required<Pick<React.ComponentProps<typeof SvgIcon>, 'color'>> &
+type Props = Required<Pick<SVGIconProps, 'color'>> &
   React.ComponentProps<typeof Icon> & {
     description?: string;
     error?: boolean;
@@ -51,8 +51,8 @@ const IconWrapper = styled('div')<Pick<Props, 'color'>>`
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
   color: ${p => p.theme.white};
   background: ${p => p.theme[p.color] ?? p.color};

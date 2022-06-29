@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 
 import {
   ConnectorBar,
@@ -25,8 +25,10 @@ type Props = {
   continuingTreeDepths: Array<TreeDepthType>;
   event: Readonly<EventTransaction>;
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
+  generateContentSpanBarRef: () => (instance: HTMLDivElement | null) => void;
   isLastSibling: boolean;
   occurrence: number;
+  onWheel: (deltaX: number) => void;
   span: Readonly<ProcessedSpanType>;
   spanGrouping: EnhancedSpan[];
   spanNumber: number;
@@ -45,6 +47,8 @@ export default function SpanSiblingGroupBar(props: Props) {
     spanNumber,
     occurrence,
     toggleSiblingSpanGroup,
+    onWheel,
+    generateContentSpanBarRef,
   } = props;
 
   function renderGroupSpansTitle(): React.ReactNode {
@@ -55,13 +59,23 @@ export default function SpanSiblingGroupBar(props: Props) {
     const operation = spanGrouping[0].span.op;
     const description = spanGrouping[0].span.description;
 
+    if (!description || !operation) {
+      if (description) {
+        return <strong>{`${t('Autogrouped')} \u2014 ${description}`}</strong>;
+      }
+
+      if (operation) {
+        return <strong>{`${t('Autogrouped')} \u2014 ${operation}`}</strong>;
+      }
+
+      return <strong>{`${t('Autogrouped')} \u2014 ${t('siblings')}`}</strong>;
+    }
+
     return (
-      <React.Fragment>
-        <strong>{`${t('Autogrouped ')}\u2014 ${operation} ${
-          description && '\u2014 '
-        }`}</strong>
-        {description && `${description}`}
-      </React.Fragment>
+      <Fragment>
+        <strong>{`${t('Autogrouped')} \u2014 ${operation} \u2014 `}</strong>
+        {description}
+      </Fragment>
     );
   }
 
@@ -88,20 +102,6 @@ export default function SpanSiblingGroupBar(props: Props) {
       );
     });
 
-    if (!isLastSibling) {
-      const depth: number = unwrapTreeDepth(spanTreeDepth - 1);
-      const left = ((spanTreeDepth - depth) * (TOGGLE_BORDER_BOX / 2) + 2) * -1;
-      connectorBars.push(
-        <ConnectorBar
-          style={{
-            left,
-          }}
-          key={`${span.description}-${depth}`}
-          orphanBranch={false}
-        />
-      );
-    }
-
     return (
       <TreeConnector isLast={isLastSibling} hasToggler orphanBranch={isOrphanSpan(span)}>
         {connectorBars}
@@ -111,7 +111,7 @@ export default function SpanSiblingGroupBar(props: Props) {
 
   function renderSpanRectangles() {
     return (
-      <React.Fragment>
+      <Fragment>
         {spanGrouping.map((_, index) => (
           <SpanRectangle
             key={index}
@@ -123,7 +123,7 @@ export default function SpanSiblingGroupBar(props: Props) {
           spanGrouping={spanGrouping}
           bounds={getSpanGroupBounds(spanGrouping, generateBounds)}
         />
-      </React.Fragment>
+      </Fragment>
     );
   }
 
@@ -139,6 +139,8 @@ export default function SpanSiblingGroupBar(props: Props) {
       renderSpanTreeConnector={renderSpanTreeConnector}
       renderGroupSpansTitle={renderGroupSpansTitle}
       renderSpanRectangles={renderSpanRectangles}
+      onWheel={onWheel}
+      generateContentSpanBarRef={generateContentSpanBarRef}
     />
   );
 }

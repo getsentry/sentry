@@ -1,6 +1,9 @@
+from unittest import mock
+
 from sentry.api.serializers import SimpleEventSerializer, serialize
-from sentry.api.serializers.models.event import SharedEventSerializer
+from sentry.api.serializers.models.event import DetailedEventSerializer, SharedEventSerializer
 from sentry.models import EventError
+from sentry.sdk_updates import SdkIndexState
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils.samples import load_data
@@ -286,3 +289,84 @@ class SimpleEventSerializerTest(TestCase):
 
         result = serialize(event, None, SimpleEventSerializer())
         assert result["groupID"] is None
+
+
+class EventSerializerSdkUpdatesTest(TestCase):
+    @mock.patch(
+        "sentry.sdk_updates.SdkIndexState",
+        return_value=SdkIndexState(sdk_versions={"example.sdk": "2.0.0"}),
+    )
+    def test_update_on_major(self, mock_index_state):
+        min_ago = iso_format(before_now(minutes=1))
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "oh no",
+                "timestamp": min_ago,
+                "fingerprint": ["group-1"],
+                "sdk": {"name": "example.sdk", "version": "1.0.0"},
+            },
+            project_id=self.project.id,
+            assert_no_errors=False,
+        )
+
+        result = serialize(event, None, DetailedEventSerializer())
+        assert result["sdkUpdates"] == [
+            {
+                "enables": [],
+                "newSdkVersion": "2.0.0",
+                "sdkName": "example.sdk",
+                "sdkUrl": None,
+                "type": "updateSdk",
+            }
+        ]
+
+    @mock.patch(
+        "sentry.sdk_updates.SdkIndexState",
+        return_value=SdkIndexState(sdk_versions={"example.sdk": "1.1.0"}),
+    )
+    def test_update_on_minor(self, mock_index_state):
+        min_ago = iso_format(before_now(minutes=1))
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "oh no",
+                "timestamp": min_ago,
+                "fingerprint": ["group-1"],
+                "sdk": {"name": "example.sdk", "version": "1.0.0"},
+            },
+            project_id=self.project.id,
+            assert_no_errors=False,
+        )
+
+        result = serialize(event, None, DetailedEventSerializer())
+        assert result["sdkUpdates"] == [
+            {
+                "enables": [],
+                "newSdkVersion": "1.1.0",
+                "sdkName": "example.sdk",
+                "sdkUrl": None,
+                "type": "updateSdk",
+            }
+        ]
+
+    @mock.patch(
+        "sentry.sdk_updates.SdkIndexState",
+        return_value=SdkIndexState(sdk_versions={"example.sdk": "1.0.1"}),
+    )
+    def test_ignores_patch(self, mock_index_state):
+        min_ago = iso_format(before_now(minutes=1))
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "oh no",
+                "timestamp": min_ago,
+                "fingerprint": ["group-1"],
+                "sdk": {"name": "example.sdk", "version": "1.0.0"},
+            },
+            project_id=self.project.id,
+            assert_no_errors=False,
+        )
+
+        result = serialize(event, None, DetailedEventSerializer())
+        assert result["sdkUpdates"] == []

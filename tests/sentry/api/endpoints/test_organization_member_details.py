@@ -12,9 +12,11 @@ from sentry.models import (
     Organization,
     OrganizationMember,
     OrganizationMemberTeam,
+    SentryAppInstallationToken,
     UserOption,
 )
 from sentry.testutils import APITestCase
+from sentry.testutils.helpers import with_feature
 
 
 class OrganizationMemberTestBase(APITestCase):
@@ -30,6 +32,7 @@ class GetOrganizationMemberTest(OrganizationMemberTestBase):
         response = self.get_success_response(self.organization.slug, "me")
 
         assert response.data["role"] == "owner"
+        assert response.data["orgRole"] == "owner"
         assert response.data["user"]["id"] == str(self.user.id)
         assert response.data["email"] == self.user.email
 
@@ -42,6 +45,7 @@ class GetOrganizationMemberTest(OrganizationMemberTestBase):
 
         response = self.get_success_response(self.organization.slug, member.id)
         assert response.data["role"] == "member"
+        assert response.data["orgRole"] == "member"
         assert response.data["id"] == str(member.id)
 
     def test_get_by_garbage(self):
@@ -101,6 +105,30 @@ class GetOrganizationMemberTest(OrganizationMemberTestBase):
 
         response = self.get_success_response(self.organization.slug, member_om.id)
         assert team.slug in response.data["teams"]
+
+    def test_lists_organization_roles(self):
+        response = self.get_success_response(self.organization.slug, "me")
+        assert response.data["roles"] == response.data["orgRoleList"]
+
+        role_ids = [role["id"] for role in response.data["orgRoleList"]]
+        assert role_ids == ["member", "admin", "manager", "owner"]
+
+    @with_feature("organizations:team-roles")
+    def test_hides_retired_organization_roles(self):
+        """
+        Note: Admin will be hidden after team-roles EA.
+        """
+        response = self.get_success_response(self.organization.slug, "me")
+        assert response.data["roles"] == response.data["orgRoleList"]
+
+        role_ids = [role["id"] for role in response.data["orgRoleList"]]
+        assert role_ids == ["member", "admin", "manager", "owner"]
+
+    def test_lists_team_roles(self):
+        response = self.get_success_response(self.organization.slug, "me")
+
+        role_ids = [role["id"] for role in response.data["teamRoleList"]]
+        assert role_ids == ["contributor", "admin"]
 
 
 class UpdateOrganizationMemberTest(OrganizationMemberTestBase):
@@ -309,6 +337,30 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase):
         member_om = OrganizationMember.objects.get(organization=self.organization, user=member)
         assert member_om.role == "member"
 
+    @with_feature("organizations:team-roles")
+    def test_cannot_update_with_retired_role(self):
+        member = self.create_user("baz@example.com")
+        member_om = self.create_member(
+            organization=self.organization, user=member, role="member", teams=[]
+        )
+
+        self.get_error_response(self.organization.slug, member_om.id, role="admin", status_code=400)
+
+        member_om = OrganizationMember.objects.get(organization=self.organization, user=member)
+        assert member_om.role == "member"
+
+    @with_feature("organizations:team-roles")
+    def test_ignores_retired_role_updated_to_itself(self):
+        member = self.create_user("baz@example.com")
+        member_om = self.create_member(
+            organization=self.organization, user=member, role="admin", teams=[]
+        )
+
+        self.get_success_response(self.organization.slug, member_om.id, role="admin")
+
+        member_om = OrganizationMember.objects.get(organization=self.organization, user=member)
+        assert member_om.role == "admin"
+
     @patch("sentry.models.OrganizationMember.send_sso_link_email")
     def test_cannot_reinvite_normal_member(self, mock_send_sso_link_email):
         member = self.create_user("bar@example.com")
@@ -330,6 +382,30 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase):
 
         owner_om = OrganizationMember.objects.get(organization=self.organization, user=owner)
         assert owner_om.role == "owner"
+
+    def test_with_internal_integration(self):
+        member = self.create_user("baz@example.com")
+        member_om = self.create_member(organization=self.organization, user=member, role="member")
+        self.create_internal_integration(
+            name="my_app",
+            organization=self.organization,
+            scopes=("member:admin",),
+            webhook_url="http://example.com",
+        )
+        # there should only be one record created so just grab the first one
+        token = SentryAppInstallationToken.objects.first()
+
+        response = self.client.put(
+            reverse(self.endpoint, args=[self.organization.slug, member_om.id]),
+            {"role": "admin"},
+            HTTP_AUTHORIZATION=f"Bearer {token.api_token.token}",
+        )
+
+        # The app token has no associated OrganizationMember and therefore no role.
+        # So we can't authorize it to promote to a role less than or equal to its
+        # own. This may be supported in the future. For now, assert that it provides
+        # a graceful authorization failure.
+        assert response.status_code == 403
 
 
 class DeleteOrganizationMemberTest(OrganizationMemberTestBase):

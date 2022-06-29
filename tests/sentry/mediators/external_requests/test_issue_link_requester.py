@@ -1,10 +1,11 @@
+import pytest
 import responses
 
 from sentry.coreapi import APIError
 from sentry.mediators.external_requests import IssueLinkRequester
 from sentry.testutils import TestCase
 from sentry.utils import json
-from sentry.utils.sentryappwebhookrequests import SentryAppWebhookRequestsBuffer
+from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
 
 
 class TestIssueLinkRequester(TestCase):
@@ -90,7 +91,7 @@ class TestIssueLinkRequester(TestCase):
             status=200,
             content_type="application/json",
         )
-        with self.assertRaises(APIError):
+        with pytest.raises(APIError):
             IssueLinkRequester.run(
                 install=self.install,
                 project=self.project,
@@ -110,7 +111,7 @@ class TestIssueLinkRequester(TestCase):
             status=500,
         )
 
-        with self.assertRaises(APIError):
+        with pytest.raises(APIError):
             IssueLinkRequester.run(
                 install=self.install,
                 project=self.project,

@@ -1,9 +1,8 @@
 import {Fragment} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import {BaseGroup, GroupTombstone, Organization} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {getTitle} from 'sentry/utils/events';
@@ -26,7 +25,6 @@ function EventOrGroupTitle({
   organization,
   data,
   withStackTracePreview,
-  hasGuideAnchor,
   grouping = false,
   className,
 }: Props) {
@@ -43,26 +41,24 @@ function EventOrGroupTitle({
 
   return (
     <Wrapper className={className} hasGroupingTreeUI={hasGroupingTreeUI}>
-      <GuideAnchor disabled={!hasGuideAnchor} target="issue_title" position="bottom">
-        {withStackTracePreview ? (
-          <StyledStacktracePreview
-            organization={organization}
-            issueId={groupID ? groupID : id}
-            groupingCurrentLevel={groupingCurrentLevel}
-            // we need eventId and projectSlug only when hovering over Event, not Group
-            // (different API call is made to get the stack trace then)
-            eventId={eventID}
-            projectSlug={eventID ? ProjectsStore.getById(projectID)?.slug : undefined}
-            hasGroupingStacktraceUI={hasGroupingStacktraceUI}
-          >
-            {treeLabel ? <EventTitleTreeLabel treeLabel={treeLabel} /> : title}
-          </StyledStacktracePreview>
-        ) : treeLabel ? (
-          <EventTitleTreeLabel treeLabel={treeLabel} />
-        ) : (
-          title
-        )}
-      </GuideAnchor>
+      {withStackTracePreview ? (
+        <StyledStacktracePreview
+          organization={organization}
+          issueId={groupID ? groupID : id}
+          groupingCurrentLevel={groupingCurrentLevel}
+          // we need eventId and projectSlug only when hovering over Event, not Group
+          // (different API call is made to get the stack trace then)
+          eventId={eventID}
+          projectSlug={eventID ? ProjectsStore.getById(projectID)?.slug : undefined}
+          hasGroupingStacktraceUI={hasGroupingStacktraceUI}
+        >
+          {treeLabel ? <EventTitleTreeLabel treeLabel={treeLabel} /> : title}
+        </StyledStacktracePreview>
+      ) : treeLabel ? (
+        <EventTitleTreeLabel treeLabel={treeLabel} />
+      ) : (
+        title
+      )}
       {subtitle && (
         <Fragment>
           <Spacer />
@@ -93,11 +89,12 @@ const StyledStacktracePreview = styled(StackTracePreview)<{
 }>`
   ${p =>
     p.hasGroupingStacktraceUI &&
-    `
+    css`
       display: inline-flex;
       overflow: hidden;
+      height: 100%;
       > span:first-child {
-        ${overflowEllipsis}
+        ${p.theme.overflowEllipsis}
       }
     `}
 `;
@@ -105,15 +102,16 @@ const StyledStacktracePreview = styled(StackTracePreview)<{
 const Wrapper = styled('span')<{hasGroupingTreeUI: boolean}>`
   ${p =>
     p.hasGroupingTreeUI &&
-    `
+    css`
       display: inline-grid;
       grid-template-columns: auto max-content 1fr max-content;
       align-items: flex-end;
       line-height: 100%;
 
       ${Subtitle} {
-        ${overflowEllipsis};
+        ${p.theme.overflowEllipsis};
         display: inline-block;
+        height: 100%;
       }
     `}
 `;

@@ -10,18 +10,23 @@ import Alert from 'sentry/components/alert';
 import ButtonBar from 'sentry/components/buttonBar';
 import {getInterval} from 'sentry/components/charts/utils';
 import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
+import DatePageFilter from 'sentry/components/datePageFilter';
 import DropdownMenuControlV2 from 'sentry/components/dropdownMenuControlV2';
 import {MenuItemProps} from 'sentry/components/dropdownMenuItemV2';
+import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
+import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import {IconCheckmark, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {generateQueryWithTag} from 'sentry/utils';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
 import {WebVital} from 'sentry/utils/discover/fields';
@@ -37,6 +42,7 @@ import {getTransactionSearchQuery} from '../utils';
 import Table from './table';
 import {
   vitalAbbreviations,
+  vitalAlertTypes,
   vitalDescription,
   vitalMap,
   vitalSupportedBrowsers,
@@ -111,7 +117,7 @@ class VitalDetailContent extends Component<Props, State> {
   };
 
   renderCreateAlertButton() {
-    const {eventView, organization, projects} = this.props;
+    const {eventView, organization, projects, vitalName} = this.props;
 
     return (
       <CreateAlertFromViewButton
@@ -120,14 +126,16 @@ class VitalDetailContent extends Component<Props, State> {
         projects={projects}
         onIncompatibleQuery={this.handleIncompatibleQuery}
         onSuccess={() => {}}
+        useAlertWizardV3={organization.features.includes('alert-wizard-v3')}
         aria-label={t('Create Alert')}
+        alertType={vitalAlertTypes[vitalName]}
         referrer="performance"
       />
     );
   }
 
   renderVitalSwitcher() {
-    const {vitalName, location} = this.props;
+    const {vitalName, location, organization} = this.props;
 
     const position = FRONTEND_VITALS.indexOf(vitalName);
 
@@ -148,6 +156,12 @@ class VitalDetailContent extends Component<Props, State> {
                 vitalName: newVitalName,
                 cursor: undefined,
               },
+            });
+
+            trackAdvancedAnalyticsEvent('performance_views.vital_detail.switch_vital', {
+              organization,
+              from_vital: vitalAbbreviations[vitalName] ?? 'undefined',
+              to_vital: vitalAbbreviations[newVitalName] ?? 'undefined',
             });
           },
         };
@@ -212,14 +226,21 @@ class VitalDetailContent extends Component<Props, State> {
 
     return (
       <Fragment>
-        <StyledSearchBar
-          searchSource="performance_vitals"
-          organization={organization}
-          projectIds={project}
-          query={query}
-          fields={fields}
-          onSearch={this.handleSearch}
-        />
+        <FilterActions>
+          <PageFilterBar condensed>
+            <ProjectPageFilter />
+            <EnvironmentPageFilter />
+            <DatePageFilter alignDropdown="left" />
+          </PageFilterBar>
+          <SearchBar
+            searchSource="performance_vitals"
+            organization={organization}
+            projectIds={project}
+            query={query}
+            fields={fields}
+            onSearch={this.handleSearch}
+          />
+        </FilterActions>
         <VitalChart
           organization={organization}
           query={query}
@@ -330,10 +351,6 @@ const StyledDescription = styled('div')`
   margin-bottom: ${space(3)};
 `;
 
-const StyledSearchBar = styled(SearchBar)`
-  margin-bottom: ${space(2)};
-`;
-
 const StyledVitalInfo = styled('div')`
   margin-bottom: ${space(3)};
 `;
@@ -348,4 +365,14 @@ const BrowserItem = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(1)};
+`;
+
+const FilterActions = styled('div')`
+  display: grid;
+  gap: ${space(2)};
+  margin-bottom: ${space(2)};
+
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    grid-template-columns: auto 1fr;
+  }
 `;

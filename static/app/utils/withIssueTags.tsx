@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {useCallback, useEffect, useState} from 'react';
 import assign from 'lodash/assign';
 
 import MemberListStore from 'sentry/stores/memberListStore';
@@ -34,7 +34,7 @@ function withIssueTags<Props extends WithIssueTagsProps>(
   WrappedComponent: React.ComponentType<Props>
 ) {
   function ComponentWithTags(props: Omit<Props, keyof WithIssueTagsProps>) {
-    const [state, setState] = React.useState<WrappedComponentState>({
+    const [state, setState] = useState<WrappedComponentState>({
       tags: assign(
         {},
         TagStore.getAllTags(),
@@ -45,7 +45,7 @@ function withIssueTags<Props extends WithIssueTagsProps>(
       teams: TeamStore.getAll(),
     });
 
-    const setAssigned = React.useCallback(
+    const setAssigned = useCallback(
       (newState: Partial<WrappedComponentState>) => {
         setState(oldState => {
           const usernames: string[] = newState.users
@@ -88,7 +88,7 @@ function withIssueTags<Props extends WithIssueTagsProps>(
     );
 
     // Listen to team store updates and cleanup listener on unmount
-    React.useEffect(() => {
+    useEffect(() => {
       const unsubscribeTeam = TeamStore.listen(() => {
         setAssigned({teams: TeamStore.getAll()});
       }, undefined);
@@ -97,7 +97,7 @@ function withIssueTags<Props extends WithIssueTagsProps>(
     }, []);
 
     // Listen to tag store updates and cleanup listener on unmount
-    React.useEffect(() => {
+    useEffect(() => {
       const unsubscribeTags = TagStore.listen((storeTags: TagCollection) => {
         const tags = assign(
           {},
@@ -113,7 +113,7 @@ function withIssueTags<Props extends WithIssueTagsProps>(
     }, []);
 
     // Listen to member store updates and cleanup listener on unmount
-    React.useEffect(() => {
+    useEffect(() => {
       const unsubscribeMembers = MemberListStore.listen((users: User[]) => {
         setAssigned({users});
       }, undefined);

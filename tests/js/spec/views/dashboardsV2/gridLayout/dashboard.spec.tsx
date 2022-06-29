@@ -54,7 +54,7 @@ describe('Dashboards > Dashboard', () => {
     ],
   };
 
-  let initialData;
+  let initialData, tagsMock;
 
   beforeEach(() => {
     initialData = initializeOrg({organization, router: {}, project: 1, projects: []});
@@ -105,11 +105,30 @@ describe('Dashboards > Dashboard', () => {
         },
       ],
     });
-    MockApiClient.addMockResponse({
+    tagsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/',
       method: 'GET',
       body: TestStubs.Tags(),
     });
+  });
+
+  it('fetches tags', () => {
+    mountWithTheme(
+      <Dashboard
+        paramDashboardId="1"
+        dashboard={mockDashboard}
+        organization={initialData.organization}
+        onUpdate={() => undefined}
+        handleUpdateWidgetList={() => undefined}
+        handleAddCustomWidget={() => undefined}
+        router={initialData.router}
+        location={initialData.location}
+        widgetLimitReached={false}
+        isEditing={false}
+      />,
+      initialData.routerContext
+    );
+    expect(tagsMock).toHaveBeenCalled();
   });
 
   it('dashboard adds new widget if component is mounted with newWidget prop', async () => {
@@ -293,7 +312,6 @@ describe('Dashboards > Dashboard', () => {
             'dashboards-basic',
             'dashboards-edit',
             'dashboard-grid-layout',
-            'new-widget-builder-experience',
             'new-widget-builder-experience-design',
           ],
         },

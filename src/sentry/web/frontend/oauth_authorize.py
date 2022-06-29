@@ -313,7 +313,7 @@ class OAuthAuthorizeView(AuthLoginView):
                     "expires_in": int((timezone.now() - token.expires_at).total_seconds()),
                     "expires_at": token.expires_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
                     "token_type": "bearer",
-                    "scope": " ".join(token.get_scopes()),  # NOQA
+                    "scope": " ".join(token.get_scopes()),
                     "state": params["state"],
                 },
             )

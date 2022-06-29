@@ -19,7 +19,7 @@ import {
   Organization,
   Project,
   SessionApiResponse,
-  SessionField,
+  SessionFieldWithOperation,
   SessionStatus,
 } from 'sentry/types';
 import {formatFloat} from 'sentry/utils/formatters';
@@ -119,7 +119,7 @@ class TeamStability extends AsyncComponent<Props, State> {
       group => group.by.project === projectId
     );
 
-    return getCrashFreeRate(projectGroups, SessionField.SESSIONS);
+    return getCrashFreeRate(projectGroups, SessionFieldWithOperation.SESSIONS);
   }
 
   getTrend(projectId: number): number | null {
@@ -136,12 +136,12 @@ class TeamStability extends AsyncComponent<Props, State> {
   getMiniBarChartSeries(project: Project, response: SessionApiResponse) {
     const sumSessions = getSeriesSum(
       response.groups.filter(group => group.by.project === Number(project.id)),
-      SessionField.SESSIONS,
+      SessionFieldWithOperation.SESSIONS,
       response.intervals
     );
 
     const countSeries = getCountSeries(
-      SessionField.SESSIONS,
+      SessionFieldWithOperation.SESSIONS,
       response.groups.find(
         g =>
           g.by.project === Number(project.id) &&
@@ -233,7 +233,7 @@ class TeamStability extends AsyncComponent<Props, State> {
         organization={organization}
         interval="1d"
         groupBy={['session.status', 'project']}
-        field={[SessionField.SESSIONS]}
+        field={[SessionFieldWithOperation.SESSIONS]}
         statsPeriod={period}
       >
         {({response, loading}) => (
@@ -270,6 +270,7 @@ class TeamStability extends AsyncComponent<Props, State> {
                       showTimeInTooltip
                       series={this.getMiniBarChartSeries(project, response)}
                       height={25}
+                      tooltipFormatter={(value: number) => `${value.toLocaleString()}%`}
                     />
                   )}
                 </div>

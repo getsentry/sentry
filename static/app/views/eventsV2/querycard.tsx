@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {PureComponent} from 'react';
 import styled from '@emotion/styled';
 
 import ActivityAvatar from 'sentry/components/activity/item/avatar';
@@ -6,7 +6,6 @@ import Card from 'sentry/components/card';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {User} from 'sentry/types';
 import {callIfFunction} from 'sentry/utils/callIfFunction';
@@ -23,7 +22,7 @@ type Props = {
   title?: string;
 };
 
-class QueryCard extends React.PureComponent<Props> {
+class QueryCard extends PureComponent<Props> {
   handleClick = () => {
     const {onEventClick} = this.props;
     callIfFunction(onEventClick);
@@ -105,7 +104,7 @@ const QueryCardHeader = styled('div')`
 const QueryTitle = styled('div')`
   ${p => p.theme.text.cardTitle};
   color: ${p => p.theme.headingColor};
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
   font-weight: initial;
 `;
 
@@ -114,7 +113,7 @@ const QueryDetail = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.gray300};
   line-height: 1.5;
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
 `;
 
 const QueryCardBody = styled('div')`
@@ -135,12 +134,12 @@ const DateSelected = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   display: grid;
   grid-column-gap: ${space(1)};
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
   color: ${p => p.theme.textColor};
 `;
 
 const DateStatus = styled('span')`
-  color: ${p => p.theme.purple300};
+  color: ${p => p.theme.subText};
   padding-left: ${space(1)};
 `;
 

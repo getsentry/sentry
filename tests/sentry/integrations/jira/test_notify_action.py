@@ -1,11 +1,11 @@
 import responses
 
-from sentry.integrations.jira.notify_action import JiraCreateTicketAction
+from fixtures.integrations.mock_service import StubService
+from sentry.integrations.jira import JiraCreateTicketAction
 from sentry.models import ExternalIssue, GroupLink, Integration, Rule
 from sentry.testutils.cases import RuleTestCase
 from sentry.types.rules import RuleFuture
 from sentry.utils import json
-from tests.fixtures.integrations.mock_service import StubService
 
 
 class JiraCreateTicketActionTest(RuleTestCase):

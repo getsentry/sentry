@@ -1,0 +1,443 @@
+name: backend
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+
+jobs:
+  files-changed:
+    name: detect what files changed
+    runs-on: ubuntu-20.04
+    timeout-minutes: 3
+    # Map a step output to a job output
+    outputs:
+      api_docs: ${{ steps.changes.outputs.api_docs }}
+      backend: ${{ steps.changes.outputs.backend }}
+      backend_any_type: ${{ steps.changes.outputs.backend_any_type }}
+      migration_lockfile: ${{ steps.changes.outputs.migration_lockfile }}
+      plugins: ${{ steps.changes.outputs.plugins }}
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Check for backend file changes
+        uses: getsentry/paths-filter@v2
+        id: changes
+        with:
+          token: ${{ github.token }}
+          filters: .github/file-filters.yml
+
+  api-docs:
+    if: needs.files-changed.outputs.api_docs == 'true'
+    needs: files-changed
+    name: api docs test
+    runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        python-version: [3.8.12]
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: volta-cli/action@v1
+
+      - name: Setup sentry python env (python ${{ matrix.python-version }})
+        uses: ./.github/actions/setup-sentry
+        id: setup
+        with:
+          python-version: ${{ matrix.python-version }}
+          pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
+          snuba: true
+
+      - name: Run API docs tests
+        # install ts-node for ts build scripts to execute properly without potentially installing
+        # conflicting deps when running scripts locally
+        # see: https://github.com/getsentry/sentry/pull/32328/files
+        run: |
+          yarn add ts-node && make test-api-docs
+
+  backend-test:
+    if: needs.files-changed.outputs.backend == 'true'
+    needs: files-changed
+    name: backend test
+    runs-on: ubuntu-20.04
+    timeout-minutes: 20
+    strategy:
+      # This helps not having to run multiple jobs because one fails, thus, reducing resource usage
+      # and reducing the risk that one of many runs would turn red again (read: intermittent tests)
+      fail-fast: false
+      matrix:
+        python-version: [3.8.12]
+        # XXX: When updating this, make sure you also update MATRIX_INSTANCE_TOTAL.
+        instance: [0, 1, 2]
+        pg-version: ['9.6']
+
+    env:
+      # XXX: MATRIX_INSTANCE_TOTAL must be hardcoded to the length of strategy.matrix.instance.
+      MATRIX_INSTANCE_TOTAL: 3
+      MIGRATIONS_TEST_MIGRATE: 1
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          # Avoid codecov error message related to SHA resolution:
+          # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
+          fetch-depth: '2'
+
+      - name: Setup sentry env (python ${{ matrix.python-version }})
+        uses: ./.github/actions/setup-sentry
+        id: setup
+        with:
+          python-version: ${{ matrix.python-version }}
+          pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
+          snuba: true
+          # Right now, we run so few bigtable related tests that the
+          # overhead of running bigtable in all backend tests
+          # is way smaller than the time it would take to run in its own job.
+          bigtable: true
+          pg-version: ${{ matrix.pg-version }}
+
+      - name: Run backend test (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
+        run: |
+          # Note: `USE_SNUBA` is not used for backend tests because there are a few failing tests with Snuba enabled.
+          unset USE_SNUBA
+          make test-python-ci
+
+      - name: Handle artifacts
+        uses: ./.github/actions/artifacts
+
+  cli:
+    if: needs.files-changed.outputs.backend == 'true'
+    needs: files-changed
+    name: cli test
+    runs-on: ubuntu-20.04
+    timeout-minutes: 10
+    strategy:
+      matrix:
+        python-version: [3.8.12]
+        pg-version: ['9.6']
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Setup sentry env (python ${{ matrix.python-version }})
+        uses: ./.github/actions/setup-sentry
+        id: setup
+        with:
+          python-version: ${{ matrix.python-version }}
+          pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
+          pg-version: ${{ matrix.pg-version }}
+
+      - name: Run test
+        run: |
+          make test-cli
+
+      - name: Handle artifacts
+        uses: ./.github/actions/artifacts
+
+  lint:
+    if: needs.files-changed.outputs.backend == 'true'
+    needs: files-changed
+    name: backend lint
+    runs-on: ubuntu-20.04
+    timeout-minutes: 10
+    strategy:
+      matrix:
+        python-version: [3.8.12]
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Internal github app token
+        id: token
+        uses: getsentry/action-github-app-token@v1
+        continue-on-error: true
+        with:
+          app_id: ${{ secrets.SENTRY_INTERNAL_APP_ID }}
+          private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
+
+      - uses: getsentry/paths-filter@v2
+        id: files
+        with:
+          # Enable listing of files matching each filter.
+          # Paths to files will be available in `${FILTER_NAME}_files` output variable.
+          # Paths will be escaped and space-delimited.
+          # Output is usable as command line argument list in linux shell
+          list-files: shell
+
+          # It doesn't make sense to lint deleted files.
+          # Therefore we specify we are only interested in added or modified files.
+          filters: |
+            all:
+              - added|modified: '**/*.py'
+              - added|modified: 'requirements-dev-only-frozen.txt'
+
+      - uses: actions/setup-python@v3
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+          cache-dependency-path: |
+            requirements-dev-only-frozen.txt
+
+      - uses: actions/cache@v3
+        with:
+          path: ~/.cache/pre-commit
+          key: cache-epoch-1|${{ env.pythonLocation }}|${{ hashFiles('.pre-commit-config.yaml') }}
+
+      - name: Setup pre-commit
+        # We don't use make setup-git because we're only interested in installing
+        # requirements-dev-only-frozen.txt as a fast path.
+        # We don't need pre-commit install --install-hooks since we're just interested
+        # in running the hooks.
+        run: |
+          pip install -r requirements-dev-only-frozen.txt
+          pre-commit install-hooks
+
+      - name: Run pre-commit on changed files
+        run: |
+          # Run pre-commit to lint and format check files that were changed (but not deleted) compared to master.
+          # XXX: there is a very small chance that it'll expand to exceed Linux's limits
+          #      `getconf ARG_MAX` - max # bytes of args + environ for exec()
+          pre-commit run --files ${{ steps.files.outputs.all_files }}
+
+      # If working tree is dirty, commit and update if we have a token
+      - name: Apply any pre-commit fixed files
+        if: steps.token.outcome == 'success' && github.ref != 'refs/heads/master' && always()
+        uses: getsentry/action-github-commit@main
+        with:
+          github-token: ${{ steps.token.outputs.token }}
+
+  migration:
+    if: needs.files-changed.outputs.migration_lockfile == 'true'
+    needs: files-changed
+    name: check migration
+    runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        python-version: [3.8.12]
+        pg-version: ['9.6']
+
+    steps:
+      - name: Checkout sentry
+        uses: actions/checkout@v2
+
+      - name: Setup sentry env (python ${{ matrix.python-version }})
+        uses: ./.github/actions/setup-sentry
+        id: setup
+        with:
+          python-version: ${{ matrix.python-version }}
+          pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
+          pg-version: ${{ matrix.pg-version }}
+
+      - name: Migration & lockfile checks
+        env:
+          SENTRY_LOG_LEVEL: ERROR
+          PGPASSWORD: postgres
+        run: |
+          ./.github/workflows/scripts/migration-check.sh
+
+  plugins:
+    if: needs.files-changed.outputs.plugins == 'true'
+    needs: files-changed
+    name: plugins test
+    runs-on: ubuntu-20.04
+    timeout-minutes: 10
+    strategy:
+      matrix:
+        python-version: [3.8.12]
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Setup sentry env (python ${{ matrix.python-version }})
+        uses: ./.github/actions/setup-sentry
+        id: setup
+        with:
+          python-version: ${{ matrix.python-version }}
+          pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
+          snuba: true
+
+      - name: Run test
+        run: |
+          make test-plugins
+
+  relay:
+    if: needs.files-changed.outputs.backend == 'true'
+    needs: files-changed
+    name: relay test
+    runs-on: ubuntu-20.04
+    timeout-minutes: 20
+    strategy:
+      matrix:
+        python-version: [3.8.12]
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          # Avoid codecov error message related to SHA resolution:
+          # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
+          fetch-depth: '2'
+
+      - name: Setup sentry env (python ${{ matrix.python-version }})
+        uses: ./.github/actions/setup-sentry
+        id: setup
+        with:
+          python-version: ${{ matrix.python-version }}
+          pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
+          snuba: true
+          kafka: true
+
+      - name: Pull relay image
+        run: |
+          # pull relay we'll run and kill it for each test
+          docker pull us.gcr.io/sentryio/relay:nightly
+          docker ps -a
+
+      - name: Run test
+        run: |
+          make test-relay-integration
+
+      - name: Handle artifacts
+        uses: ./.github/actions/artifacts
+
+  snuba:
+    if: needs.files-changed.outputs.backend == 'true'
+    needs: files-changed
+    name: snuba test
+    runs-on: ubuntu-20.04
+    timeout-minutes: 30
+    strategy:
+      # This helps not having to run multiple jobs because one fails, thus, reducing resource usage
+      # and reducing the risk that one of many runs would turn red again (read: intermittent tests)
+      fail-fast: false
+      matrix:
+        python-version: [3.8.12]
+        # XXX: When updating this, make sure you also update MATRIX_INSTANCE_TOTAL.
+        instance: [0, 1]
+    env:
+      # XXX: MATRIX_INSTANCE_TOTAL must be hardcoded to the length of strategy.matrix.instance.
+      MATRIX_INSTANCE_TOTAL: 2
+      USE_SNUBA: 1
+      MIGRATIONS_TEST_MIGRATE: 1
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          # Avoid codecov error message related to SHA resolution:
+          # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
+          fetch-depth: '2'
+
+      - name: Setup sentry env (python ${{ matrix.python-version }})
+        uses: ./.github/actions/setup-sentry
+        id: setup
+        with:
+          python-version: ${{ matrix.python-version }}
+          pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
+          snuba: true
+          kafka: true
+
+      - name: Run snuba test (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
+        run: |
+          make test-snuba
+
+      - name: Handle artifacts
+        uses: ./.github/actions/artifacts
+
+  symbolicator:
+    if: needs.files-changed.outputs.backend == 'true'
+    needs: files-changed
+    name: symbolicator test
+    runs-on: ubuntu-20.04
+    timeout-minutes: 10
+    strategy:
+      matrix:
+        python-version: [3.8.12]
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          # Avoid codecov error message related to SHA resolution:
+          # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
+          fetch-depth: '2'
+
+      - name: Setup sentry env (python ${{ matrix.python-version }})
+        uses: ./.github/actions/setup-sentry
+        id: setup
+        with:
+          python-version: ${{ matrix.python-version }}
+          pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
+          snuba: true
+          kafka: true
+
+      - name: Start symbolicator
+        run: |
+          echo $PWD
+          docker run \
+            -d \
+            -v $PWD/config/symbolicator/:/etc/symbolicator \
+            --network host \
+            --name symbolicator \
+            us.gcr.io/sentryio/symbolicator:nightly \
+            run -c /etc/symbolicator/config.yml
+          docker ps -a
+
+      - name: Run test
+        run: |
+          make test-symbolicator
+
+      - name: Handle artifacts
+        uses: ./.github/actions/artifacts
+
+  typing:
+    if: needs.files-changed.outputs.backend == 'true'
+    needs: files-changed
+    name: backend typing
+    runs-on: ubuntu-20.04
+    timeout-minutes: 12
+    strategy:
+      matrix:
+        python-version: [3.8.12]
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Setup Python ${{ matrix.python-version }}
+        uses: ./.github/actions/setup-python
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      # We don't call setup-sentry, because we don't need devservices.
+      - name: Setup backend typing
+        env:
+          SENTRY_LIGHT_BUILD: 1
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libxmlsec1-dev
+          pip install -U -e ".[dev]"
+
+      - name: Run backend typing (${{ steps.setup.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
+        run: |
+          make backend-typing
+
+  # This check runs once all dependant jobs have passed
+  # It symbolizes that all required Backend checks have succesfully passed (Or skipped)
+  # This check is the only required Github check
+  backend-required-check:
+    needs:
+      [
+        api-docs,
+        backend-test,
+        cli,
+        lint,
+        migration,
+        plugins,
+        relay,
+        snuba,
+        symbolicator,
+        typing,
+      ]
+    name: Backend
+    # This is necessary since a failed/skipped dependent job would cause this job to be skipped
+    if: always()
+    runs-on: ubuntu-20.04
+    steps:
+      # If any jobs we depend on fail, we will fail since this is a required check
+      # NOTE: A timeout is considered a failure
+      - name: Check for failures
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
+        run: |
+          echo "One of the dependent jobs have failed. You may need to re-run it." && exit 1

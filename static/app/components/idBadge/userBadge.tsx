@@ -1,8 +1,6 @@
-import * as React from 'react';
 import styled from '@emotion/styled';
 
 import UserAvatar from 'sentry/components/avatar/userAvatar';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {AvatarUser} from 'sentry/types';
 
@@ -54,20 +52,20 @@ const StyledUserBadge = styled('div')`
 const StyledNameAndEmail = styled('div')`
   flex-shrink: 1;
   min-width: 0;
-  line-height: 1;
+  line-height: normal;
 `;
 
 const StyledEmail = styled('div')`
   font-size: 0.875em;
   margin-top: ${space(0.25)};
   color: ${p => p.theme.gray300};
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
 `;
 
-const StyledName = styled('span')<{hideEmail: boolean}>`
+export const StyledName = styled('span')<{hideEmail: boolean}>`
   font-weight: ${p => (p.hideEmail ? 'inherit' : 'bold')};
   line-height: 1.15em;
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
 `;
 
 const StyledAvatar = styled(UserAvatar)`

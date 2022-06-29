@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, createRef} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
@@ -128,7 +128,7 @@ const defaultPositioning = ({mainRect, anchorRect}: PositioningStrategyOpts) => 
  * wrapper to a safe space in the background to aid in alignment of the wrapper
  * to a safe space in the background.
  */
-class PageOverlay extends React.Component<Props> {
+class PageOverlay extends Component<Props> {
   static defaultProps: DefaultProps = {
     positioningStrategy: defaultPositioning,
   };
@@ -157,9 +157,9 @@ class PageOverlay extends React.Component<Props> {
    */
   bgResizeObserver: ResizeObserver | null = null;
 
-  contentRef = React.createRef<HTMLDivElement>();
-  wrapperRef = React.createRef<HTMLDivElement>();
-  anchorRef = React.createRef<SVGForeignObjectElement>();
+  contentRef = createRef<HTMLDivElement>();
+  wrapperRef = createRef<HTMLDivElement>();
+  anchorRef = createRef<SVGForeignObjectElement>();
 
   /**
    * Align the wrapper component to the anchor by computing x/y values using

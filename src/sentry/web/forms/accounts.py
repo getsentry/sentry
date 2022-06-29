@@ -140,8 +140,11 @@ class AuthenticationForm(forms.Form):
         return self.cleaned_data
 
     def check_for_test_cookie(self):
-        if self.request and not self.request.session.test_cookie_worked():
-            raise forms.ValidationError(self.error_messages["no_cookies"])
+        if self.request:
+            if not self.request.session.test_cookie_worked():
+                raise forms.ValidationError(self.error_messages["no_cookies"])
+            else:
+                self.request.session.delete_test_cookie()
 
     def get_user_id(self):
         if self.user_cache:

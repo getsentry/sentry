@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
@@ -16,7 +16,6 @@ import ScoreBar from 'sentry/components/scoreBar';
 import SimilarScoreCard from 'sentry/components/similarScoreCard';
 import {t} from 'sentry/locale';
 import GroupingStore from 'sentry/stores/groupingStore';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {Group, Organization, Project} from 'sentry/types';
 import {callIfFunction} from 'sentry/utils/callIfFunction';
@@ -42,7 +41,7 @@ const initialState = {visible: true, checked: false, busy: false};
 
 type State = typeof initialState;
 
-class Item extends React.Component<Props, State> {
+class Item extends Component<Props, State> {
   state: State = initialState;
 
   componentWillUnmount() {
@@ -163,7 +162,7 @@ class Item extends React.Component<Props, State> {
 }
 
 const Details = styled('div')`
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
 
   display: grid;
   gap: ${space(1)};
@@ -212,7 +211,7 @@ const Diff = styled('div')`
 
 const EventDetails = styled('div')`
   flex: 1;
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
 `;
 
 export default Item;

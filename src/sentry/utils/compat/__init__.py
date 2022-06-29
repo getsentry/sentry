@@ -1,21 +1,9 @@
 _builtin_map = map
-_builtin_filter = filter
-_builtin_zip = zip
 
 
 def map(a, b, *c):
     # TODO(joshuarli): Remove all this.
     return list(_builtin_map(a, b, *c))
-
-
-def filter(a, b):
-    # TODO(joshuarli): Remove all this.
-    return list(_builtin_filter(a, b))
-
-
-def zip(*a):
-    # TODO(joshuarli): Remove all this.
-    return list(_builtin_zip(*a))
 
 
 from binascii import crc32 as _crc32
@@ -42,10 +30,3 @@ from binascii import crc32 as _crc32
 def crc32(*args):
     rt = _crc32(*args)
     return rt - ((rt & 0x80000000) << 1)
-
-
-import types
-
-
-def new_module(name):
-    return types.ModuleType(name)

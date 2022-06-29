@@ -14,7 +14,7 @@ const styles = (theme: Theme, isDark: boolean) => css`
   }
 
   abbr {
-    border-bottom: 1px dotted ${theme.gray300};
+    ${theme.tooltipUnderline()};
   }
 
   a {
@@ -74,8 +74,10 @@ const styles = (theme: Theme, isDark: boolean) => css`
   /* Override css in LESS files here as we want to manually control dark mode for now */
   ${isDark
     ? css`
-        .box {
+        .box,
+        .box.box-modal {
           background: ${theme.background};
+          border-color: ${theme.border};
 
           .box-content,
           .box-header {
@@ -102,10 +104,6 @@ const styles = (theme: Theme, isDark: boolean) => css`
         .loading .loading-indicator {
           border-color: ${theme.backgroundSecondary};
           border-left-color: ${theme.purple300};
-        }
-
-        .saved-search-tab {
-          border-bottom-color: ${theme.active} !important;
         }
 
         .nav-tabs {

@@ -23,7 +23,7 @@ export enum DisplayType {
 export enum WidgetType {
   DISCOVER = 'discover',
   ISSUE = 'issue',
-  METRICS = 'metrics',
+  RELEASE = 'metrics', // TODO(dashboards): Rename this on backend and then change here
 }
 
 export type WidgetQuery = {

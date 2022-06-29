@@ -14,7 +14,6 @@ from django.views.generic import View
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import roles
 from sentry.api.serializers import serialize
 from sentry.api.utils import is_member_disabled_from_limit
 from sentry.auth import access
@@ -31,6 +30,7 @@ from sentry.models import (
 )
 from sentry.utils import auth
 from sentry.utils.audit import create_audit_entry
+from sentry.utils.auth import is_valid_redirect, make_login_link_with_redirect
 from sentry.web.frontend.generic import FOREVER_CACHE
 from sentry.web.helpers import render_to_response
 from sudo.views import redirect_to_sudo
@@ -377,8 +377,18 @@ class OrganizationView(BaseView):
                 "access.must-sso",
                 extra={"organization_id": organization.id, "user_id": request.user.id},
             )
-            auth.initiate_login(request, next_url=request.get_full_path())
-            redirect_uri = reverse("sentry-auth-organization", args=[organization.slug])
+            auth.initiate_login(request)
+            path = reverse("sentry-auth-organization", args=[organization.slug])
+
+            request_path = request.get_full_path()
+
+            after_login_redirect = (
+                request_path
+                if is_valid_redirect(request_path, allowed_hosts=(request.get_host(),))
+                else None
+            )
+            redirect_uri = make_login_link_with_redirect(path, after_login_redirect)
+
         else:
             redirect_uri = self.get_no_permission_url(request, *args, **kwargs)
         return self.redirect(redirect_uri)
@@ -407,27 +417,6 @@ class OrganizationView(BaseView):
         kwargs["organization"] = active_organization
 
         return (args, kwargs)
-
-    def get_allowed_roles(self, request: Request, organization, member=None):
-        can_admin = request.access.has_scope("member:admin")
-
-        allowed_roles = []
-        if can_admin and not is_active_superuser(request):
-            acting_member = OrganizationMember.objects.get(
-                user=request.user, organization=organization
-            )
-            if member and roles.get(acting_member.role).priority < roles.get(member.role).priority:
-                can_admin = False
-            else:
-                allowed_roles = [
-                    r
-                    for r in roles.get_all()
-                    if r.priority <= roles.get(acting_member.role).priority
-                ]
-                can_admin = bool(allowed_roles)
-        elif is_active_superuser(request):
-            allowed_roles = roles.get_all()
-        return (can_admin, allowed_roles)
 
 
 class ProjectView(OrganizationView):
@@ -465,7 +454,7 @@ class ProjectView(OrganizationView):
                     project,
                 )
                 return False
-        elif not any(request.access.has_team(team) for team in teams):
+        elif not any(request.access.has_team_access(team) for team in teams):
             logger.info("User %s does not have access to project %s", request.user, project)
             return False
         return True

@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import React, {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import ActionButton from 'sentry/components/actions/button';
@@ -6,7 +6,6 @@ import MenuItemActionLink from 'sentry/components/actions/menuItemActionLink';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import ConfirmDelete from 'sentry/components/confirmDelete';
-import DropdownButton from 'sentry/components/dropdownButton';
 import DropdownLink from 'sentry/components/dropdownLink';
 import Tooltip from 'sentry/components/tooltip';
 import {IconEllipsis} from 'sentry/icons/iconEllipsis';
@@ -18,27 +17,23 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 type Props = {
   hasAccess: boolean;
   hasFeature: boolean;
-  isDetailsDisabled: boolean;
-  isDetailsExpanded: boolean;
   onDelete: () => void;
   onEdit: () => void;
-  onToggleDetails: () => void;
   repositoryName: string;
   repositoryType: string;
-  showDetails: boolean;
+  disabled?: boolean;
+  syncNowButton?: React.ReactElement;
 };
 
 function Actions({
   repositoryName,
   repositoryType,
-  isDetailsExpanded,
-  isDetailsDisabled,
-  onToggleDetails,
+  disabled,
   onEdit,
   onDelete,
-  showDetails,
   hasFeature,
   hasAccess,
+  syncNowButton,
 }: Props) {
   function renderConfirmDelete(element: React.ReactElement) {
     return (
@@ -84,22 +79,11 @@ function Actions({
     );
   }
 
-  const actionsDisabled = !hasAccess || isDetailsDisabled || !hasFeature;
+  const actionsDisabled = !hasAccess || !hasFeature || disabled;
 
   return (
     <StyledButtonBar gap={1}>
-      {showDetails && (
-        <StyledDropdownButton
-          isOpen={isDetailsExpanded}
-          size="small"
-          onClick={isDetailsDisabled ? undefined : onToggleDetails}
-          hideBottomBorder={false}
-          disabled={isDetailsDisabled}
-        >
-          {t('Details')}
-        </StyledDropdownButton>
-      )}
-
+      {syncNowButton}
       <ButtonTooltip
         title={
           !hasFeature
@@ -175,38 +159,38 @@ const StyledActionButton = styled(ActionButton)`
   height: 32px;
 `;
 
-const StyledDropdownButton = styled(DropdownButton)`
-  border-bottom-right-radius: ${p => p.theme.borderRadius};
-  border-bottom-left-radius: ${p => p.theme.borderRadius};
-`;
-
 const StyledButtonBar = styled(ButtonBar)`
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    grid-row: 1 / 3;
-  }
+  gap: ${space(1)};
 
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    grid-auto-flow: row;
-    gap: ${space(1)};
-    margin-top: ${space(0.5)};
+  grid-column: 2/2;
+  grid-row: 4/4;
+  grid-auto-flow: row;
+  margin-top: ${space(0.5)};
+
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    grid-column: 3/3;
+    grid-row: 1/3;
+    grid-auto-flow: column;
+    margin-top: 0;
   }
 `;
 
 const ButtonTooltip = styled(Tooltip)`
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     display: none;
   }
 `;
 
 const ActionBtn = styled(Button)`
   width: 100%;
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     display: none;
   }
 `;
 
 const DropDownWrapper = styled('div')`
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    display: none;
+  display: none;
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    display: block;
   }
 `;

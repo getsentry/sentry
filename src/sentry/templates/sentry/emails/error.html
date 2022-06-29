@@ -68,15 +68,12 @@
         {% if environment %} in {{ environment }}{% endif %}
     </h2>
 
-    {% if rules and alert_status_page_enabled %}
-        <p class="via">
-            You’re receiving this email because you’re subscribed to notifications for:
-            {% for rule in rules %}
-                <a href="{% absolute_uri rule.status_url %}">{{ rule.label }}</a>{% if not forloop.last %}, {% endif %}
-            {% endfor %}
-        </p>
-    {% endif %}
-
+    <p class="via">
+        You’re receiving this email because you’re subscribed to notifications for:
+        {% for rule in rules %}
+            <a href="{% absolute_uri rule.status_url %}">{{ rule.label }}</a>{% if not forloop.last %}, {% endif %}
+        {% endfor %}
+    </p>
 
     {% if enhanced_privacy %}
       <div class="event">
@@ -162,7 +159,7 @@
         <table class="table commit-table">
         {% for commit in commits %}
           <tr>
-            <td style="padding:0;width:32px;">{% email_avatar commits.author.name commits.author.email 32 %}</td>
+            <td style="padding:0;width:32px;">{% email_avatar commit.author.name commit.author.email 32 %}</td>
             <td>
               <h5 class="truncate">{{ commit.subject }}</h5>
               <div><small>{{ commit.shortId }}&nbsp;&mdash;&nbsp;
@@ -205,14 +202,12 @@
       {% endif %}
     {% endif %}
 
-    {% if rules and not alert_status_page_enabled %}
-        <p class="via">
-            You are receiving this email due to matching rules:
-            {% for rule in rules %}
-                <a href="{% absolute_uri rule.url %}">{{ rule.label }}</a>{% if not forloop.last %}, {% endif %}
-            {% endfor %}
-        </p>
-    {% endif %}
+    <p class="via">
+        You are receiving this email due to matching rules:
+        {% for rule in rules %}
+            <a href="{% absolute_uri rule.url %}">{{ rule.label }}</a>{% if not forloop.last %}, {% endif %}
+        {% endfor %}
+    </p>
 
     {% if not has_integrations %}
         <div class="logo-container">

@@ -2,8 +2,6 @@ from __future__ import annotations
 
 import responses
 
-from sentry.utils.compat import zip
-
 __all__ = (
     "TestCase",
     "TransactionTestCase",
@@ -61,6 +59,7 @@ from django.utils import timezone
 from django.utils.functional import cached_property
 from exam import Exam, before, fixture
 from pkg_resources import iter_entry_points
+from rest_framework import status
 from rest_framework.test import APITestCase as BaseAPITestCase
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
 
@@ -75,7 +74,6 @@ from sentry.auth.superuser import COOKIE_SALT as SU_COOKIE_SALT
 from sentry.auth.superuser import COOKIE_SECURE as SU_COOKIE_SECURE
 from sentry.auth.superuser import ORG_ID as SU_ORG_ID
 from sentry.auth.superuser import Superuser
-from sentry.constants import MODULE_ROOT
 from sentry.eventstream.snuba import SnubaEventStream
 from sentry.mail import mail_adapter
 from sentry.models import AuthProvider as AuthProviderModel
@@ -103,7 +101,6 @@ from sentry.models import (
 )
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.plugins.base import plugins
-from sentry.rules import EventState
 from sentry.search.events.constants import (
     METRIC_FALSE_TAG_VALUE,
     METRIC_MISERABLE_TAG_KEY,
@@ -113,9 +110,9 @@ from sentry.search.events.constants import (
     METRICS_MAP,
 )
 from sentry.sentry_metrics import indexer
-from sentry.sentry_metrics.indexer.postgres import PGStringIndexer
-from sentry.sentry_metrics.sessions import SessionMetricKey
+from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.tagstore.snuba import SnubaTagStorage
+from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.datetime import iso_format
 from sentry.testutils.helpers.slack import install_slack
 from sentry.types.integrations import ExternalProviders
@@ -125,6 +122,7 @@ from sentry.utils.pytest.selenium import Browser
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.snuba import _snuba_pool
 
+from ..snuba.metrics.naming_layer.mri import SessionMRI
 from . import assert_status_code
 from .factories import Factories
 from .fixtures import Fixtures
@@ -159,24 +157,19 @@ class BaseTestCase(Fixtures, Exam):
     def tasks(self):
         return TaskRunner()
 
-    @classmethod
-    @contextmanager
-    def capture_on_commit_callbacks(cls, using=DEFAULT_DB_ALIAS, execute=False):
+    @pytest.fixture(autouse=True)
+    def polyfill_capture_on_commit_callbacks(self, django_capture_on_commit_callbacks):
         """
-        Context manager to capture transaction.on_commit() callbacks.
-        Backported from Django:
-        https://github.com/django/django/pull/12944
+        https://pytest-django.readthedocs.io/en/latest/helpers.html#django_capture_on_commit_callbacks
+
+        pytest-django comes with its own polyfill of this Django helper for
+        older Django versions, so we're using that.
         """
-        callbacks = []
-        start_count = len(connections[using].run_on_commit)
-        try:
-            yield callbacks
-        finally:
-            run_on_commit = connections[using].run_on_commit[start_count:]
-            callbacks[:] = [func for sids, func in run_on_commit]
-            if execute:
-                for callback in callbacks:
-                    callback()
+        self.capture_on_commit_callbacks = django_capture_on_commit_callbacks
+
+    @pytest.fixture(autouse=True)
+    def expose_stale_database_reads(self, stale_database_reads):
+        self.stale_database_reads = stale_database_reads
 
     def feature(self, names):
         """
@@ -282,8 +275,7 @@ class BaseTestCase(Fixtures, Exam):
         self.save_session()
 
     def load_fixture(self, filepath):
-        filepath = os.path.join(MODULE_ROOT, os.pardir, os.pardir, "tests", "fixtures", filepath)
-        with open(filepath, "rb") as fp:
+        with open(get_fixture_path(filepath), "rb") as fp:
             return fp.read()
 
     def _pre_setup(self):
@@ -467,8 +459,11 @@ class APITestCase(BaseTestCase, BaseAPITestCase):
     must set the string `endpoint`.
     """
 
-    endpoint = None
     method = "get"
+
+    @property
+    def endpoint(self):
+        raise NotImplementedError(f"implement for {type(self).__module__}.{type(self).__name__}")
 
     def get_response(self, *args, **params):
         """
@@ -484,9 +479,6 @@ class APITestCase(BaseTestCase, BaseAPITestCase):
             * raw_data: (Optional) Sometimes we want to precompute the JSON body.
         :returns Response object
         """
-        if self.endpoint is None:
-            raise Exception("Implement self.endpoint to use this method.")
-
         url = reverse(self.endpoint, args=args)
         # In some cases we want to pass querystring params to put/post, handle
         # this here.
@@ -505,13 +497,6 @@ class APITestCase(BaseTestCase, BaseAPITestCase):
 
         return getattr(self.client, method)(url, format="json", data=data, **headers)
 
-    def get_valid_response(self, *args, **params):
-        """Deprecated. Calls `get_response` (see above) and asserts a specific status code."""
-        status_code = params.pop("status_code", 200)
-        resp = self.get_response(*args, **params)
-        assert resp.status_code == status_code, (resp.status_code, resp.content)
-        return resp
-
     def get_success_response(self, *args, **params):
         """
         Call `get_response` (see above) and assert the response's status code.
@@ -526,11 +511,23 @@ class APITestCase(BaseTestCase, BaseAPITestCase):
         if status_code and status_code >= 400:
             raise Exception("status_code must be < 400")
 
-        response = self.get_response(*args, **params)
+        method = params.pop("method", self.method).lower()
+
+        response = self.get_response(*args, method=method, **params)
 
         if status_code:
             assert_status_code(response, status_code)
+        elif method == "get":
+            assert_status_code(response, status.HTTP_200_OK)
+        # TODO(mgaeta): Add the other methods.
+        # elif method == "post":
+        #     assert_status_code(response, status.HTTP_201_CREATED)
+        elif method == "put":
+            assert_status_code(response, status.HTTP_200_OK)
+        elif method == "delete":
+            assert_status_code(response, status.HTTP_204_NO_CONTENT)
         else:
+            # TODO(mgaeta): Add other methods.
             assert_status_code(response, 200, 300)
 
         return response
@@ -634,7 +631,9 @@ class AuthProviderTestCase(TestCase):
 
 
 class RuleTestCase(TestCase):
-    rule_cls = None
+    @property
+    def rule_cls(self):
+        raise NotImplementedError(f"implement for {type(self).__module__}.{type(self).__name__}")
 
     def get_event(self):
         return self.event
@@ -645,6 +644,8 @@ class RuleTestCase(TestCase):
         return self.rule_cls(**kwargs)
 
     def get_state(self, **kwargs):
+        from sentry.rules import EventState
+
         kwargs.setdefault("is_new", True)
         kwargs.setdefault("is_regression", True)
         kwargs.setdefault("is_new_group_environment", True)
@@ -677,6 +678,7 @@ class PermissionTestCase(TestCase):
         self.login_as(user, superuser=user.is_superuser)
         resp = getattr(self.client, method.lower())(path, **kwargs)
         assert resp.status_code >= 200 and resp.status_code < 300
+        return resp
 
     def assert_cannot_access(self, user, path, method="GET", **kwargs):
         self.login_as(user, superuser=user.is_superuser)
@@ -739,7 +741,7 @@ class PermissionTestCase(TestCase):
         user = self.create_user(is_superuser=False)
         self.create_member(user=user, organization=self.organization, role=role, teams=[self.team])
 
-        self.assert_can_access(user, path, **kwargs)
+        return self.assert_can_access(user, path, **kwargs)
 
     def assert_role_cannot_access(self, path, role, **kwargs):
         user = self.create_user(is_superuser=False)
@@ -749,7 +751,9 @@ class PermissionTestCase(TestCase):
 
 
 class PluginTestCase(TestCase):
-    plugin = None
+    @property
+    def plugin(self):
+        raise NotImplementedError(f"implement for {type(self).__module__}.{type(self).__name__}")
 
     def setUp(self):
         super().setUp()
@@ -788,7 +792,10 @@ class PluginTestCase(TestCase):
 
 class CliTestCase(TestCase):
     runner = fixture(CliRunner)
-    command = None
+
+    @property
+    def command(self):
+        raise NotImplementedError(f"implement for {type(self).__module__}.{type(self).__name__}")
 
     default_args = []
 
@@ -827,7 +834,7 @@ class AcceptanceTestCase(TransactionTestCase):
 
         for item in which:
             res = self.client.put(
-                "/api/0/assistant/?v2",
+                "/api/0/assistant/",
                 content_type="application/json",
                 data=json.dumps({"guide": item, "status": "viewed", "useful": True}),
             )
@@ -835,7 +842,9 @@ class AcceptanceTestCase(TransactionTestCase):
 
 
 class IntegrationTestCase(TestCase):
-    provider = None
+    @property
+    def provider(self):
+        raise NotImplementedError(f"implement for {type(self).__module__}.{type(self).__name__}")
 
     def setUp(self):
         from sentry.integrations.pipeline import IntegrationPipeline
@@ -1079,40 +1088,34 @@ class SessionMetricsTestCase(SnubaTestCase):
         # to seq=0 in Relay.
         if session["seq"] == 0:  # init
             self._push_metric(
-                session, "counter", SessionMetricKey.SESSION, {"session.status": "init"}, +1
+                session, "counter", SessionMRI.SESSION, {"session.status": "init"}, +1
             )
-            if not user_is_nil:
-                self._push_metric(
-                    session, "set", SessionMetricKey.USER, {"session.status": "init"}, user
-                )
 
         status = session["status"]
 
         # Mark the session as errored, which includes fatal sessions.
         if session.get("errors", 0) > 0 or status not in ("ok", "exited"):
-            self._push_metric(
-                session, "set", SessionMetricKey.SESSION_ERROR, {}, session["session_id"]
-            )
+            self._push_metric(session, "set", SessionMRI.ERROR, {}, session["session_id"])
             if not user_is_nil:
                 self._push_metric(
-                    session, "set", SessionMetricKey.USER, {"session.status": "errored"}, user
+                    session, "set", SessionMRI.USER, {"session.status": "errored"}, user
                 )
+        elif not user_is_nil:
+            self._push_metric(session, "set", SessionMRI.USER, {}, user)
 
         if status in ("abnormal", "crashed"):  # fatal
             self._push_metric(
-                session, "counter", SessionMetricKey.SESSION, {"session.status": status}, +1
+                session, "counter", SessionMRI.SESSION, {"session.status": status}, +1
             )
             if not user_is_nil:
-                self._push_metric(
-                    session, "set", SessionMetricKey.USER, {"session.status": status}, user
-                )
+                self._push_metric(session, "set", SessionMRI.USER, {"session.status": status}, user)
 
-        if status != "ok":  # terminal
+        if status == "exited":
             if session["duration"] is not None:
                 self._push_metric(
                     session,
                     "distribution",
-                    SessionMetricKey.SESSION_DURATION,
+                    SessionMRI.RAW_DURATION,
                     {"session.status": status},
                     session["duration"],
                 )
@@ -1122,19 +1125,24 @@ class SessionMetricsTestCase(SnubaTestCase):
             self.store_session(session)
 
     @classmethod
-    def _push_metric(cls, session, type, key: SessionMetricKey, tags, value):
-        def metric_id(key: SessionMetricKey):
-            res = indexer.record(1, key.value)
+    def _push_metric(cls, session, type, key: SessionMRI, tags, value):
+        org_id = session["org_id"]
+
+        def metric_id(key: SessionMRI):
+            res = indexer.record(
+                use_case_id=UseCaseKey.RELEASE_HEALTH, org_id=org_id, string=key.value
+            )
             assert res is not None, key
             return res
 
         def tag_key(name):
-            res = indexer.record(1, name)
+            res = indexer.record(use_case_id=UseCaseKey.RELEASE_HEALTH, org_id=org_id, string=name)
             assert res is not None, name
+
             return res
 
         def tag_value(name):
-            res = indexer.record(1, name)
+            res = indexer.record(use_case_id=UseCaseKey.RELEASE_HEALTH, org_id=org_id, string=name)
             assert res is not None, name
             return res
 
@@ -1192,6 +1200,7 @@ class MetricsEnhancedPerformanceTestCase(SessionMetricsTestCase, TestCase):
         "measurements.fcp": "metrics_distributions",
         "measurements.fid": "metrics_distributions",
         "measurements.cls": "metrics_distributions",
+        "spans.http": "metrics_distributions",
         "user": "metrics_sets",
     }
     METRIC_STRINGS = []
@@ -1217,24 +1226,31 @@ class MetricsEnhancedPerformanceTestCase(SessionMetricsTestCase, TestCase):
             *list(METRICS_MAP.values()),
         ]
         org_strings = {self.organization.id: set(strings)}
-        PGStringIndexer().bulk_record(org_strings=org_strings)
+        indexer.bulk_record(use_case_id=UseCaseKey.RELEASE_HEALTH, org_strings=org_strings)
 
     def store_metric(
         self,
         value: List[int] | int,
         metric: str = "transaction.duration",
+        internal_metric: Optional[str] = None,
+        entity: Optional[str] = None,
         tags: Optional[Dict[str, str]] = None,
         timestamp: Optional[datetime] = None,
         project: Optional[id] = None,
+        use_case_id: UseCaseKey = UseCaseKey.RELEASE_HEALTH,
     ):
-        internal_metric = METRICS_MAP[metric]
-        entity = self.ENTITY_MAP[metric]
+        internal_metric = METRICS_MAP[metric] if internal_metric is None else internal_metric
+        entity = self.ENTITY_MAP[metric] if entity is None else entity
+        org_id = self.organization.id
+
         if tags is None:
             tags = {}
         else:
             tags = {
-                indexer.resolve(self.organization.id, key): indexer.resolve(
-                    self.organization.id, value
+                indexer.record(
+                    use_case_id=use_case_id, org_id=self.organization.id, string=key
+                ): indexer.record(
+                    use_case_id=use_case_id, org_id=self.organization.id, string=value
                 )
                 for key, value in tags.items()
             }
@@ -1253,9 +1269,9 @@ class MetricsEnhancedPerformanceTestCase(SessionMetricsTestCase, TestCase):
         self._send_buckets(
             [
                 {
-                    "org_id": self.organization.id,
+                    "org_id": org_id,
                     "project_id": project,
-                    "metric_id": indexer.resolve(self.organization.id, internal_metric),
+                    "metric_id": indexer.resolve(org_id, internal_metric),
                     "timestamp": metric_timestamp,
                     "tags": tags,
                     "type": self.TYPE_MAP[entity],
@@ -1319,7 +1335,7 @@ class IntegrationRepositoryTestCase(APITestCase):
         self.login_as(self.user)
 
     def add_create_repository_responses(self, repository_config):
-        raise NotImplementedError
+        raise NotImplementedError(f"implement for {type(self).__module__}.{type(self).__name__}")
 
     def create_repository(
         self, repository_config, integration_id, organization_slug=None, add_responses=True
@@ -1363,7 +1379,7 @@ class ReleaseCommitPatchTest(APITestCase):
 
     @fixture
     def url(self):
-        raise NotImplementedError
+        raise NotImplementedError(f"implement for {type(self).__module__}.{type(self).__name__}")
 
     def assert_commit(self, commit, repo_id, key, author_id, message):
         assert commit.organization_id == self.org.id
@@ -1524,27 +1540,39 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
         self.login_as(self.user)
 
 
-class TestMigrations(TestCase):
+class TestMigrations(TransactionTestCase):
     """
     From https://www.caktusgroup.com/blog/2016/02/02/writing-unit-tests-django-migrations/
+
+    Note that when running these tests locally you will need to set the `MIGRATIONS_TEST_MIGRATE=1`
+    environmental variable for these to pass.
     """
 
     @property
     def app(self):
         return "sentry"
 
-    migrate_from = None
-    migrate_to = None
+    @property
+    def migrate_from(self):
+        raise NotImplementedError(f"implement for {type(self).__module__}.{type(self).__name__}")
+
+    @property
+    def migrate_to(self):
+        raise NotImplementedError(f"implement for {type(self).__module__}.{type(self).__name__}")
 
     def setUp(self):
-        assert (
-            self.migrate_from and self.migrate_to
-        ), "TestCase '{}' must define migrate_from and migrate_to properties".format(
-            type(self).__name__
-        )
+        super().setUp()
         self.migrate_from = [(self.app, self.migrate_from)]
         self.migrate_to = [(self.app, self.migrate_to)]
+
         executor = MigrationExecutor(connection)
+        matching_migrations = [m for m in executor.loader.applied_migrations if m[0] == self.app]
+        if not matching_migrations:
+            raise AssertionError(
+                "no migrations detected!\n\n"
+                "try running this test with `MIGRATIONS_TEST_MIGRATE=1 pytest ...`"
+            )
+        self.current_migration = [max(matching_migrations)]
         old_apps = executor.loader.project_state(self.migrate_from).apps
 
         # Reverse to the original migration
@@ -1558,6 +1586,12 @@ class TestMigrations(TestCase):
         executor.migrate(self.migrate_to)
 
         self.apps = executor.loader.project_state(self.migrate_to).apps
+
+    def tearDown(self):
+        super().tearDown()
+        executor = MigrationExecutor(connection)
+        executor.loader.build_graph()  # reload.
+        executor.migrate(self.current_migration)
 
     def setup_before_migration(self, apps):
         pass
@@ -1682,6 +1716,9 @@ class MetricsAPIBaseTestCase(SessionMetricsTestCase, APITestCase):
 
 
 class OrganizationMetricMetaIntegrationTestCase(MetricsAPIBaseTestCase):
+    def __indexer_record(self, org_id: int, value: str) -> int:
+        return indexer.record(use_case_id=UseCaseKey.RELEASE_HEALTH, org_id=org_id, string=value)
+
     def setUp(self):
         super().setUp()
         self.login_as(user=self.user)
@@ -1694,11 +1731,15 @@ class OrganizationMetricMetaIntegrationTestCase(MetricsAPIBaseTestCase):
                 {
                     "org_id": org_id,
                     "project_id": self.project.id,
-                    "metric_id": indexer.record(org_id, "metric1"),
+                    "metric_id": self.__indexer_record(org_id, "metric1"),
                     "timestamp": now,
                     "tags": {
-                        indexer.record(org_id, "tag1"): indexer.record(org_id, "value1"),
-                        indexer.record(org_id, "tag2"): indexer.record(org_id, "value2"),
+                        self.__indexer_record(org_id, "tag1"): self.__indexer_record(
+                            org_id, "value1"
+                        ),
+                        self.__indexer_record(org_id, "tag2"): self.__indexer_record(
+                            org_id, "value2"
+                        ),
                     },
                     "type": "c",
                     "value": 1,
@@ -1707,10 +1748,12 @@ class OrganizationMetricMetaIntegrationTestCase(MetricsAPIBaseTestCase):
                 {
                     "org_id": org_id,
                     "project_id": self.project.id,
-                    "metric_id": indexer.record(org_id, "metric1"),
+                    "metric_id": self.__indexer_record(org_id, "metric1"),
                     "timestamp": now,
                     "tags": {
-                        indexer.record(org_id, "tag3"): indexer.record(org_id, "value3"),
+                        self.__indexer_record(org_id, "tag3"): self.__indexer_record(
+                            org_id, "value3"
+                        ),
                     },
                     "type": "c",
                     "value": 1,
@@ -1724,12 +1767,18 @@ class OrganizationMetricMetaIntegrationTestCase(MetricsAPIBaseTestCase):
                 {
                     "org_id": org_id,
                     "project_id": self.project.id,
-                    "metric_id": indexer.record(org_id, "metric2"),
+                    "metric_id": self.__indexer_record(org_id, "metric2"),
                     "timestamp": now,
                     "tags": {
-                        indexer.record(org_id, "tag4"): indexer.record(org_id, "value3"),
-                        indexer.record(org_id, "tag1"): indexer.record(org_id, "value2"),
-                        indexer.record(org_id, "tag2"): indexer.record(org_id, "value1"),
+                        self.__indexer_record(org_id, "tag4"): self.__indexer_record(
+                            org_id, "value3"
+                        ),
+                        self.__indexer_record(org_id, "tag1"): self.__indexer_record(
+                            org_id, "value2"
+                        ),
+                        self.__indexer_record(org_id, "tag2"): self.__indexer_record(
+                            org_id, "value1"
+                        ),
                     },
                     "type": "s",
                     "value": [123],
@@ -1738,7 +1787,7 @@ class OrganizationMetricMetaIntegrationTestCase(MetricsAPIBaseTestCase):
                 {
                     "org_id": org_id,
                     "project_id": self.project.id,
-                    "metric_id": indexer.record(org_id, "metric3"),
+                    "metric_id": self.__indexer_record(org_id, "metric3"),
                     "timestamp": now,
                     "tags": {},
                     "type": "s",

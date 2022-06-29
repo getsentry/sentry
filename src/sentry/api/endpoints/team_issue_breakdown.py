@@ -70,13 +70,13 @@ class TeamIssueBreakdownEndpoint(TeamEndpoint, EnvironmentMixin):  # type: ignor
                 )
             )
 
-        group_history_enviornment_filter = (
+        group_history_environment_filter = (
             Q(group__groupenvironment__environment_id=environments[0]) if environments else Q()
         )
         bucketed_issues = (
             GroupHistory.objects.filter_to_team(team)
             .filter(
-                group_history_enviornment_filter,
+                group_history_environment_filter,
                 status__in=statuses,
                 date_added__gte=start,
                 date_added__lte=end,

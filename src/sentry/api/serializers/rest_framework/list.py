@@ -1,4 +1,4 @@
-from rest_framework.serializers import ListField  # NOQA
+from rest_framework.serializers import ListField
 
 
 class EmptyListField(ListField):

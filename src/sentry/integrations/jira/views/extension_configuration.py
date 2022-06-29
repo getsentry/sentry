@@ -12,11 +12,10 @@ class JiraExtensionConfigurationView(IntegrationExtensionConfigurationView):
     provider = "jira"
     external_provider_key = "jira"
 
-    def map_params_to_state(self, params):
+    def map_params_to_state(self, original_params):
         # decode the signed params and add them to whatever params we have
-        params = params.copy()
-        signed_params = params["signed_params"]
-        del params["signed_params"]
+        params = original_params.copy()
+        signed_params = params.pop("signed_params", {})
         params.update(
             unsign(
                 signed_params,

@@ -1,51 +1,65 @@
+from __future__ import annotations
+
 from copy import deepcopy
+from typing import Any, Mapping, Sequence
 from unittest.mock import patch
 
 import responses
-from django.urls import reverse
+from django.test import override_settings
+from rest_framework import status
 
-from sentry.models import Environment, Integration, Rule, RuleActivity, RuleActivityType
+from sentry.models import Environment, Rule, RuleActivity, RuleActivityType, RuleStatus
 from sentry.testutils import APITestCase
+from sentry.testutils.helpers import install_slack
 from sentry.utils import json
 
 
-class ProjectRuleListTest(APITestCase):
-    def test_simple(self):
+class ProjectRuleBaseTestCase(APITestCase):
+    endpoint = "sentry-api-0-project-rules"
+
+    def setUp(self):
+        self.rule = self.create_project_rule(project=self.project)
+        self.slack_integration = install_slack(organization=self.organization)
+        self.sentry_app = self.create_sentry_app(
+            name="Pied Piper",
+            organization=self.organization,
+            schema={"elements": [self.create_alert_rule_action_schema()]},
+        )
+        self.sentry_app_installation = self.create_sentry_app_installation(
+            slug=self.sentry_app.slug, organization=self.organization
+        )
+        self.sentry_app_settings_payload = [
+            {"name": "title", "value": "Team Rocket"},
+            {"name": "summary", "value": "We're blasting off again."},
+        ]
         self.login_as(user=self.user)
 
-        team = self.create_team()
-        project1 = self.create_project(teams=[team], name="foo")
-        self.create_project(teams=[team], name="bar")
 
-        url = reverse(
-            "sentry-api-0-project-rules",
-            kwargs={"organization_slug": project1.organization.slug, "project_slug": project1.slug},
+class ProjectRuleListTest(ProjectRuleBaseTestCase):
+    def test_simple(self):
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            status_code=status.HTTP_200_OK,
         )
-        response = self.client.get(url, format="json")
-
-        assert response.status_code == 200, response.content
-
-        rule_count = Rule.objects.filter(project=project1).count()
-        assert len(response.data) == rule_count
+        assert len(response.data) == Rule.objects.filter(project=self.project).count()
 
 
-class CreateProjectRuleTest(APITestCase):
-    endpoint = "sentry-api-0-project-rules"
+class CreateProjectRuleTest(ProjectRuleBaseTestCase):
     method = "post"
 
     def run_test(
         self,
-        actions,
-        expected_conditions=None,
-        filters=None,
-        name="hello world",
-        action_match="any",
-        filter_match="any",
-        frequency=30,
-        conditions=None,
-        **kwargs,
+        actions: Sequence[Mapping[str, Any]] | None = None,
+        conditions: Sequence[Mapping[str, Any]] | None = None,
+        filters: Sequence[Mapping[str, Any]] | None = None,
+        expected_conditions: Sequence[Mapping[str, Any]] | None = None,
+        name: str | None = "hello world",
+        action_match: str | None = "any",
+        filter_match: str | None = "any",
+        frequency: int | None = 30,
+        **kwargs: Any,
     ):
-        self.login_as(user=self.user)
         owner = self.user.actor.get_actor_identifier()
         query_args = {}
         if "environment" in kwargs:
@@ -121,59 +135,41 @@ class CreateProjectRuleTest(APITestCase):
 
     @responses.activate
     def test_slack_channel_id_saved(self):
-        self.login_as(user=self.user)
-
-        project = self.create_project()
-        integration = Integration.objects.create(
-            provider="slack",
-            name="Awesome Team",
-            external_id="TXXXXXXX1",
-            metadata={"access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
-        )
-        integration.add_organization(project.organization, self.user)
-
-        url = reverse(
-            "sentry-api-0-project-rules",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
-        )
+        channel_id = "CSVK0921"
         responses.add(
             method=responses.GET,
             url="https://slack.com/api/conversations.info",
             status=200,
             content_type="application/json",
             body=json.dumps(
-                {"ok": "true", "channel": {"name": "team-team-team", "id": "CSVK0921"}}
+                {"ok": "true", "channel": {"name": "team-team-team", "id": channel_id}}
             ),
         )
-        response = self.client.post(
-            url,
-            data={
-                "name": "hello world",
-                "owner": f"user:{self.user.id}",
-                "environment": None,
-                "actionMatch": "any",
-                "frequency": 5,
-                "actions": [
-                    {
-                        "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
-                        "name": "Send a notification to the funinthesun Slack workspace to #team-team-team and show tags [] in notification",
-                        "workspace": integration.id,
-                        "channel": "#team-team-team",
-                        "input_channel_id": "CSVK0921",
-                    }
-                ],
-                "conditions": [
-                    {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}
-                ],
-            },
-            format="json",
+        actions = [
+            {
+                "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
+                "name": "Send a notification to the funinthesun Slack workspace to #team-team-team and show tags [] in notification",
+                "workspace": str(self.slack_integration.id),
+                "channel": "#team-team-team",
+                "input_channel_id": channel_id,
+            }
+        ]
+        conditions = [{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}]
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            name="hello world",
+            owner=f"user:{self.user.id}",
+            environment=None,
+            actionMatch="any",
+            frequency=5,
+            actions=actions,
+            conditions=conditions,
+            status_code=status.HTTP_200_OK,
         )
-
-        assert response.status_code == 200, response.content
-        assert response.data["actions"][0]["channel_id"] == "CSVK0921"
+        assert response.data["actions"][0]["channel_id"] == channel_id
 
     def test_missing_name(self):
-        self.login_as(user=self.user)
         conditions = [{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}]
         actions = [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}]
         self.get_error_response(
@@ -184,11 +180,33 @@ class CreateProjectRuleTest(APITestCase):
             filterMatch="any",
             actions=actions,
             conditions=conditions,
-            status_code=400,
+            status_code=status.HTTP_400_BAD_REQUEST,
         )
 
+    @override_settings(MAX_ISSUE_ALERTS_PER_PROJECT=1)
+    def test_exceed_limit(self):
+        conditions = [{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}]
+        actions = [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}]
+        Rule.objects.filter(project=self.project).delete()
+        self.run_test(conditions=conditions, actions=actions)
+        resp = self.get_error_response(
+            self.organization.slug,
+            self.project.slug,
+            name="test",
+            frequency=30,
+            owner=self.user.actor.get_actor_identifier(),
+            actionMatch="any",
+            filterMatch="any",
+            actions=actions,
+            conditions=conditions,
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+        assert resp.data == "You may not exceed 1 rules per project"
+        # Make sure pending deletions don't affect the process
+        Rule.objects.filter(project=self.project).update(status=RuleStatus.PENDING_DELETION)
+        self.run_test(conditions=conditions, actions=actions)
+
     def test_owner_perms(self):
-        self.login_as(user=self.user)
         other_user = self.create_user()
         response = self.get_error_response(
             self.organization.slug,
@@ -199,7 +217,7 @@ class CreateProjectRuleTest(APITestCase):
             filterMatch="any",
             actions=[],
             conditions=[],
-            status_code=400,
+            status_code=status.HTTP_400_BAD_REQUEST,
         )
         assert str(response.data["owner"][0]) == "User is not a member of this organization"
         other_team = self.create_team(self.create_organization())
@@ -212,12 +230,11 @@ class CreateProjectRuleTest(APITestCase):
             filterMatch="any",
             actions=[],
             conditions=[],
-            status_code=400,
+            status_code=status.HTTP_400_BAD_REQUEST,
         )
         assert str(response.data["owner"][0]) == "Team is not a member of this organization"
 
     def test_frequency_percent_validation(self):
-        self.login_as(user=self.user)
         condition = {
             "id": "sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition",
             "interval": "1h",
@@ -233,7 +250,7 @@ class CreateProjectRuleTest(APITestCase):
             actionMatch="any",
             filterMatch="any",
             conditions=[condition],
-            status_code=400,
+            status_code=status.HTTP_400_BAD_REQUEST,
         )
         assert (
             str(response.data["conditions"][0]) == "Ensure this value is less than or equal to 100"
@@ -251,7 +268,7 @@ class CreateProjectRuleTest(APITestCase):
             actionMatch="any",
             filterMatch="any",
             conditions=[condition],
-            status_code=200,
+            status_code=status.HTTP_200_OK,
         )
 
     def test_match_values(self):
@@ -283,7 +300,7 @@ class CreateProjectRuleTest(APITestCase):
             filterMatch="any",
             actions=actions,
             filters=filters,
-            status_code=400,
+            status_code=status.HTTP_400_BAD_REQUEST,
         )
 
     def test_with_filters(self):
@@ -310,7 +327,6 @@ class CreateProjectRuleTest(APITestCase):
         )
 
     def test_with_filters_without_match(self):
-        self.login_as(user=self.user)
         conditions = [{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}]
         filters = [
             {"id": "sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter", "value": 10}
@@ -327,7 +343,7 @@ class CreateProjectRuleTest(APITestCase):
             actions=actions,
             actionMatch="any",
             frequency=30,
-            status_code=400,
+            status_code=status.HTTP_400_BAD_REQUEST,
         )
 
         assert response.data == {
@@ -339,75 +355,64 @@ class CreateProjectRuleTest(APITestCase):
         self.run_test(name="no action rule", actions=[], conditions=conditions)
 
     @patch(
-        "sentry.integrations.slack.notify_action.get_channel_id",
+        "sentry.integrations.slack.actions.notification.get_channel_id",
         return_value=("#", None, True),
     )
-    @patch("sentry.integrations.slack.tasks.find_channel_id_for_rule.apply_async")
-    @patch("sentry.integrations.slack.tasks.uuid4")
+    @patch("sentry.tasks.integrations.slack.find_channel_id_for_rule.apply_async")
+    @patch("sentry.integrations.slack.utils.rule_status.uuid4")
     def test_kicks_off_slack_async_job(
-        self, mock_uuid4, mock_find_channel_id_for_alert_rule, mock_get_channel_id
+        self,
+        mock_uuid4,
+        mock_find_channel_id_for_alert_rule,
+        mock_get_channel_id,
     ):
-        project = self.create_project()
-
         mock_uuid4.return_value = self.get_mock_uuid()
-        self.login_as(self.user)
-
-        integration = Integration.objects.create(
-            provider="slack",
-            name="Awesome Team",
-            external_id="TXXXXXXX1",
-            metadata={"access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
-        )
-        integration.add_organization(project.organization, self.user)
-
-        url = reverse(
-            "sentry-api-0-project-rules",
-            kwargs={
-                "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
-            },
-        )
-        data = {
+        actions = [
+            {
+                "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
+                "name": (
+                    "Send a notification to the funinthesun Slack workspace to"
+                    " #team-team-team and show tags [] in notification"
+                ),
+                "workspace": str(self.slack_integration.id),
+                "channel": "#team-team-team",
+                "channel_id": "",
+                "tags": "",
+            }
+        ]
+        conditions = [{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}]
+        payload = {
             "name": "hello world",
             "owner": f"user:{self.user.id}",
             "environment": None,
             "actionMatch": "any",
             "frequency": 5,
-            "actions": [
-                {
-                    "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
-                    "name": "Send a notification to the funinthesun Slack workspace to #team-team-team and show tags [] in notification",
-                    "workspace": str(integration.id),
-                    "channel": "#team-team-team",
-                    "channel_id": "",
-                    "tags": "",
-                }
-            ],
-            "conditions": [
-                {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}
-            ],
+            "actions": actions,
+            "conditions": conditions,
         }
-        self.client.post(
-            url,
-            data=data,
-            format="json",
+
+        self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            **payload,
+            status_code=status.HTTP_202_ACCEPTED,
         )
 
-        assert not Rule.objects.filter(label="hello world").exists()
+        assert not Rule.objects.filter(label=payload["name"]).exists()
         kwargs = {
-            "name": data["name"],
+            "name": payload["name"],
             "owner": self.user.actor.id,
-            "environment": data.get("environment"),
-            "action_match": data["actionMatch"],
-            "filter_match": data.get("filterMatch"),
-            "conditions": data.get("conditions", []) + data.get("filters", []),
-            "actions": data.get("actions", []),
-            "frequency": data.get("frequency"),
+            "environment": payload.get("environment"),
+            "action_match": payload["actionMatch"],
+            "filter_match": payload.get("filterMatch"),
+            "conditions": payload.get("conditions", []) + payload.get("filters", []),
+            "actions": payload.get("actions", []),
+            "frequency": payload.get("frequency"),
             "user_id": self.user.id,
             "uuid": "abc123",
         }
         call_args = mock_find_channel_id_for_alert_rule.call_args[1]["kwargs"]
-        assert call_args.pop("project").id == project.id
+        assert call_args.pop("project").id == self.project.id
         assert call_args == kwargs
 
     def test_comparison_condition(self):
@@ -439,7 +444,6 @@ class CreateProjectRuleTest(APITestCase):
         self.run_test(actions=actions, conditions=[condition])
 
     def test_comparison_condition_validation(self):
-        self.login_as(user=self.user)
         condition = {
             "id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
             "interval": "1h",
@@ -456,7 +460,7 @@ class CreateProjectRuleTest(APITestCase):
             actions=actions,
             conditions=[condition],
             frequency=30,
-            status_code=400,
+            status_code=status.HTTP_400_BAD_REQUEST,
         )
         assert (
             str(response.data["conditions"][0])
@@ -473,76 +477,84 @@ class CreateProjectRuleTest(APITestCase):
             actions=actions,
             conditions=[condition],
             frequency=30,
-            status_code=400,
+            status_code=status.HTTP_400_BAD_REQUEST,
         )
         assert (
             str(response.data["conditions"][0])
             == "Select a valid choice. bad data is not one of the available choices."
         )
 
-    @patch("sentry.mediators.alert_rule_actions.AlertRuleActionCreator.run")
-    def test_runs_alert_rule_action_creator(self, mock_alert_rule_action_creator):
-        """
-        Ensures that Sentry Apps with schema forms (UI components)
-        receive a payload when an alert rule is created with them.
-        """
-        self.login_as(user=self.user)
-
-        project = self.create_project()
-
-        self.create_sentry_app(
-            name="Pied Piper",
-            organization=project.organization,
-            schema={"elements": [self.create_alert_rule_action_schema()]},
+    @responses.activate
+    def test_create_sentry_app_action_success(self):
+        responses.add(
+            method=responses.POST,
+            url="https://example.com/sentry/alert-rule",
+            status=status.HTTP_202_ACCEPTED,
         )
-        install = self.create_sentry_app_installation(
-            slug="pied-piper", organization=project.organization
-        )
-
         actions = [
             {
                 "id": "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction",
-                "settings": [
-                    {"name": "title", "value": "Team Rocket"},
-                    {"name": "summary", "value": "We're blasting off again."},
-                ],
-                "sentryAppInstallationUuid": install.uuid,
+                "settings": self.sentry_app_settings_payload,
+                "sentryAppInstallationUuid": self.sentry_app_installation.uuid,
                 "hasSchemaFormConfig": True,
             },
         ]
-
-        url = reverse(
-            "sentry-api-0-project-rules",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
-        )
-
-        response = self.client.post(
-            url,
-            data={
-                "name": "my super cool rule",
-                "owner": f"user:{self.user.id}",
-                "conditions": [],
-                "filters": [],
-                "actions": actions,
-                "filterMatch": "any",
-                "actionMatch": "any",
-                "frequency": 30,
-            },
-            format="json",
-        )
-
-        assert response.status_code == 200, response.content
-        assert response.data["id"]
-
-        rule = Rule.objects.get(id=response.data["id"])
-        assert rule.data["actions"] == actions
-
-        kwargs = {
-            "install": install,
-            "fields": actions[0].get("settings"),
+        payload = {
+            "name": "my super cool rule",
+            "owner": f"user:{self.user.id}",
+            "conditions": [],
+            "filters": [],
+            "actions": actions,
+            "filterMatch": "any",
+            "actionMatch": "any",
+            "frequency": 30,
         }
 
-        call_kwargs = mock_alert_rule_action_creator.call_args[1]
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            **payload,
+            status_code=status.HTTP_200_OK,
+        )
+        new_rule_id = response.data["id"]
+        assert new_rule_id is not None
+        rule = Rule.objects.get(id=new_rule_id)
+        assert rule.data["actions"] == actions
+        assert len(responses.calls) == 1
 
-        assert call_kwargs["install"].id == kwargs["install"].id
-        assert call_kwargs["fields"] == kwargs["fields"]
+    @responses.activate
+    def test_create_sentry_app_action_failure(self):
+        error_message = "Something is totally broken :'("
+        responses.add(
+            method=responses.POST,
+            url="https://example.com/sentry/alert-rule",
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            json={"message": error_message},
+        )
+        actions = [
+            {
+                "id": "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction",
+                "settings": self.sentry_app_settings_payload,
+                "sentryAppInstallationUuid": self.sentry_app_installation.uuid,
+                "hasSchemaFormConfig": True,
+            },
+        ]
+        payload = {
+            "name": "my super cool rule",
+            "owner": f"user:{self.user.id}",
+            "conditions": [],
+            "filters": [],
+            "actions": actions,
+            "filterMatch": "any",
+            "actionMatch": "any",
+            "frequency": 30,
+        }
+
+        response = self.get_error_response(
+            self.organization.slug,
+            self.project.slug,
+            **payload,
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+        assert len(responses.calls) == 1
+        assert error_message in response.json().get("actions")[0]

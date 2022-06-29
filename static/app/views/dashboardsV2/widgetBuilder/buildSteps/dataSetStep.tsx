@@ -1,7 +1,10 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import FeatureBadge from 'sentry/components/featureBadge';
 import RadioGroup, {RadioGroupProps} from 'sentry/components/forms/controls/radioGroup';
-import {t} from 'sentry/locale';
+import ExternalLink from 'sentry/components/links/externalLink';
+import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {DisplayType} from 'sentry/views/dashboardsV2/types';
 
@@ -10,21 +13,21 @@ import {DataSet} from '../utils';
 import {BuildStep} from './buildStep';
 
 const DATASET_CHOICES: [DataSet, string][] = [
-  [DataSet.EVENTS, t('Events (Errors, transactions)')],
-  [DataSet.ISSUES, t('Issues (Status, assignee, etc.)')],
+  [DataSet.EVENTS, t('Errors and Transactions')],
+  [DataSet.ISSUES, t('Issues (States, Assignment, Time, etc.)')],
 ];
 
 interface Props {
   dataSet: DataSet;
   displayType: DisplayType;
+  hasReleaseHealthFeature: boolean;
   onChange: (dataSet: DataSet) => void;
-  widgetBuilderNewDesign: boolean;
 }
 
 export function DataSetStep({
   dataSet,
   onChange,
-  widgetBuilderNewDesign,
+  hasReleaseHealthFeature,
   displayType,
 }: Props) {
   const disabledChoices: RadioGroupProps<string>['disabledChoices'] = [];
@@ -32,14 +35,14 @@ export function DataSetStep({
   if (displayType !== DisplayType.TABLE) {
     disabledChoices.push([
       DataSet.ISSUES,
-      t('This data set is restricted to tabular visualization.'),
+      t('This dataset is restricted to tabular visualization.'),
     ]);
 
     if (displayType === DisplayType.WORLD_MAP) {
       disabledChoices.push([
-        DataSet.RELEASE,
+        DataSet.RELEASES,
         t(
-          'This data set is restricted to big number, tabular and time series visualizations.'
+          'This dataset is restricted to big number, tabular and time series visualizations.'
         ),
       ]);
     }
@@ -47,19 +50,29 @@ export function DataSetStep({
 
   return (
     <BuildStep
-      title={t('Choose your data set')}
-      description={t(
-        'This reflects the type of information you want to use. For a full list, read the docs.'
+      title={t('Choose your dataset')}
+      description={tct(
+        `This reflects the type of information you want to use. To learn more, [link: read the docs].`,
+        {
+          link: (
+            <ExternalLink href="https://docs.sentry.io/product/dashboards/custom-dashboards/#data-set-selection" />
+          ),
+        }
       )}
     >
       <DataSetChoices
         label="dataSet"
         value={dataSet}
         choices={
-          widgetBuilderNewDesign
+          hasReleaseHealthFeature
             ? [
                 ...DATASET_CHOICES,
-                [DataSet.RELEASE, t('Releases (sessions, crash rates)')],
+                [
+                  DataSet.RELEASES,
+                  <Fragment key="releases-dataset">
+                    {t('Releases (sessions, crash rates)')} <FeatureBadge type="beta" />
+                  </Fragment>,
+                ],
               ]
             : DATASET_CHOICES
         }
@@ -73,8 +86,7 @@ export function DataSetStep({
 }
 
 const DataSetChoices = styled(RadioGroup)`
+  display: flex;
+  flex-wrap: wrap;
   gap: ${space(2)};
-  @media (min-width: ${p => p.theme.breakpoints[2]}) {
-    grid-auto-flow: column;
-  }
 `;

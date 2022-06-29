@@ -39,7 +39,7 @@ class AuthConfigEndpointTest(APITestCase):
         response = self.client.get(self.path)
 
         assert response.status_code == 200
-        assert "nextUri" not in response.data
+        assert response.data["nextUri"] == "/organizations/new/"
 
     def test_unauthenticated(self):
         response = self.client.get(self.path)

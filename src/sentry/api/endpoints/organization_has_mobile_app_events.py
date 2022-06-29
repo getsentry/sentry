@@ -6,7 +6,6 @@ from django.utils import timezone
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.bases import OrganizationEventsEndpointBase
 from sentry.snuba import discover
 
@@ -54,9 +53,6 @@ class OrganizationHasMobileAppEvents(OrganizationEventsEndpointBase):
                     "project_id": [p.id for p in projects],
                 },
                 referrer="api.organization-has-mobile-app-events",
-                use_snql=features.has(
-                    "organizations:performance-use-snql", organization, actor=request.user
-                ),
             )
             data = result["data"]
             if not data:

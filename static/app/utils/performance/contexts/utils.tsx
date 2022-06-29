@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {createContext, useContext} from 'react';
 
 type CreateContextReturn<T> = [React.Provider<T>, () => T, React.Context<T>];
 /*
@@ -18,17 +18,21 @@ export function createDefinedContext<ContextType>(options: {
     name,
   } = options;
 
-  const Context = React.createContext<ContextType | undefined>(undefined);
+  const Context = createContext<ContextType | undefined>(undefined);
 
   Context.displayName = name;
 
-  function useContext() {
-    const context = React.useContext(Context);
+  function useDefinedContext() {
+    const context = useContext(Context);
     if (!context && strict) {
       throw new Error(errorMessage);
     }
     return context;
   }
 
-  return [Context.Provider, useContext, Context] as CreateContextReturn<ContextType>;
+  return [
+    Context.Provider,
+    useDefinedContext,
+    Context,
+  ] as CreateContextReturn<ContextType>;
 }

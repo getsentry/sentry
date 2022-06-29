@@ -34,7 +34,7 @@ function Status({details, onEditRepository}: Props) {
         >
           <IconWarning size="sm" />
         </StyledTooltip>
-        {t('Credentials are invalid')}
+        {t('Authentication required')}
       </Wrapper>
     );
   }

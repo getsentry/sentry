@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
@@ -64,7 +64,6 @@ export type TableViewProps = {
   projects: Project[];
   showTags: boolean;
   tableData: TableData | null | undefined;
-  tagKeys: null | string[];
 
   title: string;
   spanOperationBreakdownKeys?: string[];
@@ -84,7 +83,7 @@ export type TableViewProps = {
  * In most cases, the new EventView object differs from the previous EventView
  * object. The new EventView object is pushed to the location object.
  */
-class TableView extends React.Component<TableViewProps> {
+class TableView extends Component<TableViewProps> {
   /**
    * Updates a column on resizing
    */
@@ -242,7 +241,11 @@ class TableView extends React.Component<TableViewProps> {
     }
 
     const columnKey = String(column.key);
-    const fieldRenderer = getFieldRenderer(columnKey, tableData.meta);
+    const fieldRenderer = getFieldRenderer(
+      columnKey,
+      tableData.meta,
+      !organization.features.includes('discover-frontend-use-events-endpoint')
+    );
 
     const display = eventView.getDisplayMode();
     const isTopEvents =
@@ -310,7 +313,7 @@ class TableView extends React.Component<TableViewProps> {
     }
 
     return (
-      <React.Fragment>
+      <Fragment>
         {isFirstPage && isTopEvents && rowIndex < topEvents && columnIndex === 0 ? (
           // Add one if we need to include Other in the series
           <TopResultsIndicator count={count} index={rowIndex} />
@@ -322,18 +325,13 @@ class TableView extends React.Component<TableViewProps> {
         >
           {cell}
         </CellAction>
-      </React.Fragment>
+      </Fragment>
     );
   };
 
   handleEditColumns = () => {
-    const {
-      organization,
-      eventView,
-      tagKeys,
-      measurementKeys,
-      spanOperationBreakdownKeys,
-    } = this.props;
+    const {organization, eventView, measurementKeys, spanOperationBreakdownKeys} =
+      this.props;
 
     const hasBreakdownFeature = organization.features.includes(
       'performance-ops-breakdown'
@@ -344,7 +342,6 @@ class TableView extends React.Component<TableViewProps> {
         <ColumnEditModal
           {...modalProps}
           organization={organization}
-          tagKeys={tagKeys}
           measurementKeys={measurementKeys}
           spanOperationBreakdownKeys={
             hasBreakdownFeature ? spanOperationBreakdownKeys : undefined
@@ -491,9 +488,11 @@ class TableView extends React.Component<TableViewProps> {
   };
 
   render() {
-    const {isLoading, error, location, tableData, eventView} = this.props;
+    const {isLoading, error, location, tableData, eventView, organization} = this.props;
 
-    const columnOrder = eventView.getColumns();
+    const columnOrder = eventView.getColumns(
+      organization.features.includes('discover-frontend-use-events-endpoint')
+    );
     const columnSortBy = eventView.getSorts();
 
     const prependColumnWidths = eventView.hasAggregateField()

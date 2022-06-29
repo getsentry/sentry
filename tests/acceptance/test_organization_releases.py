@@ -38,6 +38,7 @@ class OrganizationReleasesTest(AcceptanceTestCase):
         self.browser.get(self.path + release.version)
         self.browser.wait_until_not(".loading")
         self.browser.wait_until_test_id("release-wrapper")
+        self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
         self.browser.snapshot("organization releases - detail")
         # TODO(releases): add health data
 
@@ -52,21 +53,6 @@ class OrganizationReleasesTest(AcceptanceTestCase):
         self.browser.wait_until_not(".loading")
         assert "Select a project to continue" in self.browser.element("[role='dialog'] header").text
 
-    # This is snapshotting feature of globalSelectionHeader project picker where we see only specified projects
-    # and a custom footer message saying "Only projects with this release are visible."
-    def test_detail_global_header(self):
-        release = self.create_release(
-            project=self.project,
-            additional_projects=[self.project2],
-            version="1.0",
-            date_added=self.release_date,
-        )
-        self.browser.get(f"{self.path + release.version}?project={self.project.id}")
-        self.browser.wait_until_not(".loading")
-        self.browser.click('[data-test-id="global-header-project-selector"]')
-        self.browser.wait_until_test_id("release-wrapper")
-        self.browser.snapshot("organization releases - detail - global project header")
-
     # This is snapshotting features that are enable through the discover and performance features.
     def test_detail_with_discover_and_performance(self):
         with self.feature(["organizations:discover-basic", "organizations:performance-view"]):
@@ -76,5 +62,6 @@ class OrganizationReleasesTest(AcceptanceTestCase):
             self.browser.get(self.path + release.version)
             self.browser.wait_until_not(".loading")
             self.browser.wait_until_test_id("release-wrapper")
+            self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
             self.browser.snapshot("organization releases - detail with discover and performance")
             # TODO(releases): add health data

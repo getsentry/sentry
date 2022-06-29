@@ -1,5 +1,3 @@
-import * as React from 'react';
-
 import {MetaType} from 'sentry/utils/discover/eventView';
 import GenericDiscoverQuery, {
   DiscoverQueryProps,
@@ -27,7 +25,7 @@ function shouldRefetchData(prevProps: QueryProps, nextProps: QueryProps) {
 function TagTransactionsQuery(props: QueryProps) {
   return (
     <GenericDiscoverQuery<TableData, QueryProps>
-      route="eventsv2"
+      route="events"
       shouldRefetchData={shouldRefetchData}
       {...props}
     />

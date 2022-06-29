@@ -22,13 +22,13 @@ describe('AlertWizard', () => {
     render(
       <AlertWizard
         organization={organization}
-        project={project}
         route={{}}
         router={router}
         routes={router.routes}
         routeParams={router.params}
         location={router.location}
         params={{orgId: organization.slug, projectId: project.slug}}
+        projectId={project.slug}
       />,
       {context: routerContext, organization}
     );

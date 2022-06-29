@@ -191,7 +191,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
                 "organizations:discover-basic": False,
             },
         )
-        assert response.status_code == 200
+        assert response.status_code == 200, response.content
 
     def test_aggregate_function_apdex(self):
         project1 = self.create_project()
@@ -673,7 +673,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
 
         assert mock_query.call_count == 1
 
-    @mock.patch("sentry.snuba.discover.bulk_raw_query", return_value=[{"data": []}])
+    @mock.patch("sentry.snuba.discover.bulk_snql_query", return_value=[{"data": []}])
     def test_invalid_interval(self, mock_query):
         self.do_request(
             data={
@@ -686,7 +686,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
         )
         assert mock_query.call_count == 1
         # Should've reset to the default for 24h
-        assert mock_query.mock_calls[0].args[0][0].rollup == 300
+        assert mock_query.mock_calls[0].args[0][0].query.granularity.granularity == 300
 
         self.do_request(
             data={
@@ -699,7 +699,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
         )
         assert mock_query.call_count == 2
         # Should've reset to the default for 24h
-        assert mock_query.mock_calls[0].args[0][0].rollup == 300
+        assert mock_query.mock_calls[1].args[0][0].query.granularity.granularity == 300
 
     def test_out_of_retention(self):
         with self.options({"system.event-retention-days": 10}):
@@ -843,41 +843,6 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
             assert response.status_code == 400, response.content
             assert response.data["detail"] == "Comparison period is outside retention window"
 
-
-class OrganizationEventsStatsEndpointTestWithSnql(OrganizationEventsStatsEndpointTest):
-    def setUp(self):
-        super().setUp()
-        self.features["organizations:discover-use-snql"] = True
-
-    # Separate test for now to keep the patching simpler
-    @mock.patch("sentry.snuba.discover.bulk_snql_query", return_value=[{"data": []}])
-    def test_invalid_interval(self, mock_query):
-        self.do_request(
-            data={
-                "end": iso_format(before_now()),
-                "start": iso_format(before_now(hours=24)),
-                "query": "",
-                "interval": "1s",
-                "yAxis": "count()",
-            },
-        )
-        assert mock_query.call_count == 1
-        # Should've reset to the default for 24h
-        assert mock_query.mock_calls[0].args[0][0].granularity.granularity == 300
-
-        self.do_request(
-            data={
-                "end": iso_format(before_now()),
-                "start": iso_format(before_now(hours=24)),
-                "query": "",
-                "interval": "0d",
-                "yAxis": "count()",
-            },
-        )
-        assert mock_query.call_count == 2
-        # Should've reset to the default for 24h
-        assert mock_query.mock_calls[1].args[0][0].granularity.granularity == 300
-
     def test_equations_divide_by_zero(self):
         response = self.do_request(
             data={
@@ -916,7 +881,6 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
         )
         self.features = {
             "organizations:performance-use-metrics": True,
-            "organizations:discover-use-snql": True,
         }
 
     def do_request(self, data, url=None, features=None):
@@ -1188,6 +1152,26 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
         assert response.status_code == 200, response.content
         return not response.data["isMetricsData"]
 
+    def test_sum_transaction_duration(self):
+        self.store_metric(123, timestamp=self.day_ago + timedelta(minutes=30))
+        self.store_metric(456, timestamp=self.day_ago + timedelta(hours=1, minutes=30))
+        self.store_metric(789, timestamp=self.day_ago + timedelta(hours=1, minutes=30))
+        response = self.do_request(
+            data={
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "interval": "1h",
+                "yAxis": "sum(transaction.duration)",
+                "metricsEnhanced": "1",
+            },
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["isMetricsData"]
+        assert [attrs for time, attrs in response.data["data"]] == [
+            [{"count": 123}],
+            [{"count": 1245}],
+        ]
+
 
 class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
     def setUp(self):
@@ -1341,6 +1325,36 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         # When there are no top events, we do not return an empty dict.
         # Instead, we return a single zero-filled series for an empty graph.
         assert [attrs for time, attrs in data] == [[{"count": 0}], [{"count": 0}]]
+
+    def test_no_top_events_with_multi_axis(self):
+        project = self.create_project()
+        with self.feature(self.enabled_features):
+            response = self.client.get(
+                self.url,
+                data={
+                    # make sure to query the project with 0 events
+                    "project": project.id,
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "interval": "1h",
+                    "yAxis": ["count()", "count_unique(user)"],
+                    "orderby": ["-count()"],
+                    "field": ["count()", "count_unique(user)", "message", "user.email"],
+                    "topEvents": 5,
+                },
+                format="json",
+            )
+
+        assert response.status_code == 200
+        data = response.data[""]
+        assert [attrs for time, attrs in data["count()"]["data"]] == [
+            [{"count": 0}],
+            [{"count": 0}],
+        ]
+        assert [attrs for time, attrs in data["count_unique(user)"]["data"]] == [
+            [{"count": 0}],
+            [{"count": 0}],
+        ]
 
     def test_simple_top_events(self):
         with self.feature(self.enabled_features):
@@ -1507,8 +1521,8 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         assert [{"count": event_data["count"]}] in [attrs for time, attrs in results["data"]]
 
     @mock.patch(
-        "sentry.snuba.discover.raw_query",
-        side_effect=[{"data": [{"group_id": 1}], "meta": []}, {"data": [], "meta": []}],
+        "sentry.search.events.builder.raw_snql_query",
+        side_effect=[{"data": [{"issue.id": 1}], "meta": []}, {"data": [], "meta": []}],
     )
     def test_top_events_with_issue_check_query_conditions(self, mock_query):
         """ "Intentionally separate from test_top_events_with_issue
@@ -1533,7 +1547,10 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
                 format="json",
             )
 
-        assert ["group_id", "IN", [1]] in mock_query.mock_calls[1].kwargs["conditions"]
+        assert (
+            Condition(Function("coalesce", [Column("group_id"), 0], "issue.id"), Op.IN, [1])
+            in mock_query.mock_calls[1].args[0].query.where
+        )
 
     def test_top_events_with_functions(self):
         with self.feature(self.enabled_features):
@@ -2185,8 +2202,10 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         assert other["order"] == 5
         assert [{"count": 0.03}] in [attrs for _, attrs in other["data"]]
 
-    @mock.patch("sentry.snuba.discover.bulk_raw_query", return_value=[{"data": [], "meta": []}])
-    @mock.patch("sentry.snuba.discover.raw_query", return_value={"data": [], "meta": []})
+    @mock.patch("sentry.snuba.discover.bulk_snql_query", return_value=[{"data": [], "meta": []}])
+    @mock.patch(
+        "sentry.search.events.builder.raw_snql_query", return_value={"data": [], "meta": []}
+    )
     def test_invalid_interval(self, mock_raw_query, mock_bulk_query):
         with self.feature(self.enabled_features):
             response = self.client.get(
@@ -2223,7 +2242,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         assert response.status_code == 200
         assert mock_raw_query.call_count == 2
         # Should've reset to the default for between 1 and 24h
-        assert mock_raw_query.mock_calls[1].kwargs["rollup"] == 300
+        assert mock_raw_query.mock_calls[1].args[0].query.granularity.granularity == 300
 
         with self.feature(self.enabled_features):
             response = self.client.get(
@@ -2243,7 +2262,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         assert response.status_code == 200
         assert mock_raw_query.call_count == 4
         # Should've left the interval alone since we're just below the limit
-        assert mock_raw_query.mock_calls[3].kwargs["rollup"] == 1
+        assert mock_raw_query.mock_calls[3].args[0].query.granularity.granularity == 1
 
         with self.feature(self.enabled_features):
             response = self.client.get(
@@ -2262,7 +2281,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         assert response.status_code == 200
         assert mock_raw_query.call_count == 6
         # Should've default to 24h's default of 5m
-        assert mock_raw_query.mock_calls[5].kwargs["rollup"] == 300
+        assert mock_raw_query.mock_calls[5].args[0].query.granularity.granularity == 300
 
     def test_top_events_timestamp_fields(self):
         with self.feature(self.enabled_features):
@@ -2370,125 +2389,52 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         assert other["order"] == 5
         assert [{"count": 4}] in [attrs for _, attrs in other["data"]]
 
-
-class OrganizationEventsStatsTopNEventsWithSnql(OrganizationEventsStatsTopNEvents):
-    def setUp(self):
-        super().setUp()
-        self.enabled_features["organizations:discover-use-snql"] = True
-
-    # Separate test for now to keep the patching simpler
-    @mock.patch("sentry.snuba.discover.bulk_snql_query", return_value=[{"data": [], "meta": []}])
-    @mock.patch(
-        "sentry.search.events.builder.raw_snql_query", return_value={"data": [], "meta": []}
-    )
-    def test_invalid_interval(self, mock_raw_query, mock_bulk_query):
+    def test_top_events_can_exclude_other_series(self):
         with self.feature(self.enabled_features):
             response = self.client.get(
-                self.url,
-                format="json",
-                data={
-                    "end": iso_format(before_now()),
-                    # 7,200 points for each event
-                    "start": iso_format(before_now(seconds=7200)),
-                    "field": ["count()", "issue"],
-                    "query": "",
-                    "interval": "1s",
-                    "yAxis": "count()",
-                },
-            )
-        assert response.status_code == 200
-        assert mock_bulk_query.call_count == 1
-
-        with self.feature(self.enabled_features):
-            response = self.client.get(
-                self.url,
-                format="json",
-                data={
-                    "end": iso_format(before_now()),
-                    "start": iso_format(before_now(seconds=7200)),
-                    "field": ["count()", "issue"],
-                    "query": "",
-                    "interval": "1s",
-                    "yAxis": "count()",
-                    # 7,200 points for each event * 2, should error
-                    "topEvents": 2,
-                },
-            )
-        assert response.status_code == 200
-        assert mock_raw_query.call_count == 2
-        # Should've reset to the default for between 1 and 24h
-        assert mock_raw_query.mock_calls[1].args[0].granularity.granularity == 300
-
-        with self.feature(self.enabled_features):
-            response = self.client.get(
-                self.url,
-                format="json",
-                data={
-                    "end": iso_format(before_now()),
-                    # 1999 points * 5 events should just be enough to not error
-                    "start": iso_format(before_now(seconds=1999)),
-                    "field": ["count()", "issue"],
-                    "query": "",
-                    "interval": "1s",
-                    "yAxis": "count()",
-                    "topEvents": 5,
-                },
-            )
-        assert response.status_code == 200
-        assert mock_raw_query.call_count == 4
-        # Should've left the interval alone since we're just below the limit
-        assert mock_raw_query.mock_calls[3].args[0].granularity.granularity == 1
-
-        with self.feature(self.enabled_features):
-            response = self.client.get(
-                self.url,
-                format="json",
-                data={
-                    "end": iso_format(before_now()),
-                    "start": iso_format(before_now(hours=24)),
-                    "field": ["count()", "issue"],
-                    "query": "",
-                    "interval": "0d",
-                    "yAxis": "count()",
-                    "topEvents": 5,
-                },
-            )
-        assert response.status_code == 200
-        assert mock_raw_query.call_count == 6
-        # Should've default to 24h's default of 5m
-        assert mock_raw_query.mock_calls[5].args[0].granularity.granularity == 300
-
-    @mock.patch(
-        "sentry.search.events.builder.raw_snql_query",
-        side_effect=[{"data": [{"issue.id": 1}], "meta": []}, {"data": [], "meta": []}],
-    )
-    def test_top_events_with_issue_check_query_conditions(self, mock_query):
-        """ "Intentionally separate from test_top_events_with_issue
-
-        This is to test against a bug where the condition for issues wasn't included and we'd be missing data for
-        the interval since we'd cap out the max rows. This was not caught by the previous test since the results
-        would still be correct given the smaller interval & lack of data
-        """
-        with self.feature(self.enabled_features):
-            self.client.get(
                 self.url,
                 data={
                     "start": iso_format(self.day_ago),
                     "end": iso_format(self.day_ago + timedelta(hours=2)),
                     "interval": "1h",
                     "yAxis": "count()",
-                    "orderby": ["-count()"],
-                    "field": ["count()", "message", "issue"],
+                    "orderby": ["count()"],
+                    "field": ["count()", "message"],
                     "topEvents": 5,
-                    "query": "!event.type:transaction",
+                    "excludeOther": "1",
                 },
                 format="json",
             )
 
-        assert (
-            Condition(Function("coalesce", [Column("group_id"), 0], "issue.id"), Op.IN, [1])
-            in mock_query.mock_calls[1].args[0].where
-        )
+        data = response.data
+        assert response.status_code == 200, response.content
+        assert len(data) == 5
+
+        assert "Other" not in response.data
+
+    def test_top_events_with_equation_including_unselected_fields_passes_field_validation(self):
+        with self.feature(self.enabled_features):
+            response = self.client.get(
+                self.url,
+                data={
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "interval": "1h",
+                    "yAxis": "count()",
+                    "orderby": ["-equation[0]"],
+                    "field": ["count()", "message", "equation|count_unique(user) * 2"],
+                    "topEvents": 5,
+                },
+                format="json",
+            )
+
+        data = response.data
+        assert response.status_code == 200, response.content
+        assert len(data) == 6
+
+        other = data["Other"]
+        assert other["order"] == 5
+        assert [{"count": 4}] in [attrs for _, attrs in other["data"]]
 
     def test_top_events_boolean_condition_and_project_field(self):
         with self.feature(self.enabled_features):
@@ -2508,6 +2454,3 @@ class OrganizationEventsStatsTopNEventsWithSnql(OrganizationEventsStatsTopNEvent
             )
 
         assert response.status_code == 200
-
-    def test_top_events_with_to_other(self):
-        super().test_top_events_with_to_other()

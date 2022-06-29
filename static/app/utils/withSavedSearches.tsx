@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import {RouteComponentProps} from 'react-router';
 
 import SavedSearchesStore from 'sentry/stores/savedSearchesStore';
@@ -22,7 +22,7 @@ type State = {
 function withSavedSearches<P extends InjectedSavedSearchesProps>(
   WrappedComponent: React.ComponentType<P>
 ) {
-  class WithSavedSearches extends React.Component<
+  class WithSavedSearches extends Component<
     Omit<P, keyof InjectedSavedSearchesProps> & Partial<InjectedSavedSearchesProps>,
     State
   > {

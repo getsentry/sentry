@@ -1,4 +1,3 @@
-import * as React from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -15,7 +14,7 @@ import Tooltip from 'sentry/components/tooltip';
 import UserMisery from 'sentry/components/userMisery';
 import Version from 'sentry/components/version';
 import {t} from 'sentry/locale';
-import {Organization} from 'sentry/types';
+import {AvatarProject, Organization, Project} from 'sentry/types';
 import {defined, isUrl} from 'sentry/utils';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import EventView, {EventData, MetaType} from 'sentry/utils/discover/eventView';
@@ -55,7 +54,7 @@ import TeamKeyTransactionField from './teamKeyTransactionField';
 /**
  * Types, functions and definitions for rendering fields in discover results.
  */
-type RenderFunctionBaggage = {
+export type RenderFunctionBaggage = {
   location: Location;
   organization: Organization;
   eventView?: EventView;
@@ -124,7 +123,7 @@ export const FIELD_FORMATTERS: FieldFormatters = {
       <Container>
         {data[field]
           ? getDynamicText({
-              value: <FieldDateTime date={data[field]} />,
+              value: <FieldDateTime date={data[field]} year seconds timeZone />,
               fixed: 'timestamp',
             })
           : emptyValue}
@@ -296,11 +295,23 @@ const SPECIAL_FIELDS: SpecialFields = {
   project: {
     sortField: 'project',
     renderFunc: (data, {organization}) => {
+      let slugs: string[] | undefined = undefined;
+      let projectIds: number[] | undefined = undefined;
+      if (typeof data.project === 'number') {
+        projectIds = [data.project];
+      } else {
+        slugs = [data.project];
+      }
       return (
         <Container>
-          <Projects orgId={organization.slug} slugs={[data.project]}>
+          <Projects orgId={organization.slug} slugs={slugs} projectIds={projectIds}>
             {({projects}) => {
-              const project = projects.find(p => p.slug === data.project);
+              let project: Project | AvatarProject | undefined;
+              if (typeof data.project === 'number') {
+                project = projects.find(p => p.id === data.project.toString());
+              } else {
+                project = projects.find(p => p.slug === data.project);
+              }
               return (
                 <ProjectBadge
                   project={project ? project : {slug: data.project}}
@@ -356,7 +367,7 @@ const SPECIAL_FIELDS: SpecialFields = {
   'count_unique(user)': {
     sortField: 'count_unique(user)',
     renderFunc: data => {
-      const count = data.count_unique_user;
+      const count = data.count_unique_user ?? data['count_unique(user)'];
       if (typeof count === 'number') {
         return (
           <FlexContainer>
@@ -426,7 +437,7 @@ const SPECIAL_FIELDS: SpecialFields = {
     renderFunc: data => (
       <Container>
         {getDynamicText({
-          value: <FieldDateTime date={data['timestamp.to_hour']} format="lll z" />,
+          value: <FieldDateTime date={data['timestamp.to_hour']} year timeZone />,
           fixed: 'timestamp.to_hour',
         })}
       </Container>
@@ -437,7 +448,7 @@ const SPECIAL_FIELDS: SpecialFields = {
     renderFunc: data => (
       <Container>
         {getDynamicText({
-          value: <FieldDateTime date={data['timestamp.to_day']} dateOnly utc />,
+          value: <FieldDateTime date={data['timestamp.to_day']} dateOnly year utc />,
           fixed: 'timestamp.to_day',
         })}
       </Container>
@@ -474,27 +485,27 @@ const SPECIAL_FUNCTIONS: SpecialFunctions = {
     let countMiserableUserField: string = '';
 
     let miseryLimit: number | undefined = parseInt(
-      userMiseryField.split('_').pop() || '',
+      userMiseryField.split('(').pop()?.slice(0, -1) || '',
       10
     );
     if (isNaN(miseryLimit)) {
-      countMiserableUserField = 'count_miserable_user';
+      countMiserableUserField = 'count_miserable(user)';
       if (projectThresholdConfig in data) {
         miseryLimit = data[projectThresholdConfig][1];
       } else {
         miseryLimit = undefined;
       }
     } else {
-      countMiserableUserField = `count_miserable_user_${miseryLimit}`;
+      countMiserableUserField = `count_miserable(user,${miseryLimit})`;
     }
 
-    const uniqueUsers = data.count_unique_user;
+    const uniqueUsers = data['count_unique(user)'];
 
     let miserableUsers: number | undefined;
 
     if (countMiserableUserField in data) {
       const countMiserableMiseryLimit = parseInt(
-        countMiserableUserField.split('_').pop() || '',
+        userMiseryField.split('(').pop()?.slice(0, -1) || '',
         10
       );
       miserableUsers =

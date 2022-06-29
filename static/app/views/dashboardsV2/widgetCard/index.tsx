@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import LazyLoad from 'react-lazyload';
 import {withRouter, WithRouterProps} from 'react-router';
 import {useSortable} from '@dnd-kit/sortable';
@@ -6,24 +6,32 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import {Client} from 'sentry/api';
+import Feature from 'sentry/components/acl/feature';
+import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import {HeaderTitle} from 'sentry/components/charts/styles';
+import DateTime from 'sentry/components/dateTime';
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import ExternalLink from 'sentry/components/links/externalLink';
 import {Panel} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
 import Tooltip from 'sentry/components/tooltip';
 import {IconCopy, IconDelete, IconEdit, IconGrabbable} from 'sentry/icons';
-import {t} from 'sentry/locale';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
+import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
+import {Series} from 'sentry/types/echarts';
+import {statsPeriodToDays} from 'sentry/utils/dates';
+import {TableDataRow, TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 
 import {DRAG_HANDLE_CLASS} from '../dashboard';
-import {Widget} from '../types';
+import {DisplayType, Widget, WidgetType} from '../types';
+import {DEFAULT_RESULTS_LIMIT} from '../widgetBuilder/utils';
 
+import {DashboardsMEPConsumer, DashboardsMEPProvider} from './dashboardsMEPContext';
 import WidgetCardChartContainer from './widgetCardChartContainer';
 import WidgetCardContextMenu from './widgetCardContextMenu';
 
@@ -50,12 +58,24 @@ type Props = WithRouterProps & {
   onEdit?: () => void;
   renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
   showContextMenu?: boolean;
+  showStoredAlert?: boolean;
   showWidgetViewerButton?: boolean;
   tableItemLimit?: number;
   windowWidth?: number;
 };
 
-class WidgetCard extends React.Component<Props> {
+type State = {
+  issuesData?: TableDataRow[];
+  pageLinks?: string;
+  seriesData?: Series[];
+  tableData?: TableDataWithTitle[];
+  totalIssuesCount?: string;
+};
+
+const METRICS_BACKED_SESSIONS_START_DATE = new Date('2022-04-12');
+
+class WidgetCard extends Component<Props, State> {
+  state: State = {};
   renderToolbar() {
     const {
       onEdit,
@@ -131,6 +151,8 @@ class WidgetCard extends React.Component<Props> {
       index,
     } = this.props;
 
+    const {seriesData, tableData, issuesData, pageLinks, totalIssuesCount} = this.state;
+
     if (isEditing) {
       return null;
     }
@@ -150,9 +172,36 @@ class WidgetCard extends React.Component<Props> {
         router={router}
         location={location}
         index={index}
+        seriesData={seriesData}
+        tableData={tableData}
+        issuesData={issuesData}
+        pageLinks={pageLinks}
+        totalIssuesCount={totalIssuesCount}
       />
     );
   }
+
+  setData = ({
+    tableResults,
+    timeseriesResults,
+    issuesResults,
+    totalIssuesCount,
+    pageLinks,
+  }: {
+    issuesResults?: TableDataRow[];
+    pageLinks?: string;
+    tableResults?: TableDataWithTitle[];
+    timeseriesResults?: Series[];
+    totalIssuesCount?: string;
+  }) => {
+    this.setState({
+      seriesData: timeseriesResults,
+      tableData: tableResults,
+      issuesData: issuesResults,
+      totalIssuesCount,
+      pageLinks,
+    });
+  };
 
   render() {
     const {
@@ -165,31 +214,55 @@ class WidgetCard extends React.Component<Props> {
       tableItemLimit,
       windowWidth,
       noLazyLoad,
+      showStoredAlert,
     } = this.props;
+
+    const {start, period} = selection.datetime;
+    let showIncompleteDataAlert: boolean = false;
+    if (widget.widgetType === WidgetType.RELEASE && showStoredAlert) {
+      if (start) {
+        let startDate: Date | undefined = undefined;
+        if (typeof start === 'string') {
+          startDate = new Date(start);
+        } else {
+          startDate = start;
+        }
+        showIncompleteDataAlert = startDate < METRICS_BACKED_SESSIONS_START_DATE;
+      } else if (period) {
+        const periodInDays = statsPeriodToDays(period);
+        const current = new Date();
+        const prior = new Date(new Date().setDate(current.getDate() - periodInDays));
+        showIncompleteDataAlert = prior < METRICS_BACKED_SESSIONS_START_DATE;
+      }
+    }
+    if (widget.displayType === DisplayType.TOP_N) {
+      const queries = widget.queries.map(query => ({
+        ...query,
+        // Use the last aggregate because that's where the y-axis is stored
+        aggregates: query.aggregates.length
+          ? [query.aggregates[query.aggregates.length - 1]]
+          : [],
+      }));
+      widget.queries = queries;
+      widget.limit = DEFAULT_RESULTS_LIMIT;
+    }
     return (
       <ErrorBoundary
         customComponent={<ErrorCard>{t('Error loading widget data')}</ErrorCard>}
       >
-        <StyledPanel isDragging={false}>
-          <WidgetHeader>
-            <Tooltip title={widget.title} containerDisplayMode="grid" showOnlyOnOverflow>
-              <WidgetTitle>{widget.title}</WidgetTitle>
-            </Tooltip>
-            {this.renderContextMenu()}
-          </WidgetHeader>
-          {noLazyLoad ? (
-            <WidgetCardChartContainer
-              api={api}
-              organization={organization}
-              selection={selection}
-              widget={widget}
-              isMobile={isMobile}
-              renderErrorMessage={renderErrorMessage}
-              tableItemLimit={tableItemLimit}
-              windowWidth={windowWidth}
-            />
-          ) : (
-            <LazyLoad once resize height={200}>
+        <DashboardsMEPProvider>
+          <WidgetCardPanel isDragging={false}>
+            <WidgetHeader>
+              <Tooltip
+                title={widget.title}
+                containerDisplayMode="grid"
+                showOnlyOnOverflow
+              >
+                <WidgetTitle>{widget.title}</WidgetTitle>
+              </Tooltip>
+              {this.renderContextMenu()}
+            </WidgetHeader>
+            {noLazyLoad ? (
               <WidgetCardChartContainer
                 api={api}
                 organization={organization}
@@ -199,11 +272,56 @@ class WidgetCard extends React.Component<Props> {
                 renderErrorMessage={renderErrorMessage}
                 tableItemLimit={tableItemLimit}
                 windowWidth={windowWidth}
+                onDataFetched={this.setData}
               />
-            </LazyLoad>
-          )}
-          {this.renderToolbar()}
-        </StyledPanel>
+            ) : (
+              <LazyLoad once resize height={200}>
+                <WidgetCardChartContainer
+                  api={api}
+                  organization={organization}
+                  selection={selection}
+                  widget={widget}
+                  isMobile={isMobile}
+                  renderErrorMessage={renderErrorMessage}
+                  tableItemLimit={tableItemLimit}
+                  windowWidth={windowWidth}
+                  onDataFetched={this.setData}
+                />
+              </LazyLoad>
+            )}
+            {this.renderToolbar()}
+          </WidgetCardPanel>
+          <Feature organization={organization} features={['dashboards-mep']}>
+            <DashboardsMEPConsumer>
+              {({isMetricsData}) =>
+                showStoredAlert &&
+                widget.widgetType === WidgetType.DISCOVER &&
+                isMetricsData === false && (
+                  <StoredDataAlert showIcon>
+                    {tct(
+                      "Your selection is only applicable to [storedData: stored event data]. We've automatically adjusted your results.",
+                      {
+                        storedData: <ExternalLink href="https://docs.sentry.io/" />, // TODO(dashboards): Update the docs URL
+                      }
+                    )}
+                  </StoredDataAlert>
+                )
+              }
+            </DashboardsMEPConsumer>
+          </Feature>
+          <Feature organization={organization} features={['dashboards-releases']}>
+            {showIncompleteDataAlert && (
+              <StoredDataAlert showIcon>
+                {tct(
+                  'Releases data is only available from [date]. Data may be incomplete as a result.',
+                  {
+                    date: <DateTime date={METRICS_BACKED_SESSIONS_START_DATE} dateOnly />,
+                  }
+                )}
+              </StoredDataAlert>
+            )}
+          </Feature>
+        </DashboardsMEPProvider>
       </ErrorBoundary>
     );
   }
@@ -222,7 +340,7 @@ const ErrorCard = styled(Placeholder)`
   margin-bottom: ${space(2)};
 `;
 
-const StyledPanel = styled(Panel, {
+export const WidgetCardPanel = styled(Panel, {
   shouldForwardProp: prop => prop !== 'isDragging',
 })<{
   isDragging: boolean;
@@ -264,7 +382,7 @@ const GrabbableButton = styled(Button)`
 `;
 
 const WidgetTitle = styled(HeaderTitle)`
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
   font-weight: normal;
 `;
 
@@ -275,4 +393,9 @@ const WidgetHeader = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
+`;
+
+const StoredDataAlert = styled(Alert)`
+  margin-top: ${space(1)};
+  margin-bottom: 0;
 `;

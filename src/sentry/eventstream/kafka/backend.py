@@ -1,6 +1,6 @@
 import logging
 import signal
-from typing import Any, Mapping, Optional, Tuple
+from typing import Any, Literal, Mapping, Optional, Tuple, Union
 
 from confluent_kafka import OFFSET_INVALID, TopicPartition
 from django.conf import settings
@@ -20,7 +20,8 @@ from sentry.eventstream.kafka.protocol import (
     get_task_kwargs_for_message,
     get_task_kwargs_for_message_from_headers,
 )
-from sentry.eventstream.snuba import SnubaProtocolEventStream
+from sentry.eventstream.snuba import KW_SKIP_SEMANTIC_PARTITIONING, SnubaProtocolEventStream
+from sentry.killswitches import killswitch_matches_context
 from sentry.utils import json, kafka, metrics
 from sentry.utils.batching_kafka_consumer import BatchingKafkaConsumer
 
@@ -29,7 +30,8 @@ logger = logging.getLogger(__name__)
 
 class KafkaEventStream(SnubaProtocolEventStream):
     def __init__(self, **options):
-        self.topic = settings.KAFKA_TOPICS[settings.KAFKA_EVENTS]["topic"]
+        self.topic = settings.KAFKA_EVENTS
+        self.transactions_topic = settings.KAFKA_TRANSACTIONS
 
     @cached_property
     def producer(self):
@@ -71,7 +73,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
 
         # transaction_forwarder header is not sent if option "eventstream:kafka-headers"
         # is not set to avoid increasing consumer lag on shared events topic.
-        transaction_forwarder = True if event.group_id is None else False
+        transaction_forwarder = self._is_transaction_event(event)
 
         send_new_headers = options.get("eventstream:kafka-headers")
 
@@ -104,6 +106,39 @@ class KafkaEventStream(SnubaProtocolEventStream):
                 ),
             }
 
+    def insert(
+        self,
+        group,
+        event,
+        is_new,
+        is_regression,
+        is_new_group_environment,
+        primary_hash,
+        received_timestamp: float,
+        skip_consume=False,
+        **kwargs,
+    ):
+        message_type = "transaction" if self._is_transaction_event(event) else "error"
+        assign_partitions_randomly = killswitch_matches_context(
+            "kafka.send-project-events-to-random-partitions",
+            {"project_id": event.project_id, "message_type": message_type},
+        )
+
+        if assign_partitions_randomly:
+            kwargs[KW_SKIP_SEMANTIC_PARTITIONING] = True
+
+        return super().insert(
+            group,
+            event,
+            is_new,
+            is_regression,
+            is_new_group_environment,
+            primary_hash,
+            received_timestamp,
+            skip_consume,
+            **kwargs,
+        )
+
     def _send(
         self,
         project_id: int,
@@ -111,6 +146,8 @@ class KafkaEventStream(SnubaProtocolEventStream):
         extra_data: Tuple[Any, ...] = (),
         asynchronous: bool = True,
         headers: Optional[Mapping[str, str]] = None,
+        skip_semantic_partitioning: bool = False,
+        is_transaction_event: bool = False,
     ):
         if headers is None:
             headers = {}
@@ -130,12 +167,13 @@ class KafkaEventStream(SnubaProtocolEventStream):
         self.producer.poll(0.0)
 
         assert isinstance(extra_data, tuple)
-        key = str(project_id)
 
         try:
+            topic = self.transactions_topic if is_transaction_event else self.topic
+
             self.producer.produce(
-                topic=self.topic,
-                key=key.encode("utf-8"),
+                topic=topic,
+                key=str(project_id).encode("utf-8") if not skip_semantic_partitioning else None,
                 value=json.dumps((self.EVENT_PROTOCOL_VERSION, _type) + extra_data),
                 on_delivery=self.delivery_callback,
                 headers=[(k, v.encode("utf-8")) for k, v in headers.items()],
@@ -153,15 +191,34 @@ class KafkaEventStream(SnubaProtocolEventStream):
 
     def _build_consumer(
         self,
-        entity,
-        consumer_group,
-        commit_log_topic,
-        synchronize_commit_group,
-        commit_batch_size=100,
-        commit_batch_timeout_ms=5000,
-        initial_offset_reset="latest",
+        entity: Union[Literal["all"], Literal["errors"], Literal["transactions"]],
+        consumer_group: str,
+        commit_log_topic: str,
+        synchronize_commit_group: str,
+        commit_batch_size: int = 100,
+        commit_batch_timeout_ms: int = 5000,
+        initial_offset_reset: Union[Literal["latest"], Literal["earliest"]] = "latest",
     ):
-        cluster_name = settings.KAFKA_TOPICS[settings.KAFKA_EVENTS]["cluster"]
+        concurrency = options.get(_CONCURRENCY_OPTION)
+        logger.info(f"Starting post process forwrader to consume {entity} messages")
+        if entity == PostProcessForwarderType.TRANSACTIONS:
+            cluster_name = settings.KAFKA_TOPICS[settings.KAFKA_TRANSACTIONS]["cluster"]
+            worker = TransactionsPostProcessForwarderWorker(concurrency=concurrency)
+            topic = self.transactions_topic
+        elif entity == PostProcessForwarderType.ERRORS:
+            cluster_name = settings.KAFKA_TOPICS[settings.KAFKA_EVENTS]["cluster"]
+            worker = ErrorsPostProcessForwarderWorker(concurrency=concurrency)
+            topic = self.topic
+        else:
+            # Default implementation which processes both errors and transactions
+            # irrespective of values in the header. This would most likely be the case
+            # for development environments. For the combined post process forwarder
+            # to work KAFKA_EVENTS and KAFKA_TRANSACTIONS must be the same currently.
+            cluster_name = settings.KAFKA_TOPICS[settings.KAFKA_EVENTS]["cluster"]
+            assert cluster_name == settings.KAFKA_TOPICS[settings.KAFKA_TRANSACTIONS]["cluster"]
+            worker = PostProcessForwarderWorker(concurrency=concurrency)
+            topic = self.topic
+            assert self.topic == self.transactions_topic
 
         synchronized_consumer = SynchronizedConsumer(
             cluster_name=cluster_name,
@@ -171,20 +228,8 @@ class KafkaEventStream(SnubaProtocolEventStream):
             initial_offset_reset=initial_offset_reset,
         )
 
-        concurrency = options.get(_CONCURRENCY_OPTION)
-        logger.info(f"Starting post process forwrader to consume {entity} messages")
-        if entity == PostProcessForwarderType.TRANSACTIONS:
-            worker = TransactionsPostProcessForwarderWorker(concurrency=concurrency)
-        elif entity == PostProcessForwarderType.ERRORS:
-            worker = ErrorsPostProcessForwarderWorker(concurrency=concurrency)
-        else:
-            # Default implementation which processes both errors and transactions
-            # irrespective of values in the header. This would most likely be the case
-            # for development environments.
-            worker = PostProcessForwarderWorker(concurrency=concurrency)
-
         consumer = BatchingKafkaConsumer(
-            topics=self.topic,
+            topics=topic,
             worker=worker,
             max_batch_size=commit_batch_size,
             max_batch_time=commit_batch_timeout_ms,
@@ -195,13 +240,13 @@ class KafkaEventStream(SnubaProtocolEventStream):
 
     def run_batched_consumer(
         self,
-        entity,
-        consumer_group,
-        commit_log_topic,
-        synchronize_commit_group,
-        commit_batch_size=100,
-        commit_batch_timeout_ms=5000,
-        initial_offset_reset="latest",
+        entity: Union[Literal["all"], Literal["errors"], Literal["transactions"]],
+        consumer_group: str,
+        commit_log_topic: str,
+        synchronize_commit_group: str,
+        commit_batch_size: int = 100,
+        commit_batch_timeout_ms: int = 5000,
+        initial_offset_reset: Union[Literal["latest"], Literal["earliest"]] = "latest",
     ):
         consumer = self._build_consumer(
             entity,
@@ -223,12 +268,13 @@ class KafkaEventStream(SnubaProtocolEventStream):
 
     def run_streaming_consumer(
         self,
-        consumer_group,
-        commit_log_topic,
-        synchronize_commit_group,
-        commit_batch_size=100,
-        initial_offset_reset="latest",
-    ):
+        entity: Union[Literal["all"], Literal["errors"], Literal["transactions"]],
+        consumer_group: str,
+        commit_log_topic: str,
+        synchronize_commit_group: str,
+        commit_batch_size: int = 100,
+        initial_offset_reset: Union[Literal["latest"], Literal["earliest"]] = "latest",
+    ) -> None:
         cluster_name = settings.KAFKA_TOPICS[settings.KAFKA_EVENTS]["cluster"]
 
         consumer = SynchronizedConsumer(
@@ -311,7 +357,15 @@ class KafkaEventStream(SnubaProtocolEventStream):
                 )
                 commit(offsets_to_commit)
 
-        consumer.subscribe([self.topic], on_assign=on_assign, on_revoke=on_revoke)
+        if entity == "transactions":
+            topic = self.transactions_topic
+        elif entity == "errors":
+            topic = self.topic
+        else:
+            topic = self.topic
+            assert self.topic == self.transactions_topic
+
+        consumer.subscribe([topic], on_assign=on_assign, on_revoke=on_revoke)
 
         def commit_offsets():
             offsets_to_commit = []
@@ -418,13 +472,13 @@ class KafkaEventStream(SnubaProtocolEventStream):
 
     def run_post_process_forwarder(
         self,
-        entity,
-        consumer_group,
-        commit_log_topic,
-        synchronize_commit_group,
-        commit_batch_size=100,
-        commit_batch_timeout_ms=5000,
-        initial_offset_reset="latest",
+        entity: Union[Literal["all"], Literal["errors"], Literal["transactions"]],
+        consumer_group: str,
+        commit_log_topic: str,
+        synchronize_commit_group: str,
+        commit_batch_size: int = 100,
+        commit_batch_timeout_ms: int = 5000,
+        initial_offset_reset: Union[Literal["latest"], Literal["earliest"]] = "latest",
     ):
         logger.debug("Starting post-process forwarder...")
 
@@ -442,6 +496,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
         else:
             logger.info("Starting streaming consumer")
             self.run_streaming_consumer(
+                entity,
                 consumer_group,
                 commit_log_topic,
                 synchronize_commit_group,

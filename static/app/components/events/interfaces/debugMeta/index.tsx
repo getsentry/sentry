@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {createRef, Fragment, PureComponent} from 'react';
 import {
   AutoSizer,
   CellMeasurer,
@@ -67,7 +67,7 @@ const cache = new CellMeasurerCache({
   defaultHeight: 81,
 });
 
-class DebugMeta extends React.PureComponent<Props, State> {
+class DebugMeta extends PureComponent<Props, State> {
   static defaultProps: DefaultProps = {
     data: {images: []},
   };
@@ -116,7 +116,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
 
   unsubscribeFromStore: any;
 
-  panelBodyRef = React.createRef<HTMLDivElement>();
+  panelBodyRef = createRef<HTMLDivElement>();
   listRef: List | null = null;
 
   updateGrid() {
@@ -440,7 +440,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
       >
         <DebugImagesPanel>
           {filteredImages.length > 0 ? (
-            <React.Fragment>
+            <Fragment>
               {foundFrame && (
                 <ImageForBar
                   frame={foundFrame}
@@ -448,7 +448,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
                 />
               )}
               <PanelBody ref={this.panelBodyRef}>{this.renderImageList()}</PanelBody>
-            </React.Fragment>
+            </Fragment>
           ) : (
             <EmptyMessage icon={<IconWarning size="xl" />}>
               {this.getNoImagesMessage()}
@@ -492,7 +492,7 @@ const DebugImagesPanel = styled(Panel)`
 const ToolbarWrapper = styled('div')`
   display: flex;
   align-items: center;
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     flex-wrap: wrap;
     margin-top: ${space(1)};
   }
@@ -501,19 +501,19 @@ const ToolbarWrapper = styled('div')`
 const SearchInputWrapper = styled('div')`
   width: 100%;
 
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     width: 100%;
     max-width: 100%;
     margin-top: ${space(1)};
   }
 
-  @media (min-width: ${p => p.theme.breakpoints[0]}) and (max-width: ${p =>
-      p.theme.breakpoints[3]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) and (max-width: ${p =>
+      p.theme.breakpoints.xlarge}) {
     max-width: 180px;
     display: inline-block;
   }
 
-  @media (min-width: ${props => props.theme.breakpoints[3]}) {
+  @media (min-width: ${props => props.theme.breakpoints.xlarge}) {
     width: 330px;
     max-width: none;
   }

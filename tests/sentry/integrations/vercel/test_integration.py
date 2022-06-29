@@ -1,5 +1,6 @@
 from urllib.parse import parse_qs
 
+import pytest
 import responses
 from rest_framework.serializers import ValidationError
 
@@ -342,7 +343,7 @@ class VercelIntegrationTest(IntegrationTestCase):
 
         dsn = ProjectKey.get_default(project=Project.objects.get(id=project_id))
         dsn.update(id=dsn.id, status=ProjectKeyStatus.INACTIVE)
-        with self.assertRaises(ValidationError):
+        with pytest.raises(ValidationError):
             installation.update_organization_config(data)
 
     @responses.activate
@@ -366,7 +367,7 @@ class VercelIntegrationTest(IntegrationTestCase):
             % "Qme9NXBpguaRxcXssZ1NWHVaM98MAL6PHDXUs1jPrgiM8H",
             json={},
         )
-        with self.assertRaises(ValidationError):
+        with pytest.raises(ValidationError):
             installation.update_organization_config(data)
 
     @responses.activate

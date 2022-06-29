@@ -1,7 +1,6 @@
-import * as React from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 
-import {Client} from 'sentry/api';
 import CompactIssue from 'sentry/components/issues/compactIssue';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -11,11 +10,10 @@ import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Group} from 'sentry/types';
-import withApi from 'sentry/utils/withApi';
+import useApi from 'sentry/utils/useApi';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 interface IssueListProps extends WithRouterProps {
-  api: Client;
   endpoint: string;
   emptyText?: string;
   noBorder?: boolean;
@@ -33,7 +31,6 @@ interface IssueListState {
 }
 
 function IssueList({
-  api,
   endpoint,
   emptyText,
   query,
@@ -43,14 +40,16 @@ function IssueList({
   noBorder,
   noMargin,
 }: IssueListProps): React.ReactElement {
-  const [state, setState] = React.useState<IssueListState>({
+  const api = useApi();
+
+  const [state, setState] = useState<IssueListState>({
     issueIds: [],
     status: 'loading',
     pageLinks: null,
     data: [],
   });
 
-  const fetchIssueListData = React.useCallback(() => {
+  const fetchIssueListData = useCallback(() => {
     api.clear();
     api.request(endpoint, {
       method: 'GET',
@@ -67,22 +66,24 @@ function IssueList({
         });
       },
       error: () => {
-        setState({...state, status: 'error'});
+        setState(prevState => ({...prevState, status: 'error'}));
       },
     });
   }, [query, endpoint, location.query, api]);
 
-  React.useEffect(() => {
-    // TODO: location should always be passed as a prop, check why we have this
-    if (!location) {
+  // TODO: location should always be passed as a prop, check why we have this
+  const hasLocation = !!location;
+
+  useEffect(() => {
+    if (!hasLocation) {
       return;
     }
 
     setState({issueIds: [], status: 'loading', pageLinks: null, data: []});
     fetchIssueListData();
-  }, [fetchIssueListData]);
+  }, [fetchIssueListData, hasLocation]);
 
-  const panelStyles = React.useMemo(() => {
+  const panelStyles = useMemo(() => {
     const styles: React.CSSProperties = {
       ...(noBorder ? {border: 0, borderRadius: 0} : {}),
       ...(noMargin ? {marginBottom: 0} : {}),
@@ -92,7 +93,7 @@ function IssueList({
   }, [noBorder, noMargin]);
 
   return (
-    <React.Fragment>
+    <Fragment>
       {state.status === 'loading' ? (
         <div style={{margin: '18px 18px 0'}}>
           <LoadingIndicator />
@@ -120,10 +121,10 @@ function IssueList({
       )}
 
       {pagination && state.pageLinks && <Pagination pageLinks={state.pageLinks} />}
-    </React.Fragment>
+    </Fragment>
   );
 }
 
 export {IssueList};
 
-export default withRouter(withApi(IssueList));
+export default withRouter(IssueList);

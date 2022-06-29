@@ -185,9 +185,3 @@ class OrganizationEventsGeoEndpointTest(APITestCase, SnubaTestCase):
             {"count": 2, "geo.country_code": "JP"},
             {"count": 3, "geo.country_code": "BR"},
         ]
-
-
-class OrganizationEventsGeoEndpointTestWithSnql(OrganizationEventsGeoEndpointTest):
-    def setUp(self):
-        super().setUp()
-        self.features["organizations:discover-use-snql"] = True

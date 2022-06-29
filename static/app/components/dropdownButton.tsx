@@ -1,7 +1,7 @@
-import * as React from 'react';
+import {forwardRef} from 'react';
 import styled from '@emotion/styled';
 
-import Button, {ButtonProps} from 'sentry/components/button';
+import Button, {ButtonLabel, ButtonProps} from 'sentry/components/button';
 import {IconChevron} from 'sentry/icons';
 import space from 'sentry/styles/space';
 
@@ -31,6 +31,10 @@ interface DropdownButtonProps extends Omit<ButtonProps, 'prefix'> {
    */
   priority?: 'default' | 'primary' | 'form';
   /**
+   * Align chevron to the right of dropdown button
+   */
+  rightAlignChevron?: boolean;
+  /**
    * Should a chevron icon be shown?
    */
   showChevron?: boolean;
@@ -46,6 +50,7 @@ const DropdownButton = ({
   detached = false,
   disabled = false,
   priority = 'form',
+  rightAlignChevron = false,
   ...props
 }: DropdownButtonProps) => {
   return (
@@ -53,6 +58,8 @@ const DropdownButton = ({
       {...props}
       type="button"
       aria-haspopup="listbox"
+      aria-expanded={detached ? isOpen : undefined}
+      hasPrefix={!!prefix}
       disabled={disabled}
       priority={priority}
       isOpen={isOpen}
@@ -62,7 +69,13 @@ const DropdownButton = ({
     >
       {prefix && <LabelText>{prefix}</LabelText>}
       {children}
-      {showChevron && <StyledChevron size="xs" direction={isOpen ? 'up' : 'down'} />}
+      {showChevron && (
+        <StyledChevron
+          rightAlignChevron={rightAlignChevron}
+          size="xs"
+          direction={isOpen ? 'up' : 'down'}
+        />
+      )}
     </StyledButton>
   );
 };
@@ -71,8 +84,17 @@ DropdownButton.defaultProps = {
   showChevron: true,
 };
 
-const StyledChevron = styled(IconChevron)`
+const StyledChevron = styled(IconChevron, {
+  shouldForwardProp: prop => prop !== 'rightAlignChevron',
+})<{
+  rightAlignChevron: boolean;
+}>`
   margin-left: 0.33em;
+
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
+    position: ${p => p.rightAlignChevron && 'absolute'};
+    right: ${p => p.rightAlignChevron && `${space(2)}`};
+  }
 `;
 
 const StyledButton = styled(Button)<
@@ -81,7 +103,9 @@ const StyledButton = styled(Button)<
       DropdownButtonProps,
       'isOpen' | 'disabled' | 'hideBottomBorder' | 'detached' | 'priority'
     >
-  >
+  > & {
+    hasPrefix: boolean;
+  }
 >`
   border-bottom-right-radius: ${p =>
     p.isOpen && !p.detached ? 0 : p.theme.borderRadius};
@@ -90,23 +114,28 @@ const StyledButton = styled(Button)<
   z-index: 2;
 
   ${p => (p.isOpen || p.disabled) && 'box-shadow: none'};
+  ${p => p.hasPrefix && `${ButtonLabel} {font-weight: 400;}`}
 
   &,
   &:active,
   &:focus,
   &:hover {
-    ${p => p.isOpen && p.hideBottomBorder && `border-bottom-color: transparent;`}
+    ${p =>
+      p.isOpen &&
+      p.hideBottomBorder &&
+      !p.detached &&
+      `border-bottom-color: transparent;`}
   }
 `;
 
 const LabelText = styled('span')`
-  font-weight: 400;
+  font-weight: 600;
   padding-right: ${space(0.75)};
   &:after {
     content: ':';
   }
 `;
 
-export default React.forwardRef<typeof Button, DropdownButtonProps>((props, ref) => (
+export default forwardRef<typeof Button, DropdownButtonProps>((props, ref) => (
   <DropdownButton forwardedRef={ref} {...props} />
 ));

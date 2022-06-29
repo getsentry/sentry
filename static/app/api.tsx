@@ -1,5 +1,5 @@
 import {browserHistory} from 'react-router';
-import {Severity} from '@sentry/react';
+import * as Sentry from '@sentry/react';
 import Cookies from 'js-cookie';
 import isUndefined from 'lodash/isUndefined';
 import * as qs from 'query-string';
@@ -12,7 +12,6 @@ import {
   SUPERUSER_REQUIRED,
 } from 'sentry/constants/apiErrorCodes';
 import {metric} from 'sentry/utils/analytics';
-import {run} from 'sentry/utils/apiSentryClient';
 import getCsrfToken from 'sentry/utils/getCsrfToken';
 import {uniqueId} from 'sentry/utils/guid';
 import createRequestError from 'sentry/utils/requestError/createRequestError';
@@ -51,6 +50,10 @@ export type ResponseMeta<R = any> = {
    */
   getResponseHeader: (header: string) => string | null;
   /**
+   * The raw response
+   */
+  rawResponse: Response;
+  /**
    * The response body decoded from json
    */
   responseJSON: R;
@@ -84,7 +87,10 @@ const ALLOWED_ANON_PAGES = [
   /^\/join-request\//,
 ];
 
-const globalErrorHandlers: ((resp: ResponseMeta) => void)[] = [];
+/**
+ * Return true if we should skip calling the normal error handler
+ */
+const globalErrorHandlers: ((resp: ResponseMeta) => boolean)[] = [];
 
 export const initApiClientErrorHandling = () =>
   globalErrorHandlers.push((resp: ResponseMeta) => {
@@ -94,7 +100,7 @@ export const initApiClientErrorHandling = () =>
 
     // Ignore error unless it is a 401
     if (!resp || resp.status !== 401 || pageAllowsAnon) {
-      return;
+      return false;
     }
 
     const code = resp?.responseJSON?.detail?.code;
@@ -110,17 +116,18 @@ export const initApiClientErrorHandling = () =>
         'app-connect-authentication-error',
       ].includes(code)
     ) {
-      return;
+      return false;
     }
 
     // If user must login via SSO, redirect to org login page
     if (code === 'sso-required') {
       window.location.assign(extra.loginUrl);
-      return;
+      return true;
     }
 
     if (code === 'member-disabled-over-limit') {
       browserHistory.replace(extra.next);
+      return true;
     }
 
     // Otherwise, the user has become unauthenticated. Send them to auth
@@ -131,6 +138,7 @@ export const initApiClientErrorHandling = () =>
     } else {
       window.location.reload();
     }
+    return true;
   });
 
 /**
@@ -141,13 +149,11 @@ function buildRequestUrl(baseUrl: string, path: string, query: RequestOptions['q
   try {
     params = qs.stringify(query ?? []);
   } catch (err) {
-    run(Sentry =>
-      Sentry.withScope(scope => {
-        scope.setExtra('path', path);
-        scope.setExtra('query', query);
-        Sentry.captureException(err);
-      })
-    );
+    Sentry.withScope(scope => {
+      scope.setExtra('path', path);
+      scope.setExtra('query', query);
+      Sentry.captureException(err);
+    });
     throw err;
   }
 
@@ -305,7 +311,7 @@ export class Client {
 
     if (isSudoRequired) {
       openSudo({
-        superuser: code === SUPERUSER_REQUIRED,
+        isSuperuser: code === SUPERUSER_REQUIRED,
         sudo: code === SUDO_REQUIRED,
         retryRequest: async () => {
           try {
@@ -363,8 +369,6 @@ export class Client {
 
     metric.mark({name: startMarker});
 
-    const errorObject = new Error();
-
     /**
      * Called when the request completes with a 2xx status
      */
@@ -400,35 +404,6 @@ export class Client {
         start: startMarker,
         data: {status: resp?.status},
       });
-
-      if (
-        resp &&
-        resp.status !== 0 &&
-        resp.status !== 404 &&
-        errorThrown !== 'Request was aborted'
-      ) {
-        run(Sentry =>
-          Sentry.withScope(scope => {
-            // `requestPromise` can pass its error object
-            const preservedError = options.preservedError ?? errorObject;
-
-            const errorObjectToUse = createRequestError(
-              resp,
-              preservedError.stack,
-              method,
-              path
-            );
-
-            errorObjectToUse.removeFrames(3);
-
-            // Setting this to warning because we are going to capture all failed requests
-            scope.setLevel(Severity.Warning);
-            scope.setTag('http.statusCode', String(resp.status));
-            scope.setTag('error.reason', errorThrown);
-            Sentry.captureException(errorObjectToUse);
-          })
-        );
-      }
 
       this.handleRequestError(
         {id, path, requestOptions: options},
@@ -484,8 +459,6 @@ export class Client {
         // The Response's body can only be resolved/used at most once.
         // So we clone the response so we can resolve the body content as text content.
         // Response objects need to be cloned before its body can be used.
-        const responseClone = response.clone();
-
         let responseJSON: any;
         let responseText: any;
 
@@ -495,7 +468,7 @@ export class Client {
 
         // Try to get text out of the response no matter the status
         try {
-          responseText = await response.text();
+          responseText = await response.clone().text();
         } catch (error) {
           ok = false;
           if (error.name === 'AbortError') {
@@ -505,13 +478,13 @@ export class Client {
           }
         }
 
-        const responseContentType = response.headers.get('content-type');
+        const responseContentType = response.clone().headers.get('content-type');
         const isResponseJSON = responseContentType?.includes('json');
 
         const isStatus3XX = status >= 300 && status < 400;
         if (status !== 204 && !isStatus3XX) {
           try {
-            responseJSON = await responseClone.json();
+            responseJSON = await response.clone().json();
           } catch (error) {
             if (error.name === 'AbortError') {
               ok = false;
@@ -531,6 +504,7 @@ export class Client {
           responseJSON,
           responseText,
           getResponseHeader: (header: string) => response.headers.get(header),
+          rawResponse: response.clone(),
         };
 
         // Respect the response content-type header
@@ -539,25 +513,19 @@ export class Client {
         if (ok) {
           successHandler(responseMeta, statusText, responseData);
         } else {
-          globalErrorHandlers.forEach(handler => handler(responseMeta));
-          errorHandler(responseMeta, statusText, errorReason);
+          const shouldSkipErrorHandler =
+            globalErrorHandlers.map(handler => handler(responseMeta)).filter(Boolean)
+              .length > 0;
+
+          if (!shouldSkipErrorHandler) {
+            errorHandler(responseMeta, statusText, errorReason);
+          }
         }
 
         completeHandler(responseMeta, statusText);
       })
-      .catch(err => {
-        // Aborts are expected
-        if (err?.name === 'AbortError') {
-          return;
-        }
-
-        // The request failed for other reason
-        run(Sentry =>
-          Sentry.withScope(scope => {
-            scope.setLevel(Severity.Warning);
-            Sentry.captureException(err);
-          })
-        );
+      .catch(() => {
+        // Ignore all failed requests
       });
 
     const request = new Request(fetchRequest, aborter);

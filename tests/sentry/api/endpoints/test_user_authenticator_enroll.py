@@ -1,4 +1,3 @@
-import os
 from unittest import mock
 from urllib.parse import parse_qsl
 
@@ -7,24 +6,10 @@ from django.core import mail
 from django.db.models import F
 from django.urls import reverse
 
-from sentry.models import (
-    AuditLogEntry,
-    AuditLogEntryEvent,
-    Authenticator,
-    Organization,
-    OrganizationMember,
-    UserEmail,
-)
+from sentry import audit_log
+from sentry.models import AuditLogEntry, Authenticator, Organization, OrganizationMember, UserEmail
 from sentry.testutils import APITestCase
 from tests.sentry.api.endpoints.test_user_authenticator_details import assert_security_email_sent
-
-
-# TODO(joshuarli): move all fixtures to a standard path relative to gitroot,
-#                  and implement this in testutils
-def get_fixture_path(name):
-    return os.path.join(
-        os.path.dirname(__file__), os.pardir, os.pardir, os.pardir, "fixtures", name
-    )
 
 
 class UserAuthenticatorEnrollTest(APITestCase):
@@ -291,7 +276,7 @@ class AcceptOrganizationInviteTest(APITestCase):
             organization=self.organization,
             target_object=om.id,
             target_user=self.user,
-            event=AuditLogEntryEvent.MEMBER_ACCEPT,
+            event=audit_log.get_event_id("MEMBER_ACCEPT"),
             data=om.get_audit_log_data(),
         )
 

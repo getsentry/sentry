@@ -1,11 +1,10 @@
-import {createRef, Fragment, PureComponent} from 'react';
+import {PureComponent} from 'react';
 import {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import DropdownControl, {DropdownItem} from 'sentry/components/dropdownControl';
+import CompactSelect from 'sentry/components/forms/compactSelect';
 import {t} from 'sentry/locale';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {Repository} from 'sentry/types';
 
@@ -16,24 +15,7 @@ type Props = {
   activeRepository?: Repository;
 };
 
-type State = {
-  dropdownButtonWidth?: number;
-};
-
-class RepositorySwitcher extends PureComponent<Props, State> {
-  state: State = {};
-
-  componentDidMount() {
-    this.setButtonDropDownWidth();
-  }
-  setButtonDropDownWidth() {
-    const dropdownButtonWidth = this.dropdownButton?.current?.offsetWidth;
-    if (dropdownButtonWidth) {
-      this.setState({dropdownButtonWidth});
-    }
-  }
-
-  dropdownButton = createRef<HTMLButtonElement>();
+class RepositorySwitcher extends PureComponent<Props> {
   handleRepoFilterChange = (activeRepo: string) => {
     const {router, location} = this.props;
 
@@ -45,61 +27,30 @@ class RepositorySwitcher extends PureComponent<Props, State> {
 
   render() {
     const {activeRepository, repositories} = this.props;
-    const {dropdownButtonWidth} = this.state;
 
     const activeRepo = activeRepository?.name;
 
     return (
-      <StyledDropdownControl
-        minMenuWidth={dropdownButtonWidth}
-        label={
-          <Fragment>
-            <FilterText>{`${t('Filter')}:`}</FilterText>
-            {activeRepo}
-          </Fragment>
-        }
-        buttonProps={{forwardRef: this.dropdownButton}}
-      >
-        {repositories
-          .map(repo => repo.name)
-          .map(repoName => (
-            <DropdownItem
-              key={repoName}
-              onSelect={this.handleRepoFilterChange}
-              eventKey={repoName}
-              isActive={repoName === activeRepo}
-            >
-              <RepoLabel>{repoName}</RepoLabel>
-            </DropdownItem>
-          ))}
-      </StyledDropdownControl>
+      <StyledCompactSelect
+        triggerLabel={activeRepo}
+        triggerProps={{prefix: t('Filter')}}
+        value={activeRepo}
+        options={repositories.map(repo => ({
+          value: repo.name,
+          label: <RepoLabel>{repo.name}</RepoLabel>,
+        }))}
+        onChange={opt => this.handleRepoFilterChange(opt?.value)}
+      />
     );
   }
 }
 
 export default RepositorySwitcher;
 
-const StyledDropdownControl = styled(DropdownControl)<{
-  minMenuWidth: State['dropdownButtonWidth'];
-}>`
+const StyledCompactSelect = styled(CompactSelect)`
   margin-bottom: ${space(1)};
-  > *:nth-child(2) {
-    right: auto;
-    width: auto;
-    ${p => p.minMenuWidth && `min-width: calc(${p.minMenuWidth}px + 10px);`}
-    border-radius: ${p => p.theme.borderRadius};
-    border-top-left-radius: 0px;
-    border: 1px solid ${p => p.theme.button.default.border};
-    top: calc(100% - 1px);
-  }
-`;
-
-const FilterText = styled('em')`
-  font-style: normal;
-  color: ${p => p.theme.gray300};
-  margin-right: ${space(0.5)};
 `;
 
 const RepoLabel = styled('div')`
-  ${overflowEllipsis}
+  ${p => p.theme.overflowEllipsis}
 `;

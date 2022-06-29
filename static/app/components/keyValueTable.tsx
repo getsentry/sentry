@@ -1,7 +1,6 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {Theme} from 'sentry/utils/theme';
 
@@ -17,10 +16,10 @@ export const KeyValueTable = styled('dl')`
 
 export const KeyValueTableRow = ({keyName, value}: Props) => {
   return (
-    <React.Fragment>
+    <Fragment>
       <Key>{keyName}</Key>
       <Value>{value}</Value>
-    </React.Fragment>
+    </Fragment>
   );
 };
 
@@ -29,7 +28,7 @@ font-size: ${theme.fontSizeMedium};
 padding: ${space(0.5)} ${space(1)};
 font-weight: normal;
 line-height: inherit;
-${overflowEllipsis};
+${p => p.theme.overflowEllipsis};
 &:nth-of-type(2n-1) {
   background-color: ${theme.backgroundSecondary};
 }

@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {withProfiler} from '@sentry/react';
@@ -99,7 +99,7 @@ type Props = {
 
 type State = {
   actionTaken: boolean;
-  actionTakenIds: string[];
+  actionTakenGroupData: Group[];
   error: string | null;
   // TODO(Kelly): remove forReview once issue-list-removal-action feature is stable
   forReview: boolean;
@@ -123,6 +123,7 @@ type State = {
   reviewedIds: string[];
   selectAllActive: boolean;
   tagsLoading: boolean;
+  undo: boolean;
   // Will be set to true if there is valid session data from issue-stats api call
   query?: string;
 };
@@ -147,7 +148,7 @@ type StatEndpointParams = Omit<EndpointParams, 'cursor' | 'page'> & {
   expand?: string | string[];
 };
 
-class IssueListOverview extends React.Component<Props, State> {
+class IssueListOverview extends Component<Props, State> {
   state: State = this.getInitialState();
 
   getInitialState() {
@@ -162,8 +163,9 @@ class IssueListOverview extends React.Component<Props, State> {
       // TODO(Kelly): remove reviewedIds and forReview once issue-list-removal-action feature is stable
       reviewedIds: [],
       actionTaken: false,
-      actionTakenIds: [],
+      actionTakenGroupData: [],
       forReview: false,
+      undo: false,
       selectAllActive: false,
       realtimeActive,
       pageLinks: '',
@@ -487,10 +489,8 @@ class IssueListOverview extends React.Component<Props, State> {
               })),
             };
           },
-          error: err => {
-            this.setState({
-              error: parseApiError(err),
-            });
+          error: () => {
+            this.setState({queryCounts: {}});
           },
           complete: () => {
             this._lastFetchCountsRequest = null;
@@ -511,7 +511,7 @@ class IssueListOverview extends React.Component<Props, State> {
 
     // TODO(Kelly): update once issue-list-removal-action feature is stable
     if (hasIssueListRemovalAction && !this.state.realtimeActive) {
-      if (!this.state.actionTaken) {
+      if (!this.state.actionTaken && !this.state.undo) {
         GroupStore.loadInitialData([]);
         this._streamManager.reset();
 
@@ -604,6 +604,9 @@ class IssueListOverview extends React.Component<Props, State> {
           return;
         }
 
+        if (this.state.undo) {
+          GroupStore.loadInitialData(data);
+        }
         this._streamManager.push(data);
 
         // TODO(Kelly): update once issue-list-removal-action feature is stable
@@ -660,7 +663,7 @@ class IssueListOverview extends React.Component<Props, State> {
 
         // TODO(Kelly): update once issue-list-removal-action feature is stable
         if (hasIssueListRemovalAction && !this.state.realtimeActive) {
-          this.setState({actionTaken: false, actionTakenIds: []});
+          this.setState({actionTaken: false, undo: false});
         } else {
           this.setState({forReview: false});
         }
@@ -727,7 +730,7 @@ class IssueListOverview extends React.Component<Props, State> {
 
   onGroupChange() {
     const {organization} = this.props;
-    const {actionTakenIds} = this.state;
+    const {actionTakenGroupData} = this.state;
     const query = this.getQuery();
     const hasIssueListRemovalAction = organization.features.includes(
       'issue-list-removal-action'
@@ -737,10 +740,10 @@ class IssueListOverview extends React.Component<Props, State> {
     if (
       hasIssueListRemovalAction &&
       !this.state.realtimeActive &&
-      actionTakenIds.length > 0
+      actionTakenGroupData.length > 0
     ) {
       const filteredItems = this._streamManager.getAllItems().filter(item => {
-        return actionTakenIds.indexOf(item.id) !== -1;
+        return actionTakenGroupData.findIndex(data => data.id === item.id) !== -1;
       });
 
       const resolvedIds = filteredItems
@@ -1023,6 +1026,59 @@ class IssueListOverview extends React.Component<Props, State> {
     this.fetchData(true);
   };
 
+  onUndo = () => {
+    const {organization, selection} = this.props;
+    const {actionTakenGroupData} = this.state;
+    const query = this.getQuery();
+
+    const groupIds = actionTakenGroupData.map(data => data.id);
+    const projectIds = selection?.projects?.map(p => p.toString());
+    const endpoint = `/organizations/${organization.slug}/issues/`;
+
+    if (this._lastRequest) {
+      this._lastRequest.cancel();
+    }
+    if (this._lastStatsRequest) {
+      this._lastStatsRequest.cancel();
+    }
+    if (this._lastFetchCountsRequest) {
+      this._lastFetchCountsRequest.cancel();
+    }
+
+    this.props.api.request(endpoint, {
+      method: 'PUT',
+      data: {
+        status: 'unresolved',
+      },
+      query: {
+        project: projectIds,
+        id: groupIds,
+      },
+      success: response => {
+        if (!response) {
+          return;
+        }
+        // If on the Ignore or For Review tab, adding back to the GroupStore will make the issue show up
+        // on this page for a second and then be removed (will show up on All Unresolved). This is to
+        // stop this from happening and avoid confusion.
+        if (!query.includes('is:ignored') && !isForReviewQuery(query)) {
+          GroupStore.add(actionTakenGroupData);
+        }
+        this.setState({undo: true});
+      },
+      error: err => {
+        this.setState({
+          error: parseApiError(err),
+          issuesLoading: false,
+        });
+      },
+      complete: () => {
+        this.setState({actionTakenGroupData: []});
+        this.fetchData();
+      },
+    });
+  };
+
   onMarkReviewed = (itemIds: string[]) => {
     const {organization} = this.props;
     const query = this.getQuery();
@@ -1063,8 +1119,9 @@ class IssueListOverview extends React.Component<Props, State> {
   };
 
   onActionTaken = (itemIds: string[]) => {
+    const actionTakenGroupData = itemIds.map(id => GroupStore.get(id) as Group);
     this.setState({
-      actionTakenIds: itemIds,
+      actionTakenGroupData,
     });
   };
 
@@ -1072,10 +1129,14 @@ class IssueListOverview extends React.Component<Props, State> {
     if (itemIds.length > 1) {
       addMessage(t(`${actionType} ${itemIds.length} Issues`), 'success', {
         duration: 4000,
+        ...(actionType !== 'Reviewed' && {undo: this.onUndo}),
       });
     } else {
       const shortId = itemIds.map(item => GroupStore.get(item)?.shortId).toString();
-      addMessage(t(`${actionType} ${shortId}`), 'success', {duration: 4000});
+      addMessage(t(`${actionType} ${shortId}`), 'success', {
+        duration: 4000,
+        ...(actionType !== 'Reviewed' && {undo: this.onUndo}),
+      });
     }
 
     GroupStore.remove(itemIds);
@@ -1160,7 +1221,7 @@ class IssueListOverview extends React.Component<Props, State> {
     };
 
     return (
-      <React.Fragment>
+      <Fragment>
         <StyledPageContent>
           <IssueListHeader
             organization={organization}
@@ -1182,10 +1243,8 @@ class IssueListOverview extends React.Component<Props, State> {
               <IssueListFilters
                 organization={organization}
                 query={query}
-                queryCount={queryCount}
                 savedSearch={savedSearch}
                 sort={this.getSort()}
-                onSortChange={this.onSortChange}
                 onSearch={this.onSearch}
                 onSidebarToggle={this.onSidebarToggle}
                 isSearchDisabled={isSidebarVisible}
@@ -1208,6 +1267,8 @@ class IssueListOverview extends React.Component<Props, State> {
                   groupIds={groupIds}
                   allResultsVisible={this.allResultsVisible()}
                   displayReprocessingActions={displayReprocessingActions}
+                  sort={this.getSort()}
+                  onSortChange={this.onSortChange}
                 />
                 <PanelBody>
                   <ProcessingIssueList
@@ -1246,7 +1307,7 @@ class IssueListOverview extends React.Component<Props, State> {
             )}
           </Layout.Body>
         </StyledPageContent>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

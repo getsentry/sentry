@@ -12,6 +12,7 @@ describe('importProfile', () => {
       name: 'profile',
       startValue: 0,
       endValue: 1000,
+      threadID: 0,
       unit: 'milliseconds',
       type: 'evented',
       events: [],
@@ -19,12 +20,17 @@ describe('importProfile', () => {
 
     const imported = importProfile(
       {
-        name: 'profile',
         activeProfileIndex: 0,
+        durationNS: 0,
+        platform: 'android',
+        profileID: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
         profiles: [eventedProfile],
+        projectID: 1,
         shared: {
           frames: [],
         },
+        transactionName: 'profile',
+        version: '1.1.0 (build 2)',
       },
       ''
     );
@@ -36,6 +42,7 @@ describe('importProfile', () => {
       name: 'profile',
       startValue: 0,
       endValue: 1000,
+      threadID: 0,
       unit: 'milliseconds',
       type: 'sampled',
       weights: [],
@@ -44,12 +51,17 @@ describe('importProfile', () => {
 
     const imported = importProfile(
       {
-        name: 'profile',
         activeProfileIndex: 0,
+        durationNS: 0,
+        platform: 'cocoa',
+        profileID: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
         profiles: [sampledProfile],
+        projectID: 1,
         shared: {
           frames: [],
         },
+        transactionName: 'profile',
+        version: '7.14.0 (build 1)',
       },
       ''
     );
@@ -78,12 +90,17 @@ describe('importProfile', () => {
 
     const imported = importProfile(
       {
-        name: 'profile',
         activeProfileIndex: 0,
+        durationNS: 0,
+        platform: 'typescript',
+        profileID: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
         profiles: [jsSelfProfile],
+        projectID: 1,
         shared: {
           frames: [],
         },
+        transactionName: 'profile',
+        version: '7.14.0 (build 1)',
       },
       ''
     );
@@ -177,22 +194,28 @@ describe('importDroppedProfile', () => {
 
   it('imports schema file', async () => {
     const schema: Profiling.Schema = {
-      name: 'profile',
       activeProfileIndex: 0,
+      durationNS: 0,
+      platform: 'cocoa',
+      profileID: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
       profiles: [
         {
           name: 'profile',
           startValue: 0,
           endValue: 1000,
+          threadID: 0,
           unit: 'milliseconds',
           type: 'sampled',
           weights: [],
           samples: [],
         },
       ],
+      projectID: 1,
       shared: {
         frames: [],
       },
+      transactionName: 'profile',
+      version: '7.14.0 (build 1)',
     };
     const file = new File([JSON.stringify(schema)], 'test.tsx');
     const imported = await importDroppedProfile(file);

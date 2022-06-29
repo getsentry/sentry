@@ -8,12 +8,12 @@ import Hook from 'sentry/components/hook';
 import Link from 'sentry/components/links/link';
 import LogoSentry from 'sentry/components/logoSentry';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {PlatformKey} from 'sentry/data/platformCategories';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import Redirect from 'sentry/utils/redirect';
 import testableTransition from 'sentry/utils/testableTransition';
 import withOrganization from 'sentry/utils/withOrganization';
 import withProjects from 'sentry/utils/withProjects';
@@ -23,6 +23,7 @@ import Stepper from './components/stepper';
 import PlatformSelection from './platform';
 import SetupDocs from './setupDocs';
 import {StepDescriptor} from './types';
+import {usePersistedOnboardingState} from './utils';
 import TargetedOnboardingWelcome from './welcome';
 
 type RouteParams = {
@@ -35,28 +36,30 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   projects: Project[];
 };
 
-const ONBOARDING_STEPS: StepDescriptor[] = [
-  {
-    id: 'welcome',
-    title: t('Welcome'),
-    Component: TargetedOnboardingWelcome,
-    cornerVariant: 'top-right',
-  },
-  {
-    id: 'select-platform',
-    title: t('Select platforms'),
-    Component: PlatformSelection,
-    hasFooter: true,
-    cornerVariant: 'top-left',
-  },
-  {
-    id: 'setup-docs',
-    title: t('Install the Sentry SDK'),
-    Component: SetupDocs,
-    hasFooter: true,
-    cornerVariant: 'top-left',
-  },
-];
+function getOrganizationOnboardingSteps(): StepDescriptor[] {
+  return [
+    {
+      id: 'welcome',
+      title: t('Welcome'),
+      Component: TargetedOnboardingWelcome,
+      cornerVariant: 'top-right',
+    },
+    {
+      id: 'select-platform',
+      title: t('Select platforms'),
+      Component: PlatformSelection,
+      hasFooter: true,
+      cornerVariant: 'top-left',
+    },
+    {
+      id: 'setup-docs',
+      title: t('Install the Sentry SDK'),
+      Component: SetupDocs,
+      hasFooter: true,
+      cornerVariant: 'top-left',
+    },
+  ];
+}
 
 function Onboarding(props: Props) {
   const {
@@ -64,19 +67,16 @@ function Onboarding(props: Props) {
     params: {step: stepId},
   } = props;
   const cornerVariantTimeoutRed = useRef<number | undefined>(undefined);
+  const [clientState, setClientState] = usePersistedOnboardingState();
 
   useEffect(() => {
     return () => {
       window.clearTimeout(cornerVariantTimeoutRed.current);
     };
   }, []);
-
-  const stepObj = ONBOARDING_STEPS.find(({id}) => stepId === id);
-  const stepIndex = ONBOARDING_STEPS.findIndex(({id}) => stepId === id);
-
-  if (!stepObj || stepIndex === -1) {
-    return <div>Can't find</div>;
-  }
+  const onboardingSteps = getOrganizationOnboardingSteps();
+  const stepObj = onboardingSteps.find(({id}) => stepId === id);
+  const stepIndex = onboardingSteps.findIndex(({id}) => stepId === id);
 
   const cornerVariantControl = useAnimation();
   const updateCornerVariant = () => {
@@ -84,34 +84,30 @@ function Onboarding(props: Props) {
     window.clearTimeout(cornerVariantTimeoutRed.current);
 
     cornerVariantTimeoutRed.current = window.setTimeout(
-      () => cornerVariantControl.start(activeStepIndex === 0 ? 'top-right' : 'top-left'),
+      () => cornerVariantControl.start(stepIndex === 0 ? 'top-right' : 'top-left'),
       1000
     );
   };
 
-  useEffect(updateCornerVariant, []);
-  const [platforms, setPlatforms] = useState<PlatformKey[]>([]);
+  useEffect(updateCornerVariant, [stepIndex, cornerVariantControl]);
 
   const [containerHasFooter, setContainerHasFooter] = useState<boolean>(false);
   const updateAnimationState = () => {
+    if (!stepObj) {
+      return;
+    }
+
     setContainerHasFooter(stepObj.hasFooter ?? false);
     cornerVariantControl.start(stepObj.cornerVariant);
   };
 
-  useEffect(updateAnimationState, []);
-
-  const addPlatform = (platform: PlatformKey) => {
-    setPlatforms([...platforms, platform]);
-  };
-
-  const removePlatform = (platform: PlatformKey) => {
-    setPlatforms(platforms.filter(p => p !== platform));
-  };
-  useEffect(updateCornerVariant, []);
-
-  const clearPlatforms = () => setPlatforms([]);
+  useEffect(updateAnimationState, [stepObj, cornerVariantControl]);
 
   const goToStep = (step: StepDescriptor) => {
+    if (!stepObj) {
+      return;
+    }
+
     if (step.cornerVariant !== stepObj.cornerVariant) {
       cornerVariantControl.start('none');
     }
@@ -119,19 +115,21 @@ function Onboarding(props: Props) {
   };
 
   const goNextStep = (step: StepDescriptor) => {
-    const currentStepIndex = ONBOARDING_STEPS.findIndex(s => s.id === step.id);
-    const nextStep = ONBOARDING_STEPS[currentStepIndex + 1];
+    const currentStepIndex = onboardingSteps.findIndex(s => s.id === step.id);
+    const nextStep = onboardingSteps[currentStepIndex + 1];
     if (step.cornerVariant !== nextStep.cornerVariant) {
       cornerVariantControl.start('none');
     }
-
     browserHistory.push(`/onboarding/${props.params.orgId}/${nextStep.id}/`);
   };
 
-  const activeStepIndex = ONBOARDING_STEPS.findIndex(({id}) => props.params.step === id);
-
   const handleGoBack = () => {
-    const previousStep = ONBOARDING_STEPS[activeStepIndex - 1];
+    if (!stepObj) {
+      return;
+    }
+
+    const previousStep = onboardingSteps[stepIndex - 1];
+
     if (stepObj.cornerVariant !== previousStep.cornerVariant) {
       cornerVariantControl.start('none');
     }
@@ -142,12 +140,18 @@ function Onboarding(props: Props) {
     const source = `targeted-onboarding-${stepId}`;
     return (
       <SkipOnboardingLink
-        onClick={() =>
+        onClick={() => {
           trackAdvancedAnalyticsEvent('growth.onboarding_clicked_skip', {
             organization,
             source,
-          })
-        }
+          });
+          if (clientState) {
+            setClientState({
+              ...clientState,
+              state: 'skipped',
+            });
+          }
+        }}
         to={`/organizations/${organization.slug}/issues/`}
       >
         {t('Skip Onboarding')}
@@ -155,16 +159,21 @@ function Onboarding(props: Props) {
     );
   };
 
+  if (!stepObj || stepIndex === -1) {
+    return <Redirect to={`/onboarding/${organization.slug}/${onboardingSteps[0].id}/`} />;
+  }
   return (
-    <main data-test-id="targeted-onboarding">
+    <OnboardingWrapper data-test-id="targeted-onboarding">
       <SentryDocumentTitle title={stepObj.title} />
       <Header>
         <LogoSvg />
-        <StyledStepper
-          numSteps={ONBOARDING_STEPS.length}
-          currentStepIndex={stepIndex}
-          onClick={i => goToStep(ONBOARDING_STEPS[i])}
-        />
+        {stepIndex !== -1 && (
+          <StyledStepper
+            numSteps={onboardingSteps.length}
+            currentStepIndex={stepIndex}
+            onClick={i => goToStep(onboardingSteps[i])}
+          />
+        )}
         <UpsellWrapper>
           <Hook
             name="onboarding:targeted-onboarding-header"
@@ -173,26 +182,20 @@ function Onboarding(props: Props) {
         </UpsellWrapper>
       </Header>
       <Container hasFooter={containerHasFooter}>
-        <Back
-          animate={activeStepIndex > 0 ? 'visible' : 'hidden'}
-          onClick={handleGoBack}
-        />
+        <Back animate={stepIndex > 0 ? 'visible' : 'hidden'} onClick={handleGoBack} />
         <AnimatePresence exitBeforeEnter onExitComplete={updateAnimationState}>
           <OnboardingStep key={stepObj.id} data-test-id={`onboarding-step-${stepObj.id}`}>
             {stepObj.Component && (
               <stepObj.Component
                 active
-                stepIndex={activeStepIndex}
-                onComplete={() => goNextStep(stepObj)}
+                data-test-id={`onboarding-step-${stepObj.id}`}
+                stepIndex={stepIndex}
+                onComplete={() => stepObj && goNextStep(stepObj)}
                 orgId={props.params.orgId}
                 organization={props.organization}
                 search={props.location.search}
                 {...{
-                  platforms,
-                  addPlatform,
-                  removePlatform,
                   genSkipOnboardingLink,
-                  clearPlatforms,
                 }}
               />
             )}
@@ -200,11 +203,14 @@ function Onboarding(props: Props) {
         </AnimatePresence>
         <AdaptivePageCorners animateVariant={cornerVariantControl} />
       </Container>
-    </main>
+    </OnboardingWrapper>
   );
 }
 
 const Container = styled('div')<{hasFooter: boolean}>`
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
   position: relative;
   background: ${p => p.theme.background};
   padding: 120px ${space(3)};
@@ -216,8 +222,11 @@ const Container = styled('div')<{hasFooter: boolean}>`
 
 const Header = styled('header')`
   background: ${p => p.theme.background};
-  padding: ${space(4)};
+  padding-left: ${space(4)};
+  padding-right: ${space(4)};
   position: sticky;
+  height: 80px;
+  align-items: center;
   top: 0;
   z-index: 100;
   box-shadow: 0 5px 10px rgba(0, 0, 0, 0.05);
@@ -232,7 +241,11 @@ const LogoSvg = styled(LogoSentry)`
   color: ${p => p.theme.textColor};
 `;
 
-const OnboardingStep = styled(motion.div)``;
+const OnboardingStep = styled(motion.div)`
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+`;
 
 OnboardingStep.defaultProps = {
   initial: 'initial',
@@ -263,15 +276,16 @@ Sidebar.defaultProps = {
 
 const AdaptivePageCorners = styled(PageCorners)`
   --corner-scale: 1;
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     --corner-scale: 0.5;
   }
 `;
 
 const StyledStepper = styled(Stepper)`
-  margin-left: auto;
-  margin-right: auto;
-  align-self: center;
+  justify-self: center;
+  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+    display: none;
+  }
 `;
 
 interface BackButtonProps extends Omit<ButtonProps, 'icon' | 'priority'> {
@@ -320,6 +334,12 @@ const SkipOnboardingLink = styled(Link)`
 const UpsellWrapper = styled('div')`
   grid-column: 3;
   margin-left: auto;
+`;
+
+const OnboardingWrapper = styled('main')`
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
 `;
 
 export default withOrganization(withProjects(Onboarding));

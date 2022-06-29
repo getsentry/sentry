@@ -14,7 +14,27 @@ on:
   pull_request:
 
 jobs:
+  files-changed:
+    name: detect what files changed
+    runs-on: ubuntu-20.04
+    timeout-minutes: 3
+    # Map a step output to a job output
+    outputs:
+      acceptance: ${{ steps.changes.outputs.acceptance }}
+      backend: ${{ steps.changes.outputs.backend }}
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Check for backend file changes
+        uses: getsentry/paths-filter@v2
+        id: changes
+        with:
+          token: ${{ github.token }}
+          filters: .github/file-filters.yml
+
   frontend:
+    if: needs.files-changed.outputs.acceptance == 'true'
+    needs: files-changed
     name: frontend tests
     runs-on: ubuntu-20.04
     timeout-minutes: 20
@@ -44,7 +64,7 @@ jobs:
         id: yarn-cache-dir-path
         run: echo "::set-output name=dir::$(yarn cache dir)"
 
-      - uses: actions/cache@v1 # We are explicitly using v1 due to perf reasons
+      - uses: actions/cache@v3
         with:
           path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
           key: ${{ runner.os }}-v2-yarn-${{ hashFiles('yarn.lock', 'api-docs/yarn.lock') }}
@@ -81,7 +101,7 @@ jobs:
           css-path: src/sentry/static/sentry/dist/entrypoints/sentry.css
 
       - name: Save snapshots
-        uses: getsentry/action-visual-snapshot@v2
+        uses: getsentry/action-visual-snapshot@main
         with:
           save-only: true
           snapshot-path: .artifacts/visual-snapshots
@@ -92,12 +112,26 @@ jobs:
           files: .artifacts/coverage/*
           type: frontend
 
-  webpack:
-    name: create frontend bundle
+  acceptance:
+    if: needs.files-changed.outputs.acceptance == 'true'
+    needs: files-changed
+    name: acceptance
     runs-on: ubuntu-20.04
-    timeout-minutes: 10
-    outputs:
-      dist-path: ${{ steps.config.outputs.dist-path }}
+    timeout-minutes: 20
+    strategy:
+      # This helps not having to run multiple jobs because one fails, thus, reducing resource usage
+      # and reducing the risk that one of many runs would turn red again (read: intermittent tests)
+      fail-fast: false
+      matrix:
+        python-version: [3.8.12]
+        # XXX: When updating this, make sure you also update MATRIX_INSTANCE_TOTAL.
+        instance: [0, 1, 2, 3]
+        pg-version: ['9.6']
+    env:
+      # XXX: MATRIX_INSTANCE_TOTAL must be hardcoded to the length of strategy.matrix.instance.
+      MATRIX_INSTANCE_TOTAL: 4
+      VISUAL_SNAPSHOT_ENABLE: 1
+      TEST_GROUP_STRATEGY: roundrobin
 
     steps:
       - uses: actions/checkout@v2
@@ -110,16 +144,15 @@ jobs:
         run: |
           echo "::set-output name=yarn-path::$(yarn cache dir)"
           echo "::set-output name=webpack-path::.webpack_cache"
-          echo "::set-output name=dist-path::src/sentry/static/sentry/dist"
 
       - name: yarn cache
-        uses: actions/cache@v1 # We are explicitly using v1 due to perf reasons
+        uses: actions/cache@v3
         with:
           path: ${{ steps.config.outputs.yarn-path }}
           key: ${{ runner.os }}-v2-yarn-${{ hashFiles('yarn.lock', 'api-docs/yarn.lock') }}
 
       - name: webpack cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ${{ steps.config.outputs.webpack-path }}
           key: ${{ runner.os }}-v2-webpack-cache-${{ hashFiles('webpack.config.ts') }}
@@ -137,40 +170,6 @@ jobs:
         run: |
           yarn build-acceptance
 
-      # Bundle dist for faster uploading
-      - name: bundle dist
-        run: |
-          tar czf dist.tar.gz ${{ steps.config.outputs.dist-path }}
-
-      - name: Save frontend dist
-        uses: actions/upload-artifact@v2
-        with:
-          retention-days: 3
-          name: frontend-dist
-          path: dist.tar.gz
-
-  acceptance:
-    name: acceptance
-    runs-on: ubuntu-20.04
-    timeout-minutes: 20
-    strategy:
-      # This helps not having to run multiple jobs because one fails, thus, reducing resource usage
-      # and reducing the risk that one of many runs would turn red again (read: intermittent tests)
-      fail-fast: false
-      matrix:
-        python-version: [3.8.12]
-        # XXX: When updating this, make sure you also update MATRIX_INSTANCE_TOTAL.
-        instance: [0, 1, 2, 3]
-    env:
-      # XXX: MATRIX_INSTANCE_TOTAL must be hardcoded to the length of strategy.matrix.instance.
-      MATRIX_INSTANCE_TOTAL: 4
-      VISUAL_SNAPSHOT_ENABLE: 1
-      TEST_GROUP_STRATEGY: roundrobin
-
-    steps:
-      - name: Checkout sentry
-        uses: actions/checkout@v2
-
       - name: Setup sentry env (python ${{ matrix.python-version }})
         uses: ./.github/actions/setup-sentry
         id: setup
@@ -178,23 +177,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
           pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
           snuba: true
-
-      - name: Wait for frontend build
-        uses: getsentry/action-wait-for-check@v1.0.0
-        id: wait-for-frontend
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          checkName: create frontend bundle
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
-
-      - name: Download frontend dist
-        uses: actions/download-artifact@v2
-        with:
-          name: frontend-dist
-
-      - name: Extract dist
-        run: |
-          tar xf dist.tar.gz
+          pg-version: ${{ matrix.pg-version }}
 
       - name: Run acceptance tests (#${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
         run: |
@@ -207,24 +190,18 @@ jobs:
           USE_SNUBA: 1
 
       - name: Save snapshots
-        uses: getsentry/action-visual-snapshot@v2
+        uses: getsentry/action-visual-snapshot@main
         with:
           save-only: true
           snapshot-path: .artifacts/visual-snapshots
 
-      # We use the below to determine the flag to use in codecov
-      - name: Check for python file changes
-        uses: getsentry/paths-filter@v2
-        id: changes
-        with:
-          token: ${{ github.token }}
-          filters: .github/file-filters.yml
-
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
-        if: ${{ steps.changes.outputs.backend == 'true' }}
+        if: needs.files-changed.outputs.backend == 'true'
 
   chartcuterie:
+    if: needs.files-changed.outputs.acceptance == 'true'
+    needs: files-changed
     name: chartcuterie integration
     runs-on: ubuntu-20.04
     timeout-minutes: 30
@@ -258,7 +235,7 @@ jobs:
           chartcuterie: true
 
       - name: yarn cache
-        uses: actions/cache@v1 # We are explicitly using v1 due to perf reasons
+        uses: actions/cache@v3
         with:
           path: ${{ steps.setup.outputs.yarn-cache-dir }}
           key: ${{ runner.os }}-v2-yarn-${{ hashFiles('yarn.lock', 'api-docs/yarn.lock') }}
@@ -279,38 +256,67 @@ jobs:
           PYTEST_SNAPSHOTS_DIR: ${{ steps.setup.outputs.acceptance-dir }}
 
       - name: Save snapshots
-        uses: getsentry/action-visual-snapshot@v2
+        uses: getsentry/action-visual-snapshot@main
         with:
           save-only: true
           snapshot-path: .artifacts/visual-snapshots
 
-      # We use the below to determine the flag to use in codecov (only upload on backend changes)
-      - name: Check for python file changes
-        uses: getsentry/paths-filter@v2
-        id: changes
-        with:
-          token: ${{ github.token }}
-          filters: .github/file-filters.yml
-
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
-        if: ${{ steps.changes.outputs.backend == 'true' }}
+        if: needs.files-changed.outputs.backend == 'true'
 
   visual-diff:
+    if: always()
     # This guarantees that we will only schedule Visual Snapshots if all
     # workflows that generate artifacts succeed
-    needs: [acceptance, frontend, chartcuterie]
+    needs: [acceptance, frontend, chartcuterie, files-changed]
     name: triggers visual snapshot
-    # Do not execute on forks or on master
-    if: github.repository == 'getsentry/sentry' && github.ref != 'refs/heads/master'
     runs-on: ubuntu-20.04
     timeout-minutes: 20
-
     steps:
+      # If any jobs we depend on fail, we will fail since this checks triggers Visual Snapshots which is a required check
+      # NOTE: A timeout is considered a failure
+      - name: Check for failures
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
+        run: |
+          echo "One of the dependent jobs have failed. You may need to re-run it." && exit 1
+
+      - name: Determine snapshot version
+        id: snapshot_ref
+        run: |
+          random=$(( ( RANDOM % 10 )  + 1 ));
+          echo "::set-output name=ref::$([[ $random -ge 4 ]] && echo "pixelmatch" || echo "odiff")"
+
       - name: Diff snapshots
-        id: visual-snapshots-diff
-        uses: getsentry/action-visual-snapshot@v2
+        id: visual-snapshots-diff-pixelmatch
+        uses: getsentry/action-visual-snapshot@main
+        # Run this step only if there are acceptance related code changes
+        # Forks are handled in visual-diff.yml
+        if: steps.snapshot_ref.outputs.ref == 'pixelmatch' && needs.files-changed.outputs.acceptance == 'true' && github.event.pull_request.head.repo.full_name == 'getsentry/sentry'
         with:
           api-token: ${{ secrets.VISUAL_SNAPSHOT_SECRET }}
           gcs-bucket: 'sentry-visual-snapshots'
           gcp-service-account-key: ${{ secrets.SNAPSHOT_GOOGLE_SERVICE_ACCOUNT_KEY }}
+
+      - name: Diff snapshots
+        id: visual-snapshots-diff-odiff
+        uses: getsentry/action-visual-snapshot@905b7e3a7fdd913189b9a35dcef51b6b927f9598
+        # Run this step only if there are acceptance related code changes
+        # Forks are handled in visual-diff.yml
+        if: steps.snapshot_ref.outputs.ref == 'odiff' && needs.files-changed.outputs.acceptance == 'true' && github.event.pull_request.head.repo.full_name == 'getsentry/sentry'
+        with:
+          api-token: ${{ secrets.VISUAL_SNAPSHOT_SECRET }}
+          gcs-bucket: 'sentry-visual-snapshots'
+          gcp-service-account-key: ${{ secrets.SNAPSHOT_GOOGLE_SERVICE_ACCOUNT_KEY }}
+
+  # Since Visual Snapshot is a required check we need to pretend to have run
+  fake-visual-snapshot:
+    name: Visual Snapshot
+    needs: [files-changed]
+    # Opposite condition to "triggers visual snapshot" required check
+    if: needs.files-changed.outputs.acceptance != 'true'
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Sentaur attack
+        run: |
+          echo "This check pretends to be the Visual Snapshot to satisfy Github required checks"

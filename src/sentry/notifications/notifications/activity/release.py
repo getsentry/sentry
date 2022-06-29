@@ -6,6 +6,7 @@ from sentry_relay import parse_release
 
 from sentry.models import (
     Activity,
+    Commit,
     CommitFileChange,
     OrganizationMember,
     Project,
@@ -15,7 +16,6 @@ from sentry.models import (
 )
 from sentry.notifications.types import NotificationSettingTypes
 from sentry.notifications.utils import (
-    get_commits_for_release,
     get_deploy,
     get_environment_for_deploy,
     get_group_counts_by_project,
@@ -25,26 +25,26 @@ from sentry.notifications.utils import (
 from sentry.notifications.utils.actions import MessageAction
 from sentry.notifications.utils.participants import get_participants_for_release
 from sentry.types.integrations import ExternalProviders
-from sentry.utils.compat import zip
 from sentry.utils.http import absolute_uri
 
 from .base import ActivityNotification
 
 
 class ReleaseActivityNotification(ActivityNotification):
-    referrer_base = "release-activity"
+    metrics_key = "release_activity"
     notification_setting_type = NotificationSettingTypes.DEPLOY
+    template_path = "sentry/emails/activity/release"
 
     def __init__(self, activity: Activity) -> None:
         super().__init__(activity)
         self.group = None
         self.user_id_team_lookup: Mapping[int, list[int]] | None = None
-        self.email_list: set[str] = set()
-        self.user_ids: set[int] = set()
         self.deploy = get_deploy(activity)
         self.release = get_release(activity, self.organization)
 
         if not self.release:
+            self.email_list: set[str] = set()
+            self.user_ids: set[int] = set()
             self.repos: Iterable[Mapping[str, Any]] = set()
             self.projects: set[Project] = set()
             self.version = "unknown"
@@ -52,7 +52,7 @@ class ReleaseActivityNotification(ActivityNotification):
             return
 
         self.projects = set(self.release.projects.all())
-        self.commit_list = get_commits_for_release(self.release)
+        self.commit_list = Commit.objects.get_for_release(self.release)
         self.email_list = {c.author.email for c in self.commit_list if c.author}
         users = UserEmail.objects.get_users_by_emails(self.email_list, self.organization)
         self.user_ids = {u.id for u in users.values()}
@@ -62,9 +62,6 @@ class ReleaseActivityNotification(ActivityNotification):
 
         self.version = self.release.version
         self.version_parsed = parse_release(self.version)["description"]
-
-    def should_email(self) -> bool:
-        return bool(self.release and self.deploy)
 
     def get_participants_with_group_subscription_reason(
         self,
@@ -125,29 +122,24 @@ class ReleaseActivityNotification(ActivityNotification):
         resolved_issue_counts = [self.group_counts_by_project.get(p.id, 0) for p in projects]
         return {
             **super().get_recipient_context(recipient, extra_context),
-            "projects": zip(projects, release_links, resolved_issue_counts),
+            "projects": list(zip(projects, release_links, resolved_issue_counts)),
             "project_count": len(projects),
         }
 
     def get_subject(self, context: Mapping[str, Any] | None = None) -> str:
         return f"Deployed version {self.version_parsed} to {self.environment}"
 
-    def get_title(self) -> str:
+    @property
+    def title(self) -> str:
         return self.get_subject()
 
-    def get_notification_title(self) -> str:
+    def get_notification_title(self, context: Mapping[str, Any] | None = None) -> str:
         projects_text = ""
         if len(self.projects) == 1:
             projects_text = " for this project"
         elif len(self.projects) > 1:
             projects_text = " for these projects"
         return f"Release {self.version_parsed} was deployed to {self.environment}{projects_text}"
-
-    def get_filename(self) -> str:
-        return "activity/release"
-
-    def get_category(self) -> str:
-        return "release_activity_email"
 
     def get_message_actions(self, recipient: Team | User) -> Sequence[MessageAction]:
         if self.release:
@@ -178,3 +170,8 @@ class ReleaseActivityNotification(ActivityNotification):
         if self.release:
             return f"{self.release.projects.all()[0].slug} | <{settings_url}|Notification Settings>"
         return f"<{settings_url}|Notification Settings>"
+
+    def send(self) -> None:
+        # Don't create a message when the Activity doesn't have a release and deploy.
+        if bool(self.release and self.deploy):
+            return super().send()

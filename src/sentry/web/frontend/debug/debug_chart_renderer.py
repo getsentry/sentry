@@ -279,6 +279,246 @@ discover_empty = {
     },
 }
 
+incident = {
+    "id": "5903779",
+    "identifier": "4445",
+    "projects": ["javascript"],
+    "activities": [
+        {
+            "id": "3",
+            "incidentIdentifier": "4445",
+            "type": 2,
+            "value": "20",
+            "previousValue": "1",
+            "dateCreated": "2022-04-21T20:29:34.982805Z",
+        },
+        {
+            "id": "2",
+            "incidentIdentifier": "4445",
+            "type": 1,
+            "value": None,
+            "previousValue": None,
+            "dateCreated": "2022-04-21T20:29:34.973137Z",
+        },
+        {
+            "id": "1",
+            "incidentIdentifier": "4445",
+            "type": 4,
+            "value": None,
+            "previousValue": None,
+            "dateCreated": "2022-04-20T20:28:00Z",
+        },
+    ],
+    "status": 20,
+    "statusMethod": 3,
+    "type": 2,
+    "dateStarted": "2022-04-20T20:28:00Z",
+    "dateDetected": "2022-04-21T20:28:00Z",
+    "dateCreated": "2022-04-21T20:29:34.963911Z",
+    "dateClosed": None,
+}
+
+metric_alert = {
+    "timeseriesData": [
+        {
+            "seriesName": "count()",
+            "data": [
+                {"name": 1643932800000, "value": 0},
+                {"name": 1644019200000, "value": 0},
+                {"name": 1644105600000, "value": 0},
+                {"name": 1644192000000, "value": 0},
+                {"name": 1644278400000, "value": 0},
+                {"name": 1644364800000, "value": 0},
+                {"name": 1644451200000, "value": 0},
+                {"name": 1644537600000, "value": 1},
+                {"name": 1644624000000, "value": 0},
+                {"name": 1644710400000, "value": 0},
+                {"name": 1644796800000, "value": 1},
+                {"name": 1644883200000, "value": 0},
+                {"name": 1644969600000, "value": 0},
+                {"name": 1645056000000, "value": 0},
+                {"name": 1645142400000, "value": 0},
+                {"name": 1645228800000, "value": 0},
+                {"name": 1645315200000, "value": 1},
+                {"name": 1645401600000, "value": 0},
+                {"name": 1645488000000, "value": 2},
+                {"name": 1645574400000, "value": 0},
+                {"name": 1645660800000, "value": 0},
+                {"name": 1645747200000, "value": 1},
+                {"name": 1645833600000, "value": 1},
+                {"name": 1645920000000, "value": 0},
+                {"name": 1646006400000, "value": 1},
+                {"name": 1646092800000, "value": 2},
+                {"name": 1646179200000, "value": 1},
+                {"name": 1646265600000, "value": 0},
+                {"name": 1646352000000, "value": 1},
+                {"name": 1646438400000, "value": 0},
+                {"name": 1646524800000, "value": 0},
+                {"name": 1646611200000, "value": 2},
+                {"name": 1646697600000, "value": 0},
+                {"name": 1646784000000, "value": 1},
+                {"name": 1646870400000, "value": 2},
+                {"name": 1646956800000, "value": 1},
+                {"name": 1647043200000, "value": 2},
+                {"name": 1647129600000, "value": 0},
+                {"name": 1647216000000, "value": 0},
+                {"name": 1647302400000, "value": 1},
+                {"name": 1647388800000, "value": 1},
+                {"name": 1647475200000, "value": 0},
+                {"name": 1647561600000, "value": 1},
+                {"name": 1647648000000, "value": 1},
+                {"name": 1647734400000, "value": 0},
+                {"name": 1647820800000, "value": 0},
+                {"name": 1647907200000, "value": 0},
+                {"name": 1647993600000, "value": 0},
+                {"name": 1648080000000, "value": 0},
+                {"name": 1648166400000, "value": 2},
+                {"name": 1648252800000, "value": 1},
+                {"name": 1648339200000, "value": 0},
+                {"name": 1648425600000, "value": 0},
+                {"name": 1648512000000, "value": 0},
+                {"name": 1648598400000, "value": 0},
+                {"name": 1648684800000, "value": 1},
+                {"name": 1648771200000, "value": 0},
+                {"name": 1648857600000, "value": 0},
+                {"name": 1648944000000, "value": 0},
+                {"name": 1649030400000, "value": 0},
+                {"name": 1649116800000, "value": 0},
+                {"name": 1649203200000, "value": 0},
+                {"name": 1649289600000, "value": 1},
+                {"name": 1649376000000, "value": 2},
+                {"name": 1649462400000, "value": 0},
+                {"name": 1649548800000, "value": 0},
+                {"name": 1649635200000, "value": 1},
+                {"name": 1649721600000, "value": 0},
+                {"name": 1649808000000, "value": 0},
+                {"name": 1649894400000, "value": 0},
+                {"name": 1649980800000, "value": 0},
+                {"name": 1650067200000, "value": 0},
+                {"name": 1650153600000, "value": 0},
+                {"name": 1650240000000, "value": 1},
+                {"name": 1650326400000, "value": 3},
+                {"name": 1650412800000, "value": 9},
+                {"name": 1650499200000, "value": 9},
+                {"name": 1650585600000, "value": 20},
+                {"name": 1650672000000, "value": 9},
+                {"name": 1650758400000, "value": 6},
+                {"name": 1650844800000, "value": 8},
+                {"name": 1650931200000, "value": 19},
+                {"name": 1651017600000, "value": 15},
+                {"name": 1651104000000, "value": 18},
+                {"name": 1651190400000, "value": 15},
+                {"name": 1651276800000, "value": 5},
+                {"name": 1651363200000, "value": 5},
+                {"name": 1651449600000, "value": 13},
+                {"name": 1651536000000, "value": 13},
+                {"name": 1651622400000, "value": 11},
+                {"name": 1651708800000, "value": 10},
+            ],
+        }
+    ],
+    "rule": {
+        "id": "123",
+        "name": "Event Failing",
+        "status": 0,
+        "dataset": "events",
+        "query": "issue.id:123",
+        "aggregate": "count()",
+        "thresholdType": 0,
+        "resolveThreshold": 3,
+        "timeWindow": 1440,
+        "resolution": 1,
+        "thresholdPeriod": 1,
+        "triggers": [
+            {
+                "id": "1",
+                "alertRuleId": "123",
+                "label": "critical",
+                "thresholdType": 0,
+                "alertThreshold": 8,
+                "resolveThreshold": 3,
+                "actions": [],
+            }
+        ],
+        "projects": ["javascript"],
+        "dateModified": "2022-04-21T20:28:45.581388Z",
+        "dateCreated": "2021-03-02T21:00:52.024752Z",
+        "eventTypes": ["default"],
+    },
+    "incidents": [incident],
+    "selectedIncident": None,
+}
+
+
+crash_free_metric_alert = {
+    "sessionResponse": {
+        "start": "2022-05-06T13:00:00Z",
+        "end": "2022-05-06T19:50:00Z",
+        "query": "",
+        "intervals": [
+            "2022-05-06T13:00:00Z",
+            "2022-05-06T14:00:00Z",
+            "2022-05-06T15:00:00Z",
+            "2022-05-06T16:00:00Z",
+            "2022-05-06T17:00:00Z",
+            "2022-05-06T18:00:00Z",
+            "2022-05-06T19:00:00Z",
+        ],
+        "groups": [
+            {
+                "by": {"session.status": "healthy"},
+                "totals": {"sum(session)": 212894},
+                "series": {"sum(session)": [33118, 40824, 36375, 31771, 28499, 24089, 18218]},
+            },
+            {
+                "by": {"session.status": "errored"},
+                "totals": {"sum(session)": 963},
+                "series": {"sum(session)": [185, 170, 147, 170, 105, 133, 53]},
+            },
+            {
+                "by": {"session.status": "crashed"},
+                "totals": {"sum(session)": 401},
+                "series": {"sum(session)": [80, 60, 70, 60, 41, 56, 34]},
+            },
+            {
+                "by": {"session.status": "abnormal"},
+                "totals": {"sum(session)": 0},
+                "series": {"sum(session)": [0, 0, 0, 0, 0, 0, 0]},
+            },
+        ],
+    },
+    "rule": {
+        "id": "234",
+        "name": "Crash Free Session Rate LOW",
+        "status": 0,
+        "dataset": "sessions",
+        "query": "",
+        "aggregate": "percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate",
+        "thresholdType": 1,
+        "resolveThreshold": None,
+        "timeWindow": 60,
+        "resolution": 1,
+        "thresholdPeriod": 1,
+        "triggers": [
+            {
+                "id": "1",
+                "alertRuleId": "234",
+                "label": "critical",
+                "thresholdType": 1,
+                "alertThreshold": 95,
+                "resolveThreshold": None,
+                "dateCreated": "2022-02-28T10:41:09.780071Z",
+                "actions": [],
+            }
+        ],
+        "projects": ["javascript"],
+        "comparisonDelta": None,
+        "dateModified": "2022-03-01T13:46:08.699094Z",
+        "dateCreated": "2022-02-28T10:41:09.742215Z",
+        "eventTypes": ["transaction"],
+    },
+}
+
 
 class DebugChartRendererView(View):
     def get(self, request: Request) -> Response:
@@ -305,6 +545,11 @@ class DebugChartRendererView(View):
         )
         charts.append(
             generate_chart(ChartType.SLACK_DISCOVER_PREVIOUS_PERIOD, discover_multi_y_axis)
+        )
+
+        charts.append(generate_chart(ChartType.SLACK_METRIC_ALERT_EVENTS, metric_alert))
+        charts.append(
+            generate_chart(ChartType.SLACK_METRIC_ALERT_SESSIONS, crash_free_metric_alert)
         )
 
         return render_to_response("sentry/debug/chart-renderer.html", context={"charts": charts})

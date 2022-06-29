@@ -19,7 +19,7 @@ import {
   ReleaseProject,
   ReleaseWithHealth,
   SessionApiResponse,
-  SessionField,
+  SessionFieldWithOperation,
 } from 'sentry/types';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {getAdoptionSeries, getCount, getCountAtIndex} from 'sentry/utils/sessions';
@@ -35,8 +35,8 @@ import {generateReleaseMarkLines, releaseMarkLinesLabels} from '../../utils';
 const sessionsAxisIndex = 0;
 const usersAxisIndex = 1;
 const axisIndexToSessionsField = {
-  [sessionsAxisIndex]: SessionField.SESSIONS,
-  [usersAxisIndex]: SessionField.USERS,
+  [sessionsAxisIndex]: SessionFieldWithOperation.SESSIONS,
+  [usersAxisIndex]: SessionFieldWithOperation.USERS,
 };
 
 type Props = {
@@ -64,7 +64,7 @@ function ReleaseAdoption({
 }: Props) {
   const theme = useTheme();
 
-  const hasUsers = !!getCount(releaseSessions?.groups, SessionField.USERS);
+  const hasUsers = !!getCount(releaseSessions?.groups, SessionFieldWithOperation.USERS);
 
   function getSeries() {
     if (!releaseSessions) {
@@ -93,7 +93,7 @@ function ReleaseAdoption({
           releaseSessions.groups,
           allSessions?.groups,
           releaseSessions.intervals,
-          SessionField.SESSIONS
+          SessionFieldWithOperation.SESSIONS
         ),
       },
     ];
@@ -114,7 +114,7 @@ function ReleaseAdoption({
           releaseSessions.groups,
           allSessions?.groups,
           releaseSessions.intervals,
-          SessionField.USERS
+          SessionFieldWithOperation.USERS
         ),
       });
     }
@@ -260,22 +260,24 @@ function ReleaseAdoption({
         </SidebarSection>
       )}
       <RelativeBox>
-        <ChartLabel top="0px">
-          <ChartTitle
-            title={t('Sessions Adopted')}
-            icon={
-              <QuestionTooltip
-                position="top"
-                title={t(
-                  'Adoption compares the sessions of a release with the total sessions for this project.'
-                )}
-                size="sm"
-              />
-            }
-          />
-        </ChartLabel>
+        {!loading && (
+          <ChartLabel top="0px">
+            <ChartTitle
+              title={t('Sessions Adopted')}
+              icon={
+                <QuestionTooltip
+                  position="top"
+                  title={t(
+                    'Adoption compares the sessions of a release with the total sessions for this project.'
+                  )}
+                  size="sm"
+                />
+              }
+            />
+          </ChartLabel>
+        )}
 
-        {hasUsers && (
+        {!loading && hasUsers && (
           <ChartLabel top="140px">
             <ChartTitle
               title={t('Users Adopted')}

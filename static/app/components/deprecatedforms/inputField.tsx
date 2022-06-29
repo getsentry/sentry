@@ -1,5 +1,3 @@
-import * as React from 'react';
-
 import FormField from 'sentry/components/deprecatedforms/formField';
 
 type InputFieldProps = FormField['props'] & {

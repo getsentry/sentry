@@ -114,29 +114,31 @@ describe('Performance > VitalDetail', function () {
       },
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/eventsv2/',
+      url: '/organizations/org-slug/events/',
       body: {
         meta: {
-          count: 'integer',
-          p95_measurements_lcp: 'duration',
-          transaction: 'string',
-          p50_measurements_lcp: 'duration',
-          project: 'string',
-          compare_numeric_aggregate_p75_measurements_lcp_greater_4000: 'number',
-          'project.id': 'integer',
-          count_unique_user: 'integer',
-          p75_measurements_lcp: 'duration',
+          fields: {
+            'count()': 'integer',
+            'p95(measurements.lcp)': 'duration',
+            transaction: 'string',
+            'p50(measurements.lcp)': 'duration',
+            project: 'string',
+            'compare_numeric_aggregate(p75_measurements_lcp,greater,4000)': 'number',
+            'project.id': 'integer',
+            'count_unique_user()': 'integer',
+            'p75(measurements.lcp)': 'duration',
+          },
         },
         data: [
           {
-            count: 100000,
-            p95_measurements_lcp: 5000,
+            'count()': 100000,
+            'p95(measurements.lcp)': 5000,
             transaction: 'something',
-            p50_measurements_lcp: 3500,
+            'p50(measurements.lcp)': 3500,
             project: 'javascript',
-            compare_numeric_aggregate_p75_measurements_lcp_greater_4000: 1,
-            count_unique_user: 10000,
-            p75_measurements_lcp: 4500,
+            'compare_numeric_aggregate(p75_measurements_lcp,greater,4000)': 1,
+            'count_unique_user()': 10000,
+            'p75(measurements.lcp)': 4500,
           },
         ],
       },
@@ -147,30 +149,32 @@ describe('Performance > VitalDetail', function () {
       ],
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/eventsv2/',
+      url: '/organizations/org-slug/events/',
       body: {
         meta: {
-          compare_numeric_aggregate_p75_measurements_cls_greater_0_1: 'number',
-          compare_numeric_aggregate_p75_measurements_cls_greater_0_25: 'number',
-          count: 'integer',
-          count_unique_user: 'integer',
-          team_key_transaction: 'boolean',
-          p50_measurements_cls: 'number',
-          p75_measurements_cls: 'number',
-          p95_measurements_cls: 'number',
-          project: 'string',
-          transaction: 'string',
+          fields: {
+            'compare_numeric_aggregate(p75_measurements_cls,greater,0.1)': 'number',
+            'compare_numeric_aggregate(p75_measurements_cls,greater,0.25)': 'number',
+            'count()': 'integer',
+            'count_unique_user()': 'integer',
+            team_key_transaction: 'boolean',
+            'p50(measurements.cls)': 'number',
+            'p75(measurements.cls)': 'number',
+            'p95(measurements.cls)': 'number',
+            project: 'string',
+            transaction: 'string',
+          },
         },
         data: [
           {
-            compare_numeric_aggregate_p75_measurements_cls_greater_0_1: 1,
-            compare_numeric_aggregate_p75_measurements_cls_greater_0_25: 0,
-            count: 10000,
-            count_unique_user: 2740,
+            'compare_numeric_aggregate(p75_measurements_cls,greater,0.1)': 1,
+            'compare_numeric_aggregate(p75_measurements_cls,greater,0.25)': 0,
+            'count()': 10000,
+            'count_unique_user()': 2740,
             team_key_transaction: 1,
-            p50_measurements_cls: 0.143,
-            p75_measurements_cls: 0.215,
-            p95_measurements_cls: 0.302,
+            'p50(measurements.cls)': 0.143,
+            'p75(measurements.cls)': 0.215,
+            'p95(measurements.cls)': 0.302,
             project: 'javascript',
             transaction: 'something',
           },
@@ -291,7 +295,6 @@ describe('Performance > VitalDetail', function () {
       await screen.findByLabelText('Search events'),
       'user.email:uhoh*{enter}'
     );
-
     // Check the navigation.
     expect(browserHistory.push).toHaveBeenCalledTimes(1);
     expect(browserHistory.push).toHaveBeenCalledWith({
@@ -304,7 +307,7 @@ describe('Performance > VitalDetail', function () {
     });
   });
 
-  it('Applies conditions when linking to transaction summary', async function () {
+  it('applies conditions when linking to transaction summary', async function () {
     const newRouter = {
       ...router,
       location: {
@@ -356,7 +359,7 @@ describe('Performance > VitalDetail', function () {
     });
   });
 
-  it('Check CLS', async function () {
+  it('check CLS', async function () {
     const newRouter = {
       ...router,
       location: {
@@ -410,7 +413,7 @@ describe('Performance > VitalDetail', function () {
     expect(screen.getByText('0.215').closest('td')).toBeInTheDocument();
   });
 
-  it('can switch vitals with dropdown menu', async function () {
+  it('can switch vitals with dropdown menu', function () {
     const newRouter = {
       ...router,
       location: {
@@ -436,13 +439,13 @@ describe('Performance > VitalDetail', function () {
       organization: org,
     });
 
-    expect(
-      await screen.findByRole('button', {name: 'Web Vitals: LCP'})
-    ).toBeInTheDocument();
-    userEvent.click(screen.getByRole('button', {name: 'Web Vitals: LCP'}));
+    const button = screen.getByRole('button', {name: /web vitals: lcp/i});
+    expect(button).toBeInTheDocument();
+    userEvent.click(button);
 
-    expect(await screen.findByRole('menuitemradio', {name: 'FCP'})).toBeInTheDocument();
-    userEvent.click(screen.getByRole('menuitemradio', {name: 'FCP'}));
+    const menuItem = screen.getByRole('menuitemradio', {name: /fcp/i});
+    expect(menuItem).toBeInTheDocument();
+    userEvent.click(menuItem);
 
     expect(browserHistory.push).toHaveBeenCalledTimes(1);
     expect(browserHistory.push).toHaveBeenCalledWith({
@@ -455,7 +458,7 @@ describe('Performance > VitalDetail', function () {
     });
   });
 
-  it('Check LCP vital renders correctly', async function () {
+  it('renders LCP vital correctly', async function () {
     render(<TestComponent />, {
       context: routerContext,
       organization: org,

@@ -33,6 +33,7 @@ from sentry.models.groupinbox import GroupInboxReason, add_group_to_inbox
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.types.activity import ActivityType
 from sentry.utils import json
 
 
@@ -55,7 +56,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
     def test_sort_by_date_with_tag(self):
         # XXX(dcramer): this tests a case where an ambiguous column name existed
-        group1 = self.create_group(checksum="a" * 32, last_seen=before_now(seconds=1))
+        group1 = self.create_group(last_seen=before_now(seconds=1))
         self.login_as(user=self.user)
 
         response = self.client.get(f"{self.path}?sort_by=date&query=is:unresolved", format="json")
@@ -64,7 +65,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert response.data[0]["id"] == str(group1.id)
 
     def test_invalid_query(self):
-        self.create_group(checksum="a" * 32, last_seen=before_now(seconds=1))
+        self.create_group(last_seen=before_now(seconds=1))
         self.login_as(user=self.user)
 
         response = self.client.get(f"{self.path}?sort_by=date&query=timesSeen:>1t", format="json")
@@ -110,8 +111,8 @@ class GroupListTest(APITestCase, SnubaTestCase):
     def test_stats_period(self):
         # TODO(dcramer): this test really only checks if validation happens
         # on statsPeriod
-        self.create_group(checksum="a" * 32, last_seen=before_now(seconds=1))
-        self.create_group(checksum="b" * 32, last_seen=timezone.now())
+        self.create_group(last_seen=before_now(seconds=1))
+        self.create_group(last_seen=timezone.now())
 
         self.login_as(user=self.user)
 
@@ -159,8 +160,8 @@ class GroupListTest(APITestCase, SnubaTestCase):
     def test_auto_resolved(self):
         project = self.project
         project.update_option("sentry:resolve_age", 1)
-        self.create_group(checksum="a" * 32, last_seen=before_now(days=1))
-        group2 = self.create_group(checksum="b" * 32, last_seen=timezone.now())
+        self.create_group(last_seen=before_now(days=1))
+        group2 = self.create_group(last_seen=timezone.now())
 
         self.login_as(user=self.user)
         response = self.client.get(self.path, format="json")
@@ -223,8 +224,8 @@ class GroupListTest(APITestCase, SnubaTestCase):
     def test_lookup_by_unknown_event_id(self):
         project = self.project
         project.update_option("sentry:resolve_age", 1)
-        self.create_group(checksum="a" * 32)
-        self.create_group(checksum="b" * 32)
+        self.create_group()
+        self.create_group()
 
         self.login_as(user=self.user)
         response = self.client.get("{}?query={}".format(self.path, "c" * 32), format="json")
@@ -311,10 +312,10 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert int(issues[0]["id"]) == group.id
 
     def test_pending_delete_pending_merge_excluded(self):
-        self.create_group(checksum="a" * 32, status=GroupStatus.PENDING_DELETION)
-        group = self.create_group(checksum="b" * 32)
-        self.create_group(checksum="c" * 32, status=GroupStatus.DELETION_IN_PROGRESS)
-        self.create_group(checksum="d" * 32, status=GroupStatus.PENDING_MERGE)
+        self.create_group(status=GroupStatus.PENDING_DELETION)
+        group = self.create_group()
+        self.create_group(status=GroupStatus.DELETION_IN_PROGRESS)
+        self.create_group(status=GroupStatus.PENDING_MERGE)
 
         self.login_as(user=self.user)
 
@@ -365,12 +366,11 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert not GroupResolution.objects.filter(group=group).exists()
 
     def test_global_resolve(self):
-        group1 = self.create_group(checksum="a" * 32, status=GroupStatus.RESOLVED)
-        group2 = self.create_group(checksum="b" * 32, status=GroupStatus.UNRESOLVED)
-        group3 = self.create_group(checksum="c" * 32, status=GroupStatus.IGNORED)
+        group1 = self.create_group(status=GroupStatus.RESOLVED)
+        group2 = self.create_group(status=GroupStatus.UNRESOLVED)
+        group3 = self.create_group(status=GroupStatus.IGNORED)
         group4 = self.create_group(
             project=self.create_project(slug="foo"),
-            checksum="b" * 32,
             status=GroupStatus.UNRESOLVED,
         )
 
@@ -490,7 +490,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
     @patch("sentry.integrations.example.integration.ExampleIntegration.sync_status_outbound")
     def test_set_unresolved_with_integration(self, mock_sync_status_outbound):
         release = self.create_release(project=self.project, version="abc")
-        group = self.create_group(checksum="a" * 32, status=GroupStatus.RESOLVED)
+        group = self.create_group(status=GroupStatus.RESOLVED)
         org = self.organization
         integration = Integration.objects.create(provider="example", name="Example")
         integration.add_organization(org, self.user)
@@ -541,7 +541,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
                 )
 
     def test_self_assign_issue(self):
-        group = self.create_group(checksum="b" * 32, status=GroupStatus.UNRESOLVED)
+        group = self.create_group(status=GroupStatus.UNRESOLVED)
         user = self.user
 
         uo1 = UserOption.objects.create(key="self_assign_issue", value="1", project=None, user=user)
@@ -565,7 +565,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         release = Release.objects.create(organization_id=self.project.organization_id, version="a")
         release.add_project(self.project)
 
-        group = self.create_group(checksum="a" * 32, status=GroupStatus.UNRESOLVED)
+        group = self.create_group(status=GroupStatus.UNRESOLVED)
 
         uo1 = UserOption.objects.create(
             key="self_assign_issue", value="1", project=None, user=self.user
@@ -590,17 +590,18 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             user=self.user, group=group, is_active=True
         ).exists()
 
-        activity = Activity.objects.get(group=group, type=Activity.SET_RESOLVED_IN_RELEASE)
+        activity = Activity.objects.get(
+            group=group, type=ActivityType.SET_RESOLVED_IN_RELEASE.value
+        )
         assert activity.data["version"] == ""
         uo1.delete()
 
     def test_selective_status_update(self):
-        group1 = self.create_group(checksum="a" * 32, status=GroupStatus.RESOLVED)
-        group2 = self.create_group(checksum="b" * 32, status=GroupStatus.UNRESOLVED)
-        group3 = self.create_group(checksum="c" * 32, status=GroupStatus.IGNORED)
+        group1 = self.create_group(status=GroupStatus.RESOLVED)
+        group2 = self.create_group(status=GroupStatus.UNRESOLVED)
+        group3 = self.create_group(status=GroupStatus.IGNORED)
         group4 = self.create_group(
             project=self.create_project(slug="foo"),
-            checksum="b" * 32,
             status=GroupStatus.UNRESOLVED,
         )
 
@@ -634,7 +635,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         release = Release.objects.create(organization_id=self.project.organization_id, version="a")
         release.add_project(self.project)
 
-        group = self.create_group(checksum="a" * 32, status=GroupStatus.UNRESOLVED)
+        group = self.create_group(status=GroupStatus.UNRESOLVED)
 
         self.login_as(user=self.user)
 
@@ -663,7 +664,9 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             user=self.user, group=group, is_active=True
         ).exists()
 
-        activity = Activity.objects.get(group=group, type=Activity.SET_RESOLVED_IN_RELEASE)
+        activity = Activity.objects.get(
+            group=group, type=ActivityType.SET_RESOLVED_IN_RELEASE.value
+        )
         assert activity.data["version"] == release.version
 
     def test_set_resolved_in_explicit_release(self):
@@ -672,7 +675,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         release2 = Release.objects.create(organization_id=self.project.organization_id, version="b")
         release2.add_project(self.project)
 
-        group = self.create_group(checksum="a" * 32, status=GroupStatus.UNRESOLVED)
+        group = self.create_group(status=GroupStatus.UNRESOLVED)
 
         self.login_as(user=self.user)
 
@@ -701,14 +704,16 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             user=self.user, group=group, is_active=True
         ).exists()
 
-        activity = Activity.objects.get(group=group, type=Activity.SET_RESOLVED_IN_RELEASE)
+        activity = Activity.objects.get(
+            group=group, type=ActivityType.SET_RESOLVED_IN_RELEASE.value
+        )
         assert activity.data["version"] == release.version
 
     def test_set_resolved_in_next_release(self):
         release = Release.objects.create(organization_id=self.project.organization_id, version="a")
         release.add_project(self.project)
 
-        group = self.create_group(checksum="a" * 32, status=GroupStatus.UNRESOLVED)
+        group = self.create_group(status=GroupStatus.UNRESOLVED)
 
         self.login_as(user=self.user)
 
@@ -737,14 +742,16 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             user=self.user, group=group, is_active=True
         ).exists()
 
-        activity = Activity.objects.get(group=group, type=Activity.SET_RESOLVED_IN_RELEASE)
+        activity = Activity.objects.get(
+            group=group, type=ActivityType.SET_RESOLVED_IN_RELEASE.value
+        )
         assert activity.data["version"] == ""
 
     def test_set_resolved_in_next_release_legacy(self):
         release = Release.objects.create(organization_id=self.project.organization_id, version="a")
         release.add_project(self.project)
 
-        group = self.create_group(checksum="a" * 32, status=GroupStatus.UNRESOLVED)
+        group = self.create_group(status=GroupStatus.UNRESOLVED)
 
         self.login_as(user=self.user)
 
@@ -768,13 +775,15 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             user=self.user, group=group, is_active=True
         ).exists()
 
-        activity = Activity.objects.get(group=group, type=Activity.SET_RESOLVED_IN_RELEASE)
+        activity = Activity.objects.get(
+            group=group, type=ActivityType.SET_RESOLVED_IN_RELEASE.value
+        )
         assert activity.data["version"] == ""
 
     def test_set_resolved_in_explicit_commit_unreleased(self):
         repo = self.create_repo(project=self.project, name=self.project.name)
         commit = self.create_commit(project=self.project, repo=repo)
-        group = self.create_group(checksum="a" * 32, status=GroupStatus.UNRESOLVED)
+        group = self.create_group(status=GroupStatus.UNRESOLVED)
 
         self.login_as(user=self.user)
 
@@ -804,7 +813,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             user=self.user, group=group, is_active=True
         ).exists()
 
-        activity = Activity.objects.get(group=group, type=Activity.SET_RESOLVED_IN_COMMIT)
+        activity = Activity.objects.get(group=group, type=ActivityType.SET_RESOLVED_IN_COMMIT.value)
         assert activity.data["commit"] == commit.id
 
     def test_set_resolved_in_explicit_commit_released(self):
@@ -812,7 +821,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         repo = self.create_repo(project=self.project, name=self.project.name)
         commit = self.create_commit(project=self.project, repo=repo, release=release)
 
-        group = self.create_group(checksum="a" * 32, status=GroupStatus.UNRESOLVED)
+        group = self.create_group(status=GroupStatus.UNRESOLVED)
 
         self.login_as(user=self.user)
 
@@ -843,7 +852,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             user=self.user, group=group, is_active=True
         ).exists()
 
-        activity = Activity.objects.get(group=group, type=Activity.SET_RESOLVED_IN_COMMIT)
+        activity = Activity.objects.get(group=group, type=ActivityType.SET_RESOLVED_IN_COMMIT.value)
         assert activity.data["commit"] == commit.id
 
         resolution = GroupResolution.objects.get(group=group)
@@ -852,7 +861,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
     def test_set_resolved_in_explicit_commit_missing(self):
         repo = self.create_repo(project=self.project, name=self.project.name)
-        group = self.create_group(checksum="a" * 32, status=GroupStatus.UNRESOLVED)
+        group = self.create_group(status=GroupStatus.UNRESOLVED)
 
         self.login_as(user=self.user)
 
@@ -873,7 +882,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
     def test_set_unresolved(self):
         release = self.create_release(project=self.project, version="abc")
-        group = self.create_group(checksum="a" * 32, status=GroupStatus.RESOLVED)
+        group = self.create_group(status=GroupStatus.RESOLVED)
         GroupResolution.objects.create(group=group, release=release)
 
         self.login_as(user=self.user)
@@ -893,7 +902,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         ).exists()
 
     def test_set_unresolved_on_snooze(self):
-        group = self.create_group(checksum="a" * 32, status=GroupStatus.IGNORED)
+        group = self.create_group(status=GroupStatus.IGNORED)
 
         GroupSnooze.objects.create(group=group, until=timezone.now() - timedelta(days=1))
 
@@ -908,7 +917,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert group.status == GroupStatus.UNRESOLVED
 
     def test_basic_ignore(self):
-        group = self.create_group(checksum="a" * 32, status=GroupStatus.RESOLVED)
+        group = self.create_group(status=GroupStatus.RESOLVED)
 
         snooze = GroupSnooze.objects.create(group=group, until=timezone.now())
 
@@ -928,7 +937,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert response.data == {"status": "ignored", "statusDetails": {}, "inbox": None}
 
     def test_snooze_duration(self):
-        group = self.create_group(checksum="a" * 32, status=GroupStatus.RESOLVED)
+        group = self.create_group(status=GroupStatus.RESOLVED)
 
         self.login_as(user=self.user)
 
@@ -959,7 +968,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert response.data["statusDetails"]["actor"]["id"] == str(self.user.id)
 
     def test_snooze_count(self):
-        group = self.create_group(checksum="a" * 32, status=GroupStatus.RESOLVED, times_seen=1)
+        group = self.create_group(status=GroupStatus.RESOLVED, times_seen=1)
 
         self.login_as(user=self.user)
 
@@ -1028,12 +1037,11 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert response.data["statusDetails"]["actor"]["id"] == str(self.user.id)
 
     def test_set_bookmarked(self):
-        group1 = self.create_group(checksum="a" * 32, status=GroupStatus.RESOLVED)
-        group2 = self.create_group(checksum="b" * 32, status=GroupStatus.UNRESOLVED)
-        group3 = self.create_group(checksum="c" * 32, status=GroupStatus.IGNORED)
+        group1 = self.create_group(status=GroupStatus.RESOLVED)
+        group2 = self.create_group(status=GroupStatus.UNRESOLVED)
+        group3 = self.create_group(status=GroupStatus.IGNORED)
         group4 = self.create_group(
             project=self.create_project(slug="foo"),
-            checksum="b" * 32,
             status=GroupStatus.UNRESOLVED,
         )
 
@@ -1064,10 +1072,10 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert not bookmark4.exists()
 
     def test_subscription(self):
-        group1 = self.create_group(checksum="a" * 32)
-        group2 = self.create_group(checksum="b" * 32)
-        group3 = self.create_group(checksum="c" * 32)
-        group4 = self.create_group(project=self.create_project(slug="foo"), checksum="b" * 32)
+        group1 = self.create_group()
+        group2 = self.create_group()
+        group3 = self.create_group()
+        group4 = self.create_group(project=self.create_project(slug="foo"))
 
         self.login_as(user=self.user)
         url = f"{self.path}?id={group1.id}&id={group2.id}&group4={group4.id}"
@@ -1088,8 +1096,8 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert not GroupSubscription.objects.filter(group=group4, user=self.user).exists()
 
     def test_set_public(self):
-        group1 = self.create_group(checksum="a" * 32)
-        group2 = self.create_group(checksum="b" * 32)
+        group1 = self.create_group()
+        group2 = self.create_group()
 
         self.login_as(user=self.user)
         url = f"{self.path}?id={group1.id}&id={group2.id}"
@@ -1105,8 +1113,8 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert bool(new_group2.get_share_id())
 
     def test_set_private(self):
-        group1 = self.create_group(checksum="a" * 32)
-        group2 = self.create_group(checksum="b" * 32)
+        group1 = self.create_group()
+        group2 = self.create_group()
 
         # Manually mark them as shared
         for g in group1, group2:
@@ -1126,12 +1134,11 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert not bool(new_group2.get_share_id())
 
     def test_set_has_seen(self):
-        group1 = self.create_group(checksum="a" * 32, status=GroupStatus.RESOLVED)
-        group2 = self.create_group(checksum="b" * 32, status=GroupStatus.UNRESOLVED)
-        group3 = self.create_group(checksum="c" * 32, status=GroupStatus.IGNORED)
+        group1 = self.create_group(status=GroupStatus.RESOLVED)
+        group2 = self.create_group(status=GroupStatus.UNRESOLVED)
+        group3 = self.create_group(status=GroupStatus.IGNORED)
         group4 = self.create_group(
             project=self.create_project(slug="foo"),
-            checksum="b" * 32,
             status=GroupStatus.UNRESOLVED,
         )
 
@@ -1154,7 +1161,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert not r4.exists()
 
     def test_inbox_fields(self):
-        group1 = self.create_group(checksum="a" * 32, status=GroupStatus.RESOLVED)
+        group1 = self.create_group(status=GroupStatus.RESOLVED)
         add_group_to_inbox(group1, GroupInboxReason.NEW)
         self.login_as(user=self.user)
         url = f"{self.path}?id={group1.id}"
@@ -1170,10 +1177,10 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         mock_eventstream.start_merge = Mock(return_value=eventstream_state)
 
         mock_uuid4.return_value = self.get_mock_uuid()
-        group1 = self.create_group(checksum="a" * 32, times_seen=1)
-        group2 = self.create_group(checksum="b" * 32, times_seen=50)
-        group3 = self.create_group(checksum="c" * 32, times_seen=2)
-        self.create_group(checksum="d" * 32)
+        group1 = self.create_group(times_seen=1)
+        group2 = self.create_group(times_seen=50)
+        group3 = self.create_group(times_seen=2)
+        self.create_group()
 
         self.login_as(user=self.user)
         url = f"{self.path}?id={group1.id}&id={group2.id}&id={group3.id}"
@@ -1197,8 +1204,8 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         )
 
     def test_assign(self):
-        group1 = self.create_group(checksum="a" * 32, is_public=True)
-        group2 = self.create_group(checksum="b" * 32, is_public=True)
+        group1 = self.create_group(is_public=True)
+        group2 = self.create_group(is_public=True)
         user = self.user
 
         self.login_as(user=user)
@@ -1212,7 +1219,12 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         assert not GroupAssignee.objects.filter(group=group2, user=user).exists()
 
-        assert Activity.objects.filter(group=group1, user=user, type=Activity.ASSIGNED).count() == 1
+        assert (
+            Activity.objects.filter(
+                group=group1, user=user, type=ActivityType.ASSIGNED.value
+            ).count()
+            == 1
+        )
 
         assert GroupSubscription.objects.filter(user=user, group=group1, is_active=True).exists()
 
@@ -1224,7 +1236,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert not GroupAssignee.objects.filter(group=group1, user=user).exists()
 
     def test_assign_non_member(self):
-        group = self.create_group(checksum="a" * 32, is_public=True)
+        group = self.create_group(is_public=True)
         member = self.user
         non_member = self.create_user("bar@example.com")
 
@@ -1254,7 +1266,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert response.data["assignedTo"]["type"] == "team"
         assert GroupAssignee.objects.filter(group=group, team=team).exists()
 
-        assert Activity.objects.filter(group=group, type=Activity.ASSIGNED).count() == 1
+        assert Activity.objects.filter(group=group, type=ActivityType.ASSIGNED.value).count() == 1
 
         assert GroupSubscription.objects.filter(group=group, is_active=True).count() == 2
 
@@ -1264,8 +1276,8 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert response.data["assignedTo"] is None
 
     def test_discard(self):
-        group1 = self.create_group(checksum="a" * 32, is_public=True)
-        group2 = self.create_group(checksum="b" * 32, is_public=True)
+        group1 = self.create_group(is_public=True)
+        group2 = self.create_group(is_public=True)
         group_hash = GroupHash.objects.create(hash="x" * 32, project=group1.project, group=group1)
         user = self.user
 
@@ -1292,7 +1304,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         return_value=frozenset(s for s in settings.SENTRY_SCOPES if s != "event:admin"),
     )
     def test_discard_requires_events_admin(self, mock_get_scopes):
-        group1 = self.create_group(checksum="a" * 32, is_public=True)
+        group1 = self.create_group(is_public=True)
         user = self.user
 
         self.login_as(user=user)
@@ -1316,12 +1328,11 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
         eventstream_state = {"event_stream_state": uuid4()}
         mock_eventstream_api.start_delete_groups = Mock(return_value=eventstream_state)
 
-        group1 = self.create_group(checksum="a" * 32, status=GroupStatus.RESOLVED)
-        group2 = self.create_group(checksum="b" * 32, status=GroupStatus.UNRESOLVED)
-        group3 = self.create_group(checksum="c" * 32, status=GroupStatus.IGNORED)
+        group1 = self.create_group(status=GroupStatus.RESOLVED)
+        group2 = self.create_group(status=GroupStatus.UNRESOLVED)
+        group3 = self.create_group(status=GroupStatus.IGNORED)
         group4 = self.create_group(
             project=self.create_project(slug="foo"),
-            checksum="b" * 32,
             status=GroupStatus.UNRESOLVED,
         )
 
@@ -1381,7 +1392,6 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
             groups.append(
                 self.create_group(
                     project=self.project,
-                    checksum=str(i).encode("utf-8") * 16,
                     status=GroupStatus.RESOLVED,
                 )
             )

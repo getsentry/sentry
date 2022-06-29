@@ -208,6 +208,7 @@ export const GridBodyCell = styled('td')`
 
   &:last-child {
     border-right: none;
+    padding: ${space(1)} ${space(2)};
   }
 `;
 

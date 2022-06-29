@@ -1,9 +1,7 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import ModalActions from 'sentry/actions/modalActions';
 import ConfigStore from 'sentry/stores/configStore';
-import {Event} from 'sentry/types/event';
+import ModalStore from 'sentry/stores/modalStore';
 import GroupActions from 'sentry/views/organizationGroupDetails/actions';
 
 const group = TestStubs.Group({
@@ -24,18 +22,6 @@ const organization = TestStubs.Organization({
   features: ['reprocessing-v2'],
 });
 
-function renderComponent(event?: Event) {
-  return mountWithTheme(
-    <GroupActions
-      group={group}
-      project={project}
-      organization={organization}
-      event={event}
-      disabled={false}
-    />
-  );
-}
-
 describe('GroupActions', function () {
   beforeEach(function () {
     ConfigStore.init();
@@ -48,8 +34,15 @@ describe('GroupActions', function () {
 
   describe('render()', function () {
     it('renders correctly', function () {
-      const wrapper = renderComponent();
-      expect(wrapper).toSnapshot();
+      const wrapper = render(
+        <GroupActions
+          group={group}
+          project={project}
+          organization={organization}
+          disabled={false}
+        />
+      );
+      expect(wrapper.container).toSnapshot();
     });
   });
 
@@ -64,9 +57,15 @@ describe('GroupActions', function () {
     });
 
     it('can subscribe', function () {
-      const wrapper = renderComponent();
-      const btn = wrapper.find('button[aria-label="Subscribe"]');
-      btn.simulate('click');
+      render(
+        <GroupActions
+          group={group}
+          project={project}
+          organization={organization}
+          disabled={false}
+        />
+      );
+      userEvent.click(screen.getByRole('button', {name: 'Subscribe'}));
 
       expect(issuesApi).toHaveBeenCalledWith(
         expect.anything(),
@@ -149,7 +148,7 @@ describe('GroupActions', function () {
         />
       );
 
-      const onReprocessEventFunc = jest.spyOn(ModalActions, 'openModal');
+      const onReprocessEventFunc = jest.spyOn(ModalStore, 'openModal');
 
       userEvent.click(screen.getByLabelText('More Actions'));
 

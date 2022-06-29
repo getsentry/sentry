@@ -25,7 +25,7 @@ import {
   ReleaseProject,
   ReleaseWithHealth,
   SessionApiResponse,
-  SessionField,
+  SessionFieldWithOperation,
 } from 'sentry/types';
 import {formatVersion} from 'sentry/utils/formatters';
 import routeTitleGen from 'sentry/utils/routeTitle';
@@ -215,7 +215,8 @@ class ReleasesDetail extends AsyncView<Props, State> {
               deploys,
               releaseMeta,
               refetchData: this.fetchData,
-              hasHealthData: getCount(sessions?.groups, SessionField.SESSIONS) > 0,
+              hasHealthData:
+                getCount(sessions?.groups, SessionFieldWithOperation.SESSIONS) > 0,
               releaseBounds,
             }}
           >
@@ -350,17 +351,11 @@ class ReleasesDetailContainer extends AsyncComponent<
 
     return (
       <PageFiltersContainer
-        lockedMessageSubject={t('release')}
         shouldForceProject={projects.length === 1}
         forceProject={
           projects.length === 1 ? {...projects[0], id: String(projects[0].id)} : undefined
         }
         specificProjectSlugs={projects.map(p => p.slug)}
-        disableMultipleProjectSelection
-        showProjectSettingsLink
-        projectsFooterMessage={this.renderProjectsFooterMessage()}
-        showDateSelector={false}
-        hideGlobalHeader={organization.features.includes('selection-filters-v2')}
       >
         <ReleasesDetail {...this.props} releaseMeta={releaseMeta} />
       </PageFiltersContainer>

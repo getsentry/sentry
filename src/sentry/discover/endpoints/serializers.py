@@ -9,11 +9,12 @@ from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.serializers.rest_framework import ListField
 from sentry.api.utils import InvalidParams, get_date_range_from_params
 from sentry.constants import ALL_ACCESS_PROJECTS
+from sentry.discover.arithmetic import ArithmeticError, categorize_columns
 from sentry.discover.models import MAX_TEAM_KEY_TRANSACTIONS, TeamKeyTransaction
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import Team
-from sentry.search.events.filter import get_filter
-from sentry.utils.snuba import SENTRY_SNUBA_MAP
+from sentry.search.events.builder import QueryBuilder
+from sentry.utils.snuba import SENTRY_SNUBA_MAP, Dataset
 
 
 class DiscoverQuerySerializer(serializers.Serializer):
@@ -138,7 +139,7 @@ class DiscoverQuerySerializer(serializers.Serializer):
 
 
 class DiscoverSavedQuerySerializer(serializers.Serializer):
-    name = serializers.CharField(required=True)
+    name = serializers.CharField(required=True, max_length=255)
     projects = ListField(child=serializers.IntegerField(), required=False, default=[])
     start = serializers.DateTimeField(required=False, allow_null=True)
     end = serializers.DateTimeField(required=False, allow_null=True)
@@ -218,8 +219,17 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
 
         if "query" in query:
             try:
-                get_filter(query["query"], self.context["params"])
-            except InvalidSearchQuery as err:
+                equations, columns = categorize_columns(query["fields"])
+                builder = QueryBuilder(
+                    dataset=Dataset.Discover,
+                    params=self.context["params"],
+                    query=query["query"],
+                    selected_columns=columns,
+                    equations=equations,
+                    orderby=query.get("orderby"),
+                )
+                builder.get_snql_query().validate()
+            except (InvalidSearchQuery, ArithmeticError) as err:
                 raise serializers.ValidationError(f"Cannot save invalid query: {err}")
 
         return {

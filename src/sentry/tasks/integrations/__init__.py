@@ -35,24 +35,23 @@ __all__ = (
 _tasks_list = (
     "create_comment",
     "kick_off_status_syncs",
-    "kickoff_vsts_subscription_check",
     "migrate_repo",
     "sync_assignee_outbound",
     "sync_metadata",
     "sync_status_inbound",
     "sync_status_outbound",
     "update_comment",
-    "vsts_subscription_check",
+    "vsts.kickoff_subscription_check",
+    "vsts.subscription_check",
 )
 settings.CELERY_IMPORTS += tuple(f"sentry.tasks.integrations.{task}" for task in _tasks_list)
 
 from .create_comment import create_comment
 from .kick_off_status_syncs import kick_off_status_syncs
-from .kickoff_vsts_subscription_check import kickoff_vsts_subscription_check
 from .migrate_repo import migrate_repo
 from .sync_assignee_outbound import sync_assignee_outbound
 from .sync_metadata import sync_metadata
 from .sync_status_inbound import sync_status_inbound
 from .sync_status_outbound import sync_status_outbound
 from .update_comment import update_comment
-from .vsts_subscription_check import vsts_subscription_check
+from .vsts import kickoff_vsts_subscription_check, vsts_subscription_check

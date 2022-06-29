@@ -1,10 +1,11 @@
-import * as React from 'react';
+import {Component, createRef, Fragment} from 'react';
 import {createPortal} from 'react-dom';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {parseArithmetic} from 'sentry/components/arithmeticInput/parser';
 import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import Input from 'sentry/components/forms/controls/input';
 import {getOffsetOfElement} from 'sentry/components/performance/waterfall/utils';
@@ -25,6 +26,7 @@ import {getPointerPosition} from 'sentry/utils/touch';
 import {setBodyUserSelect, UserSelectValues} from 'sentry/utils/userselect';
 import {WidgetType} from 'sentry/views/dashboardsV2/types';
 import {FieldKey} from 'sentry/views/dashboardsV2/widgetBuilder/issueWidget/fields';
+import {SESSIONS_OPERATIONS} from 'sentry/views/dashboardsV2/widgetBuilder/releaseWidget/fields';
 
 import {generateFieldOptions} from '../utils';
 
@@ -41,6 +43,7 @@ type Props = {
   onChange: (columns: Column[]) => void;
   organization: Organization;
   className?: string;
+  filterAggregateParameters?: (option: FieldValueOption) => boolean;
   filterPrimaryOptions?: (option: FieldValueOption) => boolean;
   noFieldsMessage?: string;
   showAliasField?: boolean;
@@ -66,7 +69,7 @@ enum PlaceholderPosition {
   BOTTOM,
 }
 
-class ColumnEditCollection extends React.Component<Props, State> {
+class ColumnEditCollection extends Component<Props, State> {
   state: State = {
     isDragging: false,
     draggingIndex: void 0,
@@ -116,7 +119,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
 
   previousUserSelect: UserSelectValues | null = null;
   portal: HTMLElement | null = null;
-  dragGhostRef = React.createRef<HTMLDivElement>();
+  dragGhostRef = createRef<HTMLDivElement>();
 
   keyForColumn(column: Column, isGhost: boolean): string {
     if (column.kind === 'function') {
@@ -182,6 +185,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
     // Find the equations in the list of columns
     for (let i = 0; i < newColumns.length; i++) {
       const newColumn = newColumns[i];
+
       if (newColumn.kind === 'equation') {
         const result = parseArithmetic(newColumn.field);
         let newEquation = '';
@@ -210,6 +214,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
         newColumns[i] = {
           kind: 'equation',
           field: newEquation,
+          alias: newColumns[i].alias,
         };
       }
     }
@@ -327,6 +332,19 @@ class ColumnEditCollection extends React.Component<Props, State> {
     );
   };
 
+  isRemainingReleaseHealthAggregate = (columnIndex: number) => {
+    const {source, columns} = this.props;
+    const column = columns[columnIndex];
+    const aggregateCount = columns.filter(
+      col => col.kind === FieldValueKind.FUNCTION
+    ).length;
+    return (
+      aggregateCount <= 1 &&
+      source === WidgetType.RELEASE &&
+      column.kind === FieldValueKind.FUNCTION
+    );
+  };
+
   onDragEnd = (event: MouseEvent | TouchEvent) => {
     if (!this.state.isDragging || !['mouseup', 'touchend'].includes(event.type)) {
       return;
@@ -414,8 +432,14 @@ class ColumnEditCollection extends React.Component<Props, State> {
       isGhost?: boolean;
     }
   ) {
-    const {columns, fieldOptions, filterPrimaryOptions, noFieldsMessage, showAliasField} =
-      this.props;
+    const {
+      columns,
+      fieldOptions,
+      filterAggregateParameters,
+      filterPrimaryOptions,
+      noFieldsMessage,
+      showAliasField,
+    } = this.props;
     const {isDragging, draggingTargetIndex, draggingIndex} = this.state;
 
     let placeholder: React.ReactNode = null;
@@ -441,7 +465,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
         : PlaceholderPosition.BOTTOM;
 
     return (
-      <React.Fragment key={`${i}:${this.keyForColumn(col, isGhost)}`}>
+      <Fragment key={`${i}:${this.keyForColumn(col, isGhost)}`}>
         {position === PlaceholderPosition.TOP && placeholder}
         <RowContainer
           showAliasField={showAliasField}
@@ -471,6 +495,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
             shouldRenderTag
             disabled={disabled}
             filterPrimaryOptions={filterPrimaryOptions}
+            filterAggregateParameters={filterAggregateParameters}
             noFieldsMessage={noFieldsMessage}
             skipParameterPlaceholder={showAliasField}
           />
@@ -500,7 +525,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
                 borderless
               />
             ) : (
-              <Button
+              <RemoveButton
                 data-test-id={`remove-column-${i}`}
                 aria-label={t('Remove column')}
                 onClick={() => this.removeColumn(i)}
@@ -513,7 +538,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
           )}
         </RowContainer>
         {position === PlaceholderPosition.BOTTOM && placeholder}
-      </React.Fragment>
+      </Fragment>
     );
   }
 
@@ -536,12 +561,14 @@ class ColumnEditCollection extends React.Component<Props, State> {
       source === WidgetType.ISSUE
         ? 1
         : Math.max(
-            ...columns.map(col =>
-              col.kind === 'function' &&
-              AGGREGATIONS[col.function[0]].parameters.length === 2
-                ? 3
-                : 2
-            )
+            ...columns.map(col => {
+              if (col.kind !== 'function') {
+                return 2;
+              }
+              const operation =
+                AGGREGATIONS[col.function[0]] ?? SESSIONS_OPERATIONS[col.function[0]];
+              return operation.parameters.length === 2 ? 3 : 2;
+            })
           );
 
     return (
@@ -566,6 +593,14 @@ class ColumnEditCollection extends React.Component<Props, State> {
               disabled: true,
             });
           }
+          if (this.isRemainingReleaseHealthAggregate(i)) {
+            return this.renderItem(col, i, {
+              singleColumn,
+              canDelete: false,
+              canDrag,
+              gridColumns,
+            });
+          }
           return this.renderItem(col, i, {
             singleColumn,
             canDelete,
@@ -574,7 +609,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
           });
         })}
         <RowContainer showAliasField={showAliasField} singleColumn={singleColumn}>
-          <Actions showAliasField={showAliasField}>
+          <Actions gap={1} showAliasField={showAliasField}>
             <Button
               size="small"
               aria-label={t('Add a Column')}
@@ -585,7 +620,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
             >
               {t('Add a Column')}
             </Button>
-            {source !== WidgetType.ISSUE && source !== WidgetType.METRICS && (
+            {source !== WidgetType.ISSUE && source !== WidgetType.RELEASE && (
               <Button
                 size="small"
                 aria-label={t('Add an Equation')}
@@ -604,18 +639,9 @@ class ColumnEditCollection extends React.Component<Props, State> {
   }
 }
 
-const Actions = styled('div')<{showAliasField?: boolean}>`
-  grid-column: 2 / 3;
-
-  & button {
-    margin-right: ${space(1)};
-  }
-
-  ${p =>
-    p.showAliasField &&
-    css`
-      grid-column: 1/-1;
-    `};
+const Actions = styled(ButtonBar)<{showAliasField?: boolean}>`
+  grid-column: ${p => (p.showAliasField ? '1/-1' : ' 2/3')};
+  justify-content: flex-start;
 `;
 
 const RowContainer = styled('div')<{
@@ -636,7 +662,7 @@ const RowContainer = styled('div')<{
       align-items: flex-start;
       grid-template-columns: ${p.singleColumn ? `1fr` : `${space(3)} 1fr 40px`};
 
-      @media (min-width: ${p.theme.breakpoints[0]}) {
+      @media (min-width: ${p.theme.breakpoints.small}) {
         grid-template-columns: ${p.singleColumn
           ? `1fr calc(200px + ${space(1)})`
           : `${space(3)} 1fr calc(200px + ${space(1)}) 40px`};
@@ -693,12 +719,12 @@ const AliasInput = styled(Input)`
 
 const AliasField = styled('div')<{singleColumn: boolean}>`
   margin-top: ${space(1)};
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     margin-top: 0;
     margin-left: ${space(1)};
   }
 
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     grid-row: 2/2;
     grid-column: ${p => (p.singleColumn ? '1/-1' : '2/2')};
   }

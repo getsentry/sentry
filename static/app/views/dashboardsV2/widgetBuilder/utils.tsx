@@ -1,12 +1,18 @@
+import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
+import trimStart from 'lodash/trimStart';
 
 import {generateOrderOptions} from 'sentry/components/dashboards/widgetQueriesForm';
 import {t} from 'sentry/locale';
-import {Organization, TagCollection} from 'sentry/types';
+import {OrganizationSummary, TagCollection} from 'sentry/types';
 import {
+  aggregateFunctionOutputType,
   aggregateOutputType,
-  getAggregateAlias,
+  getEquationAliasIndex,
+  isEquation,
+  isEquationAlias,
   isLegalYAxisType,
+  stripDerivedMetricsPrefix,
 } from 'sentry/utils/discover/fields';
 import {MeasurementCollection} from 'sentry/utils/measurements/measurements';
 import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/performance/spanOperationBreakdowns/constants';
@@ -16,17 +22,24 @@ import {
   WidgetQuery,
   WidgetType,
 } from 'sentry/views/dashboardsV2/types';
+import {FieldValueOption} from 'sentry/views/eventsV2/table/queryField';
+import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
+import {FlatValidationError, getNumEquations, ValidationError} from '../utils';
+
 // Used in the widget builder to limit the number of lines plotted in the chart
 export const DEFAULT_RESULTS_LIMIT = 5;
-export const RESULTS_LIMIT = 10;
+const RESULTS_LIMIT = 10;
+
+// Both dashboards and widgets use the 'new' keyword when creating
+export const NEW_DASHBOARD_ID = 'new';
 
 export enum DataSet {
   EVENTS = 'events',
   ISSUES = 'issues',
-  RELEASE = 'release',
+  RELEASES = 'releases',
 }
 
 export enum SortDirection {
@@ -46,15 +59,6 @@ export const displayTypes = {
   [DisplayType.TABLE]: t('Table'),
   [DisplayType.WORLD_MAP]: t('World Map'),
   [DisplayType.BIG_NUMBER]: t('Big Number'),
-  [DisplayType.TOP_N]: t('Top 5 Events'),
-};
-
-type ValidationError = {
-  [key: string]: string | string[] | ValidationError[] | ValidationError;
-};
-
-export type FlatValidationError = {
-  [key: string]: string | FlatValidationError[] | FlatValidationError;
 };
 
 export function mapErrors(
@@ -93,13 +97,9 @@ export function normalizeQueries({
   widgetBuilderNewDesign?: boolean;
   widgetType?: Widget['widgetType'];
 }): Widget['queries'] {
-  const isTimeseriesChart = [
-    DisplayType.LINE,
-    DisplayType.AREA,
-    DisplayType.BAR,
-  ].includes(displayType);
-
+  const isTimeseriesChart = getIsTimeseriesChart(displayType);
   const isTabularChart = [DisplayType.TABLE, DisplayType.TOP_N].includes(displayType);
+  queries = cloneDeep(queries);
 
   if (
     [DisplayType.TABLE, DisplayType.WORLD_MAP, DisplayType.BIG_NUMBER].includes(
@@ -125,15 +125,35 @@ export function normalizeQueries({
         query.fields = fields.filter(field => !columns.includes(field));
       }
 
-      if (!!query.orderby) {
-        return {
-          ...query,
-          orderby: getAggregateAlias(query.orderby),
-        };
+      if (
+        getIsTimeseriesChart(displayType) &&
+        !query.columns.filter(column => !!column).length
+      ) {
+        // The orderby is only applicable for timeseries charts when there's a
+        // grouping selected, if all fields are empty then we also reset the orderby
+        query.orderby = '';
+        return query;
       }
 
+      const queryOrderBy =
+        widgetType === WidgetType.RELEASE
+          ? stripDerivedMetricsPrefix(queries[0].orderby)
+          : queries[0].orderby;
+      const rawOrderBy = trimStart(queryOrderBy, '-');
+
+      const resetOrderBy =
+        // Raw Equation from Top N only applies to timeseries
+        (isTabularChart && isEquation(rawOrderBy)) ||
+        // Not contained as tag, field, or function
+        (!isEquation(rawOrderBy) &&
+          !isEquationAlias(rawOrderBy) &&
+          ![...query.columns, ...query.aggregates].includes(rawOrderBy)) ||
+        // Equation alias and not contained
+        (isEquationAlias(rawOrderBy) &&
+          getEquationAliasIndex(rawOrderBy) >
+            getNumEquations([...query.columns, ...query.aggregates]) - 1);
       const orderBy =
-        getAggregateAlias(queries[0].orderby) ||
+        (!resetOrderBy && trimStart(queryOrderBy, '-')) ||
         (widgetType === WidgetType.ISSUE
           ? IssueSortOptions.DATE
           : generateOrderOptions({
@@ -143,9 +163,15 @@ export function normalizeQueries({
               aggregates: queries[0].aggregates,
             })[0].value);
 
-      // Issues data set doesn't support order by descending
-      query.orderby =
-        widgetType === WidgetType.DISCOVER ? `-${String(orderBy)}` : String(orderBy);
+      // A widget should be descending if:
+      // - There is no orderby, so we're defaulting to desc
+      // - Not an issues widget since issues doesn't support descending and
+      //   the original ordering was descending
+      const isDescending =
+        !query.orderby ||
+        (widgetType !== WidgetType.ISSUE && queryOrderBy.startsWith('-'));
+
+      query.orderby = isDescending ? `-${String(orderBy)}` : String(orderBy);
 
       return query;
     });
@@ -262,7 +288,7 @@ export function getAmendedFieldOptions({
   tags,
 }: {
   measurements: MeasurementCollection;
-  organization: Organization;
+  organization: OrganizationSummary;
   tags: TagCollection;
 }) {
   return generateFieldOptions({
@@ -271,4 +297,81 @@ export function getAmendedFieldOptions({
     measurementKeys: Object.values(measurements).map(({key}) => key),
     spanOperationBreakdownKeys: SPAN_OP_BREAKDOWN_FIELDS,
   });
+}
+
+// Extract metric names from aggregation functions present in the widget queries
+export function getMetricFields(queries: WidgetQuery[]) {
+  return queries.reduce((acc, query) => {
+    for (const field of [...query.aggregates, ...query.columns]) {
+      const fieldParameter = /\(([^)]*)\)/.exec(field)?.[1];
+      if (fieldParameter && !acc.includes(fieldParameter)) {
+        acc.push(fieldParameter);
+      }
+    }
+
+    return acc;
+  }, [] as string[]);
+}
+
+// Used to limit the number of results of the "filter your results" fields dropdown
+export const MAX_SEARCH_ITEMS = 5;
+
+// Used to set the max height of the smartSearchBar menu
+export const MAX_MENU_HEIGHT = 250;
+
+// Any function/field choice for Big Number widgets is legal since the
+// data source is from an endpoint that is not timeseries-based.
+// The function/field choice for World Map widget will need to be numeric-like.
+// Column builder for Table widget is already handled above.
+export function doNotValidateYAxis(displayType: DisplayType) {
+  return displayType === DisplayType.BIG_NUMBER;
+}
+
+export function filterPrimaryOptions({
+  option,
+  widgetType,
+  displayType,
+}: {
+  displayType: DisplayType;
+  option: FieldValueOption;
+  widgetType?: WidgetType;
+}) {
+  if (widgetType === WidgetType.RELEASE) {
+    if (displayType === DisplayType.TABLE) {
+      return [
+        FieldValueKind.FUNCTION,
+        FieldValueKind.FIELD,
+        FieldValueKind.NUMERIC_METRICS,
+      ].includes(option.value.kind);
+    }
+    if (displayType === DisplayType.TOP_N) {
+      return option.value.kind === FieldValueKind.TAG;
+    }
+  }
+
+  // Only validate function names for timeseries widgets and
+  // world map widgets.
+  if (!doNotValidateYAxis(displayType) && option.value.kind === FieldValueKind.FUNCTION) {
+    const primaryOutput = aggregateFunctionOutputType(option.value.meta.name, undefined);
+    if (primaryOutput) {
+      // If a function returns a specific type, then validate it.
+      return isLegalYAxisType(primaryOutput);
+    }
+  }
+
+  return [FieldValueKind.FUNCTION, FieldValueKind.NUMERIC_METRICS].includes(
+    option.value.kind
+  );
+}
+
+export function getResultsLimit(numQueries: number, numYAxes: number) {
+  if (numQueries === 0 || numYAxes === 0) {
+    return DEFAULT_RESULTS_LIMIT;
+  }
+
+  return Math.floor(RESULTS_LIMIT / (numQueries * numYAxes));
+}
+
+export function getIsTimeseriesChart(displayType: DisplayType) {
+  return [DisplayType.LINE, DisplayType.AREA, DisplayType.BAR].includes(displayType);
 }

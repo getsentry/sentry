@@ -238,7 +238,7 @@ describe('TimeRangeSelector', function () {
     });
   });
 
-  it('maintains time when switching UTC to local time', async function () {
+  it('maintains time when switching UTC to local time', function () {
     // Times should never change when changing UTC option
     // Instead, the utc flagged is used when querying to create proper date
 
@@ -310,5 +310,19 @@ describe('TimeRangeSelector', function () {
       start: new Date('2017-10-10T00:00:00.000Z'),
       end: new Date('2017-10-17T23:59:59.000Z'),
     });
+  });
+
+  it('uses the current absolute date if provided', async function () {
+    wrapper = createWrapper({
+      start: new Date('2022-06-12T00:00:00.000Z'),
+      end: new Date('2022-06-14T00:00:00.000Z'),
+    });
+
+    await wrapper.find('HeaderItem').simulate('click');
+    await wrapper.find('AutoCompleteItem[data-test-id="absolute"]').simulate('click');
+
+    wrapper.find('AutoCompleteItem[data-test-id="absolute"]').simulate('click');
+    // On change should not be called because start/end did not change
+    expect(onChange).not.toHaveBeenCalled();
   });
 });

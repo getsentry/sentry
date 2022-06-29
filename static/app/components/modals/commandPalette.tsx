@@ -22,7 +22,7 @@ function CommandPalette({Body}: ModalRenderProps) {
             entryPoint="command_palette"
             minSearch={1}
             maxResults={10}
-            dropdownStyle={injectedCss`
+            dropdownClassName={injectedCss`
                 width: 100%;
                 border: transparent;
                 border-top-left-radius: 0;

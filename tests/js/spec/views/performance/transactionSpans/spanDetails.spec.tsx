@@ -24,14 +24,16 @@ describe('Performance > Transaction Spans > Span Summary', function () {
     });
 
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/eventsv2/',
-      body: {data: [{count: 1}]},
+      url: '/organizations/org-slug/events/',
+      body: {data: [{'count()': 1}]},
     });
   });
 
   afterEach(function () {
     MockApiClient.clearMockResponses();
     ProjectsStore.reset();
+    // need to typecast to any to be able to call mockReset
+    (browserHistory.push as any).mockReset();
   });
 
   describe('Without Span Data', function () {
@@ -347,7 +349,7 @@ describe('Performance > Transaction Spans > Span Summary', function () {
         });
       });
 
-      it('renders a search bar', async function () {
+      it('renders a search bar', function () {
         const data = initializeData({
           features: FEATURES,
           query: {project: '1', transaction: 'transaction'},
@@ -358,8 +360,63 @@ describe('Performance > Transaction Spans > Span Summary', function () {
           organization: data.organization,
         });
 
-        const searchBarNode = await screen.findByPlaceholderText('Filter Transactions');
+        const searchBarNode = screen.getByPlaceholderText('Filter Transactions');
         expect(searchBarNode).toBeInTheDocument();
+      });
+
+      it('disables reset button when no min or max query parameters were set', function () {
+        const data = initializeData({
+          features: FEATURES,
+          query: {project: '1', transaction: 'transaction'},
+        });
+
+        render(<SpanDetails params={{spanSlug: 'op:aaaaaaaa'}} {...data} />, {
+          context: data.routerContext,
+          organization: data.organization,
+        });
+
+        const resetButton = screen.getByRole('button', {
+          name: /reset view/i,
+        });
+        expect(resetButton).toBeInTheDocument();
+        expect(resetButton).toBeDisabled();
+      });
+
+      it('enables reset button when min and max are set', function () {
+        const data = initializeData({
+          features: FEATURES,
+          query: {project: '1', transaction: 'transaction', min: '10', max: '100'},
+        });
+
+        render(<SpanDetails params={{spanSlug: 'op:aaaaaaaa'}} {...data} />, {
+          context: data.routerContext,
+          organization: data.organization,
+        });
+
+        const resetButton = screen.getByRole('button', {
+          name: /reset view/i,
+        });
+        expect(resetButton).toBeEnabled();
+      });
+
+      it('clears min and max query parameters when reset button is clicked', function () {
+        const data = initializeData({
+          features: FEATURES,
+          query: {project: '1', transaction: 'transaction', min: '10', max: '100'},
+        });
+
+        render(<SpanDetails params={{spanSlug: 'op:aaaaaaaa'}} {...data} />, {
+          context: data.routerContext,
+          organization: data.organization,
+        });
+
+        const resetButton = screen.getByRole('button', {
+          name: /reset view/i,
+        });
+        resetButton.click();
+        expect(browserHistory.push).toHaveBeenCalledWith(
+          expect.not.objectContaining({min: expect.any(String), max: expect.any(String)})
+        );
       });
 
       it('does not add aggregate filters to the query', async function () {
@@ -410,8 +467,8 @@ describe('Performance > Transaction Spans > Span Summary', function () {
           'Self Time Breakdown'
         );
 
-        const node = await screen.findByTestId('option-histogram');
-        within(node).getByRole('button', {hidden: true}).click();
+        (await within(displayToggle).findByRole('button')).click();
+        (await within(displayToggle).findByTestId('histogram')).click();
 
         expect(browserHistory.push).toHaveBeenCalledWith(
           expect.objectContaining({
@@ -494,6 +551,58 @@ describe('Performance > Transaction Spans > Span Summary', function () {
 
         const nodes = await screen.findAllByText('Self Time Distribution');
         expect(nodes[0]).toBeInTheDocument();
+      });
+
+      it('sends min and max to span example query', function () {
+        const mock = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/events-spans/',
+          body: {},
+        });
+        const data = initializeData({
+          features: FEATURES,
+          query: {project: '1', transaction: 'transaction', min: '10', max: '120'},
+        });
+
+        render(<SpanDetails params={{spanSlug: 'op:aaaaaaaa'}} {...data} />, {
+          context: data.routerContext,
+          organization: data.organization,
+        });
+
+        expect(mock).toHaveBeenLastCalledWith(
+          '/organizations/org-slug/events-spans/',
+          expect.objectContaining({
+            query: expect.objectContaining({
+              min_exclusive_time: '10',
+              max_exclusive_time: '120',
+            }),
+          })
+        );
+      });
+
+      it('sends min and max to suspect spans query', function () {
+        const mock = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/events-spans-performance/',
+          body: {},
+        });
+        const data = initializeData({
+          features: FEATURES,
+          query: {project: '1', transaction: 'transaction', min: '10', max: '120'},
+        });
+
+        render(<SpanDetails params={{spanSlug: 'op:aaaaaaaa'}} {...data} />, {
+          context: data.routerContext,
+          organization: data.organization,
+        });
+
+        expect(mock).toHaveBeenLastCalledWith(
+          '/organizations/org-slug/events-spans-performance/',
+          expect.objectContaining({
+            query: expect.objectContaining({
+              min_exclusive_time: '10',
+              max_exclusive_time: '120',
+            }),
+          })
+        );
       });
     });
   });

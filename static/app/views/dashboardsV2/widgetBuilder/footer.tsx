@@ -1,15 +1,14 @@
-import * as React from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Confirm from 'sentry/components/confirm';
-import Link from 'sentry/components/links/link';
+import type {LinkProps} from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 
 interface Props {
-  goBackLocation: React.ComponentProps<typeof Link>['to'];
+  goBackLocation: LinkProps['to'];
   invalidForm: boolean;
   onSave: (event: React.MouseEvent) => void;
   isEditing?: boolean;
@@ -57,7 +56,7 @@ const Actions = styled(ButtonBar)`
   /* to match Layout.Main padding + Field padding-right */
   padding-right: calc(${space(2)} + ${space(2)});
 
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
     padding: ${space(4)};
 
     /* to match Layout.Main padding + Field padding-right */
@@ -68,7 +67,4 @@ const Actions = styled(ButtonBar)`
 const Wrapper = styled('div')`
   background: ${p => p.theme.background};
   border-top: 1px solid ${p => p.theme.gray200};
-  position: sticky;
-  bottom: 0;
-  z-index: ${p => p.theme.zIndex.initial};
 `;

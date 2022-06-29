@@ -11,7 +11,7 @@ inputs:
   cache-files-hash:
     description: 'A single hash for a set of files. Used for caching.'
     required: false
-    default: ${{ hashFiles('requirements-*.txt', '!requirements-pre-commit.txt') }}
+    default: ${{ hashFiles('requirements-*.txt') }}
   pip-cache-version:
     description: 'pip cache version in order to bust cache'
     required: false
@@ -66,7 +66,7 @@ runs:
         echo "::set-output name=pip-version::$(pip -V | awk -F ' ' '{print $2}')"
 
     - name: pip cache
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: ${{ steps.pip-info.outputs.pip-cache-dir }}
         key: |

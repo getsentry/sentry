@@ -1,11 +1,11 @@
-import * as React from 'react';
+import {Fragment} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {LocationDescriptor} from 'history';
 
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
-import Link from 'sentry/components/links/link';
+import Link, {LinkProps} from 'sentry/components/links/link';
 import {IconChevron} from 'sentry/icons';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {Theme} from 'sentry/utils/theme';
 import BreadcrumbDropdown, {
@@ -18,7 +18,7 @@ const BreadcrumbList = styled('div')`
   padding: ${space(1)} 0;
 `;
 
-export type Crumb = {
+export interface Crumb {
   /**
    * Label of the crumb
    */
@@ -39,10 +39,10 @@ export type Crumb = {
   /**
    * Link of the crumb
    */
-  to?: React.ComponentProps<typeof Link>['to'] | null;
-};
+  to?: LinkProps['to'] | null;
+}
 
-export type CrumbDropdown = {
+export interface CrumbDropdown {
   /**
    * Items of the crumb dropdown
    */
@@ -57,7 +57,7 @@ export type CrumbDropdown = {
    * Callback function for when an item is selected
    */
   onSelect: BreadcrumbDropdownProps['onSelect'];
-};
+}
 
 interface Props extends React.HTMLAttributes<HTMLDivElement> {
   /**
@@ -114,7 +114,7 @@ const Breadcrumbs = ({crumbs, linkLastItem = false, ...props}: Props) => {
           key ?? typeof to === 'string' ? `${labelKey}${to}` : `${labelKey}${index}`;
 
         return (
-          <React.Fragment key={mapKey}>
+          <Fragment key={mapKey}>
             {to ? (
               <BreadcrumbLink
                 to={to}
@@ -130,16 +130,16 @@ const Breadcrumbs = ({crumbs, linkLastItem = false, ...props}: Props) => {
             {index < crumbs.length - 1 && (
               <BreadcrumbDividerIcon size="xs" direction="right" />
             )}
-          </React.Fragment>
+          </Fragment>
         );
       })}
     </BreadcrumbList>
   );
 };
 
-const getBreadcrumbListItemStyles = (p: {theme: Theme}) => `
+const getBreadcrumbListItemStyles = (p: {theme: Theme}) => css`
+  ${p.theme.overflowEllipsis}
   color: ${p.theme.gray300};
-  ${overflowEllipsis};
   width: auto;
 
   &:last-child {
@@ -147,11 +147,11 @@ const getBreadcrumbListItemStyles = (p: {theme: Theme}) => `
   }
 `;
 
-type BreadcrumbLinkProps = {
-  to: React.ComponentProps<typeof Link>['to'];
+interface BreadcrumbLinkProps {
+  to: LinkProps['to'];
   children?: React.ReactNode;
   preservePageFilters?: boolean;
-};
+}
 
 const BreadcrumbLink = styled(
   ({preservePageFilters, to, ...props}: BreadcrumbLinkProps) =>

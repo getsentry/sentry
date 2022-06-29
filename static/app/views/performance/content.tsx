@@ -9,9 +9,11 @@ import PageFiltersContainer from 'sentry/components/organizations/pageFilters/co
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
-import {PageFilters} from 'sentry/types';
+import {PageFilters, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {PerformanceEventViewProvider} from 'sentry/utils/performance/contexts/performanceEventViewContext';
+import {MeasureAssetsOnTransaction} from 'sentry/utils/performanceForSentry';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
@@ -20,7 +22,11 @@ import withPageFilters from 'sentry/utils/withPageFilters';
 
 import {DEFAULT_STATS_PERIOD, generatePerformanceEventView} from './data';
 import {PerformanceLanding} from './landing';
-import {addRoutePerformanceContext, handleTrendsClick} from './utils';
+import {
+  addRoutePerformanceContext,
+  getSelectedProjectPlatforms,
+  handleTrendsClick,
+} from './utils';
 
 type Props = {
   location: Location;
@@ -41,13 +47,57 @@ function PerformanceContent({selection, location, demoMode}: Props) {
   const previousDateTime = usePrevious(selection.datetime);
 
   const [state, setState] = useState<State>({error: undefined});
+  const withStaticFilters = organization.features.includes(
+    'performance-transaction-name-only-search'
+  );
+
+  const eventView = generatePerformanceEventView(location, projects, {
+    withStaticFilters,
+  });
+
+  function getOnboardingProject(): Project | undefined {
+    // XXX used by getsentry to bypass onboarding for the upsell demo state.
+    if (demoMode) {
+      return undefined;
+    }
+
+    if (projects.length === 0) {
+      return undefined;
+    }
+
+    // Current selection is 'my projects' or 'all projects'
+    if (eventView.project.length === 0 || eventView.project === [ALL_ACCESS_PROJECTS]) {
+      const filtered = projects.filter(p => p.firstTransactionEvent === false);
+      if (filtered.length === projects.length) {
+        return filtered[0];
+      }
+    }
+
+    // Any other subset of projects.
+    const filtered = projects.filter(
+      p =>
+        eventView.project.includes(parseInt(p.id, 10)) &&
+        p.firstTransactionEvent === false
+    );
+    if (filtered.length === eventView.project.length) {
+      return filtered[0];
+    }
+
+    return undefined;
+  }
+
+  const onboardingProject = getOnboardingProject();
 
   useEffect(() => {
     if (!mounted.current) {
+      const selectedProjects = getSelectedProjectPlatforms(location, projects);
+
       trackAdvancedAnalyticsEvent('performance_views.overview.view', {
         organization,
-        show_onboarding: shouldShowOnboarding(),
+        show_onboarding: onboardingProject !== undefined,
+        project_platforms: selectedProjects,
       });
+
       loadOrganizationTags(api, organization.slug, selection);
       addRoutePerformanceContext(selection);
       mounted.current = true;
@@ -57,7 +107,16 @@ function PerformanceContent({selection, location, demoMode}: Props) {
       loadOrganizationTags(api, organization.slug, selection);
       addRoutePerformanceContext(selection);
     }
-  }, [selection.datetime]);
+  }, [
+    selection.datetime,
+    previousDateTime,
+    selection,
+    api,
+    organization,
+    onboardingProject,
+    location,
+    projects,
+  ]);
 
   function setError(newError?: string) {
     if (
@@ -87,60 +146,42 @@ function PerformanceContent({selection, location, demoMode}: Props) {
     });
   }
 
-  const eventView = generatePerformanceEventView(location, projects);
-
-  function shouldShowOnboarding() {
-    // XXX used by getsentry to bypass onboarding for the upsell demo state.
-    if (demoMode) {
-      return false;
-    }
-
-    if (projects.length === 0) {
-      return false;
-    }
-
-    // Current selection is 'my projects' or 'all projects'
-    if (eventView.project.length === 0 || eventView.project === [ALL_ACCESS_PROJECTS]) {
-      return (
-        projects.filter(p => p.firstTransactionEvent === false).length === projects.length
-      );
-    }
-
-    // Any other subset of projects.
-    return (
-      projects.filter(
-        p =>
-          eventView.project.includes(parseInt(p.id, 10)) &&
-          p.firstTransactionEvent === false
-      ).length === eventView.project.length
-    );
-  }
-
   return (
     <SentryDocumentTitle title={t('Performance')} orgSlug={organization.slug}>
       <PerformanceEventViewProvider value={{eventView}}>
-        <PageFiltersContainer
-          defaultSelection={{
-            datetime: {
-              start: null,
-              end: null,
-              utc: false,
-              period: DEFAULT_STATS_PERIOD,
-            },
-          }}
-        >
-          <PerformanceLanding
-            eventView={eventView}
-            setError={setError}
-            handleSearch={handleSearch}
-            handleTrendsClick={() => handleTrendsClick({location, organization})}
-            shouldShowOnboarding={shouldShowOnboarding()}
-            organization={organization}
-            location={location}
-            projects={projects}
-            selection={selection}
-          />
-        </PageFiltersContainer>
+        <MEPSettingProvider>
+          <PageFiltersContainer
+            defaultSelection={{
+              datetime: {
+                start: null,
+                end: null,
+                utc: false,
+                period: DEFAULT_STATS_PERIOD,
+              },
+            }}
+          >
+            <MeasureAssetsOnTransaction>
+              <PerformanceLanding
+                eventView={eventView}
+                setError={setError}
+                handleSearch={handleSearch}
+                handleTrendsClick={() =>
+                  handleTrendsClick({
+                    location,
+                    organization,
+                    projectPlatforms: getSelectedProjectPlatforms(location, projects),
+                  })
+                }
+                onboardingProject={onboardingProject}
+                organization={organization}
+                location={location}
+                projects={projects}
+                selection={selection}
+                withStaticFilters={withStaticFilters}
+              />
+            </MeasureAssetsOnTransaction>
+          </PageFiltersContainer>
+        </MEPSettingProvider>
       </PerformanceEventViewProvider>
     </SentryDocumentTitle>
   );

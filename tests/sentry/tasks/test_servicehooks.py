@@ -5,27 +5,12 @@ import responses
 from sentry.tasks.servicehooks import get_payload_v0, process_service_hook
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.helpers.faux import faux
+from sentry.testutils.helpers.faux import DictContaining, faux
 from sentry.utils import json
-
-
-class DictContaining:
-    def __init__(self, *keys):
-        self.keys = keys
-
-    def __eq__(self, other):
-        return all([k in other.keys() for k in self.keys])
-
-
-class Any:
-    def __eq__(self, other):
-        return True
 
 
 class TestServiceHooks(TestCase):
     def setUp(self):
-        self.project = self.create_project()
-
         self.hook = self.create_service_hook(project=self.project, events=("issue.created",))
 
     @patch("sentry.tasks.servicehooks.safe_urlopen")

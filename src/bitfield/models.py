@@ -133,7 +133,7 @@ class BitField(BigIntegerField):
             if isinstance(value, int) and value < 0:
                 new_value = 0
                 for bit_number, _ in enumerate(self.flags):
-                    new_value |= value & (2 ** bit_number)
+                    new_value |= value & (2**bit_number)
                 value = new_value
 
             value = BitHandler(value, self.flags, self.labels)

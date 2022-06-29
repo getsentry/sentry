@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import {Mention, MentionsInput, MentionsInputProps} from 'react-mentions';
 import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -52,7 +52,7 @@ type State = {
   value: string;
 };
 
-class NoteInputComponent extends React.Component<Props, State> {
+class NoteInputComponent extends Component<Props, State> {
   state: State = {
     preview: false,
     value: this.props.text || '',
@@ -264,7 +264,7 @@ type MentionablesChildFunc = Parameters<
   React.ComponentProps<typeof Mentionables>['children']
 >[0];
 
-class NoteInputContainer extends React.Component<NoteInputContainerProps> {
+class NoteInputContainer extends Component<NoteInputContainerProps> {
   static defaultProps = defaultProps;
 
   renderInput = ({members, teams}: MentionablesChildFunc) => {

@@ -7,12 +7,17 @@ import {openModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import DatePageFilter from 'sentry/components/datePageFilter';
+import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import SearchBar from 'sentry/components/events/searchBar';
 import {GlobalSdkUpdateAlert} from 'sentry/components/globalSdkUpdateAlert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageHeading from 'sentry/components/pageHeading';
+import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
 import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
+import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -22,7 +27,6 @@ import {Organization, PageFilters, Project} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {generateAggregateFields} from 'sentry/utils/discover/fields';
 import {GenericQueryBatcher} from 'sentry/utils/performance/contexts/genericQueryBatcher';
-import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {
   PageErrorAlert,
   PageErrorProvider,
@@ -30,6 +34,7 @@ import {
 import useTeams from 'sentry/utils/useTeams';
 
 import Onboarding from '../onboarding';
+import {MetricsEventsDropdown} from '../transactionSummary/transactionOverview/metricEvents/metricsEventsDropdown';
 import {getTransactionSearchQuery} from '../utils';
 
 import {AllTransactionsView} from './views/allTransactionsView';
@@ -51,11 +56,12 @@ type Props = {
   handleSearch: (searchQuery: string) => void;
   handleTrendsClick: () => void;
   location: Location;
+  onboardingProject: Project | undefined;
   organization: Organization;
   projects: Project[];
   selection: PageFilters;
   setError: (msg: string | undefined) => void;
-  shouldShowOnboarding: boolean;
+  withStaticFilters: boolean;
 };
 
 const fieldToViewMap: Record<LandingDisplayField, FC<Props>> = {
@@ -74,7 +80,8 @@ export function PerformanceLanding(props: Props) {
     projects,
     handleSearch,
     handleTrendsClick,
-    shouldShowOnboarding,
+    onboardingProject,
+    withStaticFilters,
   } = props;
 
   const {teams, initiallyLoaded} = useTeams({provideUserTeams: true});
@@ -86,6 +93,7 @@ export function PerformanceLanding(props: Props) {
     eventView
   );
   const landingDisplay = paramLandingDisplay ?? defaultLandingDisplayForProjects;
+  const showOnboarding = onboardingProject !== undefined;
 
   useEffect(() => {
     if (hasMounted.current) {
@@ -103,13 +111,11 @@ export function PerformanceLanding(props: Props) {
     hasMounted.current = true;
   }, []);
 
-  const filterString = getTransactionSearchQuery(location, eventView.query);
-
-  const showOnboarding = shouldShowOnboarding;
+  const filterString = withStaticFilters
+    ? 'transaction.duration:<15m'
+    : getTransactionSearchQuery(location, eventView.query);
 
   const ViewComponent = fieldToViewMap[landingDisplay.field];
-
-  const {isMEPEnabled, setMEPEnabled} = useMEPSettingContext();
 
   const fnOpenModal = () => {
     openModal(
@@ -119,15 +125,31 @@ export function PerformanceLanding(props: Props) {
           organization={organization}
           eventView={eventView}
           projects={projects}
-          isMEPEnabled={isMEPEnabled}
-          onApply={value => {
-            setMEPEnabled(value);
-          }}
+          onApply={() => {}}
+          isMEPEnabled
         />
       ),
       {modalCss, backdrop: 'static'}
     );
   };
+
+  let pageFilters: React.ReactNode = (
+    <PageFilterBar condensed>
+      <ProjectPageFilter />
+      <EnvironmentPageFilter />
+      <DatePageFilter alignDropdown="left" />
+    </PageFilterBar>
+  );
+
+  if (showOnboarding) {
+    pageFilters = <SearchContainerWithFilter>{pageFilters}</SearchContainerWithFilter>;
+  }
+
+  const SearchFilterContainer =
+    organization.features.includes('performance-use-metrics') &&
+    !organization.features.includes('performance-transaction-name-only-search')
+      ? SearchContainerWithFilterAndMetrics
+      : SearchContainerWithFilter;
 
   return (
     <StyledPageContent data-test-id="performance-landing-v3">
@@ -185,35 +207,49 @@ export function PerformanceLanding(props: Props) {
             <GlobalSdkUpdateAlert />
             <PageErrorAlert />
             {showOnboarding ? (
-              <Onboarding
-                organization={organization}
-                project={
-                  props.selection.projects.length > 0
-                    ? // If some projects selected, use the first selection
-                      projects.find(
-                        project => props.selection.projects[0].toString() === project.id
-                      ) || projects[0]
-                    : // Otherwise, use the first project in the org
-                      projects[0]
-                }
-              />
+              <Fragment>
+                {pageFilters}
+                <Onboarding organization={organization} project={onboardingProject} />
+              </Fragment>
             ) : (
               <Fragment>
-                <SearchContainerWithFilter>
-                  <SearchBar
-                    searchSource="performance_landing"
-                    organization={organization}
-                    projectIds={eventView.project}
-                    query={filterString}
-                    fields={generateAggregateFields(
-                      organization,
-                      [...eventView.fields, {field: 'tps()'}],
-                      ['epm()', 'eps()']
-                    )}
-                    onSearch={handleSearch}
-                    maxQueryLength={MAX_QUERY_LENGTH}
-                  />
-                </SearchContainerWithFilter>
+                <SearchFilterContainer>
+                  {pageFilters}
+                  <Feature
+                    features={['organizations:performance-transaction-name-only-search']}
+                  >
+                    {({hasFeature}) =>
+                      hasFeature ? (
+                        // TODO replace `handleSearch prop` with transaction name search once
+                        // transaction name search becomes the default search bar
+                        <TransactionNameSearchBar
+                          organization={organization}
+                          location={location}
+                          eventView={eventView}
+                        />
+                      ) : (
+                        <SearchBar
+                          searchSource="performance_landing"
+                          organization={organization}
+                          projectIds={eventView.project}
+                          query={filterString}
+                          fields={generateAggregateFields(
+                            organization,
+                            [...eventView.fields, {field: 'tps()'}],
+                            ['epm()', 'eps()']
+                          )}
+                          onSearch={handleSearch}
+                          maxQueryLength={MAX_QUERY_LENGTH}
+                        />
+                      )
+                    }
+                  </Feature>
+                  <Feature
+                    features={['organizations:performance-transaction-name-only-search']}
+                  >
+                    {({hasFeature}) => !hasFeature && <MetricsEventsDropdown />}
+                  </Feature>
+                </SearchFilterContainer>
                 {initiallyLoaded ? (
                   <TeamKeyTransactionManager.Provider
                     organization={organization}
@@ -247,10 +283,24 @@ const StyledHeading = styled(PageHeading)`
 
 const SearchContainerWithFilter = styled('div')`
   display: grid;
-  gap: ${space(0)};
+  grid-template-rows: auto auto;
+  gap: ${space(2)};
   margin-bottom: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    grid-template-columns: 1fr;
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    grid-template-rows: auto;
+    grid-template-columns: auto 1fr;
+  }
+`;
+
+const SearchContainerWithFilterAndMetrics = styled('div')`
+  display: grid;
+  grid-template-rows: auto auto auto;
+  gap: ${space(2)};
+  margin-bottom: ${space(2)};
+
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    grid-template-rows: auto;
+    grid-template-columns: auto 1fr auto;
   }
 `;

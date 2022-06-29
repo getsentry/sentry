@@ -31,7 +31,7 @@ import SelectableList, {
 import {transformDiscoverToList} from '../transforms/transformDiscoverToList';
 import {transformEventsRequestToArea} from '../transforms/transformEventsToArea';
 import {PerformanceWidgetProps, QueryDefinition, WidgetDataResult} from '../types';
-import {eventsRequestQueryProps, getMEPQueryParams} from '../utils';
+import {eventsRequestQueryProps, getMEPParamsIfApplicable} from '../utils';
 import {PerformanceWidgetSetting} from '../widgetDefinitions';
 
 type DataType = {
@@ -53,9 +53,12 @@ const framesList = [
 ];
 
 export function LineChartListWidget(props: PerformanceWidgetProps) {
-  const {isMEPEnabled} = useMEPSettingContext();
+  const mepSetting = useMEPSettingContext();
   const [selectedListIndex, setSelectListIndex] = useState<number>(0);
-  const {ContainerActions} = props;
+  const {ContainerActions, organization} = props;
+  const useEvents = organization.features.includes(
+    'performance-frontend-use-events-endpoint'
+  );
   const pageError = usePageError();
 
   const field = props.fields[0];
@@ -113,78 +116,84 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
             limit={3}
             cursor="0:0:1"
             noPagination
-            queryExtras={getMEPQueryParams(isMEPEnabled)}
+            queryExtras={getMEPParamsIfApplicable(mepSetting, props.chartSetting)}
+            useEvents={useEvents}
           />
         );
       },
       transform: transformDiscoverToList,
     }),
-    [props.chartSetting]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [props.chartSetting, mepSetting.memoizationKey]
   );
 
-  const chartQuery = useMemo<QueryDefinition<DataType, WidgetDataResult>>(() => {
-    return {
-      enabled: widgetData => {
-        return !!widgetData?.list?.data?.length;
-      },
-      fields: field,
-      component: provided => {
-        const eventView = props.eventView.clone();
-        if (!provided.widgetData.list.data[selectedListIndex]?.transaction) {
-          return null;
-        }
-        eventView.additionalConditions.setFilterValues('transaction', [
-          provided.widgetData.list.data[selectedListIndex].transaction as string,
-        ]);
-        if (props.chartSetting === PerformanceWidgetSetting.MOST_RELATED_ISSUES) {
-          if (!provided.widgetData.list.data[selectedListIndex]?.issue) {
+  const chartQuery = useMemo<QueryDefinition<DataType, WidgetDataResult>>(
+    () => {
+      return {
+        enabled: widgetData => {
+          return !!widgetData?.list?.data?.length;
+        },
+        fields: field,
+        component: provided => {
+          const eventView = props.eventView.clone();
+          if (!provided.widgetData.list.data[selectedListIndex]?.transaction) {
             return null;
           }
-          eventView.fields = [
-            {field: 'issue'},
-            {field: 'issue.id'},
-            {field: 'transaction'},
-            {field},
-          ];
-          eventView.additionalConditions.setFilterValues('issue', [
-            provided.widgetData.list.data[selectedListIndex].issue as string,
+          eventView.additionalConditions.setFilterValues('transaction', [
+            provided.widgetData.list.data[selectedListIndex].transaction as string,
           ]);
-          eventView.additionalConditions.setFilterValues('event.type', ['error']);
-          eventView.additionalConditions.setFilterValues('!tags[transaction]', ['']);
-          eventView.additionalConditions.removeFilter('transaction.op'); // Remove transaction op incase it's applied from the performance view.
-          eventView.additionalConditions.removeFilter('!transaction.op'); // Remove transaction op incase it's applied from the performance view.
-          const mutableSearch = new MutableSearch(eventView.query);
-          mutableSearch.removeFilter('transaction.duration');
-          eventView.query = mutableSearch.formatString();
-        } else {
-          eventView.fields = [{field: 'transaction'}, {field}];
-        }
-        return (
-          <EventsRequest
-            {...pick(provided, eventsRequestQueryProps)}
-            limit={1}
-            includePrevious
-            includeTransformedData
-            partial
-            currentSeriesNames={[field]}
-            query={eventView.getQueryWithAdditionalConditions()}
-            interval={getInterval(
-              {
-                start: provided.start,
-                end: provided.end,
-                period: provided.period,
-              },
-              'medium'
-            )}
-            hideError
-            onError={pageError.setPageError}
-            queryExtras={getMEPQueryParams(isMEPEnabled)}
-          />
-        );
-      },
-      transform: transformEventsRequestToArea,
-    };
-  }, [props.chartSetting, selectedListIndex]);
+          if (props.chartSetting === PerformanceWidgetSetting.MOST_RELATED_ISSUES) {
+            if (!provided.widgetData.list.data[selectedListIndex]?.issue) {
+              return null;
+            }
+            eventView.fields = [
+              {field: 'issue'},
+              {field: 'issue.id'},
+              {field: 'transaction'},
+              {field},
+            ];
+            eventView.additionalConditions.setFilterValues('issue', [
+              provided.widgetData.list.data[selectedListIndex].issue as string,
+            ]);
+            eventView.additionalConditions.setFilterValues('event.type', ['error']);
+            eventView.additionalConditions.setFilterValues('!tags[transaction]', ['']);
+            eventView.additionalConditions.removeFilter('transaction.op'); // Remove transaction op incase it's applied from the performance view.
+            eventView.additionalConditions.removeFilter('!transaction.op'); // Remove transaction op incase it's applied from the performance view.
+            const mutableSearch = new MutableSearch(eventView.query);
+            mutableSearch.removeFilter('transaction.duration');
+            eventView.query = mutableSearch.formatString();
+          } else {
+            eventView.fields = [{field: 'transaction'}, {field}];
+          }
+          return (
+            <EventsRequest
+              {...pick(provided, eventsRequestQueryProps)}
+              limit={1}
+              includePrevious
+              includeTransformedData
+              partial
+              currentSeriesNames={[field]}
+              query={eventView.getQueryWithAdditionalConditions()}
+              interval={getInterval(
+                {
+                  start: provided.start,
+                  end: provided.end,
+                  period: provided.period,
+                },
+                'medium'
+              )}
+              hideError
+              onError={pageError.setPageError}
+              queryExtras={getMEPParamsIfApplicable(mepSetting, props.chartSetting)}
+            />
+          );
+        },
+        transform: transformEventsRequestToArea,
+      };
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [props.chartSetting, selectedListIndex, mepSetting.memoizationKey]
+  );
 
   const Queries = {
     list: listQuery,
@@ -250,7 +259,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                   additionalQuery,
                 });
 
-                const fieldString = getAggregateAlias(field);
+                const fieldString = useEvents ? field : getAggregateAlias(field);
 
                 const valueMap = {
                   [PerformanceWidgetSetting.MOST_RELATED_ERRORS]: listItem.failure_count,
@@ -277,10 +286,14 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                             </Link>
                           </Tooltip>
                         </RightAlignedCell>
-                        <ListClose
-                          setSelectListIndex={setSelectListIndex}
-                          onClick={() => excludeTransaction(listItem.transaction, props)}
-                        />
+                        {!props.withStaticFilters && (
+                          <ListClose
+                            setSelectListIndex={setSelectListIndex}
+                            onClick={() =>
+                              excludeTransaction(listItem.transaction, props)
+                            }
+                          />
+                        )}
                       </Fragment>
                     );
                   case PerformanceWidgetSetting.MOST_RELATED_ERRORS:
@@ -294,10 +307,14 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                             count: <Count value={rightValue} />,
                           })}
                         </RightAlignedCell>
-                        <ListClose
-                          setSelectListIndex={setSelectListIndex}
-                          onClick={() => excludeTransaction(listItem.transaction, props)}
-                        />
+                        {!props.withStaticFilters && (
+                          <ListClose
+                            setSelectListIndex={setSelectListIndex}
+                            onClick={() =>
+                              excludeTransaction(listItem.transaction, props)
+                            }
+                          />
+                        )}
                       </Fragment>
                     );
                   default:
@@ -310,12 +327,14 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                           <RightAlignedCell>
                             <Count value={rightValue} />
                           </RightAlignedCell>
-                          <ListClose
-                            setSelectListIndex={setSelectListIndex}
-                            onClick={() =>
-                              excludeTransaction(listItem.transaction, props)
-                            }
-                          />
+                          {!props.withStaticFilters && (
+                            <ListClose
+                              setSelectListIndex={setSelectListIndex}
+                              onClick={() =>
+                                excludeTransaction(listItem.transaction, props)
+                              }
+                            />
+                          )}
                         </Fragment>
                       );
                     }
@@ -325,10 +344,14 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                           <Truncate value={transaction} maxLength={40} />
                         </GrowLink>
                         <RightAlignedCell>{rightValue}</RightAlignedCell>
-                        <ListClose
-                          setSelectListIndex={setSelectListIndex}
-                          onClick={() => excludeTransaction(listItem.transaction, props)}
-                        />
+                        {!props.withStaticFilters && (
+                          <ListClose
+                            setSelectListIndex={setSelectListIndex}
+                            onClick={() =>
+                              excludeTransaction(listItem.transaction, props)
+                            }
+                          />
+                        )}
                       </Fragment>
                     );
                 }

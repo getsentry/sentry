@@ -1,4 +1,3 @@
-import * as React from 'react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
@@ -15,12 +14,7 @@ const Body = styled('div')`
 const MonitorsContainer: React.FC = ({children}) => {
   return (
     <Feature features={['monitors']} renderDisabled>
-      <PageFiltersContainer
-        showEnvironmentSelector={false}
-        showDateSelector={false}
-        resetParamsOnChange={['cursor']}
-        hideGlobalHeader
-      >
+      <PageFiltersContainer>
         <PageContent>
           <Body>{children}</Body>
         </PageContent>

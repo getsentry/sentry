@@ -10,6 +10,7 @@ describe('EventedProfile', () => {
       startValue: 0,
       endValue: 1000,
       unit: 'milliseconds',
+      threadID: 0,
       type: 'evented',
       events: [],
     };
@@ -18,36 +19,8 @@ describe('EventedProfile', () => {
 
     expect(profile.duration).toBe(1000);
     expect(profile.name).toBe(trace.name);
+    expect(profile.threadId).toBe(trace.threadID);
     expect(profile.startedAt).toBe(0);
-    expect(profile.endedAt).toBe(1000);
-  });
-
-  it('handles offset start', () => {
-    const trace: Profiling.EventedProfile = {
-      name: 'profile',
-      startValue: 500,
-      endValue: 1000,
-      unit: 'milliseconds',
-      type: 'evented',
-      events: [
-        {
-          type: 'O',
-          frame: 0,
-          at: 500,
-        },
-        {
-          type: 'C',
-          frame: 0,
-          at: 1000,
-        },
-      ],
-    };
-
-    const profile = EventedProfile.FromProfile(trace, createFrameIndex([{name: 'f0'}]));
-
-    expect(profile.duration).toBe(500);
-    expect(profile.name).toBe(trace.name);
-    expect(profile.startedAt).toBe(500);
     expect(profile.endedAt).toBe(1000);
   });
 
@@ -57,6 +30,7 @@ describe('EventedProfile', () => {
       startValue: 0,
       endValue: 1000,
       unit: 'milliseconds',
+      threadID: 0,
       type: 'evented',
       events: [
         {type: 'O', at: 0, frame: 0},
@@ -99,6 +73,7 @@ describe('EventedProfile', () => {
       startValue: 0,
       endValue: 1000,
       unit: 'milliseconds',
+      threadID: 0,
       type: 'evented',
       events: [
         {type: 'O', at: 0, frame: 0},
@@ -119,6 +94,7 @@ describe('EventedProfile', () => {
       startValue: 0,
       endValue: 1000,
       unit: 'milliseconds',
+      threadID: 0,
       type: 'evented',
       events: [
         {type: 'O', at: 0, frame: 0},
@@ -146,6 +122,7 @@ describe('EventedProfile', () => {
       startValue: 0,
       endValue: 1000,
       unit: 'milliseconds',
+      threadID: 0,
       type: 'evented',
       events: [
         {type: 'O', at: 0, frame: 0},
@@ -169,6 +146,7 @@ describe('EventedProfile', () => {
       startValue: 0,
       endValue: 1000,
       unit: 'milliseconds',
+      threadID: 0,
       type: 'evented',
       events: [
         {type: 'O', at: 5, frame: 0},
@@ -193,6 +171,7 @@ describe('EventedProfile', () => {
       startValue: 0,
       endValue: 1000,
       unit: 'milliseconds',
+      threadID: 0,
       type: 'evented',
       events: [
         {type: 'O', at: 0, frame: 0},

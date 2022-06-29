@@ -28,3 +28,6 @@ class DummyProvider(Provider):
 
     def build_identity(self, state):
         return {"id": state["email"], "email": state["email"], "name": "Dummy"}
+
+    def refresh_identity(self, auth_identity, *args, **kwargs):
+        pass

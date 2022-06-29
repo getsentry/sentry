@@ -8,10 +8,9 @@ import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels';
 import Tooltip from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {AuditLog} from 'sentry/types';
-import {use24Hours} from 'sentry/utils/dates';
+import {shouldUse24Hours} from 'sentry/utils/dates';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 const avatarStyle = {
@@ -37,11 +36,11 @@ const AuditLogList = ({
   eventTypes,
   onEventSelect,
 }: Props) => {
-  const is24Hours = use24Hours();
+  const is24Hours = shouldUse24Hours();
   const hasEntries = entries && entries.length > 0;
   const ipv4Length = 15;
   const options = [
-    {value: '', label: t('Any action'), clearableVaue: false},
+    {value: '', label: t('Any action'), clearableValue: false},
     ...eventTypes.map(type => ({label: type, value: type, clearableValue: false})),
   ];
 
@@ -144,7 +143,7 @@ const FlexCenter = styled('div')`
 `;
 
 const IpAddressOverflow = styled('div')`
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
   min-width: 90px;
 `;
 

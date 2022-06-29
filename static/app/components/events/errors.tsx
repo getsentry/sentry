@@ -171,13 +171,11 @@ class Errors extends Component<Props, State> {
             </ErrorList>,
           ]}
         >
-          <span data-test-id="alert-summary-info">
-            {tn(
-              'There was %s problem processing this event',
-              'There were %s problems processing this event',
-              errors.length
-            )}
-          </span>
+          {tn(
+            'There was %s problem processing this event',
+            'There were %s problems processing this event',
+            errors.length
+          )}
         </StyledAlert>
       </StyledDataSection>
     );
@@ -187,7 +185,7 @@ class Errors extends Component<Props, State> {
 const StyledDataSection = styled(DataSection)`
   border-top: none;
 
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     padding-top: 0;
   }
 `;

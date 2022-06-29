@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import abc
 import logging
-from typing import TYPE_CHECKING, Any, Iterable, MutableMapping, Type
+from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Type
 
+from sentry.db.models import Model
 from sentry.models import Team
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notifications.strategies.role_based_recipient_strategy import (
@@ -20,7 +21,6 @@ logger = logging.getLogger(__name__)
 
 class OrganizationRequestNotification(BaseNotification, abc.ABC):
     notification_setting_type = NotificationSettingTypes.APPROVAL
-    referrer_base: str = ""
     RoleBasedRecipientStrategyClass: Type[RoleBasedRecipientStrategy]
 
     def __init__(self, organization: Organization, requester: User) -> None:
@@ -28,7 +28,8 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
         self.requester = requester
         self.role_based_recipient_strategy = self.RoleBasedRecipientStrategyClass(organization)
 
-    def get_reference(self) -> Any:
+    @property
+    def reference(self) -> Model | None:
         return self.organization
 
     def get_context(self) -> MutableMapping[str, Any]:
@@ -37,7 +38,7 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
     def determine_recipients(self) -> Iterable[Team | User]:
         return self.role_based_recipient_strategy.determine_recipients()
 
-    def get_notification_title(self) -> str:
+    def get_notification_title(self, context: Mapping[str, Any] | None = None) -> str:
         # purposely use empty string for the notification title
         return ""
 

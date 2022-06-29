@@ -14,12 +14,7 @@ import useProjects from 'sentry/utils/useProjects';
 
 import {getTransactionName} from '../../../utils';
 import {NoAccess, redirectToPerformanceHomepage} from '../../pageLayout';
-import {
-  generateSpansEventView,
-  parseSpanSlug,
-  SPAN_RELATIVE_PERIODS,
-  SPAN_RETENTION_DAYS,
-} from '../utils';
+import {generateSpansEventView, parseSpanSlug} from '../utils';
 
 import SpanDetailsContent from './content';
 
@@ -31,14 +26,13 @@ export default function SpanDetails(props: Props) {
   const spanSlug = parseSpanSlug(params.spanSlug);
 
   const organization = useOrganization();
+  const {projects} = useProjects();
 
   const projectId = decodeScalar(location.query.project);
   if (!defined(projectId) || !defined(transactionName) || !defined(spanSlug)) {
     redirectToPerformanceHomepage(organization, location);
     return null;
   }
-
-  const {projects} = useProjects();
 
   const project = projects.find(p => p.id === projectId);
   const eventView = generateSpansEventView({
@@ -58,14 +52,9 @@ export default function SpanDetails(props: Props) {
         renderDisabled={NoAccess}
       >
         <PageFiltersContainer
-          lockedMessageSubject={t('transaction')}
           shouldForceProject={defined(project)}
           forceProject={project}
           specificProjectSlugs={defined(project) ? [project.slug] : []}
-          disableMultipleProjectSelection
-          showProjectSettingsLink
-          relativeDateOptions={SPAN_RELATIVE_PERIODS}
-          maxPickableDays={SPAN_RETENTION_DAYS}
         >
           <StyledPageContent>
             <NoProjectMessage organization={organization}>

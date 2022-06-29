@@ -1,19 +1,17 @@
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 
 const BadgeDisplayName = styled('span')<{hideOverflow?: string | boolean}>`
   ${p =>
     p.hideOverflow &&
-    `
-      ${overflowEllipsis};
-      max-width: ${
-        typeof p.hideOverflow === 'string'
-          ? p.hideOverflow
-          : p.theme.settings.maxCrumbWidth
-      }
-  `};
+    css`
+      ${p.theme.overflowEllipsis};
+      max-width: ${typeof p.hideOverflow === 'string'
+        ? p.hideOverflow
+        : p.theme.settings.maxCrumbWidth};
+    `};
   padding: ${space(0.25)} 0;
 `;
 

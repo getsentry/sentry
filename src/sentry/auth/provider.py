@@ -1,14 +1,15 @@
+import abc
 import logging
 from collections import namedtuple
+from typing import Any
 
-from django.utils.encoding import force_text, python_2_unicode_compatible
+from django.utils.encoding import force_text
 
 from sentry.pipeline import PipelineProvider
 
 from .view import ConfigureView
 
 
-@python_2_unicode_compatible
 class MigratingIdentityId(namedtuple("MigratingIdentityId", ["id", "legacy_id"])):
     """
     MigratingIdentityId may be used in the ``id`` field of an identity
@@ -22,21 +23,24 @@ class MigratingIdentityId(namedtuple("MigratingIdentityId", ["id", "legacy_id"])
         return force_text(self.id)
 
 
-class Provider(PipelineProvider):
+class Provider(PipelineProvider, abc.ABC):
     """
     A provider indicates how authenticate should happen for a given service,
     including its configuration and basic identity management.
     """
 
-    name = None
-
     # All auth providers by default require the sso-basic feature
     required_feature = "organizations:sso-basic"
 
-    def __init__(self, key, **config):
-        self.key = key
+    def __init__(self, key: str, **config: Any) -> None:
+        super().__init__()
+        self._key = key
         self.config = config
-        self.logger = logging.getLogger(f"sentry.auth.{key}")
+        self.logger = logging.getLogger(f"sentry.auth.{self.key}")
+
+    @property
+    def key(self) -> str:
+        return self._key
 
     def get_configure_view(self):
         """

@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -8,7 +8,7 @@ import Button from 'sentry/components/button';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import {MEMBER_ROLES} from 'sentry/constants';
+import {ORG_ROLES} from 'sentry/constants';
 import {IconAdd, IconCheckmark, IconWarning} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -322,7 +322,7 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
 
     // eslint-disable-next-line react/prop-types
     const hookRenderer: InviteModalRenderFunc = ({sendInvites, canSend, headerInfo}) => (
-      <React.Fragment>
+      <Fragment>
         <Heading>
           {t('Invite New Members')}
           {!this.willInvite && (
@@ -361,7 +361,7 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
             emails={[...emails]}
             role={role}
             teams={[...teams]}
-            roleOptions={member ? member.roles : MEMBER_ROLES}
+            roleOptions={member ? member.roles : ORG_ROLES}
             roleDisabledUnallowed={this.willInvite}
             inviteStatus={inviteStatus}
             onRemove={() => this.removeInviteRow(i)}
@@ -386,7 +386,7 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
             <div>{this.statusMessage}</div>
 
             {complete ? (
-              <React.Fragment>
+              <Fragment>
                 <Button data-test-id="send-more" size="small" onClick={this.reset}>
                   {t('Send more invites')}
                 </Button>
@@ -404,9 +404,9 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
                 >
                   {t('Close')}
                 </Button>
-              </React.Fragment>
+              </Fragment>
             ) : (
-              <React.Fragment>
+              <Fragment>
                 <Button
                   data-test-id="cancel"
                   size="small"
@@ -424,11 +424,11 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
                 >
                   {this.inviteButtonLabel}
                 </Button>
-              </React.Fragment>
+              </Fragment>
             )}
           </FooterContent>
         </Footer>
-      </React.Fragment>
+      </Fragment>
     );
 
     return (

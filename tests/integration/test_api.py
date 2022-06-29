@@ -65,6 +65,59 @@ class AuthenticationTest(AuthProviderTestCase):
         self.save_session()
         self._test_paths_with_status(401)
 
+    def test_sso_redirect_url_internal(self):
+        sso_session_expired = SsoSession(
+            self.organization.id,
+            datetime.now(tz=timezone.utc) - SSO_EXPIRY_TIME - timedelta(hours=1),
+        )
+        self.session[sso_session_expired.session_key] = sso_session_expired.to_dict()
+
+        self.save_session()
+        resp = self.client.get(
+            f"/api/0/teams/{self.organization.slug}/{self.team.slug}/",
+            HTTP_REFERER=f"/organizations/{self.organization.slug}/teams",
+        )
+
+        assert (
+            resp.data["detail"]["extra"]["loginUrl"]
+            == "/auth/login/foo/?next=%2Forganizations%2Ffoo%2Fteams"
+        )
+
+    def test_sso_redirect_url_internal_with_domain(self):
+        sso_session_expired = SsoSession(
+            self.organization.id,
+            datetime.now(tz=timezone.utc) - SSO_EXPIRY_TIME - timedelta(hours=1),
+        )
+        self.session[sso_session_expired.session_key] = sso_session_expired.to_dict()
+
+        self.save_session()
+        # breakpoint()
+        resp = self.client.get(
+            f"/api/0/teams/{self.organization.slug}/{self.team.slug}/",
+            HTTP_REFERER=f"https://testdomain.com/organizations/{self.organization.slug}/teams",
+            SERVER_NAME="testdomain.com",
+        )
+
+        assert (
+            resp.data["detail"]["extra"]["loginUrl"]
+            == "/auth/login/foo/?next=https%3A%2F%2Ftestdomain.com%2Forganizations%2Ffoo%2Fteams"
+        )
+
+    def test_sso_redirect_url_external_removed(self):
+        sso_session_expired = SsoSession(
+            self.organization.id,
+            datetime.now(tz=timezone.utc) - SSO_EXPIRY_TIME - timedelta(hours=1),
+        )
+        self.session[sso_session_expired.session_key] = sso_session_expired.to_dict()
+
+        self.save_session()
+        resp = self.client.get(
+            f"/api/0/teams/{self.organization.slug}/{self.team.slug}/",
+            HTTP_REFERER="http://example.com",
+        )
+
+        assert resp.data["detail"]["extra"]["loginUrl"] == "/auth/login/foo/"
+
     def _test_paths_with_status(self, status):
         for path in self.paths:
             resp = self.client.get(path)

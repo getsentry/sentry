@@ -5,14 +5,16 @@ import {Location} from 'history';
 import debounce from 'lodash/debounce';
 
 import {Client} from 'sentry/api';
-import RangeSlider, {Slider} from 'sentry/components/forms/controls/rangeSlider';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import {FeatureFeedback} from 'sentry/components/featureFeedback';
+import RangeSlider from 'sentry/components/forms/controls/rangeSlider';
+import Slider from 'sentry/components/forms/controls/rangeSlider/slider';
 import * as Layout from 'sentry/components/layouts/thirds';
-import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
-import {IconMegaphone} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {BaseGroup, Group, Organization, Project} from 'sentry/types';
@@ -45,21 +47,14 @@ type GroupingLevel = {
   isCurrent: boolean;
 };
 
-function LinkFooter() {
-  return (
-    <Footer>
-      <ExternalLink
-        href={`mailto:grouping@sentry.io?subject=${encodeURIComponent(
-          'Grouping Feedback'
-        )}&body=${encodeURIComponent(
-          `URL: ${window.location.href}\n\nThanks for taking the time to provide us feedback. What's on your mind?`
-        )}`}
-      >
-        <StyledIconMegaphone /> {t('Give Feedback')}
-      </ExternalLink>
-    </Footer>
-  );
-}
+export const groupingFeedbackTypes = [
+  t('Too eager grouping'),
+  t('Too specific grouping'),
+  t('Other grouping issue'),
+];
+
+const GROUPING_BREAKDOWN__DOC_LINK =
+  'https://docs.sentry.io/product/data-management-settings/event-grouping/grouping-breakdown/';
 
 function Grouping({api, groupId, location, organization, router, projSlug}: Props) {
   const {cursor, level} = location.query;
@@ -213,15 +208,25 @@ function Grouping({api, groupId, location, organization, router, projSlug}: Prop
       <Fragment>
         <Layout.Body>
           <Layout.Main fullWidth>
-            <ErrorMessage
-              onRetry={fetchGroupingLevels}
-              groupId={groupId}
-              error={error}
-              projSlug={projSlug}
-              orgSlug={organization.slug}
-              hasProjectWriteAccess={organization.access.includes('project:write')}
-            />
-            <LinkFooter />
+            <ErrorWrapper>
+              <ButtonBar gap={1}>
+                <Button href={GROUPING_BREAKDOWN__DOC_LINK} external>
+                  {t('Read Docs')}
+                </Button>
+                <FeatureFeedback
+                  featureName="grouping"
+                  feedbackTypes={groupingFeedbackTypes}
+                />
+              </ButtonBar>
+              <StyledErrorMessage
+                onRetry={fetchGroupingLevels}
+                groupId={groupId}
+                error={error}
+                projSlug={projSlug}
+                orgSlug={organization.slug}
+                hasProjectWriteAccess={organization.access.includes('project:write')}
+              />
+            </ErrorWrapper>
           </Layout.Main>
         </Layout.Body>
       </Fragment>
@@ -246,19 +251,30 @@ function Grouping({api, groupId, location, organization, router, projSlug}: Prop
             )}
           </Header>
           <Body>
-            <SliderWrapper>
-              {t('Fewer issues')}
-              <StyledRangeSlider
-                name="grouping-level"
-                allowedValues={groupingLevels.map(groupingLevel =>
-                  Number(groupingLevel.id)
-                )}
-                value={activeGroupingLevel ?? 0}
-                onChange={handleSetActiveGroupingLevel}
-                showLabel={false}
-              />
-              {t('More issues')}
-            </SliderWrapper>
+            <Actions>
+              <SliderWrapper>
+                {t('Fewer issues')}
+                <StyledRangeSlider
+                  name="grouping-level"
+                  allowedValues={groupingLevels.map(groupingLevel =>
+                    Number(groupingLevel.id)
+                  )}
+                  value={activeGroupingLevel ?? 0}
+                  onChange={handleSetActiveGroupingLevel}
+                  showLabel={false}
+                />
+                {t('More issues')}
+              </SliderWrapper>
+              <StyledButtonBar gap={1}>
+                <Button href={GROUPING_BREAKDOWN__DOC_LINK} external>
+                  {t('Read Docs')}
+                </Button>
+                <FeatureFeedback
+                  featureName="grouping"
+                  feedbackTypes={groupingFeedbackTypes}
+                />
+              </StyledButtonBar>
+            </Actions>
             <Content isReloading={isGroupingLevelDetailsLoading}>
               <StyledPanelTable headers={['', t('Events')]}>
                 {activeGroupingLevelDetails.map(
@@ -297,7 +313,6 @@ function Grouping({api, groupId, location, organization, router, projSlug}: Prop
               />
             </Content>
           </Body>
-          <LinkFooter />
         </Wrapper>
       </Layout.Main>
     </Layout.Body>
@@ -305,10 +320,6 @@ function Grouping({api, groupId, location, organization, router, projSlug}: Prop
 }
 
 export default withApi(Grouping);
-
-const StyledIconMegaphone = styled(IconMegaphone)`
-  margin-right: ${space(0.5)};
-`;
 
 const Wrapper = styled('div')`
   flex: 1;
@@ -324,15 +335,35 @@ const Header = styled('p')`
   }
 `;
 
-const Footer = styled('p')`
-  && {
-    margin-top: ${space(2)};
-  }
-`;
-
 const Body = styled('div')`
   display: grid;
   gap: ${space(3)};
+`;
+
+const Actions = styled('div')`
+  display: grid;
+  align-items: center;
+  gap: ${space(3)};
+
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    grid-template-columns: 1fr max-content;
+    gap: ${space(2)};
+  }
+`;
+
+const StyledButtonBar = styled(ButtonBar)`
+  justify-content: flex-start;
+`;
+
+const StyledErrorMessage = styled(ErrorMessage)`
+  width: 100%;
+`;
+
+const ErrorWrapper = styled('div')`
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: ${space(1)};
 `;
 
 const StyledPanelTable = styled(PanelTable)`
@@ -349,7 +380,7 @@ const StyledPanelTable = styled(PanelTable)`
     }
   }
 
-  @media (min-width: ${p => p.theme.breakpoints[3]}) {
+  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
     grid-template-columns: 1fr minmax(80px, auto);
   }
 `;

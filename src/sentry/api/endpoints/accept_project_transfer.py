@@ -5,21 +5,15 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import roles
+from sentry import audit_log, roles
 from sentry.api.base import Endpoint, SessionAuthentication
 from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization import (
     DetailedOrganizationSerializerWithProjectsAndTeams,
 )
-from sentry.models import (
-    AuditLogEntryEvent,
-    Organization,
-    OrganizationMember,
-    OrganizationStatus,
-    Project,
-    Team,
-)
+from sentry.models import Organization, OrganizationMember, OrganizationStatus, Project
+from sentry.utils import metrics
 from sentry.utils.signing import unsign
 
 
@@ -97,64 +91,36 @@ class AcceptProjectTransferEndpoint(Endpoint):
         transaction_id = data["transaction_id"]
 
         org_slug = request.data.get("organization")
+        # DEPRECATED
         team_id = request.data.get("team")
 
-        if org_slug is not None and team_id is not None:
-            return Response(
-                {"detail": "Choose either a team or an organization, not both"}, status=400
-            )
-
-        if org_slug is None and team_id is None:
-            return Response(
-                {"detail": "Choose either a team or an organization to transfer the project to"},
-                status=400,
-            )
-
-        if team_id:
-            try:
-                team = Team.objects.get(id=team_id)
-            except Team.DoesNotExist:
-                return Response({"detail": "Invalid team"}, status=400)
-
-            # check if user is an owner of the team's org
-            is_team_org_owner = OrganizationMember.objects.filter(
-                user__is_active=True,
-                user=request.user,
-                role=roles.get_top_dog().id,
-                organization_id=team.organization_id,
-            ).exists()
-
-            if not is_team_org_owner:
-                return Response({"detail": "Invalid team"}, status=400)
-            from sentry.utils import metrics
-
+        if org_slug is None and team_id is not None:
             metrics.incr("accept_project_transfer.post.to_team")
-            project.transfer_to(team=team)
+            return Response({"detail": "Cannot transfer projects to a team."}, status=400)
 
-        if org_slug:
-            try:
-                organization = Organization.objects.get(slug=org_slug)
-            except Organization.DoesNotExist:
-                return Response({"detail": "Invalid organization"}, status=400)
+        try:
+            organization = Organization.objects.get(slug=org_slug)
+        except Organization.DoesNotExist:
+            return Response({"detail": "Invalid organization"}, status=400)
 
-            # check if user is an owner of the organization
-            is_org_owner = OrganizationMember.objects.filter(
-                user__is_active=True,
-                user=request.user,
-                role=roles.get_top_dog().id,
-                organization_id=organization.id,
-            ).exists()
+        # check if user is an owner of the organization
+        is_org_owner = OrganizationMember.objects.filter(
+            user__is_active=True,
+            user=request.user,
+            role=roles.get_top_dog().id,
+            organization_id=organization.id,
+        ).exists()
 
-            if not is_org_owner:
-                return Response({"detail": "Invalid organization"}, status=400)
+        if not is_org_owner:
+            return Response({"detail": "Invalid organization"}, status=400)
 
-            project.transfer_to(organization=organization)
+        project.transfer_to(organization=organization)
 
         self.create_audit_entry(
             request=request,
             organization=project.organization,
             target_object=project.id,
-            event=AuditLogEntryEvent.PROJECT_ACCEPT_TRANSFER,
+            event=audit_log.get_event_id("PROJECT_ACCEPT_TRANSFER"),
             data=project.get_audit_log_data(),
             transaction_id=transaction_id,
         )

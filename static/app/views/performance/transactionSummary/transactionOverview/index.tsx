@@ -14,6 +14,7 @@ import {
   QueryFieldValue,
   WebVital,
 } from 'sentry/utils/discover/fields';
+import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {removeHistogramQueryStrings} from 'sentry/utils/performance/histogram';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -54,21 +55,27 @@ function TransactionOverview(props: Props) {
 
   const {location, selection, organization, projects} = props;
 
-  useEffect(() => {
-    loadOrganizationTags(api, organization.slug, selection);
-    addRoutePerformanceContext(selection);
-  }, [selection]);
+  useEffect(
+    () => {
+      loadOrganizationTags(api, organization.slug, selection);
+      addRoutePerformanceContext(selection);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [selection]
+  );
 
   return (
-    <PageLayout
-      location={location}
-      organization={organization}
-      projects={projects}
-      tab={Tab.TransactionSummary}
-      getDocumentTitle={getDocumentTitle}
-      generateEventView={generateEventView}
-      childComponent={OverviewContentWrapper}
-    />
+    <MEPSettingProvider>
+      <PageLayout
+        location={location}
+        organization={organization}
+        projects={projects}
+        tab={Tab.TransactionSummary}
+        getDocumentTitle={getDocumentTitle}
+        generateEventView={generateEventView}
+        childComponent={OverviewContentWrapper}
+      />
+    </MEPSettingProvider>
   );
 }
 
@@ -82,6 +89,9 @@ function OverviewContentWrapper(props: ChildProps) {
     transactionThreshold,
     transactionThresholdMetric,
   } = props;
+  const useEvents = organization.features.includes(
+    'performance-frontend-use-events-endpoint'
+  );
 
   const spanOperationBreakdownFilter = decodeFilterFromLocation(location);
 
@@ -118,6 +128,7 @@ function OverviewContentWrapper(props: ChildProps) {
       transactionThreshold={transactionThreshold}
       transactionThresholdMetric={transactionThresholdMetric}
       referrer="api.performance.transaction-summary"
+      useEvents={useEvents}
     >
       {({isLoading, error, tableData}) => {
         const totals: TotalValues | null =

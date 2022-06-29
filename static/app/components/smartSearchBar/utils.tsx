@@ -5,10 +5,19 @@ import {
   Token,
   TokenResult,
 } from 'sentry/components/searchSyntax/parser';
-import {IconClock, IconStar, IconTag, IconToggle, IconUser} from 'sentry/icons';
+import {
+  IconArrow,
+  IconClock,
+  IconDelete,
+  IconExclamation,
+  IconStar,
+  IconTag,
+  IconToggle,
+  IconUser,
+} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
-import {ItemType, SearchGroup, SearchItem} from './types';
+import {ItemType, SearchGroup, SearchItem, Shortcut, ShortcutType} from './types';
 
 export function addSpace(query = '') {
   if (query.length !== 0 && query[query.length - 1] !== ' ') {
@@ -113,11 +122,13 @@ export function createSearchGroups(
 
   if (queryCharsLeft || queryCharsLeft === 0) {
     searchItems = searchItems.filter(
-      (value: SearchItem) => value.value.length <= queryCharsLeft
+      (value: SearchItem) =>
+        typeof value.value !== 'undefined' && value.value.length <= queryCharsLeft
     );
     if (recentSearchItems) {
       recentSearchItems = recentSearchItems.filter(
-        (value: SearchItem) => value.value.length <= queryCharsLeft
+        (value: SearchItem) =>
+          typeof value.value !== 'undefined' && value.value.length <= queryCharsLeft
       );
     }
   }
@@ -129,12 +140,15 @@ export function createSearchGroups(
     children: [...searchItems],
   };
 
-  const recentSearchGroup: SearchGroup | undefined = recentSearchItems && {
-    title: t('Recent Searches'),
-    type: 'header',
-    icon: <IconClock size="xs" />,
-    children: [...recentSearchItems],
-  };
+  const recentSearchGroup: SearchGroup | undefined =
+    recentSearchItems && recentSearchItems.length > 0
+      ? {
+          title: t('Recent Searches'),
+          type: 'header',
+          icon: <IconClock size="xs" />,
+          children: [...recentSearchItems],
+        }
+      : undefined;
 
   if (searchGroup.children && !!searchGroup.children.length) {
     searchGroup.children[activeSearchItem] = {
@@ -181,37 +195,44 @@ export function generateOperatorEntryMap(tag: string) {
     [TermOperator.Default]: {
       type: ItemType.TAG_OPERATOR,
       value: ':',
-      desc: `${tag}:${t('[value] is equal to')}`,
+      desc: `${tag}:${t('[value]')}`,
+      documentation: 'is equal to',
     },
     [TermOperator.GreaterThanEqual]: {
       type: ItemType.TAG_OPERATOR,
       value: ':>=',
-      desc: `${tag}:${t('>=[value] is greater than or equal to')}`,
+      desc: `${tag}:${t('>=[value]')}`,
+      documentation: 'is greater than or equal to',
     },
     [TermOperator.LessThanEqual]: {
       type: ItemType.TAG_OPERATOR,
       value: ':<=',
-      desc: `${tag}:${t('<=[value] is less than or equal to')}`,
+      desc: `${tag}:${t('<=[value]')}`,
+      documentation: 'is less than or equal to',
     },
     [TermOperator.GreaterThan]: {
       type: ItemType.TAG_OPERATOR,
       value: ':>',
-      desc: `${tag}:${t('>[value] is greater than')}`,
+      desc: `${tag}:${t('>[value]')}`,
+      documentation: 'is greater than',
     },
     [TermOperator.LessThan]: {
       type: ItemType.TAG_OPERATOR,
       value: ':<',
-      desc: `${tag}:${t('<[value] is less than')}`,
+      desc: `${tag}:${t('<[value]')}`,
+      documentation: 'is less than',
     },
     [TermOperator.Equal]: {
       type: ItemType.TAG_OPERATOR,
       value: ':=',
-      desc: `${tag}:${t('=[value] is equal to')}`,
+      desc: `${tag}:${t('=[value]')}`,
+      documentation: 'is equal to',
     },
     [TermOperator.NotEqual]: {
       type: ItemType.TAG_OPERATOR,
       value: '!:',
-      desc: `!${tag}:${t('[value] is not equal to')}`,
+      desc: `!${tag}:${t('[value]')}`,
+      documentation: 'is not equal to',
     },
   };
 }
@@ -222,7 +243,7 @@ export function getValidOps(
   // If the token is invalid we want to use the possible expected types as our filter type
   const validTypes = filterToken.invalid?.expectedType ?? [filterToken.filter];
 
-  // Determine any interchangable filter types for our valid types
+  // Determine any interchangeable filter types for our valid types
   const interchangeableTypes = validTypes.map(
     type => interchangeableFilterOperators[type] ?? []
   );
@@ -237,3 +258,54 @@ export function getValidOps(
 
   return [...validOps];
 }
+
+export const shortcuts: Shortcut[] = [
+  {
+    text: 'Delete',
+    shortcutType: ShortcutType.Delete,
+    hotkeys: {
+      actual: 'option+backspace',
+      display: 'option+backspace',
+    },
+    icon: <IconDelete size="xs" color="gray300" />,
+    canRunShortcut: tok => {
+      return tok?.type === Token.Filter;
+    },
+  },
+  {
+    text: 'Exclude',
+    shortcutType: ShortcutType.Negate,
+    hotkeys: {
+      actual: ['option+1'],
+      display: 'option+!',
+    },
+    icon: <IconExclamation size="xs" color="gray300" />,
+    canRunShortcut: tok => {
+      return tok?.type === Token.Filter;
+    },
+  },
+  {
+    text: 'Previous',
+    shortcutType: ShortcutType.Previous,
+    hotkeys: {
+      actual: ['option+left'],
+      display: 'option+left',
+    },
+    icon: <IconArrow direction="left" size="xs" color="gray300" />,
+    canRunShortcut: (tok, count) => {
+      return count > 1 || (count > 0 && tok?.type !== Token.Filter);
+    },
+  },
+  {
+    text: 'Next',
+    shortcutType: ShortcutType.Next,
+    hotkeys: {
+      actual: ['option+right'],
+      display: 'option+right',
+    },
+    icon: <IconArrow direction="right" size="xs" color="gray300" />,
+    canRunShortcut: (tok, count) => {
+      return count > 1 || (count > 0 && tok?.type !== Token.Filter);
+    },
+  },
+];

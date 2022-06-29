@@ -79,29 +79,24 @@ def get_group_counts_by_project(
 
 
 def get_repos(
-    commits: Iterable[Commit], users_by_email: Mapping[str, User], organization: Organization
+    commits: Iterable[Commit],
+    users_by_email: Mapping[str, User],
+    organization: Organization,
 ) -> Iterable[Mapping[str, str | Iterable[tuple[Commit, User | None]]]]:
-    repos = {
-        r_id: {"name": r_name, "commits": []}
-        for r_id, r_name in Repository.objects.filter(
+    repositories_by_id = {
+        repository_id: {"name": repository_name, "commits": []}
+        for repository_id, repository_name in Repository.objects.filter(
             organization_id=organization.id,
             id__in={c.repository_id for c in commits},
         ).values_list("id", "name")
     }
+    # These commits are in order so they should end up in the list of commits still in order.
     for commit in commits:
+        # Get the user object if it exists
         user_option = users_by_email.get(commit.author.email) if commit.author_id else None
-        repos[commit.repository_id]["commits"].append((commit, user_option))
+        repositories_by_id[commit.repository_id]["commits"].append((commit, user_option))
 
-    return list(repos.values())
-
-
-def get_commits_for_release(release: Release) -> set[Commit]:
-    return {
-        rc.commit
-        for rc in ReleaseCommit.objects.filter(release=release).select_related(
-            "commit", "commit__author"
-        )
-    }
+    return list(repositories_by_id.values())
 
 
 def get_environment_for_deploy(deploy: Deploy | None) -> str:
@@ -218,7 +213,7 @@ def get_commits(project: Project, event: Event) -> Sequence[Mapping[str, Any]]:
         for committer in committers:
             for commit in committer["commits"]:
                 if commit["id"] not in commits:
-                    commit_data = commit.copy()
+                    commit_data = dict(commit)
                     commit_data["shortId"] = commit_data["id"][:7]
                     commit_data["author"] = committer["author"]
                     commit_data["subject"] = commit_data["message"].split("\n", 1)[0]
@@ -268,9 +263,6 @@ def get_interface_list(event: Event) -> Sequence[tuple[str, str, str]]:
 
 
 def send_activity_notification(notification: ActivityNotification | UserReportNotification) -> None:
-    if not notification.should_email():
-        return
-
     participants_by_provider = notification.get_participants_with_group_subscription_reason()
     if not participants_by_provider:
         return

@@ -1,11 +1,11 @@
-import * as React from 'react';
+import {Component} from 'react';
 import isEqual from 'lodash/isEqual';
 import omitBy from 'lodash/omitBy';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
-import {Organization, SessionApiResponse, SessionField} from 'sentry/types';
+import {Organization, SessionApiResponse, SessionFieldWithOperation} from 'sentry/types';
 import {filterSessionsInTimeWindow, getSessionsInterval} from 'sentry/utils/sessions';
 
 const propNamesToIgnore = ['api', 'children', 'organization'];
@@ -22,7 +22,7 @@ export type SessionsRequestRenderProps = {
 type Props = {
   api: Client;
   children: (renderProps: SessionsRequestRenderProps) => React.ReactNode;
-  field: SessionField[];
+  field: SessionFieldWithOperation[];
   organization: Organization;
   end?: string;
   environment?: string[];
@@ -42,7 +42,7 @@ type State = {
   response: SessionApiResponse | null;
 };
 
-class SessionsRequest extends React.Component<Props, State> {
+class SessionsRequest extends Component<Props, State> {
   state: State = {
     reloading: false,
     errored: false,

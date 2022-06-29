@@ -1,5 +1,6 @@
 from unittest.mock import patch
 
+from sentry import audit_log
 from sentry.mediators.sentry_app_installation_tokens import Destroyer
 from sentry.models import ApiToken, AuditLogEntry, SentryAppInstallation, SentryAppInstallationToken
 from sentry.testutils import TestCase
@@ -29,7 +30,8 @@ class TestDestroyer(TestCase):
         assert not SentryAppInstallationToken.objects.filter(api_token_id=api_token.id).exists()
 
         log = AuditLogEntry.objects.get(organization=self.org)
-        assert log.get_note() == "revoked a token for internal integration nulldb"
+        audit_log_event = audit_log.get(log.event)
+        assert audit_log_event.render(log) == "revoked a token for internal integration nulldb"
         assert log.organization == self.org
         assert log.target_object == api_token.id
 

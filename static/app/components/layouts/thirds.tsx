@@ -1,27 +1,27 @@
 import styled from '@emotion/styled';
 
 import NavTabs from 'sentry/components/navTabs';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 
 /**
  * Base container for 66/33 containers.
  */
-export const Body = styled('div')`
+export const Body = styled('div')<{noRowGap?: boolean}>`
   padding: ${space(2)};
   margin: 0;
   background-color: ${p => p.theme.background};
   flex-grow: 1;
 
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
-    padding: ${space(3)} ${space(4)};
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+    padding: ${p =>
+      !p.noRowGap ? `${space(3)} ${space(4)}` : `${space(2)} ${space(4)}`};
   }
 
-  @media (min-width: ${p => p.theme.breakpoints[2]}) {
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
     display: grid;
     grid-template-columns: minmax(100px, auto) 325px;
     align-content: start;
-    gap: ${space(3)};
+    gap: ${p => (!p.noRowGap ? `${space(3)}` : `0 ${space(3)}`)};
   }
 `;
 
@@ -37,7 +37,7 @@ export const HeaderContent = styled('div')`
   overflow: hidden;
   max-width: 100%;
 
-  @media (max-width: ${p => p.theme.breakpoints[1]}) {
+  @media (max-width: ${p => p.theme.breakpoints.medium}) {
     margin-bottom: ${space(1)};
   }
 `;
@@ -52,7 +52,7 @@ export const HeaderActions = styled('div')`
   justify-content: normal;
   min-width: max-content;
 
-  @media (max-width: ${p => p.theme.breakpoints[1]}) {
+  @media (max-width: ${p => p.theme.breakpoints.medium}) {
     width: max-content;
     margin-bottom: ${space(2)};
   }
@@ -69,9 +69,9 @@ export const Title = styled('h1')`
   margin-bottom: 0 !important;
   min-height: 30px;
   align-self: center;
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
 
-  @media (max-width: ${p => p.theme.breakpoints[1]}) {
+  @media (max-width: ${p => p.theme.breakpoints.medium}) {
     margin-top: ${space(1)};
   }
 `;
@@ -94,7 +94,7 @@ export const Header = styled('div')<{noActionWrap?: boolean}>`
   background-color: transparent;
   border-bottom: 1px solid ${p => p.theme.border};
 
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
     padding: ${space(2)} ${space(4)} 0 ${space(4)};
     grid-template-columns: minmax(0, 1fr) auto;
   }
@@ -111,8 +111,12 @@ export const HeaderNavTabs = styled(NavTabs)`
     margin-right: ${space(3)};
   }
   & > li > a {
+    display: flex;
+    align-items: center;
+    height: 1.25rem;
     padding: ${space(1)} 0;
     margin-bottom: 4px;
+    box-sizing: content-box;
   }
   & > li.active > a {
     margin-bottom: 0;

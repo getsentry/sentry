@@ -196,21 +196,8 @@ class ProjectDetail extends AsyncView<Props, State> {
       return this.renderNoAccess(project);
     }
 
-    const hasPageFilters = organization.features.includes('selection-filters-v2');
-
     return (
-      <PageFiltersContainer
-        disableMultipleProjectSelection
-        skipLoadLastUsed
-        onUpdateProjects={this.handleProjectChange}
-        relativeDateOptions={
-          hasOnlyBasicChart
-            ? pick(DEFAULT_RELATIVE_PERIODS, ERRORS_BASIC_CHART_PERIODS)
-            : undefined
-        }
-        showAbsolute={!hasOnlyBasicChart}
-        hideGlobalHeader={hasPageFilters}
-      >
+      <PageFiltersContainer skipLoadLastUsed showAbsolute={!hasOnlyBasicChart}>
         <NoProjectMessage organization={organization}>
           <StyledPageContent>
             <Layout.Header>
@@ -261,7 +248,7 @@ class ProjectDetail extends AsyncView<Props, State> {
               </Layout.HeaderActions>
             </Layout.Header>
 
-            <Layout.Body>
+            <Layout.Body noRowGap>
               {project && <StyledGlobalEventProcessingAlert projects={[project]} />}
               <Layout.Main fullWidth>
                 <StyledSdkUpdatesAlert />
@@ -273,9 +260,13 @@ class ProjectDetail extends AsyncView<Props, State> {
               <Layout.Main>
                 <ProjectFiltersWrapper>
                   <ProjectFilters
-                    hasPageFilters={hasPageFilters}
                     query={query}
                     onSearch={this.handleSearch}
+                    relativeDateOptions={
+                      hasOnlyBasicChart
+                        ? pick(DEFAULT_RELATIVE_PERIODS, ERRORS_BASIC_CHART_PERIODS)
+                        : undefined
+                    }
                     tagValueLoader={this.tagValueLoader}
                   />
                 </ProjectFiltersWrapper>
@@ -355,19 +346,19 @@ const ProjectFiltersWrapper = styled('div')`
 `;
 
 const StyledSdkUpdatesAlert = styled(GlobalSdkUpdateAlert)`
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
-    margin-bottom: 0;
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+    margin-bottom: ${space(2)};
   }
 `;
 
 const StyledGlobalEventProcessingAlert = styled(GlobalEventProcessingAlert)`
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
     margin-bottom: 0;
   }
 `;
 
 const StyledGlobalAppStoreConnectUpdateAlert = styled(GlobalAppStoreConnectUpdateAlert)`
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
     margin-bottom: 0;
   }
 `;

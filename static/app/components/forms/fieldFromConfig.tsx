@@ -1,5 +1,3 @@
-import * as React from 'react';
-
 import {Scope} from 'sentry/types';
 
 import BlankField from './blankField';

@@ -2,6 +2,7 @@ from base64 import b64encode
 from datetime import timedelta
 from unittest import mock
 
+from django.test import override_settings
 from django.utils import timezone
 from freezegun import freeze_time
 
@@ -25,6 +26,7 @@ from sentry.models import (
 )
 from sentry.plugins.base import plugins
 from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.types.activity import ActivityType
 
 
 class GroupDetailsTest(APITestCase, SnubaTestCase):
@@ -214,6 +216,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         assert "http://" in result
         assert f"{group.organization.slug}/issues/{group.id}" in result
 
+    @override_settings(SENTRY_SELF_HOSTED=False)
     def test_ratelimit(self):
         self.login_as(user=self.user)
         group = self.create_group()
@@ -263,7 +266,7 @@ class GroupUpdateTest(APITestCase):
         assert GroupResolution.objects.filter(group=group).exists()
 
     def test_snooze_duration(self):
-        group = self.create_group(checksum="a" * 32, status=GroupStatus.RESOLVED)
+        group = self.create_group(status=GroupStatus.RESOLVED)
 
         self.login_as(user=self.user)
 
@@ -321,7 +324,9 @@ class GroupUpdateTest(APITestCase):
         assert GroupAssignee.objects.filter(group=group, user=self.user).exists()
 
         assert (
-            Activity.objects.filter(group=group, user=self.user, type=Activity.ASSIGNED).count()
+            Activity.objects.filter(
+                group=group, user=self.user, type=ActivityType.ASSIGNED.value
+            ).count()
             == 1
         )
 
@@ -355,7 +360,9 @@ class GroupUpdateTest(APITestCase):
         assert GroupAssignee.objects.filter(group=group, user=self.user).exists()
 
         assert (
-            Activity.objects.filter(group=group, user=self.user, type=Activity.ASSIGNED).count()
+            Activity.objects.filter(
+                group=group, user=self.user, type=ActivityType.ASSIGNED.value
+            ).count()
             == 1
         )
 
@@ -408,7 +415,7 @@ class GroupUpdateTest(APITestCase):
 
         assert GroupAssignee.objects.filter(group=group, team=team).exists()
 
-        assert Activity.objects.filter(group=group, type=Activity.ASSIGNED).count() == 1
+        assert Activity.objects.filter(group=group, type=ActivityType.ASSIGNED.value).count() == 1
 
         assert GroupSubscription.objects.filter(
             user=self.user, group=group, is_active=True
@@ -507,6 +514,7 @@ class GroupUpdateTest(APITestCase):
         assert tombstone.project == group.project
         assert tombstone.data == group.data
 
+    @override_settings(SENTRY_SELF_HOSTED=False)
     def test_ratelimit(self):
         self.login_as(user=self.user)
         group = self.create_group()
@@ -549,6 +557,7 @@ class GroupDeleteTest(APITestCase):
         assert not Group.objects.filter(id=group.id).exists()
         assert not GroupHash.objects.filter(group_id=group.id).exists()
 
+    @override_settings(SENTRY_SELF_HOSTED=False)
     def test_ratelimit(self):
         self.login_as(user=self.user)
         group = self.create_group()

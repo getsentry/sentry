@@ -4,6 +4,8 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Optional
 
+from django.conf import settings
+
 
 # Fixed set of rate limit categories
 class RateLimitCategory(str, Enum):
@@ -25,7 +27,7 @@ class RateLimit:
 
     limit: int
     window: int
-    concurrent_limit: Optional[int] = field(default=None)
+    concurrent_limit: Optional[int] = field(default=settings.SENTRY_CONCURRENT_RATE_LIMIT_DEFAULT)
 
 
 class RateLimitType(Enum):
@@ -53,6 +55,7 @@ class RateLimitMeta:
     remaining: int
     limit: int
     window: int
+    group: str
     reset_time: int
     concurrent_limit: int | None
     concurrent_requests: int | None

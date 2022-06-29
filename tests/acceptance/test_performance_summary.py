@@ -3,12 +3,11 @@ from urllib.parse import urlencode
 
 import pytz
 
+from fixtures.page_objects.transaction_summary import TransactionSummaryPage
 from sentry.models import AssistantActivity
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils.samples import load_data
-
-from .page_objects.transaction_summary import TransactionSummaryPage
 
 FEATURES = {"organizations:performance-view": True}
 
@@ -187,7 +186,7 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
             self.browser.snapshot("real user monitoring - exclude outliers")
 
             self.browser.element(xpath="//button//span[contains(text(), 'Exclude')]").click()
-            self.browser.element(xpath="//li//span[contains(text(), 'Include')]").click()
+            self.browser.element(xpath="//p[contains(text(), 'Include')]").click()
             self.page.wait_until_loaded()
 
             self.browser.snapshot("real user monitoring - view all data")

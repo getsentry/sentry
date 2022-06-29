@@ -1,23 +1,10 @@
-import {mat3, vec2} from 'gl-matrix';
+import {mat3} from 'gl-matrix';
 
 import {FlamegraphTheme} from '../flamegraph/flamegraphTheme';
 import {getContext, measureText, Rect} from '../gl/utils';
 
-export function getIntervalTimeAtX(configToPhysicalSpace: mat3, x: number): number {
-  const logicalToPhysicalSpace = mat3.fromScaling(
-    mat3.create(),
-    vec2.fromValues(window.devicePixelRatio ?? 1, window.devicePixelRatio ?? 1)
-  );
-  const physicalToConfigSpace = mat3.invert(mat3.create(), configToPhysicalSpace);
-
-  const logicalToConfigSpace = mat3.multiply(
-    mat3.create(),
-    physicalToConfigSpace,
-    logicalToPhysicalSpace
-  );
-
-  const vector =
-    logicalToConfigSpace[0] * x + logicalToConfigSpace[3] + logicalToConfigSpace[6];
+export function getIntervalTimeAtX(logicalSpaceToConfigView: mat3, x: number): number {
+  const vector = logicalSpaceToConfigView[0] * x + logicalSpaceToConfigView[6];
 
   if (vector > 1) {
     return Math.round(vector);
@@ -26,12 +13,15 @@ export function getIntervalTimeAtX(configToPhysicalSpace: mat3, x: number): numb
   return Math.round(vector * 10) / 10;
 }
 
-export function computeInterval(configView: Rect, configToPhysicalSpace: mat3): number[] {
+export function computeInterval(
+  configView: Rect,
+  logicalSpaceToConfigView: mat3
+): number[] {
   // We want to draw an interval every 200px
   const target = 200;
   // Compute x at 200 and subtract left, so we have the interval
   const targetInterval =
-    getIntervalTimeAtX(configToPhysicalSpace, target) - configView.left;
+    getIntervalTimeAtX(logicalSpaceToConfigView, target) - configView.left;
 
   const minInterval = Math.pow(10, Math.floor(Math.log10(targetInterval)));
 
@@ -76,7 +66,8 @@ class GridRenderer {
   draw(
     configViewSpace: Rect,
     physicalViewRect: Rect,
-    configToPhysicalSpace: mat3,
+    configViewToPhysicalSpace: mat3,
+    logicalSpaceToConfigView: mat3,
     context: CanvasRenderingContext2D = this.context
   ): void {
     context.font = `${this.theme.SIZES.LABEL_FONT_SIZE * window.devicePixelRatio}px ${
@@ -107,13 +98,12 @@ class GridRenderer {
       LINE_WIDTH / 2
     );
 
-    const intervals = computeInterval(configViewSpace, configToPhysicalSpace);
+    const intervals = computeInterval(configViewSpace, logicalSpaceToConfigView);
 
     for (let i = 0; i < intervals.length; i++) {
       // Compute the x position of our interval from config space to physical
-      const configSpaceInterval = vec2.fromValues(intervals[i], 1);
       const physicalIntervalPosition = Math.round(
-        vec2.transformMat3(vec2.create(), configSpaceInterval, configToPhysicalSpace)[0]
+        intervals[i] * configViewToPhysicalSpace[0] + configViewToPhysicalSpace[6]
       );
 
       // Format the label text
@@ -131,9 +121,10 @@ class GridRenderer {
 
       // Draw the vertical grid line
       context.strokeStyle = this.theme.COLORS.GRID_LINE_COLOR;
+      context.lineWidth = this.theme.SIZES.GRID_LINE_WIDTH;
       context.strokeRect(
         physicalIntervalPosition - LINE_WIDTH / 2,
-        0,
+        physicalViewRect.y,
         LINE_WIDTH / 2,
         physicalViewRect.height
       );

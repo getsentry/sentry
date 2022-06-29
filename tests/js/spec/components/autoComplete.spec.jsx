@@ -1,3 +1,5 @@
+import {useEffect} from 'react';
+
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import AutoComplete from 'sentry/components/autoComplete';
@@ -29,6 +31,16 @@ describe('AutoComplete', function () {
     onOpen: jest.fn(),
   };
 
+  const List = ({registerItemCount, itemCount, ...props}) => {
+    useEffect(() => void registerItemCount(itemCount), [itemCount, registerItemCount]);
+    return <ul {...props} />;
+  };
+
+  const Item = ({registerVisibleItem, item, index, ...props}) => {
+    useEffect(() => registerVisibleItem(index, item), [registerVisibleItem, index, item]);
+    return <li {...props} />;
+  };
+
   const createWrapper = props => {
     autoCompleteState = [];
     Object.keys(mocks).forEach(key => mocks[key].mockReset());
@@ -42,55 +54,40 @@ describe('AutoComplete', function () {
             getMenuProps,
             getItemProps,
             inputValue,
-            highlightedIndex,
             isOpen,
+            registerItemCount,
+            registerVisibleItem,
           } = injectedProps;
 
           // This is purely for testing
           autoCompleteState.push(injectedProps);
 
+          const filteredItems = items.filter(item =>
+            item.name.toLowerCase().includes(inputValue.toLowerCase())
+          );
+
           return (
-            <div {...getRootProps({style: {position: 'relative'}})}>
-              <input {...getInputProps({})} />
+            <div {...getRootProps()}>
+              <input {...getInputProps()} />
 
               {isOpen && (
-                <div
-                  {...getMenuProps({
-                    style: {
-                      boxShadow:
-                        '0 1px 4px 1px rgba(47,40,55,0.08), 0 4px 16px 0 rgba(47,40,55,0.12)',
-                      position: 'absolute',
-                      backgroundColor: 'white',
-                      padding: '0',
-                    },
-                  })}
-                >
-                  <ul>
-                    {items
-                      .filter(
-                        item =>
-                          item.name.toLowerCase().indexOf(inputValue.toLowerCase()) > -1
-                      )
-                      .map((item, index) => (
-                        <li
-                          key={item.name}
-                          {...getItemProps({
-                            item,
-                            index,
-                            style: {
-                              cursor: 'pointer',
-                              padding: '6px 12px',
-                              backgroundColor:
-                                index === highlightedIndex
-                                  ? 'rgba(0, 0, 0, 0.02)'
-                                  : undefined,
-                            },
-                          })}
-                        >
-                          {item.name}
-                        </li>
-                      ))}
-                  </ul>
+                <div {...getMenuProps()}>
+                  <List
+                    registerItemCount={registerItemCount}
+                    itemCount={filteredItems.length}
+                  >
+                    {filteredItems.map((item, index) => (
+                      <Item
+                        key={item.name}
+                        registerVisibleItem={registerVisibleItem}
+                        index={index}
+                        item={item}
+                        {...getItemProps({item, index})}
+                      >
+                        {item.name}
+                      </Item>
+                    ))}
+                  </List>
                 </div>
               )}
             </div>
@@ -139,6 +136,21 @@ describe('AutoComplete', function () {
 
       expect(wrapper.state('isOpen')).toBe(false);
       expect(wrapper.find('li')).toHaveLength(0);
+      expect(mocks.onClose).toHaveBeenCalledTimes(1);
+    });
+
+    it('handles component being unmounted and then blurred', function () {
+      input.simulate('focus');
+      input.simulate('blur');
+      expect(wrapper.state('isOpen')).toBe(true);
+      wrapper.unmount();
+
+      // This is a bit contrived but we inputs that fetch data async
+      // and then update state and the autocomplete has been removed
+      // from the DOM as the collapsible section of the page has
+      // been closed.
+      input.simulate('keyDown', {key: 'Escape'});
+      wrapper.update();
       expect(mocks.onClose).toHaveBeenCalledTimes(1);
     });
 

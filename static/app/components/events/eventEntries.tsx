@@ -235,7 +235,7 @@ const EventEntries = memo(
 
       if (proGuardImage) {
         Sentry.withScope(function (s) {
-          s.setLevel(Sentry.Severity.Warning);
+          s.setLevel('warning');
           if (event.sdk) {
             s.setTag('offending.event.sdk.name', event.sdk.name);
             s.setTag('offending.event.sdk.version', event.sdk.version);
@@ -334,7 +334,7 @@ const EventEntries = memo(
         setAttachments(attachments.filter(attachment => attachment.id !== attachmentId));
       } catch (error) {
         Sentry.captureException(error);
-        addErrorMessage('An error occurred while deleteting the attachment');
+        addErrorMessage('An error occurred while deleting the attachment');
       }
     }
 
@@ -369,12 +369,7 @@ const EventEntries = memo(
               project={project}
             />
           ) : (
-            <EventCause
-              organization={organization}
-              project={project}
-              event={event}
-              group={group}
-            />
+            <EventCause project={project} event={event} group={group} />
           ))}
         {event.userReport && group && (
           <StyledEventUserFeedback

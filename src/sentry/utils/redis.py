@@ -50,19 +50,6 @@ def _shared_pool(**opts):
 _make_rb_cluster = functools.partial(rb.Cluster, pool_cls=_shared_pool)
 
 
-def make_rb_cluster(*args, **kwargs):
-    # This uses the standard library `warnings`, since this is provided for
-    # plugin compatibility but isn't actionable by the system administrator.
-    import warnings
-
-    warnings.warn(
-        "Direct Redis cluster construction is deprecated, please use named clusters. "
-        "Direct cluster construction will be removed in Sentry 8.5.",
-        DeprecationWarning,
-    )
-    return _make_rb_cluster(*args, **kwargs)
-
-
 class _RBCluster:
     def supports(self, config):
         return not config.get("is_redis_cluster", False)
@@ -199,7 +186,7 @@ class FailoverRedis(StrictRedis):
                 time.sleep(
                     min(
                         self._backoff_max,
-                        (self._backoff_min * (self._backoff_multiplier ** retries))
+                        (self._backoff_min * (self._backoff_multiplier**retries))
                         * (1 + random.random()),
                     )
                 )

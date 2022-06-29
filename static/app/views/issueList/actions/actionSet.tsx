@@ -16,6 +16,7 @@ import useMedia from 'sentry/utils/useMedia';
 
 import ResolveActions from './resolveActions';
 import ReviewAction from './reviewAction';
+import IssueListSortOptions from './sortOptions';
 import {ConfirmAction, getConfirm, getLabel} from './utils';
 
 type Props = {
@@ -26,10 +27,12 @@ type Props = {
   onDelete: () => void;
   onMerge: () => void;
   onShouldConfirm: (action: ConfirmAction) => boolean;
+  onSortChange: (sort: string) => void;
   onUpdate: (data?: any) => void;
   orgSlug: Organization['slug'];
   query: string;
   queryCount: number;
+  sort: string;
   selectedProjectSlug?: string;
 };
 
@@ -46,6 +49,8 @@ function ActionSet({
   onDelete,
   onMerge,
   selectedProjectSlug,
+  sort,
+  onSortChange,
 }: Props) {
   const numIssues = issues.size;
   const confirm = getConfirm(numIssues, allInQuerySelected, query, queryCount);
@@ -70,14 +75,13 @@ function ActionSet({
   // Determine whether to nest "Merge" and "Mark as Reviewed" buttons inside
   // the dropdown menu based on the current screen size
   const theme = useTheme();
-  const nestMergeButton = useMedia(`(max-width: ${theme.breakpoints[2]})`);
-  const nestMarkReviewedButton = useMedia(`(max-width: ${theme.breakpoints[1]})`);
+  const nestMergeAndReview = useMedia(`(max-width: ${theme.breakpoints.xlarge})`);
 
   const menuItems: MenuItemProps[] = [
     {
       key: 'merge',
       label: t('Merge'),
-      hidden: !nestMergeButton,
+      hidden: !nestMergeAndReview,
       onAction: () => {
         openConfirmModal({
           bypass: !onShouldConfirm(ConfirmAction.MERGE),
@@ -90,7 +94,7 @@ function ActionSet({
     {
       key: 'mark-reviewed',
       label: t('Mark Reviewed'),
-      hidden: !nestMarkReviewedButton,
+      hidden: !nestMergeAndReview,
       onAction: () => onUpdate({inbox: false}),
     },
     {
@@ -150,7 +154,7 @@ function ActionSet({
 
   const disabledMenuItems = [
     ...(mergeDisabled ? ['merge'] : []),
-    ...(canMarkReviewed ? ['mark-reviewed'] : []),
+    ...(canMarkReviewed ? [] : ['mark-reviewed']),
   ];
 
   return (
@@ -205,10 +209,10 @@ function ActionSet({
         confirmLabel={label('ignore')}
         disabled={!anySelected}
       />
-      {!nestMarkReviewedButton && (
+      {!nestMergeAndReview && (
         <ReviewAction disabled={!canMarkReviewed} onUpdate={onUpdate} />
       )}
-      {!nestMergeButton && (
+      {!nestMergeAndReview && (
         <ActionLink
           type="button"
           disabled={mergeDisabled}
@@ -232,6 +236,7 @@ function ActionSet({
         disabledKeys={disabledMenuItems}
         isDisabled={!anySelected}
       />
+      <IssueListSortOptions sort={sort} query={query} onSelect={onSortChange} />
     </Wrapper>
   );
 }
@@ -239,10 +244,10 @@ function ActionSet({
 export default ActionSet;
 
 const Wrapper = styled('div')`
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     width: 66.66%;
   }
-  @media (min-width: ${p => p.theme.breakpoints[2]}) {
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
     width: 50%;
   }
   flex: 1;

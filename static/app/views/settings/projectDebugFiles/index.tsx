@@ -71,6 +71,7 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
               'wasm',
               'bcsymbolmap',
               'uuidmap',
+              'il2cpp',
             ],
           },
         },
@@ -256,7 +257,7 @@ const Wrapper = styled('div')`
   align-items: center;
   margin-top: ${space(4)};
   margin-bottom: ${space(1)};
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     display: block;
   }
 `;
@@ -267,7 +268,7 @@ const Filters = styled('div')`
   align-items: center;
   justify-content: flex-end;
   gap: ${space(2)};
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: min-content 1fr;
   }
 `;

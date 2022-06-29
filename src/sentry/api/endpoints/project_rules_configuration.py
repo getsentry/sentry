@@ -3,7 +3,7 @@ from rest_framework.response import Response
 
 from sentry import features
 from sentry.api.bases.project import ProjectEndpoint
-from sentry.constants import MIGRATED_CONDITIONS, SCHEMA_FORM_ACTIONS, TICKET_ACTIONS
+from sentry.constants import MIGRATED_CONDITIONS, SENTRY_APP_ACTIONS, TICKET_ACTIONS
 from sentry.rules import rules
 
 
@@ -21,6 +21,9 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
         can_create_tickets = features.has(
             "organizations:integrations-ticket-rules", project.organization
         )
+        org_release_notifications = features.has(
+            "organizations:alert-release-notification-workflow", project.organization
+        )
 
         # TODO: conditions need to be based on actions
         for rule_type, rule_cls in rules:
@@ -32,7 +35,7 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
             if not can_create_tickets and node.id in TICKET_ACTIONS:
                 continue
 
-            if node.id in SCHEMA_FORM_ACTIONS:
+            if node.id in SENTRY_APP_ACTIONS:
                 custom_actions = node.get_custom_actions(project)
                 if custom_actions:
                     action_list.extend(custom_actions)
@@ -60,7 +63,12 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
                 continue
 
             if rule_type.startswith("condition/"):
-                condition_list.append(context)
+                if (
+                    org_release_notifications
+                    or context["id"]
+                    != "sentry.rules.conditions.active_release.ActiveReleaseEventCondition"
+                ):
+                    condition_list.append(context)
             elif rule_type.startswith("filter/"):
                 filter_list.append(context)
             elif rule_type.startswith("action/"):

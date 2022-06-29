@@ -1,10 +1,9 @@
-import * as React from 'react';
 import styled from '@emotion/styled';
 
 import AutoSelectText from 'sentry/components/autoSelectText';
-import Link from 'sentry/components/links/link';
+import Link, {LinkProps} from 'sentry/components/links/link';
 
-type Props = {
+interface Props {
   shortId: string;
   avatar?: React.ReactNode;
   className?: string;
@@ -12,8 +11,8 @@ type Props = {
   /**
    * A router target destination
    */
-  to?: React.ComponentProps<typeof Link>['to'];
-};
+  to?: LinkProps['to'];
+}
 
 function ShortId({shortId, avatar, onClick, to, className}: Props) {
   if (!shortId) {

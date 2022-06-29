@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
@@ -13,10 +13,10 @@ import Tooltip from 'sentry/components/tooltip';
 import {IconCheckmark, IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Member, MemberRole, Organization} from 'sentry/types';
+import {Member, Organization, OrgRole} from 'sentry/types';
 
 type Props = {
-  allRoles: MemberRole[];
+  allRoles: OrgRole[];
   inviteRequest: Member;
   inviteRequestBusy: {[key: string]: boolean};
   onApprove: (inviteRequest: Member) => void;
@@ -124,12 +124,12 @@ const InviteRequestRow = ({
           disableConfirmButton={!canSend}
           disabled={!canApprove || roleDisallowed}
           message={
-            <React.Fragment>
+            <Fragment>
               {tct('Are you sure you want to invite [email] to your organization?', {
                 email: inviteRequest.email,
               })}
               {headerInfo}
-            </React.Fragment>
+            </Fragment>
           }
         >
           <Button

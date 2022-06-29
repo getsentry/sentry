@@ -199,6 +199,7 @@ describe('WaterfallModel', () => {
       showEmbeddedChildren: false,
       toggleEmbeddedChildren: expect.any(Function),
       fetchEmbeddedChildrenState: 'idle',
+      isEmbeddedTransactionTimeAdjusted: false,
     },
     {
       type: 'span',
@@ -223,6 +224,7 @@ describe('WaterfallModel', () => {
       fetchEmbeddedChildrenState: 'idle',
       toggleNestedSpanGroup: undefined,
       toggleSiblingSpanGroup: undefined,
+      isEmbeddedTransactionTimeAdjusted: false,
     },
     {
       type: 'gap',
@@ -240,6 +242,7 @@ describe('WaterfallModel', () => {
       showEmbeddedChildren: false,
       toggleEmbeddedChildren: undefined,
       fetchEmbeddedChildrenState: 'idle',
+      isEmbeddedTransactionTimeAdjusted: false,
     },
     {
       type: 'span',
@@ -264,6 +267,7 @@ describe('WaterfallModel', () => {
       fetchEmbeddedChildrenState: 'idle',
       toggleNestedSpanGroup: undefined,
       toggleSiblingSpanGroup: undefined,
+      isEmbeddedTransactionTimeAdjusted: false,
     },
     {
       type: 'span',
@@ -290,6 +294,7 @@ describe('WaterfallModel', () => {
       fetchEmbeddedChildrenState: 'idle',
       toggleNestedSpanGroup: undefined,
       toggleSiblingSpanGroup: undefined,
+      isEmbeddedTransactionTimeAdjusted: false,
     },
     {
       type: 'span',
@@ -316,6 +321,7 @@ describe('WaterfallModel', () => {
       fetchEmbeddedChildrenState: 'idle',
       toggleNestedSpanGroup: undefined,
       toggleSiblingSpanGroup: undefined,
+      isEmbeddedTransactionTimeAdjusted: false,
     },
     {
       type: 'span',
@@ -342,6 +348,7 @@ describe('WaterfallModel', () => {
       fetchEmbeddedChildrenState: 'idle',
       toggleNestedSpanGroup: undefined,
       toggleSiblingSpanGroup: undefined,
+      isEmbeddedTransactionTimeAdjusted: false,
     },
     {
       type: 'span',
@@ -368,6 +375,7 @@ describe('WaterfallModel', () => {
       fetchEmbeddedChildrenState: 'idle',
       toggleNestedSpanGroup: undefined,
       toggleSiblingSpanGroup: undefined,
+      isEmbeddedTransactionTimeAdjusted: false,
     },
     {
       type: 'gap',
@@ -385,6 +393,7 @@ describe('WaterfallModel', () => {
       showEmbeddedChildren: false,
       toggleEmbeddedChildren: undefined,
       fetchEmbeddedChildrenState: 'idle',
+      isEmbeddedTransactionTimeAdjusted: false,
     },
     {
       type: 'span',
@@ -411,6 +420,7 @@ describe('WaterfallModel', () => {
       fetchEmbeddedChildrenState: 'idle',
       toggleNestedSpanGroup: undefined,
       toggleSiblingSpanGroup: undefined,
+      isEmbeddedTransactionTimeAdjusted: false,
     },
     {
       type: 'span_group_chain',
@@ -456,6 +466,7 @@ describe('WaterfallModel', () => {
           fetchEmbeddedChildrenState: 'idle',
           toggleNestedSpanGroup: undefined,
           toggleSiblingSpanGroup: undefined,
+          isEmbeddedTransactionTimeAdjusted: false,
         },
         {
           type: 'span',
@@ -482,6 +493,7 @@ describe('WaterfallModel', () => {
           fetchEmbeddedChildrenState: 'idle',
           toggleNestedSpanGroup: undefined,
           toggleSiblingSpanGroup: undefined,
+          isEmbeddedTransactionTimeAdjusted: false,
         },
       ],
       isNestedSpanGroupExpanded: false,
@@ -513,6 +525,7 @@ describe('WaterfallModel', () => {
       fetchEmbeddedChildrenState: 'idle',
       toggleNestedSpanGroup: undefined,
       toggleSiblingSpanGroup: undefined,
+      isEmbeddedTransactionTimeAdjusted: false,
     },
   ];
 
@@ -632,24 +645,18 @@ describe('WaterfallModel', () => {
     await tick();
 
     // show all spans in the waterfall
-    let spans = waterfallModel.getWaterfall(
-      {
-        viewStart: 0,
-        viewEnd: 1,
-      },
-      false
-    );
+    let spans = waterfallModel.getWaterfall({
+      viewStart: 0,
+      viewEnd: 1,
+    });
 
     expect(spans).toEqual(fullWaterfall);
 
     // perform a window selection
-    spans = waterfallModel.getWaterfall(
-      {
-        viewStart: 0.4,
-        viewEnd: 0.65,
-      },
-      false
-    );
+    spans = waterfallModel.getWaterfall({
+      viewStart: 0.4,
+      viewEnd: 0.65,
+    });
 
     let expected = [...fullWaterfall];
 
@@ -667,13 +674,10 @@ describe('WaterfallModel', () => {
 
     // toggle http filter with a window selection
     waterfallModel.toggleOperationNameFilter('http');
-    spans = waterfallModel.getWaterfall(
-      {
-        viewStart: 0.4,
-        viewEnd: 0.65,
-      },
-      false
-    );
+    spans = waterfallModel.getWaterfall({
+      viewStart: 0.4,
+      viewEnd: 0.65,
+    });
 
     assert(
       fullWaterfall[10].type === 'span_group_chain' &&
@@ -731,13 +735,10 @@ describe('WaterfallModel', () => {
     waterfallModel.toggleOperationNameFilter('pageload');
     waterfallModel.querySpanSearch('a453cc713e5baf9c');
     expect(waterfallModel.searchQuery).toBe('a453cc713e5baf9c');
-    spans = waterfallModel.getWaterfall(
-      {
-        viewStart: 0.2,
-        viewEnd: 0.65,
-      },
-      false
-    );
+    spans = waterfallModel.getWaterfall({
+      viewStart: 0.2,
+      viewEnd: 0.65,
+    });
 
     expected[1].type = 'filtered_out';
 
@@ -747,26 +748,20 @@ describe('WaterfallModel', () => {
   it('toggleSpanSubTree()', () => {
     const waterfallModel = new WaterfallModel(event);
 
-    let spans = waterfallModel.getWaterfall(
-      {
-        viewStart: 0,
-        viewEnd: 1,
-      },
-      false
-    );
+    let spans = waterfallModel.getWaterfall({
+      viewStart: 0,
+      viewEnd: 1,
+    });
 
     expect(spans).toEqual(fullWaterfall);
 
     // toggle a span to hide their sub-tree
     waterfallModel.toggleSpanSubTree('a453cc713e5baf9c');
 
-    spans = waterfallModel.getWaterfall(
-      {
-        viewStart: 0,
-        viewEnd: 1,
-      },
-      false
-    );
+    spans = waterfallModel.getWaterfall({
+      viewStart: 0,
+      viewEnd: 1,
+    });
 
     expect(spans).toEqual(
       fullWaterfall.filter((_span, index) => {
@@ -778,13 +773,10 @@ describe('WaterfallModel', () => {
     // toggle a span to reveal their sub-tree
     waterfallModel.toggleSpanSubTree('a453cc713e5baf9c');
 
-    spans = waterfallModel.getWaterfall(
-      {
-        viewStart: 0,
-        viewEnd: 1,
-      },
-      false
-    );
+    spans = waterfallModel.getWaterfall({
+      viewStart: 0,
+      viewEnd: 1,
+    });
 
     expect(spans).toEqual(fullWaterfall);
   });
@@ -797,13 +789,10 @@ describe('WaterfallModel', () => {
 
     const waterfallModel = new WaterfallModel(event2);
 
-    const spans = waterfallModel.getWaterfall(
-      {
-        viewStart: 0,
-        viewEnd: 1,
-      },
-      false
-    );
+    const spans = waterfallModel.getWaterfall({
+      viewStart: 0,
+      viewEnd: 1,
+    });
 
     expect(spans).toEqual([
       {
@@ -827,13 +816,10 @@ describe('WaterfallModel', () => {
 
     const waterfallModel = new WaterfallModel(event2);
 
-    const spans = waterfallModel.getWaterfall(
-      {
-        viewStart: 0,
-        viewEnd: 1,
-      },
-      false
-    );
+    const spans = waterfallModel.getWaterfall({
+      viewStart: 0,
+      viewEnd: 1,
+    });
 
     expect(spans).toEqual([
       {
@@ -870,13 +856,10 @@ describe('WaterfallModel', () => {
 
     const waterfallModel = new WaterfallModel(event2);
 
-    const spans = waterfallModel.getWaterfall(
-      {
-        viewStart: 0,
-        viewEnd: 1,
-      },
-      false
-    );
+    const spans = waterfallModel.getWaterfall({
+      viewStart: 0,
+      viewEnd: 1,
+    });
 
     expect(spans).toEqual([
       {
@@ -931,13 +914,10 @@ describe('WaterfallModel', () => {
     };
     const waterfallModel = new WaterfallModel(event2);
 
-    let spans = waterfallModel.getWaterfall(
-      {
-        viewStart: 0,
-        viewEnd: 1,
-      },
-      false
-    );
+    let spans = waterfallModel.getWaterfall({
+      viewStart: 0,
+      viewEnd: 1,
+    });
 
     // expect 1 or more spans are grouped
     expect(spans).toHaveLength(3);
@@ -1000,13 +980,10 @@ describe('WaterfallModel', () => {
     assert(spans[1].type === 'span' && spans[1].toggleNestedSpanGroup);
     spans[1].toggleNestedSpanGroup();
 
-    spans = waterfallModel.getWaterfall(
-      {
-        viewStart: 0,
-        viewEnd: 1,
-      },
-      false
-    );
+    spans = waterfallModel.getWaterfall({
+      viewStart: 0,
+      viewEnd: 1,
+    });
 
     // expect span group to be expanded
     expect(spans).toHaveLength(4);
@@ -1055,13 +1032,10 @@ describe('WaterfallModel', () => {
     assert(spans[1].type === 'span' && spans[1].toggleNestedSpanGroup);
     spans[1].toggleNestedSpanGroup();
 
-    spans = waterfallModel.getWaterfall(
-      {
-        viewStart: 0,
-        viewEnd: 1,
-      },
-      false
-    );
+    spans = waterfallModel.getWaterfall({
+      viewStart: 0,
+      viewEnd: 1,
+    });
 
     expect(spans).toHaveLength(3);
     expect(spans).toEqual(collapsedWaterfallExpected);

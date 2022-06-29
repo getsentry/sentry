@@ -27,7 +27,6 @@ class OrganizationSerializerTest(TestCase):
         assert result["id"] == str(organization.id)
         assert result["features"] == {
             "advanced-search",
-            "alert-rule-status-page",
             "change-alerts",
             "crash-rate-alerts",
             "custom-event-title",
@@ -56,6 +55,8 @@ class OrganizationSerializerTest(TestCase):
             "sso-saml2",
             "symbol-sources",
             "team-insights",
+            "discover-frontend-use-events-endpoint",
+            "performance-frontend-use-events-endpoint",
         }
 
     @mock.patch("sentry.features.batch_has")
@@ -90,6 +91,8 @@ class DetailedOrganizationSerializerTest(TestCase):
         assert result["role"] == "owner"
         assert result["access"] == settings.SENTRY_SCOPES
         assert result["relayPiiConfig"] is None
+        assert isinstance(result["orgRoleList"], list)
+        assert isinstance(result["teamRoleList"], list)
 
 
 class DetailedOrganizationSerializerWithProjectsAndTeamsTest(TestCase):

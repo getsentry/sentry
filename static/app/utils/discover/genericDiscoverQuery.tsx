@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, useContext} from 'react';
 import {Location} from 'history';
 
 import {EventQuery} from 'sentry/actionCreators/events';
@@ -9,13 +9,19 @@ import EventView, {
   isAPIPayloadSimilar,
   LocationQuery,
 } from 'sentry/utils/discover/eventView';
-import {usePerformanceEventView} from 'sentry/utils/performance/contexts/performanceEventViewContext';
-import useOrganization from 'sentry/utils/useOrganization';
+import {PerformanceEventViewContext} from 'sentry/utils/performance/contexts/performanceEventViewContext';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 
 export class QueryError {
   message: string;
-  constructor(errorMessage: string) {
+  private originalError: any; // For debugging in case parseError picks a value that doesn't make sense.
+  constructor(errorMessage: string, originalError?: any) {
     this.message = errorMessage;
+    this.originalError = originalError;
+  }
+
+  getOriginalError() {
+    return this.originalError;
   }
 }
 
@@ -113,6 +119,10 @@ type ComponentProps<T, P> = {
    */
   getRequestPayload?: (props: Props<T, P>) => any;
   /**
+   * An external hook to parse errors in case there are differences for a specific api.
+   */
+  parseError?: (error: any) => QueryError | null;
+  /**
    * An external hook in addition to the event view check to check if data should be refetched
    */
   shouldRefetchData?: (prevProps: Props<T, P>, props: Props<T, P>) => boolean;
@@ -128,7 +138,7 @@ type State<T> = {
 /**
  * Generic component for discover queries
  */
-class _GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>> {
+class _GenericDiscoverQuery<T, P> extends Component<Props<T, P>, State<T>> {
   state: State<T> = {
     isLoading: true,
     tableFetchID: undefined,
@@ -195,6 +205,32 @@ class _GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>>
     );
   };
 
+  /**
+   * The error type isn't consistent across APIs. We see detail as just string some times, other times as an object.
+   */
+  _parseError = (error: any): QueryError | null => {
+    if (this.props.parseError) {
+      return this.props.parseError(error);
+    }
+
+    if (!error) {
+      return null;
+    }
+
+    const detail = error.responseJSON?.detail;
+    if (typeof detail === 'string') {
+      return new QueryError(detail, error);
+    }
+
+    const message = detail?.message;
+    if (typeof message === 'string') {
+      return new QueryError(message, error);
+    }
+
+    const unknownError = new QueryError(t('An unknown error occurred.'), error);
+    return unknownError;
+  };
+
   fetchData = async () => {
     const {api, beforeFetch, afterFetch, didFetch, eventView, orgSlug, route, setError} =
       this.props;
@@ -234,9 +270,7 @@ class _GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>>
         tableData,
       }));
     } catch (err) {
-      const error = new QueryError(
-        err?.responseJSON?.detail || t('An unknown error occurred.')
-      );
+      const error = this._parseError(err);
       this.setState({
         isLoading: false,
         tableFetchID: undefined,
@@ -244,7 +278,7 @@ class _GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>>
         tableData: null,
       });
       if (setError) {
-        setError(error);
+        setError(error ?? undefined);
       }
     }
   };
@@ -266,8 +300,16 @@ class _GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>>
 // Shim to allow us to use generic discover query or any specialization with or without passing org slug or eventview, which are now contexts.
 // This will help keep tests working and we can remove extra uses of context-provided props and update tests as we go.
 export function GenericDiscoverQuery<T, P>(props: OuterProps<T, P>) {
-  const orgSlug = props.orgSlug ?? useOrganization().slug;
-  const eventView = props.eventView ?? usePerformanceEventView();
+  const organizationSlug = useContext(OrganizationContext)?.slug;
+  const performanceEventView = useContext(PerformanceEventViewContext)?.eventView;
+
+  const orgSlug = props.orgSlug ?? organizationSlug;
+  const eventView = props.eventView ?? performanceEventView;
+
+  if (orgSlug === undefined || eventView === undefined) {
+    throw new Error('GenericDiscoverQuery requires both an orgSlug and eventView');
+  }
+
   const _props: Props<T, P> = {
     ...props,
     orgSlug,
@@ -278,7 +320,7 @@ export function GenericDiscoverQuery<T, P>(props: OuterProps<T, P>) {
 
 export type DiscoverQueryRequestParams = Partial<EventQuery & LocationQuery>;
 
-export async function doDiscoverQuery<T>(
+export function doDiscoverQuery<T>(
   api: Client,
   url: string,
   params: DiscoverQueryRequestParams

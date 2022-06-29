@@ -562,13 +562,6 @@
       "context": {
         "type": "object",
         "properties": {
-          "emptyList": {
-            "type": "array",
-            "items": {}
-          },
-          "emptyMap": {
-            "type": "object"
-          },
           "length": {
             "type": "integer"
           },

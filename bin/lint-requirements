@@ -1,28 +1,28 @@
 #!/usr/bin/env python
-
-import sys
-
-import requirements
+import packaging.requirements
 
 
-def main():
+def main() -> None:
     """
     We cannot have non-specifier requirements if we want to publish to PyPI
     due to security concerns. This check ensures we don't have/add any URL/VCS
     dependencies in the base requirements file.
     """
     with open("requirements-base.txt") as reqs_file:
-        if any(not req.specifier for req in requirements.parse(reqs_file)):
-            print(
-                "\n".join(
-                    [
-                        "You cannot use dependencies that are not on PyPI directly.",
-                        "See PEP440: https://www.python.org/dev/peps/pep-0440/#direct-references",
-                    ]
-                ),
-                file=sys.stderr,
-            )
-            sys.exit(1)
+        for lineno, line in enumerate(reqs_file, start=1):
+            line = line.strip()
+            line, _, _ = line.partition("#")
+            if not line:
+                continue
+
+            try:
+                packaging.requirements.Requirement(line)
+            except packaging.requirements.InvalidRequirement:
+                raise SystemExit(
+                    f"You cannot use dependencies that are not on PyPI directly.\n"
+                    f"See PEP440: https://www.python.org/dev/peps/pep-0440/#direct-references\n\n"
+                    f"{reqs_file.name}:{lineno}: {line}"
+                )
 
 
 if __name__ == "__main__":

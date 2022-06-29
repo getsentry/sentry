@@ -27,7 +27,7 @@ import {
   Organization,
   PageFilters,
   ReleaseProject,
-  SessionField,
+  SessionFieldWithOperation,
 } from 'sentry/types';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
@@ -360,8 +360,6 @@ class ReleaseOverview extends AsyncView<Props> {
     const {organization, selection, location, api} = this.props;
     const {start, end, period, utc} = this.pageDateTime;
 
-    const hasPageFilters = organization.features.includes('selection-filters-v2');
-
     return (
       <ReleaseContext.Consumer>
         {({
@@ -422,7 +420,11 @@ class ReleaseOverview extends AsyncView<Props> {
           const sessionsRequestProps: Omit<SessionsRequest['props'], 'children'> = {
             api,
             organization,
-            field: [SessionField.USERS, SessionField.SESSIONS, SessionField.DURATION],
+            field: [
+              SessionFieldWithOperation.USERS,
+              SessionFieldWithOperation.SESSIONS,
+              SessionFieldWithOperation.DURATION,
+            ],
             groupBy: ['session.status'],
             ...getReleaseParams({location, releaseBounds}),
             shouldFilterSessionsInTimeWindow: true,
@@ -454,8 +456,8 @@ class ReleaseOverview extends AsyncView<Props> {
                               onRestore={() => this.handleRestore(project, refetchData)}
                             />
                           )}
-                          <ReleaseDetailsPageFilters hasPageFilters={hasPageFilters}>
-                            {hasPageFilters && <EnvironmentPageFilter />}
+                          <ReleaseDetailsPageFilters>
+                            <EnvironmentPageFilter />
                             <StyledPageTimeRangeSelector
                               organization={organization}
                               relative={period ?? ''}
@@ -474,14 +476,8 @@ class ReleaseOverview extends AsyncView<Props> {
                                           (
                                           <DateTime
                                             date={releaseBounds.releaseStart}
-                                            timeAndDate
-                                          />{' '}
-                                          -{' '}
-                                          <DateTime
-                                            date={releaseBounds.releaseEnd}
-                                            timeAndDate
-                                          />
-                                          )
+                                          /> -{' '}
+                                          <DateTime date={releaseBounds.releaseEnd} />)
                                         </Fragment>
                                       ),
                                       ...DEFAULT_RELATIVE_PERIODS,
@@ -715,12 +711,11 @@ function getTransactionsListSort(location: Location): {
   return {selectedSort, sortOptions};
 }
 
-const ReleaseDetailsPageFilters = styled('div')<{hasPageFilters?: boolean}>`
+const ReleaseDetailsPageFilters = styled('div')`
   display: grid;
-  grid-template-columns: ${p =>
-    p.hasPageFilters ? 'minmax(0, max-content) minmax(0, max-content)' : '1fr'};
-  gap: ${space(1)};
-  margin-bottom: ${space(1.5)};
+  grid-template-columns: minmax(0, max-content) 1fr;
+  gap: ${space(2)};
+  margin-bottom: ${space(2)};
 `;
 
 const StyledPageTimeRangeSelector = styled(PageTimeRangeSelector)`

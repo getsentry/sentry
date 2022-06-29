@@ -138,20 +138,20 @@ class ProjectCard extends Component<Props> {
             <HeaderRow>
               <StyledIdBadge
                 project={project}
-                avatarSize={18}
+                avatarSize={32}
                 hideOverflow
                 disableLink={!hasProjectAccess}
               />
-              <BookmarkStar organization={organization} project={project} />
+              <StyledBookmarkStar organization={organization} project={project} />
             </HeaderRow>
-            <SummaryLinks>
+            <SummaryLinks data-test-id="summary-links">
               {stats ? (
                 <Fragment>
                   <Link
                     data-test-id="project-errors"
                     to={`/organizations/${organization.slug}/issues/?project=${project.id}`}
                   >
-                    {t('errors: %s', formatAbbreviatedNumber(totalErrors))}
+                    {t('Errors: %s', formatAbbreviatedNumber(totalErrors))}
                   </Link>
                   {this.hasPerformance && (
                     <Fragment>
@@ -161,7 +161,7 @@ class ProjectCard extends Component<Props> {
                         to={`/organizations/${organization.slug}/performance/?project=${project.id}`}
                       >
                         {t(
-                          'transactions: %s',
+                          'Transactions: %s',
                           formatAbbreviatedNumber(totalTransactions)
                         )}
                         {zeroTransactions && (
@@ -182,7 +182,7 @@ class ProjectCard extends Component<Props> {
               )}
             </SummaryLinks>
           </CardHeader>
-          <ChartContainer>
+          <ChartContainer data-test-id="chart-container">
             {stats ? (
               <Chart
                 firstEvent={hasFirstEvent}
@@ -301,14 +301,18 @@ const ChartContainer = styled('div')`
 `;
 
 const CardHeader = styled('div')`
-  margin: ${space(1.5)} ${space(2)};
+  margin: ${space(2)} 13px;
+  height: 32px;
+`;
+
+const StyledBookmarkStar = styled(BookmarkStar)`
+  padding: 0;
 `;
 
 const HeaderRow = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr auto;
+  display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
 
   ${p => p.theme.text.cardTitle};
   color: ${p => p.theme.headingColor};
@@ -392,22 +396,34 @@ const StyledIdBadge = styled(IdBadge)`
   overflow: hidden;
   white-space: nowrap;
   flex-shrink: 1;
+  & div {
+    align-items: flex-start;
+  }
+
+  & span {
+    padding: 0;
+    position: relative;
+    top: -1px;
+  }
 `;
 
 const SummaryLinks = styled('div')`
   display: flex;
+  position: relative;
+  top: -${space(2)};
   align-items: center;
+  font-weight: 400;
 
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSizeSmall};
 
   /* Need to offset for the project icon and margin */
-  margin-left: 26px;
+  margin-left: 40px;
 
   a {
-    color: ${p => p.theme.formText};
+    color: ${p => p.theme.subText};
     :hover {
-      color: ${p => p.theme.subText};
+      color: ${p => p.theme.linkHoverColor};
     }
   }
   em {

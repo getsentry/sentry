@@ -1,13 +1,13 @@
-import * as React from 'react';
+import {forwardRef} from 'react';
 import {css} from '@emotion/react';
 
-import SvgIcon, {SVGIconProps} from './svgIcon';
+import {SvgIcon, SVGIconProps} from './svgIcon';
 
 interface Props extends SVGIconProps {
   rotated?: boolean;
 }
 
-const IconSort = React.forwardRef<SVGSVGElement, Props>(({rotated, ...props}, ref) => {
+const IconSort = forwardRef<SVGSVGElement, Props>(({rotated, ...props}, ref) => {
   return (
     <SvgIcon
       {...props}

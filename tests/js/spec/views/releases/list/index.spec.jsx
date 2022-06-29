@@ -1,6 +1,13 @@
-import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import ReleasesList from 'sentry/views/releases/list/';
@@ -8,9 +15,7 @@ import {ReleasesDisplayOption} from 'sentry/views/releases/list/releasesDisplayO
 import {ReleasesSortOption} from 'sentry/views/releases/list/releasesSortOptions';
 import {ReleasesStatusOption} from 'sentry/views/releases/list/releasesStatusOptions';
 
-describe('ReleasesList', function () {
-  enforceActOnUseLegacyStoreHook();
-
+describe('ReleasesList', () => {
   const {organization, routerContext, router} = initializeOrg();
 
   const props = {
@@ -34,9 +39,9 @@ describe('ReleasesList', function () {
       },
     },
   };
-  let wrapper, endpointMock, sessionApiMock;
+  let endpointMock, sessionApiMock;
 
-  beforeEach(async function () {
+  beforeEach(() => {
     ProjectsStore.loadInitialData(organization.projects);
     endpointMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/',
@@ -66,100 +71,145 @@ describe('ReleasesList', function () {
       url: '/organizations/org-slug/projects/',
       body: [],
     });
-
-    wrapper = mountWithTheme(<ReleasesList {...props} />, routerContext);
-    await tick();
-    wrapper.update();
   });
 
-  afterEach(function () {
-    wrapper.unmount();
+  afterEach(() => {
     act(() => ProjectsStore.reset());
     MockApiClient.clearMockResponses();
   });
 
-  it('renders list', function () {
-    const items = wrapper.find('StyledPanel');
+  it('renders list', async () => {
+    render(<ReleasesList {...props} />, {
+      context: routerContext,
+      organization,
+    });
+    const items = await screen.findAllByTestId('release-panel');
 
-    expect(items).toHaveLength(3);
-    expect(items.at(0).text()).toContain('1.0.0');
-    expect(items.at(0).text()).toContain('Adoption');
-    expect(items.at(1).text()).toContain('1.0.1');
-    expect(items.at(1).find('AdoptionColumn').at(1).text()).toContain('0%');
-    expect(items.at(2).text()).toContain('af4f231ec9a8');
-    expect(items.at(2).find('ReleaseProjectsHeader').text()).toContain('Project');
+    expect(within(items.at(0)).getByText('1.0.0')).toBeInTheDocument();
+    expect(within(items.at(0)).getByText('Adoption')).toBeInTheDocument();
+    expect(within(items.at(1)).getByText('1.0.1')).toBeInTheDocument();
+    expect(within(items.at(1)).getByText('0%')).toBeInTheDocument();
+    expect(within(items.at(2)).getByText('af4f231ec9a8')).toBeInTheDocument();
+    expect(within(items.at(2)).getByText('Project Name')).toBeInTheDocument();
   });
 
-  it('displays the right empty state', function () {
+  it('displays the right empty state', async () => {
     let location;
+    const project = TestStubs.Project({
+      id: '3',
+      slug: 'test-slug',
+      name: 'test-name',
+      features: ['releases'],
+    });
+    const org = TestStubs.Organization({projects: [project]});
+    ProjectsStore.loadInitialData(org.projects);
+
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/',
       body: [],
     });
 
+    // does not have releases set up and no releases
     location = {query: {}};
-    wrapper = mountWithTheme(
-      <ReleasesList {...props} location={location} />,
-      routerContext
-    );
-    expect(wrapper.find('StyledPanel')).toHaveLength(0);
-    expect(wrapper.find('ReleasesPromo').text()).toContain('Demystify Releases');
+    const {rerender} = render(<ReleasesList location={location} {...props} />, {
+      context: routerContext,
+      organization,
+    });
+    expect(await screen.findByText('Demystify Releases')).toBeInTheDocument();
+    expect(screen.queryByTestId('release-panel')).not.toBeInTheDocument();
 
-    location = {query: {statsPeriod: '30d'}};
-    wrapper = mountWithTheme(
-      <ReleasesList {...props} location={location} />,
-      routerContext
-    );
-    expect(wrapper.find('StyledPanel')).toHaveLength(0);
-    expect(wrapper.find('ReleasesPromo').text()).toContain('Demystify Releases');
-
+    // has releases set up and no releases
     location = {query: {query: 'abc'}};
-    wrapper = mountWithTheme(
-      <ReleasesList {...props} location={location} />,
-      routerContext
+    rerender(
+      <ReleasesList
+        {...props}
+        organization={org}
+        location={location}
+        selection={{...props.selection, projects: [3]}}
+      />,
+      {
+        context: routerContext,
+        organization,
+      }
     );
-    expect(wrapper.find('EmptyMessage').text()).toEqual(
-      "There are no releases that match: 'abc'."
-    );
+    expect(
+      screen.getByText("There are no releases that match: 'abc'.")
+    ).toBeInTheDocument();
 
     location = {query: {sort: ReleasesSortOption.SESSIONS, statsPeriod: '7d'}};
-    wrapper = mountWithTheme(
-      <ReleasesList {...props} location={location} />,
-      routerContext
+    rerender(
+      <ReleasesList
+        {...props}
+        organization={org}
+        location={location}
+        selection={{...props.selection, projects: [3]}}
+      />,
+      {
+        context: routerContext,
+        organization,
+      }
     );
-    expect(wrapper.find('EmptyMessage').text()).toEqual(
-      'There are no releases with data in the last 7 days.'
-    );
+    expect(
+      screen.getByText('There are no releases with data in the last 7 days.')
+    ).toBeInTheDocument();
 
     location = {query: {sort: ReleasesSortOption.USERS_24_HOURS, statsPeriod: '7d'}};
-    wrapper = mountWithTheme(
-      <ReleasesList {...props} location={location} />,
-      routerContext
+    rerender(
+      <ReleasesList
+        {...props}
+        organization={org}
+        location={location}
+        selection={{...props.selection, projects: [3]}}
+      />,
+      {
+        context: routerContext,
+        organization,
+      }
     );
-    expect(wrapper.find('EmptyMessage').text()).toEqual(
-      'There are no releases with active user data (users in the last 24 hours).'
-    );
+    expect(
+      screen.getByText(
+        'There are no releases with active user data (users in the last 24 hours).'
+      )
+    ).toBeInTheDocument();
 
     location = {query: {sort: ReleasesSortOption.SESSIONS_24_HOURS, statsPeriod: '7d'}};
-    wrapper = mountWithTheme(
-      <ReleasesList {...props} location={location} />,
-      routerContext
+    rerender(
+      <ReleasesList
+        {...props}
+        organization={org}
+        location={location}
+        selection={{...props.selection, projects: [3]}}
+      />,
+      {
+        context: routerContext,
+        organization,
+      }
     );
-    expect(wrapper.find('EmptyMessage').text()).toEqual(
-      'There are no releases with active session data (sessions in the last 24 hours).'
-    );
+    expect(
+      screen.getByText(
+        'There are no releases with active session data (sessions in the last 24 hours).'
+      )
+    ).toBeInTheDocument();
 
     location = {query: {sort: ReleasesSortOption.BUILD}};
-    wrapper = mountWithTheme(
-      <ReleasesList {...props} location={location} />,
-      routerContext
+    rerender(
+      <ReleasesList
+        {...props}
+        organization={org}
+        location={location}
+        selection={{...props.selection, projects: [3]}}
+      />,
+      {
+        context: routerContext,
+        organization,
+      }
     );
-    expect(wrapper.find('EmptyMessage').text()).toEqual(
-      'There are no releases with semantic versioning.'
-    );
+    expect(
+      screen.getByText('There are no releases with semantic versioning.')
+    ).toBeInTheDocument();
   });
 
-  it('displays request errors', function () {
+  it('displays request errors', async () => {
     const errorMessage = 'dumpster fire';
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/',
@@ -169,21 +219,33 @@ describe('ReleasesList', function () {
       statusCode: 400,
     });
 
-    wrapper = mountWithTheme(<ReleasesList {...props} />, routerContext);
-    expect(wrapper.find('LoadingError').text()).toBe(errorMessage);
+    render(<ReleasesList {...props} />, {
+      context: routerContext,
+      organization,
+    });
+
+    expect(await screen.findByText(errorMessage)).toBeInTheDocument();
 
     // we want release header to be visible despite the error message
-    expect(wrapper.find('SortAndFilterWrapper').exists()).toBeTruthy();
+    expect(
+      screen.getByPlaceholderText('Search by version, build, package, or stage')
+    ).toBeInTheDocument();
   });
 
-  it('searches for a release', function () {
+  it('searches for a release', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/recent-searches/',
       method: 'POST',
       body: [],
     });
 
-    const input = wrapper.find('textarea');
+    render(<ReleasesList {...props} />, {
+      context: routerContext,
+      organization,
+    });
+
+    const input = await screen.findByRole('textbox');
+    expect(input).toHaveValue('derp ');
 
     expect(endpointMock).toHaveBeenCalledWith(
       '/organizations/org-slug/releases/',
@@ -192,36 +254,37 @@ describe('ReleasesList', function () {
       })
     );
 
-    expect(input.prop('value')).toBe('derp ');
-
-    input.simulate('change', {target: {value: 'a'}}).simulate('submit');
+    userEvent.clear(input);
+    userEvent.type(input, 'a{enter}');
 
     expect(router.push).toHaveBeenCalledWith({
       query: expect.objectContaining({query: 'a'}),
     });
   });
 
-  it('sorts releases', function () {
-    expect(endpointMock).toHaveBeenCalledWith(
-      '/organizations/org-slug/releases/',
-      expect.objectContaining({
-        query: expect.objectContaining({
-          sort: ReleasesSortOption.SESSIONS,
-        }),
-      })
+  it('sorts releases', async () => {
+    render(<ReleasesList {...props} />, {
+      context: routerContext,
+      organization,
+    });
+
+    await waitFor(() =>
+      expect(endpointMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/releases/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            sort: ReleasesSortOption.SESSIONS,
+          }),
+        })
+      )
     );
 
-    const sortDropdown = wrapper.find('ReleasesSortOptions');
-    const sortByOptions = sortDropdown.find('DropdownItem span');
+    userEvent.click(screen.getByText('Sort By'));
 
-    const dateCreatedOption = sortByOptions.at(0);
-    expect(sortByOptions).toHaveLength(7);
-    expect(dateCreatedOption.text()).toEqual('Date Created');
+    const dateCreatedOption = screen.getByText('Date Created');
+    expect(dateCreatedOption).toBeInTheDocument();
 
-    const healthStatsControls = wrapper.find('AdoptionColumn span').first();
-    expect(healthStatsControls.text()).toEqual('Adoption');
-
-    dateCreatedOption.simulate('click');
+    userEvent.click(dateCreatedOption);
 
     expect(router.push).toHaveBeenCalledWith({
       query: expect.objectContaining({
@@ -230,42 +293,47 @@ describe('ReleasesList', function () {
     });
   });
 
-  it('disables adoption sort when more than one environment is selected', function () {
-    wrapper.unmount();
+  it('disables adoption sort when more than one environment is selected', async () => {
     const adoptionProps = {
       ...props,
       organization,
     };
-    wrapper = mountWithTheme(
+    render(
       <ReleasesList
         {...adoptionProps}
         location={{query: {sort: ReleasesSortOption.ADOPTION}}}
         selection={{...props.selection, environments: ['a', 'b']}}
       />,
-      routerContext
+      {
+        context: routerContext,
+        organization,
+      }
     );
-    const sortDropdown = wrapper.find('ReleasesSortOptions');
-    expect(sortDropdown.find('ButtonLabel').text()).toBe('Sort ByDate Created');
+    const sortDropdown = await screen.findByText('Sort By');
+
+    expect(sortDropdown.parentElement).toHaveTextContent('Sort ByDate Created');
   });
 
-  it('display the right Crash Free column', async function () {
-    const displayDropdown = wrapper.find('ReleasesDisplayOptions');
+  it('display the right Crash Free column', () => {
+    render(<ReleasesList {...props} />, {
+      context: routerContext,
+      organization,
+    });
 
-    const activeDisplay = displayDropdown.find('DropdownButton button');
-    expect(activeDisplay.text()).toEqual('DisplaySessions');
+    // Find and click on the display menu's trigger button
+    const statusTriggerButton = screen.getByRole('button', {
+      name: 'Display Sessions',
+    });
+    expect(statusTriggerButton).toBeInTheDocument();
+    userEvent.click(statusTriggerButton);
 
-    const displayOptions = displayDropdown.find('DropdownItem');
-    expect(displayOptions).toHaveLength(2);
+    // Expect to have 2 options in the status dropdown
+    const crashFreeSessionsOption = screen.getAllByText('Sessions')[1];
+    const crashFreeUsersOption = screen.getByText('Users');
+    expect(crashFreeSessionsOption).toBeInTheDocument();
+    expect(crashFreeUsersOption).toBeInTheDocument();
 
-    const crashFreeSessionsOption = displayOptions.at(0);
-    expect(crashFreeSessionsOption.props().isActive).toEqual(true);
-    expect(crashFreeSessionsOption.text()).toEqual('Sessions');
-
-    const crashFreeUsersOption = displayOptions.at(1);
-    expect(crashFreeUsersOption.text()).toEqual('Users');
-    expect(crashFreeUsersOption.props().isActive).toEqual(false);
-
-    crashFreeUsersOption.find('span').simulate('click');
+    userEvent.click(crashFreeUsersOption);
 
     expect(router.push).toHaveBeenCalledWith({
       query: expect.objectContaining({
@@ -274,45 +342,54 @@ describe('ReleasesList', function () {
     });
   });
 
-  it('displays archived releases', function () {
-    const archivedWrapper = mountWithTheme(
+  it('displays archived releases', async () => {
+    render(
       <ReleasesList
         {...props}
         location={{query: {status: ReleasesStatusOption.ARCHIVED}}}
       />,
-      routerContext
+      {
+        context: routerContext,
+        organization,
+      }
     );
 
-    expect(endpointMock).toHaveBeenLastCalledWith(
-      '/organizations/org-slug/releases/',
-      expect.objectContaining({
-        query: expect.objectContaining({status: ReleasesStatusOption.ARCHIVED}),
-      })
+    await waitFor(() =>
+      expect(endpointMock).toHaveBeenLastCalledWith(
+        '/organizations/org-slug/releases/',
+        expect.objectContaining({
+          query: expect.objectContaining({status: ReleasesStatusOption.ARCHIVED}),
+        })
+      )
     );
 
-    expect(archivedWrapper.find('ReleaseArchivedNotice').exists()).toBeTruthy();
+    expect(
+      await screen.findByText('These releases have been archived.')
+    ).toBeInTheDocument();
 
-    const statusOptions = archivedWrapper
-      .find('ReleasesStatusOptions')
-      .first()
-      .find('DropdownItem span');
-    const statusActiveOption = statusOptions.at(0);
-    const statusArchivedOption = statusOptions.at(1);
+    // Find and click on the status menu's trigger button
+    const statusTriggerButton = screen.getByRole('button', {
+      name: 'Status Archived',
+    });
+    expect(statusTriggerButton).toBeInTheDocument();
+    userEvent.click(statusTriggerButton);
 
-    expect(statusOptions).toHaveLength(2);
-    expect(statusActiveOption.text()).toEqual('Active');
-    expect(statusArchivedOption.text()).toEqual('Archived');
+    // Expect to have 2 options in the status dropdown
+    const statusActiveOption = screen.getByText('Active');
+    let statusArchivedOption = screen.getAllByText('Archived')[1];
+    expect(statusActiveOption).toBeInTheDocument();
+    expect(statusArchivedOption).toBeInTheDocument();
 
-    statusActiveOption.simulate('click');
+    userEvent.click(statusActiveOption);
     expect(router.push).toHaveBeenLastCalledWith({
       query: expect.objectContaining({
         status: ReleasesStatusOption.ACTIVE,
       }),
     });
 
-    expect(wrapper.find('ReleaseArchivedNotice').exists()).toBeFalsy();
-
-    statusArchivedOption.simulate('click');
+    userEvent.click(statusTriggerButton);
+    statusArchivedOption = screen.getAllByText('Archived')[1];
+    userEvent.click(statusArchivedOption);
     expect(router.push).toHaveBeenLastCalledWith({
       query: expect.objectContaining({
         status: ReleasesStatusOption.ARCHIVED,
@@ -320,7 +397,12 @@ describe('ReleasesList', function () {
     });
   });
 
-  it('calls api with only explicitly permitted query params', function () {
+  it('calls api with only explicitly permitted query params', () => {
+    render(<ReleasesList {...props} />, {
+      context: routerContext,
+      organization,
+    });
+
     expect(endpointMock).toHaveBeenCalledWith(
       '/organizations/org-slug/releases/',
       expect.objectContaining({
@@ -331,8 +413,13 @@ describe('ReleasesList', function () {
     );
   });
 
-  it('calls session api for health data', async function () {
-    expect(sessionApiMock).toHaveBeenCalledTimes(3);
+  it('calls session api for health data', async () => {
+    render(<ReleasesList {...props} />, {
+      context: routerContext,
+      organization,
+    });
+
+    await waitFor(() => expect(sessionApiMock).toHaveBeenCalledTimes(3));
 
     expect(sessionApiMock).toHaveBeenCalledWith(
       '/organizations/org-slug/sessions/',
@@ -374,7 +461,7 @@ describe('ReleasesList', function () {
     );
   });
 
-  it('shows health rows only for selected projects in global header', function () {
+  it('shows health rows only for selected projects in global header', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/',
       body: [
@@ -400,37 +487,33 @@ describe('ReleasesList', function () {
         },
       ],
     });
-    const healthSection = mountWithTheme(
-      <ReleasesList {...props} selection={{...props.selection, projects: [2]}} />,
-      routerContext
-    ).find('ReleaseProjects');
-    const hiddenProjectsMessage = healthSection.find('HiddenProjectsMessage');
+    render(<ReleasesList {...props} selection={{...props.selection, projects: [2]}} />, {
+      context: routerContext,
+      organization,
+    });
+    const hiddenProjectsMessage = await screen.findByTestId('hidden-projects');
+    expect(hiddenProjectsMessage).toHaveTextContent('2 hidden projects');
 
-    expect(hiddenProjectsMessage.text()).toBe('2 hidden projects');
+    expect(screen.getAllByTestId('release-card-project-row').length).toBe(1);
 
-    expect(hiddenProjectsMessage.find('Tooltip').prop('title')).toBe('test, test3');
-
-    expect(healthSection.find('ReleaseCardProjectRow').length).toBe(1);
-
-    expect(healthSection.find('ProjectBadge').text()).toBe('test2');
+    expect(screen.getByTestId('badge-display-name')).toHaveTextContent('test2');
   });
 
-  it('does not hide health rows when "All Projects" are selected in global header', function () {
+  it('does not hide health rows when "All Projects" are selected in global header', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/',
       body: [TestStubs.Release({version: '2.0.0'})],
     });
-    const healthSection = mountWithTheme(
-      <ReleasesList {...props} selection={{...props.selection, projects: [-1]}} />,
-      routerContext
-    ).find('ReleaseProjects');
+    render(<ReleasesList {...props} selection={{...props.selection, projects: [-1]}} />, {
+      context: routerContext,
+      organization,
+    });
 
-    expect(healthSection.find('HiddenProjectsMessage').exists()).toBeFalsy();
-
-    expect(healthSection.find('ReleaseCardProjectRow').length).toBe(1);
+    expect(await screen.findByTestId('release-card-project-row')).toBeInTheDocument();
+    expect(screen.queryByTestId('hidden-projects')).not.toBeInTheDocument();
   });
 
-  it('autocompletes semver search tag', async function () {
+  it('autocompletes semver search tag', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/release.version/values/',
       body: [
@@ -444,28 +527,25 @@ describe('ReleasesList', function () {
         },
       ],
     });
-    wrapper.find('SmartSearchBar textarea').simulate('click');
-    wrapper
-      .find('SmartSearchBar textarea')
-      .simulate('change', {target: {value: 'sentry.semv'}});
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/recent-searches/',
+      method: 'POST',
+    });
+    render(<ReleasesList {...props} />, {
+      context: routerContext,
+      organization,
+    });
+    const smartSearchBar = await screen.findByTestId('smart-search-input');
 
-    await tick();
-    wrapper.update();
+    fireEvent.change(smartSearchBar, {target: {value: 'sentry.semv'}});
+    fireEvent.submit(smartSearchBar);
 
-    expect(wrapper.find('[data-test-id="search-autocomplete-item"]').at(0).text()).toBe(
-      'release.version:'
-    );
+    const autocompleteItems = await screen.findAllByTestId('search-autocomplete-item');
+    expect(autocompleteItems.at(0)).toHaveTextContent('release:');
 
-    wrapper.find('SmartSearchBar textarea').simulate('focus');
-    wrapper
-      .find('SmartSearchBar textarea')
-      .simulate('change', {target: {value: 'release.version:'}});
+    userEvent.clear(smartSearchBar);
+    fireEvent.change(smartSearchBar, {target: {value: 'release.version:'}});
 
-    await tick();
-    wrapper.update();
-
-    expect(wrapper.find('[data-test-id="search-autocomplete-item"]').at(4).text()).toBe(
-      'sentry@0.5.3'
-    );
+    expect(await screen.findByText('sentry@0.5.3')).toBeInTheDocument();
   });
 });

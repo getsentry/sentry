@@ -1,8 +1,7 @@
-import * as React from 'react';
+import {memo} from 'react';
 import styled from '@emotion/styled';
 
 import Avatar from 'sentry/components/avatar';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {AvatarProject, Organization, Team} from 'sentry/types';
 
@@ -20,7 +19,7 @@ type Props = {
   team?: Team;
 };
 
-const BaseBadge = React.memo(
+const BaseBadge = memo(
   ({
     displayName,
     hideName = false,
@@ -74,14 +73,14 @@ const StyledAvatar = styled(Avatar)<{hideName: boolean}>`
 const DisplayNameAndDescription = styled('div')`
   display: flex;
   flex-direction: column;
-  line-height: 1;
+  line-height: 1.2;
   overflow: hidden;
 `;
 
 const DisplayName = styled('span')`
   overflow: hidden;
   text-overflow: ellipsis;
-  line-height: 1;
+  line-height: 1.2;
 `;
 
 const Description = styled('div')`
@@ -89,5 +88,5 @@ const Description = styled('div')`
   margin-top: ${space(0.25)};
   color: ${p => p.theme.gray300};
   line-height: 14px;
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
 `;

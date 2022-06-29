@@ -6,6 +6,7 @@ from django.utils.datastructures import MultiValueDict
 from freezegun import freeze_time
 
 from sentry.release_health import duplex
+from sentry.release_health.base import AllowedResolution, SessionsQueryConfig
 from sentry.release_health.duplex import ComparatorType as Ct
 from sentry.release_health.duplex import (
     DuplexReleaseHealthBackend,
@@ -13,7 +14,8 @@ from sentry.release_health.duplex import (
     ListSet,
     get_sessionsv2_schema,
 )
-from sentry.snuba.sessions_v2 import AllowedResolution, QueryDefinition
+from sentry.snuba.sessions_v2 import InvalidParams, QueryDefinition
+from sentry.testutils.helpers.features import Feature
 
 
 @pytest.mark.parametrize(
@@ -526,8 +528,51 @@ def test_get_sessionsv2_schema():
             }
         ),
         params={},
-        allowed_resolution=AllowedResolution.one_hour,
+        query_config=SessionsQueryConfig(AllowedResolution.one_hour, False, True),
     )
     schema = get_sessionsv2_schema(datetime.now(timezone.utc), query)
     assert schema["sum(session)"] == FixedList(22 * [Ct.Counter] + 2 * [Ct.Ignore])
     assert schema["avg(session.duration)"] == FixedList(22 * [Ct.Quantile] + 2 * [Ct.Ignore])
+
+
+def test_sessionsv2_config():
+    with Feature("organizations:release-health-return-metrics"):
+        backend = DuplexReleaseHealthBackend(datetime(2022, 4, 28, 16, 0, tzinfo=timezone.utc))
+        organization = None
+
+        # sessions backend:
+        assert backend.sessions_query_config(
+            organization, datetime(2022, 4, 28, 15, 59, tzinfo=timezone.utc)
+        ) == SessionsQueryConfig(
+            AllowedResolution.one_minute, allow_session_status_query=False, restrict_date_range=True
+        )
+
+        # metrics backend:
+        assert backend.sessions_query_config(
+            organization, datetime(2022, 4, 28, 16, 1, tzinfo=timezone.utc)
+        ) == SessionsQueryConfig(
+            AllowedResolution.ten_seconds,
+            allow_session_status_query=True,
+            restrict_date_range=False,
+        )
+
+
+@pytest.mark.django_db
+def test_raises_invalid_params(default_organization):
+    """When configured to return metrics, InvalidParams is a valid response that should not be suppressed"""
+    with Feature("organizations:release-health-return-metrics"):
+        backend = DuplexReleaseHealthBackend(datetime(2022, 4, 28, 16, 0, tzinfo=timezone.utc))
+        query = QueryDefinition(
+            query=MultiValueDict(
+                {
+                    "statsPeriod": ["24h"],
+                    "interval": ["1h"],
+                    "field": ["crash_rate(session)"],
+                    "groupBy": ["session.status"],  # Cannot group crash rate by session status
+                }
+            ),
+            params={},
+            query_config=SessionsQueryConfig(AllowedResolution.one_hour, False, True),
+        )
+        with pytest.raises(InvalidParams):
+            backend.run_sessions_query(default_organization.id, query, "")

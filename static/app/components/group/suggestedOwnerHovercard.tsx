@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment';
 
@@ -43,7 +43,7 @@ type State = {
   rulesExpanded: boolean;
 };
 
-class SuggestedOwnerHovercard extends React.Component<Props, State> {
+class SuggestedOwnerHovercard extends Component<Props, State> {
   state: State = {
     commitsExpanded: false,
     rulesExpanded: false,
@@ -64,7 +64,7 @@ class SuggestedOwnerHovercard extends React.Component<Props, State> {
     return (
       <Hovercard
         header={
-          <React.Fragment>
+          <Fragment>
             <HovercardHeader>
               <HovercardActorAvatar actor={actor} />
               {actor.name || actor.email}
@@ -81,12 +81,12 @@ class SuggestedOwnerHovercard extends React.Component<Props, State> {
                 )}
               </EmailAlert>
             )}
-          </React.Fragment>
+          </Fragment>
         }
         body={
           <HovercardBody>
             {commits !== undefined && (
-              <React.Fragment>
+              <Fragment>
                 <div className="divider">
                   <h6>{t('Commits')}</h6>
                 </div>
@@ -112,10 +112,10 @@ class SuggestedOwnerHovercard extends React.Component<Props, State> {
                     {t('View more')}
                   </ViewMoreButton>
                 ) : null}
-              </React.Fragment>
+              </Fragment>
             )}
             {defined(rules) && (
-              <React.Fragment>
+              <Fragment>
                 <div className="divider">
                   <h6>{t('Matching Ownership Rules')}</h6>
                 </div>
@@ -138,7 +138,7 @@ class SuggestedOwnerHovercard extends React.Component<Props, State> {
                     {t('View more')}
                   </ViewMoreButton>
                 ) : null}
-              </React.Fragment>
+              </Fragment>
             )}
           </HovercardBody>
         }

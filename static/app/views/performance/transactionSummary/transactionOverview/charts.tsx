@@ -12,7 +12,8 @@ import {
 import {Panel} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
-import {OrganizationSummary, SelectValue} from 'sentry/types';
+import {Organization, SelectValue} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
 import {removeHistogramQueryStrings} from 'sentry/utils/performance/histogram';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -28,6 +29,7 @@ import DurationChart from './durationChart';
 import DurationPercentileChart from './durationPercentileChart';
 import LatencyChart from './latencyChart';
 import TrendChart from './trendChart';
+import UserMiseryChart from './userMiseryChart';
 import VitalsChart from './vitalsChart';
 
 export enum DisplayModes {
@@ -36,6 +38,7 @@ export enum DisplayModes {
   LATENCY = 'latency',
   TREND = 'trend',
   VITALS = 'vitals',
+  USER_MISERY = 'usermisery',
 }
 
 function generateDisplayOptions(
@@ -48,6 +51,7 @@ function generateDisplayOptions(
       {value: DisplayModes.LATENCY, label: t('Duration Distribution')},
       {value: DisplayModes.TREND, label: t('Trends')},
       {value: DisplayModes.VITALS, label: t('Web Vitals')},
+      {value: DisplayModes.USER_MISERY, label: t('User Misery')},
     ];
   }
 
@@ -73,7 +77,7 @@ type Props = {
   currentFilter: SpanOperationBreakdownFilter;
   eventView: EventView;
   location: Location;
-  organization: OrganizationSummary;
+  organization: Organization;
   totalValues: number | null;
   withoutZerofill: boolean;
 };
@@ -87,6 +91,16 @@ function TransactionSummaryCharts({
   withoutZerofill,
 }: Props) {
   function handleDisplayChange(value: string) {
+    const display = decodeScalar(location.query.display, DisplayModes.DURATION);
+    trackAdvancedAnalyticsEvent(
+      'performance_views.transaction_summary.change_chart_display',
+      {
+        organization,
+        from_chart: display,
+        to_chart: value,
+      }
+    );
+
     browserHistory.push({
       pathname: location.pathname,
       query: {
@@ -207,6 +221,19 @@ function TransactionSummaryCharts({
         )}
         {display === DisplayModes.VITALS && (
           <VitalsChart
+            organization={organization}
+            query={eventView.query}
+            queryExtra={releaseQueryExtra}
+            project={eventView.project}
+            environment={eventView.environment}
+            start={eventView.start}
+            end={eventView.end}
+            statsPeriod={eventView.statsPeriod}
+            withoutZerofill={withoutZerofill}
+          />
+        )}
+        {display === DisplayModes.USER_MISERY && (
+          <UserMiseryChart
             organization={organization}
             query={eventView.query}
             queryExtra={releaseQueryExtra}

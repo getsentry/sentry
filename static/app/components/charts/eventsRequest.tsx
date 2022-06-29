@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {PureComponent} from 'react';
 import isEqual from 'lodash/isEqual';
 import omitBy from 'lodash/omitBy';
 
@@ -124,7 +124,7 @@ type EventsRequestPartialProps = {
    */
   confirmedQuery?: boolean;
   /**
-   * Name used for display current series data set tooltip
+   * Name used for display current series dataset tooltip
    */
   currentSeriesNames?: string[];
   /**
@@ -140,7 +140,7 @@ type EventsRequestPartialProps = {
    */
   field?: string[];
   /**
-   * Allows overridding the pathname.
+   * Allows overriding the pathname.
    */
   generatePathname?: (org: OrganizationSummary) => string;
   /**
@@ -231,7 +231,7 @@ const propNamesToIgnore = [
 const omitIgnoredProps = (props: EventsRequestProps) =>
   omitBy(props, (_value, key) => propNamesToIgnore.includes(key));
 
-class EventsRequest extends React.PureComponent<EventsRequestProps, EventsRequestState> {
+class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState> {
   static defaultProps: DefaultProps = {
     period: undefined,
     start: null,
@@ -329,7 +329,7 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
   };
 
   /**
-   * Retrieves data set for the current period (since data can potentially
+   * Retrieves dataset for the current period (since data can potentially
    * contain previous period's data), as well as the previous period if
    * possible.
    *

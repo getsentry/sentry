@@ -30,6 +30,7 @@ from sentry.search.snuba.backend import (
 from sentry.search.snuba.executors import InvalidQueryForExecutor
 from sentry.testutils import SnubaTestCase, TestCase, xfail_if_not_postgres
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.faux import Any
 from sentry.utils.snuba import SENTRY_SNUBA_MAP, Dataset, SnubaError
 
 
@@ -1209,13 +1210,6 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
         # any time anything about the snuba query changes
         query_mock.return_value = {"data": [], "totals": {"total": 0}}
 
-        def Any(cls):
-            class Any:
-                def __eq__(self, other):
-                    return isinstance(other, cls)
-
-            return Any()
-
         DEFAULT_LIMIT = 100
         chunk_growth = options.get("snuba.search.chunk-growth-rate")
         limit = int(DEFAULT_LIMIT * chunk_growth)
@@ -2098,7 +2092,7 @@ class CdcEventsSnubaSearchTest(TestCase, SnubaTestCase):
         self.run_test("is:unresolved", [self.group1, self.group2], None)
 
     def test_invalid(self):
-        with self.assertRaises(InvalidQueryForExecutor):
+        with pytest.raises(InvalidQueryForExecutor):
             self.make_query(search_filter_query="is:unresolved abc:123")
 
     def test_resolved_group(self):

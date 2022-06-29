@@ -1,5 +1,3 @@
-import * as React from 'react';
-
 import Alert from 'sentry/components/alert';
 import {t} from 'sentry/locale';
 import {EventGroupingConfig, Project} from 'sentry/types';

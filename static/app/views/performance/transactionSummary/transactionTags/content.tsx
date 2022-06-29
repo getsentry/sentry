@@ -4,15 +4,19 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
+import DatePageFilter from 'sentry/components/datePageFilter';
+import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import Radio from 'sentry/components/radio';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
 import SegmentExplorerQuery, {
   TableData,
@@ -119,6 +123,7 @@ const InnerContent = (
     if (initialTag) {
       changeTagSelected(initialTag);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialTag]);
 
   const handleSearch = (query: string) => {
@@ -133,7 +138,14 @@ const InnerContent = (
     });
   };
 
-  const changeTag = (tag: string) => {
+  const changeTag = (tag: string, isOtherTag: boolean) => {
+    trackAdvancedAnalyticsEvent('performance_views.tags.change_tag', {
+      organization,
+      from_tag: tagSelected!,
+      to_tag: tag,
+      is_other_tag: isOtherTag,
+    });
+
     return changeTagSelected(tag);
   };
   if (tagSelected) {
@@ -152,15 +164,19 @@ const InnerContent = (
         isLoading={isLoading}
       />
       <StyledMain>
-        <StyledActions>
-          <StyledSearchBar
+        <FilterActions>
+          <PageFilterBar condensed>
+            <EnvironmentPageFilter />
+            <DatePageFilter alignDropdown="left" />
+          </PageFilterBar>
+          <SearchBar
             organization={organization}
             projectIds={eventView.project}
             query={query}
             fields={eventView.fields}
             onSearch={handleSearch}
           />
-        </StyledActions>
+        </FilterActions>
         <TagsDisplay {...props} tagKey={tagSelected} />
       </StyledMain>
     </ReversedLayoutBody>
@@ -168,7 +184,7 @@ const InnerContent = (
 };
 
 const TagsSideBar = (props: {
-  changeTag: (tag: string) => void;
+  changeTag: (tag: string, isOtherTag: boolean) => void;
   otherTags: TagOption[];
   suspectTags: TagOption[];
   isLoading?: boolean;
@@ -195,7 +211,7 @@ const TagsSideBar = (props: {
             <Radio
               aria-label={tag}
               checked={tagSelected === tag}
-              onChange={() => changeTag(tag)}
+              onChange={() => changeTag(tag, false)}
             />
             <SidebarTagValue className="truncate">{tag}</SidebarTagValue>
           </RadioLabel>
@@ -224,7 +240,7 @@ const TagsSideBar = (props: {
             <Radio
               aria-label={tag}
               checked={tagSelected === tag}
-              onChange={() => changeTag(tag)}
+              onChange={() => changeTag(tag, true)}
             />
             <SidebarTagValue className="truncate">{tag}</SidebarTagValue>
           </RadioLabel>
@@ -267,14 +283,14 @@ const ReversedLayoutBody = styled('div')`
   background-color: ${p => p.theme.background};
   flex-grow: 1;
 
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
     display: grid;
     grid-template-columns: auto 66%;
     align-content: start;
     gap: ${space(3)};
   }
 
-  @media (min-width: ${p => p.theme.breakpoints[2]}) {
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
     grid-template-columns: 225px minmax(100px, auto);
   }
 `;
@@ -288,12 +304,14 @@ const StyledMain = styled('div')`
   max-width: 100%;
 `;
 
-const StyledSearchBar = styled(SearchBar)`
-  flex-grow: 1;
-`;
+const FilterActions = styled('div')`
+  display: grid;
+  gap: ${space(2)};
+  margin-bottom: ${space(2)};
 
-const StyledActions = styled('div')`
-  margin-bottom: ${space(1)};
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    grid-template-columns: auto 1fr;
+  }
 `;
 
 export default TagsPageContent;

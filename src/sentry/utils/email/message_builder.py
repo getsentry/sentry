@@ -81,7 +81,6 @@ class MessageBuilder:
         html_body: str | None = None,
         headers: Mapping[str, str] | None = None,
         reference: Model | None = None,
-        reply_reference: Model | None = None,
         from_email: str | None = None,
         type: str | None = None,
     ) -> None:
@@ -97,7 +96,6 @@ class MessageBuilder:
         self._html_body = html_body
         self.headers: MutableMapping[str, Any] = {**(headers or {})}
         self.reference = reference  # The object that generated this message
-        self.reply_reference = reply_reference  # The object this message is replying about
         self.from_email = from_email or options.get("mail.from")
         self._send_to: set[str] = set()
         self.type = type if type else "generic"
@@ -155,11 +153,10 @@ class MessageBuilder:
 
         subject = force_text(self.subject)
 
-        if self.reply_reference is not None:
-            reference = self.reply_reference
+        reference = self.reference
+        if isinstance(reference, Activity):
+            reference = reference.group
             subject = f"Re: {subject}"
-        else:
-            reference = self.reference
 
         if isinstance(reference, Group):
             thread, created = GroupEmailThread.objects.get_or_create(

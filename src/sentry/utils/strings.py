@@ -1,3 +1,4 @@
+import ast
 import base64
 import codecs
 import re
@@ -6,44 +7,28 @@ import zlib
 
 from django.utils.encoding import force_text, smart_text
 
-from sentry.utils.compat import map
-
-_word_sep_re = re.compile(r"[\s.;,_-]+", re.UNICODE)
-_camelcase_re = re.compile(r"(?:[A-Z]{2,}(?=[A-Z]))|(?:[A-Z][a-z0-9]+)|(?:[a-z0-9]+)")
-_letters_re = re.compile(r"[A-Z]+")
-_digit_re = re.compile(r"\d+")
 _sprintf_placeholder_re = re.compile(
     r"%(?:\d+\$)?[+-]?(?:[ 0]|\'.{1})?-?\d*(?:\.\d+)?[bcdeEufFgGosxX]"
 )
 
-_lone_surrogate = re.compile(
-    """(?x)
-    (
-        [\ud800-\udbff](?![\udc00-\udfff])
-    ) | (
-        (?<![\ud800-\udbff])
-        [\udc00-\udfff]
-    )
-"""
+INVALID_ESCAPE = re.compile(
+    r"""
+(?<!\\)              # no backslash behind
+((?:\\\\)*\\)        # odd number of backslashes
+(?!x[0-9a-fA-F]{2})  # char escape: \x__
+(?!u[0-9a-fA-F]{4})  # char escape: \u____
+(?!U[0-9a-fA-F]{8})  # char escape: \U________
+(?![0-7]{1,3})       # octal escape: \_, \__, \___
+(?![\\'"abfnrtv])    # other escapes: https://docs.python.org/3/reference/lexical_analysis.html#string-and-bytes-literals
+""",
+    re.VERBOSE,
 )
 
 
-def unicode_escape_recovery_handler(err):
-    try:
-        value = err.object[err.start : err.end].decode("utf-8")
-    except UnicodeError:
-        value = ""
-    return value, err.end
-
-
-codecs.register_error("unicode-escape-recovery", unicode_escape_recovery_handler)
-
-
-def unescape_string(value):
+def unescape_string(value: str):
     """Unescapes a backslash escaped string."""
-    return value.encode("ascii", "backslashreplace").decode(
-        "unicode-escape", "unicode-escape-recovery"
-    )
+    value = INVALID_ESCAPE.sub(r"\1\\", value)
+    return ast.literal_eval(f'"""{value}"""')
 
 
 def strip_lone_surrogates(string):
@@ -83,10 +68,6 @@ def decompress(value):
     return zlib.decompress(base64.b64decode(value))
 
 
-def gunzip(value):
-    return zlib.decompress(value, 16 + zlib.MAX_WBITS)
-
-
 def strip(value):
     if not value:
         return ""
@@ -118,7 +99,7 @@ def soft_break(value, length, process=lambda chunk: chunk):
 
         return "".join(results).rstrip("\u200b")
 
-    return re.sub(fr"\S{{{length},}}", soft_break_delimiter, value)
+    return re.sub(rf"\S{{{length},}}", soft_break_delimiter, value)
 
 
 def to_unicode(value):
@@ -132,33 +113,6 @@ def to_unicode(value):
         except Exception:
             value = "(Error decoding value)"
     return value
-
-
-def split_camelcase(word):
-    pieces = _camelcase_re.findall(word)
-
-    # Unicode characters or some stuff, ignore it.
-    if sum(len(x) for x in pieces) != len(word):
-        yield word
-    else:
-        yield from pieces
-
-
-def split_any_wordlike(value, handle_camelcase=False):
-    for word in _word_sep_re.split(value):
-        if handle_camelcase:
-            yield from split_camelcase(word)
-        else:
-            yield word
-
-
-def tokens_from_name(value, remove_digits=False):
-    for word in split_any_wordlike(value, handle_camelcase=True):
-        if remove_digits:
-            word = _digit_re.sub("", word)
-        word = word.lower()
-        if word:
-            yield word
 
 
 valid_dot_atom_characters = frozenset(string.ascii_letters + string.digits + ".!#$%&'*+-/=?^_`{|}~")

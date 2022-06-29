@@ -7,9 +7,10 @@ from sentry.models import Activity, Deploy, Release
 from sentry.notifications.notifications.activity import ReleaseActivityNotification
 from sentry.testutils.cases import SlackActivityNotificationTest
 from sentry.testutils.helpers.slack import get_attachment, send_notification
+from sentry.types.activity import ActivityType
 
 
-class SlackUnassignedNotificationTest(SlackActivityNotificationTest):
+class SlackDeployNotificationTest(SlackActivityNotificationTest):
     @responses.activate
     @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
     def test_deploy(self, mock_func):
@@ -38,7 +39,7 @@ class SlackUnassignedNotificationTest(SlackActivityNotificationTest):
             Activity(
                 project=self.project,
                 user=self.user,
-                type=Activity.RELEASE,
+                type=ActivityType.RELEASE.value,
                 data={"version": release.version, "deploy_id": deploy.id},
             )
         )
@@ -65,5 +66,5 @@ class SlackUnassignedNotificationTest(SlackActivityNotificationTest):
         assert (
             attachment["footer"]
             == f"{first_project.slug} | <http://testserver/settings/account/notifications/"
-            f"deploy/?referrer=release-activity-slack-user|Notification Settings>"
+            f"deploy/?referrer=release_activity-slack-user|Notification Settings>"
         )

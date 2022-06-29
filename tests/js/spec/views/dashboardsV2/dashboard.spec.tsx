@@ -45,6 +45,11 @@ describe('Dashboards > Dashboard', () => {
       method: 'GET',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/tags/',
+      method: 'GET',
+      body: TestStubs.Tags(),
+    });
   });
   it('dashboard adds new widget if component is mounted with newWidget prop', async () => {
     const mockHandleAddCustomWidget = jest.fn();

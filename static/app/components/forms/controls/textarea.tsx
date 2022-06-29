@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {forwardRef} from 'react';
 import TextareaAutosize from 'react-autosize-textarea';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
@@ -24,7 +24,7 @@ export interface TextAreaProps
   rows?: number;
 }
 
-const TextAreaControl = React.forwardRef(function TextAreaControl(
+const TextAreaControl = forwardRef(function TextAreaControl(
   {autosize, rows, maxRows, ...p}: TextAreaProps,
   ref: React.Ref<HTMLTextAreaElement>
 ) {

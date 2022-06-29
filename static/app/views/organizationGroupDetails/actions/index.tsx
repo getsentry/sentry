@@ -125,7 +125,7 @@ class Actions extends Component<Props, State> {
       action_type: action,
       // Alert properties track if the user came from email/slack alerts
       alert_date:
-        typeof alert_date === 'string' ? getUtcDateString(alert_date) : undefined,
+        typeof alert_date === 'string' ? getUtcDateString(Number(alert_date)) : undefined,
       alert_rule_id: typeof alert_rule_id === 'string' ? alert_rule_id : undefined,
       alert_type: typeof alert_type === 'string' ? alert_type : undefined,
     });
@@ -278,7 +278,11 @@ class Actions extends Component<Props, State> {
       return children({
         ...props,
         renderDisabled: ({features}: {features: string[]}) => (
-          <FeatureDisabled alert featureName="Discard and Delete" features={features} />
+          <FeatureDisabled
+            alert
+            featureName={t('Discard and Delete')}
+            features={features}
+          />
         ),
       });
     }
@@ -345,6 +349,7 @@ class Actions extends Component<Props, State> {
 
     const orgFeatures = new Set(organization.features);
 
+    const bookmarkKey = isBookmarked ? 'unbookmark' : 'bookmark';
     const bookmarkTitle = isBookmarked ? t('Remove bookmark') : t('Bookmark');
     const hasRelease = !!project.features?.includes('releases');
 
@@ -426,7 +431,7 @@ class Actions extends Component<Props, State> {
               }}
               items={[
                 {
-                  key: 'bookmark',
+                  key: bookmarkKey,
                   label: bookmarkTitle,
                   hidden: false,
                   onAction: this.onToggleBookmark,

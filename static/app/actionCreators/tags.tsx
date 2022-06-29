@@ -1,10 +1,9 @@
 import {Query} from 'history';
 
-import AlertActions from 'sentry/actions/alertActions';
-import TagActions from 'sentry/actions/tagActions';
 import {Client} from 'sentry/api';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
+import AlertStore from 'sentry/stores/alertStore';
 import TagStore from 'sentry/stores/tagStore';
 import {PageFilters, Tag} from 'sentry/types';
 
@@ -16,12 +15,12 @@ function tagFetchSuccess(tags: Tag[] | undefined) {
   const trimmedTags = tags.slice(0, MAX_TAGS);
 
   if (tags.length > MAX_TAGS) {
-    AlertActions.addAlert({
+    AlertStore.addAlert({
       message: t('You have too many unique tags and some have been truncated'),
-      type: 'warn',
+      type: 'warning',
     });
   }
-  TagActions.loadTagsSuccess(trimmedTags);
+  TagStore.loadTagsSuccess(trimmedTags);
 }
 
 /**
@@ -44,7 +43,7 @@ export function loadOrganizationTags(api: Client, orgId: string, selection: Page
     query,
   });
 
-  promise.then(tagFetchSuccess, TagActions.loadTagsError);
+  promise.then(tagFetchSuccess);
 
   return promise;
 }
@@ -70,7 +69,7 @@ export function fetchOrganizationTags(
     query,
   });
 
-  promise.then(tagFetchSuccess, TagActions.loadTagsError);
+  promise.then(tagFetchSuccess);
 
   return promise;
 }

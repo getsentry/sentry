@@ -26,7 +26,12 @@ class OrganizationAuth extends AsyncView<Props, State> {
     if (nextState.provider && access.includes('org:write')) {
       // If SSO provider is configured, keep showing loading while we redirect
       // to django configuration view
-      window.location.assign(`/organizations/${this.props.params.orgId}/auth/configure/`);
+      const path = `/organizations/${this.props.params.orgId}/auth/configure/`;
+
+      // Don't break the back button by first replacing the current history
+      // state so pressing back skips this react view.
+      this.props.router.replace(path);
+      window.location.assign(path);
     }
   }
 

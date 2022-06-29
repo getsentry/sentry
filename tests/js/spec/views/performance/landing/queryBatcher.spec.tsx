@@ -6,6 +6,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {GenericQueryBatcher} from 'sentry/utils/performance/contexts/genericQueryBatcher';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 import WidgetContainer from 'sentry/views/performance/landing/widgets/components/widgetContainer';
 import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
 import {PROJECT_PERFORMANCE_TYPE} from 'sentry/views/performance/utils';
@@ -27,23 +28,27 @@ const BASIC_QUERY_PARAMS = {
   statsPeriod: '14d',
 };
 
-const WrappedComponent = ({data, isMEPEnabled, ...rest}) => {
+const WrappedComponent = ({data, ...rest}) => {
   return (
-    <MEPSettingProvider _isMEPEnabled={isMEPEnabled}>
-      <PerformanceDisplayProvider value={{performanceType: PROJECT_PERFORMANCE_TYPE.ANY}}>
-        <WidgetContainer
-          allowedCharts={[
-            PerformanceWidgetSetting.TPM_AREA,
-            PerformanceWidgetSetting.FAILURE_RATE_AREA,
-            PerformanceWidgetSetting.USER_MISERY_AREA,
-          ]}
-          rowChartSettings={[]}
-          forceDefaultChartSetting
-          {...data}
-          {...rest}
-        />
-      </PerformanceDisplayProvider>
-    </MEPSettingProvider>
+    <OrganizationContext.Provider value={data.organization}>
+      <MEPSettingProvider>
+        <PerformanceDisplayProvider
+          value={{performanceType: PROJECT_PERFORMANCE_TYPE.ANY}}
+        >
+          <WidgetContainer
+            allowedCharts={[
+              PerformanceWidgetSetting.TPM_AREA,
+              PerformanceWidgetSetting.FAILURE_RATE_AREA,
+              PerformanceWidgetSetting.USER_MISERY_AREA,
+            ]}
+            rowChartSettings={[]}
+            forceDefaultChartSetting
+            {...data}
+            {...rest}
+          />
+        </PerformanceDisplayProvider>
+      </MEPSettingProvider>
+    </OrganizationContext.Provider>
   );
 };
 

@@ -45,6 +45,9 @@ const EVENT_TYPES = [
   'api-key.create',
   'api-key.edit',
   'api-key.remove',
+  'alertrule.create',
+  'alertrule.edit',
+  'alertrule.remove',
   'rule.create',
   'rule.edit',
   'rule.remove',
@@ -60,6 +63,10 @@ const EVENT_TYPES = [
   'trial.started',
   'plan.changed',
   'plan.cancelled',
+  'sentry-app.add',
+  'sentry-app.remove',
+  'sentry-app.install',
+  'sentry-app.uninstall',
 ];
 
 type Props = RouteComponentProps<{orgId: string}, {}> &

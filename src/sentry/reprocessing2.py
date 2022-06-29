@@ -82,7 +82,7 @@ import logging
 import uuid
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Dict, List, Literal, Tuple, Union
+from typing import Any, Dict, List, Literal, Sequence, Tuple, Union
 
 import redis
 import sentry_sdk
@@ -272,6 +272,75 @@ def get_original_primary_hash(event):
     return get_path(event.data, "contexts", "reprocessing", "original_primary_hash")
 
 
+def _get_old_primary_hash_subset_key(project_id: int, group_id: int, primary_hash: str):
+    return f"re2:tombstones:{{{project_id}:{group_id}:{primary_hash}}}"
+
+
+def _send_delete_old_primary_hash_messages(
+    client,
+    project_id: int,
+    group_id: int,
+    old_primary_hashes: Sequence[str],
+    force_flush_batch: bool,
+):
+    # Events for a group are split and bucketed by their primary hashes. If flushing is to be
+    # performed on a per-group basis, the event count needs to be summed up across all buckets
+    # belonging to a single group.
+    event_count = 0
+    for primary_hash in old_primary_hashes:
+        key = _get_old_primary_hash_subset_key(project_id, group_id, primary_hash)
+        event_count += client.llen(key)
+
+    if (
+        not force_flush_batch
+        and event_count <= settings.SENTRY_REPROCESSING_REMAINING_EVENTS_BUF_SIZE
+    ):
+        return
+
+    for primary_hash in old_primary_hashes:
+        event_key = _get_old_primary_hash_subset_key(project_id, group_id, primary_hash)
+        event_ids, from_date, to_date = pop_batched_events_from_redis(event_key)
+
+        # Racing might be happening between two different tasks. Give up on the
+        # task that's lagging behind by prematurely terminating flushing.
+        if len(event_ids) == 0:
+
+            logger.error("reprocessing2.buffered_delete_old_primary_hash.empty_batch")
+            return
+
+        from sentry import eventstream
+
+        assert primary_hash is not None
+
+        # In the worst case scenario, a group will have a 1:1 mapping of primary hashes to
+        # events, which means 1 insert per event.
+        # The overall performance of this will be marginally better than the unbatched version
+        # if a group has a lot of old primary hashes.
+        eventstream.tombstone_events_unsafe(
+            project_id,
+            event_ids,
+            old_primary_hash=primary_hash,
+            from_timestamp=from_date,
+            to_timestamp=to_date,
+        )
+
+    # Try to track counts so if it turns out that tombstoned events trend towards a ratio of 1
+    # event per hash, a different solution may need to be considered.
+    ratio = 0 if len(old_primary_hashes) == 0 else event_count / len(old_primary_hashes)
+    metrics.timing(
+        key="reprocessing2.buffered_delete_old_primary_hash.event_count",
+        value=event_count,
+    )
+    metrics.timing(
+        key="reprocessing2.buffered_delete_old_primary_hash.primary_hash_count",
+        value=len(old_primary_hashes),
+    )
+    metrics.timing(
+        key="reprocessing2.buffered_delete_old_primary_hash.primary_hash_to_event_ratio",
+        value=ratio,
+    )
+
+
 def buffered_delete_old_primary_hash(
     project_id,
     group_id,
@@ -325,11 +394,8 @@ def buffered_delete_old_primary_hash(
     primary_hash_set_key = f"re2:tombstone-primary-hashes:{project_id}:{group_id}"
     old_primary_hashes = client.smembers(primary_hash_set_key)
 
-    def build_event_key(primary_hash):
-        return f"re2:tombstones:{{{project_id}:{group_id}:{primary_hash}}}"
-
     if old_primary_hash is not None and old_primary_hash != current_primary_hash:
-        event_key = build_event_key(old_primary_hash)
+        event_key = _get_old_primary_hash_subset_key(project_id, group_id, old_primary_hash)
         client.lpush(event_key, f"{to_timestamp(datetime)};{event_id}")
         client.expire(event_key, settings.SENTRY_REPROCESSING_SYNC_TTL)
 
@@ -338,61 +404,17 @@ def buffered_delete_old_primary_hash(
             client.sadd(primary_hash_set_key, old_primary_hash)
             client.expire(primary_hash_set_key, settings.SENTRY_REPROCESSING_SYNC_TTL)
 
-    # Events for a group are split and bucketed by their primary hashes. If flushing is to be
-    # performed on a per-group basis, the event count needs to be summed up across all buckets
-    # belonging to a single group.
-    event_count = 0
-    for primary_hash in old_primary_hashes:
-        key = build_event_key(primary_hash)
-        event_count += client.llen(key)
+    with sentry_sdk.configure_scope() as scope:
+        scope.set_tag("project_id", project_id)
+        scope.set_tag("old_group_id", group_id)
+        scope.set_tag("old_primary_hash", old_primary_hash)
 
-    if force_flush_batch or event_count > settings.SENTRY_REPROCESSING_REMAINING_EVENTS_BUF_SIZE:
-        with sentry_sdk.start_span(
-            op="sentry.reprocessing2.buffered_delete_old_primary_hash.flush_events"
-        ):
-            for primary_hash in old_primary_hashes:
-                event_key = build_event_key(primary_hash)
-                event_ids, from_date, to_date = pop_batched_events_from_redis(event_key)
+    with sentry_sdk.start_span(
+        op="sentry.reprocessing2.buffered_delete_old_primary_hash.flush_events"
+    ):
 
-                # Racing might be happening between two different tasks. Give up on the
-                # task that's lagging behind by prematurely terminating flushing.
-                if len(event_ids) == 0:
-                    with sentry_sdk.configure_scope() as scope:
-                        scope.set_tag("project_id", project_id)
-                        scope.set_tag("old_group_id", group_id)
-                        scope.set_tag("old_primary_hash", old_primary_hash)
-
-                    logger.error("reprocessing2.buffered_delete_old_primary_hash.empty_batch")
-                    return
-
-                from sentry import eventstream
-
-                # In the worst case scenario, a group will have a 1:1 mapping of primary hashes to
-                # events, which means 1 insert per event.
-                # The overall performance of this will be marginally better than the unbatched version
-                # if a group has a lot of old primary hashes.
-                eventstream.tombstone_events_unsafe(
-                    project_id,
-                    event_ids,
-                    old_primary_hash=old_primary_hash,
-                    from_timestamp=from_date,
-                    to_timestamp=to_date,
-                )
-
-        # Try to track counts so if it turns out that tombstoned events trend towards a ratio of 1
-        # event per hash, a different solution may need to be considered.
-        ratio = 0 if len(old_primary_hashes) == 0 else event_count / len(old_primary_hashes)
-        metrics.timing(
-            key="reprocessing2.buffered_delete_old_primary_hash.event_count",
-            value=event_count,
-        )
-        metrics.timing(
-            key="reprocessing2.buffered_delete_old_primary_hash.primary_hash_count",
-            value=len(old_primary_hashes),
-        )
-        metrics.timing(
-            key="reprocessing2.buffered_delete_old_primary_hash.primary_hash_to_event_ratio",
-            value=ratio,
+        _send_delete_old_primary_hash_messages(
+            client, project_id, group_id, old_primary_hashes, force_flush_batch
         )
 
 
@@ -631,7 +653,7 @@ def start_group_reprocessing(
     # Later the activity is migrated to the new group where it is used to serve
     # the success message.
     new_activity = models.Activity.objects.create(
-        type=models.Activity.REPROCESS,
+        type=models.ActivityType.REPROCESS.value,
         project=new_group.project,
         ident=str(group_id),
         group_id=group_id,

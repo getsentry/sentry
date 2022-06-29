@@ -1,7 +1,8 @@
-import * as React from 'react';
+import {Component} from 'react';
 import {InjectedRouter} from 'react-router';
 import type {
   DataZoomComponentOption,
+  InsideDataZoomComponentOption,
   ToolboxComponentOption,
   XAXisComponentOption,
 } from 'echarts';
@@ -10,6 +11,7 @@ import * as qs from 'query-string';
 
 import {updateDateTime} from 'sentry/actionCreators/pageFilters';
 import DataZoomInside from 'sentry/components/charts/components/dataZoomInside';
+import DataZoomSlider from 'sentry/components/charts/components/dataZoomSlider';
 import ToolBox from 'sentry/components/charts/components/toolBox';
 import {DateString} from 'sentry/types';
 import {
@@ -51,6 +53,7 @@ export type ZoomRenderProps = Pick<Props, typeof ZoomPropKeys[number]> & {
 
 type Props = {
   children: (props: ZoomRenderProps) => React.ReactNode;
+  chartZoomOptions?: DataZoomComponentOption;
   disabled?: boolean;
   end?: DateString;
   onChartReady?: EChartChartReadyHandler;
@@ -60,6 +63,7 @@ type Props = {
   onZoom?: (period: Period) => void;
   period?: string | null;
   router?: InjectedRouter;
+  showSlider?: boolean;
   start?: DateString;
   usePageDate?: boolean;
   utc?: boolean | null;
@@ -75,7 +79,7 @@ type Props = {
  * This also is very tightly coupled with the Global Selection Header. We can make it more
  * generic if need be in the future.
  */
-class ChartZoom extends React.Component<Props> {
+class ChartZoom extends Component<Props> {
   constructor(props: Props) {
     super(props);
 
@@ -268,6 +272,8 @@ class ChartZoom extends React.Component<Props> {
       onChartReady: _onChartReady,
       onDataZoom: _onDataZoom,
       onFinished: _onFinished,
+      showSlider,
+      chartZoomOptions,
       ...props
     } = this.props;
 
@@ -283,7 +289,6 @@ class ChartZoom extends React.Component<Props> {
         ...props,
       });
     }
-
     const renderProps = {
       // Zooming only works when grouped by date
       isGroupedByDate: true,
@@ -291,7 +296,18 @@ class ChartZoom extends React.Component<Props> {
       utc,
       start,
       end,
-      dataZoom: DataZoomInside({xAxisIndex}),
+      dataZoom: showSlider
+        ? [
+            ...DataZoomSlider({xAxisIndex, ...chartZoomOptions}),
+            ...DataZoomInside({
+              xAxisIndex,
+              ...(chartZoomOptions as InsideDataZoomComponentOption),
+            }),
+          ]
+        : DataZoomInside({
+            xAxisIndex,
+            ...(chartZoomOptions as InsideDataZoomComponentOption),
+          }),
       showTimeInTooltip: true,
       toolBox: ToolBox(
         {},

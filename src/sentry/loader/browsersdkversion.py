@@ -4,11 +4,10 @@ import os
 import re
 
 from django.conf import settings
-from pkg_resources import parse_version
+from packaging.version import Version
 
 import sentry
 from sentry.utils import json
-from sentry.utils.compat import map
 
 logger = logging.getLogger("sentry")
 
@@ -31,14 +30,14 @@ def load_registry(path):
 def get_highest_browser_sdk_version(versions):
     full_versions = [x for x in versions if _version_regexp.match(x)]
     return (
-        str(max(map(parse_version, full_versions)))
+        max(map(Version, full_versions))
         if full_versions
-        else settings.JS_SDK_LOADER_SDK_VERSION
+        else Version(settings.JS_SDK_LOADER_SDK_VERSION)
     )
 
 
 def get_browser_sdk_version_versions():
-    return ["latest", "6.x", "5.x", "4.x"]
+    return ["latest", "7.x", "6.x", "5.x", "4.x"]
 
 
 def get_browser_sdk_version_choices():
@@ -55,11 +54,12 @@ def load_version_from_file():
     return []
 
 
-def get_highest_selected_browser_sdk_version(selected_version):
+def match_selected_version_to_browser_sdk_version(selected_version):
     versions = load_version_from_file()
     if selected_version == "latest":
         return get_highest_browser_sdk_version(versions)
     return get_highest_browser_sdk_version(
+        # Filter for all versions that match the selected versions major
         [x for x in versions if x.startswith(selected_version[0])]
     )
 
@@ -68,10 +68,10 @@ def get_browser_sdk_version(project_key):
     selected_version = get_selected_browser_sdk_version(project_key)
 
     try:
-        return get_highest_selected_browser_sdk_version(selected_version)
+        return match_selected_version_to_browser_sdk_version(selected_version)
     except Exception:
         logger.error("error occurred while trying to read js sdk information from the registry")
-        return settings.JS_SDK_LOADER_SDK_VERSION
+        return Version(settings.JS_SDK_LOADER_SDK_VERSION)
 
 
 def get_selected_browser_sdk_version(project_key):

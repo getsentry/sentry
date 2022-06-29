@@ -17,11 +17,19 @@ dummy_provider_config = {
 }
 
 
+class DummySAML2Provider(SAML2Provider):
+    name = "dummy"
+
+    def get_saml_setup_pipeline(self):
+        pass
+
+
 class SAML2ProviderTest(TestCase):
     def setUp(self):
-        self.org = self.create_organization()
-        self.auth_provider = AuthProvider.objects.create(provider="saml2", organization=self.org)
-        self.provider = SAML2Provider(key=self.auth_provider.provider)
+        self.auth_provider = AuthProvider.objects.create(
+            provider="saml2", organization=self.organization
+        )
+        self.provider = DummySAML2Provider(key=self.auth_provider.provider)
         super().setUp()
 
     def test_build_config_adds_attributes(self):
@@ -29,7 +37,7 @@ class SAML2ProviderTest(TestCase):
 
         assert "attribute_mapping" in config
 
-    def test_buld_config_with_provider_attributes(self):
+    def test_build_config_with_provider_attributes(self):
         with mock.patch.object(self.provider, "attribute_mapping") as attribute_mapping:
             config = self.provider.build_config({})
 

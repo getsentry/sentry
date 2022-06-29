@@ -48,9 +48,9 @@ from sentry.search.events.constants import (
 )
 from sentry.search.events.fields import FIELD_ALIASES, FUNCTIONS, resolve_field
 from sentry.search.utils import parse_release
-from sentry.utils.compat import filter
 from sentry.utils.dates import to_timestamp
 from sentry.utils.snuba import FUNCTION_TO_OPERATOR, OPERATOR_TO_FUNCTION, SNUBA_AND, SNUBA_OR
+from sentry.utils.strings import oxfordize_list
 from sentry.utils.validators import INVALID_ID_DETAILS, INVALID_SPAN_ID, WILDCARD_NOT_ALLOWED
 
 
@@ -62,7 +62,7 @@ def translate_transaction_status(val: str) -> str:
     if val not in SPAN_STATUS_NAME_TO_CODE:
         raise InvalidSearchQuery(
             f"Invalid value {val} for transaction.status condition. Accepted "
-            f"values are {', '.join(SPAN_STATUS_NAME_TO_CODE.keys())}"
+            f"values are {oxfordize_list([str(key) for key in SPAN_STATUS_NAME_TO_CODE.keys()])}"
         )
     return SPAN_STATUS_NAME_TO_CODE[val]
 
@@ -477,10 +477,15 @@ def _semver_build_filter_converter(
     build: str = search_filter.value.raw_value
 
     operator, negated = handle_operator_negation(search_filter.operator)
+    try:
+        django_op = OPERATOR_TO_DJANGO[operator]
+    except KeyError:
+        raise InvalidSearchQuery("Invalid operation 'IN' for semantic version filter.")
+
     versions = list(
         Release.objects.filter_by_semver_build(
             organization_id,
-            OPERATOR_TO_DJANGO[operator],
+            django_op,
             build,
             project_ids=project_ids,
             negated=negated,
@@ -515,7 +520,11 @@ def parse_semver(version, operator) -> Optional[SemverFilter]:
      - 1.*
     """
     (operator, negated) = handle_operator_negation(operator)
-    operator = OPERATOR_TO_DJANGO[operator]
+    try:
+        operator = OPERATOR_TO_DJANGO[operator]
+    except KeyError:
+        raise InvalidSearchQuery("Invalid operation 'IN' for semantic version filter.")
+
     version = version if "@" in version else f"{SEMVER_FAKE_PACKAGE}@{version}"
     parsed = parse_release_relay(version)
     parsed_version = parsed.get("version_parsed")
@@ -813,7 +822,7 @@ def convert_search_boolean_to_snuba_query(terms, params=None):
 
     condition, having = None, None
     if lhs_condition or rhs_condition:
-        args = filter(None, [lhs_condition, rhs_condition])
+        args = list(filter(None, [lhs_condition, rhs_condition]))
         if not args:
             condition = None
         elif len(args) == 1:
@@ -822,7 +831,7 @@ def convert_search_boolean_to_snuba_query(terms, params=None):
             condition = [operator, args]
 
     if lhs_having or rhs_having:
-        args = filter(None, [lhs_having, rhs_having])
+        args = list(filter(None, [lhs_having, rhs_having]))
         if not args:
             having = None
         elif len(args) == 1:
@@ -833,7 +842,7 @@ def convert_search_boolean_to_snuba_query(terms, params=None):
     return condition, having, projects_to_filter, group_ids
 
 
-def get_filter(query=None, params=None):
+def get_filter(query=None, params=None, parser_config_overrides=None):
     """
     Returns an eventstore filter given the search text provided by the user and
     URL params
@@ -842,7 +851,9 @@ def get_filter(query=None, params=None):
     parsed_terms = []
     if query is not None:
         try:
-            parsed_terms = parse_search_query(query, params=params)
+            parsed_terms = parse_search_query(
+                query, params=params, config_overrides=parser_config_overrides
+            )
         except ParseError as e:
             raise InvalidSearchQuery(f"Parse error: {e.expr.name} (column {e.column():d})")
 
@@ -952,7 +963,7 @@ def format_search_filter(term, params):
         missing = [slug for slug in slugs if slug not in projects]
         if missing and term.operator in EQUALITY_OPERATORS:
             raise InvalidSearchQuery(
-                f"Invalid query. Project(s) {', '.join(missing)} do not exist or are not actively selected."
+                f"Invalid query. Project(s) {oxfordize_list(missing)} do not exist or are not actively selected."
             )
         project_ids = list(sorted(projects.values()))
         if project_ids:

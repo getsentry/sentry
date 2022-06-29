@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 
 import SentryTypes from 'sentry/sentryTypes';
 import {Project} from 'sentry/types';
@@ -14,7 +14,7 @@ type InjectedProjectProps = {
 const withProject = <P extends InjectedProjectProps>(
   WrappedComponent: React.ComponentType<P>
 ) =>
-  class extends React.Component<
+  class extends Component<
     Omit<P, keyof InjectedProjectProps> & Partial<InjectedProjectProps>
   > {
     static displayName = `withProject(${getDisplayName(WrappedComponent)})`;

@@ -1,7 +1,8 @@
-import {cloneElement, isValidElement, useEffect} from 'react';
+import {cloneElement, Fragment, isValidElement, useEffect} from 'react';
 import {RouteComponentProps} from 'react-router';
 
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
+import {navigateTo} from 'sentry/actionCreators/navigation';
 import Alert from 'sentry/components/alert';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
@@ -17,7 +18,7 @@ type Props = RouteComponentProps<RouteParams, {}> & {
 };
 
 type RouteParams = {
-  projectId: string;
+  projectId?: string;
 };
 
 function AlertBuilderProjectProvider(props: Props) {
@@ -25,11 +26,21 @@ function AlertBuilderProjectProvider(props: Props) {
   useScrollToTop({location: props.location});
 
   const {children, params, organization, ...other} = props;
-  const {projectId} = params;
-  const {projects, initiallyLoaded, fetching, fetchError} = useProjects({
-    slugs: [projectId],
-  });
-  const project = projects.find(({slug}) => slug === projectId);
+  const projectId = params.projectId || props.location.query.project;
+  const hasAlertWizardV3 = organization.features.includes('alert-wizard-v3');
+  const useFirstProject = hasAlertWizardV3 && projectId === undefined;
+
+  // calling useProjects() without args fetches all projects
+  const {projects, initiallyLoaded, fetching, fetchError} = useProjects(
+    useFirstProject
+      ? undefined
+      : {
+          slugs: [projectId],
+        }
+  );
+  const project = useFirstProject
+    ? projects.find(p => p.isMember) ?? (projects.length && projects[0])
+    : projects.find(({slug}) => slug === projectId);
 
   useEffect(() => {
     if (!project) {
@@ -38,10 +49,20 @@ function AlertBuilderProjectProvider(props: Props) {
 
     // fetch members list for mail action fields
     fetchOrgMembers(api, organization.slug, [project.id]);
-  }, [project]);
+  }, [api, organization, project]);
 
   if (!initiallyLoaded || fetching) {
     return <LoadingIndicator />;
+  }
+
+  // If there's no project show the project selector modal
+  if (!project && !fetchError) {
+    navigateTo(
+      hasAlertWizardV3
+        ? `/organizations/${organization.slug}/alerts/wizard/?referrer=${props.location.query.referrer}&project=:projectId`
+        : `/organizations/${organization.slug}/alerts/:projectId/wizard/?referrer=${props.location.query.referrer}`,
+      props.router
+    );
   }
 
   // if loaded, but project fetching states incomplete or project can't be found, project doesn't exist
@@ -51,14 +72,19 @@ function AlertBuilderProjectProvider(props: Props) {
     );
   }
 
-  return children && isValidElement(children)
-    ? cloneElement(children, {
-        ...other,
-        ...children.props,
-        project,
-        organization,
-      })
-    : children;
+  return (
+    <Fragment>
+      {children && isValidElement(children)
+        ? cloneElement(children, {
+            ...other,
+            ...children.props,
+            project,
+            projectId: useFirstProject ? project.slug : projectId,
+            organization,
+          })
+        : children}
+    </Fragment>
+  );
 }
 
 export default AlertBuilderProjectProvider;

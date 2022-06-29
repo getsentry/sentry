@@ -1,14 +1,24 @@
+from typing import Mapping, Set, Tuple
+
+from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.sentry_metrics.indexer.base import KeyCollection, KeyResult, KeyResults
 from sentry.sentry_metrics.indexer.cache import indexer_cache
 from sentry.sentry_metrics.indexer.models import MetricsKeyIndexer, StringIndexer
 from sentry.sentry_metrics.indexer.postgres import PGStringIndexer
 from sentry.sentry_metrics.indexer.postgres_v2 import (
-    KeyCollection,
-    KeyResult,
-    KeyResults,
+    FetchType,
     PGStringIndexerV2,
+    StaticStringsIndexerDecorator,
 )
+from sentry.sentry_metrics.indexer.strings import SHARED_STRINGS
 from sentry.testutils.cases import TestCase
 from sentry.utils.cache import cache
+
+
+def assert_fetch_type_for_tag_string_set(
+    meta: Mapping[str, Tuple[int, FetchType]], fetch_type: FetchType, str_set: Set[str]
+):
+    assert all([meta[string][1] == fetch_type for string in str_set])
 
 
 class PostgresIndexerTest(TestCase):
@@ -38,11 +48,51 @@ class PostgresIndexerTest(TestCase):
         assert PGStringIndexer().reverse_resolve(1234) is None
 
 
+class StaticStringsIndexerTest(TestCase):
+    def setUp(self) -> None:
+        self.indexer = StaticStringsIndexerDecorator()
+        self.use_case_id = UseCaseKey("release-health")
+
+    def test_static_strings_only(self) -> None:
+        org_strings = {2: {"release"}, 3: {"production", "environment", "release"}}
+        results = self.indexer.bulk_record(use_case_id=self.use_case_id, org_strings=org_strings)
+
+        assert results[2]["release"] == SHARED_STRINGS["release"]
+        assert results[3]["production"] == SHARED_STRINGS["production"]
+        assert results[3]["environment"] == SHARED_STRINGS["environment"]
+        assert results[3]["release"] == SHARED_STRINGS["release"]
+
+    def test_static_and_non_static_strings(self):
+        org_strings = {
+            2: {"release", "1.0.0"},
+            3: {"production", "environment", "release", "2.0.0"},
+        }
+        results = self.indexer.bulk_record(use_case_id=self.use_case_id, org_strings=org_strings)
+
+        v1 = StringIndexer.objects.get(organization_id=2, string="1.0.0")
+        v2 = StringIndexer.objects.get(organization_id=3, string="2.0.0")
+
+        assert results[2]["release"] == SHARED_STRINGS["release"]
+        assert results[3]["production"] == SHARED_STRINGS["production"]
+        assert results[3]["environment"] == SHARED_STRINGS["environment"]
+        assert results[3]["release"] == SHARED_STRINGS["release"]
+
+        assert results[2]["1.0.0"] == v1.id
+        assert results[3]["2.0.0"] == v2.id
+
+        meta = results.get_fetch_metadata()
+        assert_fetch_type_for_tag_string_set(
+            meta, FetchType.HARDCODED, {"release", "production", "environment"}
+        )
+        assert_fetch_type_for_tag_string_set(meta, FetchType.FIRST_SEEN, {"1.0.0", "2.0.0"})
+
+
 class PostgresIndexerV2Test(TestCase):
     def setUp(self) -> None:
         self.strings = {"hello", "hey", "hi"}
         self.indexer = PGStringIndexerV2()
         self.org2 = self.create_organization()
+        self.use_case_id = UseCaseKey("release-health")
 
     def tearDown(self) -> None:
         cache.clear()
@@ -59,7 +109,9 @@ class PostgresIndexerV2Test(TestCase):
             indexer_cache.get_many([f"{org1_id}:{string}" for string in self.strings]).values()
         ) == [None, None, None]
 
-        results = PGStringIndexerV2().bulk_record(org_strings=org_strings)
+        results = self.indexer.bulk_record(
+            use_case_id=self.use_case_id, org_strings=org_strings
+        ).results
 
         org1_string_ids = list(
             StringIndexer.objects.filter(
@@ -84,18 +136,106 @@ class PostgresIndexerV2Test(TestCase):
         # we should have no results for org_id 999
         assert not results.get(999)
 
+    def test_resolve_and_reverse_resolve(self) -> None:
+        """
+        Test `resolve` and `reverse_resolve` methods
+        """
+        org1_id = self.organization.id
+        org_strings = {org1_id: self.strings}
+        self.indexer.bulk_record(use_case_id=self.use_case_id, org_strings=org_strings)
+
         # test resolve and reverse_resolve
         obj = StringIndexer.objects.get(string="hello")
-        assert PGStringIndexerV2().resolve(org1_id, "hello") == obj.id
-        assert PGStringIndexerV2().reverse_resolve(obj.id) == obj.string
+        assert (
+            self.indexer.resolve(use_case_id=self.use_case_id, org_id=org1_id, string="hello")
+            == obj.id
+        )
+        assert self.indexer.reverse_resolve(use_case_id=self.use_case_id, id=obj.id) == obj.string
 
         # test record on a string that already exists
-        PGStringIndexerV2().record(org1_id, "hello")
-        assert PGStringIndexerV2().resolve(org1_id, "hello") == obj.id
+        self.indexer.record(use_case_id=self.use_case_id, org_id=org1_id, string="hello")
+        assert (
+            self.indexer.resolve(use_case_id=self.use_case_id, org_id=org1_id, string="hello")
+            == obj.id
+        )
 
         # test invalid values
-        assert PGStringIndexerV2().resolve(org1_id, "beep") is None
-        assert PGStringIndexerV2().reverse_resolve(1234) is None
+        assert (
+            self.indexer.resolve(use_case_id=self.use_case_id, org_id=org1_id, string="beep")
+            is None
+        )
+        assert self.indexer.reverse_resolve(use_case_id=self.use_case_id, id=1234) is None
+
+    def test_already_created_plus_written_results(self) -> None:
+        """
+        Test that we correctly combine db read results with db write results
+        for the same organization.
+        """
+        org_id = 1234
+        v0 = StringIndexer.objects.create(organization_id=org_id, string="v1.2.0")
+        v1 = StringIndexer.objects.create(organization_id=org_id, string="v1.2.1")
+        v2 = StringIndexer.objects.create(organization_id=org_id, string="v1.2.2")
+
+        expected_mapping = {"v1.2.0": v0.id, "v1.2.1": v1.id, "v1.2.2": v2.id}
+
+        results = self.indexer.bulk_record(
+            use_case_id=self.use_case_id, org_strings={org_id: {"v1.2.0", "v1.2.1", "v1.2.2"}}
+        )
+        assert len(results[org_id]) == len(expected_mapping) == 3
+
+        for string, id in results[org_id].items():
+            assert expected_mapping[string] == id
+
+        results = self.indexer.bulk_record(
+            use_case_id=self.use_case_id,
+            org_strings={org_id: {"v1.2.0", "v1.2.1", "v1.2.2", "v1.2.3"}},
+        )
+
+        v3 = StringIndexer.objects.get(organization_id=org_id, string="v1.2.3")
+        expected_mapping["v1.2.3"] = v3.id
+
+        assert len(results[org_id]) == len(expected_mapping) == 4
+
+        for string, id in results[org_id].items():
+            assert expected_mapping[string] == id
+
+        fetch_meta = results.get_fetch_metadata()
+        assert_fetch_type_for_tag_string_set(
+            fetch_meta, FetchType.CACHE_HIT, {"v1.2.0", "v1.2.1", "v1.2.2"}
+        )
+        assert_fetch_type_for_tag_string_set(fetch_meta, FetchType.FIRST_SEEN, {"v1.2.3"})
+
+    def test_already_cached_plus_read_results(self) -> None:
+        """
+        Test that we correctly combine cached results with read results
+        for the same organization.
+        """
+        org_id = 8
+        cached = {f"{org_id}:beep": 10, f"{org_id}:boop": 11}
+        indexer_cache.set_many(cached)
+
+        results = self.indexer.bulk_record(
+            use_case_id=self.use_case_id, org_strings={org_id: {"beep", "boop"}}
+        )
+        assert len(results[org_id]) == 2
+        assert results[org_id]["beep"] == 10
+        assert results[org_id]["boop"] == 11
+
+        # confirm we did not write to the db if results were already cached
+        assert not StringIndexer.objects.filter(organization_id=org_id, string__in=["beep", "boop"])
+
+        bam = StringIndexer.objects.create(organization_id=org_id, string="bam")
+        results = self.indexer.bulk_record(
+            use_case_id=self.use_case_id, org_strings={org_id: {"beep", "boop", "bam"}}
+        )
+        assert len(results[org_id]) == 3
+        assert results[org_id]["beep"] == 10
+        assert results[org_id]["boop"] == 11
+        assert results[org_id]["bam"] == bam.id
+
+        fetch_meta = results.get_fetch_metadata()
+        assert_fetch_type_for_tag_string_set(fetch_meta, FetchType.CACHE_HIT, {"beep", "boop"})
+        assert_fetch_type_for_tag_string_set(fetch_meta, FetchType.DB_READ, {"bam"})
 
     def test_get_db_records(self):
         """
@@ -108,7 +248,7 @@ class PostgresIndexerV2Test(TestCase):
         assert indexer_cache.get(key) is None
         assert indexer_cache.get(string.id) is None
 
-        PGStringIndexerV2()._get_db_records(collection)
+        self.indexer._get_db_records(self.use_case_id, collection)
 
         assert indexer_cache.get(string.id) is None
         assert indexer_cache.get(key) is None
@@ -132,8 +272,8 @@ class KeyCollectionTest(TestCase):
 
         assert collection.mapping == org_strings
         assert collection.size == 5
-        assert list(collection.as_tuples()).sort() == collection_tuples.sort()
-        assert list(collection.as_strings()).sort() == collection_strings.sort()
+        assert sorted(list(collection.as_tuples())) == sorted(collection_tuples)
+        assert sorted(list(collection.as_strings())) == sorted(collection_strings)
 
 
 class KeyResultsTest(TestCase):
@@ -158,7 +298,6 @@ class KeyResultsTest(TestCase):
         assert key_results.get_unmapped_keys(collection).mapping == {1: {"b", "c"}, 2: {"e", "f"}}
 
         key_result_list = [
-            KeyResult(1, "a", 10),
             KeyResult(1, "b", 11),
             KeyResult(1, "c", 12),
             KeyResult(2, "e", 13),
@@ -179,3 +318,55 @@ class KeyResultsTest(TestCase):
         }
 
         assert key_results.get_unmapped_keys(collection).mapping == {}
+
+    def test_merges_with_metadata(self):
+        org_id = 1
+        cache_mappings = {"cache1": 1, "cache2": 2}
+        read_mappings = {"read3": 3, "read4": 4}
+        hardcode_mappings = {"hardcode5": 5, "hardcode6": 6}
+        write_mappings = {"write7": 7, "write8": 8}
+
+        mappings = {
+            *cache_mappings,
+            *read_mappings,
+            *hardcode_mappings,
+            *write_mappings,
+        }
+
+        kr_cache = KeyResults()
+        kr_dbread = KeyResults()
+        kr_hardcoded = KeyResults()
+        kr_write = KeyResults()
+        assert kr_cache.results == {} and kr_cache.meta == {}
+        assert kr_dbread.results == {} and kr_dbread.meta == {}
+        assert kr_hardcoded.results == {} and kr_hardcoded.meta == {}
+        assert kr_write.results == {} and kr_write.meta == {}
+
+        kr_cache.add_key_results(
+            [KeyResult(org_id=org_id, string=k, id=v) for k, v in cache_mappings.items()],
+            FetchType.CACHE_HIT,
+        )
+        kr_dbread.add_key_results(
+            [KeyResult(org_id=org_id, string=k, id=v) for k, v in read_mappings.items()],
+            FetchType.DB_READ,
+        )
+        kr_hardcoded.add_key_results(
+            [KeyResult(org_id=org_id, string=k, id=v) for k, v in hardcode_mappings.items()],
+            FetchType.HARDCODED,
+        )
+        kr_write.add_key_results(
+            [KeyResult(org_id=org_id, string=k, id=v) for k, v in write_mappings.items()],
+            FetchType.FIRST_SEEN,
+        )
+
+        kr_merged = kr_cache.merge(kr_dbread).merge(kr_hardcoded).merge(kr_write)
+
+        assert len(kr_merged.get_mapped_results()[org_id]) == len(mappings)
+        meta = kr_merged.get_fetch_metadata()
+
+        assert_fetch_type_for_tag_string_set(meta, FetchType.DB_READ, set(read_mappings.keys()))
+        assert_fetch_type_for_tag_string_set(
+            meta, FetchType.HARDCODED, set(hardcode_mappings.keys())
+        )
+        assert_fetch_type_for_tag_string_set(meta, FetchType.FIRST_SEEN, set(write_mappings.keys()))
+        assert_fetch_type_for_tag_string_set(meta, FetchType.CACHE_HIT, set(cache_mappings.keys()))

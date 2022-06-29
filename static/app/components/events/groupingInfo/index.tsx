@@ -4,12 +4,14 @@ import styled from '@emotion/styled';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import Button from 'sentry/components/button';
 import EventDataSection from 'sentry/components/events/eventDataSection';
+import {FeatureFeedback} from 'sentry/components/featureFeedback';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {EventGroupInfo, Organization} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import withOrganization from 'sentry/utils/withOrganization';
+import {groupingFeedbackTypes} from 'sentry/views/organizationGroupDetails/grouping/grouping';
 
 import GroupingConfigSelect from './groupingConfigSelect';
 import GroupVariant from './groupingVariant';
@@ -85,13 +87,11 @@ class EventGroupingInfo extends AsyncComponent<Props, State> {
     const configId = configOverride ?? event.groupingConfig.id;
 
     return (
-      <GroupConfigWrapper>
-        <GroupingConfigSelect
-          eventConfigId={event.groupingConfig.id}
-          configId={configId}
-          onSelect={this.handleConfigSelect}
-        />
-      </GroupConfigWrapper>
+      <GroupingConfigSelect
+        eventConfigId={event.groupingConfig.id}
+        configId={configId}
+        onSelect={this.handleConfigSelect}
+      />
     );
   }
 
@@ -111,7 +111,14 @@ class EventGroupingInfo extends AsyncComponent<Props, State> {
 
     return (
       <Fragment>
-        {showGroupingConfig && this.renderGroupConfigSelect()}
+        <ConfigHeader>
+          <div>{showGroupingConfig && this.renderGroupConfigSelect()}</div>
+          <FeatureFeedback
+            featureName="grouping"
+            feedbackTypes={groupingFeedbackTypes}
+            buttonProps={{size: 'small'}}
+          />
+        </ConfigHeader>
 
         {loading ? (
           <LoadingIndicator />
@@ -156,10 +163,18 @@ class EventGroupingInfo extends AsyncComponent<Props, State> {
 }
 
 const SummaryGroupedBy = styled('small')`
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     display: block;
     margin: 0 !important;
   }
+`;
+
+const ConfigHeader = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: ${space(1)};
+  margin-bottom: ${space(2)};
 `;
 
 const ToggleButton = styled(Button)`
@@ -169,11 +184,6 @@ const ToggleButton = styled(Button)`
   &:focus {
     color: ${p => p.theme.textColor};
   }
-`;
-
-const GroupConfigWrapper = styled('div')`
-  margin-bottom: ${space(1.5)};
-  margin-top: -${space(1)};
 `;
 
 export const GroupingConfigItem = styled('span')<{

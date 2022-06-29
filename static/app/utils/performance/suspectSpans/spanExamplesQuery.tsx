@@ -12,6 +12,8 @@ import {SpanExample} from './types';
 type SpanExamplesProps = {
   spanGroup: string;
   spanOp: string;
+  maxExclusiveTime?: string;
+  minExclusiveTime?: string;
 };
 
 type RequestProps = DiscoverQueryProps & SpanExamplesProps;
@@ -25,17 +27,16 @@ type Props = RequestProps & {
 };
 
 function getSuspectSpanPayload(props: RequestProps) {
-  const {spanOp, spanGroup} = props;
+  const {spanOp, spanGroup, minExclusiveTime, maxExclusiveTime} = props;
   const span =
     defined(spanOp) && defined(spanGroup) ? `${spanOp}:${spanGroup}` : undefined;
-  const payload = {span};
-  if (!defined(payload.span)) {
-    delete payload.span;
-  }
+  const payload = defined(span)
+    ? {span, min_exclusive_time: minExclusiveTime, max_exclusive_time: maxExclusiveTime}
+    : {};
   const additionalPayload = omit(props.eventView.getEventsAPIPayload(props.location), [
     'field',
   ]);
-  return Object.assign(payload, additionalPayload);
+  return {...payload, ...additionalPayload};
 }
 
 function SuspectSpansQuery(props: Props) {

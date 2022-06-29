@@ -16,6 +16,7 @@ export type Context = {
   // TODO(ts): Refactor this component
   Component: (props: any) => JSX.Element;
   keys: string[];
+  omitUnknownVersion?: boolean;
   unknownTitle?: string;
 };
 
@@ -32,6 +33,7 @@ const KNOWN_CONTEXTS: Context[] = [
     keys: ['runtime'],
     Component: ContextSummaryGeneric,
     unknownTitle: t('Unknown Runtime'),
+    omitUnknownVersion: true,
   },
   {keys: ['client_os', 'os'], Component: ContextSummaryOS},
   {keys: ['device'], Component: ContextSummaryDevice},
@@ -48,7 +50,7 @@ function ContextSummary({event}: Props) {
   // Add defined contexts in the declared order, until we reach the limit
   // defined by MAX_CONTEXTS.
   let contexts = KNOWN_CONTEXTS.filter(context => filterContexts(event, context)).map(
-    ({keys, Component, unknownTitle}) => {
+    ({keys, Component, unknownTitle, omitUnknownVersion}) => {
       if (contextCount >= MAX_CONTEXTS) {
         return null;
       }
@@ -62,7 +64,14 @@ function ContextSummary({event}: Props) {
       }
 
       contextCount += 1;
-      return <Component key={key} data={data} unknownTitle={unknownTitle} />;
+      return (
+        <Component
+          key={key}
+          data={data}
+          unknownTitle={unknownTitle}
+          omitUnknownVersion={omitUnknownVersion}
+        />
+      );
     }
   );
 
@@ -94,7 +103,7 @@ function ContextSummary({event}: Props) {
 export default ContextSummary;
 
 const Wrapper = styled('div')`
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     display: flex;
     gap: ${space(3)};
     margin-bottom: ${space(2)};

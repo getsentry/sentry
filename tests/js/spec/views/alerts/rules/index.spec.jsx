@@ -1,19 +1,24 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import AlertRulesList from 'sentry/views/alerts/rules';
+import AlertRulesList from 'sentry/views/alerts/list/rules';
 import {IncidentStatus} from 'sentry/views/alerts/types';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 jest.mock('sentry/utils/analytics/trackAdvancedAnalyticsEvent');
 
 describe('AlertRulesList', () => {
-  const {routerContext, organization, router} = initializeOrg();
-  TeamStore.loadInitialData([], false, null);
+  const {routerContext, organization, router} = initializeOrg({
+    organization: {
+      access: ['alerts:write'],
+      features: ['duplicate-alert-rule'],
+    },
+  });
+  TeamStore.loadInitialData([TestStubs.Team()], false, null);
   let rulesMock;
   let projectMock;
   const pageLinks =
@@ -45,14 +50,14 @@ describe('AlertRulesList', () => {
           projects: ['earth'],
           createdBy: {name: 'Samwise', id: 1, email: ''},
         }),
-        TestStubs.IncidentRule({
+        TestStubs.MetricRule({
           id: '345',
           projects: ['earth'],
           latestIncident: TestStubs.Incident({
             status: IncidentStatus.CRITICAL,
           }),
         }),
-        TestStubs.IncidentRule({
+        TestStubs.MetricRule({
           id: '678',
           projects: ['earth'],
           latestIncident: null,
@@ -61,7 +66,13 @@ describe('AlertRulesList', () => {
     });
     projectMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
-      body: [TestStubs.Project({slug: 'earth', platform: 'javascript'})],
+      body: [
+        TestStubs.Project({
+          slug: 'earth',
+          platform: 'javascript',
+          teams: [TestStubs.Team()],
+        }),
+      ],
     });
 
     act(() => OrganizationStore.onUpdate(organization, {replace: true}));
@@ -111,32 +122,77 @@ describe('AlertRulesList', () => {
     expect(rulesMock).toHaveBeenCalledTimes(0);
   });
 
-  it('sorts by date created', async () => {
-    const {rerender} = createWrapper();
+  it('displays team dropdown context if unassigned', async () => {
+    createWrapper();
+    const assignee = (await screen.findAllByTestId('alert-row-assignee'))[0];
+    const btn = within(assignee).getAllByRole('button')[0];
 
-    // The created column is not used for sorting
-    expect(await screen.findByText('Created')).toHaveAttribute('aria-sort', 'none');
+    expect(assignee).toBeInTheDocument();
+    expect(btn).toBeInTheDocument();
 
-    // Sort by created (date_added)
-    rerender(
-      getComponent({
-        location: {
-          query: {asc: '1', sort: 'date_added'},
-          search: '?asc=1&sort=date_added`',
-        },
-      })
-    );
+    userEvent.click(btn, {skipHover: true});
 
-    expect(await screen.findByText('Created')).toHaveAttribute('aria-sort', 'ascending');
+    expect(screen.getByText('#team-slug')).toBeInTheDocument();
+    expect(within(assignee).getByText('Unassigned')).toBeInTheDocument();
+  });
 
-    expect(rulesMock).toHaveBeenCalledTimes(2);
+  it('assigns rule to team from unassigned', async () => {
+    const assignMock = MockApiClient.addMockResponse({
+      method: 'PUT',
+      url: '/projects/org-slug/earth/rules/123/',
+      body: [],
+    });
+    createWrapper();
+    const assignee = (await screen.findAllByTestId('alert-row-assignee'))[0];
+    const btn = within(assignee).getAllByRole('button')[0];
 
-    expect(rulesMock).toHaveBeenCalledWith(
-      '/organizations/org-slug/combined-rules/',
+    expect(assignee).toBeInTheDocument();
+    expect(btn).toBeInTheDocument();
+
+    userEvent.click(btn, {skipHover: true});
+    userEvent.click(screen.getByText('#team-slug'));
+
+    expect(assignMock).toHaveBeenCalledWith(
+      '/projects/org-slug/earth/rules/123/',
       expect.objectContaining({
-        query: expect.objectContaining({asc: '1'}),
+        data: expect.objectContaining({owner: 'team:1'}),
       })
     );
+  });
+
+  it('displays dropdown context menu with actions', async () => {
+    createWrapper();
+    const actions = (await screen.findAllByTestId('alert-row-actions'))[0];
+    expect(actions).toBeInTheDocument();
+
+    userEvent.click(actions);
+
+    expect(screen.getByText('Edit')).toBeInTheDocument();
+    expect(screen.getByText('Delete')).toBeInTheDocument();
+    expect(screen.getByText('Duplicate')).toBeInTheDocument();
+  });
+
+  it('sends user to new alert page on duplicate action', async () => {
+    createWrapper();
+    const actions = (await screen.findAllByTestId('alert-row-actions'))[0];
+    expect(actions).toBeInTheDocument();
+
+    userEvent.click(actions);
+
+    const duplicate = await screen.findByText('Duplicate');
+    expect(duplicate).toBeInTheDocument();
+
+    userEvent.click(duplicate);
+
+    expect(router.push).toHaveBeenCalledWith({
+      pathname: '/organizations/org-slug/alerts/new/issue/',
+      query: {
+        createFromDuplicate: true,
+        duplicateRuleId: '123',
+        project: 'earth',
+        referrer: 'alert_stream',
+      },
+    });
   });
 
   it('sorts by name', async () => {
@@ -198,7 +254,7 @@ describe('AlertRulesList', () => {
       expect.objectContaining({
         query: {
           name: testQuery,
-          expand: ['latestIncident'],
+          expand: ['latestIncident', 'lastTriggered'],
           sort: ['incident_status', 'date_triggered'],
           team: ['myteams', 'unassigned'],
         },
@@ -215,7 +271,7 @@ describe('AlertRulesList', () => {
       getComponent({location: {query: {team: 'myteams'}, search: '?team=myteams`'}})
     );
 
-    userEvent.click(await screen.findByTestId('filter-button'));
+    userEvent.click(await screen.findByRole('button', {name: 'My Teams'}));
 
     // Uncheck myteams
     const myTeams = await screen.findAllByText('My Teams');
@@ -224,7 +280,7 @@ describe('AlertRulesList', () => {
     expect(router.push).toHaveBeenCalledWith(
       expect.objectContaining({
         query: {
-          expand: ['latestIncident'],
+          expand: ['latestIncident', 'lastTriggered'],
           sort: ['incident_status', 'date_triggered'],
           team: '',
         },
@@ -253,7 +309,7 @@ describe('AlertRulesList', () => {
       '/organizations/org-slug/combined-rules/',
       expect.objectContaining({
         query: {
-          expand: ['latestIncident'],
+          expand: ['latestIncident', 'lastTriggered'],
           sort: ['incident_status', 'date_triggered'],
           team: ['myteams', 'unassigned'],
         },
@@ -273,7 +329,7 @@ describe('AlertRulesList', () => {
     expect(router.push).toHaveBeenCalledWith(
       expect.objectContaining({
         query: {
-          expand: ['latestIncident'],
+          expand: ['latestIncident', 'lastTriggered'],
           sort: ['incident_status', 'date_triggered'],
           team: '',
           cursor: '0:100:0',

@@ -27,6 +27,7 @@ from sentry.tasks.reprocessing2 import reprocess_group
 from sentry.tasks.store import preprocess_event
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.types.activity import ActivityType
 from sentry.utils.cache import cache_key_for_event
 
 
@@ -114,12 +115,11 @@ def test_basic(
 ):
     from sentry import eventstream
 
-    tombstone_calls = 0
+    tombstone_calls = []
     old_tombstone_fn = eventstream.tombstone_events_unsafe
 
     def tombstone_called(*args, **kwargs):
-        nonlocal tombstone_calls
-        tombstone_calls += 1
+        tombstone_calls.append((args, kwargs))
         old_tombstone_fn(*args, **kwargs)
 
     monkeypatch.setattr("sentry.eventstream.tombstone_events_unsafe", tombstone_called)
@@ -189,9 +189,18 @@ def test_basic(
     # Old event is actually getting tombstoned
     assert not get_event_by_processing_counter("x0")
     if change_groups:
-        assert tombstone_calls == 1
+        assert tombstone_calls == [
+            (
+                (default_project.id, [old_event.event_id]),
+                {
+                    "from_timestamp": old_event.datetime,
+                    "old_primary_hash": old_event.get_primary_hash(),
+                    "to_timestamp": old_event.datetime,
+                },
+            )
+        ]
     else:
-        assert tombstone_calls == 0
+        assert not tombstone_calls
 
 
 @pytest.mark.django_db
@@ -253,7 +262,7 @@ def test_concurrent_events_go_into_new_group(
 
     assert group.short_id == original_short_id
     assert GroupAssignee.objects.get(group=group) == original_assignee
-    activity = Activity.objects.get(group=group, type=Activity.REPROCESS)
+    activity = Activity.objects.get(group=group, type=ActivityType.REPROCESS.value)
     assert activity.ident == str(original_issue_id)
 
 

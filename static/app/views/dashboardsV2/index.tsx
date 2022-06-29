@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 
 import {Client} from 'sentry/api';
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import NotFound from 'sentry/components/errors/notFound';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Organization} from 'sentry/types';
@@ -38,13 +39,15 @@ function DashboardsV2Container(props: Props) {
           return error ? (
             <NotFound />
           ) : dashboard ? (
-            <DashboardDetail
-              {...props}
-              initialState={DashboardState.VIEW}
-              dashboard={dashboard}
-              dashboards={dashboards}
-              onDashboardUpdate={onDashboardUpdate}
-            />
+            <ErrorBoundary>
+              <DashboardDetail
+                {...props}
+                initialState={DashboardState.VIEW}
+                dashboard={dashboard}
+                dashboards={dashboards}
+                onDashboardUpdate={onDashboardUpdate}
+              />
+            </ErrorBoundary>
           ) : (
             <LoadingIndicator />
           );

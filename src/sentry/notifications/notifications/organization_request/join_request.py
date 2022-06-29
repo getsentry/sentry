@@ -13,10 +13,8 @@ if TYPE_CHECKING:
 @register()
 class JoinRequestNotification(AbstractInviteRequestNotification):
     analytics_event = "join_request.sent"
-    referrer_base = "join_request"
-
-    def get_filename(self) -> str:
-        return "organization-join-request"
+    metrics_key = "join_request"
+    template_path = "sentry/emails/organization-join-request"
 
     def build_attachment_title(self, recipient: Team | User) -> str:
         return "Request to Join"

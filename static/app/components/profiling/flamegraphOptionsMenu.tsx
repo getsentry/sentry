@@ -1,12 +1,11 @@
-import styled from '@emotion/styled';
+import {Fragment, useMemo} from 'react';
 
 import Button from 'sentry/components/button';
-import DropdownButton from 'sentry/components/dropdownButton';
-import DropdownControl, {DropdownItem} from 'sentry/components/dropdownControl';
+import CompositeSelect from 'sentry/components/forms/compositeSelect';
+import {IconSliders} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
 import {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
-import {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider';
+import {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphPreferences';
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/useFlamegraphPreferences';
 
 interface FlamegraphOptionsMenuProps {
@@ -16,46 +15,66 @@ interface FlamegraphOptionsMenuProps {
 function FlamegraphOptionsMenu({
   canvasPoolManager,
 }: FlamegraphOptionsMenuProps): React.ReactElement {
-  const [{colorCoding}, dispatch] = useFlamegraphPreferences();
+  const [{colorCoding, xAxis}, dispatch] = useFlamegraphPreferences();
+
+  const options = useMemo(() => {
+    return [
+      {
+        label: t('X Axis'),
+        value: 'x axis',
+        defaultValue: xAxis,
+        options: Object.entries(X_AXIS).map(([value, label]) => ({
+          label,
+          value,
+        })),
+        onChange: value =>
+          dispatch({
+            type: 'set xAxis',
+            payload: value,
+          }),
+      },
+      {
+        label: t('Color Coding'),
+        value: 'by symbol name',
+        defaultValue: colorCoding,
+        options: Object.entries(COLOR_CODINGS).map(([value, label]) => ({
+          label,
+          value,
+        })),
+        onChange: value =>
+          dispatch({
+            type: 'set color coding',
+            payload: value,
+          }),
+      },
+    ];
+    // If we add color and xAxis it updates the memo and the component is re-rendered (losing hovered state)
+    // Not ideal, but since we are only passing default value I guess we can live with it
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dispatch]);
 
   return (
-    <OptionsMenuContainer>
-      <DropdownControl
-        button={({isOpen, getActorProps}) => (
-          <DropdownButton
-            {...getActorProps()}
-            isOpen={isOpen}
-            prefix={t('Color Coding')}
-            size="xsmall"
-          >
-            {COLOR_CODINGS[colorCoding]}
-          </DropdownButton>
-        )}
-      >
-        {Object.entries(COLOR_CODINGS).map(
-          ([value, label]: [string, string]): React.ReactElement => (
-            <DropdownItem
-              key={value}
-              onSelect={() =>
-                dispatch({
-                  type: 'set color coding',
-                  payload: value as FlamegraphPreferences['colorCoding'],
-                })
-              }
-              eventKey={value}
-              isActive={value === colorCoding}
-            >
-              {label}
-            </DropdownItem>
-          )
-        )}
-      </DropdownControl>
+    <Fragment>
       <Button size="xsmall" onClick={() => canvasPoolManager.dispatch('resetZoom', [])}>
         {t('Reset Zoom')}
       </Button>
-    </OptionsMenuContainer>
+      <CompositeSelect
+        triggerLabel={t('Options')}
+        triggerProps={{
+          icon: <IconSliders size="xs" />,
+          size: 'xsmall',
+        }}
+        placement="bottom right"
+        sections={options}
+      />
+    </Fragment>
   );
 }
+
+const X_AXIS: Record<FlamegraphPreferences['xAxis'], string> = {
+  standalone: t('Standalone'),
+  transaction: t('Transaction'),
+};
 
 const COLOR_CODINGS: Record<FlamegraphPreferences['colorCoding'], string> = {
   'by symbol name': t('By Symbol Name'),
@@ -63,12 +82,5 @@ const COLOR_CODINGS: Record<FlamegraphPreferences['colorCoding'], string> = {
   'by system / application': t('By System / Application'),
   'by recursion': t('By Recursion'),
 };
-
-const OptionsMenuContainer = styled('div')`
-  display: flex;
-  flex-direction: row;
-  gap: ${space(0.5)};
-  justify-content: flex-end;
-`;
 
 export {FlamegraphOptionsMenu};

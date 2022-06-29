@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -16,7 +16,7 @@ function dismissBanner(bannerKey: string) {
 
 function useDismissable(bannerKey: string) {
   const key = makeKey(bannerKey);
-  const [value, setValue] = React.useState(localStorage.getItem(key));
+  const [value, setValue] = useState(localStorage.getItem(key));
 
   const dismiss = () => {
     setValue('true');
@@ -100,7 +100,7 @@ const BannerWrapper = styled('div')<BannerWrapperProps>`
   height: 180px;
   color: ${p => p.theme.white};
 
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     height: 220px;
   }
 `;
@@ -117,7 +117,7 @@ const BannerContent = styled('div')`
 const BannerTitle = styled('h1')`
   margin: 0;
 
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     font-size: 40px;
   }
 `;
@@ -125,7 +125,7 @@ const BannerTitle = styled('h1')`
 const BannerSubtitle = styled('div')`
   margin: 0;
 
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     font-size: ${p => p.theme.fontSizeExtraLarge};
   }
 `;

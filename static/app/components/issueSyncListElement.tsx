@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 import capitalize from 'lodash/capitalize';
@@ -22,7 +22,7 @@ type Props = {
   showHoverCard?: boolean;
 };
 
-class IssueSyncListElement extends React.Component<Props> {
+class IssueSyncListElement extends Component<Props> {
   isLinked(): boolean {
     return !!(this.props.externalIssueLink && this.props.externalIssueId);
   }
@@ -96,6 +96,10 @@ class IssueSyncListElement extends React.Component<Props> {
                 display: flex;
                 align-items: center;
                 min-width: 0; /* flex-box overflow workaround */
+
+                svg {
+                  flex-shrink: 0;
+                }
               `}
               header={this.props.hoverCardHeader}
               body={this.props.hoverCardBody}

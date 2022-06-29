@@ -1,218 +1,125 @@
 import React from 'react';
-import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import Breadcrumbs from 'sentry/components/breadcrumbs';
+import ErrorBoundary from 'sentry/components/errorBoundary';
+import DetailedError from 'sentry/components/errors/detailedError';
 import NotFound from 'sentry/components/errors/notFound';
-import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
-import EventEntry from 'sentry/components/events/eventEntry';
-import EventMessage from 'sentry/components/events/eventMessage';
-import BaseRRWebReplayer from 'sentry/components/events/rrwebReplayer/baseRRWebReplayer';
-import FeatureBadge from 'sentry/components/featureBadge';
+import {HeaderContainer} from 'sentry/components/events/interfaces/spans/header';
 import * as Layout from 'sentry/components/layouts/thirds';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import TagsTable from 'sentry/components/tagsTable';
+import ReplayTimeline from 'sentry/components/replays/breadcrumbs/replayTimeline';
+import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
+import ReplayView from 'sentry/components/replays/replayView';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
-import {Entry, EntryType, Event} from 'sentry/types/event';
-import {getMessage} from 'sentry/utils/events';
-import withOrganization from 'sentry/utils/withOrganization';
-import AsyncView from 'sentry/views/asyncView';
+import useFullscreen from 'sentry/utils/replays/hooks/useFullscreen';
+import useReplayData from 'sentry/utils/replays/hooks/useReplayData';
+import {useRouteContext} from 'sentry/utils/useRouteContext';
 
-import mergeBreadcrumbsEntries from './utils/mergeBreadcrumbsEntries';
-import useReplayEvent from './utils/useReplayEvent';
+import AsideTabs from './detail/asideTabs';
+import DetailLayout from './detail/detailLayout';
+import FocusArea from './detail/focusArea';
+import FocusTabs from './detail/focusTabs';
 
-type Props = AsyncView['props'] &
-  RouteComponentProps<
-    {
-      eventSlug: string;
-      orgId: string;
-    },
-    {}
-  > & {organization: Organization};
+function ReplayDetails() {
+  const {
+    location,
+    params: {eventSlug, orgId},
+  } = useRouteContext();
 
-type ReplayLoaderProps = {
-  eventSlug: string;
-  location: Props['location'];
-  orgId: string;
-  organization: Organization;
-  route: Props['route'];
-  router: Props['router'];
-};
+  const {
+    t: initialTimeOffset, // Time, in seconds, where the video should start
+  } = location.query;
 
-type State = AsyncView['state'];
+  const {fetchError, fetching, onRetry, replay} = useReplayData({
+    eventSlug,
+    orgId,
+  });
 
-const EventHeader = ({event}: {event: Event}) => {
-  const message = getMessage(event);
-  return (
-    <EventHeaderContainer data-test-id="event-header">
-      <TitleWrapper>
-        <EventOrGroupTitle data={event} /> <FeatureBadge type="alpha" />
-      </TitleWrapper>
-      {message && (
-        <MessageWrapper>
-          <EventMessage message={message} />
-        </MessageWrapper>
-      )}
-    </EventHeaderContainer>
-  );
-};
+  const {ref: fullscreenRef, isFullscreen, toggle: toggleFullscreen} = useFullscreen();
 
-class ReplayDetails extends AsyncView<Props, State> {
-  state: State = {
-    loading: true,
-    reloading: false,
-    error: false,
-    errors: {},
-  };
-
-  getTitle() {
-    if (this.state.event) {
-      return `${this.state.event.id} - Replays - ${this.props.params.orgId}`;
-    }
-    return `Replays - ${this.props.params.orgId}`;
-  }
-
-  renderLoading() {
-    return <PageContent>{super.renderLoading()}</PageContent>;
-  }
-
-  renderBody() {
-    const {
-      location,
-      router,
-      route,
-      organization,
-      params: {eventSlug, orgId},
-    } = this.props;
+  if (!fetching && !replay) {
+    // TODO(replay): Give the user more details when errors happen
+    console.log({fetching, fetchError}); // eslint-disable-line no-console
     return (
-      <ReplayLoader
-        eventSlug={eventSlug}
-        location={location}
-        orgId={orgId}
-        organization={organization}
-        router={router}
-        route={route}
-      />
+      <DetailLayout orgId={orgId}>
+        <PageContent>
+          <NotFound />
+        </PageContent>
+      </DetailLayout>
     );
   }
-}
 
-function getProjectSlug(event: Event) {
-  return event.projectSlug || event['project.name']; // seems janky
-}
-
-function isReplayEventEntity(entry: Entry) {
-  // Starting with an allowlist, might be better to block only a few types (like Tags)
-  switch (entry.type) {
-    case EntryType.SPANS:
-      return true;
-    default:
-      return false;
-  }
-}
-
-function ReplayLoader(props: ReplayLoaderProps) {
-  const orgSlug = props.orgId;
-
-  const {fetchError, fetching, event, replayEvents, rrwebEvents} = useReplayEvent(props);
-
-  /* eslint-disable-next-line no-console */
-  console.log({fetchError, fetching, event, replayEvents, rrwebEvents});
-
-  const renderMain = () => {
-    if (fetching) {
-      return <LoadingIndicator />;
-    }
-    if (!event) {
-      return <NotFound />;
-    }
-
-    const breadcrumbs = mergeBreadcrumbsEntries(replayEvents || []);
-
+  if (!fetching && replay && replay.getRRWebEvents().length < 2) {
     return (
-      <React.Fragment>
-        <BaseRRWebReplayer events={rrwebEvents} />
-
-        <EventEntry
-          projectSlug={getProjectSlug(event)}
-          // group={group}
-          organization={props.organization}
-          event={event}
-          entry={breadcrumbs}
-          route={props.route}
-          router={props.router}
+      <DetailLayout orgId={orgId}>
+        <DetailedError
+          onRetry={onRetry}
+          hideSupportLinks
+          heading={t('Expected two or more replay events')}
+          message={
+            <React.Fragment>
+              <p>{t('This Replay may not have captured any user actions.')}</p>
+              <p>
+                {t(
+                  'Or there may be an issue loading the actions from the server, click to try loading the Replay again.'
+                )}
+              </p>
+            </React.Fragment>
+          }
         />
-
-        {replayEvents?.map(replayEvent => (
-          <React.Fragment key={replayEvent.id}>
-            <TitleWrapper>ReplayEvent: {replayEvent.id}</TitleWrapper>
-            {replayEvent.entries.filter(isReplayEventEntity).map(entry => (
-              <EventEntry
-                key={`${replayEvent.id}+${entry.type}`}
-                projectSlug={getProjectSlug(replayEvent)}
-                // group={group}
-                organization={props.organization}
-                event={replayEvent}
-                entry={entry}
-                route={props.route}
-                router={props.router}
-              />
-            ))}
-          </React.Fragment>
-        ))}
-      </React.Fragment>
+      </DetailLayout>
     );
-  };
-
-  const renderSide = () => {
-    if (event) {
-      return <TagsTable generateUrl={() => ''} event={event} query="" />;
-    }
-    return null;
-  };
+  }
 
   return (
-    <NoPaddingContent>
-      <Layout.Header>
-        <Layout.HeaderContent>
-          <Breadcrumbs
-            crumbs={[
-              {
-                to: `/organizations/${orgSlug}/replays/`,
-                label: t('Replays'),
-              },
-              {label: t('Replay Details')}, // TODO: put replay ID or something here
-            ]}
-          />
-          {event ? <EventHeader event={event} /> : null}
-        </Layout.HeaderContent>
-      </Layout.Header>
-      <Layout.Body>
-        <Layout.Main>{renderMain()}</Layout.Main>
-        <Layout.Side>{renderSide()}</Layout.Side>
-      </Layout.Body>
-    </NoPaddingContent>
+    <ReplayContextProvider replay={replay} initialTimeOffset={initialTimeOffset}>
+      <DetailLayout orgId={orgId}>
+        <Layout.Body>
+          <Layout.Main ref={fullscreenRef}>
+            <ReplayView toggleFullscreen={toggleFullscreen} isFullscreen={isFullscreen} />
+          </Layout.Main>
+
+          <Layout.Side>
+            <ErrorBoundary mini>
+              <AsideTabs replay={replay} />
+            </ErrorBoundary>
+          </Layout.Side>
+
+          <StickyMain fullWidth>
+            <ErrorBoundary mini>
+              <ReplayTimeline />
+            </ErrorBoundary>
+            <FocusTabs />
+          </StickyMain>
+
+          <StyledLayoutMain fullWidth>
+            <ErrorBoundary mini>
+              <FocusArea />
+            </ErrorBoundary>
+          </StyledLayoutMain>
+        </Layout.Body>
+      </DetailLayout>
+    </ReplayContextProvider>
   );
 }
 
-const EventHeaderContainer = styled('div')`
-  max-width: ${p => p.theme.breakpoints[0]};
+const StickyMain = styled(Layout.Main)`
+  position: sticky;
+  top: 0;
+  z-index: ${p => p.theme.zIndex.header};
+
+  /* Make this component full-bleed, so the background covers everything underneath it */
+  margin: -${space(1.5)} -${space(4)} -${space(3)};
+  padding: ${space(1.5)} ${space(4)} 0;
+  max-width: none;
+  background: ${p => p.theme.background};
 `;
 
-const TitleWrapper = styled('div')`
-  font-size: ${p => p.theme.headerFontSize};
-  margin-top: 20px;
+const StyledLayoutMain = styled(Layout.Main)`
+  ${HeaderContainer} {
+    position: relative;
+  }
 `;
 
-const MessageWrapper = styled('div')`
-  margin-top: ${space(1)};
-`;
-
-const NoPaddingContent = styled(PageContent)`
-  padding: 0;
-`;
-
-export default withOrganization(ReplayDetails);
+export default ReplayDetails;

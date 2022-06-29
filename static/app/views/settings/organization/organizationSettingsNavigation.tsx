@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 
 import HookStore from 'sentry/stores/hookStore';
 import {Organization} from 'sentry/types';
@@ -17,7 +17,7 @@ type State = {
   hooks: React.ReactElement[];
 };
 
-class OrganizationSettingsNavigation extends React.Component<Props, State> {
+class OrganizationSettingsNavigation extends Component<Props, State> {
   state: State = this.getHooks();
 
   componentDidMount() {

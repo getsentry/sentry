@@ -1,5 +1,3 @@
-import * as React from 'react';
-
 import BadgeDisplayName from 'sentry/components/idBadge/badgeDisplayName';
 import BaseBadge from 'sentry/components/idBadge/baseBadge';
 
@@ -15,7 +13,6 @@ export interface BadgeProps
 
 const Badge = ({hideOverflow = true, team, ...props}: BadgeProps): React.ReactElement => (
   <BaseBadge
-    data-test-id="team-badge"
     displayName={
       <BadgeDisplayName hideOverflow={hideOverflow}>{`#${team.slug}`}</BadgeDisplayName>
     }

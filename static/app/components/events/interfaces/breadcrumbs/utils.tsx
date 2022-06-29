@@ -5,9 +5,10 @@ import {
   Crumb,
   RawCrumb,
 } from 'sentry/types/breadcrumbs';
+import {EntryType, Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 
-function convertCrumbType(breadcrumb: RawCrumb): RawCrumb {
+export function convertCrumbType(breadcrumb: RawCrumb): RawCrumb {
   if (breadcrumb.type === BreadcrumbType.EXCEPTION) {
     return {
       ...breadcrumb,
@@ -146,4 +147,49 @@ export function transformCrumbs(breadcrumbs: Array<RawCrumb>): Crumb[] {
       level: convertedCrumbType.level ?? BreadcrumbLevelType.UNDEFINED,
     };
   });
+}
+
+function moduleToCategory(module: string | null | undefined) {
+  if (!module) {
+    return undefined;
+  }
+  const match = module.match(/^.*\/(.*?)(:\d+)/);
+  if (!match) {
+    return module.split(/./)[0];
+  }
+  return match[1];
+}
+
+export function getVirtualCrumb(event: Event): RawCrumb | undefined {
+  const exception = event.entries.find(entry => entry.type === EntryType.EXCEPTION);
+
+  if (!exception && !event.message) {
+    return undefined;
+  }
+
+  const timestamp = event.dateCreated;
+
+  if (exception) {
+    const {type, value, module: mdl} = exception.data.values[0];
+    return {
+      type: BreadcrumbType.ERROR,
+      level: BreadcrumbLevelType.ERROR,
+      category: moduleToCategory(mdl) || 'exception',
+      data: {
+        type,
+        value,
+      },
+      timestamp,
+    };
+  }
+
+  const levelTag = (event.tags || []).find(tag => tag.key === 'level');
+
+  return {
+    type: BreadcrumbType.INFO,
+    level: (levelTag?.value as BreadcrumbLevelType) || BreadcrumbLevelType.UNDEFINED,
+    category: 'message',
+    message: event.message,
+    timestamp,
+  };
 }

@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, lazy, Suspense} from 'react';
 import type {OnChangeProps, RangeWithKey} from 'react-date-range';
 import {withRouter, WithRouterProps} from 'react-router';
 import {withTheme} from '@emotion/react';
@@ -23,7 +23,7 @@ import {
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {Theme} from 'sentry/utils/theme';
 
-const DateRangePicker = React.lazy(() => import('./dateRangeWrapper'));
+const DateRangePicker = lazy(() => import('./dateRangeWrapper'));
 
 const getTimeStringFromDate = (date: Date) => moment(date).local().format('HH:mm');
 
@@ -73,6 +73,7 @@ type Props = WithRouterProps & {
   theme: Theme;
 
   className?: string;
+
   /**
    * Should we have a time selector?
    */
@@ -89,7 +90,7 @@ type State = {
   hasStartErrors: boolean;
 };
 
-class BaseDateRange extends React.Component<Props, State> {
+class BaseDateRange extends Component<Props, State> {
   static defaultProps = defaultProps;
 
   state: State = {
@@ -200,7 +201,7 @@ class BaseDateRange extends React.Component<Props, State> {
 
     return (
       <div className={className} data-test-id="date-range">
-        <React.Suspense
+        <Suspense
           fallback={
             <Placeholder width="342px" height="254px">
               <LoadingIndicator />
@@ -220,7 +221,7 @@ class BaseDateRange extends React.Component<Props, State> {
             maxDate={maxDate}
             onChange={this.handleSelectDateRange}
           />
-        </React.Suspense>
+        </Suspense>
         {showTimePicker && (
           <TimeAndUtcPicker>
             <TimePicker

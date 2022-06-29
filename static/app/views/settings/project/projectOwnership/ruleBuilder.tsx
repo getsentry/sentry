@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -28,6 +28,8 @@ function getMatchPlaceholder(type: string): string {
   switch (type) {
     case 'path':
       return 'src/example/*';
+    case 'module':
+      return 'com.module.name.example';
     case 'url':
       return 'https://example.com/settings/*';
     case 'tag':
@@ -54,7 +56,7 @@ type State = {
   type: string;
 };
 
-class RuleBuilder extends React.Component<Props, State> {
+class RuleBuilder extends Component<Props, State> {
   state: State = initialState;
 
   checkIsValid = () => {
@@ -117,7 +119,7 @@ class RuleBuilder extends React.Component<Props, State> {
     const {type, text, tagName, owners, isValid} = this.state;
 
     return (
-      <React.Fragment>
+      <Fragment>
         {(paths || urls) && (
           <Candidates>
             {paths &&
@@ -151,6 +153,7 @@ class RuleBuilder extends React.Component<Props, State> {
             onChange={this.handleTypeChange}
             options={[
               {value: 'path', label: t('Path')},
+              {value: 'module', label: t('Module')},
               {value: 'tag', label: t('Tag')},
               {value: 'url', label: t('URL')},
             ]}
@@ -192,7 +195,7 @@ class RuleBuilder extends React.Component<Props, State> {
             aria-label={t('Add rule')}
           />
         </BuilderBar>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

@@ -40,13 +40,22 @@ function UserStats({
   transactionName,
   eventView,
 }: Props) {
+  const useAggregateAlias = !organization.features.includes(
+    'performance-frontend-use-events-endpoint'
+  );
   let userMisery = error !== null ? <div>{'\u2014'}</div> : <Placeholder height="34px" />;
 
   if (!isLoading && error === null && totals) {
     const threshold: number | undefined = totals.project_threshold_config[1];
-    const miserableUsers: number | undefined = totals.count_miserable_user;
-    const userMiseryScore: number = totals.user_misery;
-    const totalUsers = totals.count_unique_user;
+    const miserableUsers: number | undefined = useAggregateAlias
+      ? totals.count_miserable_user
+      : totals['count_miserable_user()'];
+    const userMiseryScore: number = useAggregateAlias
+      ? totals.user_misery
+      : totals['user_misery()'];
+    const totalUsers = useAggregateAlias
+      ? totals.count_unique_user
+      : totals['count_unique_user()'];
     userMisery = (
       <UserMisery
         bars={40}
@@ -96,7 +105,7 @@ function UserStats({
             end={eventView.end}
             statsPeriod={eventView.statsPeriod}
             project={eventView.project}
-            hideVitalPercentNames
+            hideVitalThresholds
             hideDurationDetail
           />
           <SidebarSpacer />

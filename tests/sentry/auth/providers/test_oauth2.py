@@ -1,3 +1,5 @@
+from typing import Any, Mapping
+
 import pytest
 from exam import fixture
 
@@ -7,25 +9,31 @@ from sentry.models import AuthIdentity, AuthProvider
 from sentry.testutils import TestCase
 
 
-class OAuth2ProviderTest(TestCase):
-    def setUp(self):
-        self.org = self.create_organization(owner=self.user)
-        self.user = self.create_user("foo@example.com")
-        super().setUp()
+class DummyOAuth2Provider(OAuth2Provider):
+    name = "dummy"
 
+    def get_refresh_token_url(self) -> str:
+        pass
+
+    def build_identity(self, state: Mapping[str, Any]) -> Mapping[str, Any]:
+        pass
+
+    def build_config(self, state):
+        pass
+
+
+class OAuth2ProviderTest(TestCase):
     @fixture
     def auth_provider(self):
-        return AuthProvider.objects.create(provider="oauth2", organization=self.org)
-
-    @fixture
-    def provider(self):
-        return OAuth2Provider(key=self.auth_provider.provider)
+        return AuthProvider.objects.create(provider="oauth2", organization=self.organization)
 
     def test_refresh_identity_without_refresh_token(self):
         auth_identity = AuthIdentity.objects.create(
-            auth_provider=self.auth_provider, user=self.user, data={"access_token": "access_token"}
+            auth_provider=self.auth_provider,
+            user=self.user,
+            data={"access_token": "access_token"},
         )
 
-        provider = OAuth2Provider(key=self.auth_provider.provider)
+        provider = DummyOAuth2Provider(key=self.auth_provider.provider)
         with pytest.raises(IdentityNotValid):
             provider.refresh_identity(auth_identity)

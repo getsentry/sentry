@@ -220,6 +220,7 @@ describe('SpanTreeModel', () => {
         fetchEmbeddedChildrenState: 'idle',
         toggleNestedSpanGroup: undefined,
         toggleSiblingSpanGroup: undefined,
+        isEmbeddedTransactionTimeAdjusted: false,
       },
       {
         type: 'span',
@@ -250,6 +251,7 @@ describe('SpanTreeModel', () => {
         fetchEmbeddedChildrenState: 'idle',
         toggleNestedSpanGroup: undefined,
         toggleSiblingSpanGroup: undefined,
+        isEmbeddedTransactionTimeAdjusted: false,
       },
       {
         type: 'span',
@@ -280,6 +282,7 @@ describe('SpanTreeModel', () => {
         fetchEmbeddedChildrenState: 'idle',
         toggleNestedSpanGroup: undefined,
         toggleSiblingSpanGroup: undefined,
+        isEmbeddedTransactionTimeAdjusted: false,
       },
       {
         type: 'span',
@@ -306,6 +309,7 @@ describe('SpanTreeModel', () => {
         fetchEmbeddedChildrenState: 'idle',
         toggleNestedSpanGroup: undefined,
         toggleSiblingSpanGroup: undefined,
+        isEmbeddedTransactionTimeAdjusted: false,
       },
     ];
 
@@ -335,7 +339,6 @@ describe('SpanTreeModel', () => {
       isNestedSpanGroupExpanded: false,
       addTraceBounds: () => {},
       removeTraceBounds: () => {},
-      isAutogroupSiblingFeatureEnabled: false,
     });
 
     expect(spans).toEqual(fullWaterfall);
@@ -380,7 +383,6 @@ describe('SpanTreeModel', () => {
       isNestedSpanGroupExpanded: false,
       addTraceBounds: () => {},
       removeTraceBounds: () => {},
-      isAutogroupSiblingFeatureEnabled: false,
     });
 
     const fullWaterfallExpected: EnhancedProcessedSpanType[] = [...fullWaterfall];
@@ -411,6 +413,7 @@ describe('SpanTreeModel', () => {
         fetchEmbeddedChildrenState: 'idle',
         toggleNestedSpanGroup: undefined,
         toggleSiblingSpanGroup: undefined,
+        isEmbeddedTransactionTimeAdjusted: false,
       },
       {
         type: 'span',
@@ -434,6 +437,7 @@ describe('SpanTreeModel', () => {
         fetchEmbeddedChildrenState: 'idle',
         toggleNestedSpanGroup: undefined,
         toggleSiblingSpanGroup: undefined,
+        isEmbeddedTransactionTimeAdjusted: false,
       }
     );
 
@@ -484,7 +488,6 @@ describe('SpanTreeModel', () => {
       isNestedSpanGroupExpanded: false,
       addTraceBounds: () => {},
       removeTraceBounds: () => {},
-      isAutogroupSiblingFeatureEnabled: false,
     });
 
     expect(spans).toEqual(fullWaterfall);
@@ -579,7 +582,6 @@ describe('SpanTreeModel', () => {
       isNestedSpanGroupExpanded: false,
       addTraceBounds: () => {},
       removeTraceBounds: () => {},
-      isAutogroupSiblingFeatureEnabled: true,
     });
 
     expect(spans.length).toEqual(2);
@@ -656,7 +658,6 @@ describe('SpanTreeModel', () => {
       isNestedSpanGroupExpanded: false,
       addTraceBounds: () => {},
       removeTraceBounds: () => {},
-      isAutogroupSiblingFeatureEnabled: true,
     });
 
     expect(spans.length).toEqual(5);
@@ -754,7 +755,6 @@ describe('SpanTreeModel', () => {
       isNestedSpanGroupExpanded: false,
       addTraceBounds: () => {},
       removeTraceBounds: () => {},
-      isAutogroupSiblingFeatureEnabled: true,
     });
 
     expect(spans.length).toEqual(4);

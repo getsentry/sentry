@@ -1,4 +1,3 @@
-import * as React from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -6,11 +5,12 @@ interface Props extends React.HTMLAttributes<HTMLDivElement> {
   highlighted?: boolean;
 }
 
+function scrollIntoView(element: HTMLDivElement) {
+  element?.scrollIntoView?.({block: 'nearest'});
+}
+
 const SearchResultWrapper = styled(({highlighted, ...props}: Props) => (
-  <div
-    {...props}
-    ref={element => highlighted && element?.scrollIntoView?.({block: 'nearest'})}
-  />
+  <div {...props} ref={highlighted ? scrollIntoView : undefined} />
 ))`
   cursor: pointer;
   display: block;

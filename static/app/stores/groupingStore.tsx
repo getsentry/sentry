@@ -1,5 +1,5 @@
 import pick from 'lodash/pick';
-import {createStore, StoreDefinition} from 'reflux';
+import {createStore} from 'reflux';
 
 import {mergeGroups} from 'sentry/actionCreators/group';
 import {
@@ -12,6 +12,8 @@ import {Client} from 'sentry/api';
 import {Group, Organization, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
+
+import {CommonStoreDefinition} from './types';
 
 // Between 0-100
 const MIN_SCORE = 0.6;
@@ -114,7 +116,9 @@ type InternalDefinition = {
   api: Client;
 };
 
-interface GroupingStoreDefinition extends StoreDefinition, InternalDefinition {
+interface GroupingStoreDefinition
+  extends CommonStoreDefinition<State>,
+    InternalDefinition {
   getInitialState(): State;
   init(): void;
   isAllUnmergedSelected(): boolean;
@@ -614,6 +618,10 @@ const storeConfig: GroupingStoreDefinition = {
     const state = pick(this, ['mergeDisabled', 'mergeState', 'mergeList']);
     this.trigger(state);
     return state;
+  },
+
+  getState(): State {
+    return this.state;
   },
 };
 

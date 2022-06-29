@@ -1,17 +1,12 @@
 from unittest.mock import patch
 
+import pytest
 import responses
 from django.db import connection
 
+from sentry import audit_log
 from sentry.mediators.sentry_apps import Destroyer
-from sentry.models import (
-    ApiApplication,
-    AuditLogEntry,
-    AuditLogEntryEvent,
-    SentryApp,
-    SentryAppInstallation,
-    User,
-)
+from sentry.models import ApiApplication, AuditLogEntry, SentryApp, SentryAppInstallation, User
 from sentry.testutils import TestCase
 
 
@@ -61,12 +56,14 @@ class TestDestroyer(TestCase):
     def test_creates_audit_log_entry(self):
         request = self.make_request(user=self.user, method="GET")
         Destroyer.run(user=self.user, sentry_app=self.sentry_app, request=request)
-        assert AuditLogEntry.objects.filter(event=AuditLogEntryEvent.SENTRY_APP_REMOVE).exists()
+        assert AuditLogEntry.objects.filter(
+            event=audit_log.get_event_id("SENTRY_APP_REMOVE")
+        ).exists()
 
     def test_soft_deletes_sentry_app(self):
         self.destroyer.call()
 
-        with self.assertRaises(SentryApp.DoesNotExist):
+        with pytest.raises(SentryApp.DoesNotExist):
             SentryApp.objects.get(pk=self.sentry_app.id)
 
         # The QuerySet will automatically NOT include deleted installs, so we

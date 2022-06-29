@@ -4,6 +4,7 @@ from urllib.parse import urlparse
 
 import click
 
+from sentry.runner.commands.devservices import get_docker_client
 from sentry.runner.decorators import configuration, log_options
 
 _DEFAULT_DAEMONS = {
@@ -58,7 +59,7 @@ def _get_daemon(name, *args, **kwargs):
     "--watchers/--no-watchers", default=True, help="Watch static files and recompile on changes."
 )
 @click.option("--workers/--no-workers", default=False, help="Run asynchronous workers.")
-@click.option("--ingest/--no-ingest", default=None, help="Run ingest services (including Relay).")
+@click.option("--ingest/--no-ingest", default=False, help="Run ingest services (including Relay).")
 @click.option(
     "--prefix/--no-prefix", default=True, help="Show the service name prefix and timestamp"
 )
@@ -82,11 +83,6 @@ def _get_daemon(name, *args, **kwargs):
     default=False,
     help="This enables running sentry with pure separation of the frontend and backend",
 )
-@click.option(
-    "--ingest-profiles/--no-ingest-profiles",
-    default=False,
-    help="This enables ingesting profiles with the profiles consumer",
-)
 @click.argument(
     "bind", default=None, metavar="ADDRESS", envvar="SENTRY_DEVSERVER_BIND", required=False
 )
@@ -104,9 +100,22 @@ def devserver(
     environment,
     debug_server,
     bind,
-    ingest_profiles,
 ):
     "Starts a lightweight web server for development."
+
+    if ingest:
+        # Ingest requires kakfa+zookeeper to be running.
+        # They're too heavyweight to startup on-demand with devserver.
+        docker = get_docker_client()
+        containers = {c.name for c in docker.containers.list(filters={"status": "running"})}
+        if "sentry_zookeeper" not in containers or "sentry_kafka" not in containers:
+            raise SystemExit(
+                """
+Kafka + Zookeeper don't seem to be running.
+Make sure you have settings.SENTRY_USE_RELAY = True,
+and run `sentry devservices up kafka zookeeper`.
+"""
+            )
 
     if bind is None:
         bind = "127.0.0.1:8000"
@@ -212,13 +221,13 @@ def devserver(
                 # have a proxy/load-balancer in front in dev mode.
                 "http": f"{host}:{port}",
                 "protocol": "uwsgi",
-                # This is needed to prevent https://git.io/fj7Lw
+                # This is needed to prevent https://github.com/getsentry/sentry/blob/c6f9660e37fcd9c1bbda8ff4af1dcfd0442f5155/src/sentry/services/http.py#L70
                 "uwsgi-socket": None,
             }
         )
 
-    if ingest in (True, False):
-        settings.SENTRY_USE_RELAY = ingest
+    if ingest:
+        settings.SENTRY_USE_RELAY = True
 
     os.environ["SENTRY_USE_RELAY"] = "1" if settings.SENTRY_USE_RELAY else ""
 
@@ -260,7 +269,7 @@ def devserver(
     if settings.SENTRY_USE_RELAY:
         daemons += [_get_daemon("ingest")]
 
-        if ingest_profiles:
+        if settings.SENTRY_USE_PROFILING:
             daemons += [_get_daemon("profiles")]
 
     if needs_https and has_https:
@@ -333,7 +342,12 @@ def devserver(
 
     manager = Manager(honcho_printer)
     for name, cmd in daemons:
-        manager.add_process(name, list2cmdline(cmd), quiet=False, cwd=cwd)
+        quiet = (
+            name not in settings.DEVSERVER_LOGS_ALLOWLIST
+            if settings.DEVSERVER_LOGS_ALLOWLIST is not None
+            else False
+        )
+        manager.add_process(name, list2cmdline(cmd), quiet=quiet, cwd=cwd)
 
     manager.loop()
     sys.exit(manager.returncode)

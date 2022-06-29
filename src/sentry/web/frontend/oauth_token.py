@@ -116,7 +116,7 @@ class OAuthTokenView(View):
                     else None,
                     "expires_at": token.expires_at,
                     "token_type": "bearer",
-                    "scope": " ".join(token.get_scopes()),  # NOQA
+                    "scope": " ".join(token.get_scopes()),
                     "user": {
                         "id": str(token.user.id),
                         # we might need these to become scope based

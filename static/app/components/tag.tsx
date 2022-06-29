@@ -1,9 +1,9 @@
-import * as React from 'react';
+import {cloneElement, isValidElement} from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
+import Link, {LinkProps} from 'sentry/components/links/link';
 import Tooltip from 'sentry/components/tooltip';
 import {IconClose, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -14,7 +14,7 @@ import theme, {Color, Theme} from 'sentry/utils/theme';
 
 const TAG_HEIGHT = '20px';
 
-type Props = React.HTMLAttributes<HTMLSpanElement> & {
+interface Props extends React.HTMLAttributes<HTMLSpanElement> {
   /**
    * Makes the tag clickable. Use for external links.
    * If no icon is passed, it defaults to IconOpen (can be removed by passing icon={null})
@@ -40,7 +40,7 @@ type Props = React.HTMLAttributes<HTMLSpanElement> & {
    * Makes the tag clickable. Use for internal links handled by react router.
    * If no icon is passed, it defaults to IconOpen (can be removed by passing icon={null})
    */
-  to?: React.ComponentProps<typeof Link>['to'];
+  to?: LinkProps['to'];
   /**
    * Text to show up on a hover.
    */
@@ -49,7 +49,7 @@ type Props = React.HTMLAttributes<HTMLSpanElement> & {
    * Dictates color scheme of the tag.
    */
   type?: keyof Theme['tag'];
-};
+}
 
 function Tag({
   type = 'default',
@@ -104,8 +104,8 @@ function Tag({
   };
 
   function tagIcon() {
-    if (React.isValidElement(icon)) {
-      return <IconWrapper>{React.cloneElement(icon, {...iconsProps})}</IconWrapper>;
+    if (isValidElement(icon)) {
+      return <IconWrapper>{cloneElement(icon, {...iconsProps})}</IconWrapper>;
     }
 
     if ((defined(href) || defined(to)) && icon === undefined) {

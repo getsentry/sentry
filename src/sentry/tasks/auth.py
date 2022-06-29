@@ -5,13 +5,12 @@ from django.db import IntegrityError
 from django.db.models import F
 from django.urls import reverse
 
-from sentry import features, options
+from sentry import audit_log, features, options
 from sentry.auth import manager
 from sentry.auth.exceptions import ProviderNotRegistered
 from sentry.models import (
     ApiKey,
     AuditLogEntry,
-    AuditLogEntryEvent,
     Authenticator,
     Organization,
     OrganizationMember,
@@ -101,7 +100,7 @@ class OrganizationComplianceTask(abc.ABC):
                     actor=actor,
                     actor_key=actor_key,
                     ip_address=ip_address,
-                    event=AuditLogEntryEvent.MEMBER_PENDING,
+                    event=audit_log.get_event_id("MEMBER_PENDING"),
                     data=member.get_audit_log_data(),
                     organization=org,
                     target_object=org.id,

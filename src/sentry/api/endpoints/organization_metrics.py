@@ -44,7 +44,7 @@ class OrganizationMetricDetailsEndpoint(OrganizationEndpoint):
             metric = get_single_metric_info(projects, metric_name)
         except InvalidParams as e:
             raise ResourceDoesNotExist(e)
-        except DerivedMetricParseException as exc:
+        except (InvalidField, DerivedMetricParseException) as exc:
             raise ParseError(detail=str(exc))
 
         return Response(metric, status=200)
@@ -67,7 +67,6 @@ class OrganizationMetricsTagsEndpoint(OrganizationEndpoint):
             return Response(status=404)
 
         metric_names = request.GET.getlist("metric") or None
-
         projects = self.get_projects(request, organization)
         try:
             tags = get_tags(projects, metric_names)
@@ -111,7 +110,10 @@ class OrganizationMetricsDataEndpoint(OrganizationEndpoint):
     default_per_page = 50
 
     def get(self, request: Request, organization) -> Response:
-        if not features.has("organizations:metrics", organization, actor=request.user):
+        if not (
+            features.has("organizations:metrics", organization, actor=request.user)
+            or features.has("organizations:dashboards-releases", organization, actor=request.user)
+        ):
             return Response(status=404)
 
         projects = self.get_projects(request, organization)
@@ -119,11 +121,11 @@ class OrganizationMetricsDataEndpoint(OrganizationEndpoint):
         def data_fn(offset: int, limit: int):
             try:
                 query = QueryDefinition(
-                    request.GET, paginator_kwargs={"limit": limit, "offset": offset}
+                    projects, request.GET, paginator_kwargs={"limit": limit, "offset": offset}
                 )
-                data = get_series(projects, query)
+                data = get_series(projects, query.to_metrics_query())
+                data["query"] = query.query
             except (
-                InvalidField,
                 InvalidParams,
                 DerivedMetricException,
             ) as exc:

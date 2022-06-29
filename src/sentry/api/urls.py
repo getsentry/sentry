@@ -7,6 +7,7 @@ from sentry.api.endpoints.organization_codeowners_associations import (
 from sentry.api.endpoints.organization_profiling_profiles import (
     OrganizationProfilingFiltersEndpoint,
     OrganizationProfilingProfilesEndpoint,
+    OrganizationProfilingTransactionsEndpoint,
 )
 from sentry.api.endpoints.project_grouping_configs import ProjectGroupingConfigsEndpoint
 from sentry.api.endpoints.project_transaction_threshold_override import (
@@ -91,7 +92,7 @@ from .endpoints.broadcast_index import BroadcastIndexEndpoint
 from .endpoints.builtin_symbol_sources import BuiltinSymbolSourcesEndpoint
 from .endpoints.catchall import CatchallEndpoint
 from .endpoints.chunk import ChunkUploadEndpoint
-from .endpoints.client_state import ClientStateEndpoint
+from .endpoints.client_state import ClientStateEndpoint, ClientStateListEndpoint
 from .endpoints.codeowners import (
     ExternalTeamDetailsEndpoint,
     ExternalTeamEndpoint,
@@ -222,6 +223,7 @@ from .endpoints.organization_environments import OrganizationEnvironmentsEndpoin
 from .endpoints.organization_event_details import OrganizationEventDetailsEndpoint
 from .endpoints.organization_eventid import EventIdLookupEndpoint
 from .endpoints.organization_events import (
+    OrganizationEventsEndpoint,
     OrganizationEventsGeoEndpoint,
     OrganizationEventsV2Endpoint,
 )
@@ -268,6 +270,7 @@ from .endpoints.organization_issues_count import OrganizationIssuesCountEndpoint
 from .endpoints.organization_issues_resolved_in_release import (
     OrganizationIssuesResolvedInReleaseEndpoint,
 )
+from .endpoints.organization_measurements_meta import OrganizationMeasurementsMeta
 from .endpoints.organization_member import (
     OrganizationInviteRequestDetailsEndpoint,
     OrganizationInviteRequestIndexEndpoint,
@@ -292,6 +295,9 @@ from .endpoints.organization_metrics import (
     OrganizationMetricsTagsEndpoint,
 )
 from .endpoints.organization_monitors import OrganizationMonitorsEndpoint
+from .endpoints.organization_onboarding_continuation_email import (
+    OrganizationOnboardingContinuationEmail,
+)
 from .endpoints.organization_onboarding_tasks import OrganizationOnboardingTaskEndpoint
 from .endpoints.organization_pinned_searches import OrganizationPinnedSearchEndpoint
 from .endpoints.organization_processingissues import OrganizationProcessingIssuesEndpoint
@@ -345,9 +351,11 @@ from .endpoints.project_agnostic_rule_conditions import ProjectAgnosticRuleCondi
 from .endpoints.project_app_store_connect_credentials import (
     AppStoreConnectAppsEndpoint,
     AppStoreConnectCreateCredentialsEndpoint,
+    AppStoreConnectRefreshEndpoint,
     AppStoreConnectStatusEndpoint,
     AppStoreConnectUpdateCredentialsEndpoint,
 )
+from .endpoints.project_commits import ProjectCommitsEndpoint
 from .endpoints.project_create_sample import ProjectCreateSampleEndpoint
 from .endpoints.project_create_sample_transaction import ProjectCreateSampleTransactionEndpoint
 from .endpoints.project_details import ProjectDetailsEndpoint
@@ -375,7 +383,11 @@ from .endpoints.project_processingissues import (
     ProjectProcessingIssuesEndpoint,
     ProjectProcessingIssuesFixEndpoint,
 )
-from .endpoints.project_profiling_profile import ProjectProfilingProfileEndpoint
+from .endpoints.project_profiling_profile import (
+    ProjectProfilingFunctionsEndpoint,
+    ProjectProfilingProfileEndpoint,
+    ProjectProfilingTransactionIDProfileIDEndpoint,
+)
 from .endpoints.project_release_commits import ProjectReleaseCommitsEndpoint
 from .endpoints.project_release_details import ProjectReleaseDetailsEndpoint
 from .endpoints.project_release_file_details import ProjectReleaseFileDetailsEndpoint
@@ -1082,6 +1094,11 @@ urlpatterns = [
                     name="sentry-api-0-organization-eventsv2",
                 ),
                 url(
+                    r"^(?P<organization_slug>[^\/]+)/events/$",
+                    OrganizationEventsEndpoint.as_view(),
+                    name="sentry-api-0-organization-events",
+                ),
+                url(
                     r"^(?P<organization_slug>[^\/]+)/events/(?P<project_slug>[^\/]+):(?P<event_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
                     OrganizationEventDetailsEndpoint.as_view(),
                     name="sentry-api-0-organization-event-details",
@@ -1180,6 +1197,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/events-trace-meta/(?P<trace_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
                     OrganizationEventsTraceMetaEndpoint.as_view(),
                     name="sentry-api-0-organization-events-trace-meta",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/measurements-meta/$",
+                    OrganizationMeasurementsMeta.as_view(),
+                    name="sentry-api-0-organization-measurements-meta",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/issues/$",
@@ -1322,6 +1344,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/members/(?P<member_id>[^\/]+)/teams/(?P<team_slug>[^\/]+)/$",
                     OrganizationMemberTeamDetailsEndpoint.as_view(),
                     name="sentry-api-0-organization-member-team-details",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/onboarding-continuation-email/$",
+                    OrganizationOnboardingContinuationEmail.as_view(),
+                    name="sentry-api-0-organization-onboarding-continuation-email",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/processingissues/$",
@@ -1585,8 +1612,18 @@ urlpatterns = [
                                 OrganizationProfilingFiltersEndpoint.as_view(),
                                 name="sentry-api-0-organization-profiling-filters",
                             ),
+                            url(
+                                r"^transactions/$",
+                                OrganizationProfilingTransactionsEndpoint.as_view(),
+                                name="sentry-api-0-organization-profiling-transactions",
+                            ),
                         ],
                     ),
+                ),
+                url(
+                    r"^(?P<organization_slug>[^/]+)/client-state/$",
+                    ClientStateListEndpoint.as_view(),
+                    name="sentry-api-0-organization-client-state-list",
                 ),
                 url(
                     r"^(?P<organization_slug>[^/]+)/client-state/(?P<category>[^\/]+)/$",
@@ -1915,6 +1952,11 @@ urlpatterns = [
                     name="sentry-api-0-project-releases",
                 ),
                 url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/commits/$",
+                    ProjectCommitsEndpoint.as_view(),
+                    name="sentry-api-0-project-commits",
+                ),
+                url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/token/$",
                     ProjectReleasesTokenEndpoint.as_view(),
                     name="sentry-api-0-project-releases-token",
@@ -2162,9 +2204,24 @@ urlpatterns = [
                     name="sentry-api-0-project-appstoreconnect-credentials-update",
                 ),
                 url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/appstoreconnect/(?P<credentials_id>[^\/]+)/refresh/$",
+                    AppStoreConnectRefreshEndpoint.as_view(),
+                    name="sentry-api-0-project-appstoreconnect-refresh",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/profiling/functions/$",
+                    ProjectProfilingFunctionsEndpoint.as_view(),
+                    name="sentry-api-0-project-profiling-functions",
+                ),
+                url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/profiling/profiles/(?P<profile_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
                     ProjectProfilingProfileEndpoint.as_view(),
                     name="sentry-api-0-project-profiling-profile",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/profiling/transactions/(?P<transaction_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
+                    ProjectProfilingTransactionIDProfileIDEndpoint.as_view(),
+                    name="sentry-api-0-project-profiling-transactions",
                 ),
             ]
         ),

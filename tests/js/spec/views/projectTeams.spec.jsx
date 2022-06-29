@@ -50,7 +50,7 @@ describe('ProjectTeams', function () {
     modals.openCreateTeamModal.mockRestore();
   });
 
-  it('renders', async function () {
+  it('renders', function () {
     const wrapper = mountWithTheme(
       <ProjectTeams
         params={{orgId: org.slug, projectId: project.slug}}
@@ -195,7 +195,7 @@ describe('ProjectTeams', function () {
     );
   });
 
-  it('can associate a team with project', async function () {
+  it('can associate a team with project', function () {
     const endpoint = `/projects/${org.slug}/${project.slug}/teams/${team2.slug}/`;
     const mock = MockApiClient.addMockResponse({
       url: endpoint,
@@ -235,7 +235,7 @@ describe('ProjectTeams', function () {
       body: {},
     });
     MockApiClient.addMockResponse({
-      url: '/assistant/?v2',
+      url: '/assistant/',
       body: {},
     });
     MockApiClient.addMockResponse({

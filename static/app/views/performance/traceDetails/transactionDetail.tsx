@@ -21,11 +21,13 @@ import {IconAnchor} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
 import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
+import {CustomerProfiler} from 'sentry/utils/performanceForSentry';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 import {Row, Tags, TransactionDetails, TransactionDetailsContainer} from './styles';
@@ -38,6 +40,16 @@ type Props = {
 };
 
 class TransactionDetail extends Component<Props> {
+  componentDidMount() {
+    const {organization, transaction} = this.props;
+
+    trackAdvancedAnalyticsEvent('performance_views.trace_view.open_transaction_details', {
+      organization,
+      operation: transaction['transaction.op'],
+      transaction: transaction.transaction,
+    });
+  }
+
   renderTransactionErrors() {
     const {organization, transaction} = this.props;
     const {errors} = transaction;
@@ -49,7 +61,6 @@ class TransactionDetail extends Component<Props> {
     return (
       <Alert
         system
-        showIcon
         type="error"
         expand={errors.map(error => (
           <ErrorMessageContent key={error.event_id}>
@@ -91,7 +102,7 @@ class TransactionDetail extends Component<Props> {
 
     return (
       <StyledButton size="xsmall" to={target}>
-        {t('View Transaction')}
+        {t('View Event')}
       </StyledButton>
     );
   }
@@ -175,7 +186,7 @@ class TransactionDetail extends Component<Props> {
                 <TransactionIdTitle
                   onClick={this.scrollBarIntoView(transaction.event_id)}
                 >
-                  Transaction ID
+                  {t('Event ID')}
                   <StyledIconAnchor />
                 </TransactionIdTitle>
               }
@@ -227,15 +238,17 @@ class TransactionDetail extends Component<Props> {
 
   render() {
     return (
-      <TransactionDetailsContainer
-        onClick={event => {
-          // prevent toggling the transaction detail
-          event.stopPropagation();
-        }}
-      >
-        {this.renderTransactionErrors()}
-        {this.renderTransactionDetail()}
-      </TransactionDetailsContainer>
+      <CustomerProfiler id="TransactionDetail">
+        <TransactionDetailsContainer
+          onClick={event => {
+            // prevent toggling the transaction detail
+            event.stopPropagation();
+          }}
+        >
+          {this.renderTransactionErrors()}
+          {this.renderTransactionDetail()}
+        </TransactionDetailsContainer>
+      </CustomerProfiler>
     );
   }
 }

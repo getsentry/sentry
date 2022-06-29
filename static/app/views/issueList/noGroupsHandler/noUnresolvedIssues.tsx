@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment, lazy, Suspense} from 'react';
 import styled from '@emotion/styled';
 
 import congratsRobotsPlaceholder from 'sentry-images/spot/congrats-robots-placeholder.jpg';
@@ -20,13 +20,13 @@ const Message = ({
   subtitle: React.ReactNode;
   title: React.ReactNode;
 }) => (
-  <React.Fragment>
+  <Fragment>
     <EmptyMessage>{title}</EmptyMessage>
     <p>{subtitle}</p>
-  </React.Fragment>
+  </Fragment>
 );
 
-const CongratsRobotsVideo = React.lazy(() => import('./congratsRobots'));
+const CongratsRobotsVideo = lazy(() => import('./congratsRobots'));
 
 type State = {hasError: boolean};
 
@@ -37,7 +37,7 @@ type State = {hasError: boolean};
  * Silently ignore the error, this isn't really important enough to
  * capture in Sentry
  */
-class ErrorBoundary extends React.Component<{children: React.ReactNode}, State> {
+class ErrorBoundary extends Component<{children: React.ReactNode}, State> {
   static getDerivedStateFromError(): State {
     return {
       hasError: true,
@@ -66,9 +66,9 @@ const NoUnresolvedIssues = ({
 }) => (
   <Wrapper>
     <ErrorBoundary>
-      <React.Suspense fallback={<Placeholder />}>
+      <Suspense fallback={<Placeholder />}>
         <CongratsRobotsVideo />
-      </React.Suspense>
+      </Suspense>
     </ErrorBoundary>
     <Message title={title} subtitle={subtitle} />
   </Wrapper>
@@ -82,7 +82,7 @@ const Wrapper = styled('div')`
   text-align: center;
   color: ${p => p.theme.subText};
 
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     font-size: ${p => p.theme.fontSizeMedium};
   }
 `;
@@ -90,7 +90,7 @@ const Wrapper = styled('div')`
 const EmptyMessage = styled('div')`
   font-weight: 600;
 
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     font-size: ${p => p.theme.fontSizeExtraLarge};
   }
 `;

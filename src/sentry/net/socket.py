@@ -1,11 +1,11 @@
 import functools
 import ipaddress
 import socket
-from ssl import wrap_socket
 from urllib.parse import urlparse
 
 from django.conf import settings
 from django.utils.encoding import force_text
+from urllib3.exceptions import LocationParseError
 from urllib3.util.connection import _set_socket_options, allowed_gai_family
 
 from sentry.exceptions import RestrictedIPAddress
@@ -96,7 +96,7 @@ def is_safe_hostname(hostname):
     return True
 
 
-# Mostly yanked from https://github.com/urllib3/urllib3/blob/1.22/urllib3/util/connection.py#L36
+# Modifed version of urllib3.util.connection.create_connection.
 def safe_create_connection(
     address, timeout=socket._GLOBAL_DEFAULT_TIMEOUT, source_address=None, socket_options=None
 ):
@@ -105,17 +105,24 @@ def safe_create_connection(
         host = host.strip("[]")
     err = None
 
-    host = ensure_fqdn(host)
-
     # Using the value from allowed_gai_family() in the context of getaddrinfo lets
     # us select whether to work with IPv4 DNS records, IPv6 records, or both.
     # The original create_connection function always returns all records.
     family = allowed_gai_family()
 
+    # Begin custom code.
+    host = ensure_fqdn(host)
+    # End custom code.
+
+    try:
+        host.encode("idna")
+    except UnicodeError:
+        raise LocationParseError("'{host}', label empty or too long") from None
+
     for res in socket.getaddrinfo(host, port, family, socket.SOCK_STREAM):
         af, socktype, proto, canonname, sa = res
 
-        # HACK(mattrobenolt): This is the only code that diverges
+        # Begin custom code.
         ip = sa[0]
         if not is_ipaddress_allowed(ip):
             # I am explicitly choosing to be overly aggressive here. This means
@@ -126,6 +133,7 @@ def safe_create_connection(
             if host == ip:
                 raise RestrictedIPAddress("(%s) matches the URL blacklist" % ip)
             raise RestrictedIPAddress(f"({host}/{ip}) matches the URL blacklist")
+        # End custom code.
 
         sock = None
         try:
@@ -151,14 +159,3 @@ def safe_create_connection(
         raise err
 
     raise OSError("getaddrinfo returns an empty list")
-
-
-def safe_socket_connect(address, timeout=30, ssl=False):
-    """
-    Creates a socket and connects to address, but prevents connecting to
-    our disallowed IP blocks.
-    """
-    sock = safe_create_connection(address, timeout)
-    if ssl:
-        sock = wrap_socket(sock)
-    return sock

@@ -39,7 +39,7 @@ describe('InviteMembersModal', function () {
     body: {roles},
   });
 
-  it('renders', async function () {
+  it('renders', function () {
     const wrapper = mountWithTheme(
       <InviteMembersModal {...modalProps} organization={org} />
     );
@@ -50,10 +50,10 @@ describe('InviteMembersModal', function () {
     // We have two roles loaded from the members/me endpoint, defaulting to the
     // 'member' role.
     expect(wrapper.find('RoleSelectControl').props().roles).toHaveLength(roles.length);
-    expect(wrapper.find('RoleSelectControl SingleValue').text()).toBe('Member');
+    expect(wrapper.find('RoleSelectControl SingleValue').first().text()).toBe('Member');
   });
 
-  it('renders without organization.access', async function () {
+  it('renders without organization.access', function () {
     const organization = TestStubs.Organization({access: undefined});
     const wrapper = mountWithTheme(
       <InviteMembersModal {...modalProps} organization={organization} />
@@ -62,7 +62,7 @@ describe('InviteMembersModal', function () {
     expect(wrapper.find('StyledInviteRow').exists()).toBe(true);
   });
 
-  it('can add a second row', async function () {
+  it('can add a second row', function () {
     const wrapper = mountWithTheme(
       <InviteMembersModal {...modalProps} organization={org} />
     );
@@ -72,7 +72,7 @@ describe('InviteMembersModal', function () {
     expect(wrapper.find('StyledInviteRow')).toHaveLength(2);
   });
 
-  it('errors on duplicate emails', async function () {
+  it('errors on duplicate emails', function () {
     const wrapper = mountWithTheme(
       <InviteMembersModal {...modalProps} organization={org} />
     );

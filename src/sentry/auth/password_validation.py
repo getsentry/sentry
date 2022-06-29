@@ -95,14 +95,11 @@ class MinimumLengthValidator:
             )
 
     def get_help_text(self):
-        return (
-            ungettext(
-                "Your password must contain at least %(min_length)d character.",
-                "Your password must contain at least %(min_length)d characters.",
-                self.min_length,
-            )
-            % {"min_length": self.min_length}
-        )
+        return ungettext(
+            "Your password must contain at least %(min_length)d character.",
+            "Your password must contain at least %(min_length)d characters.",
+            self.min_length,
+        ) % {"min_length": self.min_length}
 
 
 class MaximumLengthValidator:
@@ -126,14 +123,11 @@ class MaximumLengthValidator:
             )
 
     def get_help_text(self):
-        return (
-            ungettext(
-                "Your password must contain no more than %(max_length)d character.",
-                "Your password must contain no more than %(max_length)d characters.",
-                self.max_length,
-            )
-            % {"max_length": self.max_length}
-        )
+        return ungettext(
+            "Your password must contain no more than %(max_length)d character.",
+            "Your password must contain no more than %(max_length)d characters.",
+            self.max_length,
+        ) % {"max_length": self.max_length}
 
 
 class NumericPasswordValidator:

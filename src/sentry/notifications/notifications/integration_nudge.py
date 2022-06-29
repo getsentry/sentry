@@ -42,8 +42,8 @@ MESSAGE_LIBRARY = [
 
 
 class IntegrationNudgeNotification(BaseNotification):
-    category = "integration_nudge"
-    filename = "integration-nudge"
+    metrics_key = "integration_nudge"
+    template_path = "integration-nudge"
     type = "integration.nudge"
 
     def __init__(
@@ -62,7 +62,8 @@ class IntegrationNudgeNotification(BaseNotification):
             else random.randint(0, len(MESSAGE_LIBRARY) - 1)
         )
 
-    def get_reference(self) -> Model | None:
+    @property
+    def reference(self) -> Model | None:
         return None
 
     def get_participants(self) -> Mapping[ExternalProviders, Iterable[Team | User]]:
@@ -86,22 +87,13 @@ class IntegrationNudgeNotification(BaseNotification):
     def get_context(self) -> MutableMapping[str, Any]:
         return {}
 
-    def get_notification_title(self) -> str:
+    def get_notification_title(self, context: Mapping[str, Any] | None = None) -> str:
         return ""
 
     def get_title_link(self, recipient: Team | User) -> str | None:
         return None
 
     def build_attachment_title(self, recipient: Team | User) -> str:
-        return ""
-
-    def get_filename(self) -> str:
-        return ""
-
-    def get_category(self) -> str:
-        return ""
-
-    def get_type(self) -> str:
         return ""
 
     def build_notification_footer(self, recipient: Team | User) -> str:

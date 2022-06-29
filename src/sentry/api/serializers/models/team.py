@@ -6,7 +6,6 @@ from typing import (
     TYPE_CHECKING,
     AbstractSet,
     Any,
-    Iterable,
     List,
     Mapping,
     MutableMapping,
@@ -36,7 +35,6 @@ from sentry.models import (
     User,
 )
 from sentry.scim.endpoints.constants import SCIM_SCHEMA_GROUP
-from sentry.utils.compat import zip
 from sentry.utils.query import RangeQuerySetWrapper
 
 if TYPE_CHECKING:
@@ -48,15 +46,17 @@ if TYPE_CHECKING:
     )
 
 
-def get_team_memberships(team_list: Sequence[Team], user: User) -> Iterable[int]:
+def _get_team_memberships(team_list: Sequence[Team], user: User) -> Mapping[int, str | None]:
     """Get memberships the user has in the provided team list"""
     if not user.is_authenticated:
-        return []
+        return {}
 
-    team_ids: Iterable[int] = OrganizationMemberTeam.objects.filter(
-        organizationmember__user=user, team__in=team_list
-    ).values_list("team", flat=True)
-    return team_ids
+    return {
+        team_id: team_role
+        for (team_id, team_role) in OrganizationMemberTeam.objects.filter(
+            organizationmember__user=user, team__in=team_list
+        ).values_list("team__id", "role")
+    }
 
 
 def get_member_totals(team_list: Sequence[Team], user: User) -> Mapping[str, int]:
@@ -111,6 +111,7 @@ class TeamSerializerResponse(_TeamSerializerResponseOptional):
     name: str
     dateCreated: datetime
     isMember: bool
+    teamRole: str
     hasAccess: bool
     isPending: bool
     memberCount: int
@@ -145,7 +146,7 @@ class TeamSerializer(Serializer):  # type: ignore
         org_roles = get_org_roles(org_ids, user)
 
         member_totals = get_member_totals(item_list, user)
-        memberships = get_team_memberships(item_list, user)
+        team_memberships = _get_team_memberships(item_list, user)
         access_requests = get_access_requests(item_list, user)
 
         avatars = {a.team_id: a for a in TeamAvatar.objects.filter(team__in=item_list)}
@@ -154,8 +155,17 @@ class TeamSerializer(Serializer):  # type: ignore
         result: MutableMapping[Team, MutableMapping[str, Any]] = {}
 
         for team in item_list:
-            is_member = team.id in memberships
             org_role = org_roles.get(team.organization_id)
+
+            if team.id in team_memberships:
+                is_member = True
+                team_role = team_memberships[team.id]
+                if team_role is None:
+                    team_role = roles.get_minimum_team_role(org_role).id
+            else:
+                is_member = False
+                team_role = None
+
             if is_member:
                 has_access = True
             elif is_superuser:
@@ -169,6 +179,7 @@ class TeamSerializer(Serializer):  # type: ignore
             result[team] = {
                 "pending_request": team.id in access_requests,
                 "is_member": is_member,
+                "team_role": team_role,
                 "has_access": has_access,
                 "avatar": avatars.get(team.id),
                 "member_count": member_totals.get(team.id, 0),
@@ -220,6 +231,7 @@ class TeamSerializer(Serializer):  # type: ignore
             "name": obj.name,
             "dateCreated": obj.date_added,
             "isMember": attrs["is_member"],
+            "teamRole": attrs["team_role"],
             "hasAccess": attrs["has_access"],
             "isPending": attrs["pending_request"],
             "memberCount": attrs["member_count"],

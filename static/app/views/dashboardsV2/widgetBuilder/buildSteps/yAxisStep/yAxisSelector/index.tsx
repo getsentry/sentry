@@ -11,6 +11,10 @@ import {
 } from 'sentry/utils/discover/fields';
 import useOrganization from 'sentry/utils/useOrganization';
 import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboardsV2/types';
+import {
+  doNotValidateYAxis,
+  filterPrimaryOptions,
+} from 'sentry/views/dashboardsV2/widgetBuilder/utils';
 import {FieldValueOption, QueryField} from 'sentry/views/eventsV2/table/queryField';
 import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
@@ -41,7 +45,7 @@ export function YAxisSelector({
   noFieldsMessage,
 }: Props) {
   const organization = useOrganization();
-  const isMetricWidget = widgetType === WidgetType.METRICS;
+  const isReleaseWidget = widgetType === WidgetType.RELEASE;
 
   function handleAddOverlay(event: React.MouseEvent) {
     event.preventDefault();
@@ -82,51 +86,22 @@ export function YAxisSelector({
     onChange([value]);
   }
 
-  // Any function/field choice for Big Number widgets is legal since the
-  // data source is from an endpoint that is not timeseries-based.
-  // The function/field choice for World Map widget will need to be numeric-like.
-  // Column builder for Table widget is already handled above.
-  const doNotValidateYAxis = displayType === DisplayType.BIG_NUMBER;
-
-  function filterPrimaryOptions(option: FieldValueOption) {
-    if (widgetType === WidgetType.METRICS) {
-      if (displayType === DisplayType.TABLE) {
-        return [FieldValueKind.FUNCTION, FieldValueKind.TAG].includes(option.value.kind);
-      }
-      if (displayType === DisplayType.TOP_N) {
-        return option.value.kind === FieldValueKind.TAG;
-      }
-    }
-
-    // Only validate function names for timeseries widgets and
-    // world map widgets.
-    if (!doNotValidateYAxis && option.value.kind === FieldValueKind.FUNCTION) {
-      const primaryOutput = aggregateFunctionOutputType(
-        option.value.meta.name,
-        undefined
-      );
-      if (primaryOutput) {
-        // If a function returns a specific type, then validate it.
-        return isLegalYAxisType(primaryOutput);
-      }
-    }
-
-    return option.value.kind === FieldValueKind.FUNCTION;
-  }
-
   function filterAggregateParameters(fieldValue: QueryFieldValue) {
     return (option: FieldValueOption) => {
+      if (isReleaseWidget) {
+        if (option.value.kind === FieldValueKind.METRICS) {
+          return true;
+        }
+        return false;
+      }
+
       // Only validate function parameters for timeseries widgets and
       // world map widgets.
-      if (doNotValidateYAxis) {
+      if (doNotValidateYAxis(displayType)) {
         return true;
       }
 
       if (fieldValue.kind !== FieldValueKind.FUNCTION) {
-        return true;
-      }
-
-      if (isMetricWidget || option.value.kind === FieldValueKind.METRICS) {
         return true;
       }
 
@@ -139,8 +114,11 @@ export function YAxisSelector({
         return isLegalYAxisType(primaryOutput);
       }
 
-      if (option.value.kind === FieldValueKind.FUNCTION) {
-        // Functions are not legal options as an aggregate/function parameter.
+      if (
+        option.value.kind === FieldValueKind.FUNCTION ||
+        option.value.kind === FieldValueKind.EQUATION
+      ) {
+        // Functions and equations are not legal options as an aggregate/function parameter.
         return false;
       }
 
@@ -159,7 +137,13 @@ export function YAxisSelector({
             fieldValue={fieldValue}
             fieldOptions={generateFieldOptions({organization})}
             onChange={handleTopNChangeField}
-            filterPrimaryOptions={filterPrimaryOptions}
+            filterPrimaryOptions={option =>
+              filterPrimaryOptions({
+                option,
+                widgetType,
+                displayType,
+              })
+            }
             filterAggregateParameters={filterAggregateParameters(fieldValue)}
           />
         </QueryFieldWrapper>
@@ -183,7 +167,13 @@ export function YAxisSelector({
             fieldValue={fieldValue}
             fieldOptions={fieldOptions}
             onChange={value => handleChangeQueryField(value, i)}
-            filterPrimaryOptions={filterPrimaryOptions}
+            filterPrimaryOptions={option =>
+              filterPrimaryOptions({
+                option,
+                widgetType,
+                displayType,
+              })
+            }
             filterAggregateParameters={filterAggregateParameters(fieldValue)}
             otherColumns={aggregates}
             noFieldsMessage={noFieldsMessage}
@@ -197,7 +187,7 @@ export function YAxisSelector({
       {!hideAddYAxisButtons && (
         <Actions gap={1}>
           <AddButton title={t('Add Overlay')} onAdd={handleAddOverlay} />
-          {!isMetricWidget && (
+          {!isReleaseWidget && (
             <AddButton title={t('Add an Equation')} onAdd={handleAddEquation} />
           )}
         </Actions>

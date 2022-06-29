@@ -1,49 +1,53 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectSelector from 'sentry/components/organizations/projectSelector';
 
 describe('ProjectSelector', function () {
   const testProject = TestStubs.Project({
-    id: 'test-project',
+    id: '1',
     slug: 'test-project',
     isBookmarked: true,
     isMember: true,
   });
   const anotherProject = TestStubs.Project({
-    id: 'another-project',
+    id: '2',
     slug: 'another-project',
     isMember: true,
   });
 
   const mockOrg = TestStubs.Organization({
-    id: 'org',
+    id: '1',
     slug: 'org',
-    features: ['new-teams'],
+    features: ['new-teams', 'global-views'],
     access: [],
   });
 
   const routerContext = TestStubs.routerContext([{organization: mockOrg}]);
 
-  const openMenu = wrapper =>
-    wrapper.find('[data-test-id="test-actor"]').simulate('click');
+  function openMenu() {
+    userEvent.click(screen.getByRole('button'));
+  }
 
-  const actorRenderer = jest.fn(() => <div data-test-id="test-actor" />);
+  function applyMenu() {
+    userEvent.click(screen.getByRole('button', {name: 'Apply Filter'}));
+  }
 
   const props = {
+    isGlobalSelectionReady: true,
     organization: mockOrg,
-    projectId: '',
-    children: actorRenderer,
-    multiProjects: [testProject, anotherProject],
-    selectedProjects: [],
-    onSelect: () => {},
+    memberProjects: [testProject, anotherProject],
+    nonMemberProjects: [],
+    value: [],
+    onApplyChange: () => {},
+    onChange: () => {},
     menuFooter: () => {},
   };
 
   it('should show empty message with no projects button, when no projects, and has no "project:write" access', function () {
-    const wrapper = mountWithTheme(
+    render(
       <ProjectSelector
         {...props}
-        multiProjects={[]}
+        memberProjects={[]}
         organization={{
           id: 'org',
           slug: 'org-slug',
@@ -51,20 +55,23 @@ describe('ProjectSelector', function () {
           features: [],
         }}
       />,
-      routerContext
+      {context: routerContext}
     );
 
-    openMenu(wrapper);
-    expect(wrapper.find('EmptyMessage').prop('children')).toBe('You have no projects');
+    openMenu();
+    expect(screen.getByText('You have no projects')).toBeInTheDocument();
+
     // Should not have "Create Project" button
-    expect(wrapper.find('CreateProjectButton')).toHaveLength(0);
+    const createProject = screen.getByLabelText('Add Project');
+    expect(createProject).toBeInTheDocument();
+    expect(createProject).toBeDisabled();
   });
 
   it('should show empty message and create project button, when no projects and has "project:write" access', function () {
-    const wrapper = mountWithTheme(
+    render(
       <ProjectSelector
         {...props}
-        multiProjects={[]}
+        memberProjects={[]}
         organization={{
           id: 'org',
           slug: 'org-slug',
@@ -72,129 +79,112 @@ describe('ProjectSelector', function () {
           features: [],
         }}
       />,
-      routerContext
+      {context: routerContext}
     );
 
-    openMenu(wrapper);
-    expect(wrapper.find('EmptyMessage').prop('children')).toBe('You have no projects');
+    openMenu();
+    expect(screen.getByText('You have no projects')).toBeInTheDocument();
+
     // Should not have "Create Project" button
-    expect(wrapper.find('CreateProjectButton')).toHaveLength(1);
+    const createProject = screen.getByLabelText('Add Project');
+    expect(createProject).toBeInTheDocument();
+    expect(createProject).toBeEnabled();
   });
 
   it('lists projects and has filter', function () {
-    const wrapper = mountWithTheme(<ProjectSelector {...props} />, routerContext);
-    openMenu(wrapper);
+    render(<ProjectSelector {...props} />, {context: routerContext});
+    openMenu();
 
-    expect(wrapper.find('AutoCompleteItem')).toHaveLength(2);
+    expect(screen.getByText(testProject.slug)).toBeInTheDocument();
+    expect(screen.getByText(anotherProject.slug)).toBeInTheDocument();
   });
 
   it('can filter projects by project name', function () {
-    const wrapper = mountWithTheme(<ProjectSelector {...props} />, routerContext);
-    openMenu(wrapper);
+    render(<ProjectSelector {...props} />, {context: routerContext});
+    openMenu();
 
-    wrapper.find('StyledInput').simulate('change', {target: {value: 'TEST'}});
+    screen.getByRole('textbox').focus();
+    userEvent.keyboard('TEST');
 
-    const result = wrapper.find('AutoCompleteItem ProjectBadge');
-    expect(result).toHaveLength(1);
-    expect(result.prop('project').slug).toBe('test-project');
-  });
-
-  it('does not close dropdown when input is clicked', async function () {
-    const wrapper = mountWithTheme(<ProjectSelector {...props} />, routerContext);
-    openMenu(wrapper);
-
-    wrapper.find('StyledInput').simulate('click');
-    await tick();
-    wrapper.update();
-    expect(wrapper.find('DropdownMenu').prop('isOpen')).toBe(true);
-  });
-
-  it('closes dropdown when project is selected', function () {
-    const wrapper = mountWithTheme(<ProjectSelector {...props} />, routerContext);
-    openMenu(wrapper);
-
-    // Select first project
-    wrapper.find('AutoCompleteItem').first().simulate('click');
-    expect(wrapper.find('DropdownMenu').prop('isOpen')).toBe(false);
-  });
-
-  it('calls callback when project is selected', function () {
-    const mock = jest.fn();
-    const wrapper = mountWithTheme(
-      <ProjectSelector {...props} onSelect={mock} />,
-      routerContext
-    );
-    openMenu(wrapper);
-
-    // Select first project
-    wrapper.find('AutoCompleteItem').first().simulate('click');
-
-    expect(mock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        slug: 'test-project',
-      })
-    );
+    const item = screen.getByTestId('badge-display-name');
+    expect(item).toBeInTheDocument();
+    expect(item).toHaveTextContent(testProject.slug);
   });
 
   it('shows empty filter message when filtering has no results', function () {
-    const wrapper = mountWithTheme(<ProjectSelector {...props} />, routerContext);
-    openMenu(wrapper);
+    render(<ProjectSelector {...props} />, {context: routerContext});
+    openMenu();
 
-    wrapper.find('StyledInput').simulate('change', {target: {value: 'Foo'}});
-    expect(wrapper.find('EmptyMessage').prop('children')).toBe('No projects found');
+    screen.getByRole('textbox').focus();
+    userEvent.keyboard('Foo');
+
+    expect(screen.queryByTestId('badge-display-name')).not.toBeInTheDocument();
+    expect(screen.getByText('No projects found')).toBeInTheDocument();
   });
 
-  it('does not call `onSelect` when using multi select', function () {
-    const mock = jest.fn();
-    const onMultiSelectMock = jest.fn();
-    const wrapper = mountWithTheme(
-      <ProjectSelector
-        {...props}
-        multi
-        onSelect={mock}
-        onMultiSelect={onMultiSelectMock}
-      />,
-      routerContext
-    );
-    openMenu(wrapper);
+  it('does not close dropdown when input is clicked', function () {
+    render(<ProjectSelector {...props} />, {context: routerContext});
+    openMenu();
+
+    userEvent.click(screen.getByRole('textbox'));
+
+    // Dropdown is still open
+    expect(screen.getByText(testProject.slug)).toBeInTheDocument();
+  });
+
+  it('closes dropdown when project is selected', function () {
+    render(<ProjectSelector {...props} />, {context: routerContext});
+    openMenu();
+
+    userEvent.click(screen.getByText(testProject.slug));
+
+    // Dropdown is closed
+    expect(screen.queryByText(testProject.slug)).not.toBeInTheDocument();
+  });
+
+  it('calls callback when project is selected', function () {
+    const onApplyChangeMock = jest.fn();
+    render(<ProjectSelector {...props} onApplyChange={onApplyChangeMock} />, {
+      context: routerContext,
+    });
+    openMenu();
 
     // Select first project
-    wrapper.find('MultiselectCheckbox').first().simulate('click');
+    userEvent.click(screen.getByText(testProject.slug));
 
-    // onSelect callback should NOT be called
-    expect(mock).not.toHaveBeenCalled();
-    expect(onMultiSelectMock).toHaveBeenCalled();
+    expect(onApplyChangeMock).toHaveBeenCalledWith([parseInt(testProject.id, 10)]);
   });
 
-  it('displays multi projects', function () {
-    const project = TestStubs.Project();
-    const multiProjectProps = {...props, multiProjects: [project]};
-
-    const wrapper = mountWithTheme(
-      <ProjectSelector {...multiProjectProps} />,
-      routerContext
+  it('does not call `onUpdate` when using multi select', function () {
+    const onChangeMock = jest.fn();
+    const onApplyChangeMock = jest.fn();
+    render(
+      <ProjectSelector
+        {...props}
+        onChange={onChangeMock}
+        onApplyChange={onApplyChangeMock}
+      />,
+      {context: routerContext}
     );
-    openMenu(wrapper);
-    expect(wrapper.find('AutoCompleteItem')).toHaveLength(1);
-    expect(wrapper.text()).not.toContain("Projects I don't belong to");
+    openMenu();
+
+    // Check the first project
+    userEvent.click(screen.getByRole('checkbox', {name: testProject.slug}));
+
+    expect(onChangeMock).toHaveBeenCalled();
+    expect(onApplyChangeMock).not.toHaveBeenCalled();
   });
 
   it('displays multi projects with non member projects', function () {
-    const project = TestStubs.Project({id: '1'});
     const nonMemberProject = TestStubs.Project({id: '2'});
-    const multiProjectProps = {
-      ...props,
-      multiProjects: [project],
-      nonMemberProjects: [nonMemberProject],
-    };
 
-    const wrapper = mountWithTheme(
-      <ProjectSelector {...multiProjectProps} />,
-      routerContext
-    );
-    openMenu(wrapper);
-    expect(wrapper.text()).toContain("Projects I don't belong to");
-    expect(wrapper.find('AutoCompleteItem')).toHaveLength(2);
+    render(<ProjectSelector {...props} nonMemberProjects={[nonMemberProject]} />, {
+      context: routerContext,
+    });
+    openMenu();
+
+    expect(screen.getByText("Projects I don't belong to")).toBeInTheDocument();
+    expect(screen.getAllByTestId('badge-display-name')).toHaveLength(3);
   });
 
   it('displays projects in alphabetical order partitioned by project membership', function () {
@@ -205,33 +195,23 @@ describe('ProjectSelector', function () {
 
     const multiProjectProps = {
       ...props,
-      multiProjects: [projectB, projectA],
+      memberProjects: [projectB, projectA],
       nonMemberProjects: [projectBNonM, projectANonM],
-      selectedProjects: [],
+      value: [],
     };
 
-    const wrapper = mountWithTheme(
-      <ProjectSelector {...multiProjectProps} />,
-      routerContext
-    );
-    openMenu(wrapper);
+    render(<ProjectSelector {...multiProjectProps} />, {context: routerContext});
+    openMenu();
 
-    const positionA = wrapper.text().indexOf(projectA.slug);
-    const positionB = wrapper.text().indexOf(projectB.slug);
+    expect(screen.getByText("Projects I don't belong to")).toBeInTheDocument();
 
-    const positionANonM = wrapper.text().indexOf(projectANonM.slug);
-    const positionBNonM = wrapper.text().indexOf(projectBNonM.slug);
+    const projectLabels = screen.getAllByTestId('badge-display-name');
+    expect(projectLabels).toHaveLength(4);
 
-    expect(wrapper.text()).toContain("Projects I don't belong to");
-    expect(wrapper.find('AutoCompleteItem')).toHaveLength(4);
-
-    [positionA, positionB, positionANonM, positionBNonM].forEach(position =>
-      expect(position).toBeGreaterThan(-1)
-    );
-
-    expect(positionA).toBeLessThan(positionB);
-    expect(positionB).toBeLessThan(positionANonM);
-    expect(positionANonM).toBeLessThan(positionBNonM);
+    expect(projectLabels[0]).toHaveTextContent(projectA.slug);
+    expect(projectLabels[1]).toHaveTextContent(projectB.slug);
+    expect(projectLabels[2]).toHaveTextContent(projectANonM.slug);
+    expect(projectLabels[3]).toHaveTextContent(projectBNonM.slug);
   });
 
   it('displays multi projects in sort order rules: selected, bookmarked, alphabetical', function () {
@@ -259,111 +239,115 @@ describe('ProjectSelector', function () {
       isBookmarked: true,
     });
     const projectH = TestStubs.Project({id: '8', slug: 'h-project'});
+    const projectJ = TestStubs.Project({id: '9', slug: 'j-project'});
+    const projectKSelectedBookmarked = TestStubs.Project({
+      id: '10',
+      slug: 'k-project',
+      isBookmarked: true,
+    });
+    const projectL = TestStubs.Project({id: '11', slug: 'l-project'});
+
     const multiProjectProps = {
       ...props,
-      multiProjects: [
-        projectA,
+      // XXX: Intentionally sorted arbitrarily
+      memberProjects: [
         projectBBookmarked,
-        projectCBookmarked,
-        projectDSelected,
-        projectESelected,
         projectFSelectedBookmarked,
+        projectDSelected,
+        projectA,
+        projectESelected,
         projectGSelectedBookmarked,
+        projectCBookmarked,
         projectH,
       ],
-      nonMemberProjects: [],
-      selectedProjects: [
-        projectESelected,
-        projectDSelected,
-        projectGSelectedBookmarked,
-        projectFSelectedBookmarked,
-      ],
+      nonMemberProjects: [projectL, projectJ, projectKSelectedBookmarked],
+      value: [
+        projectESelected.id,
+        projectDSelected.id,
+        projectGSelectedBookmarked.id,
+        projectFSelectedBookmarked.id,
+        projectKSelectedBookmarked.id,
+      ].map(p => parseInt(p, 10)),
     };
 
-    const wrapper = mountWithTheme(
-      <ProjectSelector {...multiProjectProps} />,
-      routerContext
-    );
-    openMenu(wrapper);
+    render(<ProjectSelector {...multiProjectProps} />, {context: routerContext});
+    openMenu();
 
-    const positionA = wrapper.text().indexOf(projectA.slug);
-    const positionB = wrapper.text().indexOf(projectBBookmarked.slug);
-    const positionC = wrapper.text().indexOf(projectCBookmarked.slug);
-    const positionD = wrapper.text().indexOf(projectDSelected.slug);
-    const positionE = wrapper.text().indexOf(projectESelected.slug);
-    const positionF = wrapper.text().indexOf(projectFSelectedBookmarked.slug);
-    const positionG = wrapper.text().indexOf(projectGSelectedBookmarked.slug);
-    const positionH = wrapper.text().indexOf(projectH.slug);
+    const projectLabels = screen.getAllByTestId('badge-display-name');
+    expect(projectLabels).toHaveLength(11);
 
-    expect(wrapper.text()).not.toContain("Projects I don't belong to");
-    expect(wrapper.find('AutoCompleteItem')).toHaveLength(8);
+    // member projects
+    expect(projectLabels[0]).toHaveTextContent(projectFSelectedBookmarked.slug);
+    expect(projectLabels[1]).toHaveTextContent(projectGSelectedBookmarked.slug);
+    expect(projectLabels[2]).toHaveTextContent(projectDSelected.slug);
+    expect(projectLabels[3]).toHaveTextContent(projectESelected.slug);
+    expect(projectLabels[4]).toHaveTextContent(projectBBookmarked.slug);
+    expect(projectLabels[5]).toHaveTextContent(projectCBookmarked.slug);
+    expect(projectLabels[6]).toHaveTextContent(projectA.slug);
+    expect(projectLabels[7]).toHaveTextContent(projectH.slug);
+    expect(projectLabels[6]).toHaveTextContent(projectA.slug);
+    expect(projectLabels[7]).toHaveTextContent(projectH.slug);
 
-    [
-      positionA,
-      positionB,
-      positionC,
-      positionD,
-      positionE,
-      positionF,
-      positionG,
-      positionH,
-    ].forEach(position => expect(position).toBeGreaterThan(-1));
-
-    expect(positionF).toBeLessThan(positionG);
-    expect(positionG).toBeLessThan(positionD);
-    expect(positionD).toBeLessThan(positionE);
-    expect(positionE).toBeLessThan(positionB);
-    expect(positionB).toBeLessThan(positionC);
-    expect(positionC).toBeLessThan(positionA);
-    expect(positionA).toBeLessThan(positionH);
+    // non member projects
+    expect(projectLabels[8]).toHaveTextContent(projectKSelectedBookmarked.slug);
+    expect(projectLabels[9]).toHaveTextContent(projectJ.slug);
+    expect(projectLabels[10]).toHaveTextContent(projectL.slug);
   });
 
-  it('displays non member projects in alphabetical sort order', function () {
+  it('does not change sort order while selecting projects with the dropdown open', function () {
     const projectA = TestStubs.Project({id: '1', slug: 'a-project'});
     const projectBBookmarked = TestStubs.Project({
       id: '2',
       slug: 'b-project',
       isBookmarked: true,
     });
-    const projectCSelected = TestStubs.Project({id: '3', slug: 'c-project'});
-    const projectDSelectedBookmarked = TestStubs.Project({
-      id: '4',
-      slug: 'd-project',
-      isBookmarked: true,
-    });
+    const projectDSelected = TestStubs.Project({id: '4', slug: 'd-project'});
 
     const multiProjectProps = {
       ...props,
-      multiProjects: [],
-      nonMemberProjects: [
-        projectCSelected,
-        projectA,
-        projectDSelectedBookmarked,
-        projectBBookmarked,
-      ],
-      selectedProjects: [projectCSelected, projectDSelectedBookmarked],
+      // XXX: Intentionally sorted arbitrarily
+      memberProjects: [projectBBookmarked, projectDSelected, projectA],
+      nonMemberProjects: [],
+      value: [projectDSelected.id].map(p => parseInt(p, 10)),
     };
 
-    const wrapper = mountWithTheme(
-      <ProjectSelector {...multiProjectProps} />,
-      routerContext
+    const {rerender} = render(<ProjectSelector {...multiProjectProps} />, {
+      context: routerContext,
+    });
+
+    openMenu();
+
+    const projectLabels = screen.getAllByTestId('badge-display-name');
+    expect(projectLabels).toHaveLength(3);
+
+    // member projects
+    expect(projectLabels[0]).toHaveTextContent(projectDSelected.slug);
+    expect(projectLabels[1]).toHaveTextContent(projectBBookmarked.slug);
+    expect(projectLabels[2]).toHaveTextContent(projectA.slug);
+
+    // Unselect project D (re-render with the updated selection value)
+    userEvent.click(screen.getByRole('checkbox', {name: projectDSelected.slug}));
+    rerender(<ProjectSelector {...multiProjectProps} value={[]} />, {
+      context: routerContext,
+    });
+
+    // Project D is no longer checked
+    expect(screen.getByRole('checkbox', {name: projectDSelected.slug})).not.toBeChecked();
+
+    // Project D is still the first selected item
+    expect(screen.getAllByTestId('badge-display-name')[0]).toHaveTextContent(
+      projectDSelected.slug
     );
-    openMenu(wrapper);
 
-    const positionA = wrapper.text().indexOf(projectA.slug);
-    const positionB = wrapper.text().indexOf(projectBBookmarked.slug);
-    const positionC = wrapper.text().indexOf(projectCSelected.slug);
-    const positionD = wrapper.text().indexOf(projectDSelectedBookmarked.slug);
+    // Open and close the menu
+    applyMenu();
+    openMenu();
 
-    expect(wrapper.text()).toContain("Projects I don't belong to");
-    expect(wrapper.find('AutoCompleteItem')).toHaveLength(4);
+    const resortedProjectLabels = screen.getAllByTestId('badge-display-name');
 
-    [positionA, positionB, positionC, positionD].forEach(position =>
-      expect(position).toBeGreaterThan(-1)
-    );
-
-    expect(positionA).toBeLessThan(positionB);
-    expect(positionB).toBeLessThan(positionC);
-    expect(positionC).toBeLessThan(positionD);
+    // Project D has been moved to the bottom since it was unselected
+    expect(resortedProjectLabels[0]).toHaveTextContent(projectBBookmarked.slug);
+    expect(resortedProjectLabels[1]).toHaveTextContent(projectA.slug);
+    expect(resortedProjectLabels[2]).toHaveTextContent(projectDSelected.slug);
   });
 });

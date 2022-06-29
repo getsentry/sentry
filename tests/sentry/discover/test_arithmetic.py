@@ -7,7 +7,6 @@ from sentry.discover.arithmetic import (
     Operation,
     parse_arithmetic,
 )
-from sentry.search.events.fields import get_function_alias
 
 op_map = {
     "+": "plus",
@@ -220,7 +219,7 @@ def test_field_values(a, op, b):
 
 
 @pytest.mark.parametrize(
-    "a,op,b",
+    "lhs,op,rhs",
     [
         ("failure_count()", "/", "count()"),
         ("percentile(0.5, transaction.duration)", "/", "max(transaction.duration)"),
@@ -231,9 +230,9 @@ def test_field_values(a, op, b):
         (100, "-", 'count_if(some_tag,notEquals,"something(really)annoying,like\\"this\\"")'),
     ],
 )
-def test_function_values(a, op, b):
+def test_function_values(lhs, op, rhs):
     for with_brackets in [False, True]:
-        equation = f"{a}{op}{b}"
+        equation = f"{lhs}{op}{rhs}"
         if with_brackets:
             equation = f"({equation}) + 5"
         result, fields, functions = parse_arithmetic(equation)
@@ -243,15 +242,13 @@ def test_function_values(a, op, b):
             assert result.rhs == 5.0
             result = result.lhs
         assert result.operator == op_map[op.strip()], equation
-        lhs = a if isinstance(a, int) else get_function_alias(a)
-        rhs = b if isinstance(b, int) else get_function_alias(b)
         assert result.lhs == lhs, equation
         assert result.rhs == rhs, equation
         assert len(fields) == 0
-        if isinstance(a, str):
-            assert a in functions, equation
-        if isinstance(b, str):
-            assert b in functions, equation
+        if isinstance(lhs, str):
+            assert lhs in functions, equation
+        if isinstance(rhs, str):
+            assert rhs in functions, equation
 
 
 @pytest.mark.parametrize(

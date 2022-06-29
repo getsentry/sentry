@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import {withTheme} from '@emotion/react';
 import {Query} from 'history';
@@ -85,7 +85,7 @@ type State = {
   releases: ReleaseMetaBasic[] | null;
 };
 
-class ReleaseSeries extends React.Component<Props, State> {
+class ReleaseSeries extends Component<Props, State> {
   state: State = {
     releases: null,
     releaseSeries: [],
@@ -127,8 +127,8 @@ class ReleaseSeries extends React.Component<Props, State> {
   _isMounted: boolean = false;
 
   getOrganizationReleasesMemoized = memoize(
-    (api, conditions, organization) =>
-      getOrganizationReleases(api, conditions, organization),
+    (api: Client, organization: Organization, conditions: ReleaseConditions) =>
+      getOrganizationReleases(api, organization, conditions),
     (_, __, conditions) =>
       Object.values(conditions)
         .map(val => JSON.stringify(val))

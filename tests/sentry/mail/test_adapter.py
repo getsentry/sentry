@@ -1,5 +1,6 @@
 from collections import Counter
 from datetime import datetime
+from typing import Mapping, Sequence
 from unittest import mock
 
 import pytz
@@ -22,6 +23,7 @@ from sentry.models import (
     Organization,
     OrganizationMember,
     OrganizationMemberTeam,
+    Project,
     ProjectOption,
     ProjectOwnership,
     Repository,
@@ -43,6 +45,7 @@ from sentry.ownership.grammar import Matcher, Owner, dump_schema
 from sentry.plugins.base import Notification
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.types.activity import ActivityType
 from sentry.types.integrations import ExternalProviders
 from sentry.types.rules import RuleFuture
 from sentry.utils.email import MessageBuilder, get_email_addresses
@@ -54,6 +57,18 @@ class BaseMailAdapterTest(TestCase):
     @fixture
     def adapter(self):
         return mail_adapter
+
+    def assert_notify(
+        self,
+        event,
+        emails_sent_to,
+        target_type=ActionTargetType.ISSUE_OWNERS,
+        target_identifier=None,
+    ):
+        mail.outbox = []
+        with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
+            self.adapter.notify(Notification(event=event), target_type, target_identifier)
+        assert sorted(email.to[0] for email in mail.outbox) == sorted(emails_sent_to)
 
 
 class MailAdapterGetSendableUsersTest(BaseMailAdapterTest):
@@ -104,6 +119,14 @@ class MailAdapterGetSendableUsersTest(BaseMailAdapterTest):
             user=user4,
         )
 
+        # add a specific setting for a different provider
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.SLACK,
+            NotificationSettingTypes.ISSUE_ALERTS,
+            NotificationSettingOptionValues.ALWAYS,
+            user=user4,
+        )
+
         assert user4 not in self.adapter.get_sendable_user_objects(project)
 
         NotificationSetting.objects.remove_settings(
@@ -124,10 +147,10 @@ class MailAdapterGetSendableUsersTest(BaseMailAdapterTest):
 
 class MailAdapterBuildSubjectPrefixTest(BaseMailAdapterTest):
     def test_default_prefix(self):
-        assert build_subject_prefix(self.project) == "[Sentry] "
+        assert build_subject_prefix(self.project) == "[Sentry]"
 
     def test_project_level_prefix(self):
-        prefix = "[Example prefix] "
+        prefix = "[Example prefix]"
         ProjectOption.objects.set_value(
             project=self.project, key="mail:subject_prefix", value=prefix
         )
@@ -196,7 +219,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         )
 
         self.assertEqual(notification.project, self.project)
-        self.assertEqual(notification.get_reference(), group)
+        self.assertEqual(notification.reference, group)
         assert notification.get_subject() == "BAR-1 - hello world"
 
     @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
@@ -424,19 +447,41 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             not in msg.alternatives[0][0]
         )
 
-    def assert_notify(
-        self,
-        event,
-        emails_sent_to,
-        target_type=ActionTargetType.ISSUE_OWNERS,
-        target_identifier=None,
-    ):
-        mail.outbox = []
-        with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
-            self.adapter.notify(Notification(event=event), target_type, target_identifier)
-        assert sorted(email.to[0] for email in mail.outbox) == sorted(emails_sent_to)
+    def test_notify_team_members(self):
+        """Test that each member of a team is notified"""
 
-    def test_notify_users_with_owners(self):
+        user = self.create_user(email="foo@example.com", is_active=True)
+        user2 = self.create_user(email="baz@example.com", is_active=True)
+        team = self.create_team(organization=self.organization, members=[user, user2])
+        project = self.create_project(teams=[team])
+        event = self.store_event(data=make_event_data("foo.py"), project_id=project.id)
+        self.assert_notify(event, [user.email, user2.email], ActionTargetType.TEAM, str(team.id))
+
+    def test_notify_user(self):
+        user = self.create_user(email="foo@example.com", is_active=True)
+        self.create_team(organization=self.organization, members=[user])
+        event = self.store_event(data=make_event_data("foo.py"), project_id=self.project.id)
+        self.assert_notify(event, [user.email], ActionTargetType.MEMBER, str(user.id))
+
+
+class MailAdapterNotifyIssueOwnersTest(BaseMailAdapterTest):
+    def create_assert_delete_projectownership(
+        self,
+        proj: Project,
+        rules: Sequence[grammar.Rule],
+        data: Mapping,
+        asserted_emails_fired: Sequence[str],
+    ):
+        po = ProjectOwnership.objects.create(
+            project_id=proj.id, schema=dump_schema(rules), fallthrough=False
+        )
+        self.assert_notify(
+            self.store_event(data=data, project_id=proj.id),
+            asserted_emails_fired,
+        )
+        po.delete()
+
+    def test_notify_with_path(self):
         user = self.create_user(email="foo@example.com", is_active=True)
         user2 = self.create_user(email="baz@example.com", is_active=True)
 
@@ -496,21 +541,302 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             )
             self.assert_notify(event_all_users, [user.email])
 
-    def test_notify_team_members(self):
-        """Test that each member of a team is notified"""
+    def test_notify_with_release_tag(self):
+        owner = self.create_user(email="theboss@example.com", is_active=True)
+        organization = self.create_organization(owner=owner)
+        team = self.create_team(organization=organization, name="awesome")
+        team2 = self.create_team(organization=organization, name="sauce")
+        project = self.create_project(name="Test", teams=[team, team2])
 
         user = self.create_user(email="foo@example.com", is_active=True)
         user2 = self.create_user(email="baz@example.com", is_active=True)
-        team = self.create_team(organization=self.organization, members=[user, user2])
-        project = self.create_project(teams=[team])
-        event = self.store_event(data=make_event_data("foo.py"), project_id=project.id)
-        self.assert_notify(event, [user.email, user2.email], ActionTargetType.TEAM, str(team.id))
 
-    def test_notify_user(self):
+        user3 = self.create_user(email="one@example.com", is_active=True)
+        user4 = self.create_user(email="two@example.com", is_active=True)
+        user5 = self.create_user(email="three@example.com", is_active=True)
+
+        [self.create_member(user=u, organization=organization, teams=[team]) for u in [user, user2]]
+        [
+            self.create_member(user=u, organization=organization, teams=[team2])
+            for u in [user3, user4, user5]
+        ]
+
+        with self.feature("organizations:notification-all-recipients"):
+            self.create_assert_delete_projectownership(
+                project,
+                [
+                    grammar.Rule(
+                        Matcher("tags.release", "*"),
+                        [Owner("user", user.email)],
+                    ),
+                    grammar.Rule(
+                        Matcher("tags.release", "1"),
+                        [Owner("user", user2.email)],
+                    ),
+                ],
+                {"release": "1"},
+                [user.email, user2.email],
+            )
+
+            self.create_assert_delete_projectownership(
+                project,
+                [
+                    grammar.Rule(
+                        Matcher("tags.release", "*"),
+                        [Owner("user", user.email)],
+                    ),
+                    grammar.Rule(
+                        Matcher("tags.release", "2"),
+                        [Owner("team", team2.slug)],
+                    ),
+                ],
+                {"release": "2"},
+                [user.email, user3.email, user4.email, user5.email],
+            )
+
+    def test_notify_with_dist_tag(self):
+        owner = self.create_user(email="theboss@example.com", is_active=True)
+        organization = self.create_organization(owner=owner)
+        team = self.create_team(organization=organization, name="awesome")
+        team2 = self.create_team(organization=organization, name="sauce")
+        project = self.create_project(name="Test", teams=[team, team2])
+
         user = self.create_user(email="foo@example.com", is_active=True)
-        self.create_team(organization=self.organization, members=[user])
-        event = self.store_event(data=make_event_data("foo.py"), project_id=self.project.id)
-        self.assert_notify(event, [user.email], ActionTargetType.MEMBER, str(user.id))
+        user2 = self.create_user(email="baz@example.com", is_active=True)
+
+        user3 = self.create_user(email="one@example.com", is_active=True)
+        user4 = self.create_user(email="two@example.com", is_active=True)
+        user5 = self.create_user(email="three@example.com", is_active=True)
+
+        [self.create_member(user=u, organization=organization, teams=[team]) for u in [user, user2]]
+        [
+            self.create_member(user=u, organization=organization, teams=[team2])
+            for u in [user3, user4, user5]
+        ]
+
+        with self.feature("organizations:notification-all-recipients"):
+            self.create_assert_delete_projectownership(
+                project,
+                [
+                    grammar.Rule(
+                        Matcher("tags.dist", "*"),
+                        [Owner("user", user.email)],
+                    ),
+                    grammar.Rule(
+                        Matcher("tags.dist", "rc1"),
+                        [Owner("user", user2.email)],
+                    ),
+                ],
+                {"dist": "rc1", "release": "1"},
+                [user.email, user2.email],
+            )
+
+            self.create_assert_delete_projectownership(
+                project,
+                [
+                    grammar.Rule(
+                        Matcher("tags.dist", "*"),
+                        [Owner("user", user.email)],
+                    ),
+                    grammar.Rule(
+                        Matcher("tags.dist", "lenny"),
+                        [Owner("team", team2.slug)],
+                    ),
+                ],
+                {"dist": "lenny", "release": "1"},
+                [user.email, user3.email, user4.email, user5.email],
+            )
+
+    def test_dont_notify_with_dist_if_no_rule(self):
+        owner = self.create_user(email="theboss@example.com", is_active=True)
+        organization = self.create_organization(owner=owner)
+        team = self.create_team(organization=organization, name="awesome")
+        project = self.create_project(name="Test", teams=[team])
+        user = self.create_user(email="foo@example.com", is_active=True)
+        self.create_member(user=user, organization=organization, teams=[team])
+
+        with self.feature("organizations:notification-all-recipients"):
+            self.create_assert_delete_projectownership(
+                project,
+                [
+                    grammar.Rule(
+                        Matcher("tags.abc", "hello"),
+                        [Owner("user", user.email)],
+                    ),
+                ],
+                {"dist": "hello", "release": "1"},
+                [],
+            )
+
+    def test_notify_with_user_tag(self):
+        owner = self.create_user(email="theboss@example.com", is_active=True)
+        organization = self.create_organization(owner=owner)
+        team = self.create_team(organization=organization, name="sentry")
+        project = self.create_project(name="Test", teams=[team])
+
+        user_by_id = self.create_user(email="one@example.com", is_active=True)
+        user_by_username = self.create_user(email="two@example.com", is_active=True)
+        user_by_email = self.create_user(email="three@example.com", is_active=True)
+        user_by_ip = self.create_user(email="four@example.com", is_active=True)
+        user_by_sub = self.create_user(email="five@example.com", is_active=True)
+        user_by_extra = self.create_user(email="six@example.com", is_active=True)
+        [
+            self.create_member(user=u, organization=organization, teams=[team])
+            for u in [
+                user_by_id,
+                user_by_username,
+                user_by_email,
+                user_by_ip,
+                user_by_sub,
+                user_by_extra,
+            ]
+        ]
+
+        with self.feature("organizations:notification-all-recipients"):
+            self.create_assert_delete_projectownership(
+                project,
+                [
+                    grammar.Rule(
+                        Matcher("tags.user.id", "unique_id"),
+                        [Owner("user", user_by_id.email)],
+                    ),
+                    grammar.Rule(
+                        Matcher("tags.user.username", "my_user"),
+                        [Owner("user", user_by_username.email)],
+                    ),
+                    grammar.Rule(
+                        Matcher("tags.user.email", "foo@example.com"),
+                        [Owner("user", user_by_email.email)],
+                    ),
+                    grammar.Rule(
+                        Matcher("tags.user.ip_address", "127.0.0.1"),
+                        [Owner("user", user_by_ip.email)],
+                    ),
+                    grammar.Rule(
+                        Matcher("tags.user.subscription", "basic"),
+                        [Owner("user", user_by_sub.email)],
+                    ),
+                    grammar.Rule(
+                        Matcher("tags.user.extra", "detail"),
+                        [Owner("user", user_by_extra.email)],
+                    ),
+                ],
+                {
+                    "user": {
+                        "id": "unique_id",
+                        "username": "my_user",
+                        "email": "foo@example.com",
+                        "ip_address": "127.0.0.1",
+                        "subscription": "basic",
+                        "extra": "detail",
+                    }
+                },
+                [
+                    user_by_id.email,
+                    user_by_username.email,
+                    user_by_email.email,
+                    user_by_ip.email,
+                    user_by_sub.email,
+                    user_by_extra.email,
+                ],
+            )
+
+    def test_notify_with_user_tag_edge_cases(self):
+        owner = self.create_user(email="theboss@example.com", is_active=True)
+        organization = self.create_organization(owner=owner)
+        team = self.create_team(organization=organization, name="sentry")
+        project = self.create_project(name="Test", teams=[team])
+
+        user = self.create_user(email="sentryuser@example.com", is_active=True)
+        user_star = self.create_user(email="user_star@example.com", is_active=True)
+        user_username = self.create_user(email="user_username@example.com", is_active=True)
+        user_username_star = self.create_user(
+            email="user_username_star@example.com", is_active=True
+        )
+        [
+            self.create_member(user=u, organization=organization, teams=[team])
+            for u in [user, user_star, user_username, user_username_star]
+        ]
+
+        """
+            tags.user.username:someemail@example.com sentryuser@example.com
+            tags.user:someemail@example.com sentryuser@example.com
+
+            tags.user:* sentryuser@example.com
+
+            tags.user.username:* sentryuser@example.com
+            tags.user:username sentryuser@example.com
+
+            tags.user:*someemail* #sentry
+        """
+        with self.feature("organizations:notification-all-recipients"):
+            dat = {"user": {"username": "someemail@example.com"}}
+            self.create_assert_delete_projectownership(
+                project,
+                [
+                    grammar.Rule(
+                        Matcher("tags.user.username", "someemail@example.com"),
+                        [Owner("user", user_username.email)],
+                    )
+                ],
+                dat,
+                [user_username.email],
+            )
+
+            self.create_assert_delete_projectownership(
+                project,
+                [
+                    grammar.Rule(
+                        Matcher("tags.user", "someemail@example.com"), [Owner("user", user.email)]
+                    )
+                ],
+                dat,
+                [],
+            )
+
+            self.create_assert_delete_projectownership(
+                project,
+                [grammar.Rule(Matcher("tags.user", "*"), [Owner("user", user_star.email)])],
+                dat,
+                [user_star.email],
+            )
+
+            self.create_assert_delete_projectownership(
+                project,
+                [
+                    grammar.Rule(
+                        Matcher("tags.user.username", "*"),
+                        [Owner("user", user_username_star.email)],
+                    )
+                ],
+                dat,
+                [user_username_star.email],
+            )
+
+            self.create_assert_delete_projectownership(
+                project,
+                [grammar.Rule(Matcher("tags.user", "username"), [Owner("user", user.email)])],
+                dat,
+                [],
+            )
+
+            self.create_assert_delete_projectownership(
+                project,
+                [grammar.Rule(Matcher("tags.user", "*someemail*"), [Owner("team", team.slug)])],
+                dat,
+                [u.email for u in [user, user_star, user_username, user_username_star]],
+            )
+
+            self.create_assert_delete_projectownership(
+                project,
+                [
+                    grammar.Rule(
+                        Matcher("tags.user.email", "someemail*"), [Owner("team", team.slug)]
+                    )
+                ],
+                {"user": {"username": "someemail@example.com"}},
+                [],
+            )
 
 
 class MailAdapterGetDigestSubjectTest(BaseMailAdapterTest):
@@ -662,7 +988,7 @@ class MailAdapterNotifyAboutActivityTest(BaseMailAdapterTest):
         activity = Activity.objects.create(
             project=self.project,
             group=self.group,
-            type=Activity.ASSIGNED,
+            type=ActivityType.ASSIGNED.value,
             user=self.create_user("foo@example.com"),
             data={"assignee": str(self.user.id), "assigneeType": "user"},
         )
@@ -688,7 +1014,7 @@ class MailAdapterNotifyAboutActivityTest(BaseMailAdapterTest):
         activity = Activity.objects.create(
             project=self.project,
             group=self.group,
-            type=Activity.ASSIGNED,
+            type=ActivityType.ASSIGNED.value,
             user=self.create_user("foo@example.com"),
             data={"assignee": str(self.project.teams.first().id), "assigneeType": "team"},
         )
@@ -715,7 +1041,7 @@ class MailAdapterNotifyAboutActivityTest(BaseMailAdapterTest):
         activity = Activity.objects.create(
             project=self.project,
             group=self.group,
-            type=Activity.NOTE,
+            type=ActivityType.NOTE.value,
             user=user_foo,
             data={"text": "sup guise"},
         )

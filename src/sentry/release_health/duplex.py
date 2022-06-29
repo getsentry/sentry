@@ -48,14 +48,15 @@ from sentry.release_health.base import (
     ReleaseName,
     ReleasesAdoption,
     ReleaseSessionsTimeBounds,
+    SessionsQueryConfig,
     SessionsQueryResult,
     StatsPeriod,
 )
 from sentry.release_health.metrics import MetricsReleaseHealthBackend
 from sentry.release_health.sessions import SessionsReleaseHealthBackend
-from sentry.snuba.metrics.query_builder import get_intervals
+from sentry.snuba.metrics.utils import get_intervals
 from sentry.snuba.sessions import get_rollup_starts_and_buckets
-from sentry.snuba.sessions_v2 import QueryDefinition
+from sentry.snuba.sessions_v2 import InvalidParams, QueryDefinition
 from sentry.tasks.base import instrumented_task
 from sentry.utils.metrics import incr, timer, timing
 
@@ -619,7 +620,7 @@ def get_sessionsv2_schema(now: datetime, query: QueryDefinition) -> Mapping[str,
                 # timestamp 09:00 contains data for the range 09:00 - 10:00,
                 # And we want to still exclude that at 10:01
                 comparator if timestamp < max_timestamp else ComparatorType.Ignore
-                for timestamp in get_intervals(query)
+                for timestamp in get_intervals(query.start, query.end, query.rollup)
             ]
         )
         for field, comparator in schema_for_totals.items()
@@ -810,6 +811,10 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
             try:
                 with timer("releasehealth.metrics.duration", tags=tags, sample_rate=1.0):
                     metrics_result = metrics_fn(*args)
+            except InvalidParams:
+                # This is a valid result from metrics, not a crash
+                # -> no need to fall back to session_fn, just re-raise
+                raise
             except Exception:
                 capture_exception()
 
@@ -935,6 +940,21 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
             now,
             org_id,
         )
+
+    def sessions_query_config(
+        self, organization: Organization, start: datetime
+    ) -> SessionsQueryConfig:
+        # Same should compare condition as run_sessions_query:
+        should_compare = _coerce_utc(start) > self.metrics_start
+        if should_compare and features.has(
+            "organizations:release-health-return-metrics", organization
+        ):
+            # Note: This is not watertight. If metrics_result in _dispatch_call_inner
+            # is None because of a crash, we return sessions data, but with the metrics-based
+            # config.
+            return self.metrics.sessions_query_config(organization, start)
+        else:
+            return self.sessions.sessions_query_config(organization, start)
 
     def run_sessions_query(
         self,

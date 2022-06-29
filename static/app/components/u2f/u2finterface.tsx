@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import * as Sentry from '@sentry/react';
 import * as cbor from 'cbor-web';
 
@@ -11,12 +11,21 @@ import withOrganization from 'sentry/utils/withOrganization';
 type TapParams = {
   challenge: string;
   response: string;
+  isSuperuserModal?: boolean;
+  superuserAccessCategory?: string;
+  superuserReason?: string;
 };
 
 type Props = {
   challengeData: ChallengeData;
   flowMode: string;
-  onTap: ({response, challenge}: TapParams) => Promise<void>;
+  onTap: ({
+    response,
+    challenge,
+    isSuperuserModal,
+    superuserAccessCategory,
+    superuserReason,
+  }: TapParams) => Promise<void>;
   organization: Organization;
   silentIfUnsupported: boolean;
   style?: React.CSSProperties;
@@ -33,7 +42,7 @@ type State = {
   responseElement: HTMLInputElement | null;
 };
 
-class U2fInterface extends React.Component<Props, State> {
+class U2fInterface extends Component<Props, State> {
   state: State = {
     isSupported: null,
     formElement: null,
@@ -45,7 +54,7 @@ class U2fInterface extends React.Component<Props, State> {
     failCount: 0,
   };
 
-  async componentDidMount() {
+  componentDidMount() {
     const supported = !!window.PublicKeyCredential;
 
     // eslint-disable-next-line react/no-did-mount-set-state

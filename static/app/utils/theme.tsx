@@ -1,5 +1,4 @@
-import '@emotion/react';
-
+import {css} from '@emotion/react';
 import color from 'color';
 
 import CHART_PALETTE from 'sentry/constants/chartPalette';
@@ -34,7 +33,7 @@ export const lightColors = {
   purple400: '#584AC0',
   purple300: '#6C5FC7',
   purple200: 'rgba(108, 95, 199, 0.5)',
-  purple100: 'rgba(108, 95, 199, 0.1)',
+  purple100: 'rgba(108, 95, 199, 0.08)',
 
   blue400: '#2562D4',
   blue300: '#3C74DD',
@@ -244,6 +243,8 @@ const generateAliases = (colors: BaseColors) => ({
    */
   linkColor: colors.blue300,
   linkHoverColor: colors.blue300,
+  linkUnderline: colors.blue200,
+  linkFocus: colors.blue300,
 
   /**
    * Form placeholder text color
@@ -307,9 +308,9 @@ const generateAliases = (colors: BaseColors) => ({
    */
   searchTokenBackground: {
     valid: colors.blue100,
-    validActive: color(colors.blue100).opaquer(0.2).string(),
+    validActive: color(colors.blue100).opaquer(1.0).string(),
     invalid: colors.red100,
-    invalidActive: color(colors.red100).opaquer(0.2).string(),
+    invalidActive: color(colors.red100).opaquer(0.8).string(),
   },
 
   /**
@@ -317,9 +318,9 @@ const generateAliases = (colors: BaseColors) => ({
    */
   searchTokenBorder: {
     valid: colors.blue200,
-    validActive: color(colors.blue200).opaquer(0.4).string(),
+    validActive: color(colors.blue200).opaquer(1).string(),
     invalid: colors.red200,
-    invalidActive: color(colors.red200).opaquer(0.4).string(),
+    invalidActive: color(colors.red200).opaquer(1).string(),
   },
 
   /**
@@ -507,17 +508,6 @@ const generateButtonTheme = (colors: BaseColors, alias: Aliases) => ({
     focusBorder: alias.focusBorder,
     focusShadow: alias.focus,
   },
-  success: {
-    color: colors.white,
-    colorActive: colors.white,
-    background: colors.green300,
-    backgroundActive: colors.green400,
-    border: colors.green300,
-    borderActive: colors.green300,
-    borderTranslucent: colors.green300,
-    focusBorder: colors.green300,
-    focusShadow: colors.green200,
-  },
   danger: {
     color: colors.white,
     colorActive: colors.white,
@@ -564,6 +554,23 @@ const generateButtonTheme = (colors: BaseColors, alias: Aliases) => ({
   },
 });
 
+const generateUtils = (colors: BaseColors, aliases: Aliases) => ({
+  tooltipUnderline: (underlineColor: ColorOrAlias = 'gray300') => ({
+    textDecoration: `underline dotted ${
+      colors[underlineColor] ?? aliases[underlineColor]
+    }`,
+    textDecorationThickness: '0.75px',
+    textUnderlineOffset: '1.25px',
+  }),
+  overflowEllipsis: css({
+    display: 'block',
+    width: '100%',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+  }),
+});
+
 const iconSizes = {
   xs: '12px',
   sm: '16px',
@@ -574,7 +581,13 @@ const iconSizes = {
 };
 
 const commonTheme = {
-  breakpoints: ['800px', '992px', '1200px', '1440px', '2560px'],
+  breakpoints: {
+    small: '800px',
+    medium: '992px',
+    large: '1200px',
+    xlarge: '1440px',
+    xxlarge: '2560px',
+  },
 
   ...lightColors,
 
@@ -812,6 +825,7 @@ export const lightTheme = {
     ...darkColors,
     ...darkAliases,
   },
+  ...generateUtils(lightColors, lightAliases),
   alert: generateAlertTheme(lightColors, lightAliases),
   badge: generateBadgeTheme(lightColors),
   button: generateButtonTheme(lightColors, lightAliases),
@@ -834,6 +848,7 @@ export const darkTheme: Theme = {
     ...lightColors,
     ...lightAliases,
   },
+  ...generateUtils(darkColors, lightAliases),
   alert: generateAlertTheme(darkColors, darkAliases),
   badge: generateBadgeTheme(darkColors),
   button: generateButtonTheme(darkColors, darkAliases),
@@ -848,9 +863,9 @@ export const darkTheme: Theme = {
 };
 
 export type Theme = typeof lightTheme;
-export type Aliases = typeof lightAliases;
-
 export type Color = keyof typeof lightColors;
+export type Aliases = typeof lightAliases;
+export type ColorOrAlias = keyof Aliases | Color;
 export type IconSize = keyof typeof iconSizes;
 
 export default commonTheme;

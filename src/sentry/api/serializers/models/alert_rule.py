@@ -1,6 +1,6 @@
 from collections import defaultdict
 
-from django.db.models import prefetch_related_objects
+from django.db.models import Max, prefetch_related_objects
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.rule import RuleSerializer
@@ -23,7 +23,6 @@ from sentry.models import (
     actor_type_to_string,
 )
 from sentry.snuba.models import SnubaQueryEventType
-from sentry.utils.compat import zip
 
 
 @register(AlertRule)
@@ -118,13 +117,25 @@ class AlertRuleSerializer(Serializer):
                     "originalAlertRuleId"
                 ] = activity.previous_alert_rule_id
 
+        if "latestIncident" in self.expand:
+            incident_map = {}
+            for incident in Incident.objects.filter(
+                id__in=Incident.objects.filter(alert_rule__in=alert_rules)
+                .values("alert_rule_id")
+                .annotate(incident_id=Max("id"))
+                .values("incident_id")
+            ):
+                incident_map[incident.alert_rule_id] = serialize(incident, user=user)
+            for alert_rule in alert_rules.values():
+                result[alert_rule]["latestIncident"] = incident_map.get(alert_rule.id, None)
+
         return result
 
     def serialize(self, obj, attrs, user, **kwargs):
         env = obj.snuba_query.environment
         # Temporary: Translate aggregate back here from `tags[sentry:user]` to `user` for the frontend.
         aggregate = translate_aggregate_field(obj.snuba_query.aggregate, reverse=True)
-        return {
+        data = {
             "id": str(obj.id),
             "name": obj.name,
             "organizationId": str(obj.organization_id),
@@ -150,6 +161,10 @@ class AlertRuleSerializer(Serializer):
             "dateCreated": obj.date_added,
             "createdBy": attrs.get("created_by", None),
         }
+        if "latestIncident" in self.expand:
+            data["latestIncident"] = attrs.get("latestIncident", None)
+
+        return data
 
 
 class DetailedAlertRuleSerializer(AlertRuleSerializer):

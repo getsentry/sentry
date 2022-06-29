@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {useMemo} from 'react';
 
 import ConfigStore from 'sentry/stores/configStore';
 import {Organization, User} from 'sentry/types';
@@ -21,11 +21,11 @@ function checkUserRole(user: User, organization: Organization, role: RoleProps['
     return true;
   }
 
-  if (!Array.isArray(organization.availableRoles)) {
+  if (!Array.isArray(organization.orgRoleList)) {
     return false;
   }
 
-  const roleIds = organization.availableRoles.map(r => r.id);
+  const roleIds = organization.orgRoleList.map(r => r.id);
 
   if (!roleIds.includes(role) || !roleIds.includes(organization.role ?? '')) {
     return false;
@@ -56,10 +56,12 @@ interface RoleProps {
 }
 
 function Role({role, organization, children}: RoleProps): React.ReactElement | null {
-  const hasRole = React.useMemo(
-    () => checkUserRole(ConfigStore.get('user'), organization, role),
+  const user = ConfigStore.get('user');
+
+  const hasRole = useMemo(
+    () => checkUserRole(user, organization, role),
     // It seems that this returns a stable reference, but
-    [organization, role, ConfigStore.get('user')]
+    [organization, role, user]
   );
 
   if (isRenderFunc<ChildrenRenderFn>(children)) {

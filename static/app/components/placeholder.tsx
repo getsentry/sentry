@@ -1,4 +1,3 @@
-import * as React from 'react';
 import styled from '@emotion/styled';
 
 import space from 'sentry/styles/space';
@@ -13,20 +12,20 @@ const defaultProps = {
 
 type DefaultProps = Readonly<typeof defaultProps>;
 
-type Props = {
+export type PlaceholderProps = {
   children?: React.ReactNode;
   className?: string;
   error?: React.ReactNode;
   testId?: string;
 } & Partial<DefaultProps>;
 
-const Placeholder = styled(({className, children, error, testId}: Props) => {
+const Placeholder = styled(({className, children, error, testId}: PlaceholderProps) => {
   return (
     <div data-test-id={testId} className={className}>
       {error || children}
     </div>
   );
-})<Props>`
+})<PlaceholderProps>`
   display: flex;
   flex-direction: column;
   flex-shrink: 0;

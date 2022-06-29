@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
@@ -10,7 +10,6 @@ import {Hovercard} from 'sentry/components/hovercard';
 import Link from 'sentry/components/links/link';
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {Group} from 'sentry/types';
 import {getMessage} from 'sentry/utils/events';
@@ -50,7 +49,7 @@ const IssueLink = ({children, orgId, issue, to, card = true}: Props) => {
           levelIndicatorSize="9px"
           message={message}
           annotations={
-            <React.Fragment>
+            <Fragment>
               {issue.logger && (
                 <EventAnnotation>
                   <Link
@@ -66,7 +65,7 @@ const IssueLink = ({children, orgId, issue, to, card = true}: Props) => {
               {issue.annotations.map((annotation, i) => (
                 <EventAnnotation key={i} dangerouslySetInnerHTML={{__html: annotation}} />
               ))}
-            </React.Fragment>
+            </Fragment>
           }
         />
       </Section>
@@ -104,7 +103,7 @@ export default IssueLink;
 const Title = styled('h3')`
   font-size: ${p => p.theme.fontSizeMedium};
   margin: 0 0 ${space(0.5)};
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
 
   em {
     font-style: normal;
