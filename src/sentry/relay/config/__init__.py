@@ -1,13 +1,13 @@
 import logging
 import uuid
 from datetime import datetime
-from typing import Any, Mapping, Optional, Sequence
+from typing import Any, Collection, Mapping, Optional, Sequence, TypedDict
 
 import sentry_sdk
 from pytz import utc
 from sentry_sdk import Hub, capture_exception
 
-from sentry import features, quotas, utils
+from sentry import features, killswitches, quotas, utils
 from sentry.constants import ObjectStatus
 from sentry.datascrubbing import get_datascrubbing_settings, get_pii_config
 from sentry.grouping.api import get_grouping_config_dict_for_project
@@ -417,9 +417,26 @@ ALL_MEASUREMENT_METRICS = frozenset(
 CUSTOM_MEASUREMENT_LIMIT = 5
 
 
+class CustomMeasurementSettings(TypedDict):
+    limit: int
+
+
+class TransactionMetricsSettings(TypedDict):
+    extractMetrics: Collection[str]
+    extractCustomTags: Collection[str]
+    customMeasurements: CustomMeasurementSettings
+
+
 def get_transaction_metrics_settings(
     project: Project, breakdowns_config: Optional[Mapping[str, Any]]
-):
+) -> TransactionMetricsSettings:
+
+    if killswitches.killswitch_matches_context(
+        "relay.drop-transaction-metrics", {"project_id": project.id}
+    ):
+        # Do not extract anything
+        return {"extractMetrics": [], "extractCustomTags": [], "customMeasurements": {"limit": 0}}
+
     metrics = []
     custom_tags = []
 

@@ -129,6 +129,16 @@ ALL_KILLSWITCH_OPTIONS = {
             "message_type": "message type to randomly partition",
         },
     ),
+    "relay.drop-transaction-metrics": KillswitchInfo(
+        description="""
+        Tell Relay via project config to stop extracting metrics from transactions.
+        Note that this change will not take effect immediately, it takes time
+        for downstream Relay instances to update their caches.
+        """,
+        fields={
+            "project_id": "project ID for which we want to stop extracting transaction metrics",
+        },
+    ),
 }
 
 
