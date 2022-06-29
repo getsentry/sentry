@@ -45,7 +45,7 @@ function IssueWidgetQueries({
 
   const config = IssuesConfig;
 
-  const processRawTableResult = useCallback(
+  const afterFetchTableData = useCallback(
     (_rawResult: Group[], response?: ResponseMeta) => {
       return {totalIssuesCount: response?.getResponseHeader('X-Hits') ?? undefined};
     },
@@ -63,7 +63,7 @@ function IssueWidgetQueries({
         cursor={cursor}
         limit={limit}
         onDataFetched={onDataFetched}
-        processRawTableResult={processRawTableResult}
+        afterFetchTableData={afterFetchTableData}
       >
         {({loading, ...rest}) =>
           children({
