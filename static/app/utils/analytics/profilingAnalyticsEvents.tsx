@@ -1,6 +1,7 @@
 type ProfilingPrefix = 'profiling';
 type ProfilingViews =
   | 'landing'
+  | 'onboarding'
   | 'profile_summary'
   | 'profile_details'
   | 'profile_flamegraph';
@@ -13,6 +14,7 @@ export type ProfilingEventParameters = {
 
 export const profilingEventMap: Record<EventKey, string> = {
   'profiling_views.landing': 'Profiling Views: Landing',
+  'profiling_views.onboarding': 'Profiling Views: Onboarding',
   'profiling_views.profile_flamegraph': 'Profiling Views: Flamegraph',
   'profiling_views.profile_summary': 'Profiling Views: Profile Summary',
   'profiling_views.profile_details': 'Profiling Views: Profile Details',

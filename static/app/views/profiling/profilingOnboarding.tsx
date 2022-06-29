@@ -1,3 +1,4 @@
+import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import Alert from 'sentry/components/alert';
@@ -8,12 +9,17 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import ExternalLink from '../../components/links/externalLink';
 
 export function ProfilingOnboarding() {
   const organization = useOrganization();
+
+  useEffect(() => {
+    trackAdvancedAnalyticsEvent('profiling_views.onboarding', {organization});
+  }, [organization]);
 
   return (
     <SentryDocumentTitle title={t('Profiling')} orgSlug={organization.slug}>
