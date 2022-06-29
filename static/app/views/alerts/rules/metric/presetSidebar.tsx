@@ -17,6 +17,7 @@ type Props = {
   onSelect?(preset: Preset, ctx: PresetContext): void;
 };
 export default function PresetSidebar(props: Props) {
+  const [selected, setSelected] = useState<string | null>(null);
   return (
     <div className={props.className}>
       <Header>{t('Suggested Alerts')}</Header>
@@ -27,7 +28,11 @@ export default function PresetSidebar(props: Props) {
           index={i}
           organization={props.organization}
           project={props.project}
-          onClick={ctx => props.onSelect && props.onSelect(preset, ctx)}
+          selected={selected === preset.id}
+          onClick={ctx => {
+            setSelected(preset.id);
+            props.onSelect && props.onSelect(preset, ctx);
+          }}
         />
       ))}
     </div>
@@ -40,6 +45,7 @@ function PresetSidebarItem(props: {
   preset: Preset;
   project: Project;
   onClick?: (ctx: PresetContext) => void;
+  selected?: boolean;
 }) {
   const theme = useTheme();
   const api = useApi();
@@ -47,6 +53,7 @@ function PresetSidebarItem(props: {
   const iconColor = theme.charts.getColorPalette(PRESET_AGGREGATES.length)[props.index];
   return (
     <StyledPresetSidebarItemContainer
+      selected={props.selected || false}
       onClick={() => {
         if (loading) {
           return;
@@ -89,7 +96,7 @@ const LoadingWrapper = styled('div')`
 const StyledLoadingIndicator = styled(LoadingIndicator)`
   margin: 0;
 `;
-const StyledPresetSidebarItemContainer = styled('div')`
+const StyledPresetSidebarItemContainer = styled('div')<{selected: boolean}>`
   border: 1px solid transparent;
   position: relative;
   overflow: hidden;
@@ -114,6 +121,7 @@ const StyledPresetSidebarItemContainer = styled('div')`
   &:hover {
     border-color: ${p => p.theme.gray100};
   }
+  ${p => p.selected && `border-color: ${p.theme.gray200};`}
 `;
 
 const Header = styled('h5')`
