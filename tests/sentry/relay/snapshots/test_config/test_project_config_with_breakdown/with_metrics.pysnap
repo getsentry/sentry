@@ -1,5 +1,5 @@
 ---
-created: '2022-06-29T09:52:49.488463Z'
+created: '2022-06-29T14:13:27.057078Z'
 creator: sentry
 source: tests/sentry/relay/test_config.py
 ---
@@ -10,6 +10,7 @@ breakdownsV2:
     - db
     - browser
     - resource
+    - ui
     type: spanOperations
 metricConditionalTagging:
 - condition:
@@ -885,3 +886,4 @@ transactionMetrics:
   - d:transactions/breakdowns.ops.db
   - d:transactions/breakdowns.ops.browser
   - d:transactions/breakdowns.ops.resource
+  - d:transactions/breakdowns.ops.ui
