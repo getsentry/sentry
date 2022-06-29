@@ -471,6 +471,19 @@ class SentryAppStatus:
         else:
             return None
 
+    @classmethod
+    def as_int(cls, status: str) -> Optional[int]:
+        if status == cls.UNPUBLISHED_STR:
+            return cls.UNPUBLISHED
+        elif status == cls.PUBLISHED_STR:
+            return cls.PUBLISHED
+        elif status == cls.INTERNAL_STR:
+            return cls.INTERNAL
+        elif status == cls.PUBLISH_REQUEST_INPROGRESS_STR:
+            return cls.PUBLISH_REQUEST_INPROGRESS
+        else:
+            return None
+
 
 class SentryAppInstallationStatus:
     PENDING = 0
