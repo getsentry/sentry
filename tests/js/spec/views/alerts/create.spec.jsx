@@ -116,7 +116,7 @@ describe('ProjectAlertsCreate', function () {
 
       // Add a filter and remove it
       await selectEvent.select(screen.getByText('Add optional filter...'), [
-        'The issue is {comparison_type} than {value} {time}',
+        'The issue is older or newer than...',
       ]);
 
       userEvent.click(screen.getByLabelText('Delete Node'));
@@ -200,7 +200,7 @@ describe('ProjectAlertsCreate', function () {
 
       // Add an action and remove it
       await selectEvent.select(screen.getByText('Add action...'), [
-        'Send a notification (for all legacy integrations)',
+        'Send a notification to all legacy integrations',
       ]);
 
       userEvent.click(screen.getByLabelText('Delete Node'));
@@ -337,7 +337,7 @@ describe('ProjectAlertsCreate', function () {
 
         // Add a new filter
         await selectEvent.select(screen.getByText('Add optional filter...'), [
-          'The issue is {comparison_type} than {value} {time}',
+          'The issue is older or newer than...',
         ]);
         userEvent.paste(screen.getByPlaceholderText('10'), '12');
 

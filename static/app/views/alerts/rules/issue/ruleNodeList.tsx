@@ -150,7 +150,6 @@ class RuleNodeList extends Component<Props> {
       selectType,
     } = this.props;
 
-    const shouldUsePrompt = project.features?.includes?.('issue-alerts-targeting');
     const enabledNodes = nodes ? nodes.filter(({enabled}) => enabled) : [];
 
     const createSelectOptions = (actions: IssueAlertRuleActionTemplate[]) =>
@@ -171,7 +170,7 @@ class RuleNodeList extends Component<Props> {
           label: (
             <Fragment>
               {isNew && <StyledFeatureBadge type="new" noTooltip />}
-              {shouldUsePrompt && node.prompt?.length > 0 ? node.prompt : node.label}
+              {node.prompt?.length ? node.prompt : node.label}
             </Fragment>
           ),
         };
