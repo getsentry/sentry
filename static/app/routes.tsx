@@ -1347,6 +1347,16 @@ function buildRoutes() {
           }}
         />
         <Route
+          path="replays/"
+          component={make(
+            () => import('sentry/views/organizationGroupDetails/groupReplays')
+          )}
+          props={{
+            currentTab: Tab.REPLAYS,
+            isEventRoute: true,
+          }}
+        />
+        <Route
           path="activity/"
           component={make(
             () => import('sentry/views/organizationGroupDetails/groupActivity')
