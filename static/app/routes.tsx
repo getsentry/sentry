@@ -1353,7 +1353,7 @@ function buildRoutes() {
           )}
           props={{
             currentTab: Tab.REPLAYS,
-            isEventRoute: false,
+            isEventRoute: true,
           }}
         />
         <Route
