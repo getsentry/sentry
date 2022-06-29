@@ -120,8 +120,8 @@ function Onboarding({organization, project}: Props) {
       <ButtonList gap={1}>
         <Button
           priority="primary"
-          target="_blank"
           href="https://docs.sentry.io/performance-monitoring/getting-started/"
+          external
         >
           {t('Start Setup')}
         </Button>

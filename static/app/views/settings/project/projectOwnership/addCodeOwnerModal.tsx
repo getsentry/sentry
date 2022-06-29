@@ -138,7 +138,7 @@ class AddCodeOwnerModal extends AsyncComponent<Props, State> {
         <SourceFileBody>
           <IconCheckmark size="md" isCircled color="green200" />
           {codeownersFile.filepath}
-          <Button size="small" href={codeownersFile.html_url} target="_blank">
+          <Button size="small" href={codeownersFile.html_url} external>
             {t('Preview File')}
           </Button>
         </SourceFileBody>
