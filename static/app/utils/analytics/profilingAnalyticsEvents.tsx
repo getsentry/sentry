@@ -2,8 +2,12 @@ export type ProfilingEventParameters = {
   'profiling_views.go_to_flamegraph': {source: string};
   'profiling_views.landing': {};
   'profiling_views.onboarding': {};
-  'profiling_views.onboarding_action.dismiss': {};
-  'profiling_views.onboarding_action.done': {};
+  'profiling_views.onboarding_action.dismiss': {
+    action: 'dismiss';
+  };
+  'profiling_views.onboarding_action.done': {
+    action: 'done';
+  };
   'profiling_views.profile_details': {};
   'profiling_views.profile_flamegraph': {};
   'profiling_views.profile_summary': {};

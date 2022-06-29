@@ -62,10 +62,15 @@ function ProfilingContainer({organization, children}: Props) {
   const dismissPrompt = useCallback(
     (status: 'done' | 'dismissed') => {
       setRequestState({type: 'resolved', data: {dismissedTime: Date.now()}});
-      trackAdvancedAnalyticsEvent('profiling_views.onboarding_action', {
-        action: status,
-        organization,
-      });
+      trackAdvancedAnalyticsEvent(
+        status === 'done'
+          ? 'profiling_views.onboarding_action.done'
+          : 'profiling_views.onboarding_action.dismiss',
+        {
+          action: status === 'done' ? 'done' : 'dismiss',
+          organization,
+        }
+      );
 
       return promptsUpdate(client, {
         feature: 'profiling_onboarding',
