@@ -472,6 +472,13 @@ function buildRoutes() {
         <Route path=":ruleType/" />
       </Route>
       <Route
+        path="server-side-sampling/"
+        name={t('Server-side Sampling')}
+        component={make(
+          () => import('sentry/views/settings/project/server-side-sampling')
+        )}
+      />
+      <Route
         path="issue-grouping/"
         name={t('Issue Grouping')}
         component={make(() => import('sentry/views/settings/projectIssueGrouping'))}
