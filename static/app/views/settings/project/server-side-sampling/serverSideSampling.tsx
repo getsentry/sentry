@@ -26,7 +26,7 @@ export function ServerSideSampling() {
 
   const {orgId: orgSlug, projectId: projectSlug} = params;
 
-  const [rules, setRules] = useState<SamplingRules>([]);
+  const [_rules, setRules] = useState<SamplingRules>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | undefined>(undefined);
 
@@ -77,14 +77,52 @@ export function ServerSideSampling() {
           {error && <LoadingError message={error} />}
           {!error && loading && <LoadingIndicator />}
           {!error && !loading && (
-            <PanelTable
+            <RulesPanel
               headers={['', t('Operator'), t('Condition'), t('Rate'), t('Active'), '']}
             >
               <Promo />
-            </PanelTable>
+            </RulesPanel>
           )}
         </Access>
       </Fragment>
     </SentryDocumentTitle>
   );
 }
+
+const RulesPanel = styled(PanelTable)`
+  overflow: visible;
+
+  > * {
+    ${p => p.theme.overflowEllipsis};
+
+    :not(:last-child) {
+      border-bottom: 1px solid ${p => p.theme.border};
+    }
+
+    :nth-child(-n + 6):nth-child(6n - 1) {
+      text-align: right;
+    }
+
+    @media (max-width: ${p => p.theme.breakpoints.small}) {
+      :nth-child(6n - 1),
+      :nth-child(6n - 4),
+      :nth-child(6n - 5) {
+        display: none;
+      }
+    }
+  }
+
+  grid-template-columns: 1fr 0.5fr 66px;
+
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    grid-template-columns: 48px 95px 1fr 0.5fr 77px 66px;
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
+    grid-template-columns: 48px 95px 1.5fr 1fr 77px 124px;
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
+    grid-template-columns: 48px 95px 1fr 0.5fr 77px 124px;
+  }
+`;

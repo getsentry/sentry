@@ -31,30 +31,46 @@ export function Promo() {
 }
 
 const StyledEmptyStateWarning = styled(EmptyStateWarning)`
-  padding: ${space(4)};
-  display: flex;
-  flex-wrap: wrap;
-
   align-items: center;
   justify-content: center;
+  flex-direction: column;
   gap: ${space(4)};
   grid-column: 1/-1;
-  text-align: left;
+  text-align: center;
 
   img {
-    width: 100%;
-    max-width: 40%;
+    width: 320px;
+  }
+
+  && {
+    display: flex;
+    padding: ${space(4)};
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
+    text-align: left;
+    flex-direction: row;
+    img {
+      width: 100%;
+      max-width: 40%;
+      min-width: 320px;
+    }
   }
 `;
 
 const Actions = styled(ButtonBar)`
-  justify-content: flex-start;
+  justify-content: center;
+
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
+    justify-content: flex-start;
+  }
 `;
 
 const Description = styled('div')`
-  padding: 0 ${space(4)};
+  justify-content: space-between;
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
     padding: ${space(4)};
+    justify-content: flex-start;
   }
 `;
