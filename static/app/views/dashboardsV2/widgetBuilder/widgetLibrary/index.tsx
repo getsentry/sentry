@@ -21,6 +21,7 @@ interface Props {
   bypassOverwriteModal: boolean;
   onWidgetSelect: (widget: WidgetTemplate) => void;
   organization: Organization;
+  selectedWidgetId: string | null;
   widgetBuilderNewDesign: boolean;
 }
 
@@ -29,6 +30,7 @@ export function WidgetLibrary({
   onWidgetSelect,
   widgetBuilderNewDesign,
   organization,
+  selectedWidgetId,
 }: Props) {
   const theme = useTheme();
   let defaultWidgets = getTopNConvertedDefaultWidgets();
@@ -85,6 +87,7 @@ export function WidgetLibrary({
 
           return (
             <CardHoverWrapper
+              selected={selectedWidgetId === widget.id}
               key={widget.title}
               onClick={getLibrarySelectionHandler(newWidget, iconColor)}
             >
@@ -107,7 +110,7 @@ const Header = styled('h5')`
   padding-left: calc(${space(2)} - ${space(0.25)});
 `;
 
-const CardHoverWrapper = styled('div')`
+const CardHoverWrapper = styled('div')<{selected: boolean}>`
   /* to be aligned with the 30px of Layout.main padding - 1px of the widget item border */
   padding: calc(${space(2)} - 3px);
   border: 1px solid transparent;
@@ -117,4 +120,5 @@ const CardHoverWrapper = styled('div')`
   &:hover {
     border-color: ${p => p.theme.gray100};
   }
+  ${p => p.selected && `border-color: ${p.theme.gray200};`}
 `;
