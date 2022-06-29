@@ -54,7 +54,7 @@ async function getHighestVolumeTransaction(
     {
       method: 'GET',
       data: {
-        statsPeriod: '30d',
+        statsPeriod: '7d',
         project: projectId,
         field: ['count()', 'transaction'],
         sort: '-count',
@@ -69,6 +69,29 @@ async function getHighestVolumeTransaction(
     return [transaction.transaction, transaction['count()']];
   }
   return null;
+}
+
+function makeTeamCriticalAlert(project: Project) {
+  return {
+    label: AlertRuleTriggerType.CRITICAL,
+    alertThreshold: 200,
+    actions: project.teams.slice(0, 4).map(team => ({
+      type: ActionType.EMAIL,
+      targetType: TargetType.TEAM,
+      targetIdentifier: team.id,
+      unsavedDateCreated: new Date().toISOString(),
+      inputChannelId: null,
+      options: null,
+      unsavedId: uniqueId(),
+    })),
+  };
+}
+function makeTeamWarningAlert() {
+  return {
+    label: AlertRuleTriggerType.WARNING,
+    alertThreshold: 100,
+    actions: [],
+  };
 }
 
 export const PRESET_AGGREGATES: Preset[] = [
@@ -91,26 +114,7 @@ export const PRESET_AGGREGATES: Preset[] = [
         comparisonDelta: 1440,
         comparisonType: AlertRuleComparisonType.CHANGE,
         thresholdType: AlertRuleThresholdType.ABOVE,
-        triggers: [
-          {
-            label: AlertRuleTriggerType.CRITICAL,
-            alertThreshold: 200,
-            actions: project.teams.slice(0, 4).map(team => ({
-              type: ActionType.EMAIL,
-              targetType: TargetType.TEAM,
-              targetIdentifier: team.id,
-              unsavedDateCreated: new Date().toISOString(),
-              inputChannelId: null,
-              options: null,
-              unsavedId: uniqueId(),
-            })),
-          },
-          {
-            label: AlertRuleTriggerType.WARNING,
-            alertThreshold: 100,
-            actions: [],
-          },
-        ],
+        triggers: [makeTeamCriticalAlert(project), makeTeamWarningAlert()],
         query: 'transaction:' + transaction,
       };
     },
@@ -134,26 +138,7 @@ export const PRESET_AGGREGATES: Preset[] = [
         comparisonDelta: 24 * 60 * 7,
         comparisonType: AlertRuleComparisonType.CHANGE,
         thresholdType: AlertRuleThresholdType.BELOW,
-        triggers: [
-          {
-            label: AlertRuleTriggerType.CRITICAL,
-            alertThreshold: 500,
-            actions: project.teams.slice(0, 4).map(team => ({
-              type: ActionType.EMAIL,
-              targetType: TargetType.TEAM,
-              targetIdentifier: team.id,
-              unsavedDateCreated: new Date().toISOString(),
-              inputChannelId: null,
-              options: null,
-              unsavedId: uniqueId(),
-            })),
-          },
-          {
-            label: AlertRuleTriggerType.WARNING,
-            alertThreshold: 300,
-            actions: [],
-          },
-        ],
+        triggers: [makeTeamCriticalAlert(project), makeTeamWarningAlert()],
         query: 'transaction:' + transaction,
       };
     },
@@ -177,26 +162,7 @@ export const PRESET_AGGREGATES: Preset[] = [
         comparisonDelta: 24 * 60 * 7,
         comparisonType: AlertRuleComparisonType.CHANGE,
         thresholdType: AlertRuleThresholdType.BELOW,
-        triggers: [
-          {
-            label: AlertRuleTriggerType.CRITICAL,
-            alertThreshold: 200,
-            actions: project.teams.slice(0, 4).map(team => ({
-              type: ActionType.EMAIL,
-              targetType: TargetType.TEAM,
-              targetIdentifier: team.id,
-              unsavedDateCreated: new Date().toISOString(),
-              inputChannelId: null,
-              options: null,
-              unsavedId: uniqueId(),
-            })),
-          },
-          {
-            label: AlertRuleTriggerType.WARNING,
-            alertThreshold: 100,
-            actions: [],
-          },
-        ],
+        triggers: [makeTeamCriticalAlert(project), makeTeamWarningAlert()],
         query: 'transaction:' + transaction,
       };
     },

@@ -172,6 +172,15 @@ class AlertWizard extends Component<Props, State> {
                       preset: supportedPreset.id,
                     },
                   }}
+                  onEnter={() => {
+                    trackAdvancedAnalyticsEvent(
+                      'growth.metric_alert_preset_use_template',
+                      {
+                        organization,
+                        preset: supportedPreset.id,
+                      }
+                    );
+                  }}
                   hideIcon
                 >
                   {t('Use Template')}
