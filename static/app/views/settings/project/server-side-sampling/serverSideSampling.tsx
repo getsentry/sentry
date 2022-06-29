@@ -90,11 +90,7 @@ export function ServerSideSampling() {
 }
 
 const RulesPanel = styled(PanelTable)`
-  overflow: visible;
-
   > * {
-    ${p => p.theme.overflowEllipsis};
-
     :not(:last-child) {
       border-bottom: 1px solid ${p => p.theme.border};
     }
