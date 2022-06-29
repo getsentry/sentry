@@ -299,6 +299,8 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
       singleValue: (provided: React.CSSProperties) => ({
         ...provided,
         color: theme.formText,
+        display: 'flex',
+        alignItems: 'center',
       }),
       placeholder: (provided: React.CSSProperties) => ({
         ...provided,
@@ -371,6 +373,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
       content: `"${label}"`,
       color: theme.gray300,
       fontWeight: 600,
+      marginRight: space(1),
     },
   });
 
