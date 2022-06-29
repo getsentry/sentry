@@ -182,9 +182,7 @@ class ActiveReleaseAlertNotification(AlertRuleNotification):
         last_release: Optional[Release] = None,
     ) -> None:
         super().__init__(notification, target_type, target_identifier)
-
-        if not last_release:
-            self.last_release = latest_release(notification.event)
+        self.last_release = last_release if last_release else latest_release(notification.event)
 
     def get_notification_title(self, context: Mapping[str, Any] | None = None) -> str:
         from sentry.integrations.slack.message_builder.issues import build_rule_url
