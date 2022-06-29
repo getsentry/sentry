@@ -210,7 +210,7 @@ class AuthIndexEndpoint(Endpoint):
             return Response(status=status.HTTP_401_UNAUTHORIZED)
         validator = AuthVerifyValidator(data=request.data)
 
-        if not request.user.is_superuser:
+        if not request.user.is_superuser or not request.data.get("isSuperuserModal"):
             if not validator.is_valid():
                 return self.respond(validator.errors, status=status.HTTP_400_BAD_REQUEST)
 
