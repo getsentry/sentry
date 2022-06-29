@@ -543,6 +543,75 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
                 f"count({TransactionMetricKey.MEASUREMENTS_LCP.value})": expected_count
             }
 
+    def test_multi_field_orderby(self):
+        # Record some strings
+        org_id = self.organization.id
+        k_transaction = _indexer_record(org_id, "transaction")
+        v_foo = _indexer_record(org_id, "/foo")
+        v_bar = _indexer_record(org_id, "/bar")
+        v_baz = _indexer_record(org_id, "/baz")
+        k_rating = _indexer_record(org_id, "measurement_rating")
+        v_good = _indexer_record(org_id, "good")
+        v_meh = _indexer_record(org_id, "meh")
+        v_poor = _indexer_record(org_id, "poor")
+
+        self._send_buckets(
+            [
+                {
+                    "org_id": org_id,
+                    "project_id": self.project.id,
+                    "metric_id": self.transaction_lcp_metric,
+                    "timestamp": int(time.time()),
+                    "tags": {
+                        k_transaction: v_transaction,
+                        k_rating: v_rating,
+                    },
+                    "type": "d",
+                    "value": count
+                    * [123.4],  # count decides the cardinality of this distribution bucket
+                    "retention_days": 90,
+                }
+                for v_transaction, count in ((v_foo, 1), (v_bar, 3), (v_baz, 2))
+                for v_rating in (v_good, v_meh, v_poor)
+            ],
+            entity="metrics_distributions",
+        )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            field=[
+                f"count({TransactionMetricKey.MEASUREMENTS_LCP.value})",
+                f"count({TransactionMetricKey.MEASUREMENTS_FCP.value})",
+            ],
+            query="measurement_rating:poor",
+            statsPeriod="1h",
+            interval="1h",
+            groupBy="transaction",
+            orderBy=[
+                f"-count({TransactionMetricKey.MEASUREMENTS_LCP.value})",
+                f"-count({TransactionMetricKey.MEASUREMENTS_FCP.value})",
+            ],
+            per_page=2,
+        )
+        groups = response.data["groups"]
+        assert len(groups) == 2
+
+        expected = [
+            ("/bar", 3),
+            ("/baz", 2),
+        ]
+        for (expected_transaction, expected_count), group in zip(expected, groups):
+            # With orderBy, you only get totals:
+            assert group["by"] == {"transaction": expected_transaction}
+            assert group["series"] == {
+                f"count({TransactionMetricKey.MEASUREMENTS_LCP.value})": [expected_count],
+                f"count({TransactionMetricKey.MEASUREMENTS_FCP.value})": [0],
+            }
+            assert group["totals"] == {
+                f"count({TransactionMetricKey.MEASUREMENTS_LCP.value})": expected_count,
+                f"count({TransactionMetricKey.MEASUREMENTS_FCP.value})": 0,
+            }
+
     def test_orderby_percentile(self):
         # Record some strings
         org_id = self.organization.id
@@ -776,6 +845,126 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             interval="1h",
             groupBy=["project_id", "transaction"],
             orderBy=f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
+        )
+        groups = response.data["groups"]
+        assert len(groups) == 2
+
+        expected = [
+            ("/bar/", 5.0, 14.0),
+            ("/foo/", 11.0, 2.0),
+        ]
+        for (expected_tag_value, expected_lcp_count, expected_fcp_count), group in zip(
+            expected, groups
+        ):
+            # With orderBy, you only get totals:
+            assert group["by"] == {"transaction": expected_tag_value, "project_id": self.project.id}
+            assert group["totals"] == {
+                f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})": expected_lcp_count,
+                f"p50({TransactionMetricKey.MEASUREMENTS_FCP.value})": expected_fcp_count,
+            }
+            assert group["series"] == {
+                f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})": [expected_lcp_count],
+                f"p50({TransactionMetricKey.MEASUREMENTS_FCP.value})": [expected_fcp_count],
+            }
+
+    def test_multi_field_orderby_percentile_with_many_fields_one_entity(self):
+        """
+        Test that ensures when transactions are ordered correctly when all the fields requested
+        are from the same entity
+        """
+        org_id = self.organization.id
+        metric_id_fcp = _indexer_record(org_id, TransactionMRI.MEASUREMENTS_FCP.value)
+        transaction_id = _indexer_record(org_id, "transaction")
+        transaction_1 = _indexer_record(org_id, "/foo/")
+        transaction_2 = _indexer_record(org_id, "/bar/")
+
+        self._send_buckets(
+            [
+                {
+                    "org_id": org_id,
+                    "project_id": self.project.id,
+                    "metric_id": self.transaction_lcp_metric,
+                    "timestamp": int(time.time()),
+                    "type": "d",
+                    "value": numbers,
+                    "tags": {tag: value},
+                    "retention_days": 90,
+                }
+                for tag, value, numbers in (
+                    (transaction_id, transaction_1, [10, 11, 12]),
+                    (transaction_id, transaction_2, [4, 5, 6]),
+                )
+            ],
+            entity="metrics_distributions",
+        )
+        self._send_buckets(
+            [
+                {
+                    "org_id": org_id,
+                    "project_id": self.project.id,
+                    "metric_id": metric_id_fcp,
+                    "timestamp": int(time.time()),
+                    "type": "d",
+                    "value": numbers,
+                    "tags": {tag: value},
+                    "retention_days": 90,
+                }
+                for tag, value, numbers in (
+                    (transaction_id, transaction_1, [1, 2, 3]),
+                    (transaction_id, transaction_2, [13, 14, 15]),
+                )
+            ],
+            entity="metrics_distributions",
+        )
+
+        kwargs = dict(
+            field=[
+                f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
+                f"p50({TransactionMetricKey.MEASUREMENTS_FCP.value})",
+            ],
+            statsPeriod="1h",
+            interval="1h",
+            groupBy=["project_id", "transaction"],
+        )
+
+        # Test order by DESC
+        response = self.get_success_response(
+            self.organization.slug,
+            **kwargs,
+            orderBy=[
+                f"-p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
+                f"-p50({TransactionMetricKey.MEASUREMENTS_FCP.value})",
+            ],
+        )
+        groups = response.data["groups"]
+        assert len(groups) == 2
+
+        expected = [
+            ("/foo/", 11.0, 2.0),
+            ("/bar/", 5.0, 14.0),
+        ]
+        for (expected_tag_value, expected_lcp_count, expected_fcp_count), group in zip(
+            expected, groups
+        ):
+            # With orderBy, you only get totals:
+            assert group["by"] == {"transaction": expected_tag_value, "project_id": self.project.id}
+            assert group["totals"] == {
+                f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})": expected_lcp_count,
+                f"p50({TransactionMetricKey.MEASUREMENTS_FCP.value})": expected_fcp_count,
+            }
+            assert group["series"] == {
+                f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})": [expected_lcp_count],
+                f"p50({TransactionMetricKey.MEASUREMENTS_FCP.value})": [expected_fcp_count],
+            }
+
+        # Test order by ASC
+        response = self.get_success_response(
+            self.organization.slug,
+            **kwargs,
+            orderBy=[
+                f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
+                f"p50({TransactionMetricKey.MEASUREMENTS_FCP.value})",
+            ],
         )
         groups = response.data["groups"]
         assert len(groups) == 2
@@ -1784,8 +1973,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         )
         assert response.status_code == 400
         assert response.data["detail"] == (
-            "It is not possible to orderBy field session.errored as it does not "
-            "have a direct mapping to a query alias"
+            "Selected 'orderBy' columns must belongs to the same entity"
         )
 
     def test_abnormal_sessions(self):
