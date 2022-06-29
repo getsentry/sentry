@@ -15,7 +15,7 @@ describe('Server-side Sampling', function () {
     },
   });
 
-  it('renders onboarding pro', async function () {
+  it('renders onboarding promo', async function () {
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/',
       method: 'GET',
