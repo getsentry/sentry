@@ -624,6 +624,7 @@ CELERY_QUEUES = [
     ),
     Queue("events.save_event", routing_key="events.save_event"),
     Queue("events.save_event_transaction", routing_key="events.save_event_transaction"),
+    Queue("events.save_event_attachments", routing_key="events.save_event_attachments"),
     Queue("events.symbolicate_event", routing_key="events.symbolicate_event"),
     Queue(
         "events.symbolicate_event_low_priority", routing_key="events.symbolicate_event_low_priority"
@@ -1003,8 +1004,6 @@ SENTRY_FEATURES = {
     "organizations:issue-search-use-cdc-secondary": False,
     # Enable metrics feature on the backend
     "organizations:metrics": False,
-    # Use SNQL to create metric alerts, and perform other snuba queries related to metric alerts
-    "organizations:metric-alert-snql": True,
     # Enable metric alert charts in email/slack
     "organizations:metric-alert-chartcuterie": False,
     # Enable the new widget builder experience on Dashboards

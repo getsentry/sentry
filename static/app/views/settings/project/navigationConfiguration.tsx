@@ -70,9 +70,19 @@ export default function getConfiguration({
         {
           path: `${pathPrefix}/sampling/`,
           title: t('Sampling'),
-          show: () => !!organization?.features?.includes('filters-and-sampling'),
+          show: () =>
+            !!organization?.features?.includes('filters-and-sampling') &&
+            !organization?.features?.includes('server-side-sampling'),
           description: t("Manage an organization's inbound data"),
           badge: () => 'new',
+        },
+        {
+          path: `${pathPrefix}/server-side-sampling/`,
+          title: t('Server-side Sampling'),
+          show: () => !!organization?.features?.includes('server-side-sampling'),
+          description: t(
+            "Per-Project basis solution to configure sampling rules within Sentry's UI"
+          ),
         },
         {
           path: `${pathPrefix}/security-and-privacy/`,

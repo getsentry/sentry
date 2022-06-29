@@ -91,6 +91,7 @@ def submit_symbolicate(
     start_time: Optional[int],
     data: Optional[Event],
     queue_switches: int = 0,
+    has_attachments: bool = False,
 ) -> None:
     if is_low_priority:
         task = (
@@ -107,6 +108,7 @@ def submit_symbolicate(
         event_id=event_id,
         data=data,
         queue_switches=queue_switches,
+        has_attachments=has_attachments,
     )
 
 
@@ -117,6 +119,7 @@ def _do_symbolicate_event(
     symbolicate_task: Callable[[Optional[str], Optional[int], Optional[str]], None],
     data: Optional[Event] = None,
     queue_switches: int = 0,
+    has_attachments: bool = False,
 ) -> None:
     from sentry.lang.native.processing import get_symbolication_function
 
@@ -163,6 +166,7 @@ def _do_symbolicate_event(
                 start_time,
                 data,
                 queue_switches + 1,
+                has_attachments=has_attachments,
             )
             return
 
@@ -178,6 +182,7 @@ def _do_symbolicate_event(
             data=data,
             data_has_changed=has_changed,
             from_symbolicate=True,
+            has_attachments=has_attachments,
         )
 
     symbolication_function = get_symbolication_function(data)
@@ -319,6 +324,7 @@ def symbolicate_event(
     event_id: Optional[str] = None,
     data: Optional[Event] = None,
     queue_switches: int = 0,
+    has_attachments: bool = False,
     **kwargs: Any,
 ) -> None:
     """
@@ -335,6 +341,7 @@ def symbolicate_event(
         symbolicate_task=symbolicate_event,
         data=data,
         queue_switches=queue_switches,
+        has_attachments=has_attachments,
     )
 
 
@@ -351,6 +358,7 @@ def symbolicate_event_low_priority(
     event_id: Optional[str] = None,
     data: Optional[Event] = None,
     queue_switches: int = 0,
+    has_attachments: bool = False,
     **kwargs: Any,
 ) -> None:
     """
@@ -370,6 +378,7 @@ def symbolicate_event_low_priority(
         symbolicate_task=symbolicate_event_low_priority,
         data=data,
         queue_switches=queue_switches,
+        has_attachments=has_attachments,
     )
 
 
@@ -386,6 +395,7 @@ def symbolicate_event_from_reprocessing(
     event_id: Optional[str] = None,
     data: Optional[Event] = None,
     queue_switches: int = 0,
+    has_attachments: bool = False,
     **kwargs: Any,
 ) -> None:
     return _do_symbolicate_event(
@@ -395,6 +405,7 @@ def symbolicate_event_from_reprocessing(
         symbolicate_task=symbolicate_event_from_reprocessing,
         data=data,
         queue_switches=queue_switches,
+        has_attachments=has_attachments,
     )
 
 
@@ -411,6 +422,7 @@ def symbolicate_event_from_reprocessing_low_priority(
     event_id: Optional[str] = None,
     data: Optional[Event] = None,
     queue_switches: int = 0,
+    has_attachments: bool = False,
     **kwargs: Any,
 ) -> None:
     return _do_symbolicate_event(
@@ -420,4 +432,5 @@ def symbolicate_event_from_reprocessing_low_priority(
         symbolicate_task=symbolicate_event_from_reprocessing_low_priority,
         data=data,
         queue_switches=queue_switches,
+        has_attachments=has_attachments,
     )
