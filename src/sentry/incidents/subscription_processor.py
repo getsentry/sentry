@@ -30,17 +30,11 @@ from sentry.incidents.models import (
 )
 from sentry.incidents.tasks import handle_trigger_action
 from sentry.models import Project
-from sentry.snuba.dataset import Dataset
 from sentry.snuba.entity_subscription import BaseMetricsEntitySubscription
 from sentry.snuba.models import QueryDatasets
-from sentry.snuba.tasks import (
-    build_query_builder,
-    build_snuba_filter,
-    get_entity_subscription_for_dataset,
-)
+from sentry.snuba.tasks import build_query_builder, get_entity_subscription_for_dataset
 from sentry.utils import metrics, redis
 from sentry.utils.dates import to_datetime, to_timestamp
-from sentry.utils.snuba import raw_query
 
 logger = logging.getLogger(__name__)
 REDIS_TTL = int(timedelta(days=7).total_seconds())
@@ -183,64 +177,34 @@ class SubscriptionProcessor:
                 "event_types": snuba_query.event_types,
             },
         )
-        if features.has("organizations:metric-alert-snql", self.subscription.project.organization):
-            try:
-                project_ids = [self.subscription.project_id]
-                query_builder = build_query_builder(
-                    entity_subscription,
-                    snuba_query.query,
-                    project_ids,
-                    snuba_query.environment,
-                    params={
-                        "organization_id": self.subscription.project.organization.id,
-                        "project_id": project_ids,
-                        "start": start,
-                        "end": end,
-                    },
-                )
-                time_col = entity_subscription.time_col
-                query_builder.add_conditions(
-                    [
-                        Condition(Column(time_col), Op.GTE, start),
-                        Condition(Column(time_col), Op.LT, end),
-                    ]
-                )
-                query_builder.limit = Limit(1)
-                results = query_builder.run_query(
-                    referrer="subscription_processor.comparison_query"
-                )
-                comparison_aggregate = list(results["data"][0].values())[0]
+        try:
+            project_ids = [self.subscription.project_id]
+            query_builder = build_query_builder(
+                entity_subscription,
+                snuba_query.query,
+                project_ids,
+                snuba_query.environment,
+                params={
+                    "organization_id": self.subscription.project.organization.id,
+                    "project_id": project_ids,
+                    "start": start,
+                    "end": end,
+                },
+            )
+            time_col = entity_subscription.time_col
+            query_builder.add_conditions(
+                [
+                    Condition(Column(time_col), Op.GTE, start),
+                    Condition(Column(time_col), Op.LT, end),
+                ]
+            )
+            query_builder.limit = Limit(1)
+            results = query_builder.run_query(referrer="subscription_processor.comparison_query")
+            comparison_aggregate = list(results["data"][0].values())[0]
 
-            except Exception:
-                logger.exception("Failed to run comparison query")
-                return
-        else:
-            try:
-                snuba_filter = build_snuba_filter(
-                    entity_subscription,
-                    snuba_query.query,
-                    snuba_query.environment,
-                    params={
-                        "project_id": [self.subscription.project_id],
-                        "start": start,
-                        "end": end,
-                    },
-                )
-                results = raw_query(
-                    aggregations=snuba_filter.aggregations,
-                    start=snuba_filter.start,
-                    end=snuba_filter.end,
-                    conditions=snuba_filter.conditions,
-                    filter_keys=snuba_filter.filter_keys,
-                    having=snuba_filter.having,
-                    dataset=Dataset(snuba_query.dataset),
-                    limit=1,
-                    referrer="subscription_processor.comparison_query",
-                )
-                comparison_aggregate = list(results["data"][0].values())[0]
-            except Exception:
-                logger.exception("Failed to run comparison query")
-                return
+        except Exception:
+            logger.exception("Failed to run comparison query")
+            return
 
         if not comparison_aggregate:
             metrics.incr("incidents.alert_rules.skipping_update_comparison_value_invalid")
