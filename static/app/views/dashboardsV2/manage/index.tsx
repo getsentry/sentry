@@ -9,7 +9,7 @@ import Feature from 'sentry/components/acl/feature';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import DropdownControl, {DropdownItem} from 'sentry/components/dropdownControl';
+import CompactSelect from 'sentry/components/forms/compactSelect';
 import {Title} from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
@@ -168,18 +168,13 @@ class ManageDashboards extends AsyncView<Props, State> {
           placeholder={t('Search Dashboards')}
           onSearch={query => this.handleSearch(query)}
         />
-        <DropdownControl buttonProps={{prefix: t('Sort By')}} label={activeSort.label}>
-          {SORT_OPTIONS.map(({label, value}) => (
-            <DropdownItem
-              key={value}
-              onSelect={this.handleSortChange}
-              eventKey={value}
-              isActive={value === activeSort.value}
-            >
-              {label}
-            </DropdownItem>
-          ))}
-        </DropdownControl>
+        <CompactSelect
+          triggerProps={{prefix: t('Sort By')}}
+          value={activeSort.value}
+          options={SORT_OPTIONS}
+          onChange={opt => this.handleSortChange(opt.value)}
+          placement="bottom right"
+        />
       </StyledActions>
     );
   }
