@@ -1,4 +1,4 @@
-import {forwardRef as reactForwardRef} from 'react';
+import {forwardRef as reactForwardRef, useCallback} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -79,20 +79,23 @@ function BaseButton({
   ...buttonProps
 }: ButtonProps) {
   // Intercept onClick and propagate
-  function handleClick(e: React.MouseEvent) {
-    // Don't allow clicks when disabled or busy
-    if (disabled || busy) {
-      e.preventDefault();
-      e.stopPropagation();
-      return;
-    }
+  const handleClick = useCallback(
+    (e: React.MouseEvent) => {
+      // Don't allow clicks when disabled or busy
+      if (disabled || busy) {
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
 
-    if (typeof onClick !== 'function') {
-      return;
-    }
+      if (typeof onClick !== 'function') {
+        return;
+      }
 
-    onClick(e);
-  }
+      onClick(e);
+    },
+    [onClick, busy, disabled]
+  );
 
   function getUrl<T extends Url>(prop: T): T | undefined {
     return disabled ? undefined : prop;
@@ -153,6 +156,7 @@ const Button = reactForwardRef<ButtonElement, ButtonProps>((props, ref) => (
 ));
 
 Button.displayName = 'Button';
+
 export default Button;
 
 type StyledButtonProps = ButtonProps & {theme: Theme};
