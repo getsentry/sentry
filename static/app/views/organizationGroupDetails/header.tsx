@@ -247,12 +247,6 @@ class GroupHeader extends Component<Props, State> {
                           </Link>
                         </EventAnnotationWithSpace>
                       )}
-                      {group.annotations.map((annotation, i) => (
-                        <EventAnnotationWithSpace
-                          key={i}
-                          dangerouslySetInnerHTML={{__html: annotation}}
-                        />
-                      ))}
                     </Fragment>
                   }
                 />
