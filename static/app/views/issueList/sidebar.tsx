@@ -46,6 +46,16 @@ class IssueListSidebar extends Component<Props, State> {
 
   state: State = this.parseQueryToState(this.props.query);
 
+  componentWillReceiveProps(nextProps: Props) {
+    // If query was updated by another source (e.g. SearchBar),
+    // clobber state of sidebar with new query.
+    const query = objToQuery(this.state.queryObj);
+
+    if (!isEqual(nextProps.query, query)) {
+      this.setState(this.parseQueryToState(nextProps.query));
+    }
+  }
+
   parseQueryToState(query: string): State {
     const parsedResult: ParseResult = parseSearch(query) ?? [];
     const textFilter = parsedResult
@@ -63,16 +73,6 @@ class IssueListSidebar extends Component<Props, State> {
       queryObj,
       textFilter,
     };
-  }
-
-  componentWillReceiveProps(nextProps: Props) {
-    // If query was updated by another source (e.g. SearchBar),
-    // clobber state of sidebar with new query.
-    const query = objToQuery(this.state.queryObj);
-
-    if (!isEqual(nextProps.query, query)) {
-      this.setState(this.parseQueryToState(nextProps.query));
-    }
   }
 
   onSelectTag = (tag: Tag, value: string | null) => {
