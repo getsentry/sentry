@@ -24,27 +24,98 @@ interface BaseButtonProps
     React.ButtonHTMLAttributes<ButtonElement>,
     'ref' | 'label' | 'size' | 'title'
   > {
+  /**
+   * Positions the text within the button.
+   */
   align?: 'center' | 'left' | 'right';
-  // This is only used with `<ButtonBar>`
+  /**
+   * Used by ButtonBar to determine active status.
+   */
   barId?: string;
+  /**
+   * Removes borders from the button.
+   */
   borderless?: boolean;
+  /**
+   * Indicates that the button is "doing" something.
+   */
   busy?: boolean;
+  /**
+   * Test ID for the button.
+   */
   'data-test-id'?: string;
+  /**
+   * Disables the button, assigning appropriate aria attributes and disallows
+   * interactions with the button.
+   */
   disabled?: boolean;
+  /**
+   * For use with `href` and `data:` or `blob:` schemes. Tells the browser to
+   * download the contents.
+   *
+   * See: https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#attr-download
+   */
   download?: HTMLAnchorElement['download'];
+  /**
+   * The button is an external link. Similar to the `Link` `external` property.
+   */
   external?: boolean;
+  /**
+   * @internal Used in the Button forwardRef
+   */
   forwardRef?: React.Ref<ButtonElement>;
+  /**
+   * When set the button acts as an anchor link. Use with `external` to have
+   * the link open in a new tab.
+   */
   href?: string;
+  /**
+   * The icon to render inside of the button. The size will be set
+   * appropriately based on the size of the button.
+   */
   icon?: React.ReactNode;
+  /**
+   * Used when the button is part of a form.
+   */
   name?: string;
+  /**
+   * Callback for when the button is clicked.
+   */
   onClick?: (e: React.MouseEvent) => void;
+  /**
+   * The semantic "priority" of the button. Use `primary` when the action is
+   * contextually the primary action, `danger` if the button will do something
+   * destructive, `link` for visual similarity to a link.
+   */
   priority?: 'default' | 'primary' | 'danger' | 'link' | 'form';
+  /**
+   * @deprecated Use `external`
+   */
   rel?: HTMLAnchorElement['rel'];
+  /**
+   * The size of the button
+   */
   size?: 'zero' | 'xsmall' | 'small';
+  /**
+   * @deprecated Use `external`
+   */
   target?: HTMLAnchorElement['target'];
+  /**
+   * Display a tooltip for the button.
+   */
   title?: TooltipProps['title'];
+  /**
+   * Similar to `href`, but for internal links within the app.
+   */
   to?: string | object;
+  /**
+   * Additional properites for the Tooltip when `title` is set.
+   */
   tooltipProps?: Omit<TooltipProps, 'children' | 'title' | 'skipWrapper'>;
+  /**
+   * Userful in scenarios where the border of the button should blend with the
+   * background behind the button.
+   */
   translucentBorder?: boolean;
 }
 
