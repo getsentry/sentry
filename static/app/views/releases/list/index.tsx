@@ -295,7 +295,7 @@ class ReleasesList extends AsyncView<Props, State> {
     const selectedProject = this.getSelectedProject();
     const hasReleasesSetup = selectedProject?.features.includes('releases');
 
-    return !releases?.length && !hasReleasesSetup && this.getSelectedProject();
+    return !releases?.length && !hasReleasesSetup && selectedProject;
   }
 
   renderEmptyMessage() {

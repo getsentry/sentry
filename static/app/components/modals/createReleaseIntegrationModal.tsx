@@ -47,7 +47,10 @@ function CreateReleaseIntegrationModal({
       </Header>
       <Body>
         <Form
-          onCancel={onCancel}
+          onCancel={() => {
+            onCancel();
+            closeModal();
+          }}
           onSubmit={async (data, onSubmitSuccess, onSubmitError) => {
             try {
               const integration = await api.requestPromise('/sentry-apps/', {
@@ -71,6 +74,7 @@ function CreateReleaseIntegrationModal({
                     'member:write',
                   ],
                   verifyInstall: false,
+                  overview: `This internal integration was auto-generated to setup Releases for the ${project.name} project. It is needed to provide the token used to create a release. If this integration is deleted, your Releases workflow will stop working!`,
                 },
               });
               onSubmitSuccess(integration);
