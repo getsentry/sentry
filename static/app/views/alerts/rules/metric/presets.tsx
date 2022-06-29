@@ -118,8 +118,7 @@ export const PRESET_AGGREGATES: Preset[] = [
   {
     id: 'throughput-highest-volume',
     title: t('Throttled throughput'),
-    description:
-      'Know when the throughput of your most important transactions drops close to 0',
+    description: 'Know when throughput for important transactions drops near 0',
     Icon: IconGraph,
     alertType: 'throughput',
     async makeContext(client, project, organization) {
@@ -162,8 +161,7 @@ export const PRESET_AGGREGATES: Preset[] = [
   {
     id: 'apdex-highest-volume',
     title: t('Apdex in violation'),
-    description:
-      'Know when your Apdex score has moved multiple standard deviations from normal',
+    description: 'Know when Apdex scores move multiple standard deviations from normal',
     Icon: IconBookmark,
     alertType: 'apdex',
     async makeContext(client, project, organization) {
