@@ -206,7 +206,7 @@ def test_validate_order_by_field_in_select():
     MetricsQuery(**metrics_query_dict)
 
 
-def test_validate_many_order_by_fields_in_select_fails():
+def test_validate_multiple_orderby_columns_not_specified_in_select():
     metric_field_1 = MetricField(op=None, metric_name=SessionMetricKey.ABNORMAL.value)
     metric_field_2 = MetricField(op=None, metric_name=SessionMetricKey.ALL.value)
     metrics_query_dict = (
@@ -227,7 +227,7 @@ def test_validate_many_order_by_fields_in_select_fails():
         MetricsQuery(**metrics_query_dict)
 
 
-def test_validate_many_order_by_fields_in_select_fails_diff_metrics():
+def test_validate_multiple_order_by_fields_from_multiple_entities():
     """
     The example should fail because session crash free rate is generated from
     counters entity while p50 of duration will go to distribution
@@ -254,7 +254,7 @@ def test_validate_many_order_by_fields_in_select_fails_diff_metrics():
         MetricsQuery(**metrics_query_dict)
 
 
-def test_validate_many_order_by_fields_in_select_fails_diff_metrics_2():
+def test_validate_multiple_orderby_derived_metrics_from_different_entities():
     """
     This example should fail because session crash free rate is generated from
     counters while session user crash free rate is generated from sets
@@ -281,30 +281,10 @@ def test_validate_many_order_by_fields_in_select_fails_diff_metrics_2():
         MetricsQuery(**metrics_query_dict)
 
 
-def test_validate_many_order_by_fields_in_select_success():
-    """
-    This example should pass because both session crash free rate
-    and sum(session) both go to the entity counters
-    """
-    metric_field_1 = MetricField(op=None, metric_name=SessionMetricKey.CRASH_FREE_RATE.value)
-    metric_field_2 = MetricField(op="sum", metric_name=SessionMetricKey.DURATION.value)
-    metrics_query_dict = (
-        MetricsQueryBuilder()
-        .with_select([metric_field_1, metric_field_2])
-        .with_orderby(
-            [
-                OrderBy(field=metric_field_1, direction=Direction.ASC),
-                OrderBy(field=metric_field_2, direction=Direction.ASC),
-            ]
-        )
-        .to_metrics_query_dict()
-    )
-
-    MetricsQuery(**metrics_query_dict)
-
-
 def test_validate_many_order_by_fields_are_in_select():
-    # Validate no exception is raised when all orderBy fields are presented the select
+    """
+    Validate no exception is raised when all orderBy fields are presented the select
+    """
     metric_field_1 = MetricField(op=None, metric_name=SessionMetricKey.ABNORMAL.value)
     metric_field_2 = MetricField(op=None, metric_name=SessionMetricKey.ALL.value)
 
@@ -334,8 +314,26 @@ def test_validate_many_order_by_fields_are_in_select():
     )
     MetricsQuery(**metrics_query_dict)
 
+    # This example should pass because both session crash free rate
+    # and sum(session) both go to the entity counters
+    metric_field_1 = MetricField(op=None, metric_name=SessionMetricKey.CRASH_FREE_RATE.value)
+    metric_field_2 = MetricField(op="sum", metric_name=SessionMetricKey.DURATION.value)
+    metrics_query_dict = (
+        MetricsQueryBuilder()
+        .with_select([metric_field_1, metric_field_2])
+        .with_orderby(
+            [
+                OrderBy(field=metric_field_1, direction=Direction.ASC),
+                OrderBy(field=metric_field_2, direction=Direction.ASC),
+            ]
+        )
+        .to_metrics_query_dict()
+    )
 
-def test_validate_snuba_functions_in_one_group_raise_exc():
+    MetricsQuery(**metrics_query_dict)
+
+
+def test_validate_functions_from_multiple_entities_in_orderby():
     # Validate exception is raised when orderBy fields have function from different snuba groups
     # because:
     # `avg` are in OP_TO_SNUBA_FUNCTION["metrics_distributions"].keys()
@@ -365,7 +363,7 @@ def test_validate_snuba_functions_in_one_group_raise_exc():
         MetricsQuery(**metrics_query_dict)
 
 
-def test_validate_snuba_functions_in_one_group():
+def test_validate_distribution_functions_in_orderby():
     # Validate no exception is raised when all orderBy fields are presented the select
     metric_field_1 = MetricField(op="avg", metric_name=TransactionMetricKey.DURATION.value)
     metric_field_2 = MetricField(op="p50", metric_name=TransactionMetricKey.DURATION.value)
