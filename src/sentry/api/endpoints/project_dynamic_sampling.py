@@ -104,7 +104,6 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
             use_aggregate_conditions=True,
             transform_alias_to_input_format=True,
             functions_acl=["random_number"],
-            sample=float(sample_size * 100),
             referrer="dynamic-sampling.distribution.fetch-parent-transactions",
         )["data"]
 
