@@ -15,9 +15,9 @@ type Props = {
   project: Project;
   className?: string;
   onSelect?(preset: Preset, ctx: PresetContext): void;
+  selectedPresetId?: string;
 };
 export default function PresetSidebar(props: Props) {
-  const [selected, setSelected] = useState<string | null>(null);
   return (
     <div className={props.className}>
       <Header>{t('Suggested Alerts')}</Header>
@@ -28,11 +28,8 @@ export default function PresetSidebar(props: Props) {
           index={i}
           organization={props.organization}
           project={props.project}
-          selected={selected === preset.id}
-          onClick={ctx => {
-            setSelected(preset.id);
-            props.onSelect && props.onSelect(preset, ctx);
-          }}
+          selected={props.selectedPresetId === preset.id}
+          onClick={ctx => props.onSelect && props.onSelect(preset, ctx)}
         />
       ))}
     </div>

@@ -47,6 +47,7 @@ import {
   DEFAULT_CHANGE_TIME_WINDOW,
   DEFAULT_COUNT_TIME_WINDOW,
 } from './constants';
+import {Preset, PRESET_AGGREGATES, PresetContext} from './presets';
 import PresetSidebar from './presetSidebar';
 import RuleConditionsForm from './ruleConditionsForm';
 import {
@@ -104,6 +105,7 @@ type State = {
   triggers: Trigger[];
   comparisonDelta?: number;
   eventTypes?: EventTypes[];
+  selectedPresetId?: string;
   uuid?: string;
 } & AsyncComponent['state'];
 
@@ -126,6 +128,17 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     const {project} = this.state;
     // SearchBar gets its tags from Reflux.
     fetchOrganizationTags(this.api, organization.slug, [project.id]);
+
+    if (this.props.location.query.preset) {
+      const preset = PRESET_AGGREGATES.find(
+        p => p.id === this.props.location.query.preset
+      );
+      if (preset) {
+        preset
+          .makeContext(this.api, project, this.props.organization)
+          .then(ctx => this.setPreset(preset, ctx));
+      }
+    }
   }
 
   componentWillUnmount() {
@@ -177,6 +190,28 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     return [
       ['availableActions', `/organizations/${orgId}/alert-rules/available-actions/`],
     ];
+  }
+
+  setPreset(preset: Preset, context: PresetContext) {
+    this.form.setInitialData({
+      ...this.form.initialData,
+      name: context.name,
+      dataset: context.dataset,
+      eventTypes: context.eventTypes as any,
+      aggregate: context.aggregate,
+      comparisonDelta: context.comparisonDelta,
+      timeWindow: context.timeWindow,
+      query: context.query,
+    });
+    this.form.setValue('comparisonDelta', context.comparisonDelta);
+
+    this.setState({
+      comparisonType: context.comparisonType,
+      triggers: context.triggers,
+      thresholdType: context.thresholdType,
+      triggerErrors: new Map(),
+      selectedPresetId: preset.id,
+    });
   }
 
   goBack() {
@@ -705,6 +740,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       loading,
       eventTypes,
       dataset,
+      selectedPresetId,
     } = this.state;
 
     const eventTypeFilter = getEventTypeFilter(this.state.dataset, eventTypes);
@@ -802,26 +838,10 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
                   <StyledPresetSidebar
                     organization={organization}
                     project={project}
-                    onSelect={(_, context) => {
-                      this.form.setInitialData({
-                        ...this.form.initialData,
-                        name: context.name,
-                        dataset: context.dataset,
-                        eventTypes: context.eventTypes as any,
-                        aggregate: context.aggregate,
-                        comparisonDelta: context.comparisonDelta,
-                        timeWindow: context.timeWindow,
-                        query: context.query,
-                      });
-                      this.form.setValue('comparisonDelta', context.comparisonDelta);
-
-                      this.setState({
-                        comparisonType: context.comparisonType,
-                        triggers: context.triggers,
-                        thresholdType: context.thresholdType,
-                        triggerErrors: new Map(),
-                      });
+                    onSelect={(preset, context) => {
+                      this.setPreset(preset, context);
                     }}
+                    selectedPresetId={selectedPresetId}
                   />
                 )}
               <Layout.Main>

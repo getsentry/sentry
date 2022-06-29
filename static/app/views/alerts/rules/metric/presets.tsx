@@ -4,6 +4,8 @@ import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
 import {uniqueId} from 'sentry/utils/guid';
 
+import {AlertType} from '../../wizard/options';
+
 import {
   ActionType,
   AlertRuleComparisonType,
@@ -30,6 +32,8 @@ export type PresetContext = {
 };
 export type Preset = {
   Icon: typeof IconGlobe | typeof IconGraph | typeof IconBookmark;
+  // Will be shown on the corresponding alert type in the wizard.
+  alertType: AlertType;
   description: string;
   id: string;
   makeContext(
@@ -37,7 +41,6 @@ export type Preset = {
     project: Project,
     organization: Organization
   ): Promise<PresetContext>;
-
   title: string;
 };
 
@@ -74,6 +77,7 @@ export const PRESET_AGGREGATES: Preset[] = [
     title: t('Super slow transactions'),
     description: 'Know when important transactions deviate significantly from normal',
     Icon: IconGlobe,
+    alertType: 'trans_duration',
     async makeContext(client, project, organization) {
       const transaction = (
         await getHighestVolumeTransaction(client, organization.slug, project.id)
@@ -117,6 +121,7 @@ export const PRESET_AGGREGATES: Preset[] = [
     description:
       'Know when the throughput of your most important transactions drops close to 0',
     Icon: IconGraph,
+    alertType: 'throughput',
     async makeContext(client, project, organization) {
       const transaction = (
         await getHighestVolumeTransaction(client, organization.slug, project.id)
@@ -160,6 +165,7 @@ export const PRESET_AGGREGATES: Preset[] = [
     description:
       'Know when your Apdex score has moved multiple standard deviations from normal',
     Icon: IconBookmark,
+    alertType: 'apdex',
     async makeContext(client, project, organization) {
       const transaction = (
         await getHighestVolumeTransaction(client, organization.slug, project.id)
