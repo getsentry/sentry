@@ -17,10 +17,10 @@ import {
   IconUser,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
 
 import {ItemType, SearchGroup, SearchItem, Shortcut, ShortcutType} from './types';
 import {Tag} from 'sentry/types';
+import {FieldValueKind, getFieldDefinition} from 'sentry/utils/fields';
 
 export function addSpace(query = '') {
   if (query.length !== 0 && query[query.length - 1] !== ' ') {
@@ -360,8 +360,7 @@ export const getTagItemsFromKeys = (
   tagKeys: string[],
   supportedTags: {
     [key: string]: Tag;
-  },
-  getFieldDoc?: (key: string) => React.ReactNode
+  }
 ) => {
   return [...tagKeys]
     .sort((a, b) => a.localeCompare(b))
@@ -369,13 +368,13 @@ export const getTagItemsFromKeys = (
       const keyWithColon = `${key}:`;
       const sections = key.split('.');
       const kind = supportedTags[key]?.kind;
-      const documentation = getFieldDoc?.(key) || '-';
+      const definition = getFieldDefinition(key);
 
       const item: SearchItem = {
         value: keyWithColon,
         title: key,
-        documentation,
-        kind,
+        documentation: definition?.desc ?? '-',
+        kind: definition?.kind ?? FieldValueKind.FIELD,
       };
 
       const lastGroup = groups.at(-1);
