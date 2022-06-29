@@ -43,6 +43,11 @@ export type GenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
   organization: Organization;
   selection: PageFilters;
   widget: Widget;
+  afterFetchSeriesData?: (result: SeriesResponse) => void;
+  afterFetchTableData?: (
+    result: TableResponse,
+    response?: ResponseMeta
+  ) => void | {totalIssuesCount?: string};
   cursor?: string;
   limit?: number;
   onDataFetched?: ({
@@ -56,11 +61,6 @@ export type GenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
     timeseriesResults?: Series[];
     totalIssuesCount?: string;
   }) => void;
-  processRawSeriesResult?: (result: SeriesResponse) => void;
-  processRawTableResult?: (
-    result: TableResponse,
-    response?: ResponseMeta
-  ) => void | {totalIssuesCount?: string};
 };
 
 type State<SeriesResponse> = {
@@ -178,7 +178,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
       organization,
       selection,
       cursor,
-      processRawTableResult,
+      afterFetchTableData,
       onDataFetched,
     } = this.props;
     const responses = await Promise.all<[TableResponse, string, ResponseMeta]>(
@@ -189,7 +189,14 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
           requestLimit = undefined;
           requestCreator = config.getWorldMapRequest;
         }
-        return requestCreator!(
+
+        if (!requestCreator) {
+          throw new Error(
+            t('This display type is not supported by the selected dataset.')
+          );
+        }
+
+        return requestCreator(
           api,
           query,
           organization,
@@ -201,12 +208,11 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
       })
     );
 
-    // transform the data
     let transformedTableResults: TableDataWithTitle[] = [];
     let responsePageLinks: string | null = null;
-    let processedData: {totalIssuesCount?: string} | undefined;
+    let afterTableFetchData: {totalIssuesCount?: string} | undefined;
     responses.forEach(([data, _textstatus, resp], i) => {
-      processedData = processRawTableResult?.(data, resp) ?? {};
+      afterTableFetchData = afterFetchTableData?.(data, resp) ?? {};
       // Cast so we can add the title.
       const transformedData = config.transformTable(
         data,
@@ -225,7 +231,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
       onDataFetched?.({
         tableResults: transformedTableResults,
         pageLinks: responsePageLinks ?? undefined,
-        ...processedData,
+        ...afterTableFetchData,
       });
       this.setState({
         tableResults: transformedTableResults,
@@ -241,7 +247,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
       api,
       organization,
       selection,
-      processRawSeriesResult,
+      afterFetchSeriesData,
       onDataFetched,
     } = this.props;
     const responses = await Promise.all<SeriesResponse>(
@@ -258,7 +264,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
     );
     const transformedTimeseriesResults: Series[] = [];
     responses.forEach((rawResults, requestIndex) => {
-      processRawSeriesResult?.(rawResults);
+      afterFetchSeriesData?.(rawResults);
       const transformedResult = config.transformSeries!(
         rawResults,
         widget.queries[requestIndex],
@@ -306,7 +312,8 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
     } catch (err) {
       if (this._isMounted) {
         this.setState({
-          errorMessage: err?.responseJSON?.detail || t('An unknown error occurred.'),
+          errorMessage:
+            err?.responseJSON?.detail || err?.message || t('An unknown error occurred.'),
         });
       }
     } finally {
