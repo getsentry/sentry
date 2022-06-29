@@ -1,5 +1,7 @@
 import {browserHistory} from 'react-router';
 
+import {initializeOrg} from 'sentry-test/initializeOrg';
+
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import EventView from 'sentry/utils/discover/eventView';
 import {DisplayType} from 'sentry/views/dashboardsV2/types';
@@ -7,6 +9,7 @@ import {
   decodeColumnOrder,
   downloadAsCsv,
   eventViewToWidgetQuery,
+  generateFieldOptions,
   getExpandedResults,
   pushEventViewToLocation,
 } from 'sentry/views/eventsV2/utils';
@@ -781,5 +784,25 @@ describe('eventViewToWidgetQuery', function () {
       displayType: DisplayType.TABLE,
     });
     expect(widgetQuery.orderby).toEqual('-project.id');
+  });
+});
+
+describe('generateFieldOptions', function () {
+  it('generates custom measurement field options', function () {
+    expect(
+      generateFieldOptions({
+        organization: initializeOrg().organization,
+        customMeasurementKeys: ['measurements.custom.measurement'],
+      })['measurement:measurements.custom.measurement']
+    ).toEqual({
+      label: 'measurements.custom.measurement',
+      value: {
+        kind: 'custom_measurement',
+        meta: {
+          dataType: 'number',
+          name: 'measurements.custom.measurement',
+        },
+      },
+    });
   });
 });

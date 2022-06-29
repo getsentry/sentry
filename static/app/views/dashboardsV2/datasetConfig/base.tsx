@@ -8,6 +8,7 @@ import {TableData} from 'sentry/utils/discover/discoverQuery';
 import {MetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {isEquation} from 'sentry/utils/discover/fields';
+import {MeasurementCollection} from 'sentry/utils/measurements/measurements';
 import {FieldValueOption} from 'sentry/views/eventsV2/table/queryField';
 import {FieldValue} from 'sentry/views/eventsV2/table/types';
 
@@ -43,7 +44,8 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
    */
   getTableFieldOptions: (
     organization: Organization,
-    tags?: TagCollection
+    tags?: TagCollection,
+    customMeasurements?: MeasurementCollection
   ) => Record<string, SelectValue<FieldValue>>;
   /**
    * List of supported display types for dataset.

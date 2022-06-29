@@ -19,9 +19,11 @@ import {
 import WidgetBuilder, {WidgetBuilderProps} from 'sentry/views/dashboardsV2/widgetBuilder';
 
 const defaultOrgFeatures = [
+  'performance-view',
   'new-widget-builder-experience-design',
   'dashboards-edit',
   'global-views',
+  'dashboard-custom-measurement-widgets',
 ];
 
 // Mocking worldMapChart to avoid act warnings
@@ -210,6 +212,12 @@ describe('WidgetBuilder', function () {
       url: '/organizations/org-slug/tags/',
       method: 'GET',
       body: TestStubs.Tags(),
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/measurements-meta/',
+      method: 'GET',
+      body: {'measurements.custom.measurement': {functions: ['p99']}},
     });
     TagStore.reset();
   });
@@ -3404,6 +3412,49 @@ describe('WidgetBuilder', function () {
             })
           );
         });
+      });
+    });
+
+    it('can choose a custom measurement', async function () {
+      const {router} = renderTestComponent({
+        query: {source: DashboardWidgetSource.DISCOVERV2},
+        dashboard: testDashboard,
+      });
+
+      expect(await screen.findAllByText('Custom Widget')).toHaveLength(2);
+
+      // 1 in the table header, 1 in the column selector, 1 in the sort field
+      const countFields = screen.getAllByText('count()');
+      expect(countFields).toHaveLength(3);
+
+      await selectEvent.select(countFields[1], ['p99(…)']);
+      await selectEvent.select(screen.getByText('transaction.duration'), [
+        'measurements.custom.measurement',
+      ]);
+
+      userEvent.click(screen.getByText('Add Widget'));
+
+      await waitFor(() => {
+        expect(router.push).toHaveBeenCalledWith(
+          expect.objectContaining({
+            pathname: '/organizations/org-slug/dashboard/2/',
+            query: {
+              displayType: 'table',
+              interval: '5m',
+              title: 'Custom Widget',
+              queryNames: [''],
+              queryConditions: [''],
+              queryFields: ['p99(measurements.custom.measurement)'],
+              queryOrderby: '-p99(measurements.custom.measurement)',
+              start: null,
+              end: null,
+              statsPeriod: '24h',
+              utc: false,
+              project: [],
+              environment: [],
+            },
+          })
+        );
       });
     });
   });
