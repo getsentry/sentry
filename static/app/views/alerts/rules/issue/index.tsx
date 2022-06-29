@@ -15,7 +15,6 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {updateOnboardingTask} from 'sentry/actionCreators/onboardingTasks';
 import Access from 'sentry/components/acl/access';
-import Feature from 'sentry/components/acl/feature';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
@@ -1006,112 +1005,17 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                             />
                           </ChevronContainer>
 
-                          <Feature
-                            features={['projects:alert-filters']}
-                            project={project}
-                          >
-                            {({hasFeature}) => (
-                              <StepContent>
-                                <StepLead>
-                                  {tct(
-                                    '[when:When] an event is captured by Sentry and [selector] of the following happens',
-                                    {
-                                      when: <Badge />,
-                                      selector: (
-                                        <EmbeddedWrapper>
-                                          <EmbeddedSelectField
-                                            className={classNames({
-                                              error: this.hasError('actionMatch'),
-                                            })}
-                                            inline={false}
-                                            styles={{
-                                              control: provided => ({
-                                                ...provided,
-                                                minHeight: '20px',
-                                                height: '20px',
-                                              }),
-                                            }}
-                                            isSearchable={false}
-                                            isClearable={false}
-                                            name="actionMatch"
-                                            required
-                                            flexibleControlStateSize
-                                            options={
-                                              hasFeature
-                                                ? ACTION_MATCH_OPTIONS_MIGRATED
-                                                : ACTION_MATCH_OPTIONS
-                                            }
-                                            onChange={val =>
-                                              this.handleChange('actionMatch', val)
-                                            }
-                                            disabled={disabled}
-                                          />
-                                        </EmbeddedWrapper>
-                                      ),
-                                    }
-                                  )}
-                                </StepLead>
-                                <RuleNodeList
-                                  nodes={this.getConditions()}
-                                  items={conditions ?? []}
-                                  selectType="grouped"
-                                  placeholder={
-                                    hasFeature
-                                      ? t('Add optional trigger...')
-                                      : t('Add optional condition...')
-                                  }
-                                  onPropertyChange={this.handleChangeConditionProperty}
-                                  onAddRow={this.handleAddCondition}
-                                  onResetRow={this.handleResetCondition}
-                                  onDeleteRow={this.handleDeleteCondition}
-                                  organization={organization}
-                                  project={project}
-                                  disabled={disabled}
-                                  error={
-                                    this.hasError('conditions') && (
-                                      <StyledAlert type="error">
-                                        {detailedError?.conditions[0]}
-                                      </StyledAlert>
-                                    )
-                                  }
-                                />
-                              </StepContent>
-                            )}
-                          </Feature>
-                        </StepContainer>
-                      </Step>
-
-                      <Feature
-                        features={[
-                          'organizations:alert-filters',
-                          'projects:alert-filters',
-                        ]}
-                        organization={organization}
-                        project={project}
-                        requireAll={false}
-                      >
-                        <Step>
-                          <StepConnector />
-
-                          <StepContainer>
-                            <ChevronContainer>
-                              <IconChevron
-                                color="gray200"
-                                isCircled
-                                direction="right"
-                                size="sm"
-                              />
-                            </ChevronContainer>
-
-                            <StepContent>
-                              <StepLead>
-                                {tct('[if:If] [selector] of these filters match', {
-                                  if: <Badge />,
+                          <StepContent>
+                            <StepLead>
+                              {tct(
+                                '[when:When] an event is captured by Sentry and [selector] of the following happens',
+                                {
+                                  when: <Badge />,
                                   selector: (
                                     <EmbeddedWrapper>
                                       <EmbeddedSelectField
                                         className={classNames({
-                                          error: this.hasError('filterMatch'),
+                                          error: this.hasError('actionMatch'),
                                         })}
                                         inline={false}
                                         styles={{
@@ -1123,42 +1027,112 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                                         }}
                                         isSearchable={false}
                                         isClearable={false}
-                                        name="filterMatch"
+                                        name="actionMatch"
                                         required
                                         flexibleControlStateSize
-                                        options={ACTION_MATCH_OPTIONS}
+                                        options={ACTION_MATCH_OPTIONS_MIGRATED}
                                         onChange={val =>
-                                          this.handleChange('filterMatch', val)
+                                          this.handleChange('actionMatch', val)
                                         }
                                         disabled={disabled}
                                       />
                                     </EmbeddedWrapper>
                                   ),
-                                })}
-                              </StepLead>
-                              <RuleNodeList
-                                nodes={this.state.configs?.filters ?? null}
-                                items={filters ?? []}
-                                placeholder={t('Add optional filter...')}
-                                onPropertyChange={this.handleChangeFilterProperty}
-                                onAddRow={this.handleAddFilter}
-                                onResetRow={this.handleResetFilter}
-                                onDeleteRow={this.handleDeleteFilter}
-                                organization={organization}
-                                project={project}
-                                disabled={disabled}
-                                error={
-                                  this.hasError('filters') && (
-                                    <StyledAlert type="error">
-                                      {detailedError?.filters[0]}
-                                    </StyledAlert>
-                                  )
                                 }
-                              />
-                            </StepContent>
-                          </StepContainer>
-                        </Step>
-                      </Feature>
+                              )}
+                            </StepLead>
+                            <RuleNodeList
+                              nodes={this.getConditions()}
+                              items={conditions ?? []}
+                              selectType="grouped"
+                              placeholder={t('Add optional trigger...')}
+                              onPropertyChange={this.handleChangeConditionProperty}
+                              onAddRow={this.handleAddCondition}
+                              onResetRow={this.handleResetCondition}
+                              onDeleteRow={this.handleDeleteCondition}
+                              organization={organization}
+                              project={project}
+                              disabled={disabled}
+                              error={
+                                this.hasError('conditions') && (
+                                  <StyledAlert type="error">
+                                    {detailedError?.conditions[0]}
+                                  </StyledAlert>
+                                )
+                              }
+                            />
+                          </StepContent>
+                        </StepContainer>
+                      </Step>
+
+                      <Step>
+                        <StepConnector />
+
+                        <StepContainer>
+                          <ChevronContainer>
+                            <IconChevron
+                              color="gray200"
+                              isCircled
+                              direction="right"
+                              size="sm"
+                            />
+                          </ChevronContainer>
+
+                          <StepContent>
+                            <StepLead>
+                              {tct('[if:If] [selector] of these filters match', {
+                                if: <Badge />,
+                                selector: (
+                                  <EmbeddedWrapper>
+                                    <EmbeddedSelectField
+                                      className={classNames({
+                                        error: this.hasError('filterMatch'),
+                                      })}
+                                      inline={false}
+                                      styles={{
+                                        control: provided => ({
+                                          ...provided,
+                                          minHeight: '20px',
+                                          height: '20px',
+                                        }),
+                                      }}
+                                      isSearchable={false}
+                                      isClearable={false}
+                                      name="filterMatch"
+                                      required
+                                      flexibleControlStateSize
+                                      options={ACTION_MATCH_OPTIONS}
+                                      onChange={val =>
+                                        this.handleChange('filterMatch', val)
+                                      }
+                                      disabled={disabled}
+                                    />
+                                  </EmbeddedWrapper>
+                                ),
+                              })}
+                            </StepLead>
+                            <RuleNodeList
+                              nodes={this.state.configs?.filters ?? null}
+                              items={filters ?? []}
+                              placeholder={t('Add optional filter...')}
+                              onPropertyChange={this.handleChangeFilterProperty}
+                              onAddRow={this.handleAddFilter}
+                              onResetRow={this.handleResetFilter}
+                              onDeleteRow={this.handleDeleteFilter}
+                              organization={organization}
+                              project={project}
+                              disabled={disabled}
+                              error={
+                                this.hasError('filters') && (
+                                  <StyledAlert type="error">
+                                    {detailedError?.filters[0]}
+                                  </StyledAlert>
+                                )
+                              }
+                            />
+                          </StepContent>
+                        </StepContainer>
+                      </Step>
 
                       <Step>
                         <StepContainer>

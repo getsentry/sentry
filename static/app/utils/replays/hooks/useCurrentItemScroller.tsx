@@ -1,12 +1,15 @@
 import type {RefObject} from 'react';
-import {useEffect} from 'react';
+import {useEffect, useState} from 'react';
 
 const defer = (fn: () => void) => setTimeout(fn, 0);
 
 export function useCurrentItemScroller(containerRef: RefObject<HTMLElement>) {
+  const [isAutoScrollDisabled, setIsAutoScrollDisabled] = useState(false);
+
   useEffect(() => {
     const containerEl = containerRef.current;
     let observer: MutationObserver | undefined;
+
     if (containerEl) {
       const isContainerScrollable = () =>
         containerEl.scrollHeight > containerEl.offsetHeight;
@@ -20,7 +23,7 @@ export function useCurrentItemScroller(containerRef: RefObject<HTMLElement>) {
           ) {
             const element = mutation.target as HTMLElement;
             const isCurrent = element?.ariaCurrent === 'true';
-            if (isCurrent && isContainerScrollable()) {
+            if (isCurrent && isContainerScrollable() && !isAutoScrollDisabled) {
               // Deferring the scroll helps prevent it from not being executed
               // in certain situations. (jumping to a time with the scrubber)
               defer(() => {
@@ -42,8 +45,21 @@ export function useCurrentItemScroller(containerRef: RefObject<HTMLElement>) {
       });
     }
 
+    const handleMouseEnter = () => {
+      setIsAutoScrollDisabled(true);
+    };
+
+    const handleMouseLeave = () => {
+      setIsAutoScrollDisabled(false);
+    };
+
+    containerEl?.addEventListener('mouseenter', handleMouseEnter);
+    containerEl?.addEventListener('mouseleave', handleMouseLeave);
+
     return () => {
       observer?.disconnect();
+      containerEl?.removeEventListener('mouseenter', handleMouseEnter);
+      containerEl?.removeEventListener('mouseleave', handleMouseLeave);
     };
-  }, [containerRef]);
+  }, [containerRef, isAutoScrollDisabled]);
 }

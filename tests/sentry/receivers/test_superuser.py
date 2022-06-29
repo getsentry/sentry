@@ -1,3 +1,4 @@
+from sentry.api.endpoints.auth_index import PREFILLED_SU_MODAL_KEY
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import User
 from sentry.receivers.superuser import disable_superuser, enable_superuser
@@ -51,6 +52,28 @@ class SuperuserReceiverTest(TestCase):
         ):
             enable_superuser(request=self.non_superuser_request, user=self.non_superuser)
             assert not is_active_superuser(self.non_superuser_request)
+
+    def test_enable_superuser_when_session_has_prefill_key_superuser(self):
+
+        self.superuser_request.session[PREFILLED_SU_MODAL_KEY] = {
+            "superuserAccessCategory": "for_unit_test",
+            "superuserReason": "Edit organization settings",
+            "isSuperuserModal": True,
+        }
+
+        enable_superuser(request=self.superuser_request, user=self.superuser)
+        assert is_active_superuser(self.superuser_request)
+
+    def test_enable_superuser_when_session_has_prefill_key_non_superuser(self):
+
+        self.superuser_request.session[PREFILLED_SU_MODAL_KEY] = {
+            "superuserAccessCategory": "for_unit_test",
+            "superuserReason": "Edit organization settings",
+            "isSuperuserModal": True,
+        }
+
+        enable_superuser(request=self.non_superuser_request, user=self.non_superuser)
+        assert not is_active_superuser(self.non_superuser_request)
 
     def test_enable_superuser_saas_non__superuser(self):
         with self.settings(

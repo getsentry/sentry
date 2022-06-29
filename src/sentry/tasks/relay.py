@@ -3,6 +3,7 @@ import time
 
 import sentry_sdk
 
+from sentry.models.organization import Organization
 from sentry.relay import projectconfig_cache, projectconfig_debounce_cache
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
@@ -34,20 +35,6 @@ def build_project_config(public_key=None, **kwargs):
     """
     try:
         from sentry.models import ProjectKey
-
-        now = time.time()
-        sentry_sdk.set_tag("public_key", public_key)
-        sentry_sdk.set_context("kwargs", kwargs)
-
-        metrics.incr(
-            "relay.projectconfig_cache.run",
-            tags={"task": "build"},
-            sample_rate=1,
-        )
-        schedule_duration = now - kwargs.get("tmp_scheduled", now)
-        metrics.timing(
-            "relay.projectconfig_cache.schedule_duration", schedule_duration, sample_rate=1
-        )
 
         try:
             key = ProjectKey.objects.get(public_key=public_key)
@@ -88,7 +75,6 @@ def schedule_build_project_config(public_key):
     metrics.incr(
         "relay.projectconfig_cache.scheduled",
         tags={"task": "build"},
-        sample_rate=1,
     )
     build_project_config.delay(public_key=public_key, tmp_scheduled=tmp_scheduled)
 
@@ -99,11 +85,6 @@ def schedule_build_project_config(public_key):
     # the project as debounced.
     projectconfig_debounce_cache.debounce(
         public_key=public_key, project_id=None, organization_id=None
-    )
-
-    # TODO: Temprorary task
-    check_build_project_config.apply_async(
-        kwargs={"public_key": public_key, "tmp_scheduled": tmp_scheduled}, countdown=7
     )
 
 
@@ -123,28 +104,54 @@ def compute_configs(organization_id=None, project_id=None, public_key=None):
 
     You must only provide one single argument, not all.
 
-    :returns: A dict mapping all affected public keys to their config.  The dict could
-       contain `None` as value which indicates the config should not exist.
+    :returns: A dict mapping all affected public keys to their config.  The dict will not
+       contain keys which should be retained in the cache unchanged.
     """
-    from sentry.models import Project, ProjectKey, ProjectKeyStatus
+    from sentry.models import Project, ProjectKey
 
     validate_args(organization_id, project_id, public_key)
     configs = {}
 
     if organization_id:
-        # Currently we do not re-compute all projects in an organization, instead simply
-        # remove the configs and rely on relay requests to lazily re-compute them.  This
-        # because some organisations have too many projects which may not be active.  At
-        # some point this should be handled better.
-        projects = list(Project.objects.filter(organization_id=organization_id))
-        for key in ProjectKey.objects.filter(project__in=projects):
-            if key.status == ProjectKeyStatus.ACTIVE:
-                configs[key.public_key] = None
-            else:
-                configs[key.public_key] = {"disabled": True}
+        # We want to re-compute all projects in an organization, instead of simply
+        # removing the configs and rely on relay requests to lazily re-compute them.  This
+        # is done because we do want want to delete project configs in `invalidate_project_config`
+        # which might cause the key to disappear and trigger the task again.  Without this behavior
+        # it could be possible that refrequent invalidations cause the task to take excessive time
+        # to complete.
+        for organization in Organization.objects.filter(id=organization_id):
+            for project in Project.objects.filter(organization_id=organization_id):
+                project.set_cached_field_value("organization", organization)
+                for key in ProjectKey.objects.filter(project_id=project.id):
+                    key.set_cached_field_value("project", project)
+                    # If we find the config in the cache it means it was active.  As such we want to
+                    # recalculate it.  If the config was not there at all, we leave it and avoid the
+                    # cost of re-computation.
+                    if projectconfig_cache.get(key.public_key) is not None:
+                        configs[key.public_key] = compute_projectkey_config(key)
+                        action = "recompute"
+                    else:
+                        action = "not-cached"
+                    metrics.incr(
+                        "relay.projectconfig_cache.invalidation.recompute",
+                        tags={"action": action, "scope": "organization"},
+                    )
     elif project_id:
-        for key in ProjectKey.objects.filter(project_id=project_id):
-            configs[key.public_key] = compute_projectkey_config(key)
+        for project in Project.objects.filter(id=project_id):
+            for key in ProjectKey.objects.filter(project_id=project_id):
+                key.set_cached_field_value("project", project)
+                # If we find the config in the cache it means it was active.  As such we want to
+                # recalculate it.  If the config was not there at all, we leave it and avoid the
+                # cost of re-computation.
+                if projectconfig_cache.get(key.public_key) is not None:
+                    configs[key.public_key] = compute_projectkey_config(key)
+                    action = "recompute"
+                else:
+                    action = "not-cached"
+                    metrics.incr(
+                        "relay.projectconfig_cache.invalidation.recompute",
+                        tags={"action": action, "scope": "project"},
+                    )
     elif public_key:
         try:
             key = ProjectKey.objects.get(public_key=public_key)
@@ -183,7 +190,7 @@ def compute_projectkey_config(key):
 
 @instrumented_task(
     name="sentry.tasks.relay.invalidate_project_config",
-    queue="relay_config",
+    queue="relay_config_bulk",
     acks_late=True,
     soft_time_limit=25 * 60,  # 25mins
     time_limit=25 * 60 + 5,
@@ -227,15 +234,10 @@ def invalidate_project_config(
     sentry_sdk.set_tag("trigger", trigger)
     sentry_sdk.set_context("kwargs", kwargs)
 
-    configs = compute_configs(
+    updated_configs = compute_configs(
         organization_id=organization_id, project_id=project_id, public_key=public_key
     )
-
-    deleted_keys = [key for key, cfg in configs.items() if cfg is None]
-    projectconfig_cache.delete_many(deleted_keys)
-
-    configs = {key: cfg for key, cfg in configs.items() if cfg is not None}
-    projectconfig_cache.set_many(configs)
+    projectconfig_cache.set_many(updated_configs)
 
 
 def schedule_invalidate_project_config(
@@ -273,46 +275,3 @@ def schedule_invalidate_project_config(
     projectconfig_debounce_cache.invalidation.debounce(
         public_key=public_key, project_id=project_id, organization_id=organization_id
     )
-
-
-@instrumented_task(
-    name="sentry.tasks.relay.check_build_project_config",
-    queue="relay_config_bulk",
-)
-def check_build_project_config(public_key=None, **kwargs):
-    """Temporary task to verify a build task produces a cache entry
-
-    A build task should result in a cache entry being written.  Sometimes it seems this
-    doesn't work.  This task checks for cache entries and logs data if they are missing.  It
-    should be scheduled together with the build task itself.
-
-    This task needs to be scheduled in the future together with the original task.
-    """
-    from sentry.models import ProjectKey
-
-    metrics.incr(
-        "relay.projectconfig_cache.run",
-        tags={"task": "check"},
-        sample_rate=1,
-    )
-    if not public_key:
-        raise TypeError("public key must be present")
-    cfg = projectconfig_cache.get(public_key)
-    if not cfg:
-        metrics.incr("relay.projectconfig_cache.check_task.missing", sample_rate=1)
-
-        # Purposefully not catching exceptions for missing items from the DB, the task will
-        # fail and sentry will capture them.
-        with sentry_sdk.configure_scope() as scope:
-            scope.set_extra("PublicKey", public_key)
-        key = ProjectKey.objects.get(public_key=public_key)
-        project_id = key.project.id
-        org_id = key.project.organization.id
-        with sentry_sdk.configure_scope() as scope:
-            scope.set_extra("Project.id", project_id)
-            scope.set_extra("Organization.id", org_id)
-
-            sentry_sdk.capture_message("PublicKey not found in cache", level="warning")
-
-    else:
-        metrics.incr("relay.projectconfig_cache.check_task.found", sample_rate=1)
