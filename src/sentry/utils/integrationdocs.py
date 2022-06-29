@@ -1,5 +1,4 @@
-# NOTE: This is run external to sentry as well as part of the setup
-# process.  Thus we do not want to import non stdlib things here.
+from __future__ import annotations
 
 import concurrent.futures
 
@@ -11,9 +10,30 @@ import multiprocessing
 import os
 import sys
 import time
+from typing import IO, Any, TypedDict
 from urllib.request import urlopen
 
 import sentry
+
+# NOTE: This is run external to sentry as well as part of the setup
+# process.  Thus we do not want to import non stdlib things here.
+
+
+class Integration(TypedDict):
+    key: str
+    type: str
+    details: str
+    doc_link: str
+    name: str
+    aliases: list[str]
+    categories: list[str]
+
+
+class Platform(TypedDict):
+    id: str
+    name: str
+    integrations: list[dict[str, str]]
+
 
 BASE_URL = "https://docs.sentry.io/_platforms/{}"
 
@@ -42,12 +62,12 @@ the latest list of integrations and serve them in your local Sentry install.
 logger = logging.getLogger("sentry")
 
 
-def echo(what):
+def echo(what: str) -> None:
     sys.stdout.write(what + "\n")
     sys.stdout.flush()
 
 
-def dump_doc(path, data):
+def dump_doc(path: str, data: dict[str, Any]) -> None:
     expected_commonpath = os.path.realpath(DOC_FOLDER)
     doc_path = os.path.join(DOC_FOLDER, f"{path}.json")
     doc_real_path = os.path.realpath(doc_path)
@@ -65,8 +85,7 @@ def dump_doc(path, data):
         f.write("\n")
 
 
-def load_doc(path):
-
+def load_doc(path: str) -> dict[str, Any] | None:
     expected_commonpath = os.path.realpath(DOC_FOLDER)
     doc_path = os.path.join(DOC_FOLDER, f"{path}.json")
     doc_real_path = os.path.realpath(doc_path)
@@ -76,33 +95,35 @@ def load_doc(path):
 
     try:
         with open(doc_path, encoding="utf-8") as f:
-            return json.load(f)
+            return json.load(f)  # type: ignore[no-any-return]
     except OSError:
         return None
 
 
-def get_integration_id(platform_id, integration_id):
+def get_integration_id(platform_id: str, integration_id: str) -> str:
     if integration_id == "_self":
         return platform_id
     return f"{platform_id}-{integration_id}"
 
 
-def urlopen_with_retries(url, timeout=5, retries=10):
+def urlopen_with_retries(url: str, timeout: int = 5, retries: int = 10) -> IO[bytes]:
     for i in range(retries):
         try:
-            return urlopen(url, timeout=timeout)
+            return urlopen(url, timeout=timeout)  # type: ignore
         except Exception:
             if i == retries - 1:
                 raise
             time.sleep(i * 0.01)
+    else:
+        raise AssertionError("unreachable")
 
 
-def sync_docs(quiet=False):
+def sync_docs(quiet: bool = False) -> None:
     if not quiet:
         echo("syncing documentation (platform index)")
-    body = urlopen_with_retries(BASE_URL.format("_index.json")).read().decode("utf-8")
-    data = json.loads(body)
-    platform_list = []
+    data: dict[str, dict[str, dict[str, Integration]]]
+    data = json.load(urlopen_with_retries(BASE_URL.format("_index.json")))
+    platform_list: list[Platform] = []
     for platform_id, integrations in data["platforms"].items():
         platform_list.append(
             {
@@ -142,7 +163,9 @@ def sync_docs(quiet=False):
             future.result()  # needed to trigger exceptions
 
 
-def sync_integration_docs(platform_id, integration_id, path, quiet=False):
+def sync_integration_docs(
+    platform_id: str, integration_id: str, path: str, quiet: bool = False
+) -> None:
     if not quiet:
         echo(f"  syncing documentation for {platform_id}.{integration_id} integration")
 
@@ -153,7 +176,7 @@ def sync_integration_docs(platform_id, integration_id, path, quiet=False):
     dump_doc(key, {"id": key, "name": data["name"], "html": data["body"], "link": data["doc_link"]})
 
 
-def integration_doc_exists(integration_id):
+def integration_doc_exists(integration_id: str) -> bool:
     # We use listdir() here as integration_id comes from user data
     # and using os.path.join() would allow directory traversal vulnerabilities
     # which we don't want.
