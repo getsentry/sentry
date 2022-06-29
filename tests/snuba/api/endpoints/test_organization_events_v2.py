@@ -10611,6 +10611,28 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         )
         assert response.data["data"][0][f"count_if(unicode-phrase, equals, {unicode_phrase1})"] == 1
 
+    def test_count_if_measurements_cls(self):
+        data = load_data("transaction", timestamp=before_now(minutes=1))
+        data["measurements"]["cls"] = {"value": 0.5}
+        self.store_event(data, project_id=self.project.id)
+        data = load_data("transaction", timestamp=before_now(minutes=1))
+        data["measurements"]["cls"] = {"value": 0.1}
+        self.store_event(data, project_id=self.project.id)
+
+        query = {
+            "field": [
+                "count_if(measurements.cls, greater, 0.05)",
+                "count_if(measurements.cls, less, 0.3)",
+            ],
+            "project": [self.project.id],
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200
+        assert len(response.data["data"]) == 1
+
+        assert response.data["data"][0]["count_if(measurements.cls, greater, 0.05)"] == 2
+        assert response.data["data"][0]["count_if(measurements.cls, less, 0.3)"] == 1
+
     def test_count_if_filter(self):
         for i in range(5):
             data = load_data(
