@@ -53,8 +53,8 @@ class IssueListSidebar extends Component<Props, State> {
       .map(p => p.text)
       .join(' ');
     const parsedFilers = parsedResult?.filter(
-      p => p.type === Token.Filter
-    ) as TokenResult<Token.Filter>[];
+      (p): p is TokenResult<Token.Filter> => p.type === Token.Filter
+    );
     const queryObj = Object.fromEntries(
       parsedFilers.map((p: TokenResult<Token.Filter>) => [p.key.text, p.value.text])
     );
