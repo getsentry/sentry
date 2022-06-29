@@ -85,6 +85,11 @@ const storeConfig: TagStoreDefinition = {
       'linked',
       'unlinked',
     ];
+
+    const sortedTagKeys = Object.keys(this.state).sort((a, b) => {
+      return a.toLowerCase().localeCompare(b.toLowerCase());
+    });
+
     return {
       is: {
         key: 'is',
@@ -96,7 +101,7 @@ const storeConfig: TagStoreDefinition = {
       has: {
         key: 'has',
         name: 'Has Tag',
-        values: Object.keys(this.state),
+        values: sortedTagKeys,
         predefined: true,
       },
       assigned: {
