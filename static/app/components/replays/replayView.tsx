@@ -1,10 +1,10 @@
-import React, {useEffect, useRef, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
 import {Panel, PanelBody, PanelHeader as _PanelHeader} from 'sentry/components/panels';
-import HorizontalMouseTracking from 'sentry/components/replays/player/horizontalMouseTracking';
 import {PlayerScrubber} from 'sentry/components/replays/player/scrubber';
+import ScrubberMouseTracking from 'sentry/components/replays/player/scrubberMouseTracking';
 import ReplayController from 'sentry/components/replays/replayController';
 import ReplayCurrentUrl from 'sentry/components/replays/replayCurrentUrl';
 import ReplayPlayer from 'sentry/components/replays/replayPlayer';
@@ -55,9 +55,9 @@ function ReplayView({isFullscreen, toggleFullscreen}: Props) {
       <PanelHeader ref={playerRef} disablePadding noBorder>
         <ReplayPlayer height={isFullscreen ? Infinity : playerHeight} />
       </PanelHeader>
-      <HorizontalMouseTracking>
+      <ScrubberMouseTracking>
         <PlayerScrubber />
-      </HorizontalMouseTracking>
+      </ScrubberMouseTracking>
       <ReplayControllerWrapper>
         <ReplayController toggleFullscreen={toggleFullscreen} />
       </ReplayControllerWrapper>

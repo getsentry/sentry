@@ -1,10 +1,10 @@
 import React, {useCallback, useRef} from 'react';
 import * as Sentry from '@sentry/react';
 
-import {useReplayContext} from 'sentry/components/replays/replayContext';
-
-type Props = {
+type CallbackArgs = {height: number; left: number; top: number; width: number};
+export type Props = {
   children: React.ReactNode;
+  onMouseMove: (args: undefined | CallbackArgs) => void;
 };
 
 class AbortError extends Error {}
@@ -38,16 +38,14 @@ function getBoundingRect(
   });
 }
 
-// TODO(replay): should this be an HoC?
-function HorizontalMouseTracking({children}: Props) {
+function MouseTracking({onMouseMove, children}: Props) {
   const elem = useRef<HTMLDivElement>(null);
   const controller = useRef<AbortController>(new AbortController());
-  const {duration, setCurrentHoverTime} = useReplayContext();
 
-  const onMouseMove = useCallback(
+  const handleMouseMove = useCallback(
     async (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
-      if (!elem.current || duration === undefined) {
-        setCurrentHoverTime(undefined);
+      if (!elem.current) {
+        onMouseMove(undefined);
         return;
       }
 
@@ -55,24 +53,22 @@ function HorizontalMouseTracking({children}: Props) {
         const rect = await getBoundingRect(elem.current, {
           signal: controller.current.signal,
         });
-        const left = e.clientX - rect.left;
-        if (left >= 0) {
-          const percent = left / rect.width;
-          const time = percent * duration;
-          setCurrentHoverTime(time);
-        } else {
-          setCurrentHoverTime(undefined);
-        }
+        onMouseMove({
+          height: rect.height,
+          left: Math.min(e.clientX - rect.left, rect.width),
+          top: Math.min(e.clientY - rect.top, rect.height),
+          width: rect.width,
+        });
       } catch (err) {
         if (err instanceof AbortError) {
-          // Ignore abortions
+          // Ignore cancelled getBoundingRect calls
           return;
         }
 
         Sentry.captureException(err);
       }
     },
-    [controller, duration, setCurrentHoverTime]
+    [onMouseMove, controller]
   );
 
   const onMouseLeave = useCallback(() => {
@@ -81,14 +77,14 @@ function HorizontalMouseTracking({children}: Props) {
       controller.current = new AbortController();
     }
 
-    setCurrentHoverTime(undefined);
-  }, [controller, setCurrentHoverTime]);
+    onMouseMove(undefined);
+  }, [onMouseMove, controller]);
 
   return (
     <div
       ref={elem}
-      onMouseEnter={onMouseMove}
-      onMouseMove={onMouseMove}
+      onMouseEnter={handleMouseMove}
+      onMouseMove={handleMouseMove}
       onMouseLeave={onMouseLeave}
     >
       {children}
@@ -96,4 +92,4 @@ function HorizontalMouseTracking({children}: Props) {
   );
 }
 
-export default HorizontalMouseTracking;
+export default MouseTracking;
