@@ -49,7 +49,7 @@ describe('TeamMembers', function () {
       <TeamMembers params={{orgId: org.slug, teamId: team.slug}} organization={org} />
     );
 
-    userEvent.click(await screen.findByTestId('add-member'));
+    userEvent.click((await screen.findAllByRole('button', {name: 'Add Member'}))[0]);
     userEvent.click(screen.getAllByTestId('letter_avatar-avatar')[0]);
 
     expect(createMock).toHaveBeenCalled();
@@ -61,7 +61,7 @@ describe('TeamMembers', function () {
       <TeamMembers params={{orgId: org.slug, teamId: team.slug}} organization={org} />
     );
 
-    userEvent.click(await screen.findByTestId('add-member'));
+    userEvent.click((await screen.findAllByRole('button', {name: 'Add Member'}))[0]);
     userEvent.click(screen.getAllByTestId('letter_avatar-avatar')[0]);
 
     expect(createMock).toHaveBeenCalled();
@@ -73,7 +73,7 @@ describe('TeamMembers', function () {
       <TeamMembers params={{orgId: org.slug, teamId: team.slug}} organization={org} />
     );
 
-    userEvent.click(await screen.findByTestId('add-member'));
+    userEvent.click((await screen.findAllByRole('button', {name: 'Add Member'}))[0]);
     userEvent.click(screen.getAllByTestId('letter_avatar-avatar')[0]);
 
     expect(createMock).toHaveBeenCalled();
@@ -85,7 +85,7 @@ describe('TeamMembers', function () {
       <TeamMembers params={{orgId: org.slug, teamId: team.slug}} organization={org} />
     );
 
-    userEvent.click(await screen.findByTestId('add-member'));
+    userEvent.click((await screen.findAllByRole('button', {name: 'Add Member'}))[0]);
     userEvent.click(screen.getAllByTestId('letter_avatar-avatar')[0]);
 
     expect(openTeamAccessRequestModal).toHaveBeenCalled();
@@ -97,7 +97,7 @@ describe('TeamMembers', function () {
       <TeamMembers params={{orgId: org.slug, teamId: team.slug}} organization={org} />
     );
 
-    userEvent.click(await screen.findByTestId('add-member'));
+    userEvent.click((await screen.findAllByRole('button', {name: 'Add Member'}))[0]);
     userEvent.click(screen.getByTestId('invite-member'));
 
     expect(openInviteMembersModal).toHaveBeenCalled();
@@ -109,7 +109,7 @@ describe('TeamMembers', function () {
       <TeamMembers params={{orgId: org.slug, teamId: team.slug}} organization={org} />
     );
 
-    userEvent.click(await screen.findByTestId('add-member'));
+    userEvent.click((await screen.findAllByRole('button', {name: 'Add Member'}))[0]);
     userEvent.click(screen.getByTestId('invite-member'));
 
     expect(openInviteMembersModal).toHaveBeenCalled();
@@ -121,7 +121,7 @@ describe('TeamMembers', function () {
       <TeamMembers params={{orgId: org.slug, teamId: team.slug}} organization={org} />
     );
 
-    userEvent.click(await screen.findByTestId('add-member'));
+    userEvent.click((await screen.findAllByRole('button', {name: 'Add Member'}))[0]);
     userEvent.click(screen.getByTestId('invite-member'));
 
     expect(openInviteMembersModal).toHaveBeenCalled();
@@ -133,7 +133,7 @@ describe('TeamMembers', function () {
       <TeamMembers params={{orgId: org.slug, teamId: team.slug}} organization={org} />
     );
 
-    userEvent.click(await screen.findByTestId('add-member'));
+    userEvent.click((await screen.findAllByRole('button', {name: 'Add Member'}))[0]);
     userEvent.click(screen.getByTestId('invite-member'));
 
     expect(openInviteMembersModal).toHaveBeenCalled();
@@ -151,7 +151,7 @@ describe('TeamMembers', function () {
       />
     );
 
-    await screen.findByTestId('add-member');
+    await screen.findAllByRole('button', {name: 'Add Member'});
 
     expect(deleteMock).not.toHaveBeenCalled();
     userEvent.click(screen.getAllByRole('button', {name: 'Remove'})[0]);
@@ -185,7 +185,7 @@ describe('TeamMembers', function () {
       />
     );
 
-    await screen.findByTestId('add-member');
+    await screen.findAllByRole('button', {name: 'Add Member'});
 
     expect(deleteMock).not.toHaveBeenCalled();
 
