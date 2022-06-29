@@ -10,6 +10,7 @@ import {Widget} from '../types';
 
 import GenericWidgetQueries, {
   GenericWidgetQueriesChildrenProps,
+  OnDataFetchedProps,
 } from './genericWidgetQueries';
 
 type Props = {
@@ -20,7 +21,7 @@ type Props = {
   widget: Widget;
   cursor?: string;
   limit?: number;
-  onDataFetched?: (results: {pageLinks?: string; totalIssuesCount?: string}) => void;
+  onDataFetched?: (results: OnDataFetchedProps) => void;
 };
 
 function IssueWidgetQueries({

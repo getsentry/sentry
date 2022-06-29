@@ -27,6 +27,13 @@ function getReferrer(displayType: DisplayType) {
   return referrer;
 }
 
+export type OnDataFetchedProps = {
+  pageLinks?: string;
+  tableResults?: TableDataWithTitle[];
+  timeseriesResults?: Series[];
+  totalIssuesCount?: string;
+};
+
 export type GenericWidgetQueriesChildrenProps = {
   loading: boolean;
   errorMessage?: string;
@@ -55,12 +62,7 @@ export type GenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
     timeseriesResults,
     totalIssuesCount,
     pageLinks,
-  }: {
-    pageLinks?: string;
-    tableResults?: TableDataWithTitle[];
-    timeseriesResults?: Series[];
-    totalIssuesCount?: string;
-  }) => void;
+  }: OnDataFetchedProps) => void;
 };
 
 type State<SeriesResponse> = {
@@ -210,7 +212,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
 
     let transformedTableResults: TableDataWithTitle[] = [];
     let responsePageLinks: string | null = null;
-    let afterTableFetchData: {totalIssuesCount?: string} | undefined;
+    let afterTableFetchData: OnDataFetchedProps | undefined;
     responses.forEach(([data, _textstatus, resp], i) => {
       afterTableFetchData = afterFetchTableData?.(data, resp) ?? {};
       // Cast so we can add the title.
