@@ -331,6 +331,7 @@ const DropdownDataCategory = styled(CompactSelect)`
 
   button[aria-haspopup='listbox'] {
     width: 100%;
+    height: 100%;
   }
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
