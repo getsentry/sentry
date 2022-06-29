@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
 import Alert from 'sentry/components/alert';
+import Button from 'sentry/components/button';
 import FeatureBadge from 'sentry/components/featureBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -86,6 +87,11 @@ export function ProfilingOnboarding() {
                   our notion page
                 </a>
               </li>
+
+              <Actions>
+                <Button priority="primary">I'm done</Button>
+                <Button>Dismiss</Button>
+              </Actions>
             </ProfilingSteps>
           </Content>
         </Main>
@@ -96,6 +102,14 @@ export function ProfilingOnboarding() {
 
 const Content = styled('div')`
   margin: ${space(2)} 0 ${space(3)} 0;
+`;
+
+const Actions = styled('div')`
+  margin-top: ${space(4)};
+
+  > button:not(:first-child) {
+    margin-left: ${space(2)};
+  }
 `;
 
 const StyledPageContent = styled(PageContent)`
