@@ -108,7 +108,7 @@ export type OpenConfirmOptions = {
   renderMessage?: (renderProps: ConfirmMessageRenderProps) => React.ReactNode;
 };
 
-type Props = OpenConfirmOptions & {
+interface Props extends OpenConfirmOptions {
   /**
    * Render props to control rendering of the modal in its entirety
    */
@@ -123,7 +123,7 @@ type Props = OpenConfirmOptions & {
    * Stop event propagation when opening the confirm modal
    */
   stopPropagation?: boolean;
-};
+}
 
 /**
  * Opens a confirmation modal when called. The procedural version of the
