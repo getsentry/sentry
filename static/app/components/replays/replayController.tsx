@@ -12,6 +12,7 @@ import {
   IconNext,
   IconPause,
   IconPlay,
+  IconPrevious,
   IconRefresh,
   IconResize,
 } from 'sentry/icons';
@@ -37,8 +38,15 @@ interface Props {
 }
 
 function ReplayPlayPauseBar() {
-  const {currentTime, isPlaying, replay, setCurrentTime, togglePlayPause} =
-    useReplayContext();
+  const {
+    currentTime,
+    isFinished,
+    isPlaying,
+    replay,
+    restart,
+    setCurrentTime,
+    togglePlayPause,
+  } = useReplayContext();
 
   return (
     <ButtonBar merged>
@@ -49,13 +57,23 @@ function ReplayPlayPauseBar() {
         onClick={() => setCurrentTime(currentTime - 10 * SECOND)}
         aria-label={t('Go back 10 seconds')}
       />
-      <Button
-        size="xsmall"
-        title={isPlaying ? t('Pause the Replay') : t('Play the Replay')}
-        icon={isPlaying ? <IconPause size="sm" /> : <IconPlay size="sm" />}
-        onClick={() => togglePlayPause(!isPlaying)}
-        aria-label={isPlaying ? t('Pause the Replay') : t('Play the Replay')}
-      />
+      {isFinished ? (
+        <Button
+          size="xsmall"
+          title={t('Restart Replay')}
+          icon={<IconPrevious size="sm" />}
+          onClick={restart}
+          aria-label={t('Restart the Replay')}
+        />
+      ) : (
+        <Button
+          size="xsmall"
+          title={isPlaying ? t('Pause the Replay') : t('Play the Replay')}
+          icon={isPlaying ? <IconPause size="sm" /> : <IconPlay size="sm" />}
+          onClick={() => togglePlayPause(!isPlaying)}
+          aria-label={isPlaying ? t('Pause the Replay') : t('Play the Replay')}
+        />
+      )}
       <Button
         size="xsmall"
         title={t('Jump to next event')}
