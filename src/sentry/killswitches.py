@@ -9,7 +9,7 @@ features and more performant.
 
 import copy
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Union
 
 from sentry import options
 from sentry.utils import metrics
@@ -20,10 +20,28 @@ LegacyKillswitchConfig = Union[KillswitchConfig, List[int]]
 Context = Dict[str, Any]
 
 
+def _update_project_configs(
+    old_option_value: Sequence[Mapping[str, Any]], new_option_value: Sequence[Mapping[str, Any]]
+) -> None:
+    """Callback for the relay.drop-transaction-metrics kill switch.
+    On every change, force a recomputation of the corresponding project configs
+    """
+    from sentry.tasks.relay import schedule_invalidate_project_config
+
+    all_project_ids = {
+        ctx["project_id"] for contexts in (old_option_value, new_option_value) for ctx in contexts
+    }
+    for project_id in all_project_ids:
+        schedule_invalidate_project_config(
+            project_id=project_id, trigger="killswitches.relay.drop-transaction-metrics"
+        )
+
+
 @dataclass
 class KillswitchInfo:
     description: str
     fields: Dict[str, str]
+    on_change: Optional[Callable[[Any, Any], None]] = None
 
 
 ALL_KILLSWITCH_OPTIONS = {
@@ -138,6 +156,7 @@ ALL_KILLSWITCH_OPTIONS = {
         fields={
             "project_id": "project ID for which we want to stop extracting transaction metrics",
         },
+        on_change=_update_project_configs,
     ),
 }
 
