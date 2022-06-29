@@ -5,9 +5,9 @@ import omit from 'lodash/omit';
 
 import Button from 'sentry/components/button';
 import DatePageFilter from 'sentry/components/datePageFilter';
-import DropdownControl, {DropdownItem} from 'sentry/components/dropdownControl';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import SearchBar from 'sentry/components/events/searchBar';
+import CompactSelect from 'sentry/components/forms/compactSelect';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
@@ -152,24 +152,15 @@ function Search(props: Props) {
         fields={eventView.fields}
         onSearch={handleSearch}
       />
-      <DropdownControl
-        buttonProps={{prefix: t('Percentile')}}
-        label={eventsFilterOptions[eventsDisplayFilterName].label}
-      >
-        {Object.entries(eventsFilterOptions).map(([name, filter]) => {
-          return (
-            <DropdownItem
-              key={name}
-              onSelect={onChangeEventsDisplayFilter}
-              eventKey={name}
-              data-test-id={name}
-              isActive={eventsDisplayFilterName === name}
-            >
-              {filter.label}
-            </DropdownItem>
-          );
-        })}
-      </DropdownControl>
+      <CompactSelect
+        triggerProps={{prefix: t('Percentile')}}
+        value={eventsDisplayFilterName}
+        onChange={opt => onChangeEventsDisplayFilter(opt.value)}
+        options={Object.entries(eventsFilterOptions).map(([name, filter]) => ({
+          value: name,
+          label: filter.label,
+        }))}
+      />
       <Button
         to={eventView.getResultsViewUrlTarget(organization.slug)}
         onClick={handleDiscoverButtonClick}
