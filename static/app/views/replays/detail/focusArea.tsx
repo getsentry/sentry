@@ -15,6 +15,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import Console from './console';
 import IssueList from './issueList';
 import MemoryChart from './memoryChart';
+import NetworkList from './networkList';
 import Trace from './trace';
 
 type Props = {};
@@ -43,6 +44,36 @@ function FocusArea({}: Props) {
 
   const event = replay.getEvent();
 
+  const getPerformanceEvents = () => {
+    // Fake the span and Trace context
+    const nonMemorySpansEntry = {
+      type: EntryType.SPANS,
+      data: replay
+        .getRawSpans()
+        .filter(replay.isNotMemorySpan)
+        .map(({startTimestamp, endTimestamp, ...span}) => ({
+          ...span,
+          timestamp: endTimestamp,
+          start_timestamp: startTimestamp,
+          span_id: uuid4(), // TODO(replays): used as a React key
+          parent_span_id: 'replay_network_trace',
+        })),
+    };
+    return {
+      ...event,
+      contexts: {
+        trace: {
+          type: 'trace',
+          op: 'Network',
+          description: 'WIP',
+          span_id: 'replay_network_trace',
+          status: 'ok',
+        },
+      },
+      entries: [nonMemorySpansEntry],
+    } as EventTransaction;
+  };
+
   switch (active) {
     case 'console':
       const consoleMessages = getBreadcrumbsByCategory(replay?.getRawCrumbs(), [
@@ -56,34 +87,15 @@ function FocusArea({}: Props) {
         />
       );
     case 'network': {
-      // Fake the span and Trace context
-      const nonMemorySpansEntry = {
-        type: EntryType.SPANS,
-        data: replay
-          .getRawSpans()
-          .filter(replay.isNotMemorySpan)
-          .map(({startTimestamp, endTimestamp, ...span}) => ({
-            ...span,
-            timestamp: endTimestamp,
-            start_timestamp: startTimestamp,
-            span_id: uuid4(), // TODO(replays): used as a React key
-            parent_span_id: 'replay_network_trace',
-          })),
-      };
-      const performanceEvent = {
-        ...event,
-        contexts: {
-          trace: {
-            type: 'trace',
-            op: 'Network',
-            description: 'WIP',
-            span_id: 'replay_network_trace',
-            status: 'ok',
-          },
-        },
-        entries: [nonMemorySpansEntry],
-      } as EventTransaction;
-      return <Spans organization={organization} event={performanceEvent} />;
+      return <Spans organization={organization} event={getPerformanceEvents()} />;
+    }
+    case 'network 2': {
+      return (
+        <NetworkList
+          event={getPerformanceEvents()}
+          startTimestamp={event?.startTimestamp}
+        />
+      );
     }
     case 'trace':
       return <Trace organization={organization} event={event} />;
