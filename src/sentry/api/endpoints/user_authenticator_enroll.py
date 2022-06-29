@@ -14,6 +14,7 @@ from sentry.api.invite_helper import ApiInviteHelper, remove_invite_cookie
 from sentry.api.serializers import serialize
 from sentry.app import ratelimiter
 from sentry.auth.authenticators.base import EnrollmentStatus
+from sentry.auth.authenticators.sms import PotentialSMSFraud
 from sentry.models import Authenticator
 from sentry.security import capture_security_activity
 
@@ -160,8 +161,8 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
         """
         if ratelimiter.is_limited(
             f"auth:authenticator-enroll:{request.user.id}:{interface_id}",
-            limit=10,
-            window=86400,  # 10 per day should be fine
+            limit=3,
+            window=300,  # 3 per 5 minutes
         ):
             return HttpResponse(
                 "You have made too many authenticator enrollment attempts. Please try again later.",
@@ -209,11 +210,22 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
             # Disregarding value of 'otp', if no OTP was provided,
             # send text message to phone number with OTP
             if "otp" not in request.data:
-                if interface.send_text(for_enrollment=True, request=request._request):
-                    return Response(status=status.HTTP_204_NO_CONTENT)
-                else:
-                    # Error sending text message
-                    return Response(SEND_SMS_ERR, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                try:
+                    if interface.send_text(for_enrollment=True, request=request._request):
+                        return Response(status=status.HTTP_204_NO_CONTENT)
+                    else:
+                        # Error sending text message
+                        return Response(SEND_SMS_ERR, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                except PotentialSMSFraud as e:
+                    logger.warn(
+                        "sms.potential-fraud-detected",
+                        extra={
+                            "remote_ip": f"{e.remote_ip}",
+                            "user_id": f"{e.user_id}",
+                            "phone_number": f"{e.phone_number}",
+                        },
+                    )
+                    return Response(SEND_SMS_ERR, status=status.HTTP_400_BAD_REQUEST)
 
         # Attempt to validate OTP
         if "otp" in request.data and not interface.validate_otp(serializer.data["otp"]):
