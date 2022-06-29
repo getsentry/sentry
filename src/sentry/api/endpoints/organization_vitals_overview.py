@@ -31,6 +31,9 @@ class OrganizationVitalsOverviewEndpoint(OrganizationEventsEndpointBase):
             0:1000
         ]  # only get 1000 because let's be reasonable
 
+        # TODO: add logic to make sure we only show for orgs with 100+ relevant transactions
+        # for each category
+
         # Web vitals: p75 for LCP and FCP
         # Mobile vitals: Cold Start and Warm Start
         with self.handle_query_errors():
