@@ -10,6 +10,8 @@ import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 
+import ExternalLink from '../../components/links/externalLink';
+
 export function ProfilingOnboarding() {
   const organization = useOrganization();
 
@@ -38,7 +40,7 @@ export function ProfilingOnboarding() {
             <ProfilingSteps>
               <li>
                 {t(
-                  'Make sure your SDKs are upgraded to 6.0.0(sentry-java) or 7.13.0 (sentry-cocoa).'
+                  'Make sure your SDKs are upgraded to 6.0.0 (sentry-java) or 7.13.0 (sentry-cocoa).'
                 )}
               </li>
               <li>
@@ -75,22 +77,21 @@ export function ProfilingOnboarding() {
               </li>
               <li>
                 {t('Join the discussion on')}{' '}
-                <a href="https://discord.gg/FvQuVVCD">Discord</a>{' '}
+                <ExternalLink href="https://discord.gg/FvQuVVCD">Discord</ExternalLink>{' '}
                 {t(
                   'or email us at profiling@sentry.io with any questions or if you need help setting it all up! There’s also a page with some more details and a troubleshooting section at'
                 )}{' '}
-                <a
+                <ExternalLink
                   href="https://sentry.notion.site/Profiling-Beta-Testing-Instructions-413ecdd9fcb34b3a8b57806280bf2ecb"
-                  target="_blank"
                   rel="noreferrer"
                 >
                   our notion page
-                </a>
+                </ExternalLink>
               </li>
 
               <Actions>
-                <Button priority="primary">I'm done</Button>
-                <Button>Dismiss</Button>
+                <Button priority="primary">{t("I'm done")}</Button>
+                <Button>{t('Dismiss')}</Button>
               </Actions>
             </ProfilingSteps>
           </Content>
