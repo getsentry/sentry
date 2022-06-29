@@ -70,8 +70,6 @@ class ModeLimited(abc.ABC):
         component is in one of the allowed modes.
 
         :param original_method: the method being conditionally overridden
-        :param fail_callback: function to call and return if not in an allowed
-            mode; if None, raise ServerComponentAvailabilityError instead
         :param extra_modes: modes to allow in addition to self.modes
         :return: the conditional method object
         """
