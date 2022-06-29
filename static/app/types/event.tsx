@@ -306,9 +306,10 @@ export type Entry =
 // Contexts
 type RuntimeContext = {
   type: 'runtime';
-  version: number;
   build?: string;
   name?: string;
+  raw_description?: string;
+  version?: number;
 };
 
 type DeviceContext = {
