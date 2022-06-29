@@ -244,7 +244,7 @@ export function Provider({children, replay, initialTimeOffset = 0, value = {}}: 
   const setReplayFinished = useCallback(() => {
     setFinishedAtMS(replayerRef.current?.getCurrentTime() ?? -1);
     setIsPlaying(false);
-  }, [replayerRef]);
+  }, []);
 
   const initRoot = useCallback(
     (root: RootElem) => {
@@ -401,7 +401,7 @@ export function Provider({children, replay, initialTimeOffset = 0, value = {}}: 
       replayerRef.current.play(0);
       setIsPlaying(true);
     }
-  }, [replayerRef]);
+  }, []);
 
   const toggleSkipInactive = useCallback((skip: boolean) => {
     const replayer = replayerRef.current;

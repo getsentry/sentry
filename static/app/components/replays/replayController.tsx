@@ -40,12 +40,12 @@ interface Props {
 function ReplayPlayPauseBar() {
   const {
     currentTime,
+    isFinished,
     isPlaying,
     replay,
+    restart,
     setCurrentTime,
     togglePlayPause,
-    isFinished,
-    restart,
   } = useReplayContext();
 
   return (
