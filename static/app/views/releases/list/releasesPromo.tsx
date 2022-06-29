@@ -1,23 +1,30 @@
-import {Component} from 'react';
+import {Fragment, useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
-import emptyStateImg from 'sentry-images/spot/releases-empty-state.svg';
 import commitImage from 'sentry-images/spot/releases-tour-commits.svg';
 import emailImage from 'sentry-images/spot/releases-tour-email.svg';
 import resolutionImage from 'sentry-images/spot/releases-tour-resolution.svg';
 import statsImage from 'sentry-images/spot/releases-tour-stats.svg';
 
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {openCreateReleaseIntegration} from 'sentry/actionCreators/modal';
+import Access from 'sentry/components/acl/access';
 import Button from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
-import FeatureTourModal, {
-  TourImage,
-  TourStep,
-  TourText,
-} from 'sentry/components/modals/featureTourModal';
-import OnboardingPanel from 'sentry/components/onboardingPanel';
+import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
+import {Item} from 'sentry/components/dropdownAutoComplete/types';
+import Link from 'sentry/components/links/link';
+import {TourImage, TourStep, TourText} from 'sentry/components/modals/featureTourModal';
+import {Panel} from 'sentry/components/panels';
+import TextOverflow from 'sentry/components/textOverflow';
+import Tooltip from 'sentry/components/tooltip';
+import {IconAdd, IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {Organization} from 'sentry/types';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import {PageHeader} from 'sentry/styles/organization';
+import space from 'sentry/styles/space';
+import {Organization, Project, SentryApp} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import useApi from 'sentry/utils/useApi';
+import useApiRequests from 'sentry/utils/useApiRequests';
 
 const releasesSetupUrl = 'https://docs.sentry.io/product/releases/';
 
@@ -79,81 +86,356 @@ export const RELEASES_TOUR_STEPS: TourStep[] = [
 
 type Props = {
   organization: Organization;
-  projectId?: number;
+  project: Project;
 };
 
-class ReleasesPromo extends Component<Props> {
-  componentDidMount() {
-    const {organization, projectId} = this.props;
+const ReleasesPromo = ({organization, project}: Props) => {
+  const {data, renderComponent, isLoading} = useApiRequests({
+    endpoints: [
+      [
+        'internalIntegrations',
+        `/organizations/${organization.slug}/sentry-apps/`,
+        {query: {status: 'internal'}},
+      ],
+    ],
+  });
+  const api = useApi();
+  const [token, setToken] = useState(null);
+  const [integrations, setIntegrations] = useState<SentryApp[]>([]);
+  const [selectedItem, selectItem] = useState<Pick<Item, 'label' | 'value'> | null>(null);
 
-    trackAnalyticsEvent({
-      eventKey: 'releases.landing_card_viewed',
-      eventName: 'Releases: Landing Card Viewed',
-      organization_id: parseInt(organization.id, 10),
-      project_id: projectId,
+  useEffect(() => {
+    if (!isLoading) {
+      setIntegrations(data.internalIntegrations);
+    }
+  }, [isLoading, data.internalIntegrations]);
+  useEffect(() => {
+    trackAdvancedAnalyticsEvent('releases.quickstart_viewed', {
+      organization,
+      project_id: project.id,
     });
-  }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  handleTourAdvance = (step: number, duration: number) => {
-    const {organization, projectId} = this.props;
-
-    trackAnalyticsEvent({
-      eventKey: 'releases.tour.advance',
-      eventName: 'Releases: Tour Advance',
-      organization_id: parseInt(organization.id, 10),
-      project_id: projectId,
-      step,
-      duration,
+  const trackQuickstartCopy = useCallback(() => {
+    trackAdvancedAnalyticsEvent('releases.quickstart_copied', {
+      organization,
+      project_id: project.id,
     });
+  }, [organization, project]);
+
+  const trackQuickstartCreatedIntegration = useCallback(
+    (integration: SentryApp) => {
+      trackAdvancedAnalyticsEvent('releases.quickstart_create_integration.success', {
+        organization,
+        project_id: project.id,
+        integration_uuid: integration.uuid,
+      });
+    },
+    [organization, project]
+  );
+
+  const trackCreateIntegrationModalClose = useCallback(() => {
+    trackAdvancedAnalyticsEvent('releases.quickstart_create_integration_modal.close', {
+      organization,
+      project_id: project.id,
+    });
+  }, [organization, project.id]);
+
+  const fetchToken = async sentryAppSlug => {
+    const tokens = await api.requestPromise(`/sentry-apps/${sentryAppSlug}/api-tokens/`);
+    if (!tokens.length) {
+      const newToken = await generateToken(sentryAppSlug);
+      return setToken(newToken);
+    }
+    return setToken(tokens[0].token);
   };
 
-  handleClose = (step: number, duration: number) => {
-    const {organization, projectId} = this.props;
-
-    trackAnalyticsEvent({
-      eventKey: 'releases.tour.close',
-      eventName: 'Releases: Tour Close',
-      organization_id: parseInt(organization.id, 10),
-      project_id: projectId,
-      step,
-      duration,
-    });
-  };
-
-  render() {
-    return (
-      <OnboardingPanel image={<img src={emptyStateImg} />}>
-        <h3>{t('Demystify Releases')}</h3>
-        <p>
-          {t(
-            'Did you know how many errors your latest release triggered? We do. And more, too.'
-          )}
-        </p>
-        <ButtonList gap={1}>
-          <Button priority="primary" href={releasesSetupUrl} external>
-            {t('Start Setup')}
-          </Button>
-          <FeatureTourModal
-            steps={RELEASES_TOUR_STEPS}
-            onAdvance={this.handleTourAdvance}
-            onCloseModal={this.handleClose}
-            doneText={t('Start Setup')}
-            doneUrl={releasesSetupUrl}
-          >
-            {({showModal}) => (
-              <Button priority="default" onClick={showModal}>
-                {t('Take a Tour')}
-              </Button>
-            )}
-          </FeatureTourModal>
-        </ButtonList>
-      </OnboardingPanel>
+  const generateToken = async (sentryAppSlug: string) => {
+    const newToken = await api.requestPromise(
+      `/sentry-apps/${sentryAppSlug}/api-tokens/`,
+      {
+        method: 'POST',
+      }
     );
-  }
-}
+    return newToken.token;
+  };
 
-const ButtonList = styled(ButtonBar)`
-  grid-template-columns: repeat(auto-fit, minmax(130px, max-content));
+  const renderIntegrationNode = (integration: SentryApp) => {
+    return {
+      value: {slug: integration.slug, name: integration.name},
+      searchKey: `${integration.name}`,
+      label: (
+        <MenuItemWrapper
+          data-test-id="integration-option"
+          key={integration.uuid}
+          // onSelect={handleSelect}
+        >
+          <Label>{integration.name}</Label>
+        </MenuItemWrapper>
+      ),
+    };
+  };
+  return renderComponent(
+    <Fragment>
+      <Panel>
+        <Container>
+          <p>
+            {t(
+              'Configuring releases associates new issues with the right version of your code and ensures the right team members are notified of these issues.'
+            )}
+          </p>
+          <StyledPageHeader>
+            <h3>{t('Configure Releases with the CLI')}</h3>
+
+            <Button priority="primary" size="small" href={releasesSetupUrl} external>
+              {t('Full Documentation')}
+            </Button>
+          </StyledPageHeader>
+          <p>
+            Add the following commands to your CI config when you deploy your application.
+          </p>
+
+          <CodeBlock>
+            <CopyButton
+              onClick={async () => {
+                if (!token || !selectedItem) {
+                  addErrorMessage(t('Select an integration for your auth token!'));
+                  return;
+                }
+                const current_text = `
+                # Install the cli
+                curl -sL https://sentry.io/get-cli/ | SENTRY_CLI_VERSION="2.2.0" bash
+                # Setup configuration values
+                SENTRY_AUTH_TOKEN=${token} # From internal integration: ${selectedItem.value.name}
+                SENTRY_ORG=${organization.slug}
+                SENTRY_PROJECT=${project.slug}
+                VERSION=\`sentry-cli releases propose-version\`
+                # Workflow to create releases
+                sentry-cli releases new "$VERSION"
+                sentry-cli releases set-commits "$VERSION" --auto
+                sentry-cli releases finalize "$VERSION"
+                `;
+                await navigator.clipboard.writeText(current_text);
+                addSuccessMessage(t('Copied to clipboard!'));
+                trackQuickstartCopy();
+              }}
+            >
+              <IconCopy />
+            </CopyButton>
+            <Comment># Install the cli</Comment>
+            <Bash>
+              curl -sL https://sentry.io/get-cli/ | SENTRY_CLI_VERSION="2.2.0" bash
+            </Bash>
+            <Bash>{'\n'}</Bash>
+            <Comment># Setup configuration values</Comment>
+            <Bash>
+              SENTRY_AUTH_TOKEN=
+              <span>
+                <DropdownAutoComplete
+                  style={{border: 'none', borderRadius: '4px', width: 300}}
+                  minWidth={300}
+                  maxHeight={400}
+                  onOpen={e => {
+                    // This can be called multiple times and does not always have `event`
+                    e?.stopPropagation();
+                  }}
+                  items={[
+                    {
+                      label: <GroupHeader>{t('Available Integrations')}</GroupHeader>,
+                      id: 'available-integrations',
+                      items: (integrations || []).map(renderIntegrationNode),
+                    },
+                  ]}
+                  alignMenu="left"
+                  onSelect={({label, value}) => {
+                    selectItem({label, value});
+                    fetchToken(value.slug);
+                  }}
+                  itemSize="small"
+                  searchPlaceholder={t('Select Internal Integration')}
+                  menuFooter={
+                    <Access access={['org:integrations']}>
+                      {({hasAccess}) => (
+                        <Tooltip
+                          title={t(
+                            'You must be an organization owner, manager or admin to create an integration.'
+                          )}
+                          disabled={hasAccess}
+                        >
+                          <CreateIntegrationLink
+                            to=""
+                            data-test-id="invite-member"
+                            disabled={!hasAccess}
+                            onClick={() =>
+                              openCreateReleaseIntegration({
+                                organization,
+                                project,
+                                onCreateSuccess: (integration: SentryApp) => {
+                                  setIntegrations([integration, ...integrations]);
+                                  const {label, value} =
+                                    renderIntegrationNode(integration);
+                                  selectItem({
+                                    label,
+                                    value,
+                                  });
+                                  fetchToken(value.slug);
+                                  trackQuickstartCreatedIntegration(integration);
+                                },
+                                onCancel: () => trackCreateIntegrationModalClose(),
+                              })
+                            }
+                          >
+                            <MenuItemFooterWrapper>
+                              <IconContainer>
+                                <IconAdd color="purple300" isCircled size="14px" />
+                              </IconContainer>
+                              <Label>{t('Create New Integration')}</Label>
+                            </MenuItemFooterWrapper>
+                          </CreateIntegrationLink>
+                        </Tooltip>
+                      )}
+                    </Access>
+                  }
+                  disableLabelPadding
+                  emptyHidesInput
+                >
+                  {() => {
+                    return token && selectedItem ? (
+                      <span style={{display: 'flex'}}>
+                        {token}
+                        <Comment>{` # From internal integration: ${selectedItem.value.name} `}</Comment>
+                      </span>
+                    ) : (
+                      <span style={{color: '#7cc5c4'}}>
+                        {'<click-here-for-your-token>'}
+                      </span>
+                    );
+                  }}
+                </DropdownAutoComplete>
+              </span>
+            </Bash>
+
+            <Bash>{`SENTRY_ORG=${organization.slug}`}</Bash>
+            <Bash>{`SENTRY_PROJECT=${project.slug}`}</Bash>
+            <Bash>VERSION=`sentry-cli releases propose-version`</Bash>
+            <Bash>{'\n'}</Bash>
+            <Comment># Workflow to create releases</Comment>
+            <Bash>sentry-cli releases new "$VERSION"</Bash>
+            <Bash>sentry-cli releases set-commits "$VERSION" --auto</Bash>
+            <Bash>sentry-cli releases finalize "$VERSION"</Bash>
+          </CodeBlock>
+        </Container>
+      </Panel>
+    </Fragment>
+  );
+};
+
+const StyledPageHeader = styled(PageHeader)`
+  margin-bottom: ${space(3)};
+
+  h3 {
+    margin: 0;
+  }
+
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
+    flex-direction: column;
+    align-items: flex-start;
+
+    h3 {
+      margin-bottom: ${space(2)};
+    }
+  }
+`;
+
+const CodeBlock = styled('pre')`
+  background: #251f3d;
+  display: flex;
+  flex-direction: column;
+  padding: ${space(2)};
+  overflow: initial;
+  position: relative;
+`;
+
+const CopyButton = styled(Button)`
+  position: absolute;
+  right: 20px;
+`;
+const Language = styled('code')`
+  font-size: 15px;
+  text-shadow: none;
+  direction: ltr;
+  text-align: left;
+  white-space: pre;
+  word-spacing: normal;
+  word-break: normal;
+  line-height: 1.5;
+  display: flex;
+  align-items: center;
+`;
+const Bash = styled(Language)`
+  color: #f2edf6;
+`;
+
+const Comment = styled(Language)`
+  color: #77658b;
+`;
+const Container = styled('div')`
+  padding: ${space(3)};
+`;
+
+const GroupHeader = styled('div')`
+  font-size: ${p => p.theme.fontSizeSmall};
+  font-weight: 600;
+  margin: ${space(1)} 0;
+  color: ${p => p.theme.subText};
+  line-height: ${p => p.theme.fontSizeSmall};
+  text-align: left;
+`;
+const CreateIntegrationLink = styled(Link)`
+  color: ${p => (p.disabled ? p.theme.disabled : p.theme.textColor)};
+`;
+
+const MenuItemWrapper = styled('div')<{
+  disabled?: boolean;
+  py?: number;
+}>`
+  cursor: ${p => (p.disabled ? 'not-allowed' : 'pointer')};
+  display: flex;
+  align-items: center;
+  font-size: 13px;
+  ${p =>
+    typeof p.py !== 'undefined' &&
+    `
+      padding-top: ${p.py};
+      padding-bottom: ${p.py};
+    `};
+`;
+
+const MenuItemFooterWrapper = styled(MenuItemWrapper)`
+  padding: ${space(0.25)} ${space(1)};
+  border-top: 1px solid ${p => p.theme.innerBorder};
+  background-color: ${p => p.theme.tag.highlight.background};
+  color: ${p => p.theme.active};
+  :hover {
+    color: ${p => p.theme.activeHover};
+    svg {
+      fill: ${p => p.theme.activeHover};
+    }
+  }
+`;
+
+const IconContainer = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+`;
+
+const Label = styled(TextOverflow)`
+  margin-left: 6px;
 `;
 
 export default ReleasesPromo;

@@ -78,7 +78,7 @@ type EndpointRequestOptions = {
 type EndpointDefinition = [
   key: string,
   url: string,
-  urlOptions?: {query?: string},
+  urlOptions?: {query?: {[key: string]: string}},
   requestOptions?: EndpointRequestOptions
 ];
 
@@ -133,7 +133,7 @@ function useApiRequests({
   onRequestError = (_error, _args) => {},
 }: Options): Result {
   const api = useApi();
-  const location = useLocation();
+  const location = useLocation<any>();
   const params = useParams();
 
   // Memoize the initialState so we can easily reuse it later
