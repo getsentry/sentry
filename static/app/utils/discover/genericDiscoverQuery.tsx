@@ -324,7 +324,7 @@ export function doDiscoverQuery<T>(
   api: Client,
   url: string,
   params: DiscoverQueryRequestParams
-): Promise<[T, string | undefined, ResponseMeta | undefined]> {
+): Promise<[T, string | undefined, ResponseMeta<T> | undefined]> {
   return api.requestPromise(url, {
     method: 'GET',
     includeAllArgs: true,
