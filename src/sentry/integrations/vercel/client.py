@@ -7,9 +7,9 @@ logger = logging.getLogger("sentry.integrations.vercel.api")
 
 
 class VercelClient(ApiClient):
-
     base_url = "https://api.vercel.com"
     integration_name = "vercel"
+    pagination_limit = 100
 
     # Current User API (Read)
     # https://vercel.com/docs/integrations/reference#using-the-vercel-api/scopes/user
@@ -65,8 +65,7 @@ class VercelClient(ApiClient):
 
     def get_from_pagination(self, url, data_key):
         # Vercel Pagination Guide: https://vercel.com/docs/rest-api#introduction/api-basics/pagination
-        limit = 100
-        params = {"limit": limit}
+        params = {"limit": self.pagination_limit}
         results = []
         next_timestamp = ""
         while next_timestamp is not None:
