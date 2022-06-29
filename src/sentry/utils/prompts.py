@@ -5,7 +5,7 @@ DEFAULT_PROMPTS = {
     "alert_stream": {"required_fields": ["organization_id"]},
     "distributed_tracing": {"required_fields": ["organization_id", "project_id"]},
     "code_owners": {"required_fields": ["organization_id", "project_id"]},
-    "profiling_onboarding": {"required_fields": ["organization_id", "project_id"]},
+    "profiling_onboarding": {"required_fields": ["organization_id"]},
     "releases": {"required_fields": ["organization_id", "project_id"]},
     "quick_trace_missing": {"required_fields": ["organization_id", "project_id"]},
     "sdk_updates": {"required_fields": ["organization_id"]},
