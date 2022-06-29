@@ -126,6 +126,7 @@
     "react-lazyload": "^2.3.0",
     "react-mentions": "4.4.2",
     "react-popper": "^2.3.0",
+    "react-resize-panel": "^0.3.5",
     "react-router": "3.2.0",
     "react-select": "3.1.0",
     "react-select-event": "5.5.0",
