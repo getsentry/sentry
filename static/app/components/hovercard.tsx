@@ -82,7 +82,7 @@ function Hovercard({
         {header ? <Header>{header}</Header> : null}
         {body ? <Body className={bodyClassName}>{body}</Body> : null}
         <OverlayArrow
-          size={16}
+          size={20}
           background={tipColor}
           border={tipBorderColor}
           {...arrowProps}
