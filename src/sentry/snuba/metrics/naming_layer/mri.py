@@ -113,6 +113,10 @@ class ParsedMRI:
     name: str
     unit: str
 
+    @property
+    def mri_string(self) -> str:
+        return f"{self.entity}:{self.namespace}/{self.name}@{self.unit}"
+
 
 def parse_mri(mri_string: str) -> Optional[ParsedMRI]:
     """Parse a mri string to determine its entity, namespace, name and unit"""
@@ -124,4 +128,15 @@ def parse_mri(mri_string: str) -> Optional[ParsedMRI]:
 
 
 def is_custom_measurement(parsed_mri: ParsedMRI) -> bool:
-    return parsed_mri.namespace == "custom"
+    """A custom measurement won't use the custom namespace, but will be under the transaction namespace
+
+    This checks the namespace, and name to match what we expect first before iterating through the
+    members of the transaction MRI enum to make sure it isn't a standard measurement
+    """
+    return (
+        parsed_mri.namespace == "transactions"
+        and parsed_mri.name.startswith("measurements.")
+        and
+        # Iterate through the transaction MRI and check that this parsed_mri isn't in there
+        parsed_mri.mri_string not in [mri.value for mri in TransactionMRI.__members__.values()]
+    )

@@ -9,7 +9,7 @@ from sentry.testutils.helpers.datetime import before_now
 class OrganizationMeasurementsMetaEndpoint(MetricsEnhancedPerformanceTestCase):
     endpoint = "sentry-api-0-organization-measurements-meta"
     METRIC_STRINGS = [
-        "d:custom/measurements.something_custom@millisecond",
+        "d:transactions/measurements.something_custom@millisecond",
     ]
 
     def setUp(self):
@@ -33,7 +33,7 @@ class OrganizationMeasurementsMetaEndpoint(MetricsEnhancedPerformanceTestCase):
         self.store_metric(
             1,
             metric="measurements.something_custom",
-            internal_metric="d:custom/measurements.something_custom@millisecond",
+            internal_metric="d:transactions/measurements.something_custom@millisecond",
             entity="metrics_distributions",
             timestamp=self.day_ago + timedelta(hours=1, minutes=0),
         )
@@ -67,7 +67,7 @@ class OrganizationMeasurementsMetaEndpoint(MetricsEnhancedPerformanceTestCase):
         self.store_metric(
             1,
             metric="measurements.something_custom",
-            internal_metric="d:custom/measurements.something_custom@millisecond",
+            internal_metric="d:transactions/measurements.something_custom@millisecond",
             entity="metrics_distributions",
             timestamp=self.day_ago - timedelta(days=15, minutes=0),
         )

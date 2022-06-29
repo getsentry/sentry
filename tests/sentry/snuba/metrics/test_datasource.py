@@ -84,8 +84,8 @@ class DataSourceTestCase(TestCase, SessionMetricsTestCase):
 
 class GetCustomMeasurementsTest(MetricsEnhancedPerformanceTestCase):
     METRIC_STRINGS = [
-        "d:custom/measurements.something_custom@millisecond",
-        "d:custom/measurements.something_else@byte",
+        "d:transactions/measurements.something_custom@millisecond",
+        "d:transactions/measurements.something_else@byte",
     ]
 
     def setUp(self):
@@ -96,7 +96,7 @@ class GetCustomMeasurementsTest(MetricsEnhancedPerformanceTestCase):
         self.store_metric(
             1,
             metric="measurements.something_custom",
-            internal_metric="d:custom/measurements.something_custom@millisecond",
+            internal_metric="d:transactions/measurements.something_custom@millisecond",
             entity="metrics_distributions",
             timestamp=self.day_ago + timedelta(hours=1, minutes=0),
         )
@@ -127,7 +127,7 @@ class GetCustomMeasurementsTest(MetricsEnhancedPerformanceTestCase):
         self.store_metric(
             1,
             metric="measurements.something_custom",
-            internal_metric="d:custom/measurements.something_custom@millisecond",
+            internal_metric="d:transactions/measurements.something_custom@millisecond",
             entity="metrics_distributions",
             timestamp=self.day_ago + timedelta(hours=1, minutes=0),
         )
