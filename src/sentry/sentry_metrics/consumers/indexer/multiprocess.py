@@ -50,8 +50,10 @@ class BatchConsumerStrategyFactory(ProcessingStrategyFactory):  # type: ignore
         self.__commit_max_batch_size = commit_max_batch_size
         self.__config = config
 
-    def create(
-        self, commit: Callable[[Mapping[Partition, Position]], None]
+    def create_with_partitions(
+        self,
+        commit: Callable[[Mapping[Partition, Position]], None],
+        partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
         transform_step = TransformStep(
             next_step=SimpleProduceStep(
@@ -132,12 +134,10 @@ class SimpleProduceStep(ProcessingStep[KafkaPayload]):  # type: ignore
         producer: Optional[AbstractProducer] = None,
     ) -> None:
         snuba_metrics = settings.KAFKA_TOPICS[output_topic]
-        snuba_metrics_producer = Producer(
+        self.__producer = Producer(
             kafka_config.get_kafka_producer_cluster_options(snuba_metrics["cluster"]),
         )
-        producer = snuba_metrics_producer
-        self.__producer = producer
-        self.__producer_topic = settings.KAFKA_SNUBA_METRICS
+        self.__producer_topic = output_topic
         self.__commit_function = commit_function
 
         self.__closed = False
