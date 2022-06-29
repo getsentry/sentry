@@ -140,16 +140,22 @@ class BuildGroupAttachmentTest(TestCase):
         )
 
     def test_build_group_release_attachment(self):
-        group = self.create_group(project=self.project)
+        group = self.create_group(
+            project=self.project,
+            data={
+                "type": "error",
+                "metadata": {"function": "First line of Text\n Some more details"},
+            },
+        )
         release = self.create_release(version="1.0.0", project=self.project)
 
         attachments = SlackReleaseIssuesMessageBuilder(group, last_release=release).build()
         release_link = absolute_uri(
             f"/organizations/{group.organization.slug}/releases/{release.version}/?project={group.project_id}"
         )
-        group_link = f"http://testserver/organizations/{group.organization.slug}/issues/{group.id}/?referrer=slack"
+        group_link = f"http://testserver/organizations/{group.organization.slug}/issues/{group.id}/?referrer=slack_release"
         assert attachments["title"] == f"Release <{release_link}|{release.version}> has a new issue"
-        assert attachments["text"] == f"<{group_link}|*{group.title}*> \n"
+        assert attachments["text"] == f"<{group_link}|*{group.title}*> \nFirst line of Text"
         assert "title_link" not in attachments
 
 
