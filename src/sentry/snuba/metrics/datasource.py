@@ -637,13 +637,12 @@ def get_series(
         # performance table.
         original_select = copy(metrics_query.select)
 
-        # The initial query has to contain only one field which is the same as the order by
-        # field
-        assert len(metrics_query.orderby) == 1
-        orderby_field = [
-            field for field in metrics_query.select if field == metrics_query.orderby[0].field
-        ][0]
-        metrics_query = replace(metrics_query, select=[orderby_field])
+        orderby_fields = []
+        for select_field in metrics_query.select:
+            for orderby in metrics_query.orderby:
+                if select_field == orderby.field:
+                    orderby_fields.append(select_field)
+        metrics_query = replace(metrics_query, select=orderby_fields)
 
         snuba_queries, _ = SnubaQueryBuilder(projects, metrics_query).get_snuba_queries()
         if len(snuba_queries) > 1:
