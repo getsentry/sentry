@@ -12,6 +12,11 @@ import {
   WEEK,
 } from 'sentry/utils/formatters';
 
+interface Range {
+  max: number;
+  min: number;
+}
+
 /**
  * Formatter for chart tooltips that handle a variety of discover and metrics result values.
  * If the result is metric values, the value can be of type number or null
@@ -40,7 +45,8 @@ export function tooltipFormatter(value: number | null, seriesName: string = ''):
 export function axisLabelFormatter(
   value: number,
   seriesName: string,
-  abbreviation: boolean = false
+  abbreviation: boolean = false,
+  range?: Range
 ): string {
   switch (aggregateOutputType(seriesName)) {
     case 'integer':
@@ -49,7 +55,11 @@ export function axisLabelFormatter(
     case 'percentage':
       return formatPercentage(value, 0);
     case 'duration':
-      return axisDuration(value);
+      let durationUnit;
+      if (range) {
+        durationUnit = categorizeDuration(range.min);
+      }
+      return axisDuration(value, durationUnit);
     default:
       return value.toString();
   }
@@ -62,30 +72,57 @@ export function axisLabelFormatter(
  *
  * @param value Number of milliseconds to format.
  */
-export function axisDuration(value: number): string {
+export function axisDuration(value: number, durationUnit?: number): string {
+  durationUnit ??= categorizeDuration(value);
   if (value === 0) {
     return '0';
   }
+  switch (durationUnit) {
+    case WEEK: {
+      const label = (value / WEEK).toFixed(0);
+      return t('%swk', label);
+    }
+    case DAY: {
+      const label = (value / DAY).toFixed(0);
+      return t('%sd', label);
+    }
+    case HOUR: {
+      const label = (value / HOUR).toFixed(0);
+      return t('%shr', label);
+    }
+    case MINUTE: {
+      const label = (value / MINUTE).toFixed(0);
+      return t('%sm', label);
+    }
+    case SECOND: {
+      const label = (value / SECOND).toFixed(0);
+      return t('%ss', label);
+    }
+    default:
+      const label = value.toFixed(0);
+      return t('%sms', label);
+  }
+}
+
+/**
+ *
+ * @param value
+ */
+function categorizeDuration(value): number {
   if (value >= WEEK) {
-    const label = (value / WEEK).toFixed(0);
-    return t('%swk', label);
+    return WEEK;
   }
   if (value >= DAY) {
-    const label = (value / DAY).toFixed(0);
-    return t('%sd', label);
+    return DAY;
   }
   if (value >= HOUR) {
-    const label = (value / HOUR).toFixed(0);
-    return t('%shr', label);
+    return HOUR;
   }
   if (value >= MINUTE) {
-    const label = (value / MINUTE).toFixed(0);
-    return t('%smin', label);
+    return MINUTE;
   }
   if (value >= SECOND) {
-    const label = (value / SECOND).toFixed(0);
-    return t('%ss', label);
+    return SECOND;
   }
-  const label = value.toFixed(0);
-  return t('%sms', label);
+  return 0;
 }
