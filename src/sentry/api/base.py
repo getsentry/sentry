@@ -475,7 +475,14 @@ class ReleaseAnalyticsMixin:
 class ApiAvailableOn(ModeLimited):
     def modify_endpoint_class(self, decorated_class: Type[Endpoint]) -> type:
         dispatch_override = self.create_override(decorated_class.dispatch)
-        return type(decorated_class.__name__, (decorated_class,), {"dispatch": dispatch_override})
+        return type(
+            decorated_class.__name__,
+            (decorated_class,),
+            {
+                "dispatch": dispatch_override,
+                "__mode_limit": self,  # For internal tooling only
+            },
+        )
 
     def modify_endpoint_method(self, decorated_method: Callable[..., Any]) -> Callable[..., Any]:
         return self.create_override(decorated_method)

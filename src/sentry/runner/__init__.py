@@ -46,6 +46,7 @@ def cli(ctx, config):
 for cmd in map(
     import_string,
     (
+        "sentry.runner.commands.auditservermodes.auditservermodes",
         "sentry.runner.commands.backup.export",
         "sentry.runner.commands.backup.import_",
         "sentry.runner.commands.cleanup.cleanup",

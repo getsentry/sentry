@@ -197,4 +197,8 @@ class ModelAvailableOn(ModeLimited):
                 # trigger hooks in Django's ModelBase metaclass a second time.
                 setattr(model_class, model_attr_name, override)
 
+        # For internal tooling only. Having any production logic depend on this is
+        # strongly discouraged.
+        model_class._meta.__mode_limit = self  # type: ignore
+
         return model_class
