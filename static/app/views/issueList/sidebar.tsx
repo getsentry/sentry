@@ -5,12 +5,18 @@ import map from 'lodash/map';
 
 import Input from 'sentry/components/forms/controls/input';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {
+  ParseResult,
+  parseSearch,
+  Token,
+  TokenResult,
+} from 'sentry/components/searchSyntax/parser';
 import SidebarSection from 'sentry/components/sidebarSection';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Tag, TagCollection} from 'sentry/types';
-import {objToQuery, QueryObj, queryToObj} from 'sentry/utils/stream';
+import {objToQuery} from 'sentry/utils/stream';
 
 import IssueListTagFilter from './tagFilter';
 import {TagValueLoader} from './types';
@@ -27,7 +33,7 @@ type Props = DefaultProps & {
 };
 
 type State = {
-  queryObj: QueryObj;
+  queryObj: Record<string, string>;
   textFilter: string;
 };
 
@@ -38,10 +44,26 @@ class IssueListSidebar extends Component<Props, State> {
     onQueryChange: function () {},
   };
 
-  state: State = {
-    queryObj: queryToObj(this.props.query),
-    textFilter: queryToObj(this.props.query).__text,
-  };
+  state: State = this.parseQueryToState(this.props.query);
+
+  parseQueryToState(query: string): State {
+    const parsedResult: ParseResult = parseSearch(query) ?? [];
+    const textFilter = parsedResult
+      ?.filter(p => p.type === Token.FreeText)
+      .map(p => p.text)
+      .join(' ');
+    const parsedFilers = parsedResult?.filter(
+      p => p.type === Token.Filter
+    ) as TokenResult<Token.Filter>[];
+    const queryObj = Object.fromEntries(
+      parsedFilers.map((p: TokenResult<Token.Filter>) => [p.key.text, p.value.text])
+    );
+
+    return {
+      queryObj,
+      textFilter,
+    };
+  }
 
   componentWillReceiveProps(nextProps: Props) {
     // If query was updated by another source (e.g. SearchBar),
@@ -49,11 +71,7 @@ class IssueListSidebar extends Component<Props, State> {
     const query = objToQuery(this.state.queryObj);
 
     if (!isEqual(nextProps.query, query)) {
-      const queryObj = queryToObj(nextProps.query);
-      this.setState({
-        queryObj,
-        textFilter: queryObj.__text,
-      });
+      this.setState(this.parseQueryToState(nextProps.query));
     }
   }
 
