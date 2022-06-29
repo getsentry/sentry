@@ -222,12 +222,10 @@ function WidgetBuilder({
             ...defaultWidgetQuery,
             orderby:
               defaultWidgetQuery.orderby ||
-              generateOrderOptions({
-                widgetType: WidgetType.DISCOVER,
-                widgetBuilderNewDesign,
-                columns: defaultWidgetQuery.columns,
-                aggregates: defaultWidgetQuery.aggregates,
-              })[0].value,
+              (datasetConfig.getTableSortOptions
+                ? datasetConfig.getTableSortOptions(organization, defaultWidgetQuery)[0]
+                    .value
+                : ''),
           },
         ];
       } else {
