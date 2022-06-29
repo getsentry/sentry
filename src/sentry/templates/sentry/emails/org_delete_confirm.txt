@@ -1,6 +1,6 @@
 The {{ organization.name }} organization has been scheduled for deletion by:
 
-User: {{ audit_log_entry.actor.get_display_name }}
+User: {{ audit_log_entry.get_actor_name }}
 IP: {{ audit_log_entry.ip_address }}
 Date: {{ audit_log_entry.datetime }}
 
