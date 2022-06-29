@@ -51,6 +51,13 @@ function ReplayTimeline({}: Props) {
               <MinorGridlines duration={duration} width={width} />
               <MajorGridlines duration={duration} width={width} />
               <TimelineScubber />
+              <UnderTimestamp paddingTop="52px">
+                <ReplayTimelineSpans
+                  duration={duration}
+                  spans={networkSpans}
+                  startTimestamp={startTimestamp}
+                />
+              </UnderTimestamp>
               <TimelinePosition
                 color={theme.purple300}
                 currentTime={currentTime}
@@ -63,17 +70,12 @@ function ReplayTimeline({}: Props) {
                   duration={duration}
                 />
               ) : null}
-              <UnderTimestamp>
+              <UnderTimestamp paddingTop="24px">
                 <ReplayTimelineEvents
                   crumbs={userCrumbs}
                   duration={duration}
                   startTimestamp={startTimestamp}
                   width={width}
-                />
-                <ReplayTimelineSpans
-                  duration={duration}
-                  spans={networkSpans}
-                  startTimestamp={startTimestamp}
                 />
               </UnderTimestamp>
             </Stacked>
@@ -84,9 +86,9 @@ function ReplayTimeline({}: Props) {
   );
 }
 
-const UnderTimestamp = styled('div')`
+const UnderTimestamp = styled('div')<{paddingTop: string}>`
   /* Weird size to put equal space above/below a <small> node that MajorGridlines emits */
-  padding-top: 16px;
+  padding-top: ${p => p.paddingTop};
 `;
 
 export default ReplayTimeline;
