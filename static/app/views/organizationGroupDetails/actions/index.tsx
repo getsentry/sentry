@@ -358,7 +358,7 @@ class Actions extends Component<Props, State> {
 
     return (
       <Wrapper>
-        <GuideAnchor target="resolve" position="bottom" offset={space(3)}>
+        <GuideAnchor target="resolve" position="bottom" offset={20}>
           <ResolveActions
             disabled={disabled}
             disableDropdown={disabled}
@@ -373,7 +373,7 @@ class Actions extends Component<Props, State> {
             }
           />
         </GuideAnchor>
-        <GuideAnchor target="ignore_delete_discard" position="bottom" offset={space(3)}>
+        <GuideAnchor target="ignore_delete_discard" position="bottom" offset={20}>
           <IgnoreActions
             isIgnored={isIgnored}
             onUpdate={this.onUpdate}

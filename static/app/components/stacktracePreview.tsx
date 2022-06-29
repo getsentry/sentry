@@ -1,5 +1,4 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import StackTraceContent from 'sentry/components/events/interfaces/crashContent/stackTrace/content';
@@ -111,7 +110,6 @@ type StackTracePreviewProps = {
 };
 
 function StackTracePreview(props: StackTracePreviewProps): React.ReactElement {
-  const theme = useTheme();
   const api = useApi();
 
   const [loadingVisible, setLoadingVisible] = useState<boolean>(false);
@@ -222,6 +220,7 @@ function StackTracePreview(props: StackTracePreviewProps): React.ReactElement {
             </div>
           )
         }
+        displayTimeout={200}
         position="right"
         state={
           status === 'loading' && loadingVisible
@@ -230,8 +229,8 @@ function StackTracePreview(props: StackTracePreviewProps): React.ReactElement {
             ? 'empty'
             : 'done'
         }
-        tipBorderColor={theme.border}
-        tipColor={theme.background}
+        tipBorderColor="border"
+        tipColor="background"
       >
         {props.children}
       </StyledHovercard>
