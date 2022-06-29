@@ -57,7 +57,7 @@ export function axisLabelFormatter(
     case 'duration':
       let durationUnit;
       if (range) {
-        durationUnit = categorizeDuration(range.min);
+        durationUnit = categorizeDuration((range.max - range.min) * 0.5);
       }
       return axisDuration(value, durationUnit);
     default:
