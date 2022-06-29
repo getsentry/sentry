@@ -56,6 +56,11 @@ jobs:
         run: |
           yarn add ts-node && make test-api-docs
 
+      - uses: actions/upload-artifact@v3
+        with:
+          name: cov-apidocs
+          path: .coverage
+
   backend-test:
     if: needs.files-changed.outputs.backend == 'true'
     needs: files-changed
@@ -105,6 +110,11 @@ jobs:
 
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: cov-backend-${{ matrix.instance }}
+          path: .coverage
 
   cli:
     if: needs.files-changed.outputs.backend == 'true'
@@ -258,6 +268,11 @@ jobs:
         run: |
           make test-plugins
 
+      - uses: actions/upload-artifact@v3
+        with:
+          name: cov-plugins
+          path: .coverage
+
   relay:
     if: needs.files-changed.outputs.backend == 'true'
     needs: files-changed
@@ -295,6 +310,11 @@ jobs:
 
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: cov-relay
+          path: .coverage
 
   snuba:
     if: needs.files-changed.outputs.backend == 'true'
@@ -338,6 +358,11 @@ jobs:
 
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: cov-snuba
+          path: .coverage
 
   symbolicator:
     if: needs.files-changed.outputs.backend == 'true'
@@ -383,6 +408,11 @@ jobs:
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
 
+      - uses: actions/upload-artifact@v3
+        with:
+          name: cov-symbolicator
+          path: .coverage
+
   typing:
     if: needs.files-changed.outputs.backend == 'true'
     needs: files-changed
@@ -412,6 +442,19 @@ jobs:
       - name: Run backend typing (${{ steps.setup.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
         run: |
           make backend-typing
+
+  coverage-collect:
+    needs: [api-docs, backend-test, plugins, relay, snuba, symbolicator]
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/download-artifact@v3
+      with:
+        path: dest
+    - run: tar -czf out.tgz dest
+    - uses: actions/upload-artifact@v3
+      with:
+        name: collected-coverage
+        path: out.tgz
 
   # This check runs once all dependant jobs have passed
   # It symbolizes that all required Backend checks have succesfully passed (Or skipped)
