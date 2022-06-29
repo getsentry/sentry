@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import abc
+import functools
 import itertools
 from enum import Enum
 from typing import Any, Callable, Iterable
@@ -95,6 +96,5 @@ class ModeLimited(abc.ABC):
                 )
                 return handler(*args, **kwargs)
 
-        override.__name__ = original_method.__name__
-        override.__doc__ = original_method.__doc__
+        functools.update_wrapper(override, original_method)
         return override
