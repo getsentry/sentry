@@ -10,6 +10,7 @@ describe('Notification Settings Utils', () => {
         expect(getUserDefaultValues('deploy', {})).toEqual({
           email: 'committed_only',
           slack: 'never',
+          msteams: 'never',
         });
       });
     });
