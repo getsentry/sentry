@@ -139,7 +139,7 @@ class DiscoverQuerySerializer(serializers.Serializer):
 
 
 class DiscoverSavedQuerySerializer(serializers.Serializer):
-    name = serializers.CharField(required=True)
+    name = serializers.CharField(required=True, max_length=255)
     projects = ListField(child=serializers.IntegerField(), required=False, default=[])
     start = serializers.DateTimeField(required=False, allow_null=True)
     end = serializers.DateTimeField(required=False, allow_null=True)

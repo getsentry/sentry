@@ -201,7 +201,9 @@ function buildRoutes() {
         <IndexRedirect to="welcome/" />
         <Route
           path=":step/"
-          component={make(() => import('sentry/views/onboarding/onboardingController'))}
+          component={make(
+            () => import('sentry/views/onboarding/targetedOnboarding/onboarding')
+          )}
         />
       </Route>
     </Fragment>
@@ -469,6 +471,13 @@ function buildRoutes() {
         <IndexRedirect to={`${SamplingRuleType.TRACE}/`} />
         <Route path=":ruleType/" />
       </Route>
+      <Route
+        path="server-side-sampling/"
+        name={t('Server-side Sampling')}
+        component={make(
+          () => import('sentry/views/settings/project/server-side-sampling')
+        )}
+      />
       <Route
         path="issue-grouping/"
         name={t('Issue Grouping')}
@@ -1496,10 +1505,7 @@ function buildRoutes() {
   // me why we need the OrganizationRoot root container.
   const legacyOrganizationRootRoutes = (
     <Route component={errorHandler(OrganizationRoot)}>
-      <Route
-        path="/organizations/:orgId/teams/new/"
-        component={make(() => import('sentry/views/teamCreate'))}
-      />
+      <Redirect from="/organizations/:orgId/teams/new/" to="/settings/:orgId/teams/" />
       <Route path="/organizations/:orgId/">
         {hook('routes:organization')}
         <Redirect from="/organizations/:orgId/teams/" to="/settings/:orgId/teams/" />

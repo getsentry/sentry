@@ -60,6 +60,7 @@ import WidgetCardChart, {
   AugmentedEChartDataZoomHandler,
   SLIDER_HEIGHT,
 } from 'sentry/views/dashboardsV2/widgetCard/chart';
+import {GenericWidgetQueriesChildrenProps} from 'sentry/views/dashboardsV2/widgetCard/genericWidgetQueries';
 import IssueWidgetQueries from 'sentry/views/dashboardsV2/widgetCard/issueWidgetQueries';
 import ReleaseWidgetQueries from 'sentry/views/dashboardsV2/widgetCard/releaseWidgetQueries';
 import {WidgetCardChartContainer} from 'sentry/views/dashboardsV2/widgetCard/widgetCardChartContainer';
@@ -259,7 +260,7 @@ function WidgetViewerModal(props: Props) {
     : [...columns, ...aggregates];
 
   // Some Discover Widgets (Line, Area, Bar) allow the user to specify an orderby
-  // that is not explicitly selected as an aggregate or column. We need to explictly
+  // that is not explicitly selected as an aggregate or column. We need to explicitly
   // include the orderby in the table widget aggregates and columns otherwise
   // eventsv2 will complain about sorting on an unselected field.
   if (
@@ -439,11 +440,11 @@ function WidgetViewerModal(props: Props) {
     });
   }
 
-  const renderDiscoverTable: WidgetQueries['props']['children'] = ({
+  const renderDiscoverTable = ({
     tableResults,
     loading,
     pageLinks,
-  }) => {
+  }: GenericWidgetQueriesChildrenProps) => {
     const links = parseLinkHeader(pageLinks ?? null);
     const isFirstPage = links.previous?.results === false;
     return (

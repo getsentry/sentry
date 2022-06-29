@@ -7,7 +7,7 @@ import InputField, {InputFieldProps} from 'sentry/components/forms/inputField';
 export interface FileFieldProps extends Omit<InputFieldProps, 'type' | 'accept'> {
   accept?: string[];
   // TODO(dcramer): multiple is native to the file input type, but not yet supported
-  // mulitiple?: boolean;
+  // multiple?: boolean;
 }
 
 // XXX(dcramer): This stores files in memory - serialized into the forms values
