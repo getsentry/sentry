@@ -109,10 +109,8 @@ class RelayProjectConfigsEndpoint(Endpoint):
             else:
                 proj_configs[key] = computed
 
-        metrics.incr("relay.project_configs.post_v3.pending", amount=len(pending), sample_rate=1)
-        metrics.incr(
-            "relay.project_configs.post_v3.fetched", amount=len(proj_configs), sample_rate=1
-        )
+        metrics.incr("relay.project_configs.post_v3.pending", amount=len(pending))
+        metrics.incr("relay.project_configs.post_v3.fetched", amount=len(proj_configs))
         res = {"configs": proj_configs, "pending": pending}
 
         return Response(res, status=200)
