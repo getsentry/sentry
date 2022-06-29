@@ -2,15 +2,16 @@ from sentry.models import PromptsActivity
 from sentry.utils.request_cache import request_cache
 
 DEFAULT_PROMPTS = {
-    "releases": {"required_fields": ["organization_id", "project_id"]},
-    "suspect_commits": {"required_fields": ["organization_id", "project_id"]},
     "alert_stream": {"required_fields": ["organization_id"]},
-    "sdk_updates": {"required_fields": ["organization_id"]},
-    "suggest_mobile_project": {"required_fields": ["organization_id"]},
-    "stacktrace_link": {"required_fields": ["organization_id", "project_id"]},
     "distributed_tracing": {"required_fields": ["organization_id", "project_id"]},
-    "quick_trace_missing": {"required_fields": ["organization_id", "project_id"]},
     "code_owners": {"required_fields": ["organization_id", "project_id"]},
+    "profiling_onboarding": {"required_fields": ["organization_id", "project_id"]},
+    "releases": {"required_fields": ["organization_id", "project_id"]},
+    "quick_trace_missing": {"required_fields": ["organization_id", "project_id"]},
+    "sdk_updates": {"required_fields": ["organization_id"]},
+    "stacktrace_link": {"required_fields": ["organization_id", "project_id"]},
+    "suggest_mobile_project": {"required_fields": ["organization_id"]},
+    "suspect_commits": {"required_fields": ["organization_id", "project_id"]},
 }
 
 
