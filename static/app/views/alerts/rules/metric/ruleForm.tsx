@@ -795,30 +795,35 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
 
           return (
             <Fragment>
-              <StyledPresetSidebar
-                organization={organization}
-                project={project}
-                onSelect={(_, context) => {
-                  this.form.setInitialData({
-                    ...this.form.initialData,
-                    name: context.name,
-                    dataset: context.dataset,
-                    eventTypes: context.eventTypes as any,
-                    aggregate: context.aggregate,
-                    comparisonDelta: context.comparisonDelta,
-                    timeWindow: context.timeWindow,
-                    query: context.query,
-                  });
-                  this.form.setValue('comparisonDelta', context.comparisonDelta);
+              {organization.experiments.MetricAlertPresetExperiment &&
+                dataset === Dataset.TRANSACTIONS &&
+                project.firstTransactionEvent &&
+                !this.props.ruleId && (
+                  <StyledPresetSidebar
+                    organization={organization}
+                    project={project}
+                    onSelect={(_, context) => {
+                      this.form.setInitialData({
+                        ...this.form.initialData,
+                        name: context.name,
+                        dataset: context.dataset,
+                        eventTypes: context.eventTypes as any,
+                        aggregate: context.aggregate,
+                        comparisonDelta: context.comparisonDelta,
+                        timeWindow: context.timeWindow,
+                        query: context.query,
+                      });
+                      this.form.setValue('comparisonDelta', context.comparisonDelta);
 
-                  this.setState({
-                    comparisonType: context.comparisonType,
-                    triggers: context.triggers,
-                    thresholdType: context.thresholdType,
-                    triggerErrors: new Map(),
-                  });
-                }}
-              />
+                      this.setState({
+                        comparisonType: context.comparisonType,
+                        triggers: context.triggers,
+                        thresholdType: context.thresholdType,
+                        triggerErrors: new Map(),
+                      });
+                    }}
+                  />
+                )}
               <Layout.Main>
                 <Form
                   model={this.form}
