@@ -400,7 +400,9 @@ export function Provider({children, replay, initialTimeOffset = 0, value = {}}: 
   const currentPlayerTime = useCurrentTime(getCurrentTime);
 
   const [isBuffering, currentTime] =
-    buffer.target !== -1 && buffer.previous === currentPlayerTime
+    buffer.target !== -1 &&
+    buffer.previous === currentPlayerTime &&
+    buffer.target !== buffer.previous
       ? [true, buffer.target]
       : [false, currentPlayerTime];
 
