@@ -2,14 +2,14 @@ from urllib.parse import parse_qs
 
 import responses
 
+from sentry.identity.vercel import VercelIdentityProvider
+from sentry.integrations.vercel import VercelClient
 from sentry.models import OrganizationMember
 from sentry.testutils import TestCase
 
 
 class VercelExtensionConfigurationTest(TestCase):
-    @property
-    def path(self):
-        return "/extensions/vercel/configure/"
+    path = "/extensions/vercel/configure/"
 
     def setUp(self):
         self.user = self.create_user()
@@ -25,25 +25,19 @@ class VercelExtensionConfigurationTest(TestCase):
             "installation_id": "my_config_id",
         }
         responses.add(
-            responses.POST, "https://api.vercel.com/v2/oauth/access_token", json=access_json
+            responses.POST, VercelIdentityProvider.oauth_access_token_url, json=access_json
         )
 
         responses.add(
             responses.GET,
-            "https://api.vercel.com/www/user",
+            f"{VercelClient.base_url}{VercelClient.GET_USER_URL}",
             json={"user": {"name": "my_user_name"}},
         )
 
         responses.add(
             responses.GET,
-            "https://api.vercel.com/v4/projects/",
-            json={"projects": [], "pagination": {"count": 0}},
-        )
-
-        responses.add(
-            responses.POST,
-            "https://api.vercel.com/v1/integrations/webhooks",
-            json={"id": "webhook-id"},
+            f"{VercelClient.base_url}{VercelClient.GET_PROJECTS_URL}",
+            json={"projects": [], "pagination": {"count": 0, "next": None}},
         )
 
         self.params = {
