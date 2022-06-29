@@ -58,13 +58,12 @@ export default function ProfilingOnboarding(props: Props) {
                 {t(
                   `Setup performance transactions in your app if you haven’t already → `
                 )}{' '}
-                <a
+                <ExternalLink
                   href="https://docs.sentry.io/product/performance/"
-                  target="_blank"
                   rel="noreferrer"
                 >
                   {t('https://docs.sentry.io/product/performance/')}
-                </a>
+                </ExternalLink>
               </li>
               <li>
                 {t('Enable profiling in your app by configuring the SDKs like below:')}

@@ -36,7 +36,7 @@ type Props = {
 };
 
 function ProfilingContainer({organization, children}: Props) {
-  const client = useApi();
+  const api = useApi();
 
   const [requestState, setRequestState] = useState<RequestState<PromptData>>({
     type: 'initial',
@@ -45,7 +45,7 @@ function ProfilingContainer({organization, children}: Props) {
   // Fetch prompt data and see if we need to show the onboarding.
   useEffect(() => {
     setRequestState({type: 'loading'});
-    promptsCheck(client, {
+    promptsCheck(api, {
       organizationId: organization.id,
       feature: 'profiling_onboarding',
     })
@@ -56,23 +56,18 @@ function ProfilingContainer({organization, children}: Props) {
         Sentry.captureException(e);
         setRequestState({type: 'errored', error: t('Error: Unable to load prompt data')});
       });
-  }, [client, organization]);
+  }, [api, organization]);
 
   // Eagerly update state and update check
   const dismissPrompt = useCallback(
     (status: 'done' | 'dismissed') => {
       setRequestState({type: 'resolved', data: {dismissedTime: Date.now()}});
-      trackAdvancedAnalyticsEvent(
-        status === 'done'
-          ? 'profiling_views.onboarding_action.done'
-          : 'profiling_views.onboarding_action.dismiss',
-        {
-          action: status === 'done' ? 'done' : 'dismiss',
-          organization,
-        }
-      );
+      trackAdvancedAnalyticsEvent('profiling_views.onboarding_action', {
+        action: status,
+        organization,
+      });
 
-      return promptsUpdate(client, {
+      return promptsUpdate(api, {
         feature: 'profiling_onboarding',
         organizationId: organization.id,
         // This will always send dismissed, becuse we dont actually
@@ -81,7 +76,7 @@ function ProfilingContainer({organization, children}: Props) {
         status: 'dismissed',
       });
     },
-    [organization, client]
+    [organization, api]
   );
 
   const handleDone = useCallback(() => {
