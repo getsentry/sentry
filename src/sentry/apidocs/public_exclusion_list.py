@@ -526,6 +526,7 @@ from sentry.integrations.slack.webhooks import (
     SlackCommandsEndpoint,
     SlackEventEndpoint,
 )
+from sentry.integrations.vercel.generic_webhook import VercelGenericWebhookEndpoint
 from sentry.integrations.vercel.webhook import VercelWebhookEndpoint
 from sentry.integrations.vsts.search import VstsSearchEndpoint
 from sentry.integrations.vsts.webhooks import WorkItemWebhook
@@ -922,6 +923,7 @@ __EXCLUDED_FROM_PUBLIC_ENDPOINTS = {
     BitbucketUninstalledEndpoint,
     BitbucketSearchEndpoint,
     VercelWebhookEndpoint,
+    VercelGenericWebhookEndpoint,
     MsTeamsWebhookEndpoint,
     OrganizationCodeOwnersAssociationsEndpoint,
     PluginGroupEndpoint,
