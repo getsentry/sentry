@@ -161,8 +161,8 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
         """
         if ratelimiter.is_limited(
             f"auth:authenticator-enroll:{request.user.id}:{interface_id}",
-            limit=3,
-            window=300,  # 3 per 5 minutes
+            limit=10,
+            window=86400,  # 10 per day should be fine
         ):
             return HttpResponse(
                 "You have made too many authenticator enrollment attempts. Please try again later.",
