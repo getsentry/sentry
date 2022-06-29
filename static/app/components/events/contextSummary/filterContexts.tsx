@@ -13,6 +13,13 @@ function filterContexts(event: Event, context: Context) {
     }
   }
 
+  // if the runtime name and version is not defined, do not show this context
+  if (context.keys.includes('runtime')) {
+    if (!(event.contexts.runtime?.name || event.contexts.runtime?.version)) {
+      return false;
+    }
+  }
+
   return true;
 }
 
