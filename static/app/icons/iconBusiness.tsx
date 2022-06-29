@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 
 import {uniqueId} from 'sentry/utils/guid';
 
-import SvgIcon, {SVGIconProps} from './svgIcon';
+import {SvgIcon, SVGIconProps} from './svgIcon';
 
 type WrappedProps = {
   forwardedRef: React.Ref<SVGSVGElement>;
