@@ -309,6 +309,9 @@ register("processing.can-use-scrubbers", default=True)
 # Note: A value that is neither 0 nor 1 is regarded as 0
 register("store.use-relay-dsn-sample-rate", default=1)
 
+# A rate to apply to any events denoted as experimental to be sent to an experimental dsn.
+register("store.use-experimental-dsn-sample-rate", default=0.0)
+
 # Mock out integrations and services for tests
 register("mocks.jira", default=False)
 

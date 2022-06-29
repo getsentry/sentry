@@ -403,6 +403,11 @@ class SlackReleaseIssuesMessageBuilder(SlackMessageBuilder):
 
     def build(self) -> SlackBody:
         text = build_attachment_text(self.group, self.event) or ""
+        # Shorten attchment text to end of first line or 80 characters
+        newline_index = text.index("\n") if "\n" in text else 0
+        text_split = min(newline_index, 80)
+        text = text[:text_split]
+
         project = Project.objects.get_from_cache(id=self.group.project_id)
 
         # If an event is unspecified, use the tags of the latest event (if one exists).
@@ -423,8 +428,10 @@ class SlackReleaseIssuesMessageBuilder(SlackMessageBuilder):
             payload_actions = []
 
         issue_title = build_attachment_title(obj)
-        title_url = get_title_link(
-            self.group, self.event, self.link_to_event, self.issue_details, self.notification
+        event_id = self.event.event_id if self.event else None
+        # TODO(workflow): Remove referrer experiement with flag "organizations:alert-release-notification-workflow"
+        title_url = self.group.get_absolute_url(
+            params={"referrer": "slack_release"}, event_id=event_id
         )
         release = (
             parse_release(self.last_release.version)["description"]
