@@ -39,6 +39,14 @@ const ORG_DISABLED_REASON = t(
   "This option is enforced by your organization's settings and cannot be customized per-project."
 );
 
+const PlatformWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+`;
+const StyledPlatformIcon = styled(PlatformIcon)`
+  margin-right: ${space(1)};
+`;
+
 export const fields: Record<string, Field> = {
   name: {
     name: 'name',
@@ -64,14 +72,15 @@ export const fields: Record<string, Field> = {
     name: 'platform',
     type: 'select',
     label: t('Platform'),
-    choices: () =>
-      platforms.map(({id, name}) => [
-        id,
+    options: platforms.map(({id, name}) => ({
+      value: id,
+      label: (
         <PlatformWrapper key={id}>
           <StyledPlatformIcon platform={id} />
           {name}
-        </PlatformWrapper>,
-      ]),
+        </PlatformWrapper>
+      ),
+    })),
     help: t('The primary platform for this project'),
     filterOption: createFilter({
       stringify: option => {
@@ -170,11 +179,3 @@ export const fields: Record<string, Field> = {
     help: t('Outbound requests will verify TLS (sometimes known as SSL) connections'),
   },
 };
-
-const PlatformWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-`;
-const StyledPlatformIcon = styled(PlatformIcon)`
-  margin-right: ${space(1)};
-`;
