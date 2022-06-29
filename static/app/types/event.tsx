@@ -308,6 +308,7 @@ type RuntimeContext = {
   type: 'runtime';
   build?: string;
   name?: string;
+  raw_description?: string;
   version?: number;
 };
 
