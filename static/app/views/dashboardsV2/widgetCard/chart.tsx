@@ -42,7 +42,7 @@ import {eventViewFromWidget} from 'sentry/views/dashboardsV2/utils';
 import {getDatasetConfig} from '../datasetConfig/base';
 import {DisplayType, Widget, WidgetType} from '../types';
 
-import WidgetQueries from './widgetQueries';
+import {GenericWidgetQueriesChildrenProps} from './genericWidgetQueries';
 
 const OTHER = 'Other';
 export const SLIDER_HEIGHT = 60;
@@ -56,12 +56,12 @@ export type AugmentedEChartDataZoomHandler = (
 ) => void;
 
 type TableResultProps = Pick<
-  WidgetQueries['state'],
+  GenericWidgetQueriesChildrenProps,
   'errorMessage' | 'loading' | 'tableResults'
 >;
 
 type WidgetCardChartProps = Pick<
-  WidgetQueries['state'],
+  GenericWidgetQueriesChildrenProps,
   'timeseriesResults' | 'tableResults' | 'errorMessage' | 'loading'
 > & {
   location: Location;
