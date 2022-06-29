@@ -4,6 +4,7 @@ from sentry.models import ProjectKey
 from sentry.models.transaction_threshold import TransactionMetric
 from sentry.relay.config import get_project_config
 from sentry.testutils.helpers import Feature
+from sentry.testutils.helpers.options import override_options
 from sentry.utils.safe import get_path
 
 PII_CONFIG = """
@@ -171,3 +172,18 @@ def test_project_config_with_span_attributes(default_project, insta_snapshot):
 
     cfg = cfg.to_dict()
     insta_snapshot(cfg["config"]["spanAttributes"])
+
+
+@pytest.mark.django_db
+def test_killswitch(default_project):
+    with Feature(
+        {
+            "organizations:transaction-metrics-extraction": True,
+        }
+    ), override_options({"relay.drop-transaction-metrics": [{"project_id": default_project.id}]}):
+        config = get_project_config(default_project)
+        assert config.to_dict()["config"]["transactionMetrics"] == {
+            "extractMetrics": [],
+            "extractCustomTags": [],
+            "customMeasurements": {"limit": 0},
+        }
