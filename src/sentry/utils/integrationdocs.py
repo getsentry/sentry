@@ -128,12 +128,18 @@ def sync_docs(quiet=False):
     MAX_THREADS = 32
     thread_count = min(len(data["platforms"]), multiprocessing.cpu_count() * 5, MAX_THREADS)
     with concurrent.futures.ThreadPoolExecutor(thread_count) as exe:
-        for platform_id, platform_data in data["platforms"].items():
-            for integration_id, integration in platform_data.items():
-                exe.submit(
-                    sync_integration_docs,
-                    (platform_id, integration_id, integration["details"], quiet),
-                )
+        for future in concurrent.futures.as_completed(
+            exe.submit(
+                sync_integration_docs,
+                platform_id,
+                integration_id,
+                integration["details"],
+                quiet,
+            )
+            for platform_id, platform_data in data["platforms"].items()
+            for integration_id, integration in platform_data.items()
+        ):
+            future.result()  # needed to trigger exceptions
 
 
 def sync_integration_docs(platform_id, integration_id, path, quiet=False):
