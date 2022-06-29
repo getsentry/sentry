@@ -1,13 +1,12 @@
 # NOTE: This is run external to sentry as well as part of the setup
 # process.  Thus we do not want to import non stdlib things here.
 
-import concurrent.futures
-
 # Import the stdlib json instead of sentry.utils.json, since this command is
 # run at build time
-import json  # noqa: S003
+import json  # NOQA
 import logging
 import multiprocessing
+import multiprocessing.dummy
 import os
 import sys
 import time
@@ -40,6 +39,10 @@ the latest list of integrations and serve them in your local Sentry install.
 """
 
 logger = logging.getLogger("sentry")
+
+
+def iteritems(d, **kw):
+    return iter(d.items(**kw))
 
 
 def echo(what):
@@ -103,7 +106,7 @@ def sync_docs(quiet=False):
     body = urlopen_with_retries(BASE_URL.format("_index.json")).read().decode("utf-8")
     data = json.loads(body)
     platform_list = []
-    for platform_id, integrations in data["platforms"].items():
+    for platform_id, integrations in iteritems(data["platforms"]):
         platform_list.append(
             {
                 "id": platform_id,
@@ -115,7 +118,7 @@ def sync_docs(quiet=False):
                         "type": i_data["type"],
                         "link": i_data["doc_link"],
                     }
-                    for i_id, i_data in sorted(integrations.items(), key=lambda x: x[1]["name"])
+                    for i_id, i_data in sorted(iteritems(integrations), key=lambda x: x[1]["name"])
                 ],
             }
         )
@@ -126,14 +129,17 @@ def sync_docs(quiet=False):
 
     # This value is derived from https://docs.python.org/3/library/concurrent.futures.html#threadpoolexecutor
     MAX_THREADS = 32
-    thread_count = min(len(data["platforms"]), multiprocessing.cpu_count() * 5, MAX_THREADS)
-    with concurrent.futures.ThreadPoolExecutor(thread_count) as exe:
-        for platform_id, platform_data in data["platforms"].items():
-            for integration_id, integration in platform_data.items():
-                exe.submit(
-                    sync_integration_docs,
-                    (platform_id, integration_id, integration["details"], quiet),
-                )
+    # TODO(python3): Migrate this to concurrent.futures.ThreadPoolExecutor context manager
+    executor = multiprocessing.dummy.Pool(
+        min(len(data["platforms"]), multiprocessing.cpu_count() * 5, MAX_THREADS)
+    )
+    for platform_id, platform_data in iteritems(data["platforms"]):
+        for integration_id, integration in iteritems(platform_data):
+            executor.apply_async(
+                sync_integration_docs, (platform_id, integration_id, integration["details"], quiet)
+            )
+    executor.close()
+    executor.join()
 
 
 def sync_integration_docs(platform_id, integration_id, path, quiet=False):
