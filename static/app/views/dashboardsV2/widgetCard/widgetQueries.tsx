@@ -130,7 +130,7 @@ function WidgetQueries({
     setIsMetricsData = context.setIsMetricsData;
   }
 
-  const processSeriesResult = useCallback(
+  const afterFetchSeriesData = useCallback(
     (rawResults: SeriesResult) => {
       // If one of the queries is sampled, then mark the whole thing as sampled
       const currentResultIsMetricsData =
@@ -140,7 +140,7 @@ function WidgetQueries({
     [isMetricsData, setIsMetricsData]
   );
 
-  const processTableResult = useCallback(
+  const afterFetchTableData = useCallback(
     (rawResults: TableResult) => {
       // If one of the queries is sampled, then mark the whole thing as sampled
       const currentResultIsMetricsData =
@@ -160,8 +160,8 @@ function WidgetQueries({
       cursor={cursor}
       limit={limit}
       onDataFetched={onDataFetched}
-      afterFetchSeriesData={processSeriesResult}
-      afterFetchTableData={processTableResult}
+      afterFetchSeriesData={afterFetchSeriesData}
+      afterFetchTableData={afterFetchTableData}
     >
       {children}
     </GenericWidgetQueries>
