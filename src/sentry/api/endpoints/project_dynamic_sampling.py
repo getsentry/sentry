@@ -84,11 +84,10 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
             selected_columns=[
                 "id",
                 "trace",
-                'count_if(trace.parent_span,equals,"")',
                 "trace.sample_rate",
                 "random_number() AS random_number",
             ],
-            query=f'{query} count_if(trace.parent_span,equals,""):1 event.type:transaction',
+            query=f"{query} !has:trace.parent_span_id event.type:transaction",
             params={
                 "start": start_time,
                 "end": end_time,
@@ -105,6 +104,7 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
             use_aggregate_conditions=True,
             transform_alias_to_input_format=True,
             functions_acl=["random_number"],
+            sample=float(sample_size * 100),
             referrer="dynamic-sampling.distribution.fetch-parent-transactions",
         )["data"]
 
