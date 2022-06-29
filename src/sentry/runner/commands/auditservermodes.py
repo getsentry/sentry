@@ -55,7 +55,7 @@ def create_view_table():
 class ConsolePresentation(abc.ABC):
     @property
     @abc.abstractmethod
-    def table_header(self):
+    def table_label(self):
         raise NotImplementedError
 
     @abc.abstractmethod
@@ -63,7 +63,7 @@ class ConsolePresentation(abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def get_group_header(self, key):
+    def get_group_label(self, key):
         raise NotImplementedError
 
     def format_mode_set(self, modes):
@@ -74,14 +74,17 @@ class ConsolePresentation(abc.ABC):
         return f"{value.__module__}.{value.__name__}"
 
     def print_table(self, table):
-        print("\n" + self.table_header)  # noqa
-        print("=" * len(self.table_header), end="\n\n")  # noqa
+        total_size = sum(len(group) for group in table.values())
+        table_header = f"{self.table_label} ({total_size})"
+        print("\n" + table_header)  # noqa
+        print("=" * len(table_header), end="\n\n")  # noqa
 
         groups = list(table.items())
         groups.sort(key=self.order)
 
         for (group_key, group) in groups:
-            group_header = self.get_group_header(group_key)
+            group_label = self.get_group_label(group_key)
+            group_header = f"{group_label} ({len(group)})"
             print(group_header)  # noqa
             print("-" * len(group_header), end="\n\n")  # noqa
 
@@ -93,7 +96,7 @@ class ConsolePresentation(abc.ABC):
 
 class ModelPresentation(ConsolePresentation):
     @property
-    def table_header(self):
+    def table_label(self):
         return "MODELS"
 
     def order(self, group):
@@ -106,7 +109,7 @@ class ModelPresentation(ConsolePresentation):
             self.format_mode_set(read_modes),
         )
 
-    def get_group_header(self, key):
+    def get_group_label(self, key):
         write_modes, read_modes = key
         if write_modes:
             if read_modes:
@@ -119,12 +122,12 @@ class ModelPresentation(ConsolePresentation):
 
 class ViewPresentation(ConsolePresentation):
     @property
-    def table_header(self):
+    def table_label(self):
         return "ENDPOINTS"
 
     def order(self, group):
         mode_set, _view_group = group
         return len(mode_set), self.format_mode_set(mode_set)
 
-    def get_group_header(self, key):
+    def get_group_label(self, key):
         return self.format_mode_set(key) if key else "No decorator"
