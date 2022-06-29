@@ -89,8 +89,6 @@ class RelayProjectConfigsEndpoint(Endpoint):
         elif no_cache:
             use_v3 = False
             reason = "noCache"
-        else:
-            set_tag("relay_v3_sampled", True)
 
         set_tag("relay_use_v3", use_v3)
         set_tag("relay_use_v3_rejected", reason)
