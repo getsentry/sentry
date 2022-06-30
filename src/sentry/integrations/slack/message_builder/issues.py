@@ -411,7 +411,7 @@ class SlackReleaseIssuesMessageBuilder(SlackMessageBuilder):
 
         return "\n".join(
             [
-                f'[{x.get("author").__getattribute__("email") if x.get("author") else "no email"}] - {x.get("subject", "no subject")} ({x.get("key", "no key")})'
+                f'[{getattr(x.get("author"), "email") if x.get("author") else "no email"}] - {x.get("subject", "no subject")} ({x.get("key", "no key")})'
                 for x in (commit_data or ())
             ]
         )
