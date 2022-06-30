@@ -36,6 +36,7 @@ class DynamicSamplingPermission(ProjectPermission):
 
 
 class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
+    private = True
     permission_classes = (DynamicSamplingPermission,)
 
     @staticmethod
