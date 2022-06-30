@@ -11,7 +11,7 @@ export interface FlamegraphEvents {
   setConfigView: (configView: Rect) => void;
   setSelectedNode: (frame: FlamegraphFrame | null) => void;
   transformConfigView: (transform: mat3) => void;
-  zoomIntoFrame: (frame: FlamegraphFrame) => void;
+  zoomIntoFrame: (frame: FlamegraphFrame, strategy: 'min' | 'exact') => void;
 }
 
 type EventStore = {[K in keyof FlamegraphEvents]: Set<FlamegraphEvents[K]>};

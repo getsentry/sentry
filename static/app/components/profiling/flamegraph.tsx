@@ -162,16 +162,14 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
       canvasPoolManager.draw();
     };
 
-    const onZoomIntoFrame = (frame: FlamegraphFrame) => {
-      flamegraphView.setConfigView(
-        new Rect(
-          frame.start,
-          frame.depth,
-          frame.end - frame.start,
-          flamegraphView.configView.height
-        )
+    const onZoomIntoFrame = (frame: FlamegraphFrame, strategy: 'min' | 'exact') => {
+      const newConfigView = computeConfigViewWithStategy(
+        strategy,
+        flamegraphView.configView,
+        frame
       );
 
+      flamegraphView.setConfigView(newConfigView);
       canvasPoolManager.draw();
     };
 

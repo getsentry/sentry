@@ -388,7 +388,7 @@ function FlamegraphZoomView({
           flamegraphState.profiles.selectedNode &&
           hoveredNode === flamegraphState.profiles.selectedNode
         ) {
-          canvasPoolManager.dispatch('zoomIntoFrame', [hoveredNode]);
+          canvasPoolManager.dispatch('zoomIntoFrame', [hoveredNode, 'exact']);
         }
         canvasPoolManager.dispatch('setSelectedNode', [hoveredNode]);
         dispatchFlamegraphState({type: 'set selected node', payload: hoveredNode});
