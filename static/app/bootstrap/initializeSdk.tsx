@@ -7,7 +7,10 @@ import {_browserPerformanceTimeOriginMode} from '@sentry/utils';
 
 import {DISABLE_RR_WEB, SENTRY_RELEASE_VERSION, SPA_DSN} from 'sentry/constants';
 import {Config} from 'sentry/types';
-import {LongTaskObserver} from 'sentry/utils/performanceForSentry';
+import {
+  initializeMeasureAssetsTimeout,
+  LongTaskObserver,
+} from 'sentry/utils/performanceForSentry';
 
 /**
  * We accept a routes argument here because importing `static/routes`
@@ -107,4 +110,5 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
   Sentry.setTag('rrweb.active', hasReplays ? 'yes' : 'no');
 
   LongTaskObserver.startPerformanceObserver();
+  initializeMeasureAssetsTimeout();
 }
