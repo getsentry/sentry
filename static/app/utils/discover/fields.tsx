@@ -230,7 +230,7 @@ export const AGGREGATIONS = {
       {
         kind: 'column',
         columnTypes: validateDenyListColumns(
-          ['string', 'duration'],
+          ['string', 'duration', 'number'],
           ['id', 'issue', 'user.display']
         ),
         defaultValue: 'transaction.duration',

@@ -624,6 +624,7 @@ CELERY_QUEUES = [
     ),
     Queue("events.save_event", routing_key="events.save_event"),
     Queue("events.save_event_transaction", routing_key="events.save_event_transaction"),
+    Queue("events.save_event_attachments", routing_key="events.save_event_attachments"),
     Queue("events.symbolicate_event", routing_key="events.symbolicate_event"),
     Queue(
         "events.symbolicate_event_low_priority", routing_key="events.symbolicate_event_low_priority"
@@ -643,6 +644,7 @@ CELERY_QUEUES = [
     Queue("merge", routing_key="merge"),
     Queue("options", routing_key="options"),
     Queue("relay_config", routing_key="relay_config"),
+    Queue("relay_config_bulk", routing_key="relay_config_bulk"),
     Queue("reports.deliver", routing_key="reports.deliver"),
     Queue("reports.prepare", routing_key="reports.prepare"),
     Queue("search", routing_key="search"),
@@ -928,6 +930,8 @@ CRISPY_TEMPLATE_PACK = "bootstrap3"
 SENTRY_FEATURES = {
     # Enables user registration.
     "auth:register": True,
+    # Workflow 2.0 Experimental ReleaseMembers who opt-in to get notified as a release committer
+    "organizations:active-release-notification-opt-in": False,
     # Enable advanced search features, like negation and wildcard matching.
     "organizations:advanced-search": True,
     # Use metrics as the dataset for crash free metric alerts
@@ -958,7 +962,7 @@ SENTRY_FEATURES = {
     "organizations:duplicate-alert-rule": False,
     # Enable attaching arbitrary files to events.
     "organizations:event-attachments": True,
-    # Enable Filters & Sampling in the org settings
+    # Enable Filters & Sampling in the project settings
     "organizations:filters-and-sampling": False,
     # Allow organizations to configure all symbol sources.
     "organizations:symbol-sources": True,
@@ -1000,8 +1004,6 @@ SENTRY_FEATURES = {
     "organizations:issue-search-use-cdc-secondary": False,
     # Enable metrics feature on the backend
     "organizations:metrics": False,
-    # Use SNQL to create metric alerts, and perform other snuba queries related to metric alerts
-    "organizations:metric-alert-snql": True,
     # Enable metric alert charts in email/slack
     "organizations:metric-alert-chartcuterie": False,
     # Enable the new widget builder experience on Dashboards
@@ -1063,6 +1065,8 @@ SENTRY_FEATURES = {
     "organizations:dashboards-mep": False,
     # Enable release health widgets in dashboards
     "organizations:dashboards-releases": False,
+    # Enables usage of custom measurements in dashboard widgets
+    "organizations:dashboard-custom-measurement-widgets": False,
     # Enable widget viewer modal in dashboards
     "organizations:widget-viewer-modal": False,
     # Enable minimap in the widget viewer modal in dashboards
@@ -1122,6 +1126,8 @@ SENTRY_FEATURES = {
     # Enable SAML2 based SSO functionality. getsentry/sentry-auth-saml2 plugin
     # must be installed to use this functionality.
     "organizations:sso-saml2": True,
+    # Enable new server-side sampling UI in the project settings
+    "organizations:server-side-sampling": False,
     # Enable the new images loaded design and features
     "organizations:images-loaded-v2": True,
     # Enable the mobile screenshots feature
@@ -1168,6 +1174,8 @@ SENTRY_FEATURES = {
 # Default time zone for localization in the UI.
 # http://en.wikipedia.org/wiki/List_of_tz_zones_by_name
 SENTRY_DEFAULT_TIME_ZONE = "UTC"
+
+SENTRY_DEFAULT_LANGUAGE = "en"
 
 # Enable the Sentry Debugger (Beta)
 SENTRY_DEBUGGER = None
@@ -2669,3 +2677,8 @@ ENABLE_ANALYTICS = False
 
 MAX_ISSUE_ALERTS_PER_PROJECT = 100
 MAX_QUERY_SUBSCRIPTIONS_PER_ORG = 1000
+
+MAX_REDIS_SNOWFLAKE_RETRY_COUNTER = 5
+
+SNOWFLAKE_VERSION_ID = 1
+SNOWFLAKE_REGION_ID = 0

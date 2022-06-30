@@ -128,6 +128,7 @@ interface State {
   interval: Widget['interval'];
   limit: Widget['limit'];
   loading: boolean;
+  prebuiltWidgetId: null | string;
   queries: Widget['queries'];
   title: string;
   userHasModified: boolean;
@@ -212,6 +213,7 @@ function WidgetBuilder({
       loading: !!notDashboardsOrigin,
       dashboards: [],
       userHasModified: false,
+      prebuiltWidgetId: null,
       dataSet: DataSet.EVENTS,
     };
 
@@ -311,6 +313,7 @@ function WidgetBuilder({
           ? WIDGET_TYPE_TO_DATA_SET[widgetFromDashboard.widgetType]
           : DataSet.EVENTS,
         limit: newLimit,
+        prebuiltWidgetId: null,
       });
       setDataSetConfig(getDatasetConfig(widgetFromDashboard.widgetType));
       setWidgetToBeUpdated(widgetFromDashboard);
@@ -549,6 +552,14 @@ function WidgetBuilder({
   }
 
   function handleDataSetChange(newDataSet: string) {
+    trackAdvancedAnalyticsEvent('dashboards_views.widget_builder.change', {
+      from: source,
+      field: 'dataSet',
+      value: newDataSet,
+      widget_type: widgetType,
+      organization,
+      new_widget: !isEditing,
+    });
     setState(prevState => {
       const newState = cloneDeep(prevState);
       newState.queries.splice(0, newState.queries.length);
@@ -1121,18 +1132,21 @@ function WidgetBuilder({
               <WidgetLibrary
                 organization={organization}
                 widgetBuilderNewDesign={widgetBuilderNewDesign}
+                selectedWidgetId={state.userHasModified ? null : state.prebuiltWidgetId}
                 onWidgetSelect={prebuiltWidget => {
                   setLatestLibrarySelectionTitle(prebuiltWidget.title);
                   setDataSetConfig(
                     getDatasetConfig(prebuiltWidget.widgetType || WidgetType.DISCOVER)
                   );
+                  const {id, ...prebuiltWidgetProps} = prebuiltWidget;
                   setState({
                     ...state,
-                    ...prebuiltWidget,
+                    ...prebuiltWidgetProps,
                     dataSet: prebuiltWidget.widgetType
                       ? WIDGET_TYPE_TO_DATA_SET[prebuiltWidget.widgetType]
                       : DataSet.EVENTS,
                     userHasModified: false,
+                    prebuiltWidgetId: id || null,
                   });
                 }}
                 bypassOverwriteModal={!state.userHasModified}

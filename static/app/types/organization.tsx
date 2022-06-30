@@ -32,7 +32,7 @@ export type Organization = OrganizationSummary & {
   allowJoinRequests: boolean;
   allowSharedIssues: boolean;
   attachmentsRole: string;
-  availableRoles: {id: string; name: string}[];
+  availableRoles: {id: string; name: string}[]; // Deprecated, use orgRoleList
   dataScrubber: boolean;
   dataScrubberDefaults: boolean;
   debugFilesRole: string;
@@ -43,6 +43,7 @@ export type Organization = OrganizationSummary & {
   isDefault: boolean;
   onboardingTasks: OnboardingTaskStatus[];
   openMembership: boolean;
+  orgRoleList: OrgRole[];
   pendingAccessRequests: number;
   quota: {
     accountLimit: number | null;
@@ -56,6 +57,7 @@ export type Organization = OrganizationSummary & {
   scrubIPAddresses: boolean;
   sensitiveFields: string[];
   storeCrashReports: number;
+  teamRoleList: TeamRole[];
   trustedRelays: Relay[];
   orgRole?: string;
   /**
@@ -124,9 +126,8 @@ export type Member = {
 
   teamRoleList: TeamRole[]; // TODO: Move to global store
   teamRoles: {
-    isActive: boolean;
-    role: TeamRole['id'];
-    team: string;
+    role: string | null;
+    teamSlug: string;
   }[];
   teams: string[]; // # Deprecated, use teamRoles
 

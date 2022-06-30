@@ -10,7 +10,10 @@ from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL
 from sentry.incidents.models import IncidentStatus
 from sentry.integrations.slack.message_builder import LEVEL_TO_COLOR
 from sentry.integrations.slack.message_builder.incidents import SlackIncidentsMessageBuilder
-from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
+from sentry.integrations.slack.message_builder.issues import (
+    SlackIssuesMessageBuilder,
+    SlackReleaseIssuesMessageBuilder,
+)
 from sentry.integrations.slack.message_builder.metric_alerts import SlackMetricAlertMessageBuilder
 from sentry.models import Group, Team, User
 from sentry.testutils import TestCase
@@ -135,6 +138,25 @@ class BuildGroupAttachmentTest(TestCase):
             SlackIssuesMessageBuilder(warning_event.group, warning_event).build()["color"]
             == "#FFC227"
         )
+
+    def test_build_group_release_attachment(self):
+        group = self.create_group(
+            project=self.project,
+            data={
+                "type": "error",
+                "metadata": {"function": "First line of Text\n Some more details"},
+            },
+        )
+        release = self.create_release(version="1.0.0", project=self.project)
+
+        attachments = SlackReleaseIssuesMessageBuilder(group, last_release=release).build()
+        release_link = absolute_uri(
+            f"/organizations/{group.organization.slug}/releases/{release.version}/?project={group.project_id}"
+        )
+        group_link = f"http://testserver/organizations/{group.organization.slug}/issues/{group.id}/?referrer=slack_release"
+        assert attachments["title"] == f"Release <{release_link}|{release.version}> has a new issue"
+        assert attachments["text"] == f"<{group_link}|*{group.title}*> \nFirst line of Text"
+        assert "title_link" not in attachments
 
 
 class BuildIncidentAttachmentTest(TestCase):

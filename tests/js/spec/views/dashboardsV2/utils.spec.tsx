@@ -1,4 +1,4 @@
-import {DisplayType, WidgetType} from 'sentry/views/dashboardsV2/types';
+import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboardsV2/types';
 import {
   constructWidgetFromQuery,
   eventViewFromWidget,
@@ -8,6 +8,7 @@ import {
   getNumEquations,
   getWidgetDiscoverUrl,
   getWidgetIssueUrl,
+  isCustomMeasurementWidget,
 } from 'sentry/views/dashboardsV2/utils';
 
 describe('Dashboards util', () => {
@@ -296,6 +297,48 @@ describe('Dashboards util', () => {
 
     it('returns 0 if the possible equations array is empty', function () {
       expect(getNumEquations([])).toBe(0);
+    });
+  });
+
+  describe('isCustomMeasurementWidget', function () {
+    it('returns false on a non custom measurement widget', function () {
+      const widget: Widget = {
+        title: 'Title',
+        interval: '5m',
+        displayType: DisplayType.LINE,
+        widgetType: WidgetType.DISCOVER,
+        queries: [
+          {
+            conditions: '',
+            fields: [],
+            aggregates: ['count()', 'p99(measurements.lcp)'],
+            columns: [],
+            name: 'widget',
+            orderby: '',
+          },
+        ],
+      };
+      expect(isCustomMeasurementWidget(widget)).toBe(false);
+    });
+
+    it('returns true on a custom measurement widget', function () {
+      const widget: Widget = {
+        title: 'Title',
+        interval: '5m',
+        displayType: DisplayType.LINE,
+        widgetType: WidgetType.DISCOVER,
+        queries: [
+          {
+            conditions: '',
+            fields: [],
+            aggregates: ['p99(measurements.custom.measurement)'],
+            columns: [],
+            name: 'widget',
+            orderby: '',
+          },
+        ],
+      };
+      expect(isCustomMeasurementWidget(widget)).toBe(true);
     });
   });
 });

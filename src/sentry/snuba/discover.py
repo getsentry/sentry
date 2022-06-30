@@ -217,6 +217,7 @@ def query(
     conditions=None,
     functions_acl=None,
     transform_alias_to_input_format=False,
+    sample=None,
 ) -> EventsResponse:
     """
     High-level API for doing arbitrary user queries against events.
@@ -247,6 +248,7 @@ def query(
                     any additional processing.
     transform_alias_to_input_format (bool) Whether aggregate columns should be returned in the originally
                                 requested function format.
+    sample (float) The sample rate to run the query with
     """
     if not selected_columns:
         raise InvalidSearchQuery("No columns selected")
@@ -265,6 +267,7 @@ def query(
         limit=limit,
         offset=offset,
         equation_config={"auto_add": include_equation_fields},
+        sample_rate=sample,
     )
     if conditions is not None:
         builder.add_conditions(conditions)

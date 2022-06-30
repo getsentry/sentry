@@ -611,6 +611,11 @@ export function useVirtualizedTree<T extends TreeLike>(
         return;
       }
 
+      // Cant move anywhere if there are no nodes
+      if (!tree.flattened.length) {
+        return;
+      }
+
       if (event.key === 'Enter') {
         handleExpandTreeNode(tree.flattened[latestStateRef.current.tabIndexKey], {
           expandChildren: true,
@@ -619,6 +624,27 @@ export function useVirtualizedTree<T extends TreeLike>(
 
       if (event.key === 'ArrowDown') {
         event.preventDefault();
+
+        if (event.metaKey || event.ctrlKey) {
+          const index = tree.flattened.length - 1;
+
+          props.scrollContainer!.scrollTo({
+            // We need to offset for the scrollMargin
+            top: index * props.rowHeight + props.rowHeight,
+          });
+          dispatch({type: 'set tab index key', payload: index});
+          updateGhostRow({
+            ref: clickedGhostRowRef,
+            tabIndexKey: index,
+            scrollTop: latestStateRef.current.scrollTop,
+            rowHeight: props.rowHeight,
+            interaction: 'active',
+          });
+          return;
+        }
+
+        // This is fine because we are only searching visible items
+        // and not the entire tree of nodes
         const indexInVisibleItems = items.findIndex(
           i => i.key === latestStateRef.current.tabIndexKey
         );
@@ -646,6 +672,22 @@ export function useVirtualizedTree<T extends TreeLike>(
 
       if (event.key === 'ArrowUp') {
         event.preventDefault();
+
+        if (event.metaKey || event.ctrlKey) {
+          props.scrollContainer!.scrollTo({top: 0});
+          dispatch({type: 'set tab index key', payload: 0});
+          updateGhostRow({
+            ref: clickedGhostRowRef,
+            tabIndexKey: 0,
+            scrollTop: latestStateRef.current.scrollTop,
+            rowHeight: props.rowHeight,
+            interaction: 'active',
+          });
+          return;
+        }
+
+        // This is fine because we are only searching visible items
+        // and not the entire tree of nodes
         const indexInVisibleItems = items.findIndex(
           i => i.key === latestStateRef.current.tabIndexKey
         );
@@ -671,7 +713,7 @@ export function useVirtualizedTree<T extends TreeLike>(
         }
       }
     },
-    [handleExpandTreeNode, items, tree.flattened, props.rowHeight]
+    [handleExpandTreeNode, items, tree.flattened, props.rowHeight, props.scrollContainer]
   );
 
   // When a row is hovered, we update the ghost row

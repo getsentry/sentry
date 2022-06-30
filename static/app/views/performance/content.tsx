@@ -13,6 +13,7 @@ import {PageFilters, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {PerformanceEventViewProvider} from 'sentry/utils/performance/contexts/performanceEventViewContext';
+import {MeasureAssetsOnTransaction} from 'sentry/utils/performanceForSentry';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
@@ -159,24 +160,26 @@ function PerformanceContent({selection, location, demoMode}: Props) {
               },
             }}
           >
-            <PerformanceLanding
-              eventView={eventView}
-              setError={setError}
-              handleSearch={handleSearch}
-              handleTrendsClick={() =>
-                handleTrendsClick({
-                  location,
-                  organization,
-                  projectPlatforms: getSelectedProjectPlatforms(location, projects),
-                })
-              }
-              onboardingProject={onboardingProject}
-              organization={organization}
-              location={location}
-              projects={projects}
-              selection={selection}
-              withStaticFilters={withStaticFilters}
-            />
+            <MeasureAssetsOnTransaction>
+              <PerformanceLanding
+                eventView={eventView}
+                setError={setError}
+                handleSearch={handleSearch}
+                handleTrendsClick={() =>
+                  handleTrendsClick({
+                    location,
+                    organization,
+                    projectPlatforms: getSelectedProjectPlatforms(location, projects),
+                  })
+                }
+                onboardingProject={onboardingProject}
+                organization={organization}
+                location={location}
+                projects={projects}
+                selection={selection}
+                withStaticFilters={withStaticFilters}
+              />
+            </MeasureAssetsOnTransaction>
           </PageFiltersContainer>
         </MEPSettingProvider>
       </PerformanceEventViewProvider>

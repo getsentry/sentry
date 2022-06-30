@@ -1,7 +1,9 @@
 import logging
+import time
 
 import sentry_sdk
 
+from sentry.models.organization import Organization
 from sentry.relay import projectconfig_cache, projectconfig_debounce_cache
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
@@ -34,9 +36,6 @@ def build_project_config(public_key=None, **kwargs):
     try:
         from sentry.models import ProjectKey
 
-        sentry_sdk.set_tag("public_key", public_key)
-        sentry_sdk.set_context("kwargs", kwargs)
-
         try:
             key = ProjectKey.objects.get(public_key=public_key)
         except ProjectKey.DoesNotExist:
@@ -62,6 +61,7 @@ def schedule_build_project_config(public_key):
 
     See documentation of `build_project_config` for documentation of parameters.
     """
+    tmp_scheduled = time.time()
     if projectconfig_debounce_cache.is_debounced(
         public_key=public_key, project_id=None, organization_id=None
     ):
@@ -76,7 +76,7 @@ def schedule_build_project_config(public_key):
         "relay.projectconfig_cache.scheduled",
         tags={"task": "build"},
     )
-    build_project_config.delay(public_key=public_key)
+    build_project_config.delay(public_key=public_key, tmp_scheduled=tmp_scheduled)
 
     # Checking if the project is debounced and debouncing it are two separate
     # actions that aren't atomic. If the process marks a project as debounced
@@ -104,8 +104,8 @@ def compute_configs(organization_id=None, project_id=None, public_key=None):
 
     You must only provide one single argument, not all.
 
-    :returns: A dict mapping all affected public keys to their config.  The dict could
-       contain `None` as value which indicates the config should not exist.
+    :returns: A dict mapping all affected public keys to their config.  The dict will not
+       contain keys which should be retained in the cache unchanged.
     """
     from sentry.models import Project, ProjectKey
 
@@ -113,32 +113,58 @@ def compute_configs(organization_id=None, project_id=None, public_key=None):
     configs = {}
 
     if organization_id:
-        # Currently we do not re-compute all projects in an organization, instead simply
-        # remove the configs and rely on relay requests to lazily re-compute them.  This
-        # because some organisations have too many projects which may not be active.  At
-        # some point this should be handled better.
-        projects = list(Project.objects.filter(organization_id=organization_id))
-        for key in ProjectKey.objects.filter(project__in=projects):
-            configs[key.public_key] = None
+        # We want to re-compute all projects in an organization, instead of simply
+        # removing the configs and rely on relay requests to lazily re-compute them.  This
+        # is done because we do want want to delete project configs in `invalidate_project_config`
+        # which might cause the key to disappear and trigger the task again.  Without this behavior
+        # it could be possible that refrequent invalidations cause the task to take excessive time
+        # to complete.
+        for organization in Organization.objects.filter(id=organization_id):
+            for project in Project.objects.filter(organization_id=organization_id):
+                project.set_cached_field_value("organization", organization)
+                for key in ProjectKey.objects.filter(project_id=project.id):
+                    key.set_cached_field_value("project", project)
+                    # If we find the config in the cache it means it was active.  As such we want to
+                    # recalculate it.  If the config was not there at all, we leave it and avoid the
+                    # cost of re-computation.
+                    if projectconfig_cache.get(key.public_key) is not None:
+                        configs[key.public_key] = compute_projectkey_config(key)
+                        action = "recompute"
+                    else:
+                        action = "not-cached"
+                    metrics.incr(
+                        "relay.projectconfig_cache.invalidation.recompute",
+                        tags={"action": action, "scope": "organization"},
+                    )
     elif project_id:
-        for key in ProjectKey.objects.filter(project_id=project_id):
-            configs[key.public_key] = compute_projectkey_config(key)
+        for project in Project.objects.filter(id=project_id):
+            for key in ProjectKey.objects.filter(project_id=project_id):
+                key.set_cached_field_value("project", project)
+                # If we find the config in the cache it means it was active.  As such we want to
+                # recalculate it.  If the config was not there at all, we leave it and avoid the
+                # cost of re-computation.
+                if projectconfig_cache.get(key.public_key) is not None:
+                    configs[key.public_key] = compute_projectkey_config(key)
+                    action = "recompute"
+                else:
+                    action = "not-cached"
+                    metrics.incr(
+                        "relay.projectconfig_cache.invalidation.recompute",
+                        tags={"action": action, "scope": "project"},
+                    )
     elif public_key:
         try:
             key = ProjectKey.objects.get(public_key=public_key)
         except ProjectKey.DoesNotExist:
-            # There are two main reasons this might happen:
+            # The invalidation task was triggered for a deletion and the
+            # ProjectKey should be deleted from the cache.
             #
-            # - The invalidation task was triggered for a deletion and the ProjectKey should
-            #   be deleted from the cache.
-            # - Django fired the `after_save` event before a transaction creating the
-            #   ProjectKey was committed.
-            #
-            # Thus we want to make sure we delete the project, but we do not care about
-            # disabling it here, because doing so would cause it to be wrongly disabled for
-            # an hour in the second case (which will be fixed at some point).  If the v3
-            # task finds a non-existing ProjectKey it can disable this project.
-            configs[public_key] = None
+            # This used to delete the cache entry instead of disabling it. The
+            # reason for that was to work around a bug in our model signal
+            # handlers that sent off the invalidation tasks before the DB
+            # transaction was committed, causing us to write stale caches. That
+            # bug was fixed in https://github.com/getsentry/sentry/pull/35671
+            configs[public_key] = {"disabled": True}
         else:
             configs[public_key] = compute_projectkey_config(key)
 
@@ -164,7 +190,7 @@ def compute_projectkey_config(key):
 
 @instrumented_task(
     name="sentry.tasks.relay.invalidate_project_config",
-    queue="relay_config",
+    queue="relay_config_bulk",
     acks_late=True,
     soft_time_limit=25 * 60,  # 25mins
     time_limit=25 * 60 + 5,
@@ -208,15 +234,10 @@ def invalidate_project_config(
     sentry_sdk.set_tag("trigger", trigger)
     sentry_sdk.set_context("kwargs", kwargs)
 
-    configs = compute_configs(
+    updated_configs = compute_configs(
         organization_id=organization_id, project_id=project_id, public_key=public_key
     )
-
-    deleted_keys = [key for key, cfg in configs.items() if cfg is None]
-    projectconfig_cache.delete_many(deleted_keys)
-
-    configs = {key: cfg for key, cfg in configs.items() if cfg is not None}
-    projectconfig_cache.set_many(configs)
+    projectconfig_cache.set_many(updated_configs)
 
 
 def schedule_invalidate_project_config(
