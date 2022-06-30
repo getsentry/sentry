@@ -111,6 +111,7 @@ def _push(killswitch_name, infile, yes):
         )
     options.set(killswitch_name, new_option_value)
     if callback := killswitches.ALL_KILLSWITCH_OPTIONS[killswitch_name].on_change:
+        click.confirm(f"Option set successfully. Run '{callback.title}'?", abort=True)
         callback(option_value, new_option_value)
 
 

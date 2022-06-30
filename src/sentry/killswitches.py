@@ -11,6 +11,8 @@ import copy
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Union
 
+import click
+
 from sentry import options
 from sentry.utils import metrics
 
@@ -35,17 +37,30 @@ def _update_project_configs(
     # or removed
     changed_project_ids = old_project_ids ^ new_project_ids
 
-    for project_id in changed_project_ids:
-        schedule_invalidate_project_config(
-            project_id=project_id, trigger="killswitches.relay.drop-transaction-metrics"
-        )
+    with click.progressbar(changed_project_ids) as ids:
+        for project_id in ids:
+            schedule_invalidate_project_config(
+                project_id=project_id, trigger="killswitches.relay.drop-transaction-metrics"
+            )
+
+
+@dataclass
+class KillswitchCallback:
+    """Named callback to run after a kill switch has been pushed."""
+
+    callback: Callable[[Any, Any], None]
+    #: `title` will be presented in the user prompt when asked whether or not to run the callback
+    title: str
+
+    def __call__(self, *args, **kwargs):
+        self.callback(*args, **kwargs)
 
 
 @dataclass
 class KillswitchInfo:
     description: str
     fields: Dict[str, str]
-    on_change: Optional[Callable[[Any, Any], None]] = None
+    on_change: Optional[KillswitchCallback] = None
 
 
 ALL_KILLSWITCH_OPTIONS = {
@@ -160,7 +175,9 @@ ALL_KILLSWITCH_OPTIONS = {
         fields={
             "project_id": "project ID for which we want to stop extracting transaction metrics",
         },
-        on_change=_update_project_configs,
+        on_change=KillswitchCallback(
+            _update_project_configs, "Trigger invalidation tasks for projects"
+        ),
     ),
 }
 
