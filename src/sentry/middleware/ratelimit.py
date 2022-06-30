@@ -56,7 +56,7 @@ class RatelimitMiddleware:
                     return
 
                 rate_limit_config = get_rate_limit_config(
-                    view_class, request, view_args, view_kwargs
+                    view_class, view_args, {**view_kwargs, "request": request}
                 )
                 rate_limit_group = (
                     rate_limit_config.group if rate_limit_config else RateLimitConfig().group
