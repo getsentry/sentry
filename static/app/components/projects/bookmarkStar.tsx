@@ -14,7 +14,7 @@ type Props = {
   project: Project;
   className?: string;
   /**
-   * Allows the bookmarked state of the project to be overriden. Useful for
+   * Allows the bookmarked state of the project to be overridden. Useful for
    * optimistic updates.
    */
   isBookmarked?: boolean;

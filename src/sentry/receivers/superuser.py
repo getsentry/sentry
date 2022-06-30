@@ -10,11 +10,14 @@ def enable_superuser(request, user, **kwargs):
     ENABLE_SU_UPON_LOGIN_FOR_LOCAL_DEV = getattr(
         settings, "ENABLE_SU_UPON_LOGIN_FOR_LOCAL_DEV", False
     )
-    if is_self_hosted() or ENABLE_SU_UPON_LOGIN_FOR_LOCAL_DEV:
+
+    prefilled_su_modal = request.session.pop("prefilled_su_modal", None)
+
+    if is_self_hosted() or ENABLE_SU_UPON_LOGIN_FOR_LOCAL_DEV or prefilled_su_modal:
         su = getattr(request, "superuser", None)
         if su:
             if user.is_superuser:
-                su.set_logged_in(user)
+                su.set_logged_in(user, prefilled_su_modal=prefilled_su_modal)
             else:
                 su._set_logged_out()
 

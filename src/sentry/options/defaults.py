@@ -309,6 +309,9 @@ register("processing.can-use-scrubbers", default=True)
 # Note: A value that is neither 0 nor 1 is regarded as 0
 register("store.use-relay-dsn-sample-rate", default=1)
 
+# A rate to apply to any events denoted as experimental to be sent to an experimental dsn.
+register("store.use-experimental-dsn-sample-rate", default=0.0)
+
 # Mock out integrations and services for tests
 register("mocks.jira", default=False)
 
@@ -359,6 +362,10 @@ register("processing.use-release-archives-sample-rate", default=0.0)  # unused
 # All Relay options (statically authenticated Relays can be registered here)
 register("relay.static_auth", default={}, flags=FLAG_NOSTORE)
 
+# Tell Relay to stop extracting metrics from transaction payloads (see killswitches)
+# Example value: [{"project_id": 42}, {"project_id": 123}]
+register("relay.drop-transaction-metrics", default=[])
+
 # Write new kafka headers in eventstream
 register("eventstream:kafka-headers", default=False)
 
@@ -394,7 +401,7 @@ register("reprocessing2.drop-delete-old-primary-hash", default=[])
 # e.g. [{"project_id": 2, "message_type": "error"}, {"project_id": 3, "message_type": "transaction"}]
 register("kafka.send-project-events-to-random-partitions", default=[])
 
-# Rate to project_configs_v3
+# Rate to project_configs_v3, no longer used.
 register("relay.project-config-v3-enable", default=0.0)
 
 # Mechanism for dialing up the last-seen-updater, which isn't needed outside

@@ -381,7 +381,7 @@ function FlamegraphZoomView({
       }
 
       // Only dispatch the zoom action if the new clicked node is not the same as the old selected node.
-      // This essentialy tracks double click action on a rectangle
+      // This essentially tracks double click action on a rectangle
       if (lastInteraction === 'click') {
         if (
           hoveredNode &&
