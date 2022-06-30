@@ -20,7 +20,6 @@ from sentry.notifications.utils import (
 )
 from sentry.notifications.utils.participants import get_send_to
 from sentry.plugins.base.structs import Notification
-from sentry.rules.conditions.active_release import ActiveReleaseEventCondition
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
@@ -180,6 +179,8 @@ class ActiveReleaseAlertNotification(AlertRuleNotification):
         target_identifier: int | None = None,
         last_release: Optional[Release] = None,
     ) -> None:
+        from sentry.rules.conditions.active_release import ActiveReleaseEventCondition
+
         super().__init__(notification, target_type, target_identifier)
         self.last_release = (
             last_release
