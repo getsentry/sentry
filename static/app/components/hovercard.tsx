@@ -75,7 +75,6 @@ function Hovercard({
     <PositionWrapper zIndex={theme.zIndex.hovercard} {...overlayProps}>
       <StyledHovercard
         animated
-        showArrow
         arrowProps={{
           ...arrowProps,
           size: 20,

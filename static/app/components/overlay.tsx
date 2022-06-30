@@ -6,6 +6,7 @@ import {HTMLMotionProps, motion, MotionProps, MotionStyle} from 'framer-motion';
 
 import OverlayArrow from 'sentry/components/overlayArrow';
 import space from 'sentry/styles/space';
+import {defined} from 'sentry/utils';
 import testableTransition from 'sentry/utils/testableTransition';
 
 type OriginPoint = Partial<{x: number; y: number}>;
@@ -17,7 +18,8 @@ interface OverlayProps extends HTMLMotionProps<'div'> {
    */
   animated?: boolean;
   /**
-   * Props to be passed into <OverlayArrow />
+   * Props to be passed into <OverlayArrow />. If undefined, the overlay will
+   * render with no arrow.
    */
   arrowProps?: React.ComponentProps<typeof OverlayArrow>;
   children?: React.ReactNode;
@@ -35,11 +37,6 @@ interface OverlayProps extends HTMLMotionProps<'div'> {
    * be animated 'towards' the placment origin, giving it a pleasing effect.
    */
   placement?: PopperProps<any>['placement'];
-  /**
-   * Whether to display an arrow. If true, `arrowProps` is also needed to
-   * correctly position and orient the arrow.
-   */
-  showArrow?: boolean;
 }
 
 const overlayAnimation: MotionProps = {
@@ -99,7 +96,6 @@ function computeOriginFromArrow(
 const Overlay = styled(
   ({
     children,
-    showArrow,
     arrowProps,
     animated,
     placement,
@@ -120,7 +116,7 @@ const Overlay = styled(
 
     return (
       <motion.div {...props} {...animationProps}>
-        {showArrow && <OverlayArrow {...arrowProps} />}
+        {defined(arrowProps) && <OverlayArrow {...arrowProps} />}
         {children}
       </motion.div>
     );

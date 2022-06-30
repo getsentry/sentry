@@ -47,7 +47,6 @@ export function DO_NOT_USE_TOOLTIP({
     <PositionWrapper zIndex={theme.zIndex.tooltip} {...overlayProps}>
       <TooltipContent
         animated
-        showArrow
         arrowProps={arrowProps}
         originPoint={arrowData}
         placement={placement}
