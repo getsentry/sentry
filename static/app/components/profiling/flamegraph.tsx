@@ -30,7 +30,11 @@ import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegrap
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {FlamegraphView} from 'sentry/utils/profiling/flamegraphView';
-import {Rect, watchForResize} from 'sentry/utils/profiling/gl/utils';
+import {
+  computeConfigViewWithStategy,
+  Rect,
+  watchForResize,
+} from 'sentry/utils/profiling/gl/utils';
 import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import {Profile} from 'sentry/utils/profiling/profile/profile';
 import {useDevicePixelRatio} from 'sentry/utils/useDevicePixelRatio';
@@ -166,7 +170,7 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
       const newConfigView = computeConfigViewWithStategy(
         strategy,
         flamegraphView.configView,
-        frame
+        new Rect(frame.start, frame.depth, frame.end - frame.start, 1)
       );
 
       flamegraphView.setConfigView(newConfigView);
