@@ -47,7 +47,11 @@ export function objToQuery(queryObj: QueryObj): string {
   const {__text, ...tags} = queryObj;
 
   const parts = Object.entries(tags).map(([tagKey, value]) => {
-    if (value.indexOf(' ') > -1) {
+    if (
+      value.indexOf(' ') > -1 &&
+      value.indexOf('[') === -1 &&
+      value.indexOf(']') === -1
+    ) {
       value = `"${value}"`;
     }
 

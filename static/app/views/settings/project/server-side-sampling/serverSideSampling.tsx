@@ -2,12 +2,13 @@ import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import partition from 'lodash/partition';
 
-import Access from 'sentry/components/acl/access';
+import {openModal} from 'sentry/actionCreators/modal';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {PanelTable} from 'sentry/components/panels';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
+import {Project} from 'sentry/types';
 import {SamplingRules, SamplingRuleType} from 'sentry/types/sampling';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import useApi from 'sentry/utils/useApi';
@@ -17,22 +18,26 @@ import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHea
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import PermissionAlert from 'sentry/views/settings/organization/permissionAlert';
 
+import {UniformRateModal} from './modals/uniformRateModal';
 import {Promo} from './promo';
 
 export function ServerSideSampling() {
   const api = useApi();
   const organization = useOrganization();
   const params = useParams();
+  const hasAccess = organization.access.includes('project:write');
 
   const {orgId: orgSlug, projectId: projectSlug} = params;
 
   const [_rules, setRules] = useState<SamplingRules>([]);
+  const [project, setProject] = useState<Project>();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     async function fetchRules() {
       try {
+        // TODO(sampling): no need to fetch project here, settings pages get it via props for free
         const projectDetails = await api.requestPromise(
           `/projects/${orgSlug}/${projectSlug}/`
         );
@@ -52,6 +57,7 @@ export function ServerSideSampling() {
         );
 
         setRules([...rulesWithConditions, ...rulesWithoutConditions]);
+        setProject(projectDetails);
         setLoading(false);
       } catch (err) {
         const errorMessage = t('Unable to load sampling rules');
@@ -63,6 +69,12 @@ export function ServerSideSampling() {
     fetchRules();
   }, [api, projectSlug, orgSlug]);
 
+  function handleGetStarted() {
+    openModal(modalProps => (
+      <UniformRateModal {...modalProps} organization={organization} project={project} />
+    ));
+  }
+
   return (
     <SentryDocumentTitle title={t('Server-side Sampling')}>
       <Fragment>
@@ -72,18 +84,21 @@ export function ServerSideSampling() {
             'Server-side sampling provides an additional dial for dropping transactions. This comes in handy when your server-side sampling rules target the transactions you want to keep, but you need more of those transactions being sent by the SDK.'
           )}
         </TextBlock>
-        <PermissionAlert />
-        <Access organization={organization} access={['project:write']}>
-          {error && <LoadingError message={error} />}
-          {!error && loading && <LoadingIndicator />}
-          {!error && !loading && (
-            <RulesPanel
-              headers={['', t('Operator'), t('Condition'), t('Rate'), t('Active'), '']}
-            >
-              <Promo />
-            </RulesPanel>
+        <PermissionAlert
+          access={['project:write']}
+          message={t(
+            'These settings can only be edited by users with the organization owner, manager, or admin role.'
           )}
-        </Access>
+        />
+        {error && <LoadingError message={error} />}
+        {!error && loading && <LoadingIndicator />}
+        {!error && !loading && (
+          <RulesPanel
+            headers={['', t('Operator'), t('Condition'), t('Rate'), t('Active'), '']}
+          >
+            <Promo onGetStarted={handleGetStarted} hasAccess={hasAccess} />
+          </RulesPanel>
+        )}
       </Fragment>
     </SentryDocumentTitle>
   );

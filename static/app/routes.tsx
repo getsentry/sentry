@@ -1041,6 +1041,10 @@ function buildRoutes() {
         path=":eventSlug/"
         component={make(() => import('sentry/views/replays/details'))}
       />
+      <Route
+        path=":eventSlug/v2/"
+        component={make(() => import('sentry/views/replays/details_v2'))}
+      />
     </Route>
   );
 
@@ -1343,6 +1347,16 @@ function buildRoutes() {
           )}
           props={{
             currentTab: Tab.DETAILS,
+            isEventRoute: true,
+          }}
+        />
+        <Route
+          path="replays/"
+          component={make(
+            () => import('sentry/views/organizationGroupDetails/groupReplays')
+          )}
+          props={{
+            currentTab: Tab.REPLAYS,
             isEventRoute: true,
           }}
         />
