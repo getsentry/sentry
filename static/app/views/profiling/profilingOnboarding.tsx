@@ -1,22 +1,33 @@
+import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import FeatureBadge from 'sentry/components/featureBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
+import ExternalLink from 'sentry/components/links/externalLink';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
-import useOrganization from 'sentry/utils/useOrganization';
+import {Organization} from 'sentry/types/organization';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 
-import ExternalLink from '../../components/links/externalLink';
+interface Props {
+  onDismissClick: () => void;
+  onDoneClick: () => void;
+  organization: Organization;
+}
 
-export function ProfilingOnboarding() {
-  const organization = useOrganization();
+export default function ProfilingOnboarding(props: Props) {
+  useEffect(() => {
+    trackAdvancedAnalyticsEvent('profiling_views.onboarding', {
+      organization: props.organization,
+    });
+  }, [props.organization]);
 
   return (
-    <SentryDocumentTitle title={t('Profiling')} orgSlug={organization.slug}>
+    <SentryDocumentTitle title={t('Profiling')} orgSlug={props.organization.slug}>
       <StyledPageContent>
         <Main>
           <Layout.Title>
@@ -47,13 +58,12 @@ export function ProfilingOnboarding() {
                 {t(
                   `Setup performance transactions in your app if you haven’t already → `
                 )}{' '}
-                <a
+                <ExternalLink
                   href="https://docs.sentry.io/product/performance/"
-                  target="_blank"
                   rel="noreferrer"
                 >
                   {t('https://docs.sentry.io/product/performance/')}
-                </a>
+                </ExternalLink>
               </li>
               <li>
                 {t('Enable profiling in your app by configuring the SDKs like below:')}
@@ -90,8 +100,10 @@ export function ProfilingOnboarding() {
               </li>
 
               <Actions>
-                <Button priority="primary">{t("I'm done")}</Button>
-                <Button>{t('Dismiss')}</Button>
+                <Button priority="primary" onClick={props.onDoneClick}>
+                  {t("I'm done")}
+                </Button>
+                <Button onClick={props.onDismissClick}>{t('Dismiss')}</Button>
               </Actions>
             </ProfilingSteps>
           </Content>
