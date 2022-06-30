@@ -9,11 +9,9 @@ import {EventTransaction} from 'sentry/types';
 
 type NetworkSpan = {
   data: Record<string, any>;
+  endTimestamp: number;
   op: string;
-  parent_span_id: string;
-  span_id: string;
-  start_timestamp: number;
-  timestamp: number;
+  startTimestamp: number;
   description?: string | undefined;
 };
 
@@ -34,12 +32,12 @@ const columns = [
 function NetworkList({event, networkSpans}: Props) {
   const {startTimestamp} = event;
 
-  const renderTableRow = (network: NetworkSpan) => {
-    const networkStartTimestamp = network.start_timestamp * 1000;
-    const networkEndTimestamp = network.timestamp * 1000;
+  const renderTableRow = (network: NetworkSpan, index: number) => {
+    const networkStartTimestamp = network.startTimestamp * 1000;
+    const networkEndTimestamp = network.endTimestamp * 1000;
 
     return (
-      <Fragment key={network.span_id}>
+      <Fragment key={index}>
         <Item>{network.description || <Placeholder height="24px" />}</Item>
         <Item>{network.op}</Item>
         <Item>{network.data?.size ?? 0}</Item>
