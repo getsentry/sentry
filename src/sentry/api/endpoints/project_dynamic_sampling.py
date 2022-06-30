@@ -1,4 +1,3 @@
-import math
 from datetime import timedelta
 
 from django.utils import timezone
@@ -12,6 +11,9 @@ from sentry.models import Project
 from sentry.snuba import discover
 from sentry.utils.dates import parse_stats_period
 
+# Determines by a factor of how much, we sample the random root transactions query
+SAMPLE_FACTOR = 10
+
 
 def percentile_fn(data, percentile):
     """
@@ -20,13 +22,7 @@ def percentile_fn(data, percentile):
     :param percentile: A value between 0 and 1
     :param data: Sorted list of values
     """
-    if len(data) == 0:
-        return None
-    pecentile_idx = len(data) * percentile
-    if pecentile_idx.is_integer():
-        return data[int(pecentile_idx)]
-    else:
-        return data[int(math.ceil(pecentile_idx)) - 1]
+    return data[int((len(data) - 1) * percentile)] if len(data) > 0 else None
 
 
 class DynamicSamplingPermission(ProjectPermission):
@@ -120,6 +116,7 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
             use_aggregate_conditions=True,
             transform_alias_to_input_format=True,
             functions_acl=["random_number"],
+            sample=requested_sample_size * SAMPLE_FACTOR,
             referrer="dynamic-sampling.distribution.fetch-parent-transactions",
         )["data"]
 

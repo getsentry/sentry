@@ -5,6 +5,7 @@ from django.urls import reverse
 from django.utils import timezone
 from freezegun import freeze_time
 
+from sentry.api.endpoints.project_dynamic_sampling import SAMPLE_FACTOR
 from sentry.models import Project
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import Feature
@@ -221,10 +222,10 @@ class ProjectDynamicSamplingTest(APITestCase):
                     "min": 0.8096753824342516,
                     "max": 0.9609190650573167,
                     "avg": 0.8839713299875663,
-                    "p50": 0.9059899056468697,
-                    "p90": 0.9609190650573167,
-                    "p95": 0.9609190650573167,
-                    "p99": 0.9609190650573167,
+                    "p50": 0.8610195401441058,
+                    "p90": 0.9545587106701261,
+                    "p95": 0.9545587106701261,
+                    "p99": 0.9545587106701261,
                 },
             }
 
@@ -245,10 +246,10 @@ class ProjectDynamicSamplingTest(APITestCase):
                     "min": 0.8096753824342516,
                     "max": 0.9609190650573167,
                     "avg": 0.8839713299875663,
-                    "p50": 0.9059899056468697,
-                    "p90": 0.9609190650573167,
-                    "p95": 0.9609190650573167,
-                    "p99": 0.9609190650573167,
+                    "p50": 0.8610195401441058,
+                    "p90": 0.9545587106701261,
+                    "p95": 0.9545587106701261,
+                    "p99": 0.9545587106701261,
                 },
             }
 
@@ -402,6 +403,7 @@ class ProjectDynamicSamplingTest(APITestCase):
                 use_aggregate_conditions=True,
                 transform_alias_to_input_format=True,
                 functions_acl=["random_number"],
+                sample=SAMPLE_FACTOR * requested_sample_size,
                 referrer="dynamic-sampling.distribution.fetch-parent-transactions",
             ),
             mock.call(
