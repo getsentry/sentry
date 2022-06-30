@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Callable, Mapping, Sequence
+from typing import Any, Callable, Mapping, Optional, Sequence
 
 from django.core.cache import cache
 from sentry_relay import parse_release
@@ -405,10 +405,13 @@ class SlackReleaseIssuesMessageBuilder(SlackMessageBuilder):
         self.release_commits = release_commits
 
     @staticmethod
-    def commit_data_text(commit_data: Sequence[CommitData]) -> str:
+    def commit_data_text(commit_data: Optional[Sequence[CommitData]]) -> str:
+        if not commit_data:
+            return ""
+
         return "\n".join(
             [
-                f'[{x.get("author").email if x.get("author") else "no email"}] - {x.get("subject", "no subject")} ({x.get("key", "no key")})'
+                f'[{x.get("author").__getattribute__("email") if x.get("author") else "no email"}] - {x.get("subject", "no subject")} ({x.get("key", "no key")})'
                 for x in (commit_data or ())
             ]
         )
