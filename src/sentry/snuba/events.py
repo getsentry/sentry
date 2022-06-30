@@ -543,9 +543,9 @@ class Columns(Enum):
         alias="reprocessing.original_issue_id",
     )
     TRACE_SAMPLE_RATE = Column(
-        group_name="events.contexts[trace.sample_rate]",
-        event_name="contexts[trace.sample_rate]",
-        transaction_name="contexts[trace.sample_rate]",
-        discover_name="contexts[trace.sample_rate]",
-        alias="trace.sample_rate",
+        group_name="events.contexts[trace.client_sample_rate]",
+        event_name="contexts[trace.client_sample_rate]",
+        transaction_name="contexts[trace.client_sample_rate]",
+        discover_name="contexts[trace.client_sample_rate]",
+        alias="trace.client_sample_rate",
     )

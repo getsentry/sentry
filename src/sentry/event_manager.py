@@ -340,7 +340,6 @@ class EventManager:
 
         if self._data.get("type") == "transaction":
             self._data["project"] = int(project_id)
-
             job = {"data": self._data, "start_time": start_time}
             jobs = save_transaction_events([job], projects)
 

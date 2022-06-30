@@ -36,6 +36,8 @@ class DynamicSamplingPermission(ProjectPermission):
 
 
 class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
+    # ToDo: add documentation
+    # ToDo: check tests for trace col added
     permission_classes = (DynamicSamplingPermission,)
 
     @staticmethod
@@ -52,6 +54,22 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
         return {key: func(data) for key, func in distribution_functions.items()}
 
     def get(self, request: Request, project) -> Response:
+        """
+        Generates distribution function values for a random sample of root transactions,
+        and provides the projects breakdown for these transaction when creating a dynamic sampling
+        rule for distributed traces
+        ``````````````````````````````````````````````````
+
+        :pparam string organization_slug: the slug of the organization the
+                                          release belongs to.
+        :qparam string query: If set, this parameter is used to filter root transactions.
+        :qparam string sampleSize: If set, specifies the sample size of random root transactions.
+        :qparam string distributedTrace: Set to distinguish the dynamic sampling creation rule
+                                    whether it is for distributed trace or single transactions.
+        :qparam string statsPeriod: an optional stat period (can be one of
+                                    ``"24h"``, ``"14d"``, and ``""``).
+        :auth: required
+        """
         if not features.has(
             "organizations:filters-and-sampling", project.organization, actor=request.user
         ):
@@ -66,7 +84,7 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
             )
 
         query = request.GET.get("query", "")
-        sample_size = min(request.GET.get("sampleSize", 100), 1000)
+        requested_sample_size = min(int(request.GET.get("sampleSize", 100)), 1000)
         distributed_trace = request.GET.get("distributedTrace", "1") == "1"
         stats_period = min(
             parse_stats_period(request.GET.get("statsPeriod", "1h")), timedelta(hours=24)
@@ -84,10 +102,10 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
             selected_columns=[
                 "id",
                 "trace",
-                "trace.sample_rate",
+                "trace.client_sample_rate",
                 "random_number() AS random_number",
             ],
-            query=f"{query} !has:trace.parent_span_id event.type:transaction",
+            query=f"{query} event.type:transaction !has:trace.parent_span_id",
             params={
                 "start": start_time,
                 "end": end_time,
@@ -96,7 +114,7 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
             },
             orderby=["-random_number"],
             offset=0,
-            limit=sample_size,
+            limit=requested_sample_size,
             equations=[],
             auto_fields=True,
             auto_aggregations=True,
@@ -107,8 +125,9 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
             referrer="dynamic-sampling.distribution.fetch-parent-transactions",
         )["data"]
 
+        sample_size = len(root_transactions)
         sample_rates = sorted(
-            transaction.get("trace.sample_rate") for transaction in root_transactions
+            transaction.get("trace.client_sample_rate") for transaction in root_transactions
         )
         if len(sample_rates) == 0:
             return Response(
@@ -116,7 +135,7 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
                     "project_breakdown": None,
                     "sample_size": sample_size,
                     "null_sample_rate_percentage": None,
-                    "sample_rate_distribution": None,
+                    "sample_rate_distributions": None,
                 }
             )
 
@@ -148,7 +167,6 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
                 limit=20,
                 auto_fields=True,
                 auto_aggregations=True,
-                include_equation_fields=False,
                 allow_metric_aggregates=True,
                 use_aggregate_conditions=True,
                 transform_alias_to_input_format=True,
@@ -158,7 +176,7 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
             # If the number of the projects in the breakdown is greater than 10 projects,
             # then a question needs to be raised on the eligibility of the org for dynamic sampling
             if len(project_breakdown) > 10:
-                Response(
+                return Response(
                     status=status.HTTP_400_BAD_REQUEST,
                     data={
                         "details": "Way too many projects in the distributed trace's project breakdown"
