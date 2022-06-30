@@ -277,7 +277,7 @@ function useHoverOverlay(
   const arrowProps = {
     ref: setArrowElement,
     style: styles.arrow,
-    'data-placement': state?.placement,
+    placement: state?.placement,
   };
 
   return {
