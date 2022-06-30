@@ -5,7 +5,6 @@ import styled from '@emotion/styled';
 import {HTMLMotionProps, motion, MotionProps, MotionStyle} from 'framer-motion';
 
 import OverlayArrow from 'sentry/components/overlayArrow';
-import space from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import testableTransition from 'sentry/utils/testableTransition';
 
@@ -123,7 +122,6 @@ const Overlay = styled(
   }
 )`
   position: relative;
-  margin: ${space(1)} 0;
   border-radius: ${p => p.theme.borderRadius};
   background: ${p => p.theme.backgroundElevated};
   box-shadow: 0 0 0 1px ${p => p.theme.translucentBorder}, ${p => p.theme.dropShadowHeavy};
