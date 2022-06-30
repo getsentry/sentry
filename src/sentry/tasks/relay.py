@@ -67,7 +67,7 @@ def schedule_build_project_config(public_key):
     ):
         metrics.incr(
             "relay.projectconfig_cache.skipped",
-            tags={"reason": "debounce"},
+            tags={"reason": "debounce", "task": "build"},
         )
         # If this task is already in the queue, do not schedule another task.
         return
@@ -265,11 +265,14 @@ def schedule_invalidate_project_config(
         tags={"update_reason": trigger, "task": "invalidation"},
     )
 
-    invalidate_project_config.delay(
-        project_id=project_id,
-        organization_id=organization_id,
-        public_key=public_key,
-        trigger=trigger,
+    invalidate_project_config.apply_async(
+        countdown=5,
+        kwargs={
+            "project_id": project_id,
+            "organization_id": organization_id,
+            "public_key": public_key,
+            "trigger": trigger,
+        },
     )
 
     projectconfig_debounce_cache.invalidation.debounce(
