@@ -10,7 +10,12 @@ import space from 'sentry/styles/space';
 
 import {SERVER_SIDE_DOC_LINK} from './utils';
 
-export function Promo() {
+type Props = {
+  hasAccess: boolean;
+  onGetStarted: () => void;
+};
+
+export function Promo({onGetStarted, hasAccess}: Props) {
   return (
     <StyledEmptyStateWarning withIcon={false}>
       <img src={onboardingServerSideSampling} />
@@ -21,7 +26,16 @@ export function Promo() {
           <Button href={SERVER_SIDE_DOC_LINK} external>
             {t('Read Docs')}
           </Button>
-          <Button priority="primary" onClick={() => {}}>
+          <Button
+            priority="primary"
+            onClick={onGetStarted}
+            disabled={!hasAccess}
+            title={
+              hasAccess
+                ? undefined
+                : t('You do not have permission to set up the sampling rules.')
+            }
+          >
             {t('Get Started')}
           </Button>
         </Actions>
