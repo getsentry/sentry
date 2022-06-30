@@ -39,9 +39,10 @@ def _update_project_configs(
 
     with click.progressbar(changed_project_ids) as ids:
         for project_id in ids:
-            schedule_invalidate_project_config(
-                project_id=project_id, trigger="killswitches.relay.drop-transaction-metrics"
-            )
+            if project_id is not None:
+                schedule_invalidate_project_config(
+                    project_id=project_id, trigger="killswitches.relay.drop-transaction-metrics"
+                )
 
 
 @dataclass
@@ -171,6 +172,9 @@ ALL_KILLSWITCH_OPTIONS = {
         Tell Relay via project config to stop extracting metrics from transactions.
         Note that this change will not take effect immediately, it takes time
         for downstream Relay instances to update their caches.
+
+        If project_id is set to None, the kill switch will match *any* project_id,
+        but no invalidation task will be run.
         """,
         fields={
             "project_id": "project ID for which we want to stop extracting transaction metrics",

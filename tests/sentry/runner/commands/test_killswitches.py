@@ -108,3 +108,45 @@ class KillswitchesTest(CliTestCase):
         )
 
         assert self.invoke("pull", OPTION, "-").output == PREAMBLE
+
+    @mock.patch(
+        "sentry.tasks.relay.schedule_invalidate_project_config",
+    )
+    def test_relay_drop_transaction_metrics(self, mock_schedule):
+
+        option = "relay.drop-transaction-metrics"
+
+        rv = self.invoke("push", "--yes", option, "-", input=("- project_id: 42\n"))
+        assert rv.exit_code == 0, rv.output
+
+        assert mock_schedule.call_count == 1
+
+        assert self.invoke("list").output == (
+            "\n"
+            "store.load-shed-group-creation-projects\n"
+            "  # the description\n"
+            "DROP DATA WHERE\n"
+            "  (project_id = 42 AND event_type = transaction)\n"
+        )
+
+        mock_schedule.clear_mock()
+
+        rv = self.invoke(
+            "push",
+            "--yes",
+            option,
+            "-",
+            input=("- project_id: null"),
+        )
+        assert rv.exit_code == 0, rv.output
+        # If configured for all projects, no cache invalidation is scheduled.
+        assert mock_schedule.call_count == 0
+
+        assert self.invoke("list").output == (
+            "\n"
+            "store.load-shed-group-creation-projects\n"
+            "  # the description\n"
+            "DROP DATA WHERE\n"
+            "  (project_id = 42 AND event_type = transaction) OR\n"
+            "  (project_id = 43)\n"
+        )
