@@ -60,8 +60,8 @@ export default function ProfilingOnboarding(props: Props) {
                   `Setup performance transactions in your app if you haven’t already → `
                 )}{' '}
                 <ExternalLink
+                  openInNewTab
                   href="https://docs.sentry.io/product/performance/"
-                  rel="noreferrer"
                 >
                   {t('https://docs.sentry.io/product/performance/')}
                 </ExternalLink>
@@ -88,15 +88,17 @@ export default function ProfilingOnboarding(props: Props) {
               </li>
               <li>
                 {t('Join the discussion on')}{' '}
-                <ExternalLink href="https://discord.gg/FvQuVVCD">Discord</ExternalLink>{' '}
+                <ExternalLink openInNewTab href="https://discord.gg/FvQuVVCD">
+                  Discord
+                </ExternalLink>{' '}
                 {t(
                   'or email us at profiling@sentry.io with any questions or if you need help setting it all up! There’s also a page with some more details and a troubleshooting section at'
                 )}{' '}
                 <ExternalLink
+                  openInNewTab
                   href="https://sentry.notion.site/Profiling-Beta-Testing-Instructions-413ecdd9fcb34b3a8b57806280bf2ecb"
-                  rel="noreferrer"
                 >
-                  our notion page
+                  {t('our notion page')}
                 </ExternalLink>
               </li>
 
