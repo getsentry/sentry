@@ -6,7 +6,7 @@ import {Provider as ReplayContextProvider} from 'sentry/components/replays/repla
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import useReplayData from 'sentry/utils/replays/hooks/useReplayData';
-import useUrlHash from 'sentry/utils/replays/hooks/useUrlHash';
+import useUrlParam from 'sentry/utils/replays/hooks/useUrlParams';
 import {useRouteContext} from 'sentry/utils/useRouteContext';
 import Layout from 'sentry/views/replays/detail/layout';
 import Page from 'sentry/views/replays/detail/page';
@@ -21,7 +21,7 @@ function ReplayDetails() {
     t: initialTimeOffset, // Time, in seconds, where the video should start
   } = location.query;
 
-  const {getHashValue} = useUrlHash('l_page', 'topbar');
+  const {getParamValue} = useUrlParam('l_page', 'topbar');
 
   const {fetching, onRetry, replay} = useReplayData({
     eventSlug,
@@ -63,7 +63,7 @@ function ReplayDetails() {
   return (
     <Page eventSlug={eventSlug} orgId={orgId} event={replay?.getEvent()}>
       <ReplayContextProvider replay={replay} initialTimeOffset={initialTimeOffset}>
-        <Layout layout={getHashValue() === 'sidebar' ? 'sidebar' : 'topbar'} />
+        <Layout layout={getParamValue() === 'sidebar' ? 'sidebar' : 'topbar'} />
       </ReplayContextProvider>
     </Page>
   );

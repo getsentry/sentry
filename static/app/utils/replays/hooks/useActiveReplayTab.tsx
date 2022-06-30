@@ -1,7 +1,7 @@
 import {useCallback} from 'react';
 
 import {t} from 'sentry/locale';
-import useUrlHash from 'sentry/utils/replays/hooks/useUrlHash';
+import useUrlParams from 'sentry/utils/replays/hooks/useUrlParams';
 
 export const ReplayTabs = {
   console: t('Console'),
@@ -19,16 +19,16 @@ export function isReplayTab(tab: string): tab is keyof typeof ReplayTabs {
 const DEFAULT_TAB = 'console';
 
 function useActiveReplayTab() {
-  const {getHashValue, setHashValue} = useUrlHash('t_main', DEFAULT_TAB);
+  const {getParamValue, setParamValue} = useUrlParams('t_main', DEFAULT_TAB);
 
-  const hashValue = getHashValue();
+  const paramValue = getParamValue();
 
   return {
     getActiveTab: useCallback(
-      () => (isReplayTab(hashValue || '') ? hashValue : DEFAULT_TAB),
-      [hashValue]
+      () => (isReplayTab(paramValue || '') ? paramValue : DEFAULT_TAB),
+      [paramValue]
     ),
-    setActiveTab: (value: keyof typeof ReplayTabs) => setHashValue(value),
+    setActiveTab: (value: keyof typeof ReplayTabs) => setParamValue(value),
   };
 }
 

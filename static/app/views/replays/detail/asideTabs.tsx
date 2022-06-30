@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import NavTabs from 'sentry/components/navTabs';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
-import useUrlHash from 'sentry/utils/replays/hooks/useUrlHash';
+import useUrlParams from 'sentry/utils/replays/hooks/useUrlParams';
 import ReplayReader from 'sentry/utils/replays/replayReader';
 
 import Breadcrumbs from './breadcrumbs';
@@ -27,8 +27,8 @@ function renderTabContent(key: string, loadedReplay: ReplayReader) {
 }
 
 function AsideTabs({replay}: Props) {
-  const {getHashValue, setHashValue} = useUrlHash('t_side', 'breadcrumbs');
-  const active = getHashValue();
+  const {getParamValue, setParamValue} = useUrlParams('t_side', 'breadcrumbs');
+  const active = getParamValue();
 
   return (
     <Container>
@@ -36,7 +36,7 @@ function AsideTabs({replay}: Props) {
         {Object.entries(TABS).map(([tab, label]) => {
           return (
             <li key={tab} className={active === tab ? 'active' : ''}>
-              <a onClick={() => setHashValue(tab)}>{label}</a>
+              <a onClick={() => setParamValue(tab)}>{label}</a>
             </li>
           );
         })}
