@@ -112,41 +112,20 @@ class KillswitchesTest(CliTestCase):
     @mock.patch(
         "sentry.tasks.relay.schedule_invalidate_project_config",
     )
-    def test_relay_drop_transaction_metrics(self, mock_schedule):
+    @mock.patch(
+        "sentry.options.set",
+    )
+    def test_relay_drop_transaction_metrics(self, mock_set, mock_schedule):
 
         option = "relay.drop-transaction-metrics"
 
         rv = self.invoke("push", "--yes", option, "-", input=("- project_id: 42\n"))
         assert rv.exit_code == 0, rv.output
 
-        assert mock_schedule.call_count == 1
+        assert mock_set.mock_calls == [
+            mock.call("relay.drop-transaction-metrics", [{"project_id": "42"}])
+        ]
 
-        assert self.invoke("list").output == (
-            "\n"
-            "store.load-shed-group-creation-projects\n"
-            "  # the description\n"
-            "DROP DATA WHERE\n"
-            "  (project_id = 42 AND event_type = transaction)\n"
-        )
-
-        mock_schedule.clear_mock()
-
-        rv = self.invoke(
-            "push",
-            "--yes",
-            option,
-            "-",
-            input=("- project_id: null"),
-        )
-        assert rv.exit_code == 0, rv.output
-        # If configured for all projects, no cache invalidation is scheduled.
-        assert mock_schedule.call_count == 0
-
-        assert self.invoke("list").output == (
-            "\n"
-            "store.load-shed-group-creation-projects\n"
-            "  # the description\n"
-            "DROP DATA WHERE\n"
-            "  (project_id = 42 AND event_type = transaction) OR\n"
-            "  (project_id = 43)\n"
-        )
+        assert mock_schedule.mock_calls == [
+            mock.call(project_id="42", trigger="killswitches.relay.drop-transaction-metrics")
+        ]
