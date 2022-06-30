@@ -484,7 +484,9 @@ export function collapseSamples(profile: ChromeTrace.CpuProfile): {
     let j = i;
     // While we are not at the end and next sample is the same as current
     while (j < profile.samples.length && profile.samples[j + 1] === nodeId) {
-      // Update the delta and advance j
+      // Update the delta and advance j. In some cases, v8 reports deltas
+      // as negative. We will just ignore these deltas and make sure that
+      // we never go back in time when updating the delta.
       delta = Math.max(delta + profile.timeDeltas[j + 1], delta);
       j++;
     }
@@ -504,6 +506,9 @@ export function collapseSamples(profile: ChromeTrace.CpuProfile): {
       // If we have not skipped samples, then we just push the sample and the delta to the list
       samples.push(nodeId);
       sampleTimes.push(elapsed);
+
+      // In some cases, v8 reports deltas as negative. We will just ignore
+      // these deltas and make sure that we never go back in time when updating the delta.
       elapsed = Math.max(elapsed + profile.timeDeltas[i + 1], elapsed);
     }
   }
