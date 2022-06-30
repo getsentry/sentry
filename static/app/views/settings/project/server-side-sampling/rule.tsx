@@ -1,18 +1,18 @@
 import {Fragment, useEffect, useState} from 'react';
 import {DraggableSyntheticListeners, UseDraggableArguments} from '@dnd-kit/core';
-import styled from '@emotion/styled';
 import {css} from '@emotion/react';
+import styled from '@emotion/styled';
+
+import MenuItemActionLink from 'sentry/components/actions/menuItemActionLink';
+import Button from 'sentry/components/button';
+import DropdownLink from 'sentry/components/dropdownLink';
 import NewBooleanField from 'sentry/components/forms/booleanField';
 import Tooltip from 'sentry/components/tooltip';
+import {IconDownload, IconEllipsis} from 'sentry/icons';
 import {IconGrabbable} from 'sentry/icons/iconGrabbable';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {SamplingRule, SamplingRuleOperator, LegacyBrowser} from 'sentry/types/sampling';
-import MenuItemActionLink from 'sentry/components/actions/menuItemActionLink';
-import Button from 'sentry/components/button';
-
-import DropdownLink from 'sentry/components/dropdownLink';
-import {IconDownload, IconEllipsis} from 'sentry/icons';
+import {LegacyBrowser, SamplingRule, SamplingRuleOperator} from 'sentry/types/sampling';
 
 import {getInnerNameLabel, LEGACY_BROWSER_LIST} from './utils';
 
@@ -71,7 +71,11 @@ export function Rule({
             }
             containerDisplayMode="flex"
           >
-            <IconGrabbableWrapper {...listeners} {...grabAttributes} aria-label={dragging ? t('Drop Rule') : t('Drag Rule')}>
+            <IconGrabbableWrapper
+              {...listeners}
+              {...grabAttributes}
+              aria-label={dragging ? t('Drop Rule') : t('Drag Rule')}
+            >
               <IconGrabbable />
             </IconGrabbableWrapper>
           </Tooltip>
@@ -95,12 +99,13 @@ export function Rule({
                 <ConditionEqualOperator>{'='}</ConditionEqualOperator>
                 {Array.isArray(condition.value) ? (
                   <div>
-                    {[...condition.value].map((v, index) => (
-                      <Fragment key={v}>
+                    {[...condition.value].map((conditionValue, conditionValueIndex) => (
+                      <Fragment key={conditionValue}>
                         <ConditionValue>
-                          {LEGACY_BROWSER_LIST[v]?.title ?? v}
+                          {LEGACY_BROWSER_LIST[conditionValue]?.title ?? conditionValue}
                         </ConditionValue>
-                        {index !== (condition.value as LegacyBrowser[]).length - 1 && (
+                        {conditionValueIndex !==
+                          (condition.value as LegacyBrowser[]).length - 1 && (
                           <ConditionSeparator>{'\u002C'}</ConditionSeparator>
                         )}
                       </Fragment>
