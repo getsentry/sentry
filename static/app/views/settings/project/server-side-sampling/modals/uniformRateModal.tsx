@@ -5,7 +5,7 @@ import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import {TextField} from 'sentry/components/forms';
+import {NumberField} from 'sentry/components/forms';
 import {PanelTable} from 'sentry/components/panels';
 import Radio from 'sentry/components/radio';
 import {IconRefresh} from 'sentry/icons';
@@ -102,7 +102,7 @@ function UniformRateModal({Header, Body, Footer, closeModal}: Props) {
               {isEdited ? t('New') : t('Recommended')}
             </Label>
             <RightAligned>
-              <StyledTextField
+              <StyledNumberField
                 name="recommended-client-sampling"
                 placeholder="%"
                 value={client}
@@ -116,7 +116,7 @@ function UniformRateModal({Header, Body, Footer, closeModal}: Props) {
               />
             </RightAligned>
             <RightAligned>
-              <StyledTextField
+              <StyledNumberField
                 name="recommended-server-sampling"
                 placeholder="%"
                 value={server}
@@ -194,7 +194,7 @@ const Label = styled('label')`
   margin-bottom: 0;
 `;
 
-const StyledTextField = styled(TextField)`
+const StyledNumberField = styled(NumberField)`
   width: 100%;
 `;
 
