@@ -236,4 +236,49 @@ describe('jsSelfProfile', () => {
 
     expect(profile.minFrameDuration).toBe(10);
   });
+
+  it('appends gc to previous stack', () => {
+    const trace: JSSelfProfiling.Trace = {
+      resources: ['app.js'],
+      frames: [
+        {name: 'f1', line: 1, column: 1, resourceId: 0},
+        {name: 'f0', line: 1, column: 1, resourceId: 0},
+      ],
+      samples: [
+        {
+          stackId: 0,
+          timestamp: 0,
+        },
+        {
+          timestamp: 10,
+          marker: 'gc',
+        },
+      ],
+      stacks: [
+        {frameId: 0, parentId: 1},
+        {frameId: 1, parentId: undefined},
+      ],
+    };
+
+    const profile = JSSelfProfile.FromProfile(
+      trace,
+      createFrameIndex(trace.frames, trace)
+    );
+
+    const {open, close, openSpy, closeSpy, timings} = makeTestingBoilerplate();
+
+    profile.forEach(open, close);
+
+    expect(openSpy).toHaveBeenCalledTimes(3);
+    expect(closeSpy).toHaveBeenCalledTimes(3);
+
+    expect(timings).toEqual([
+      ['f0', 'open'],
+      ['f1', 'open'],
+      ['Garbage Collection', 'open'],
+      ['Garbage Collection', 'close'],
+      ['f1', 'close'],
+      ['f0', 'close'],
+    ]);
+  });
 });
