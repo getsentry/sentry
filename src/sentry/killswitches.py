@@ -28,10 +28,14 @@ def _update_project_configs(
     """
     from sentry.tasks.relay import schedule_invalidate_project_config
 
-    all_project_ids = {
-        ctx["project_id"] for contexts in (old_option_value, new_option_value) for ctx in contexts
-    }
-    for project_id in all_project_ids:
+    old_project_ids = {ctx["project_id"] for ctx in old_option_value}
+    new_project_ids = {ctx["project_id"] for ctx in new_option_value}
+
+    # We want to recompute the project config for any project that was added
+    # or removed
+    changed_project_ids = old_project_ids ^ new_project_ids
+
+    for project_id in changed_project_ids:
         schedule_invalidate_project_config(
             project_id=project_id, trigger="killswitches.relay.drop-transaction-metrics"
         )
