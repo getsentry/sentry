@@ -1,4 +1,3 @@
-import React from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -11,8 +10,8 @@ import {
 import ReplayTimelineEvents from 'sentry/components/replays/breadcrumbs/replayTimelineEvents';
 import ReplayTimelineSpans from 'sentry/components/replays/breadcrumbs/replayTimelineSpans';
 import Stacked from 'sentry/components/replays/breadcrumbs/stacked';
-import HorizontalMouseTracking from 'sentry/components/replays/player/horizontalMouseTracking';
 import {TimelineScubber} from 'sentry/components/replays/player/scrubber';
+import ScrubberMouseTracking from 'sentry/components/replays/player/scrubberMouseTracking';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {Resizeable} from 'sentry/components/replays/resizeable';
 import TimelinePosition from 'sentry/components/replays/timelinePosition';
@@ -44,13 +43,20 @@ function ReplayTimeline({}: Props) {
 
   return (
     <Panel>
-      <HorizontalMouseTracking>
+      <ScrubberMouseTracking>
         <Resizeable>
           {({width}) => (
             <Stacked>
               <MinorGridlines duration={duration} width={width} />
               <MajorGridlines duration={duration} width={width} />
               <TimelineScubber />
+              <UnderTimestamp paddingTop="52px">
+                <ReplayTimelineSpans
+                  duration={duration}
+                  spans={networkSpans}
+                  startTimestamp={startTimestamp}
+                />
+              </UnderTimestamp>
               <TimelinePosition
                 color={theme.purple300}
                 currentTime={currentTime}
@@ -63,30 +69,25 @@ function ReplayTimeline({}: Props) {
                   duration={duration}
                 />
               ) : null}
-              <UnderTimestamp>
+              <UnderTimestamp paddingTop="24px">
                 <ReplayTimelineEvents
                   crumbs={userCrumbs}
                   duration={duration}
                   startTimestamp={startTimestamp}
                   width={width}
                 />
-                <ReplayTimelineSpans
-                  duration={duration}
-                  spans={networkSpans}
-                  startTimestamp={startTimestamp}
-                />
               </UnderTimestamp>
             </Stacked>
           )}
         </Resizeable>
-      </HorizontalMouseTracking>
+      </ScrubberMouseTracking>
     </Panel>
   );
 }
 
-const UnderTimestamp = styled('div')`
+const UnderTimestamp = styled('div')<{paddingTop: string}>`
   /* Weird size to put equal space above/below a <small> node that MajorGridlines emits */
-  padding-top: 16px;
+  padding-top: ${p => p.paddingTop};
 `;
 
 export default ReplayTimeline;
