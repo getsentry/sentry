@@ -56,7 +56,10 @@ export type GenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
     response?: ResponseMeta
   ) => void | {totalIssuesCount?: string};
   cursor?: string;
-  customDidUpdateComparator?: (prevProps: any, nextProps: any) => boolean;
+  customDidUpdateComparator?: (
+    prevProps: GenericWidgetQueriesProps<SeriesResponse, TableResponse>,
+    nextProps: GenericWidgetQueriesProps<SeriesResponse, TableResponse>
+  ) => boolean;
   limit?: number;
   loading?: boolean;
   onDataFetched?: ({
