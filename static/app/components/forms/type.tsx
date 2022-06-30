@@ -168,9 +168,6 @@ export type ProjectMapperType = {
     text: string;
     // url comes from the `next` parameter in the QS
     description?: string;
-    disabledTooltipText?: string;
-    // Disable the next button until at least one mapping is made
-    requiresMapping?: boolean;
   };
   sentryProjects: Array<AvatarProject & {id: number; name: string}>;
   type: 'project_mapper';

@@ -178,8 +178,6 @@ class VercelIntegration(IntegrationInstallation):
                         "Link your Sentry projects to complete your installation on Vercel"
                     ),
                     "text": _("Complete on Vercel"),
-                    "requiresMapping": True,
-                    "disabledTooltipText": "Please link at least one project to continue.",
                 },
                 "iconType": "vercel",
             }
