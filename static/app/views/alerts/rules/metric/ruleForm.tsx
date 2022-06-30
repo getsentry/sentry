@@ -129,7 +129,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     // SearchBar gets its tags from Reflux.
     fetchOrganizationTags(this.api, organization.slug, [project.id]);
 
-    if (this.props.location.query.preset) {
+    if (this.props.location?.query.preset) {
       const preset = PRESET_AGGREGATES.find(
         p => p.id === this.props.location.query.preset
       );
