@@ -231,7 +231,8 @@ class ActiveReleaseAlertNotification(AlertRuleNotification):
 
         return context
 
-    def get_release_commits(self, release: Release) -> Sequence[CommitData]:
+    @staticmethod
+    def get_release_commits(release: Release) -> Sequence[CommitData]:
         if not release:
             return []
 
@@ -252,6 +253,7 @@ class ActiveReleaseAlertNotification(AlertRuleNotification):
             for rc in release_commits
         ]
 
+    @staticmethod
     def release_url(self, release: Release) -> str:
         params = {"project": release.project_id, "referrer": "alert_email_release"}
         url = "/organizations/{org}/releases/{version}/{params}".format(

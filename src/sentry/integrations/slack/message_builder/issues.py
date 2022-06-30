@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from typing import Any, Callable, Mapping, Sequence
-from urllib.parse import quote
 
 from django.core.cache import cache
 from sentry_relay import parse_release
@@ -24,7 +23,7 @@ from sentry.models import (
     User,
 )
 from sentry.notifications.notifications.base import BaseNotification, ProjectNotification
-from sentry.notifications.notifications.rules import AlertRuleNotification
+from sentry.notifications.notifications.rules import AlertRuleNotification, CommitData
 from sentry.notifications.utils.actions import MessageAction
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
@@ -387,6 +386,8 @@ class SlackReleaseIssuesMessageBuilder(SlackMessageBuilder):
         notification: ProjectNotification | None = None,
         recipient: Team | User | None = None,
         last_release: Release | None = None,
+        last_release_link: str | None = None,
+        release_commits: Sequence[CommitData] | None = None,
     ) -> None:
         super().__init__()
         self.group = group
@@ -400,6 +401,17 @@ class SlackReleaseIssuesMessageBuilder(SlackMessageBuilder):
         self.notification = notification
         self.recipient = recipient
         self.last_release = last_release
+        self.last_release_link = last_release_link
+        self.release_commits = release_commits
+
+    @staticmethod
+    def commit_data_text(commit_data: Sequence[CommitData]) -> str:
+        return "\n".join(
+            [
+                f'[{x.get("author").email if x.get("author") else "no email"}] - {x.get("subject", "no subject")} ({x.get("key", "no key")})'
+                for x in commit_data
+            ]
+        )
 
     def build(self) -> SlackBody:
         text = build_attachment_text(self.group, self.event) or ""
@@ -438,15 +450,10 @@ class SlackReleaseIssuesMessageBuilder(SlackMessageBuilder):
             if self.last_release
             else "unknown"
         )
-        release_url = (
-            absolute_uri(
-                f"/organizations/{self.group.organization.slug}/releases/{quote(self.last_release.version)}/?project={self.group.project_id}"
-            )
-            if self.last_release
-            else absolute_uri(
-                f"/organizations/{self.group.organization.slug}/releases/?project={self.group.project_id}"
-            )
-        )
+
+        commit_text = self.commit_data_text(self.release_commits)
+        if commit_text:
+            commit_text = "\n" + commit_text
 
         return self._build(
             actions=payload_actions,
@@ -455,8 +462,8 @@ class SlackReleaseIssuesMessageBuilder(SlackMessageBuilder):
             fallback=f"[{project.slug}] {obj.title}",
             fields=fields,
             footer=footer,
-            text=f"<{title_url}|*{escape_slack_text(issue_title)}*> \n{text}",
-            title=f"Release <{release_url}|{release}> has a new issue",
+            text=f"<{title_url}|*{escape_slack_text(issue_title)}*> {commit_text}\n{text}",
+            title=f"Release <{self.last_release_link}|{release}> has a new issue",
             ts=get_timestamp(self.group, self.event) if not self.issue_details else None,
         )
 
