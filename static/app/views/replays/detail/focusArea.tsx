@@ -44,9 +44,9 @@ function FocusArea({}: Props) {
 
   const event = replay.getEvent();
 
-  const getPerformanceEvents = () => {
-    // Fake the span and Trace context
-    const nonMemorySpansEntry = {
+  const getNonMemorySpansEntry = () => {
+    // Fake the span
+    return {
       type: EntryType.SPANS,
       data: replay
         .getRawSpans()
@@ -59,19 +59,6 @@ function FocusArea({}: Props) {
           parent_span_id: 'replay_network_trace',
         })),
     };
-    return {
-      ...event,
-      contexts: {
-        trace: {
-          type: 'trace',
-          op: 'Network',
-          description: 'WIP',
-          span_id: 'replay_network_trace',
-          status: 'ok',
-        },
-      },
-      entries: [nonMemorySpansEntry],
-    } as EventTransaction;
   };
 
   switch (active) {
@@ -87,16 +74,25 @@ function FocusArea({}: Props) {
         />
       );
     case 'network': {
-      return <Spans organization={organization} event={getPerformanceEvents()} />;
+      // Fake the Trace context
+      const performanceEvents = {
+        ...event,
+        contexts: {
+          trace: {
+            type: 'trace',
+            op: 'Network',
+            description: 'WIP',
+            span_id: 'replay_network_trace',
+            status: 'ok',
+          },
+        },
+        entries: [getNonMemorySpansEntry()],
+      } as EventTransaction;
+
+      return <Spans organization={organization} event={performanceEvents} />;
     }
-    case 'network 2': {
-      return (
-        <NetworkList
-          event={getPerformanceEvents()}
-          startTimestamp={event?.startTimestamp}
-        />
-      );
-    }
+    case 'network 2':
+      return <NetworkList event={event} networkSpans={getNonMemorySpansEntry().data} />;
     case 'trace':
       return <Trace organization={organization} event={event} />;
     case 'issues':

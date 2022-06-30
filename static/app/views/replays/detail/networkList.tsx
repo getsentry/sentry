@@ -7,11 +7,6 @@ import {showPlayerTime} from 'sentry/components/replays/utils';
 import {t} from 'sentry/locale';
 import {EventTransaction} from 'sentry/types';
 
-type NetworkListProps = {
-  event: EventTransaction;
-  startTimestamp: number;
-};
-
 type NetworkSpan = {
   data: Record<string, any>;
   op: string;
@@ -20,6 +15,11 @@ type NetworkSpan = {
   start_timestamp: number;
   timestamp: number;
   description?: string | undefined;
+};
+
+type Props = {
+  event: EventTransaction;
+  networkSpans: NetworkSpan[];
 };
 
 const columns = [
@@ -31,9 +31,8 @@ const columns = [
   t('response code'),
 ];
 
-function NetworkList({event, startTimestamp}: NetworkListProps) {
-  // TODO(replay): improve
-  const data = event.entries[0].data as NetworkSpan[];
+function NetworkList({event, networkSpans}: Props) {
+  const {startTimestamp} = event;
 
   const renderTableRow = (network: NetworkSpan) => {
     const networkStartTimestamp = network.start_timestamp * 1000;
@@ -53,11 +52,11 @@ function NetworkList({event, startTimestamp}: NetworkListProps) {
 
   return (
     <StyledPanelTable
-      isEmpty={data.length === 0}
+      isEmpty={networkSpans.length === 0}
       emptyMessage={t('No related network requests found.')}
       headers={columns}
     >
-      {data.map(renderTableRow) || null}
+      {networkSpans.map(renderTableRow) || null}
     </StyledPanelTable>
   );
 }
@@ -68,13 +67,15 @@ const Item = styled('div')`
 `;
 
 const StyledPanelTable = styled(PanelTable)`
-  /* overflow: visible allows the tooltip to be completely shown */
-  overflow: visible;
-  grid-template-columns: minmax(1fr, max-content) repeat(3, max-content);
+  overflow: scroll;
+  word-break: break-word;
+  grid-template-columns: minmax(200px, 1fr) repeat(5, max-content);
 
-  @media (max-width: ${p => p.theme.breakpoints.large}) {
-    grid-template-columns: minmax(0, 1fr) repeat(2, max-content);
+  &::-webkit-scrollbar {
+    display: none;
   }
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 `;
 
 export default NetworkList;
