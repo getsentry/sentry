@@ -1,18 +1,18 @@
-import {forwardRef, ForwardRefRenderFunction, HTMLAttributes} from 'react';
+import {forwardRef} from 'react';
+import {PopperProps} from 'react-popper';
 import styled from '@emotion/styled';
-import {Placement} from '@popperjs/core';
 
 import {ColorOrAlias} from 'sentry/utils/theme';
 
-type Props = HTMLAttributes<HTMLDivElement> & {
+type Props = React.HTMLAttributes<HTMLDivElement> & {
   background?: ColorOrAlias;
   border?: ColorOrAlias;
-  placement?: Placement;
+  placement?: PopperProps<any>['placement'];
   size?: number;
   strokeWidth?: number;
 };
 
-const BaseOverlayArrow: ForwardRefRenderFunction<HTMLDivElement, Props> = (
+const BaseOverlayArrow: React.ForwardRefRenderFunction<HTMLDivElement, Props> = (
   {
     size = 16,
     strokeWidth = 1,
