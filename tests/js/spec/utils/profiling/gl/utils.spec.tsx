@@ -555,7 +555,11 @@ describe('computeConfigViewWithStategy', () => {
     const frame = new Rect(0, 0, 10, 1);
 
     expect(
+<<<<<<< HEAD
       computeConfigViewWithStategy('min', view, frame).equals(new Rect(0, 0, 10, 1))
+=======
+      computeConfigViewWithStategy('min', view, frame).equals(new Rect(0, 1, 10, 1))
+>>>>>>> 16ace62c38 (feat(profiling): use min steps to zoom into node)
     ).toBe(true);
   });
 
