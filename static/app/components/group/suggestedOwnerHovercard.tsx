@@ -227,7 +227,6 @@ const EmailAlert = styled(Alert)`
   margin: 10px -13px -13px;
   border-radius: 0;
   border-color: #ece0b0;
-  padding: 10px;
   font-size: ${p => p.theme.fontSizeSmall};
   font-weight: normal;
   box-shadow: none;
