@@ -207,3 +207,5 @@ export enum GroupType {
   DESCENDANTS,
   SIBLINGS,
 }
+
+export type FocusedSpanIDMap = Record<string, Set<string>>;
