@@ -427,48 +427,53 @@ class TransactionMetricsSettings(TypedDict):
     customMeasurements: CustomMeasurementSettings
 
 
+def _should_extract_transaction_metrics(project: Project) -> bool:
+    return features.has(
+        "organizations:transaction-metrics-extraction", project.organization
+    ) and not killswitches.killswitch_matches_context(
+        "relay.drop-transaction-metrics", {"project_id": project.id}
+    )
+
+
 def get_transaction_metrics_settings(
     project: Project, breakdowns_config: Optional[Mapping[str, Any]]
 ) -> TransactionMetricsSettings:
 
-    if killswitches.killswitch_matches_context(
-        "relay.drop-transaction-metrics", {"project_id": project.id}
-    ):
+    if not _should_extract_transaction_metrics(project):
         # Do not extract anything
         return {"extractMetrics": [], "extractCustomTags": [], "customMeasurements": {"limit": 0}}
 
     metrics = []
     custom_tags = []
 
-    if features.has("organizations:transaction-metrics-extraction", project.organization):
-        metrics.extend(sorted(TRANSACTION_METRICS))
-        # TODO: for now let's extract all known measurements. we might want to
-        # be more fine-grained in the future once we know which measurements we
-        # really need (or how that can be dynamically determined)
-        metrics.extend(sorted(ALL_MEASUREMENT_METRICS))
+    metrics.extend(sorted(TRANSACTION_METRICS))
+    # TODO: for now let's extract all known measurements. we might want to
+    # be more fine-grained in the future once we know which measurements we
+    # really need (or how that can be dynamically determined)
+    metrics.extend(sorted(ALL_MEASUREMENT_METRICS))
 
-        if breakdowns_config is not None:
-            # we already have a breakdown configuration that tells relay which
-            # breakdowns to compute for an event. metrics extraction should
-            # probably be in sync with that, or at least not extract more metrics
-            # than there are breakdowns configured.
-            try:
-                for breakdown_name, breakdown_config in breakdowns_config.items():
-                    assert breakdown_config["type"] == "spanOperations"
-
-                    for op_name in breakdown_config["matches"]:
-                        metrics.append(f"d:transactions/breakdowns.ops.{op_name}")
-            except Exception:
-                capture_exception()
-
-        # Tells relay which user-defined tags to add to each extracted
-        # transaction metric.  This cannot include things such as `os.name`
-        # which are computed on the server, they have to come from the SDK as
-        # event tags.
+    if breakdowns_config is not None:
+        # we already have a breakdown configuration that tells relay which
+        # breakdowns to compute for an event. metrics extraction should
+        # probably be in sync with that, or at least not extract more metrics
+        # than there are breakdowns configured.
         try:
-            custom_tags.extend(project.get_option("sentry:transaction_metrics_custom_tags") or ())
+            for breakdown_name, breakdown_config in breakdowns_config.items():
+                assert breakdown_config["type"] == "spanOperations"
+
+                for op_name in breakdown_config["matches"]:
+                    metrics.append(f"d:transactions/breakdowns.ops.{op_name}")
         except Exception:
             capture_exception()
+
+    # Tells relay which user-defined tags to add to each extracted
+    # transaction metric.  This cannot include things such as `os.name`
+    # which are computed on the server, they have to come from the SDK as
+    # event tags.
+    try:
+        custom_tags.extend(project.get_option("sentry:transaction_metrics_custom_tags") or ())
+    except Exception:
+        capture_exception()
 
     return {
         "extractMetrics": metrics,
