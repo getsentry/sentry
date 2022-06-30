@@ -95,7 +95,7 @@ jobs:
           path: .artifacts/visual-snapshots/jest
 
       - name: Create Images from HTML
-        uses: getsentry/action-html-to-image@main
+        uses: docker://ghcr.io/getsentry/action-html-to-image:0de1c39c28d4d8f8f42c49761313237840958927
         with:
           base-path: .artifacts/visual-snapshots/jest
           css-path: src/sentry/static/sentry/dist/entrypoints/sentry.css
