@@ -72,7 +72,7 @@ const OverlayArrow = forwardRef(BaseOverlayArrow);
 
 export default OverlayArrow;
 
-const Wrap = styled('div')<{size: number; placement?: Placement}>`
+const Wrap = styled('div')<{size: number; placement?: PopperProps<any>['placement']}>`
   position: relative;
   display: flex;
   width: ${p => p.size}px;
