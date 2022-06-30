@@ -7,77 +7,40 @@ import {HTMLMotionProps, motion, MotionProps, MotionStyle} from 'framer-motion';
 import OverlayArrow from 'sentry/components/overlayArrow';
 import space from 'sentry/styles/space';
 import testableTransition from 'sentry/utils/testableTransition';
-import {Theme} from 'sentry/utils/theme';
 
 type OriginPoint = Partial<{x: number; y: number}>;
 
-interface OverlayProps {
+interface OverlayProps extends HTMLMotionProps<'div'> {
+  /**
+   * Whether the overlay should animate in/out. If true, we'll also need
+   * the `placement` and `originPoint` props.
+   */
+  animated?: boolean;
   /**
    * Props to be passed into <OverlayArrow />
    */
   arrowProps?: React.ComponentProps<typeof OverlayArrow>;
   children?: React.ReactNode;
   /**
+   * The CSS styles for the "origin point" over the overlay. Typically this
+   * would be the arrow (or tip).
+   */
+  originPoint?: OriginPoint;
+  /**
    * Additional style rules for the overlay content.
    */
   overlayStyle?: React.CSSProperties | SerializedStyles;
+  /**
+   * Indicates where the overlay is placed. This is useful for the animation to
+   * be animated 'towards' the placment origin, giving it a pleasing effect.
+   */
+  placement?: PopperProps<any>['placement'];
   /**
    * Whether to display an arrow. If true, `arrowProps` is also needed to
    * correctly position and orient the arrow.
    */
   showArrow?: boolean;
 }
-
-interface AnimatedOverlayProps extends OverlayProps, HTMLMotionProps<'div'> {
-  /**
-   * Indicates where the overlay is placed. This is useful for the animation to
-   * be animated 'towards' the placment origin, giving it a pleasing effect.
-   */
-  placement: PopperProps<any>['placement'];
-  /**
-   * The CSS styles for the "origin point" over the overlay. Typically this
-   * would be the arrow (or tip).
-   */
-  originPoint?: OriginPoint;
-}
-
-function getOverlayStyles({theme}: {theme: Theme}) {
-  return `
-    max-width: 24rem;
-    position: relative;
-    border-radius: ${theme.borderRadius};
-    background: ${theme.backgroundElevated};
-    box-shadow: 0 0 0 1px ${theme.translucentBorder}, ${theme.dropShadowHeavy};
-    font-size: ${theme.fontSizeMedium};
-
-    margin: ${space(1)} 0;
-
-    /* Override z-index from useOverlayPosition */
-    z-index: ${theme.zIndex.dropdown} !important;
-  `;
-}
-
-/**
- * An overlay component that renders with an optional arrow. If the overlay
- * needs to be animated, use AnimatedOverlay instead.
- */
-const Overlay = styled(
-  ({
-    children,
-    overlayStyle: _overlayStyle,
-    showArrow,
-    arrowProps,
-    ...props
-  }: OverlayProps) => (
-    <div {...props}>
-      {showArrow && <OverlayArrow {...arrowProps} />}
-      {children}
-    </div>
-  )
-)`
-  ${getOverlayStyles};
-  ${p => p.overlayStyle as any};
-`;
 
 const overlayAnimation: MotionProps = {
   transition: {duration: 0.2},
@@ -126,39 +89,54 @@ function computeOriginFromArrow(
 }
 
 /**
- * A overlay component that has a nice ease in animation along with a
- * scale-down animation that animates towards an origin (think a tooltip
+ * A overlay component that has an optional nice ease in animation along with
+ * a scale-down animation that animates towards an origin (think a tooltip
  * pointing at something).
  *
- * Should be used within a `<AnimatePresence />`.
+ * If animated (`animated` prop is true), should be used within a
+ * `<AnimatePresence />`.
  */
-const AnimatedOverlay = styled(
+const Overlay = styled(
   ({
     children,
+    showArrow,
+    arrowProps,
+    animated,
     placement,
     originPoint,
     style,
     overlayStyle: _overlayStyle,
-    showArrow,
-    arrowProps,
     ...props
-  }: AnimatedOverlayProps) => (
-    <motion.div
-      style={{
-        ...style,
-        ...computeOriginFromArrow(placement, originPoint),
-      }}
-      {...overlayAnimation}
-      {...props}
-    >
-      {showArrow && <OverlayArrow {...arrowProps} />}
-      {children}
-    </motion.div>
-  )
+  }: OverlayProps) => {
+    const animationProps = animated
+      ? {
+          ...overlayAnimation,
+          style: {
+            ...style,
+            ...computeOriginFromArrow(placement, originPoint),
+          },
+        }
+      : {style};
+
+    return (
+      <motion.div {...props} {...animationProps}>
+        {showArrow && <OverlayArrow {...arrowProps} />}
+        {children}
+      </motion.div>
+    );
+  }
 )`
-  will-change: transform, opacity;
-  ${getOverlayStyles};
-  ${p => p.overlayStyle as any};
+  position: relative;
+  margin: ${space(1)} 0;
+  border-radius: ${p => p.theme.borderRadius};
+  background: ${p => p.theme.backgroundElevated};
+  box-shadow: 0 0 0 1px ${p => p.theme.translucentBorder}, ${p => p.theme.dropShadowHeavy};
+  font-size: ${p => p.theme.fontSizeMedium};
+
+  /* Override z-index from useOverlayPosition */
+  z-index: ${p => p.theme.zIndex.dropdown} !important;
+  ${p => p.animated && `will-change: transform, opacity;`}
+  ${p => p.overlayStyle as any}
 `;
 
 interface PositionWrapperProps extends HTMLMotionProps<'div'> {
@@ -187,4 +165,4 @@ const PositionWrapper = forwardRef<HTMLDivElement, PositionWrapperProps>(
   )
 );
 
-export {Overlay, AnimatedOverlay, PositionWrapper};
+export {Overlay, PositionWrapper};

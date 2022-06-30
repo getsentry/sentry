@@ -4,7 +4,7 @@ import {SerializedStyles, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence} from 'framer-motion';
 
-import {AnimatedOverlay, PositionWrapper} from 'sentry/components/overlay';
+import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {IS_ACCEPTANCE_TEST} from 'sentry/constants/index';
 import space from 'sentry/styles/space';
 import {useHoverOverlay, UseHoverOverlayProps} from 'sentry/utils/useHoverOverlay';
@@ -46,6 +46,7 @@ export function DO_NOT_USE_TOOLTIP({
   const tooltipContent = isOpen && (
     <PositionWrapper zIndex={theme.zIndex.tooltip} {...overlayProps}>
       <TooltipContent
+        animated
         showArrow
         arrowProps={arrowProps}
         originPoint={arrowData}
@@ -65,7 +66,7 @@ export function DO_NOT_USE_TOOLTIP({
   );
 }
 
-const TooltipContent = styled(AnimatedOverlay)`
+const TooltipContent = styled(Overlay)`
   padding: ${space(1)} ${space(1.5)};
   overflow-wrap: break-word;
   max-width: 225px;

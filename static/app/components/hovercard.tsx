@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import classNames from 'classnames';
 import {AnimatePresence} from 'framer-motion';
 
-import {AnimatedOverlay, PositionWrapper} from 'sentry/components/overlay';
+import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import space from 'sentry/styles/space';
 import {ColorOrAlias} from 'sentry/utils/theme';
 import {useHoverOverlay, UseHoverOverlayProps} from 'sentry/utils/useHoverOverlay';
@@ -74,6 +74,7 @@ function Hovercard({
   const hovercardContent = isOpen && (
     <PositionWrapper zIndex={theme.zIndex.hovercard} {...overlayProps}>
       <StyledHovercard
+        animated
         showArrow
         arrowProps={{
           ...arrowProps,
@@ -99,7 +100,7 @@ function Hovercard({
   );
 }
 
-const StyledHovercard = styled(AnimatedOverlay)`
+const StyledHovercard = styled(Overlay)`
   width: 295px;
   /* The hovercard may appear in different contexts, don't inherit fonts */
   font-family: ${p => p.theme.text.family};
