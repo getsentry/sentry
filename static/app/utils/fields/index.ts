@@ -415,7 +415,7 @@ export const FIELDS: Record<string, FieldDefinition> = {
     valueType: FieldValueType.STRING,
   },
   [FieldKey.STACK_PACKAGE]: {
-    desc: 'Stack Package',
+    desc: 'The package the frame is from',
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
@@ -425,7 +425,7 @@ export const FIELDS: Record<string, FieldDefinition> = {
     valueType: FieldValueType.STRING,
   },
   [FieldKey.STACK_STACK_LEVEL]: {
-    desc: 'Stack Level',
+    desc: 'Number of frames per stacktrace',
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
