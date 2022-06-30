@@ -62,9 +62,21 @@ function ReplayTable({replayList, idKey, showProjectColumn}: Props) {
     ? Object.fromEntries(data.map(item => [item.replayId, item]))
     : {};
 
+  const replays = useMemo(() => {
+    const replayIdMap = new Map();
+    const list: Replay[] = [];
+    for (const replay of replayList) {
+      if (replay && !replayIdMap.has(replay.replayId)) {
+        list.push(replay);
+        replayIdMap.set(replay.replayId, true);
+      }
+    }
+    return list;
+  }, [replayList]);
+
   return (
     <Fragment>
-      {replayList?.map(replay => (
+      {replays.map(replay => (
         <Fragment key={replay.id}>
           <UserBadge
             avatarSize={32}

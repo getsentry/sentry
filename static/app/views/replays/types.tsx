@@ -14,6 +14,7 @@ export type Replay = {
   'user.ip_address': string;
   'user.name': string;
   'user.username': string;
+  replayId?: string;
 };
 
 export enum ReplayTabs {
