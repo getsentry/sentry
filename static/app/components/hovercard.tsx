@@ -101,8 +101,7 @@ function Hovercard({
 
 const StyledHovercard = styled(Overlay)`
   width: 295px;
-  /* The hovercard may appear in different contexts, don't inherit fonts */
-  font-family: ${p => p.theme.text.family};
+  line-height: 1.2;
 `;
 
 const Header = styled('div')`
