@@ -1,14 +1,22 @@
 import {Fragment, useEffect, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import partition from 'lodash/partition';
 
 import Access from 'sentry/components/acl/access';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {PanelTable} from 'sentry/components/panels';
+import {Panel, PanelFooter, PanelHeader} from 'sentry/components/panels';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {SamplingRules, SamplingRuleType} from 'sentry/types/sampling';
+import space from 'sentry/styles/space';
+import {
+  SamplingRuleOperator,
+  SamplingRules,
+  SamplingRuleType,
+} from 'sentry/types/sampling';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -17,7 +25,11 @@ import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHea
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import PermissionAlert from 'sentry/views/settings/organization/permissionAlert';
 
+import {DraggableList} from '../sampling/rules/draggableList';
+
 import {Promo} from './promo';
+import {ActiveColumn, Column, GrabColumn, OperatorColumn, RateColumn, Rule} from './rule';
+import {SERVER_SIDE_SAMPLING_DOC_LINK} from './utils';
 
 export function ServerSideSampling() {
   const api = useApi();
@@ -26,7 +38,7 @@ export function ServerSideSampling() {
 
   const {orgId: orgSlug, projectId: projectSlug} = params;
 
-  const [_rules, setRules] = useState<SamplingRules>([]);
+  const [rules, setRules] = useState<SamplingRules>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | undefined>(undefined);
 
@@ -40,18 +52,11 @@ export function ServerSideSampling() {
         const {dynamicSampling} = projectDetails;
         const samplingRules: SamplingRules = dynamicSampling?.rules ?? [];
 
-        const transactionRules = samplingRules.filter(
-          samplingRule =>
-            samplingRule.type === SamplingRuleType.TRANSACTION ||
-            samplingRule.type === SamplingRuleType.TRACE
+        const traceRules = samplingRules.filter(
+          samplingRule => samplingRule.type === SamplingRuleType.TRACE
         );
 
-        const [rulesWithoutConditions, rulesWithConditions] = partition(
-          transactionRules,
-          transactionRule => !transactionRule.condition.inner.length
-        );
-
-        setRules([...rulesWithConditions, ...rulesWithoutConditions]);
+        setRules(traceRules);
         setLoading(false);
       } catch (err) {
         const errorMessage = t('Unable to load sampling rules');
@@ -63,6 +68,13 @@ export function ServerSideSampling() {
     fetchRules();
   }, [api, projectSlug, orgSlug]);
 
+  // Rules without conditions always have to be 'pinned' to the bottom of the list
+  const items = rules.map(rule => ({
+    ...rule,
+    id: String(rule.id),
+    disabled: !rule.condition.inner.length,
+  }));
+
   return (
     <SentryDocumentTitle title={t('Server-side Sampling')}>
       <Fragment>
@@ -72,16 +84,124 @@ export function ServerSideSampling() {
             'Server-side sampling provides an additional dial for dropping transactions. This comes in handy when your server-side sampling rules target the transactions you want to keep, but you need more of those transactions being sent by the SDK.'
           )}
         </TextBlock>
-        <PermissionAlert />
+        <PermissionAlert access={['project:write']} />
         <Access organization={organization} access={['project:write']}>
-          {error && <LoadingError message={error} />}
-          {!error && loading && <LoadingIndicator />}
-          {!error && !loading && (
-            <RulesPanel
-              headers={['', t('Operator'), t('Condition'), t('Rate'), t('Active'), '']}
-            >
-              <Promo />
-            </RulesPanel>
+          {({hasAccess}) => (
+            <Fragment>
+              {error && <LoadingError message={error} />}
+              {!error && loading && <LoadingIndicator />}
+              {!error && !loading && (
+                <RulesPanel>
+                  <RulesPanelHeader lightText>
+                    <RulesPanelLayout>
+                      <GrabColumn />
+                      <OperatorColumn>{t('Operator')}</OperatorColumn>
+                      <Column>{t('Condition')}</Column>
+                      <RateColumn>{t('Rate')}</RateColumn>
+                      <ActiveColumn>{t('Active')}</ActiveColumn>
+                      <Column />
+                    </RulesPanelLayout>
+                  </RulesPanelHeader>
+                  {!rules.length && <Promo />}
+                  {!!rules.length && (
+                    <Fragment>
+                      <DraggableList
+                        disabled={!hasAccess}
+                        items={items}
+                        onUpdateItems={() => {}}
+                        wrapperStyle={({isDragging, isSorting, index}) => {
+                          if (isDragging) {
+                            return {
+                              cursor: 'grabbing',
+                            };
+                          }
+                          if (isSorting) {
+                            return {};
+                          }
+                          return {
+                            transform: 'none',
+                            transformOrigin: '0',
+                            '--box-shadow': 'none',
+                            '--box-shadow-picked-up': 'none',
+                            overflow: 'visible',
+                            position: 'relative',
+                            zIndex: rules.length - index,
+                            cursor: 'default',
+                          };
+                        }}
+                        renderItem={({
+                          value,
+                          listeners,
+                          attributes,
+                          dragging,
+                          sorting,
+                        }) => {
+                          const itemsRuleIndex = items.findIndex(
+                            item => item.id === value
+                          );
+
+                          if (itemsRuleIndex === -1) {
+                            return null;
+                          }
+
+                          const itemsRule = items[itemsRuleIndex];
+
+                          const currentRule = {
+                            condition: itemsRule.condition,
+                            sampleRate: itemsRule.sampleRate,
+                            type: itemsRule.type,
+                            id: Number(itemsRule.id),
+                          };
+
+                          return (
+                            <RulesPanelLayout content>
+                              <Rule
+                                operator={
+                                  itemsRule.id === items[0].id
+                                    ? SamplingRuleOperator.IF
+                                    : itemsRule.disabled
+                                    ? SamplingRuleOperator.ELSE
+                                    : SamplingRuleOperator.ELSE_IF
+                                }
+                                hideGrabButton={items.length === 1}
+                                rule={{...currentRule, disabled: itemsRule.disabled}}
+                                onEditRule={() => {}}
+                                onDeleteRule={() => {}}
+                                noPermission={!hasAccess}
+                                listeners={listeners}
+                                grabAttributes={attributes}
+                                dragging={dragging}
+                                sorting={sorting}
+                              />
+                            </RulesPanelLayout>
+                          );
+                        }}
+                      />
+                      <RulesPanelFooter>
+                        <ButtonList gap={1}>
+                          <Button href={SERVER_SIDE_SAMPLING_DOC_LINK} external>
+                            {t('Read Docs')}
+                          </Button>
+                          <AddRuleButton
+                            disabled={!hasAccess}
+                            title={
+                              !hasAccess
+                                ? t("You don't have permission to add a rule")
+                                : undefined
+                            }
+                            priority="primary"
+                            onClick={() => {}}
+                            icon={<IconAdd isCircled />}
+                          >
+                            {t('Add Rule')}
+                          </AddRuleButton>
+                        </ButtonList>
+                      </RulesPanelFooter>
+                    </Fragment>
+                  )}
+                </RulesPanel>
+              )}
+            </Fragment>
           )}
         </Access>
       </Fragment>
@@ -89,36 +209,66 @@ export function ServerSideSampling() {
   );
 }
 
-const RulesPanel = styled(PanelTable)`
-  > * {
-    :not(:last-child) {
-      border-bottom: 1px solid ${p => p.theme.border};
-    }
+const RulesPanel = styled(Panel)``;
 
-    :nth-child(-n + 6):nth-child(6n - 1) {
-      text-align: right;
-    }
+const RulesPanelHeader = styled(PanelHeader)`
+  padding: ${space(0.5)} 0;
+  font-size: ${p => p.theme.fontSizeSmall};
+`;
 
-    @media (max-width: ${p => p.theme.breakpoints.small}) {
-      :nth-child(6n - 1),
-      :nth-child(6n - 4),
-      :nth-child(6n - 5) {
-        display: none;
-      }
-    }
-  }
+const RulesPanelLayout = styled('div')<{content?: boolean}>`
+  width: 100%;
+  display: grid;
 
-  grid-template-columns: 1fr 0.5fr 66px;
+  grid-template-columns: 1fr 0.7fr 77px 74px;
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
-    grid-template-columns: 48px 95px 1fr 0.5fr 77px 66px;
+    grid-template-columns: 48px 1fr 0.5fr 77px 74px;
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+    grid-template-columns: 48px 95px 1fr 0.5fr 77px 74px;
   }
 
   @media (min-width: ${p => p.theme.breakpoints.large}) {
-    grid-template-columns: 48px 95px 1.5fr 1fr 77px 124px;
+    grid-template-columns: 48px 95px 1fr 0.5fr 77px 74px;
   }
 
   @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
-    grid-template-columns: 48px 95px 1fr 0.5fr 77px 124px;
+    grid-template-columns: 48px 95px 1fr 0.5fr 77px 74px;
+  }
+
+  ${p =>
+    p.content &&
+    css`
+      > * {
+        /* match the height of the ellipsis button */
+        line-height: 34px;
+        border-bottom: 1px solid ${p.theme.border};
+      }
+    `}
+`;
+
+const RulesPanelFooter = styled(PanelFooter)`
+  border-top: none;
+  padding: ${space(1.5)} ${space(2)};
+  grid-column: 1 / -1;
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+  }
+`;
+
+const ButtonList = styled(ButtonBar)`
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
+    grid-auto-flow: row;
+    grid-row-gap: ${space(1)};
+  }
+`;
+
+const AddRuleButton = styled(Button)`
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
+    width: 100%;
   }
 `;

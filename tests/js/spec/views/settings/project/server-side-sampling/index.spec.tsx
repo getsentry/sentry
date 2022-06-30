@@ -4,7 +4,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {RouteContext} from 'sentry/views/routeContext';
 import ServerSideSampling from 'sentry/views/settings/project/server-side-sampling';
-import {SERVER_SIDE_DOC_LINK} from 'sentry/views/settings/project/server-side-sampling/utils';
+import {SERVER_SIDE_SAMPLING_DOC_LINK} from 'sentry/views/settings/project/server-side-sampling/utils';
 
 describe('Server-side Sampling', function () {
   const {organization, project, router} = initializeOrg({
@@ -60,7 +60,7 @@ describe('Server-side Sampling', function () {
 
     expect(screen.getByRole('button', {name: 'Read Docs'})).toHaveAttribute(
       'href',
-      SERVER_SIDE_DOC_LINK
+      SERVER_SIDE_SAMPLING_DOC_LINK
     );
 
     expect(screen.getByRole('button', {name: 'Get Started'})).toBeInTheDocument();

@@ -9,19 +9,20 @@ import {ServerSideSampling} from './serverSideSampling';
 export default function ServerSideSamplingContainer() {
   const organization = useOrganization();
 
-  return (
-    <Feature
-      features={['server-side-sampling']}
-      organization={organization}
-      renderDisabled={() => (
-        <FeatureDisabled
-          alert={PanelAlert}
-          features={['organization:server-side-sampling']}
-          featureName={t('Server-side Sampling')}
-        />
-      )}
-    >
-      <ServerSideSampling />
-    </Feature>
-  );
+  // return (
+  //   <Feature
+  //     features={['server-side-sampling']}
+  //     organization={organization}
+  //     renderDisabled={() => (
+  //       <FeatureDisabled
+  //         alert={PanelAlert}
+  //         features={['organization:server-side-sampling']}
+  //         featureName={t('Server-side Sampling')}
+  //       />
+  //     )}
+  //   >
+  //     <ServerSideSampling />
+  //   </Feature>
+  // );
+  return <ServerSideSampling />;
 }
