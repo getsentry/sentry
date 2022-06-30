@@ -24,11 +24,11 @@ export class CanvasScheduler {
   requestAnimationFrame: number | null = null;
 
   events: EventStore = {
+    resetZoom: new Set<FlamegraphEvents['resetZoom']>(),
+    setSelectedNode: new Set<FlamegraphEvents['setSelectedNode']>(),
+    setConfigView: new Set<FlamegraphEvents['setConfigView']>(),
     transformConfigView: new Set<FlamegraphEvents['transformConfigView']>(),
     zoomIntoFrame: new Set<FlamegraphEvents['zoomIntoFrame']>(),
-    setSelectedNode: new Set<FlamegraphEvents['setSelectedNode']>(),
-    resetZoom: new Set<FlamegraphEvents['resetZoom']>(),
-    setConfigView: new Set<FlamegraphEvents['setConfigView']>(),
   };
 
   onDispose(cb: () => void): void {
