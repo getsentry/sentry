@@ -28,7 +28,15 @@ import PermissionAlert from 'sentry/views/settings/organization/permissionAlert'
 import {DraggableList} from '../sampling/rules/draggableList';
 
 import {Promo} from './promo';
-import {ActiveColumn, Column, GrabColumn, OperatorColumn, RateColumn, Rule} from './rule';
+import {
+  ActiveColumn,
+  Column,
+  ConditionColumn,
+  GrabColumn,
+  OperatorColumn,
+  RateColumn,
+  Rule,
+} from './rule';
 import {SERVER_SIDE_SAMPLING_DOC_LINK} from './utils';
 
 export function ServerSideSampling() {
@@ -68,11 +76,12 @@ export function ServerSideSampling() {
     fetchRules();
   }, [api, projectSlug, orgSlug]);
 
-  // Rules without conditions always have to be 'pinned' to the bottom of the list
+  // Rules without a condition (Else case) always have to be 'pinned' to the bottom of the list
+  // and cannot be sorted
   const items = rules.map(rule => ({
     ...rule,
     id: String(rule.id),
-    disabled: !rule.condition.inner.length,
+    bottomPinned: !rule.condition.inner.length,
   }));
 
   return (
@@ -96,7 +105,7 @@ export function ServerSideSampling() {
                     <RulesPanelLayout>
                       <GrabColumn />
                       <OperatorColumn>{t('Operator')}</OperatorColumn>
-                      <Column>{t('Condition')}</Column>
+                      <ConditionColumn>{t('Condition')}</ConditionColumn>
                       <RateColumn>{t('Rate')}</RateColumn>
                       <ActiveColumn>{t('Active')}</ActiveColumn>
                       <Column />
@@ -147,6 +156,7 @@ export function ServerSideSampling() {
                           const itemsRule = items[itemsRuleIndex];
 
                           const currentRule = {
+                            active: itemsRule.active,
                             condition: itemsRule.condition,
                             sampleRate: itemsRule.sampleRate,
                             type: itemsRule.type,
@@ -154,17 +164,20 @@ export function ServerSideSampling() {
                           };
 
                           return (
-                            <RulesPanelLayout content>
+                            <RulesPanelLayout isContent>
                               <Rule
                                 operator={
                                   itemsRule.id === items[0].id
                                     ? SamplingRuleOperator.IF
-                                    : itemsRule.disabled
+                                    : itemsRule.bottomPinned
                                     ? SamplingRuleOperator.ELSE
                                     : SamplingRuleOperator.ELSE_IF
                                 }
                                 hideGrabButton={items.length === 1}
-                                rule={{...currentRule, disabled: itemsRule.disabled}}
+                                rule={{
+                                  ...currentRule,
+                                  bottomPinned: itemsRule.bottomPinned,
+                                }}
                                 onEditRule={() => {}}
                                 onDeleteRule={() => {}}
                                 noPermission={!hasAccess}
@@ -178,7 +191,7 @@ export function ServerSideSampling() {
                         }}
                       />
                       <RulesPanelFooter>
-                        <ButtonList gap={1}>
+                        <ButtonBar gap={1}>
                           <Button href={SERVER_SIDE_SAMPLING_DOC_LINK} external>
                             {t('Read Docs')}
                           </Button>
@@ -195,7 +208,7 @@ export function ServerSideSampling() {
                           >
                             {t('Add Rule')}
                           </AddRuleButton>
-                        </ButtonList>
+                        </ButtonBar>
                       </RulesPanelFooter>
                     </Fragment>
                   )}
@@ -216,30 +229,17 @@ const RulesPanelHeader = styled(PanelHeader)`
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 
-const RulesPanelLayout = styled('div')<{content?: boolean}>`
+const RulesPanelLayout = styled('div')<{isContent?: boolean}>`
   width: 100%;
   display: grid;
-
-  grid-template-columns: 1fr 0.7fr 77px 74px;
+  grid-template-columns: 1fr 0.5fr 74px;
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
-    grid-template-columns: 48px 1fr 0.5fr 77px 74px;
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    grid-template-columns: 48px 95px 1fr 0.5fr 77px 74px;
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
-    grid-template-columns: 48px 95px 1fr 0.5fr 77px 74px;
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
     grid-template-columns: 48px 95px 1fr 0.5fr 77px 74px;
   }
 
   ${p =>
-    p.content &&
+    p.isContent &&
     css`
       > * {
         /* match the height of the ellipsis button */
@@ -253,18 +253,9 @@ const RulesPanelFooter = styled(PanelFooter)`
   border-top: none;
   padding: ${space(1.5)} ${space(2)};
   grid-column: 1 / -1;
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-  }
-`;
-
-const ButtonList = styled(ButtonBar)`
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
-    grid-auto-flow: row;
-    grid-row-gap: ${space(1)};
-  }
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
 `;
 
 const AddRuleButton = styled(Button)`

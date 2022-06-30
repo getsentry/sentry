@@ -59,7 +59,7 @@ export function Rule({
 
   return (
     <Fragment>
-      <GrabColumn disabled={rule.disabled || noPermission}>
+      <GrabColumn disabled={rule.bottomPinned || noPermission}>
         {hideGrabButton ? null : (
           <Tooltip
             title={
@@ -71,7 +71,7 @@ export function Rule({
             }
             containerDisplayMode="flex"
           >
-            <IconGrabbableWrapper {...listeners} {...grabAttributes}>
+            <IconGrabbableWrapper {...listeners} {...grabAttributes} aria-label={dragging ? t('Drop Rule') : t('Drag Rule')}>
               <IconGrabbable />
             </IconGrabbableWrapper>
           </Tooltip>
@@ -86,42 +86,45 @@ export function Rule({
             : t('Else')}
         </Operator>
       </OperatorColumn>
-      <Column>
-        <Conditions>
-          {hideGrabButton && !rule.condition.inner.length
-            ? t('All')
-            : rule.condition.inner.map((condition, index) => (
-                <Fragment key={index}>
-                  <ConditionName>{getInnerNameLabel(condition.name)}</ConditionName>
-                  <ConditionEqualOperator>{'='}</ConditionEqualOperator>
-                  {Array.isArray(condition.value) ? (
-                    <ConditionValues>
-                      {[...condition.value].map((v, index) => (
-                        <Fragment key={v}>
-                          <ConditionValue>
-                            {LEGACY_BROWSER_LIST[v]?.title ?? v}
-                          </ConditionValue>
-                          {index !== (condition.value as LegacyBrowser[]).length - 1 && (
-                            <ConditionSeparator>{'\u002C'}</ConditionSeparator>
-                          )}
-                        </Fragment>
-                      ))}
-                    </ConditionValues>
-                  ) : (
-                    <ConditionValue>
-                      {LEGACY_BROWSER_LIST[String(condition.value)]?.title ??
-                        String(condition.value)}
-                    </ConditionValue>
-                  )}
-                </Fragment>
-              ))}
-        </Conditions>
-      </Column>
+      <ConditionColumn>
+        {hideGrabButton && !rule.condition.inner.length
+          ? t('All')
+          : rule.condition.inner.map((condition, index) => (
+              <Fragment key={index}>
+                <ConditionName>{getInnerNameLabel(condition.name)}</ConditionName>
+                <ConditionEqualOperator>{'='}</ConditionEqualOperator>
+                {Array.isArray(condition.value) ? (
+                  <div>
+                    {[...condition.value].map((v, index) => (
+                      <Fragment key={v}>
+                        <ConditionValue>
+                          {LEGACY_BROWSER_LIST[v]?.title ?? v}
+                        </ConditionValue>
+                        {index !== (condition.value as LegacyBrowser[]).length - 1 && (
+                          <ConditionSeparator>{'\u002C'}</ConditionSeparator>
+                        )}
+                      </Fragment>
+                    ))}
+                  </div>
+                ) : (
+                  <ConditionValue>
+                    {LEGACY_BROWSER_LIST[String(condition.value)]?.title ??
+                      String(condition.value)}
+                  </ConditionValue>
+                )}
+              </Fragment>
+            ))}
+      </ConditionColumn>
       <RateColumn>
         <SampleRate>{`${rule.sampleRate * 100}\u0025`}</SampleRate>
       </RateColumn>
       <ActiveColumn>
-        <ActiveToggle inline={false} hideControlState name="active" />
+        <ActiveToggle
+          inline={false}
+          hideControlState
+          aria-label={rule.active ? t('Deactivate Rule') : t('Activate Rule')}
+          name="active"
+        />
       </ActiveColumn>
       <Column>
         <EllipisDropDownButton
@@ -183,7 +186,6 @@ export function Rule({
   );
 }
 
-
 export const Column = styled('div')`
   display: flex;
   padding: ${space(1)} ${space(2)};
@@ -191,7 +193,6 @@ export const Column = styled('div')`
   white-space: pre-wrap;
   word-break: break-all;
 `;
-
 
 export const GrabColumn = styled(Column)<{disabled?: boolean}>`
   [role='button'] {
@@ -215,9 +216,16 @@ export const GrabColumn = styled(Column)<{disabled?: boolean}>`
 
 export const OperatorColumn = styled(Column)`
   display: none;
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     display: flex;
   }
+`;
+
+export const ConditionColumn = styled(Column)`
+  display: flex;
+  gap: ${space(1)};
+  align-items: flex-start;
+  flex-wrap: wrap;
 `;
 
 export const RateColumn = styled(Column)`
@@ -228,6 +236,10 @@ export const RateColumn = styled(Column)`
 export const ActiveColumn = styled(Column)`
   justify-content: center;
   text-align: center;
+  display: none;
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    display: flex;
+  }
 `;
 
 const IconGrabbableWrapper = styled('div')`
@@ -236,6 +248,10 @@ const IconGrabbableWrapper = styled('div')`
   align-items: center;
   /* match the height of edit and delete buttons */
   height: 34px;
+`;
+
+const ConditionEqualOperator = styled('div')`
+  color: ${p => p.theme.purple300};
 `;
 
 const Operator = styled('div')`
@@ -253,48 +269,12 @@ const ActiveToggle = styled(NewBooleanField)`
   justify-content: center;
 `;
 
-const Conditions = styled('div')`
-  display: grid;
-  color: ${p => p.theme.purple300};
-  align-items: flex-start;
-  width: 100%;
-
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
-    grid-template-columns: max-content max-content 1fr;
-    grid-column-gap: ${space(1)};
-  }
-`;
-
 const ConditionName = styled('div')`
   color: ${p => p.theme.gray400};
-
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
-    white-space: nowrap;
-    text-overflow: ellipsis;
-    overflow: hidden;
-  }
-`;
-
-const ConditionEqualOperator = styled('div')`
-  display: none;
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
-    display: block;
-  }
 `;
 
 const ConditionValue = styled('span')`
   color: ${p => p.theme.gray300};
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
-    white-space: nowrap;
-    text-overflow: ellipsis;
-    overflow: hidden;
-  }
-`;
-
-const ConditionValues = styled('div')`
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
-    overflow: hidden;
-  }
 `;
 
 const ConditionSeparator = styled(ConditionValue)`
