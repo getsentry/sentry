@@ -147,13 +147,19 @@ interface PositionWrapperProps extends HTMLMotionProps<'div'> {
 }
 
 /**
- * The PositionWrapper may be used when you're using the AnimatedOverlay as
- * part of dynamically positioned component (useOverlayPosition).
+ * The PositionWrapper should be used when you're using the AnimatedOverlay as
+ * part of dynamically positioned component (useOverlayPosition). Generally
+ * this component will receive the `overlayProps`.
  *
  * This component ensures the wrapped AnimatedOverlay will not receive pointer
- * events while it is being animated out.
+ * events while it is being animated out. Especially useful since the
+ * `overlayProps` includes a onMouseEnter to allow the overlay to be hovered,
+ * which we would not want while its fading away.
  */
 const PositionWrapper = forwardRef<HTMLDivElement, PositionWrapperProps>(
+  // XXX(epurkhiser): This is a motion.div NOT because it is animating, but
+  // because we need the context of the animation starting for applying the
+  // `pointerEvents: none`.
   ({zIndex, style, ...props}, ref) => (
     <motion.div
       {...props}
