@@ -137,7 +137,7 @@ class KillswitchesTest(CliTestCase):
         assert rv.exit_code == 0, rv.output
 
         assert mock_set.mock_calls == [
-            mock.call("relay.drop-transaction-metrics", [{"project_id": "null"}])
+            mock.call("relay.drop-transaction-metrics", [{"project_id": None}])
         ]
 
         # No invalidation task scheduled if everything matches:
