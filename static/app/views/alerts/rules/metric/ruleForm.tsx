@@ -202,6 +202,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       comparisonDelta: context.comparisonDelta,
       timeWindow: context.timeWindow,
       query: context.query,
+      projectId: this.form.getValue('projectId'),
     });
     this.form.setValue('comparisonDelta', context.comparisonDelta);
 
