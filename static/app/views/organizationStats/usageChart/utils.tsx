@@ -76,12 +76,8 @@ export function getXAxisDates(
 }
 
 export function getTooltipFormatter(dataCategory: DataCategory) {
-  if (dataCategory === DataCategory.ATTACHMENTS) {
-    return (val: number = 0) =>
-      formatUsageWithUnits(val, DataCategory.ATTACHMENTS, {useUnitScaling: true});
-  }
-
-  return (val: number = 0) => val.toLocaleString();
+  return (val: number = 0) =>
+    formatUsageWithUnits(val, dataCategory, {useUnitScaling: true});
 }
 
 const MAX_NUMBER_OF_LABELS = 10;
