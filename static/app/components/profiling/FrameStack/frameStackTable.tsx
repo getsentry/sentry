@@ -108,7 +108,7 @@ export function FrameStackTable({
 
   const contextMenu = useContextMenu({container: scrollContainerRef});
 
-  const handleZoomIntoNodeClick = useCallback(() => {
+  const handleZoomIntoFrameClick = useCallback(() => {
     if (!clickedContextMenuNode) {
       return;
     }
@@ -211,7 +211,7 @@ export function FrameStackTable({
           </FrameNameCell>
         </FrameCallersTableHeader>
         <FrameStackContextMenu
-          onZoomIntoNodeClick={handleZoomIntoNodeClick}
+          onZoomIntoFrameClick={handleZoomIntoFrameClick}
           contextMenu={contextMenu}
         />
         <TableItemsContainer>

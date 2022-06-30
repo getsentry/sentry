@@ -1,16 +1,17 @@
 import {mat3} from 'gl-matrix';
 
 import {Rect} from './gl/utils';
+import {FlamegraphFrame} from './flamegraphFrame';
 
 type DrawFn = () => void;
 type ArgumentTypes<F> = F extends (...args: infer A) => any ? A : never;
 
 export interface FlamegraphEvents {
   resetZoom: () => void;
-  selectedNode: (frame: any | null) => void;
+  selectedNode: (frame: FlamegraphFrame | null) => void;
   setConfigView: (configView: Rect) => void;
   transformConfigView: (transform: mat3) => void;
-  zoomIntoFrame: (frame: any) => void;
+  zoomIntoFrame: (frame: FlamegraphFrame) => void;
 }
 
 type EventStore = {[K in keyof FlamegraphEvents]: Set<FlamegraphEvents[K]>};
