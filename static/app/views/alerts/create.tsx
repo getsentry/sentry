@@ -164,7 +164,7 @@ class Create extends Component<Props, State> {
             </Layout.Title>
           </StyledHeaderContent>
         </Layout.Header>
-        <Layout.Body>
+        <Body>
           <Teams provideUserTeams>
             {({teams, initiallyLoaded}) =>
               initiallyLoaded ? (
@@ -204,7 +204,7 @@ class Create extends Component<Props, State> {
               )
             }
           </Teams>
-        </Layout.Body>
+        </Body>
       </Fragment>
     );
   }
@@ -212,6 +212,22 @@ class Create extends Component<Props, State> {
 
 const StyledHeaderContent = styled(Layout.HeaderContent)`
   overflow: visible;
+`;
+
+const Body = styled(Layout.Body)`
+  && {
+    padding: 0;
+    gap: 0;
+  }
+  grid-template-rows: 1fr;
+
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
+    grid-template-columns: minmax(100px, auto) 400px;
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
+    grid-template-columns: 1fr;
+  }
 `;
 
 export default Create;

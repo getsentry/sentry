@@ -122,7 +122,7 @@ const StyledPresetSidebarItemContainer = styled('div')<{selected: boolean}>`
 `;
 
 const Header = styled('h5')`
-  margin-left: ${space(2)};
+  margin-left: ${space(1)};
 `;
 
 const IconWrapper = styled('div')<{backgroundColor: string}>`

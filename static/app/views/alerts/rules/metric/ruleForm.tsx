@@ -835,16 +835,18 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
                 dataset === Dataset.TRANSACTIONS &&
                 project.firstTransactionEvent &&
                 !this.props.ruleId && (
-                  <StyledPresetSidebar
-                    organization={organization}
-                    project={project}
-                    onSelect={(preset, context) => {
-                      this.setPreset(preset, context);
-                    }}
-                    selectedPresetId={selectedPresetId}
-                  />
+                  <Side>
+                    <PresetSidebar
+                      organization={organization}
+                      project={project}
+                      onSelect={(preset, context) => {
+                        this.setPreset(preset, context);
+                      }}
+                      selectedPresetId={selectedPresetId}
+                    />
+                  </Side>
                 )}
-              <Layout.Main>
+              <Main>
                 <Form
                   model={this.form}
                   apiMethod={ruleId ? 'PUT' : 'POST'}
@@ -923,7 +925,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
                     {ruleNameOwnerForm(disabled)}
                   </List>
                 </Form>
-              </Layout.Main>
+              </Main>
             </Fragment>
           );
         }}
@@ -932,9 +934,24 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
   }
 }
 
-const StyledPresetSidebar = styled(PresetSidebar)`
-  grid-column-start: 2;
+const Main = styled(Layout.Main)`
+  padding: ${space(2)} ${space(4)};
+`;
+
+const Side = styled(Layout.Side)`
+  padding: ${space(4)} ${space(2)};
   grid-row-start: 1;
+
+  @media (max-width: ${p => p.theme.breakpoints.large}) {
+    border-bottom: 1px solid ${p => p.theme.gray200};
+    margin-bottom: ${space(3)};
+    padding-bottom: 0;
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
+    border-left: 1px solid ${p => p.theme.gray200};
+  }
+  max-width: 400px;
 `;
 
 const StyledListItem = styled(ListItem)`
