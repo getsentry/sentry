@@ -1,5 +1,6 @@
 import {createFilter} from 'react-select';
 import styled from '@emotion/styled';
+import sortBy from 'lodash/sortBy';
 import {PlatformIcon} from 'platformicons';
 
 import {Field} from 'sentry/components/forms/type';
@@ -72,7 +73,7 @@ export const fields: Record<string, Field> = {
     name: 'platform',
     type: 'select',
     label: t('Platform'),
-    options: platforms.map(({id, name}) => ({
+    options: sortBy(platforms, 'id').map(({id, name}) => ({
       value: id,
       label: (
         <PlatformWrapper key={id}>
