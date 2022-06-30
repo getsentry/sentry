@@ -386,31 +386,47 @@ def release_alert(request):
             "group": group,
             "event": event,
             "timezone": pytz.timezone("Europe/Vienna"),
+            # http://testserver/organizations/example/issues/<issue-id>/?referrer=alert_email
+            #       &alert_type=email&alert_timestamp=<ts>&alert_rule_id=1
             "link": get_group_settings_link(group, None, get_rules([rule], org, project), 1337),
             "interfaces": interfaces,
             "tags": event.tags,
             "project": project,
-            "last_release": {
-                "version": "13.9.2",
+            "release": {
+                "version": "13.9.1",
             },
-            "last_release_link": f"http://testserver/organizations/{org.slug}/releases/13.9.2/?project={project.id}",
             "environment": "production",
             "commits": [
                 {
-                    "subject": "fix bug really",
-                    "author": {"name": "committer1", "email": "test@example.com"},
-                    "key": "sha8910",
-                },
-                {
-                    "subject": "fix bug",
-                    "author": {"name": "committer2", "email": "test2@example.com"},
-                    "key": "sha567",
-                },
-                {
-                    "subject": "first commit",
-                    "author": {"name": "committer1", "email": "test@example.com"},
-                    "key": "sha1234",
-                },
+                    "repository": {
+                        "status": "active",
+                        "name": "Example Repo",
+                        "url": "https://github.com/example/example",
+                        "dateCreated": "2018-02-28T23:39:22.402Z",
+                        "provider": {"id": "github", "name": "GitHub"},
+                        "id": "1",
+                    },
+                    "score": 2,
+                    "subject": "feat: Do something to raven/base.py",
+                    "message": "feat: Do something to raven/base.py\naptent vivamus vehicula tempus volutpat hac tortor",
+                    "id": "1b17483ffc4a10609e7921ee21a8567bfe0ed006",
+                    "shortId": "1b17483",
+                    "author": {
+                        "username": "dcramer@gmail.com",
+                        "isManaged": False,
+                        "lastActive": "2018-03-01T18:25:28.149Z",
+                        "id": "1",
+                        "isActive": True,
+                        "has2fa": False,
+                        "name": "dcramer@gmail.com",
+                        "avatarUrl": "https://secure.gravatar.com/avatar/51567a4f786cd8a2c41c513b592de9f9?s=32&d=mm",
+                        "dateJoined": "2018-02-27T22:04:32.847Z",
+                        "emails": [{"is_verified": False, "id": "1", "email": "dcramer@gmail.com"}],
+                        "avatar": {"avatarUuid": None, "avatarType": "letter_avatar"},
+                        "lastLogin": "2018-02-27T22:04:32.847Z",
+                        "email": "dcramer@gmail.com",
+                    },
+                }
             ],
         },
     ).render(request)
