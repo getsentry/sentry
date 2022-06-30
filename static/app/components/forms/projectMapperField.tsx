@@ -12,6 +12,7 @@ import {ProjectMapperType} from 'sentry/components/forms/type';
 import IdBadge from 'sentry/components/idBadge';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {PanelAlert} from 'sentry/components/panels';
+import Tooltip from 'sentry/components/tooltip';
 import {
   IconAdd,
   IconArrow,
@@ -47,7 +48,10 @@ const getIcon = (iconType: string) => {
 };
 
 export class RenderField extends Component<RenderProps, State> {
-  state: State = {selectedSentryProjectId: null, selectedMappedValue: null};
+  state: State = {
+    selectedSentryProjectId: null,
+    selectedMappedValue: null,
+  };
 
   render() {
     const {
@@ -56,12 +60,19 @@ export class RenderField extends Component<RenderProps, State> {
       value: incomingValues,
       sentryProjects,
       mappedDropdown: {items: mappedDropdownItems, placeholder: mappedValuePlaceholder},
-      nextButton: {text: nextButtonText, description: nextDescription, allowedDomain},
+      nextButton: {
+        text: nextButtonText,
+        description: nextDescription,
+        allowedDomain,
+        disabledTooltipText,
+        requiresMapping,
+      },
       iconType,
       model,
       id: formElementId,
       error,
     } = this.props;
+
     const existingValues: Array<[number, MappedValue]> = incomingValues || [];
     const nextUrlOrArray = safeGetQsParam('next');
     let nextUrl = Array.isArray(nextUrlOrArray) ? nextUrlOrArray[0] : nextUrlOrArray;
@@ -91,6 +102,8 @@ export class RenderField extends Component<RenderProps, State> {
     const mappedItemsToShow = mappedDropdownItems.filter(
       item => !mappedValuesUsed.has(item.value)
     );
+
+    const isNextButtonDisabled = requiresMapping ? !existingValues.length : false;
 
     const handleSelectProject = ({value}: {value: number}) => {
       this.setState({selectedSentryProjectId: value});
@@ -228,6 +241,19 @@ export class RenderField extends Component<RenderProps, State> {
       );
     };
 
+    const NextButton = ({href}: {href: string}) => (
+      <Button
+        type="button"
+        size="small"
+        priority="primary"
+        icon={<IconOpen size="xs" />}
+        disabled={isNextButtonDisabled}
+        href={href}
+      >
+        {nextButtonText}
+      </Button>
+    );
+
     return (
       <Fragment>
         {existingValues.map(renderItem)}
@@ -279,15 +305,13 @@ export class RenderField extends Component<RenderProps, State> {
           <NextButtonPanelAlert type="muted">
             <NextButtonWrapper>
               {nextDescription ?? ''}
-              <Button
-                type="button"
-                size="small"
-                priority="primary"
-                icon={<IconOpen size="xs" color="white" />}
-                href={nextUrl}
-              >
-                {nextButtonText}
-              </Button>
+              {disabledTooltipText ? (
+                <Tooltip title={disabledTooltipText} disabled={!isNextButtonDisabled}>
+                  {<NextButton href={nextUrl} />}
+                </Tooltip>
+              ) : (
+                <NextButton href={nextUrl} />
+              )}
             </NextButtonWrapper>
           </NextButtonPanelAlert>
         )}
