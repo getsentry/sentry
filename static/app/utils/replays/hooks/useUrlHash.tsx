@@ -1,29 +1,7 @@
 import {useCallback} from 'react';
+import {browserHistory} from 'react-router';
 
-type State = Record<string, string>;
-
-function parse(input: string) {
-  try {
-    const clean = input.replace(/^\#/, '');
-    const decoded = Object.fromEntries(
-      clean
-        .split(';')
-        .map(kv => kv.split('='))
-        .map(([key, value]) => [decodeURIComponent(key), decodeURIComponent(value)])
-    );
-    return decoded as State;
-  } catch (e) {
-    return {};
-  }
-}
-
-function serialize(state: State) {
-  const encoded = Object.entries(state)
-    .filter(([key, value]) => key !== '' && value !== '')
-    .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
-    .join(';');
-  return encoded;
-}
+import {useRouteContext} from 'sentry/utils/useRouteContext';
 
 function useUrlHash(
   defaultKey: string,
@@ -41,17 +19,27 @@ function useUrlHash(): {
   setHashValue: (key: string, value: string) => void;
 };
 function useUrlHash(defaultKey?: string, defaultValue?: string) {
+  const {location} = useRouteContext();
+
   const getHashValue = useCallback(
-    (key: string) => parse(window.location.hash)[key] || defaultValue,
-    [defaultValue]
+    (key: string) => {
+      return location.query[key] || defaultValue;
+    },
+    [location, defaultValue]
   );
 
-  const setHashValue = useCallback((key: string, value: string) => {
-    window.location.hash = serialize({
-      ...parse(window.location.hash),
-      [key]: value,
-    });
-  }, []);
+  const setHashValue = useCallback(
+    (key: string, value: string) => {
+      browserHistory.push({
+        ...location,
+        query: {
+          ...location.query,
+          [key]: value,
+        },
+      });
+    },
+    [location]
+  );
 
   const getWithDefault = useCallback(
     () => getHashValue(defaultKey || ''),
