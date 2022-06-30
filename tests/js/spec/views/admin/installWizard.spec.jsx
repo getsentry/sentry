@@ -1,10 +1,10 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
 import InstallWizard from 'sentry/views/admin/installWizard';
 
 describe('InstallWizard', function () {
-  beforeAll(function () {
+  beforeEach(function () {
     ConfigStore.set('version', '1.33.7');
     MockApiClient.addMockResponse({
       url: '/internal/options/?query=is:required',
@@ -12,11 +12,14 @@ describe('InstallWizard', function () {
     });
   });
 
-  beforeEach(function () {});
+  afterEach(function () {
+    ConfigStore.teardown();
+    MockApiClient.clearMockResponses();
+  });
 
   it('renders', function () {
-    const wrapper = mountWithTheme(<InstallWizard onConfigured={jest.fn()} />);
-    expect(wrapper).toSnapshot();
+    const wrapper = render(<InstallWizard onConfigured={jest.fn()} />);
+    expect(wrapper.container).toSnapshot();
   });
 
   it('has no option selected when beacon.anonymous is unset', function () {
@@ -36,15 +39,17 @@ describe('InstallWizard', function () {
         },
       }),
     });
-    const wrapper = mountWithTheme(<InstallWizard onConfigured={jest.fn()} />);
-
+    render(<InstallWizard onConfigured={jest.fn()} />);
     expect(
-      wrapper.find('input[name="beacon.anonymous"][value="false"]').prop('checked')
-    ).toBe(false);
-
+      screen.getByRole('radio', {
+        name: 'Please keep my usage information anonymous',
+      })
+    ).not.toBeChecked();
     expect(
-      wrapper.find('input[name="beacon.anonymous"][value="true"]').prop('checked')
-    ).toBe(false);
+      screen.getByRole('radio', {
+        name: 'Send my contact information along with usage statistics',
+      })
+    ).not.toBeChecked();
   });
 
   it('has no option selected even when beacon.anonymous is set', function () {
@@ -64,14 +69,16 @@ describe('InstallWizard', function () {
         },
       }),
     });
-    const wrapper = mountWithTheme(<InstallWizard onConfigured={jest.fn()} />);
-
+    render(<InstallWizard onConfigured={jest.fn()} />);
     expect(
-      wrapper.find('input[name="beacon.anonymous"][value="false"]').prop('checked')
-    ).toBe(false);
-
+      screen.getByRole('radio', {
+        name: 'Please keep my usage information anonymous',
+      })
+    ).not.toBeChecked();
     expect(
-      wrapper.find('input[name="beacon.anonymous"][value="true"]').prop('checked')
-    ).toBe(false);
+      screen.getByRole('radio', {
+        name: 'Send my contact information along with usage statistics',
+      })
+    ).not.toBeChecked();
   });
 });
