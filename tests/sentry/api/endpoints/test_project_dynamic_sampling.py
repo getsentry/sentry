@@ -5,7 +5,6 @@ from django.urls import reverse
 from django.utils import timezone
 from freezegun import freeze_time
 
-from sentry.api.endpoints.project_dynamic_sampling import SAMPLE_FACTOR
 from sentry.models import Project
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import Feature
@@ -403,7 +402,6 @@ class ProjectDynamicSamplingTest(APITestCase):
                 use_aggregate_conditions=True,
                 transform_alias_to_input_format=True,
                 functions_acl=["random_number"],
-                sample=SAMPLE_FACTOR * requested_sample_size,
                 referrer="dynamic-sampling.distribution.fetch-parent-transactions",
             ),
             mock.call(

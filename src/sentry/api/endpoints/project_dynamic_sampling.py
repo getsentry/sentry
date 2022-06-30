@@ -11,9 +11,6 @@ from sentry.models import Project
 from sentry.snuba import discover
 from sentry.utils.dates import parse_stats_period
 
-# Determines by a factor of how much, we sample the random root transactions query
-SAMPLE_FACTOR = 10
-
 
 def percentile_fn(data, percentile):
     """
@@ -116,7 +113,6 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
             use_aggregate_conditions=True,
             transform_alias_to_input_format=True,
             functions_acl=["random_number"],
-            sample=requested_sample_size * SAMPLE_FACTOR,
             referrer="dynamic-sampling.distribution.fetch-parent-transactions",
         )["data"]
 
