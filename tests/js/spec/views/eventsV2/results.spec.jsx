@@ -1669,7 +1669,7 @@ describe('Results', function () {
     await tick();
     wrapper.update();
     expect(wrapper.find('Alert').find('Message').text()).toEqual(
-      "You've navigated to this page from an unsampled query. The results displayed here only show sampled data, which may differ from the original unsampled query."
+      "You've navigated to this page from a performance metric widget generated from processed events. The results here only show sampled events."
     );
   });
 });
