@@ -1,11 +1,11 @@
 import {Client} from 'sentry/api';
+import {joinSearch, parseSearch, Token} from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {Group, Organization, PageFilters} from 'sentry/types';
 import {getIssueFieldRenderer} from 'sentry/utils/dashboards/issueFieldRenderers';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
-import {queryToObj} from 'sentry/utils/stream';
 import {
   DISCOVER_EXCLUSION_FIELDS,
   getSortLabel,
@@ -136,24 +136,12 @@ export function transformIssuesResponseToTable(
 
       // Discover Url properties
       const query = widgetQuery.conditions;
-      const queryTerms: string[] = [];
-      if (typeof query === 'string') {
-        const queryObj = queryToObj(query);
-        for (const queryTag in queryObj) {
-          if (!DISCOVER_EXCLUSION_FIELDS.includes(queryTag)) {
-            const queryVal = queryObj[queryTag].includes(' ')
-              ? `"${queryObj[queryTag]}"`
-              : queryObj[queryTag];
-            queryTerms.push(`${queryTag}:${queryVal}`);
-          }
-        }
+      const parsedResult = parseSearch(query);
+      const filteredTerms = parsedResult?.filter(
+        p => !(p.type === Token.Filter && DISCOVER_EXCLUSION_FIELDS.includes(p.key.text))
+      );
 
-        if (queryObj.__text) {
-          queryTerms.push(queryObj.__text);
-        }
-      }
-      transformedTableResult.discoverSearchQuery =
-        (queryTerms.length ? ' ' : '') + queryTerms.join(' ');
+      transformedTableResult.discoverSearchQuery = joinSearch(filteredTerms, true);
       transformedTableResult.projectId = project.id;
 
       const {period, start, end} = pageFilters.datetime || {};

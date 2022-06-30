@@ -16,6 +16,7 @@ import {getRelativeSummary} from 'sentry/components/organizations/timeRangeSelec
 import {PanelItem} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
 import ProgressBar from 'sentry/components/progressBar';
+import {joinSearch, parseSearch, Token} from 'sentry/components/searchSyntax/parser';
 import GroupChart from 'sentry/components/stream/groupChart';
 import GroupCheckBox from 'sentry/components/stream/groupCheckBox';
 import TimeSince from 'sentry/components/timeSince';
@@ -37,7 +38,6 @@ import {defined, percent, valueIsEqual} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {callIfFunction} from 'sentry/utils/callIfFunction';
 import EventView from 'sentry/utils/discover/eventView';
-import {queryToObj} from 'sentry/utils/stream';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
@@ -225,27 +225,15 @@ class StreamGroup extends Component<Props, State> {
     // when there is no discover feature open events page
     const hasDiscoverQuery = organization.features.includes('discover-basic');
 
-    const queryTerms: string[] = [];
-
-    if (isFiltered && typeof query === 'string') {
-      const queryObj = queryToObj(query);
-      for (const queryTag in queryObj) {
-        if (!DISCOVER_EXCLUSION_FIELDS.includes(queryTag)) {
-          const queryVal = queryObj[queryTag].includes(' ')
-            ? `"${queryObj[queryTag]}"`
-            : queryObj[queryTag];
-          queryTerms.push(`${queryTag}:${queryVal}`);
-        }
-      }
-
-      if (queryObj.__text) {
-        queryTerms.push(queryObj.__text);
-      }
-    }
+    const parsedResult = parseSearch(
+      isFiltered && typeof query === 'string' ? query : ''
+    );
+    const filteredTerms = parsedResult?.filter(
+      p => !(p.type === Token.Filter && DISCOVER_EXCLUSION_FIELDS.includes(p.key.text))
+    );
+    const filteredQuery = joinSearch(filteredTerms, true);
 
     const commonQuery = {projects: [Number(data.project.id)]};
-
-    const searchQuery = (queryTerms.length ? ' ' : '') + queryTerms.join(' ');
 
     if (hasDiscoverQuery) {
       const {period, start, end, utc} = customStatsPeriod ?? (selection.datetime || {});
@@ -256,7 +244,7 @@ class StreamGroup extends Component<Props, State> {
         name: data.title || data.type,
         fields: ['title', 'release', 'environment', 'user', 'timestamp'],
         orderby: '-timestamp',
-        query: `issue.id:${data.id}${searchQuery}`,
+        query: `issue.id:${data.id}${filteredQuery}`,
         version: 2,
       };
 
@@ -278,7 +266,7 @@ class StreamGroup extends Component<Props, State> {
       pathname: `/organizations/${organization.slug}/issues/${data.id}/events/`,
       query: {
         ...commonQuery,
-        query: searchQuery,
+        query: filteredQuery,
       },
     };
   }

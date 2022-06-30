@@ -818,3 +818,24 @@ export function parseSearch(query: string): ParseResult | null {
 
   return null;
 }
+
+/**
+ * Join a parsed query array into a string. Should handle null cases to chain
+ * easily with parseSearch. Option to add a leading space when applicable to
+ * combine with other strings easily.
+ */
+export function joinSearch(
+  parsedTerms: ParseResult | null | undefined,
+  leadingSpace?: boolean
+): string {
+  if (!parsedTerms || !parsedTerms.length) {
+    return '';
+  }
+
+  return (
+    (leadingSpace ? ' ' : '') +
+    (parsedTerms.length > 1
+      ? parsedTerms.map(p => p.text).reduce((a, b) => a + b)
+      : parsedTerms[0].text)
+  );
+}
