@@ -1,4 +1,5 @@
-import platforms from 'integration-docs-platforms';
+import integrationDocsPlatforms from 'integration-docs-platforms';
+import sortBy from 'lodash/sortBy';
 
 import {t} from 'sentry/locale';
 import {PlatformIntegration} from 'sentry/types';
@@ -18,13 +19,21 @@ const otherPlatform = {
   name: t('Other'),
 };
 
-export default ([] as PlatformIntegration[]).concat(
-  [],
-  ...[...platforms.platforms, otherPlatform].map(platform =>
-    platform.integrations
+const platformIntegrations: PlatformIntegration[] = [
+  ...integrationDocsPlatforms.platforms,
+  otherPlatform,
+]
+  .map(platform => {
+    const integrations = platform.integrations
       .map(i => ({...i, language: platform.id} as PlatformIntegration))
       // filter out any tracing platforms; as they're not meant to be used as a platform for
       // the project creation flow
-      .filter(integration => !(tracing as readonly string[]).includes(integration.id))
-  )
-);
+      .filter(integration => !(tracing as readonly string[]).includes(integration.id));
+
+    return integrations;
+  })
+  .flat();
+
+const platforms = sortBy(platformIntegrations, 'id');
+
+export default platforms;
