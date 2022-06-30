@@ -1,6 +1,6 @@
 """ Classes needed to build a metrics query. Inspired by snuba_sdk.query. """
 import math
-from collections import Mapping
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Literal, Optional, Sequence, Set, Union
