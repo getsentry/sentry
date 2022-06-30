@@ -27,6 +27,7 @@ interface Props {
   pageFilters: PageFilters;
   widget: Widget;
   error?: string;
+  noDashboardsMEPProvider?: boolean;
 }
 
 export function VisualizationStep({
@@ -36,6 +37,7 @@ export function VisualizationStep({
   error,
   onChange,
   widget,
+  noDashboardsMEPProvider,
 }: Props) {
   const [debouncedWidget, setDebouncedWidget] = useState(widget);
 
@@ -111,6 +113,7 @@ export function VisualizationStep({
           currentWidgetDragging={false}
           noLazyLoad
           showStoredAlert
+          noDashboardsMEPProvider={noDashboardsMEPProvider}
         />
       </VisualizationWrapper>
     </BuildStep>

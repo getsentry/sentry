@@ -3410,5 +3410,55 @@ describe('WidgetBuilder', function () {
         });
       });
     });
+
+    describe('Custom Performance Metrics', function () {
+      beforeEach(function () {
+        eventsMock = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/events/',
+          method: 'GET',
+          statusCode: 200,
+          body: {
+            meta: {
+              fields: {'p99(measurements.total.db.calls)': 'duration'},
+              isMetricsData: false,
+            },
+            data: [{'p99(measurements.total.db.calls)': 10}],
+          },
+        });
+      });
+
+      it('raises a banner alert and disableds saving widget if widget result is not metrics data', async function () {
+        const defaultWidgetQuery = {
+          name: '',
+          fields: ['p99(measurements.custom.measurement)'],
+          columns: [],
+          aggregates: ['p99(measurements.custom.measurement)'],
+          conditions: 'user:test.user@sentry.io',
+          orderby: '',
+        };
+
+        const defaultTableColumns = ['p99(measurements.custom.measurement)'];
+
+        renderTestComponent({
+          query: {
+            source: DashboardWidgetSource.DISCOVERV2,
+            defaultWidgetQuery: urlEncode(defaultWidgetQuery),
+            displayType: DisplayType.TABLE,
+            defaultTableColumns,
+          },
+          orgFeatures: [
+            ...defaultOrgFeatures,
+            'discover-frontend-use-events-endpoint',
+            'dashboards-mep',
+          ],
+        });
+
+        await waitFor(() => {
+          expect(eventsMock).toHaveBeenCalled();
+        });
+        screen.getByText('You have inputs that are incompatible with');
+        expect(screen.getByText('Add Widget').closest('button')).toBeDisabled();
+      });
+    });
   });
 });

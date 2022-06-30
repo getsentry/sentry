@@ -1,4 +1,4 @@
-import {Component} from 'react';
+import React, {Component} from 'react';
 import LazyLoad from 'react-lazyload';
 import {withRouter, WithRouterProps} from 'react-router';
 import {useSortable} from '@dnd-kit/sortable';
@@ -53,6 +53,7 @@ type Props = WithRouterProps & {
   index?: string;
   isMobile?: boolean;
   isPreview?: boolean;
+  noDashboardsMEPProvider?: boolean;
   noLazyLoad?: boolean;
   onDelete?: () => void;
   onDuplicate?: () => void;
@@ -216,6 +217,7 @@ class WidgetCard extends Component<Props, State> {
       windowWidth,
       noLazyLoad,
       showStoredAlert,
+      noDashboardsMEPProvider,
     } = this.props;
 
     const {start, period} = selection.datetime;
@@ -247,36 +249,31 @@ class WidgetCard extends Component<Props, State> {
       widget.queries = queries;
       widget.limit = DEFAULT_RESULTS_LIMIT;
     }
+
+    function conditionalWrapWithDashboardsMEPProvider(component: React.ReactNode) {
+      if (noDashboardsMEPProvider) {
+        return component;
+      }
+      return <DashboardsMEPProvider>{component}</DashboardsMEPProvider>;
+    }
     return (
       <ErrorBoundary
         customComponent={<ErrorCard>{t('Error loading widget data')}</ErrorCard>}
       >
-        <DashboardsMEPProvider>
-          <WidgetCardPanel isDragging={false}>
-            <WidgetHeader>
-              <Tooltip
-                title={widget.title}
-                containerDisplayMode="grid"
-                showOnlyOnOverflow
-              >
-                <WidgetTitle>{widget.title}</WidgetTitle>
-              </Tooltip>
-              {this.renderContextMenu()}
-            </WidgetHeader>
-            {noLazyLoad ? (
-              <WidgetCardChartContainer
-                api={api}
-                organization={organization}
-                selection={selection}
-                widget={widget}
-                isMobile={isMobile}
-                renderErrorMessage={renderErrorMessage}
-                tableItemLimit={tableItemLimit}
-                windowWidth={windowWidth}
-                onDataFetched={this.setData}
-              />
-            ) : (
-              <LazyLoad once resize height={200}>
+        {conditionalWrapWithDashboardsMEPProvider(
+          <React.Fragment>
+            <WidgetCardPanel isDragging={false}>
+              <WidgetHeader>
+                <Tooltip
+                  title={widget.title}
+                  containerDisplayMode="grid"
+                  showOnlyOnOverflow
+                >
+                  <WidgetTitle>{widget.title}</WidgetTitle>
+                </Tooltip>
+                {this.renderContextMenu()}
+              </WidgetHeader>
+              {noLazyLoad ? (
                 <WidgetCardChartContainer
                   api={api}
                   organization={organization}
@@ -288,61 +285,78 @@ class WidgetCard extends Component<Props, State> {
                   windowWidth={windowWidth}
                   onDataFetched={this.setData}
                 />
-              </LazyLoad>
-            )}
-            {this.renderToolbar()}
-          </WidgetCardPanel>
-          <Feature organization={organization} features={['dashboards-mep']}>
-            <DashboardsMEPConsumer>
-              {({isMetricsData}) => {
-                if (
-                  isMetricsData === false &&
-                  widget.widgetType === WidgetType.DISCOVER
-                ) {
-                  if (isCustomMeasurementWidget(widget)) {
+              ) : (
+                <LazyLoad once resize height={200}>
+                  <WidgetCardChartContainer
+                    api={api}
+                    organization={organization}
+                    selection={selection}
+                    widget={widget}
+                    isMobile={isMobile}
+                    renderErrorMessage={renderErrorMessage}
+                    tableItemLimit={tableItemLimit}
+                    windowWidth={windowWidth}
+                    onDataFetched={this.setData}
+                  />
+                </LazyLoad>
+              )}
+              {this.renderToolbar()}
+            </WidgetCardPanel>
+            <Feature organization={organization} features={['dashboards-mep']}>
+              <DashboardsMEPConsumer>
+                {({isMetricsData}) => {
+                  if (
+                    isMetricsData === false &&
+                    widget.widgetType === WidgetType.DISCOVER
+                  ) {
+                    if (showStoredAlert && isCustomMeasurementWidget(widget)) {
+                      return (
+                        <StoredDataAlert showIcon type="error">
+                          {tct(
+                            'You have inputs that are incompatible with [customPerformanceMetrics: custom performance metrics]. See all compatible fields and functions [here: here]. Update your inputs or remove any custom performance metrics.',
+                            {
+                              customPerformanceMetrics: (
+                                <ExternalLink href="https://docs.sentry.io/" />
+                              ), // TODO(dashboards): Update the docs URL
+                              here: <ExternalLink href="https://docs.sentry.io/" />, // TODO(dashboards): Update the docs URL
+                            }
+                          )}
+                        </StoredDataAlert>
+                      );
+                    }
                     return (
-                      <StoredDataAlert showIcon>
-                        {tct(
-                          'You have settings in your widget that are incompatible with [customMeasurements: custom measurements]. Update your settings or remove any custom measurements from your widget.',
-                          {
-                            customMeasurements: (
-                              <ExternalLink href="https://docs.sentry.io/" />
-                            ), // TODO(dashboards): Update the docs URL
-                          }
-                        )}
-                      </StoredDataAlert>
+                      showStoredAlert && (
+                        <StoredDataAlert showIcon>
+                          {tct(
+                            "Your selection is only applicable to [storedData: stored event data]. We've automatically adjusted your results.",
+                            {
+                              storedData: <ExternalLink href="https://docs.sentry.io/" />, // TODO(dashboards): Update the docs URL
+                            }
+                          )}
+                        </StoredDataAlert>
+                      )
                     );
                   }
-                  return (
-                    showStoredAlert && (
-                      <StoredDataAlert showIcon>
-                        {tct(
-                          "Your selection is only applicable to [storedData: stored event data]. We've automatically adjusted your results.",
-                          {
-                            storedData: <ExternalLink href="https://docs.sentry.io/" />, // TODO(dashboards): Update the docs URL
-                          }
-                        )}
-                      </StoredDataAlert>
-                    )
-                  );
-                }
-                return null;
-              }}
-            </DashboardsMEPConsumer>
-          </Feature>
-          <Feature organization={organization} features={['dashboards-releases']}>
-            {showIncompleteDataAlert && (
-              <StoredDataAlert showIcon>
-                {tct(
-                  'Releases data is only available from [date]. Data may be incomplete as a result.',
-                  {
-                    date: <DateTime date={METRICS_BACKED_SESSIONS_START_DATE} dateOnly />,
-                  }
-                )}
-              </StoredDataAlert>
-            )}
-          </Feature>
-        </DashboardsMEPProvider>
+                  return null;
+                }}
+              </DashboardsMEPConsumer>
+            </Feature>
+            <Feature organization={organization} features={['dashboards-releases']}>
+              {showIncompleteDataAlert && (
+                <StoredDataAlert showIcon>
+                  {tct(
+                    'Releases data is only available from [date]. Data may be incomplete as a result.',
+                    {
+                      date: (
+                        <DateTime date={METRICS_BACKED_SESSIONS_START_DATE} dateOnly />
+                      ),
+                    }
+                  )}
+                </StoredDataAlert>
+              )}
+            </Feature>
+          </React.Fragment>
+        )}
       </ErrorBoundary>
     );
   }
