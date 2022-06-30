@@ -44,7 +44,7 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
         return {
             "min": min(data, default=None),
             "max": max(data, default=None),
-            "mean": sum(data) / len(data) if len(data) > 0 else None,
+            "avg": sum(data) / len(data) if len(data) > 0 else None,
             "p50": percentile_fn(data, 0.5),
             "p90": percentile_fn(data, 0.9),
             "p95": percentile_fn(data, 0.95),

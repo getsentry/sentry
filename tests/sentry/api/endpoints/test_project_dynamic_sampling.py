@@ -220,7 +220,7 @@ class ProjectDynamicSamplingTest(APITestCase):
                 "sample_rate_distributions": {
                     "min": 0.8096753824342516,
                     "max": 0.9609190650573167,
-                    "mean": 0.8839713299875663,
+                    "avg": 0.8839713299875663,
                     "p50": 0.9059899056468697,
                     "p90": 0.9609190650573167,
                     "p95": 0.9609190650573167,
@@ -244,7 +244,7 @@ class ProjectDynamicSamplingTest(APITestCase):
                 "sample_rate_distributions": {
                     "min": 0.8096753824342516,
                     "max": 0.9609190650573167,
-                    "mean": 0.8839713299875663,
+                    "avg": 0.8839713299875663,
                     "p50": 0.9059899056468697,
                     "p90": 0.9609190650573167,
                     "p95": 0.9609190650573167,
@@ -291,7 +291,7 @@ class ProjectDynamicSamplingTest(APITestCase):
                 "sample_rate_distributions": {
                     "min": None,
                     "max": None,
-                    "mean": None,
+                    "avg": None,
                     "p50": None,
                     "p90": None,
                     "p95": None,
