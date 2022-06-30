@@ -5,8 +5,7 @@ import styled from '@emotion/styled';
 import classNames from 'classnames';
 import {AnimatePresence} from 'framer-motion';
 
-import {AnimatedOverlay, PositionWrapper} from 'sentry/components/animatedOverlay';
-import OverlayArrow from 'sentry/components/overlayArrow';
+import {AnimatedOverlay, PositionWrapper} from 'sentry/components/overlay';
 import space from 'sentry/styles/space';
 import {ColorOrAlias} from 'sentry/utils/theme';
 import {useHoverOverlay, UseHoverOverlayProps} from 'sentry/utils/useHoverOverlay';
@@ -75,18 +74,19 @@ function Hovercard({
   const hovercardContent = isOpen && (
     <PositionWrapper zIndex={theme.zIndex.hovercard} {...overlayProps}>
       <StyledHovercard
+        showArrow
+        arrowProps={{
+          ...arrowProps,
+          size: 20,
+          background: tipColor,
+          border: tipBorderColor,
+        }}
         originPoint={arrowData}
         placement={placement}
         className={classNames('hovercard', className)}
       >
         {header ? <Header>{header}</Header> : null}
         {body ? <Body className={bodyClassName}>{body}</Body> : null}
-        <OverlayArrow
-          size={20}
-          background={tipColor}
-          border={tipBorderColor}
-          {...arrowProps}
-        />
       </StyledHovercard>
     </PositionWrapper>
   );
@@ -100,18 +100,7 @@ function Hovercard({
 }
 
 const StyledHovercard = styled(AnimatedOverlay)`
-  border-radius: ${p => p.theme.borderRadius};
-  text-align: left;
-  padding: 0;
-  line-height: 1;
-  white-space: initial;
-  color: ${p => p.theme.textColor};
-  border: 1px solid ${p => p.theme.border};
-  background: ${p => p.theme.background};
-  background-clip: padding-box;
-  box-shadow: 0 0 35px 0 rgba(67, 62, 75, 0.2);
   width: 295px;
-
   /* The hovercard may appear in different contexts, don't inherit fonts */
   font-family: ${p => p.theme.text.family};
 `;
