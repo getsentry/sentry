@@ -317,128 +317,36 @@ class ReleaseWidgetQueries extends Component<Props, State> {
     return widget;
   };
 
-  //   let responses: [MetricsApiResponse | SessionApiResponse, string, ResponseMeta][] = [];
+  afterFetchData = (data: SessionApiResponse | MetricsApiResponse) => {
+    const {widget} = this.props;
+    const {releases} = this.state;
 
-  //   try {
-  //     responses = await Promise.all(
-  //       widget.queries.map((query, index) => {
-  //         if ([DisplayType.TABLE, DisplayType.BIG_NUMBER].includes(widget.displayType)) {
-  //           return this.config.getTableRequest!(
-  //             api,
-  //             query,
-  //             organization,
-  //             selection,
-  //             this.limit,
-  //             cursor
-  //           );
-  //         }
-  //         return this.config.getSeriesRequest!(
-  //           api,
-  //           widget,
-  //           index,
-  //           organization,
-  //           selection
-  //         );
-  //       })
-  //     );
-  //   } catch (err) {
-  //     const errorMessage = err?.responseJSON?.detail || t('An unknown error occurred.');
-  //     if (!this._isMounted) {
-  //       return;
-  //     }
-  //     this.setState({errorMessage});
-  //   } finally {
-  //     if (!this._isMounted) {
-  //       return;
-  //     }
-  //   }
+    const isDescending = widget.queries[0].orderby.startsWith('-');
 
-  //   responses.forEach(([data, _textstatus, response], requestIndex) => {
-  //     if (!this._isMounted) {
-  //       return;
-  //     }
-  //     this.setState(prevState => {
-  //       if (prevState.queryFetchID !== queryFetchID) {
-  //         // invariant: a different request was initiated after this request
-  //         return prevState;
-  //       }
+    const releasesArray: string[] = [];
+    if (requiresCustomReleaseSorting(widget.queries[0])) {
+      if (releases && releases.length === 1) {
+        releasesArray.push(releases[0].version);
+      }
+      if (releases && releases.length > 1) {
+        const {releasesUsed} = getReleasesQuery(releases);
+        releasesArray.push(...releasesUsed);
 
-  //       if (releasesArray.length) {
-  //         data.groups.sort(function (group1, group2) {
-  //           const release1 = group1.by.release;
-  //           const release2 = group2.by.release;
-  //           return releasesArray.indexOf(release1) - releasesArray.indexOf(release2);
-  //         });
-  //         data.groups = data.groups.slice(0, this.limit);
-  //       }
+        if (!!!isDescending) {
+          releasesArray.reverse();
+        }
+      }
+    }
 
-  //       let tableResults: TableDataWithTitle[] | undefined;
-  //       const timeseriesResults = [...(prevState.timeseriesResults ?? [])];
-  //       if ([DisplayType.TABLE, DisplayType.BIG_NUMBER].includes(widget.displayType)) {
-  //         // Transform to fit the table format
-  //         const tableData = this.config.transformTable(
-  //           data,
-  //           widget.queries[0],
-  //           organization,
-  //           selection
-  //         ) as TableDataWithTitle; // Cast so we can add the title.
-  //         tableData.title = widget.queries[requestIndex]?.name ?? '';
-  //         tableResults = [...(prevState.tableResults ?? []), tableData];
-  //       } else {
-  //         // Transform to fit the chart format
-  //         const transformedResult = this.config.transformSeries!(
-  //           data,
-  //           widget.queries[requestIndex],
-  //           organization
-  //         );
-
-  //         // When charting timeseriesData on echarts, color association to a timeseries result
-  //         // is order sensitive, ie series at index i on the timeseries array will use color at
-  //         // index i on the color array. This means that on multi series results, we need to make
-  //         // sure that the order of series in our results do not change between fetches to avoid
-  //         // coloring inconsistencies between renders.
-  //         transformedResult.forEach((result, resultIndex) => {
-  //           timeseriesResults[requestIndex * transformedResult.length + resultIndex] =
-  //             result;
-  //         });
-  //       }
-
-  //       onDataFetched?.({timeseriesResults, tableResults});
-
-  //       if ([DisplayType.TABLE, DisplayType.BIG_NUMBER].includes(widget.displayType)) {
-  //         return {
-  //           ...prevState,
-  //           errorMessage: undefined,
-  //           tableResults,
-  //           pageLinks: response?.getResponseHeader('link') ?? undefined,
-  //         };
-  //       }
-
-  //       const rawResultsClone = cloneDeep(prevState.rawResults ?? []);
-  //       rawResultsClone[requestIndex] = data;
-
-  //       return {
-  //         ...prevState,
-  //         errorMessage: undefined,
-  //         timeseriesResults,
-  //         rawResults: rawResultsClone,
-  //         pageLinks: response?.getResponseHeader('link') ?? undefined,
-  //       };
-  //     });
-  //   });
-
-  //   this.setState(prevState => {
-  //     if (prevState.queryFetchID !== queryFetchID) {
-  //       // invariant: a different request was initiated after this request
-  //       return prevState;
-  //     }
-
-  //     return {
-  //       ...prevState,
-  //       loading: false,
-  //     };
-  //   });
-  // }
+    if (releasesArray.length) {
+      data.groups.sort(function (group1, group2) {
+        const release1 = group1.by.release;
+        const release2 = group2.by.release;
+        return releasesArray.indexOf(release1) - releasesArray.indexOf(release2);
+      });
+      data.groups = data.groups.slice(0, this.limit);
+    }
+  };
 
   render() {
     const {api, children, organization, selection, widget, cursor, onDataFetched} =
@@ -465,6 +373,8 @@ class ReleaseWidgetQueries extends Component<Props, State> {
         }
         customDidUpdateComparator={this.customDidUpdateComparator}
         preRequestWidgetTransform={this.preRequestWidgetTransform}
+        afterFetchTableData={this.afterFetchData}
+        afterFetchSeriesData={this.afterFetchData}
       >
         {({errorMessage, ...rest}) =>
           children({

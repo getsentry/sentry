@@ -236,7 +236,10 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
 
       // Overwrite the local var to work around state being stale in tests.
       transformedTableResults = [...transformedTableResults, transformedData];
-      responsePageLinks = resp?.getResponseHeader('Link');
+
+      // There is some inconsistency with the capitalization of "link" in response headers
+      responsePageLinks =
+        resp?.getResponseHeader('Link') || resp?.getResponseHeader('link');
     });
 
     if (this._isMounted && this.state.queryFetchID === queryFetchID) {
