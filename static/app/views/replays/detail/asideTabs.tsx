@@ -19,7 +19,7 @@ type Props = {
 };
 
 function renderTabContent(key: string, loadedReplay: ReplayReader) {
-  if (key === TABS.tags) {
+  if (key === 'tags') {
     return <TagPanel replay={loadedReplay} />;
   }
 
@@ -27,7 +27,7 @@ function renderTabContent(key: string, loadedReplay: ReplayReader) {
 }
 
 function AsideTabs({replay}: Props) {
-  const {getHashValue, setHashValue} = useUrlHash('t_side', TABS.breadcrumbs);
+  const {getHashValue, setHashValue} = useUrlHash('t_side', 'breadcrumbs');
   const active = getHashValue();
 
   return (

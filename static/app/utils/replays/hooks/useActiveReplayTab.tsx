@@ -1,29 +1,34 @@
+import {useCallback} from 'react';
+
+import {t} from 'sentry/locale';
 import useUrlHash from 'sentry/utils/replays/hooks/useUrlHash';
 
-export enum ReplayTabs {
-  CONSOLE = 'console',
-  NETWORK = 'network',
-  TRACE = 'trace',
-  ISSUES = 'issues',
-  TAGS = 'tags',
-  MEMORY = 'memory',
+export const ReplayTabs = {
+  console: t('Console'),
+  network: t('Network'),
+  trace: t('Trace'),
+  issues: t('Issues'),
+  tags: t('Tags'),
+  memory: t('Memory'),
+};
+
+export function isReplayTab(tab: string): tab is keyof typeof ReplayTabs {
+  return tab in ReplayTabs;
 }
 
-export function isReplayTab(tab: string): tab is ReplayTabs {
-  return tab.toUpperCase() in ReplayTabs;
-}
-
-const DEFAULT_TAB = ReplayTabs.CONSOLE;
+const DEFAULT_TAB = 'console';
 
 function useActiveReplayTab() {
   const {getHashValue, setHashValue} = useUrlHash('t_main', DEFAULT_TAB);
 
   const hashValue = getHashValue();
-  const activeTab = isReplayTab(hashValue || '') ? hashValue : DEFAULT_TAB;
 
   return {
-    activeTab,
-    setActiveTab: (value: ReplayTabs) => setHashValue(value),
+    getActiveTab: useCallback(
+      () => (isReplayTab(hashValue || '') ? hashValue : DEFAULT_TAB),
+      [hashValue]
+    ),
+    setActiveTab: (value: keyof typeof ReplayTabs) => setHashValue(value),
   };
 }
 

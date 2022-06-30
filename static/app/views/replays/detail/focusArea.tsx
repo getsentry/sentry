@@ -26,7 +26,7 @@ function getBreadcrumbsByCategory(breadcrumbs: RawCrumb[], categories: string[])
 }
 
 function FocusArea({}: Props) {
-  const {activeTab} = useActiveReplayTab();
+  const {getActiveTab} = useActiveReplayTab();
   const {currentTime, currentHoverTime, replay, setCurrentTime, setCurrentHoverTime} =
     useReplayContext();
   const organization = useOrganization();
@@ -43,7 +43,7 @@ function FocusArea({}: Props) {
 
   const event = replay.getEvent();
 
-  switch (activeTab) {
+  switch (getActiveTab()) {
     case 'console':
       const consoleMessages = getBreadcrumbsByCategory(replay?.getRawCrumbs(), [
         'console',

@@ -2,37 +2,27 @@ import {MouseEvent} from 'react';
 import styled from '@emotion/styled';
 
 import NavTabs from 'sentry/components/navTabs';
-import {t} from 'sentry/locale';
 import useActiveReplayTab, {
   ReplayTabs,
 } from 'sentry/utils/replays/hooks/useActiveReplayTab';
 
 type Props = {};
 
-const TABS = [
-  t('Console'),
-  t('Network'),
-  t('Trace'),
-  t('Issues'),
-  t('Tags'),
-  t('Memory'),
-];
-
 function FocusTabs({}: Props) {
-  const {activeTab, setActiveTab} = useActiveReplayTab();
-
+  const {getActiveTab, setActiveTab} = useActiveReplayTab();
+  const activeTab = getActiveTab();
   return (
     <NavTabs underlined>
-      {TABS.map(tab => (
-        <Tab key={tab} className={activeTab === tab.toLowerCase() ? 'active' : ''}>
+      {Object.entries(ReplayTabs).map(([tab, label]) => (
+        <Tab key={tab} className={activeTab === tab ? 'active' : ''}>
           <a
-            href={`#${tab.toLowerCase()}`}
+            href={`#${tab}`}
             onClick={(e: MouseEvent) => {
-              setActiveTab(tab.toLowerCase() as ReplayTabs);
+              setActiveTab(tab as keyof typeof ReplayTabs);
               e.preventDefault();
             }}
           >
-            {tab}
+            {label}
           </a>
         </Tab>
       ))}
