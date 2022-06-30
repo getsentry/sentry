@@ -54,9 +54,9 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
 
     def get(self, request: Request, project) -> Response:
         """
-        Generates distribution function values for a random sample of root transactions,
-        and provides the projects breakdown for these transaction when creating a dynamic sampling
-        rule for distributed traces
+        Generates distribution function values for client sample rates from a random sample of
+        root transactions, and provides the projects breakdown for these transaction when
+        creating a dynamic sampling rule for distributed traces.
         ``````````````````````````````````````````````````
 
         :pparam string organization_slug: the slug of the organization the
