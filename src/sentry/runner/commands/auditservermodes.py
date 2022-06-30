@@ -74,6 +74,11 @@ class ConsolePresentation(abc.ABC):
         return f"{value.__module__}.{value.__name__}"
 
     def print_table(self, table):
+        table = {
+            key: sorted({self.format_value(value) for value in group})
+            for (key, group) in table.items()
+        }
+
         total_size = sum(len(group) for group in table.values())
         table_header = f"{self.table_label} ({total_size})"
         print("\n" + table_header)  # noqa
@@ -88,8 +93,7 @@ class ConsolePresentation(abc.ABC):
             print(group_header)  # noqa
             print("-" * len(group_header), end="\n\n")  # noqa
 
-            values = sorted(self.format_value(value) for value in group)
-            for value in values:
+            for value in group:
                 print("  - " + value)  # noqa
             print()  # noqa
 
