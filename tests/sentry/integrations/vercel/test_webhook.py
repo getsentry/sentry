@@ -47,7 +47,7 @@ class SignatureVercelTest(APITestCase):
 
 class VercelReleasesTest(APITestCase):
     webhook_url = "/extensions/vercel/webhook/"
-    header = "ZEIT"
+    header = "VERCEL"
 
     @staticmethod
     def get_signature(message: str) -> str:
