@@ -41,16 +41,15 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
 
     @staticmethod
     def _get_sample_rates_data(data):
-        distribution_functions = {
-            "min": lambda lst: min(lst, default=None),
-            "max": lambda lst: max(lst, default=None),
-            "mean": lambda lst: sum(lst) / len(lst) if len(lst) > 0 else None,
-            "p50": lambda lst: percentile_fn(data, 0.5),
-            "p90": lambda lst: percentile_fn(data, 0.9),
-            "p95": lambda lst: percentile_fn(data, 0.95),
-            "p99": lambda lst: percentile_fn(data, 0.99),
+        return {
+            "min": min(data, default=None),
+            "max": max(data, default=None),
+            "mean": sum(data) / len(data) if len(data) > 0 else None,
+            "p50": percentile_fn(data, 0.5),
+            "p90": percentile_fn(data, 0.9),
+            "p95": percentile_fn(data, 0.95),
+            "p99": percentile_fn(data, 0.99),
         }
-        return {key: func(data) for key, func in distribution_functions.items()}
 
     def get(self, request: Request, project) -> Response:
         """
