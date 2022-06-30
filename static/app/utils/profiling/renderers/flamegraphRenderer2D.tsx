@@ -1,11 +1,17 @@
 import {mat3, vec2} from 'gl-matrix';
 
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
+import {FlamegraphSearch} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphSearch';
 import {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {Rect} from 'sentry/utils/profiling/gl/utils';
 
-import {FlamegraphSearch} from '../flamegraph/flamegraphStateProvider/flamegraphSearch';
+// Convert color component from 0-1 to 0-255 range
+function colorComponentsToRgba(color: number[]): string {
+  return `rgba(${Math.floor(color[0] * 255)}, ${Math.floor(color[1] * 255)}, ${Math.floor(
+    color[2] * 255
+  )}, ${color[3] ?? 1})`;
+}
 
 export class FlamegraphRenderer2d {
   canvas: HTMLCanvasElement | null;
@@ -81,9 +87,7 @@ export class FlamegraphRenderer2d {
 
       const colors =
         this.colorMap.get(frame.key) ?? this.theme.COLORS.FRAME_FALLBACK_COLOR;
-      const color = `rgba(${Math.floor(colors[0] * 255)}, ${Math.floor(
-        colors[1] * 255
-      )}, ${Math.floor(colors[2] * 255)}, ${colors[3] ?? 1})`;
+      const color = colorComponentsToRgba(colors);
 
       context.fillStyle = color;
       context.fillRect(
