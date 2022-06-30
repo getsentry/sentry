@@ -57,4 +57,6 @@ class ActiveReleaseIssueNotificationMessageBuilder(SlackNotificationsMessageBuil
             notification=self.notification,
             recipient=self.recipient,
             last_release=self.context.get("last_release", None),
+            last_release_link=self.context.get("last_release_link", None),
+            release_commits=self.context.get("commits", None),
         ).build()
