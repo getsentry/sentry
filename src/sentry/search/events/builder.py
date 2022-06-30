@@ -1170,7 +1170,7 @@ class QueryBuilder:
         return function in self.function_converter
 
     def parse_function(self, match: Match[str]) -> Tuple[str, Optional[str], List[str], str]:
-        """Given a FUNCTION_PATTERN match, seperate the function name, arguments
+        """Given a FUNCTION_PATTERN match, separate the function name, arguments
         and alias out
         """
         raw_function = match.group("function")

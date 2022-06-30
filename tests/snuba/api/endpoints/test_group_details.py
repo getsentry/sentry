@@ -166,7 +166,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         )
         assert response.status_code == 200
         response = self.client.put(
-            url, {"assignedTo": "user@doesntexist.com", "status": "unresolved"}, format="json"
+            url, {"assignedTo": "user@doesnotexist.com", "status": "unresolved"}, format="json"
         )
         assert response.status_code == 400
         assert response.data == {

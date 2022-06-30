@@ -184,14 +184,14 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
         response = self.do_request(
             {
                 "field": ["sum(quantity)"],
-                "groupBy": ["cattygory"],
+                "groupBy": ["category_"],
                 "statsPeriod": "1d",
                 "interval": "1d",
             }
         )
 
         assert response.status_code == 400, response.content
-        assert result_sorted(response.data) == {"detail": 'Invalid groupBy: "cattygory"'}
+        assert result_sorted(response.data) == {"detail": 'Invalid groupBy: "category_"'}
 
     def test_resolution_invalid(self):
         self.login_as(user=self.user)
