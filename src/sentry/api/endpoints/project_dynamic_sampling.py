@@ -36,8 +36,6 @@ class DynamicSamplingPermission(ProjectPermission):
 
 
 class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
-    # ToDo: add documentation
-    # ToDo: check tests for trace col added
     permission_classes = (DynamicSamplingPermission,)
 
     @staticmethod
