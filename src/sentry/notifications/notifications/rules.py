@@ -20,7 +20,7 @@ from sentry.notifications.utils import (
 )
 from sentry.notifications.utils.participants import get_send_to
 from sentry.plugins.base.structs import Notification
-from sentry.rules.conditions.active_release import latest_release
+from sentry.rules.conditions.active_release import ActiveReleaseEventCondition
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
@@ -181,7 +181,11 @@ class ActiveReleaseAlertNotification(AlertRuleNotification):
         last_release: Optional[Release] = None,
     ) -> None:
         super().__init__(notification, target_type, target_identifier)
-        self.last_release = last_release if last_release else latest_release(notification.event)
+        self.last_release = (
+            last_release
+            if last_release
+            else ActiveReleaseEventCondition.latest_release(notification.event)
+        )
 
     def get_notification_title(self, context: Mapping[str, Any] | None = None) -> str:
         from sentry.integrations.slack.message_builder.issues import build_rule_url
