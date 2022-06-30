@@ -56,13 +56,16 @@ export type GenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
     response?: ResponseMeta
   ) => void | {totalIssuesCount?: string};
   cursor?: string;
+  customDidUpdateComparator?: (prevProps: any, nextProps: any) => boolean;
   limit?: number;
+  loading?: boolean;
   onDataFetched?: ({
     tableResults,
     timeseriesResults,
     totalIssuesCount,
     pageLinks,
   }: OnDataFetchedProps) => void;
+  preRequestWidgetTransform?: (widget: Widget) => Widget;
 };
 
 type State<SeriesResponse> = {
@@ -91,13 +94,16 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
 
   componentDidMount() {
     this._isMounted = true;
-    this.fetchData();
+    if (!this.props.loading) {
+      this.fetchData();
+    }
   }
 
   componentDidUpdate(
     prevProps: GenericWidgetQueriesProps<SeriesResponse, TableResponse>
   ) {
-    const {selection, widget, cursor, organization, config} = this.props;
+    const {selection, widget, cursor, organization, config, customDidUpdateComparator} =
+      this.props;
 
     // We do not fetch data whenever the query name changes.
     // Also don't count empty fields when checking for field changes
@@ -134,12 +140,14 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
       );
 
     if (
-      widget.limit !== prevProps.widget.limit ||
-      !isEqual(widget.displayType, prevProps.widget.displayType) ||
-      !isEqual(widget.interval, prevProps.widget.interval) ||
-      !isEqual(widgetQueries, prevWidgetQueries) ||
-      !isSelectionEqual(selection, prevProps.selection) ||
-      cursor !== prevProps.cursor
+      customDidUpdateComparator
+        ? customDidUpdateComparator(prevProps, this.props)
+        : widget.limit !== prevProps.widget.limit ||
+          !isEqual(widget.displayType, prevProps.widget.displayType) ||
+          !isEqual(widget.interval, prevProps.widget.interval) ||
+          !isEqual(widgetQueries, prevWidgetQueries) ||
+          !isSelectionEqual(selection, prevProps.selection) ||
+          cursor !== prevProps.cursor
     ) {
       this.fetchData();
       return;
@@ -173,7 +181,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
 
   async fetchTableData(queryFetchID: symbol) {
     const {
-      widget,
+      widget: initialWidget,
       limit,
       config,
       api,
@@ -182,7 +190,9 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
       cursor,
       afterFetchTableData,
       onDataFetched,
+      preRequestWidgetTransform,
     } = this.props;
+    const widget = preRequestWidgetTransform?.(initialWidget) ?? initialWidget;
     const responses = await Promise.all<[TableResponse, string, ResponseMeta]>(
       widget.queries.map(query => {
         let requestLimit: number | undefined = limit ?? DEFAULT_TABLE_LIMIT;
@@ -244,14 +254,16 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
 
   async fetchSeriesData(queryFetchID: symbol) {
     const {
-      widget,
+      widget: initialWidget,
       config,
       api,
       organization,
       selection,
       afterFetchSeriesData,
       onDataFetched,
+      preRequestWidgetTransform,
     } = this.props;
+    const widget = preRequestWidgetTransform?.(initialWidget) ?? initialWidget;
     const responses = await Promise.all<SeriesResponse>(
       widget.queries.map((_query, index) => {
         return config.getSeriesRequest!(

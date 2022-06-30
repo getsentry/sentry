@@ -92,7 +92,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
     await waitFor(() =>
       expect(children).toHaveBeenLastCalledWith(
         expect.objectContaining({
-          tableResults: [],
+          tableResults: undefined,
           timeseriesResults: [
             {
               data: expect.arrayContaining([
@@ -515,7 +515,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
               title: 'sessions',
             },
           ],
-          timeseriesResults: [],
+          timeseriesResults: undefined,
         })
       )
     );
