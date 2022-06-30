@@ -38,7 +38,12 @@ const COLOR_ATTACHMENTS = Color(commonTheme.dataCategory.attachments)
 const COLOR_DROPPED = commonTheme.red300;
 const COLOR_FILTERED = commonTheme.pink100;
 
-export type CategoryOption = {yAxisMinInterval: number} & SelectValue<DataCategory>;
+export type CategoryOption = {
+  /**
+   * Scale of y-axis with no usage data.
+   */
+  yAxisMinInterval: number;
+} & SelectValue<DataCategory>;
 
 export const CHART_OPTIONS_DATACATEGORY: CategoryOption[] = [
   {
