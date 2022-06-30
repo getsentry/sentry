@@ -417,7 +417,7 @@ register("api.deprecation.brownout-duration", default="PT1M")
 #   "limit": ...
 # }
 #
-# See sentry.ratelimiers.sliding_windows for an explanation of what each of
+# See sentry.ratelimiters.sliding_windows for an explanation of what each of
 # those terms mean.
 #
 # Note that changing either window or granularity_seconds of a limit will
