@@ -6,6 +6,7 @@ import Button from 'sentry/components/button';
 import FeatureBadge from 'sentry/components/featureBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
+import List from 'sentry/components/list';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
@@ -48,7 +49,7 @@ export default function ProfilingOnboarding(props: Props) {
               )}
             </Alert>
 
-            <ProfilingSteps>
+            <ProfilingSteps symbol="colored-numeric">
               <li>
                 {t(
                   'Make sure your SDKs are upgraded to 6.0.0 (sentry-java) or 7.13.0 (sentry-cocoa).'
@@ -129,9 +130,10 @@ const StyledPageContent = styled(PageContent)`
   background-color: ${p => p.theme.background};
 `;
 
-const ProfilingSteps = styled('ol')`
+const ProfilingSteps = styled(List)`
   li {
     margin-bottom: ${space(1)};
+    position: relative;
   }
 `;
 
