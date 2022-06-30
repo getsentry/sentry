@@ -6,7 +6,7 @@ from django.http import HttpRequest
 from freezegun import freeze_time
 
 from sentry.auth.authenticators import SmsInterface
-from sentry.auth.authenticators.sms import PotentialSMSFraud
+from sentry.auth.authenticators.sms import SMSRateLimitExceeded
 from sentry.testutils import TestCase
 from sentry.utils.sms import InvalidPhoneNumber, phone_number_as_e164
 
@@ -101,7 +101,7 @@ class SmsInterfaceTest(TestCase):
 
         with freeze_time(datetime.datetime.now()):
             with self.options({"sms.twilio-account": "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"}):
-                with pytest.raises(PotentialSMSFraud):
+                with pytest.raises(SMSRateLimitExceeded):
                     for _ in range(4):
                         rv = interface.activate(request)
 

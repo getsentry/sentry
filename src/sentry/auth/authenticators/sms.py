@@ -13,7 +13,7 @@ from .base import ActivationMessageResult, AuthenticatorInterface, OtpMixin
 logger = logging.getLogger("sentry.auth")
 
 
-class PotentialSMSFraud(Exception):
+class SMSRateLimitExceeded(Exception):
     def __init__(self, phone_number, user_id, remote_ip):
         super().__init__()
         self.phone_number = phone_number
@@ -109,7 +109,7 @@ class SmsInterface(OtpMixin, AuthenticatorInterface):
             limit=3,
             window=300,
         ):
-            raise PotentialSMSFraud(phone_number, user_id, request.META.get("REMOTE_ADDR", None))
+            raise SMSRateLimitExceeded(phone_number, user_id, request.META.get("REMOTE_ADDR", None))
 
         logger.info(
             "mfa.twilio-request",

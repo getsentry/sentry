@@ -14,7 +14,7 @@ from sentry.api.invite_helper import ApiInviteHelper, remove_invite_cookie
 from sentry.api.serializers import serialize
 from sentry.app import ratelimiter
 from sentry.auth.authenticators.base import EnrollmentStatus
-from sentry.auth.authenticators.sms import PotentialSMSFraud
+from sentry.auth.authenticators.sms import SMSRateLimitExceeded
 from sentry.models import Authenticator
 from sentry.security import capture_security_activity
 
@@ -216,16 +216,16 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
                     else:
                         # Error sending text message
                         return Response(SEND_SMS_ERR, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-                except PotentialSMSFraud as e:
-                    logger.warn(
-                        "sms.potential-fraud-detected",
+                except SMSRateLimitExceeded as e:
+                    logger.warning(
+                        "auth-enroll.sms.rate-limit-exceeded",
                         extra={
                             "remote_ip": f"{e.remote_ip}",
                             "user_id": f"{e.user_id}",
                             "phone_number": f"{e.phone_number}",
                         },
                     )
-                    return Response(SEND_SMS_ERR, status=status.HTTP_400_BAD_REQUEST)
+                    return Response(SEND_SMS_ERR, status=status.HTTP_429_TOO_MANY_REQUESTS)
 
         # Attempt to validate OTP
         if "otp" in request.data and not interface.validate_otp(serializer.data["otp"]):
