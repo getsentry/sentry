@@ -1,4 +1,3 @@
-import React from 'react';
 import styled from '@emotion/styled';
 
 import RangeSlider from 'sentry/components/forms/controls/rangeSlider';
@@ -21,7 +20,7 @@ function Scrubber({className}: Props) {
   return (
     <Wrapper className={className}>
       <Meter>
-        {currentHoverTime ? <MouseTrackingValue percent={hoverPlace} /> : null}
+        {currentHoverTime && <MouseTrackingValue percent={hoverPlace} />}
         <PlaybackTimeValue percent={percentComplete} />
       </Meter>
       <RangeWrapper>
@@ -52,6 +51,21 @@ const Range = styled(RangeSlider)`
     cursor: pointer;
     opacity: 0;
     height: 100%;
+
+    &::-webkit-slider-thumb {
+      height: 0px;
+      width: 0px;
+    }
+
+    &::-moz-range-thumb {
+      height: 0px;
+      width: 0px;
+    }
+
+    &::-ms-thumb {
+      height: 0px;
+      width: 0px;
+    }
   }
 `;
 
