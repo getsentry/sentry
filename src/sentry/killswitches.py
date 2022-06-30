@@ -53,8 +53,8 @@ class KillswitchCallback:
     #: `title` will be presented in the user prompt when asked whether or not to run the callback
     title: str
 
-    def __call__(self, *args, **kwargs):
-        self.callback(*args, **kwargs)
+    def __call__(self, old: Any, new: Any) -> None:
+        self.callback(old, new)  # type: ignore
 
 
 @dataclass
