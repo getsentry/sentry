@@ -74,7 +74,7 @@ register(
         1: {
             "span_ops": {
                 "type": "spanOperations",
-                "matches": ["http", "db", "browser", "resource"],
+                "matches": ["http", "db", "browser", "resource", "ui"],
             }
         },
     },

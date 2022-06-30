@@ -403,6 +403,11 @@ class SlackReleaseIssuesMessageBuilder(SlackMessageBuilder):
 
     def build(self) -> SlackBody:
         text = build_attachment_text(self.group, self.event) or ""
+        # Shorten attchment text to end of first line or 80 characters
+        newline_index = text.index("\n") if "\n" in text else 0
+        text_split = min(newline_index, 80)
+        text = text[:text_split]
+
         project = Project.objects.get_from_cache(id=self.group.project_id)
 
         # If an event is unspecified, use the tags of the latest event (if one exists).

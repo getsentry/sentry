@@ -472,6 +472,13 @@ function buildRoutes() {
         <Route path=":ruleType/" />
       </Route>
       <Route
+        path="server-side-sampling/"
+        name={t('Server-side Sampling')}
+        component={make(
+          () => import('sentry/views/settings/project/server-side-sampling')
+        )}
+      />
+      <Route
         path="issue-grouping/"
         name={t('Issue Grouping')}
         component={make(() => import('sentry/views/settings/projectIssueGrouping'))}
@@ -1034,6 +1041,10 @@ function buildRoutes() {
         path=":eventSlug/"
         component={make(() => import('sentry/views/replays/details'))}
       />
+      <Route
+        path=":eventSlug/v2/"
+        component={make(() => import('sentry/views/replays/details_v2'))}
+      />
     </Route>
   );
 
@@ -1340,6 +1351,16 @@ function buildRoutes() {
           }}
         />
         <Route
+          path="replays/"
+          component={make(
+            () => import('sentry/views/organizationGroupDetails/groupReplays')
+          )}
+          props={{
+            currentTab: Tab.REPLAYS,
+            isEventRoute: true,
+          }}
+        />
+        <Route
           path="activity/"
           component={make(
             () => import('sentry/views/organizationGroupDetails/groupActivity')
@@ -1498,10 +1519,7 @@ function buildRoutes() {
   // me why we need the OrganizationRoot root container.
   const legacyOrganizationRootRoutes = (
     <Route component={errorHandler(OrganizationRoot)}>
-      <Route
-        path="/organizations/:orgId/teams/new/"
-        component={make(() => import('sentry/views/teamCreate'))}
-      />
+      <Redirect from="/organizations/:orgId/teams/new/" to="/settings/:orgId/teams/" />
       <Route path="/organizations/:orgId/">
         {hook('routes:organization')}
         <Redirect from="/organizations/:orgId/teams/" to="/settings/:orgId/teams/" />

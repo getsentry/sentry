@@ -80,7 +80,15 @@ function TagValueAutocomplete({
     }
 
     try {
-      const response = await fetchTagValues(api, orgSlug, tagKey, null, [projectId]);
+      const response = await fetchTagValues(
+        api,
+        orgSlug,
+        tagKey,
+        null,
+        [projectId],
+        null,
+        true
+      );
       setTagValues(response);
     } catch {
       // Do nothing. No results will be suggested
