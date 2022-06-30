@@ -1,5 +1,5 @@
 import {Client} from 'sentry/api';
-import {IconBookmark, IconGlobe, IconGraph} from 'sentry/icons';
+import {IconGraph} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
 import {uniqueId} from 'sentry/utils/guid';
@@ -31,7 +31,7 @@ export type PresetContext = {
   timeWindow?: number;
 };
 export type Preset = {
-  Icon: typeof IconGlobe | typeof IconGraph | typeof IconBookmark;
+  Icon: typeof IconGraph;
   // Will be shown on the corresponding alert type in the wizard.
   alertType: AlertType;
   description: string;
@@ -97,9 +97,9 @@ function makeTeamWarningAlert() {
 export const PRESET_AGGREGATES: Preset[] = [
   {
     id: 'p95-highest-volume',
-    title: t('Super slow transactions'),
-    description: 'Know when important transactions deviate significantly from normal',
-    Icon: IconGlobe,
+    title: t('Slow transactions'),
+    description: 'Get notified when important transactions are slower on average',
+    Icon: IconGraph,
     alertType: 'trans_duration',
     async makeContext(client, project, organization) {
       const transaction = (
@@ -122,7 +122,7 @@ export const PRESET_AGGREGATES: Preset[] = [
   {
     id: 'throughput-highest-volume',
     title: t('Throttled throughput'),
-    description: 'Know when throughput for important transactions drops near 0',
+    description: 'Send an alert when transaction throughput drops significantly',
     Icon: IconGraph,
     alertType: 'throughput',
     async makeContext(client, project, organization) {
@@ -145,9 +145,10 @@ export const PRESET_AGGREGATES: Preset[] = [
   },
   {
     id: 'apdex-highest-volume',
-    title: t('Apdex in violation'),
-    description: 'Know when Apdex scores move multiple standard deviations from normal',
-    Icon: IconBookmark,
+    title: t('Apdex Score'),
+    description:
+      'Learn when the ratio of satisfactory, tolerable, and frustrated requests drop',
+    Icon: IconGraph,
     alertType: 'apdex',
     async makeContext(client, project, organization) {
       const transaction = (
