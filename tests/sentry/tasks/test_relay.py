@@ -338,7 +338,7 @@ class TestInvalidationTask:
     ):
         tasks = []
 
-        def apply_async(args, kwargs):
+        def apply_async(args=None, kwargs=None, countdown=None):
             assert not args
             tasks.append(kwargs)
 

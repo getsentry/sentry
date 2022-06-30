@@ -15,6 +15,11 @@ type Props = RouteComponentProps<{ruleType: SamplingRuleType}, {}> & {
   project: Project;
 };
 
+/**
+ * This is will be replaced by the new Server Side Sampling UI.
+ *
+ * @deprecated
+ */
 function Index(props: Props) {
   const organization = useOrganization();
 

@@ -69,6 +69,28 @@ export function derivedMetricsToField(field: string): string {
   return METRICS_EXPRESSION_TO_FIELD[field] ?? field;
 }
 
+function getReleasesQuery(releases: Release[]): {
+  releaseQueryString: string;
+  releasesUsed: string[];
+} {
+  let releaseCondition = '';
+  const releasesArray: string[] = [];
+  releaseCondition += 'release:[' + releases[0].version;
+  releasesArray.push(releases[0].version);
+  for (let i = 1; i < releases.length; i++) {
+    releaseCondition += ',' + releases[i].version;
+    releasesArray.push(releases[i].version);
+  }
+  releaseCondition += ']';
+  if (releases.length < 10) {
+    return {releaseQueryString: releaseCondition, releasesUsed: releasesArray};
+  }
+  if (releases.length > 10 && releaseCondition.length > 1500) {
+    return getReleasesQuery(releases.slice(0, -10));
+  }
+  return {releaseQueryString: releaseCondition, releasesUsed: releasesArray};
+}
+
 /**
  * Given a list of requested fields, this function returns
  * 'aggregates' which is a list of aggregate functions that
@@ -325,13 +347,9 @@ class ReleaseWidgetQueries extends Component<Props, State> {
         releasesArray.push(releases[0].version);
       }
       if (releases && releases.length > 1) {
-        releaseCondition += 'release:[' + releases[0].version;
-        releasesArray.push(releases[0].version);
-        for (let i = 1; i < releases.length; i++) {
-          releaseCondition += ',' + releases[i].version;
-          releasesArray.push(releases[i].version);
-        }
-        releaseCondition += ']';
+        const {releaseQueryString, releasesUsed} = getReleasesQuery(releases);
+        releaseCondition += releaseQueryString;
+        releasesArray.push(...releasesUsed);
 
         if (!!!isDescending) {
           releasesArray.reverse();
