@@ -235,10 +235,12 @@ class ActiveReleaseAlertNotification(AlertRuleNotification):
                 "subject": c.message.split("\n", 1)[0] if c.message else "no subject",
                 "key": c.key,
             }
-            for c in sorted(_get_commits([release]), key=lambda x: x.order, reverse=True)
+            for c in sorted(_get_commits([release]), key=lambda x: str(x.order), reverse=True)
         ]
 
     def release_url(self, release: Release) -> str:
-        return absolute_uri(
-            f"/organizations/{release.organization.slug}/releases/{release.version}/?project={release.project_id}"
+        return str(
+            absolute_uri(
+                f"/organizations/{release.organization.slug}/releases/{release.version}/?project={release.project_id}"
+            )
         )
