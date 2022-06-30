@@ -61,8 +61,8 @@ function FocusArea({}: Props) {
         />
       );
     case 'network': {
-      // Fake the span and the Trace context
-      const nonMemorySpansEntries = {
+      // Fake the span and Trace context
+      const nonMemorySpansEntry = {
         type: EntryType.SPANS,
         data: getNetworkSpans().map(({startTimestamp, endTimestamp, ...span}) => ({
           ...span,
@@ -84,7 +84,7 @@ function FocusArea({}: Props) {
             status: 'ok',
           },
         },
-        entries: [nonMemorySpansEntries],
+        entries: [nonMemorySpansEntry],
       } as EventTransaction;
 
       return <Spans organization={organization} event={performanceEvents} />;
