@@ -20,6 +20,8 @@ NAME_MAPPING = {
 
 
 class OrganizationVitalsOverviewEndpoint(OrganizationEventsEndpointBase):
+    private = True
+
     def get(self, request: Request, organization: Organization) -> Response:
         # only can access endpint with experiment
         if not experiments.get("VitalsAlertExperiment", organization, request.user):
@@ -27,7 +29,9 @@ class OrganizationVitalsOverviewEndpoint(OrganizationEventsEndpointBase):
 
         # TODO: add caching
         # try to get all the projects for the org even though it's possible they don't have access
-        projects = Project.objects.filter(organization=organization, status=ProjectStatus.VISIBLE,)[
+        project_ids = Project.objects.filter(
+            organization=organization, status=ProjectStatus.VISIBLE
+        ).values_list("id", flat=True)[
             0:1000
         ]  # only get 1000 because let's be reasonable
 
@@ -50,7 +54,7 @@ class OrganizationVitalsOverviewEndpoint(OrganizationEventsEndpointBase):
                     "start": timezone.now() - timedelta(days=7),
                     "end": timezone.now(),
                     "organization_id": organization.id,
-                    "project_id": [p.id for p in projects],
+                    "project_id": list(project_ids),
                 },
                 referrer="api.organization-vitals",
             )
