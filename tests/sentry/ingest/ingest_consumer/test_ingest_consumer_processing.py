@@ -66,6 +66,7 @@ def test_deduplication_works(default_project, task_runner, preprocess_event):
         "event_id": event_id,
         "project": default_project,
         "start_time": start_time,
+        "has_attachments": False,
     }
 
 

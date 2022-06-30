@@ -300,6 +300,7 @@ def _load_event(
                     start_time=start_time,
                     event_id=event_id,
                     project=project,
+                    has_attachments=bool(attachments),
                 )
 
         # remember for an 1 hour that we saved this event (deduplication protection)
