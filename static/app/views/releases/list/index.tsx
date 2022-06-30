@@ -544,7 +544,6 @@ class ReleasesList extends AsyncView<Props, State> {
                   searchSource="releases"
                   query={this.getQuery()}
                   placeholder={t('Search by version, build, package, or stage')}
-                  maxSearchItems={5}
                   hasRecentSearches={false}
                   supportedTags={{
                     ...SEMVER_TAGS,
@@ -553,6 +552,7 @@ class ReleasesList extends AsyncView<Props, State> {
                       name: 'release',
                     },
                   }}
+                  maxMenuHeight={500}
                   supportedTagType={ItemType.PROPERTY}
                   onSearch={this.handleSearch}
                   onGetTagValues={this.getTagValues}

@@ -36,7 +36,6 @@ function ProjectFilters({query, relativeDateOptions, tagValueLoader, onSearch}: 
           searchSource="project_filters"
           query={query}
           placeholder={t('Search by release version, build, package, or stage')}
-          maxSearchItems={5}
           hasRecentSearches={false}
           supportedTags={{
             ...SEMVER_TAGS,
@@ -45,6 +44,7 @@ function ProjectFilters({query, relativeDateOptions, tagValueLoader, onSearch}: 
               name: 'release',
             },
           }}
+          maxMenuHeight={500}
           onSearch={onSearch}
           onGetTagValues={getTagValues}
         />
