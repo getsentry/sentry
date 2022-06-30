@@ -129,3 +129,16 @@ class KillswitchesTest(CliTestCase):
         assert mock_schedule.mock_calls == [
             mock.call(project_id="42", trigger="killswitches.relay.drop-transaction-metrics")
         ]
+
+        mock_set.reset_mock()
+        mock_schedule.reset_mock()
+
+        rv = self.invoke("push", "--yes", option, "-", input=("- project_id: null\n"))
+        assert rv.exit_code == 0, rv.output
+
+        assert mock_set.mock_calls == [
+            mock.call("relay.drop-transaction-metrics", [{"project_id": "null"}])
+        ]
+
+        # No invalidation task scheduled if everything matches:
+        assert mock_schedule.mock_calls == []
