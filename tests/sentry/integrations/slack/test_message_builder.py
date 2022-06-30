@@ -154,7 +154,7 @@ class BuildGroupAttachmentTest(TestCase):
         attachments = SlackReleaseIssuesMessageBuilder(
             group, last_release=release, last_release_link=release_link
         ).build()
-        group_link = f"http://testserver/organizations/{group.organization.slug}/issues/{group.id}/?referrer=slack"
+        group_link = f"http://testserver/organizations/{group.organization.slug}/issues/{group.id}/?referrer=slack_release"
 
         assert attachments["title"] == f"Release <{release_link}|{release.version}> has a new issue"
         assert attachments["text"] == f"<{group_link}|*{group.title}*> \nFirst line of Text"
@@ -177,7 +177,7 @@ class BuildGroupAttachmentTest(TestCase):
             release_commits=release_commits,
         ).build()
 
-        group_link = f"http://testserver/organizations/{group.organization.slug}/issues/{group.id}/?referrer=slack"
+        group_link = f"http://testserver/organizations/{group.organization.slug}/issues/{group.id}/?referrer=slack_release"
         assert attachments["title"] == f"Release <{release_link}|{release.version}> has a new issue"
 
         assert (
