@@ -6,6 +6,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import useApi from 'sentry/utils/useApi';
 
 import {Preset, PRESET_AGGREGATES, PresetContext} from './presets';
@@ -55,6 +56,10 @@ function PresetSidebarItem(props: {
         if (loading) {
           return;
         }
+        trackAdvancedAnalyticsEvent('growth.metric_alert_preset_sidebar_clicked', {
+          organization: props.organization,
+          preset: props.preset.id,
+        });
         setLoading(true);
         props.preset
           .makeContext(api, props.project, props.organization)

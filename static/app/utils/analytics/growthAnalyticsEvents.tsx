@@ -63,6 +63,9 @@ export type GrowthEventParameters = {
   'growth.demo_modal_clicked_continue': {};
   'growth.demo_modal_clicked_signup': {};
   'growth.issue_open_in_discover_btn_clicked': {};
+  'growth.metric_alert_preset_sidebar_clicked': {
+    preset: string;
+  };
   'growth.metric_alert_preset_use_template': {
     preset: string;
   };
@@ -146,6 +149,8 @@ export const growthEventMap: Record<GrowthAnalyticsKey, string | null> = {
   'growth.platformpicker_category': 'Growth: Onboarding Platform Category',
   'growth.platformpicker_search': 'Growth: Onboarding Platform Search',
   'growth.metric_alert_preset_use_template': 'Growth: Metric Alert Preset Use Template',
+  'growth.metric_alert_preset_sidebar_clicked':
+    'Growth: Metric Alert Preset Sidebar Clicked',
   'growth.onboarding_start_onboarding': 'Growth: Onboarding Start Onboarding',
   'growth.onboarding_clicked_skip': 'Growth: Onboarding Clicked Skip',
   'growth.onboarding_take_to_error': 'Growth: Onboarding Take to Error',
