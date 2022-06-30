@@ -218,7 +218,7 @@ class ActiveReleaseAlertNotification(AlertRuleNotification):
             "enhanced_privacy": enhanced_privacy,
             "last_release": self.last_release,
             "last_release_link": self.release_url(self.last_release),
-            "commits": self.get_release_commits(self.last_release),
+            "commits": self.get_release_commits(self.last_release)[:15],
             "environment": environment,
             "slack_link": get_integration_link(self.organization, "slack"),
             "has_alert_integration": has_alert_integration(self.project),
