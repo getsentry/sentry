@@ -5,7 +5,7 @@ import {
   getTagItemsFromKeys,
   removeSpace,
 } from 'sentry/components/smartSearchBar/utils';
-import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
+import {FieldKind} from 'sentry/utils/fields';
 
 describe('addSpace()', function () {
   it('should add a space when there is no trailing space', function () {
@@ -65,7 +65,7 @@ describe('getTagItemsFromKeys()', function () {
   it('gets items from tags', () => {
     const supportedTags = {
       browser: {
-        kind: FieldValueKind.FIELD,
+        kind: FieldKind.FIELD,
         key: 'browser',
         name: 'Browser',
         predefined: true,
@@ -73,7 +73,7 @@ describe('getTagItemsFromKeys()', function () {
         values: [],
       },
       device: {
-        kind: FieldValueKind.FIELD,
+        kind: FieldKind.FIELD,
         key: 'device',
         name: 'Device',
         predefined: true,
@@ -81,7 +81,7 @@ describe('getTagItemsFromKeys()', function () {
         values: [],
       },
       has: {
-        kind: FieldValueKind.TAG,
+        kind: FieldKind.TAG,
         key: 'has',
         name: 'Has',
         predefined: true,
@@ -97,19 +97,19 @@ describe('getTagItemsFromKeys()', function () {
       {
         title: 'browser',
         value: 'browser:',
-        kind: FieldValueKind.FIELD,
+        kind: FieldKind.FIELD,
         documentation: '-',
       },
       {
         title: 'device',
         value: 'device:',
-        kind: FieldValueKind.FIELD,
+        kind: FieldKind.FIELD,
         documentation: '-',
       },
       {
         title: 'has',
         value: 'has:',
-        kind: FieldValueKind.TAG,
+        kind: FieldKind.TAG,
         documentation: '-',
       },
     ]);
@@ -118,7 +118,7 @@ describe('getTagItemsFromKeys()', function () {
   it('groups tags', () => {
     const supportedTags = {
       'device.arch': {
-        kind: FieldValueKind.FIELD,
+        kind: FieldKind.FIELD,
         key: 'device.arch',
         name: 'Device Arch',
         predefined: true,
@@ -126,7 +126,7 @@ describe('getTagItemsFromKeys()', function () {
         values: [],
       },
       'device.family': {
-        kind: FieldValueKind.FIELD,
+        kind: FieldKind.FIELD,
         key: 'device.family',
         name: 'Device Family',
         predefined: true,
@@ -134,7 +134,7 @@ describe('getTagItemsFromKeys()', function () {
         values: [],
       },
       has: {
-        kind: FieldValueKind.TAG,
+        kind: FieldKind.TAG,
         key: 'has',
         name: 'Has',
         predefined: true,
@@ -150,19 +150,19 @@ describe('getTagItemsFromKeys()', function () {
       {
         title: 'device',
         value: null,
-        kind: FieldValueKind.FIELD,
+        kind: FieldKind.FIELD,
         documentation: '-',
         children: [
           {
             title: 'device.arch',
             value: 'device.arch:',
-            kind: FieldValueKind.FIELD,
+            kind: FieldKind.FIELD,
             documentation: '-',
           },
           {
             title: 'device.family',
             value: 'device.family:',
-            kind: FieldValueKind.FIELD,
+            kind: FieldKind.FIELD,
             documentation: '-',
           },
         ],
@@ -170,7 +170,7 @@ describe('getTagItemsFromKeys()', function () {
       {
         title: 'has',
         value: 'has:',
-        kind: FieldValueKind.TAG,
+        kind: FieldKind.TAG,
         documentation: '-',
       },
     ]);
@@ -179,7 +179,7 @@ describe('getTagItemsFromKeys()', function () {
   it('groups tags with single word parent', () => {
     const supportedTags = {
       device: {
-        kind: FieldValueKind.FIELD,
+        kind: FieldKind.FIELD,
         key: 'device',
         name: 'Device',
         predefined: true,
@@ -187,7 +187,7 @@ describe('getTagItemsFromKeys()', function () {
         values: [],
       },
       'device.family': {
-        kind: FieldValueKind.FIELD,
+        kind: FieldKind.FIELD,
         key: 'device.family',
         name: 'Device Family',
         predefined: true,
@@ -195,7 +195,7 @@ describe('getTagItemsFromKeys()', function () {
         values: [],
       },
       has: {
-        kind: FieldValueKind.TAG,
+        kind: FieldKind.TAG,
         key: 'has',
         name: 'Has',
         predefined: true,
@@ -211,13 +211,13 @@ describe('getTagItemsFromKeys()', function () {
       {
         title: 'device',
         value: 'device:',
-        kind: FieldValueKind.FIELD,
+        kind: FieldKind.FIELD,
         documentation: '-',
         children: [
           {
             title: 'device.family',
             value: 'device.family:',
-            kind: FieldValueKind.FIELD,
+            kind: FieldKind.FIELD,
             documentation: '-',
           },
         ],
@@ -225,7 +225,7 @@ describe('getTagItemsFromKeys()', function () {
       {
         title: 'has',
         value: 'has:',
-        kind: FieldValueKind.TAG,
+        kind: FieldKind.TAG,
         documentation: '-',
       },
     ]);

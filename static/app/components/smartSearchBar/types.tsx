@@ -1,4 +1,4 @@
-import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
+import {FieldKind} from 'sentry/utils/fields';
 
 import {Token, TokenResult} from '../searchSyntax/parser';
 
@@ -35,7 +35,7 @@ export type SearchItem = {
   desc?: string;
   documentation?: React.ReactNode;
   ignoreMaxSearchItems?: boolean;
-  kind?: FieldValueKind;
+  kind?: FieldKind;
   title?: string;
   type?: ItemType;
   /**

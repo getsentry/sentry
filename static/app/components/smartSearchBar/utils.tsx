@@ -20,7 +20,7 @@ import {t} from 'sentry/locale';
 
 import {ItemType, SearchGroup, SearchItem, Shortcut, ShortcutType} from './types';
 import {Tag} from 'sentry/types';
-import {FieldValueKind, getFieldDefinition} from 'sentry/utils/fields';
+import {FieldKind, getFieldDefinition} from 'sentry/utils/fields';
 
 export function addSpace(query = '') {
   if (query.length !== 0 && query[query.length - 1] !== ' ') {
@@ -374,14 +374,14 @@ export const getTagItemsFromKeys = (
         value: keyWithColon,
         title: key,
         documentation: definition?.desc ?? '-',
-        kind: definition?.kind ?? FieldValueKind.FIELD,
+        kind: definition?.kind ?? FieldKind.FIELD,
       };
 
       const lastGroup = groups.at(-1);
 
       const [title] = sections;
 
-      if (kind !== FieldValueKind.FUNCTION && lastGroup) {
+      if (kind !== FieldKind.FUNCTION && lastGroup) {
         if (lastGroup.children && lastGroup.title === title) {
           lastGroup.children.push(item);
           return groups;

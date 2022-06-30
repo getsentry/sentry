@@ -11,10 +11,9 @@ import {ItemType, SearchItem} from 'sentry/components/smartSearchBar/types';
 import {t} from 'sentry/locale';
 import {Organization, SavedSearch, SavedSearchType, Tag} from 'sentry/types';
 import {getFieldDoc} from 'sentry/utils/discover/fields';
+import {FieldKind, getFieldDefinition} from 'sentry/utils/fields';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
-
-import {FieldValueKind} from '../eventsV2/table/types';
 
 import {TagValueLoader} from './types';
 
@@ -93,7 +92,7 @@ class IssueListSearchBar extends Component<Props, State> {
         key,
         {
           ...supportedTags[key],
-          kind: supportedTags[key].predefined ? FieldValueKind.TAG : FieldValueKind.FIELD,
+          kind: getFieldDefinition(key)?.kind ?? FieldKind.FIELD,
         },
       ])
     );
