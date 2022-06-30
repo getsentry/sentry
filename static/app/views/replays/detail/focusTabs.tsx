@@ -10,6 +10,7 @@ type Props = {};
 const TABS = [
   t('Console'),
   t('Network'),
+  t('Network 2'),
   t('Trace'),
   t('Issues'),
   t('Tags'),

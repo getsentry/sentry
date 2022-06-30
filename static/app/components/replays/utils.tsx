@@ -27,14 +27,17 @@ export function relativeTimeInMs(timestamp: moment.MomentInput, diffMs: number):
   return moment(timestamp).diff(moment.unix(diffMs)).valueOf();
 }
 
-export function showPlayerTime(timestamp: string, relativeTime: number): string {
+export function showPlayerTime(
+  timestamp: moment.MomentInput,
+  relativeTime: number
+): string {
   return formatTime(relativeTimeInMs(timestamp, relativeTime));
 }
 
 // TODO: move into 'sentry/utils/formatters'
 export function formatTime(ms: number): string {
   if (ms <= 0 || isNaN(ms)) {
-    return '0:00';
+    return '00:00';
   }
   const hour = Math.floor(ms / HOUR);
   ms = ms % HOUR;
