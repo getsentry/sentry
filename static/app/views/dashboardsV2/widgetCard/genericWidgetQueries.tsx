@@ -37,7 +37,7 @@ export type OnDataFetchedProps = {
 export type GenericWidgetQueriesChildrenProps = {
   loading: boolean;
   errorMessage?: string;
-  pageLinks?: null | string;
+  pageLinks?: string;
   tableResults?: TableDataWithTitle[];
   timeseriesResults?: Series[];
   totalCount?: string;
@@ -196,7 +196,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
       preRequestWidgetTransform,
     } = this.props;
     const widget = preRequestWidgetTransform?.(initialWidget) ?? initialWidget;
-    const responses = await Promise.all<[TableResponse, string, ResponseMeta]>(
+    const responses = await Promise.all(
       widget.queries.map(query => {
         let requestLimit: number | undefined = limit ?? DEFAULT_TABLE_LIMIT;
         let requestCreator = config.getTableRequest;
@@ -224,7 +224,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
     );
 
     let transformedTableResults: TableDataWithTitle[] = [];
-    let responsePageLinks: string | null = null;
+    let responsePageLinks: string | undefined;
     let afterTableFetchData: OnDataFetchedProps | undefined;
     responses.forEach(([data, _textstatus, resp], i) => {
       afterTableFetchData = afterFetchTableData?.(data, resp) ?? {};
@@ -242,13 +242,13 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
 
       // There is some inconsistency with the capitalization of "link" in response headers
       responsePageLinks =
-        resp?.getResponseHeader('Link') || resp?.getResponseHeader('link');
+        (resp?.getResponseHeader('Link') || resp?.getResponseHeader('link')) ?? undefined;
     });
 
     if (this._isMounted && this.state.queryFetchID === queryFetchID) {
       onDataFetched?.({
         tableResults: transformedTableResults,
-        pageLinks: responsePageLinks ?? undefined,
+        pageLinks: responsePageLinks,
         ...afterTableFetchData,
       });
       this.setState({

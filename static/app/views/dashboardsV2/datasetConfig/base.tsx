@@ -1,6 +1,6 @@
 import trimStart from 'lodash/trimStart';
 
-import {Client} from 'sentry/api';
+import {Client, ResponseMeta} from 'sentry/api';
 import {SearchBarProps} from 'sentry/components/events/searchBar';
 import {Organization, PageFilters, SelectValue, TagCollection} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
@@ -130,7 +130,7 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     limit?: number,
     cursor?: string,
     referrer?: string
-  ) => ReturnType<Client['requestPromise']>;
+  ) => Promise<[TableResponse, string | undefined, ResponseMeta | undefined]>;
   /**
    * Generate the list of sort options for table
    * displays on the 'Sort by' step of the Widget Builder.
