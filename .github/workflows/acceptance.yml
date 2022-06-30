@@ -58,6 +58,9 @@ jobs:
           fetch-depth: '2'
 
       - uses: volta-cli/action@v1
+        with:
+          node-version: true
+          yarn-version: true
 
       # See https://github.com/actions/cache/blob/master/examples.md#node---yarn for example
       - name: Get yarn cache directory path
@@ -138,6 +141,9 @@ jobs:
         name: Checkout sentry
 
       - uses: volta-cli/action@v1
+        with:
+          node-version: true
+          yarn-version: true
 
       - name: Step configurations
         id: config

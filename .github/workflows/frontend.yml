@@ -47,6 +47,9 @@ jobs:
           private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
 
       - uses: volta-cli/action@v1
+        with:
+          node-version: true
+          yarn-version: true
 
       # See https://github.com/actions/cache/blob/master/examples.md#node---yarn for example
       - name: Get yarn cache directory path
@@ -144,6 +147,9 @@ jobs:
       - uses: actions/checkout@v2
 
       - uses: volta-cli/action@v1
+        with:
+          node-version: true
+          yarn-version: true
 
       # See https://github.com/actions/cache/blob/master/examples.md#node---yarn for example
       - name: Get yarn cache directory path

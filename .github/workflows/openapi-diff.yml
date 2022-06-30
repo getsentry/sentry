@@ -44,6 +44,9 @@ jobs:
       - name: Install/setup node
         if: steps.changes.outputs.api_docs == 'true'
         uses: volta-cli/action@v1
+        with:
+          node-version: true
+          yarn-version: true
 
       - name: Build OpenAPI Derefed JSON
         if: steps.changes.outputs.api_docs == 'true'
