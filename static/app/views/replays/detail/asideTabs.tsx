@@ -1,42 +1,42 @@
-import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import NavTabs from 'sentry/components/navTabs';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
+import useUrlHash from 'sentry/utils/replays/hooks/useUrlHash';
 import ReplayReader from 'sentry/utils/replays/replayReader';
 
 import Breadcrumbs from './breadcrumbs';
 import TagPanel from './tagPanel';
 
+const TABS = {
+  breadcrumbs: t('Breadcrumbs'),
+  tags: t('Tags'),
+};
+
 type Props = {
   replay: ReplayReader | null;
 };
 
-const TABS = [t('Breadcrumbs'), t('Tags')];
-
 function renderTabContent(key: string, loadedReplay: ReplayReader) {
-  switch (key) {
-    case 'breadcrumbs':
-      return <Breadcrumbs />;
-    case 'tags':
-      return <TagPanel replay={loadedReplay} />;
-    default:
-      throw new Error('Sidebar tab not found');
+  if (key === TABS.tags) {
+    return <TagPanel replay={loadedReplay} />;
   }
+
+  return <Breadcrumbs />;
 }
 
 function AsideTabs({replay}: Props) {
-  const [active, setActive] = useState<string>(TABS[0].toLowerCase());
+  const {getHashValue, setHashValue} = useUrlHash('t_side', TABS.breadcrumbs);
+  const active = getHashValue();
 
   return (
     <Container>
       <NavTabs underlined>
-        {TABS.map(tab => {
-          const key = tab.toLowerCase();
+        {Object.entries(TABS).map(([tab, label]) => {
           return (
-            <li key={key} className={active === key ? 'active' : ''}>
-              <a onClick={() => setActive(key)}>{tab}</a>
+            <li key={tab} className={active === tab ? 'active' : ''}>
+              <a onClick={() => setHashValue(tab)}>{label}</a>
             </li>
           );
         })}
