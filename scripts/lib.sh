@@ -116,13 +116,6 @@ install-py-dev() {
     # Webpacked assets are only necessary for devserver (which does it lazily anyways)
     # and acceptance tests, which webpack automatically if run.
     SENTRY_LIGHT_BUILD=1 pip install -e '.[dev]'
-    patch-selenium
-}
-
-patch-selenium() {
-    # XXX: getsentry repo calls this!
-    # This hack is until we can upgrade to a newer version of Selenium
-    python -S -m tools.patch_selenium
 }
 
 setup-git-config() {
@@ -205,6 +198,8 @@ create-user() {
 build-platform-assets() {
     echo "--> Building platform assets"
     echo "from sentry.utils.integrationdocs import sync_docs; sync_docs(quiet=True)" | sentry exec
+    # make sure this didn't silently do nothing
+    test -f src/sentry/integration-docs/android.json
 }
 
 bootstrap() {

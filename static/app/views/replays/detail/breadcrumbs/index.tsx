@@ -79,7 +79,7 @@ function Breadcrumbs({}: Props) {
         // XXX: Kind of hacky, but mouseLeave does not fire if you move from a
         // crumb to a tooltip
         clearAllHighlights();
-        highlight({nodeId: item.data.nodeId});
+        highlight({nodeId: item.data.nodeId, annotation: item.data.label});
       }
     },
     [setCurrentHoverTime, startTimestamp, highlight, clearAllHighlights]
@@ -108,7 +108,6 @@ function Breadcrumbs({}: Props) {
   return (
     <Panel>
       <PanelHeader>{t('Breadcrumbs')}</PanelHeader>
-
       <PanelBody ref={crumbListContainerRef}>
         {!isLoaded && <CrumbPlaceholder number={4} />}
         {isLoaded &&
@@ -129,21 +128,10 @@ function Breadcrumbs({}: Props) {
   );
 }
 
-// FYI: Since the Replay Player has dynamic height based
-// on the width of the window,
-// height: 0; will helps us to reset the height
-// min-height: 100%; will helps us to grow at the same height of Player
 const Panel = styled(BasePanel)`
   width: 100%;
-  display: grid;
-  grid-template-rows: auto 1fr;
-  height: 0;
-  min-height: 100%;
-  @media only screen and (max-width: ${p => p.theme.breakpoints.large}) {
-    height: fit-content;
-    max-height: 400px;
-    margin-top: ${space(2)};
-  }
+  height: 100%;
+  overflow: hidden;
 `;
 
 const PanelHeader = styled(BasePanelHeader)`
@@ -157,6 +145,7 @@ const PanelHeader = styled(BasePanelHeader)`
 
 const PanelBody = styled(BasePanelBody)`
   overflow-y: auto;
+  max-height: calc(100% - 34px);
 `;
 
 const PlaceholderMargin = styled(Placeholder)`

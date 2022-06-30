@@ -1,16 +1,17 @@
 import logging
 from copy import deepcopy
+from dataclasses import replace
 from datetime import datetime, timedelta
 from typing import Any, Dict, Mapping, Optional, Union
 
 from django.db import transaction
 from django.db.models.signals import post_save
 from django.utils import timezone
-from snuba_sdk.legacy import json_to_snql
+from snuba_sdk import Column, Condition, Limit, Op
 
 from sentry import analytics, audit_log, features, quotas
 from sentry.auth.access import SystemAccess
-from sentry.constants import SentryAppInstallationStatus
+from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS, SentryAppInstallationStatus
 from sentry.incidents import tasks
 from sentry.incidents.models import (
     AlertRule,
@@ -33,13 +34,10 @@ from sentry.incidents.models import (
     TriggerStatus,
 )
 from sentry.models import Integration, PagerDutyService, Project, SentryApp
+from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.fields import resolve_field
-from sentry.search.events.filter import get_filter
 from sentry.shared_integrations.exceptions import DuplicateDisplayNameError
-from sentry.snuba.entity_subscription import (
-    ALERT_BLOCKED_FIELDS,
-    get_entity_subscription_for_dataset,
-)
+from sentry.snuba.entity_subscription import EntitySubscription, get_entity_subscription_for_dataset
 from sentry.snuba.models import QueryDatasets
 from sentry.snuba.subscriptions import (
     bulk_create_snuba_subscriptions,
@@ -49,9 +47,10 @@ from sentry.snuba.subscriptions import (
     create_snuba_query,
     update_snuba_query,
 )
-from sentry.utils import json, metrics
+from sentry.snuba.tasks import build_query_builder
+from sentry.utils import metrics
 from sentry.utils.audit import create_audit_entry_from_user
-from sentry.utils.snuba import is_measurement, raw_snql_query
+from sentry.utils.snuba import is_measurement
 
 # We can return an incident as "windowed" which returns a range of points around the start of the incident
 # It attempts to center the start of the incident, only showing earlier data if there isn't enough time
@@ -283,42 +282,42 @@ def delete_comment(activity):
     return activity.delete()
 
 
-def build_incident_query_params(
-    incident, entity_subscription, start=None, end=None, windowed_stats=False
-):
-    params = {}
-    params["start"], params["end"] = calculate_incident_time_range(
-        incident, start, end, windowed_stats=windowed_stats
-    )
-
+def build_incident_query_builder(
+    incident: Incident,
+    entity_subscription: EntitySubscription,
+    start: Optional[datetime] = None,
+    end: Optional[datetime] = None,
+    windowed_stats: bool = False,
+) -> QueryBuilder:
+    snuba_query = incident.alert_rule.snuba_query
+    start, end = calculate_incident_time_range(incident, start, end, windowed_stats=windowed_stats)
     project_ids = list(
         IncidentProject.objects.filter(incident=incident).values_list("project_id", flat=True)
     )
-    if project_ids:
-        params["project_id"] = project_ids
-
-    snuba_query = incident.alert_rule.snuba_query
-    snuba_filter = entity_subscription.build_snuba_filter(
+    query_builder = build_query_builder(
+        entity_subscription,
         snuba_query.query,
+        project_ids,
         snuba_query.environment,
-        params=params,
+        params={
+            "organization_id": incident.organization_id,
+            "project_id": project_ids,
+            "start": start,
+            "end": end,
+        },
     )
-    time_conditions = [
-        [entity_subscription.time_col, ">=", snuba_filter.start],
-        [entity_subscription.time_col, "<", snuba_filter.end],
-    ]
-
-    return {
-        "dataset": snuba_query.dataset,
-        "project": project_ids,
-        "project_id": project_ids,
-        "conditions": snuba_filter.conditions + time_conditions,
-        "filter_keys": snuba_filter.filter_keys,
-        "having": [],
-        "aggregations": snuba_filter.aggregations,
-        "limit": 10000,
-        **entity_subscription.get_entity_extra_params(),
-    }
+    for i, column in enumerate(query_builder.columns):
+        if column.alias == CRASH_RATE_ALERT_AGGREGATE_ALIAS:
+            query_builder.columns[i] = replace(column, alias="count")
+    time_col = entity_subscription.time_col
+    query_builder.add_conditions(
+        [
+            Condition(Column(time_col), Op.GTE, start),
+            Condition(Column(time_col), Op.LT, end),
+        ]
+    )
+    query_builder.limit = Limit(10000)
+    return query_builder
 
 
 def calculate_incident_time_range(incident, start=None, end=None, windowed_stats=False):
@@ -373,46 +372,20 @@ def get_incident_aggregates(
         time_window=snuba_query.time_window,
         extra_fields={"org_id": incident.organization.id, "event_types": snuba_query.event_types},
     )
-
-    query_params = build_incident_query_params(
+    query_builder = build_incident_query_builder(
         incident, entity_subscription, start, end, windowed_stats
     )
-    query_params["aggregations"][0][2] = "count"
-
     try:
-        snql_query = json_to_snql(query_params, entity_subscription.entity_key.value)
-        snql_query.validate()
-    except Exception as e:
-        logger.error(
-            "incidents.get_incident_aggregates.snql.parsing.error",
-            extra={
-                "error": str(e),
-                "params": json.dumps(query_params),
-                "dataset": snuba_query.dataset,
-            },
-        )
-        metrics.incr(
-            "incidents.get_incident_aggregates.snql.parsing.error",
-            tags={"dataset": snuba_query.dataset, "entity": entity_subscription.entity_key.value},
-        )
-        raise e
-
-    try:
-        results = raw_snql_query(snql_query, referrer="incidents.get_incident_aggregates")
-    except Exception as e:
-        logger.error(
-            "incidents.get_incident_aggregates.snql.query.error",
-            extra={
-                "error": str(e),
-                "params": json.dumps(query_params),
-                "dataset": snuba_query.dataset,
-            },
-        )
+        results = query_builder.run_query(referrer="incidents.get_incident_aggregates")
+    except Exception:
         metrics.incr(
             "incidents.get_incident_aggregates.snql.query.error",
-            tags={"dataset": snuba_query.dataset, "entity": entity_subscription.entity_key.value},
+            tags={
+                "dataset": snuba_query.dataset,
+                "entity": entity_subscription.entity_key.value,
+            },
         )
-        raise e
+        raise
 
     aggregated_result = entity_subscription.aggregate_query_results(results["data"], alias="count")
     return aggregated_result[0]
@@ -497,7 +470,6 @@ def create_alert_rule(
         # Since comparison alerts make twice as many queries, run the queries less frequently.
         resolution = DEFAULT_CMP_ALERT_RULE_RESOLUTION
         comparison_delta = int(timedelta(minutes=comparison_delta).total_seconds())
-    validate_alert_rule_query(query, organization, projects)
     if dataset == QueryDatasets.SESSIONS and features.has(
         "organizations:alert-crash-free-metrics", organization, actor=user
     ):
@@ -648,9 +620,6 @@ def update_alert_rule(
     if name:
         updated_fields["name"] = name
     if query is not None:
-        validate_alert_rule_query(
-            query, alert_rule.organization, projects if projects is not None else []
-        )
         updated_query_fields["query"] = query
     if aggregate is not None:
         updated_query_fields["aggregate"] = aggregate
@@ -845,20 +814,6 @@ def delete_alert_rule(alert_rule, user=None):
     if alert_rule.id:
         # Change the incident status asynchronously, which could take awhile with many incidents due to snapshot creations.
         tasks.auto_resolve_snapshot_incidents.apply_async(kwargs={"alert_rule_id": alert_rule.id})
-
-
-def validate_alert_rule_query(query, organization, projects):
-    # TODO: We should add more validation here to reject queries that include
-    # fields that are invalid in alert rules. For now this will just make sure
-    # the query parses correctly.
-    get_filter(
-        query,
-        params={
-            "organization_id": organization.id,
-            "project_id": [p.id for p in projects],
-        },
-        parser_config_overrides={"blocked_keys": ALERT_BLOCKED_FIELDS},
-    )
 
 
 def get_excluded_projects_for_alert_rule(alert_rule):

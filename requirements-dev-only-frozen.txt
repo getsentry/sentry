@@ -6,7 +6,7 @@ certifi==2022.5.18.1
 cfgv==3.3.1
 charset-normalizer==2.0.12
 click==8.1.3
-coverage==6.3.3
+coverage[toml]==6.4.1
 dictpath==0.1.3
 distlib==0.3.4
 docker==3.7.0
@@ -49,7 +49,7 @@ pyflakes==2.4.0
 pyparsing==3.0.9
 pyrsistent==0.18.1
 pytest==6.1.0
-pytest-cov==2.11.1
+pytest-cov==3.0.0
 pytest-django==4.4.0
 pytest-rerunfailures==9.1.1
 pytest-sentry==0.1.9

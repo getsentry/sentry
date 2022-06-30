@@ -32,6 +32,8 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Group, Organization, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {getUtcDateString} from 'sentry/utils/dates';
 import {getMessage} from 'sentry/utils/events';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -73,6 +75,22 @@ class GroupHeader extends Component<Props, State> {
       this.setState({memberList: users});
     });
   }
+
+  trackAssign: React.ComponentProps<typeof AssigneeSelector>['onAssign'] = () => {
+    const {group, project, organization, location} = this.props;
+    const {alert_date, alert_rule_id, alert_type} = location.query;
+    trackAdvancedAnalyticsEvent('issue_details.action_clicked', {
+      organization,
+      project_id: parseInt(project.id, 10),
+      group_id: parseInt(group.id, 10),
+      action_type: 'assign',
+      // Alert properties track if the user came from email/slack alerts
+      alert_date:
+        typeof alert_date === 'string' ? getUtcDateString(Number(alert_date)) : undefined,
+      alert_rule_id: typeof alert_rule_id === 'string' ? alert_rule_id : undefined,
+      alert_type: typeof alert_type === 'string' ? alert_type : undefined,
+    });
+  };
 
   getDisabledTabs() {
     const {organization} = this.props;
@@ -229,12 +247,6 @@ class GroupHeader extends Component<Props, State> {
                           </Link>
                         </EventAnnotationWithSpace>
                       )}
-                      {group.annotations.map((annotation, i) => (
-                        <EventAnnotationWithSpace
-                          key={i}
-                          dangerouslySetInnerHTML={{__html: annotation}}
-                        />
-                      ))}
                     </Fragment>
                   }
                 />
@@ -273,6 +285,7 @@ class GroupHeader extends Component<Props, State> {
                     id={group.id}
                     memberList={memberList}
                     disabled={disableActions}
+                    onAssign={this.trackAssign}
                   />
                 </div>
               </StatsWrapper>
@@ -339,6 +352,7 @@ class GroupHeader extends Component<Props, State> {
                       id={group.id}
                       memberList={memberList}
                       disabled={disableActions}
+                      onAssign={this.trackAssign}
                     />
                   </div>
                 </div>

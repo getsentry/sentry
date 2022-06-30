@@ -612,7 +612,7 @@ class ParseBooleanSearchQueryTest(TestCase):
                 params={"organization_id": self.organization.id, "project_id": [self.project.id]},
             )
             assert test[1] == result.conditions, test[0]
-            assert test[2] == result.group_ids, test[0]
+            assert sorted(test[2]) == sorted(result.group_ids), test[0]
 
     def test_invalid_conditional_filters(self):
         with pytest.raises(

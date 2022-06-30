@@ -6,10 +6,7 @@ from typing import TYPE_CHECKING, Sequence
 
 import sentry_sdk
 from django.utils import timezone
-from snuba_sdk.legacy import json_to_snql
 
-from sentry import features
-from sentry.eventstore import Filter
 from sentry.models import Any, Environment, Mapping, Optional
 from sentry.snuba.dataset import EntityKey
 from sentry.snuba.entity_subscription import (
@@ -156,15 +153,6 @@ def delete_subscription_from_snuba(query_subscription_id, **kwargs):
         subscription.update(subscription_id=None)
 
 
-def build_snuba_filter(
-    entity_subscription: BaseEntitySubscription,
-    query: str,
-    environment: Optional[Environment],
-    params: Optional[Mapping[str, Any]] = None,
-) -> Filter:
-    return entity_subscription.build_snuba_filter(query, environment, params)
-
-
 def build_query_builder(
     entity_subscription: BaseEntitySubscription,
     query: str,
@@ -177,7 +165,6 @@ def build_query_builder(
 
 def _create_in_snuba(subscription: QuerySubscription) -> str:
     snuba_query = subscription.snuba_query
-    dataset = QueryDatasets(snuba_query.dataset)
     entity_subscription = get_entity_subscription_for_dataset(
         dataset=QueryDatasets(snuba_query.dataset),
         aggregate=snuba_query.aggregate,
@@ -187,61 +174,23 @@ def _create_in_snuba(subscription: QuerySubscription) -> str:
             "event_types": snuba_query.event_types,
         },
     )
-    # TODO: Once metrics work with `QueryBuilder` then use `build_snql_query` by default for all
-    # datasets
-    if (
-        features.has("organizations:metric-alert-snql", subscription.project.organization)
-        and dataset != QueryDatasets.METRICS
-    ):
-        snql_query = build_query_builder(
-            entity_subscription,
-            snuba_query.query,
-            [subscription.project_id],
-            snuba_query.environment,
-            params={
-                "organization_id": subscription.project.organization_id,
-                "project_id": [subscription.project_id],
-            },
-        ).get_snql_query()
-        body = {
-            "project_id": subscription.project_id,
-            "query": str(snql_query.query),
-            "time_window": snuba_query.time_window,
-            "resolution": snuba_query.resolution,
-            **entity_subscription.get_entity_extra_params(),
-        }
-    else:
-        snuba_filter = build_snuba_filter(
-            entity_subscription,
-            snuba_query.query,
-            snuba_query.environment,
-        )
-
-        body = {
-            "project_id": subscription.project_id,
-            "project": subscription.project_id,  # for SnQL SDK
-            "dataset": snuba_query.dataset,
-            "conditions": snuba_filter.conditions,
-            "aggregations": snuba_filter.aggregations,
-            "time_window": snuba_query.time_window,
-            "resolution": snuba_query.resolution,
-            **entity_subscription.get_entity_extra_params(),
-        }
-
-        try:
-            metrics.incr("snuba.snql.subscription.create", tags={"dataset": snuba_query.dataset})
-            snql_query = json_to_snql(body, entity_subscription.entity_key.value)
-            snql_query.validate()
-            body["query"] = str(snql_query.query)
-            body["type"] = "delegate"  # mark this as a combined subscription
-        except Exception as e:
-            logger.warning(
-                "snuba.snql.subscription.parsing.error",
-                extra={"error": str(e), "params": json.dumps(body), "dataset": snuba_query.dataset},
-            )
-            metrics.incr(
-                "snuba.snql.subscription.parsing.error", tags={"dataset": snuba_query.dataset}
-            )
+    snql_query = build_query_builder(
+        entity_subscription,
+        snuba_query.query,
+        [subscription.project_id],
+        snuba_query.environment,
+        params={
+            "organization_id": subscription.project.organization_id,
+            "project_id": [subscription.project_id],
+        },
+    ).get_snql_query()
+    body = {
+        "project_id": subscription.project_id,
+        "query": str(snql_query.query),
+        "time_window": snuba_query.time_window,
+        "resolution": snuba_query.resolution,
+        **entity_subscription.get_entity_extra_params(),
+    }
 
     response = _snuba_pool.urlopen(
         "POST",
