@@ -6,6 +6,7 @@ from django.core import mail
 from django.db import models
 
 from sentry import audit_log
+from sentry.api.base import ONE_DAY
 from sentry.api.endpoints.organization_details import (
     flag_has_changed,
     has_changed,
@@ -34,6 +35,7 @@ from sentry.models import (
     User,
 )
 from sentry.testutils import TestCase
+from sentry.utils.audit import create_system_audit_entry
 
 
 class OrganizationTest(TestCase):
@@ -434,3 +436,16 @@ class Require2fa(TestCase):
         org = self.create_organization()
         result = org.get_audit_log_data()
         assert result["flags"] == int(org.flags)
+
+    def test_send_delete_confirmation_system_audi(self):
+        org = self.create_organization(owner=self.user)
+        audit_entry = create_system_audit_entry(
+            organization=org,
+            target_object=org.id,
+            event=audit_log.get_event_id("ORG_REMOVE"),
+            data=org.get_audit_log_data(),
+        )
+        with self.tasks():
+            org.send_delete_confirmation(audit_entry, ONE_DAY)
+        assert len(mail.outbox) == 1
+        assert "User: Sentry" in mail.outbox[0].body

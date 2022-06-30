@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -104,27 +104,33 @@ const InnerContent = (
   const initialTag = decodedTagFromOptions ?? defaultTag;
 
   const [tagSelected, _changeTagSelected] = useState(initialTag);
+  const lastTag = useRef('');
 
-  const changeTagSelected = (tagKey: string) => {
-    const queryParams = normalizeDateTimeParams({
-      ...(location.query || {}),
-      tagKey,
-      [TAG_PAGE_TABLE_CURSOR]: undefined,
-    });
+  const changeTagSelected = useCallback(
+    (tagKey: string) => {
+      if (lastTag.current !== tagKey) {
+        const queryParams = normalizeDateTimeParams({
+          ...(location.query || {}),
+          tagKey,
+          [TAG_PAGE_TABLE_CURSOR]: undefined,
+        });
 
-    browserHistory.replace({
-      pathname: location.pathname,
-      query: queryParams,
-    });
-    _changeTagSelected(tagKey);
-  };
+        browserHistory.replace({
+          pathname: location.pathname,
+          query: queryParams,
+        });
+        _changeTagSelected(tagKey);
+        lastTag.current = decodeScalar(location.query.tagKey, '');
+      }
+    },
+    [location.query, location.pathname]
+  );
 
   useEffect(() => {
     if (initialTag) {
       changeTagSelected(initialTag);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialTag]);
+  }, [initialTag, changeTagSelected]);
 
   const handleSearch = (query: string) => {
     const queryParams = normalizeDateTimeParams({
