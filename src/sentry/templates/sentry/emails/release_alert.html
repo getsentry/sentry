@@ -74,7 +74,7 @@
             <tr>
               <td style="padding:0;width:32px;">{% email_avatar commit.author.name commit.author.email 32 %}</td>
               <td>
-                <h5 class="truncate">{{commit.author.name}} made a commit in release <a href="{{ last_release_link }}">{{ last_release.version }}</a>.</h5>
+                <h5 class="truncate">You made a commit in release {{ release.version }}</h5>
                 <div><small>{{ commit.subject }}</small></div>
               </td>
             </tr>
