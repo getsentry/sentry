@@ -6,7 +6,7 @@ from typing import Any, Iterable, Mapping, MutableMapping, Optional, Sequence, T
 import pytz
 
 from sentry.db.models import Model
-from sentry.models import Release, Team, User, UserOption
+from sentry.models import Release, ReleaseCommit, Team, User, UserOption
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.types import ActionTargetType, NotificationSettingTypes
 from sentry.notifications.utils import (
@@ -23,7 +23,6 @@ from sentry.plugins.base.structs import Notification
 from sentry.rules.conditions.active_release import latest_release
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import metrics
-from sentry.utils.committers import _get_commits
 from sentry.utils.http import absolute_uri
 
 logger = logging.getLogger(__name__)
@@ -229,13 +228,21 @@ class ActiveReleaseAlertNotification(AlertRuleNotification):
         if not release:
             return []
 
+        release_commits = (
+            ReleaseCommit.objects.filter(release_id=release.id)
+            .select_related("commit", "commit__author")
+            .order_by("-order")
+        )
+
         return [
             {
-                "author": c.author,
-                "subject": c.message.split("\n", 1)[0] if c.message else "no subject",
-                "key": c.key,
+                "author": rc.commit.author,
+                "subject": rc.commit.message.split("\n", 1)[0]
+                if rc.commit.message
+                else "no subject",
+                "key": rc.commit.key,
             }
-            for c in sorted(_get_commits([release]), key=lambda x: str(x.order), reverse=True)
+            for rc in release_commits
         ]
 
     def release_url(self, release: Release) -> str:
