@@ -80,7 +80,7 @@ class KillswitchesTest(CliTestCase):
             "  # the description\n"
             "DROP DATA WHERE\n"
             "  (project_id = 42 AND event_type = transaction) OR\n"
-            "  (project_id = 43)\n"
+            "  (project_id = 43 AND event_type = *)\n"
         )
 
         assert self.invoke("pull", OPTION, "-").output == PREAMBLE + (
