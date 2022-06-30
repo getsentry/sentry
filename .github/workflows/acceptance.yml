@@ -64,7 +64,7 @@ jobs:
         id: yarn-cache-dir-path
         run: echo "::set-output name=dir::$(yarn cache dir)"
 
-      - uses: actions/cache@v1 # We are explicitly using v1 due to perf reasons
+      - uses: actions/cache@v3
         with:
           path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
           key: ${{ runner.os }}-v2-yarn-${{ hashFiles('yarn.lock', 'api-docs/yarn.lock') }}
@@ -146,13 +146,13 @@ jobs:
           echo "::set-output name=webpack-path::.webpack_cache"
 
       - name: yarn cache
-        uses: actions/cache@v1 # We are explicitly using v1 due to perf reasons
+        uses: actions/cache@v3
         with:
           path: ${{ steps.config.outputs.yarn-path }}
           key: ${{ runner.os }}-v2-yarn-${{ hashFiles('yarn.lock', 'api-docs/yarn.lock') }}
 
       - name: webpack cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ${{ steps.config.outputs.webpack-path }}
           key: ${{ runner.os }}-v2-webpack-cache-${{ hashFiles('webpack.config.ts') }}
@@ -235,7 +235,7 @@ jobs:
           chartcuterie: true
 
       - name: yarn cache
-        uses: actions/cache@v1 # We are explicitly using v1 due to perf reasons
+        uses: actions/cache@v3
         with:
           path: ${{ steps.setup.outputs.yarn-cache-dir }}
           key: ${{ runner.os }}-v2-yarn-${{ hashFiles('yarn.lock', 'api-docs/yarn.lock') }}
@@ -285,7 +285,7 @@ jobs:
         id: snapshot_ref
         run: |
           random=$(( ( RANDOM % 10 )  + 1 ));
-          echo "::set-output name=ref::$([[ $random -ge 3 ]] && echo "pixelmatch" || echo "odiff")"
+          echo "::set-output name=ref::$([[ $random -ge 9 ]] && echo "pixelmatch" || echo "odiff")"
 
       - name: Diff snapshots
         id: visual-snapshots-diff-pixelmatch

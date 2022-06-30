@@ -10,7 +10,6 @@ import {isBreadcrumbTypeDefault} from 'sentry/types/breadcrumbs';
 import type {EventTransaction} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import useActiveTabFromLocation from 'sentry/utils/replays/hooks/useActiveTabFromLocation';
-import ReplayReader from 'sentry/utils/replays/replayReader';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import Console from './console';
@@ -18,9 +17,7 @@ import IssueList from './issueList';
 import MemoryChart from './memoryChart';
 import Trace from './trace';
 
-type Props = {
-  replay: ReplayReader | null;
-};
+type Props = {};
 
 function getBreadcrumbsByCategory(breadcrumbs: RawCrumb[], categories: string[]) {
   return breadcrumbs
@@ -28,9 +25,9 @@ function getBreadcrumbsByCategory(breadcrumbs: RawCrumb[], categories: string[])
     .filter(breadcrumb => categories.includes(breadcrumb.category || ''));
 }
 
-function FocusArea({replay}: Props) {
+function FocusArea({}: Props) {
   const active = useActiveTabFromLocation();
-  const {currentTime, currentHoverTime, setCurrentTime, setCurrentHoverTime} =
+  const {currentTime, currentHoverTime, replay, setCurrentTime, setCurrentHoverTime} =
     useReplayContext();
   const organization = useOrganization();
 
@@ -50,6 +47,7 @@ function FocusArea({replay}: Props) {
     case 'console':
       const consoleMessages = getBreadcrumbsByCategory(replay?.getRawCrumbs(), [
         'console',
+        'exception',
       ]);
       return (
         <Console

@@ -156,6 +156,7 @@ yarn.lock           @getsentry/owners-js-deps
 /src/sentry/api/endpoints/organization_events_facets.py         @getsentry/discover-n-dashboards
 /src/sentry/api/endpoints/organization_events_meta.py           @getsentry/discover-n-dashboards
 /src/sentry/api/endpoints/organization_events_stats.py          @getsentry/discover-n-dashboards
+/src/sentry/api/endpoints/organization_measurements_meta.py     @getsentry/discover-n-dashboards
 
 /src/sentry/discover/                                           @getsentry/discover-n-dashboards
 /tests/sentry/snuba/test_discover.py                            @getsentry/discover-n-dashboards

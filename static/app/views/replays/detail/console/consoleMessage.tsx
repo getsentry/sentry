@@ -40,6 +40,15 @@ function renderString(arg: string | number | boolean | Object) {
 export function MessageFormatter({breadcrumb}: MessageFormatterProps) {
   let logMessage = '';
 
+  if (!breadcrumb.data?.arguments) {
+    // There is a possibility that we don't have arguments as we could be receiving an exception type breadcrumb.
+    // In these cases we just need the message prop.
+
+    // There are cases in which our prop message is an array, we want to force it to become a string
+    logMessage = breadcrumb.message?.toString() || '';
+    return <AnnotatedText meta={getMeta(breadcrumb, 'message')} value={logMessage} />;
+  }
+
   // Browser's console formatter only works on the first arg
   const [message, ...args] = breadcrumb.data?.arguments;
 
@@ -103,6 +112,7 @@ export function MessageFormatter({breadcrumb}: MessageFormatterProps) {
 }
 
 interface ConsoleMessageProps extends MessageFormatterProps {
+  hasOccurred: boolean;
   isActive: boolean;
   isLast: boolean;
   startTimestamp: number;
@@ -110,6 +120,7 @@ interface ConsoleMessageProps extends MessageFormatterProps {
 function ConsoleMessage({
   breadcrumb,
   isActive = false,
+  hasOccurred,
   isLast,
   startTimestamp = 0,
 }: ConsoleMessageProps) {
@@ -127,15 +138,24 @@ function ConsoleMessage({
 
   return (
     <Fragment>
-      <Icon isLast={isLast} level={breadcrumb.level} isActive={isActive}>
+      <Icon
+        isLast={isLast}
+        level={breadcrumb.level}
+        isActive={isActive}
+        hasOccurred={hasOccurred}
+      >
         {ICONS[breadcrumb.level]}
       </Icon>
-      <Message isLast={isLast} level={breadcrumb.level}>
+      <Message isLast={isLast} level={breadcrumb.level} hasOccurred={hasOccurred}>
         <ErrorBoundary mini>
           <MessageFormatter breadcrumb={breadcrumb} />
         </ErrorBoundary>
       </Message>
-      <ConsoleTimestamp isLast={isLast} level={breadcrumb.level}>
+      <ConsoleTimestamp
+        isLast={isLast}
+        level={breadcrumb.level}
+        hasOccurred={hasOccurred}
+      >
         <Tooltip title={<DateTime date={breadcrumb.timestamp} seconds />}>
           <div
             onClick={handleOnClick}
@@ -150,16 +170,28 @@ function ConsoleMessage({
   );
 }
 
-const Common = styled('div')<{isLast: boolean; level: string}>`
+const Common = styled('div')<{
+  isLast: boolean;
+  level: string;
+  hasOccurred?: boolean;
+}>`
   background-color: ${p =>
     ['warning', 'error'].includes(p.level)
       ? p.theme.alert[p.level].backgroundLight
       : 'inherit'};
-  color: ${p =>
-    ['warning', 'error'].includes(p.level)
-      ? p.theme.alert[p.level].iconHoverColor
-      : 'inherit'};
+  color: ${({hasOccurred = true, ...p}) => {
+    if (!hasOccurred) {
+      return p.theme.gray300;
+    }
+
+    if (['warning', 'error'].includes(p.level)) {
+      return p.theme.alert[p.level].iconHoverColor;
+    }
+
+    return 'inherit';
+  }};
   ${p => (!p.isLast ? `border-bottom: 1px solid ${p.theme.innerBorder}` : '')};
+  transition: color 0.5s ease;
 `;
 
 const ConsoleTimestamp = styled(Common)<{isLast: boolean; level: string}>`

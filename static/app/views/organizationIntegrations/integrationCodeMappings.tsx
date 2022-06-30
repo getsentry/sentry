@@ -208,7 +208,7 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
                       )}
                       disabled={hasAccess}
                     >
-                      <AddButton
+                      <Button
                         data-test-id="add-mapping-button"
                         onClick={() => this.openModal()}
                         size="xsmall"
@@ -216,7 +216,7 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
                         disabled={!hasAccess}
                       >
                         {t('Add Code Mapping')}
-                      </AddButton>
+                      </Button>
                     </Tooltip>
                   </ButtonColumn>
                 )}
@@ -277,21 +277,18 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
 
 export default withProjects(withOrganization(IntegrationCodeMappings));
 
-const AddButton = styled(Button)``;
-
 const Layout = styled('div')`
   display: grid;
   grid-column-gap: ${space(1)};
   width: 100%;
   align-items: center;
-  grid-template-columns: 4.5fr 2.5fr 2.5fr 1.6fr;
+  grid-template-columns: 4.5fr 2.5fr 2.5fr max-content;
   grid-template-areas: 'name-repo input-path output-path button';
 `;
 
 const HeaderLayout = styled(Layout)`
   align-items: center;
-  margin: 0;
-  margin-left: ${space(2)};
+  margin: 0 ${space(1)} 0 ${space(2)};
 `;
 
 const ConfigPanelItem = styled(PanelItem)``;

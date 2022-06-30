@@ -265,6 +265,43 @@ describe('Dashboards > WidgetCard', function () {
     );
   });
 
+  it('disables Open in Discover when the widget contains custom measurements', async function () {
+    render(
+      <WidgetCard
+        api={api}
+        organization={organization}
+        widget={{
+          ...multipleQueryWidget,
+          displayType: DisplayType.LINE,
+          queries: [
+            {
+              ...multipleQueryWidget.queries[0],
+              fields: [],
+              columns: [],
+              aggregates: ['p99(measurements.custom.measurement)'],
+            },
+          ],
+        }}
+        selection={selection}
+        isEditing={false}
+        onDelete={() => undefined}
+        onEdit={() => undefined}
+        onDuplicate={() => undefined}
+        renderErrorMessage={() => undefined}
+        isSorting={false}
+        currentWidgetDragging={false}
+        showContextMenu
+        widgetLimitReached={false}
+      />,
+      {context: routerContext}
+    );
+
+    userEvent.click(await screen.findByLabelText('Widget actions'));
+    expect(screen.getByText('Open in Discover')).toBeInTheDocument();
+    userEvent.click(screen.getByText('Open in Discover'));
+    expect(router.push).not.toHaveBeenCalledWith();
+  });
+
   it('calls onDuplicate when Duplicate Widget is clicked', async function () {
     const mock = jest.fn();
     render(

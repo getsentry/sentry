@@ -163,7 +163,7 @@ class ActiveReleaseAlertNotification(AlertRuleNotification):
     message_builder = "ActiveReleaseIssueNotificationMessageBuilder"
     metrics_key = "release_issue_alert"
     notification_setting_type = NotificationSettingTypes.ISSUE_ALERTS
-    template_path = "sentry/emails/error"
+    template_path = "sentry/emails/release_alert"
 
     def __init__(
         self,
@@ -188,3 +188,8 @@ class ActiveReleaseAlertNotification(AlertRuleNotification):
                 title_str += f" (+{len(self.rules) - 1} other)"
 
         return title_str
+
+    def get_context(self) -> MutableMapping[str, Any]:
+        ctx = super().get_context()
+        ctx["last_release"] = self.last_release
+        return ctx

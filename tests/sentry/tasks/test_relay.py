@@ -159,6 +159,10 @@ def test_generate(
 def test_project_update_option(
     default_projectkey, default_project, emulate_transactions, redis_cache
 ):
+    # Put something in the cache, otherwise triggers/the invalidation task won't compute
+    # anything.
+    redis_cache.set_many({default_projectkey.public_key: "dummy"})
+
     # XXX: there should only be one hook triggered, regardless of debouncing
     with emulate_transactions(assert_num_callbacks=4):
         default_project.update_option(
@@ -175,18 +179,28 @@ def test_project_update_option(
             "sentry:relay_pii_config", '{"applications": {"$string": ["@creditcard:mask"]}}'
         )
 
+    # They should be recalculated.  Note that oddly enough we actually get the same rule
+    # twice.  once for the org and once for the project
     for cache_key in _cache_keys_for_project(default_project):
-        assert redis_cache.get(cache_key) is None
+        cache = redis_cache.get(cache_key)
+        assert cache["config"]["piiConfig"]["applications"] == {
+            "$string": ["@creditcard:mask", "@creditcard:mask"]
+        }
 
 
 @pytest.mark.django_db
-def test_project_delete_option(default_project, emulate_transactions, redis_cache):
+def test_project_delete_option(
+    default_projectkey, default_project, emulate_transactions, redis_cache
+):
+    # Put something in the cache, otherwise triggers/the invalidation task won't compute
+    # anything.
+    redis_cache.set_many({default_projectkey.public_key: "dummy"})
+
     # XXX: there should only be one hook triggered, regardless of debouncing
     with emulate_transactions(assert_num_callbacks=3):
         default_project.delete_option("sentry:relay_pii_config")
 
-    for cache_key in _cache_keys_for_project(default_project):
-        assert redis_cache.get(cache_key)["config"]["piiConfig"] == {}
+    assert redis_cache.get(default_projectkey)["config"]["piiConfig"] == {}
 
 
 @pytest.mark.django_db
@@ -261,6 +275,10 @@ def test_projectkeys(default_project, emulate_transactions, redis_cache):
 
 @pytest.mark.django_db(transaction=True)
 def test_db_transaction(default_project, default_projectkey, redis_cache, task_runner):
+    # Put something in the cache, otherwise triggers/the invalidation task won't compute
+    # anything.
+    redis_cache.set_many({default_projectkey.public_key: "dummy"})
+
     with task_runner(), transaction.atomic():
         default_project.update_option(
             "sentry:relay_pii_config", '{"applications": {"$string": ["@creditcard:mask"]}}'
@@ -268,7 +286,7 @@ def test_db_transaction(default_project, default_projectkey, redis_cache, task_r
 
         # Assert that cache entry hasn't been created yet, only after the
         # transaction has committed.
-        assert not redis_cache.get(default_projectkey.public_key)
+        assert redis_cache.get(default_projectkey.public_key) == "dummy"
 
     assert redis_cache.get(default_projectkey.public_key)["config"]["piiConfig"] == {
         "applications": {"$string": ["@creditcard:mask"]}
@@ -320,7 +338,7 @@ class TestInvalidationTask:
     ):
         tasks = []
 
-        def apply_async(args, kwargs):
+        def apply_async(args=None, kwargs=None, countdown=None):
             assert not args
             tasks.append(kwargs)
 
@@ -397,4 +415,6 @@ class TestInvalidationTask:
             )
 
         for cache_key in _cache_keys_for_project(default_project):
-            assert redis_cache.get(cache_key) is None
+            new_cfg = redis_cache.get(cache_key)
+            assert new_cfg is not None
+            assert new_cfg != cfg
