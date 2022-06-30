@@ -1,7 +1,8 @@
-import {forwardRef} from 'react';
+import {forwardRef, useMemo} from 'react';
 import {PopperProps} from 'react-popper';
 import styled from '@emotion/styled';
 
+import domId from 'sentry/utils/domId';
 import {ColorOrAlias} from 'sentry/utils/theme';
 
 type Props = React.HTMLAttributes<HTMLDivElement> & {
@@ -41,6 +42,9 @@ const BaseOverlayArrow: React.ForwardRefRenderFunction<HTMLDivElement, Props> = 
     `C ${w * 0.55} ${s / 2} ${w * 0.75} ${h - s / 2} ${w} ${h - s / 2}`,
   ].join('');
 
+  const strokeMaskId = useMemo(() => domId('stroke-mask'), []);
+  const fillMaskId = useMemo(() => domId('fill-mask'), []);
+
   return (
     <Wrap ref={ref} placement={placement} size={size} {...props}>
       <SVG
@@ -52,17 +56,21 @@ const BaseOverlayArrow: React.ForwardRefRenderFunction<HTMLDivElement, Props> = 
         border={border}
       >
         <defs>
-          <mask id="stroke-mask">
+          <mask id={strokeMaskId}>
             <rect x="0" y={-strokeWidth} width="100%" height="100%" fill="white" />
           </mask>
-          <mask id="fill-mask">
+          <mask id={fillMaskId}>
             <rect x="0" y="0" width="100%" height="100%" fill="white" />
             <path d={arrowPath} vectorEffect="non-scaling-stroke" stroke="black" />
           </mask>
         </defs>
 
-        <path d={`${arrowPath} V ${h} H 0 Z`} mask="url(#fill-mask)" className="fill" />
-        <path d={arrowPath} mask="url(#stroke-mask)" className="stroke" />
+        <path
+          d={`${arrowPath} V ${h} H 0 Z`}
+          mask={`url(#${fillMaskId})`}
+          className="fill"
+        />
+        <path d={arrowPath} mask={`url(#${strokeMaskId})`} className="stroke" />
       </SVG>
     </Wrap>
   );
