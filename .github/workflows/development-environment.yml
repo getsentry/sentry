@@ -49,7 +49,7 @@ jobs:
         run: |
           HOMEBREW_NO_AUTO_UPDATE=1 brew install -v libxmlsec1
 
-      - name: .github/actions/setup-volta
+      - uses: ./.github/actions/setup-volta
 
       # This handles Python's cache
       - name: Setup Python & cache
