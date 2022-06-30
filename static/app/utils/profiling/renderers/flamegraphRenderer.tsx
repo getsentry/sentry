@@ -438,7 +438,7 @@ class FlamegraphRenderer {
     const VERTICES = 6;
 
     const length = this.frames.length;
-    let frame;
+    let frame: FlamegraphFrame | null;
 
     // This is an optimization to avoid setting uniform1i for each draw call when user is not searching
     if (searchResults) {
