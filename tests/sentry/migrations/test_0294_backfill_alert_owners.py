@@ -6,21 +6,28 @@ class TestBackfill(TestMigrations):
     migrate_to = "0294_backfill_alert_owners"
 
     def setup_before_migration(self, apps):
-        AlertRule = apps.get_model("sentry", "AlertRule")
-
-        alert_owner = self.create_user(email="test@example.com")
-        # typical case
-        self.alert_rule = self.create_alert_rule(
-            organization=self.organization,
+        new_user = self.create_user("b@example.com")
+        organization = self.create_organization(name="New Org", owner=new_user)
+        self.alert_rule_user = self.create_alert_rule(
+            name="test_alert_user",
+            organization=organization,
             projects=[self.project],
-            owner=alert_owner.actor.get_actor_tuple,
+            owner=self.user.actor.get_actor_tuple(),
         )
 
-        ar = AlertRule.objects_with_snapshots.get(id=self.alert_rule.id)
-        ar.save()
+        new_team = self.create_team(
+            organization=self.project.organization, name="New Team", members=[self.user]
+        )
+        self.alert_rule_team = self.create_alert_rule(
+            name="test_alert_team",
+            organization=self.organization,
+            projects=[self.project],
+            owner=new_team.actor.get_actor_tuple(),
+        )
 
     def tearDown(self):
         super().tearDown()
 
     def test(self):
-        assert self.alert_rule.owner is None
+        assert self.alert_rule_user.refresh_from_db() is None
+        assert self.alert_rule_team.refresh_from_db() is None

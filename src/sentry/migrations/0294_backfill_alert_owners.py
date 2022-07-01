@@ -8,23 +8,21 @@ from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
 def backfill_alert_owners(apps, schema_editor):
     AlertRule = apps.get_model("sentry", "AlertRule")
-    User = apps.get_model("sentry", "User")
     OrganizationMember = apps.get_model("sentry", "OrganizationMember")
+    User = apps.get_model("sentry", "User")
 
     for alert_rule in RangeQuerySetWrapperWithProgressBar(AlertRule.objects_with_snapshots.all()):
-        if not alert_rule.owner:
+        owner = alert_rule.owner
+        if not owner:
             continue
 
-        owner = alert_rule.owner.resolve()
-
         valid_owner = False
-        if (
-            isinstance(owner, User)
-            and OrganizationMember.objects.filter(
-                organization=owner.organization, id=owner.id
-            ).exists()
-        ):
-            valid_owner = True
+        if owner.type == 1:  # Actor is a User
+            user = User.objects.get(actor_id=owner.id)
+            if OrganizationMember.objects.filter(
+                organization_id=alert_rule.organization_id, id=user.id
+            ).exists():
+                valid_owner = True
 
         # Alerts assigned to a team should always have the owner removed.
         if not valid_owner:
@@ -43,7 +41,7 @@ class Migration(CheckedMigration):
     # - Adding indexes to large tables. Since this can take a long time, we'd generally prefer to
     #   have ops run this and not block the deploy. Note that while adding an index is a schema
     #   change, it's completely safe to run the operation after the code has deployed.
-    is_dangerous = True
+    is_dangerous = False
 
     # This flag is used to decide whether to run this migration in a transaction or not. Generally
     # we don't want to run in a transaction here, since for long running operations like data
@@ -51,7 +49,7 @@ class Migration(CheckedMigration):
     atomic = False
 
     dependencies = [
-        ("sentry", "0294_backfill_alert_owners"),
+        ("sentry", "0293_restore_metrics_based_alerts"),
     ]
 
     operations = [
