@@ -248,7 +248,25 @@ def schedule_invalidate_project_config(
     This takes care of not scheduling a duplicate task if one is already scheduled.  The
     parameters are passed straight to the task.
     """
+    from sentry.models import Project, ProjectKey
+
     validate_args(organization_id, project_id, public_key)
+
+    if public_key:
+        try:
+            key = ProjectKey.objects.get(public_key=public_key)
+        except ProjectKey.DoesNotExist:
+            pass
+        else:
+            project_id = key.project.id
+            organization_id = key.project.organization.id
+    elif project_id:
+        try:
+            proj = Project.objects.get(id=project_id)
+        except Project.DoesNotExist:
+            pass
+        else:
+            organization_id = proj.organization.id
 
     if projectconfig_debounce_cache.invalidation.is_debounced(
         public_key=public_key, project_id=project_id, organization_id=organization_id
@@ -278,3 +296,16 @@ def schedule_invalidate_project_config(
     projectconfig_debounce_cache.invalidation.debounce(
         public_key=public_key, project_id=project_id, organization_id=organization_id
     )
+
+
+@instrumented_task(
+    name="sentry.tasks.relay.invalidate_all",
+    queue="relay_config_bulk",
+    acks_late=True,
+    soft_time_limit=25 * 60,  # 25mins
+    time_limit=25 * 60 + 5,
+)
+def invalidate_all(**kwargs):
+    """Invalidates all the currently cached active projects."""
+    for org in Organization.objects.all():
+        schedule_invalidate_project_config(trigger="invalidate-all", organization_id=org.id)
