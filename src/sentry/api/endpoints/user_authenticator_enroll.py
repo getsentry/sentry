@@ -14,6 +14,7 @@ from sentry.api.invite_helper import ApiInviteHelper, remove_invite_cookie
 from sentry.api.serializers import serialize
 from sentry.app import ratelimiter
 from sentry.auth.authenticators.base import EnrollmentStatus
+from sentry.auth.authenticators.sms import SMSRateLimitExceeded
 from sentry.models import Authenticator
 from sentry.security import capture_security_activity
 
@@ -209,11 +210,22 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
             # Disregarding value of 'otp', if no OTP was provided,
             # send text message to phone number with OTP
             if "otp" not in request.data:
-                if interface.send_text(for_enrollment=True, request=request._request):
-                    return Response(status=status.HTTP_204_NO_CONTENT)
-                else:
-                    # Error sending text message
-                    return Response(SEND_SMS_ERR, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                try:
+                    if interface.send_text(for_enrollment=True, request=request._request):
+                        return Response(status=status.HTTP_204_NO_CONTENT)
+                    else:
+                        # Error sending text message
+                        return Response(SEND_SMS_ERR, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                except SMSRateLimitExceeded as e:
+                    logger.warning(
+                        "auth-enroll.sms.rate-limit-exceeded",
+                        extra={
+                            "remote_ip": f"{e.remote_ip}",
+                            "user_id": f"{e.user_id}",
+                            "phone_number": f"{e.phone_number}",
+                        },
+                    )
+                    return Response(SEND_SMS_ERR, status=status.HTTP_429_TOO_MANY_REQUESTS)
 
         # Attempt to validate OTP
         if "otp" in request.data and not interface.validate_otp(serializer.data["otp"]):

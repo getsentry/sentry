@@ -4,10 +4,7 @@ import SearchBar, {SearchBarProps} from 'sentry/components/events/searchBar';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {Organization, PageFilters, SavedSearchType} from 'sentry/types';
 import {WidgetQuery} from 'sentry/views/dashboardsV2/types';
-import {
-  MAX_MENU_HEIGHT,
-  MAX_SEARCH_ITEMS,
-} from 'sentry/views/dashboardsV2/widgetBuilder/utils';
+import {MAX_MENU_HEIGHT} from 'sentry/views/dashboardsV2/widgetBuilder/utils';
 
 interface Props {
   onBlur: SearchBarProps['onBlur'];
@@ -37,7 +34,6 @@ export function EventsSearchBar({
       onBlur={onBlur}
       useFormWrapper={false}
       maxQueryLength={MAX_QUERY_LENGTH}
-      maxSearchItems={MAX_SEARCH_ITEMS}
       maxMenuHeight={MAX_MENU_HEIGHT}
       savedSearchType={SavedSearchType.EVENT}
     />
