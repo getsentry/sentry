@@ -168,7 +168,7 @@ export class Rules extends PureComponent<Props, State> {
                     : SamplingRuleOperator.ELSE_IF
                 }
                 hideGrabButton={items.length === 1}
-                rule={{...currentRule, disabled: itemsRule.disabled}}
+                rule={{...currentRule, bottomPinned: itemsRule.bottomPinned}}
                 onEditRule={onEditRule(currentRule)}
                 onDeleteRule={onDeleteRule(currentRule)}
                 noPermission={disabled}
