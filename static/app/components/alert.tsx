@@ -11,6 +11,7 @@ import {Theme} from 'sentry/utils/theme';
 
 export interface AlertProps extends React.HTMLAttributes<HTMLDivElement> {
   expand?: React.ReactNode;
+  icon?: React.ReactNode;
   opaque?: boolean;
   showIcon?: boolean;
   system?: boolean;
@@ -23,6 +24,7 @@ const DEFAULT_TYPE = 'info';
 function Alert({
   type = DEFAULT_TYPE,
   showIcon = false,
+  icon,
   opaque,
   system,
   expand,
@@ -74,7 +76,7 @@ function Alert({
     >
       {showIcon && (
         <IconWrapper onClick={handleClick} {...iconHoverProps}>
-          {getIcon()}
+          {icon ?? getIcon()}
         </IconWrapper>
       )}
       <ContentWrapper>
