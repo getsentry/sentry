@@ -1,4 +1,4 @@
-import React, {Fragment, useState} from 'react';
+import {Fragment, ReactNode, useState} from 'react';
 import {browserHistory, InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -69,8 +69,7 @@ function getSummaryConditions(query: string) {
 }
 
 function VitalDetailContent(props: Props) {
-  const [incompatibleAlertNotice, setIncompatibleAlertNotice] =
-    useState<React.ReactNode>(null);
+  const [incompatibleAlertNotice, setIncompatibleAlertNotice] = useState<ReactNode>(null);
   const [error, setError] = useState<string | undefined>(undefined);
 
   function handleSearch(query: string) {
