@@ -406,6 +406,10 @@ def parse_code_owners(data: str) -> Tuple[List[str], List[str], List[str]]:
         if rule.startswith("#") or not len(rule):
             continue
 
+        # Skip lines that are only empty space characters
+        if re.match(r"^\s*$", rule):
+            continue
+
         _, assignees = get_codeowners_path_and_owners(rule)
         for assignee in assignees:
             if "/" not in assignee:
@@ -442,6 +446,10 @@ def convert_codeowners_syntax(
         if rule.startswith("#") or not len(rule):
             # We want to preserve comments from CODEOWNERS
             result += f"{rule}\n"
+            continue
+
+        # Skip lines that are only empty space characters
+        if re.match(r"^\s*$", rule):
             continue
 
         path, code_owners = get_codeowners_path_and_owners(rule)
