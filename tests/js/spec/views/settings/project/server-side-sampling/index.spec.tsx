@@ -1,26 +1,26 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import {Project} from 'sentry/types';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {RouteContext} from 'sentry/views/routeContext';
 import ServerSideSampling from 'sentry/views/settings/project/server-side-sampling';
 import {SERVER_SIDE_SAMPLING_DOC_LINK} from 'sentry/views/settings/project/server-side-sampling/utils';
 
-describe('Server-side Sampling', function () {
-  const {organization, project, router} = initializeOrg({
+function getMockData(project?: Project) {
+  return initializeOrg({
     ...initializeOrg(),
     organization: {
       ...initializeOrg().organization,
       features: ['server-side-sampling'],
     },
+    projects: [project],
   });
+}
 
-  it('renders onboarding promo', async function () {
-    MockApiClient.addMockResponse({
-      url: '/projects/org-slug/project-slug/',
-      method: 'GET',
-      body: TestStubs.Project(),
-    });
+describe('Server-side Sampling', function () {
+  it('renders onboarding promo', function () {
+    const {router, organization, project} = getMockData();
 
     const {container} = render(
       <RouteContext.Provider
@@ -35,7 +35,7 @@ describe('Server-side Sampling', function () {
         }}
       >
         <OrganizationContext.Provider value={organization}>
-          <ServerSideSampling />
+          <ServerSideSampling project={project} />
         </OrganizationContext.Provider>
       </RouteContext.Provider>
     );
@@ -51,7 +51,7 @@ describe('Server-side Sampling', function () {
     ).toBeInTheDocument();
 
     expect(
-      await screen.findByRole('heading', {name: 'No sampling rules active yet'})
+      screen.getByRole('heading', {name: 'No sampling rules active yet'})
     ).toBeInTheDocument();
 
     expect(
@@ -68,11 +68,9 @@ describe('Server-side Sampling', function () {
     expect(container).toSnapshot();
   });
 
-  it('renders rules panel', async function () {
-    MockApiClient.addMockResponse({
-      url: '/projects/org-slug/project-slug/',
-      method: 'GET',
-      body: TestStubs.Project({
+  it('renders rules panel', function () {
+    const {router, organization, project} = getMockData(
+      TestStubs.Project({
         dynamicSampling: {
           rules: [
             {
@@ -93,8 +91,8 @@ describe('Server-side Sampling', function () {
           ],
           next_id: 41,
         },
-      }),
-    });
+      })
+    );
 
     const {container} = render(
       <RouteContext.Provider
@@ -109,13 +107,13 @@ describe('Server-side Sampling', function () {
         }}
       >
         <OrganizationContext.Provider value={organization}>
-          <ServerSideSampling />
+          <ServerSideSampling project={project} />
         </OrganizationContext.Provider>
       </RouteContext.Provider>
     );
 
     // Rule Panel Header
-    expect(await screen.findByText('Operator')).toBeInTheDocument();
+    expect(screen.getByText('Operator')).toBeInTheDocument();
     expect(screen.getByText('Condition')).toBeInTheDocument();
     expect(screen.getByText('Rate')).toBeInTheDocument();
     expect(screen.getByText('Active')).toBeInTheDocument();
