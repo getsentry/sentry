@@ -19,7 +19,7 @@ type Props = ModalRenderProps & {
   project?: Project;
 };
 
-export function OptionalStepsModal({Header, Body, Footer, closeModal}: Props) {
+export function RecommendedStepsModal({Header, Body, Footer, closeModal}: Props) {
   return (
     <Fragment>
       <Header closeButton>
@@ -54,7 +54,25 @@ export function OptionalStepsModal({Header, Body, Footer, closeModal}: Props) {
                 'This comes in handy when server-side sampling target the transactions you want to accept, but you need more of those transactions being sent by your client. Here we  already suggest a value based on your quota and throughput.'
               )}
             </TextBlock>
-            <div>oi</div>
+            <div>
+              <pre className="language-groovy highlight">
+                <code className="language-groovy">
+                  Sentry
+                  <span className="token punctuation">.</span>
+                  <span className="token function">init</span>
+                  <span className="token punctuation">(</span>
+                  <span className="token punctuation">{'{'}</span>
+                  <span className="token literal-property property">traceSampleRate</span>
+                  <span className="token operator">:</span>
+                  <span className="token boolean">1.0</span>
+                  <span className="token punctuation">,</span>
+                  <span className="tocken comment">// 100%</span>
+                  <span className="token punctuation">{'}'}</span>
+                  <span className="token punctuation">)</span>
+                  <span className="token punctuation">;</span>
+                </code>
+              </pre>
+            </div>
           </ListItem>
         </List>
       </Body>

@@ -18,7 +18,7 @@ import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHea
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import PermissionAlert from 'sentry/views/settings/organization/permissionAlert';
 
-import {OptionalStepsModal} from './modals/optionalStepsModal';
+import {RecommendedStepsModal} from './modals/recommendedStepsModal';
 import {Promo} from './promo';
 
 export function ServerSideSampling() {
@@ -71,7 +71,11 @@ export function ServerSideSampling() {
 
   function handleGetStarted() {
     openModal(modalProps => (
-      <OptionalStepsModal {...modalProps} organization={organization} project={project} />
+      <RecommendedStepsModal
+        {...modalProps}
+        organization={organization}
+        project={project}
+      />
     ));
   }
 
