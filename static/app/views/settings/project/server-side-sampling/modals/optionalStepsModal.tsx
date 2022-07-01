@@ -5,6 +5,7 @@ import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
+// import Terminal from 'sentry/components/terminal';
 import {t, tct} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
@@ -22,7 +23,7 @@ export function OptionalStepsModal({Header, Body, Footer, closeModal}: Props) {
   return (
     <Fragment>
       <Header closeButton>
-        <h4>{t('Optional Steps')}</h4>
+        <h4>{t('Recommended next steps\u2026')}</h4>
       </Header>
       <Body>
         <TextBlock>
@@ -37,8 +38,24 @@ export function OptionalStepsModal({Header, Body, Footer, closeModal}: Props) {
         <TextBlock>
           {t('To avoid any headaches in the future we recommend the following steps')}
         </TextBlock>
-        <List>
-          <ListItem />
+        <List symbol="colored-numeric">
+          <ListItem>
+            <h5>{t('Update the following SDK versions')}</h5>
+            <TextBlock>
+              {t(
+                'This ensures that any active server-side sampling rules won’t sharply decrease the amount of accepted transactions.'
+              )}
+            </TextBlock>
+          </ListItem>
+          <ListItem>
+            <h5>{t('Increase your SDK Transaction sample rate')}</h5>
+            <TextBlock>
+              {t(
+                'This comes in handy when server-side sampling target the transactions you want to accept, but you need more of those transactions being sent by your client. Here we  already suggest a value based on your quota and throughput.'
+              )}
+            </TextBlock>
+            <div>oi</div>
+          </ListItem>
         </List>
       </Body>
       <Footer>
