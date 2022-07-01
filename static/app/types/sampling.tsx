@@ -167,9 +167,14 @@ export type SamplingRule = {
    */
   type: SamplingRuleType;
   /**
-   * A rule can be disabled if it doesn't contain a condition (Else case)
+   * Indicates if the rule is enabled for server-side sampling
    */
-  disabled?: boolean;
+  active?: boolean;
+  /**
+   * A rule without a condition (Else case) always have to be 'pinned'
+   * to the bottom of the list and cannot be sorted.
+   */
+  bottomPinned?: boolean;
 };
 
 export type SamplingRules = Array<SamplingRule>;
