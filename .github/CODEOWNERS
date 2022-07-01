@@ -367,6 +367,8 @@ yarn.lock           @getsentry/owners-js-deps
 
 /static/app/views/settings/project/sampling/                         @getsentry/telemetry-experience
 /tests/js/spec/views/settings/project/sampling/                      @getsentry/telemetry-experience
+/static/app/views/settings/project/server-side-sampling/             @getsentry/telemetry-experience
+/tests/js/spec/views/settings/project/server-side-sampling/          @getsentry/telemetry-experience
 /static/app/utils/metrics/                                           @getsentry/telemetry-experience
 /tests/js/spec/utils/metrics/                                        @getsentry/telemetry-experience
 /static/app/actionCreators/metrics.tsx                               @getsentry/telemetry-experience
