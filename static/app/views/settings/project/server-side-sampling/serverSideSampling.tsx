@@ -1,33 +1,25 @@
-import {Fragment, useEffect, useState} from 'react';
+import {Fragment, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Panel, PanelFooter, PanelHeader} from 'sentry/components/panels';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Project} from 'sentry/types';
-import {
-  SamplingRuleOperator,
-  SamplingRules,
-  SamplingRuleType,
-} from 'sentry/types/sampling';
-import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
-import useApi from 'sentry/utils/useApi';
+import {SamplingRule, SamplingRuleOperator, SamplingRules} from 'sentry/types/sampling';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useParams} from 'sentry/utils/useParams';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import PermissionAlert from 'sentry/views/settings/organization/permissionAlert';
 
 import {DraggableList} from '../sampling/rules/draggableList';
 
+import {ActivateModal} from './modals/activateModal';
 import {UniformRateModal} from './modals/uniformRateModal';
 import {Promo} from './promo';
 import {
@@ -41,46 +33,20 @@ import {
 } from './rule';
 import {SERVER_SIDE_SAMPLING_DOC_LINK} from './utils';
 
-export function ServerSideSampling() {
-  const api = useApi();
+type Props = {
+  project: Project;
+};
+
+export function ServerSideSampling({project}: Props) {
   const organization = useOrganization();
-  const params = useParams();
   const hasAccess = organization.access.includes('project:write');
+  const dynamicSamplingRules = project.dynamicSampling?.rules ?? [];
 
-  const {orgId: orgSlug, projectId: projectSlug} = params;
+  const [rules, _setRules] = useState<SamplingRules>(dynamicSamplingRules);
 
-  const [rules, setRules] = useState<SamplingRules>([]);
-  const [project, setProject] = useState<Project>();
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | undefined>(undefined);
-
-  useEffect(() => {
-    async function fetchRules() {
-      try {
-        // TODO(sampling): no need to fetch project here, settings pages get it via props for free
-        const projectDetails = await api.requestPromise(
-          `/projects/${orgSlug}/${projectSlug}/`
-        );
-
-        const {dynamicSampling} = projectDetails;
-        const samplingRules: SamplingRules = dynamicSampling?.rules ?? [];
-
-        const traceRules = samplingRules.filter(
-          samplingRule => samplingRule.type === SamplingRuleType.TRACE
-        );
-
-        setRules(traceRules);
-        setProject(projectDetails);
-        setLoading(false);
-      } catch (err) {
-        const errorMessage = t('Unable to load sampling rules');
-        handleXhrErrorResponse(errorMessage)(err);
-        setError(errorMessage);
-        setLoading(false);
-      }
-    }
-    fetchRules();
-  }, [api, projectSlug, orgSlug]);
+  function handleActivateToggle(rule: SamplingRule) {
+    openModal(modalProps => <ActivateModal {...modalProps} rule={rule} />);
+  }
 
   function handleGetStarted() {
     openModal(modalProps => (
@@ -111,117 +77,114 @@ export function ServerSideSampling() {
             'These settings can only be edited by users with the organization owner, manager, or admin role.'
           )}
         />
-        {error && <LoadingError message={error} />}
-        {!error && loading && <LoadingIndicator />}
-        {!error && !loading && (
-          <RulesPanel>
-            <RulesPanelHeader lightText>
-              <RulesPanelLayout>
-                <GrabColumn />
-                <OperatorColumn>{t('Operator')}</OperatorColumn>
-                <ConditionColumn>{t('Condition')}</ConditionColumn>
-                <RateColumn>{t('Rate')}</RateColumn>
-                <ActiveColumn>{t('Active')}</ActiveColumn>
-                <Column />
-              </RulesPanelLayout>
-            </RulesPanelHeader>
-            {!rules.length && (
-              <Promo onGetStarted={handleGetStarted} hasAccess={hasAccess} />
-            )}
-            {!!rules.length && (
-              <Fragment>
-                <DraggableList
-                  disabled={!hasAccess}
-                  items={items}
-                  onUpdateItems={() => {}}
-                  wrapperStyle={({isDragging, isSorting, index}) => {
-                    if (isDragging) {
-                      return {
-                        cursor: 'grabbing',
-                      };
-                    }
-                    if (isSorting) {
-                      return {};
-                    }
+        <RulesPanel>
+          <RulesPanelHeader lightText>
+            <RulesPanelLayout>
+              <GrabColumn />
+              <OperatorColumn>{t('Operator')}</OperatorColumn>
+              <ConditionColumn>{t('Condition')}</ConditionColumn>
+              <RateColumn>{t('Rate')}</RateColumn>
+              <ActiveColumn>{t('Active')}</ActiveColumn>
+              <Column />
+            </RulesPanelLayout>
+          </RulesPanelHeader>
+          {!rules.length && (
+            <Promo onGetStarted={handleGetStarted} hasAccess={hasAccess} />
+          )}
+          {!!rules.length && (
+            <Fragment>
+              <DraggableList
+                disabled={!hasAccess}
+                items={items}
+                onUpdateItems={() => {}}
+                wrapperStyle={({isDragging, isSorting, index}) => {
+                  if (isDragging) {
                     return {
-                      transform: 'none',
-                      transformOrigin: '0',
-                      '--box-shadow': 'none',
-                      '--box-shadow-picked-up': 'none',
-                      overflow: 'visible',
-                      position: 'relative',
-                      zIndex: rules.length - index,
-                      cursor: 'default',
+                      cursor: 'grabbing',
                     };
-                  }}
-                  renderItem={({value, listeners, attributes, dragging, sorting}) => {
-                    const itemsRuleIndex = items.findIndex(item => item.id === value);
+                  }
+                  if (isSorting) {
+                    return {};
+                  }
+                  return {
+                    transform: 'none',
+                    transformOrigin: '0',
+                    '--box-shadow': 'none',
+                    '--box-shadow-picked-up': 'none',
+                    overflow: 'visible',
+                    position: 'relative',
+                    zIndex: rules.length - index,
+                    cursor: 'default',
+                  };
+                }}
+                renderItem={({value, listeners, attributes, dragging, sorting}) => {
+                  const itemsRuleIndex = items.findIndex(item => item.id === value);
 
-                    if (itemsRuleIndex === -1) {
-                      return null;
+                  if (itemsRuleIndex === -1) {
+                    return null;
+                  }
+
+                  const itemsRule = items[itemsRuleIndex];
+
+                  const currentRule = {
+                    active: itemsRule.active,
+                    condition: itemsRule.condition,
+                    sampleRate: itemsRule.sampleRate,
+                    type: itemsRule.type,
+                    id: Number(itemsRule.id),
+                  };
+
+                  return (
+                    <RulesPanelLayout isContent>
+                      <Rule
+                        operator={
+                          itemsRule.id === items[0].id
+                            ? SamplingRuleOperator.IF
+                            : itemsRule.bottomPinned
+                            ? SamplingRuleOperator.ELSE
+                            : SamplingRuleOperator.ELSE_IF
+                        }
+                        hideGrabButton={items.length === 1}
+                        rule={{
+                          ...currentRule,
+                          bottomPinned: itemsRule.bottomPinned,
+                        }}
+                        onEditRule={() => {}}
+                        onDeleteRule={() => {}}
+                        onActivate={() => handleActivateToggle(currentRule)}
+                        noPermission={!hasAccess}
+                        listeners={listeners}
+                        grabAttributes={attributes}
+                        dragging={dragging}
+                        sorting={sorting}
+                      />
+                    </RulesPanelLayout>
+                  );
+                }}
+              />
+              <RulesPanelFooter>
+                <ButtonBar gap={1}>
+                  <Button href={SERVER_SIDE_SAMPLING_DOC_LINK} external>
+                    {t('Read Docs')}
+                  </Button>
+                  <AddRuleButton
+                    disabled={!hasAccess}
+                    title={
+                      !hasAccess
+                        ? t("You don't have permission to add a rule")
+                        : undefined
                     }
-
-                    const itemsRule = items[itemsRuleIndex];
-
-                    const currentRule = {
-                      active: itemsRule.active,
-                      condition: itemsRule.condition,
-                      sampleRate: itemsRule.sampleRate,
-                      type: itemsRule.type,
-                      id: Number(itemsRule.id),
-                    };
-
-                    return (
-                      <RulesPanelLayout isContent>
-                        <Rule
-                          operator={
-                            itemsRule.id === items[0].id
-                              ? SamplingRuleOperator.IF
-                              : itemsRule.bottomPinned
-                              ? SamplingRuleOperator.ELSE
-                              : SamplingRuleOperator.ELSE_IF
-                          }
-                          hideGrabButton={items.length === 1}
-                          rule={{
-                            ...currentRule,
-                            bottomPinned: itemsRule.bottomPinned,
-                          }}
-                          onEditRule={() => {}}
-                          onDeleteRule={() => {}}
-                          noPermission={!hasAccess}
-                          listeners={listeners}
-                          grabAttributes={attributes}
-                          dragging={dragging}
-                          sorting={sorting}
-                        />
-                      </RulesPanelLayout>
-                    );
-                  }}
-                />
-                <RulesPanelFooter>
-                  <ButtonBar gap={1}>
-                    <Button href={SERVER_SIDE_SAMPLING_DOC_LINK} external>
-                      {t('Read Docs')}
-                    </Button>
-                    <AddRuleButton
-                      disabled={!hasAccess}
-                      title={
-                        !hasAccess
-                          ? t("You don't have permission to add a rule")
-                          : undefined
-                      }
-                      priority="primary"
-                      onClick={() => {}}
-                      icon={<IconAdd isCircled />}
-                    >
-                      {t('Add Rule')}
-                    </AddRuleButton>
-                  </ButtonBar>
-                </RulesPanelFooter>
-              </Fragment>
-            )}
-          </RulesPanel>
-        )}
+                    priority="primary"
+                    onClick={() => {}}
+                    icon={<IconAdd isCircled />}
+                  >
+                    {t('Add Rule')}
+                  </AddRuleButton>
+                </ButtonBar>
+              </RulesPanelFooter>
+            </Fragment>
+          )}
+        </RulesPanel>
       </Fragment>
     </SentryDocumentTitle>
   );
