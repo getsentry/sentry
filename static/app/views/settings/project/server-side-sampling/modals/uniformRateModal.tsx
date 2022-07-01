@@ -106,9 +106,7 @@ function UniformRateModal({Header, Body, Footer, closeModal}: Props) {
                 name="recommended-client-sampling"
                 placeholder="%"
                 value={client}
-                onChange={value => {
-                  setClient(value);
-                }}
+                onChange={setClient}
                 onFocus={() => setSelectedStrategy(Strategy.RECOMMENDED)}
                 stacked
                 flexibleControlStateSize
@@ -120,9 +118,7 @@ function UniformRateModal({Header, Body, Footer, closeModal}: Props) {
                 name="recommended-server-sampling"
                 placeholder="%"
                 value={server}
-                onChange={value => {
-                  setServer(value);
-                }}
+                onChange={setServer}
                 onFocus={() => setSelectedStrategy(Strategy.RECOMMENDED)}
                 stacked
                 flexibleControlStateSize
@@ -198,7 +194,7 @@ const StyledNumberField = styled(NumberField)`
   width: 100%;
 `;
 
-const FooterActions = styled('div')`
+export const FooterActions = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -206,7 +202,7 @@ const FooterActions = styled('div')`
   gap: ${space(1)};
 `;
 
-const Stepper = styled('span')`
+export const Stepper = styled('span')`
   font-size: ${p => p.theme.fontSizeMedium};
   color: ${p => p.theme.subText};
 `;

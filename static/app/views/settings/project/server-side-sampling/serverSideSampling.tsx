@@ -18,7 +18,7 @@ import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHea
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import PermissionAlert from 'sentry/views/settings/organization/permissionAlert';
 
-import {UniformRateModal} from './modals/uniformRateModal';
+import {OptionalStepsModal} from './modals/optionalStepsModal';
 import {Promo} from './promo';
 
 export function ServerSideSampling() {
@@ -71,7 +71,7 @@ export function ServerSideSampling() {
 
   function handleGetStarted() {
     openModal(modalProps => (
-      <UniformRateModal {...modalProps} organization={organization} project={project} />
+      <OptionalStepsModal {...modalProps} organization={organization} project={project} />
     ));
   }
 
