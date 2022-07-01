@@ -9,6 +9,7 @@ import Breadcrumbs from 'sentry/views/replays/detail/breadcrumbs';
 import FocusArea from 'sentry/views/replays/detail/focusArea';
 import FocusTabs from 'sentry/views/replays/detail/focusTabs';
 
+import AsideTabsV2 from './asideTabs_v2';
 import Container from './container';
 import ResizePanel from './resizePanel';
 
@@ -50,14 +51,25 @@ type Props = {
   showVideo?: boolean;
 };
 
+export function VideoContainer() {
+  const {ref: fullscreenRef, isFullscreen, toggle: toggleFullscreen} = useFullscreen();
+  return (
+    <VideoSection>
+      <ErrorBoundary mini>
+        <div ref={fullscreenRef}>
+          <ReplayView toggleFullscreen={toggleFullscreen} isFullscreen={isFullscreen} />
+        </div>
+      </ErrorBoundary>
+    </VideoSection>
+  );
+}
+
 function ReplayLayout({
   layout = 'topbar',
   showCrumbs = true,
   showTimeline = true,
   showVideo = true,
 }: Props) {
-  const {ref: fullscreenRef, isFullscreen, toggle: toggleFullscreen} = useFullscreen();
-
   const timeline = showTimeline ? (
     <TimelineSection>
       <ErrorBoundary mini>
@@ -66,13 +78,7 @@ function ReplayLayout({
     </TimelineSection>
   ) : null;
 
-  const video = showVideo ? (
-    <VideoSection ref={fullscreenRef}>
-      <ErrorBoundary mini>
-        <ReplayView toggleFullscreen={toggleFullscreen} isFullscreen={isFullscreen} />
-      </ErrorBoundary>
-    </VideoSection>
-  ) : null;
+  const video = showVideo ? <VideoContainer /> : null;
 
   const crumbs = showCrumbs ? (
     <BreadcrumbSection>
@@ -99,7 +105,11 @@ function ReplayLayout({
           {content}
           <ResizePanel direction="w" minWidth={SIDEBAR_MIN_WIDTH}>
             <SidebarSection>
-              {video ? <ResizePanel direction="s">{video}</ResizePanel> : null}
+              {showVideo ? (
+                <ResizePanel direction="s">
+                  <AsideTabsV2 />
+                </ResizePanel>
+              ) : null}
               {crumbs}
             </SidebarSection>
           </ResizePanel>
