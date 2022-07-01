@@ -1,4 +1,4 @@
-import {Component, Fragment} from 'react';
+import React, {Fragment, useState} from 'react';
 import {browserHistory, InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -25,7 +25,6 @@ import {IconCheckmark, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
-import {generateQueryWithTag} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
@@ -62,11 +61,6 @@ type Props = {
   vitalName: WebVital;
 };
 
-type State = {
-  error: string | undefined;
-  incompatibleAlertNotice: React.ReactNode;
-};
-
 function getSummaryConditions(query: string) {
   const parsed = new MutableSearch(query);
   parsed.freeText = [];
@@ -74,14 +68,13 @@ function getSummaryConditions(query: string) {
   return parsed.formatString();
 }
 
-class VitalDetailContent extends Component<Props, State> {
-  state: State = {
-    incompatibleAlertNotice: null,
-    error: undefined,
-  };
+function VitalDetailContent(props: Props) {
+  const [incompatibleAlertNotice, setIncompatibleAlertNotice] =
+    useState<React.ReactNode>(null);
+  const [error, setError] = useState<string | undefined>(undefined);
 
-  handleSearch = (query: string) => {
-    const {location} = this.props;
+  function handleSearch(query: string) {
+    const {location} = props;
 
     const queryParams = normalizeDateTimeParams({
       ...(location.query || {}),
@@ -95,36 +88,24 @@ class VitalDetailContent extends Component<Props, State> {
       pathname: location.pathname,
       query: searchQueryParams,
     });
-  };
+  }
 
-  generateTagUrl = (key: string, value: string) => {
-    const {location} = this.props;
-    const query = generateQueryWithTag(location.query, {key, value});
-
-    return {
-      ...location,
-      query,
-    };
-  };
-
-  handleIncompatibleQuery: React.ComponentProps<
-    typeof CreateAlertFromViewButton
-  >['onIncompatibleQuery'] = (incompatibleAlertNoticeFn, _errors) => {
-    const incompatibleAlertNotice = incompatibleAlertNoticeFn(() =>
-      this.setState({incompatibleAlertNotice: null})
+  function handleIncompatibleQuery(incompatibleAlertNoticeFn) {
+    const _incompatibleAlertNotice = incompatibleAlertNoticeFn(() =>
+      setIncompatibleAlertNotice(null)
     );
-    this.setState({incompatibleAlertNotice});
-  };
+    setIncompatibleAlertNotice(_incompatibleAlertNotice);
+  }
 
-  renderCreateAlertButton() {
-    const {eventView, organization, projects, vitalName} = this.props;
+  function renderCreateAlertButton() {
+    const {eventView, organization, projects, vitalName} = props;
 
     return (
       <CreateAlertFromViewButton
         eventView={eventView}
         organization={organization}
         projects={projects}
-        onIncompatibleQuery={this.handleIncompatibleQuery}
+        onIncompatibleQuery={handleIncompatibleQuery}
         onSuccess={() => {}}
         useAlertWizardV3={organization.features.includes('alert-wizard-v3')}
         aria-label={t('Create Alert')}
@@ -134,8 +115,8 @@ class VitalDetailContent extends Component<Props, State> {
     );
   }
 
-  renderVitalSwitcher() {
-    const {vitalName, location, organization} = this.props;
+  function renderVitalSwitcher() {
+    const {vitalName, location, organization} = props;
 
     const position = FRONTEND_VITALS.indexOf(vitalName);
 
@@ -190,13 +171,7 @@ class VitalDetailContent extends Component<Props, State> {
     );
   }
 
-  setError = (error: string | undefined) => {
-    this.setState({error});
-  };
-
-  renderError() {
-    const {error} = this.state;
-
+  function renderError() {
     if (!error) {
       return null;
     }
@@ -208,8 +183,8 @@ class VitalDetailContent extends Component<Props, State> {
     );
   }
 
-  renderContent(vital: WebVital) {
-    const {location, organization, eventView, projects} = this.props;
+  function renderContent(vital: WebVital) {
+    const {location, organization, eventView, projects} = props;
 
     const {fields, start, end, statsPeriod, environment, project} = eventView;
 
@@ -238,7 +213,7 @@ class VitalDetailContent extends Component<Props, State> {
             projectIds={project}
             query={query}
             fields={fields}
-            onSearch={this.handleSearch}
+            onSearch={handleSearch}
           />
         </FilterActions>
         <VitalChart
@@ -278,7 +253,7 @@ class VitalDetailContent extends Component<Props, State> {
                   projects={projects}
                   organization={organization}
                   location={location}
-                  setError={this.setError}
+                  setError={setError}
                   summaryConditions={summaryConditions}
                 />
               </TeamKeyTransactionManager.Provider>
@@ -291,57 +266,50 @@ class VitalDetailContent extends Component<Props, State> {
     );
   }
 
-  render() {
-    const {location, organization, vitalName} = this.props;
-    const {incompatibleAlertNotice} = this.state;
+  const {location, organization, vitalName} = props;
 
-    const vital = vitalName || WebVital.LCP;
+  const vital = vitalName || WebVital.LCP;
 
-    return (
-      <Fragment>
-        <Layout.Header>
-          <Layout.HeaderContent>
-            <Breadcrumb
-              organization={organization}
-              location={location}
-              vitalName={vital}
-            />
-            <Layout.Title>{vitalMap[vital]}</Layout.Title>
-          </Layout.HeaderContent>
-          <Layout.HeaderActions>
-            <ButtonBar gap={1}>
-              {this.renderVitalSwitcher()}
-              <Feature organization={organization} features={['incidents']}>
-                {({hasFeature}) => hasFeature && this.renderCreateAlertButton()}
-              </Feature>
-            </ButtonBar>
-          </Layout.HeaderActions>
-        </Layout.Header>
-        <Layout.Body>
-          {this.renderError()}
-          {incompatibleAlertNotice && (
-            <Layout.Main fullWidth>{incompatibleAlertNotice}</Layout.Main>
-          )}
-          <Layout.Main fullWidth>
-            <StyledDescription>{vitalDescription[vitalName]}</StyledDescription>
-            <SupportedBrowsers>
-              {Object.values(Browser).map(browser => (
-                <BrowserItem key={browser}>
-                  {vitalSupportedBrowsers[vitalName]?.includes(browser) ? (
-                    <IconCheckmark color="green300" size="sm" />
-                  ) : (
-                    <IconClose color="red300" size="sm" />
-                  )}
-                  {browser}
-                </BrowserItem>
-              ))}
-            </SupportedBrowsers>
-            {this.renderContent(vital)}
-          </Layout.Main>
-        </Layout.Body>
-      </Fragment>
-    );
-  }
+  return (
+    <Fragment>
+      <Layout.Header>
+        <Layout.HeaderContent>
+          <Breadcrumb organization={organization} location={location} vitalName={vital} />
+          <Layout.Title>{vitalMap[vital]}</Layout.Title>
+        </Layout.HeaderContent>
+        <Layout.HeaderActions>
+          <ButtonBar gap={1}>
+            {renderVitalSwitcher()}
+            <Feature organization={organization} features={['incidents']}>
+              {({hasFeature}) => hasFeature && renderCreateAlertButton()}
+            </Feature>
+          </ButtonBar>
+        </Layout.HeaderActions>
+      </Layout.Header>
+      <Layout.Body>
+        {renderError()}
+        {incompatibleAlertNotice && (
+          <Layout.Main fullWidth>{incompatibleAlertNotice}</Layout.Main>
+        )}
+        <Layout.Main fullWidth>
+          <StyledDescription>{vitalDescription[vitalName]}</StyledDescription>
+          <SupportedBrowsers>
+            {Object.values(Browser).map(browser => (
+              <BrowserItem key={browser}>
+                {vitalSupportedBrowsers[vitalName]?.includes(browser) ? (
+                  <IconCheckmark color="green300" size="sm" />
+                ) : (
+                  <IconClose color="red300" size="sm" />
+                )}
+                {browser}
+              </BrowserItem>
+            ))}
+          </SupportedBrowsers>
+          {renderContent(vital)}
+        </Layout.Main>
+      </Layout.Body>
+    </Fragment>
+  );
 }
 
 export default withProjects(VitalDetailContent);
