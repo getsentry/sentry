@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from typing import Any, Iterable, Mapping, MutableMapping, Optional, Sequence, TypedDict
+from urllib.parse import quote
 
 import pytz
 
@@ -218,6 +219,7 @@ class ActiveReleaseAlertNotification(AlertRuleNotification):
             "enhanced_privacy": enhanced_privacy,
             "last_release": self.last_release,
             "last_release_link": self.release_url(self.last_release),
+            "last_release_slack_link": self.slack_release_url(self.last_release),
             "commits": self.get_release_commits(self.last_release)[:15],
             "environment": environment,
             "slack_link": get_integration_link(self.organization, "slack"),
@@ -254,11 +256,11 @@ class ActiveReleaseAlertNotification(AlertRuleNotification):
         ]
 
     @staticmethod
-    def release_url(self, release: Release) -> str:
+    def release_url(release: Release) -> str:
         params = {"project": release.project_id, "referrer": "alert_email_release"}
         url = "/organizations/{org}/releases/{version}/{params}".format(
             org=release.organization.slug,
-            version=release.version,
+            version={quote(release.version)},
             params="?" + urlencode(params),
         )
 
