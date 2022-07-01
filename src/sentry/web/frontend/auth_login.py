@@ -191,8 +191,8 @@ class AuthLoginView(BaseView):
                 "auth:login:username:{}".format(
                     md5_text(login_form.clean_username(request.POST["username"])).hexdigest()
                 ),
-                limit=10,
-                window=60,  # 10 per minute should be enough for anyone
+                limit=5,
+                window=60,  # 5 per minute should be enough for anyone
             ):
                 login_form.errors["__all__"] = [
                     "You have made too many login attempts. Please try again later."

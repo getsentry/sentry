@@ -25,9 +25,7 @@ from sentry.utils import metrics
 from sentry.utils.http import get_origins
 
 #: These features will be listed in the project config
-EXPOSABLE_FEATURES = [
-    "organizations:profiling",
-]
+EXPOSABLE_FEATURES = ["organizations:profiling", "organizations:session-replay"]
 
 logger = logging.getLogger(__name__)
 
@@ -415,6 +413,9 @@ ALL_MEASUREMENT_METRICS = frozenset(
     ]
 )
 
+#: The maximum number of custom measurements to be extracted from transactions.
+CUSTOM_MEASUREMENT_LIMIT = 5
+
 
 def get_transaction_metrics_settings(
     project: Project, breakdowns_config: Optional[Mapping[str, Any]]
@@ -455,4 +456,5 @@ def get_transaction_metrics_settings(
     return {
         "extractMetrics": metrics,
         "extractCustomTags": custom_tags,
+        "customMeasurements": {"limit": CUSTOM_MEASUREMENT_LIMIT},
     }

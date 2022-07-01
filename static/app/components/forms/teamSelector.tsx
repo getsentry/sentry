@@ -5,7 +5,10 @@ import debounce from 'lodash/debounce';
 
 import {addTeamToProject} from 'sentry/actionCreators/projects';
 import Button from 'sentry/components/button';
-import SelectControl, {ControlProps} from 'sentry/components/forms/selectControl';
+import SelectControl, {
+  ControlProps,
+  GeneralSelectValue,
+} from 'sentry/components/forms/selectControl';
 import IdBadge from 'sentry/components/idBadge';
 import Tooltip from 'sentry/components/tooltip';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
@@ -99,14 +102,9 @@ type TeamActor = {
   type: 'team';
 };
 
-type TeamOption = {
+type TeamOption = GeneralSelectValue & {
   actor: TeamActor | null;
-  label: React.ReactNode;
   searchKey: string;
-  value: string | null;
-  disabled?: boolean;
-  trailingItems?: React.ReactNode;
-  trailingItemsSpanFullHeight?: boolean;
 };
 
 function TeamSelector(props: Props) {
@@ -121,7 +119,8 @@ function TeamSelector(props: Props) {
 
   const createTeamOption = (team: Team): TeamOption => ({
     value: useId ? team.id : team.slug,
-    label: multiple ? `#${team.slug}` : <IdBadge team={team} />,
+    label: `#${team.slug}`,
+    leadingItems: <IdBadge team={team} hideName />,
     searchKey: team.slug,
     actor: {
       type: 'team',
@@ -179,18 +178,8 @@ function TeamSelector(props: Props) {
     return {
       ...createTeamOption(team),
       disabled: true,
-      label: (
-        <TeamOutsideProject>
-          <DisabledLabel>
-            <Tooltip
-              position="left"
-              title={t('%s is not a member of project', `#${team.slug}`)}
-            >
-              <IdBadge team={team} />
-            </Tooltip>
-          </DisabledLabel>
-        </TeamOutsideProject>
-      ),
+      label: `#${team.slug}`,
+      leadingItems: <IdBadge team={team} hideName />,
       trailingItems: (
         <Tooltip
           title={
@@ -211,7 +200,7 @@ function TeamSelector(props: Props) {
           />
         </Tooltip>
       ),
-      trailingItemsSpanFullHeight: true,
+      tooltip: t('%s is not a member of project', `#${team.slug}`),
     };
   }
 
@@ -262,18 +251,6 @@ function TeamSelector(props: Props) {
     />
   );
 }
-
-const TeamOutsideProject = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-`;
-
-const DisabledLabel = styled('div')`
-  display: flex;
-  opacity: 0.5;
-  overflow: hidden; /* Needed so that "Add to team" button can fit */
-`;
 
 const AddToProjectButton = styled(Button)`
   flex-shrink: 0;

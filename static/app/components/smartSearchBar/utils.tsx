@@ -5,12 +5,19 @@ import {
   Token,
   TokenResult,
 } from 'sentry/components/searchSyntax/parser';
-import {IconClock, IconStar, IconTag, IconToggle, IconUser} from 'sentry/icons';
+import {
+  IconArrow,
+  IconClock,
+  IconDelete,
+  IconExclamation,
+  IconStar,
+  IconTag,
+  IconToggle,
+  IconUser,
+} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
-import HotkeysLabel from '../hotkeysLabel';
-
-import {ItemType, QuickAction, QuickActionType, SearchGroup, SearchItem} from './types';
+import {ItemType, SearchGroup, SearchItem, Shortcut, ShortcutType} from './types';
 
 export function addSpace(query = '') {
   if (query.length !== 0 && query[query.length - 1] !== ' ') {
@@ -236,7 +243,7 @@ export function getValidOps(
   // If the token is invalid we want to use the possible expected types as our filter type
   const validTypes = filterToken.invalid?.expectedType ?? [filterToken.filter];
 
-  // Determine any interchangable filter types for our valid types
+  // Determine any interchangeable filter types for our valid types
   const interchangeableTypes = validTypes.map(
     type => interchangeableFilterOperators[type] ?? []
   );
@@ -252,77 +259,53 @@ export function getValidOps(
   return [...validOps];
 }
 
-export const quickActions: QuickAction[] = [
+export const shortcuts: Shortcut[] = [
   {
     text: 'Delete',
-    actionType: QuickActionType.Delete,
+    shortcutType: ShortcutType.Delete,
     hotkeys: {
       actual: 'option+backspace',
       display: 'option+backspace',
     },
-    canRunAction: tok => {
+    icon: <IconDelete size="xs" color="gray300" />,
+    canRunShortcut: tok => {
       return tok?.type === Token.Filter;
     },
   },
   {
-    text: 'Negate',
-    actionType: QuickActionType.Negate,
+    text: 'Exclude',
+    shortcutType: ShortcutType.Negate,
     hotkeys: {
-      actual: ['option+1', 'cmd+1'],
+      actual: ['option+1'],
       display: 'option+!',
     },
-    canRunAction: tok => {
+    icon: <IconExclamation size="xs" color="gray300" />,
+    canRunShortcut: tok => {
       return tok?.type === Token.Filter;
     },
   },
   {
-    text: 'Previous Token',
-    actionType: QuickActionType.Previous,
+    text: 'Previous',
+    shortcutType: ShortcutType.Previous,
     hotkeys: {
       actual: ['option+left'],
       display: 'option+left',
     },
-    canRunAction: (tok, count) => {
-      return count > 1 || tok?.type !== Token.Filter;
+    icon: <IconArrow direction="left" size="xs" color="gray300" />,
+    canRunShortcut: (tok, count) => {
+      return count > 1 || (count > 0 && tok?.type !== Token.Filter);
     },
   },
   {
-    text: 'Next Token',
-    actionType: QuickActionType.Next,
+    text: 'Next',
+    shortcutType: ShortcutType.Next,
     hotkeys: {
       actual: ['option+right'],
       display: 'option+right',
     },
-    canRunAction: (tok, count) => {
-      return count > 1 || tok?.type !== Token.Filter;
+    icon: <IconArrow direction="right" size="xs" color="gray300" />,
+    canRunShortcut: (tok, count) => {
+      return count > 1 || (count > 0 && tok?.type !== Token.Filter);
     },
   },
 ];
-
-export function getQuickActionsSearchGroup(
-  runTokenActionOnCursorToken: (action: QuickAction) => void,
-  filterTokenCount: number,
-  activeToken?: TokenResult<any>
-): {searchGroup: SearchGroup; searchItems: SearchItem[]} | undefined {
-  const searchItems = quickActions
-    .filter(
-      action => !action.canRunAction || action.canRunAction(activeToken, filterTokenCount)
-    )
-    .map(action => ({
-      title: action.text,
-      callback: () => runTokenActionOnCursorToken(action),
-      documentation: action.hotkeys && <HotkeysLabel value={action.hotkeys.display} />,
-    }));
-
-  return searchItems.length > 0 && filterTokenCount > 0
-    ? {
-        searchGroup: {
-          title: t('Quick Actions'),
-          type: 'header',
-          icon: <IconStar size="xs" />,
-          children: searchItems,
-        },
-        searchItems,
-      }
-    : undefined;
-}

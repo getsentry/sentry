@@ -1,3 +1,5 @@
+from selenium.webdriver.common.by import By
+
 from sentry.testutils import AcceptanceTestCase
 
 
@@ -7,9 +9,11 @@ class AuthTest(AcceptanceTestCase):
         self.browser.driver.execute_script(
             "document.addEventListener('invalid', function(e) { e.preventDefault(); }, true);"
         )
-        self.browser.find_element_by_id("id_username").send_keys(username)
-        self.browser.find_element_by_id("id_password").send_keys(password)
-        self.browser.find_element_by_xpath("//button[contains(text(), 'Continue')]").click()
+        self.browser.find_element(by=By.ID, value="id_username").send_keys(username)
+        self.browser.find_element(by=By.ID, value="id_password").send_keys(password)
+        self.browser.find_element(
+            by=By.XPATH, value="//button[contains(text(), 'Continue')]"
+        ).click()
 
     def test_renders(self):
         self.browser.get("/auth/login/")

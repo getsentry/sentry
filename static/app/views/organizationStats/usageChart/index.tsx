@@ -18,7 +18,6 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {DataCategory, IntervalPeriod, SelectValue} from 'sentry/types';
 import {parsePeriodToHours, statsPeriodToDays} from 'sentry/utils/dates';
-import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import commonTheme, {Theme} from 'sentry/utils/theme';
 
@@ -39,21 +38,31 @@ const COLOR_ATTACHMENTS = Color(commonTheme.dataCategory.attachments)
 const COLOR_DROPPED = commonTheme.red300;
 const COLOR_FILTERED = commonTheme.pink100;
 
-export const CHART_OPTIONS_DATACATEGORY: SelectValue<DataCategory>[] = [
+export type CategoryOption = {
+  /**
+   * Scale of y-axis with no usage data.
+   */
+  yAxisMinInterval: number;
+} & SelectValue<DataCategory>;
+
+export const CHART_OPTIONS_DATACATEGORY: CategoryOption[] = [
   {
     label: DATA_CATEGORY_NAMES[DataCategory.ERRORS],
     value: DataCategory.ERRORS,
     disabled: false,
+    yAxisMinInterval: 100,
   },
   {
     label: DATA_CATEGORY_NAMES[DataCategory.TRANSACTIONS],
     value: DataCategory.TRANSACTIONS,
     disabled: false,
+    yAxisMinInterval: 100,
   },
   {
     label: DATA_CATEGORY_NAMES[DataCategory.ATTACHMENTS],
     value: DataCategory.ATTACHMENTS,
     disabled: false,
+    yAxisMinInterval: 0.5 * GIGABYTE,
   },
 ];
 
@@ -83,6 +92,10 @@ export enum SeriesTypes {
 }
 
 type DefaultProps = {
+  /**
+   * Config for category dropdown options
+   */
+  categoryOptions: CategoryOption[];
   /**
    * Modify the usageStats using the transformation method selected.
    * 1. This must be a pure function!
@@ -150,6 +163,7 @@ export type ChartStats = {
 
 export class UsageChart extends Component<Props, State> {
   static defaultProps: DefaultProps = {
+    categoryOptions: CHART_OPTIONS_DATACATEGORY,
     usageDateShowUtc: true,
     usageDateInterval: '1d',
     handleDataTransformation: (stats, transform) => {
@@ -229,7 +243,7 @@ export class UsageChart extends Component<Props, State> {
     yAxisFormatter: (val: number) => string;
     yAxisMinInterval: number;
   } {
-    const {usageDateStart, usageDateEnd} = this.props;
+    const {categoryOptions, usageDateStart, usageDateEnd} = this.props;
     const {
       usageDateInterval,
       usageStats,
@@ -239,9 +253,7 @@ export class UsageChart extends Component<Props, State> {
     } = this.props;
     const {xAxisDates} = this.state;
 
-    const selectDataCategory = CHART_OPTIONS_DATACATEGORY.find(
-      o => o.value === dataCategory
-    );
+    const selectDataCategory = categoryOptions.find(o => o.value === dataCategory);
     if (!selectDataCategory) {
       throw new Error('Selected item is not supported');
     }
@@ -276,20 +288,7 @@ export class UsageChart extends Component<Props, State> {
       dataPeriod / barPeriod
     );
 
-    const {label, value} = selectDataCategory;
-
-    if (value === DataCategory.ERRORS || value === DataCategory.TRANSACTIONS) {
-      return {
-        chartLabel: label,
-        chartData,
-        xAxisData: xAxisDates,
-        xAxisTickInterval,
-        xAxisLabelInterval,
-        yAxisMinInterval: 100,
-        yAxisFormatter: formatAbbreviatedNumber,
-        tooltipValueFormatter: getTooltipFormatter(dataCategory),
-      };
-    }
+    const {label, yAxisMinInterval} = selectDataCategory;
 
     return {
       chartLabel: label,
@@ -297,9 +296,9 @@ export class UsageChart extends Component<Props, State> {
       xAxisData: xAxisDates,
       xAxisTickInterval,
       xAxisLabelInterval,
-      yAxisMinInterval: 0.5 * GIGABYTE,
+      yAxisMinInterval,
       yAxisFormatter: (val: number) =>
-        formatUsageWithUnits(val, DataCategory.ATTACHMENTS, {
+        formatUsageWithUnits(val, dataCategory, {
           isAbbreviated: true,
           useUnitScaling: true,
         }),
@@ -436,7 +435,6 @@ export class UsageChart extends Component<Props, State> {
                 show: true,
                 type: 'category',
                 name: 'Date',
-                boundaryGap: true,
                 data: xAxisData,
                 axisTick: {
                   interval: xAxisTickInterval,

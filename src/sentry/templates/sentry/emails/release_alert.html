@@ -1,0 +1,120 @@
+{% extends "sentry/emails/base.html" %}
+
+{% load timezone from tz %}
+{% load sentry_avatars %}
+{% load sentry_helpers %}
+{% load sentry_features %}
+{% load sentry_assets %}
+{% load i18n static %}
+
+{% block head %}
+  {{ block.super }}
+  <style type="text/css" inline="false">
+    @media only screen and (max-device-width: 480px) {
+      /* Hide CTA in header on mobile */
+      .header-buttons .integration-link {
+        display: none !important;
+      }
+      .banner {
+        display: none !important;
+      }
+    }
+    @media only screen and (max-device-width: 768px) {
+      .text-desktop-only {
+        display: none !important;
+      }
+    }
+  </style>
+{% endblock %}
+
+{% block preheader %}
+  New issue detected in a release you contributed to.
+{% endblock %}
+
+{% block header %}
+  <div class="header-with-buttons">
+    {{ block.super }}
+    <div class="header-buttons">
+      <a href="{{ link }}" class="btn view-on-sentry">Open in Sentry</a>
+    </div>
+  </div>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="inner">
+    <div>
+      <h1 style="color:red;margin-bottom: 15px;font-weight:bold">
+        ACTIVE RELEASE NOTIFICATION EMAIL EXPERIMENT
+      </h1>
+      <h2 style="margin-bottom: 15px">
+        {{ event.title }}
+        <h5>
+          {{ project.slug }}{% if environment %} in {{ environment }}{% endif %}
+        </h5>
+      </h2>
+    </div>
+
+    {% if enhanced_privacy %}
+      <div class="event">
+        <div class="event-id">ID: {{ event.event_id }}</div>
+          {% if timezone %}
+            <div class="event-date">{{ event.datetime|timezone:timezone|date:"N j, Y, g:i:s a e"}}</div>
+          {% else %}
+            <div class="event-date">{{ event.datetime|date:"N j, Y, g:i:s a e"}}</div>
+          {% endif %}
+      </div>
+
+      <div class="notice">Details about this issue are not shown in this notification since enhanced privacy
+        controls are enabled. For more details about this issue, <a href="{{ link }}">view this issue on Sentry</a>.</div>
+    {% else %}
+      {% for commit in commits %}
+        <div class="committers">
+          <table class="table commit-table">
+            <tr>
+              <td style="padding:0;width:32px;">{% email_avatar commit.author.name commit.author.email 32 %}</td>
+              <td>
+                <h5 class="truncate">{{commit.author.name}} made a commit in release <a href="{{ last_release_link }}">{{ last_release.version }}</a>.</h5>
+                <div><small>{{ commit.subject }}</small></div>
+              </td>
+            </tr>
+          </table>
+        </div>
+      {% endfor %}
+
+      <div class="event">
+        <div class="event-id">ID: {{ event.event_id }}</div>
+        {% if timezone %}
+          <div class="event-date">{{ event.datetime|timezone:timezone|date:"N j, Y, g:i:s a e"}}</div>
+        {% else %}
+          <div class="event-date">{{ event.datetime|date:"N j, Y, g:i:s a e"}}</div>
+        {% endif %}
+      </div>
+
+      {% if interfaces.Stacktrace %}
+        <div class="interface">
+          <h3 class="title">Exception</h3>
+          {{ interfaces.Stacktrace.html }}
+        </div>
+      {% endif %}
+
+      {% if tags %}
+        <h3>Tags from Latest Event</h3>
+        <ul class="tag-list">
+        {% for tag_key, tag_value in tags %}
+          <li>
+              <strong>{{ tag_key|as_tag_alias }}</strong>
+              <em>=</em>
+              <span>
+              {% with query=tag_key|as_tag_alias|add:":\""|add:tag_value|add:"\""|urlencode %}
+                <a href="{% absolute_uri '/organizations/{}/issues/' group.project.organization.slug %}?project={{ group.project.id }}&query={{ query }}">{{ tag_value|truncatechars:50 }}</a> {% if tag_value|is_url %}<a href="{{ tag_value }}" class="icon-share"></a>{% endif %}
+              {% endwith %}
+              </span>
+          </li>
+        {% endfor %}
+        </ul>
+      {% endif %}
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

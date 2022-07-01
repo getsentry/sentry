@@ -1,6 +1,3 @@
-import {useEffect, useRef} from 'react';
-import {browserHistory} from 'react-router';
-
 import Feature from 'sentry/components/acl/feature';
 import Alert from 'sentry/components/alert';
 import {t} from 'sentry/locale';
@@ -10,30 +7,10 @@ import withOrganization from 'sentry/utils/withOrganization';
 
 type Props = {
   children: React.ReactChildren;
-  location: any;
   organization: Organization;
 };
 
-function DiscoverContainer({organization, children, location}: Props) {
-  const prevLocationPathname = useRef('');
-
-  useEffect(
-    // when new discover page loads, query is pristine
-    function () {
-      if (location.pathname !== prevLocationPathname.current) {
-        prevLocationPathname.current = location.pathname;
-        browserHistory.push({
-          pathname: location.pathname,
-          query: {
-            ...location.query,
-            userModified: undefined,
-          },
-        });
-      }
-    },
-    [location]
-  );
-
+function DiscoverContainer({organization, children}: Props) {
   function renderNoAccess() {
     return (
       <PageContent>

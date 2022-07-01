@@ -12,8 +12,6 @@ import EventView, {
 import {PerformanceEventViewContext} from 'sentry/utils/performance/contexts/performanceEventViewContext';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
-import {decodeScalar} from '../queryString';
-
 export class QueryError {
   message: string;
   private originalError: any; // For debugging in case parseError picks a value that doesn't make sense.
@@ -172,7 +170,7 @@ class _GenericDiscoverQuery<T, P> extends Component<Props<T, P>, State<T>> {
   }
 
   getPayload(props: Props<T, P>) {
-    const {cursor, limit, noPagination, referrer, location} = props;
+    const {cursor, limit, noPagination, referrer} = props;
     const payload = this.props.getRequestPayload
       ? this.props.getRequestPayload(props)
       : props.eventView.getEventsAPIPayload(props.location);
@@ -188,13 +186,6 @@ class _GenericDiscoverQuery<T, P> extends Component<Props<T, P>, State<T>> {
     }
     if (referrer) {
       payload.referrer = referrer;
-    }
-
-    if (['events', 'eventsv2'].includes(props.route)) {
-      const queryUserModified = decodeScalar(location.query?.userModified);
-      if (queryUserModified !== undefined) {
-        payload.user_modified = queryUserModified;
-      }
     }
 
     Object.assign(payload, props.queryExtras ?? {});
@@ -333,7 +324,7 @@ export function doDiscoverQuery<T>(
   api: Client,
   url: string,
   params: DiscoverQueryRequestParams
-): Promise<[T, string | undefined, ResponseMeta | undefined]> {
+): Promise<[T, string | undefined, ResponseMeta<T> | undefined]> {
   return api.requestPromise(url, {
     method: 'GET',
     includeAllArgs: true,

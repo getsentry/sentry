@@ -924,7 +924,7 @@ class DiscoverSourcemapTest(unittest.TestCase):
         result = http.UrlResult(
             "http://example.com", {}, b"//# sourceMappingURL=/*lol*/", 200, None
         )
-        with self.assertRaises(AssertionError):
+        with pytest.raises(AssertionError):
             discover_sourcemap(result)
 
 

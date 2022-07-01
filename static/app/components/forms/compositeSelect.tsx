@@ -19,7 +19,7 @@ type Section<OptionType> = {
    */
   options: OptionType[];
   /**
-   * Must be a unique indentifying key for the section. This value will be
+   * Must be a unique identifying key for the section. This value will be
    * used in the onChange return value. For example, if there are two
    * sections, "section1" and "section2", then the onChange callback will be
    * invoked as onChange({section1: [selected option values], section2:

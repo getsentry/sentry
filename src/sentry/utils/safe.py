@@ -8,7 +8,6 @@ from django.utils.encoding import force_text
 from django.utils.http import urlencode
 
 from sentry.utils import json
-from sentry.utils.compat import filter
 from sentry.utils.strings import truncatechars
 
 PathSearchable = Union[Mapping[str, Any], Sequence[Any]]
@@ -104,26 +103,6 @@ def trim(
     return object_hook(result)
 
 
-def trim_pairs(iterable, max_items=settings.SENTRY_MAX_DICTIONARY_ITEMS, **kwargs):
-    max_items -= 1
-    result = []
-    for idx, item in enumerate(iterable):
-        key, value = item
-        result.append((key, trim(value, **kwargs)))
-        if idx > max_items:
-            return result
-    return result
-
-
-def trim_dict(value, max_items=settings.SENTRY_MAX_DICTIONARY_ITEMS, **kwargs):
-    max_items -= 1
-    for idx, key in enumerate(list(iter(value))):
-        value[key] = trim(value[key], **kwargs)
-        if idx > max_items:
-            del value[key]
-    return value
-
-
 def get_path(data: PathSearchable, *path, **kwargs):
     """
     Safely resolves data from a recursive data structure. A value is only
@@ -149,7 +128,7 @@ def get_path(data: PathSearchable, *path, **kwargs):
             return default
 
     if f and data and isinstance(data, (list, tuple)):
-        data = filter((lambda x: x is not None) if f is True else f, data)
+        data = list(filter((lambda x: x is not None) if f is True else f, data))
 
     return data if data is not None else default
 

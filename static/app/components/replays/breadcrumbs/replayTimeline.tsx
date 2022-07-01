@@ -1,4 +1,3 @@
-import React from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -11,8 +10,8 @@ import {
 import ReplayTimelineEvents from 'sentry/components/replays/breadcrumbs/replayTimelineEvents';
 import ReplayTimelineSpans from 'sentry/components/replays/breadcrumbs/replayTimelineSpans';
 import Stacked from 'sentry/components/replays/breadcrumbs/stacked';
-import HorizontalMouseTracking from 'sentry/components/replays/player/horizontalMouseTracking';
 import {TimelineScubber} from 'sentry/components/replays/player/scrubber';
+import ScrubberMouseTracking from 'sentry/components/replays/player/scrubberMouseTracking';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {Resizeable} from 'sentry/components/replays/resizeable';
 import TimelinePosition from 'sentry/components/replays/timelinePosition';
@@ -29,12 +28,13 @@ const USER_ACTIONS = [
 
 function ReplayTimeline({}: Props) {
   const theme = useTheme();
-  const {currentHoverTime, currentTime, duration, replay} = useReplayContext();
+  const {currentHoverTime, currentTime, duration = 0, replay} = useReplayContext();
 
   if (!replay) {
     return <Placeholder height="86px" bottomGutter={2} />;
   }
 
+  const {startTimestamp} = replay.getEvent();
   const crumbs = replay.getRawCrumbs() || [];
   const spans = replay.getRawSpans() || [];
   const userCrumbs = crumbs.filter(crumb => USER_ACTIONS.includes(crumb.type));
@@ -43,51 +43,51 @@ function ReplayTimeline({}: Props) {
 
   return (
     <Panel>
-      <HorizontalMouseTracking>
+      <ScrubberMouseTracking>
         <Resizeable>
           {({width}) => (
             <Stacked>
-              <MinorGridlines duration={duration || 0} width={width} />
-              <MajorGridlines duration={duration || 0} width={width} />
-              <StackedUnderTimestamp>
+              <MinorGridlines duration={duration} width={width} />
+              <MajorGridlines duration={duration} width={width} />
+              <TimelineScubber />
+              <UnderTimestamp paddingTop="52px">
+                <ReplayTimelineSpans
+                  duration={duration}
+                  spans={networkSpans}
+                  startTimestamp={startTimestamp}
+                />
+              </UnderTimestamp>
+              <TimelinePosition
+                color={theme.purple300}
+                currentTime={currentTime}
+                duration={duration}
+              />
+              {currentHoverTime ? (
                 <TimelinePosition
-                  color={theme.purple300}
-                  currentTime={currentTime}
+                  color={theme.purple200}
+                  currentTime={currentHoverTime}
                   duration={duration}
                 />
-                {currentHoverTime ? (
-                  <TimelinePosition
-                    color={theme.purple200}
-                    currentTime={currentHoverTime}
-                    duration={duration}
-                  />
-                ) : null}
-                <div>
-                  <TimelineScubber />
-                  <ReplayTimelineEvents
-                    crumbs={userCrumbs}
-                    duration={duration || 0}
-                    startTimestamp={replay.getEvent().startTimestamp}
-                    width={width}
-                  />
-                  <ReplayTimelineSpans
-                    duration={duration || 0}
-                    spans={networkSpans}
-                    startTimestamp={replay.getEvent().startTimestamp}
-                  />
-                </div>
-              </StackedUnderTimestamp>
+              ) : null}
+              <UnderTimestamp paddingTop="24px">
+                <ReplayTimelineEvents
+                  crumbs={userCrumbs}
+                  duration={duration}
+                  startTimestamp={startTimestamp}
+                  width={width}
+                />
+              </UnderTimestamp>
             </Stacked>
           )}
         </Resizeable>
-      </HorizontalMouseTracking>
+      </ScrubberMouseTracking>
     </Panel>
   );
 }
 
-const StackedUnderTimestamp = styled(Stacked)`
+const UnderTimestamp = styled('div')<{paddingTop: string}>`
   /* Weird size to put equal space above/below a <small> node that MajorGridlines emits */
-  padding-top: 24px;
+  padding-top: ${p => p.paddingTop};
 `;
 
 export default ReplayTimeline;

@@ -15,10 +15,11 @@ import {TagValueLoader} from '../issueList/types';
 type Props = {
   onSearch: (q: string) => void;
   query: string;
+  relativeDateOptions: React.ComponentProps<typeof DatePageFilter>['relativeOptions'];
   tagValueLoader: TagValueLoader;
 };
 
-function ProjectFilters({query, tagValueLoader, onSearch}: Props) {
+function ProjectFilters({query, relativeDateOptions, tagValueLoader, onSearch}: Props) {
   const getTagValues = async (tag: Tag, currentQuery: string): Promise<string[]> => {
     const values = await tagValueLoader(tag.key, currentQuery);
     return values.map(({value}) => value);
@@ -28,14 +29,13 @@ function ProjectFilters({query, tagValueLoader, onSearch}: Props) {
     <FiltersWrapper>
       <PageFilterBar>
         <EnvironmentPageFilter />
-        <DatePageFilter alignDropdown="left" />
+        <DatePageFilter relativeOptions={relativeDateOptions} alignDropdown="left" />
       </PageFilterBar>
       <GuideAnchor target="releases_search" position="bottom">
         <SmartSearchBar
           searchSource="project_filters"
           query={query}
           placeholder={t('Search by release version, build, package, or stage')}
-          maxSearchItems={5}
           hasRecentSearches={false}
           supportedTags={{
             ...SEMVER_TAGS,
@@ -44,6 +44,7 @@ function ProjectFilters({query, tagValueLoader, onSearch}: Props) {
               name: 'release',
             },
           }}
+          maxMenuHeight={500}
           onSearch={onSearch}
           onGetTagValues={getTagValues}
         />
@@ -57,7 +58,7 @@ const FiltersWrapper = styled('div')`
   grid-template-columns: minmax(0, max-content) 1fr;
   gap: ${space(2)};
 
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: minmax(0, 1fr);
   }
 `;

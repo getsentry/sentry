@@ -54,11 +54,13 @@ import {
   getWidgetDiscoverUrl,
   getWidgetIssueUrl,
   getWidgetReleasesUrl,
+  isCustomMeasurementWidget,
 } from 'sentry/views/dashboardsV2/utils';
 import WidgetCardChart, {
   AugmentedEChartDataZoomHandler,
   SLIDER_HEIGHT,
 } from 'sentry/views/dashboardsV2/widgetCard/chart';
+import {GenericWidgetQueriesChildrenProps} from 'sentry/views/dashboardsV2/widgetCard/genericWidgetQueries';
 import IssueWidgetQueries from 'sentry/views/dashboardsV2/widgetCard/issueWidgetQueries';
 import ReleaseWidgetQueries from 'sentry/views/dashboardsV2/widgetCard/releaseWidgetQueries';
 import {WidgetCardChartContainer} from 'sentry/views/dashboardsV2/widgetCard/widgetCardChartContainer';
@@ -258,7 +260,7 @@ function WidgetViewerModal(props: Props) {
     : [...columns, ...aggregates];
 
   // Some Discover Widgets (Line, Area, Bar) allow the user to specify an orderby
-  // that is not explicitly selected as an aggregate or column. We need to explictly
+  // that is not explicitly selected as an aggregate or column. We need to explicitly
   // include the orderby in the table widget aggregates and columns otherwise
   // eventsv2 will complain about sorting on an unselected field.
   if (
@@ -438,11 +440,11 @@ function WidgetViewerModal(props: Props) {
     });
   }
 
-  const renderDiscoverTable: WidgetQueries['props']['children'] = ({
+  const renderDiscoverTable = ({
     tableResults,
     loading,
     pageLinks,
-  }) => {
+  }: GenericWidgetQueriesChildrenProps) => {
     const links = parseLinkHeader(pageLinks ?? null);
     const isFirstPage = links.previous?.results === false;
     return (
@@ -733,7 +735,6 @@ function WidgetViewerModal(props: Props) {
                 ? FULL_TABLE_ITEM_LIMIT
                 : HALF_TABLE_ITEM_LIMIT
             }
-            includeAllArgs
             cursor={cursor}
           >
             {renderReleaseTable}
@@ -980,6 +981,7 @@ function WidgetViewerModal(props: Props) {
                 to={path}
                 priority="primary"
                 type="button"
+                disabled={isCustomMeasurementWidget(widget)}
                 onClick={() => {
                   trackAdvancedAnalyticsEvent(
                     'dashboards_views.widget_viewer.open_source',
@@ -1066,7 +1068,7 @@ const ResultsContainer = styled('div')`
   flex-direction: column;
   gap: ${space(1)};
 
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     align-items: center;
     flex-direction: row;
     justify-content: space-between;

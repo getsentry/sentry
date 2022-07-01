@@ -16,10 +16,10 @@ import useFullscreen from 'sentry/utils/replays/hooks/useFullscreen';
 import useReplayData from 'sentry/utils/replays/hooks/useReplayData';
 import {useRouteContext} from 'sentry/utils/useRouteContext';
 
+import AsideTabs from './detail/asideTabs';
 import DetailLayout from './detail/detailLayout';
 import FocusArea from './detail/focusArea';
 import FocusTabs from './detail/focusTabs';
-import UserActionsNavigator from './detail/userActionsNavigator';
 
 function ReplayDetails() {
   const {
@@ -52,7 +52,7 @@ function ReplayDetails() {
 
   if (!fetching && replay && replay.getRRWebEvents().length < 2) {
     return (
-      <DetailLayout event={replay.getEvent()} orgId={orgId}>
+      <DetailLayout orgId={orgId}>
         <DetailedError
           onRetry={onRetry}
           hideSupportLinks
@@ -74,35 +74,28 @@ function ReplayDetails() {
 
   return (
     <ReplayContextProvider replay={replay} initialTimeOffset={initialTimeOffset}>
-      <DetailLayout
-        event={replay?.getEvent()}
-        orgId={orgId}
-        crumbs={replay?.getRawCrumbs()}
-      >
+      <DetailLayout orgId={orgId}>
         <Layout.Body>
           <Layout.Main ref={fullscreenRef}>
             <ReplayView toggleFullscreen={toggleFullscreen} isFullscreen={isFullscreen} />
           </Layout.Main>
 
           <Layout.Side>
-            <ErrorBoundary>
-              <UserActionsNavigator
-                crumbs={replay?.getRawCrumbs()}
-                event={replay?.getEvent()}
-              />
+            <ErrorBoundary mini>
+              <AsideTabs replay={replay} />
             </ErrorBoundary>
           </Layout.Side>
 
           <StickyMain fullWidth>
-            <ErrorBoundary>
+            <ErrorBoundary mini>
               <ReplayTimeline />
             </ErrorBoundary>
             <FocusTabs />
           </StickyMain>
 
           <StyledLayoutMain fullWidth>
-            <ErrorBoundary>
-              <FocusArea replay={replay} />
+            <ErrorBoundary mini>
+              <FocusArea />
             </ErrorBoundary>
           </StyledLayoutMain>
         </Layout.Body>

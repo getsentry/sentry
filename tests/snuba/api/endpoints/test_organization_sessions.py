@@ -58,11 +58,13 @@ def make_duration(kwargs):
 
 def make_session(project, **kwargs):
     return dict(
-        TEMPLATE,
-        session_id=uuid4().hex,
-        org_id=project.organization_id,
-        project_id=project.id,
-        duration=make_duration(kwargs),
+        dict(
+            TEMPLATE,
+            session_id=uuid4().hex,
+            org_id=project.organization_id,
+            project_id=project.id,
+            duration=make_duration(kwargs),
+        ),
         **kwargs,
     )
 
@@ -133,16 +135,16 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         assert response.data == {"detail": "You do not have permission to perform this action."}
 
     def test_unknown_field(self):
-        response = self.do_request({"field": ["summ(sessin)"]})
+        response = self.do_request({"field": ["summ(session)"]})
 
         assert response.status_code == 400, response.content
-        assert response.data == {"detail": 'Invalid field: "summ(sessin)"'}
+        assert response.data == {"detail": 'Invalid field: "summ(session)"'}
 
     def test_unknown_groupby(self):
-        response = self.do_request({"field": ["sum(session)"], "groupBy": ["envriomnent"]})
+        response = self.do_request({"field": ["sum(session)"], "groupBy": ["environment_"]})
 
         assert response.status_code == 400, response.content
-        assert response.data == {"detail": 'Invalid groupBy: "envriomnent"'}
+        assert response.data == {"detail": 'Invalid groupBy: "environment_"'}
 
     def test_illegal_groupby(self):
         response = self.do_request({"field": ["sum(session)"], "groupBy": ["issue.id"]})
@@ -691,6 +693,106 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         "p95(session.duration)": 75800.0,
         "p99(session.duration)": 79159.99999999999,
     }
+
+    @freeze_time(MOCK_DATETIME)
+    def test_users_groupby_status_advanced(self):
+        project = self.create_project()
+
+        user1 = uuid4().hex
+        session1 = uuid4().hex
+
+        user2 = uuid4().hex
+        session2a = uuid4().hex
+        session2b = uuid4().hex
+
+        user3 = uuid4().hex
+        session3 = uuid4().hex
+
+        self.store_session(
+            make_session(project, session_id=session1, distinct_id=user1, status="ok")
+        )
+        self.store_session(
+            make_session(
+                project, session_id=session1, distinct_id=user1, seq=1, errors=1, status="errored"
+            )
+        )
+        self.store_session(
+            make_session(project, session_id=session1, distinct_id=user1, seq=2, status="crashed")
+        )
+
+        self.store_session(
+            make_session(project, session_id=session2a, distinct_id=user2, status="ok")
+        )
+        self.store_session(
+            make_session(project, session_id=session2b, distinct_id=user2, status="ok")
+        )
+        self.store_session(
+            make_session(project, session_id=session2b, distinct_id=user2, status="abnormal")
+        )
+
+        self.store_session(
+            make_session(
+                project, session_id=session3, distinct_id=user3, errors=123, status="errored"
+            )
+        )
+
+        # Add some extra healthy users:
+        for _ in range(3):
+            user = uuid4().hex
+            self.store_session(make_session(project, distinct_id=user))
+
+        # First, check if totals make sense:
+        response = self.do_request(
+            {
+                "project": [project.id],
+                "statsPeriod": "1d",
+                "interval": "1d",
+                "field": ["count_unique(user)"],
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert result_sorted(response.data)["groups"] == [
+            {
+                "by": {},
+                "series": {"count_unique(user)": [6]},
+                "totals": {"count_unique(user)": 6},
+            },
+        ]
+
+        # Then check if grouping makes sense:
+        response = self.do_request(
+            {
+                "project": [project.id],
+                "statsPeriod": "1d",
+                "interval": "1d",
+                "field": ["count_unique(user)"],
+                "groupBy": ["session.status"],
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert result_sorted(response.data)["groups"] == [
+            {
+                "by": {"session.status": "abnormal"},
+                "series": {"count_unique(user)": [1]},
+                "totals": {"count_unique(user)": 1},
+            },
+            {
+                "by": {"session.status": "crashed"},
+                "series": {"count_unique(user)": [1]},
+                "totals": {"count_unique(user)": 1},
+            },
+            {
+                "by": {"session.status": "errored"},
+                "series": {"count_unique(user)": [1]},
+                "totals": {"count_unique(user)": 1},
+            },
+            {
+                # user
+                "by": {"session.status": "healthy"},
+                "series": {"count_unique(user)": [3]},
+                "totals": {"count_unique(user)": 3},
+            },
+        ]
 
     @freeze_time(MOCK_DATETIME)
     def test_duration_percentiles(self):

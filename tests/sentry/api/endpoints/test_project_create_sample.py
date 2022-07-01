@@ -118,3 +118,14 @@ class ProjectCreateSampleTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert "groupID" in json.loads(response.content)
+
+    def test_attempted_path_traversal_returns_400(self):
+        project = self.create_project(teams=[self.team], name="foo", platform="../../../etc/passwd")
+
+        url = reverse(
+            "sentry-api-0-project-create-sample",
+            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+        )
+
+        response = self.client.post(url, format="json")
+        assert response.status_code == 400

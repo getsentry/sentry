@@ -233,7 +233,7 @@ export class OrganizationStats extends Component<Props> {
         <DropdownDataCategory
           label={
             <DropdownLabel>
-              <span>{t('Event Type: ')}</span>
+              <span>{t('Category: ')}</span>
               <span>{this.dataCategoryName}</span>
             </DropdownLabel>
           }
@@ -284,7 +284,7 @@ export class OrganizationStats extends Component<Props> {
                   </PageHeader>
                   <p>
                     {t(
-                      'We collect usage metrics on three types of events: errors, transactions, and attachments. The charts below reflect events that Sentry has received across your entire organization. You can also find them broken down by project in the table.'
+                      'We collect usage metrics on three categories: errors, transactions, and attachments. The charts below reflect data that Sentry has received across your entire organization. You can also find them broken down by project in the table.'
                     )}
                   </p>
                 </Fragment>
@@ -333,10 +333,10 @@ const PageGrid = styled('div')`
   grid-template-columns: 1fr;
   gap: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: repeat(2, 1fr);
   }
-  @media (min-width: ${p => p.theme.breakpoints[2]}) {
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
     grid-template-columns: repeat(4, 1fr);
   }
 `;
@@ -358,10 +358,10 @@ const DropdownDataCategory = styled(DropdownControl)`
     }
   }
 
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     grid-column: auto / span 2;
   }
-  @media (min-width: ${p => p.theme.breakpoints[2]}) {
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
     grid-column: auto / span 1;
   }
 `;
@@ -370,10 +370,10 @@ const StyledPageTimeRangeSelector = styled(PageTimeRangeSelector)`
   grid-column: auto / span 1;
   z-index: ${p => p.theme.zIndex.orgStats.timeRange};
 
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     grid-column: auto / span 2;
   }
-  @media (min-width: ${p => p.theme.breakpoints[2]}) {
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
     grid-column: auto / span 3;
   }
 `;
@@ -389,7 +389,7 @@ const DropdownLabel = styled('span')`
 `;
 
 const Body = styled(Layout.Body)`
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
     display: block;
   }
 `;

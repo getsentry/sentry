@@ -17,7 +17,6 @@ import {formatAddress, parseAddress} from 'sentry/components/events/interfaces/u
 import AnnotatedText from 'sentry/components/events/meta/annotatedText';
 import {getMeta} from 'sentry/components/events/meta/metaProxy';
 import {TraceEventDataSectionContext} from 'sentry/components/events/traceEventDataSection';
-import {DisplayOption} from 'sentry/components/events/traceEventDataSection/displayOptions';
 import {STACKTRACE_PREVIEW_TOOLTIP_DELAY} from 'sentry/components/stacktracePreview';
 import StrictClick from 'sentry/components/strictClick';
 import Tooltip from 'sentry/components/tooltip';
@@ -79,21 +78,16 @@ function NativeFrame({
 }: Props) {
   const traceEventDataSectionContext = useContext(TraceEventDataSectionContext);
 
-  const absolute = traceEventDataSectionContext?.activeDisplayOptions.includes(
-    DisplayOption.ABSOLUTE_ADDRESSES
+  const absolute = traceEventDataSectionContext?.display.includes('absolute-addresses');
+
+  const fullStackTrace = traceEventDataSectionContext?.fullStackTrace;
+
+  const fullFunctionName = traceEventDataSectionContext?.display.includes(
+    'verbose-function-names'
   );
 
-  const fullStackTrace = traceEventDataSectionContext?.activeDisplayOptions.includes(
-    DisplayOption.FULL_STACK_TRACE
-  );
-
-  const fullFunctionName = traceEventDataSectionContext?.activeDisplayOptions.includes(
-    DisplayOption.VERBOSE_FUNCTION_NAMES
-  );
-
-  const absoluteFilePaths = traceEventDataSectionContext?.activeDisplayOptions.includes(
-    DisplayOption.ABSOLUTE_FILE_PATHS
-  );
+  const absoluteFilePaths =
+    traceEventDataSectionContext?.display.includes('absolute-file-paths');
 
   const tooltipDelay = isHoverPreviewed ? STACKTRACE_PREVIEW_TOOLTIP_DELAY : undefined;
   const foundByStackScanning = frame.trust === 'scan' || frame.trust === 'cfi-scan';
@@ -372,7 +366,7 @@ const Cell = styled('div')`
 `;
 
 const StatusCell = styled(Cell)`
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     grid-column: 1/1;
     grid-row: 1/1;
   }
@@ -380,7 +374,7 @@ const StatusCell = styled(Cell)`
 
 const PackageCell = styled(Cell)`
   color: ${p => p.theme.subText};
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     grid-column: 2/2;
     grid-row: 1/1;
     display: grid;
@@ -391,14 +385,14 @@ const PackageCell = styled(Cell)`
 
 const AddressCell = styled(Cell)`
   font-family: ${p => p.theme.text.familyMono};
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     grid-column: 3/3;
     grid-row: 1/1;
   }
 `;
 
 const GroupingCell = styled(Cell)`
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     grid-column: 1/1;
     grid-row: 2/2;
   }
@@ -406,7 +400,7 @@ const GroupingCell = styled(Cell)`
 
 const FunctionNameCell = styled(Cell)`
   color: ${p => p.theme.textColor};
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     grid-column: 2/-1;
     grid-row: 2/2;
   }
@@ -477,7 +471,7 @@ const GridRow = styled('div')<{expandable: boolean; expanded: boolean; inApp: bo
   grid-template-columns: 24px 132px 138px 24px 1fr 24px;
   grid-template-rows: 1fr;
 
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: 24px auto minmax(138px, 1fr) 24px;
     grid-template-rows: repeat(2, auto);
   }

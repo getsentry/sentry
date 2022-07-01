@@ -43,10 +43,6 @@ from sentry.utils.dates import outside_retention_with_modified_start, to_timesta
 
 logger = logging.getLogger(__name__)
 
-# TODO remove this when Snuba accepts more than 500 issues
-MAX_ISSUES = 500
-MAX_HASHES = 5000
-
 # We limit the number of fields an user can ask for
 # in a single query to lessen the load on snuba
 MAX_FIELDS = 20
@@ -72,6 +68,8 @@ OVERRIDE_OPTIONS = {
 
 # Show the snuba query params and the corresponding sql or errors in the server logs
 SNUBA_INFO = os.environ.get("SENTRY_SNUBA_INFO", "false").lower() in ("true", "1")
+if SNUBA_INFO:
+    import sqlparse
 
 # There are several cases here where we support both a top level column name and
 # a tag with the same name. Existing search patterns expect to refer to the tag,
@@ -86,7 +84,16 @@ TRANSACTIONS_SNUBA_MAP = {
     if col.value.transaction_name is not None
 }
 
-SESSIONS_FIELD_LIST = ["release", "sessions", "sessions_crashed", "users", "users_crashed"]
+SESSIONS_FIELD_LIST = [
+    "release",
+    "sessions",
+    "sessions_crashed",
+    "users",
+    "users_crashed",
+    "project_id",
+    "org_id",
+    "environment",
+]
 
 SESSIONS_SNUBA_MAP = {column: column for column in SESSIONS_FIELD_LIST}
 
@@ -335,7 +342,7 @@ _snuba_pool = connection_from_url(
         # automatically retry most requests. Some of our POSTs and all of our DELETEs
         # do cause mutations, but we have other things in place to handle duplicate
         # mutations.
-        method_whitelist={"GET", "POST", "DELETE"},
+        allowed_methods={"GET", "POST", "DELETE"},
     ),
     timeout=settings.SENTRY_SNUBA_TIMEOUT,
     maxsize=10,
@@ -826,11 +833,14 @@ def _bulk_snuba_query(
             body = json.loads(response.data)
             if SNUBA_INFO:
                 if "sql" in body:
-                    logger.info(
-                        "{}.sql: {}".format(headers.get("referer", "<unknown>"), body["sql"])
+                    print(  # NOQA: only prints when an env variable is set
+                        "{}.sql:\n {}".format(
+                            headers.get("referer", "<unknown>"),
+                            sqlparse.format(body["sql"], reindent_aligned=True),
+                        )
                     )
                 if "error" in body:
-                    logger.info(
+                    print(  # NOQA: only prints when an env variable is set
                         "{}.err: {}".format(headers.get("referer", "<unknown>"), body["error"])
                     )
         except ValueError:
@@ -899,7 +909,11 @@ def _raw_snql_query(
     with thread_hub, timer("snql_query"):
         referrer = headers.get("referer", "<unknown>")
         if SNUBA_INFO:
-            logger.info(f"{referrer}.body: {request}")
+            import pprint
+
+            print(  # NOQA: only prints when an env variable is set
+                f"{referrer}.body:\n {pprint.pformat(request.to_dict())}"
+            )
             request.flags.debug = True
 
         with thread_hub.start_span(op="snuba_snql.validation", description=referrer) as span:
@@ -1183,109 +1197,6 @@ def resolve_complex_column(col, resolve_func, ignored):
             resolve_complex_column(args[i], resolve_func, ignored)
         elif isinstance(args[i], str) and args[i] not in ignored:
             args[i] = resolve_func(args[i])
-
-
-def resolve_snuba_aliases(snuba_filter, resolve_func, function_translations=None):
-    resolved = snuba_filter.clone()
-    translated_columns = {}
-    derived_columns = set()
-    aggregations = resolved.aggregations
-
-    if function_translations:
-        for snuba_name, sentry_name in function_translations.items():
-            derived_columns.add(snuba_name)
-            translated_columns[snuba_name] = sentry_name
-
-    selected_columns = resolved.selected_columns
-    aggregation_aliases = [aggregation[-1] for aggregation in aggregations]
-    if selected_columns:
-        for (idx, col) in enumerate(selected_columns):
-            if isinstance(col, (list, tuple)):
-                if len(col) == 3:
-                    # Add the name from columns, and remove project backticks so its not treated as a new col
-                    derived_columns.add(col[2].strip("`"))
-                # Equations use aggregation aliases as arguments, and we don't want those resolved since they'll resolve
-                # as tags instead
-                resolve_complex_column(col, resolve_func, aggregation_aliases)
-            else:
-                name = resolve_func(col)
-                selected_columns[idx] = name
-                translated_columns[name] = col
-
-        resolved.selected_columns = selected_columns
-
-    groupby = resolved.groupby
-    if groupby:
-        for (idx, col) in enumerate(groupby):
-            name = col
-            if isinstance(col, (list, tuple)):
-                if len(col) == 3:
-                    name = col[2]
-            elif col not in derived_columns:
-                name = resolve_func(col)
-
-            groupby[idx] = name
-        resolved.groupby = groupby
-
-    # need to get derived_columns first, so that they don't get resolved as functions
-    derived_columns = derived_columns.union([aggregation[2] for aggregation in aggregations])
-    for aggregation in aggregations or []:
-        if isinstance(aggregation[1], str):
-            aggregation[1] = resolve_func(aggregation[1])
-        elif isinstance(aggregation[1], (set, tuple, list)):
-            formatted = []
-            for argument in aggregation[1]:
-                # The aggregation has another function call as its parameter
-                func_index = get_function_index(argument)
-                if func_index is not None:
-                    # Resolve the columns on the nested function, and add a wrapping
-                    # list to become a valid query expression.
-                    resolved_args = []
-                    for col in argument[1]:
-                        if col is None or isinstance(col, float):
-                            resolved_args.append(col)
-                        elif isinstance(col, list):
-                            resolve_complex_column(col, resolve_func, aggregation_aliases)
-                            resolved_args.append(col)
-                        else:
-                            resolved_args.append(resolve_func(col))
-                    formatted.append([argument[0], resolved_args])
-                else:
-                    # Parameter is a list of fields.
-                    formatted.append(
-                        resolve_func(argument)
-                        if not isinstance(argument, (set, tuple, list))
-                        and argument not in derived_columns
-                        else argument
-                    )
-            aggregation[1] = formatted
-    resolved.aggregations = aggregations
-
-    conditions = resolved.conditions
-    if conditions:
-        for (i, condition) in enumerate(conditions):
-            replacement = resolve_condition(condition, resolve_func)
-            conditions[i] = replacement
-        resolved.conditions = [c for c in conditions if c]
-
-    orderby = resolved.orderby
-    if orderby:
-        orderby = orderby if isinstance(orderby, (list, tuple)) else [orderby]
-        resolved_orderby = []
-
-        for field_with_order in orderby:
-            if isinstance(field_with_order, str):
-                field = field_with_order.lstrip("-")
-                resolved_orderby.append(
-                    "{}{}".format(
-                        "-" if field_with_order.startswith("-") else "",
-                        field if field in derived_columns else resolve_func(field),
-                    )
-                )
-            else:
-                resolved_orderby.append(field_with_order)
-        resolved.orderby = resolved_orderby
-    return resolved, translated_columns
 
 
 JSON_TYPE_MAP = {

@@ -1,3 +1,5 @@
+import pytest
+
 __all__ = ["ReleaseHook"]
 
 from sentry.exceptions import HookValidationError
@@ -23,33 +25,33 @@ class StartReleaseTest(TestCase):
         hook = ReleaseHook(project)
 
         version = ""
-        with self.assertRaises(HookValidationError):
+        with pytest.raises(HookValidationError):
             hook.start_release(version)
 
-        with self.assertRaises(HookValidationError):
+        with pytest.raises(HookValidationError):
             hook.finish_release(version)
 
-        with self.assertRaises(HookValidationError):
+        with pytest.raises(HookValidationError):
             hook.set_commits(version, [])
 
         version = "."
-        with self.assertRaises(HookValidationError):
+        with pytest.raises(HookValidationError):
             hook.start_release(version)
 
-        with self.assertRaises(HookValidationError):
+        with pytest.raises(HookValidationError):
             hook.finish_release(version)
 
-        with self.assertRaises(HookValidationError):
+        with pytest.raises(HookValidationError):
             hook.set_commits(version, [])
 
         version = ".."
-        with self.assertRaises(HookValidationError):
+        with pytest.raises(HookValidationError):
             hook.start_release(version)
 
-        with self.assertRaises(HookValidationError):
+        with pytest.raises(HookValidationError):
             hook.finish_release(version)
 
-        with self.assertRaises(HookValidationError):
+        with pytest.raises(HookValidationError):
             hook.set_commits(version, [])
 
     def test_update_release(self):

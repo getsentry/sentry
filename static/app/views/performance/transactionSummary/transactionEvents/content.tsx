@@ -5,15 +5,16 @@ import omit from 'lodash/omit';
 
 import Button from 'sentry/components/button';
 import DatePageFilter from 'sentry/components/datePageFilter';
-import DropdownControl, {DropdownItem} from 'sentry/components/dropdownControl';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import SearchBar from 'sentry/components/events/searchBar';
+import CompactSelect from 'sentry/components/forms/compactSelect';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
 import {WebVital} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -33,6 +34,7 @@ type Props = {
   organization: Organization;
   setError: SetStateAction<string | undefined>;
   spanOperationBreakdownFilter: SpanOperationBreakdownFilter;
+  totalEventCount: string;
   transactionName: string;
   percentileValues?: Record<EventsDisplayFilterName, number>;
   webVital?: WebVital;
@@ -56,6 +58,7 @@ function EventsContent(props: Props) {
     spanOperationBreakdownFilter,
     webVital,
     setError,
+    totalEventCount,
   } = props;
 
   const eventView = originalEventView.clone();
@@ -79,6 +82,7 @@ function EventsContent(props: Props) {
     <Layout.Main fullWidth>
       <Search {...props} />
       <EventsTable
+        totalEventCount={totalEventCount}
         eventView={eventView}
         organization={organization}
         location={location}
@@ -113,10 +117,7 @@ function Search(props: Props) {
 
     browserHistory.push({
       pathname: location.pathname,
-      query: {
-        ...searchQueryParams,
-        userModified: true,
-      },
+      query: searchQueryParams,
     });
   };
 
@@ -126,6 +127,12 @@ function Search(props: Props) {
     spanOperationBreakdownFilter,
     percentileValues
   );
+
+  const handleDiscoverButtonClick = () => {
+    trackAdvancedAnalyticsEvent('performance_views.all_events.open_in_discover', {
+      organization,
+    });
+  };
 
   return (
     <FilterActions>
@@ -145,25 +152,19 @@ function Search(props: Props) {
         fields={eventView.fields}
         onSearch={handleSearch}
       />
-      <DropdownControl
-        buttonProps={{prefix: t('Percentile')}}
-        label={eventsFilterOptions[eventsDisplayFilterName].label}
+      <CompactSelect
+        triggerProps={{prefix: t('Percentile')}}
+        value={eventsDisplayFilterName}
+        onChange={opt => onChangeEventsDisplayFilter(opt.value)}
+        options={Object.entries(eventsFilterOptions).map(([name, filter]) => ({
+          value: name,
+          label: filter.label,
+        }))}
+      />
+      <Button
+        to={eventView.getResultsViewUrlTarget(organization.slug)}
+        onClick={handleDiscoverButtonClick}
       >
-        {Object.entries(eventsFilterOptions).map(([name, filter]) => {
-          return (
-            <DropdownItem
-              key={name}
-              onSelect={onChangeEventsDisplayFilter}
-              eventKey={name}
-              data-test-id={name}
-              isActive={eventsDisplayFilterName === name}
-            >
-              {filter.label}
-            </DropdownItem>
-          );
-        })}
-      </DropdownControl>
-      <Button to={eventView.getResultsViewUrlTarget(organization.slug)}>
         {t('Open in Discover')}
       </Button>
     </FilterActions>
@@ -175,22 +176,22 @@ const FilterActions = styled('div')`
   gap: ${space(2)};
   margin-bottom: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: repeat(4, min-content);
   }
 
-  @media (min-width: ${p => p.theme.breakpoints[3]}) {
+  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
     grid-template-columns: auto auto 1fr auto auto;
   }
 `;
 
 const StyledSearchBar = styled(SearchBar)`
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     order: 1;
     grid-column: 1/6;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints[3]}) {
+  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
     order: initial;
     grid-column: auto;
   }

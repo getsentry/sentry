@@ -598,7 +598,6 @@ class DashboardDetail extends Component<Props, State> {
 
     return (
       <PageFiltersContainer
-        hideGlobalHeader
         defaultSelection={{
           datetime: {
             start: null,
@@ -685,7 +684,6 @@ class DashboardDetail extends Component<Props, State> {
     return (
       <SentryDocumentTitle title={dashboard.title} orgSlug={organization.slug}>
         <PageFiltersContainer
-          hideGlobalHeader
           defaultSelection={{
             datetime: {
               start: null,
@@ -787,7 +785,7 @@ const StyledPageHeader = styled('div')`
   align-items: center;
   margin-bottom: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
     grid-template-columns: minmax(0, 1fr) max-content;
     grid-column-gap: ${space(2)};
     height: 40px;

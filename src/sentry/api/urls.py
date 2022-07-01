@@ -270,6 +270,7 @@ from .endpoints.organization_issues_count import OrganizationIssuesCountEndpoint
 from .endpoints.organization_issues_resolved_in_release import (
     OrganizationIssuesResolvedInReleaseEndpoint,
 )
+from .endpoints.organization_measurements_meta import OrganizationMeasurementsMeta
 from .endpoints.organization_member import (
     OrganizationInviteRequestDetailsEndpoint,
     OrganizationInviteRequestIndexEndpoint,
@@ -354,6 +355,7 @@ from .endpoints.project_app_store_connect_credentials import (
     AppStoreConnectStatusEndpoint,
     AppStoreConnectUpdateCredentialsEndpoint,
 )
+from .endpoints.project_commits import ProjectCommitsEndpoint
 from .endpoints.project_create_sample import ProjectCreateSampleEndpoint
 from .endpoints.project_create_sample_transaction import ProjectCreateSampleTransactionEndpoint
 from .endpoints.project_details import ProjectDetailsEndpoint
@@ -384,6 +386,7 @@ from .endpoints.project_processingissues import (
 from .endpoints.project_profiling_profile import (
     ProjectProfilingFunctionsEndpoint,
     ProjectProfilingProfileEndpoint,
+    ProjectProfilingTransactionIDProfileIDEndpoint,
 )
 from .endpoints.project_release_commits import ProjectReleaseCommitsEndpoint
 from .endpoints.project_release_details import ProjectReleaseDetailsEndpoint
@@ -1196,6 +1199,11 @@ urlpatterns = [
                     name="sentry-api-0-organization-events-trace-meta",
                 ),
                 url(
+                    r"^(?P<organization_slug>[^\/]+)/measurements-meta/$",
+                    OrganizationMeasurementsMeta.as_view(),
+                    name="sentry-api-0-organization-measurements-meta",
+                ),
+                url(
                     r"^(?P<organization_slug>[^\/]+)/issues/$",
                     OrganizationGroupIndexEndpoint.as_view(),
                     name="sentry-api-0-organization-group-index",
@@ -1944,6 +1952,11 @@ urlpatterns = [
                     name="sentry-api-0-project-releases",
                 ),
                 url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/commits/$",
+                    ProjectCommitsEndpoint.as_view(),
+                    name="sentry-api-0-project-commits",
+                ),
+                url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/token/$",
                     ProjectReleasesTokenEndpoint.as_view(),
                     name="sentry-api-0-project-releases-token",
@@ -2204,6 +2217,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/profiling/profiles/(?P<profile_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
                     ProjectProfilingProfileEndpoint.as_view(),
                     name="sentry-api-0-project-profiling-profile",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/profiling/transactions/(?P<transaction_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
+                    ProjectProfilingTransactionIDProfileIDEndpoint.as_view(),
+                    name="sentry-api-0-project-profiling-transactions",
                 ),
             ]
         ),

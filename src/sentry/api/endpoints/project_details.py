@@ -46,7 +46,6 @@ from sentry.notifications.utils import has_alert_integration
 from sentry.notifications.utils.legacy_mappings import get_option_value_from_boolean
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
-from sentry.utils.compat import filter
 
 
 def clean_newline_inputs(value, case_insensitive=True):
@@ -180,7 +179,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
         return data
 
     def validate_allowedDomains(self, value):
-        value = filter(bool, value)
+        value = list(filter(bool, value))
         if len(value) == 0:
             raise serializers.ValidationError(
                 "Empty value will block all requests, use * to accept from all domains"
@@ -442,9 +441,9 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         )
 
         if not allow_dynamic_sampling and result.get("dynamicSampling"):
-            # trying to set dynamic sampling with feature disabled
+            # trying to set sampling with feature disabled
             return Response(
-                {"detail": ["You do not have permission to set dynamic sampling."]},
+                {"detail": ["You do not have permission to set sampling."]},
                 status=403,
             )
 

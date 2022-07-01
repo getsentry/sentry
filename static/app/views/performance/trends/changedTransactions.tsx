@@ -24,6 +24,7 @@ import {IconArrow, IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {AvatarProject, Organization, Project} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {formatPercentage, getDuration} from 'sentry/utils/formatters';
 import TrendsDiscoverQuery from 'sentry/utils/performance/trends/trendsDiscoverQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -127,7 +128,11 @@ function getSelectedTransaction(
   return transactions.length > 0 ? transactions[0] : undefined;
 }
 
-function handleChangeSelected(location: Location, trendChangeType: TrendChangeType) {
+function handleChangeSelected(
+  location: Location,
+  organization: Organization,
+  trendChangeType: TrendChangeType
+) {
   return function updateSelected(transaction?: NormalizedTrendsTransaction) {
     const selectedQueryKey = getSelectedQueryKey(trendChangeType);
     const query = {
@@ -143,6 +148,11 @@ function handleChangeSelected(location: Location, trendChangeType: TrendChangeTy
     browserHistory.push({
       pathname: location.pathname,
       query,
+    });
+
+    trackAdvancedAnalyticsEvent('performance_views.trends.widget_interaction', {
+      organization,
+      widget_type: trendChangeType,
     });
   };
 }
@@ -171,8 +181,10 @@ function handleFilterTransaction(location: Location, transaction: string) {
 
 function handleFilterDuration(
   location: Location,
+  organization: Organization,
   value: number,
   symbol: FilterSymbols,
+  trendChangeType: TrendChangeType,
   projects: Project[],
   projectIds: Readonly<number[]>
 ) {
@@ -202,6 +214,12 @@ function handleFilterDuration(
       query: String(query).trim(),
     },
   });
+
+  trackAdvancedAnalyticsEvent('performance_views.trends.change_duration', {
+    organization,
+    widget_type: getChartTitle(trendChangeType),
+    value: `${symbol}${value}`,
+  });
 }
 
 function ChangedTransactions(props: Props) {
@@ -222,6 +240,13 @@ function ChangedTransactions(props: Props) {
 
   const onCursor = makeTrendsCursorHandler(trendChangeType);
   const cursor = decodeScalar(location.query[trendCursorNames[trendChangeType]]);
+  const paginationAnalyticsEvent = (direction: string) => {
+    trackAdvancedAnalyticsEvent('performance_views.trends.widget_pagination', {
+      organization,
+      direction,
+      widget_type: getChartTitle(trendChangeType),
+    });
+  };
 
   return (
     <TrendsDiscoverQuery
@@ -313,6 +338,7 @@ function ChangedTransactions(props: Props) {
                           statsData={statsData}
                           handleSelectTransaction={handleChangeSelected(
                             location,
+                            organization,
                             trendChangeType
                           )}
                         />
@@ -326,7 +352,11 @@ function ChangedTransactions(props: Props) {
                 </Fragment>
               )}
             </TrendsTransactionPanel>
-            <Pagination pageLinks={pageLinks} onCursor={onCursor} />
+            <Pagination
+              pageLinks={pageLinks}
+              onCursor={onCursor}
+              paginationAnalyticsEvent={paginationAnalyticsEvent}
+            />
           </TransactionsListContainer>
         );
       }}
@@ -359,6 +389,7 @@ function TrendsListItem(props: TrendsListItemProps) {
     currentTrendColumn,
     index,
     location,
+    organization,
     projects,
     handleSelectTransaction,
     trendView,
@@ -458,8 +489,10 @@ function TrendsListItem(props: TrendsListItemProps) {
           onClick={() =>
             handleFilterDuration(
               location,
+              organization,
               longestPeriodValue,
               FilterSymbols.LESS_THAN_EQUALS,
+              trendChangeType,
               projects,
               trendView.project
             )
@@ -471,8 +504,10 @@ function TrendsListItem(props: TrendsListItemProps) {
           onClick={() =>
             handleFilterDuration(
               location,
+              organization,
               longestPeriodValue,
               FilterSymbols.GREATER_THAN_EQUALS,
+              trendChangeType,
               projects,
               trendView.project
             )

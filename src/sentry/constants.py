@@ -221,6 +221,7 @@ _SENTRY_RULES = (
     "sentry.rules.actions.notify_event.NotifyEventAction",
     "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
     "sentry.rules.actions.sentry_apps.notify_event.NotifyEventSentryAppAction",
+    "sentry.rules.conditions.active_release.ActiveReleaseEventCondition",
     "sentry.rules.conditions.every_event.EveryEventCondition",
     "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
     "sentry.rules.conditions.regression_event.RegressionEventCondition",
@@ -289,6 +290,7 @@ KNOWN_DIF_FORMATS: Dict[str, str] = {
     "application/x-sentry-bundle+zip": "sourcebundle",
     "application/x-bcsymbolmap": "bcsymbolmap",
     "application/x-debugid-map": "uuidmap",
+    "application/x-il2cpp-json": "il2cpp",
 }
 
 NATIVE_UNKNOWN_STRING = "<unknown>"

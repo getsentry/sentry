@@ -330,6 +330,93 @@ def alert(request):
 
 
 @login_required
+def release_alert(request):
+    platform = request.GET.get("platform", "python")
+    org = Organization(id=1, slug="example", name="Example")
+    project = Project(id=1, slug="example", name="Example", organization=org)
+
+    random = get_random(request)
+    group = next(make_group_generator(random, project))
+
+    data = dict(load_data(platform))
+    data["message"] = group.message
+    data["event_id"] = "44f1419e73884cd2b45c79918f4b6dc4"
+    data.pop("logentry", None)
+    data["environment"] = "prod"
+    data["tags"] = [
+        ("logger", "javascript"),
+        ("environment", "prod"),
+        ("level", "error"),
+        ("device", "Other"),
+    ]
+
+    event_manager = EventManager(data)
+    event_manager.normalize()
+    data = event_manager.get_data()
+    event = event_manager.save(project.id)
+    # Prevent CI screenshot from constantly changing
+    event.data["timestamp"] = 1504656000.0  # datetime(2017, 9, 6, 0, 0)
+    event_type = get_event_type(event.data)
+
+    group.message = event.search_message
+    group.data = {"type": event_type.key, "metadata": event_type.get_metadata(data)}
+
+    rule = Rule(id=1, label="An example rule")
+
+    # XXX: this interface_list code needs to be the same as in
+    #      src/sentry/mail/adapter.py
+    interfaces = {}
+    for interface in event.interfaces.values():
+        body = interface.to_email_html(event)
+        if not body:
+            continue
+        text_body = interface.to_string(event)
+        interfaces[interface.get_title()] = {
+            "label": interface.get_title(),
+            "html": mark_safe(body),
+            "body": text_body,
+        }
+
+    return MailPreview(
+        html_template="sentry/emails/release_alert.html",
+        text_template="sentry/emails/release_alert.txt",
+        context={
+            "rule": rule,
+            "rules": get_rules([rule], org, project),
+            "group": group,
+            "event": event,
+            "timezone": pytz.timezone("Europe/Vienna"),
+            "link": get_group_settings_link(group, None, get_rules([rule], org, project), 1337),
+            "interfaces": interfaces,
+            "tags": event.tags,
+            "project": project,
+            "last_release": {
+                "version": "13.9.2",
+            },
+            "last_release_link": f"http://testserver/organizations/{org.slug}/releases/13.9.2/?project={project.id}",
+            "environment": "production",
+            "commits": [
+                {
+                    "subject": "fix bug really",
+                    "author": {"name": "committer1", "email": "test@example.com"},
+                    "key": "sha8910",
+                },
+                {
+                    "subject": "fix bug",
+                    "author": {"name": "committer2", "email": "test2@example.com"},
+                    "key": "sha567",
+                },
+                {
+                    "subject": "first commit",
+                    "author": {"name": "committer1", "email": "test@example.com"},
+                    "key": "sha1234",
+                },
+            ],
+        },
+    ).render(request)
+
+
+@login_required
 def digest(request):
     random = get_random(request)
 

@@ -6104,6 +6104,62 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
             == "Wildcard conditions are not permitted on `trace.parent_span` field"
         )
 
+    def test_has_trace_context(self):
+        project = self.create_project()
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "how to make fast",
+                "timestamp": self.min_ago,
+                "contexts": {
+                    "trace": {
+                        "span_id": "a" * 16,
+                        "trace_id": "b" * 32,
+                    },
+                },
+            },
+            project_id=project.id,
+        )
+
+        query = {"field": ["id", "trace.parent_span"], "query": "has:trace.span"}
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["id"] == "a" * 32
+
+        query = {"field": ["id"], "query": "has:trace.parent_span_id"}
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 0
+
+    def test_not_has_trace_context(self):
+        project = self.create_project()
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "how to make fast",
+                "timestamp": self.min_ago,
+                "contexts": {
+                    "trace": {
+                        "span_id": "a" * 16,
+                        "trace_id": "b" * 32,
+                    },
+                },
+            },
+            project_id=project.id,
+        )
+
+        query = {"field": ["id", "trace.parent_span"], "query": "!has:trace.span"}
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 0
+
+        query = {"field": ["id"], "query": "!has:trace.parent_span_id"}
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["id"] == "a" * 32
+
     @mock.patch("sentry.search.events.builder.raw_snql_query")
     def test_handling_snuba_errors(self, mock_snql_query):
         mock_snql_query.side_effect = RateLimitExceeded("test")
@@ -10519,13 +10575,17 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 400
 
     def test_count_if(self):
+        unicode_phrase1 = "\u716e\u6211\u66f4\u591a\u7684\u98df\u7269\uff0c\u6211\u9913\u4e86"
         for i in range(5):
             data = load_data(
                 "transaction",
                 timestamp=before_now(minutes=(1 + i)),
                 start_timestamp=before_now(minutes=(1 + i), milliseconds=100 if i < 3 else 200),
             )
-            data["tags"] = {"sub_customer.is-Enterprise-42": "yes" if i == 0 else "no"}
+            data["tags"] = {
+                "sub_customer.is-Enterprise-42": "yes" if i == 0 else "no",
+                "unicode-phrase": unicode_phrase1 if i == 0 else "no",
+            }
             self.store_event(data, project_id=self.project.id)
 
         query = {
@@ -10534,6 +10594,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
                 "count_if(transaction.duration, greater, 150)",
                 "count_if(sub_customer.is-Enterprise-42, equals, yes)",
                 "count_if(sub_customer.is-Enterprise-42, notEquals, yes)",
+                f"count_if(unicode-phrase, equals, {unicode_phrase1})",
             ],
             "project": [self.project.id],
         }
@@ -10548,6 +10609,29 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert (
             response.data["data"][0]["count_if(sub_customer.is-Enterprise-42, notEquals, yes)"] == 4
         )
+        assert response.data["data"][0][f"count_if(unicode-phrase, equals, {unicode_phrase1})"] == 1
+
+    def test_count_if_measurements_cls(self):
+        data = load_data("transaction", timestamp=before_now(minutes=1))
+        data["measurements"]["cls"] = {"value": 0.5}
+        self.store_event(data, project_id=self.project.id)
+        data = load_data("transaction", timestamp=before_now(minutes=1))
+        data["measurements"]["cls"] = {"value": 0.1}
+        self.store_event(data, project_id=self.project.id)
+
+        query = {
+            "field": [
+                "count_if(measurements.cls, greater, 0.05)",
+                "count_if(measurements.cls, less, 0.3)",
+            ],
+            "project": [self.project.id],
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200
+        assert len(response.data["data"]) == 1
+
+        assert response.data["data"][0]["count_if(measurements.cls, greater, 0.05)"] == 2
+        assert response.data["data"][0]["count_if(measurements.cls, less, 0.3)"] == 1
 
     def test_count_if_filter(self):
         for i in range(5):
@@ -11960,4 +12044,42 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert data[0]["count_unique(user)"] == 1
         assert data[1]["transaction"] == "bar_transaction"
         assert data[1]["count_unique(user)"] == 0
+        assert meta["isMetricsData"]
+
+    def test_sum_transaction_duration(self):
+        self.store_metric(
+            50,
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+        self.store_metric(
+            100,
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+        self.store_metric(
+            150,
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+
+        query = {
+            "project": [self.project.id],
+            "orderby": "sum(transaction.duration)",
+            "field": [
+                "transaction",
+                "sum(transaction.duration)",
+            ],
+            "dataset": "metricsEnhanced",
+            "per_page": 50,
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        data = response.data["data"]
+        meta = response.data["meta"]
+
+        assert data[0]["transaction"] == "foo_transaction"
+        assert data[0]["sum(transaction.duration)"] == 300
         assert meta["isMetricsData"]

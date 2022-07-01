@@ -157,9 +157,9 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       thresholdType: rule.thresholdType,
       thresholdPeriod: rule.thresholdPeriod ?? 1,
       comparisonDelta: rule.comparisonDelta ?? undefined,
-      comparisonType: !rule.comparisonDelta
-        ? AlertRuleComparisonType.COUNT
-        : AlertRuleComparisonType.CHANGE,
+      comparisonType: rule.comparisonDelta
+        ? AlertRuleComparisonType.CHANGE
+        : AlertRuleComparisonType.COUNT,
       project: this.props.project,
       owner: rule.owner,
     };
@@ -356,6 +356,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     resolveThreshold = this.state.resolveThreshold,
     changedTriggerIndex?: number
   ) {
+    const {comparisonType} = this.state;
     const triggerErrors = new Map();
 
     const requiredFields = ['label', 'alertThreshold'];
@@ -401,7 +402,8 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     const criticalThreshold = criticalTrigger.alertThreshold ?? 0;
 
     const hasError =
-      thresholdType === AlertRuleThresholdType.ABOVE
+      thresholdType === AlertRuleThresholdType.ABOVE ||
+      comparisonType === AlertRuleComparisonType.CHANGE
         ? warningThreshold > criticalThreshold
         : warningThreshold < criticalThreshold;
 
@@ -411,9 +413,10 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
         triggerErrors.set(index, {
           ...otherErrors,
           alertThreshold:
-            thresholdType === AlertRuleThresholdType.BELOW
-              ? t('Warning threshold must be greater than critical alert')
-              : t('Warning threshold must be less than critical alert'),
+            thresholdType === AlertRuleThresholdType.ABOVE ||
+            comparisonType === AlertRuleComparisonType.CHANGE
+              ? t('Warning threshold must be less than critical threshold')
+              : t('Warning threshold must be greater than critical threshold'),
         });
       });
     }

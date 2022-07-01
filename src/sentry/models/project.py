@@ -166,7 +166,7 @@ class Project(Model, PendingDeletionMixin):
 
     def save(self, *args, **kwargs):
         if not self.slug:
-            lock = locks.get("slug:project", duration=5)
+            lock = locks.get("slug:project", duration=5, name="project_slug")
             with TimedRetryPolicy(10)(lock.acquire):
                 slugify_instance(
                     self,
@@ -379,7 +379,7 @@ class Project(Model, PendingDeletionMixin):
         Rule.objects.filter(owner_id=team.actor_id, project=self).update(owner=None)
 
     def get_security_token(self):
-        lock = locks.get(self.get_lock_key(), duration=5)
+        lock = locks.get(self.get_lock_key(), duration=5, name="project_security_token")
         with TimedRetryPolicy(10)(lock.acquire):
             security_token = self.get_option("sentry:token", None)
             if security_token is None:
