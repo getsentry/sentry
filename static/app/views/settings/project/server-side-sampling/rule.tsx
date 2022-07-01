@@ -25,6 +25,7 @@ type Props = {
   hideGrabButton: boolean;
   listeners: DraggableSyntheticListeners;
   noPermission: boolean;
+  onActivate: () => void;
   onDeleteRule: () => void;
   onEditRule: () => void;
   operator: SamplingRuleOperator;
@@ -44,6 +45,7 @@ export function Rule({
   noPermission,
   onEditRule,
   onDeleteRule,
+  onActivate,
   listeners,
   operator,
   grabAttributes,
@@ -128,6 +130,7 @@ export function Rule({
           inline={false}
           hideControlState
           aria-label={rule.active ? t('Deactivate Rule') : t('Activate Rule')}
+          onClick={onActivate}
           name="active"
         />
       </ActiveColumn>

@@ -2,6 +2,7 @@ import {Fragment, useEffect, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {openModal} from 'sentry/actionCreators/modal';
 import Access from 'sentry/components/acl/access';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -13,6 +14,7 @@ import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {
+  SamplingRule,
   SamplingRuleOperator,
   SamplingRules,
   SamplingRuleType,
@@ -27,6 +29,7 @@ import PermissionAlert from 'sentry/views/settings/organization/permissionAlert'
 
 import {DraggableList} from '../sampling/rules/draggableList';
 
+import {ActivateModal} from './modals/activateModal';
 import {Promo} from './promo';
 import {
   ActiveColumn,
@@ -75,6 +78,10 @@ export function ServerSideSampling() {
     }
     fetchRules();
   }, [api, projectSlug, orgSlug]);
+
+  function handleActivateToggle(rule: SamplingRule) {
+    openModal(modalProps => <ActivateModal {...modalProps} rule={rule} />);
+  }
 
   // Rules without a condition (Else case) always have to be 'pinned' to the bottom of the list
   // and cannot be sorted
@@ -180,6 +187,7 @@ export function ServerSideSampling() {
                                 }}
                                 onEditRule={() => {}}
                                 onDeleteRule={() => {}}
+                                onActivate={() => handleActivateToggle(currentRule)}
                                 noPermission={!hasAccess}
                                 listeners={listeners}
                                 grabAttributes={attributes}
