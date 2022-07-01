@@ -21,13 +21,8 @@ describe('Server-side Sampling - Activate Modal', function () {
       ...initializeOrg().organization,
       features: ['server-side-sampling'],
     },
-  });
-
-  it('renders modal', async function () {
-    MockApiClient.addMockResponse({
-      url: '/projects/org-slug/project-slug/',
-      method: 'GET',
-      body: TestStubs.Project({
+    projects: [
+      TestStubs.Project({
         dynamicSampling: {
           rules: [
             {
@@ -49,8 +44,10 @@ describe('Server-side Sampling - Activate Modal', function () {
           next_id: 41,
         },
       }),
-    });
+    ],
+  });
 
+  it('renders modal', async function () {
     render(
       <RouteContext.Provider
         value={{
@@ -65,13 +62,13 @@ describe('Server-side Sampling - Activate Modal', function () {
       >
         <GlobalModal />
         <OrganizationContext.Provider value={organization}>
-          <ServerSideSampling />
+          <ServerSideSampling project={project} />
         </OrganizationContext.Provider>
       </RouteContext.Provider>
     );
 
     // Rules Panel Content
-    userEvent.click(await screen.findByLabelText('Activate Rule'));
+    userEvent.click(screen.getByLabelText('Activate Rule'));
 
     const dialog = await screen.findByRole('dialog');
 
