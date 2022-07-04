@@ -175,15 +175,12 @@ def test_project_config_with_span_attributes(default_project, insta_snapshot):
 
 
 @pytest.mark.django_db
-def test_killswitch(default_project):
+@pytest.mark.parametrize("feature", ("enabled", "disabled"))
+def test_killswitch(default_project, feature):
     with Feature(
         {
-            "organizations:transaction-metrics-extraction": True,
+            "organizations:transaction-metrics-extraction": True if feature == "enabled" else False,
         }
     ), override_options({"relay.drop-transaction-metrics": [{"project_id": default_project.id}]}):
         config = get_project_config(default_project)
-        assert config.to_dict()["config"]["transactionMetrics"] == {
-            "extractMetrics": [],
-            "extractCustomTags": [],
-            "customMeasurements": {"limit": 0},
-        }
+        assert "transactionMetrics" not in config.to_dict()["config"]

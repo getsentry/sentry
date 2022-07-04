@@ -185,7 +185,7 @@ def _get_project_config(project, full_config=True, project_keys=None):
 
     if features.has("organizations:performance-ops-breakdown", project.organization):
         cfg["config"]["breakdownsV2"] = project.get_option("sentry:breakdowns")
-    if features.has("organizations:transaction-metrics-extraction", project.organization):
+    if _should_extract_transaction_metrics(project):
         cfg["config"]["transactionMetrics"] = get_transaction_metrics_settings(
             project, cfg["config"].get("breakdownsV2")
         )
@@ -438,10 +438,9 @@ def _should_extract_transaction_metrics(project: Project) -> bool:
 def get_transaction_metrics_settings(
     project: Project, breakdowns_config: Optional[Mapping[str, Any]]
 ) -> TransactionMetricsSettings:
-
-    if not _should_extract_transaction_metrics(project):
-        # Do not extract anything
-        return {"extractMetrics": [], "extractCustomTags": [], "customMeasurements": {"limit": 0}}
+    """This function assumes that the corresponding feature flag has been checked.
+    See _should_extract_transaction_metrics.
+    """
 
     metrics = []
     custom_tags = []
