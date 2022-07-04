@@ -4,23 +4,18 @@
 # the codebase we want to phase out, this module only acts as a legacy shim at
 # this point.
 
+# New code should not use this module any more.  It will be removed in a future
+# after migrations and models were changed to no longer reference it.
+
 
 from django.db.models import CharField, TextField
 
 from django_picklefield import PickledObjectField
 from sentry.db.models.fields.jsonfield import JSONField
 
-
-class EncryptedCharField(CharField):
-    pass
-
-
-class EncryptedJsonField(JSONField):
-    pass
-
-
-class EncryptedTextField(TextField):
-    pass
+EncryptedCharField = CharField
+EncryptedJsonField = JSONField
+EncryptedTextField = TextField
 
 
 class EncryptedPickledObjectField(PickledObjectField):
