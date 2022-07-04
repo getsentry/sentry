@@ -13,11 +13,12 @@ from sentry.search.events.builder import (
 )
 from sentry.search.events.fields import get_function_alias
 from sentry.sentry_metrics import indexer
+from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.snuba import discover
 from sentry.utils.snuba import SnubaTSResult
 
 
-def resolve_tags(results: Any, query_definition: MetricsQueryBuilder) -> Any:
+def resolve_tags(results: Any, query_definition: MetricsQueryBuilder):
     """Go through the results of a metrics query and reverse resolve its tags"""
     tags: List[str] = []
     cached_resolves: Dict[int, str] = {}
@@ -34,7 +35,9 @@ def resolve_tags(results: Any, query_definition: MetricsQueryBuilder) -> Any:
         for tag in tags:
             for row in results["data"]:
                 if row[tag] not in cached_resolves:
-                    resolved_tag = indexer.reverse_resolve(row[tag])
+                    resolved_tag = indexer.reverse_resolve(
+                        row[tag], use_case_id=UseCaseKey.RELEASE_HEALTH
+                    )
                     cached_resolves[row[tag]] = resolved_tag
                 row[tag] = cached_resolves[row[tag]]
             if tag in results["meta"]:

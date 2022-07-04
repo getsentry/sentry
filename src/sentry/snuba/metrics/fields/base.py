@@ -30,6 +30,7 @@ from sentry.api.utils import InvalidParams
 from sentry.models import Project
 from sentry.search.events.constants import MISERY_ALPHA, MISERY_BETA
 from sentry.sentry_metrics import indexer
+from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.utils import resolve_weak
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.fields.histogram import (
@@ -162,7 +163,7 @@ def _get_entity_of_metric_mri(projects: Sequence[Project], metric_mri: str) -> E
 
     assert projects
     org_id = org_id_from_projects(projects)
-    metric_id = indexer.resolve(org_id, metric_mri)
+    metric_id = indexer.resolve(org_id, metric_mri, use_case_id=UseCaseKey.RELEASE_HEALTH)
 
     if metric_id is None:
         raise InvalidParams
