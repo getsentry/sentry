@@ -200,7 +200,7 @@ class ProjectDynamicSamplingTest(APITestCase):
     def test_permission(self):
         user = self.create_user("foo@example.com")
         self.login_as(user)
-        with Feature({"organizations:filters-and-sampling": True}):
+        with Feature({"organizations:server-side-sampling": True}):
             response = self.client.get(self.endpoint)
             assert response.status_code == 403
 
@@ -220,7 +220,7 @@ class ProjectDynamicSamplingTest(APITestCase):
         mock_querybuilder.return_value = mocked_query_builder_query(
             referrer="dynamic-sampling.distribution.fetch-parent-transactions"
         )
-        with Feature({"organizations:filters-and-sampling": True}):
+        with Feature({"organizations:server-side-sampling": True}):
             response = self.client.get(self.endpoint)
             assert response.json() == {
                 "project_breakdown": [
@@ -254,7 +254,7 @@ class ProjectDynamicSamplingTest(APITestCase):
         mock_querybuilder.return_value = mocked_query_builder_query(
             referrer="dynamic-sampling.distribution.fetch-parent-transactions"
         )
-        with Feature({"organizations:filters-and-sampling": True}):
+        with Feature({"organizations:server-side-sampling": True}):
             response = self.client.get(f"{self.endpoint}?distributedTrace=0")
             assert response.json() == {
                 "project_breakdown": None,
@@ -302,7 +302,7 @@ class ProjectDynamicSamplingTest(APITestCase):
             ]
         }
 
-        with Feature({"organizations:filters-and-sampling": True}):
+        with Feature({"organizations:server-side-sampling": True}):
             response = self.client.get(f"{self.endpoint}?sampleSize=2")
             assert response.json() == {
                 "project_breakdown": [
@@ -325,7 +325,7 @@ class ProjectDynamicSamplingTest(APITestCase):
     def test_response_when_no_transactions_are_available(self, mock_query):
         self.login_as(self.user)
         mock_query.return_value = {"data": [{"count()": 0}]}
-        with Feature({"organizations:filters-and-sampling": True}):
+        with Feature({"organizations:server-side-sampling": True}):
             response = self.client.get(f"{self.endpoint}?sampleSize=2")
             assert response.json() == {
                 "project_breakdown": None,
@@ -359,7 +359,7 @@ class ProjectDynamicSamplingTest(APITestCase):
         mock_querybuilder.return_value = mocked_query_builder_query(
             referrer="dynamic-sampling.distribution.fetch-parent-transactions"
         )
-        with Feature({"organizations:filters-and-sampling": True}):
+        with Feature({"organizations:server-side-sampling": True}):
             response = self.client.get(f"{self.endpoint}?sampleSize=2")
             assert response.json() == {
                 "details": "Way too many projects in the distributed trace's project breakdown"
@@ -480,7 +480,7 @@ class ProjectDynamicSamplingTest(APITestCase):
         groupby = snuba_query.groupby + [Column("modulo_num")]
         snuba_query = snuba_query.set_groupby(groupby)
 
-        with Feature({"organizations:filters-and-sampling": True}):
+        with Feature({"organizations:server-side-sampling": True}):
             response = self.client.get(
                 f"{self.endpoint}?sampleSize={requested_sample_size}&query={query}&statsPeriod=6h"
             )
