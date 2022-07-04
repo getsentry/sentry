@@ -1,28 +1,28 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import {Project} from 'sentry/types';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {RouteContext} from 'sentry/views/routeContext';
 import ServerSideSampling from 'sentry/views/settings/project/server-side-sampling';
-import {SERVER_SIDE_DOC_LINK} from 'sentry/views/settings/project/server-side-sampling/utils';
+import {SERVER_SIDE_SAMPLING_DOC_LINK} from 'sentry/views/settings/project/server-side-sampling/utils';
 
-describe('Server-side Sampling', function () {
-  const {organization, project, router} = initializeOrg({
+function getMockData(project?: Project) {
+  return initializeOrg({
     ...initializeOrg(),
     organization: {
       ...initializeOrg().organization,
       features: ['server-side-sampling'],
     },
+    projects: [project],
   });
+}
 
-  it('renders onboarding promo', async function () {
-    MockApiClient.addMockResponse({
-      url: '/projects/org-slug/project-slug/',
-      method: 'GET',
-      body: TestStubs.Project(),
-    });
+describe('Server-side Sampling', function () {
+  it('renders onboarding promo', function () {
+    const {router, organization, project} = getMockData();
 
-    render(
+    const {container} = render(
       <RouteContext.Provider
         value={{
           router,
@@ -35,7 +35,7 @@ describe('Server-side Sampling', function () {
         }}
       >
         <OrganizationContext.Provider value={organization}>
-          <ServerSideSampling />
+          <ServerSideSampling project={project} />
         </OrganizationContext.Provider>
       </RouteContext.Provider>
     );
@@ -51,7 +51,7 @@ describe('Server-side Sampling', function () {
     ).toBeInTheDocument();
 
     expect(
-      await screen.findByRole('heading', {name: 'No sampling rules active yet'})
+      screen.getByRole('heading', {name: 'No sampling rules active yet'})
     ).toBeInTheDocument();
 
     expect(
@@ -60,9 +60,81 @@ describe('Server-side Sampling', function () {
 
     expect(screen.getByRole('button', {name: 'Read Docs'})).toHaveAttribute(
       'href',
-      SERVER_SIDE_DOC_LINK
+      SERVER_SIDE_SAMPLING_DOC_LINK
     );
 
     expect(screen.getByRole('button', {name: 'Get Started'})).toBeInTheDocument();
+
+    expect(container).toSnapshot();
+  });
+
+  it('renders rules panel', function () {
+    const {router, organization, project} = getMockData(
+      TestStubs.Project({
+        dynamicSampling: {
+          rules: [
+            {
+              sampleRate: 0.2,
+              type: 'trace',
+              condition: {
+                op: 'and',
+                inner: [
+                  {
+                    op: 'glob',
+                    name: 'trace.release',
+                    value: ['1.2.3'],
+                  },
+                ],
+              },
+              id: 40,
+            },
+          ],
+          next_id: 41,
+        },
+      })
+    );
+
+    const {container} = render(
+      <RouteContext.Provider
+        value={{
+          router,
+          location: router.location,
+          params: {
+            orgId: organization.slug,
+            projectId: project.slug,
+          },
+          routes: [],
+        }}
+      >
+        <OrganizationContext.Provider value={organization}>
+          <ServerSideSampling project={project} />
+        </OrganizationContext.Provider>
+      </RouteContext.Provider>
+    );
+
+    // Rule Panel Header
+    expect(screen.getByText('Operator')).toBeInTheDocument();
+    expect(screen.getByText('Condition')).toBeInTheDocument();
+    expect(screen.getByText('Rate')).toBeInTheDocument();
+    expect(screen.getByText('Active')).toBeInTheDocument();
+
+    // Rule Panel Content
+    expect(screen.getAllByTestId('sampling-rule').length).toBe(1);
+    expect(screen.queryByLabelText('Drag Rule')).not.toBeInTheDocument();
+    expect(screen.getByTestId('sampling-rule')).toHaveTextContent('If');
+    expect(screen.getByTestId('sampling-rule')).toHaveTextContent('Release');
+    expect(screen.getByTestId('sampling-rule')).toHaveTextContent('1.2.3');
+    expect(screen.getByTestId('sampling-rule')).toHaveTextContent('20%');
+    expect(screen.getByLabelText('Activate Rule')).toBeInTheDocument();
+    expect(screen.getByLabelText('Actions')).toBeInTheDocument();
+
+    // Rule Panel Footer
+    expect(screen.getByText('Add Rule')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Read Docs'})).toHaveAttribute(
+      'href',
+      SERVER_SIDE_SAMPLING_DOC_LINK
+    );
+
+    expect(container).toSnapshot();
   });
 });
