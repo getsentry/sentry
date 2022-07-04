@@ -4,13 +4,17 @@ from unittest import mock
 from django.urls import reverse
 from django.utils import timezone
 from freezegun import freeze_time
+from snuba_sdk import Column
+from snuba_sdk.conditions import Condition, Op
 
 from sentry.models import Project
+from sentry.search.events.builder import QueryBuilder
+from sentry.snuba.dataset import Dataset
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import Feature
 
 
-def mocked_discover_query(referrer):
+def mocked_query_builder_query(referrer):
     if referrer == "dynamic-sampling.distribution.fetch-parent-transactions":
         return {
             "data": [
@@ -163,7 +167,13 @@ def mocked_discover_query(referrer):
                 },
             ]
         }
-    else:
+    raise Exception("Something went wrong!")
+
+
+def mocked_discover_query(referrer):
+    if referrer == "dynamic-sampling.distribution.fetch-parent-transactions-count":
+        return {"data": [{"count()": 100}]}
+    elif referrer == "dynamic-sampling.distribution.fetch-project-breakdown":
         return {
             "data": [
                 {"project": "earth", "count()": 34},
@@ -173,6 +183,7 @@ def mocked_discover_query(referrer):
                 {"project": "fire", "count()": 21},
             ]
         }
+    raise Exception("Something went wrong!")
 
 
 class ProjectDynamicSamplingTest(APITestCase):
@@ -198,13 +209,17 @@ class ProjectDynamicSamplingTest(APITestCase):
         response = self.client.get(self.endpoint)
         assert response.status_code == 404
 
+    @mock.patch("sentry.api.endpoints.project_dynamic_sampling.raw_snql_query")
     @mock.patch("sentry.api.endpoints.project_dynamic_sampling.discover.query")
-    def test_successful_response_with_distributed_traces(self, mock_query):
+    def test_successful_response_with_distributed_traces(self, mock_query, mock_querybuilder):
         self.login_as(self.user)
         mock_query.side_effect = [
-            mocked_discover_query("dynamic-sampling.distribution.fetch-parent-transactions"),
-            mocked_discover_query("whatever"),
+            mocked_discover_query("dynamic-sampling.distribution.fetch-parent-transactions-count"),
+            mocked_discover_query("dynamic-sampling.distribution.fetch-project-breakdown"),
         ]
+        mock_querybuilder.return_value = mocked_query_builder_query(
+            referrer="dynamic-sampling.distribution.fetch-parent-transactions"
+        )
         with Feature({"organizations:filters-and-sampling": True}):
             response = self.client.get(self.endpoint)
             assert response.json() == {
@@ -228,13 +243,17 @@ class ProjectDynamicSamplingTest(APITestCase):
                 },
             }
 
+    @mock.patch("sentry.api.endpoints.project_dynamic_sampling.raw_snql_query")
     @mock.patch("sentry.api.endpoints.project_dynamic_sampling.discover.query")
-    def test_successful_response_with_single_transactions(self, mock_query):
+    def test_successful_response_with_single_transactions(self, mock_query, mock_querybuilder):
         self.login_as(self.user)
         mock_query.side_effect = [
-            mocked_discover_query("dynamic-sampling.distribution.fetch-parent-transactions"),
-            mocked_discover_query("whatever"),
+            mocked_discover_query("dynamic-sampling.distribution.fetch-parent-transactions-count"),
+            mocked_discover_query("dynamic-sampling.distribution.fetch-project-breakdown"),
         ]
+        mock_querybuilder.return_value = mocked_query_builder_query(
+            referrer="dynamic-sampling.distribution.fetch-parent-transactions"
+        )
         with Feature({"organizations:filters-and-sampling": True}):
             response = self.client.get(f"{self.endpoint}?distributedTrace=0")
             assert response.json() == {
@@ -252,34 +271,37 @@ class ProjectDynamicSamplingTest(APITestCase):
                 },
             }
 
+    @mock.patch("sentry.api.endpoints.project_dynamic_sampling.raw_snql_query")
     @mock.patch("sentry.api.endpoints.project_dynamic_sampling.discover.query")
-    def test_successful_response_with_small_sample_size(self, mock_query):
+    def test_successful_response_with_small_sample_size(self, mock_query, mock_querybuilder):
         self.login_as(self.user)
         mock_query.side_effect = [
-            {
-                "data": [
-                    {
-                        "trace": "6503ee33b7bc43aead1facaa625a5dba",
-                        "id": "6ddc83ee612b4e89b95b5278c8fd188f",
-                        "trace.client_sample_rate": "",
-                        "project.name": "fire",
-                        "random_number() AS random_number": 4255299100,
-                    },
-                    {
-                        "trace": "6503ee33b7bc43aead1facaa625a5dba",
-                        "id": "0b127a578f8440c793f9ba1de595229f",
-                        "trace.client_sample_rate": "",
-                        "project.name": "fire",
-                        "random_number() AS random_number": 3976019453,
-                    },
-                ]
-            },
+            mocked_discover_query("dynamic-sampling.distribution.fetch-parent-transactions-count"),
             {
                 "data": [
                     {"project": "fire", "count()": 2},
                 ]
             },
         ]
+        mock_querybuilder.return_value = {
+            "data": [
+                {
+                    "trace": "6503ee33b7bc43aead1facaa625a5dba",
+                    "id": "6ddc83ee612b4e89b95b5278c8fd188f",
+                    "trace.client_sample_rate": "",
+                    "project.name": "fire",
+                    "random_number() AS random_number": 4255299100,
+                },
+                {
+                    "trace": "6503ee33b7bc43aead1facaa625a5dba",
+                    "id": "0b127a578f8440c793f9ba1de595229f",
+                    "trace.client_sample_rate": "",
+                    "project.name": "fire",
+                    "random_number() AS random_number": 3976019453,
+                },
+            ]
+        }
+
         with Feature({"organizations:filters-and-sampling": True}):
             response = self.client.get(f"{self.endpoint}?sampleSize=2")
             assert response.json() == {
@@ -302,7 +324,7 @@ class ProjectDynamicSamplingTest(APITestCase):
     @mock.patch("sentry.api.endpoints.project_dynamic_sampling.discover.query")
     def test_response_when_no_transactions_are_available(self, mock_query):
         self.login_as(self.user)
-        mock_query.side_effect = [{"data": []}, {"data": []}]
+        mock_query.return_value = {"data": [{"count()": 0}]}
         with Feature({"organizations:filters-and-sampling": True}):
             response = self.client.get(f"{self.endpoint}?sampleSize=2")
             assert response.json() == {
@@ -312,11 +334,12 @@ class ProjectDynamicSamplingTest(APITestCase):
                 "sample_rate_distributions": None,
             }
 
+    @mock.patch("sentry.api.endpoints.project_dynamic_sampling.raw_snql_query")
     @mock.patch("sentry.api.endpoints.project_dynamic_sampling.discover.query")
-    def test_response_too_many_projects_in_the_breakdown(self, mock_query):
+    def test_response_too_many_projects_in_the_breakdown(self, mock_query, mock_querybuilder):
         self.login_as(self.user)
         mock_query.side_effect = [
-            mocked_discover_query("dynamic-sampling.distribution.fetch-parent-transactions"),
+            mocked_discover_query("dynamic-sampling.distribution.fetch-parent-transactions-count"),
             {
                 "data": [
                     {"project": "earth", "count()": 34},
@@ -333,6 +356,9 @@ class ProjectDynamicSamplingTest(APITestCase):
                 ]
             },
         ]
+        mock_querybuilder.return_value = mocked_query_builder_query(
+            referrer="dynamic-sampling.distribution.fetch-parent-transactions"
+        )
         with Feature({"organizations:filters-and-sampling": True}):
             response = self.client.get(f"{self.endpoint}?sampleSize=2")
             assert response.json() == {
@@ -340,34 +366,36 @@ class ProjectDynamicSamplingTest(APITestCase):
             }
 
     @freeze_time()
+    @mock.patch("sentry.api.endpoints.project_dynamic_sampling.raw_snql_query")
     @mock.patch("sentry.api.endpoints.project_dynamic_sampling.discover.query")
-    def test_request_params_are_applied_to_discover_query(self, mock_query):
+    def test_request_params_are_applied_to_discover_query(self, mock_query, mock_querybuilder):
         self.login_as(self.user)
         mock_query.side_effect = [
-            {
-                "data": [
-                    {
-                        "trace": "6503ee33b7bc43aead1facaa625a5dba",
-                        "id": "6ddc83ee612b4e89b95b5278c8fd188f",
-                        "trace.client_sample_rate": "",
-                        "project.name": "fire",
-                        "random_number() AS random_number": 4255299100,
-                    },
-                    {
-                        "trace": "6503ee33b7bc43aead1facaa625a5dba",
-                        "id": "0b127a578f8440c793f9ba1de595229f",
-                        "trace.client_sample_rate": "",
-                        "project.name": "fire",
-                        "random_number() AS random_number": 3976019453,
-                    },
-                ]
-            },
+            {"data": [{"count()": 1000}]},
             {
                 "data": [
                     {"project": "fire", "count()": 2},
                 ]
             },
         ]
+        mock_querybuilder.return_value = {
+            "data": [
+                {
+                    "trace": "6503ee33b7bc43aead1facaa625a5dba",
+                    "id": "6ddc83ee612b4e89b95b5278c8fd188f",
+                    "trace.client_sample_rate": "",
+                    "project.name": "fire",
+                    "random_number() AS random_number": 4255299100,
+                },
+                {
+                    "trace": "6503ee33b7bc43aead1facaa625a5dba",
+                    "id": "0b127a578f8440c793f9ba1de595229f",
+                    "trace.client_sample_rate": "",
+                    "project.name": "fire",
+                    "random_number() AS random_number": 3976019453,
+                },
+            ]
+        }
         end_time = timezone.now()
         start_time = end_time - timedelta(hours=6)
         query = "environment:dev"
@@ -380,10 +408,7 @@ class ProjectDynamicSamplingTest(APITestCase):
         calls = [
             mock.call(
                 selected_columns=[
-                    "id",
-                    "trace",
-                    "trace.client_sample_rate",
-                    "random_number() AS random_number",
+                    "count()",
                 ],
                 query=f"{query} event.type:transaction !has:trace.parent_span_id",
                 params={
@@ -392,7 +417,7 @@ class ProjectDynamicSamplingTest(APITestCase):
                     "project_id": [self.project.id],
                     "organization_id": self.project.organization,
                 },
-                orderby=["-random_number"],
+                orderby=[],
                 offset=0,
                 limit=requested_sample_size,
                 equations=[],
@@ -401,8 +426,8 @@ class ProjectDynamicSamplingTest(APITestCase):
                 allow_metric_aggregates=True,
                 use_aggregate_conditions=True,
                 transform_alias_to_input_format=True,
-                functions_acl=["random_number"],
-                referrer="dynamic-sampling.distribution.fetch-parent-transactions",
+                functions_acl=None,
+                referrer="dynamic-sampling.distribution.fetch-parent-transactions-count",
             ),
             mock.call(
                 selected_columns=["project", "count()"],
@@ -425,6 +450,36 @@ class ProjectDynamicSamplingTest(APITestCase):
                 referrer="dynamic-sampling.distribution.fetch-project-breakdown",
             ),
         ]
+        query_builder = QueryBuilder(
+            Dataset.Discover,
+            selected_columns=[
+                "id",
+                "trace",
+                "trace.client_sample_rate",
+                "random_number() AS rand_num",
+                "modulo(rand_num, 10) as modulo_num",
+            ],
+            query=f"{query} event.type:transaction !has:trace.parent_span_id",
+            params={
+                "start": start_time,
+                "end": end_time,
+                "project_id": [self.project.id],
+                "organization_id": self.project.organization,
+            },
+            offset=0,
+            orderby=None,
+            limit=requested_sample_size,
+            equations=[],
+            auto_fields=True,
+            auto_aggregations=True,
+            use_aggregate_conditions=True,
+            functions_acl=["random_number", "modulo"],
+        )
+        query_builder.add_conditions([Condition(lhs=Column("modulo_num"), op=Op.EQ, rhs=0)])
+        snuba_query = query_builder.get_snql_query().query
+        groupby = snuba_query.groupby + [Column("modulo_num")]
+        snuba_query = snuba_query.set_groupby(groupby)
+
         with Feature({"organizations:filters-and-sampling": True}):
             response = self.client.get(
                 f"{self.endpoint}?sampleSize={requested_sample_size}&query={query}&statsPeriod=6h"
@@ -432,4 +487,25 @@ class ProjectDynamicSamplingTest(APITestCase):
             assert response.status_code == 200
             assert mock_query.mock_calls == calls
 
-            mock_query.reset_mock()
+            mock_querybuilder_query = mock_querybuilder.call_args_list[0][0][0].query
+
+            def snuba_sort_key(elem):
+                if isinstance(elem, Condition):
+                    try:
+                        return elem.lhs.name
+                    except AttributeError:
+                        return elem.lhs.function
+                elif isinstance(elem, Column):
+                    return elem.name
+                else:
+                    return elem.alias
+
+            assert sorted(mock_querybuilder_query.select, key=snuba_sort_key) == sorted(
+                snuba_query.select, key=snuba_sort_key
+            )
+            assert sorted(mock_querybuilder_query.where, key=snuba_sort_key) == sorted(
+                snuba_query.where, key=snuba_sort_key
+            )
+            assert sorted(mock_querybuilder_query.groupby, key=snuba_sort_key) == sorted(
+                snuba_query.groupby, key=snuba_sort_key
+            )

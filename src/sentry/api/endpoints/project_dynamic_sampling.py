@@ -207,7 +207,7 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
         requested_sample_size = min(int(request.GET.get("sampleSize", 100)), 1000)
         distributed_trace = request.GET.get("distributedTrace", "1") == "1"
         stats_period = min(
-            parse_stats_period(request.GET.get("statsPeriod", "7d")), timedelta(days=7)
+            parse_stats_period(request.GET.get("statsPeriod", "1h")), timedelta(hours=24)
         )
 
         end_time = timezone.now()
