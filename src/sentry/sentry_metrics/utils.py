@@ -2,6 +2,7 @@ from typing import Optional, Sequence
 
 from sentry.api.utils import InvalidParams
 from sentry.sentry_metrics import indexer
+from sentry.sentry_metrics.configuration import UseCaseKey
 
 #: Special integer used to represent a string missing from the indexer
 STRING_NOT_FOUND = -1
@@ -16,7 +17,7 @@ class MetricIndexNotFound(InvalidParams):  # type: ignore
 
 def reverse_resolve(index: int) -> str:
     assert index > 0
-    resolved = indexer.reverse_resolve(index)
+    resolved = indexer.reverse_resolve(index, use_case_id=UseCaseKey.RELEASE_HEALTH)
     # The indexer should never return None for integers > 0:
     if resolved is None:
         raise MetricIndexNotFound()

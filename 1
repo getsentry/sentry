@@ -160,12 +160,8 @@ class MetricReleaseMonitorBackend(BaseReleaseMonitorBackend):
                         data = data[:-1]
 
                     for row in data:
-                        env_name = indexer.reverse_resolve(
-                            row[env_key], use_case_id=UseCaseKey.RELEASE_HEALTH
-                        )
-                        release_name = indexer.reverse_resolve(
-                            row[release_key], use_case_id=UseCaseKey.RELEASE_HEALTH
-                        )
+                        env_name = indexer.reverse_resolve(row[env_key], use_case_id=UseCaseKey.RELEASE_HEALTH)
+                        release_name = indexer.reverse_resolve(row[release_key], use_case_id=UseCaseKey.RELEASE_HEALTH)
                         row_totals = totals[row["project_id"]].setdefault(
                             env_name, {"total_sessions": 0, "releases": defaultdict(int)}
                         )
