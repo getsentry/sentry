@@ -8,21 +8,15 @@
 # after migrations and models were changed to no longer reference it.
 
 
-from django.db.models import CharField, TextField
+from django.db.models import CharField as EncryptedCharField
+from django.db.models import TextField as EncryptedTextField
 
-from django_picklefield import PickledObjectField
-from sentry.db.models.fields.jsonfield import JSONField
+from django_picklefield import PickledObjectField as EncryptedPickledObjectField
+from sentry.db.models.fields.jsonfield import JSONField as EncryptedJsonField
 
-EncryptedCharField = CharField
-EncryptedJsonField = JSONField
-EncryptedTextField = TextField
-
-
-class EncryptedPickledObjectField(PickledObjectField):
-    empty_strings_allowed = True
-
-    def get_db_prep_value(self, value, *args, **kwargs):
-        # This special behavior is retained.
-        if isinstance(value, bytes):
-            value = value.decode("utf-8")
-        return super().get_db_prep_value(value, *args, **kwargs)
+__all__ = (
+    "EncryptedCharField",
+    "EncryptedTextField",
+    "EncryptedPickledObjectField",
+    "EncryptedJsonField",
+)
