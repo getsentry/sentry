@@ -15,9 +15,9 @@ class MetricIndexNotFound(InvalidParams):  # type: ignore
     pass
 
 
-def reverse_resolve(index: int) -> str:
+def reverse_resolve(index: int, use_case_id: UseCaseKey = UseCaseKey.RELEASE_HEALTH) -> str:
     assert index > 0
-    resolved = indexer.reverse_resolve(index, use_case_id=UseCaseKey.RELEASE_HEALTH)
+    resolved = indexer.reverse_resolve(index, use_case_id=use_case_id)
     # The indexer should never return None for integers > 0:
     if resolved is None:
         raise MetricIndexNotFound()
@@ -40,7 +40,7 @@ def reverse_resolve_weak(index: int) -> Optional[str]:
 
 
 def resolve(org_id: int, string: str) -> int:
-    resolved = indexer.resolve(org_id, string)
+    resolved = indexer.resolve(org_id, string, use_case_id=UseCaseKey.RELEASE_HEALTH)
     if resolved is None:
         raise MetricIndexNotFound(f"Unknown string: {string!r}")
 
@@ -60,7 +60,7 @@ def resolve_weak(org_id: int, string: str) -> int:
     useful to make the WHERE-clause "impossible" with `WHERE x = -1` instead of
     explicitly handling that exception.
     """
-    resolved = indexer.resolve(org_id, string)
+    resolved = indexer.resolve(org_id, string, use_case_id=UseCaseKey.RELEASE_HEALTH)
     if resolved is None:
         return STRING_NOT_FOUND
 

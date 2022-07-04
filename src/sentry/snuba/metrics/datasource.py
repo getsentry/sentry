@@ -21,6 +21,7 @@ from snuba_sdk.conditions import ConditionGroup
 from sentry.api.utils import InvalidParams
 from sentry.models import Organization, Project
 from sentry.sentry_metrics import indexer
+from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.utils import resolve_tag_key, reverse_resolve
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.fields import run_metrics_query
@@ -180,6 +181,7 @@ def get_custom_measurements(
     organization: Optional[Organization] = None,
     start: Optional[datetime] = None,
     end: Optional[datetime] = None,
+    use_case_id: UseCaseKey = UseCaseKey.RELEASE_HEALTH,
 ) -> Sequence[MetricMeta]:
     assert projects
 
@@ -192,7 +194,7 @@ def get_custom_measurements(
             start=start,
             end=end,
         ):
-            mri = reverse_resolve(row["metric_id"])
+            mri = reverse_resolve(row["metric_id"], use_case_id=use_case_id)
             parsed_mri = parse_mri(mri)
             if is_custom_measurement(parsed_mri):
                 metrics_meta.append(

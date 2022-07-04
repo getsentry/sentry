@@ -1271,7 +1271,7 @@ class MetricsEnhancedPerformanceTestCase(SessionMetricsTestCase, TestCase):
                 {
                     "org_id": org_id,
                     "project_id": project,
-                    "metric_id": indexer.resolve(org_id, internal_metric),
+                    "metric_id": indexer.resolve(org_id, internal_metric, use_case_id=use_case_id),
                     "timestamp": metric_timestamp,
                     "tags": tags,
                     "type": self.TYPE_MAP[entity],

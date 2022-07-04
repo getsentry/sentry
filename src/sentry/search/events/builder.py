@@ -74,6 +74,7 @@ from sentry.search.events.types import (
     WhereType,
 )
 from sentry.sentry_metrics import indexer
+from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.snuba.metrics.fields import histogram as metrics_histogram
 from sentry.utils.dates import outside_retention_with_modified_start, to_timestamp
 from sentry.utils.snuba import (
@@ -1822,7 +1823,9 @@ class MetricsQueryBuilder(QueryBuilder):
     def resolve_metric_index(self, value: str) -> Optional[int]:
         """Layer on top of the metric indexer so we'll only hit it at most once per value"""
         if value not in self._indexer_cache:
-            result = indexer.resolve(self.organization_id, value)
+            result = indexer.resolve(
+                self.organization_id, value, use_case_id=UseCaseKey.RELEASE_HEALTH
+            )
             self._indexer_cache[value] = result
 
         return self._indexer_cache[value]

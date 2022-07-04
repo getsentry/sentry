@@ -124,6 +124,12 @@ class LazyServiceWrapper(LazyObject):  # type: ignore
         base_instance = base()
         for key in itertools.chain(base.__all__, ("validate", "setup")):
             if inspect.isroutine(getattr(base_instance, key)):
+                # def foo(*args, **kwargs):
+                #     if key == "resolve":
+                #         kwargs.update(use_case_id=UseCaseKey.PERFORMANCE)
+                #     return getattr(self, key)(*args, **kwargs)
+                # context[key] = (lambda f: lambda *a, **k: foo(*a, **k))(key)
+                # from sentry.sentry_metrics.configuration import UseCaseKey
                 context[key] = (lambda f: lambda *a, **k: getattr(self, f)(*a, **k))(key)
             else:
                 context[key] = getattr(base_instance, key)
