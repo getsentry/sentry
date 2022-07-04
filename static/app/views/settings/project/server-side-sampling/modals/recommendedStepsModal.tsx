@@ -1,4 +1,7 @@
+import 'prism-sentry/index.css';
+
 import {Fragment} from 'react';
+import styled from '@emotion/styled';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
@@ -6,52 +9,62 @@ import ButtonBar from 'sentry/components/buttonBar';
 import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
-// import Terminal from 'sentry/components/terminal';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {
+  OutdatedVersion,
+  SdkOutdatedVersion,
+  SdkProjectBadge,
+  UpdatesList,
+  UpdateSuggestion,
+  UpdateSuggestions,
+} from 'sentry/components/sidebar/broadcastSdkUpdates';
 import {t, tct} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
+import space from 'sentry/styles/space';
+import {Organization, Project, ProjectSdkUpdates} from 'sentry/types';
+import getSdkUpdateSuggestion from 'sentry/utils/getSdkUpdateSuggestion';
+import useProjects from 'sentry/utils/useProjects';
+import withSdkUpdates from 'sentry/utils/withSdkUpdates';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
-import {SERVER_SIDE_DOC_LINK} from '../utils';
+import {SERVER_SIDE_SAMPLING_DOC_LINK} from '../utils';
 
 import {FooterActions, Stepper} from './uniformRateModal';
 
 type Props = ModalRenderProps & {
   organization: Organization;
   project?: Project;
+  sdkUpdates?: ProjectSdkUpdates[] | null;
 };
 
-const sdkUpdates = [
-  {
-    projectId: '4291',
-    sdkName: 'sentry.javascript.browser',
-    sdkVersion: '6.3.1',
-    suggestions: [
-      {
-        enabled: [],
-        newSdkVersion: '7.5.0',
-        sdkName: 'sentry.javascript.browser',
-        sdkUrl: 'https://docs.sentry.io/platforms/javascript',
-        type: 'updateSdk',
-      },
-    ],
-  },
-  {
-    projectId: '5480829',
-    sdkName: 'sentry.javascript.browser',
-    sdkVersion: '5.3.0',
-    suggestions: [
-      {
-        enabled: [],
-        newSdkVersion: '7.5.0',
-        sdkName: 'sentry.javascript.browser',
-        sdkUrl: 'https://docs.sentry.io/platforms/javascript',
-        type: 'updateSdk',
-      },
-    ],
-  },
-];
+// const sdkUpdates = [
+//   {
+//     project: 'dynamic-sampling',
+//     latestSDKVersion: '1.0.3',
+//     latestSDKName: 'sentry.javascript.react',
+//     isSendingSampleRate: true,
+//   },
+//   {
+//     project: 'android',
+//     latestSDKVersion: '1.0.2',
+//     latestSDKName: 'sentry.python',
+//     isSendingSampleRate: false,
+//   },
+// ];
 
-export function RecommendedStepsModal({Header, Body, Footer, closeModal}: Props) {
+function RecommendedStepsModalContainer({
+  Header,
+  Body,
+  Footer,
+  closeModal,
+  sdkUpdates,
+  organization,
+}: Props) {
+  // const {projects} = useProjects({
+  //   slugs: sdkUpdates.map(sdkUpdate => sdkUpdate.project),
+  // });
+
+  const {projects} = useProjects();
+
   return (
     <Fragment>
       <Header closeButton>
@@ -72,9 +85,48 @@ export function RecommendedStepsModal({Header, Body, Footer, closeModal}: Props)
                 }
               )}
             </TextBlock>
-            {sdkUpdates.map(({projectId}) => (
-              <div key={projectId} />
-            ))}
+            {!sdkUpdates && <LoadingIndicator />}
+            {sdkUpdates && (
+              <SdkUpdates>
+                {sdkUpdates.map(sdkUpdate => {
+                  const project = projects.find(({id}) => id === sdkUpdate.projectId);
+
+                  if (!project) {
+                    return null;
+                  }
+
+                  return (
+                    <div key={project.id}>
+                      <SdkProjectBadge project={project} organization={organization} />
+                      <SdkOutdatedVersion>
+                        {tct('This project is on [current-version]', {
+                          ['current-version']: (
+                            <OutdatedVersion>{`${sdkUpdate.sdkName}@v${sdkUpdate.sdkVersion}`}</OutdatedVersion>
+                          ),
+                        })}
+                      </SdkOutdatedVersion>
+                      <UpdateSuggestions>
+                        <UpdateSuggestion>
+                          {sdkUpdate.suggestions.map((suggestion, i) => (
+                            <ListItem key={i}>
+                              {getSdkUpdateSuggestion({
+                                sdk: {
+                                  name: sdkUpdate.sdkName,
+                                  version: sdkUpdate.sdkVersion,
+                                },
+                                suggestion,
+                                shortStyle: true,
+                                capitalized: true,
+                              })}
+                            </ListItem>
+                          ))}
+                        </UpdateSuggestion>
+                      </UpdateSuggestions>
+                    </div>
+                  );
+                })}
+              </SdkUpdates>
+            )}
           </ListItem>
           <ListItem>
             <h5>{t('Increase your SDK Transaction sample rate')}</h5>
@@ -84,18 +136,24 @@ export function RecommendedStepsModal({Header, Body, Footer, closeModal}: Props)
               )}
             </TextBlock>
             <div>
-              <pre className="language-groovy highlight">
-                <code className="language-groovy">
+              <pre className="language-javascript highlight">
+                <code className="language-javascript">
                   Sentry
                   <span className="token punctuation">.</span>
                   <span className="token function">init</span>
                   <span className="token punctuation">(</span>
                   <span className="token punctuation">{'{'}</span>
-                  <span className="token literal-property property">traceSampleRate</span>
-                  <span className="token operator">:</span>
-                  <span className="token boolean">1.0</span>
-                  <span className="token punctuation">,</span>
-                  <span className="tocken comment">// 100%</span>
+                  <br />
+                  <span className="token punctuation">{'  ...'}</span>
+                  <br />
+                  <span className="token literal-property property">
+                    {'  traceSampleRate'}
+                  </span>
+                  <span className="token operator">:</span>{' '}
+                  <span className="token string">1.0</span>
+                  <span className="token punctuation">,</span>{' '}
+                  <span className="token comment">// 100%</span>
+                  <br />
                   <span className="token punctuation">{'}'}</span>
                   <span className="token punctuation">)</span>
                   <span className="token punctuation">;</span>
@@ -107,7 +165,7 @@ export function RecommendedStepsModal({Header, Body, Footer, closeModal}: Props)
       </Body>
       <Footer>
         <FooterActions>
-          <Button href={SERVER_SIDE_DOC_LINK} external>
+          <Button href={SERVER_SIDE_SAMPLING_DOC_LINK} external>
             {t('Read Docs')}
           </Button>
 
@@ -121,3 +179,10 @@ export function RecommendedStepsModal({Header, Body, Footer, closeModal}: Props)
     </Fragment>
   );
 }
+
+export const RecommendedStepsModal = withSdkUpdates(RecommendedStepsModalContainer);
+
+const SdkUpdates = styled(UpdatesList)`
+  margin-top: 0;
+  margin-bottom: ${space(3)};
+`;
