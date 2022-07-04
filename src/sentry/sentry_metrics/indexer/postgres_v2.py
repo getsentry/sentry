@@ -193,7 +193,9 @@ class PGStringIndexerV2(StringIndexer):
 
         return id
 
-    def reverse_resolve(self, id: int, use_case_id: UseCaseKey) -> Optional[str]:
+    def reverse_resolve(
+        self, id: int, use_case_id: UseCaseKey = UseCaseKey.RELEASE_HEALTH
+    ) -> Optional[str]:
         """Lookup the stored string for a given integer ID.
 
         Returns None if the entry cannot be found.
