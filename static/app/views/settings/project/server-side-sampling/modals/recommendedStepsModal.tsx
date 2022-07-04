@@ -3,6 +3,7 @@ import {Fragment} from 'react';
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 // import Terminal from 'sentry/components/terminal';
@@ -19,6 +20,37 @@ type Props = ModalRenderProps & {
   project?: Project;
 };
 
+const sdkUpdates = [
+  {
+    projectId: '4291',
+    sdkName: 'sentry.javascript.browser',
+    sdkVersion: '6.3.1',
+    suggestions: [
+      {
+        enabled: [],
+        newSdkVersion: '7.5.0',
+        sdkName: 'sentry.javascript.browser',
+        sdkUrl: 'https://docs.sentry.io/platforms/javascript',
+        type: 'updateSdk',
+      },
+    ],
+  },
+  {
+    projectId: '5480829',
+    sdkName: 'sentry.javascript.browser',
+    sdkVersion: '5.3.0',
+    suggestions: [
+      {
+        enabled: [],
+        newSdkVersion: '7.5.0',
+        sdkName: 'sentry.javascript.browser',
+        sdkUrl: 'https://docs.sentry.io/platforms/javascript',
+        type: 'updateSdk',
+      },
+    ],
+  },
+];
+
 export function RecommendedStepsModal({Header, Body, Footer, closeModal}: Props) {
   return (
     <Fragment>
@@ -26,26 +58,23 @@ export function RecommendedStepsModal({Header, Body, Footer, closeModal}: Props)
         <h4>{t('Recommended next steps\u2026')}</h4>
       </Header>
       <Body>
-        <TextBlock>
-          {tct(
-            'Sampling both client and server-side can create the situation where you’re [notReceivingEnoughAcceptedTrans:not receiving enough accepted transactions] because server-side sampling apply on top of any sampling configured within your client’s [sentryInit:Sentry.init()].',
-            {
-              notReceivingEnoughAcceptedTrans: <strong />,
-              sentryInit: <strong />,
-            }
-          )}
-        </TextBlock>
-        <TextBlock>
-          {t('To avoid any headaches in the future we recommend the following steps')}
-        </TextBlock>
         <List symbol="colored-numeric">
           <ListItem>
             <h5>{t('Update the following SDK versions')}</h5>
             <TextBlock>
-              {t(
-                'This ensures that any active server-side sampling rules won’t sharply decrease the amount of accepted transactions.'
+              {tct(
+                "I know what you're thinking, [italic:“[strong:It's already working, why should I?]”]. By updating the following SDK's before activating any server sampling rules, you're avoiding situations when our servers aren't accepting enough transactions ([doubleSamplingLink:double sampling]) or our servers are accepting too many transactions ([exceededQuotaLink:exceeded quota]).",
+                {
+                  strong: <strong />,
+                  italic: <i />,
+                  doubleSamplingLink: <ExternalLink href="" />,
+                  exceededQuotaLink: <ExternalLink href="" />,
+                }
               )}
             </TextBlock>
+            {sdkUpdates.map(({projectId}) => (
+              <div key={projectId} />
+            ))}
           </ListItem>
           <ListItem>
             <h5>{t('Increase your SDK Transaction sample rate')}</h5>

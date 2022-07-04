@@ -43,7 +43,8 @@ export function ServerSideSampling({project}: Props) {
   const hasAccess = organization.access.includes('project:write');
   const dynamicSamplingRules = project.dynamicSampling?.rules ?? [];
 
-  const [rules, _setRules] = useState<SamplingRules>(dynamicSamplingRules);
+  const [_rules, _setRules] = useState<SamplingRules>(dynamicSamplingRules);
+  const rules = [];
 
   function handleActivateToggle(rule: SamplingRule) {
     openModal(modalProps => <ActivateModal {...modalProps} rule={rule} />);
