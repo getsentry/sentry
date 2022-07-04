@@ -3,7 +3,6 @@ from django.utils import timezone
 from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
 
-from django_picklefield import PickledObjectField
 from sentry.auth.authenticators import (
     AUTHENTICATOR_CHOICES,
     AUTHENTICATOR_INTERFACES,
@@ -18,6 +17,7 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
 )
+from sentry.db.models.fields.picklefield import PickledObjectField
 
 
 class AuthenticatorManager(BaseManager):

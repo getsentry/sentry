@@ -11,8 +11,8 @@
 from django.db.models import CharField as EncryptedCharField
 from django.db.models import TextField as EncryptedTextField
 
-from django_picklefield import PickledObjectField as EncryptedPickledObjectField
 from sentry.db.models.fields.jsonfield import JSONField as EncryptedJsonField
+from sentry.db.models.fields.picklefield import PickledObjectField as EncryptedPickledObjectField
 
 __all__ = (
     "EncryptedCharField",
