@@ -108,3 +108,24 @@ class KillswitchesTest(CliTestCase):
         )
 
         assert self.invoke("pull", OPTION, "-").output == PREAMBLE
+
+    @mock.patch(
+        "sentry.tasks.relay.schedule_invalidate_project_config",
+    )
+    @mock.patch(
+        "sentry.options.set",
+    )
+    def test_relay_drop_transaction_metrics(self, mock_set, mock_schedule):
+
+        option = "relay.drop-transaction-metrics"
+
+        rv = self.invoke("push", "--yes", option, "-", input=("- project_id: 42\n"))
+        assert rv.exit_code == 0, rv.output
+
+        assert mock_set.mock_calls == [
+            mock.call("relay.drop-transaction-metrics", [{"project_id": "42"}])
+        ]
+
+        assert mock_schedule.mock_calls == [
+            mock.call(project_id="42", trigger="killswitches.relay.drop-transaction-metrics")
+        ]

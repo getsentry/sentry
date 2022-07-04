@@ -9,7 +9,9 @@ features and more performant.
 
 import copy
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Union
+
+import click
 
 from sentry import options
 from sentry.utils import metrics
@@ -20,10 +22,46 @@ LegacyKillswitchConfig = Union[KillswitchConfig, List[int]]
 Context = Dict[str, Any]
 
 
+def _update_project_configs(
+    old_option_value: Sequence[Mapping[str, Any]], new_option_value: Sequence[Mapping[str, Any]]
+) -> None:
+    """Callback for the relay.drop-transaction-metrics kill switch.
+    On every change, force a recomputation of the corresponding project configs
+    """
+    from sentry.tasks.relay import schedule_invalidate_project_config
+
+    old_project_ids = {ctx["project_id"] for ctx in old_option_value}
+    new_project_ids = {ctx["project_id"] for ctx in new_option_value}
+
+    # We want to recompute the project config for any project that was added
+    # or removed
+    changed_project_ids = old_project_ids ^ new_project_ids
+
+    with click.progressbar(changed_project_ids) as ids:
+        for project_id in ids:
+            if project_id is not None:
+                schedule_invalidate_project_config(
+                    project_id=project_id, trigger="killswitches.relay.drop-transaction-metrics"
+                )
+
+
+@dataclass
+class KillswitchCallback:
+    """Named callback to run after a kill switch has been pushed."""
+
+    callback: Callable[[Any, Any], None]
+    #: `title` will be presented in the user prompt when asked whether or not to run the callback
+    title: str
+
+    def __call__(self, old: Any, new: Any) -> None:
+        self.callback(old, new)  # type: ignore
+
+
 @dataclass
 class KillswitchInfo:
     description: str
     fields: Dict[str, str]
+    on_change: Optional[KillswitchCallback] = None
 
 
 ALL_KILLSWITCH_OPTIONS = {
@@ -128,6 +166,22 @@ ALL_KILLSWITCH_OPTIONS = {
             "project_id": "project ID to randomly assign partitions for event messages",
             "message_type": "message type to randomly partition",
         },
+    ),
+    "relay.drop-transaction-metrics": KillswitchInfo(
+        description="""
+        Tell Relay via project config to stop extracting metrics from transactions.
+        Note that this change will not take effect immediately, it takes time
+        for downstream Relay instances to update their caches.
+
+        If project_id is set to None, the kill switch will match *any* project_id,
+        but no invalidation task will be run.
+        """,
+        fields={
+            "project_id": "project ID for which we want to stop extracting transaction metrics",
+        },
+        on_change=KillswitchCallback(
+            _update_project_configs, "Trigger invalidation tasks for projects"
+        ),
     ),
 }
 
