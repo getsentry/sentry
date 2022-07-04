@@ -195,25 +195,23 @@ def normalize_value(
 ) -> KillswitchConfig:
     rv: KillswitchConfig = []
     for i, condition in enumerate(option_value or ()):
-        if not condition:
-            continue
-        elif isinstance(condition, int):
-            rv.append({"project_id": str(condition)})
-        elif isinstance(condition, dict):
-            for k in ALL_KILLSWITCH_OPTIONS[killswitch_name].fields:
-                if k not in condition:
-                    if strict:
-                        raise ValueError(f"Condition {i}: Missing field {k}")
-                    else:
-                        condition[k] = None
+        if isinstance(condition, int):
+            # legacy format
+            condition = {"project_id": str(condition)}
 
-            if strict:
-                for k in list(condition):
-                    if k not in ALL_KILLSWITCH_OPTIONS[killswitch_name].fields:
-                        raise ValueError(f"Condition {i}: Unknown field: {k}")
+        for k in ALL_KILLSWITCH_OPTIONS[killswitch_name].fields:
+            if k not in condition:
+                if strict:
+                    raise ValueError(f"Condition {i}: Missing field {k}")
+                else:
+                    condition[k] = None
 
-            if any(v is not None for v in condition.values()):
-                rv.append({k: str(v) for k, v in condition.items() if v is not None})
+        if strict:
+            for k in list(condition):
+                if k not in ALL_KILLSWITCH_OPTIONS[killswitch_name].fields:
+                    raise ValueError(f"Condition {i}: Unknown field: {k}")
+
+        rv.append({k: str(v) if v is not None else None for k, v in condition.items()})
 
     return rv
 
@@ -255,16 +253,14 @@ def _value_matches(
 
 def print_conditions(killswitch_name: str, raw_option_value: LegacyKillswitchConfig) -> str:
     option_value = normalize_value(killswitch_name, raw_option_value)
-
     if not option_value:
         return "<disabled entirely>"
 
     return "DROP DATA WHERE\n  " + " OR\n  ".join(
         "("
         + " AND ".join(
-            f"{field} = {matching_value}"
+            f"{field} = {matching_value if matching_value is not None else '*'}"
             for field, matching_value in condition.items()
-            if matching_value is not None
         )
         + ")"
         for condition in option_value
