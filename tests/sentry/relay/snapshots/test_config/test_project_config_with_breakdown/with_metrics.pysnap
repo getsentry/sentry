@@ -1,5 +1,5 @@
 ---
-created: '2022-04-20T13:21:41.749597Z'
+created: '2022-06-29T14:13:27.057078Z'
 creator: sentry
 source: tests/sentry/relay/test_config.py
 ---
@@ -10,6 +10,7 @@ breakdownsV2:
     - db
     - browser
     - resource
+    - ui
     type: spanOperations
 metricConditionalTagging:
 - condition:
@@ -860,6 +861,8 @@ metricConditionalTagging:
   - d:transactions/duration@millisecond
   targetTag: histogram_outlier
 transactionMetrics:
+  customMeasurements:
+    limit: 5
   extractCustomTags: []
   extractMetrics:
   - d:transactions/duration@millisecond
@@ -883,3 +886,4 @@ transactionMetrics:
   - d:transactions/breakdowns.ops.db
   - d:transactions/breakdowns.ops.browser
   - d:transactions/breakdowns.ops.resource
+  - d:transactions/breakdowns.ops.ui

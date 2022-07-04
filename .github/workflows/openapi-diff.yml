@@ -41,9 +41,8 @@ jobs:
           repository: getsentry/sentry-api-schema
           path: sentry-api-schema
 
-      - name: Install/setup node
+      - uses: ./.github/actions/setup-volta
         if: steps.changes.outputs.api_docs == 'true'
-        uses: volta-cli/action@v1
 
       - name: Build OpenAPI Derefed JSON
         if: steps.changes.outputs.api_docs == 'true'

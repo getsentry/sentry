@@ -21,7 +21,9 @@ class DataForwardingPlugin(Plugin):
         return True
 
     def get_rate_limit(self):
-        # number of requests, number of seconds (window)
+        """
+        Returns a tuple of (Number of Requests, Window in Seconds)
+        """
         return (50, 1)
 
     def forward_event(self, event: Event, payload: MutableMapping[str, Any]) -> bool:

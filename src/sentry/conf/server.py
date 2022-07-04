@@ -624,6 +624,7 @@ CELERY_QUEUES = [
     ),
     Queue("events.save_event", routing_key="events.save_event"),
     Queue("events.save_event_transaction", routing_key="events.save_event_transaction"),
+    Queue("events.save_event_attachments", routing_key="events.save_event_attachments"),
     Queue("events.symbolicate_event", routing_key="events.symbolicate_event"),
     Queue(
         "events.symbolicate_event_low_priority", routing_key="events.symbolicate_event_low_priority"
@@ -938,7 +939,7 @@ SENTRY_FEATURES = {
     # Workflow 2.0 notifications following a release
     "organizations:alert-release-notification-workflow": False,
     # Alert wizard redesign version 3
-    "organizations:alert-wizard-v3": False,
+    "organizations:alert-wizard-v3": True,
     "organizations:api-keys": False,
     # Enable multiple Apple app-store-connect sources per project.
     "organizations:app-store-connect-multiple": False,
@@ -958,7 +959,7 @@ SENTRY_FEATURES = {
     # Enables events endpoint usage on performance frontend
     "organizations:performance-frontend-use-events-endpoint": True,
     # Enable duplicating alert rules.
-    "organizations:duplicate-alert-rule": False,
+    "organizations:duplicate-alert-rule": True,
     # Enable attaching arbitrary files to events.
     "organizations:event-attachments": True,
     # Enable Filters & Sampling in the project settings
