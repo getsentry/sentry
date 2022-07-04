@@ -8,7 +8,7 @@ import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 
-import {SERVER_SIDE_DOC_LINK} from './utils';
+import {SERVER_SIDE_SAMPLING_DOC_LINK} from './utils';
 
 type Props = {
   hasAccess: boolean;
@@ -23,7 +23,7 @@ export function Promo({onGetStarted, hasAccess}: Props) {
         <h3>{t('No sampling rules active yet')}</h3>
         <p>{t('Set up your project for sampling success')}</p>
         <Actions gap={1}>
-          <Button href={SERVER_SIDE_DOC_LINK} external>
+          <Button href={SERVER_SIDE_SAMPLING_DOC_LINK} external>
             {t('Read Docs')}
           </Button>
           <Button

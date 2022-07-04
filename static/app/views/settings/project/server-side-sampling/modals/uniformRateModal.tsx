@@ -16,7 +16,7 @@ import {defined} from 'sentry/utils';
 import {formatPercentage} from 'sentry/utils/formatters';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
-import {SERVER_SIDE_DOC_LINK} from '../utils';
+import {SERVER_SIDE_SAMPLING_DOC_LINK} from '../utils';
 
 enum Strategy {
   CURRENT = 'current',
@@ -154,7 +154,7 @@ function UniformRateModal({Header, Body, Footer, closeModal}: Props) {
       </Body>
       <Footer>
         <FooterActions>
-          <Button href={SERVER_SIDE_DOC_LINK} external>
+          <Button href={SERVER_SIDE_SAMPLING_DOC_LINK} external>
             {t('Read Docs')}
           </Button>
 
