@@ -55,6 +55,7 @@ from sentry.release_health.base import (
 )
 from sentry.release_health.metrics_sessions_v2 import run_sessions_query
 from sentry.sentry_metrics import indexer
+from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.utils import (
     MetricIndexNotFound,
     resolve,
@@ -376,7 +377,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         rv = {}
 
         for project_id, release in project_releases:
-            release_tag_value = indexer.resolve(org_id, release)
+            release_tag_value = indexer.resolve(org_id, release, use_case_id=UseCaseKey.PERFORMANCE)
             if release_tag_value is None:
                 # Don't emit empty releases -- for exact compatibility with
                 # sessions table backend.
