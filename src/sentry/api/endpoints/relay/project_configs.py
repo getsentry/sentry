@@ -86,11 +86,9 @@ class RelayProjectConfigsEndpoint(Endpoint):
             # considering them v3.
             use_v3 = False
             reason = "fullConfig"
-            version = "2"  # Downgrade to 2 for reporting metrics
         elif no_cache:
             use_v3 = False
             reason = "noCache"
-            version = "2"  # Downgrade to 2 for reporting metrics
 
         set_tag("relay_use_v3", use_v3)
         set_tag("relay_use_v3_rejected", reason)
