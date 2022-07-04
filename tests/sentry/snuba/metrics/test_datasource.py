@@ -3,8 +3,8 @@ from datetime import timedelta
 
 from django.utils.datastructures import MultiValueDict
 
-from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics import indexer
+from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.snuba.metrics.datasource import get_custom_measurements, get_series
 from sentry.snuba.metrics.query_builder import QueryDefinition
 from sentry.testutils import SessionMetricsReleaseHealthTestCase, TestCase
@@ -125,6 +125,7 @@ class GetCustomMeasurementsTest(MetricsEnhancedPerformanceTestCase):
             projects=[self.project],
             organization=self.organization,
             start=self.day_ago,
+            use_case_id=UseCaseKey.RELEASE_HEALTH,
         )
         assert result == [
             {
@@ -169,6 +170,7 @@ class GetCustomMeasurementsTest(MetricsEnhancedPerformanceTestCase):
             projects=[self.project],
             organization=self.organization,
             start=self.day_ago,
+            use_case_id=UseCaseKey.RELEASE_HEALTH,
         )
 
         assert result == [
