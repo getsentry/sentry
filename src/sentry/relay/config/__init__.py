@@ -1,13 +1,13 @@
 import logging
 import uuid
 from datetime import datetime
-from typing import Any, Mapping, Optional, Sequence
+from typing import Any, Collection, Mapping, Optional, Sequence, TypedDict
 
 import sentry_sdk
 from pytz import utc
 from sentry_sdk import Hub, capture_exception
 
-from sentry import features, quotas, utils
+from sentry import features, killswitches, quotas, utils
 from sentry.constants import ObjectStatus
 from sentry.datascrubbing import get_datascrubbing_settings, get_pii_config
 from sentry.grouping.api import get_grouping_config_dict_for_project
@@ -185,7 +185,7 @@ def _get_project_config(project, full_config=True, project_keys=None):
 
     if features.has("organizations:performance-ops-breakdown", project.organization):
         cfg["config"]["breakdownsV2"] = project.get_option("sentry:breakdowns")
-    if features.has("organizations:transaction-metrics-extraction", project.organization):
+    if _should_extract_transaction_metrics(project):
         cfg["config"]["transactionMetrics"] = get_transaction_metrics_settings(
             project, cfg["config"].get("breakdownsV2")
         )
@@ -417,41 +417,62 @@ ALL_MEASUREMENT_METRICS = frozenset(
 CUSTOM_MEASUREMENT_LIMIT = 5
 
 
+class CustomMeasurementSettings(TypedDict):
+    limit: int
+
+
+class TransactionMetricsSettings(TypedDict):
+    extractMetrics: Collection[str]
+    extractCustomTags: Collection[str]
+    customMeasurements: CustomMeasurementSettings
+
+
+def _should_extract_transaction_metrics(project: Project) -> bool:
+    return features.has(
+        "organizations:transaction-metrics-extraction", project.organization
+    ) and not killswitches.killswitch_matches_context(
+        "relay.drop-transaction-metrics", {"project_id": project.id}
+    )
+
+
 def get_transaction_metrics_settings(
     project: Project, breakdowns_config: Optional[Mapping[str, Any]]
-):
+) -> TransactionMetricsSettings:
+    """This function assumes that the corresponding feature flag has been checked.
+    See _should_extract_transaction_metrics.
+    """
+
     metrics = []
     custom_tags = []
 
-    if features.has("organizations:transaction-metrics-extraction", project.organization):
-        metrics.extend(sorted(TRANSACTION_METRICS))
-        # TODO: for now let's extract all known measurements. we might want to
-        # be more fine-grained in the future once we know which measurements we
-        # really need (or how that can be dynamically determined)
-        metrics.extend(sorted(ALL_MEASUREMENT_METRICS))
+    metrics.extend(sorted(TRANSACTION_METRICS))
+    # TODO: for now let's extract all known measurements. we might want to
+    # be more fine-grained in the future once we know which measurements we
+    # really need (or how that can be dynamically determined)
+    metrics.extend(sorted(ALL_MEASUREMENT_METRICS))
 
-        if breakdowns_config is not None:
-            # we already have a breakdown configuration that tells relay which
-            # breakdowns to compute for an event. metrics extraction should
-            # probably be in sync with that, or at least not extract more metrics
-            # than there are breakdowns configured.
-            try:
-                for breakdown_name, breakdown_config in breakdowns_config.items():
-                    assert breakdown_config["type"] == "spanOperations"
-
-                    for op_name in breakdown_config["matches"]:
-                        metrics.append(f"d:transactions/breakdowns.ops.{op_name}")
-            except Exception:
-                capture_exception()
-
-        # Tells relay which user-defined tags to add to each extracted
-        # transaction metric.  This cannot include things such as `os.name`
-        # which are computed on the server, they have to come from the SDK as
-        # event tags.
+    if breakdowns_config is not None:
+        # we already have a breakdown configuration that tells relay which
+        # breakdowns to compute for an event. metrics extraction should
+        # probably be in sync with that, or at least not extract more metrics
+        # than there are breakdowns configured.
         try:
-            custom_tags.extend(project.get_option("sentry:transaction_metrics_custom_tags") or ())
+            for breakdown_name, breakdown_config in breakdowns_config.items():
+                assert breakdown_config["type"] == "spanOperations"
+
+                for op_name in breakdown_config["matches"]:
+                    metrics.append(f"d:transactions/breakdowns.ops.{op_name}")
         except Exception:
             capture_exception()
+
+    # Tells relay which user-defined tags to add to each extracted
+    # transaction metric.  This cannot include things such as `os.name`
+    # which are computed on the server, they have to come from the SDK as
+    # event tags.
+    try:
+        custom_tags.extend(project.get_option("sentry:transaction_metrics_custom_tags") or ())
+    except Exception:
+        capture_exception()
 
     return {
         "extractMetrics": metrics,
