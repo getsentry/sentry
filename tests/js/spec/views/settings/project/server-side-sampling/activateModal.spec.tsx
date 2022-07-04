@@ -1,4 +1,3 @@
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
   screen,
@@ -8,47 +7,54 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
+import * as indicators from 'sentry/actionCreators/indicator';
 import GlobalModal from 'sentry/components/globalModal';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {RouteContext} from 'sentry/views/routeContext';
 import ServerSideSampling from 'sentry/views/settings/project/server-side-sampling';
 import {SERVER_SIDE_SAMPLING_DOC_LINK} from 'sentry/views/settings/project/server-side-sampling/utils';
 
+import {getMockData} from './index.spec';
+
 describe('Server-side Sampling - Activate Modal', function () {
-  const {organization, project, router} = initializeOrg({
-    ...initializeOrg(),
-    organization: {
-      ...initializeOrg().organization,
-      features: ['server-side-sampling'],
+  const uniformRule = {
+    sampleRate: 1,
+    type: 'trace',
+    active: false,
+    condition: {
+      op: 'and',
+      inner: [],
     },
-    projects: [
-      TestStubs.Project({
-        dynamicSampling: {
-          rules: [
-            {
-              sampleRate: 0.2,
-              type: 'trace',
-              active: false,
-              condition: {
-                op: 'and',
-                inner: [
-                  {
-                    op: 'glob',
-                    name: 'trace.release',
-                    value: ['1.2.3'],
-                  },
-                ],
-              },
-              id: 1,
-            },
-          ],
-          next_id: 2,
-        },
-      }),
-    ],
-  });
+    id: 1,
+  };
 
   it('renders modal', async function () {
+    const newRule = {
+      ...uniformRule,
+      id: 0,
+      active: true,
+    };
+
+    const {router, project, organization} = getMockData({
+      project: TestStubs.Project({
+        dynamicSampling: {
+          rules: [uniformRule],
+        },
+      }),
+    });
+
+    const saveMock = MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/',
+      method: 'PUT',
+      body: TestStubs.Project({
+        dynamicSampling: {
+          rules: [newRule],
+        },
+      }),
+    });
+
+    jest.spyOn(indicators, 'addSuccessMessage');
+
     render(
       <RouteContext.Provider
         value={{
@@ -108,6 +114,23 @@ describe('Server-side Sampling - Activate Modal', function () {
     // Dialog should close
     await waitForElementToBeRemoved(() =>
       screen.queryByRole('heading', {name: 'Activate Rule'})
+    );
+
+    expect(saveMock).toHaveBeenCalledTimes(1);
+
+    expect(saveMock).toHaveBeenLastCalledWith(
+      '/projects/org-slug/project-slug/',
+      expect.objectContaining({
+        data: {
+          dynamicSampling: {
+            rules: [newRule],
+          },
+        },
+      })
+    );
+
+    expect(indicators.addSuccessMessage).toHaveBeenCalledWith(
+      'Successfully activated sampling rule'
     );
   });
 });

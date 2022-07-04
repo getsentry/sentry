@@ -1,6 +1,7 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
@@ -10,24 +11,59 @@ import FieldRequiredBadge from 'sentry/components/forms/field/fieldRequiredBadge
 import Link from 'sentry/components/links/link';
 import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import ProjectStore from 'sentry/stores/projectsStore';
 import space from 'sentry/styles/space';
+import {Organization, Project} from 'sentry/types';
 import {SamplingRule} from 'sentry/types/sampling';
+import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
+import useApi from 'sentry/utils/useApi';
 
 import {SERVER_SIDE_SAMPLING_DOC_LINK} from '../utils';
 
 type Props = ModalRenderProps & {
-  rule: SamplingRule;
+  orgSlug: Organization['slug'];
+  projSlug: Project['slug'];
+  ruleId: SamplingRule['id'];
+  rules: SamplingRule[];
 };
 
-export function ActivateModal({Header, Body, Footer, closeModal}: Props) {
+export function ActivateModal({
+  Header,
+  Body,
+  Footer,
+  closeModal,
+  orgSlug,
+  projSlug,
+  rules,
+  ruleId,
+}: Props) {
+  const api = useApi();
   const [understandConsequences, setUnderstandConsequences] = useState(false);
 
-  function handleActivate() {
-    // TODO(sampling): add activation logic here
+  async function handleActivate() {
+    const newRules = rules.map(existingRule => {
+      if (existingRule.id === ruleId) {
+        return {
+          ...existingRule,
+          id: 0,
+          active: true,
+        };
+      }
+      return existingRule;
+    });
+
     try {
+      const newProjectDetails = await api.requestPromise(
+        `/projects/${orgSlug}/${projSlug}/`,
+        {method: 'PUT', data: {dynamicSampling: {rules: newRules}}}
+      );
+      ProjectStore.onUpdateSuccess(newProjectDetails);
+      addSuccessMessage(t('Successfully activated sampling rule'));
       closeModal();
-    } catch {
-      // to nothing
+    } catch (error) {
+      const message = t('Unable to activate sampling rule');
+      handleXhrErrorResponse(message)(error);
+      addErrorMessage(message);
     }
   }
 

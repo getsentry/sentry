@@ -212,41 +212,35 @@ describe('Server-side Sampling - Specific Conditions Modal', function () {
   });
 
   it('edits the rule', async function () {
+    const specificRule = {
+      sampleRate: 0.2,
+      active: false,
+      type: 'trace',
+      condition: {
+        op: 'and',
+        inner: [
+          {
+            op: 'glob',
+            name: 'trace.release',
+            value: ['1.2.2'],
+          },
+        ],
+      },
+      id: 2,
+    };
+
     const {organization, project, router} = getMockData({
       project: TestStubs.Project({
         dynamicSampling: {
-          rules: [
-            uniformRule,
-            {
-              sampleRate: 0.2,
-              active: false,
-              type: 'trace',
-              condition: {
-                op: 'and',
-                inner: [
-                  {
-                    op: 'glob',
-                    name: 'trace.release',
-                    value: ['1.2.2'],
-                  },
-                ],
-              },
-              id: 2,
-            },
-          ],
+          rules: [uniformRule, specificRule],
         },
       }),
     });
 
     const newRule = {
-      condition: {
-        inner: [{name: 'trace.release', op: 'glob', value: ['1.2.3']}],
-        op: 'and',
-      },
+      ...specificRule,
       id: 0,
       sampleRate: 0.6,
-      type: 'trace',
-      active: false,
     };
 
     const saveMock = MockApiClient.addMockResponse({
