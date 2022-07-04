@@ -7,7 +7,7 @@ import sentry_sdk
 from pytz import utc
 from sentry_sdk import Hub, capture_exception
 
-from sentry import features, killswitches, options, quotas, utils
+from sentry import features, killswitches, quotas, utils
 from sentry.constants import ObjectStatus
 from sentry.datascrubbing import get_datascrubbing_settings, get_pii_config
 from sentry.grouping.api import get_grouping_config_dict_for_project
@@ -23,6 +23,7 @@ from sentry.relay.config.metric_extraction import get_metric_conditional_tagging
 from sentry.relay.utils import to_camel_case_name
 from sentry.utils import metrics
 from sentry.utils.http import get_origins
+from sentry.utils.options import sample_modulo
 
 #: These features will be listed in the project config
 EXPOSABLE_FEATURES = ["organizations:profiling", "organizations:session-replay"]
@@ -425,23 +426,6 @@ class TransactionMetricsSettings(TypedDict):
     extractMetrics: Collection[str]
     extractCustomTags: Collection[str]
     customMeasurements: CustomMeasurementSettings
-
-
-def sample_modulo(option_name: str, org_id: int) -> bool:
-    """Deterministically take a sampling decision based on the organization ID
-
-    Inspired by https://github.com/getsentry/snuba/blob/28891df3665989ec10e051362dbb84f94aea2f1a/snuba/state/__init__.py#L397-L401
-    """
-    granularity = 100
-
-    option_value = options.get(option_name)
-    try:
-        if (org_id % granularity) < granularity * option_value:
-            return True
-    except TypeError:
-        logger.error("Invalid value for option %r: %r", option_name, option_value)
-
-    return False
 
 
 def _should_extract_transaction_metrics(project: Project) -> bool:
