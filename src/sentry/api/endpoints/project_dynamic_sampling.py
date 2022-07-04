@@ -32,9 +32,7 @@ def percentile_fn(data, percentile):
 
 
 class DynamicSamplingPermission(ProjectPermission):
-    # ToDo(ahmed): Revisit the permission level for Dynamic Sampling once the requirements are
-    #  better defined
-    scope_map = {"GET": ["project:write", "project:admin"]}
+    scope_map = {"GET": ["project:write"]}
 
 
 class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
