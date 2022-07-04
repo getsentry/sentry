@@ -360,6 +360,7 @@ from .endpoints.project_create_sample import ProjectCreateSampleEndpoint
 from .endpoints.project_create_sample_transaction import ProjectCreateSampleTransactionEndpoint
 from .endpoints.project_details import ProjectDetailsEndpoint
 from .endpoints.project_docs_platform import ProjectDocsPlatformEndpoint
+from .endpoints.project_dynamic_sampling import ProjectDynamicSamplingDistributionEndpoint
 from .endpoints.project_environment_details import ProjectEnvironmentDetailsEndpoint
 from .endpoints.project_environments import ProjectEnvironmentsEndpoint
 from .endpoints.project_event_details import EventJsonEndpoint, ProjectEventDetailsEndpoint
@@ -2222,6 +2223,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/profiling/transactions/(?P<transaction_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
                     ProjectProfilingTransactionIDProfileIDEndpoint.as_view(),
                     name="sentry-api-0-project-profiling-transactions",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/dynamic-sampling/distribution/$",
+                    ProjectDynamicSamplingDistributionEndpoint.as_view(),
+                    name="sentry-api-0-project-dynamic-sampling-distribution",
                 ),
             ]
         ),
