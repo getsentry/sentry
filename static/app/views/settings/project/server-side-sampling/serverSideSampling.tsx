@@ -21,6 +21,7 @@ import {DraggableList} from '../sampling/rules/draggableList';
 
 import {ActivateModal} from './modals/activateModal';
 import {UniformRateModal} from './modals/uniformRateModal';
+import {useProjectStats} from './utils/useProjectStats';
 import {Promo} from './promo';
 import {
   ActiveColumn,
@@ -41,6 +42,12 @@ export function ServerSideSampling({project}: Props) {
   const organization = useOrganization();
   const hasAccess = organization.access.includes('project:write');
   const dynamicSamplingRules = project.dynamicSampling?.rules ?? [];
+  const {projectStats} = useProjectStats({
+    orgSlug: organization.slug,
+    projectId: project?.id,
+    interval: '1h',
+    statsPeriod: '48h',
+  });
 
   const [rules, _setRules] = useState<SamplingRules>(dynamicSamplingRules);
 
@@ -50,7 +57,13 @@ export function ServerSideSampling({project}: Props) {
 
   function handleGetStarted() {
     openModal(modalProps => (
-      <UniformRateModal {...modalProps} organization={organization} project={project} />
+      <UniformRateModal
+        {...modalProps}
+        organization={organization}
+        project={project}
+        projectStats={projectStats}
+        rules={dynamicSamplingRules}
+      />
     ));
   }
 

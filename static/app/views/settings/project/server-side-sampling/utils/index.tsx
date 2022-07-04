@@ -92,3 +92,5 @@ export function getInnerNameLabel(name: SamplingInnerName | string) {
       return `${stripCustomTagPrefix(name)} - ${t('Custom')}`;
   }
 }
+
+export const field = 'sum(quantity)';
