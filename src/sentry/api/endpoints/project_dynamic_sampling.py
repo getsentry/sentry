@@ -17,6 +17,10 @@ from sentry.utils.dates import parse_stats_period
 from sentry.utils.snuba import Dataset, raw_snql_query
 
 
+class EmptyTransactionDatasetException(Exception):
+    ...
+
+
 def percentile_fn(data, percentile):
     """
     Returns the nth percentile from a sorted list
@@ -98,6 +102,8 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
             start_time=start_time,
             end_time=end_time,
         )
+        if root_transactions_count == 0:
+            raise EmptyTransactionDatasetException()
 
         if sample_size % 10 == 0:
             normalized_sample_count = sample_size
@@ -111,7 +117,7 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
             if (root_transactions_count <= 0.75 * 10**digit_count)
             else 10**digit_count
         )
-        return normalized_transactions_count / (10 * normalized_sample_count)
+        return max(normalized_transactions_count / (10 * normalized_sample_count), 1)
 
     def __fetch_randomly_sampled_root_transactions(
         self, project, query, sample_size, start_time, end_time
@@ -201,31 +207,31 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
         requested_sample_size = min(int(request.GET.get("sampleSize", 100)), 1000)
         distributed_trace = request.GET.get("distributedTrace", "1") == "1"
         stats_period = min(
-            parse_stats_period(request.GET.get("statsPeriod", "1h")), timedelta(hours=24)
+            parse_stats_period(request.GET.get("statsPeriod", "7d")), timedelta(days=7)
         )
 
         end_time = timezone.now()
         start_time = end_time - stats_period
 
-        root_transactions = self.__fetch_randomly_sampled_root_transactions(
-            project=project,
-            query=query,
-            sample_size=requested_sample_size,
-            start_time=start_time,
-            end_time=end_time,
-        )
-
-        sample_size = len(root_transactions)
-        if sample_size == 0:
+        try:
+            root_transactions = self.__fetch_randomly_sampled_root_transactions(
+                project=project,
+                query=query,
+                sample_size=requested_sample_size,
+                start_time=start_time,
+                end_time=end_time,
+            )
+        except EmptyTransactionDatasetException:
             return Response(
                 {
                     "project_breakdown": None,
-                    "sample_size": sample_size,
+                    "sample_size": 0,
                     "null_sample_rate_percentage": None,
                     "sample_rate_distributions": None,
                 }
             )
 
+        sample_size = len(root_transactions)
         sample_rates = sorted(
             transaction.get("trace.client_sample_rate") for transaction in root_transactions
         )
