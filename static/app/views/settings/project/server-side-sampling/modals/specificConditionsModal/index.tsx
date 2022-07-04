@@ -1,7 +1,6 @@
 import {Fragment, KeyboardEvent, useEffect, useState} from 'react';
 import {createFilter} from 'react-select';
 import styled from '@emotion/styled';
-import isEqual from 'lodash/isEqual';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -150,10 +149,8 @@ export function SpecificConditionsModal({
     };
 
     const newRules = rule
-      ? rules.map(r => (isEqual(r, rule) ? newRule : r))
+      ? rules.map(existingRule => (existingRule.id === rule.id ? newRule : existingRule))
       : [...rules, newRule];
-
-    const currentRuleIndex = newRules.findIndex(newR => newR === newRule);
 
     setIsSaving(true);
 
@@ -170,6 +167,7 @@ export function SpecificConditionsModal({
       );
       closeModal();
     } catch (error) {
+      const currentRuleIndex = newRules.findIndex(newR => newR === newRule);
       convertRequestErrorResponse(getErrorMessage(error, currentRuleIndex));
     }
 
