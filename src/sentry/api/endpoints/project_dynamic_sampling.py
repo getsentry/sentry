@@ -230,7 +230,6 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
                     "sample_rate_distributions": None,
                 }
             )
-
         sample_size = len(root_transactions)
         sample_rates = sorted(
             transaction.get("trace.client_sample_rate") for transaction in root_transactions
@@ -249,7 +248,7 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
             )
 
             project_breakdown = discover.query(
-                selected_columns=["project", "count()"],
+                selected_columns=["project_id", "project", "count()"],
                 query=f"event.type:transaction trace:[{','.join(trace_id_list)}]",
                 params={
                     "start": start_time,

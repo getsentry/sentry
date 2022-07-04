@@ -176,11 +176,11 @@ def mocked_discover_query(referrer):
     elif referrer == "dynamic-sampling.distribution.fetch-project-breakdown":
         return {
             "data": [
-                {"project": "earth", "count()": 34},
-                {"project": "heart", "count()": 3},
-                {"project": "water", "count()": 3},
-                {"project": "wind", "count()": 3},
-                {"project": "fire", "count()": 21},
+                {"project_id": 27, "project": "earth", "count()": 34},
+                {"project_id": 28, "project": "heart", "count()": 3},
+                {"project_id": 24, "project": "water", "count()": 3},
+                {"project_id": 23, "project": "wind", "count()": 3},
+                {"project_id": 25, "project": "fire", "count()": 21},
             ]
         }
     raise Exception("Something went wrong!")
@@ -224,11 +224,11 @@ class ProjectDynamicSamplingTest(APITestCase):
             response = self.client.get(self.endpoint)
             assert response.json() == {
                 "project_breakdown": [
-                    {"project": "earth", "count()": 34},
-                    {"project": "heart", "count()": 3},
-                    {"project": "water", "count()": 3},
-                    {"project": "wind", "count()": 3},
-                    {"project": "fire", "count()": 21},
+                    {"project_id": 27, "project": "earth", "count()": 34},
+                    {"project_id": 28, "project": "heart", "count()": 3},
+                    {"project_id": 24, "project": "water", "count()": 3},
+                    {"project_id": 23, "project": "wind", "count()": 3},
+                    {"project_id": 25, "project": "fire", "count()": 21},
                 ],
                 "sample_size": 21,
                 "null_sample_rate_percentage": 71.42857142857143,
@@ -279,7 +279,7 @@ class ProjectDynamicSamplingTest(APITestCase):
             mocked_discover_query("dynamic-sampling.distribution.fetch-parent-transactions-count"),
             {
                 "data": [
-                    {"project": "fire", "count()": 2},
+                    {"project_id": 25, "project": "fire", "count()": 2},
                 ]
             },
         ]
@@ -306,7 +306,7 @@ class ProjectDynamicSamplingTest(APITestCase):
             response = self.client.get(f"{self.endpoint}?sampleSize=2")
             assert response.json() == {
                 "project_breakdown": [
-                    {"project": "fire", "count()": 2},
+                    {"project_id": 25, "project": "fire", "count()": 2},
                 ],
                 "sample_size": 2,
                 "null_sample_rate_percentage": 100.0,
@@ -342,17 +342,17 @@ class ProjectDynamicSamplingTest(APITestCase):
             mocked_discover_query("dynamic-sampling.distribution.fetch-parent-transactions-count"),
             {
                 "data": [
-                    {"project": "earth", "count()": 34},
-                    {"project": "heart", "count()": 3},
-                    {"project": "water", "count()": 3},
-                    {"project": "wind", "count()": 3},
-                    {"project": "fire", "count()": 21},
-                    {"project": "air", "count()": 21},
-                    {"project": "fire-air", "count()": 21},
-                    {"project": "fire-water", "count()": 21},
-                    {"project": "fire-earth", "count()": 21},
-                    {"project": "fire-fire", "count()": 21},
-                    {"project": "fire-heart", "count()": 21},
+                    {"project_id": 27, "project": "earth", "count()": 34},
+                    {"project_id": 28, "project": "heart", "count()": 3},
+                    {"project_id": 24, "project": "water", "count()": 3},
+                    {"project_id": 23, "project": "wind", "count()": 3},
+                    {"project_id": 25, "project": "fire", "count()": 21},
+                    {"project_id": 21, "project": "air", "count()": 21},
+                    {"project_id": 20, "project": "fire-air", "count()": 21},
+                    {"project_id": 22, "project": "fire-water", "count()": 21},
+                    {"project_id": 30, "project": "fire-earth", "count()": 21},
+                    {"project_id": 31, "project": "fire-fire", "count()": 21},
+                    {"project_id": 32, "project": "fire-heart", "count()": 21},
                 ]
             },
         ]
@@ -374,7 +374,7 @@ class ProjectDynamicSamplingTest(APITestCase):
             {"data": [{"count()": 1000}]},
             {
                 "data": [
-                    {"project": "fire", "count()": 2},
+                    {"project_id": 25, "project": "fire", "count()": 2},
                 ]
             },
         ]
@@ -430,7 +430,7 @@ class ProjectDynamicSamplingTest(APITestCase):
                 referrer="dynamic-sampling.distribution.fetch-parent-transactions-count",
             ),
             mock.call(
-                selected_columns=["project", "count()"],
+                selected_columns=["project_id", "project", "count()"],
                 query=f"event.type:transaction trace:[{','.join(trace_id_list)}]",
                 params={
                     "start": start_time,
