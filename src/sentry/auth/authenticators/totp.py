@@ -1,5 +1,7 @@
 from django.utils.translation import ugettext_lazy as _
 
+from sentry import options
+
 from .base import AuthenticatorInterface, OtpMixin
 
 
@@ -23,6 +25,7 @@ class TotpInterface(OtpMixin, AuthenticatorInterface):
         'clicking "Confirm", your existing secret key will be '
         "replaced and will no longer work to access your account."
     )
+    disallow_new_enrollment = bool(options.get("totp.disallow-new-enrollment"))
 
     def get_provision_url(self, user, issuer=None):
         return self.make_otp().get_provision_url(user, issuer=issuer)

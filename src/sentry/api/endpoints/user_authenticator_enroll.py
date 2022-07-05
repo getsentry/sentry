@@ -23,6 +23,9 @@ logger = logging.getLogger(__name__)
 ALREADY_ENROLLED_ERR = {"details": "Already enrolled"}
 INVALID_OTP_ERR = ({"details": "Invalid OTP"},)
 SEND_SMS_ERR = {"details": "Error sending SMS"}
+DISALLOWED_NEW_ENROLLMENT_ERR = {
+    "details": "New enrollments for this 2FA interface are not allowed"
+}
 
 
 class TotpRestSerializer(serializers.Serializer):
@@ -184,6 +187,11 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         interface = Authenticator.objects.get_interface(request.user, interface_id)
+
+        # Check if the 2FA interface allows new enrollment, if not we should error
+        # on any POSTs
+        if not interface.disallow_new_enrollment:
+            return Response(DISALLOWED_NEW_ENROLLMENT_ERR, status=status.HTTP_403_FORBIDDEN)
 
         # Not all interfaces allow multi enrollment
         #

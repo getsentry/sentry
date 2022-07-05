@@ -52,6 +52,7 @@ class AuthenticatorInterface:
     is_available = True
     allow_multi_enrollment = False
     allow_rotation_in_place = False
+    disallow_new_enrollment = False
 
     def __init__(self, authenticator=None, status=EnrollmentStatus.EXISTING):
         self.authenticator = authenticator
@@ -69,6 +70,10 @@ class AuthenticatorInterface:
         authenticator for a user attached).
         """
         return self.authenticator is not None
+
+    # def is_deprecated(self):
+    #     """Returns `True` if the interface is deprecated."""
+    #     return self.is_deprecated
 
     @property
     def requires_activation(self):
