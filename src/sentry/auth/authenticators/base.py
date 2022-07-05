@@ -71,10 +71,6 @@ class AuthenticatorInterface:
         """
         return self.authenticator is not None
 
-    # def is_deprecated(self):
-    #     """Returns `True` if the interface is deprecated."""
-    #     return self.is_deprecated
-
     @property
     def requires_activation(self):
         """If the interface has an activation method that needs to be
