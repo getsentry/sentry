@@ -138,7 +138,101 @@ export interface FieldDefinition {
   desc?: string;
 }
 
+export const MEASUREMENT_FIELDS: Record<string, FieldDefinition> = {
+  [WebVital.FP]: {
+    desc: 'Web Vital First Paint',
+    kind: FieldKind.METRICS,
+    valueType: FieldValueType.DURATION,
+  },
+  [WebVital.FCP]: {
+    desc: 'Web Vital First Contentful Paint',
+    kind: FieldKind.METRICS,
+    valueType: FieldValueType.DURATION,
+  },
+  [WebVital.LCP]: {
+    desc: 'Web Vital Largest Contentful Paint',
+    kind: FieldKind.METRICS,
+    valueType: FieldValueType.DURATION,
+  },
+  [WebVital.FID]: {
+    desc: 'Web Vital First Input Delay',
+    kind: FieldKind.METRICS,
+    valueType: FieldValueType.DURATION,
+  },
+  [WebVital.CLS]: {
+    desc: 'Web Vital Cumulative Layout Shift ',
+    kind: FieldKind.METRICS,
+    valueType: FieldValueType.NUMBER,
+  },
+  [WebVital.TTFB]: {
+    desc: 'Web Vital Time To First Byte',
+    kind: FieldKind.METRICS,
+    valueType: FieldValueType.DURATION,
+  },
+  [WebVital.RequestTime]: {
+    desc: 'Time between start of request to start of response',
+    kind: FieldKind.METRICS,
+    valueType: FieldValueType.DURATION,
+  },
+  [MobileVital.AppStartCold]: {
+    desc: 'First launch (not in memory and no process exists)',
+    kind: FieldKind.METRICS,
+    valueType: FieldValueType.DURATION,
+  },
+  [MobileVital.AppStartWarm]: {
+    desc: 'Already launched (partial memory and process may exist)',
+    kind: FieldKind.METRICS,
+    valueType: FieldValueType.DURATION,
+  },
+  [MobileVital.FramesTotal]: {
+    desc: 'Total number of frames',
+    kind: FieldKind.METRICS,
+    valueType: FieldValueType.INTEGER,
+  },
+  [MobileVital.FramesSlow]: {
+    desc: 'Number of slow frames',
+    kind: FieldKind.METRICS,
+    valueType: FieldValueType.INTEGER,
+  },
+  [MobileVital.FramesFrozen]: {
+    desc: 'Number of frozen frames',
+    kind: FieldKind.METRICS,
+    valueType: FieldValueType.INTEGER,
+  },
+  [MobileVital.FramesSlowRate]: {
+    desc: 'Number of slow frames out of the total',
+    kind: FieldKind.METRICS,
+    valueType: FieldValueType.PERCENTAGE,
+  },
+  [MobileVital.FramesFrozenRate]: {
+    desc: 'Number of frozen frames out of the total',
+    kind: FieldKind.METRICS,
+    valueType: FieldValueType.PERCENTAGE,
+  },
+  [MobileVital.StallCount]: {
+    desc: 'Count of slow Javascript event loops (React Native)',
+    kind: FieldKind.METRICS,
+    valueType: FieldValueType.INTEGER,
+  },
+  [MobileVital.StallTotalTime]: {
+    desc: 'Total stall duration (React Native)',
+    kind: FieldKind.METRICS,
+    valueType: FieldValueType.PERCENTAGE,
+  },
+  [MobileVital.StallLongestTime]: {
+    desc: 'Duration of slowest Javascript event loop (React Native)',
+    kind: FieldKind.METRICS,
+    valueType: FieldValueType.INTEGER,
+  },
+  [MobileVital.StallPercentage]: {
+    desc: 'Total stall duration out of the total transaction duration',
+    kind: FieldKind.METRICS,
+    valueType: FieldValueType.PERCENTAGE,
+  },
+};
+
 export const FIELDS: Record<string, FieldDefinition> = {
+  ...MEASUREMENT_FIELDS,
   [FieldKey.AGE]: {
     desc: 'The age of the issue in relative time',
     kind: FieldKind.FIELD,
