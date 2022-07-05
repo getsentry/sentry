@@ -41,6 +41,7 @@ import {SpecificConditionsModal} from './modals/specificConditionsModal';
 import {responsiveModal} from './modals/styles';
 import {UniformRateModal} from './modals/uniformRateModal';
 import useProjectStats from './utils/useProjectStats';
+import useSamplingDistribution from './utils/useSamplingDistribution';
 import {Promo} from './promo';
 import {
   ActiveColumn,
@@ -67,18 +68,27 @@ export function ServerSideSampling({project}: Props) {
   const previousRules = usePrevious(currentRules);
 
   const [rules, setRules] = useState<SamplingRules>(currentRules ?? []);
-<<<<<<< HEAD
-  const [distribution, setDistribution] = useState<SamplingDistribution | null>(null);
   const [sdkUpgrades, setSdkUpgrades] = useState<SamplingSDKUpgrade[] | null>(null);
+
+  const {projectStats} = useProjectStats({
+    orgSlug: organization.slug,
+    projectId: project?.id,
+    interval: '1h',
+    statsPeriod: '48h',
+  });
+
+  const {samplingDistribution} = useSamplingDistribution({
+    orgSlug: organization.slug,
+    projSlug: project.slug,
+  });
 
   const notSendingSampleRateSdkUpgrades =
     sdkUpgrades?.filter(sdkUpgrade => !sdkUpgrade.isSendingSampleRate) ?? [];
 
-  const slugs = notSendingSampleRateSdkUpgrades.map(sdkUpgrade => sdkUpgrade.project);
-
-  const {projects} = useProjects({slugs, orgId: organization.slug});
-
-  console.log({projects});
+  const {projects} = useProjects({
+    slugs: notSendingSampleRateSdkUpgrades.map(sdkUpgrade => sdkUpgrade.project),
+    orgId: organization.slug,
+  });
 
   // Rules without a condition (Else case) always have to be 'pinned' to the bottom of the list
   // and cannot be sorted
@@ -106,14 +116,6 @@ export function ServerSideSampling({project}: Props) {
       };
     })
     .filter(defined);
-=======
-  const {projectStats} = useProjectStats({
-    orgSlug: organization.slug,
-    projectId: project?.id,
-    interval: '1h',
-    statsPeriod: '48h',
-  });
->>>>>>> master
 
   useEffect(() => {
     if (!isEqual(previousRules, currentRules)) {
@@ -122,50 +124,29 @@ export function ServerSideSampling({project}: Props) {
   }, [currentRules, previousRules]);
 
   useEffect(() => {
-    async function fetchDistribution() {
-      try {
-        const samplingDistribution = await api.requestPromise(
-          `/projects/${organization.slug}/${project.slug}/dynamic-sampling/distribution/`
-        );
-        console.log({samplingDistribution});
-        setDistribution(samplingDistribution);
-      } catch (error) {
-        const message = t('Unable to fetch sampling distribution');
-        handleXhrErrorResponse(message)(error);
-        addErrorMessage(message);
-      }
-    }
-    fetchDistribution();
-  }, [api, organization.slug, project.slug]);
-
-  useEffect(() => {
-    if (!distribution) {
+    if (!samplingDistribution) {
       return;
     }
 
-    function fetchSdkUpgrades() {
+    async function fetchSdkUpgrades() {
+      if (!samplingDistribution?.project_breakdown) {
+        return;
+      }
+
       try {
-        // TODO(sampling): Add the request here and remove this mock
-        setSdkUpgrades([
+        const response = await api.requestPromise(
+          `/organizations/${organization.slug}/dynamic-sampling/sdk-versions/`,
           {
-            project: 'javascript',
-            latestSDKVersion: '1.0.3',
-            latestSDKName: 'sentry.javascript.react',
-            isSendingSampleRate: true,
-          },
-          {
-            project: 'sentry',
-            latestSDKVersion: '1.0.2',
-            latestSDKName: 'sentry.python',
-            isSendingSampleRate: false,
-          },
-          {
-            project: 'snuba',
-            latestSDKVersion: '1.0.4',
-            latestSDKName: 'sentry.snuba',
-            isSendingSampleRate: false,
-          },
-        ]);
+            method: 'GET',
+            query: {
+              projects: samplingDistribution.project_breakdown.map(
+                projectBreakDown => projectBreakDown.project_id
+              ),
+            },
+          }
+        );
+        console.log({response});
+        setSdkUpgrades(response.data);
       } catch (error) {
         const message = t('Unable to fetch recommended SDK upgrades');
         handleXhrErrorResponse(message)(error);
@@ -174,22 +155,28 @@ export function ServerSideSampling({project}: Props) {
     }
 
     fetchSdkUpgrades();
-  }, [distribution, api, organization.slug, project.slug]);
+  }, [samplingDistribution, api, organization.slug]);
 
   function handleActivateToggle(rule: SamplingRule) {
     openModal(modalProps => <ActivateModal {...modalProps} rule={rule} />);
   }
 
   function handleGetStarted() {
-<<<<<<< HEAD
-    openModal(modalProps => (
-      <UniformRateModal
-        {...modalProps}
-        organization={organization}
-        project={project}
-        recommendedSdkUpgrades={recommendedSdkUpgrades}
-      />
-    ));
+    openModal(
+      modalProps => (
+        <UniformRateModal
+          {...modalProps}
+          organization={organization}
+          project={project}
+          projectStats={projectStats}
+          rules={rules}
+          recommendedSdkUpgrades={recommendedSdkUpgrades}
+        />
+      ),
+      {
+        modalCss: responsiveModal,
+      }
+    );
   }
 
   function handleOpenRecommendedSteps() {
@@ -205,22 +192,6 @@ export function ServerSideSampling({project}: Props) {
         recommendedSdkUpgrades={recommendedSdkUpgrades}
       />
     ));
-=======
-    openModal(
-      modalProps => (
-        <UniformRateModal
-          {...modalProps}
-          organization={organization}
-          project={project}
-          projectStats={projectStats}
-          rules={rules}
-        />
-      ),
-      {
-        modalCss: responsiveModal,
-      }
-    );
->>>>>>> master
   }
 
   async function handleSortRules({overIndex, reorderedItems: ruleIds}: UpdateItemsProps) {
@@ -295,8 +266,6 @@ export function ServerSideSampling({project}: Props) {
       addErrorMessage(message);
     }
   }
-
-  console.log({recommendedSdkUpgrades: recommendedSdkUpgrades.length});
 
   return (
     <SentryDocumentTitle title={t('Server-side Sampling')}>
