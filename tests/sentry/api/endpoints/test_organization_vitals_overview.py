@@ -34,7 +34,6 @@ class OrganizationVitalsOverviewTest(APITestCase):
             "appStartCold": 5000,
         }
         assert mock_query.call_count == 1
-        print("assert mock_query.call_args[0]", mock_query.call_args)
         assert mock_query.call_args.kwargs["params"]["project_id"] == [self.project.id]
         mock_experiment_get.assert_called_once_with(
             "VitalsAlertExperiment", self.organization, self.user
