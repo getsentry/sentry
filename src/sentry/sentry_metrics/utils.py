@@ -40,7 +40,7 @@ def reverse_resolve_weak(index: int) -> Optional[str]:
 
 
 def resolve(org_id: int, string: str) -> int:
-    resolved = indexer.resolve(org_id, string, use_case_id=UseCaseKey.RELEASE_HEALTH)
+    resolved = indexer.resolve(org_id, string, use_case_id=UseCaseKey.PERFORMANCE)
     if resolved is None:
         raise MetricIndexNotFound(f"Unknown string: {string!r}")
 
