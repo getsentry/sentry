@@ -1,8 +1,10 @@
 import logging
 from datetime import timedelta
+from urllib.parse import urlparse
 
 from django.utils import timezone
 
+from sentry import options
 from sentry.auth.access import get_cached_organization_member
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import OrganizationMember
@@ -111,3 +113,19 @@ def is_member_disabled_from_limit(request, organization):
         return False
     else:
         return member.flags["member-limit:restricted"]
+
+
+def generate_customer_hostname(org_slug: str) -> str:
+    url_prefix_hostname = urlparse(options.get("system.url-prefix")).netloc
+    customer_base_hostname_template = options.get("system.organization-base-hostname")
+    if not customer_base_hostname_template:
+        return url_prefix_hostname
+    if "{slug}" not in customer_base_hostname_template:
+        return url_prefix_hostname
+    customer_hostname = customer_base_hostname_template.replace("{slug}", org_slug)
+    if "{region}" in customer_base_hostname_template:
+        region = options.get("system.region") or None
+        if region is None:
+            return url_prefix_hostname
+        customer_hostname = customer_hostname.replace("{region}", region)
+    return customer_hostname
