@@ -72,6 +72,8 @@ function Alert({
       expand={expand}
       hovered={iconIsHovered || messageIsHovered}
       className={classNames(type ? `ref-${type}` : '', className)}
+      onClick={handleClick}
+      {...messageHoverProps}
       {...props}
     >
       {showIcon && (
@@ -81,7 +83,7 @@ function Alert({
       )}
       <ContentWrapper>
         <ContentWrapperInner>
-          <MessageContainer onClick={handleClick} {...messageHoverProps}>
+          <MessageContainer>
             <Message>{children}</Message>
             {showTrailingItems && (
               <TrailingItemsWrap>
@@ -160,9 +162,7 @@ const alertStyles = ({
     `}
 
     ${showExpand &&
-    `${IconWrapper}, ${MessageContainer} {
-        cursor: pointer;
-      }
+    `cursor: pointer;
       ${TrailingItems} {
        cursor: auto;
       }
