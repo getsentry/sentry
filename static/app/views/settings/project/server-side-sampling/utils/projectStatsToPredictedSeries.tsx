@@ -11,7 +11,7 @@ import {
   COLOR_TRANSACTIONS,
 } from 'sentry/views/organizationStats/usageChart';
 
-import {field} from '.';
+import {quantityField} from '.';
 
 export function projectStatsToPredictedSeries(
   projectStats?: SeriesApi,
@@ -38,7 +38,7 @@ export function projectStatsToPredictedSeries(
     projectStats.intervals.map((interval, index) => {
       const result = {};
       projectStats.groups.forEach(group => {
-        result[group.by.outcome] = group.series[field][index];
+        result[group.by.outcome] = group.series[quantityField][index];
       });
       return {
         interval,

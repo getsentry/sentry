@@ -3,7 +3,7 @@ import round from 'lodash/round';
 import {SeriesApi} from 'sentry/types';
 import {Outcome} from 'sentry/views/organizationStats/types';
 
-import {field} from '.';
+import {quantityField} from '.';
 
 const MAX_PER_HOUR = 100 * 60 * 60;
 
@@ -27,12 +27,14 @@ export function projectStatsToSampleRates(stats: SeriesApi | undefined): {
   let hoursOverLimit = 0;
 
   // We do not take filtered and invalid into account
-  const accepted = groups.find(g => g.by.outcome === Outcome.ACCEPTED)?.series[field];
+  const accepted = groups.find(g => g.by.outcome === Outcome.ACCEPTED)?.series[
+    quantityField
+  ];
   const clientDiscard = groups.find(g => g.by.outcome === Outcome.CLIENT_DISCARD)?.series[
-    field
+    quantityField
   ];
   const rateLimited = groups.find(g => g.by.outcome === Outcome.RATE_LIMITED)?.series[
-    field
+    quantityField
   ];
 
   intervals.forEach((_interval, index) => {

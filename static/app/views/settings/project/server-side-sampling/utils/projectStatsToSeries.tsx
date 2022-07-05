@@ -10,7 +10,7 @@ import {
   COLOR_TRANSACTIONS,
 } from 'sentry/views/organizationStats/usageChart';
 
-import {field} from '.';
+import {quantityField} from '.';
 
 export function projectStatsToSeries(projectStats: SeriesApi | undefined): Series[] {
   if (!projectStats) {
@@ -35,14 +35,17 @@ export function projectStatsToSeries(projectStats: SeriesApi | undefined): Serie
         case Outcome.ACCEPTED:
           seriesData.accepted[index] = {
             name: moment(interval).valueOf(),
-            value: (seriesData.accepted[index]?.value ?? 0) + group.series[field][index],
+            value:
+              (seriesData.accepted[index]?.value ?? 0) +
+              group.series[quantityField][index],
           };
           break;
         case Outcome.CLIENT_DISCARD:
           seriesData.droppedClient[index] = {
             name: moment(interval).valueOf(),
             value:
-              (seriesData.droppedClient[index]?.value ?? 0) + group.series[field][index],
+              (seriesData.droppedClient[index]?.value ?? 0) +
+              group.series[quantityField][index],
           };
           break;
         case Outcome.DROPPED:
@@ -52,11 +55,12 @@ export function projectStatsToSeries(projectStats: SeriesApi | undefined): Serie
           seriesData.droppedServer[index] = {
             name: moment(interval).valueOf(),
             value:
-              (seriesData.droppedServer[index]?.value ?? 0) + group.series[field][index],
+              (seriesData.droppedServer[index]?.value ?? 0) +
+              group.series[quantityField][index],
           };
           break;
         default:
-        //
+        // We do not care about other outcomes (right now there no other outcomes)
       }
     });
   });

@@ -1,7 +1,7 @@
 import {projectStatsToPredictedSeries} from 'sentry/views/settings/project/server-side-sampling/utils/projectStatsToPredictedSeries';
 
-describe('projectStatsToPredictedSeries', () => {
-  it('basic', () => {
+describe('projectStatsToPredictedSeries', function () {
+  it('returns correct series', function () {
     expect(projectStatsToPredictedSeries(TestStubs.Outcomes(), 0.3, 0.1)).toEqual([
       {
         seriesName: 'Accepted',

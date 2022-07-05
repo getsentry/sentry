@@ -27,6 +27,7 @@ import {DraggableList, UpdateItemsProps} from '../sampling/rules/draggableList';
 
 import {ActivateModal} from './modals/activateModal';
 import {SpecificConditionsModal} from './modals/specificConditionsModal';
+import {responsiveModal} from './modals/styles';
 import {UniformRateModal} from './modals/uniformRateModal';
 import {useProjectStats} from './utils/useProjectStats';
 import {Promo} from './promo';
@@ -72,15 +73,20 @@ export function ServerSideSampling({project}: Props) {
   }
 
   function handleGetStarted() {
-    openModal(modalProps => (
-      <UniformRateModal
-        {...modalProps}
-        organization={organization}
-        project={project}
-        projectStats={projectStats}
-        rules={rules}
-      />
-    ));
+    openModal(
+      modalProps => (
+        <UniformRateModal
+          {...modalProps}
+          organization={organization}
+          project={project}
+          projectStats={projectStats}
+          rules={rules}
+        />
+      ),
+      {
+        modalCss: responsiveModal,
+      }
+    );
   }
 
   async function handleSortRules({overIndex, reorderedItems: ruleIds}: UpdateItemsProps) {
