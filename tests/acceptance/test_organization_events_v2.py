@@ -510,6 +510,20 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
                 "events-v2 - transactions event with expanded descendant and sibling auto-grouped spans"
             )
 
+            # Click to collapse all of these spans back into autogroups, we expect the span tree to look like it did initially
+            first_row = self.browser.element('[data-test-id="span-row-23"]')
+            first_row.find_element(By.CSS_SELECTOR, "a").click()
+
+            second_row = self.browser.element('[data-test-id="span-row-18"]')
+            second_row.find_element(By.CSS_SELECTOR, "a").click()
+
+            third_row = self.browser.element('[data-test-id="span-row-9"]')
+            third_row.find_element(By.CSS_SELECTOR, "a").click()
+
+            self.browser.snapshot(
+                "events-v2 - transactions event after regrouping expanded sibling auto-grouped spans"
+            )
+
     @patch("django.utils.timezone.now")
     def test_transaction_event_detail_view_ops_filtering(self, mock_now):
         mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
