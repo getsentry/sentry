@@ -16,6 +16,7 @@ import {
   openWidgetViewerModal,
 } from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
+import Feature from 'sentry/components/acl/feature';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import ButtonBar from 'sentry/components/buttonBar';
 import DatePageFilter from 'sentry/components/datePageFilter';
@@ -744,11 +745,16 @@ class DashboardDetail extends Component<Props, State> {
                       <EnvironmentPageFilter />
                       <DatePageFilter alignDropdown="left" />
                     </PageFilterBar>
-                    <FilterButtons>
-                      <ReleasesProvider organization={organization} selection={selection}>
-                        <ReleaseFilter />
-                      </ReleasesProvider>
-                    </FilterButtons>
+                    <Feature features={['dashboards-top-level-filter']}>
+                      <FilterButtons>
+                        <ReleasesProvider
+                          organization={organization}
+                          selection={selection}
+                        >
+                          <ReleaseFilter />
+                        </ReleasesProvider>
+                      </FilterButtons>
+                    </Feature>
                   </Wrapper>
                   <WidgetViewerContext.Provider value={{seriesData, setData}}>
                     <Dashboard
