@@ -120,13 +120,6 @@ export function ServerSideSampling({project}: Props) {
       };
     })
     .filter(defined);
-  // const recommendedSdkUpgrades = [
-  //   {
-  //     project,
-  //     latestSDKVersion: '1.0.3',
-  //     latestSDKName: 'sentry.javascript.react',
-  //   },
-  // ];
 
   useEffect(() => {
     if (!isEqual(previousRules, currentRules)) {
@@ -259,7 +252,7 @@ export function ServerSideSampling({project}: Props) {
             'These settings can only be edited by users with the organization owner, manager, or admin role.'
           )}
         />
-        {!!recommendedSdkUpgrades.length && (
+        {!!recommendedSdkUpgrades.length && !!rules.length && (
           <Alert
             data-test-id="recommended-sdk-upgrades-alert"
             type="info"
