@@ -7,5 +7,6 @@ from .gzippeddict import *  # NOQA
 from .jsonfield import *  # NOQA
 from .node import *  # NOQA
 from .onetoone import *  # NOQA
+from .picklefield import *  # NOQA
 from .text import *  # NOQA
 from .uuid import *  # NOQA
