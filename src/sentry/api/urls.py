@@ -1,5 +1,6 @@
 from django.conf.urls import include, url
 
+from sentry.api.base import create_customer_endpoint_class
 from sentry.api.endpoints.integration_features import IntegrationFeaturesEndpoint
 from sentry.api.endpoints.organization_codeowners_associations import (
     OrganizationCodeOwnersAssociationsEndpoint,
@@ -835,6 +836,11 @@ urlpatterns = [
         ),
     ),
     # Organizations
+    url(
+        r"^events/$",
+        create_customer_endpoint_class(OrganizationEventsEndpoint).as_view(),
+        name="sentry-api-0-subdomain-organization-events",
+    ),
     url(
         r"^organizations/",
         include(
