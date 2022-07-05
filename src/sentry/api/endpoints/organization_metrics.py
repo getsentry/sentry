@@ -7,6 +7,7 @@ from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import InvalidParams
+from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.snuba.metrics import (
     QueryDefinition,
     get_metrics,
@@ -123,7 +124,9 @@ class OrganizationMetricsDataEndpoint(OrganizationEndpoint):
                 query = QueryDefinition(
                     projects, request.GET, paginator_kwargs={"limit": limit, "offset": offset}
                 )
-                data = get_series(projects, query.to_metrics_query())
+                data = get_series(
+                    projects, query.to_metrics_query(), use_case_id=UseCaseKey.RELEASE_HEALTH
+                )
                 data["query"] = query.query
             except (
                 InvalidParams,

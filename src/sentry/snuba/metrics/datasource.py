@@ -509,7 +509,7 @@ def _get_group_limit_filters(
     # will be used to filter down and order the results of the 2nd query.
     # For example, (project_id, transaction) is translated to (project_id, tags[3])
     keys = tuple(
-        resolve_tag_key(metrics_query.org_id, field)
+        resolve_tag_key(UseCaseKey.RELEASE_HEALTH, metrics_query.org_id, field)
         if field not in FIELD_ALIAS_MAPPINGS.values()
         else field
         for field in metrics_query.groupby
