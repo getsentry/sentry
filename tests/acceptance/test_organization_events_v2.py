@@ -438,15 +438,34 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
 
     @patch("django.utils.timezone.now")
     def test_event_detail_view_from_transactions_query_siblings(self, mock_now):
-        # TODO(Ash): Will replace above test after sibling EA.
         mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
 
         event_data = generate_transaction(trace="a" * 32, span="ab" * 8)
 
+        # Arranges sibling spans to be autogrouped in a way that will cover many edgecases
+        last_span = copy.deepcopy(event_data["spans"][-1])
         for i in range(5):
-            clone = copy.deepcopy(event_data["spans"][-1])
+            clone = copy.deepcopy(last_span)
             # If range > 9 this might no longer work because of constraints on span_id (hex 16)
             clone["span_id"] = (str("ac" * 6) + str(i)).ljust(16, "0")
+            event_data["spans"].append(clone)
+
+        combo_breaker_span = copy.deepcopy(last_span)
+        combo_breaker_span["span_id"] = (str("af" * 6)).ljust(16, "0")
+        combo_breaker_span["op"] = "combo.breaker"
+        event_data["spans"].append(combo_breaker_span)
+
+        for i in range(5):
+            clone = copy.deepcopy(last_span)
+            clone["op"] = "django.middleware"
+            clone["span_id"] = (str("de" * 6) + str(i)).ljust(16, "0")
+            event_data["spans"].append(clone)
+
+        for i in range(5):
+            clone = copy.deepcopy(last_span)
+            clone["op"] = "http"
+            clone["description"] = "test"
+            clone["span_id"] = (str("bd" * 6) + str(i)).ljust(16, "0")
             event_data["spans"].append(clone)
 
         self.store_event(data=event_data, project_id=self.project.id, assert_no_errors=True)
@@ -482,8 +501,10 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             # Expand auto-grouped descendant spans
             self.browser.element('[data-test-id="span-row-5"]').click()
 
-            # Expand auto-grouped sibling spans
+            # Expand all autogrouped rows
             self.browser.element('[data-test-id="span-row-9"]').click()
+            self.browser.element('[data-test-id="span-row-18"]').click()
+            self.browser.element('[data-test-id="span-row-23"]').click()
 
             self.browser.snapshot(
                 "events-v2 - transactions event with expanded descendant and sibling auto-grouped spans"
