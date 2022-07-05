@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import abc
+import json  # noqa - I want the `indent` param
+import sys
 from collections import defaultdict
 
 import click
@@ -9,14 +11,27 @@ import django.urls
 
 
 @click.command()
-def auditservermodes():
+@click.option("--format", type=str, default="json")
+def auditservermodes(format):
     """Lists which classes have had server mode decorators applied."""
 
     from sentry.runner import configure
 
     configure()
-    ModelPresentation().print_table(create_model_table())
-    ViewPresentation().print_table(create_view_table())
+    model_table = create_model_table()
+    view_table = create_view_table()
+
+    if format == "json":
+        json_repr = {
+            "models": ModelPresentation().as_json_repr(model_table),
+            "views": ViewPresentation().as_json_repr(view_table),
+        }
+        json.dump(json_repr, sys.stdout, indent=4)
+    elif format == "markdown":
+        ModelPresentation().print_markdown(model_table)
+        ViewPresentation().print_markdown(view_table)
+    else:
+        raise ValueError
 
 
 def create_model_table():
@@ -66,28 +81,47 @@ class ConsolePresentation(abc.ABC):
     def get_group_label(self, key):
         raise NotImplementedError
 
-    def format_mode_set(self, modes):
-        names = sorted(str(x) for x in modes)
-        return repr(names)
+    @abc.abstractmethod
+    def get_key_repr(self, key):
+        raise NotImplementedError
 
-    def format_value(self, value):
+    @staticmethod
+    def format_mode_set(modes):
+        return sorted(str(x) for x in modes)
+
+    @staticmethod
+    def format_value(value):
         return f"{value.__module__}.{value.__name__}"
 
-    def print_table(self, table):
-        table = {
+    def normalize_table(self, table):
+        return {
             key: sorted({self.format_value(value) for value in group})
-            for (key, group) in table.items()
+            for (key, group) in (sorted(table.items(), key=self.order))
         }
 
-        total_size = sum(len(group) for group in table.values())
-        table_header = f"{self.table_label} ({total_size})"
+    def as_json_repr(self, table):
+        table = self.normalize_table(table)
+        return {
+            "total_count": sum(len(group) for group in table.values()),
+            "decorators": [
+                {
+                    "decorator": self.get_key_repr(group_key),
+                    "count": len(group),
+                    "values": group,
+                }
+                for group_key, group in table.items()
+            ],
+        }
+
+    def print_markdown(self, table):
+        table = self.normalize_table(table)
+
+        total_count = sum(len(group) for group in table.values())
+        table_header = f"{self.table_label} ({total_count})"
         print("\n" + table_header)  # noqa
         print("=" * len(table_header), end="\n\n")  # noqa
 
-        groups = list(table.items())
-        groups.sort(key=self.order)
-
-        for (group_key, group) in groups:
+        for (group_key, group) in table.items():
             group_label = self.get_group_label(group_key)
             group_header = f"{group_label} ({len(group)})"
             print(group_header)  # noqa
@@ -113,6 +147,13 @@ class ModelPresentation(ConsolePresentation):
             self.format_mode_set(read_modes),
         )
 
+    def get_key_repr(self, key):
+        write_modes, read_modes = key
+        return {
+            "write_modes": self.format_mode_set(write_modes),
+            "read_modes": self.format_mode_set(read_modes),
+        }
+
     def get_group_label(self, key):
         write_modes, read_modes = key
         if write_modes:
@@ -127,7 +168,7 @@ class ModelPresentation(ConsolePresentation):
 class ViewPresentation(ConsolePresentation):
     @property
     def table_label(self):
-        return "ENDPOINTS"
+        return "VIEWS"
 
     def order(self, group):
         mode_set, _view_group = group
@@ -135,3 +176,6 @@ class ViewPresentation(ConsolePresentation):
 
     def get_group_label(self, key):
         return self.format_mode_set(key) if key else "No decorator"
+
+    def get_key_repr(self, key):
+        return self.format_mode_set(key)
