@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import {EventQuery} from 'sentry/actionCreators/events';
-import {Client} from 'sentry/api';
+import {Client, resolveUrl} from 'sentry/api';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
@@ -95,7 +95,7 @@ class Table extends PureComponent<TableProps, TableState> {
       'discover-frontend-use-events-endpoint'
     );
     const url = shouldUseEvents
-      ? `/organizations/${organization.slug}/events/`
+      ? resolveUrl('organization-events', organization)
       : `/organizations/${organization.slug}/eventsv2/`;
     const tableFetchID = Symbol('tableFetchID');
 
