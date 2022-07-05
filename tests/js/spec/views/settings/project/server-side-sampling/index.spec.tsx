@@ -8,17 +8,18 @@ import ServerSideSampling from 'sentry/views/settings/project/server-side-sampli
 import {SERVER_SIDE_SAMPLING_DOC_LINK} from 'sentry/views/settings/project/server-side-sampling/utils';
 
 export function getMockData({
-  project,
+  projects,
   access,
-}: {access?: string[]; project?: Project} = {}) {
+}: {access?: string[]; projects?: Project[]} = {}) {
   return initializeOrg({
     ...initializeOrg(),
     organization: {
       ...initializeOrg().organization,
       features: ['server-side-sampling'],
       access: access ?? initializeOrg().organization.access,
+      projects,
     },
-    projects: [project],
+    projects,
   });
 }
 
@@ -74,29 +75,31 @@ describe('Server-side Sampling', function () {
 
   it('renders rules panel', function () {
     const {router, organization, project} = getMockData({
-      project: TestStubs.Project({
-        dynamicSampling: {
-          rules: [
-            {
-              sampleRate: 0.2,
-              type: 'trace',
-              active: false,
-              condition: {
-                op: 'and',
-                inner: [
-                  {
-                    op: 'glob',
-                    name: 'trace.release',
-                    value: ['1.2.3'],
-                  },
-                ],
+      projects: [
+        TestStubs.Project({
+          dynamicSampling: {
+            rules: [
+              {
+                sampleRate: 0.2,
+                type: 'trace',
+                active: false,
+                condition: {
+                  op: 'and',
+                  inner: [
+                    {
+                      op: 'glob',
+                      name: 'trace.release',
+                      value: ['1.2.3'],
+                    },
+                  ],
+                },
+                id: 1,
               },
-              id: 1,
-            },
-          ],
-          next_id: 2,
-        },
-      }),
+            ],
+            next_id: 2,
+          },
+        }),
+      ],
     });
 
     const {container} = render(

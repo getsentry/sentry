@@ -178,3 +178,31 @@ export type SamplingRule = {
 };
 
 export type SamplingRules = Array<SamplingRule>;
+
+export type SamplingDistribution = {
+  null_sample_rate_percentage: null | number;
+  project_breakdown:
+    | null
+    | {
+        'count()': number;
+        project: string;
+        project_id: number;
+      }[];
+  sample_rate_distributions: null | {
+    avg: null | number;
+    max: null | number;
+    min: null | number;
+    p50: null | number;
+    p90: null | number;
+    p95: null | number;
+    p99: null | number;
+  };
+  sample_size: number;
+};
+
+export type SamplingSDKUpgrade = {
+  isSendingSampleRate: boolean;
+  latestSDKName: string;
+  latestSDKVersion: string;
+  project: string;
+};

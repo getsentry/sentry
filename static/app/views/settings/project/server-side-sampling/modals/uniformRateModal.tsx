@@ -1,7 +1,6 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -11,14 +10,14 @@ import Radio from 'sentry/components/radio';
 import {IconRefresh} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import {Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {formatPercentage} from 'sentry/utils/formatters';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import {SERVER_SIDE_SAMPLING_DOC_LINK} from '../utils';
 
-import {RecommendedStepsModal} from './recommendedStepsModal';
+import {RecommendedStepsModal, RecommendedStepsModalProps} from './recommendedStepsModal';
 
 enum Strategy {
   CURRENT = 'current',
@@ -30,8 +29,7 @@ enum Step {
   RECOMMENDED_STEPS = 'recommended_steps',
 }
 
-type Props = ModalRenderProps & {
-  organization: Organization;
+type Props = RecommendedStepsModalProps & {
   project?: Project;
 };
 
@@ -41,6 +39,7 @@ function UniformRateModal({
   Footer,
   closeModal,
   organization,
+  recommendedSdkUpgrades,
   ...props
 }: Props) {
   // TODO(sampling): fetch from API
@@ -69,6 +68,7 @@ function UniformRateModal({
         Footer={Footer}
         closeModal={closeModal}
         organization={organization}
+        recommendedSdkUpgrades={recommendedSdkUpgrades}
         onGoBack={() => setActiveStep(Step.SET_UNIFORM_SAMPLE_RATE)}
         onSubmit={() => {}}
       />

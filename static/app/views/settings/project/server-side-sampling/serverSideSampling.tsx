@@ -16,11 +16,19 @@ import {t} from 'sentry/locale';
 import ProjectStore from 'sentry/stores/projectsStore';
 import space from 'sentry/styles/space';
 import {Project} from 'sentry/types';
-import {SamplingRule, SamplingRuleOperator, SamplingRules} from 'sentry/types/sampling';
+import {
+  SamplingDistribution,
+  SamplingRule,
+  SamplingRuleOperator,
+  SamplingRules,
+  SamplingSDKUpgrade,
+} from 'sentry/types/sampling';
+import {defined} from 'sentry/utils';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
+import useProjects from 'sentry/utils/useProjects';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import PermissionAlert from 'sentry/views/settings/organization/permissionAlert';
@@ -54,8 +62,46 @@ export function ServerSideSampling({project}: Props) {
   const hasAccess = organization.access.includes('project:write');
   const currentRules = project.dynamicSampling?.rules;
   const previousRules = usePrevious(currentRules);
+
   const [rules, setRules] = useState<SamplingRules>(currentRules ?? []);
-  const [isLoading, setIsLoading] = useState(false);
+  const [distribution, setDistribution] = useState<SamplingDistribution | null>(null);
+  const [sdkUpgrades, setSdkUpgrades] = useState<SamplingSDKUpgrade[] | null>(null);
+
+  const notSendingSampleRateSdkUpgrades =
+    sdkUpgrades?.filter(sdkUpgrade => !sdkUpgrade.isSendingSampleRate) ?? [];
+
+  const slugs = notSendingSampleRateSdkUpgrades.map(sdkUpgrade => sdkUpgrade.project);
+
+  const {projects} = useProjects({slugs, orgId: organization.slug});
+
+  console.log({projects});
+
+  // Rules without a condition (Else case) always have to be 'pinned' to the bottom of the list
+  // and cannot be sorted
+  const items = rules.map(rule => ({
+    ...rule,
+    id: String(rule.id),
+    bottomPinned: !rule.condition.inner.length,
+  }));
+
+  const recommendedSdkUpgrades = projects
+    .map(upgradeSDKfromProject => {
+      const sdkInfo = notSendingSampleRateSdkUpgrades.find(
+        notSendingSampleRateSdkUpgrade =>
+          notSendingSampleRateSdkUpgrade.project === upgradeSDKfromProject.slug
+      );
+
+      if (!sdkInfo) {
+        return undefined;
+      }
+
+      return {
+        project: upgradeSDKfromProject,
+        latestSDKName: sdkInfo.latestSDKName,
+        latestSDKVersion: sdkInfo.latestSDKVersion,
+      };
+    })
+    .filter(defined);
 
   useEffect(() => {
     if (!isEqual(previousRules, currentRules)) {
@@ -66,10 +112,11 @@ export function ServerSideSampling({project}: Props) {
   useEffect(() => {
     async function fetchDistribution() {
       try {
-        const distribution = await api.requestPromise(
+        const samplingDistribution = await api.requestPromise(
           `/projects/${organization.slug}/${project.slug}/dynamic-sampling/distribution/`
         );
-        console.log({distribution});
+        console.log({samplingDistribution});
+        setDistribution(samplingDistribution);
       } catch (error) {
         const message = t('Unable to fetch sampling distribution');
         handleXhrErrorResponse(message)(error);
@@ -79,23 +126,43 @@ export function ServerSideSampling({project}: Props) {
     fetchDistribution();
   }, [api, organization.slug, project.slug]);
 
-  // TODO(sampling): fetch from API
-  const recommendUpdateSdkForProjects = [
-    'ProjectA',
-    'ProjectB',
-    'ProjectC',
-    'ProjectC',
-    'ProjectC',
-    'ProjectC',
-    'ProjectC',
-    'ProjectC',
-    'ProjectC',
-    'ProjectC',
-    'ProjectC',
-    'ProjectC',
-    'ProjectC',
-    'ProjectC',
-  ];
+  useEffect(() => {
+    if (!distribution) {
+      return;
+    }
+
+    function fetchSdkUpgrades() {
+      try {
+        // TODO(sampling): Add the request here and remove this mock
+        setSdkUpgrades([
+          {
+            project: 'javascript',
+            latestSDKVersion: '1.0.3',
+            latestSDKName: 'sentry.javascript.react',
+            isSendingSampleRate: true,
+          },
+          {
+            project: 'sentry',
+            latestSDKVersion: '1.0.2',
+            latestSDKName: 'sentry.python',
+            isSendingSampleRate: false,
+          },
+          {
+            project: 'snuba',
+            latestSDKVersion: '1.0.4',
+            latestSDKName: 'sentry.snuba',
+            isSendingSampleRate: false,
+          },
+        ]);
+      } catch (error) {
+        const message = t('Unable to fetch recommended SDK upgrades');
+        handleXhrErrorResponse(message)(error);
+        addErrorMessage(message);
+      }
+    }
+
+    fetchSdkUpgrades();
+  }, [distribution, api, organization.slug, project.slug]);
 
   function handleActivateToggle(rule: SamplingRule) {
     openModal(modalProps => <ActivateModal {...modalProps} rule={rule} />);
@@ -103,16 +170,26 @@ export function ServerSideSampling({project}: Props) {
 
   function handleGetStarted() {
     openModal(modalProps => (
-      <UniformRateModal {...modalProps} organization={organization} project={project} />
+      <UniformRateModal
+        {...modalProps}
+        organization={organization}
+        project={project}
+        recommendedSdkUpgrades={recommendedSdkUpgrades}
+      />
     ));
   }
 
   function handleOpenRecommendedSteps() {
+    if (!recommendedSdkUpgrades.length) {
+      return;
+    }
+
     openModal(modalProps => (
       <RecommendedStepsModal
         {...modalProps}
         organization={organization}
         project={project}
+        recommendedSdkUpgrades={recommendedSdkUpgrades}
       />
     ));
   }
@@ -190,13 +267,7 @@ export function ServerSideSampling({project}: Props) {
     }
   }
 
-  // Rules without a condition (Else case) always have to be 'pinned' to the bottom of the list
-  // and cannot be sorted
-  const items = rules.map(rule => ({
-    ...rule,
-    id: String(rule.id),
-    bottomPinned: !rule.condition.inner.length,
-  }));
+  console.log({recommendedSdkUpgrades: recommendedSdkUpgrades.length});
 
   return (
     <SentryDocumentTitle title={t('Server-side Sampling')}>
@@ -213,7 +284,7 @@ export function ServerSideSampling({project}: Props) {
             'These settings can only be edited by users with the organization owner, manager, or admin role.'
           )}
         />
-        {!!recommendUpdateSdkForProjects.length && (
+        {!!recommendedSdkUpgrades.length && (
           <Alert
             type="info"
             showIcon
@@ -227,10 +298,10 @@ export function ServerSideSampling({project}: Props) {
               'To keep a consistent amount of transactions across your applications multiple services, we recommend you update the SDK versions for the following projects:'
             )}
             <Projects>
-              {recommendUpdateSdkForProjects.map(recommendUpdateSdkForProject => (
+              {recommendedSdkUpgrades.map(recommendedSdkUpgrade => (
                 <ProjectBadge
-                  key={recommendUpdateSdkForProject}
-                  project={project}
+                  key={recommendedSdkUpgrade.project.id}
+                  project={recommendedSdkUpgrade.project}
                   avatarSize={16}
                 />
               ))}

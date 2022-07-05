@@ -14,5 +14,19 @@ type Props = {
 export default function ServerSideSamplingContainer({project}: Props) {
   const organization = useOrganization();
 
-  return <ServerSideSampling project={project} />;
+  return (
+    <Feature
+      features={['server-side-sampling']}
+      organization={organization}
+      renderDisabled={() => (
+        <FeatureDisabled
+          alert={PanelAlert}
+          features={['organization:server-side-sampling']}
+          featureName={t('Server-side Sampling')}
+        />
+      )}
+    >
+      <ServerSideSampling project={project} />
+    </Feature>
+  );
 }

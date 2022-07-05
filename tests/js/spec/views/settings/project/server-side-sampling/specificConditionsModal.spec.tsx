@@ -81,11 +81,13 @@ describe('Server-side Sampling - Specific Conditions Modal', function () {
 
   it('add new rule', async function () {
     const {organization, project, router} = getMockData({
-      project: TestStubs.Project({
-        dynamicSampling: {
-          rules: [uniformRule],
-        },
-      }),
+      projects: [
+        TestStubs.Project({
+          dynamicSampling: {
+            rules: [uniformRule],
+          },
+        }),
+      ],
     });
 
     const newRule = {
@@ -213,29 +215,31 @@ describe('Server-side Sampling - Specific Conditions Modal', function () {
 
   it('edits the rule', async function () {
     const {organization, project, router} = getMockData({
-      project: TestStubs.Project({
-        dynamicSampling: {
-          rules: [
-            uniformRule,
-            {
-              sampleRate: 0.2,
-              active: false,
-              type: 'trace',
-              condition: {
-                op: 'and',
-                inner: [
-                  {
-                    op: 'glob',
-                    name: 'trace.release',
-                    value: ['1.2.2'],
-                  },
-                ],
+      projects: [
+        TestStubs.Project({
+          dynamicSampling: {
+            rules: [
+              uniformRule,
+              {
+                sampleRate: 0.2,
+                active: false,
+                type: 'trace',
+                condition: {
+                  op: 'and',
+                  inner: [
+                    {
+                      op: 'glob',
+                      name: 'trace.release',
+                      value: ['1.2.2'],
+                    },
+                  ],
+                },
+                id: 2,
               },
-              id: 2,
-            },
-          ],
-        },
-      }),
+            ],
+          },
+        }),
+      ],
     });
 
     const newRule = {
@@ -317,11 +321,13 @@ describe('Server-side Sampling - Specific Conditions Modal', function () {
 
   it('does not let you add without permissions', async function () {
     const {organization, project, router} = getMockData({
-      project: TestStubs.Project({
-        dynamicSampling: {
-          rules: [uniformRule],
-        },
-      }),
+      projects: [
+        TestStubs.Project({
+          dynamicSampling: {
+            rules: [uniformRule],
+          },
+        }),
+      ],
       access: [],
     });
 
