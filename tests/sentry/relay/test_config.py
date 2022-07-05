@@ -181,8 +181,6 @@ def test_project_config_with_span_attributes(default_project, insta_snapshot):
     "killswitch", (False, True), ids=("killswitch_disabled", "killswitch_enabled")
 )
 def test_has_metric_extraction(default_project, feature_flag, org_sample, killswitch):
-    print(killswitch, org_sample, feature_flag)
-
     options = override_options(
         {
             "relay.drop-transaction-metrics": [{"project_id": default_project.id}]
