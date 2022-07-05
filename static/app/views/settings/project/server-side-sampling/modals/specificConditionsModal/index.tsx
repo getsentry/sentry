@@ -152,8 +152,6 @@ export function SpecificConditionsModal({
       ? rules.map(existingRule => (existingRule.id === rule.id ? newRule : existingRule))
       : [...rules, newRule];
 
-    const currentRuleIndex = newRules.findIndex(newR => newR === newRule);
-
     setIsSaving(true);
 
     try {
@@ -169,6 +167,7 @@ export function SpecificConditionsModal({
       );
       closeModal();
     } catch (error) {
+      const currentRuleIndex = newRules.findIndex(newR => newR === newRule);
       convertRequestErrorResponse(getErrorMessage(error, currentRuleIndex));
     }
 
