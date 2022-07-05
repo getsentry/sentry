@@ -181,10 +181,15 @@ function EventsContentWrapper(props: ChildProps) {
                 );
               }
 
-              const percentiles: PercentileValues = tableData
-                ?.data?.[0] as any as PercentileValues;
+              const percentileData = tableData?.data?.[0];
+              const percentiles = {
+                p100: percentileData?.['p100()'],
+                p99: percentileData?.['p100()'],
+                p95: percentileData?.['p95()'],
+                p75: percentileData?.['p75()'],
+                p50: percentileData?.['p50()'],
+              } as PercentileValues;
               const filteredEventView = getFilteredEventView(percentiles);
-
               return (
                 <EventsContent
                   totalEventCount={totalEventCount}
