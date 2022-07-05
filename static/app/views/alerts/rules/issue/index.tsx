@@ -27,6 +27,7 @@ import SelectControl from 'sentry/components/forms/selectControl';
 import SelectField from 'sentry/components/forms/selectField';
 import TeamSelector from 'sentry/components/forms/teamSelector';
 import IdBadge from 'sentry/components/idBadge';
+import * as Layout from 'sentry/components/layouts/thirds';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import LoadingMask from 'sentry/components/loadingMask';
@@ -908,110 +909,184 @@ class IssueRuleEditor extends AsyncView<Props, State> {
           const disabled = loading || !(isActiveSuperuser() || hasAccess);
 
           return (
-            <StyledForm
-              key={isSavedAlertRule(rule) ? rule.id : undefined}
-              onCancel={this.handleCancel}
-              onSubmit={this.handleSubmit}
-              initialData={{
-                ...rule,
-                environment,
-                frequency: `${frequency}`,
-                projectId: project.id,
-              }}
-              submitDisabled={disabled}
-              submitLabel={t('Save Rule')}
-              extraButton={
-                isSavedAlertRule(rule) ? (
-                  <Confirm
-                    disabled={disabled}
-                    priority="danger"
-                    confirmText={t('Delete Rule')}
-                    onConfirm={this.handleDeleteRule}
-                    header={t('Delete Rule')}
-                    message={t('Are you sure you want to delete this rule?')}
-                  >
-                    <Button priority="danger" type="button">
-                      {t('Delete Rule')}
-                    </Button>
-                  </Confirm>
-                ) : null
-              }
-            >
-              <List symbol="colored-numeric">
-                {loading && <SemiTransparentLoadingMask data-test-id="loading-mask" />}
-                <StyledListItem>{t('Add alert settings')}</StyledListItem>
-                {this.hasAlertWizardV3 ? (
-                  <SettingsContainer>
-                    <StyledSelectField
-                      hasAlertWizardV3={this.hasAlertWizardV3}
-                      className={classNames({
-                        error: this.hasError('environment'),
-                      })}
-                      placeholder={t('Select an Environment')}
-                      clearable={false}
-                      name="environment"
-                      options={environmentOptions}
-                      onChange={val => this.handleEnvironmentChange(val)}
+            <Main>
+              <StyledForm
+                key={isSavedAlertRule(rule) ? rule.id : undefined}
+                onCancel={this.handleCancel}
+                onSubmit={this.handleSubmit}
+                initialData={{
+                  ...rule,
+                  environment,
+                  frequency: `${frequency}`,
+                  projectId: project.id,
+                }}
+                submitDisabled={disabled}
+                submitLabel={t('Save Rule')}
+                extraButton={
+                  isSavedAlertRule(rule) ? (
+                    <Confirm
                       disabled={disabled}
-                      flexibleControlStateSize
-                    />
-                    {this.renderProjectSelect(disabled)}
-                  </SettingsContainer>
-                ) : (
-                  <Panel>
-                    <PanelBody>
-                      <SelectField
+                      priority="danger"
+                      confirmText={t('Delete Rule')}
+                      onConfirm={this.handleDeleteRule}
+                      header={t('Delete Rule')}
+                      message={t('Are you sure you want to delete this rule?')}
+                    >
+                      <Button priority="danger" type="button">
+                        {t('Delete Rule')}
+                      </Button>
+                    </Confirm>
+                  ) : null
+                }
+              >
+                <List symbol="colored-numeric">
+                  {loading && <SemiTransparentLoadingMask data-test-id="loading-mask" />}
+                  <StyledListItem>{t('Add alert settings')}</StyledListItem>
+                  {this.hasAlertWizardV3 ? (
+                    <SettingsContainer>
+                      <StyledSelectField
+                        hasAlertWizardV3={this.hasAlertWizardV3}
                         className={classNames({
                           error: this.hasError('environment'),
                         })}
-                        label={t('Environment')}
-                        help={t('Choose an environment for these conditions to apply to')}
                         placeholder={t('Select an Environment')}
                         clearable={false}
                         name="environment"
                         options={environmentOptions}
                         onChange={val => this.handleEnvironmentChange(val)}
                         disabled={disabled}
+                        flexibleControlStateSize
                       />
+                      {this.renderProjectSelect(disabled)}
+                    </SettingsContainer>
+                  ) : (
+                    <Panel>
+                      <PanelBody>
+                        <SelectField
+                          className={classNames({
+                            error: this.hasError('environment'),
+                          })}
+                          label={t('Environment')}
+                          help={t(
+                            'Choose an environment for these conditions to apply to'
+                          )}
+                          placeholder={t('Select an Environment')}
+                          clearable={false}
+                          name="environment"
+                          options={environmentOptions}
+                          onChange={val => this.handleEnvironmentChange(val)}
+                          disabled={disabled}
+                        />
 
-                      {this.renderTeamSelect(disabled)}
-                      {this.renderRuleName(disabled)}
-                    </PanelBody>
-                  </Panel>
-                )}
-                <SetConditionsListItem>
-                  {t('Set conditions')}
-                  <SetupAlertIntegrationButton
-                    projectSlug={project.slug}
-                    organization={organization}
-                  />
-                </SetConditionsListItem>
-                <ConditionsPanel>
-                  <PanelBody>
-                    <Step>
-                      <StepConnector />
+                        {this.renderTeamSelect(disabled)}
+                        {this.renderRuleName(disabled)}
+                      </PanelBody>
+                    </Panel>
+                  )}
+                  <SetConditionsListItem>
+                    {t('Set conditions')}
+                    <SetupAlertIntegrationButton
+                      projectSlug={project.slug}
+                      organization={organization}
+                    />
+                  </SetConditionsListItem>
+                  <ConditionsPanel>
+                    <PanelBody>
+                      <Step>
+                        <StepConnector />
 
-                      <StepContainer>
-                        <ChevronContainer>
-                          <IconChevron
-                            color="gray200"
-                            isCircled
-                            direction="right"
-                            size="sm"
-                          />
-                        </ChevronContainer>
+                        <StepContainer>
+                          <ChevronContainer>
+                            <IconChevron
+                              color="gray200"
+                              isCircled
+                              direction="right"
+                              size="sm"
+                            />
+                          </ChevronContainer>
 
-                        <StepContent>
-                          <StepLead>
-                            {tct(
-                              '[when:When] an event is captured by Sentry and [selector] of the following happens',
-                              {
-                                when: <Badge />,
+                          <StepContent>
+                            <StepLead>
+                              {tct(
+                                '[when:When] an event is captured by Sentry and [selector] of the following happens',
+                                {
+                                  when: <Badge />,
+                                  selector: (
+                                    <EmbeddedWrapper>
+                                      <EmbeddedSelectField
+                                        className={classNames({
+                                          error: this.hasError('actionMatch'),
+                                        })}
+                                        inline={false}
+                                        styles={{
+                                          control: provided => ({
+                                            ...provided,
+                                            minHeight: '20px',
+                                            height: '20px',
+                                          }),
+                                        }}
+                                        isSearchable={false}
+                                        isClearable={false}
+                                        name="actionMatch"
+                                        required
+                                        flexibleControlStateSize
+                                        options={ACTION_MATCH_OPTIONS_MIGRATED}
+                                        onChange={val =>
+                                          this.handleChange('actionMatch', val)
+                                        }
+                                        disabled={disabled}
+                                      />
+                                    </EmbeddedWrapper>
+                                  ),
+                                }
+                              )}
+                            </StepLead>
+                            <RuleNodeList
+                              nodes={this.getConditions()}
+                              items={conditions ?? []}
+                              selectType="grouped"
+                              placeholder={t('Add optional trigger...')}
+                              onPropertyChange={this.handleChangeConditionProperty}
+                              onAddRow={this.handleAddCondition}
+                              onResetRow={this.handleResetCondition}
+                              onDeleteRow={this.handleDeleteCondition}
+                              organization={organization}
+                              project={project}
+                              disabled={disabled}
+                              error={
+                                this.hasError('conditions') && (
+                                  <StyledAlert type="error">
+                                    {detailedError?.conditions[0]}
+                                  </StyledAlert>
+                                )
+                              }
+                            />
+                          </StepContent>
+                        </StepContainer>
+                      </Step>
+
+                      <Step>
+                        <StepConnector />
+
+                        <StepContainer>
+                          <ChevronContainer>
+                            <IconChevron
+                              color="gray200"
+                              isCircled
+                              direction="right"
+                              size="sm"
+                            />
+                          </ChevronContainer>
+
+                          <StepContent>
+                            <StepLead>
+                              {tct('[if:If] [selector] of these filters match', {
+                                if: <Badge />,
                                 selector: (
                                   <EmbeddedWrapper>
                                     <EmbeddedSelectField
                                       className={classNames({
-                                        error: this.hasError('actionMatch'),
+                                        error: this.hasError('filterMatch'),
                                       })}
                                       inline={false}
                                       styles={{
@@ -1023,177 +1098,107 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                                       }}
                                       isSearchable={false}
                                       isClearable={false}
-                                      name="actionMatch"
+                                      name="filterMatch"
                                       required
                                       flexibleControlStateSize
-                                      options={ACTION_MATCH_OPTIONS_MIGRATED}
+                                      options={ACTION_MATCH_OPTIONS}
                                       onChange={val =>
-                                        this.handleChange('actionMatch', val)
+                                        this.handleChange('filterMatch', val)
                                       }
                                       disabled={disabled}
                                     />
                                   </EmbeddedWrapper>
                                 ),
+                              })}
+                            </StepLead>
+                            <RuleNodeList
+                              nodes={this.state.configs?.filters ?? null}
+                              items={filters ?? []}
+                              placeholder={t('Add optional filter...')}
+                              onPropertyChange={this.handleChangeFilterProperty}
+                              onAddRow={this.handleAddFilter}
+                              onResetRow={this.handleResetFilter}
+                              onDeleteRow={this.handleDeleteFilter}
+                              organization={organization}
+                              project={project}
+                              disabled={disabled}
+                              error={
+                                this.hasError('filters') && (
+                                  <StyledAlert type="error">
+                                    {detailedError?.filters[0]}
+                                  </StyledAlert>
+                                )
                               }
-                            )}
-                          </StepLead>
-                          <RuleNodeList
-                            nodes={this.getConditions()}
-                            items={conditions ?? []}
-                            selectType="grouped"
-                            placeholder={t('Add optional trigger...')}
-                            onPropertyChange={this.handleChangeConditionProperty}
-                            onAddRow={this.handleAddCondition}
-                            onResetRow={this.handleResetCondition}
-                            onDeleteRow={this.handleDeleteCondition}
-                            organization={organization}
-                            project={project}
-                            disabled={disabled}
-                            error={
-                              this.hasError('conditions') && (
-                                <StyledAlert type="error">
-                                  {detailedError?.conditions[0]}
-                                </StyledAlert>
-                              )
-                            }
-                          />
-                        </StepContent>
-                      </StepContainer>
-                    </Step>
+                            />
+                          </StepContent>
+                        </StepContainer>
+                      </Step>
 
-                    <Step>
-                      <StepConnector />
+                      <Step>
+                        <StepContainer>
+                          <ChevronContainer>
+                            <IconChevron
+                              isCircled
+                              color="gray200"
+                              direction="right"
+                              size="sm"
+                            />
+                          </ChevronContainer>
+                          <StepContent>
+                            <StepLead>
+                              {tct('[then:Then] perform these actions', {
+                                then: <Badge />,
+                              })}
+                            </StepLead>
 
-                      <StepContainer>
-                        <ChevronContainer>
-                          <IconChevron
-                            color="gray200"
-                            isCircled
-                            direction="right"
-                            size="sm"
-                          />
-                        </ChevronContainer>
-
-                        <StepContent>
-                          <StepLead>
-                            {tct('[if:If] [selector] of these filters match', {
-                              if: <Badge />,
-                              selector: (
-                                <EmbeddedWrapper>
-                                  <EmbeddedSelectField
-                                    className={classNames({
-                                      error: this.hasError('filterMatch'),
-                                    })}
-                                    inline={false}
-                                    styles={{
-                                      control: provided => ({
-                                        ...provided,
-                                        minHeight: '20px',
-                                        height: '20px',
-                                      }),
-                                    }}
-                                    isSearchable={false}
-                                    isClearable={false}
-                                    name="filterMatch"
-                                    required
-                                    flexibleControlStateSize
-                                    options={ACTION_MATCH_OPTIONS}
-                                    onChange={val =>
-                                      this.handleChange('filterMatch', val)
-                                    }
-                                    disabled={disabled}
-                                  />
-                                </EmbeddedWrapper>
-                              ),
-                            })}
-                          </StepLead>
-                          <RuleNodeList
-                            nodes={this.state.configs?.filters ?? null}
-                            items={filters ?? []}
-                            placeholder={t('Add optional filter...')}
-                            onPropertyChange={this.handleChangeFilterProperty}
-                            onAddRow={this.handleAddFilter}
-                            onResetRow={this.handleResetFilter}
-                            onDeleteRow={this.handleDeleteFilter}
-                            organization={organization}
-                            project={project}
-                            disabled={disabled}
-                            error={
-                              this.hasError('filters') && (
-                                <StyledAlert type="error">
-                                  {detailedError?.filters[0]}
-                                </StyledAlert>
-                              )
-                            }
-                          />
-                        </StepContent>
-                      </StepContainer>
-                    </Step>
-
-                    <Step>
-                      <StepContainer>
-                        <ChevronContainer>
-                          <IconChevron
-                            isCircled
-                            color="gray200"
-                            direction="right"
-                            size="sm"
-                          />
-                        </ChevronContainer>
-                        <StepContent>
-                          <StepLead>
-                            {tct('[then:Then] perform these actions', {
-                              then: <Badge />,
-                            })}
-                          </StepLead>
-
-                          <RuleNodeList
-                            nodes={this.state.configs?.actions ?? null}
-                            selectType="grouped"
-                            items={actions ?? []}
-                            placeholder={t('Add action...')}
-                            onPropertyChange={this.handleChangeActionProperty}
-                            onAddRow={this.handleAddAction}
-                            onResetRow={this.handleResetAction}
-                            onDeleteRow={this.handleDeleteAction}
-                            organization={organization}
-                            project={project}
-                            disabled={disabled}
-                            error={
-                              this.hasError('actions') && (
-                                <StyledAlert type="error">
-                                  {detailedError?.actions[0]}
-                                </StyledAlert>
-                              )
-                            }
-                          />
-                        </StepContent>
-                      </StepContainer>
-                    </Step>
-                  </PanelBody>
-                </ConditionsPanel>
-                <StyledListItem>
-                  {t('Set action interval')}
-                  <StyledFieldHelp>
-                    {t('Perform the actions above once this often for an issue')}
-                  </StyledFieldHelp>
-                </StyledListItem>
-                {this.hasAlertWizardV3 ? (
-                  this.renderActionInterval(disabled)
-                ) : (
-                  <Panel>
-                    <PanelBody>{this.renderActionInterval(disabled)}</PanelBody>
-                  </Panel>
-                )}
-                {this.hasAlertWizardV3 && (
-                  <Fragment>
-                    <StyledListItem>{t('Establish ownership')}</StyledListItem>
-                    {this.renderRuleName(disabled)}
-                    {this.renderTeamSelect(disabled)}
-                  </Fragment>
-                )}
-              </List>
-            </StyledForm>
+                            <RuleNodeList
+                              nodes={this.state.configs?.actions ?? null}
+                              selectType="grouped"
+                              items={actions ?? []}
+                              placeholder={t('Add action...')}
+                              onPropertyChange={this.handleChangeActionProperty}
+                              onAddRow={this.handleAddAction}
+                              onResetRow={this.handleResetAction}
+                              onDeleteRow={this.handleDeleteAction}
+                              organization={organization}
+                              project={project}
+                              disabled={disabled}
+                              error={
+                                this.hasError('actions') && (
+                                  <StyledAlert type="error">
+                                    {detailedError?.actions[0]}
+                                  </StyledAlert>
+                                )
+                              }
+                            />
+                          </StepContent>
+                        </StepContainer>
+                      </Step>
+                    </PanelBody>
+                  </ConditionsPanel>
+                  <StyledListItem>
+                    {t('Set action interval')}
+                    <StyledFieldHelp>
+                      {t('Perform the actions above once this often for an issue')}
+                    </StyledFieldHelp>
+                  </StyledListItem>
+                  {this.hasAlertWizardV3 ? (
+                    this.renderActionInterval(disabled)
+                  ) : (
+                    <Panel>
+                      <PanelBody>{this.renderActionInterval(disabled)}</PanelBody>
+                    </Panel>
+                  )}
+                  {this.hasAlertWizardV3 && (
+                    <Fragment>
+                      <StyledListItem>{t('Establish ownership')}</StyledListItem>
+                      {this.renderRuleName(disabled)}
+                      {this.renderTeamSelect(disabled)}
+                    </Fragment>
+                  )}
+                </List>
+              </StyledForm>
+            </Main>
           );
         }}
       </Access>
@@ -1341,4 +1346,8 @@ const StyledSelectField = styled(SelectField)<{hasAlertWizardV3?: boolean}>`
 
     margin-bottom: ${space(1)};
   `}
+`;
+
+const Main = styled(Layout.Main)`
+  padding: ${space(2)} ${space(4)};
 `;
