@@ -64,7 +64,7 @@ class BaseOrganizationSerializer(serializers.Serializer):  # type: ignore
     name = serializers.CharField(max_length=64)
     slug = serializers.RegexField(r"^[a-zA-Z0-9][a-zA-Z0-9-]*(?<!-)$", max_length=50)
 
-    def validate_slug(self, value):
+    def validate_slug(self, value: str) -> str:
         # Historically, the only check just made sure there was more than 1
         # character for the slug, but since then, there are many slugs that
         # fit within this new imposed limit. We're not fixing existing, but
