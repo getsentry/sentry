@@ -1,11 +1,17 @@
 import {useEffect, useState} from 'react';
 
 import {t} from 'sentry/locale';
+import {Organization, Project} from 'sentry/types';
 import {SamplingDistribution} from 'sentry/types/sampling';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import useApi from 'sentry/utils/useApi';
 
-function useSamplingDistribution({orgSlug, projSlug}) {
+type Props = {
+  orgSlug: Organization['slug'];
+  projSlug: Project['slug'];
+};
+
+function useSamplingDistribution({orgSlug, projSlug}: Props) {
   const api = useApi();
   const [samplingDistribution, setSamplingDistribution] = useState<
     SamplingDistribution | undefined
@@ -18,9 +24,9 @@ function useSamplingDistribution({orgSlug, projSlug}) {
           `/projects/${orgSlug}/${projSlug}/dynamic-sampling/distribution/`
         );
         setSamplingDistribution(response);
-      } catch (err) {
+      } catch (error) {
         const errorMessage = t('Unable to fetch sampling distribution');
-        handleXhrErrorResponse(errorMessage)(err);
+        handleXhrErrorResponse(errorMessage)(error);
       }
     }
     fetchSamplingDistribution();

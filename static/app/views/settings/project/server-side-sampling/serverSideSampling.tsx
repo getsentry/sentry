@@ -16,13 +16,7 @@ import {t} from 'sentry/locale';
 import ProjectStore from 'sentry/stores/projectsStore';
 import space from 'sentry/styles/space';
 import {Project} from 'sentry/types';
-import {
-  SamplingDistribution,
-  SamplingRule,
-  SamplingRuleOperator,
-  SamplingRules,
-  SamplingSDKUpgrade,
-} from 'sentry/types/sampling';
+import {SamplingRule, SamplingRuleOperator, SamplingRules} from 'sentry/types/sampling';
 import {defined} from 'sentry/utils';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import useApi from 'sentry/utils/useApi';
@@ -42,6 +36,7 @@ import {responsiveModal} from './modals/styles';
 import {UniformRateModal} from './modals/uniformRateModal';
 import useProjectStats from './utils/useProjectStats';
 import useSamplingDistribution from './utils/useSamplingDistribution';
+import useSdkVersions from './utils/useSdkVersions';
 import {Promo} from './promo';
 import {
   ActiveColumn,
@@ -68,7 +63,6 @@ export function ServerSideSampling({project}: Props) {
   const previousRules = usePrevious(currentRules);
 
   const [rules, setRules] = useState<SamplingRules>(currentRules ?? []);
-  const [sdkUpgrades, setSdkUpgrades] = useState<SamplingSDKUpgrade[] | null>(null);
 
   const {projectStats} = useProjectStats({
     orgSlug: organization.slug,
@@ -82,8 +76,18 @@ export function ServerSideSampling({project}: Props) {
     projSlug: project.slug,
   });
 
+  const {samplingSdkVersions} = useSdkVersions({
+    orgSlug: organization.slug,
+    projSlug: project.slug,
+    projectIds: samplingDistribution?.project_breakdown?.map(
+      projectBreakdown => projectBreakdown.project_id
+    ),
+  });
+
   const notSendingSampleRateSdkUpgrades =
-    sdkUpgrades?.filter(sdkUpgrade => !sdkUpgrade.isSendingSampleRate) ?? [];
+    samplingSdkVersions?.filter(
+      samplingSdkVersion => !samplingSdkVersion.isSendingSampleRate
+    ) ?? [];
 
   const {projects} = useProjects({
     slugs: notSendingSampleRateSdkUpgrades.map(sdkUpgrade => sdkUpgrade.project),
@@ -116,46 +120,19 @@ export function ServerSideSampling({project}: Props) {
       };
     })
     .filter(defined);
+  // const recommendedSdkUpgrades = [
+  //   {
+  //     project,
+  //     latestSDKVersion: '1.0.3',
+  //     latestSDKName: 'sentry.javascript.react',
+  //   },
+  // ];
 
   useEffect(() => {
     if (!isEqual(previousRules, currentRules)) {
       setRules(currentRules ?? []);
     }
   }, [currentRules, previousRules]);
-
-  useEffect(() => {
-    if (!samplingDistribution) {
-      return;
-    }
-
-    async function fetchSdkUpgrades() {
-      if (!samplingDistribution?.project_breakdown) {
-        return;
-      }
-
-      try {
-        const response = await api.requestPromise(
-          `/organizations/${organization.slug}/dynamic-sampling/sdk-versions/`,
-          {
-            method: 'GET',
-            query: {
-              projects: samplingDistribution.project_breakdown.map(
-                projectBreakDown => projectBreakDown.project_id
-              ),
-            },
-          }
-        );
-        console.log({response});
-        setSdkUpgrades(response.data);
-      } catch (error) {
-        const message = t('Unable to fetch recommended SDK upgrades');
-        handleXhrErrorResponse(message)(error);
-        addErrorMessage(message);
-      }
-    }
-
-    fetchSdkUpgrades();
-  }, [samplingDistribution, api, organization.slug]);
 
   function handleActivateToggle(rule: SamplingRule) {
     openModal(modalProps => <ActivateModal {...modalProps} rule={rule} />);
@@ -284,6 +261,7 @@ export function ServerSideSampling({project}: Props) {
         />
         {!!recommendedSdkUpgrades.length && (
           <Alert
+            data-test-id="recommended-sdk-upgrades-alert"
             type="info"
             showIcon
             trailingItems={

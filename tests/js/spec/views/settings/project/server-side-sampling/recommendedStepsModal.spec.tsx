@@ -1,28 +1,64 @@
 import {InjectedRouter} from 'react-router';
 
-import {
-  render,
-  screen,
-  userEvent,
-  waitForElementToBeRemoved,
-  within,
-} from 'sentry-test/reactTestingLibrary';
-import {textWithMarkupMatcher} from 'sentry-test/utils';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
-import * as indicators from 'sentry/actionCreators/indicator';
+import * as modal from 'sentry/actionCreators/modal';
+import {openModal} from 'sentry/actionCreators/modal';
 import GlobalModal from 'sentry/components/globalModal';
-import ProjectsStore from 'sentry/stores/projectsStore';
 import {Organization, Project} from 'sentry/types';
-import {SamplingInnerName} from 'sentry/types/sampling';
+import importedUseProjects from 'sentry/utils/useProjects';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {RouteContext} from 'sentry/views/routeContext';
 import ServerSideSampling from 'sentry/views/settings/project/server-side-sampling';
-import {distributedTracesConditions} from 'sentry/views/settings/project/server-side-sampling/modals/specificConditionsModal/utils';
-import {getInnerNameLabel} from 'sentry/views/settings/project/server-side-sampling/utils';
 import importedUseProjectStats from 'sentry/views/settings/project/server-side-sampling/utils/useProjectStats';
 import importedUseSamplingDistribution from 'sentry/views/settings/project/server-side-sampling/utils/useSamplingDistribution';
+import importedUseSdkVersions from 'sentry/views/settings/project/server-side-sampling/utils/useSdkVersions';
 
 import {getMockData} from './index.spec';
+
+const mockedProjects = [
+  TestStubs.Project({
+    name: 'javascript',
+    slug: 'javascript',
+    id: 1,
+  }),
+  TestStubs.Project({
+    name: 'sentry',
+    slug: 'sentry',
+    id: 2,
+  }),
+  TestStubs.Project({
+    id: 4,
+    dynamicSampling: {
+      rules: [
+        {
+          sampleRate: 1,
+          type: 'trace',
+          active: false,
+          condition: {
+            op: 'and',
+            inner: [],
+          },
+          id: 1,
+        },
+      ],
+    },
+  }),
+];
+
+jest.mock('sentry/utils/useProjects');
+const useProjects = importedUseProjects as jest.MockedFunction<
+  typeof importedUseProjects
+>;
+useProjects.mockImplementation(() => ({
+  projects: mockedProjects,
+  fetchError: null,
+  fetching: false,
+  hasMore: false,
+  initiallyLoaded: true,
+  onSearch: jest.fn(),
+  placeholders: [],
+}));
 
 jest.mock('sentry/views/settings/project/server-side-sampling/utils/useProjectStats');
 const useProjectStats = importedUseProjectStats as jest.MockedFunction<
@@ -38,14 +74,58 @@ useProjectStats.mockImplementation(() => ({
 jest.mock(
   'sentry/views/settings/project/server-side-sampling/utils/useSamplingDistribution'
 );
-const useProjectStats = importedUseProjectStats as jest.MockedFunction<
-  typeof importedUseProjectStats
+const useSamplingDistribution = importedUseSamplingDistribution as jest.MockedFunction<
+  typeof importedUseSamplingDistribution
 >;
-useProjectStats.mockImplementation(() => ({
-  projectStats: TestStubs.Outcomes(),
-  loading: false,
-  error: undefined,
-  projectStatsSeries: [],
+
+useSamplingDistribution.mockImplementation(() => ({
+  samplingDistribution: {
+    project_breakdown: [
+      {
+        project: mockedProjects[0].slug,
+        project_id: mockedProjects[0].id,
+        'count()': 888,
+      },
+      {
+        project: mockedProjects[1].slug,
+        project_id: mockedProjects[1].id,
+        'count()': 100,
+      },
+    ],
+    sample_size: 100,
+    null_sample_rate_percentage: 98,
+    sample_rate_distributions: {
+      min: 1,
+      max: 1,
+      avg: 1,
+      p50: 1,
+      p90: 1,
+      p95: 1,
+      p99: 1,
+    },
+  },
+}));
+
+jest.mock('sentry/views/settings/project/server-side-sampling/utils/useSdkVersions');
+const useSdkVersions = importedUseSdkVersions as jest.MockedFunction<
+  typeof importedUseSdkVersions
+>;
+
+useSdkVersions.mockImplementation(() => ({
+  samplingSdkVersions: [
+    {
+      project: mockedProjects[0].slug,
+      latestSDKVersion: '1.0.3',
+      latestSDKName: 'sentry.javascript.react',
+      isSendingSampleRate: true,
+    },
+    {
+      project: mockedProjects[1].slug,
+      latestSDKVersion: '1.0.2',
+      latestSDKName: 'sentry.python',
+      isSendingSampleRate: false,
+    },
+  ],
 }));
 
 function TestComponent({
@@ -78,82 +158,11 @@ function TestComponent({
 }
 
 describe('Server-side Sampling - Recommended Steps Modal', function () {
-  const mockedProjects = [
-    TestStubs.Project({
-      name: 'javascript',
-      slug: 'javascript',
-      id: 1,
-    }),
-    TestStubs.Project({
-      name: 'sentry',
-      slug: 'sentry',
-      id: 2,
-    }),
-    TestStubs.Project({
-      name: 'snuba',
-      slug: 'snuba',
-      id: 3,
-    }),
-    TestStubs.Project({
-      id: 4,
-      dynamicSampling: {
-        rules: [
-          {
-            sampleRate: 1,
-            type: 'trace',
-            active: false,
-            condition: {
-              op: 'and',
-              inner: [],
-            },
-            id: 1,
-          },
-        ],
-      },
-    }),
-  ];
-
   beforeEach(function () {
-    ProjectsStore.loadInitialData(mockedProjects);
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/projects/`,
       method: 'GET',
       body: mockedProjects,
-    });
-
-    MockApiClient.addMockResponse({
-      url: '/projects/org-slug/project-slug/dynamic-sampling/distribution/',
-      method: 'GET',
-      body: {
-        project_breakdown: [
-          {
-            project: mockedProjects[0].slug,
-            project_id: mockedProjects[0].id,
-            'count()': 888,
-          },
-          {
-            project: mockedProjects[1].slug,
-            project_id: mockedProjects[1].id,
-            'count()': 100,
-          },
-          {
-            project: mockedProjects[2].slug,
-            project_id: mockedProjects[2].id,
-            'count()': 636,
-          },
-        ],
-        sample_size: 100,
-        null_sample_rate_percentage: 98,
-        sample_rate_distributions: {
-          min: 1,
-          max: 1,
-          avg: 1,
-          p50: 1,
-          p90: 1,
-          p95: 1,
-          p99: 1,
-        },
-      },
     });
 
     MockApiClient.addMockResponse({
@@ -168,25 +177,44 @@ describe('Server-side Sampling - Recommended Steps Modal', function () {
     });
   });
 
-  afterEach(function () {
-    MockApiClient.clearMockResponses();
-  });
+  // TODO(sampling): move this test to the main file
+  it('display "update Sdk versions" alert', async function () {
+    jest.spyOn(modal, 'openModal');
 
-  it('render with all all steps', async function () {
     const {organization, projects, router} = getMockData({
       projects: mockedProjects,
     });
 
     render(
-      <TestComponent organization={organization} project={projects[3]} router={router} />
+      <TestComponent organization={organization} project={projects[2]} router={router} />
+    );
+
+    const recommendedSdkUpgradesAlert = await screen.findByTestId(
+      'recommended-sdk-upgrades-alert'
     );
 
     expect(
-      await screen.findByRole('button', {name: 'Learn More'}, {timeout: 2500})
+      within(recommendedSdkUpgradesAlert).getByText(
+        'To keep a consistent amount of transactions across your applications multiple services, we recommend you update the SDK versions for the following projects:'
+      )
     ).toBeInTheDocument();
-    // userEvent.hover(screen.getByText('Add Rule'));
-    // expect(
-    //   await screen.findByText("You don't have permission to add a rule")
-    // ).toBeInTheDocument();
+
+    expect(
+      within(recommendedSdkUpgradesAlert).getByRole('link', {
+        name: mockedProjects[1].slug,
+      })
+    ).toHaveAttribute(
+      'href',
+      `/organizations/org-slug/projects/sentry/?project=${mockedProjects[1].id}`
+    );
+
+    // Open Modal
+    userEvent.click(
+      within(recommendedSdkUpgradesAlert).getByRole('button', {
+        name: 'Learn More',
+      })
+    );
+
+    expect(openModal).toHaveBeenCalled();
   });
 });

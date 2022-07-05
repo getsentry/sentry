@@ -200,7 +200,7 @@ export type SamplingDistribution = {
   sample_size: number;
 };
 
-export type SamplingSDKUpgrade = {
+export type SamplingSdkVersion = {
   isSendingSampleRate: boolean;
   latestSDKName: string;
   latestSDKVersion: string;
