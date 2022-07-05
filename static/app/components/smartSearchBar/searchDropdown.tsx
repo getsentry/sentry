@@ -129,7 +129,11 @@ class SearchDropdown extends PureComponent<Props> {
                     onClick={() => runShortcut(shortcut)}
                   >
                     <HotkeyGlyphWrapper>
-                      <HotkeysLabel value={shortcut.hotkeys?.display ?? []} />
+                      <HotkeysLabel
+                        value={
+                          shortcut.hotkeys?.display ?? shortcut.hotkeys?.actual ?? []
+                        }
+                      />
                     </HotkeyGlyphWrapper>
                     <IconWrapper>{shortcut.icon}</IconWrapper>
                     <HotkeyTitle>{shortcut.text}</HotkeyTitle>
