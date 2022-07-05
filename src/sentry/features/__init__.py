@@ -125,7 +125,7 @@ default_manager.add("organizations:performance-span-tree-autoscroll", Organizati
 default_manager.add(
     "organizations:performance-transaction-name-only-search", OrganizationFeature, True
 )
-default_manager.add("organizations:performance-extraneous-spans-poc", True)
+default_manager.add("organizations:performance-extraneous-spans-poc", OrganizationFeature, True)
 default_manager.add("organizations:profiling", OrganizationFeature, True)
 default_manager.add("organizations:project-event-date-limit", OrganizationFeature, True)
 default_manager.add("organizations:related-events", OrganizationFeature)
