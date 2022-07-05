@@ -190,7 +190,7 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
 
         # Check if the 2FA interface allows new enrollment, if not we should error
         # on any POSTs
-        if not interface.disallow_new_enrollment:
+        if interface.disallow_new_enrollment:
             return Response(DISALLOWED_NEW_ENROLLMENT_ERR, status=status.HTTP_403_FORBIDDEN)
 
         # Not all interfaces allow multi enrollment
