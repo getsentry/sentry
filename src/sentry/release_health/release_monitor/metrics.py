@@ -102,9 +102,9 @@ class MetricReleaseMonitorBackend(BaseReleaseMonitorBackend):
         totals: Totals = defaultdict(dict)
         with metrics.timer("release_monitor.fetch_project_release_health_totals.loop"):
             while (time.time() - start_time) < self.MAX_SECONDS:
-                release_key = resolve_tag_key(org_id, "release")
+                release_key = resolve_tag_key(UseCaseKey.RELEASE_HEALTH, org_id, "release")
                 release_col = Column(release_key)
-                env_key = resolve_tag_key(org_id, "environment")
+                env_key = resolve_tag_key(UseCaseKey.RELEASE_HEALTH, org_id, "environment")
                 env_col = Column(env_key)
                 query = (
                     Query(
