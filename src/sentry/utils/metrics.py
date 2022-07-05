@@ -8,19 +8,47 @@ from contextlib import contextmanager
 from queue import Queue
 from random import random
 from threading import Thread, local
-from typing import Mapping, Optional
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Generator,
+    List,
+    Mapping,
+    MutableMapping,
+    Optional,
+    Tuple,
+    TypeVar,
+    Union,
+)
 
 from django.conf import settings
+
+if TYPE_CHECKING:
+    from sentry.metrics.base import MetricsBackend
 
 metrics_skip_all_internal = getattr(settings, "SENTRY_METRICS_SKIP_ALL_INTERNAL", False)
 metrics_skip_internal_prefixes = tuple(settings.SENTRY_METRICS_SKIP_INTERNAL_PREFIXES)
 
+T = TypeVar("T")
+F = TypeVar("F", bound=Callable[..., Any])
+
+# Note: One can pass a lot without TypeErrors, but some values such as None
+# don't actually get serialized as tags properly all the way to statsd (they
+# just get lost)
+# We still loosely type here because we have too many places where we send None
+# for a tag value, and sometimes even keys. It doesn't cause real bugs, your
+# monitoring is just slightly broken.
+TagValue = Union[str, int, float, None]
+Tags = Mapping[str, TagValue]
+MutableTags = MutableMapping[str, TagValue]
+
 _THREAD_LOCAL_TAGS = local()
-_GLOBAL_TAGS = []
+_GLOBAL_TAGS: List[Tags] = []
 
 
 @contextmanager
-def global_tags(_all_threads=False, **tags):
+def global_tags(_all_threads: bool = False, **tags: TagValue) -> Generator[None, None, None]:
     if _all_threads:
         stack = _GLOBAL_TAGS
     else:
@@ -36,8 +64,8 @@ def global_tags(_all_threads=False, **tags):
         stack.pop()
 
 
-def _get_current_global_tags():
-    rv = {}
+def _get_current_global_tags() -> MutableTags:
+    rv: MutableTags = {}
 
     for tags in _GLOBAL_TAGS:
         rv.update(tags)
@@ -48,7 +76,7 @@ def _get_current_global_tags():
     return rv
 
 
-def get_default_backend():
+def get_default_backend() -> MetricsBackend:
     from sentry.utils.imports import import_string
 
     cls = import_string(settings.SENTRY_METRICS_BACKEND)
@@ -59,31 +87,32 @@ def get_default_backend():
 backend = get_default_backend()
 
 
-def _get_key(key):
+def _get_key(key: str) -> str:
     prefix = settings.SENTRY_METRICS_PREFIX
     if prefix:
         return f"{prefix}{key}"
     return key
 
 
-def _should_sample(sample_rate):
+def _should_sample(sample_rate: float) -> bool:
     return sample_rate >= 1 or random() >= 1 - sample_rate
 
 
-def _sampled_value(value, sample_rate):
+def _sampled_value(value: Union[int, float], sample_rate: float) -> Union[int, float]:
     if sample_rate < 1:
         value = int(value * (1.0 / sample_rate))
     return value
 
 
 class InternalMetrics:
-    def __init__(self):
+    def __init__(self) -> None:
         self._started = False
 
-    def _start(self):
+    def _start(self) -> None:
+        q: Queue[Tuple[str, Optional[str], Optional[Tags], Union[float, int], float]]
         self.q = q = Queue()
 
-        def worker():
+        def worker() -> None:
             from sentry import tsdb
 
             while True:
@@ -109,12 +138,12 @@ class InternalMetrics:
 
     def incr(
         self,
-        key,
-        instance=None,
-        tags=None,
-        amount=1,
-        sample_rate=settings.SENTRY_METRICS_SAMPLE_RATE,
-    ):
+        key: str,
+        instance: Optional[str] = None,
+        tags: Optional[Tags] = None,
+        amount: int = 1,
+        sample_rate: float = settings.SENTRY_METRICS_SAMPLE_RATE,
+    ) -> None:
         if not self._started:
             self._start()
         self.q.put((key, instance, tags, amount, sample_rate))
@@ -127,7 +156,7 @@ def incr(
     key: str,
     amount: int = 1,
     instance: Optional[str] = None,
-    tags: Optional[Mapping[str, str]] = None,
+    tags: Optional[Tags] = None,
     skip_internal: bool = True,
     sample_rate: float = settings.SENTRY_METRICS_SAMPLE_RATE,
 ) -> None:
@@ -156,9 +185,9 @@ def incr(
 
 def gauge(
     key: str,
-    value,
+    value: float,
     instance: Optional[str] = None,
-    tags: Optional[Mapping[str, str]] = None,
+    tags: Optional[Tags] = None,
     sample_rate: float = settings.SENTRY_METRICS_SAMPLE_RATE,
 ) -> None:
     current_tags = _get_current_global_tags()
@@ -172,7 +201,13 @@ def gauge(
         logger.exception("Unable to record backend metric")
 
 
-def timing(key, value, instance=None, tags=None, sample_rate=settings.SENTRY_METRICS_SAMPLE_RATE):
+def timing(
+    key: str,
+    value: Union[int, float],
+    instance: Optional[str] = None,
+    tags: Optional[Tags] = None,
+    sample_rate: float = settings.SENTRY_METRICS_SAMPLE_RATE,
+) -> None:
     current_tags = _get_current_global_tags()
     if tags is not None:
         current_tags.update(tags)
@@ -185,7 +220,12 @@ def timing(key, value, instance=None, tags=None, sample_rate=settings.SENTRY_MET
 
 
 @contextmanager
-def timer(key, instance=None, tags=None, sample_rate=settings.SENTRY_METRICS_SAMPLE_RATE):
+def timer(
+    key: str,
+    instance: Optional[str] = None,
+    tags: Optional[Tags] = None,
+    sample_rate: float = settings.SENTRY_METRICS_SAMPLE_RATE,
+) -> Generator[MutableTags, None, None]:
     current_tags = _get_current_global_tags()
     if tags is not None:
         current_tags.update(tags)
@@ -202,13 +242,15 @@ def timer(key, instance=None, tags=None, sample_rate=settings.SENTRY_METRICS_SAM
         timing(key, time.monotonic() - start, instance, current_tags, sample_rate)
 
 
-def wraps(key, instance=None, tags=None):
-    def wrapper(f):
+def wraps(
+    key: str, instance: Optional[str] = None, tags: Optional[Tags] = None
+) -> Callable[[F], F]:
+    def wrapper(f: F) -> F:
         @functools.wraps(f)
-        def inner(*args, **kwargs):
+        def inner(*args: Any, **kwargs: Any) -> Any:
             with timer(key, instance=instance, tags=tags):
                 return f(*args, **kwargs)
 
-        return inner
+        return inner  # type: ignore
 
     return wrapper
