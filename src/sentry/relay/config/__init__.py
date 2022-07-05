@@ -23,6 +23,7 @@ from sentry.relay.config.metric_extraction import get_metric_conditional_tagging
 from sentry.relay.utils import to_camel_case_name
 from sentry.utils import metrics
 from sentry.utils.http import get_origins
+from sentry.utils.options import sample_modulo
 
 #: These features will be listed in the project config
 EXPOSABLE_FEATURES = ["organizations:profiling", "organizations:session-replay"]
@@ -428,8 +429,9 @@ class TransactionMetricsSettings(TypedDict):
 
 
 def _should_extract_transaction_metrics(project: Project) -> bool:
-    return features.has(
-        "organizations:transaction-metrics-extraction", project.organization
+    return (
+        sample_modulo("relay.transaction-metrics-org-sample-rate", project.organization_id)
+        or features.has("organizations:transaction-metrics-extraction", project.organization)
     ) and not killswitches.killswitch_matches_context(
         "relay.drop-transaction-metrics", {"project_id": project.id}
     )
