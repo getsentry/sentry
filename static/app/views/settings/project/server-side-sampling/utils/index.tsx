@@ -1,5 +1,5 @@
 import {t} from 'sentry/locale';
-import {SamplingInnerName} from 'sentry/types/sampling';
+import {SamplingInnerName, SamplingRule, SamplingRuleType} from 'sentry/types/sampling';
 
 // TODO: Update this link as soon as we have one for sampling
 export const SERVER_SIDE_SAMPLING_DOC_LINK =
@@ -23,3 +23,11 @@ export function getInnerNameLabel(name: SamplingInnerName | string) {
 }
 
 export const quantityField = 'sum(quantity)';
+
+export function isBaseRule(rule?: SamplingRule) {
+  if (!rule) {
+    return false;
+  }
+
+  return rule.type === SamplingRuleType.TRACE && rule.condition.inner.length === 0;
+}

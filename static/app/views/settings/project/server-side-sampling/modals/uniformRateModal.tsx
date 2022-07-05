@@ -13,12 +13,12 @@ import {IconRefresh} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project, SeriesApi} from 'sentry/types';
-import {SamplingRules, SamplingRuleType} from 'sentry/types/sampling';
+import {SamplingRules} from 'sentry/types/sampling';
 import {defined} from 'sentry/utils';
 import {formatPercentage} from 'sentry/utils/formatters';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
-import {SERVER_SIDE_SAMPLING_DOC_LINK} from '../utils';
+import {isBaseRule, SERVER_SIDE_SAMPLING_DOC_LINK} from '../utils';
 import {projectStatsToPredictedSeries} from '../utils/projectStatsToPredictedSeries';
 import {projectStatsToSampleRates} from '../utils/projectStatsToSampleRates';
 import {projectStatsToSeries} from '../utils/projectStatsToSeries';
@@ -60,9 +60,7 @@ function UniformRateModal({
   // TODO(sampling): fetch from API
   const affectedProjects = ['ProjectA', 'ProjectB', 'ProjectC'];
 
-  const baseSampleRate = rules.find(
-    rule => rule.type === SamplingRuleType.TRACE && rule.condition.inner.length === 0
-  )?.sampleRate;
+  const baseSampleRate = rules.find(isBaseRule)?.sampleRate;
 
   const {trueSampleRate, maxSafeSampleRate} = projectStatsToSampleRates(projectStats);
 

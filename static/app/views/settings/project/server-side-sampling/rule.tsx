@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useState} from 'react';
+import {Fragment} from 'react';
 import {DraggableSyntheticListeners, UseDraggableArguments} from '@dnd-kit/core';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -14,7 +14,7 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {SamplingRule, SamplingRuleOperator} from 'sentry/types/sampling';
 
-import {getInnerNameLabel} from './utils';
+import {getInnerNameLabel, isBaseRule} from './utils';
 
 type Props = {
   dragging: boolean;
@@ -34,13 +34,8 @@ type Props = {
   grabAttributes?: UseDraggableArguments['attributes'];
 };
 
-type State = {
-  isMenuActionsOpen: boolean;
-};
-
 export function Rule({
   dragging,
-  sorting,
   rule,
   noPermission,
   onEditRule,
@@ -51,13 +46,8 @@ export function Rule({
   grabAttributes,
   hideGrabButton,
 }: Props) {
-  const [state, setState] = useState<State>({isMenuActionsOpen: false});
-
-  useEffect(() => {
-    if ((dragging || sorting) && state.isMenuActionsOpen) {
-      setState({isMenuActionsOpen: false});
-    }
-  }, [dragging, sorting, state.isMenuActionsOpen]);
+  const isBase = isBaseRule(rule);
+  const canDelete = !noPermission && !isBase;
 
   return (
     <Fragment>
@@ -133,16 +123,8 @@ export function Rule({
         <EllipisDropDownButton
           caret={false}
           customTitle={
-            <Button
-              aria-label={t('Actions')}
-              icon={<IconEllipsis />}
-              size="small"
-              onClick={() => {
-                setState({isMenuActionsOpen: !state.isMenuActionsOpen});
-              }}
-            />
+            <Button aria-label={t('Actions')} icon={<IconEllipsis />} size="small" />
           }
-          isOpen={state.isMenuActionsOpen}
           anchorRight
         >
           <MenuItemActionLink
@@ -171,13 +153,17 @@ export function Rule({
             message={t('Are you sure you wish to delete this sampling rule?')}
             icon={<IconDownload size="xs" />}
             title={t('Delete')}
-            disabled={noPermission}
+            disabled={!canDelete}
             priority="danger"
             shouldConfirm
           >
             <Tooltip
-              disabled={!noPermission}
-              title={t('You do not have permission to delete sampling rules.')}
+              disabled={canDelete}
+              title={
+                isBase
+                  ? t("You can't delete the base rule.")
+                  : t('You do not have permission to delete sampling rules.')
+              }
               containerDisplayMode="block"
             >
               {t('Delete')}
