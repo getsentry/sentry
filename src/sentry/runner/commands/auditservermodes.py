@@ -40,7 +40,7 @@ def create_model_table():
         if model_class._meta.app_label != "sentry":
             continue
         limit = getattr(model_class._meta, "_ModelAvailableOn__mode_limit", None)
-        key = (limit.modes, limit.read_only) if limit else (frozenset(), frozenset())
+        key = (limit.modes, limit.read_only) if limit else None
         table[key].append(model_class)
     return table
 
@@ -61,7 +61,7 @@ def create_view_table():
     table = defaultdict(list)
     for view_class in get_view_classes():
         limit = getattr(view_class, "__mode_limit", None)
-        key = limit.modes if limit else frozenset()
+        key = limit.modes if limit else None
         table[key].append(view_class)
 
     return table
@@ -87,6 +87,8 @@ class ConsolePresentation(abc.ABC):
 
     @staticmethod
     def format_mode_set(modes):
+        if modes is None:
+            return None
         return sorted(str(x) for x in modes)
 
     @staticmethod
@@ -139,6 +141,8 @@ class ModelPresentation(ConsolePresentation):
 
     def order(self, group):
         group_key, _model_group = group
+        if group_key is None:
+            return ()
         write_modes, read_modes = group_key
         return (
             len(write_modes),
@@ -148,6 +152,8 @@ class ModelPresentation(ConsolePresentation):
         )
 
     def get_key_repr(self, key):
+        if key is None:
+            return None
         write_modes, read_modes = key
         return {
             "write_modes": self.format_mode_set(write_modes),
@@ -155,14 +161,15 @@ class ModelPresentation(ConsolePresentation):
         }
 
     def get_group_label(self, key):
-        write_modes, read_modes = key
-        if write_modes:
-            if read_modes:
-                return f"{self.format_mode_set(write_modes)}, read_only={self.format_mode_set(read_modes)}"
-            else:
-                return self.format_mode_set(write_modes)
-        else:
+        if key is None:
             return "No decorator"
+        write_modes, read_modes = key
+        if read_modes:
+            return (
+                f"{self.format_mode_set(write_modes)}, read_only={self.format_mode_set(read_modes)}"
+            )
+        else:
+            return self.format_mode_set(write_modes)
 
 
 class ViewPresentation(ConsolePresentation):
@@ -172,7 +179,7 @@ class ViewPresentation(ConsolePresentation):
 
     def order(self, group):
         mode_set, _view_group = group
-        return len(mode_set), self.format_mode_set(mode_set)
+        return len(mode_set or ()), self.format_mode_set(mode_set)
 
     def get_group_label(self, key):
         return self.format_mode_set(key) if key else "No decorator"
