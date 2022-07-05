@@ -18,9 +18,16 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import {SERVER_SIDE_SAMPLING_DOC_LINK} from '../utils';
 
+import {RecommendedStepsModal} from './recommendedStepsModal';
+
 enum Strategy {
   CURRENT = 'current',
   RECOMMENDED = 'recommended',
+}
+
+enum Step {
+  SET_UNIFORM_SAMPLE_RATE = 'set_uniform_sample_rate',
+  RECOMMENDED_STEPS = 'recommended_steps',
 }
 
 type Props = ModalRenderProps & {
@@ -28,9 +35,17 @@ type Props = ModalRenderProps & {
   project?: Project;
 };
 
-function UniformRateModal({Header, Body, Footer, closeModal}: Props) {
+function UniformRateModal({
+  Header,
+  Body,
+  Footer,
+  closeModal,
+  organization,
+  ...props
+}: Props) {
   // TODO(sampling): fetch from API
   const affectedProjects = ['ProjectA', 'ProjectB', 'ProjectC'];
+  const [activeStep, setActiveStep] = useState<Step>(Step.SET_UNIFORM_SAMPLE_RATE);
 
   // TODO(sampling): calculate dynamically
   const currentClientSampling = 10;
@@ -44,6 +59,21 @@ function UniformRateModal({Header, Body, Footer, closeModal}: Props) {
 
   const isEdited =
     client !== recommendedClientSampling || server !== recommendedServerSampling;
+
+  if (activeStep === Step.RECOMMENDED_STEPS) {
+    return (
+      <RecommendedStepsModal
+        {...props}
+        Header={Header}
+        Body={Body}
+        Footer={Footer}
+        closeModal={closeModal}
+        organization={organization}
+        onGoBack={() => setActiveStep(Step.SET_UNIFORM_SAMPLE_RATE)}
+        onSubmit={() => {}}
+      />
+    );
+  }
 
   return (
     <Fragment>
@@ -161,7 +191,12 @@ function UniformRateModal({Header, Body, Footer, closeModal}: Props) {
           <ButtonBar gap={1}>
             <Stepper>{t('Step 1 of 2')}</Stepper>
             <Button onClick={closeModal}>{t('Cancel')}</Button>
-            <Button priority="primary">{t('Next')}</Button>
+            <Button
+              priority="primary"
+              onClick={() => setActiveStep(Step.RECOMMENDED_STEPS)}
+            >
+              {t('Next')}
+            </Button>
           </ButtonBar>
         </FooterActions>
       </Footer>

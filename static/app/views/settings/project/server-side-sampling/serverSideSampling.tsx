@@ -3,8 +3,10 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
+import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import IdBadge from 'sentry/components/idBadge';
 import {Panel, PanelFooter, PanelHeader} from 'sentry/components/panels';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconAdd} from 'sentry/icons';
@@ -43,14 +45,22 @@ export function ServerSideSampling({project}: Props) {
   const hasAccess = organization.access.includes('project:write');
   const dynamicSamplingRules = project.dynamicSampling?.rules ?? [];
 
-  const [_rules, _setRules] = useState<SamplingRules>(dynamicSamplingRules);
-  const rules = [];
+  const [rules, _setRules] = useState<SamplingRules>(dynamicSamplingRules);
+
+  // TODO(sampling): fetch from API
+  const recommendUpdateSdkForProjects = ['ProjectA', 'ProjectB', 'ProjectC'];
 
   function handleActivateToggle(rule: SamplingRule) {
     openModal(modalProps => <ActivateModal {...modalProps} rule={rule} />);
   }
 
   function handleGetStarted() {
+    openModal(modalProps => (
+      <UniformRateModal {...modalProps} organization={organization} project={project} />
+    ));
+  }
+
+  function handleOpenRecommendedSteps() {
     openModal(modalProps => (
       <RecommendedStepsModal
         {...modalProps}
@@ -83,6 +93,30 @@ export function ServerSideSampling({project}: Props) {
             'These settings can only be edited by users with the organization owner, manager, or admin role.'
           )}
         />
+        {!!recommendUpdateSdkForProjects.length && (
+          <Alert
+            type="info"
+            showIcon
+            trailingItems={
+              <Button onClick={handleOpenRecommendedSteps} priority="link" borderless>
+                {t('Learn More')}
+              </Button>
+            }
+          >
+            {t(
+              'To keep a consistent amount of transactions across your applications multiple services, we recommend you update the SDK versions for the following projects:'
+            )}
+            {recommendUpdateSdkForProjects.map(recommendUpdateSdkForProject => (
+              <IdBadge
+                key={recommendUpdateSdkForProject}
+                project={project}
+                avatarSize={16}
+                displayName={project.slug}
+                avatarProps={{consistentWidth: true}}
+              />
+            ))}
+          </Alert>
+        )}
         <RulesPanel>
           <RulesPanelHeader lightText>
             <RulesPanelLayout>

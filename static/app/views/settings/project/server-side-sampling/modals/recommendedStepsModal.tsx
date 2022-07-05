@@ -32,6 +32,8 @@ import {FooterActions, Stepper} from './uniformRateModal';
 
 type Props = ModalRenderProps & {
   organization: Organization;
+  onGoBack?: () => void;
+  onSubmit?: () => void;
   project?: Project;
   sdkUpdates?: ProjectSdkUpdates[] | null;
 };
@@ -58,6 +60,8 @@ function RecommendedStepsModalContainer({
   closeModal,
   sdkUpdates,
   organization,
+  onGoBack,
+  onSubmit,
 }: Props) {
   // const {projects} = useProjects({
   //   slugs: sdkUpdates.map(sdkUpdate => sdkUpdate.project),
@@ -168,11 +172,17 @@ function RecommendedStepsModalContainer({
           <Button href={SERVER_SIDE_SAMPLING_DOC_LINK} external>
             {t('Read Docs')}
           </Button>
-
           <ButtonBar gap={1}>
-            <Stepper>{t('Step 2 of 2')}</Stepper>
-            <Button onClick={closeModal}>{t('Cancel')}</Button>
-            <Button priority="primary">{t('Done')}</Button>
+            {onGoBack && (
+              <Fragment>
+                <Stepper>{t('Step 2 of 2')}</Stepper>
+                <Button onClick={onGoBack}>{t('Back')}</Button>
+              </Fragment>
+            )}
+            {!onGoBack && <Button onClick={closeModal}>{t('Cancel')}</Button>}
+            <Button priority="primary" onClick={onSubmit}>
+              {t('Done')}
+            </Button>
           </ButtonBar>
         </FooterActions>
       </Footer>
