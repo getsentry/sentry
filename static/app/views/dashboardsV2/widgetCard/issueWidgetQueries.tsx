@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useState} from 'react';
+import {useEffect, useState} from 'react';
 
 import {Client, ResponseMeta} from 'sentry/api';
 import MemberListStore from 'sentry/stores/memberListStore';
@@ -46,12 +46,9 @@ function IssueWidgetQueries({
 
   const config = IssuesConfig;
 
-  const afterFetchTableData = useCallback(
-    (_rawResult: Group[], response?: ResponseMeta) => {
-      return {totalIssuesCount: response?.getResponseHeader('X-Hits') ?? undefined};
-    },
-    []
-  );
+  const afterFetchTableData = (_rawResult: Group[], response?: ResponseMeta) => {
+    return {totalIssuesCount: response?.getResponseHeader('X-Hits') ?? undefined};
+  };
 
   return getDynamicText({
     value: (

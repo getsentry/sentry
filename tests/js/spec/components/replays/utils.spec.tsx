@@ -276,7 +276,7 @@ describe('flattenSpans', () => {
     });
 
     it('returns 0:00 if timestamp is malformed', () => {
-      expect(showPlayerTime('20223:04:27.576000Z', 1652309918.676)).toEqual('0:00');
+      expect(showPlayerTime('20223:04:27.576000Z', 1652309918.676)).toEqual('00:00');
     });
   });
 
