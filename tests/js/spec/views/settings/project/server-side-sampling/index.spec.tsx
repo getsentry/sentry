@@ -7,12 +7,16 @@ import {RouteContext} from 'sentry/views/routeContext';
 import ServerSideSampling from 'sentry/views/settings/project/server-side-sampling';
 import {SERVER_SIDE_SAMPLING_DOC_LINK} from 'sentry/views/settings/project/server-side-sampling/utils';
 
-function getMockData(project?: Project) {
+export function getMockData({
+  project,
+  access,
+}: {access?: string[]; project?: Project} = {}) {
   return initializeOrg({
     ...initializeOrg(),
     organization: {
       ...initializeOrg().organization,
       features: ['server-side-sampling'],
+      access: access ?? initializeOrg().organization.access,
     },
     projects: [project],
   });
@@ -69,13 +73,14 @@ describe('Server-side Sampling', function () {
   });
 
   it('renders rules panel', function () {
-    const {router, organization, project} = getMockData(
-      TestStubs.Project({
+    const {router, organization, project} = getMockData({
+      project: TestStubs.Project({
         dynamicSampling: {
           rules: [
             {
               sampleRate: 0.2,
               type: 'trace',
+              active: false,
               condition: {
                 op: 'and',
                 inner: [
@@ -86,13 +91,13 @@ describe('Server-side Sampling', function () {
                   },
                 ],
               },
-              id: 40,
+              id: 1,
             },
           ],
-          next_id: 41,
+          next_id: 2,
         },
-      })
-    );
+      }),
+    });
 
     const {container} = render(
       <RouteContext.Provider

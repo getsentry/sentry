@@ -28,6 +28,7 @@ describe('Server-side Sampling - Activate Modal', function () {
             {
               sampleRate: 0.2,
               type: 'trace',
+              active: false,
               condition: {
                 op: 'and',
                 inner: [
@@ -38,10 +39,10 @@ describe('Server-side Sampling - Activate Modal', function () {
                   },
                 ],
               },
-              id: 40,
+              id: 1,
             },
           ],
-          next_id: 41,
+          next_id: 2,
         },
       }),
     ],

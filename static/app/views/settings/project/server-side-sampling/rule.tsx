@@ -12,9 +12,9 @@ import {IconDownload, IconEllipsis} from 'sentry/icons';
 import {IconGrabbable} from 'sentry/icons/iconGrabbable';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {LegacyBrowser, SamplingRule, SamplingRuleOperator} from 'sentry/types/sampling';
+import {SamplingRule, SamplingRuleOperator} from 'sentry/types/sampling';
 
-import {getInnerNameLabel, LEGACY_BROWSER_LIST} from './utils';
+import {getInnerNameLabel} from './utils';
 
 type Props = {
   dragging: boolean;
@@ -103,21 +103,16 @@ export function Rule({
                   <div>
                     {[...condition.value].map((conditionValue, conditionValueIndex) => (
                       <Fragment key={conditionValue}>
-                        <ConditionValue>
-                          {LEGACY_BROWSER_LIST[conditionValue]?.title ?? conditionValue}
-                        </ConditionValue>
+                        <ConditionValue>{conditionValue}</ConditionValue>
                         {conditionValueIndex !==
-                          (condition.value as LegacyBrowser[]).length - 1 && (
+                          (condition.value as string[]).length - 1 && (
                           <ConditionSeparator>{'\u002C'}</ConditionSeparator>
                         )}
                       </Fragment>
                     ))}
                   </div>
                 ) : (
-                  <ConditionValue>
-                    {LEGACY_BROWSER_LIST[String(condition.value)]?.title ??
-                      String(condition.value)}
-                  </ConditionValue>
+                  <ConditionValue>{String(condition.value)}</ConditionValue>
                 )}
               </Fragment>
             ))}
