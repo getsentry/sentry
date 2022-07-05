@@ -1,4 +1,4 @@
-import {TokenResult} from '../searchSyntax/parser';
+import {Token, TokenResult} from '../searchSyntax/parser';
 
 export enum ItemType {
   DEFAULT = 'default',
@@ -51,7 +51,7 @@ export enum ShortcutType {
 
 export type Shortcut = {
   canRunShortcut: (
-    token: TokenResult<any> | null | undefined,
+    token: TokenResult<Token> | null | undefined,
     filterTokenCount: number
   ) => boolean;
   icon: React.ReactNode;
@@ -59,6 +59,6 @@ export type Shortcut = {
   text: string;
   hotkeys?: {
     actual: string[] | string;
-    display: string[] | string;
+    display?: string[] | string;
   };
 };
