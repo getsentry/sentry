@@ -11,9 +11,11 @@ import {
   SUDO_REQUIRED,
   SUPERUSER_REQUIRED,
 } from 'sentry/constants/apiErrorCodes';
+import {OrganizationSummary} from 'sentry/types';
 import {metric} from 'sentry/utils/analytics';
 import getCsrfToken from 'sentry/utils/getCsrfToken';
 import {uniqueId} from 'sentry/utils/guid';
+import replaceRouterParams from 'sentry/utils/replaceRouterParams';
 import createRequestError from 'sentry/utils/requestError/createRequestError';
 
 export class Request {
@@ -582,4 +584,61 @@ export class Client {
       })
     );
   }
+}
+
+function generateOrganizationBaseUrl(organizationUrl: string) {
+  return `${organizationUrl}${DEFAULT_BASE_URL}`;
+}
+
+type APIRouteType = 'organization-events';
+
+type LegacyRoute = string;
+type CustomerDomainRoute = string;
+type RouteTuple = [LegacyRoute, CustomerDomainRoute];
+
+const routeRenderMap: Record<APIRouteType, RouteTuple> = {
+  'organization-events': ['/organizations/:slug/events/', '/events/'],
+};
+
+function canUseOrganizationUrl(organizationUrl: string | undefined) {
+  if (!organizationUrl) {
+    return false;
+  }
+  const currentURL = new URL('/', window.location.origin);
+  const organizationUrlParsed = new URL('/', organizationUrl);
+  return (
+    currentURL.hostname.toLowerCase() === organizationUrlParsed.hostname.toLowerCase()
+  );
+}
+
+export function resolveUrl(
+  routeType: APIRouteType,
+  organization: OrganizationSummary,
+  routeParams: {[key: string]: string | undefined} = {}
+) {
+  const [legacyRoute, customerDomainRoute] = routeRenderMap[routeType];
+  const {organizationUrl} = organization;
+
+  const useOrganizationUrl = canUseOrganizationUrl(organizationUrl);
+  const shouldUseLegacyRoute = !organizationUrl || !useOrganizationUrl;
+
+  const route = shouldUseLegacyRoute ? legacyRoute : customerDomainRoute;
+
+  const renderedRoute = replaceRouterParams(route, {
+    slug: organization.slug,
+    ...routeParams,
+  });
+
+  const result = shouldUseLegacyRoute
+    ? renderedRoute
+    : `${generateOrganizationBaseUrl(organizationUrl)}/${renderedRoute}`;
+
+  const currentTransaction = Sentry.getCurrentHub().getScope()?.getTransaction();
+  if (currentTransaction && currentTransaction.tags.hasOrganizationUrl !== String(true)) {
+    const hasOrganizationUrl =
+      organizationUrl !== undefined ? result.includes(organizationUrl) : false;
+    currentTransaction.setTag('hasOrganizationUrl', String(hasOrganizationUrl));
+  }
+
+  return result;
 }
