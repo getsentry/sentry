@@ -491,6 +491,7 @@ class EventManager:
             job["is_new_group_environment"] = False
 
         _get_or_create_release_associated_models(jobs, projects)
+        _associate_commits_to_release(jobs, projects)
 
         if job["release"] and job["group"]:
             job["grouprelease"] = GroupRelease.get_or_create(
@@ -827,6 +828,10 @@ def _get_or_create_release_associated_models(jobs, projects):
         ReleaseProjectEnvironment.get_or_create(
             project=project, release=release, environment=environment, datetime=date
         )
+
+
+def _associate_commits_to_release(jobs, projects):
+    pass
 
 
 @metrics.wraps("save_event.tsdb_record_all_metrics")
