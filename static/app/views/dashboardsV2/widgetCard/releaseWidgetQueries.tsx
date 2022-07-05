@@ -165,7 +165,7 @@ class ReleaseWidgetQueries extends Component<Props, State> {
   private _isMounted: boolean = false;
 
   fetchReleases = async () => {
-    this.setState({loading: true});
+    this.setState({loading: true, errorMessage: undefined});
     const {selection, api, organization} = this.props;
     const {environments, projects} = selection;
 
@@ -187,9 +187,15 @@ class ReleaseWidgetQueries extends Component<Props, State> {
       }
       this.setState({releases, loading: false});
     } catch (error) {
-      addErrorMessage(
-        error.responseJSON ? error.responseJSON.error : t('Error sorting by releases')
-      );
+      if (!this._isMounted) {
+        return;
+      }
+
+      const message = error.responseJSON
+        ? error.responseJSON.error
+        : t('Error sorting by releases');
+      this.setState({errorMessage: message, loading: false});
+      addErrorMessage(message);
     }
   };
 
