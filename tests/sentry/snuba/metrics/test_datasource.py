@@ -24,7 +24,7 @@ class DataSourceTestCase(TestCase, SessionMetricsTestCase):
             {
                 "query": [
                     "release:staging"
-                ],  # weird release but we need a string exising in mock indexer
+                ],  # weird release but we need a string existing in mock indexer
                 "groupBy": ["environment", "release"],
                 "field": [
                     "sum(sentry.sessions.session)",

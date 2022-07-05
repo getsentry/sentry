@@ -86,19 +86,12 @@ class RelayProjectConfigsEndpoint(Endpoint):
             # considering them v3.
             use_v3 = False
             reason = "fullConfig"
-            version = "2"  # Downgrade to 2 for reporting metrics
         elif no_cache:
             use_v3 = False
             reason = "noCache"
-            version = "2"  # Downgrade to 2 for reporting metrics
 
         set_tag("relay_use_v3", use_v3)
         set_tag("relay_use_v3_rejected", reason)
-        metrics.incr(
-            "api.endpoints.relay.project_configs.post",
-            tags={"version": version, "reason": reason},
-            sample_rate=1,
-        )
 
         return use_v3
 
@@ -114,10 +107,8 @@ class RelayProjectConfigsEndpoint(Endpoint):
             else:
                 proj_configs[key] = computed
 
-        metrics.incr("relay.project_configs.post_v3.pending", amount=len(pending), sample_rate=1)
-        metrics.incr(
-            "relay.project_configs.post_v3.fetched", amount=len(proj_configs), sample_rate=1
-        )
+        metrics.incr("relay.project_configs.post_v3.pending", amount=len(pending))
+        metrics.incr("relay.project_configs.post_v3.fetched", amount=len(proj_configs))
         res = {"configs": proj_configs, "pending": pending}
 
         return Response(res, status=200)

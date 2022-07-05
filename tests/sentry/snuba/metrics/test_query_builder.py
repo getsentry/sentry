@@ -546,7 +546,7 @@ def test_build_snuba_query_orderby(mock_now, mock_now2, monkeypatch):
         {
             "query": [
                 "release:staging"
-            ],  # weird release but we need a string exising in mock indexer
+            ],  # weird release but we need a string existing in mock indexer
             "groupBy": ["environment"],
             "field": [
                 "sum(sentry.sessions.session)",

@@ -1743,15 +1743,6 @@ SENTRY_DEFAULT_OPTIONS = {}
 # unless you have altered all schemas first
 SENTRY_USE_BIG_INTS = False
 
-# Encryption schemes available to Sentry. You should *never* remove from this
-# list until the key is no longer used in the database. The first listed
-# implementation is considered the default and will be used to encrypt all
-# values (as well as re-encrypt data when it's re-saved).
-SENTRY_ENCRYPTION_SCHEMES = (
-    # identifier: implementation
-    # ('0', Fernet(b'super secret key probably from Fernet.generate_key()')),
-)
-
 # Delay (in ms) to induce on API responses
 #
 # Simulates a small amount of lag which helps uncover more obvious race
