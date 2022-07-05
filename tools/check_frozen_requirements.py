@@ -51,10 +51,19 @@ def main(argv: Sequence[str] | None = None) -> int:
             sys.stdout.writelines(diff)
 
         if rc != 0:
+            if repo == "getsentry":
+                print(  # noqa
+                    """
+Requirement lockfiles are mismatched. To regenerate them,
+run `bin/bump-sentry (your desired sentry sha)`.
+    """
+                )
+                return rc
+
             print(  # noqa
                 """
 Requirement lockfiles are mismatched. To regenerate them,
-use `make freeze-requirements`.
+run `make freeze-requirements`.
 """
             )
             return rc
