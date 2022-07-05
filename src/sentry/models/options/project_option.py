@@ -6,7 +6,7 @@ from django.db import models, transaction
 
 from sentry import projectoptions
 from sentry.db.models import FlexibleForeignKey, Model, sane_repr
-from sentry.db.models.fields import EncryptedPickledObjectField
+from sentry.db.models.fields import PickledObjectField
 from sentry.db.models.manager import OptionManager, ValidateFunction, Value
 from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.utils.cache import cache
@@ -109,7 +109,7 @@ class ProjectOption(Model):  # type: ignore
 
     project = FlexibleForeignKey("sentry.Project")
     key = models.CharField(max_length=64)
-    value = EncryptedPickledObjectField()
+    value = PickledObjectField()
 
     objects = ProjectOptionManager()
 
