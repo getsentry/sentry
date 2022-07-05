@@ -1,29 +1,29 @@
-import React from 'react';
+import {MouseEvent} from 'react';
 import styled from '@emotion/styled';
 
 import NavTabs from 'sentry/components/navTabs';
-import {t} from 'sentry/locale';
-import useActiveTabFromLocation from 'sentry/utils/replays/hooks/useActiveTabFromLocation';
+import useActiveReplayTab, {
+  ReplayTabs,
+} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 
 type Props = {};
 
-const TABS = [
-  t('Console'),
-  t('Network'),
-  t('Network 2'),
-  t('Trace'),
-  t('Issues'),
-  t('Tags'),
-  t('Memory'),
-];
-
 function FocusTabs({}: Props) {
-  const active = useActiveTabFromLocation();
+  const {getActiveTab, setActiveTab} = useActiveReplayTab();
+  const activeTab = getActiveTab();
   return (
     <NavTabs underlined>
-      {TABS.map(tab => (
-        <Tab key={tab} className={active === tab.toLowerCase() ? 'active' : ''}>
-          <a href={`#${tab.toLowerCase()}`}>{tab}</a>
+      {Object.entries(ReplayTabs).map(([tab, label]) => (
+        <Tab key={tab} className={activeTab === tab ? 'active' : ''}>
+          <a
+            href={`#${tab}`}
+            onClick={(e: MouseEvent) => {
+              setActiveTab(tab);
+              e.preventDefault();
+            }}
+          >
+            {label}
+          </a>
         </Tab>
       ))}
     </NavTabs>

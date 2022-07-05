@@ -9,7 +9,7 @@ import type {RawCrumb} from 'sentry/types/breadcrumbs';
 import {isBreadcrumbTypeDefault} from 'sentry/types/breadcrumbs';
 import type {EventTransaction} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
-import useActiveTabFromLocation from 'sentry/utils/replays/hooks/useActiveTabFromLocation';
+import useActiveReplayTab from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import Console from './console';
@@ -27,7 +27,7 @@ function getBreadcrumbsByCategory(breadcrumbs: RawCrumb[], categories: string[])
 }
 
 function FocusArea({}: Props) {
-  const active = useActiveTabFromLocation();
+  const {getActiveTab} = useActiveReplayTab();
   const {currentTime, currentHoverTime, replay, setCurrentTime, setCurrentHoverTime} =
     useReplayContext();
   const organization = useOrganization();
@@ -48,7 +48,7 @@ function FocusArea({}: Props) {
     return replay.getRawSpans().filter(replay.isNotMemorySpan);
   };
 
-  switch (active) {
+  switch (getActiveTab()) {
     case 'console':
       const consoleMessages = getBreadcrumbsByCategory(replay?.getRawCrumbs(), [
         'console',
@@ -89,7 +89,7 @@ function FocusArea({}: Props) {
 
       return <Spans organization={organization} event={performanceEvents} />;
     }
-    case 'network 2':
+    case 'network_table':
       return <NetworkList event={event} networkSpans={getNetworkSpans()} />;
     case 'trace':
       return <Trace organization={organization} event={event} />;
