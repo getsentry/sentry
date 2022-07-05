@@ -9,7 +9,7 @@ from sentry.relay.projectconfig_cache.redis import RedisProjectConfigCache
 from sentry.relay.projectconfig_debounce_cache.redis import RedisProjectConfigDebounceCache
 from sentry.tasks.relay import (
     build_project_config,
-    invalidate_all,
+    invalidate_all_project_configs,
     invalidate_project_config,
     schedule_build_project_config,
     schedule_invalidate_project_config,
@@ -423,7 +423,7 @@ def test_invalidate_all(default_project, default_projectkey, redis_cache, task_r
     redis_cache.set_many({default_projectkey.public_key: "dummy"})
 
     with task_runner():
-        invalidate_all.delay()
+        invalidate_all_project_configs.delay()
 
     cache = redis_cache.get(default_projectkey)
     assert cache["disabled"] is False

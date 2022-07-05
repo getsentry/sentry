@@ -314,13 +314,13 @@ def schedule_invalidate_project_config(
 
 
 @instrumented_task(
-    name="sentry.tasks.relay.invalidate_all",
+    name="sentry.tasks.relay.invalidate_all_project_configs",
     queue="relay_config_bulk",
     acks_late=True,
     soft_time_limit=25 * 60,  # 25mins
     time_limit=25 * 60 + 5,
 )
-def invalidate_all(**kwargs):
+def invalidate_all_project_configs(**kwargs):
     """Invalidates all the currently cached active projects.
 
     This works by scheduling an invalidation for each organisation, this likely backlogs the

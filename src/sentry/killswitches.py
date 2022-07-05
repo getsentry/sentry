@@ -28,6 +28,7 @@ def _update_project_configs(
     """Callback for the relay.drop-transaction-metrics kill switch.
     On every change, force a recomputation of the corresponding project configs
     """
+    from sentry.models import Organization
     from sentry.tasks.relay import schedule_invalidate_project_config
 
     old_project_ids = {ctx["project_id"] for ctx in old_option_value}
@@ -37,9 +38,16 @@ def _update_project_configs(
     # or removed
     changed_project_ids = old_project_ids ^ new_project_ids
 
-    with click.progressbar(changed_project_ids) as ids:
-        for project_id in ids:
-            if project_id is not None:
+    if None in changed_project_ids:
+        with click.progressbar(length=Organization.objects.count()) as bar:
+            for org in Organization.objects.all():
+                schedule_invalidate_project_config(
+                    trigger="invalidate-all", organization_id=org.id, countdown=0
+                )
+                bar.update(1)
+    else:
+        with click.progressbar(changed_project_ids) as ids:
+            for project_id in ids:
                 schedule_invalidate_project_config(
                     project_id=project_id, trigger="killswitches.relay.drop-transaction-metrics"
                 )
