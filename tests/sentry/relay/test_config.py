@@ -175,12 +175,30 @@ def test_project_config_with_span_attributes(default_project, insta_snapshot):
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize("feature", ("enabled", "disabled"))
-def test_killswitch(default_project, feature):
-    with Feature(
+@pytest.mark.parametrize("feature_flag", (False, True), ids=("feature_disabled", "feature_enabled"))
+@pytest.mark.parametrize("org_sample", (0.0, 1.0), ids=("no_orgs", "all_orgs"))
+@pytest.mark.parametrize(
+    "killswitch", (False, True), ids=("killswitch_disabled", "killswitch_enabled")
+)
+def test_has_metric_extraction(default_project, feature_flag, org_sample, killswitch):
+    options = override_options(
         {
-            "organizations:transaction-metrics-extraction": True if feature == "enabled" else False,
+            "relay.drop-transaction-metrics": [{"project_id": default_project.id}]
+            if killswitch
+            else [],
+            "relay.transaction-metrics-org-sample-rate": org_sample,
         }
-    ), override_options({"relay.drop-transaction-metrics": [{"project_id": default_project.id}]}):
+    )
+    feature = Feature(
+        {
+            "organizations:transaction-metrics-extraction": feature_flag,
+        }
+    )
+    with feature, options:
         config = get_project_config(default_project)
-        assert "transactionMetrics" not in config.to_dict()["config"]
+        if killswitch or (org_sample == 0.0 and not feature_flag):
+            assert "transactionMetrics" not in config.to_dict()["config"]
+        else:
+            config = config.to_dict()["config"]["transactionMetrics"]
+            assert config["extractMetrics"]
+            assert config["customMeasurements"]["limit"] > 0
