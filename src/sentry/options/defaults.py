@@ -25,8 +25,10 @@ register("system.secret-key", flags=FLAG_NOSTORE)
 # Absolute URL to the sentry root directory. Should not include a trailing slash.
 register("system.url-prefix", ttl=60, grace=3600, flags=FLAG_REQUIRED | FLAG_PRIORITIZE_DISK)
 register("system.internal-url-prefix", flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
-register("system.base-hostname", flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
-register("system.customer-base-hostname", flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
+register("system.base-hostname", flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_NOSTORE)
+register(
+    "system.customer-base-hostname", flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_NOSTORE
+)
 register("system.root-api-key", flags=FLAG_PRIORITIZE_DISK)
 register("system.logging-format", default=LoggingFormat.HUMAN, flags=FLAG_NOSTORE)
 # This is used for the chunk upload endpoint
@@ -365,6 +367,11 @@ register("relay.static_auth", default={}, flags=FLAG_NOSTORE)
 # Tell Relay to stop extracting metrics from transaction payloads (see killswitches)
 # Example value: [{"project_id": 42}, {"project_id": 123}]
 register("relay.drop-transaction-metrics", default=[])
+
+# Sample rate for opting in orgs into transaction metrics extraction.
+# NOTE: If this value is > 0.0, the extraction feature will be enabled for the
+#       given fraction of orgs even if the corresponding feature flag is disabled.
+register("relay.transaction-metrics-org-sample-rate", default=0.0)
 
 # Write new kafka headers in eventstream
 register("eventstream:kafka-headers", default=False)
