@@ -495,14 +495,18 @@ class DerivedMetricAliasTestCase(TestCase):
                     "equals",
                     [
                         Column("metric_id"),
-                        resolve_weak(org_id, SessionMRI.RAW_DURATION.value),
+                        resolve_weak(
+                            UseCaseKey.RELEASE_HEALTH, org_id, SessionMRI.RAW_DURATION.value
+                        ),
                     ],
                 ),
                 Function(
                     "equals",
                     (
-                        Column(f"tags[{resolve_weak(org_id, 'session.status')}]"),
-                        resolve_weak(org_id, "exited"),
+                        Column(
+                            f"tags[{resolve_weak(UseCaseKey.RELEASE_HEALTH, org_id, 'session.status')}]"
+                        ),
+                        resolve_weak(UseCaseKey.RELEASE_HEALTH, org_id, "exited"),
                     ),
                 ),
             ],

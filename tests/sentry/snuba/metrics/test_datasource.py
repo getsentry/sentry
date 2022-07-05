@@ -32,7 +32,12 @@ class DataSourceTestCase(TestCase, SessionMetricsTestCase):
             }
         )
         query = QueryDefinition([self.project], query_params)
-        data = get_series([self.project], query.to_metrics_query(), include_meta=True)
+        data = get_series(
+            [self.project],
+            query.to_metrics_query(),
+            include_meta=True,
+            use_case_id=UseCaseKey.RELEASE_HEALTH,
+        )
         assert data["meta"] == sorted(
             [
                 {"name": "environment", "type": "string"},
@@ -56,7 +61,12 @@ class DataSourceTestCase(TestCase, SessionMetricsTestCase):
             }
         )
         query = QueryDefinition([self.project], query_params)
-        data = get_series([self.project], query.to_metrics_query(), include_meta=True)
+        data = get_series(
+            [self.project],
+            query.to_metrics_query(),
+            include_meta=True,
+            use_case_id=UseCaseKey.RELEASE_HEALTH,
+        )
         assert data["meta"] == sorted(
             [
                 {"name": "bucketed_time", "type": "DateTime('Universal')"},
@@ -80,7 +90,15 @@ class DataSourceTestCase(TestCase, SessionMetricsTestCase):
             }
         )
         query = QueryDefinition([self.project], query_params)
-        assert get_series([self.project], query.to_metrics_query(), include_meta=True)["meta"] == []
+        assert (
+            get_series(
+                [self.project],
+                query.to_metrics_query(),
+                include_meta=True,
+                use_case_id=UseCaseKey.RELEASE_HEALTH,
+            )["meta"]
+            == []
+        )
 
 
 class GetCustomMeasurementsTest(MetricsEnhancedPerformanceTestCase):
@@ -105,7 +123,6 @@ class GetCustomMeasurementsTest(MetricsEnhancedPerformanceTestCase):
             projects=[self.project],
             organization=self.organization,
             start=self.day_ago,
-            use_case_id=UseCaseKey.RELEASE_HEALTH,
         )
         assert result == [
             {
@@ -147,7 +164,6 @@ class GetCustomMeasurementsTest(MetricsEnhancedPerformanceTestCase):
             projects=[self.project],
             organization=self.organization,
             start=self.day_ago,
-            use_case_id=UseCaseKey.RELEASE_HEALTH,
         )
 
         assert result == [

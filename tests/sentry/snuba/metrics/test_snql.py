@@ -229,7 +229,7 @@ class DerivedMetricSnQLTestCase(TestCase):
                             "equals",
                             [
                                 Column(
-                                    f"tags[{indexer.resolve(self.org_id, TransactionTagsKey.TRANSACTION_SATISFACTION.value, use_case_id=UseCaseKey.RELEASE_HEALTH)}]"
+                                    f"tags[{indexer.resolve(self.org_id, TransactionTagsKey.TRANSACTION_SATISFACTION.value, use_case_id=UseCaseKey.PERFORMANCE)}]"
                                 ),
                                 indexer.resolve(
                                     self.org_id,
@@ -266,12 +266,12 @@ class DerivedMetricSnQLTestCase(TestCase):
                             "equals",
                             [
                                 Column(
-                                    f"tags[{indexer.resolve(self.org_id, TransactionTagsKey.TRANSACTION_SATISFACTION.value, use_case_id=UseCaseKey.RELEASE_HEALTH)}]"
+                                    f"tags[{indexer.resolve(self.org_id, TransactionTagsKey.TRANSACTION_SATISFACTION.value, use_case_id=UseCaseKey.PERFORMANCE)}]"
                                 ),
                                 indexer.resolve(
                                     self.org_id,
                                     TransactionSatisfactionTagValue.SATISFIED.value,
-                                    use_case_id=UseCaseKey.RELEASE_HEALTH,
+                                    use_case_id=UseCaseKey.PERFORMANCE,
                                 ),
                             ],
                         ),
@@ -301,12 +301,12 @@ class DerivedMetricSnQLTestCase(TestCase):
                             "equals",
                             [
                                 Column(
-                                    f"tags[{indexer.resolve(self.org_id, TransactionTagsKey.TRANSACTION_SATISFACTION.value, use_case_id=UseCaseKey.RELEASE_HEALTH)}]"
+                                    f"tags[{indexer.resolve(self.org_id, TransactionTagsKey.TRANSACTION_SATISFACTION.value, use_case_id=UseCaseKey.PERFORMANCE)}]"
                                 ),
                                 indexer.resolve(
                                     self.org_id,
                                     TransactionSatisfactionTagValue.TOLERATED.value,
-                                    use_case_id=UseCaseKey.RELEASE_HEALTH,
+                                    use_case_id=UseCaseKey.PERFORMANCE,
                                 ),
                             ],
                         ),

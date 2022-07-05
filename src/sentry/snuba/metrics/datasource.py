@@ -141,7 +141,9 @@ def get_metrics(projects: Sequence[Project]) -> Sequence[MetricMeta]:
             try:
                 metrics_meta.append(
                     MetricMeta(
-                        name=get_public_name_from_mri(reverse_resolve(row["metric_id"])),
+                        name=get_public_name_from_mri(
+                            reverse_resolve(UseCaseKey.RELEASE_HEALTH, row["metric_id"])
+                        ),
                         type=metric_type,
                         operations=AVAILABLE_OPERATIONS[METRIC_TYPE_TO_ENTITY[metric_type].value],
                         unit=None,  # snuba does not know the unit
@@ -194,7 +196,7 @@ def get_custom_measurements(
             start=start,
             end=end,
         ):
-            mri = reverse_resolve(row["metric_id"], use_case_id=use_case_id)
+            mri = reverse_resolve(use_case_id, row["metric_id"])
             parsed_mri = parse_mri(mri)
             if is_custom_measurement(parsed_mri):
                 metrics_meta.append(
@@ -372,7 +374,10 @@ def _fetch_tags_or_values_per_ids(
     if column.startswith("tags["):
         tag_id = column.split("tags[")[1].split("]")[0]
         tags_or_values = [
-            {"key": reverse_resolve(int(tag_id)), "value": reverse_resolve(value_id)}
+            {
+                "key": reverse_resolve(UseCaseKey.RELEASE_HEALTH, int(tag_id)),
+                "value": reverse_resolve(UseCaseKey.RELEASE_HEALTH, value_id),
+            }
             for value_id in tag_or_value_ids
         ]
         tags_or_values.sort(key=lambda tag: (tag["key"], tag["value"]))
@@ -380,7 +385,8 @@ def _fetch_tags_or_values_per_ids(
         tags_or_values = [
             {"key": reversed_tag}
             for tag_id in tag_or_value_ids
-            if (reversed_tag := reverse_resolve(tag_id)) not in UNALLOWED_TAGS
+            if (reversed_tag := reverse_resolve(UseCaseKey.RELEASE_HEALTH, tag_id))
+            not in UNALLOWED_TAGS
         ]
         tags_or_values.sort(key=itemgetter("key"))
 
@@ -604,7 +610,10 @@ def _prune_extra_groups(results: dict, filters: GroupLimitFilters) -> None:
 
 
 def get_series(
-    projects: Sequence[Project], metrics_query: MetricsQuery, include_meta: bool = False
+    projects: Sequence[Project],
+    metrics_query: MetricsQuery,
+    use_case_id: UseCaseKey,
+    include_meta: bool = False,
 ) -> dict:
     """Get time series for the given query"""
     intervals = list(
@@ -642,7 +651,9 @@ def get_series(
                     orderby_fields.append(select_field)
         metrics_query = replace(metrics_query, select=orderby_fields)
 
-        snuba_queries, _ = SnubaQueryBuilder(projects, metrics_query).get_snuba_queries()
+        snuba_queries, _ = SnubaQueryBuilder(
+            projects, metrics_query, use_case_id
+        ).get_snuba_queries()
         if len(snuba_queries) > 1:
             # Currently accepting an order by field that spans multiple entities is not
             # supported, but it might change in the future. Even then, it might be better
@@ -680,7 +691,7 @@ def get_series(
             # we want to query for all the metrics in the request api call
             metrics_query = replace(metrics_query, select=original_select, orderby=None)
 
-            query_builder = SnubaQueryBuilder(projects, metrics_query)
+            query_builder = SnubaQueryBuilder(projects, metrics_query, use_case_id)
             snuba_queries, fields_in_entities = query_builder.get_snuba_queries()
 
             group_limit_filters = _get_group_limit_filters(
@@ -715,7 +726,7 @@ def get_series(
                     results[entity][key] = {"data": snuba_result_data}
     else:
         snuba_queries, fields_in_entities = SnubaQueryBuilder(
-            projects, metrics_query
+            projects, metrics_query, use_case_id
         ).get_snuba_queries()
         group_limit_filters = None
 
@@ -754,7 +765,12 @@ def get_series(
 
     assert projects
     converter = SnubaResultConverter(
-        projects[0].organization_id, metrics_query, fields_in_entities, intervals, results
+        projects[0].organization_id,
+        metrics_query,
+        fields_in_entities,
+        intervals,
+        results,
+        use_case_id,
     )
 
     # Translate applies only on ["data"]
@@ -773,5 +789,7 @@ def get_series(
         "end": metrics_query.end,
         "intervals": intervals,
         "groups": result_groups,
-        "meta": translate_meta_results(meta, metrics_query_fields) if include_meta else [],
+        "meta": translate_meta_results(meta, metrics_query_fields, use_case_id)
+        if include_meta
+        else [],
     }

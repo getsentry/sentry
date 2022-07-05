@@ -19,6 +19,7 @@ from sentry.api.utils import InvalidParams, get_date_range_from_params
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import Project
 from sentry.search.events.builder import UnresolvedQuery
+from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.utils import (
     STRING_NOT_FOUND,
     resolve_tag_key,
@@ -76,7 +77,11 @@ def parse_field(field: str) -> MetricField:
 FUNCTION_ALLOWLIST = ("and", "or", "equals", "in")
 
 
-def resolve_tags(org_id: int, input_: Any) -> Any:
+def resolve_tags(
+    use_case_id: UseCaseKey,
+    org_id: int,
+    input_: Any,
+) -> Any:
     """Translate tags in snuba condition
 
     Column("metric_id") is not supported.
@@ -84,27 +89,27 @@ def resolve_tags(org_id: int, input_: Any) -> Any:
     if input_ is None:
         return None
     if isinstance(input_, (list, tuple)):
-        elements = [resolve_tags(org_id, item) for item in input_]
+        elements = [resolve_tags(use_case_id, org_id, item) for item in input_]
         # Lists are either arguments to IN or NOT IN. In both cases, we can
         # drop unknown strings:
         return [x for x in elements if x != STRING_NOT_FOUND]
     if isinstance(input_, Function):
         if input_.function == "ifNull":
             # This was wrapped automatically by QueryBuilder, remove wrapper
-            return resolve_tags(org_id, input_.parameters[0])
+            return resolve_tags(use_case_id, org_id, input_.parameters[0])
         elif input_.function == "isNull":
             return Function(
                 "equals",
                 [
-                    resolve_tags(org_id, input_.parameters[0]),
-                    resolve_tags(org_id, ""),
+                    resolve_tags(use_case_id, org_id, input_.parameters[0]),
+                    resolve_tags(use_case_id, org_id, ""),
                 ],
             )
         elif input_.function in FUNCTION_ALLOWLIST:
             return Function(
                 function=input_.function,
                 parameters=input_.parameters
-                and [resolve_tags(org_id, item) for item in input_.parameters],
+                and [resolve_tags(use_case_id, org_id, item) for item in input_.parameters],
             )
     if (
         isinstance(input_, Or)
@@ -116,12 +121,14 @@ def resolve_tags(org_id: int, input_: Any) -> Any:
         and c.rhs == 1
     ):
         # Remove another "null" wrapper. We should really write our own parser instead.
-        return resolve_tags(org_id, input_.conditions[1])
+        return resolve_tags(use_case_id, org_id, input_.conditions[1])
 
     if isinstance(input_, Condition):
         if input_.op == Op.IS_NULL and input_.rhs is None:
             return Condition(
-                lhs=resolve_tags(org_id, input_.lhs), op=Op.EQ, rhs=resolve_tags(org_id, "")
+                lhs=resolve_tags(use_case_id, org_id, input_.lhs),
+                op=Op.EQ,
+                rhs=resolve_tags(use_case_id, org_id, ""),
             )
         if (
             isinstance(input_.lhs, Function)
@@ -143,14 +150,16 @@ def resolve_tags(org_id: int, input_: Any) -> Any:
                 raise InvalidParams(f"Unable to resolve operation {input_.op} for project filter")
 
             rhs_ids = [p.id for p in Project.objects.filter(slug__in=rhs_slugs)]
-            return Condition(lhs=resolve_tags(org_id, input_.lhs), op=op, rhs=rhs_ids)
+            return Condition(lhs=resolve_tags(use_case_id, org_id, input_.lhs), op=op, rhs=rhs_ids)
         return Condition(
-            lhs=resolve_tags(org_id, input_.lhs), op=input_.op, rhs=resolve_tags(org_id, input_.rhs)
+            lhs=resolve_tags(use_case_id, org_id, input_.lhs),
+            op=input_.op,
+            rhs=resolve_tags(use_case_id, org_id, input_.rhs),
         )
 
     if isinstance(input_, BooleanCondition):
         return input_.__class__(
-            conditions=[resolve_tags(org_id, item) for item in input_.conditions]
+            conditions=[resolve_tags(use_case_id, org_id, item) for item in input_.conditions]
         )
     if isinstance(input_, Column):
         if input_.name == "project_id":
@@ -164,9 +173,9 @@ def resolve_tags(org_id: int, input_: Any) -> Any:
             name = input_.key
         else:
             name = input_.name
-        return Column(name=resolve_tag_key(org_id, name))
+        return Column(name=resolve_tag_key(use_case_id, org_id, name))
     if isinstance(input_, str):
-        return resolve_weak(org_id, input_)
+        return resolve_weak(use_case_id, org_id, input_)
     if isinstance(input_, int):
         return input_
 
@@ -309,13 +318,15 @@ def get_date_range(params: Mapping) -> Tuple[datetime, datetime, int]:
     return start, end, interval
 
 
-def parse_tag(tag_string: str) -> str:
+def parse_tag(use_case_id: UseCaseKey, tag_string: str) -> str:
     tag_key = int(tag_string.replace("tags[", "").replace("]", ""))
-    return reverse_resolve(tag_key)
+    return reverse_resolve(use_case_id, tag_key)
 
 
 def translate_meta_results(
-    meta: Sequence[Dict[str, str]], query_metric_fields: Set[str]
+    meta: Sequence[Dict[str, str]],
+    query_metric_fields: Set[str],
+    use_case_id: UseCaseKey,
 ) -> Sequence[Dict[str, str]]:
     """
     Translate meta results:
@@ -354,7 +365,7 @@ def translate_meta_results(
                 continue
         else:
             if is_tag:
-                record["name"] = parse_tag(record["name"])
+                record["name"] = parse_tag(use_case_id, record["name"])
                 # since we changed value from int to str we need
                 # also want to change type
                 record["type"] = "string"
@@ -375,10 +386,13 @@ class SnubaQueryBuilder:
         "metrics_sets",
     }
 
-    def __init__(self, projects: Sequence[Project], metrics_query: MetricsQuery):
+    def __init__(
+        self, projects: Sequence[Project], metrics_query: MetricsQuery, use_case_id: UseCaseKey
+    ):
         self._projects = projects
         self._metrics_query = metrics_query
         self._org_id = metrics_query.org_id
+        self._use_case_id = use_case_id
 
     def _build_where(self) -> List[Union[BooleanCondition, Condition]]:
         where: List[Union[BooleanCondition, Condition]] = [
@@ -387,7 +401,7 @@ class SnubaQueryBuilder:
             Condition(Column(TS_COL_QUERY), Op.GTE, self._metrics_query.start),
             Condition(Column(TS_COL_QUERY), Op.LT, self._metrics_query.end),
         ]
-        filter_ = resolve_tags(self._org_id, self._metrics_query.where)
+        filter_ = resolve_tags(self._use_case_id, self._org_id, self._metrics_query.where)
         if filter_:
             where.extend(filter_)
 
@@ -404,7 +418,7 @@ class SnubaQueryBuilder:
                 groupby_cols.append(Column(field))
             else:
                 assert isinstance(field, Tag)
-                groupby_cols.append(Column(resolve_tag_key(self._org_id, field)))
+                groupby_cols.append(Column(resolve_tag_key(self._use_case_id, self._org_id, field)))
         return groupby_cols
 
     def _build_orderby(self) -> Optional[List[OrderBy]]:
@@ -570,11 +584,13 @@ class SnubaResultConverter:
         fields_in_entities: dict,
         intervals: List[datetime],
         results,
+        use_case_id: UseCaseKey,
     ):
         self._organization_id = organization_id
         self._intervals = intervals
         self._results = results
         self._metrics_query = metrics_query
+        self._use_case_id = use_case_id
 
         # This is a set of all the `(op, metric_mri)` combinations passed in the metrics_query
         self._metrics_query_fields_set = {
@@ -665,7 +681,10 @@ class SnubaResultConverter:
         groups = [
             dict(
                 by=dict(
-                    (parse_tag(key), reverse_resolve_weak(value))
+                    (
+                        parse_tag(self._use_case_id, key),
+                        reverse_resolve_weak(self._use_case_id, value),
+                    )
                     if key not in FIELD_ALIAS_MAPPINGS.values()
                     else (key, value)
                     for key, value in tags

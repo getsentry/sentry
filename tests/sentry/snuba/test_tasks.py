@@ -303,8 +303,12 @@ class BuildSnqlQueryTest(TestCase):
                         Function(
                             function="equals",
                             parameters=[
-                                Column(name=resolve_tag_key(org_id, "session.status")),
-                                resolve(org_id, "init"),
+                                Column(
+                                    name=resolve_tag_key(
+                                        UseCaseKey.RELEASE_HEALTH, org_id, "session.status"
+                                    )
+                                ),
+                                resolve(UseCaseKey.RELEASE_HEALTH, org_id, "init"),
                             ],
                         ),
                     ],
@@ -317,8 +321,12 @@ class BuildSnqlQueryTest(TestCase):
                         Function(
                             function="equals",
                             parameters=[
-                                Column(name=resolve_tag_key(org_id, "session.status")),
-                                resolve(org_id, "crashed"),
+                                Column(
+                                    name=resolve_tag_key(
+                                        UseCaseKey.RELEASE_HEALTH, org_id, "session.status"
+                                    )
+                                ),
+                                resolve(UseCaseKey.RELEASE_HEALTH, org_id, "crashed"),
                             ],
                         ),
                     ],
@@ -340,8 +348,12 @@ class BuildSnqlQueryTest(TestCase):
                         Function(
                             function="equals",
                             parameters=[
-                                Column(name=resolve_tag_key(org_id, "session.status")),
-                                resolve(org_id, "crashed"),
+                                Column(
+                                    name=resolve_tag_key(
+                                        UseCaseKey.RELEASE_HEALTH, org_id, "session.status"
+                                    )
+                                ),
+                                resolve(UseCaseKey.RELEASE_HEALTH, org_id, "crashed"),
                             ],
                         ),
                     ],
@@ -672,12 +684,18 @@ class BuildSnqlQueryTest(TestCase):
             Condition(
                 Column(name="metric_id"),
                 Op.EQ,
-                resolve(self.organization.id, SessionMRI.SESSION.value),
+                resolve(UseCaseKey.RELEASE_HEALTH, self.organization.id, SessionMRI.SESSION.value),
             ),
             Condition(
-                Column(name=resolve_tag_key(self.organization.id, "session.status")),
+                Column(
+                    name=resolve_tag_key(
+                        UseCaseKey.RELEASE_HEALTH, self.organization.id, "session.status"
+                    )
+                ),
                 Op.IN,
-                resolve_many_weak(self.organization.id, ["crashed", "init"]),
+                resolve_many_weak(
+                    UseCaseKey.RELEASE_HEALTH, self.organization.id, ["crashed", "init"]
+                ),
             ),
         ]
         self.run_test(
@@ -700,7 +718,7 @@ class BuildSnqlQueryTest(TestCase):
             Condition(
                 Column(name="metric_id"),
                 Op.EQ,
-                resolve(self.organization.id, SessionMRI.USER.value),
+                resolve(UseCaseKey.RELEASE_HEALTH, self.organization.id, SessionMRI.USER.value),
             ),
         ]
         self.run_test(
@@ -729,26 +747,40 @@ class BuildSnqlQueryTest(TestCase):
 
         expected_conditions = [
             Condition(
-                Column(name=resolve_tag_key(self.organization.id, "release")),
+                Column(
+                    name=resolve_tag_key(UseCaseKey.RELEASE_HEALTH, self.organization.id, "release")
+                ),
                 Op.EQ,
-                resolve_weak(self.organization.id, "ahmed@12.2"),
+                resolve_weak(UseCaseKey.RELEASE_HEALTH, self.organization.id, "ahmed@12.2"),
             ),
             Condition(Column(name="project_id"), Op.IN, (self.project.id,)),
             Condition(Column(name="org_id"), Op.EQ, self.organization.id),
             Condition(
                 Column(name="metric_id"),
                 Op.EQ,
-                resolve(self.organization.id, SessionMRI.SESSION.value),
+                resolve(
+                    UseCaseKey.RELEASE_HEALTH,
+                    self.organization.id,
+                    SessionMRI.SESSION.value,
+                ),
             ),
             Condition(
-                Column(name=resolve_tag_key(self.organization.id, "session.status")),
+                Column(
+                    name=resolve_tag_key(
+                        UseCaseKey.RELEASE_HEALTH, self.organization.id, "session.status"
+                    )
+                ),
                 Op.IN,
-                resolve_many_weak(self.organization.id, ["crashed", "init"]),
+                resolve_many_weak(
+                    UseCaseKey.RELEASE_HEALTH, self.organization.id, ["crashed", "init"]
+                ),
             ),
             Condition(
-                Column(resolve_tag_key(self.organization.id, "environment")),
+                Column(
+                    resolve_tag_key(UseCaseKey.RELEASE_HEALTH, self.organization.id, "environment")
+                ),
                 Op.EQ,
-                resolve_weak(self.organization.id, env.name),
+                resolve_weak(UseCaseKey.RELEASE_HEALTH, self.organization.id, env.name),
             ),
         ]
         self.run_test(
@@ -778,21 +810,25 @@ class BuildSnqlQueryTest(TestCase):
 
         expected_conditions = [
             Condition(
-                Column(name=resolve_tag_key(self.organization.id, "release")),
+                Column(
+                    name=resolve_tag_key(UseCaseKey.RELEASE_HEALTH, self.organization.id, "release")
+                ),
                 Op.EQ,
-                resolve_weak(self.organization.id, "ahmed@12.2"),
+                resolve_weak(UseCaseKey.RELEASE_HEALTH, self.organization.id, "ahmed@12.2"),
             ),
             Condition(Column(name="project_id"), Op.IN, (self.project.id,)),
             Condition(Column(name="org_id"), Op.EQ, self.organization.id),
             Condition(
                 Column(name="metric_id"),
                 Op.EQ,
-                resolve(self.organization.id, SessionMRI.USER.value),
+                resolve(UseCaseKey.RELEASE_HEALTH, self.organization.id, SessionMRI.USER.value),
             ),
             Condition(
-                Column(resolve_tag_key(self.organization.id, "environment")),
+                Column(
+                    resolve_tag_key(UseCaseKey.RELEASE_HEALTH, self.organization.id, "environment")
+                ),
                 Op.EQ,
-                resolve_weak(self.organization.id, env.name),
+                resolve_weak(UseCaseKey.RELEASE_HEALTH, self.organization.id, env.name),
             ),
         ]
         self.run_test(

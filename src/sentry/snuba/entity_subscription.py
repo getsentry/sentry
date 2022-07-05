@@ -23,6 +23,7 @@ from snuba_sdk import Column, Condition, Op
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS, CRASH_RATE_ALERT_SESSION_COUNT_ALIAS
 from sentry.exceptions import InvalidQuerySubscription, UnsupportedQuerySubscription
 from sentry.models import Environment
+from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.utils import (
     MetricIndexNotFound,
     resolve,
@@ -303,7 +304,9 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
                 "building snuba filter for a metrics subscription"
             )
         self.org_id = extra_fields["org_id"]
-        self.session_status = resolve_tag_key(self.org_id, "session.status")
+        self.session_status = resolve_tag_key(
+            UseCaseKey.RELEASE_HEALTH, self.org_id, "session.status"
+        )
         self.time_window = time_window
 
     @abstractmethod
@@ -343,9 +346,9 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
         value_col_name = alias if alias else "value"
         try:
             translated_data: Dict[str, Any] = {}
-            session_status = resolve_tag_key(org_id, "session.status")
+            session_status = resolve_tag_key(UseCaseKey.RELEASE_HEALTH, org_id, "session.status")
             for row in data:
-                tag_value = reverse_resolve(row[session_status])
+                tag_value = reverse_resolve(UseCaseKey.RELEASE_HEALTH, row[session_status])
                 translated_data[tag_value] = row[value_col_name]
 
             total_session_count = translated_data.get("init", 0)
@@ -449,15 +452,19 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
             granularity=self.get_granularity(),
         )
         extra_conditions = [
-            Condition(Column("metric_id"), Op.EQ, resolve(self.org_id, self.metric_key.value)),
+            Condition(
+                Column("metric_id"),
+                Op.EQ,
+                resolve(UseCaseKey.RELEASE_HEALTH, self.org_id, self.metric_key.value),
+            ),
             *self.get_snql_extra_conditions(),
         ]
         if environment:
             extra_conditions.append(
                 Condition(
-                    Column(resolve_tag_key(self.org_id, "environment")),
+                    Column(resolve_tag_key(UseCaseKey.RELEASE_HEALTH, self.org_id, "environment")),
                     Op.EQ,
-                    resolve_weak(self.org_id, environment.name),
+                    resolve_weak(UseCaseKey.RELEASE_HEALTH, self.org_id, environment.name),
                 )
             )
         qb.add_conditions(extra_conditions)
@@ -480,7 +487,7 @@ class MetricsCountersEntitySubscription(BaseMetricsEntitySubscription):
             Condition(
                 Column(self.session_status),
                 Op.IN,
-                resolve_many_weak(self.org_id, ["crashed", "init"]),
+                resolve_many_weak(UseCaseKey.RELEASE_HEALTH, self.org_id, ["crashed", "init"]),
             ),
         ]
 

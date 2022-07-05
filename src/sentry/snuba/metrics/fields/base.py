@@ -223,10 +223,15 @@ class RawMetric(MetricObject):
     """
 
     def generate_metric_ids(self, projects: Sequence[Project]) -> Set[int]:
-        return {resolve_weak(org_id_from_projects(projects), self.metric_mri)}
+        return {
+            resolve_weak(UseCaseKey.RELEASE_HEALTH, org_id_from_projects(projects), self.metric_mri)
+        }
 
     def generate_filter_snql_conditions(self, org_id: int) -> Function:
-        return Function("equals", [Column("metric_id"), resolve_weak(org_id, self.metric_mri)])
+        return Function(
+            "equals",
+            [Column("metric_id"), resolve_weak(UseCaseKey.RELEASE_HEALTH, org_id, self.metric_mri)],
+        )
 
 
 class AliasedDerivedMetric(AliasedDerivedMetricDefinition, MetricObject):
@@ -236,11 +241,21 @@ class AliasedDerivedMetric(AliasedDerivedMetricDefinition, MetricObject):
     """
 
     def generate_metric_ids(self, projects: Sequence[Project]) -> Set[int]:
-        return {resolve_weak(org_id_from_projects(projects), self.raw_metric_mri)}
+        return {
+            resolve_weak(
+                UseCaseKey.RELEASE_HEALTH, org_id_from_projects(projects), self.raw_metric_mri
+            )
+        }
 
     def generate_filter_snql_conditions(self, org_id: int) -> Function:
         conditions = [
-            Function("equals", [Column("metric_id"), resolve_weak(org_id, self.raw_metric_mri)])
+            Function(
+                "equals",
+                [
+                    Column("metric_id"),
+                    resolve_weak(UseCaseKey.RELEASE_HEALTH, org_id, self.raw_metric_mri),
+                ],
+            )
         ]
         if self.filters is not None:
             for filter_ in self.filters(org_id=org_id):
@@ -626,7 +641,7 @@ class SingularEntityDerivedMetric(DerivedMetricExpression):
         ids = set()
         for metric_mri in derived_metric.metrics:
             if metric_mri not in DERIVED_METRICS:
-                ids.add(resolve_weak(org_id, metric_mri))
+                ids.add(resolve_weak(UseCaseKey.RELEASE_HEALTH, org_id, metric_mri))
             else:
                 ids |= cls.__recursively_generate_metric_ids(org_id, metric_mri)
         return ids
