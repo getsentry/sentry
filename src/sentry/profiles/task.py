@@ -14,9 +14,11 @@ from sentry.models import Organization, Project, ProjectDebugFile
 from sentry.profiles.device import classify_device
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.symbolication import RetrySymbolication
-from sentry.utils import json, kafka_config
+from sentry.utils import json, kafka_config, metrics
 from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.pubsub import KafkaPublisher
+
+Profile = MutableMapping[str, Any]
 
 processed_profiles_publisher = None
 
@@ -29,52 +31,36 @@ processed_profiles_publisher = None
     acks_late=True,
 )
 def process_profile(
-    profile: MutableMapping[str, Any],
+    profile: Profile,
     key_id: Optional[int],
     **kwargs: Any,
 ) -> None:
     project = Project.objects.get_from_cache(id=profile["project_id"])
 
-    if profile["platform"] == "cocoa":
-        profile = _symbolicate(profile=profile, project=project)
-    elif profile["platform"] == "android":
-        profile = _deobfuscate(profile=profile, project=project)
-    elif profile["platform"] == "rust":
-        profile = _symbolicate(profile=profile, project=project)
+    if _should_symbolicate(profile):
+        _symbolicate(profile=profile, project=project)
+    elif _should_deobfuscate(profile):
+        _deobfuscate(profile=profile, project=project)
 
     organization = Organization.objects.get_from_cache(id=project.organization_id)
-    profile = _normalize(profile=profile, organization=organization)
 
-    global processed_profiles_publisher
-
-    if processed_profiles_publisher is None:
-        config = settings.KAFKA_TOPICS[settings.KAFKA_PROFILES]
-        processed_profiles_publisher = KafkaPublisher(
-            kafka_config.get_kafka_producer_cluster_options(config["cluster"]),
-        )
-
-    processed_profiles_publisher.publish(
-        "processed-profiles",
-        json.dumps(profile),
-    )
-
-    track_outcome(
-        org_id=project.organization_id,
-        project_id=project.id,
-        key_id=key_id,
-        outcome=Outcome.ACCEPTED,
-        reason=None,
-        timestamp=datetime.utcnow().replace(tzinfo=UTC),
-        event_id=profile["transaction_id"],
-        category=DataCategory.PROFILE,
-        quantity=1,
-    )
+    _normalize(profile=profile, organization=organization)
+    _insert_eventstream(profile=profile)
+    _track_outcome(profile=profile, project=project, key_id=key_id)
 
 
-def _normalize(
-    profile: MutableMapping[str, Any],
-    organization: Organization,
-) -> MutableMapping[str, Any]:
+def _should_symbolicate(profile: Profile) -> bool:
+    platform: str = profile["platform"]
+    return platform in {"cocoa", "rust"}
+
+
+def _should_deobfuscate(profile: Profile) -> bool:
+    platform: str = profile["platform"]
+    return platform == "android"
+
+
+@metrics.wraps("process_profile.normalize")  # type: ignore
+def _normalize(profile: Profile, organization: Organization) -> None:
     if profile["platform"] in {"cocoa", "android"}:
         classification_options = dict()
 
@@ -116,10 +102,9 @@ def _normalize(
         }
     )
 
-    return profile
 
-
-def _symbolicate(profile: MutableMapping[str, Any], project: Project) -> MutableMapping[str, Any]:
+@metrics.wraps("process_profile.symbolicate")  # type: ignore
+def _symbolicate(profile: Profile, project: Project) -> None:
     symbolicator = Symbolicator(project=project, event_id=profile["profile_id"])
     modules = profile["debug_meta"]["images"]
     stacktraces = [
@@ -171,22 +156,21 @@ def _symbolicate(profile: MutableMapping[str, Any], project: Project) -> Mutable
     # rename the profile key to suggest it has been processed
     profile["profile"] = profile.pop("sampled_profile")
 
-    return profile
 
-
-def _deobfuscate(profile: MutableMapping[str, Any], project: Project) -> MutableMapping[str, Any]:
+@metrics.wraps("process_profile.deobfuscate")  # type: ignore
+def _deobfuscate(profile: Profile, project: Project) -> None:
     debug_file_id = profile.get("build_id")
     if debug_file_id is None or debug_file_id == "":
-        return profile
+        return
 
     dif_paths = ProjectDebugFile.difcache.fetch_difs(project, [debug_file_id], features=["mapping"])
     debug_file_path = dif_paths.get(debug_file_id)
     if debug_file_path is None:
-        return profile
+        return
 
     mapper = ProguardMapper.open(debug_file_path)
     if not mapper.has_line_info:
-        return profile
+        return
 
     for method in profile["profile"]["methods"]:
         mapped = mapper.remap_frame(
@@ -220,4 +204,39 @@ def _deobfuscate(profile: MutableMapping[str, Any], project: Project) -> Mutable
             if mapped:
                 method["class_name"] = mapped
 
-    return profile
+
+@metrics.wraps("process_profile.track_outcome")  # type: ignore
+def _track_outcome(profile: Profile, project: Project, key_id: Optional[int]) -> None:
+    track_outcome(
+        org_id=project.organization_id,
+        project_id=project.id,
+        key_id=key_id,
+        outcome=Outcome.ACCEPTED,
+        reason=None,
+        timestamp=datetime.utcnow().replace(tzinfo=UTC),
+        event_id=profile["transaction_id"],
+        category=DataCategory.PROFILE,
+        quantity=1,
+    )
+
+
+@metrics.wraps("process_profile.insert_eventstream")  # type: ignore
+def _insert_eventstream(profile: Profile) -> None:
+    """
+    TODO: This function directly publishes the profile to kafka.
+    We'll want to look into the existing eventstream abstraction
+    so we can take advantage of nodestore at some point for single
+    profile access.
+    """
+    global processed_profiles_publisher
+
+    if processed_profiles_publisher is None:
+        config = settings.KAFKA_TOPICS[settings.KAFKA_PROFILES]
+        processed_profiles_publisher = KafkaPublisher(
+            kafka_config.get_kafka_producer_cluster_options(config["cluster"]),
+        )
+
+    processed_profiles_publisher.publish(
+        "processed-profiles",
+        json.dumps(profile),
+    )

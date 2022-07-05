@@ -40,7 +40,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - uses: volta-cli/action@v1
+      - uses: ./.github/actions/setup-volta
 
       - name: Setup sentry python env (python ${{ matrix.python-version }})
         uses: ./.github/actions/setup-sentry

@@ -118,11 +118,6 @@ install-py-dev() {
     SENTRY_LIGHT_BUILD=1 pip install -e '.[dev]'
 }
 
-patch-selenium() {
-    # XXX: getsentry repo calls this!
-    :
-}
-
 setup-git-config() {
     git config --local branch.autosetuprebase always
     git config --local core.ignorecase false
@@ -203,6 +198,8 @@ create-user() {
 build-platform-assets() {
     echo "--> Building platform assets"
     echo "from sentry.utils.integrationdocs import sync_docs; sync_docs(quiet=True)" | sentry exec
+    # make sure this didn't silently do nothing
+    test -f src/sentry/integration-docs/android.json
 }
 
 bootstrap() {

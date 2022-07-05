@@ -1,4 +1,4 @@
-import {ReactNode} from 'react';
+import {Fragment, ReactNode} from 'react';
 import {PlainRoute, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -17,6 +17,7 @@ import CircleIndicator from 'sentry/components/circleIndicator';
 import Confirm from 'sentry/components/confirm';
 import Form from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
+import * as Layout from 'sentry/components/layouts/thirds';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {t} from 'sentry/locale';
@@ -46,6 +47,8 @@ import {
   DEFAULT_CHANGE_TIME_WINDOW,
   DEFAULT_COUNT_TIME_WINDOW,
 } from './constants';
+import {Preset, PRESET_AGGREGATES, PresetContext} from './presets';
+import PresetSidebar from './presetSidebar';
 import RuleConditionsForm from './ruleConditionsForm';
 import {
   AlertRuleComparisonType,
@@ -102,12 +105,14 @@ type State = {
   triggers: Trigger[];
   comparisonDelta?: number;
   eventTypes?: EventTypes[];
+  selectedPresetId?: string;
   uuid?: string;
 } & AsyncComponent['state'];
 
 const isEmpty = (str: unknown): boolean => str === '' || !defined(str);
 
 class RuleFormContainer extends AsyncComponent<Props, State> {
+  form = new FormModel();
   pollingTimeout: number | undefined = undefined;
 
   get isDuplicateRule(): boolean {
@@ -123,6 +128,17 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     const {project} = this.state;
     // SearchBar gets its tags from Reflux.
     fetchOrganizationTags(this.api, organization.slug, [project.id]);
+
+    if (this.props.location?.query.preset) {
+      const preset = PRESET_AGGREGATES.find(
+        p => p.id === this.props.location.query.preset
+      );
+      if (preset) {
+        preset
+          .makeContext(this.api, project, this.props.organization)
+          .then(ctx => this.setPreset(preset, ctx));
+      }
+    }
   }
 
   componentWillUnmount() {
@@ -174,6 +190,29 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     return [
       ['availableActions', `/organizations/${orgId}/alert-rules/available-actions/`],
     ];
+  }
+
+  setPreset(preset: Preset, context: PresetContext) {
+    this.form.setInitialData({
+      ...this.form.initialData,
+      name: context.name,
+      dataset: context.dataset,
+      eventTypes: context.eventTypes as any,
+      aggregate: context.aggregate,
+      comparisonDelta: context.comparisonDelta,
+      timeWindow: context.timeWindow,
+      query: context.query,
+      projectId: this.form.getValue('projectId'),
+    });
+    this.form.setValue('comparisonDelta', context.comparisonDelta);
+
+    this.setState({
+      comparisonType: context.comparisonType,
+      triggers: context.triggers,
+      thresholdType: context.thresholdType,
+      triggerErrors: new Map(),
+      selectedPresetId: preset.id,
+    });
   }
 
   goBack() {
@@ -702,6 +741,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       loading,
       eventTypes,
       dataset,
+      selectedPresetId,
     } = this.state;
 
     const eventTypeFilter = getEventTypeFilter(this.state.dataset, eventTypes);
@@ -791,89 +831,129 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
           const disabled = loading || !(isActiveSuperuser() || hasAccess);
 
           return (
-            <Form
-              apiMethod={ruleId ? 'PUT' : 'POST'}
-              apiEndpoint={`/organizations/${organization.slug}/alert-rules/${
-                ruleId ? `${ruleId}/` : ''
-              }`}
-              submitDisabled={disabled}
-              initialData={{
-                name,
-                dataset,
-                eventTypes,
-                aggregate,
-                query,
-                timeWindow: rule.timeWindow,
-                environment: rule.environment || null,
-                owner: rule.owner,
-                projectId: project.id,
-              }}
-              saveOnBlur={false}
-              onSubmit={this.handleSubmit}
-              onSubmitSuccess={onSubmitSuccess}
-              onCancel={this.handleCancel}
-              onFieldChange={this.handleFieldChange}
-              extraButton={
-                !!rule.id ? (
-                  <Confirm
-                    disabled={disabled}
-                    message={t('Are you sure you want to delete this alert rule?')}
-                    header={t('Delete Alert Rule?')}
-                    priority="danger"
-                    confirmText={t('Delete Rule')}
-                    onConfirm={this.handleDeleteRule}
-                  >
-                    <Button type="button" priority="danger">
-                      {t('Delete Rule')}
-                    </Button>
-                  </Confirm>
-                ) : null
-              }
-              submitLabel={t('Save Rule')}
-            >
-              <List symbol="colored-numeric">
-                <RuleConditionsForm
-                  api={this.api}
-                  project={project}
-                  organization={organization}
-                  router={router}
-                  disabled={disabled}
-                  thresholdChart={wizardBuilderChart}
-                  onFilterSearch={this.handleFilterUpdate}
-                  allowChangeEventTypes={
-                    alertType === 'custom' || dataset === Dataset.ERRORS
+            <Fragment>
+              {organization.experiments.MetricAlertPresetExperiment &&
+                dataset === Dataset.TRANSACTIONS &&
+                project.firstTransactionEvent &&
+                !this.props.ruleId && (
+                  <Side>
+                    <PresetSidebar
+                      organization={organization}
+                      project={project}
+                      onSelect={(preset, context) => {
+                        this.setPreset(preset, context);
+                      }}
+                      selectedPresetId={selectedPresetId}
+                    />
+                  </Side>
+                )}
+              <Main>
+                <Form
+                  model={this.form}
+                  apiMethod={ruleId ? 'PUT' : 'POST'}
+                  apiEndpoint={`/organizations/${organization.slug}/alert-rules/${
+                    ruleId ? `${ruleId}/` : ''
+                  }`}
+                  submitDisabled={disabled}
+                  initialData={{
+                    name,
+                    dataset,
+                    eventTypes,
+                    aggregate,
+                    query,
+                    timeWindow: rule.timeWindow,
+                    environment: rule.environment || null,
+                    owner: rule.owner,
+                    projectId: project.id,
+                  }}
+                  saveOnBlur={false}
+                  onSubmit={this.handleSubmit}
+                  onSubmitSuccess={onSubmitSuccess}
+                  onCancel={this.handleCancel}
+                  onFieldChange={this.handleFieldChange}
+                  extraButton={
+                    !!rule.id ? (
+                      <Confirm
+                        disabled={disabled}
+                        message={t('Are you sure you want to delete this alert rule?')}
+                        header={t('Delete Alert Rule?')}
+                        priority="danger"
+                        confirmText={t('Delete Rule')}
+                        onConfirm={this.handleDeleteRule}
+                      >
+                        <Button type="button" priority="danger">
+                          {t('Delete Rule')}
+                        </Button>
+                      </Confirm>
+                    ) : null
                   }
-                  alertType={alertType}
-                  hasAlertWizardV3={this.hasAlertWizardV3}
-                  dataset={dataset}
-                  timeWindow={timeWindow}
-                  comparisonType={comparisonType}
-                  comparisonDelta={comparisonDelta}
-                  onComparisonDeltaChange={value =>
-                    this.handleFieldChange('comparisonDelta', value)
-                  }
-                  onTimeWindowChange={value =>
-                    this.handleFieldChange('timeWindow', value)
-                  }
-                  disableProjectSelector={disableProjectSelector}
-                />
-                {!this.hasAlertWizardV3 && thresholdTypeForm(disabled)}
-                <AlertListItem>
-                  {this.hasAlertWizardV3
-                    ? t('Set thresholds')
-                    : t('Set thresholds to trigger alert')}
-                </AlertListItem>
-                {this.hasAlertWizardV3 && thresholdTypeForm(disabled)}
-                {triggerForm(disabled)}
-                {ruleNameOwnerForm(disabled)}
-              </List>
-            </Form>
+                  submitLabel={t('Save Rule')}
+                >
+                  <List symbol="colored-numeric">
+                    <RuleConditionsForm
+                      api={this.api}
+                      project={project}
+                      organization={organization}
+                      router={router}
+                      disabled={disabled}
+                      thresholdChart={wizardBuilderChart}
+                      onFilterSearch={this.handleFilterUpdate}
+                      allowChangeEventTypes={
+                        alertType === 'custom' || dataset === Dataset.ERRORS
+                      }
+                      alertType={alertType}
+                      hasAlertWizardV3={this.hasAlertWizardV3}
+                      dataset={dataset}
+                      timeWindow={timeWindow}
+                      comparisonType={comparisonType}
+                      comparisonDelta={comparisonDelta}
+                      onComparisonDeltaChange={value =>
+                        this.handleFieldChange('comparisonDelta', value)
+                      }
+                      onTimeWindowChange={value =>
+                        this.handleFieldChange('timeWindow', value)
+                      }
+                      disableProjectSelector={disableProjectSelector}
+                    />
+                    {!this.hasAlertWizardV3 && thresholdTypeForm(disabled)}
+                    <AlertListItem>
+                      {this.hasAlertWizardV3
+                        ? t('Set thresholds')
+                        : t('Set thresholds to trigger alert')}
+                    </AlertListItem>
+                    {this.hasAlertWizardV3 && thresholdTypeForm(disabled)}
+                    {triggerForm(disabled)}
+                    {ruleNameOwnerForm(disabled)}
+                  </List>
+                </Form>
+              </Main>
+            </Fragment>
           );
         }}
       </Access>
     );
   }
 }
+
+const Main = styled(Layout.Main)`
+  padding: ${space(2)} ${space(4)};
+`;
+
+const Side = styled(Layout.Side)`
+  padding: ${space(4)} ${space(2)};
+  grid-row-start: 1;
+
+  @media (max-width: ${p => p.theme.breakpoints.large}) {
+    border-bottom: 1px solid ${p => p.theme.gray200};
+    margin-bottom: ${space(3)};
+    padding-bottom: 0;
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
+    border-left: 1px solid ${p => p.theme.gray200};
+  }
+  max-width: 400px;
+`;
 
 const StyledListItem = styled(ListItem)`
   margin: ${space(2)} 0 ${space(1)} 0;
