@@ -57,17 +57,7 @@ jobs:
           # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
           fetch-depth: '2'
 
-      - uses: volta-cli/action@v1
-
-      # See https://github.com/actions/cache/blob/master/examples.md#node---yarn for example
-      - name: Get yarn cache directory path
-        id: yarn-cache-dir-path
-        run: echo "::set-output name=dir::$(yarn cache dir)"
-
-      - uses: actions/cache@v3
-        with:
-          path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
-          key: ${{ runner.os }}-v2-yarn-${{ hashFiles('yarn.lock', 'api-docs/yarn.lock') }}
+      - uses: ./.github/actions/setup-volta
 
       - name: Install dependencies
         run: yarn install --frozen-lockfile
@@ -137,19 +127,11 @@ jobs:
       - uses: actions/checkout@v2
         name: Checkout sentry
 
-      - uses: volta-cli/action@v1
+      - uses: ./.github/actions/setup-volta
 
       - name: Step configurations
         id: config
-        run: |
-          echo "::set-output name=yarn-path::$(yarn cache dir)"
-          echo "::set-output name=webpack-path::.webpack_cache"
-
-      - name: yarn cache
-        uses: actions/cache@v3
-        with:
-          path: ${{ steps.config.outputs.yarn-path }}
-          key: ${{ runner.os }}-v2-yarn-${{ hashFiles('yarn.lock', 'api-docs/yarn.lock') }}
+        run: echo "::set-output name=webpack-path::.webpack_cache"
 
       - name: webpack cache
         uses: actions/cache@v3
@@ -285,7 +267,7 @@ jobs:
         id: snapshot_ref
         run: |
           random=$(( ( RANDOM % 10 )  + 1 ));
-          echo "::set-output name=ref::$([[ $random -ge 4 ]] && echo "pixelmatch" || echo "odiff")"
+          echo "::set-output name=ref::$([[ $random -ge 9 ]] && echo "pixelmatch" || echo "odiff")"
 
       - name: Diff snapshots
         id: visual-snapshots-diff-pixelmatch

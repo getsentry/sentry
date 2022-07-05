@@ -102,20 +102,13 @@ function PlatformPicker(props: PlatformPickerProps) {
       category === 'all' ||
       (currentCategory?.platforms as undefined | string[])?.includes(platform.id);
 
-    const popularTopOfAllCompare = (a: PlatformIntegration, b: PlatformIntegration) => {
-      // for the all category, put popular ones at the top in the order they appear in the popular list
+    const customCompares = (a: PlatformIntegration, b: PlatformIntegration) => {
+      // the all category and serverless category both require custom sorts
       if (category === 'all') {
-        if (isPopular(a) && isPopular(b)) {
-          // if both popular, maintain ordering from popular list
-          return popularIndex(a) - popularIndex(b);
-        }
-        // if one popular, that one should be first
-        if (isPopular(a) !== isPopular(b)) {
-          return isPopular(a) ? -1 : 1;
-        }
-        // since the all list is coming from a different source (platforms.json)
-        // we can't go off the index of the item in platformCategories.tsx since there is no all list
-        return a.id.localeCompare(b.id);
+        return popularTopOfAllCompare(a, b);
+      }
+      if (category === 'serverless') {
+        return serverlessCompare(a, b);
       }
       // maintain ordering otherwise
       return (
@@ -124,10 +117,42 @@ function PlatformPicker(props: PlatformPickerProps) {
       );
     };
 
+    const popularTopOfAllCompare = (a: PlatformIntegration, b: PlatformIntegration) => {
+      // for the all category, put popular ones at the top in the order they appear in the popular list
+      if (isPopular(a) && isPopular(b)) {
+        // if both popular, maintain ordering from popular list
+        return popularIndex(a) - popularIndex(b);
+      }
+      // if one popular, that one should be first
+      if (isPopular(a) !== isPopular(b)) {
+        return isPopular(a) ? -1 : 1;
+      }
+      // since the all list is coming from a different source (platforms.json)
+      // we can't go off the index of the item in platformCategories.tsx since there is no all list
+      return a.id.localeCompare(b.id);
+    };
+
+    const serverlessCompare = (a: PlatformIntegration, b: PlatformIntegration) => {
+      // for the serverless category, sort by service, then language
+      // the format of the ids is language-service
+      const aProvider = a.id.split('-')[1];
+      const bProvider = b.id.split('-')[1];
+      // if either of the ids are not hyphenated, standard sort
+      if (!aProvider || !bProvider) {
+        return a.id.localeCompare(b.id);
+      }
+      // compare the portions after the hyphen
+      const compareServices = aProvider.localeCompare(bProvider);
+      // if they have the same service provider
+      if (!compareServices) {
+        return a.id.localeCompare(b.id);
+      }
+      return compareServices;
+    };
+
     const filtered = platforms
       .filter(filterLowerCase ? subsetMatch : categoryMatch)
-      .sort(popularTopOfAllCompare);
-
+      .sort(customCompares);
     return props.showOther ? filtered : filtered.filter(({id}) => id !== 'other');
   }
 
@@ -145,7 +170,7 @@ function PlatformPicker(props: PlatformPickerProps) {
     }
   }, DEFAULT_DEBOUNCE_DURATION);
 
-  useEffect(logSearch, [filter]);
+  useEffect(logSearch, [filter, logSearch]);
 
   return (
     <Fragment>

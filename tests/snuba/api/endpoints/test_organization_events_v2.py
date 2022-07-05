@@ -6104,6 +6104,62 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
             == "Wildcard conditions are not permitted on `trace.parent_span` field"
         )
 
+    def test_has_trace_context(self):
+        project = self.create_project()
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "how to make fast",
+                "timestamp": self.min_ago,
+                "contexts": {
+                    "trace": {
+                        "span_id": "a" * 16,
+                        "trace_id": "b" * 32,
+                    },
+                },
+            },
+            project_id=project.id,
+        )
+
+        query = {"field": ["id", "trace.parent_span"], "query": "has:trace.span"}
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["id"] == "a" * 32
+
+        query = {"field": ["id"], "query": "has:trace.parent_span_id"}
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 0
+
+    def test_not_has_trace_context(self):
+        project = self.create_project()
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "how to make fast",
+                "timestamp": self.min_ago,
+                "contexts": {
+                    "trace": {
+                        "span_id": "a" * 16,
+                        "trace_id": "b" * 32,
+                    },
+                },
+            },
+            project_id=project.id,
+        )
+
+        query = {"field": ["id", "trace.parent_span"], "query": "!has:trace.span"}
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 0
+
+        query = {"field": ["id"], "query": "!has:trace.parent_span_id"}
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["id"] == "a" * 32
+
     @mock.patch("sentry.search.events.builder.raw_snql_query")
     def test_handling_snuba_errors(self, mock_snql_query):
         mock_snql_query.side_effect = RateLimitExceeded("test")
@@ -10554,6 +10610,28 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
             response.data["data"][0]["count_if(sub_customer.is-Enterprise-42, notEquals, yes)"] == 4
         )
         assert response.data["data"][0][f"count_if(unicode-phrase, equals, {unicode_phrase1})"] == 1
+
+    def test_count_if_measurements_cls(self):
+        data = load_data("transaction", timestamp=before_now(minutes=1))
+        data["measurements"]["cls"] = {"value": 0.5}
+        self.store_event(data, project_id=self.project.id)
+        data = load_data("transaction", timestamp=before_now(minutes=1))
+        data["measurements"]["cls"] = {"value": 0.1}
+        self.store_event(data, project_id=self.project.id)
+
+        query = {
+            "field": [
+                "count_if(measurements.cls, greater, 0.05)",
+                "count_if(measurements.cls, less, 0.3)",
+            ],
+            "project": [self.project.id],
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200
+        assert len(response.data["data"]) == 1
+
+        assert response.data["data"][0]["count_if(measurements.cls, greater, 0.05)"] == 2
+        assert response.data["data"][0]["count_if(measurements.cls, less, 0.3)"] == 1
 
     def test_count_if_filter(self):
         for i in range(5):

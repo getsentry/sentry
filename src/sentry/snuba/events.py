@@ -522,8 +522,8 @@ class Columns(Enum):
     SPAN_ID = Column(
         group_name="events.contexts[trace.span_id]",
         event_name="contexts[trace.span_id]",
-        transaction_name="contexts[trace.span_id]",
-        discover_name="contexts[trace.span_id]",
+        transaction_name="span_id",
+        discover_name="span_id",
         alias="trace.span",
     )
     PARENT_SPAN_ID = Column(
@@ -541,4 +541,11 @@ class Columns(Enum):
         transaction_name="contexts[reprocessing.original_issue_id]",
         discover_name="contexts[reprocessing.original_issue_id]",
         alias="reprocessing.original_issue_id",
+    )
+    TRACE_SAMPLE_RATE = Column(
+        group_name="events.contexts[trace.client_sample_rate]",
+        event_name="contexts[trace.client_sample_rate]",
+        transaction_name="contexts[trace.client_sample_rate]",
+        discover_name="contexts[trace.client_sample_rate]",
+        alias="trace.client_sample_rate",
     )
