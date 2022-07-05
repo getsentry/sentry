@@ -7,7 +7,7 @@ import urllib3
 from django.conf import settings
 from django.http import StreamingHttpResponse
 from parsimonious.exceptions import ParseError
-from requests import Response
+from urllib3.response import HTTPResponse
 
 from sentry.api.event_search import SearchFilter, parse_search_query
 from sentry.exceptions import InvalidSearchQuery
@@ -61,7 +61,7 @@ def get_from_profiling_service(
     path: str,
     params: Optional[Dict[Any, Any]] = None,
     headers: Optional[Dict[Any, Any]] = None,
-) -> Response:
+) -> HTTPResponse:
     kwargs: Dict[str, Any] = {"headers": {}, "preload_content": False}
     if params:
         path = f"{path}?{urlencode(params, doseq=True)}"
