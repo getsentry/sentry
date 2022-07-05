@@ -17,6 +17,7 @@ import {
 } from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
+import ButtonBar from 'sentry/components/buttonBar';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import HookOrDefault from 'sentry/components/hookOrDefault';
@@ -33,12 +34,14 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import {Organization, PageFilters} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {ReleasesProvider} from 'sentry/utils/releases/releasesProvider';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
+import withPageFilters from 'sentry/utils/withPageFilters';
 
 import {
   WidgetViewerContext,
@@ -52,6 +55,7 @@ import {
   calculateColumnDepths,
   getDashboardLayout,
 } from './layoutUtils';
+import ReleaseFilter from './releasesSelectControl';
 import DashboardTitle from './title';
 import {
   DashboardDetails,
@@ -82,6 +86,7 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   initialState: DashboardState;
   organization: Organization;
   route: PlainRoute;
+  selection: PageFilters;
   newWidget?: Widget;
   onDashboardUpdate?: (updatedDashboard: DashboardDetails) => void;
   onSetNewWidget?: () => void;
@@ -629,11 +634,11 @@ class DashboardDetail extends Component<Props, State> {
                 widgetLimitReached={widgetLimitReached}
               />
             </StyledPageHeader>
-            <DashboardPageFilterBar condensed>
+            <PageFilterBar condensed>
               <ProjectPageFilter />
               <EnvironmentPageFilter />
               <DatePageFilter alignDropdown="left" />
-            </DashboardPageFilterBar>
+            </PageFilterBar>
             <HookHeader organization={organization} />
             <Dashboard
               paramDashboardId={dashboardId}
@@ -675,6 +680,7 @@ class DashboardDetail extends Component<Props, State> {
       router,
       location,
       newWidget,
+      selection,
       onSetNewWidget,
     } = this.props;
     const {modifiedDashboard, dashboardState, widgetLimitReached, seriesData, setData} =
@@ -732,11 +738,18 @@ class DashboardDetail extends Component<Props, State> {
               </Layout.Header>
               <Layout.Body>
                 <Layout.Main fullWidth>
-                  <DashboardPageFilterBar condensed>
-                    <ProjectPageFilter />
-                    <EnvironmentPageFilter />
-                    <DatePageFilter alignDropdown="left" />
-                  </DashboardPageFilterBar>
+                  <Wrapper>
+                    <PageFilterBar condensed>
+                      <ProjectPageFilter />
+                      <EnvironmentPageFilter />
+                      <DatePageFilter alignDropdown="left" />
+                    </PageFilterBar>
+                    <FilterButtons>
+                      <ReleasesProvider organization={organization} selection={selection}>
+                        <ReleaseFilter />
+                      </ReleasesProvider>
+                    </FilterButtons>
+                  </Wrapper>
                   <WidgetViewerContext.Provider value={{seriesData, setData}}>
                     <Dashboard
                       paramDashboardId={dashboardId}
@@ -800,8 +813,27 @@ const StyledPageContent = styled(PageContent)`
   padding: 0;
 `;
 
-const DashboardPageFilterBar = styled(PageFilterBar)`
+const Wrapper = styled('div')`
+  display: grid;
+  gap: ${space(1.5)};
   margin-bottom: ${space(2)};
+
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    grid-template-columns: min-content 1fr;
+  }
 `;
 
-export default withApi(withOrganization(DashboardDetail));
+const FilterButtons = styled(ButtonBar)`
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
+    display: flex;
+    align-items: flex-start;
+    gap: ${space(1.5)};
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    display: grid;
+    grid-auto-columns: minmax(auto, 300px);
+  }
+`;
+
+export default withApi(withOrganization(withPageFilters(DashboardDetail)));
