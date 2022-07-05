@@ -297,13 +297,11 @@ export function transformSessionsResponseToSeries(
 
   const results: Series[] = [];
 
-  // TODO: This is passed down in the includeAllArgs format, which is why we need
-  // to access the first index
-  if (!data[0].groups.length) {
+  if (!data.groups.length) {
     return [
       {
         seriesName: `(${t('no results')})`,
-        data: data[0].intervals.map(interval => ({
+        data: data.intervals.map(interval => ({
           name: interval,
           value: 0,
         })),
@@ -311,7 +309,7 @@ export function transformSessionsResponseToSeries(
     ];
   }
 
-  data[0].groups.forEach(group => {
+  data.groups.forEach(group => {
     Object.keys(group.series).forEach(field => {
       // if `sum(session)` or `count_unique(user)` are not
       // requested as a part of the payload for
@@ -321,7 +319,7 @@ export function transformSessionsResponseToSeries(
       if (!!!injectedFields.includes(derivedMetricsToField(field))) {
         results.push({
           seriesName: getSeriesName(field, group, queryAlias),
-          data: data[0].intervals.map((interval, index) => ({
+          data: data.intervals.map((interval, index) => ({
             name: interval,
             value: group.series[field][index] ?? 0,
           })),
@@ -345,7 +343,7 @@ export function transformSessionsResponseToSeries(
           }
           results.push({
             seriesName: getSeriesName(status, group, queryAlias),
-            data: data[0].intervals.map((interval, index) => ({
+            data: data.intervals.map((interval, index) => ({
               name: interval,
               value: metricField ? group.series[metricField][index] ?? 0 : 0,
             })),
