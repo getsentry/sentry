@@ -4,12 +4,12 @@ from django.utils import timezone
 from sentry.db.models import (
     BaseManager,
     BoundedPositiveIntegerField,
-    EncryptedJsonField,
     FlexibleForeignKey,
     Model,
     UUIDField,
     sane_repr,
 )
+from sentry.db.models.fields.jsonfield import JSONField
 
 
 class CheckInStatus:
@@ -40,7 +40,7 @@ class MonitorCheckIn(Model):
     status = BoundedPositiveIntegerField(
         default=0, choices=CheckInStatus.as_choices(), db_index=True
     )
-    config = EncryptedJsonField(default=dict)
+    config = JSONField(default=dict)
     duration = BoundedPositiveIntegerField(null=True)
     date_added = models.DateTimeField(default=timezone.now)
     date_updated = models.DateTimeField(default=timezone.now)

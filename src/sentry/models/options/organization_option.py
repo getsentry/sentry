@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any, Mapping, Sequence
 from django.db import models, transaction
 
 from sentry.db.models import FlexibleForeignKey, Model, sane_repr
-from sentry.db.models.fields import EncryptedPickledObjectField
+from sentry.db.models.fields.picklefield import PickledObjectField
 from sentry.db.models.manager import OptionManager, Value
 from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.utils.cache import cache
@@ -103,7 +103,7 @@ class OrganizationOption(Model):  # type: ignore
 
     organization = FlexibleForeignKey("sentry.Organization")
     key = models.CharField(max_length=64)
-    value = EncryptedPickledObjectField()
+    value = PickledObjectField()
 
     objects = OrganizationOptionManager()
 
