@@ -71,10 +71,10 @@ async function getHighestVolumeTransaction(
   return null;
 }
 
-function makeTeamCriticalAlert(project: Project) {
+function makeTeamCriticalAlert(project: Project, threshold: number = 200) {
   return {
     label: AlertRuleTriggerType.CRITICAL,
-    alertThreshold: 200,
+    alertThreshold: threshold,
     actions: project.teams.slice(0, 4).map(team => ({
       type: ActionType.EMAIL,
       targetType: TargetType.TEAM,
@@ -86,10 +86,10 @@ function makeTeamCriticalAlert(project: Project) {
     })),
   };
 }
-function makeTeamWarningAlert() {
+function makeTeamWarningAlert(threshold: number = 100) {
   return {
     label: AlertRuleTriggerType.WARNING,
-    alertThreshold: 100,
+    alertThreshold: threshold,
     actions: [],
   };
 }
@@ -138,7 +138,7 @@ export const PRESET_AGGREGATES: Preset[] = [
         comparisonDelta: 24 * 60 * 7,
         comparisonType: AlertRuleComparisonType.CHANGE,
         thresholdType: AlertRuleThresholdType.BELOW,
-        triggers: [makeTeamCriticalAlert(project), makeTeamWarningAlert()],
+        triggers: [makeTeamCriticalAlert(project, 500), makeTeamWarningAlert(300)],
         query: 'transaction:' + transaction,
       };
     },
