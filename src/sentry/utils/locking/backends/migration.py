@@ -84,13 +84,13 @@ class MigrationLockBackend(LockBackend):
 
     def release(self, key, routing_key=None):
         backend = self._get_backend(key=key, routing_key=routing_key)
-        backend.release(key=key, routing_key=routing_key)
         try:
             (self.backend_new if backend == self.backend_old else self.backend_old).release(
                 key=key, routing_key=routing_key
             )
         except Exception:
             pass
+        backend.release(key=key, routing_key=routing_key)
 
     def locked(self, key, routing_key=None):
         return self.backend_old.locked(key=key, routing_key=routing_key) or self.backend_new.locked(
