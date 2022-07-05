@@ -219,6 +219,9 @@ from .endpoints.organization_dashboard_widget_details import (
 )
 from .endpoints.organization_dashboards import OrganizationDashboardsEndpoint
 from .endpoints.organization_details import OrganizationDetailsEndpoint
+from .endpoints.organization_dynamic_sampling_sdk_versions import (
+    OrganizationDynamicSamplingSDKVersionsEndpoint,
+)
 from .endpoints.organization_environments import OrganizationEnvironmentsEndpoint
 from .endpoints.organization_event_details import OrganizationEventDetailsEndpoint
 from .endpoints.organization_eventid import EventIdLookupEndpoint
@@ -361,6 +364,7 @@ from .endpoints.project_create_sample import ProjectCreateSampleEndpoint
 from .endpoints.project_create_sample_transaction import ProjectCreateSampleTransactionEndpoint
 from .endpoints.project_details import ProjectDetailsEndpoint
 from .endpoints.project_docs_platform import ProjectDocsPlatformEndpoint
+from .endpoints.project_dynamic_sampling import ProjectDynamicSamplingDistributionEndpoint
 from .endpoints.project_environment_details import ProjectEnvironmentDetailsEndpoint
 from .endpoints.project_environments import ProjectEnvironmentsEndpoint
 from .endpoints.project_event_details import EventJsonEndpoint, ProjectEventDetailsEndpoint
@@ -1531,6 +1535,11 @@ urlpatterns = [
                     OrganizationTransactionAnomalyDetectionEndpoint.as_view(),
                     name="sentry-api-0-organization-transaction-anomaly-detection",
                 ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/dynamic-sampling/sdk-versions/$",
+                    OrganizationDynamicSamplingSDKVersionsEndpoint.as_view(),
+                    name="sentry-api-0-organization-dynamic-sampling-sdk-versions",
+                ),
                 # relay usage
                 url(
                     r"^(?P<organization_slug>[^\/]+)/relay_usage/$",
@@ -2228,6 +2237,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/profiling/transactions/(?P<transaction_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
                     ProjectProfilingTransactionIDProfileIDEndpoint.as_view(),
                     name="sentry-api-0-project-profiling-transactions",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/dynamic-sampling/distribution/$",
+                    ProjectDynamicSamplingDistributionEndpoint.as_view(),
+                    name="sentry-api-0-project-dynamic-sampling-distribution",
                 ),
             ]
         ),

@@ -9,7 +9,9 @@ features and more performant.
 
 import copy
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Union
+
+import click
 
 from sentry import options
 from sentry.utils import metrics
@@ -20,10 +22,46 @@ LegacyKillswitchConfig = Union[KillswitchConfig, List[int]]
 Context = Dict[str, Any]
 
 
+def _update_project_configs(
+    old_option_value: Sequence[Mapping[str, Any]], new_option_value: Sequence[Mapping[str, Any]]
+) -> None:
+    """Callback for the relay.drop-transaction-metrics kill switch.
+    On every change, force a recomputation of the corresponding project configs
+    """
+    from sentry.tasks.relay import schedule_invalidate_project_config
+
+    old_project_ids = {ctx["project_id"] for ctx in old_option_value}
+    new_project_ids = {ctx["project_id"] for ctx in new_option_value}
+
+    # We want to recompute the project config for any project that was added
+    # or removed
+    changed_project_ids = old_project_ids ^ new_project_ids
+
+    with click.progressbar(changed_project_ids) as ids:
+        for project_id in ids:
+            if project_id is not None:
+                schedule_invalidate_project_config(
+                    project_id=project_id, trigger="killswitches.relay.drop-transaction-metrics"
+                )
+
+
+@dataclass
+class KillswitchCallback:
+    """Named callback to run after a kill switch has been pushed."""
+
+    callback: Callable[[Any, Any], None]
+    #: `title` will be presented in the user prompt when asked whether or not to run the callback
+    title: str
+
+    def __call__(self, old: Any, new: Any) -> None:
+        self.callback(old, new)  # type: ignore
+
+
 @dataclass
 class KillswitchInfo:
     description: str
     fields: Dict[str, str]
+    on_change: Optional[KillswitchCallback] = None
 
 
 ALL_KILLSWITCH_OPTIONS = {
@@ -129,6 +167,22 @@ ALL_KILLSWITCH_OPTIONS = {
             "message_type": "message type to randomly partition",
         },
     ),
+    "relay.drop-transaction-metrics": KillswitchInfo(
+        description="""
+        Tell Relay via project config to stop extracting metrics from transactions.
+        Note that this change will not take effect immediately, it takes time
+        for downstream Relay instances to update their caches.
+
+        If project_id is set to None, the kill switch will match *any* project_id,
+        but no invalidation task will be run.
+        """,
+        fields={
+            "project_id": "project ID for which we want to stop extracting transaction metrics",
+        },
+        on_change=KillswitchCallback(
+            _update_project_configs, "Trigger invalidation tasks for projects"
+        ),
+    ),
 }
 
 
@@ -141,25 +195,23 @@ def normalize_value(
 ) -> KillswitchConfig:
     rv: KillswitchConfig = []
     for i, condition in enumerate(option_value or ()):
-        if not condition:
-            continue
-        elif isinstance(condition, int):
-            rv.append({"project_id": str(condition)})
-        elif isinstance(condition, dict):
-            for k in ALL_KILLSWITCH_OPTIONS[killswitch_name].fields:
-                if k not in condition:
-                    if strict:
-                        raise ValueError(f"Condition {i}: Missing field {k}")
-                    else:
-                        condition[k] = None
+        if isinstance(condition, int):
+            # legacy format
+            condition = {"project_id": str(condition)}
 
-            if strict:
-                for k in list(condition):
-                    if k not in ALL_KILLSWITCH_OPTIONS[killswitch_name].fields:
-                        raise ValueError(f"Condition {i}: Unknown field: {k}")
+        for k in ALL_KILLSWITCH_OPTIONS[killswitch_name].fields:
+            if k not in condition:
+                if strict:
+                    raise ValueError(f"Condition {i}: Missing field {k}")
+                else:
+                    condition[k] = None
 
-            if any(v is not None for v in condition.values()):
-                rv.append({k: str(v) for k, v in condition.items() if v is not None})
+        if strict:
+            for k in list(condition):
+                if k not in ALL_KILLSWITCH_OPTIONS[killswitch_name].fields:
+                    raise ValueError(f"Condition {i}: Unknown field: {k}")
+
+        rv.append({k: str(v) if v is not None else None for k, v in condition.items()})
 
     return rv
 
@@ -201,16 +253,14 @@ def _value_matches(
 
 def print_conditions(killswitch_name: str, raw_option_value: LegacyKillswitchConfig) -> str:
     option_value = normalize_value(killswitch_name, raw_option_value)
-
     if not option_value:
         return "<disabled entirely>"
 
     return "DROP DATA WHERE\n  " + " OR\n  ".join(
         "("
         + " AND ".join(
-            f"{field} = {matching_value}"
+            f"{field} = {matching_value if matching_value is not None else '*'}"
             for field, matching_value in condition.items()
-            if matching_value is not None
         )
         + ")"
         for condition in option_value
