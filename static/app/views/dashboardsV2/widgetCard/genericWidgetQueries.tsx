@@ -311,6 +311,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
       loading: true,
       tableResults: undefined,
       timeseriesResults: undefined,
+      errorMessage: undefined,
       queryFetchID,
     });
 
