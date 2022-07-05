@@ -1,8 +1,6 @@
 from typing import Any, Dict, Optional
 from urllib.parse import urlencode, urlparse
 
-import google.auth.transport.requests
-import google.oauth2.id_token
 import urllib3
 from django.conf import settings
 from django.http import StreamingHttpResponse
@@ -67,9 +65,6 @@ def get_from_profiling_service(
         path = f"{path}?{urlencode(params, doseq=True)}"
     if headers:
         kwargs["headers"].update(headers)
-    if settings.ENVIRONMENT == "production":
-        id_token = fetch_id_token_for_service(settings.SENTRY_PROFILING_SERVICE_URL)
-        kwargs["headers"].update({"Authorization": f"Bearer {id_token}"})
     return _profiling_pool.urlopen(
         method,
         path,
@@ -99,11 +94,6 @@ def proxy_profiling_service(
             response[h] = profiling_response.headers[h]
 
     return response
-
-
-def fetch_id_token_for_service(service_url: str) -> str:
-    auth_req = google.auth.transport.requests.Request()
-    return google.oauth2.id_token.fetch_id_token(auth_req, service_url)
 
 
 PROFILE_FILTERS = {
