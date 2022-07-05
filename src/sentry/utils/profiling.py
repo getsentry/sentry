@@ -1,7 +1,5 @@
 from typing import Any, Dict, Optional
 
-import google.auth.transport.requests
-import google.oauth2.id_token
 from django.conf import settings
 from django.http import StreamingHttpResponse
 from parsimonious.exceptions import ParseError
@@ -23,9 +21,6 @@ def get_from_profiling_service(
         kwargs["params"] = params
     if headers:
         kwargs["headers"].update(headers)
-    if settings.ENVIRONMENT == "production":
-        id_token = fetch_id_token_for_service(settings.SENTRY_PROFILING_SERVICE_URL)
-        kwargs["headers"].update({"Authorization": f"Bearer {id_token}"})
     return safe_urlopen(
         f"{settings.SENTRY_PROFILING_SERVICE_URL}{path}",
         **kwargs,
@@ -54,11 +49,6 @@ def proxy_profiling_service(
             response[h] = profiling_response.headers[h]
 
     return response
-
-
-def fetch_id_token_for_service(service_url: str) -> str:
-    auth_req = google.auth.transport.requests.Request()
-    return google.oauth2.id_token.fetch_id_token(auth_req, service_url)
 
 
 PROFILE_FILTERS = {
