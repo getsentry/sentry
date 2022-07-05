@@ -1968,7 +1968,9 @@ describe('WidgetBuilder', function () {
         userEvent.click(screen.getByText('Add a Column'));
 
         // The sort by should still have count_unique(user)
-        expect(screen.getAllByText('count_unique(user)')).toHaveLength(2);
+        await waitFor(() =>
+          expect(screen.getAllByText('count_unique(user)')).toHaveLength(2)
+        );
       });
 
       it('will reset the sort field when going from line to table when sorting by a value not in fields', async function () {
@@ -2272,7 +2274,7 @@ describe('WidgetBuilder', function () {
       userEvent.paste(screen.getAllByPlaceholderText('Alias')[1], 'This should persist');
       userEvent.type(screen.getAllByPlaceholderText('Alias')[0], 'A');
 
-      expect(screen.getByText('This should persist')).toBeInTheDocument();
+      expect(await screen.findByText('This should persist')).toBeInTheDocument();
     });
 
     it('does not wipe equation aliases when a column selection is made', async function () {
@@ -2285,6 +2287,8 @@ describe('WidgetBuilder', function () {
       userEvent.click(screen.getByText('Add an Equation'));
       userEvent.paste(screen.getAllByPlaceholderText('Alias')[1], 'This should persist');
 
+      // 1 for the table, 1 for the the column selector, 1 for the sort
+      await waitFor(() => expect(screen.getAllByText('count()')).toHaveLength(3));
       await selectEvent.select(screen.getAllByText('count()')[1], /count_unique/);
 
       expect(screen.getByText('This should persist')).toBeInTheDocument();
