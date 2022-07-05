@@ -16,9 +16,12 @@ from sentry.api.fields import AvatarField
 from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models import organization as org_serializers
-from sentry.api.serializers.models.organization import TrustedRelaySerializer
+from sentry.api.serializers.models.organization import (
+    BaseOrganizationSerializer,
+    TrustedRelaySerializer,
+)
 from sentry.api.serializers.rest_framework import ListField
-from sentry.constants import LEGACY_RATE_LIMIT_OPTIONS, RESERVED_ORGANIZATION_SLUGS
+from sentry.constants import LEGACY_RATE_LIMIT_OPTIONS
 from sentry.datascrubbing import validate_pii_config_update
 from sentry.lang.native.utils import (
     STORE_CRASH_REPORTS_DEFAULT,
@@ -121,9 +124,7 @@ UNSAVED = object()
 DEFERRED = object()
 
 
-class OrganizationSerializer(serializers.Serializer):
-    name = serializers.CharField(max_length=64)
-    slug = serializers.RegexField(r"^[a-zA-Z0-9][a-zA-Z0-9-]*(?<!-)$", max_length=50)
+class OrganizationSerializer(BaseOrganizationSerializer):
     accountRateLimit = EmptyIntegerField(
         min_value=0, max_value=1000000, required=False, allow_null=True
     )
@@ -171,28 +172,6 @@ class OrganizationSerializer(serializers.Serializer):
     def _has_sso_enabled(self):
         org = self.context["organization"]
         return AuthProvider.objects.filter(organization=org).exists()
-
-    def validate_slug(self, value):
-        # Historically, the only check just made sure there was more than 1
-        # character for the slug, but since then, there are many slugs that
-        # fit within this new imposed limit. We're not fixing existing, but
-        # just preventing new bad values.
-        if len(value) < 3:
-            raise serializers.ValidationError(
-                f'This slug "{value}" is too short. Minimum of 3 characters.'
-            )
-        if value in RESERVED_ORGANIZATION_SLUGS:
-            raise serializers.ValidationError(f'This slug "{value}" is reserved and not allowed.')
-        qs = Organization.objects.filter(slug=value).exclude(id=self.context["organization"].id)
-        if qs.exists():
-            raise serializers.ValidationError(f'The slug "{value}" is already in use.')
-
-        contains_whitespace = any(c.isspace() for c in self.initial_data["slug"])
-        if contains_whitespace:
-            raise serializers.ValidationError(
-                f'The slug "{value}" should not contain any whitespace.'
-            )
-        return value
 
     def validate_relayPiiConfig(self, value):
         organization = self.context["organization"]
