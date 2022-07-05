@@ -36,6 +36,12 @@ function mockRequests(orgSlug: Organization['slug']) {
     body: [],
   });
 
+  MockApiClient.addMockResponse({
+    url: '/organizations/org-slug/measurements-meta/',
+    method: 'GET',
+    body: {'measurements.custom.measurement': {functions: ['p99']}},
+  });
+
   return {eventsv2Mock};
 }
 
