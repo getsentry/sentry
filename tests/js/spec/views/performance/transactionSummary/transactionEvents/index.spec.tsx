@@ -12,7 +12,7 @@ import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhan
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import TransactionEvents from 'sentry/views/performance/transactionSummary/transactionEvents';
 
-import {eventsTableResponseFields, mockEventsTableData} from './eventsTable.spec';
+import {EVENTS_TABLE_RESPONSE_FIELDS, MOCK_EVENTS_TABLE_DATA} from './eventsTable.spec';
 
 const WrappedComponent = ({data}) => {
   return (
@@ -99,9 +99,9 @@ const setupMockApiResponeses = () => {
   MockApiClient.addMockResponse({
     url: '/organizations/org-slug/events/',
     body: {
-      data: mockEventsTableData,
+      data: MOCK_EVENTS_TABLE_DATA,
       meta: {
-        fields: eventsTableResponseFields,
+        fields: EVENTS_TABLE_RESPONSE_FIELDS,
       },
     },
     match: [
@@ -113,9 +113,9 @@ const setupMockApiResponeses = () => {
   MockApiClient.addMockResponse({
     url: '/organizations/org-slug/events/',
     body: {
-      data: [mockEventsTableData[0]],
+      data: [MOCK_EVENTS_TABLE_DATA[0]],
       meta: {
-        fields: eventsTableResponseFields,
+        fields: EVENTS_TABLE_RESPONSE_FIELDS,
       },
     },
     match: [

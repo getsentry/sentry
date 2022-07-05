@@ -14,7 +14,7 @@ type Data = {
   features?: string[];
 };
 
-export const mockEventsTableData = [
+export const MOCK_EVENTS_TABLE_DATA = [
   {
     id: 'deadbeef',
     'user.display': 'uhoh@example.com',
@@ -45,7 +45,7 @@ export const mockEventsTableData = [
   },
 ];
 
-export const eventsTableResponseFields = [
+export const EVENTS_TABLE_RESPONSE_FIELDS = [
   'id',
   'user.display',
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
@@ -101,7 +101,7 @@ describe('Performance GridEditable Table', function () {
       t('trace id'),
       t('timestamp'),
     ];
-    fields = eventsTableResponseFields;
+    fields = EVENTS_TABLE_RESPONSE_FIELDS;
     organization = TestStubs.Organization();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
@@ -115,7 +115,7 @@ describe('Performance GridEditable Table', function () {
       url: '/organizations/org-slug/sdk-updates/',
       body: [],
     });
-    data = mockEventsTableData;
+    data = MOCK_EVENTS_TABLE_DATA;
     // Transaction list response
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
