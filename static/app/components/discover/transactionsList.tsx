@@ -6,8 +6,7 @@ import {Location, LocationDescriptor, Query} from 'history';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Button from 'sentry/components/button';
 import DiscoverButton from 'sentry/components/discoverButton';
-import DropdownButton from 'sentry/components/dropdownButton';
-import DropdownControl, {DropdownItem} from 'sentry/components/dropdownControl';
+import CompactSelect from 'sentry/components/forms/compactSelect';
 import Pagination, {CursorHandler} from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -176,7 +175,13 @@ class _TransactionsList extends Component<Props> {
     return (
       <Fragment>
         <div>
-          <DropdownControl
+          <CompactSelect
+            triggerProps={{prefix: t('Filter'), size: 'xsmall'}}
+            value={selected.value}
+            options={options}
+            onChange={opt => handleDropdownChange(opt.value)}
+          />
+          {/* <DropdownControl
             button={({isOpen, getActorProps}) => (
               <StyledDropdownButton
                 {...getActorProps()}
@@ -199,7 +204,7 @@ class _TransactionsList extends Component<Props> {
                 {label}
               </DropdownItem>
             ))}
-          </DropdownControl>
+          </DropdownControl> */}
         </div>
         {!this.isTrend() &&
           (handleOpenAllEventsClick ? (
@@ -376,10 +381,6 @@ const Header = styled('div')`
   grid-template-columns: 1fr auto auto;
   margin-bottom: ${space(1)};
   align-items: center;
-`;
-
-const StyledDropdownButton = styled(DropdownButton)`
-  min-width: 145px;
 `;
 
 const StyledPagination = styled(Pagination)`
