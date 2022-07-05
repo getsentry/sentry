@@ -117,7 +117,7 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     organization: Organization,
     pageFilters: PageFilters,
     referrer?: string
-  ) => ReturnType<Client['requestPromise']>;
+  ) => Promise<[SeriesResponse, string | undefined, ResponseMeta | undefined]>;
   /**
    * Generate the request promises for fetching
    * tabular data.

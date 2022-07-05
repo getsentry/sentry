@@ -270,7 +270,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
       preRequestWidgetTransform,
     } = this.props;
     const widget = preRequestWidgetTransform?.(initialWidget) ?? initialWidget;
-    const responses = await Promise.all<SeriesResponse>(
+    const responses = await Promise.all(
       widget.queries.map((_query, index) => {
         return config.getSeriesRequest!(
           api,
@@ -283,10 +283,10 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
       })
     );
     const transformedTimeseriesResults: Series[] = [];
-    responses.forEach((rawResults, requestIndex) => {
-      afterFetchSeriesData?.(rawResults);
+    responses.forEach(([data], requestIndex) => {
+      afterFetchSeriesData?.(data);
       const transformedResult = config.transformSeries!(
-        rawResults,
+        data,
         widget.queries[requestIndex],
         organization
       );
