@@ -129,3 +129,10 @@ def generate_customer_hostname(org_slug: str) -> str:
             return url_prefix_hostname
         customer_hostname = customer_hostname.replace("{region}", region)
     return customer_hostname
+
+
+def generate_customer_url(org_slug: str) -> str:
+    customer_url_template = options.get("system.customer-url-template")
+    if not customer_url_template:
+        return options.get("system.url-prefix")
+    return customer_url_template.replace("{hostname}", generate_customer_hostname(org_slug))
