@@ -7,7 +7,7 @@ import useApi from 'sentry/utils/useApi';
 
 import {projectStatsToSeries} from './projectStatsToSeries';
 
-export function useProjectStats({orgSlug, projectId, interval, statsPeriod}) {
+function useProjectStats({orgSlug, projectId, interval, statsPeriod}) {
   const api = useApi();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | undefined>(undefined);
@@ -47,3 +47,5 @@ export function useProjectStats({orgSlug, projectId, interval, statsPeriod}) {
     projectStatsSeries: projectStatsToSeries(projectStats),
   };
 }
+
+export default useProjectStats;

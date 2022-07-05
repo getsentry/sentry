@@ -22,7 +22,7 @@ import {SERVER_SIDE_SAMPLING_DOC_LINK} from '../utils';
 import {projectStatsToPredictedSeries} from '../utils/projectStatsToPredictedSeries';
 import {projectStatsToSampleRates} from '../utils/projectStatsToSampleRates';
 import {projectStatsToSeries} from '../utils/projectStatsToSeries';
-import {useProjectStats} from '../utils/useProjectStats';
+import useProjectStats from '../utils/useProjectStats';
 
 import {UniformRateChart} from './uniformRateChart';
 

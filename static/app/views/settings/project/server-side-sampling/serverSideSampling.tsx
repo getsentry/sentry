@@ -29,7 +29,7 @@ import {ActivateModal} from './modals/activateModal';
 import {SpecificConditionsModal} from './modals/specificConditionsModal';
 import {responsiveModal} from './modals/styles';
 import {UniformRateModal} from './modals/uniformRateModal';
-import {useProjectStats} from './utils/useProjectStats';
+import useProjectStats from './utils/useProjectStats';
 import {Promo} from './promo';
 import {
   ActiveColumn,
