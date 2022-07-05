@@ -49,7 +49,7 @@ _profiling_pool = connection_from_url(
     settings.SENTRY_PROFILING_SERVICE_URL,
     retries=RetrySkipTimeout(
         total=3,
-        allow_methods={"GET", "POST"},
+        allowed_methods={"GET", "POST"},
     ),
     timeout=30,
     maxsize=10,
@@ -62,7 +62,7 @@ def get_from_profiling_service(
     params: Optional[Dict[Any, Any]] = None,
     headers: Optional[Dict[Any, Any]] = None,
 ) -> Response:
-    kwargs: Dict[str, Any] = {"method": method, "headers": {}, "stream": True}
+    kwargs: Dict[str, Any] = {"headers": {}, "stream": True}
     if params:
         kwargs["params"] = params
     if headers:
