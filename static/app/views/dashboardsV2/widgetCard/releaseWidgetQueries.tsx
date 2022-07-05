@@ -271,7 +271,7 @@ class ReleaseWidgetQueries extends Component<Props, State> {
     );
   };
 
-  preRequestWidgetTransform = (initialWidget: Widget): Widget => {
+  beforeRequestWidgetTransformer = (initialWidget: Widget): Widget => {
     const {releases} = this.state;
     const widget = cloneDeep(initialWidget);
 
@@ -372,7 +372,7 @@ class ReleaseWidgetQueries extends Component<Props, State> {
             : undefined
         }
         customDidUpdateComparator={this.customDidUpdateComparator}
-        preRequestWidgetTransform={this.preRequestWidgetTransform}
+        beforeRequestWidgetTransformer={this.beforeRequestWidgetTransformer}
         afterFetchTableData={this.afterFetchData}
         afterFetchSeriesData={this.afterFetchData}
       >
