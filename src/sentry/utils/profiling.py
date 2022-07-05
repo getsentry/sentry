@@ -1,15 +1,59 @@
 from typing import Any, Dict, Optional
+from urllib.parse import urlencode, urlparse
 
 import google.auth.transport.requests
 import google.oauth2.id_token
+import urllib3
 from django.conf import settings
 from django.http import StreamingHttpResponse
 from parsimonious.exceptions import ParseError
-from requests import Response
+from urllib3.response import HTTPResponse
 
 from sentry.api.event_search import SearchFilter, parse_search_query
 from sentry.exceptions import InvalidSearchQuery
-from sentry.http import safe_urlopen
+from sentry.net.http import connection_from_url
+from sentry.utils import metrics
+
+
+class RetrySkipTimeout(urllib3.Retry):
+    """
+    urllib3 Retry class does not allow us to retry on read errors but to exclude
+    read timeout. Retrying after a timeout adds useless load to Snuba.
+    """
+
+    def increment(
+        self, method=None, url=None, response=None, error=None, _pool=None, _stacktrace=None
+    ):
+        """
+        Just rely on the parent class unless we have a read timeout. In that case
+        immediately give up
+        """
+        if error and isinstance(error, urllib3.exceptions.ReadTimeoutError):
+            raise error.with_traceback(_stacktrace)
+
+        metrics.incr(
+            "profiling.client.retry",
+            tags={"method": method, "path": urlparse(url).path if url else None},
+        )
+        return super().increment(
+            method=method,
+            url=url,
+            response=response,
+            error=error,
+            _pool=_pool,
+            _stacktrace=_stacktrace,
+        )
+
+
+_profiling_pool = connection_from_url(
+    settings.SENTRY_PROFILING_SERVICE_URL,
+    retries=RetrySkipTimeout(
+        total=3,
+        allowed_methods={"GET", "POST"},
+    ),
+    timeout=30,
+    maxsize=10,
+)
 
 
 def get_from_profiling_service(
@@ -17,17 +61,18 @@ def get_from_profiling_service(
     path: str,
     params: Optional[Dict[Any, Any]] = None,
     headers: Optional[Dict[Any, Any]] = None,
-) -> Response:
-    kwargs: Dict[str, Any] = {"method": method, "headers": {}, "stream": True}
+) -> HTTPResponse:
+    kwargs: Dict[str, Any] = {"headers": {}, "preload_content": False}
     if params:
-        kwargs["params"] = params
+        path = f"{path}?{urlencode(params, doseq=True)}"
     if headers:
         kwargs["headers"].update(headers)
     if settings.ENVIRONMENT == "production":
         id_token = fetch_id_token_for_service(settings.SENTRY_PROFILING_SERVICE_URL)
         kwargs["headers"].update({"Authorization": f"Bearer {id_token}"})
-    return safe_urlopen(
-        f"{settings.SENTRY_PROFILING_SERVICE_URL}{path}",
+    return _profiling_pool.urlopen(
+        method,
+        path,
         **kwargs,
     )
 
@@ -41,11 +86,11 @@ def proxy_profiling_service(
     profiling_response = get_from_profiling_service(method, path, params=params, headers=headers)
 
     def stream():
-        yield from profiling_response.raw.stream(decode_content=False)
+        yield from profiling_response.stream(decode_content=False)
 
     response = StreamingHttpResponse(
         streaming_content=stream(),
-        status=profiling_response.status_code,
+        status=profiling_response.status,
         content_type=profiling_response.headers.get("Content_type", "application/json"),
     )
 
