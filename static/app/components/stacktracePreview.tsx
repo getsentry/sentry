@@ -257,6 +257,7 @@ const StyledHovercard = styled(Hovercard)<{state: 'loading' | 'empty' | 'done'}>
     padding: 0;
     max-height: 300px;
     overflow-y: auto;
+    overscroll-behavior: contain;
     border-bottom-left-radius: ${p => p.theme.borderRadius};
     border-bottom-right-radius: ${p => p.theme.borderRadius};
   }

@@ -1,12 +1,8 @@
 from django.db import models
 
 from sentry.constants import ObjectStatus
-from sentry.db.models import (
-    BoundedPositiveIntegerField,
-    DefaultFieldsModel,
-    EncryptedJsonField,
-    FlexibleForeignKey,
-)
+from sentry.db.models import BoundedPositiveIntegerField, DefaultFieldsModel, FlexibleForeignKey
+from sentry.db.models.fields.jsonfield import JSONField
 
 
 class OrganizationIntegration(DefaultFieldsModel):
@@ -14,7 +10,7 @@ class OrganizationIntegration(DefaultFieldsModel):
 
     organization = FlexibleForeignKey("sentry.Organization")
     integration = FlexibleForeignKey("sentry.Integration")
-    config = EncryptedJsonField(default=dict)
+    config = JSONField(default=dict)
 
     default_auth_id = BoundedPositiveIntegerField(db_index=True, null=True)
     status = BoundedPositiveIntegerField(
