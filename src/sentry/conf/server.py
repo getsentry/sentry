@@ -958,6 +958,8 @@ SENTRY_FEATURES = {
     "organizations:discover-frontend-use-events-endpoint": True,
     # Enables events endpoint usage on performance frontend
     "organizations:performance-frontend-use-events-endpoint": True,
+    # Enables events endpoint rate limit
+    "organizations:discover-events-rate-limit": False,
     # Enable duplicating alert rules.
     "organizations:duplicate-alert-rule": True,
     # Enable attaching arbitrary files to events.
@@ -1065,6 +1067,8 @@ SENTRY_FEATURES = {
     "organizations:dashboards-mep": False,
     # Enable release health widgets in dashboards
     "organizations:dashboards-releases": False,
+    # Enable top level query filters in dashboards
+    "organizations:dashboards-top-level-filter": False,
     # Enables usage of custom measurements in dashboard widgets
     "organizations:dashboard-custom-measurement-widgets": False,
     # Enable widget viewer modal in dashboards
