@@ -56,9 +56,9 @@ export function projectStatsToSampleRates(stats: SeriesApi | undefined): {
     }
   });
 
-  hours.sort();
-  trueSampleRates.sort();
-  safeSampleRates.sort();
+  hours.sort((a, z) => a - z);
+  trueSampleRates.sort((a, z) => a - z);
+  safeSampleRates.sort((a, z) => a - z);
 
   const trueSampleRate = round(
     trueSampleRates[Math.floor(trueSampleRates.length / 2)],
