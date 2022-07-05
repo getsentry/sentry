@@ -570,6 +570,89 @@ export const ISSUE_FIELDS = [
   FieldKey.USER_USERNAME,
 ];
 
+/**
+ * Refer to src/sentry/snuba/events.py, search for Columns
+ */
+export const DISCOVER_FIELDS = [
+  FieldKey.ID,
+  // issue.id and project.id are omitted on purpose.
+  // Customers should use `issue` and `project` instead.
+  FieldKey.TIMESTAMP,
+  // time is omitted on purpose.
+  // Customers should use `timestamp` or `timestamp.to_hour`.
+  FieldKey.TIMESTAMP_TO_HOUR,
+  FieldKey.TIMESTAMP_TO_DAY,
+
+  FieldKey.CULPRIT,
+  FieldKey.LOCATION,
+  FieldKey.MESSAGE,
+  FieldKey.PLATFORM_NAME,
+  FieldKey.ENVIRONMENT,
+  FieldKey.RELEASE,
+  FieldKey.DIST,
+  FieldKey.TITLE,
+  FieldKey.EVENT_TYPE,
+  // tags.key and tags.value are omitted on purpose as well.
+
+  FieldKey.TRANSACTION,
+  FieldKey.USER,
+  FieldKey.USER_ID,
+  FieldKey.USER_EMAIL,
+  FieldKey.USER_USERNAME,
+  FieldKey.USER_IP,
+  FieldKey.SDK_NAME,
+  FieldKey.SDK_VERSION,
+  FieldKey.HTTP_METHOD,
+  FieldKey.HTTP_REFERER,
+  FieldKey.HTTP_URL,
+  FieldKey.OS_BUILD,
+  FieldKey.OS_KERNEL_VERSION,
+  FieldKey.DEVICE_NAME,
+  FieldKey.DEVICE_BRAND,
+  FieldKey.DEVICE_LOCALE,
+  FieldKey.DEVICE_UUID,
+  FieldKey.DEVICE_ARCH,
+  FieldKey.DEVICE_FAMILY,
+  FieldKey.DEVICE_BATTERY_LEVEL,
+  FieldKey.DEVICE_ORIENTATION,
+  FieldKey.DEVICE_SIMULATOR,
+  FieldKey.DEVICE_ONLINE,
+  FieldKey.DEVICE_CHARGING,
+  FieldKey.GEO_COUNTRY_CODE,
+  FieldKey.GEO_REGION,
+  FieldKey.GEO_CITY,
+  FieldKey.ERROR_TYPE,
+  FieldKey.ERROR_VALUE,
+  FieldKey.ERROR_MECHANISM,
+  FieldKey.ERROR_HANDLED,
+  FieldKey.ERROR_UNHANDLED,
+  FieldKey.LEVEL,
+  FieldKey.STACK_ABS_PATH,
+  FieldKey.STACK_FILENAME,
+  FieldKey.STACK_PACKAGE,
+  FieldKey.STACK_MODULE,
+  FieldKey.STACK_FUNCTION,
+  FieldKey.STACK_IN_APP,
+  FieldKey.STACK_COLNO,
+  FieldKey.STACK_LINENO,
+  FieldKey.STACK_STACK_LEVEL,
+  // contexts.key and contexts.value omitted on purpose.
+
+  // Transaction event fields.
+  FieldKey.TRANSACTION_DURATION,
+  FieldKey.TRANSACTION_OP,
+  FieldKey.TRANSACTION_STATUS,
+
+  FieldKey.TRACE,
+  FieldKey.TRACE_SPAN,
+  FieldKey.TRACE_PARENT_SPAN,
+
+  // Field alises defined in src/sentry/api/event_search.py
+  FieldKey.PROJECT,
+  FieldKey.ISSUE,
+  FieldKey.USER_DISPLAY,
+];
+
 export const getFieldDefinition = (key: string): FieldDefinition | null => {
   return FIELDS[key] ?? null;
 };
