@@ -187,7 +187,7 @@ class OwnerInput extends Component<Props, State> {
             <div>{this.parseError(error)}</div>
             <SaveButton>
               <Button
-                size="small"
+                size="sm"
                 priority="primary"
                 onClick={this.handleUpdateOwnership}
                 disabled={disabled || !hasChanges}

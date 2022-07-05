@@ -28,7 +28,7 @@ function CreateIntegrationButton({
     <Access organization={organization} access={['org:write']}>
       {({hasAccess}) => (
         <Button
-          size="small"
+          size="sm"
           priority="primary"
           disabled={!hasAccess}
           title={!hasAccess ? permissionTooltipText : undefined}

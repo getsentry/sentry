@@ -110,7 +110,7 @@ class ResolveActions extends Component<Props> {
       >
         <Button
           priority="primary"
-          size="xsmall"
+          size="xs"
           icon={<IconCheckmark size="xs" />}
           aria-label={t('Unresolve')}
           disabled={isAutoResolved}
@@ -189,7 +189,7 @@ class ResolveActions extends Component<Props> {
             ref={triggerRef}
             {...triggerProps}
             aria-label={t('More resolve options')}
-            size="xsmall"
+            size="xs"
             icon={<IconChevron direction="down" size="xs" />}
             disabled={isDisabled}
           />
@@ -262,7 +262,7 @@ class ResolveActions extends Component<Props> {
       <Tooltip disabled={!projectFetchError} title={t('Error fetching project')}>
         <ButtonBar merged>
           <ResolveButton
-            size="xsmall"
+            size="xs"
             title={t(
               'Resolves the issue. The issue will get unresolved if it happens again.'
             )}

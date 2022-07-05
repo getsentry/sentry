@@ -11,7 +11,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 
 type Props = {
   filter: PinnedPageFilter;
-  size: Extract<ButtonProps['size'], 'xsmall' | 'zero'>;
+  size: Extract<ButtonProps['size'], 'xs' | 'zero'>;
   className?: string;
 };
 
@@ -47,7 +47,7 @@ function PageFilterPinButton({filter, size, className}: Props) {
   );
 }
 
-const PinButton = styled(Button)<{pinned: boolean; size: 'xsmall' | 'zero'}>`
+const PinButton = styled(Button)<{pinned: boolean; size: 'xs' | 'zero'}>`
   display: block;
   color: ${p => p.theme.textColor};
 

@@ -60,7 +60,7 @@ export default class RequestIntegrationButton extends Component<Props, State> {
         disabled={isOpen || isSent}
         onClick={() => this.openRequestModal()}
         priority="primary"
-        size="small"
+        size="sm"
       >
         {buttonText}
       </StyledRequestIntegrationButton>

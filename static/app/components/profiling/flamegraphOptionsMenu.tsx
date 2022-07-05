@@ -55,14 +55,14 @@ function FlamegraphOptionsMenu({
 
   return (
     <Fragment>
-      <Button size="xsmall" onClick={() => canvasPoolManager.dispatch('resetZoom', [])}>
+      <Button size="xs" onClick={() => canvasPoolManager.dispatch('resetZoom', [])}>
         {t('Reset Zoom')}
       </Button>
       <CompositeSelect
         triggerLabel={t('Options')}
         triggerProps={{
           icon: <IconSliders size="xs" />,
-          size: 'xsmall',
+          size: 'xs',
         }}
         placement="bottom right"
         sections={options}

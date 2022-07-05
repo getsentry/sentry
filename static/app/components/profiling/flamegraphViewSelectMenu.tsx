@@ -23,24 +23,24 @@ function FlamegraphViewSelectMenu({
       <ButtonBar merged active={sorting}>
         <Button
           barId="call order"
-          size="xsmall"
+          size="xs"
           onClick={() => onSortingChange('call order')}
         >
           {t('Call Order')}
         </Button>
         <Button
           barId="left heavy"
-          size="xsmall"
+          size="xs"
           onClick={() => onSortingChange('left heavy')}
         >
           {t('Left Heavy')}
         </Button>
       </ButtonBar>
       <ButtonBar merged active={view}>
-        <Button barId="bottom up" size="xsmall" onClick={() => onViewChange('bottom up')}>
+        <Button barId="bottom up" size="xs" onClick={() => onViewChange('bottom up')}>
           {t('Bottom Up')}
         </Button>
-        <Button barId="top down" size="xsmall" onClick={() => onViewChange('top down')}>
+        <Button barId="top down" size="xs" onClick={() => onViewChange('top down')}>
           {t('Top Down')}
         </Button>
       </ButtonBar>

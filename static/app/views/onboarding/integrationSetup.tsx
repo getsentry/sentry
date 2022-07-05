@@ -176,12 +176,12 @@ class IntegrationSetup extends Component<Props, State> {
               onAddIntegration={this.handleAddIntegration}
               organization={organization}
               priority="primary"
-              size="small"
+              size="sm"
               analyticsParams={{view: 'onboarding', already_installed: false}}
               modalParams={{projectId: project.id}}
             />
             <Button
-              size="small"
+              size="sm"
               to={{
                 pathname: window.location.pathname,
                 query: {manual: '1'},

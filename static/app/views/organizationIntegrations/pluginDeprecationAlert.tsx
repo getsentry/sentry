@@ -35,7 +35,7 @@ class PluginDeprecationAlert extends Component<Props, State> {
           trailingItems={
             <UpgradeNowButton
               href={`${upgradeUrl}${queryParams}`}
-              size="xsmall"
+              size="xs"
               onClick={() =>
                 trackIntegrationAnalytics('integrations.resolve_now_clicked', {
                   integration_type: 'plugin',

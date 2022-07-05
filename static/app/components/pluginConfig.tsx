@@ -121,11 +121,11 @@ class PluginConfig extends Component<Props, State> {
           {data.canDisable && enabled && (
             <Actions>
               {data.isTestable && (
-                <TestPluginButton onClick={this.handleTestPlugin} size="small">
+                <TestPluginButton onClick={this.handleTestPlugin} size="sm">
                   {t('Test Plugin')}
                 </TestPluginButton>
               )}
-              <Button size="small" onClick={this.handleDisablePlugin}>
+              <Button size="sm" onClick={this.handleDisablePlugin}>
                 {t('Disable')}
               </Button>
             </Actions>

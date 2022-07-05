@@ -211,7 +211,7 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
                       <Button
                         data-test-id="add-mapping-button"
                         onClick={() => this.openModal()}
-                        size="xsmall"
+                        size="xs"
                         icon={<IconAdd size="xs" isCircled />}
                         disabled={!hasAccess}
                       >
@@ -230,7 +230,7 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
                 action={
                   <Button
                     href={`https://docs.sentry.io/product/integrations/${integration.provider.key}/#stack-trace-linking`}
-                    size="small"
+                    size="sm"
                     onClick={() => {
                       trackIntegrationAnalytics('integrations.stacktrace_docs_clicked', {
                         view: 'integration_configuration_detail',

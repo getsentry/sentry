@@ -63,7 +63,7 @@ function OptionSelector({
       isOptionDisabled={isOptionDisabled}
       multiple={multiple}
       triggerProps={{
-        size: 'small',
+        size: 'sm',
         borderless: true,
         prefix: (
           <Fragment>

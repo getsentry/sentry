@@ -193,7 +193,7 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
     const provider = this.provider;
     const {metadata} = provider;
 
-    const size = 'small' as const;
+    const size = 'sm' as const;
     const priority = 'primary' as const;
 
     const buttonProps = {

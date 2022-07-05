@@ -50,7 +50,7 @@ export default class RepositoryProjectPathConfigRow extends Component<Props> {
                 disabled={hasAccess}
               >
                 <StyledButton
-                  size="small"
+                  size="sm"
                   icon={<IconEdit size="sm" />}
                   aria-label={t('edit')}
                   disabled={!hasAccess}
@@ -62,7 +62,7 @@ export default class RepositoryProjectPathConfigRow extends Component<Props> {
                   message={t('Are you sure you want to remove this code mapping?')}
                 >
                   <StyledButton
-                    size="small"
+                    size="sm"
                     icon={<IconDelete size="sm" />}
                     aria-label={t('delete')}
                     disabled={!hasAccess}

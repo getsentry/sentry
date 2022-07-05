@@ -95,7 +95,7 @@ interface BaseButtonProps
   /**
    * The size of the button
    */
-  size?: 'zero' | 'xsmall' | 'small';
+  size?: 'zero' | 'xs' | 'sm' | 'md';
   /**
    * @deprecated Use `external`
    */
@@ -132,7 +132,7 @@ export type ButtonProps = ButtonPropsWithoutAriaLabel | ButtonPropsWithAriaLabel
 type Url = ButtonProps['to'] | ButtonProps['href'];
 
 function BaseButton({
-  size,
+  size = 'md',
   to,
   busy,
   href,
@@ -340,7 +340,7 @@ const getColors = ({
 };
 
 const getSizeStyles = ({size, translucentBorder, theme}: StyledButtonProps) => {
-  const buttonSize = size === 'small' || size === 'xsmall' ? size : 'default';
+  const buttonSize = size === 'sm' || size === 'xs' ? size : 'md';
   const formStyles = theme.form[buttonSize];
   const buttonPadding = theme.buttonPadding[buttonSize];
 
@@ -444,7 +444,11 @@ const getIconMargin = ({size, hasChildren}: IconProps) => {
     return '0';
   }
 
-  return size && ['xsmall', 'zero'].includes(size) ? '6px' : '8px';
+  if (size === 'xs' || size === 'zero') {
+    return '6px';
+  }
+
+  return '8px';
 };
 
 const Icon = styled('span')<IconProps & Omit<StyledButtonProps, 'theme'>>`

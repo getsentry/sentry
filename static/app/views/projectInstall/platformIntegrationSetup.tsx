@@ -140,13 +140,13 @@ class PlatformIntegrationSetup extends AsyncComponent<Props, State> {
                   onAddIntegration={this.handleAddIntegration}
                   organization={organization}
                   priority="primary"
-                  size="small"
+                  size="sm"
                   analyticsParams={{view: 'project_creation', already_installed: false}}
                   modalParams={{projectId: project.id}}
                   aria-label={t('Add integration')}
                 />
                 <Button
-                  size="small"
+                  size="sm"
                   to={{
                     pathname: window.location.pathname,
                     query: {manual: '1'},

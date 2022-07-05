@@ -17,7 +17,7 @@ function MissingAlertsButtons({organization, projectSlug}: Props) {
       <CreateAlertButton
         organization={organization}
         iconProps={{size: 'xs'}}
-        size="small"
+        size="sm"
         priority="primary"
         referrer="project_detail"
         projectSlug={projectSlug}
@@ -25,7 +25,7 @@ function MissingAlertsButtons({organization, projectSlug}: Props) {
       >
         {t('Create Alert')}
       </CreateAlertButton>
-      <Button size="small" external href={DOCS_URL}>
+      <Button size="sm" external href={DOCS_URL}>
         {t('Learn More')}
       </Button>
     </ButtonBar>

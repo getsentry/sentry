@@ -66,7 +66,7 @@ export default class SetupAlertIntegrationButton extends AsyncComponent<Props, S
     return (
       <Tooltip title={t('Send Alerts to Slack. Install the integration now.')}>
         <Button
-          size="small"
+          size="sm"
           icon={<PluginIcon pluginId="slack" size={16} />}
           {...buttonProps}
         >

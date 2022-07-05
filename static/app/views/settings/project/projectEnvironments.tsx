@@ -240,7 +240,7 @@ function EnvironmentRow({
           <Fragment>
             {shouldShowAction && onHide && (
               <EnvironmentButton
-                size="xsmall"
+                size="xs"
                 disabled={!hasAccess}
                 onClick={() => onHide(environment, !isHidden)}
               >

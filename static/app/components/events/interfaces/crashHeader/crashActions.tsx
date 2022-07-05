@@ -81,7 +81,7 @@ const CrashActions = ({
         {hasSystemFrames && (
           <Button
             barId={STACK_VIEW.APP}
-            size="xsmall"
+            size="xs"
             onClick={setStackView(STACK_VIEW.APP)}
             title={
               hasHierarchicalGrouping
@@ -94,18 +94,10 @@ const CrashActions = ({
             {hasHierarchicalGrouping ? t('Most Relevant') : t('App Only')}
           </Button>
         )}
-        <Button
-          barId={STACK_VIEW.FULL}
-          size="xsmall"
-          onClick={setStackView(STACK_VIEW.FULL)}
-        >
+        <Button barId={STACK_VIEW.FULL} size="xs" onClick={setStackView(STACK_VIEW.FULL)}>
           {t('Full')}
         </Button>
-        <Button
-          barId={STACK_VIEW.RAW}
-          onClick={setStackView(STACK_VIEW.RAW)}
-          size="xsmall"
-        >
+        <Button barId={STACK_VIEW.RAW} onClick={setStackView(STACK_VIEW.RAW)} size="xs">
           {t('Raw')}
         </Button>
       </ButtonBar>
@@ -113,14 +105,14 @@ const CrashActions = ({
         <ButtonBar active={stackType} merged>
           <Button
             barId={STACK_TYPE.ORIGINAL}
-            size="xsmall"
+            size="xs"
             onClick={setStackType(STACK_TYPE.ORIGINAL)}
           >
             {getOriginalButtonLabel()}
           </Button>
           <Button
             barId={STACK_TYPE.MINIFIED}
-            size="xsmall"
+            size="xs"
             onClick={setStackType(STACK_TYPE.MINIFIED)}
           >
             {getMinifiedButtonLabel()}

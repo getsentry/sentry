@@ -36,7 +36,7 @@ export function Actions({
       <StyledButtonbar gap={1}>
         <Button
           aria-label={t('Edit Rule')}
-          size="small"
+          size="sm"
           onClick={onEditRule}
           icon={<IconEdit />}
           disabled={disabled}
@@ -50,7 +50,7 @@ export function Actions({
         >
           <Button
             aria-label={t('Delete Rule')}
-            size="small"
+            size="sm"
             icon={<IconDelete />}
             title={disabled ? deleteRuleMessage : undefined}
           />
@@ -62,7 +62,7 @@ export function Actions({
           <Button
             aria-label={t('Actions')}
             icon={<IconEllipsis size="sm" />}
-            size="xsmall"
+            size="xs"
             onClick={onOpenMenuActions}
           />
         }

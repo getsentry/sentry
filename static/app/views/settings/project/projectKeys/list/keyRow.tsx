@@ -48,12 +48,12 @@ class KeyRow extends Component<Props> {
     const controlActive = access.has('project:write');
 
     const controls = [
-      <Button key="edit" to={editUrl} size="small">
+      <Button key="edit" to={editUrl} size="sm">
         {t('Configure')}
       </Button>,
       <Button
         key="toggle"
-        size="small"
+        size="sm"
         onClick={data.isActive ? this.handleDisable : this.handleEnable}
         disabled={!controlActive}
       >
@@ -70,7 +70,7 @@ class KeyRow extends Component<Props> {
         )}
       >
         <Button
-          size="small"
+          size="sm"
           disabled={!controlActive}
           icon={<IconDelete />}
           aria-label={t('Delete')}

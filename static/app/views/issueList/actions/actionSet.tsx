@@ -231,7 +231,7 @@ function ActionSet({
           'aria-label': t('More issue actions'),
           icon: <IconEllipsis size="xs" />,
           showChevron: false,
-          size: 'xsmall',
+          size: 'xs',
         }}
         disabledKeys={disabledMenuItems}
         isDisabled={!anySelected}

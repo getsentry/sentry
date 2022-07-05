@@ -124,7 +124,7 @@ const IntegrationRow = (props: Props) => {
             trailingItems={
               <ResolveNowButton
                 href={`${baseUrl}?tab=configurations&referrer=directory_resolve_now`}
-                size="xsmall"
+                size="xs"
                 onClick={() =>
                   trackIntegrationAnalytics('integrations.resolve_now_clicked', {
                     integration_type: convertIntegrationTypeToSnakeCase(type),

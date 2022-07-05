@@ -41,7 +41,7 @@ function MissingReleasesButtons({organization, health, projectId}: Props) {
   return (
     <ButtonBar gap={1}>
       <Button
-        size="small"
+        size="sm"
         priority="primary"
         external
         href={health ? DOCS_HEALTH_URL : DOCS_URL}
@@ -57,7 +57,7 @@ function MissingReleasesButtons({organization, health, projectId}: Props) {
           doneUrl={health ? DOCS_HEALTH_URL : DOCS_URL}
         >
           {({showModal}) => (
-            <Button size="small" onClick={showModal}>
+            <Button size="sm" onClick={showModal}>
               {t('Get Tour')}
             </Button>
           )}

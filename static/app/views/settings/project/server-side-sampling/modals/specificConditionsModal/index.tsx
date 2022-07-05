@@ -295,7 +295,7 @@ export function SpecificConditionsModal({
               <StyledCompactSelect
                 placement="bottom right"
                 triggerProps={{
-                  size: 'small',
+                  size: 'sm',
                   'aria-label': t('Add Condition'),
                 }}
                 triggerLabel={

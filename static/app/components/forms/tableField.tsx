@@ -99,7 +99,7 @@ export default class TableField extends Component<InputFieldProps> {
       <Button
         icon={<IconAdd size="xs" isCircled />}
         onClick={addRow}
-        size="xsmall"
+        size="xs"
         disabled={disabled}
       >
         {addButtonText}
@@ -158,7 +158,7 @@ export default class TableField extends Component<InputFieldProps> {
                     <RemoveButton>
                       <Button
                         icon={<IconDelete />}
-                        size="small"
+                        size="sm"
                         disabled={disabled}
                         aria-label={t('delete')}
                       />

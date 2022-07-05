@@ -408,12 +408,12 @@ class FormField extends Component<FormFieldProps> {
                     type={saveMessageAlertType}
                     trailingItems={
                       <Fragment>
-                        <Button onClick={this.handleCancelField} size="xsmall">
+                        <Button onClick={this.handleCancelField} size="xs">
                           {t('Cancel')}
                         </Button>
                         <Button
                           priority="primary"
-                          size="xsmall"
+                          size="xs"
                           onClick={this.handleSaveField}
                         >
                           {t('Save')}

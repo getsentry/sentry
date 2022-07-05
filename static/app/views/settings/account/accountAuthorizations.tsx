@@ -99,7 +99,7 @@ class AccountAuthorizations extends AsyncView<Props, State> {
                       <Scopes>{authorization.scopes.join(', ')}</Scopes>
                     </ApplicationDetails>
                     <Button
-                      size="small"
+                      size="sm"
                       onClick={() => this.handleRevoke(authorization)}
                       icon={<IconDelete />}
                       aria-label={t('Delete')}

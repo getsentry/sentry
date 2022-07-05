@@ -49,7 +49,7 @@ class GroupingComponentFrames extends Component<Props, State> {
             return (
               <GroupingComponentListItem key={index}>
                 <ToggleCollapse
-                  size="small"
+                  size="sm"
                   priority="link"
                   icon={<IconAdd size="8px" />}
                   onClick={() => this.setState({collapsed: false})}
@@ -68,7 +68,7 @@ class GroupingComponentFrames extends Component<Props, State> {
         {!collapsed && items.length > maxVisibleItems && (
           <GroupingComponentListItem>
             <ToggleCollapse
-              size="small"
+              size="sm"
               priority="link"
               icon={<IconSubtract size="8px" />}
               onClick={() => this.setState({collapsed: true})}

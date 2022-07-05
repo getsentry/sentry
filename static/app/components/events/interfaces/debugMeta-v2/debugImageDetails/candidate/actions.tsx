@@ -100,7 +100,7 @@ function Actions({
               <StyledButtonBar gap={1}>
                 <Tooltip disabled={hasRole} title={noPermissionToDownloadDebugFilesInfo}>
                   <Button
-                    size="xsmall"
+                    size="xs"
                     icon={<IconDownload size="xs" />}
                     href={downloadUrl}
                     disabled={!hasRole}
@@ -118,7 +118,7 @@ function Actions({
                     <Button
                       priority="danger"
                       icon={<IconDelete size="xs" />}
-                      size="xsmall"
+                      size="xs"
                       disabled={!hasAccess}
                       aria-label={t('Delete')}
                     />

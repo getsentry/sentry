@@ -49,15 +49,15 @@ const RecoveryCodes = ({
 
         <Actions>
           <Clipboard hideUnsupported value={formattedCodes}>
-            <Button size="small" aria-label={t('copy')}>
+            <Button size="sm" aria-label={t('copy')}>
               <IconCopy />
             </Button>
           </Clipboard>
-          <Button size="small" onClick={printCodes} aria-label={t('print')}>
+          <Button size="sm" onClick={printCodes} aria-label={t('print')}>
             <IconPrint />
           </Button>
           <Button
-            size="small"
+            size="sm"
             download="sentry-recovery-codes.txt"
             href={`data:text/plain;charset=utf-8,${formattedCodes}`}
             aria-label={t('download')}
@@ -70,7 +70,7 @@ const RecoveryCodes = ({
               'Are you sure you want to regenerate recovery codes? Your old codes will no longer work.'
             )}
           >
-            <Button priority="danger" size="small">
+            <Button priority="danger" size="sm">
               {t('Regenerate Codes')}
             </Button>
           </Confirm>

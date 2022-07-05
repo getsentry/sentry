@@ -28,7 +28,7 @@ const CardHeader = ({
 }: Props) => {
   const deleteButton = (
     <Button
-      size="small"
+      size="sm"
       icon={<IconDelete />}
       aria-label={t('Delete Key')}
       disabled={disabled}
@@ -46,12 +46,12 @@ const CardHeader = ({
       </DateCreated>
       <StyledButtonBar gap={1}>
         <Clipboard value={publicKey}>
-          <Button size="small" icon={<IconCopy />}>
+          <Button size="sm" icon={<IconCopy />}>
             {t('Copy Key')}
           </Button>
         </Clipboard>
         <Button
-          size="small"
+          size="sm"
           onClick={onEdit(publicKey)}
           icon={<IconEdit />}
           aria-label={t('Edit Key')}

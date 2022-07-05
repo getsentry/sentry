@@ -178,7 +178,7 @@ export default class ChoiceMapper extends Component<ChoiceMapperFieldProps> {
           <DropdownButton
             icon={<IconAdd size="xs" isCircled />}
             isOpen={isOpen}
-            size="xsmall"
+            size="xs"
             disabled={disabled}
           >
             {addButtonText}
@@ -226,7 +226,7 @@ export default class ChoiceMapper extends Component<ChoiceMapperFieldProps> {
                   <Actions>
                     <Button
                       icon={<IconDelete />}
-                      size="small"
+                      size="sm"
                       disabled={disabled}
                       onClick={() => removeRow(itemKey)}
                       aria-label={t('Delete')}

@@ -479,7 +479,7 @@ function TrendsListItem(props: TrendsListItemProps) {
         anchorRight
         title={
           <StyledButton
-            size="xsmall"
+            size="xs"
             icon={<IconEllipsis data-test-id="trends-item-action" size="xs" />}
             aria-label={t('Actions')}
           />

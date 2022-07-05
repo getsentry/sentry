@@ -43,7 +43,7 @@ function PullRequestLink({pullRequest, repository, inline}: Props) {
     <Button
       external
       href={pullRequest.externalUrl}
-      size="small"
+      size="sm"
       icon={renderIcon(repository)}
     >
       {displayId}

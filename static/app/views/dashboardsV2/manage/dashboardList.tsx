@@ -113,7 +113,7 @@ function DashboardList({
             ref={triggerRef}
             {...triggerProps}
             aria-label={t('Dashboard actions')}
-            size="xsmall"
+            size="xs"
             borderless
             onClick={e => {
               e.stopPropagation();

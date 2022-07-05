@@ -387,13 +387,13 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
 
             {complete ? (
               <Fragment>
-                <Button data-test-id="send-more" size="small" onClick={this.reset}>
+                <Button data-test-id="send-more" size="sm" onClick={this.reset}>
                   {t('Send more invites')}
                 </Button>
                 <Button
                   data-test-id="close"
                   priority="primary"
-                  size="small"
+                  size="sm"
                   onClick={() => {
                     trackAdvancedAnalyticsEvent('invite_modal.closed', {
                       organization: this.props.organization,
@@ -409,14 +409,14 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
               <Fragment>
                 <Button
                   data-test-id="cancel"
-                  size="small"
+                  size="sm"
                   onClick={closeModal}
                   disabled={disableInputs}
                 >
                   {t('Cancel')}
                 </Button>
                 <Button
-                  size="small"
+                  size="sm"
                   data-test-id="send-invites"
                   priority="primary"
                   disabled={!canSend || !this.isValidInvites || disableInputs}

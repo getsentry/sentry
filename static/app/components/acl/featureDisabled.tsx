@@ -77,7 +77,7 @@ function FeatureDisabled({
           )}
         </HelpText>
         <Clipboard hideUnsupported value={installText(features, featureName)}>
-          <CopyButton borderless size="xsmall" icon={<IconCopy size="xs" />}>
+          <CopyButton borderless size="xs" icon={<IconCopy size="xs" />}>
             {t('Copy to Clipboard')}
           </CopyButton>
         </Clipboard>
@@ -97,7 +97,7 @@ function FeatureDisabled({
           {!hideHelpToggle && (
             <ToggleButton
               priority="link"
-              size="xsmall"
+              size="xs"
               onClick={() => setShowHelp(!showHelp)}
             >
               {t('Help')}

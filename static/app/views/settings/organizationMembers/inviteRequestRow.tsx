@@ -106,7 +106,7 @@ const InviteRequestRow = ({
 
       <ButtonGroup>
         <Button
-          size="small"
+          size="sm"
           busy={inviteRequestBusy[inviteRequest.id]}
           onClick={() => onDeny(inviteRequest)}
           icon={<IconClose />}
@@ -134,7 +134,7 @@ const InviteRequestRow = ({
         >
           <Button
             priority="primary"
-            size="small"
+            size="sm"
             busy={inviteRequestBusy[inviteRequest.id]}
             title={
               canApprove

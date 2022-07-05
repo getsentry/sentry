@@ -38,7 +38,7 @@ function getUserKnownDataDetails(
         subject: t('Trace ID'),
         value: traceId,
         actionButton: (
-          <Button size="xsmall" to={generateTraceTarget(event, organization)}>
+          <Button size="xs" to={generateTraceTarget(event, organization)}>
             {t('Search by Trace')}
           </Button>
         ),
@@ -101,7 +101,7 @@ function getUserKnownDataDetails(
         subject: t('Transaction'),
         value: transactionName,
         actionButton: (
-          <Button size="xsmall" to={to}>
+          <Button size="xs" to={to}>
             {t('View Summary')}
           </Button>
         ),

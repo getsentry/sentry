@@ -111,7 +111,7 @@ function TeamDetails({children, ...props}: Props) {
                       })}
                       <Button
                         disabled={requesting || team.isPending}
-                        size="small"
+                        size="sm"
                         onClick={() => handleRequestAccess(team)}
                       >
                         {team.isPending ? t('Request Pending') : t('Request Access')}

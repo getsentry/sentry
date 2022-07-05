@@ -58,7 +58,7 @@ function ProfileSummaryContent(props: ProfileSummaryContentProps) {
         <SectionHeading>{t('Recent Profiles')}</SectionHeading>
         <StyledPagination
           pageLinks={profiles.type === 'resolved' ? profiles.data.pageLinks : null}
-          size="xsmall"
+          size="xs"
         />
       </TableHeader>
       <ProfilesTable

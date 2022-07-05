@@ -110,7 +110,7 @@ class ConfigureDistributedTracing extends Component<Props, State> {
       >
         {() => (
           <Button
-            size="small"
+            size="sm"
             priority="primary"
             href={docsLink}
             onClick={() =>
@@ -154,7 +154,7 @@ class ConfigureDistributedTracing extends Component<Props, State> {
           <ButtonBar merged>
             <Button
               title={t('Remind me next month')}
-              size="small"
+              size="sm"
               onClick={() =>
                 this.handleClick({
                   action: 'snoozed',
@@ -167,7 +167,7 @@ class ConfigureDistributedTracing extends Component<Props, State> {
             </Button>
             <Button
               title={t('Dismiss for this project')}
-              size="small"
+              size="sm"
               onClick={() =>
                 this.handleClick({
                   action: 'dismissed',

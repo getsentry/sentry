@@ -98,7 +98,7 @@ class SpanDetail extends Component<Props, State> {
       // TODO: Amend size to use theme when we eventually refactor LoadingIndicator
       // 12px is consistent with theme.iconSizes['xs'] but theme returns a string.
       return (
-        <StyledDiscoverButton size="xsmall" disabled>
+        <StyledDiscoverButton size="xs" disabled>
           <StyledLoadingIndicator size={12} />
         </StyledDiscoverButton>
       );
@@ -147,7 +147,7 @@ class SpanDetail extends Component<Props, State> {
     return (
       <StyledDiscoverButton
         data-test-id="view-child-transactions"
-        size="xsmall"
+        size="xs"
         to={childrenEventView.getResultsViewUrlTarget(organization.slug)}
       >
         {t('View Children')}
@@ -194,10 +194,10 @@ class SpanDetail extends Component<Props, State> {
 
           return (
             <ButtonGroup>
-              <StyledButton data-test-id="view-child-transaction" size="xsmall" to={to}>
+              <StyledButton data-test-id="view-child-transaction" size="xs" to={to}>
                 {t('View Transaction')}
               </StyledButton>
-              <StyledButton size="xsmall" to={target}>
+              <StyledButton size="xs" to={target}>
                 {t('View Summary')}
               </StyledButton>
             </ButtonGroup>
@@ -221,7 +221,7 @@ class SpanDetail extends Component<Props, State> {
     }
 
     return (
-      <StyledButton size="xsmall" to={generateTraceTarget(event, organization)}>
+      <StyledButton size="xs" to={generateTraceTarget(event, organization)}>
         {t('View Trace')}
       </StyledButton>
     );
@@ -245,7 +245,7 @@ class SpanDetail extends Component<Props, State> {
     });
 
     return (
-      <StyledButton size="xsmall" to={target}>
+      <StyledButton size="xs" to={target}>
         {t('View Similar Spans')}
       </StyledButton>
     );
@@ -306,7 +306,7 @@ class SpanDetail extends Component<Props, State> {
           ))}
         </ErrorMessageContent>
         {relatedErrors.length > DEFAULT_ERRORS_VISIBLE && (
-          <ErrorToggle size="xsmall" onClick={this.toggleErrors}>
+          <ErrorToggle size="xs" onClick={this.toggleErrors}>
             {errorsOpened ? t('Show less') : t('Show more')}
           </ErrorToggle>
         )}

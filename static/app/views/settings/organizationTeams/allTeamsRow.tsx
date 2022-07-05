@@ -191,16 +191,16 @@ class AllTeamsRow extends Component<Props, State> {
         </TeamNameWrapper>
         <Spacer>
           {this.state.loading ? (
-            <Button size="small" disabled>
+            <Button size="sm" disabled>
               ...
             </Button>
           ) : team.isMember ? (
-            <Button size="small" onClick={this.handleLeaveTeam}>
+            <Button size="sm" onClick={this.handleLeaveTeam}>
               {t('Leave Team')}
             </Button>
           ) : team.isPending ? (
             <Button
-              size="small"
+              size="sm"
               disabled
               title={t(
                 'Your request to join this team is being reviewed by organization owners'
@@ -209,11 +209,11 @@ class AllTeamsRow extends Component<Props, State> {
               {t('Request Pending')}
             </Button>
           ) : openMembership ? (
-            <Button size="small" onClick={this.handleJoinTeam}>
+            <Button size="sm" onClick={this.handleJoinTeam}>
               {t('Join Team')}
             </Button>
           ) : (
-            <Button size="small" onClick={this.handleRequestAccess}>
+            <Button size="sm" onClick={this.handleRequestAccess}>
               {t('Request Access')}
             </Button>
           )}

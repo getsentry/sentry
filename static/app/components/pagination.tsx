@@ -30,7 +30,7 @@ type Props = WithRouterProps & {
   onCursor?: CursorHandler;
   pageLinks?: string | null;
   paginationAnalyticsEvent?: (direction: string) => void;
-  size?: 'zero' | 'xsmall' | 'small';
+  size?: 'zero' | 'xs' | 'sm';
   to?: string;
 };
 
@@ -47,7 +47,7 @@ const Pagination = ({
   onCursor = defaultOnCursor,
   paginationAnalyticsEvent,
   pageLinks,
-  size = 'small',
+  size = 'sm',
   caption,
   disabled = false,
 }: Props) => {

@@ -99,7 +99,7 @@ function RepositoryRow({
         )}
       >
         <StyledButton
-          size="xsmall"
+          size="xs"
           icon={<IconDelete size="xs" />}
           aria-label={t('delete')}
           disabled={!hasAccess}
@@ -134,7 +134,7 @@ function RepositoryRow({
               {!isActive && <small> &mdash; {getStatusLabel(repository)}</small>}
               {repository.status === RepositoryStatus.PENDING_DELETION && (
                 <StyledButton
-                  size="xsmall"
+                  size="xs"
                   onClick={cancelDelete}
                   disabled={!hasAccess}
                   data-test-id="repo-cancel"
@@ -158,7 +158,7 @@ function RepositoryRow({
           {isCustomRepo ? (
             <EditAndDelete>
               <StyledButton
-                size="xsmall"
+                size="xs"
                 icon={<IconEdit size="xs" />}
                 aria-label={t('edit')}
                 disabled={

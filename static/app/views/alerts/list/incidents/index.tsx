@@ -181,13 +181,13 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
 
     const actions = (
       <Fragment>
-        <Button size="small" external href={DOCS_URL}>
+        <Button size="sm" external href={DOCS_URL}>
           {t('View Features')}
         </Button>
         <CreateAlertButton
           organization={organization}
           iconProps={{size: 'xs'}}
-          size="small"
+          size="sm"
           priority="primary"
           referrer="alert_stream"
         >

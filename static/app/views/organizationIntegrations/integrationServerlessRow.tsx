@@ -106,7 +106,7 @@ class IntegrationServerlessRow extends Component<Props, State> {
       return this.enabled ? t('Latest') : t('Disabled');
     }
     return (
-      <UpdateButton size="small" priority="primary" onClick={this.updateVersion}>
+      <UpdateButton size="sm" priority="primary" onClick={this.updateVersion}>
         {t('Update')}
       </UpdateButton>
     );

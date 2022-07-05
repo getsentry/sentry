@@ -66,7 +66,7 @@ export default class AdminQueue extends AsyncView<{}, State> {
 
           <ButtonBar merged active={this.state.timeWindow}>
             {TIME_WINDOWS.map(r => (
-              <Button size="small" barId={r} onClick={() => this.changeWindow(r)} key={r}>
+              <Button size="sm" barId={r} onClick={() => this.changeWindow(r)} key={r}>
                 {r}
               </Button>
             ))}

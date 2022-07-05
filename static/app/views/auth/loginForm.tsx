@@ -32,7 +32,7 @@ const LoginProviders = ({
     {googleLoginLink && (
       <Button
         align="left"
-        size="small"
+        size="sm"
         icon={<IconGoogle size="xs" />}
         href={googleLoginLink}
       >
@@ -42,7 +42,7 @@ const LoginProviders = ({
     {githubLoginLink && (
       <Button
         align="left"
-        size="small"
+        size="sm"
         icon={<IconGithub size="xs" />}
         href={githubLoginLink}
       >
@@ -50,12 +50,7 @@ const LoginProviders = ({
       </Button>
     )}
     {vstsLoginLink && (
-      <Button
-        align="left"
-        size="small"
-        icon={<IconVsts size="xs" />}
-        href={vstsLoginLink}
-      >
+      <Button align="left" size="sm" icon={<IconVsts size="xs" />} href={vstsLoginLink}>
         {t('Sign in with Azure DevOps')}
       </Button>
     )}

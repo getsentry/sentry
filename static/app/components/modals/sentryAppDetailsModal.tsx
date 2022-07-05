@@ -173,7 +173,7 @@ export default class SentryAppDetailsModal extends AsyncComponent<Props, State> 
                 <Author>{t('Authored By %s', sentryApp.author)}</Author>
                 <div>
                   {disabled && <DisabledNotice reason={disabledReason} />}
-                  <Button size="small" onClick={closeModal}>
+                  <Button size="sm" onClick={closeModal}>
                     {t('Cancel')}
                   </Button>
 
@@ -181,7 +181,7 @@ export default class SentryAppDetailsModal extends AsyncComponent<Props, State> 
                     {({hasAccess}) =>
                       hasAccess && (
                         <Button
-                          size="small"
+                          size="sm"
                           priority="primary"
                           disabled={isInstalled || disabled}
                           onClick={() => this.onInstall()}

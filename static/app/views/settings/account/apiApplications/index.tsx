@@ -56,7 +56,7 @@ class ApiApplications extends AsyncView<Props, State> {
     const action = (
       <Button
         priority="primary"
-        size="small"
+        size="sm"
         onClick={this.handleCreateApplication}
         icon={<IconAdd size="xs" isCircled />}
       >

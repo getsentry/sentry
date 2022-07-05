@@ -111,7 +111,7 @@ function ServiceIncidents({
               key={incident.id}
               titleAction={
                 <Button
-                  size="xsmall"
+                  size="xs"
                   icon={<IconOpen size="xs" />}
                   priority="link"
                   href={incident.url}

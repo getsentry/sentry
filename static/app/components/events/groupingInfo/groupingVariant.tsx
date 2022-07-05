@@ -215,10 +215,10 @@ class GroupVariant extends Component<Props, State> {
 
     return (
       <ContributingToggle merged active={showNonContributing ? 'all' : 'relevant'}>
-        <Button barId="relevant" size="xsmall" onClick={this.handleHideNonContributing}>
+        <Button barId="relevant" size="xs" onClick={this.handleHideNonContributing}>
           {t('Contributing values')}
         </Button>
-        <Button barId="all" size="xsmall" onClick={this.handleShowNonContributing}>
+        <Button barId="all" size="xs" onClick={this.handleShowNonContributing}>
           {t('All values')}
         </Button>
       </ContributingToggle>

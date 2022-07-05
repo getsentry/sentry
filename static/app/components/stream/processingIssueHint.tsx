@@ -74,7 +74,7 @@ function ProcessingIssueHint({orgId, projectId, issue, showProject}: Props) {
       showIcon
       trailingItems={
         showButton && (
-          <StyledButton size="xsmall" to={link}>
+          <StyledButton size="xs" to={link}>
             {t('Show details')}
           </StyledButton>
         )

@@ -69,19 +69,19 @@ WithIcons.parameters = {
 
 export const WithTrailingItems = () => (
   <Grid>
-    <Alert type="info" trailingItems={<Button size="xsmall">Trailing Button</Button>}>
+    <Alert type="info" trailingItems={<Button size="xs">Trailing Button</Button>}>
       <ExternalLink href="#">Info message with a url</ExternalLink>
     </Alert>
 
-    <Alert type="success" trailingItems={<Button size="xsmall">Trailing Button</Button>}>
+    <Alert type="success" trailingItems={<Button size="xs">Trailing Button</Button>}>
       Success message without a url
     </Alert>
 
-    <Alert type="warning" trailingItems={<Button size="xsmall">Trailing Button</Button>}>
+    <Alert type="warning" trailingItems={<Button size="xs">Trailing Button</Button>}>
       Warning message
     </Alert>
 
-    <Alert type="error" trailingItems={<Button size="xsmall">Trailing Button</Button>}>
+    <Alert type="error" trailingItems={<Button size="xs">Trailing Button</Button>}>
       Background workers haven't checked in recently. This can mean an issue with your
       configuration or a serious backlog in tasks.
     </Alert>

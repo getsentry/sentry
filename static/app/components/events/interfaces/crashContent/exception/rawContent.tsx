@@ -105,7 +105,7 @@ class RawContent extends Component<Props, State> {
         downloadButton = (
           <DownloadBtnWrapper>
             <Button
-              size="xsmall"
+              size="xs"
               href={`${api.baseUrl}${appleCrashReportEndpoint}&download=1`}
             >
               {t('Download')}

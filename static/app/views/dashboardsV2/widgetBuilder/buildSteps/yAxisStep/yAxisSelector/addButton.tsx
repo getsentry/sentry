@@ -10,7 +10,7 @@ interface Props {
 
 export function AddButton({title, onAdd}: Props) {
   return (
-    <Button size="small" onClick={onAdd} icon={<IconAdd isCircled />}>
+    <Button size="sm" onClick={onAdd} icon={<IconAdd isCircled />}>
       {title}
     </Button>
   );

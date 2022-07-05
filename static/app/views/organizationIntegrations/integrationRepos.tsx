@@ -142,7 +142,7 @@ class IntegrationRepos extends AsyncComponent<Props, State> {
             'You must be an organization owner, manager or admin to add repositories'
           )}
           isOpen={false}
-          size="xsmall"
+          size="xs"
         >
           {t('Add Repository')}
         </DropdownButton>
@@ -181,7 +181,7 @@ class IntegrationRepos extends AsyncComponent<Props, State> {
         alignMenu="right"
       >
         {({isOpen}) => (
-          <DropdownButton isOpen={isOpen} size="xsmall" busy={this.state.adding}>
+          <DropdownButton isOpen={isOpen} size="xs" busy={this.state.adding}>
             {t('Add Repository')}
           </DropdownButton>
         )}

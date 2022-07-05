@@ -165,7 +165,7 @@ export const WidgetContainerActions = ({
       <DropdownButtonV2
         ref={ref}
         {...props}
-        size="xsmall"
+        size="xs"
         borderless
         showChevron={false}
         icon={<IconEllipsis aria-label={t('More')} />}

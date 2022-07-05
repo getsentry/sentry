@@ -26,7 +26,7 @@ function Page({children, event, orgId, eventSlug}: Props) {
             <DetailsPageBreadcrumbs orgId={orgId} event={event} eventSlug={eventSlug} />
           </Layout.HeaderContent>
           <ButtonActionsWrapper>
-            <FeatureFeedback featureName="replay" buttonProps={{size: 'small'}} />
+            <FeatureFeedback featureName="replay" buttonProps={{size: 'sm'}} />
           </ButtonActionsWrapper>
         </Layout.Header>
         <FullViewportContent>{children}</FullViewportContent>

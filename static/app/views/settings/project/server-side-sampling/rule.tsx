@@ -136,7 +136,7 @@ export function Rule({
             <Button
               aria-label={t('Actions')}
               icon={<IconEllipsis />}
-              size="small"
+              size="sm"
               onClick={() => {
                 setState({isMenuActionsOpen: !state.isMenuActionsOpen});
               }}

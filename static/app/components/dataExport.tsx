@@ -44,6 +44,7 @@ function DataExport({
     if (inProgress) {
       setInProgress(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [payload.queryType, payload.queryInfo]);
 
   const handleDataExport = useCallback(() => {
@@ -81,7 +82,7 @@ function DataExport({
     <Feature features={['organizations:discover-query']}>
       {inProgress ? (
         <Button
-          size="small"
+          size="sm"
           priority="default"
           title="You can get on with your life. We'll email you when your data's ready."
           disabled
@@ -93,7 +94,7 @@ function DataExport({
         <Button
           onClick={debounce(handleDataExport, 500)}
           disabled={disabled || false}
-          size="small"
+          size="sm"
           priority="default"
           title="Put your data to work. Start your export and we'll email you when it's finished."
           icon={icon}

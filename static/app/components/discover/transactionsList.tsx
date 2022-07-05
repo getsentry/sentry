@@ -182,7 +182,7 @@ class _TransactionsList extends Component<Props> {
                 {...getActorProps()}
                 isOpen={isOpen}
                 prefix={t('Filter')}
-                size="xsmall"
+                size="xs"
               >
                 {selected.label}
               </StyledDropdownButton>
@@ -213,7 +213,7 @@ class _TransactionsList extends Component<Props> {
                     breakdown,
                   }
                 )}
-                size="xsmall"
+                size="xs"
                 data-test-id="transaction-events-open"
               >
                 {t('View All Events')}
@@ -226,7 +226,7 @@ class _TransactionsList extends Component<Props> {
                 to={this.generateDiscoverEventView().getResultsViewUrlTarget(
                   organization.slug
                 )}
-                size="xsmall"
+                size="xs"
                 data-test-id="discover-open"
               >
                 {t('Open in Discover')}
@@ -263,7 +263,7 @@ class _TransactionsList extends Component<Props> {
           <StyledPagination
             pageLinks={pageLinks}
             onCursor={this.handleCursor}
-            size="xsmall"
+            size="xs"
           />
         </Header>
         <TransactionsTable
@@ -333,7 +333,7 @@ class _TransactionsList extends Component<Props> {
               <StyledPagination
                 pageLinks={pageLinks}
                 onCursor={this.handleCursor}
-                size="small"
+                size="sm"
               />
             </Header>
             <TransactionsTable

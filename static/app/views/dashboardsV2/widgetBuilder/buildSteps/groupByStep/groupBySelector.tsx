@@ -60,7 +60,10 @@ export function GroupBySelector({fieldOptions, columns = [], onChange}: Props) {
 
   const canDrag = columns.length > 1;
   const canDelete = canDrag || hasOnlySingleColumnWithValue;
-  const columnFieldsAsString = columns.map(generateFieldAsString);
+  const columnFieldsAsString = useMemo(
+    () => columns.map(generateFieldAsString),
+    [columns]
+  );
 
   const {filteredFieldOptions, columnsAsFieldOptions} = useMemo(() => {
     return Object.keys(fieldOptions).reduce(
@@ -84,7 +87,7 @@ export function GroupBySelector({fieldOptions, columns = [], onChange}: Props) {
         filteredFieldOptions: FieldOptions;
       }
     );
-  }, [fieldOptions, columns]);
+  }, [fieldOptions, columnFieldsAsString]);
 
   const items = useMemo(() => {
     return columns.reduce((acc, _column, index) => {
@@ -165,7 +168,7 @@ export function GroupBySelector({fieldOptions, columns = [], onChange}: Props) {
         )}
       </StyledField>
       {columns.length < GROUP_BY_LIMIT && (
-        <AddGroupButton size="small" icon={<IconAdd isCircled />} onClick={handleAdd}>
+        <AddGroupButton size="sm" icon={<IconAdd isCircled />} onClick={handleAdd}>
           {t('Add Group')}
         </AddGroupButton>
       )}

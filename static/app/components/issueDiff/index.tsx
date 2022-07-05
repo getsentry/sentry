@@ -131,10 +131,10 @@ class IssueDiff extends Component<Props, State> {
         {!loading && showDiffToggle && (
           <HeaderWrapper>
             <ButtonBar merged active={groupingDiff ? 'grouping' : 'event'}>
-              <Button barId="event" size="small" onClick={this.toggleDiffMode}>
+              <Button barId="event" size="sm" onClick={this.toggleDiffMode}>
                 {t('Diff stack trace and message')}
               </Button>
-              <Button barId="grouping" size="small" onClick={this.toggleDiffMode}>
+              <Button barId="grouping" size="sm" onClick={this.toggleDiffMode}>
                 {t('Diff grouping information')}
               </Button>
             </ButtonBar>

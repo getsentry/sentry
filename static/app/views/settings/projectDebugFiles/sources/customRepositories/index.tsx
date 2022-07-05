@@ -51,6 +51,7 @@ function CustomRepositories({
 
   useEffect(() => {
     openDebugFileSourceDialog();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.query, appStoreConnectContext]);
 
   const orgSlug = organization.slug;
@@ -233,7 +234,7 @@ function CustomRepositories({
                         <DropdownButton
                           isOpen={isOpen}
                           disabled={addRepositoryButtonDisabled}
-                          size="small"
+                          size="sm"
                           aria-label={t('Add Repository')}
                         >
                           {t('Add Repository')}

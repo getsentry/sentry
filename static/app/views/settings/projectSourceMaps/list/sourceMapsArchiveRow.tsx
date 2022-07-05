@@ -60,7 +60,7 @@ const SourceMapsArchiveRow = ({archive, orgId, projectId, onDelete}: Props) => {
                   disabled={!hasAccess}
                 >
                   <Button
-                    size="small"
+                    size="sm"
                     icon={<IconDelete size="sm" />}
                     title={t('Remove All Artifacts')}
                     aria-label={t('Remove All Artifacts')}

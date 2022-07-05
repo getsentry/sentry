@@ -78,14 +78,14 @@ function EventDataSection({
             <ButtonBar merged active={raw ? 'raw' : 'formatted'}>
               <Button
                 barId="formatted"
-                size="xsmall"
+                size="xs"
                 onClick={() => callIfFunction(toggleRaw, false)}
               >
                 {t('Formatted')}
               </Button>
               <Button
                 barId="raw"
-                size="xsmall"
+                size="xs"
                 onClick={() => callIfFunction(toggleRaw, true)}
               >
                 {t('Raw')}

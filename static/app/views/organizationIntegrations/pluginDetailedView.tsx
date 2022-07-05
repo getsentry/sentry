@@ -138,7 +138,7 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
           data-test-id="install-button"
           disabled={disabledFromFeatures}
           onClick={this.handleAddToProject}
-          size="small"
+          size="sm"
           priority="primary"
         >
           {t('Add to Project')}

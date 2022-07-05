@@ -223,7 +223,7 @@ export function TraceEventDataSection({
               )}
               {state.display.includes('raw-stack-trace') && nativePlatform && (
                 <Button
-                  size="small"
+                  size="sm"
                   href={rawStackTraceDownloadLink}
                   title={t('Download raw stack trace file')}
                 >
@@ -234,7 +234,7 @@ export function TraceEventDataSection({
                 triggerLabel={t('Options')}
                 triggerProps={{
                   icon: <IconSliders />,
-                  size: 'small',
+                  size: 'sm',
                 }}
                 placement="bottom right"
                 sections={[

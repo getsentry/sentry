@@ -168,7 +168,7 @@ class EventCauseEmpty extends Component<Props, State> {
             </Description>
             <ButtonList>
               <DocsButton
-                size="small"
+                size="sm"
                 priority="primary"
                 href="https://docs.sentry.io/product/releases/setup/"
                 onClick={() => this.trackAnalytics('event_cause.docs_clicked')}
@@ -179,7 +179,7 @@ class EventCauseEmpty extends Component<Props, State> {
               <div>
                 <SnoozeButton
                   title={t('Remind me next week')}
-                  size="small"
+                  size="sm"
                   onClick={() =>
                     this.handleClick({
                       action: 'snoozed',
@@ -191,7 +191,7 @@ class EventCauseEmpty extends Component<Props, State> {
                 </SnoozeButton>
                 <DismissButton
                   title={t('Dismiss for this project')}
-                  size="small"
+                  size="sm"
                   onClick={() =>
                     this.handleClick({
                       action: 'dismissed',

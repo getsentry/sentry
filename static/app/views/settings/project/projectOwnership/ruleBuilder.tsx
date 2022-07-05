@@ -191,7 +191,7 @@ class RuleBuilder extends Component<Props, State> {
             disabled={!isValid}
             onClick={this.handleAddRule}
             icon={<IconAdd isCircled />}
-            size="small"
+            size="sm"
             aria-label={t('Add rule')}
           />
         </BuilderBar>

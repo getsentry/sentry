@@ -51,7 +51,7 @@ const Rules = forwardRef(function RulesList(
             {onEditRule && (
               <Button
                 aria-label={t('Edit Rule')}
-                size="small"
+                size="sm"
                 onClick={onEditRule(id)}
                 icon={<IconEdit />}
                 disabled={disabled}
@@ -60,7 +60,7 @@ const Rules = forwardRef(function RulesList(
             {onDeleteRule && (
               <Button
                 aria-label={t('Delete Rule')}
-                size="small"
+                size="sm"
                 onClick={onDeleteRule(id)}
                 icon={<IconDelete />}
                 disabled={disabled}
