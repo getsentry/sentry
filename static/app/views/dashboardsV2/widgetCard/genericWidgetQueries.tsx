@@ -55,7 +55,6 @@ export type GenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
     result: TableResponse,
     response?: ResponseMeta
   ) => void | {totalIssuesCount?: string};
-  beforeRequestWidgetTransformer?: (widget: Widget) => Widget;
   cursor?: string;
   customDidUpdateComparator?: (
     prevProps: GenericWidgetQueriesProps<SeriesResponse, TableResponse>,
@@ -184,7 +183,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
 
   async fetchTableData(queryFetchID: symbol) {
     const {
-      widget: initialWidget,
+      widget,
       limit,
       config,
       api,
@@ -193,9 +192,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
       cursor,
       afterFetchTableData,
       onDataFetched,
-      beforeRequestWidgetTransformer,
     } = this.props;
-    const widget = beforeRequestWidgetTransformer?.(initialWidget) ?? initialWidget;
     const responses = await Promise.all(
       widget.queries.map(query => {
         let requestLimit: number | undefined = limit ?? DEFAULT_TABLE_LIMIT;
@@ -260,16 +257,14 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
 
   async fetchSeriesData(queryFetchID: symbol) {
     const {
-      widget: initialWidget,
+      widget,
       config,
       api,
       organization,
       selection,
       afterFetchSeriesData,
       onDataFetched,
-      beforeRequestWidgetTransformer,
     } = this.props;
-    const widget = beforeRequestWidgetTransformer?.(initialWidget) ?? initialWidget;
     const responses = await Promise.all(
       widget.queries.map((_query, index) => {
         return config.getSeriesRequest!(

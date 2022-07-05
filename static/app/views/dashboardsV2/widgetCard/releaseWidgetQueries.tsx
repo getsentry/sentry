@@ -51,12 +51,7 @@ type Props = {
 type State = {
   loading: boolean;
   errorMessage?: string;
-  pageLinks?: string;
-  queryFetchID?: symbol;
-  rawResults?: SessionApiResponse[] | MetricsApiResponse[];
   releases?: Release[];
-  tableResults?: TableDataWithTitle[];
-  timeseriesResults?: Series[];
 };
 
 export function derivedMetricsToField(field: string): string {
@@ -150,11 +145,7 @@ export function requiresCustomReleaseSorting(query: WidgetQuery): boolean {
 class ReleaseWidgetQueries extends Component<Props, State> {
   state: State = {
     loading: true,
-    queryFetchID: undefined,
     errorMessage: undefined,
-    timeseriesResults: undefined,
-    rawResults: undefined,
-    tableResults: undefined,
     releases: undefined,
   };
 
@@ -271,23 +262,13 @@ class ReleaseWidgetQueries extends Component<Props, State> {
     );
   };
 
-  beforeRequestWidgetTransformer = (initialWidget: Widget): Widget => {
+  transformWidget = (initialWidget: Widget): Widget => {
     const {releases} = this.state;
     const widget = cloneDeep(initialWidget);
 
     const isCustomReleaseSorting = requiresCustomReleaseSorting(widget.queries[0]);
     const isDescending = widget.queries[0].orderby.startsWith('-');
     const useSessionAPI = widget.queries[0].columns.includes('session.status');
-
-    const queryFetchID = Symbol('queryFetchID');
-
-    this.setState({
-      loading: true,
-      errorMessage: undefined,
-      timeseriesResults: [],
-      tableResults: [],
-      queryFetchID,
-    });
 
     let releaseCondition = '';
     const releasesArray: string[] = [];
@@ -362,7 +343,7 @@ class ReleaseWidgetQueries extends Component<Props, State> {
         api={api}
         organization={organization}
         selection={selection}
-        widget={widget}
+        widget={this.transformWidget(widget)}
         cursor={cursor}
         limit={this.limit}
         onDataFetched={onDataFetched}
@@ -372,7 +353,6 @@ class ReleaseWidgetQueries extends Component<Props, State> {
             : undefined
         }
         customDidUpdateComparator={this.customDidUpdateComparator}
-        beforeRequestWidgetTransformer={this.beforeRequestWidgetTransformer}
         afterFetchTableData={this.afterFetchData}
         afterFetchSeriesData={this.afterFetchData}
       >
