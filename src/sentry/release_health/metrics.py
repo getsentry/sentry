@@ -377,7 +377,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         rv = {}
 
         for project_id, release in project_releases:
-            release_tag_value = indexer.resolve(org_id, release, use_case_id=UseCaseKey.PERFORMANCE)
+            release_tag_value = indexer.resolve(org_id, release, use_case_id=UseCaseKey.RELEASE_HEALTH)
             if release_tag_value is None:
                 # Don't emit empty releases -- for exact compatibility with
                 # sessions table backend.
