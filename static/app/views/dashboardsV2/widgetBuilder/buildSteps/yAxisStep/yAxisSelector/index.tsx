@@ -9,7 +9,6 @@ import {QueryFieldValue} from 'sentry/utils/discover/fields';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getDatasetConfig} from 'sentry/views/dashboardsV2/datasetConfig/base';
 import {DisplayType, Widget} from 'sentry/views/dashboardsV2/types';
-import {filterPrimaryOptions} from 'sentry/views/dashboardsV2/widgetBuilder/utils';
 import {QueryField} from 'sentry/views/eventsV2/table/queryField';
 import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
 
@@ -92,18 +91,11 @@ export function YAxisSelector({
             fieldValue={fieldValue}
             fieldOptions={datasetConfig.getTableFieldOptions(organization, tags)}
             onChange={value => handleChangeQueryField(value, i)}
-            filterPrimaryOptions={option =>
-              filterPrimaryOptions({
-                option,
-                widgetType,
-                displayType,
-              })
-            }
-            filterAggregateParameters={
-              datasetConfig.filterYAxisAggregateParams
-                ? datasetConfig.filterYAxisAggregateParams(fieldValue, displayType)
-                : undefined
-            }
+            filterPrimaryOptions={datasetConfig.filterYAxisOptions?.(displayType)}
+            filterAggregateParameters={datasetConfig.filterYAxisAggregateParams?.(
+              fieldValue,
+              displayType
+            )}
             otherColumns={aggregates}
             noFieldsMessage={noFieldsMessage}
           />
