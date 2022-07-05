@@ -206,6 +206,7 @@ export function Provider({children, replay, initialTimeOffset = 0, value = {}}: 
   const [fastForwardSpeed, setFFSpeed] = useState(0);
   const [buffer, setBufferTime] = useState({target: -1, previous: -1});
   const playTimer = useRef<number | undefined>(undefined);
+  const unMountedRef = useRef<boolean>(false);
 
   const isFinished = replayerRef.current?.getCurrentTime() === finishedAtMS;
 
@@ -262,7 +263,7 @@ export function Provider({children, replay, initialTimeOffset = 0, value = {}}: 
       }
 
       if (replayerRef.current) {
-        if (!hasNewEvents) {
+        if (!hasNewEvents && !unMountedRef.current) {
           // Already have a player for these events, the parent node must've re-rendered
           return;
         }
@@ -309,8 +310,12 @@ export function Provider({children, replay, initialTimeOffset = 0, value = {}}: 
       // See: https://reactjs.org/docs/hooks-faq.html#is-there-something-like-instance-variables
       // @ts-expect-error
       replayerRef.current = inst;
+
+      if (unMountedRef.current) {
+        unMountedRef.current = false;
+      }
     },
-    [events, theme.purple200, hasNewEvents, setReplayFinished]
+    [events, theme.purple200, setReplayFinished, hasNewEvents]
   );
 
   useEffect(() => {
@@ -424,6 +429,10 @@ export function Provider({children, replay, initialTimeOffset = 0, value = {}}: 
     if (initialTimeOffset && events && replayerRef.current) {
       setCurrentTime(initialTimeOffset * 1000);
     }
+
+    return () => {
+      unMountedRef.current = true;
+    };
   }, [events, replayerRef.current]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const currentPlayerTime = useCurrentTime(getCurrentTime);

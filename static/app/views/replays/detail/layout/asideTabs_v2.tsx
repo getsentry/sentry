@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import React, {useState} from 'react';
 import styled from '@emotion/styled';
 
 import NavTabs from 'sentry/components/navTabs';
@@ -9,6 +9,7 @@ import ReplayReader from 'sentry/utils/replays/replayReader';
 
 import TagPanel from '../tagPanel';
 
+import ResizePanel from './resizePanel';
 import {VideoContainer} from '.';
 
 const TABS = {
@@ -31,7 +32,7 @@ function AsideTabsV2({}: Props) {
   const [active, setActive] = useState<string>('video');
 
   return (
-    <Container>
+    <React.Fragment>
       <NavTabs underlined>
         {Object.entries(TABS).map(([tab, label]) => {
           return (
@@ -41,16 +42,20 @@ function AsideTabsV2({}: Props) {
           );
         })}
       </NavTabs>
-      {replay ? renderTabContent(active, replay) : <Placeholder height="100%" />}
-    </Container>
+      <ResizePanel direction="s" style={{height: '325px'}}>
+        <Container>
+          {replay ? renderTabContent(active, replay) : <Placeholder height="100%" />}
+        </Container>
+      </ResizePanel>
+    </React.Fragment>
   );
 }
 
-// FYI: height: 0; will helps us to reset the height
-// min-height: 300 will helps us to start at some height, making our breadcrumbs to not overlap
+// TODO(replays): WIP 👇
 const Container = styled('div')`
-  height: 0;
-  min-height: 300px;
+  height: 100%;
+  min-height: 200px;
+  max-height: calc(100vh - 70%);
 `;
 
 export default AsideTabsV2;
