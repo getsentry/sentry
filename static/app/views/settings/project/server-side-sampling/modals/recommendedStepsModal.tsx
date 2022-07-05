@@ -18,7 +18,7 @@ import {
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
-import {SamplingSDKUpgrade} from 'sentry/types/sampling';
+import {SamplingSdkVersion} from 'sentry/types/sampling';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import {SERVER_SIDE_SAMPLING_DOC_LINK} from '../utils';
@@ -26,8 +26,8 @@ import {SERVER_SIDE_SAMPLING_DOC_LINK} from '../utils';
 import {FooterActions, Stepper} from './uniformRateModal';
 
 type RecommendedSdkUpgrade = {
-  latestSDKName: SamplingSDKUpgrade['latestSDKName'];
-  latestSDKVersion: SamplingSDKUpgrade['latestSDKVersion'];
+  latestSDKName: SamplingSdkVersion['latestSDKName'];
+  latestSDKVersion: SamplingSdkVersion['latestSDKVersion'];
   project: Project;
 };
 
