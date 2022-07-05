@@ -206,7 +206,7 @@ const MessageContainer = styled('div')`
   padding-left: ${space(0.5)};
   padding-right: ${space(0.5)};
   flex-direction: row;
-  @media (max-width: ${p => p.theme.breakpoints[1]}) {
+  @media (max-width: ${p => p.theme.breakpoints.medium}) {
     flex-direction: column;
     align-items: start;
   }
@@ -230,7 +230,7 @@ const TrailingItems = styled('div')`
 const TrailingItemsWrap = styled(TrailingItems)`
   margin-left: ${space(1)};
 
-  @media (max-width: ${p => p.theme.breakpoints[1]}) {
+  @media (max-width: ${p => p.theme.breakpoints.medium}) {
     margin-left: 0;
     margin-top: ${space(2)};
   }
