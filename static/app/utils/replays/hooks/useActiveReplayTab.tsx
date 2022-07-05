@@ -31,7 +31,8 @@ function useActiveReplayTab() {
       () => (isReplayTab(paramValue || '') ? (paramValue as TabKey) : DEFAULT_TAB),
       [paramValue]
     ),
-    setActiveTab: (value: TabKey) => setParamValue(value),
+    setActiveTab: (value: string) =>
+      isReplayTab(value) ? setParamValue(value) : setParamValue(DEFAULT_TAB),
   };
 }
 

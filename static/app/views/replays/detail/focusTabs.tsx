@@ -18,7 +18,7 @@ function FocusTabs({}: Props) {
           <a
             href={`#${tab}`}
             onClick={(e: MouseEvent) => {
-              setActiveTab(tab as keyof typeof ReplayTabs);
+              setActiveTab(tab);
               e.preventDefault();
             }}
           >
