@@ -210,7 +210,6 @@ export enum EntryType {
   THREADS = 'threads',
   DEBUGMETA = 'debugmeta',
   SPANS = 'spans',
-  SPANTREE = 'spantree',
 }
 
 type EntryDebugMeta = {
@@ -247,12 +246,6 @@ type EntryStacktrace = {
 type EntrySpans = {
   data: any;
   type: EntryType.SPANS; // data is not used
-};
-
-type EntrySpanTree = {
-  data: any;
-  focusedSpanIds: string[];
-  type: EntryType.SPANTREE;
 };
 
 type EntryMessage = {
@@ -304,7 +297,6 @@ export type Entry =
   | EntryException
   | EntryStacktrace
   | EntrySpans
-  | EntrySpanTree
   | EntryMessage
   | EntryRequest
   | EntryTemplate
@@ -314,9 +306,10 @@ export type Entry =
 // Contexts
 type RuntimeContext = {
   type: 'runtime';
-  version: number;
   build?: string;
   name?: string;
+  raw_description?: string;
+  version?: number;
 };
 
 type DeviceContext = {
