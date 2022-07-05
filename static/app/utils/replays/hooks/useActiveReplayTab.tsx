@@ -6,13 +6,16 @@ import useUrlParams from 'sentry/utils/replays/hooks/useUrlParams';
 export const ReplayTabs = {
   console: t('Console'),
   network: t('Network'),
+  network_table: t('Network Table'),
   trace: t('Trace'),
   issues: t('Issues'),
   tags: t('Tags'),
   memory: t('Memory'),
 };
 
-export function isReplayTab(tab: string): tab is keyof typeof ReplayTabs {
+type TabKey = keyof typeof ReplayTabs;
+
+export function isReplayTab(tab: string): tab is TabKey {
   return tab in ReplayTabs;
 }
 
@@ -25,10 +28,10 @@ function useActiveReplayTab() {
 
   return {
     getActiveTab: useCallback(
-      () => (isReplayTab(paramValue || '') ? paramValue : DEFAULT_TAB),
+      () => (isReplayTab(paramValue || '') ? (paramValue as TabKey) : DEFAULT_TAB),
       [paramValue]
     ),
-    setActiveTab: (value: keyof typeof ReplayTabs) => setParamValue(value),
+    setActiveTab: (value: TabKey) => setParamValue(value),
   };
 }
 

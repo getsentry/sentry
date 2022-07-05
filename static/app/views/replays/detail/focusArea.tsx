@@ -15,6 +15,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import Console from './console';
 import IssueList from './issueList';
 import MemoryChart from './memoryChart';
+import NetworkList from './networkList';
 import Trace from './trace';
 
 type Props = {};
@@ -43,6 +44,10 @@ function FocusArea({}: Props) {
 
   const event = replay.getEvent();
 
+  const getNetworkSpans = () => {
+    return replay.getRawSpans().filter(replay.isNotMemorySpan);
+  };
+
   switch (getActiveTab()) {
     case 'console':
       const consoleMessages = getBreadcrumbsByCategory(replay?.getRawCrumbs(), [
@@ -59,18 +64,16 @@ function FocusArea({}: Props) {
       // Fake the span and Trace context
       const nonMemorySpansEntry = {
         type: EntryType.SPANS,
-        data: replay
-          .getRawSpans()
-          .filter(replay.isNotMemorySpan)
-          .map(({startTimestamp, endTimestamp, ...span}) => ({
-            ...span,
-            timestamp: endTimestamp,
-            start_timestamp: startTimestamp,
-            span_id: uuid4(), // TODO(replays): used as a React key
-            parent_span_id: 'replay_network_trace',
-          })),
+        data: getNetworkSpans().map(({startTimestamp, endTimestamp, ...span}) => ({
+          ...span,
+          timestamp: endTimestamp,
+          start_timestamp: startTimestamp,
+          span_id: uuid4(), // TODO(replays): used as a React key
+          parent_span_id: 'replay_network_trace',
+        })),
       };
-      const performanceEvent = {
+
+      const performanceEvents = {
         ...event,
         contexts: {
           trace: {
@@ -83,8 +86,11 @@ function FocusArea({}: Props) {
         },
         entries: [nonMemorySpansEntry],
       } as EventTransaction;
-      return <Spans organization={organization} event={performanceEvent} />;
+
+      return <Spans organization={organization} event={performanceEvents} />;
     }
+    case 'network_table':
+      return <NetworkList event={event} networkSpans={getNetworkSpans()} />;
     case 'trace':
       return <Trace organization={organization} event={event} />;
     case 'issues':
