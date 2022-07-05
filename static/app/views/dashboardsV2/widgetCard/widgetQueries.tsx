@@ -1,12 +1,8 @@
-import {Component} from 'react';
-import cloneDeep from 'lodash/cloneDeep';
-import isEqual from 'lodash/isEqual';
+import {useCallback, useContext} from 'react';
 import omit from 'lodash/omit';
 
-import {Client, ResponseMeta} from 'sentry/api';
+import {Client} from 'sentry/api';
 import {isMultiSeriesStats} from 'sentry/components/charts/utils';
-import {isSelectionEqual} from 'sentry/components/organizations/pageFilters/utils';
-import {t} from 'sentry/locale';
 import {
   EventsStats,
   MultiSeriesEventsStats,
@@ -14,24 +10,19 @@ import {
   PageFilters,
 } from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
-import {
-  EventsTableData,
-  TableData,
-  TableDataWithTitle,
-} from 'sentry/utils/discover/discoverQuery';
+import {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
 
-import {getDatasetConfig} from '../datasetConfig/base';
-import {
-  DEFAULT_TABLE_LIMIT,
-  DisplayType,
-  Widget,
-  WidgetQuery,
-  WidgetType,
-} from '../types';
+import {ErrorsAndTransactionsConfig} from '../datasetConfig/errorsAndTransactions';
+import {Widget} from '../types';
 
 import {DashboardsMEPContext} from './dashboardsMEPContext';
+import GenericWidgetQueries, {
+  GenericWidgetQueriesChildrenProps,
+  OnDataFetchedProps,
+} from './genericWidgetQueries';
 
-type RawResult = EventsStats | MultiSeriesEventsStats;
+type SeriesResult = EventsStats | MultiSeriesEventsStats;
+type TableResult = TableData | EventsTableData;
 
 type SeriesWithOrdering = [order: number, series: Series];
 
@@ -64,7 +55,7 @@ export function transformSeries(stats: EventsStats, seriesName: string): Series 
  * }
  */
 export function flattenMultiSeriesDataWithGrouping(
-  result: RawResult,
+  result: SeriesResult,
   queryAlias: string
 ): SeriesWithOrdering[] {
   const seriesWithOrdering: SeriesWithOrdering[] = [];
@@ -89,7 +80,9 @@ export function flattenMultiSeriesDataWithGrouping(
   return seriesWithOrdering;
 }
 
-function getIsMetricsDataFromSeriesResponse(result: RawResult): boolean | undefined {
+export function getIsMetricsDataFromSeriesResponse(
+  result: SeriesResult
+): boolean | undefined {
   const multiIsMetricsData = Object.values(result)
     .map(({isMetricsData}) => isMetricsData)
     // One non-metrics series will cause all of them to be marked as such
@@ -100,354 +93,72 @@ function getIsMetricsDataFromSeriesResponse(result: RawResult): boolean | undefi
 
 type Props = {
   api: Client;
-  children: (
-    props: Pick<
-      State,
-      'loading' | 'timeseriesResults' | 'tableResults' | 'errorMessage' | 'pageLinks'
-    >
-  ) => React.ReactNode;
+  children: (props: GenericWidgetQueriesChildrenProps) => JSX.Element;
   organization: Organization;
   selection: PageFilters;
   widget: Widget;
   cursor?: string;
   limit?: number;
-  onDataFetched?: (results: {
-    pageLinks?: string;
-    tableResults?: TableDataWithTitle[];
-    timeseriesResults?: Series[];
-  }) => void;
+  onDataFetched?: (results: OnDataFetchedProps) => void;
 };
 
-type State = {
-  loading: boolean;
-  errorMessage?: string;
-  pageLinks?: null | string;
-  queryFetchID?: symbol;
-  rawResults?: RawResult[];
-  tableResults?: TableDataWithTitle[];
-  timeseriesResults?: Series[];
-};
+function WidgetQueries({
+  api,
+  children,
+  organization,
+  selection,
+  widget,
+  cursor,
+  limit,
+  onDataFetched,
+}: Props) {
+  const config = ErrorsAndTransactionsConfig;
+  const context = useContext(DashboardsMEPContext);
 
-class WidgetQueries extends Component<Props, State> {
-  state: State = {
-    loading: true,
-    queryFetchID: undefined,
-    errorMessage: undefined,
-    timeseriesResults: undefined,
-    rawResults: undefined,
-    tableResults: undefined,
-    pageLinks: undefined,
-  };
+  let isMetricsData: undefined | boolean;
+  let setIsMetricsData: undefined | ((value?: boolean) => void);
 
-  componentDidMount() {
-    this._isMounted = true;
-    this.fetchData();
+  if (context) {
+    isMetricsData = context.isMetricsData;
+    setIsMetricsData = context.setIsMetricsData;
   }
 
-  componentDidUpdate(prevProps: Props) {
-    const {selection, widget, cursor, organization} = this.props;
-
-    // We do not fetch data whenever the query name changes.
-    // Also don't count empty fields when checking for field changes
-    const [prevWidgetQueryNames, prevWidgetQueries] = prevProps.widget.queries
-      .map((query: WidgetQuery) => {
-        query.aggregates = query.aggregates.filter(field => !!field);
-        query.columns = query.columns.filter(field => !!field);
-        return query;
-      })
-      .reduce(
-        ([names, queries]: [string[], Omit<WidgetQuery, 'name'>[]], {name, ...rest}) => {
-          names.push(name);
-          queries.push(rest);
-          return [names, queries];
-        },
-        [[], []]
-      );
-
-    const [widgetQueryNames, widgetQueries] = widget.queries
-      .map((query: WidgetQuery) => {
-        query.aggregates = query.aggregates.filter(
-          field => !!field && field !== 'equation|'
-        );
-        query.columns = query.columns.filter(field => !!field && field !== 'equation|');
-        return query;
-      })
-      .reduce(
-        ([names, queries]: [string[], Omit<WidgetQuery, 'name'>[]], {name, ...rest}) => {
-          names.push(name);
-          queries.push(rest);
-          return [names, queries];
-        },
-        [[], []]
-      );
-
-    if (
-      widget.limit !== prevProps.widget.limit ||
-      !isEqual(widget.displayType, prevProps.widget.displayType) ||
-      !isEqual(widget.interval, prevProps.widget.interval) ||
-      !isEqual(widgetQueries, prevWidgetQueries) ||
-      !isSelectionEqual(selection, prevProps.selection) ||
-      cursor !== prevProps.cursor
-    ) {
-      this.fetchData();
-      return;
-    }
-
-    if (
-      !this.state.loading &&
-      !isEqual(prevWidgetQueryNames, widgetQueryNames) &&
-      this.state.rawResults?.length === widget.queries.length
-    ) {
-      // If the query names has changed, then update timeseries labels
-
-      // eslint-disable-next-line react/no-did-update-set-state
-      this.setState(prevState => {
-        const timeseriesResults = widget.queries.reduce((acc: Series[], query, index) => {
-          return acc.concat(
-            this.config.transformSeries!(
-              prevState.rawResults![index],
-              query,
-              organization
-            )
-          );
-        }, []);
-
-        return {...prevState, timeseriesResults};
-      });
-    }
-  }
-
-  componentWillUnmount() {
-    this._isMounted = false;
-  }
-
-  static contextType = DashboardsMEPContext;
-  context: React.ContextType<typeof DashboardsMEPContext> | undefined;
-  config = getDatasetConfig(WidgetType.DISCOVER);
-
-  private _isMounted: boolean = false;
-
-  get isMEPEnabled() {
-    // Events endpoint can return either always transactions, metrics, or metrics with a fallback to transactions (basically auto).
-    // For now, we are always keeping it on "auto" (if you have feature flag enabled).
-    // There's a chance that in the future this might become an explicit selector in the product.
-    return this.props.organization.features.includes('dashboards-mep');
-  }
-
-  async fetchTableData(queryFetchID: symbol) {
-    const {selection, api, organization, widget, limit, cursor, onDataFetched} =
-      this.props;
-
-    let tableResults: TableDataWithTitle[] = [];
-    // Table, world map, and stat widgets use table results and need
-    // to do a discover 'table' query instead of a 'timeseries' query.
-    let referrer: string = '';
-    let requestLimit: number | undefined;
-    if (widget.displayType === DisplayType.TABLE) {
-      requestLimit = limit ?? DEFAULT_TABLE_LIMIT;
-      referrer = 'api.dashboards.tablewidget';
-    } else if (widget.displayType === DisplayType.BIG_NUMBER) {
-      requestLimit = 1;
-      referrer = 'api.dashboards.bignumberwidget';
-    } else if (widget.displayType === DisplayType.WORLD_MAP) {
-      referrer = 'api.dashboards.worldmapwidget';
-    } else {
-      throw Error('Expected widget displayType to be either big_number or table');
-    }
-
-    let responses: [TableData | EventsTableData, string, ResponseMeta][] = [];
-    try {
-      responses = await Promise.all(
-        widget.queries.map(query => {
-          const requestGenerator =
-            widget.displayType === DisplayType.WORLD_MAP
-              ? this.config.getWorldMapRequest
-              : this.config.getTableRequest;
-          return requestGenerator!(
-            api,
-            query,
-            organization,
-            selection,
-            requestLimit,
-            cursor,
-            referrer
-          );
-        })
-      );
-    } catch (err) {
-      const errorMessage = err?.responseJSON?.detail || t('An unknown error occurred.');
-      this.setState({errorMessage});
-    } finally {
-      if (!this._isMounted) {
-        return;
-      }
-    }
-
-    let isMetricsData: boolean | undefined;
-    responses.forEach(([data, _textstatus, resp], i) => {
+  const afterFetchSeriesData = useCallback(
+    (rawResults: SeriesResult) => {
       // If one of the queries is sampled, then mark the whole thing as sampled
-      isMetricsData = isMetricsData === false ? false : data.meta?.isMetricsData;
-
-      // Cast so we can add the title.
-      const tableData = this.config.transformTable(
-        data,
-        widget.queries[0],
-        organization,
-        selection
-      ) as TableDataWithTitle;
-      tableData.title = widget.queries[i]?.name ?? '';
-
-      // Overwrite the local var to work around state being stale in tests.
-      tableResults = [...tableResults, tableData];
-
-      if (!this._isMounted) {
-        return;
-      }
-      const pageLinks = resp?.getResponseHeader('Link');
-
-      onDataFetched?.({tableResults, pageLinks: pageLinks ?? undefined});
-
-      this.setState(prevState => {
-        if (prevState.queryFetchID !== queryFetchID) {
-          // invariant: a different request was initiated after this request
-          return prevState;
-        }
-
-        return {
-          ...prevState,
-          tableResults,
-          pageLinks,
-        };
-      });
-    });
-
-    this.context?.setIsMetricsData(isMetricsData);
-    this.setState(prevState => {
-      if (prevState.queryFetchID !== queryFetchID) {
-        // invariant: a different request was initiated after this request
-        return prevState;
-      }
-
-      return {
-        ...prevState,
-        loading: false,
-      };
-    });
-  }
-
-  async fetchTimeseriesData(queryFetchID: symbol, displayType: DisplayType) {
-    const {selection, api, organization, widget, onDataFetched} = this.props;
-    this.setState({timeseriesResults: [], rawResults: []});
-
-    let responses: Array<EventsStats | MultiSeriesEventsStats> = [];
-    try {
-      responses = await Promise.all(
-        widget.queries.map((_query, index) => {
-          return this.config.getSeriesRequest!(
-            api,
-            widget,
-            index,
-            organization,
-            selection,
-            `api.dashboards.widget.${displayType}-chart`
-          );
-        })
-      );
-    } catch (err) {
-      const errorMessage = err?.responseJSON?.detail || t('An unknown error occurred.');
-      this.setState({errorMessage});
-    } finally {
-      if (!this._isMounted) {
-        return;
-      }
-    }
-
-    let completed = 0;
-    let isMetricsData: boolean | undefined;
-    responses.forEach((rawResults, requestIndex) => {
-      // If one of the queries is sampled, then mark the whole thing as sampled
-      isMetricsData =
+      const currentResultIsMetricsData =
         isMetricsData === false ? false : getIsMetricsDataFromSeriesResponse(rawResults);
-      this.setState(prevState => {
-        if (prevState.queryFetchID !== queryFetchID) {
-          // invariant: a different request was initiated after this request
-          return prevState;
-        }
+      setIsMetricsData?.(currentResultIsMetricsData);
+    },
+    [isMetricsData, setIsMetricsData]
+  );
 
-        const timeseriesResults = [...(prevState.timeseriesResults ?? [])];
-        const transformedResult = this.config.transformSeries!(
-          rawResults,
-          widget.queries[requestIndex],
-          organization
-        );
-        // When charting timeseriesData on echarts, color association to a timeseries result
-        // is order sensitive, ie series at index i on the timeseries array will use color at
-        // index i on the color array. This means that on multi series results, we need to make
-        // sure that the order of series in our results do not change between fetches to avoid
-        // coloring inconsistencies between renders.
-        transformedResult.forEach((result, resultIndex) => {
-          timeseriesResults[requestIndex * transformedResult.length + resultIndex] =
-            result;
-        });
+  const afterFetchTableData = useCallback(
+    (rawResults: TableResult) => {
+      // If one of the queries is sampled, then mark the whole thing as sampled
+      const currentResultIsMetricsData =
+        isMetricsData === false ? false : rawResults.meta?.isMetricsData;
+      setIsMetricsData?.(currentResultIsMetricsData);
+    },
+    [isMetricsData, setIsMetricsData]
+  );
 
-        const rawResultsClone = cloneDeep(prevState.rawResults ?? []);
-        rawResultsClone[requestIndex] = rawResults;
-
-        onDataFetched?.({timeseriesResults});
-
-        return {
-          ...prevState,
-          timeseriesResults,
-          rawResults: rawResultsClone,
-        };
-      });
-      completed++;
-      this.context?.setIsMetricsData(isMetricsData);
-      this.setState(prevState => {
-        if (prevState.queryFetchID !== queryFetchID) {
-          // invariant: a different request was initiated after this request
-          return prevState;
-        }
-
-        return {
-          ...prevState,
-          loading: completed === responses.length ? false : true,
-        };
-      });
-    });
-  }
-
-  fetchData() {
-    const {widget} = this.props;
-
-    const queryFetchID = Symbol('queryFetchID');
-    this.setState({loading: true, errorMessage: undefined, queryFetchID});
-
-    if (
-      [DisplayType.TABLE, DisplayType.WORLD_MAP, DisplayType.BIG_NUMBER].includes(
-        widget.displayType
-      )
-    ) {
-      this.fetchTableData(queryFetchID);
-    } else {
-      this.fetchTimeseriesData(queryFetchID, widget.displayType);
-    }
-  }
-
-  render() {
-    const {children} = this.props;
-    const {loading, timeseriesResults, tableResults, errorMessage, pageLinks} =
-      this.state;
-
-    const filteredTimeseriesResults = timeseriesResults?.filter(result => !!result);
-    return children({
-      loading,
-      timeseriesResults: filteredTimeseriesResults,
-      tableResults,
-      errorMessage,
-      pageLinks,
-    });
-  }
+  return (
+    <GenericWidgetQueries<SeriesResult, TableResult>
+      config={config}
+      api={api}
+      organization={organization}
+      selection={selection}
+      widget={widget}
+      cursor={cursor}
+      limit={limit}
+      onDataFetched={onDataFetched}
+      afterFetchSeriesData={afterFetchSeriesData}
+      afterFetchTableData={afterFetchTableData}
+    >
+      {children}
+    </GenericWidgetQueries>
+  );
 }
 
 export default WidgetQueries;

@@ -472,6 +472,13 @@ function buildRoutes() {
         <Route path=":ruleType/" />
       </Route>
       <Route
+        path="server-side-sampling/"
+        name={t('Server-side Sampling')}
+        component={make(
+          () => import('sentry/views/settings/project/server-side-sampling')
+        )}
+      />
+      <Route
         path="issue-grouping/"
         name={t('Issue Grouping')}
         component={make(() => import('sentry/views/settings/projectIssueGrouping'))}
@@ -1034,6 +1041,10 @@ function buildRoutes() {
         path=":eventSlug/"
         component={make(() => import('sentry/views/replays/details'))}
       />
+      <Route
+        path=":eventSlug/v2/"
+        component={make(() => import('sentry/views/replays/details_v2'))}
+      />
     </Route>
   );
 
@@ -1336,6 +1347,16 @@ function buildRoutes() {
           )}
           props={{
             currentTab: Tab.DETAILS,
+            isEventRoute: true,
+          }}
+        />
+        <Route
+          path="replays/"
+          component={make(
+            () => import('sentry/views/organizationGroupDetails/groupReplays')
+          )}
+          props={{
+            currentTab: Tab.REPLAYS,
             isEventRoute: true,
           }}
         />

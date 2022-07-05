@@ -116,8 +116,6 @@ def pytest_configure(config):
     settings.DEBUG_VIEWS = True
     settings.SERVE_UPLOADED_FILES = True
 
-    settings.SENTRY_ENCRYPTION_SCHEMES = ()
-
     settings.CACHES = {
         "default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"},
         "nodedata": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"},

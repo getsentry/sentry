@@ -1,70 +1,73 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
-import {mountGlobalModal} from 'sentry-test/modal';
+import {
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+} from 'sentry-test/reactTestingLibrary';
 
 import ConfirmDelete from 'sentry/components/confirmDelete';
+import ModalStore from 'sentry/stores/modalStore';
 
 describe('ConfirmDelete', function () {
-  it('renders', async function () {
+  afterEach(() => {
+    ModalStore.reset();
+  });
+
+  it('renders', function () {
     const mock = jest.fn();
-    const wrapper = mountWithTheme(
+    render(
       <ConfirmDelete message="Are you sure?" onConfirm={mock} confirmInput="CoolOrg">
         <button>Confirm?</button>
       </ConfirmDelete>
     );
-    wrapper.find('button').simulate('click');
-
-    const modal = await mountGlobalModal();
+    const globalModal = renderGlobalModal();
+    userEvent.click(screen.getByRole('button'));
 
     // jest had an issue rendering root component snapshot so using ModalDialog instead
-    expect(modal.find('Modal')).toSnapshot();
+    expect(globalModal.container).toSnapshot();
   });
 
-  it('confirm button is disabled and bypass prop is false when modal opens', async function () {
+  it('confirm button is disabled and bypass prop is false when modal opens', function () {
     const mock = jest.fn();
-    const wrapper = mountWithTheme(
+    render(
       <ConfirmDelete message="Are you sure?" onConfirm={mock} confirmInput="CoolOrg">
         <button>Confirm?</button>
       </ConfirmDelete>
     );
+    renderGlobalModal();
+    userEvent.click(screen.getByRole('button'));
 
-    wrapper.find('button').simulate('click');
-
-    const modal = await mountGlobalModal();
-
-    expect(wrapper.find('Confirm').prop('bypass')).toBe(false);
-    expect(modal.find('Button[priority="primary"][disabled=true]').exists()).toBe(true);
+    expect(screen.getByRole('button', {name: 'Confirm'})).toBeDisabled();
   });
 
-  it('confirm button stays disabled with non-matching input', async function () {
+  it('confirm button stays disabled with non-matching input', function () {
     const mock = jest.fn();
-    const wrapper = mountWithTheme(
+    render(
       <ConfirmDelete message="Are you sure?" onConfirm={mock} confirmInput="CoolOrg">
         <button>Confirm?</button>
       </ConfirmDelete>
     );
-    wrapper.find('button').simulate('click');
+    renderGlobalModal();
+    userEvent.click(screen.getByRole('button'));
 
-    const modal = await mountGlobalModal();
-
-    modal.find('input').simulate('change', {target: {value: 'Cool'}});
-    expect(modal.find('Button[priority="primary"][disabled=true]').exists()).toBe(true);
+    userEvent.type(screen.getByPlaceholderText('CoolOrg'), 'Cool');
+    expect(screen.getByRole('button', {name: 'Confirm'})).toBeDisabled();
   });
 
-  it('confirm button is enabled when confirm input matches', async function () {
+  it('confirm button is enabled when confirm input matches', function () {
     const mock = jest.fn();
-    const wrapper = mountWithTheme(
+    render(
       <ConfirmDelete message="Are you sure?" onConfirm={mock} confirmInput="CoolOrg">
         <button>Confirm?</button>
       </ConfirmDelete>
     );
-    wrapper.find('button').simulate('click');
+    renderGlobalModal();
+    userEvent.click(screen.getByRole('button'));
 
-    const modal = await mountGlobalModal();
+    userEvent.type(screen.getByPlaceholderText('CoolOrg'), 'CoolOrg');
+    expect(screen.getByRole('button', {name: 'Confirm'})).toBeEnabled();
 
-    modal.find('input').simulate('change', {target: {value: 'CoolOrg'}});
-    expect(modal.find('Button[priority="primary"][disabled=false]').exists()).toBe(true);
-
-    modal.find('Button[priority="primary"]').simulate('click');
+    userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
 
     expect(mock).toHaveBeenCalled();
     expect(mock.mock.calls).toHaveLength(1);

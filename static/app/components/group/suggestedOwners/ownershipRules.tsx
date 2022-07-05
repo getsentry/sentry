@@ -63,7 +63,7 @@ const OwnershipRules = ({
   const createRuleButton = (
     <Access access={['project:write']}>
       {({hasAccess}) => (
-        <GuideAnchor target="owners" position="bottom" offset={space(3)}>
+        <GuideAnchor target="owners" position="bottom" offset={20}>
           <Button
             onClick={handleOpenCreateOwnershipRule}
             size="small"
