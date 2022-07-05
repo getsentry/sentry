@@ -63,7 +63,6 @@ export enum SamplingInnerName {
   EVENT_USER_SEGMENT = 'event.user.segment',
   EVENT_LOCALHOST = 'event.is_local_ip',
   EVENT_WEB_CRAWLERS = 'event.web_crawlers',
-  EVENT_BROWSER_EXTENSIONS = 'event.has_bad_browser_extensions',
   EVENT_TRANSACTION = 'event.transaction',
   EVENT_OS_NAME = 'event.contexts.os.name',
   EVENT_OS_VERSION = 'event.contexts.os.version',
@@ -72,7 +71,6 @@ export enum SamplingInnerName {
   // Custom operators
   EVENT_IP_ADDRESSES = 'event.client_ip',
   EVENT_LEGACY_BROWSER = 'event.legacy_browser',
-  EVENT_ERROR_MESSAGES = 'event.error_messages',
   EVENT_CSP = 'event.csp',
   EVENT_CUSTOM_TAG = 'event.custom_tag', // used for the fresh new custom tag condition (gets replaced once you choose tag key)
 }
@@ -120,19 +118,13 @@ type SamplingConditionLogicalInnerEq = {
 };
 
 type SamplingConditionLogicalInnerEqBoolean = {
-  name:
-    | SamplingInnerName.EVENT_BROWSER_EXTENSIONS
-    | SamplingInnerName.EVENT_LOCALHOST
-    | SamplingInnerName.EVENT_WEB_CRAWLERS;
+  name: SamplingInnerName.EVENT_LOCALHOST | SamplingInnerName.EVENT_WEB_CRAWLERS;
   op: SamplingInnerOperator.EQUAL;
   value: boolean;
 };
 
 type SamplingConditionLogicalInnerCustom = {
-  name:
-    | SamplingInnerName.EVENT_CSP
-    | SamplingInnerName.EVENT_ERROR_MESSAGES
-    | SamplingInnerName.EVENT_IP_ADDRESSES;
+  name: SamplingInnerName.EVENT_CSP | SamplingInnerName.EVENT_IP_ADDRESSES;
   op: SamplingInnerOperator.CUSTOM;
   value: Array<string>;
 };
@@ -175,9 +167,14 @@ export type SamplingRule = {
    */
   type: SamplingRuleType;
   /**
-   * A rule can be disabled if it doesn't contain a condition (Else case)
+   * Indicates if the rule is enabled for server-side sampling
    */
-  disabled?: boolean;
+  active?: boolean;
+  /**
+   * A rule without a condition (Else case) always have to be 'pinned'
+   * to the bottom of the list and cannot be sorted.
+   */
+  bottomPinned?: boolean;
 };
 
 export type SamplingRules = Array<SamplingRule>;

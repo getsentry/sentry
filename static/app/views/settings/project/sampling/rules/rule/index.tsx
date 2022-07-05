@@ -57,7 +57,7 @@ export function Rule({
   }, [dragging, sorting, state.isMenuActionsOpen]);
 
   return (
-    <Columns disabled={rule.disabled || noPermission}>
+    <Columns disabled={rule.bottomPinned || noPermission}>
       {hideGrabButton ? (
         <Column />
       ) : (
@@ -89,13 +89,15 @@ export function Rule({
       </Column>
       <Column>
         <Conditions>
-          {rule.condition.inner.map((condition, index) => (
-            <Fragment key={index}>
-              <ConditionName>{getInnerNameLabel(condition.name)}</ConditionName>
-              <ConditionEqualOperator>{'='}</ConditionEqualOperator>
-              <ConditionValue value={condition.value} />
-            </Fragment>
-          ))}
+          {hideGrabButton && !rule.condition.inner.length
+            ? t('All')
+            : rule.condition.inner.map((condition, index) => (
+                <Fragment key={index}>
+                  <ConditionName>{getInnerNameLabel(condition.name)}</ConditionName>
+                  <ConditionEqualOperator>{'='}</ConditionEqualOperator>
+                  <ConditionValue value={condition.value} />
+                </Fragment>
+              ))}
         </Conditions>
       </Column>
       <RightColumn>
@@ -184,7 +186,7 @@ const Conditions = styled('div')`
   align-items: flex-start;
   width: 100%;
 
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
     grid-template-columns: max-content max-content 1fr;
     grid-column-gap: ${space(1)};
   }
@@ -196,7 +198,7 @@ const ConditionName = styled('div')`
 
 const ConditionEqualOperator = styled('div')`
   display: none;
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
     display: block;
   }
 `;

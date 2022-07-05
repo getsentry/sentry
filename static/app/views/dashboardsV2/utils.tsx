@@ -25,11 +25,14 @@ import {getUtcDateString, parsePeriodToHours} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
 import {
   getAggregateAlias,
+  getAggregateArg,
   getColumnsAndAggregates,
   isEquation,
+  isMeasurement,
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
 import {DisplayModes} from 'sentry/utils/discover/types';
+import {getMeasurements} from 'sentry/utils/measurements/measurements';
 import {
   DashboardDetails,
   DisplayType,
@@ -155,8 +158,9 @@ export function miniWidget(displayType: DisplayType): string {
 }
 
 export function getWidgetInterval(
-  widget: Widget,
+  displayType: DisplayType,
   datetimeObj: Partial<PageFilters['datetime']>,
+  widgetInterval?: string,
   fidelity?: Fidelity
 ): string {
   // Don't fetch more than 66 bins as we're plotting on a small area.
@@ -164,7 +168,7 @@ export function getWidgetInterval(
 
   // Bars charts are daily totals to aligned with discover. It also makes them
   // usefully different from line/area charts until we expose the interval control, or remove it.
-  let interval = widget.displayType === 'bar' ? '1d' : widget.interval;
+  let interval = displayType === 'bar' ? '1d' : widgetInterval;
   if (!interval) {
     // Default to 5 minutes
     interval = '5m';
@@ -179,7 +183,7 @@ export function getWidgetInterval(
     if (selectedRange > SIX_HOURS && selectedRange <= TWENTY_FOUR_HOURS) {
       interval = '1h';
     }
-    return widget.displayType === 'bar' ? '1d' : interval;
+    return displayType === 'bar' ? '1d' : interval;
   }
 
   // selectedRange is in minutes, desiredPeriod is in hours
@@ -345,4 +349,36 @@ export function getDashboardsMEPQueryParams(isMEPEnabled: boolean) {
 
 export function getNumEquations(possibleEquations: string[]) {
   return possibleEquations.filter(isEquation).length;
+}
+
+function isCustomMeasurement(field: string) {
+  const definedMeasurements = Object.keys(getMeasurements());
+  return isMeasurement(field) && !definedMeasurements.includes(field);
+}
+
+export function isCustomMeasurementWidget(widget: Widget) {
+  return (
+    widget.widgetType === WidgetType.DISCOVER &&
+    widget.queries.some(({aggregates, columns, fields}) => {
+      const aggregateArgs = aggregates.reduce((acc: string[], aggregate) => {
+        // Should be ok to use getAggregateArg. getAggregateArg only returns the first arg
+        // but there aren't any custom measurement aggregates that use custom measurements
+        // outside of the first arg.
+        const aggregateArg = getAggregateArg(aggregate);
+        if (aggregateArg) {
+          acc.push(aggregateArg);
+        }
+        return acc;
+      }, []);
+      return [...aggregateArgs, ...columns, ...(fields ?? [])].some(field =>
+        isCustomMeasurement(field)
+      );
+    })
+  );
+}
+
+export function getCustomMeasurementQueryParams() {
+  return {
+    dataset: 'metrics',
+  };
 }

@@ -219,6 +219,9 @@ from .endpoints.organization_dashboard_widget_details import (
 )
 from .endpoints.organization_dashboards import OrganizationDashboardsEndpoint
 from .endpoints.organization_details import OrganizationDetailsEndpoint
+from .endpoints.organization_dynamic_sampling_sdk_versions import (
+    OrganizationDynamicSamplingSDKVersionsEndpoint,
+)
 from .endpoints.organization_environments import OrganizationEnvironmentsEndpoint
 from .endpoints.organization_event_details import OrganizationEventDetailsEndpoint
 from .endpoints.organization_eventid import EventIdLookupEndpoint
@@ -270,6 +273,7 @@ from .endpoints.organization_issues_count import OrganizationIssuesCountEndpoint
 from .endpoints.organization_issues_resolved_in_release import (
     OrganizationIssuesResolvedInReleaseEndpoint,
 )
+from .endpoints.organization_measurements_meta import OrganizationMeasurementsMeta
 from .endpoints.organization_member import (
     OrganizationInviteRequestDetailsEndpoint,
     OrganizationInviteRequestIndexEndpoint,
@@ -354,10 +358,12 @@ from .endpoints.project_app_store_connect_credentials import (
     AppStoreConnectStatusEndpoint,
     AppStoreConnectUpdateCredentialsEndpoint,
 )
+from .endpoints.project_commits import ProjectCommitsEndpoint
 from .endpoints.project_create_sample import ProjectCreateSampleEndpoint
 from .endpoints.project_create_sample_transaction import ProjectCreateSampleTransactionEndpoint
 from .endpoints.project_details import ProjectDetailsEndpoint
 from .endpoints.project_docs_platform import ProjectDocsPlatformEndpoint
+from .endpoints.project_dynamic_sampling import ProjectDynamicSamplingDistributionEndpoint
 from .endpoints.project_environment_details import ProjectEnvironmentDetailsEndpoint
 from .endpoints.project_environments import ProjectEnvironmentsEndpoint
 from .endpoints.project_event_details import EventJsonEndpoint, ProjectEventDetailsEndpoint
@@ -384,6 +390,7 @@ from .endpoints.project_processingissues import (
 from .endpoints.project_profiling_profile import (
     ProjectProfilingFunctionsEndpoint,
     ProjectProfilingProfileEndpoint,
+    ProjectProfilingTransactionIDProfileIDEndpoint,
 )
 from .endpoints.project_release_commits import ProjectReleaseCommitsEndpoint
 from .endpoints.project_release_details import ProjectReleaseDetailsEndpoint
@@ -1196,6 +1203,11 @@ urlpatterns = [
                     name="sentry-api-0-organization-events-trace-meta",
                 ),
                 url(
+                    r"^(?P<organization_slug>[^\/]+)/measurements-meta/$",
+                    OrganizationMeasurementsMeta.as_view(),
+                    name="sentry-api-0-organization-measurements-meta",
+                ),
+                url(
                     r"^(?P<organization_slug>[^\/]+)/issues/$",
                     OrganizationGroupIndexEndpoint.as_view(),
                     name="sentry-api-0-organization-group-index",
@@ -1521,6 +1533,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/transaction-anomaly-detection/$",
                     OrganizationTransactionAnomalyDetectionEndpoint.as_view(),
                     name="sentry-api-0-organization-transaction-anomaly-detection",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/dynamic-sampling/sdk-versions/$",
+                    OrganizationDynamicSamplingSDKVersionsEndpoint.as_view(),
+                    name="sentry-api-0-organization-dynamic-sampling-sdk-versions",
                 ),
                 # relay usage
                 url(
@@ -1944,6 +1961,11 @@ urlpatterns = [
                     name="sentry-api-0-project-releases",
                 ),
                 url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/commits/$",
+                    ProjectCommitsEndpoint.as_view(),
+                    name="sentry-api-0-project-commits",
+                ),
+                url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/token/$",
                     ProjectReleasesTokenEndpoint.as_view(),
                     name="sentry-api-0-project-releases-token",
@@ -2204,6 +2226,16 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/profiling/profiles/(?P<profile_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
                     ProjectProfilingProfileEndpoint.as_view(),
                     name="sentry-api-0-project-profiling-profile",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/profiling/transactions/(?P<transaction_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
+                    ProjectProfilingTransactionIDProfileIDEndpoint.as_view(),
+                    name="sentry-api-0-project-profiling-transactions",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/dynamic-sampling/distribution/$",
+                    ProjectDynamicSamplingDistributionEndpoint.as_view(),
+                    name="sentry-api-0-project-dynamic-sampling-distribution",
                 ),
             ]
         ),

@@ -4,7 +4,7 @@ import trimStart from 'lodash/trimStart';
 
 import {generateOrderOptions} from 'sentry/components/dashboards/widgetQueriesForm';
 import {t} from 'sentry/locale';
-import {Organization, TagCollection} from 'sentry/types';
+import {OrganizationSummary, TagCollection} from 'sentry/types';
 import {
   aggregateFunctionOutputType,
   aggregateOutputType,
@@ -288,7 +288,7 @@ export function getAmendedFieldOptions({
   tags,
 }: {
   measurements: MeasurementCollection;
-  organization: Organization;
+  organization: OrganizationSummary;
   tags: TagCollection;
 }) {
   return generateFieldOptions({
@@ -312,9 +312,6 @@ export function getMetricFields(queries: WidgetQuery[]) {
     return acc;
   }, [] as string[]);
 }
-
-// Used to limit the number of results of the "filter your results" fields dropdown
-export const MAX_SEARCH_ITEMS = 5;
 
 // Used to set the max height of the smartSearchBar menu
 export const MAX_MENU_HEIGHT = 250;

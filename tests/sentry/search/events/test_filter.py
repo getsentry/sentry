@@ -558,9 +558,9 @@ class ParseBooleanSearchQueryTest(TestCase):
         project1 = self.create_project()
         project2 = self.create_project()
         project3 = self.create_project()
-        with self.assertRaisesRegex(
+        with pytest.raises(
             InvalidSearchQuery,
-            re.escape(
+            match=re.escape(
                 f"Invalid query. Project(s) {str(project3.slug)} do not exist or are not actively selected."
             ),
         ):
@@ -612,26 +612,27 @@ class ParseBooleanSearchQueryTest(TestCase):
                 params={"organization_id": self.organization.id, "project_id": [self.project.id]},
             )
             assert test[1] == result.conditions, test[0]
-            assert test[2] == result.group_ids, test[0]
+            assert sorted(test[2]) == sorted(result.group_ids), test[0]
 
     def test_invalid_conditional_filters(self):
-        with self.assertRaisesRegex(
-            InvalidSearchQuery, "Condition is missing on the left side of 'OR' operator"
+        with pytest.raises(
+            InvalidSearchQuery, match="Condition is missing on the left side of 'OR' operator"
         ):
             get_filter("OR a:b")
 
-        with self.assertRaisesRegex(
-            InvalidSearchQuery, "Missing condition in between two condition operators: 'OR AND'"
+        with pytest.raises(
+            InvalidSearchQuery,
+            match="Missing condition in between two condition operators: 'OR AND'",
         ):
             get_filter("a:b Or And c:d")
 
-        with self.assertRaisesRegex(
-            InvalidSearchQuery, "Condition is missing on the right side of 'AND' operator"
+        with pytest.raises(
+            InvalidSearchQuery, match="Condition is missing on the right side of 'AND' operator"
         ):
             get_filter("a:b AND c:d AND")
 
-        with self.assertRaisesRegex(
-            InvalidSearchQuery, "Condition is missing on the left side of 'OR' operator"
+        with pytest.raises(
+            InvalidSearchQuery, match="Condition is missing on the left side of 'OR' operator"
         ):
             get_filter("(OR a:b) AND c:d")
 
@@ -824,7 +825,7 @@ class GetSnubaQueryArgsTest(TestCase):
         assert _filter.filter_keys == {}
 
     def test_wildcard_event_id(self):
-        with self.assertRaises(InvalidSearchQuery):
+        with pytest.raises(InvalidSearchQuery):
             get_filter("id:deadbeef*")
 
     def test_event_id_validation(self):
@@ -836,10 +837,10 @@ class GetSnubaQueryArgsTest(TestCase):
         results = get_filter(f"id:{event_id}")
         assert results.conditions == [["id", "=", event_id]]
 
-        with self.assertRaises(InvalidSearchQuery):
+        with pytest.raises(InvalidSearchQuery):
             get_filter("id:deadbeef")
 
-        with self.assertRaises(InvalidSearchQuery):
+        with pytest.raises(InvalidSearchQuery):
             get_filter(f"id:{'g' * 32}")
 
     def test_trace_id_validation(self):
@@ -851,10 +852,10 @@ class GetSnubaQueryArgsTest(TestCase):
         results = get_filter(f"trace:{trace_id}")
         assert results.conditions == [["trace", "=", trace_id]]
 
-        with self.assertRaises(InvalidSearchQuery):
+        with pytest.raises(InvalidSearchQuery):
             get_filter("trace:deadbeef")
 
-        with self.assertRaises(InvalidSearchQuery):
+        with pytest.raises(InvalidSearchQuery):
             get_filter(f"trace:{'g' * 32}")
 
     def test_negated_wildcard(self):
@@ -1351,13 +1352,13 @@ class GetSnubaQueryArgsTest(TestCase):
         ]
 
     def test_shorthand_overflow(self):
-        with self.assertRaises(InvalidSearchQuery):
+        with pytest.raises(InvalidSearchQuery):
             get_filter(f"transaction.duration:<{'9'*13}m")
 
-        with self.assertRaises(InvalidSearchQuery):
+        with pytest.raises(InvalidSearchQuery):
             get_filter(f"transaction.duration:<{'9'*11}h")
 
-        with self.assertRaises(InvalidSearchQuery):
+        with pytest.raises(InvalidSearchQuery):
             get_filter(f"transaction.duration:<{'9'*10}d")
 
     def test_semver(self):
@@ -1417,12 +1418,12 @@ class GetSnubaQueryArgsTest(TestCase):
         ]
         assert _filter.filter_keys == {}
 
-        with self.assertRaises(InvalidSearchQuery):
+        with pytest.raises(InvalidSearchQuery):
             _filter = get_filter(
                 f"!{RELEASE_STAGE_ALIAS}:invalid", {"organization_id": self.organization.id}
             )
 
-        with self.assertRaises(InvalidSearchQuery):
+        with pytest.raises(InvalidSearchQuery):
             _filter = get_filter(
                 f"{RELEASE_STAGE_ALIAS}:[{ReleaseStages.REPLACED}, {ReleaseStages.LOW_ADOPTION}]",
                 {"organization_id": self.organization.id},
@@ -1452,14 +1453,14 @@ class DiscoverFunctionTest(unittest.TestCase):
         self.fn_wo_optionals.validate_argument_count("fn_wo_optionals()", ["arg1", "arg2"])
 
     def test_no_optional_not_enough_arguments(self):
-        with self.assertRaisesRegex(
-            InvalidSearchQuery, r"fn_wo_optionals\(\): expected 2 argument\(s\)"
+        with pytest.raises(
+            InvalidSearchQuery, match=r"fn_wo_optionals\(\): expected 2 argument\(s\)"
         ):
             self.fn_wo_optionals.validate_argument_count("fn_wo_optionals()", ["arg1"])
 
     def test_no_optional_too_may_arguments(self):
-        with self.assertRaisesRegex(
-            InvalidSearchQuery, r"fn_wo_optionals\(\): expected 2 argument\(s\)"
+        with pytest.raises(
+            InvalidSearchQuery, match=r"fn_wo_optionals\(\): expected 2 argument\(s\)"
         ):
             self.fn_wo_optionals.validate_argument_count(
                 "fn_wo_optionals()", ["arg1", "arg2", "arg3"]
@@ -1471,27 +1472,27 @@ class DiscoverFunctionTest(unittest.TestCase):
         self.fn_w_optionals.validate_argument_count("fn_w_optionals()", ["arg1"])
 
     def test_optional_not_enough_arguments(self):
-        with self.assertRaisesRegex(
-            InvalidSearchQuery, r"fn_w_optionals\(\): expected at least 1 argument\(s\)"
+        with pytest.raises(
+            InvalidSearchQuery, match=r"fn_w_optionals\(\): expected at least 1 argument\(s\)"
         ):
             self.fn_w_optionals.validate_argument_count("fn_w_optionals()", [])
 
     def test_optional_too_many_arguments(self):
-        with self.assertRaisesRegex(
-            InvalidSearchQuery, r"fn_w_optionals\(\): expected at most 2 argument\(s\)"
+        with pytest.raises(
+            InvalidSearchQuery, match=r"fn_w_optionals\(\): expected at most 2 argument\(s\)"
         ):
             self.fn_w_optionals.validate_argument_count(
                 "fn_w_optionals()", ["arg1", "arg2", "arg3"]
             )
 
     def test_optional_args_have_default(self):
-        with self.assertRaisesRegex(
-            AssertionError, "test: optional argument at index 0 does not have default"
+        with pytest.raises(
+            AssertionError, match="test: optional argument at index 0 does not have default"
         ):
             DiscoverFunction("test", optional_args=[FunctionArg("arg1")])
 
     def test_defining_duplicate_args(self):
-        with self.assertRaisesRegex(AssertionError, "test: argument arg1 specified more than once"):
+        with pytest.raises(AssertionError, match="test: argument arg1 specified more than once"):
             DiscoverFunction(
                 "test",
                 required_args=[FunctionArg("arg1")],
@@ -1499,7 +1500,7 @@ class DiscoverFunctionTest(unittest.TestCase):
                 transform="",
             )
 
-        with self.assertRaisesRegex(AssertionError, "test: argument arg1 specified more than once"):
+        with pytest.raises(AssertionError, match="test: argument arg1 specified more than once"):
             DiscoverFunction(
                 "test",
                 required_args=[FunctionArg("arg1")],
@@ -1507,7 +1508,7 @@ class DiscoverFunctionTest(unittest.TestCase):
                 transform="",
             )
 
-        with self.assertRaisesRegex(AssertionError, "test: argument arg1 specified more than once"):
+        with pytest.raises(AssertionError, match="test: argument arg1 specified more than once"):
             DiscoverFunction(
                 "test",
                 optional_args=[with_default("default", FunctionArg("arg1"))],
@@ -2622,9 +2623,9 @@ class SnQLBooleanSearchQueryTest(TestCase):
         assert having == []
 
     def test_project_not_selected(self):
-        with self.assertRaisesRegex(
+        with pytest.raises(
             InvalidSearchQuery,
-            re.escape(
+            match=re.escape(
                 f"Invalid query. Project(s) {str(self.project3.slug)} do not exist or are not actively selected."
             ),
         ):

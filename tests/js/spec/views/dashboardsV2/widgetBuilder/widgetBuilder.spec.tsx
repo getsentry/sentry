@@ -1960,7 +1960,9 @@ describe('WidgetBuilder', function () {
         userEvent.click(screen.getByText('Add a Column'));
 
         // The sort by should still have count_unique(user)
-        expect(screen.getAllByText('count_unique(user)')).toHaveLength(2);
+        await waitFor(() =>
+          expect(screen.getAllByText('count_unique(user)')).toHaveLength(2)
+        );
       });
 
       it('will reset the sort field when going from line to table when sorting by a value not in fields', async function () {
@@ -2264,7 +2266,7 @@ describe('WidgetBuilder', function () {
       userEvent.paste(screen.getAllByPlaceholderText('Alias')[1], 'This should persist');
       userEvent.type(screen.getAllByPlaceholderText('Alias')[0], 'A');
 
-      expect(screen.getByText('This should persist')).toBeInTheDocument();
+      expect(await screen.findByText('This should persist')).toBeInTheDocument();
     });
 
     it('does not wipe equation aliases when a column selection is made', async function () {
@@ -2277,6 +2279,8 @@ describe('WidgetBuilder', function () {
       userEvent.click(screen.getByText('Add an Equation'));
       userEvent.paste(screen.getAllByPlaceholderText('Alias')[1], 'This should persist');
 
+      // 1 for the table, 1 for the the column selector, 1 for the sort
+      await waitFor(() => expect(screen.getAllByText('count()')).toHaveLength(3));
       await selectEvent.select(screen.getAllByText('count()')[1], /count_unique/);
 
       expect(screen.getByText('This should persist')).toBeInTheDocument();
@@ -2571,6 +2575,40 @@ describe('WidgetBuilder', function () {
         expect(screen.getByRole('textbox', {name: 'Sort by'})).toBeDisabled();
       });
 
+      it('does not allow sort on tags except release', async function () {
+        renderTestComponent({
+          orgFeatures: releaseHealthFeatureFlags,
+        });
+
+        expect(
+          await screen.findByText('Releases (sessions, crash rates)')
+        ).toBeInTheDocument();
+
+        userEvent.click(screen.getByLabelText(/releases/i));
+
+        expect(screen.getByText('High to low')).toBeEnabled();
+        expect(screen.getByText('crash_free_rate(session)')).toBeInTheDocument();
+
+        userEvent.click(screen.getByLabelText('Add a Column'));
+        await selectEvent.select(screen.getByText('(Required)'), 'release');
+
+        userEvent.click(screen.getByLabelText('Add a Column'));
+        await selectEvent.select(screen.getByText('(Required)'), 'environment');
+
+        expect(await screen.findByText('Sort by a column')).toBeInTheDocument();
+
+        // Selector "sortDirection"
+        expect(screen.getByText('High to low')).toBeInTheDocument();
+
+        // Selector "sortBy"
+        userEvent.click(screen.getAllByText('crash_free_rate(session)')[1]);
+
+        // release exists in sort by selector
+        expect(screen.getAllByText('release')).toHaveLength(3);
+        // environment does not exist in sort by selector
+        expect(screen.getAllByText('environment')).toHaveLength(2);
+      });
+
       it('makes the appropriate sessions call', async function () {
         renderTestComponent({
           orgFeatures: releaseHealthFeatureFlags,
@@ -2791,7 +2829,10 @@ describe('WidgetBuilder', function () {
           await screen.findByPlaceholderText('Search for events, users, tags, and more'),
           'session.status:'
         );
-        expect(await screen.findByText('No items found')).toBeInTheDocument();
+
+        await waitFor(() => {
+          expect(screen.getByText('No items found')).toBeInTheDocument();
+        });
 
         userEvent.click(screen.getByText('Releases (sessions, crash rates)'));
         userEvent.click(

@@ -1,9 +1,7 @@
-import React, {useMemo} from 'react';
+import React from 'react';
 import styled from '@emotion/styled';
 
 import Breadcrumbs from 'sentry/components/breadcrumbs';
-import Button from 'sentry/components/button';
-import Clipboard from 'sentry/components/clipboard';
 import Duration from 'sentry/components/duration';
 import FeatureBadge from 'sentry/components/featureBadge';
 import {FeatureFeedback} from 'sentry/components/featureFeedback';
@@ -14,28 +12,24 @@ import {KeyMetricData, KeyMetrics} from 'sentry/components/replays/keyMetrics';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import TimeSince from 'sentry/components/timeSince';
-import {IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Crumb} from 'sentry/types/breadcrumbs';
 import {Event} from 'sentry/types/event';
 import getUrlPathname from 'sentry/utils/getUrlPathname';
-import createUrlToShare from 'sentry/utils/replays/createUrlToShare';
 
 type Props = {
   children: React.ReactNode;
   orgId: string;
-  crumbs?: Crumb[];
-  event?: Event;
 };
 
-function DetailLayout({children, event, orgId, crumbs}: Props) {
-  const {currentTime} = useReplayContext();
-  const title = event ? `${event.id} - Replays - ${orgId}` : `Replays - ${orgId}`;
+function DetailLayout({children, orgId}: Props) {
+  const {replay} = useReplayContext();
 
-  const urlToShare = useMemo(() => {
-    return createUrlToShare(currentTime);
-  }, [currentTime]);
+  const event = replay?.getEvent();
+  const crumbs = replay?.getRawCrumbs();
+
+  const title = event ? `${event.id} - Replays - ${orgId}` : `Replays - ${orgId}`;
 
   return (
     <SentryDocumentTitle title={title}>
@@ -60,18 +54,7 @@ function DetailLayout({children, event, orgId, crumbs}: Props) {
             />
           </Layout.HeaderContent>
           <ButtonActionsWrapper>
-            <Clipboard hideUnsupported value={urlToShare}>
-              <Button icon={<IconLink />}>{t('Share')}</Button>
-            </Clipboard>
-            <FeatureFeedback
-              featureName="replay"
-              feedbackTypes={[
-                'Something is broken',
-                "I don't understand how to use this feature",
-                'I like this feature',
-                'Other reason',
-              ]}
-            />
+            <FeatureFeedback featureName="replay" />
           </ButtonActionsWrapper>
           <React.Fragment>
             <Layout.HeaderContent>
@@ -96,7 +79,7 @@ const HeaderPlaceholder = styled(function HeaderPlaceholder(
   background-color: ${p => p.theme.background};
 `;
 
-function EventHeader({event}: Pick<Props, 'event'>) {
+function EventHeader({event}: {event: Event | undefined}) {
   if (!event) {
     return <HeaderPlaceholder width="500px" height="48px" />;
   }
@@ -124,7 +107,13 @@ const MetaDataColumn = styled(Layout.HeaderActions)`
   width: 325px;
 `;
 
-function EventMetaData({event, crumbs}: Pick<Props, 'event' | 'crumbs'>) {
+function EventMetaData({
+  event,
+  crumbs,
+}: {
+  crumbs: Crumb[] | undefined;
+  event: Event | undefined;
+}) {
   const {duration} = useReplayContext();
 
   const errors = crumbs?.filter(crumb => crumb.type === 'error').length;

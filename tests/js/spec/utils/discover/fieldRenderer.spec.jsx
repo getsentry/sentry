@@ -133,7 +133,7 @@ describe('getFieldRenderer', function () {
     const renderer = getFieldRenderer('timestamp.to_day', {'timestamp.to_day': 'date'});
     const wrapper = mountWithTheme(renderer(data, {location, organization}));
     const text = wrapper.find('Container');
-    expect(text.text()).toEqual('September 5, 2021');
+    expect(text.text()).toEqual('Sep 5, 2021');
   });
 
   it('can render error.handled values', function () {

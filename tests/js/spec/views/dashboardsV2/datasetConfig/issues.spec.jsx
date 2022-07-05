@@ -31,7 +31,9 @@ describe('transformIssuesResponseToTable', function () {
           aggregates: [],
           conditions: 'assigned_or_suggested:#visibility timesSeen:>100',
           orderby: '',
-        }
+        },
+        TestStubs.Organization(),
+        TestStubs.GlobalSelection()
       )
     ).toEqual({
       data: [
@@ -51,6 +53,8 @@ describe('transformIssuesResponseToTable', function () {
           status: 'unresolved',
           title: 'Error: Failed',
           users: 3,
+          end: '2019-09-09T11:18:59',
+          start: '2019-10-09T11:18:59',
         },
       ],
     });

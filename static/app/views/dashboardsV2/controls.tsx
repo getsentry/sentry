@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Confirm from 'sentry/components/confirm';
@@ -141,23 +142,28 @@ function Controls({
                 })}
                 disabled={!!!widgetLimitReached}
               >
-                <Button
-                  data-test-id="add-widget-library"
-                  priority="primary"
-                  disabled={widgetLimitReached}
-                  icon={<IconAdd isCircled />}
-                  onClick={() => {
-                    trackAdvancedAnalyticsEvent(
-                      'dashboards_views.widget_library.opened',
-                      {
-                        organization,
-                      }
-                    );
-                    onAddWidget();
-                  }}
+                <GuideAnchor
+                  disabled={!!!organization.features.includes('dashboards-releases')}
+                  target="releases_widget"
                 >
-                  {t('Add Widget')}
-                </Button>
+                  <Button
+                    data-test-id="add-widget-library"
+                    priority="primary"
+                    disabled={widgetLimitReached}
+                    icon={<IconAdd isCircled />}
+                    onClick={() => {
+                      trackAdvancedAnalyticsEvent(
+                        'dashboards_views.widget_library.opened',
+                        {
+                          organization,
+                        }
+                      );
+                      onAddWidget();
+                    }}
+                  >
+                    {t('Add Widget')}
+                  </Button>
+                </GuideAnchor>
               </Tooltip>
             ) : null}
           </Fragment>
@@ -198,7 +204,7 @@ const DashboardEditFeature = ({
 };
 
 const StyledButtonBar = styled(ButtonBar)`
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     grid-auto-flow: row;
     grid-row-gap: ${space(1)};
     width: 100%;

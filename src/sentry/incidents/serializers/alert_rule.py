@@ -1,13 +1,12 @@
 import logging
 import operator
-from copy import copy
 from datetime import timedelta
 
 from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
 from rest_framework import serializers
-from snuba_sdk.legacy import json_to_snql
+from snuba_sdk import Column, Condition, Function, Limit, Op
 
 from sentry.api.fields.actor import ActorField
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
@@ -28,9 +27,7 @@ from sentry.incidents.models import AlertRule, AlertRuleThresholdType, AlertRule
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.entity_subscription import get_entity_subscription_for_dataset
 from sentry.snuba.models import QueryDatasets, QuerySubscription, SnubaQueryEventType
-from sentry.snuba.tasks import build_snuba_filter
-from sentry.utils import json
-from sentry.utils.snuba import raw_snql_query
+from sentry.snuba.tasks import build_query_builder
 
 from . import CRASH_RATE_ALERTS_ALLOWED_TIME_WINDOWS, DATASET_VALID_EVENT_TYPES, UNSUPPORTED_QUERIES
 from .alert_rule_trigger import AlertRuleTriggerSerializer
@@ -168,86 +165,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
         both alert and resolve 'after' the warning trigger (whether that means
         > or < the value depends on threshold type).
         """
-        data.setdefault("dataset", QueryDatasets.EVENTS)
-        project_id = data.get("projects")
-        if not project_id:
-            # We just need a valid project id from the org so that we can verify
-            # the query. We don't use the returned data anywhere, so it doesn't
-            # matter which.
-            project_id = list(self.context["organization"].project_set.all()[:1])
-
-        try:
-            entity_subscription = get_entity_subscription_for_dataset(
-                dataset=QueryDatasets(data["dataset"]),
-                aggregate=data["aggregate"],
-                time_window=int(timedelta(minutes=data["time_window"]).total_seconds()),
-                extra_fields={
-                    "org_id": project_id[0].organization_id,
-                    "event_types": data.get("event_types"),
-                },
-            )
-        except UnsupportedQuerySubscription as e:
-            raise serializers.ValidationError(f"{e}")
-
-        try:
-            snuba_filter = build_snuba_filter(
-                entity_subscription,
-                data["query"],
-                data.get("environment"),
-                params={
-                    "project_id": [p.id for p in project_id],
-                    "start": timezone.now() - timedelta(minutes=10),
-                    "end": timezone.now(),
-                },
-            )
-            if any(cond[0] == "project_id" for cond in snuba_filter.conditions):
-                raise serializers.ValidationError({"query": "Project is an invalid search term"})
-        except (InvalidSearchQuery, ValueError) as e:
-            raise serializers.ValidationError(f"Invalid Query or Metric: {e}")
-        else:
-            if not snuba_filter.aggregations:
-                raise serializers.ValidationError(
-                    "Invalid Metric: Please pass a valid function for aggregation"
-                )
-
-            dataset = Dataset(data["dataset"].value)
-            self._validate_time_window(dataset, data.get("time_window"))
-
-            conditions = copy(snuba_filter.conditions)
-            time_col = entity_subscription.time_col
-            conditions += [
-                [time_col, ">=", snuba_filter.start],
-                [time_col, "<", snuba_filter.end],
-            ]
-
-            body = {
-                "project": project_id[0].id,
-                "project_id": project_id[0].id,
-                "aggregations": snuba_filter.aggregations,
-                "conditions": conditions,
-                "filter_keys": snuba_filter.filter_keys,
-                "having": snuba_filter.having,
-                "dataset": dataset.value,
-                "limit": 1,
-                **entity_subscription.get_entity_extra_params(),
-            }
-
-            try:
-                snql_query = json_to_snql(body, entity_subscription.entity_key.value)
-                snql_query.validate()
-            except Exception as e:
-                raise serializers.ValidationError(
-                    str(e), params={"params": json.dumps(body), "dataset": data["dataset"].value}
-                )
-
-            try:
-                raw_snql_query(snql_query, referrer="alertruleserializer.test_query")
-            except Exception:
-                logger.exception("Error while validating snuba alert rule query")
-                raise serializers.ValidationError(
-                    "Invalid Query or Metric: An error occurred while attempting "
-                    "to run the query"
-                )
+        self._validate_query(data)
 
         triggers = data.get("triggers", [])
         if not triggers:
@@ -288,6 +206,75 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
             self._validate_critical_warning_triggers(threshold_type, critical, warning)
 
         return data
+
+    def _validate_query(self, data):
+        data.setdefault("dataset", QueryDatasets.EVENTS)
+        dataset = QueryDatasets(data["dataset"])
+        projects = data.get("projects")
+        if not projects:
+            # We just need a valid project id from the org so that we can verify
+            # the query. We don't use the returned data anywhere, so it doesn't
+            # matter which.
+            projects = list(self.context["organization"].project_set.all()[:1])
+
+        try:
+            entity_subscription = get_entity_subscription_for_dataset(
+                dataset=dataset,
+                aggregate=data["aggregate"],
+                time_window=int(timedelta(minutes=data["time_window"]).total_seconds()),
+                extra_fields={
+                    "org_id": projects[0].organization_id,
+                    "event_types": data.get("event_types"),
+                },
+            )
+        except UnsupportedQuerySubscription as e:
+            raise serializers.ValidationError(f"{e}")
+
+        self._validate_snql_query(data, entity_subscription, projects)
+
+    def _validate_snql_query(self, data, entity_subscription, projects):
+        end = timezone.now()
+        start = end - timedelta(minutes=10)
+        try:
+            query_builder = build_query_builder(
+                entity_subscription,
+                data["query"],
+                [p.id for p in projects],
+                data.get("environment"),
+                params={
+                    "organization_id": projects[0].organization_id,
+                    "project_id": [p.id for p in projects],
+                    "start": start,
+                    "end": end,
+                },
+            )
+        except (InvalidSearchQuery, ValueError) as e:
+            raise serializers.ValidationError(f"Invalid Query or Metric: {e}")
+
+        if not isinstance(query_builder.columns[0], Function):
+            raise serializers.ValidationError(
+                "Invalid Metric: Please pass a valid function for aggregation"
+            )
+
+        dataset = Dataset(data["dataset"].value)
+        self._validate_time_window(dataset, data.get("time_window"))
+
+        time_col = entity_subscription.time_col
+        query_builder.add_conditions(
+            [
+                Condition(Column(time_col), Op.GTE, start),
+                Condition(Column(time_col), Op.LT, end),
+            ]
+        )
+        query_builder.limit = Limit(1)
+
+        try:
+            query_builder.run_query(referrer="alertruleserializer.test_query")
+        except Exception:
+            logger.exception("Error while validating snuba alert rule query")
+            raise serializers.ValidationError(
+                "Invalid Query or Metric: An error occurred while attempting " "to run the query"
+            )
 
     def _translate_thresholds(self, threshold_type, comparison_delta, triggers, data):
         """

@@ -1,3 +1,5 @@
+import pytest
+
 from sentry.mediators import Param
 from sentry.models import User
 from sentry.testutils import TestCase
@@ -7,19 +9,19 @@ class TestParam(TestCase):
     def test_validate_type(self):
         name = Param((str,))
 
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             name.validate(None, "name", 1)
 
     def test_validate_required(self):
         name = Param((str,))
 
-        with self.assertRaises(AttributeError):
+        with pytest.raises(AttributeError):
             name.validate(None, "name", None)
 
     def test_validate_default_type(self):
         name = Param((str,), default=1)
 
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             name.validate(None, "name", None)
 
     def test_validate_user_defined_type(self):

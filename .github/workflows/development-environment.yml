@@ -49,9 +49,7 @@ jobs:
         run: |
           HOMEBREW_NO_AUTO_UPDATE=1 brew install -v libxmlsec1
 
-      - name: Install volta
-        run: |
-          curl https://get.volta.sh | bash
+      - uses: ./.github/actions/setup-volta
 
       # This handles Python's cache
       - name: Setup Python & cache
@@ -61,18 +59,10 @@ jobs:
         with:
           python-version: 3.8.12
 
-      - name: Cache (yarn)
-        uses: actions/cache@v1 # We are explicitly using v1 due to perf reasons
-        with:
-          path: ${{ steps.info.outputs.yarn-cache-dir }}
-          key: devenv-${{ runner.os }}-v1-yarn-${{ hashFiles('yarn.lock') }}
-
       # This tests starting up the dev services, loading mocks and pre-commit installation
       # This can take over 15 minutes
       - name: make bootstrap
         run: |
-          export VOLTA_HOME="$HOME/.volta"
-          export PATH="$HOME/.volta/bin:$PATH"
           python -m venv .venv
           source .venv/bin/activate
           make bootstrap

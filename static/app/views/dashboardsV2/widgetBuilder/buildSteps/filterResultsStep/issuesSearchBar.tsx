@@ -9,39 +9,34 @@ import {getUtcDateString} from 'sentry/utils/dates';
 import useApi from 'sentry/utils/useApi';
 import withIssueTags from 'sentry/utils/withIssueTags';
 import {WidgetQuery} from 'sentry/views/dashboardsV2/types';
-import {
-  MAX_MENU_HEIGHT,
-  MAX_SEARCH_ITEMS,
-} from 'sentry/views/dashboardsV2/widgetBuilder/utils';
+import {MAX_MENU_HEIGHT} from 'sentry/views/dashboardsV2/widgetBuilder/utils';
 import IssueListSearchBar from 'sentry/views/issueList/searchBar';
 
 interface Props {
   onBlur: SearchBarProps['onBlur'];
   onSearch: SearchBarProps['onSearch'];
   organization: Organization;
-  query: WidgetQuery;
-  selection: PageFilters;
+  pageFilters: PageFilters;
   tags: TagCollection;
-  searchSource?: string;
+  widgetQuery: WidgetQuery;
 }
 
 function IssuesSearchBarContainer({
   tags,
   onSearch,
   onBlur,
+  widgetQuery,
   organization,
-  query,
-  selection,
-  searchSource,
+  pageFilters,
 }: Props) {
   const api = useApi();
   function tagValueLoader(key: string, search: string) {
     const orgId = organization.slug;
-    const projectIds = selection.projects.map(id => id.toString());
+    const projectIds = pageFilters.projects.map(id => id.toString());
     const endpointParams = {
-      start: getUtcDateString(selection.datetime.start),
-      end: getUtcDateString(selection.datetime.end),
-      statsPeriod: selection.datetime.period,
+      start: getUtcDateString(pageFilters.datetime.start),
+      end: getUtcDateString(pageFilters.datetime.end),
+      statsPeriod: pageFilters.datetime.period,
     };
 
     return fetchTagValues(api, orgId, key, search, projectIds, endpointParams);
@@ -51,9 +46,8 @@ function IssuesSearchBarContainer({
     <ClassNames>
       {({css}) => (
         <StyledIssueListSearchBar
-          searchSource={searchSource}
-          organization={organization}
-          query={query.conditions || ''}
+          searchSource="widget_builder"
+          query={widgetQuery.conditions || ''}
           sort=""
           onSearch={onSearch}
           onBlur={onBlur}
@@ -62,7 +56,6 @@ function IssuesSearchBarContainer({
           placeholder={t('Search for issues, status, assigned, and more')}
           tagValueLoader={tagValueLoader}
           onSidebarToggle={() => undefined}
-          maxSearchItems={MAX_SEARCH_ITEMS}
           savedSearchType={SavedSearchType.ISSUE}
           dropdownClassName={css`
             max-height: ${MAX_MENU_HEIGHT}px;

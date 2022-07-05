@@ -56,7 +56,9 @@ describe('TextRenderer', () => {
 
     expect(textRenderer.textCache.test).toBe(undefined);
     expect(textRenderer.textCache).toEqual({
-      'Who knows if this changed, font-display: swap wont tell me': 20,
+      'Who knows if this changed, font-display: swap wont tell me': {
+        width: 20,
+      },
     });
   });
   it('caches measure text', () => {
@@ -162,7 +164,7 @@ describe('TextRenderer', () => {
       trimTextCenter(
         longFrameName,
         Math.floor(longFrameName.length / 2) - Theme.SIZES.BAR_PADDING * 2
-      ),
+      ).text,
       Theme.SIZES.BAR_PADDING,
       Theme.SIZES.BAR_HEIGHT - Theme.SIZES.BAR_FONT_SIZE / 2 // center text vertically inside the rect
     );
@@ -216,7 +218,7 @@ describe('TextRenderer', () => {
       trimTextCenter(
         longFrameName,
         Math.floor(longFrameName.length / 2 / 2) - Theme.SIZES.BAR_PADDING * 2
-      ),
+      ).text,
       Math.floor(longFrameName.length / 2) + Theme.SIZES.BAR_PADDING,
       Theme.SIZES.BAR_HEIGHT - Theme.SIZES.BAR_FONT_SIZE / 2 // center text vertically inside the rect
     );

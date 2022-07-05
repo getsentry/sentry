@@ -1,5 +1,5 @@
 from collections import Counter
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Mapping, Sequence
 from unittest import mock
 
@@ -17,6 +17,7 @@ from sentry.event_manager import EventManager, get_event_type
 from sentry.mail import build_subject_prefix, mail_adapter
 from sentry.models import (
     Activity,
+    Deploy,
     GroupRelease,
     Integration,
     NotificationSetting,
@@ -26,6 +27,7 @@ from sentry.models import (
     Project,
     ProjectOption,
     ProjectOwnership,
+    Release,
     Repository,
     Rule,
     User,
@@ -69,6 +71,43 @@ class BaseMailAdapterTest(TestCase):
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
             self.adapter.notify(Notification(event=event), target_type, target_identifier)
         assert sorted(email.to[0] for email in mail.outbox) == sorted(emails_sent_to)
+
+
+class MailAdapterActiveReleaseTest(BaseMailAdapterTest):
+    @mock.patch("sentry.notifications.utils.participants.get_release_committers")
+    def test_simple(self, mock_get_release_committers):
+        mock_get_release_committers.return_value = [self.create_user(email="test@example.com")]
+        event = self.store_event(
+            data={"message": "Hello world", "level": "error"}, project_id=self.project.id
+        )
+        newRelease = Release.objects.create(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            version="2",
+            date_added=timezone.now() - timedelta(days=1),
+            date_released=None,
+        )
+        Deploy.objects.create(
+            organization_id=self.organization.id,
+            environment_id=self.environment.id,
+            name="test_release_deployed",
+            notified=True,
+            release_id=newRelease.id,
+            date_started=timezone.now() - timedelta(minutes=37),
+            date_finished=timezone.now() - timedelta(minutes=20),
+        )
+        newRelease.add_project(self.project)
+
+        event.data["tags"] = (("sentry:release", newRelease.version),)
+
+        mail.outbox = []
+        with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
+            self.adapter.notify(Notification(event=event), ActionTargetType.RELEASE_MEMBERS, None)
+
+        assert len(mail.outbox) == 1
+        to_committer = mail.outbox[0]
+
+        assert to_committer
 
 
 class MailAdapterGetSendableUsersTest(BaseMailAdapterTest):
@@ -116,6 +155,14 @@ class MailAdapterGetSendableUsersTest(BaseMailAdapterTest):
             ExternalProviders.EMAIL,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.NEVER,
+            user=user4,
+        )
+
+        # add a specific setting for a different provider
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.SLACK,
+            NotificationSettingTypes.ISSUE_ALERTS,
+            NotificationSettingOptionValues.ALWAYS,
             user=user4,
         )
 

@@ -120,6 +120,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
     });
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/metrics/data/',
+      body: TestStubs.MetricsSessionUserCountByStatusByRelease(),
     });
     const children = jest.fn(() => <div />);
     const queries = [

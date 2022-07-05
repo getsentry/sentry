@@ -28,6 +28,11 @@ interface TriggerRenderingProps {
   ref: React.RefObject<HTMLButtonElement>;
 }
 
+interface MenuProps extends OverlayProps, Omit<AriaPositionProps, 'overlayRef'> {
+  children: (maxHeight: number | string) => React.ReactNode;
+  maxMenuHeight?: number;
+}
+
 interface Props<OptionType>
   extends Omit<ControlProps<OptionType>, 'choices'>,
     Partial<OverlayProps>,
@@ -104,7 +109,14 @@ export const CompactSelectControl = ({
           </MenuTitle>
           {isLoading && <StyledLoadingIndicator size={12} mini />}
           {hasValue && isClearable && !isLoading && (
-            <ClearButton size="zero" borderless onClick={() => props.clearValue()}>
+            <ClearButton
+              type="button"
+              size="zero"
+              borderless
+              onClick={() => props.clearValue()}
+              // set tabIndex -1 to autofocus search on open
+              tabIndex={isSearchable ? -1 : undefined}
+            >
               Clear
             </ClearButton>
           )}
@@ -117,6 +129,82 @@ export const CompactSelectControl = ({
     </Fragment>
   );
 };
+
+// TODO(vl): Turn this into a reusable component
+function Menu({
+  // Trigger & trigger state
+  targetRef,
+  onClose,
+  // Overlay props
+  offset = 8,
+  crossOffset = 0,
+  containerPadding = 8,
+  placement = 'bottom left',
+  shouldCloseOnBlur = true,
+  isDismissable = true,
+  maxMenuHeight = 400,
+  children,
+}: MenuProps) {
+  // Control the overlay's position
+  const overlayRef = useRef<HTMLDivElement>(null);
+  const {overlayProps} = useOverlay(
+    {
+      isOpen: true,
+      onClose,
+      shouldCloseOnBlur,
+      isDismissable,
+      shouldCloseOnInteractOutside: target =>
+        target && targetRef.current !== target && !targetRef.current?.contains(target),
+    },
+    overlayRef
+  );
+  const {overlayProps: positionProps} = useOverlayPosition({
+    targetRef,
+    overlayRef,
+    offset,
+    crossOffset,
+    placement,
+    containerPadding,
+    isOpen: true,
+  });
+
+  // Calculate the current trigger element's width. This will be used as
+  // the min width for the menu.
+  const [triggerWidth, setTriggerWidth] = useState<number>();
+  // Update triggerWidth when its size changes using useResizeObserver
+  const updateTriggerWidth = useCallback(async () => {
+    // Wait until the trigger element finishes rendering, otherwise
+    // ResizeObserver might throw an infinite loop error.
+    await new Promise(resolve => window.setTimeout(resolve));
+    const newTriggerWidth = targetRef.current?.offsetWidth;
+    newTriggerWidth && setTriggerWidth(newTriggerWidth);
+  }, [targetRef]);
+  useResizeObserver({ref: targetRef, onResize: updateTriggerWidth});
+  // If ResizeObserver is not available, manually update the width
+  // when any of [trigger, triggerLabel, triggerProps] changes.
+  useEffect(() => {
+    if (typeof window.ResizeObserver !== 'undefined') {
+      return;
+    }
+    updateTriggerWidth();
+  }, [updateTriggerWidth]);
+
+  const menuHeight = positionProps.style?.maxHeight
+    ? Math.min(+positionProps.style?.maxHeight, maxMenuHeight)
+    : 'none';
+
+  return (
+    <Overlay
+      ref={overlayRef}
+      minWidth={triggerWidth}
+      {...mergeProps(overlayProps, positionProps)}
+    >
+      <FocusScope restoreFocus autoFocus>
+        {children(menuHeight)}
+      </FocusScope>
+    </Overlay>
+  );
+}
 
 /**
  * A select component with a more compact trigger button. Accepts the same
@@ -139,14 +227,7 @@ function CompactSelect<OptionType extends GeneralSelectValue = GeneralSelectValu
   triggerProps,
   className,
   renderWrapAs,
-  // Overlay props
-  offset = 8,
-  crossOffset = 0,
-  containerPadding = 8,
-  placement = 'bottom left',
   closeOnSelect = true,
-  shouldCloseOnBlur = true,
-  isDismissable = true,
   menuTitle,
   ...props
 }: Props<OptionType>) {
@@ -163,29 +244,6 @@ function CompactSelect<OptionType extends GeneralSelectValue = GeneralSelectValu
     {onPress: () => state.toggle(), isDisabled, ...menuTriggerProps},
     triggerRef
   );
-
-  // Control the overlay's position
-  const overlayRef = useRef(null);
-  const {overlayProps} = useOverlay(
-    {
-      onClose: state.close,
-      isOpen: state.isOpen,
-      shouldCloseOnBlur,
-      isDismissable,
-      shouldCloseOnInteractOutside: target =>
-        target && triggerRef.current !== target && !triggerRef.current?.contains(target),
-    },
-    overlayRef
-  );
-  const {overlayProps: positionProps} = useOverlayPosition({
-    targetRef: triggerRef,
-    overlayRef,
-    offset,
-    crossOffset,
-    placement,
-    containerPadding,
-    isOpen: state.isOpen,
-  });
 
   // Keep an internal copy of the current select value and update the control
   // button's label when the value changes
@@ -213,28 +271,6 @@ function CompactSelect<OptionType extends GeneralSelectValue = GeneralSelectValu
   useEffect(() => {
     setLabel(getLabel());
   }, [getLabel]);
-
-  // Calculate the current trigger element's width. This will be used as
-  // the min width for the menu.
-  const [triggerWidth, setTriggerWidth] = useState<number>();
-  // Update triggerWidth when its size changes using useResizeObserver
-  const updateTriggerWidth = useCallback(async () => {
-    // Wait until the trigger element finishes rendering, otherwise
-    // ResizeObserver might throw an infinite loop error.
-    await new Promise(resolve => window.setTimeout(resolve));
-
-    const newTriggerWidth = triggerRef.current?.offsetWidth;
-    newTriggerWidth && setTriggerWidth(newTriggerWidth);
-  }, [triggerRef]);
-  useResizeObserver({ref: triggerRef, onResize: updateTriggerWidth});
-  // If ResizeObserver is not available, manually update the width
-  // when any of [trigger, triggerLabel, triggerProps] changes.
-  useEffect(() => {
-    if (typeof window.ResizeObserver !== 'undefined') {
-      return;
-    }
-    updateTriggerWidth();
-  }, [updateTriggerWidth]);
 
   function onValueChange(option) {
     const valueMap = onChangeValueMap ?? (opts => opts.map(opt => opt.value));
@@ -276,12 +312,8 @@ function CompactSelect<OptionType extends GeneralSelectValue = GeneralSelectValu
     }
 
     return (
-      <FocusScope restoreFocus autoFocus>
-        <Overlay
-          minWidth={triggerWidth}
-          ref={overlayRef}
-          {...mergeProps(overlayProps, positionProps)}
-        >
+      <Menu targetRef={triggerRef} onClose={state.close} {...props}>
+        {menuHeight => (
           <SelectControl
             components={{Control: CompactSelectControl, ClearIndicator: null}}
             {...props}
@@ -292,18 +324,20 @@ function CompactSelect<OptionType extends GeneralSelectValue = GeneralSelectValu
             menuTitle={menuTitle}
             placeholder={placeholder}
             isSearchable={isSearchable}
+            menuHeight={menuHeight}
             menuPlacement="bottom"
             menuIsOpen
             isCompact
             controlShouldRenderValue={false}
             hideSelectedOptions={false}
+            menuShouldScrollIntoView={false}
             blurInputOnSelect={false}
             closeMenuOnSelect={false}
             closeMenuOnScroll={false}
             openMenuOnFocus
           />
-        </Overlay>
-      </FocusScope>
+        )}
+      </Menu>
     );
   }
 

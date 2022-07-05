@@ -112,15 +112,18 @@ export class PerformanceInteraction {
 export class LongTaskObserver {
   private static observer: PerformanceObserver;
   private static longTaskCount = 0;
+  private static longTaskDuration = 0;
   private static lastTransaction: IdleTransaction | Transaction | undefined;
 
-  static setLongTaskTags(t: IdleTransaction | Transaction) {
-    t.setTag('ui.longTaskCount', LongTaskObserver.longTaskCount);
+  static setLongTaskData(t: IdleTransaction | Transaction) {
     const group =
       [
         1, 2, 5, 10, 25, 50, 100, 150, 200, 250, 300, 400, 500, 600, 700, 800, 900, 1001,
       ].find(n => LongTaskObserver.longTaskCount <= n) || -1;
     t.setTag('ui.longTaskCount.grouped', group < 1001 ? `<=${group}` : `>1000`);
+
+    t.setMeasurement('longTaskCount', LongTaskObserver.longTaskCount, '');
+    t.setMeasurement('longTaskDuration', LongTaskObserver.longTaskDuration, '');
   }
 
   static startPerformanceObserver(): PerformanceObserver | null {
@@ -152,15 +155,17 @@ export class LongTaskObserver {
           if (transaction !== LongTaskObserver.lastTransaction) {
             // If long tasks observer is active and is called while the transaction has changed.
             if (LongTaskObserver.lastTransaction) {
-              LongTaskObserver.setLongTaskTags(LongTaskObserver.lastTransaction);
+              LongTaskObserver.setLongTaskData(LongTaskObserver.lastTransaction);
             }
             LongTaskObserver.longTaskCount = 0;
+            LongTaskObserver.longTaskDuration = 0;
             LongTaskObserver.lastTransaction = transaction;
           }
 
           perfEntries.forEach(entry => {
             const startSeconds = timeOrigin + entry.startTime / 1000;
             LongTaskObserver.longTaskCount++;
+            LongTaskObserver.longTaskDuration += entry.duration;
             transaction.startChild({
               description: `Long Task`,
               op: `ui.sentry.long-task`,
@@ -168,7 +173,7 @@ export class LongTaskObserver {
               endTimestamp: startSeconds + entry.duration / 1000,
             });
           });
-          LongTaskObserver.setLongTaskTags(transaction);
+          LongTaskObserver.setLongTaskData(transaction);
         } catch (_) {
           // Defensive catch.
         }
@@ -308,4 +313,88 @@ export const VisuallyCompleteWithData = ({
       <Fragment>{children}</Fragment>
     </Profiler>
   );
+};
+
+interface OpAssetMeasurementDefinition {
+  key: string;
+}
+
+const OP_ASSET_MEASUREMENT_MAP: Record<string, OpAssetMeasurementDefinition> = {
+  'resource.script': {
+    key: 'script',
+  },
+  'resource.css': {
+    key: 'css',
+  },
+  'resource.link': {
+    key: 'link',
+  },
+  'resource.img': {
+    key: 'img',
+  },
+};
+const ASSET_MEASUREMENT_ALL = 'allResources';
+
+const measureAssetsOnTransaction = () => {
+  try {
+    const transaction: any = getCurrentSentryReactTransaction(); // Using any to override types for private api.
+    if (!transaction) {
+      return;
+    }
+
+    transaction.registerBeforeFinishCallback((t: Transaction) => {
+      const spans: any[] = (t as any).spanRecorder?.spans;
+      const measurements = (t as any)._measurements;
+
+      if (!spans) {
+        return;
+      }
+
+      if (measurements[ASSET_MEASUREMENT_ALL]) {
+        return;
+      }
+
+      let allTransfered = 0;
+      let allEncoded = 0;
+      let allCount = 0;
+
+      for (const [op, definition] of Object.entries(OP_ASSET_MEASUREMENT_MAP)) {
+        const filtered = spans.filter(s => s.op === op);
+        const count = filtered.length;
+        const transfered = filtered.reduce(
+          (acc, curr) => acc + curr.data['Transfer Size'] ?? 0,
+          0
+        );
+        const encoded = filtered.reduce(
+          (acc, curr) => acc + curr.data['Encoded Body Size'] ?? 0,
+          0
+        );
+
+        if (op === 'resource.script') {
+          t.setMeasurement(`assets.${definition.key}.encoded`, encoded, '');
+          t.setMeasurement(`assets.${definition.key}.transfer`, transfered, '');
+          t.setMeasurement(`assets.${definition.key}.count`, count, '');
+        }
+
+        allCount += count;
+        allTransfered += transfered;
+        allEncoded += encoded;
+      }
+
+      t.setMeasurement(`${ASSET_MEASUREMENT_ALL}.encoded`, allEncoded, '');
+      t.setMeasurement(`${ASSET_MEASUREMENT_ALL}.transfer`, allTransfered, '');
+      t.setMeasurement(`${ASSET_MEASUREMENT_ALL}.count`, allCount, '');
+    });
+  } catch (_) {
+    // Defensive catch since this code is auxiliary.
+  }
+};
+
+/**
+ * This will add asset-measurement code to the transaction after a timeout.
+ * Meant to be called from the sdk without pushing too many perf concerns into our initializeSdk code,
+ * it's fine if not every transaction gets recorded.
+ */
+export const initializeMeasureAssetsTimeout = () => {
+  setTimeout(measureAssetsOnTransaction, 1000);
 };

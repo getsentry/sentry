@@ -28,11 +28,6 @@ type SampleEventParam = {
   platform?: PlatformKey;
 };
 
-type IntegrationParam = {
-  all_selected_integrations?: string;
-  integration?: string;
-};
-
 type InviteRequestParam = {
   invite_status: string;
   member_id: number;
@@ -68,24 +63,20 @@ export type GrowthEventParameters = {
   'growth.demo_modal_clicked_continue': {};
   'growth.demo_modal_clicked_signup': {};
   'growth.issue_open_in_discover_btn_clicked': {};
-  'growth.onboarding_clicked_instrument_app': {source?: string};
-  'growth.onboarding_clicked_integration_in_sidebar': {integration: string};
-  'growth.onboarding_clicked_project_in_sidebar': {platform: string};
-  'growth.onboarding_clicked_setup_integration_later': {
-    integration: string;
-    integration_index: number;
+  'growth.metric_alert_preset_sidebar_clicked': {
+    preset: string;
   };
+  'growth.metric_alert_preset_use_template': {
+    preset: string;
+  };
+  'growth.onboarding_clicked_instrument_app': {source?: string};
+  'growth.onboarding_clicked_project_in_sidebar': {platform: string};
   'growth.onboarding_clicked_setup_platform_later': PlatformParam & {
     project_index: number;
   };
   'growth.onboarding_clicked_skip': {source?: string};
   'growth.onboarding_load_choose_platform': {};
   'growth.onboarding_quick_start_cta': SampleEventParam;
-  'growth.onboarding_quick_start_cta_integration': IntegrationParam;
-  'growth.onboarding_set_up_your_integrations': {
-    integration_count: number;
-    integrations: string;
-  };
   'growth.onboarding_set_up_your_project': PlatformParam;
   'growth.onboarding_set_up_your_projects': {platform_count: number; platforms: string};
   'growth.onboarding_start_onboarding': {
@@ -154,11 +145,12 @@ export const growthEventMap: Record<GrowthAnalyticsKey, string | null> = {
   'growth.onboarding_set_up_your_project': 'Growth: Onboarding Click Set Up Your Project',
   'growth.onboarding_set_up_your_projects':
     'Growth: Onboarding Click Set Up Your Projects',
-  'growth.onboarding_set_up_your_integrations':
-    'Growth: Onboarding Click Set Up Your Integrations',
   'growth.select_platform': 'Growth: Onboarding Choose Platform',
   'growth.platformpicker_category': 'Growth: Onboarding Platform Category',
   'growth.platformpicker_search': 'Growth: Onboarding Platform Search',
+  'growth.metric_alert_preset_use_template': 'Growth: Metric Alert Preset Use Template',
+  'growth.metric_alert_preset_sidebar_clicked':
+    'Growth: Metric Alert Preset Sidebar Clicked',
   'growth.onboarding_start_onboarding': 'Growth: Onboarding Start Onboarding',
   'growth.onboarding_clicked_skip': 'Growth: Onboarding Clicked Skip',
   'growth.onboarding_take_to_error': 'Growth: Onboarding Take to Error',
@@ -167,19 +159,13 @@ export const growthEventMap: Record<GrowthAnalyticsKey, string | null> = {
   'growth.onboarding_clicked_instrument_app': 'Growth: Onboarding Clicked Instrument App',
   'growth.onboarding_clicked_setup_platform_later':
     'Growth: Onboarding Clicked Setup Platform Later',
-  'growth.onboarding_clicked_setup_integration_later':
-    'Growth: Onboarding Clicked Setup Integration Later',
   'growth.onboarding_quick_start_cta': 'Growth: Quick Start Onboarding CTA',
-  'growth.onboarding_quick_start_cta_integration':
-    'Growth: Quick Start Onboarding Integration CTA',
   'invite_request.approved': 'Invite Request Approved',
   'invite_request.denied': 'Invite Request Denied',
   'growth.demo_modal_clicked_signup': 'Growth: Demo Modal Clicked Signup',
   'growth.demo_modal_clicked_continue': 'Growth: Demo Modal Clicked Continue',
   'growth.clicked_enter_sandbox': 'Growth: Clicked Enter Sandbox',
   'growth.onboarding_clicked_project_in_sidebar': 'Growth: Clicked Project Sidebar',
-  'growth.onboarding_clicked_integration_in_sidebar':
-    'Growth: Clicked Integration Sidebar',
   'growth.sample_transaction_docs_link_clicked':
     'Growth: Sample Transaction Docs Link Clicked',
   'growth.sample_error_onboarding_link_clicked':

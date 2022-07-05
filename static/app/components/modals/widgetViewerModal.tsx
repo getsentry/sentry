@@ -35,7 +35,7 @@ import {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getUtcDateString} from 'sentry/utils/dates';
-import {TableDataRow, TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {
   isAggregateField,
@@ -54,11 +54,13 @@ import {
   getWidgetDiscoverUrl,
   getWidgetIssueUrl,
   getWidgetReleasesUrl,
+  isCustomMeasurementWidget,
 } from 'sentry/views/dashboardsV2/utils';
 import WidgetCardChart, {
   AugmentedEChartDataZoomHandler,
   SLIDER_HEIGHT,
 } from 'sentry/views/dashboardsV2/widgetCard/chart';
+import {GenericWidgetQueriesChildrenProps} from 'sentry/views/dashboardsV2/widgetCard/genericWidgetQueries';
 import IssueWidgetQueries from 'sentry/views/dashboardsV2/widgetCard/issueWidgetQueries';
 import ReleaseWidgetQueries from 'sentry/views/dashboardsV2/widgetCard/releaseWidgetQueries';
 import {WidgetCardChartContainer} from 'sentry/views/dashboardsV2/widgetCard/widgetCardChartContainer';
@@ -76,7 +78,6 @@ import {
 export interface WidgetViewerModalOptions {
   organization: Organization;
   widget: Widget;
-  issuesData?: TableDataRow[];
   onEdit?: () => void;
   pageLinks?: string;
   seriesData?: Series[];
@@ -157,7 +158,6 @@ function WidgetViewerModal(props: Props) {
     params,
     seriesData,
     tableData,
-    issuesData,
     totalIssuesCount,
     pageLinks: defaultPageLinks,
   } = props;
@@ -258,7 +258,7 @@ function WidgetViewerModal(props: Props) {
     : [...columns, ...aggregates];
 
   // Some Discover Widgets (Line, Area, Bar) allow the user to specify an orderby
-  // that is not explicitly selected as an aggregate or column. We need to explictly
+  // that is not explicitly selected as an aggregate or column. We need to explicitly
   // include the orderby in the table widget aggregates and columns otherwise
   // eventsv2 will complain about sorting on an unselected field.
   if (
@@ -438,11 +438,11 @@ function WidgetViewerModal(props: Props) {
     });
   }
 
-  const renderDiscoverTable: WidgetQueries['props']['children'] = ({
+  const renderDiscoverTable = ({
     tableResults,
     loading,
     pageLinks,
-  }) => {
+  }: GenericWidgetQueriesChildrenProps) => {
     const links = parseLinkHeader(pageLinks ?? null);
     const isFirstPage = links.previous?.results === false;
     return (
@@ -503,12 +503,12 @@ function WidgetViewerModal(props: Props) {
     );
   };
 
-  const renderIssuesTable: IssueWidgetQueries['props']['children'] = ({
-    transformedResults,
+  const renderIssuesTable = ({
+    tableResults,
     loading,
     pageLinks,
     totalCount,
-  }) => {
+  }: GenericWidgetQueriesChildrenProps) => {
     if (totalResults === undefined && totalCount) {
       setTotalResults(totalCount);
     }
@@ -517,7 +517,7 @@ function WidgetViewerModal(props: Props) {
       <Fragment>
         <GridEditable
           isLoading={loading}
-          data={transformedResults}
+          data={tableResults?.[0]?.data ?? []}
           columnOrder={columnOrder}
           columnSortBy={columnSortBy}
           grid={{
@@ -689,9 +689,9 @@ function WidgetViewerModal(props: Props) {
   function renderWidgetViewerTable() {
     switch (widget.widgetType) {
       case WidgetType.ISSUE:
-        if (issuesData && chartUnmodified && widget.displayType === DisplayType.TABLE) {
+        if (tableData && chartUnmodified && widget.displayType === DisplayType.TABLE) {
           return renderIssuesTable({
-            transformedResults: issuesData,
+            tableResults: tableData,
             loading: false,
             errorMessage: undefined,
             pageLinks: defaultPageLinks,
@@ -733,7 +733,6 @@ function WidgetViewerModal(props: Props) {
                 ? FULL_TABLE_ITEM_LIMIT
                 : HALF_TABLE_ITEM_LIMIT
             }
-            includeAllArgs
             cursor={cursor}
           >
             {renderReleaseTable}
@@ -980,6 +979,7 @@ function WidgetViewerModal(props: Props) {
                 to={path}
                 priority="primary"
                 type="button"
+                disabled={isCustomMeasurementWidget(widget)}
                 onClick={() => {
                   trackAdvancedAnalyticsEvent(
                     'dashboards_views.widget_viewer.open_source',
@@ -1066,7 +1066,7 @@ const ResultsContainer = styled('div')`
   flex-direction: column;
   gap: ${space(1)};
 
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     align-items: center;
     flex-direction: row;
     justify-content: space-between;

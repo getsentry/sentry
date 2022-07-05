@@ -6,8 +6,7 @@ import type {Relay} from './relay';
 import type {User} from './user';
 
 /**
- * Organization summaries are sent when you request a
- * list of all organizations
+ * Organization summaries are sent when you request a list of all organizations
  */
 export type OrganizationSummary = {
   avatar: Avatar;
@@ -33,7 +32,7 @@ export type Organization = OrganizationSummary & {
   allowJoinRequests: boolean;
   allowSharedIssues: boolean;
   attachmentsRole: string;
-  availableRoles: {id: string; name: string}[];
+  availableRoles: {id: string; name: string}[]; // Deprecated, use orgRoleList
   dataScrubber: boolean;
   dataScrubberDefaults: boolean;
   debugFilesRole: string;
@@ -44,6 +43,7 @@ export type Organization = OrganizationSummary & {
   isDefault: boolean;
   onboardingTasks: OnboardingTaskStatus[];
   openMembership: boolean;
+  orgRoleList: OrgRole[];
   pendingAccessRequests: number;
   quota: {
     accountLimit: number | null;
@@ -57,7 +57,12 @@ export type Organization = OrganizationSummary & {
   scrubIPAddresses: boolean;
   sensitiveFields: string[];
   storeCrashReports: number;
+  teamRoleList: TeamRole[];
   trustedRelays: Relay[];
+  orgRole?: string;
+  /**
+   * @deprecated use orgRole instead
+   */
   role?: string;
 };
 
@@ -71,17 +76,24 @@ export type Team = {
   memberCount: number;
   name: string;
   slug: string;
+  teamRole: string | null;
 };
 
+// TODO: Rename to BaseRole
 export type MemberRole = {
   desc: string;
   id: string;
   name: string;
   allowed?: boolean;
-
+};
+export type OrgRole = MemberRole & {
+  minimumTeamRole: string;
   isGlobal?: boolean;
   isRetired?: boolean;
-  minimumTeamRole?: string;
+  is_global?: boolean; // Deprecated: use isGlobal
+};
+export type TeamRole = MemberRole & {
+  isMinimumRoleFor: string;
 };
 
 /**
@@ -102,12 +114,23 @@ export type Member = {
   inviterName: string | null;
   isOnlyOwner: boolean;
   name: string;
+  orgRole: OrgRole['id'];
+  orgRoleList: OrgRole[]; // TODO: Move to global store
   pending: boolean | undefined;
   projects: string[];
-  role: string;
+
+  // Avoid using these keys
+  role: OrgRole['id']; // Deprecated: use orgRole
   roleName: string;
-  roles: MemberRole[]; // TODO(ts): This is not present from API call
-  teams: string[];
+  roles: OrgRole[]; // Deprecated: use orgRoleList
+
+  teamRoleList: TeamRole[]; // TODO: Move to global store
+  teamRoles: {
+    role: string | null;
+    teamSlug: string;
+  }[];
+  teams: string[]; // # Deprecated, use teamRoles
+
   user: User;
 };
 

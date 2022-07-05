@@ -16,9 +16,24 @@ and so it is a private metric, whereas `SessionMRI.CRASH_FREE_RATE` has a corres
 `SessionMetricKey` with the same name i.e. `SessionMetricKey.CRASH_FREE_RATE` and hence is a public
 metric that is queryable by the API.
 """
-__all__ = ("SessionMRI", "TransactionMRI")
+__all__ = ("SessionMRI", "TransactionMRI", "MRI_SCHEMA_REGEX", "MRI_EXPRESSION_REGEX")
 
+import re
+from dataclasses import dataclass
 from enum import Enum
+from typing import Optional
+
+from sentry.snuba.metrics.utils import OP_REGEX
+
+NAMESPACE_REGEX = r"(transactions|errors|issues|sessions|alerts|custom)"
+ENTITY_TYPE_REGEX = r"(c|s|d|g|e)"
+# This regex allows for a string of words composed of small letters alphabet characters with
+# allowed the underscore character, optionally separated by a single dot
+MRI_NAME_REGEX = r"([a-z_]+(?:\.[a-z_]+)*)"
+# ToDo(ahmed): Add a better regex for unit portion for MRI
+MRI_SCHEMA_REGEX_STRING = rf"(?P<entity>{ENTITY_TYPE_REGEX}):(?P<namespace>{NAMESPACE_REGEX})/(?P<name>{MRI_NAME_REGEX})@(?P<unit>[\w.]*)"
+MRI_SCHEMA_REGEX = re.compile(MRI_SCHEMA_REGEX_STRING)
+MRI_EXPRESSION_REGEX = re.compile(rf"^{OP_REGEX}\(({MRI_SCHEMA_REGEX_STRING})\)$")
 
 
 class SessionMRI(Enum):
@@ -89,3 +104,39 @@ class TransactionMRI(Enum):
     MISERABLE_USER = "e:transactions/user.miserable@none"
     ALL_USER = "e:transactions/user.all@none"
     USER_MISERY = "e:transactions/user_misery@ratio"
+
+
+@dataclass
+class ParsedMRI:
+    entity: str
+    namespace: str
+    name: str
+    unit: str
+
+    @property
+    def mri_string(self) -> str:
+        return f"{self.entity}:{self.namespace}/{self.name}@{self.unit}"
+
+
+def parse_mri(mri_string: str) -> Optional[ParsedMRI]:
+    """Parse a mri string to determine its entity, namespace, name and unit"""
+    match = MRI_SCHEMA_REGEX.match(mri_string)
+    if match is None:
+        return None
+
+    return ParsedMRI(**match.groupdict())
+
+
+def is_custom_measurement(parsed_mri: ParsedMRI) -> bool:
+    """A custom measurement won't use the custom namespace, but will be under the transaction namespace
+
+    This checks the namespace, and name to match what we expect first before iterating through the
+    members of the transaction MRI enum to make sure it isn't a standard measurement
+    """
+    return (
+        parsed_mri.namespace == "transactions"
+        and parsed_mri.name.startswith("measurements.")
+        and
+        # Iterate through the transaction MRI and check that this parsed_mri isn't in there
+        parsed_mri.mri_string not in [mri.value for mri in TransactionMRI.__members__.values()]
+    )
