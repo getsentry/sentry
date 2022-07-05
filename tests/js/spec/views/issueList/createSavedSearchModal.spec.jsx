@@ -1,17 +1,18 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
-import {selectByValue} from 'sentry-test/select-new';
+import selectEvent from 'react-select-event';
+
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import CreateSavedSearchModal from 'sentry/views/issueList/createSavedSearchModal';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 describe('CreateSavedSearchModal', function () {
-  let wrapper, organization, createMock;
+  let createMock;
+  const organization = TestStubs.Organization({
+    access: ['org:write'],
+  });
 
-  beforeEach(function () {
-    organization = TestStubs.Organization({
-      access: ['org:write'],
-    });
-    wrapper = mountWithTheme(
+  function renderComponent() {
+    return render(
       <CreateSavedSearchModal
         Header={p => p.children}
         Body={p => p.children}
@@ -21,7 +22,9 @@ describe('CreateSavedSearchModal', function () {
         sort={IssueSortOptions.DATE}
       />
     );
+  }
 
+  beforeEach(function () {
     createMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/searches/',
       method: 'POST',
@@ -33,49 +36,42 @@ describe('CreateSavedSearchModal', function () {
     MockApiClient.clearMockResponses();
   });
 
-  describe('saves a search', function () {
-    it('saves a search when query is not changed', async function () {
-      wrapper
-        .find('input[name="name"]')
-        .simulate('change', {target: {value: 'new search name'}});
-      wrapper.find('button[data-test-id="form-submit"]').simulate('submit');
+  it('saves a search when query is not changed', function () {
+    renderComponent();
+    userEvent.type(screen.getByRole('textbox', {name: 'Name'}), 'new search name');
+    userEvent.click(screen.getByRole('button', {name: 'Save'}));
 
-      await tick();
-      expect(createMock).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining({
-          data: {
-            name: 'new search name',
-            query: 'is:unresolved assigned:lyn@sentry.io',
-            sort: IssueSortOptions.DATE,
-            type: 0,
-          },
-        })
-      );
-    });
+    expect(createMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        data: {
+          name: 'new search name',
+          query: 'is:unresolved assigned:lyn@sentry.io',
+          sort: IssueSortOptions.DATE,
+          type: 0,
+        },
+      })
+    );
+  });
 
-    it('saves a search when query is changed', async function () {
-      wrapper
-        .find('input[name="name"]')
-        .simulate('change', {target: {value: 'new search name'}});
-      wrapper
-        .find('input[name="query"]')
-        .simulate('change', {target: {value: 'is:resolved'}});
-      selectByValue(wrapper, IssueSortOptions.PRIORITY, {name: 'sort', control: true});
-      wrapper.find('button[data-test-id="form-submit"]').simulate('submit');
+  it('saves a search when query is changed', async function () {
+    renderComponent();
+    userEvent.type(screen.getByRole('textbox', {name: 'Name'}), 'new search name');
+    userEvent.clear(screen.getByRole('textbox', {name: 'Query'}));
+    userEvent.type(screen.getByRole('textbox', {name: 'Query'}), 'is:resolved');
+    await selectEvent.select(screen.getByText('Last Seen'), 'Priority');
+    userEvent.click(screen.getByRole('button', {name: 'Save'}));
 
-      await tick();
-      expect(createMock).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining({
-          data: {
-            name: 'new search name',
-            query: 'is:resolved',
-            sort: IssueSortOptions.PRIORITY,
-            type: 0,
-          },
-        })
-      );
-    });
+    expect(createMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/searches/',
+      expect.objectContaining({
+        data: {
+          name: 'new search name',
+          query: 'is:resolved',
+          sort: IssueSortOptions.PRIORITY,
+          type: 0,
+        },
+      })
+    );
   });
 });

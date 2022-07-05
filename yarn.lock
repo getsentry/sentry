@@ -6152,6 +6152,11 @@ case-sensitive-paths-webpack-plugin@^2.3.0:
   resolved "https://registry.yarnpkg.com/case-sensitive-paths-webpack-plugin/-/case-sensitive-paths-webpack-plugin-2.4.0.tgz#db64066c6422eed2e08cc14b986ca43796dbc6d4"
   integrity sha512-roIFONhcxog0JSSWbvVAh3OocukmSgpqOH6YpMkCvav/ySIV3JKg4Dc8vYtQjYi/UxpNE36r/9v+VqTQqgkYmw==
 
+cash-dom@^4.1.5:
+  version "4.1.5"
+  resolved "https://registry.yarnpkg.com/cash-dom/-/cash-dom-4.1.5.tgz#0ef0cf205bc7603aa4e2dfada5808442a7a0e6ca"
+  integrity sha512-E6MO0A6ms5iZPtexznQXWRkFEvqdPqCmdx/SiJr2PnhOQNhZNfALkLG5t83Hk3J5JELzED7PJuzhMoS2tT64XA==
+
 cbor-web@^8.1.0:
   version "8.1.0"
   resolved "https://registry.yarnpkg.com/cbor-web/-/cbor-web-8.1.0.tgz#c1148e91ca6bfc0f5c07c1df164854596e2e33d6"
@@ -11278,10 +11283,10 @@ mobx-react-lite@^3.4.0:
   resolved "https://registry.yarnpkg.com/mobx-react-lite/-/mobx-react-lite-3.4.0.tgz#d59156a96889cdadad751e5e4dab95f28926dfff"
   integrity sha512-bRuZp3C0itgLKHu/VNxi66DN/XVkQG7xtoBVWxpvC5FhAqbOCP21+nPhULjnzEqd7xBMybp6KwytdUpZKEgpIQ==
 
-mobx-react@~7.5.0:
-  version "7.5.0"
-  resolved "https://registry.yarnpkg.com/mobx-react/-/mobx-react-7.5.0.tgz#8da71f8d3c96409cf178112503ec50467e5cea70"
-  integrity sha512-riHu0XZJA6f64L1iXZoAaDjVt6suYoy8I2HIfuz2tX3O4FFaAe4lVA2CoObttmUQTTFPM7j3Df6T4re0cHkghQ==
+mobx-react@~7.5.1:
+  version "7.5.1"
+  resolved "https://registry.yarnpkg.com/mobx-react/-/mobx-react-7.5.1.tgz#2dbeb090025b75466fee5ea4092b45e268fbb10a"
+  integrity sha512-VNRpKBNpJEYER3XdkcY1PAr9zxFIaR2Ka6xwKFvySbEUC/uIITKt8rioVDqBdTc9pPzaYiCLw2dYpUOU85GQ5w==
   dependencies:
     mobx-react-lite "^3.4.0"
 
@@ -13085,6 +13090,16 @@ react-resizable@^3.0.4:
   integrity sha512-StnwmiESiamNzdRHbSSvA65b0ZQJ7eVQpPusrSmcpyGKzC0gojhtO62xxH6YOBmepk9dQTBi9yxidL3W4s3EBA==
   dependencies:
     prop-types "15.x"
+    react-draggable "^4.0.3"
+
+react-resize-panel@^0.3.5:
+  version "0.3.5"
+  resolved "https://registry.yarnpkg.com/react-resize-panel/-/react-resize-panel-0.3.5.tgz#43aa3450bf5b5a2566b40c4201445ced96c2a905"
+  integrity sha512-iyHOFTrSt+WV4Ilzi81x6KH3FU7VsGP736rmxepwGrgAEATmCvXzZdluTm3NpsptP7aC3hLODmXwnxusyA393A==
+  dependencies:
+    cash-dom "^4.1.5"
+    classnames "^2.2.6"
+    lodash.debounce "^4.0.8"
     react-draggable "^4.0.3"
 
 react-router@3.2.0:
