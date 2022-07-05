@@ -24,7 +24,7 @@ class SimpleIndexer(StringIndexer):
     ) -> KeyResults:
         acc = KeyResults()
         for org_id, strs in org_strings.items():
-            strings_to_ints = {}
+            strings_to_ints: Dict[str, Optional[int]] = {}
             for string in strs:
                 if string in SHARED_STRINGS:
                     strings_to_ints[string] = SHARED_STRINGS[string]
