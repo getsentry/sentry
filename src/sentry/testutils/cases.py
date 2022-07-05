@@ -1562,6 +1562,8 @@ class TestMigrations(TransactionTestCase):
 
     def setUp(self):
         super().setUp()
+        self.setup_initial_state()
+
         self.migrate_from = [(self.app, self.migrate_from)]
         self.migrate_to = [(self.app, self.migrate_to)]
 
@@ -1592,6 +1594,9 @@ class TestMigrations(TransactionTestCase):
         executor = MigrationExecutor(connection)
         executor.loader.build_graph()  # reload.
         executor.migrate(self.current_migration)
+
+    def setup_initial_state(self):
+        pass
 
     def setup_before_migration(self, apps):
         pass

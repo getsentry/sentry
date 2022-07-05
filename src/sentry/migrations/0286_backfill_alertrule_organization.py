@@ -10,7 +10,7 @@ def backfill_alertrule_organization(apps, schema_editor):
     AlertRule = apps.get_model("sentry", "AlertRule")
     Organization = apps.get_model("sentry", "Organization")
 
-    for alert_rule in RangeQuerySetWrapperWithProgressBar(AlertRule.objects.all()):
+    for alert_rule in RangeQuerySetWrapperWithProgressBar(AlertRule.objects_with_snapshots.all()):
         if not alert_rule.organization_id:
             continue
 

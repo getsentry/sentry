@@ -28,7 +28,9 @@ def backfill_snubaquery_environment(apps, schema_editor):
         snuba_env = snuba_query.environment
 
         try:
-            alert_rule = AlertRule.objects.filter(snuba_query_id=snuba_query.id).get()
+            alert_rule = AlertRule.objects_with_snapshots.filter(
+                snuba_query_id=snuba_query.id
+            ).get()
             if alert_rule.organization_id == snuba_env.organization_id:
                 continue
         except AlertRule.DoesNotExist:
