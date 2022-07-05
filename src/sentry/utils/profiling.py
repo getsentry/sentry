@@ -47,6 +47,10 @@ class RetrySkipTimeout(urllib3.Retry):
 
 _profiling_pool = connection_from_url(
     settings.SENTRY_PROFILING_SERVICE_URL,
+    retries=RetrySkipTimeout(
+        total=3,
+        allow_methods={"GET", "POST"},
+    ),
     timeout=30,
     maxsize=10,
 )
