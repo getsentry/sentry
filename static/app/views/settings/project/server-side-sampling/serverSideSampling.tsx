@@ -1,7 +1,9 @@
-import {Fragment, useState} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import isEqual from 'lodash/isEqual';
 
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
@@ -11,18 +13,23 @@ import {Panel, PanelFooter, PanelHeader} from 'sentry/components/panels';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import ProjectStore from 'sentry/stores/projectsStore';
 import space from 'sentry/styles/space';
 import {Project} from 'sentry/types';
 import {SamplingRule, SamplingRuleOperator, SamplingRules} from 'sentry/types/sampling';
+import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
+import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePrevious from 'sentry/utils/usePrevious';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import PermissionAlert from 'sentry/views/settings/organization/permissionAlert';
 
-import {DraggableList} from '../sampling/rules/draggableList';
+import {DraggableList, UpdateItemsProps} from '../sampling/rules/draggableList';
 
 import {ActivateModal} from './modals/activateModal';
 import {RecommendedStepsModal} from './modals/recommendedStepsModal';
+import {SpecificConditionsModal} from './modals/specificConditionsModal';
 import {UniformRateModal} from './modals/uniformRateModal';
 import {Promo} from './promo';
 import {
@@ -42,10 +49,35 @@ type Props = {
 
 export function ServerSideSampling({project}: Props) {
   const organization = useOrganization();
-  const hasAccess = organization.access.includes('project:write');
-  const dynamicSamplingRules = project.dynamicSampling?.rules ?? [];
+  const api = useApi();
 
-  const [rules, _setRules] = useState<SamplingRules>(dynamicSamplingRules);
+  const hasAccess = organization.access.includes('project:write');
+  const currentRules = project.dynamicSampling?.rules;
+  const previousRules = usePrevious(currentRules);
+  const [rules, setRules] = useState<SamplingRules>(currentRules ?? []);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (!isEqual(previousRules, currentRules)) {
+      setRules(currentRules ?? []);
+    }
+  }, [currentRules, previousRules]);
+
+  useEffect(() => {
+    async function fetchDistribution() {
+      try {
+        const distribution = await api.requestPromise(
+          `/projects/${organization.slug}/${project.slug}/dynamic-sampling/distribution/`
+        );
+        console.log({distribution});
+      } catch (error) {
+        const message = t('Unable to fetch sampling distribution');
+        handleXhrErrorResponse(message)(error);
+        addErrorMessage(message);
+      }
+    }
+    fetchDistribution();
+  }, [api, organization.slug, project.slug]);
 
   // TODO(sampling): fetch from API
   const recommendUpdateSdkForProjects = [
@@ -65,14 +97,6 @@ export function ServerSideSampling({project}: Props) {
     'ProjectC',
   ];
 
-  // async function fetchDistribution() {
-  //   try {
-  //       const distribution = await api.request(
-  //   } catch {
-
-  //   }
-  // }
-
   function handleActivateToggle(rule: SamplingRule) {
     openModal(modalProps => <ActivateModal {...modalProps} rule={rule} />);
   }
@@ -91,6 +115,79 @@ export function ServerSideSampling({project}: Props) {
         project={project}
       />
     ));
+  }
+
+  async function handleSortRules({overIndex, reorderedItems: ruleIds}: UpdateItemsProps) {
+    if (!rules[overIndex].condition.inner.length) {
+      addErrorMessage(
+        t('Rules with conditions cannot be below rules without conditions')
+      );
+      return;
+    }
+
+    const sortedRules = ruleIds
+      .map(ruleId => rules.find(rule => String(rule.id) === ruleId))
+      .filter(rule => !!rule) as SamplingRule[];
+
+    setRules(sortedRules);
+
+    try {
+      const newProjectDetails = await api.requestPromise(
+        `/projects/${organization.slug}/${project.slug}/`,
+        {
+          method: 'PUT',
+          data: {dynamicSampling: {rules: sortedRules}},
+        }
+      );
+      ProjectStore.onUpdateSuccess(newProjectDetails);
+      addSuccessMessage(t('Successfully sorted sampling rules'));
+    } catch (error) {
+      setRules(previousRules ?? []);
+      const message = t('Unable to sort sampling rules');
+      handleXhrErrorResponse(message)(error);
+      addErrorMessage(message);
+    }
+  }
+
+  function handleAddRule() {
+    openModal(modalProps => (
+      <SpecificConditionsModal
+        {...modalProps}
+        organization={organization}
+        project={project}
+        rules={rules}
+      />
+    ));
+  }
+
+  function handleEditRule(rule: SamplingRule) {
+    openModal(modalProps => (
+      <SpecificConditionsModal
+        {...modalProps}
+        organization={organization}
+        project={project}
+        rule={rule}
+        rules={rules}
+      />
+    ));
+  }
+
+  async function handleDeleteRule(rule: SamplingRule) {
+    try {
+      const newProjectDetails = await api.requestPromise(
+        `/projects/${organization.slug}/${project.slug}/`,
+        {
+          method: 'PUT',
+          data: {dynamicSampling: {rules: rules.filter(({id}) => id !== rule.id)}},
+        }
+      );
+      ProjectStore.onUpdateSuccess(newProjectDetails);
+      addSuccessMessage(t('Successfully deleted sampling rule'));
+    } catch (error) {
+      const message = t('Unable to delete sampling rule');
+      handleXhrErrorResponse(message)(error);
+      addErrorMessage(message);
+    }
   }
 
   // Rules without a condition (Else case) always have to be 'pinned' to the bottom of the list
@@ -159,7 +256,7 @@ export function ServerSideSampling({project}: Props) {
               <DraggableList
                 disabled={!hasAccess}
                 items={items}
-                onUpdateItems={() => {}}
+                onUpdateItems={handleSortRules}
                 wrapperStyle={({isDragging, isSorting, index}) => {
                   if (isDragging) {
                     return {
@@ -212,8 +309,8 @@ export function ServerSideSampling({project}: Props) {
                           ...currentRule,
                           bottomPinned: itemsRule.bottomPinned,
                         }}
-                        onEditRule={() => {}}
-                        onDeleteRule={() => {}}
+                        onEditRule={() => handleEditRule(currentRule)}
+                        onDeleteRule={() => handleDeleteRule(currentRule)}
                         onActivate={() => handleActivateToggle(currentRule)}
                         noPermission={!hasAccess}
                         listeners={listeners}
@@ -238,7 +335,7 @@ export function ServerSideSampling({project}: Props) {
                         : undefined
                     }
                     priority="primary"
-                    onClick={() => {}}
+                    onClick={handleAddRule}
                     icon={<IconAdd isCircled />}
                   >
                     {t('Add Rule')}

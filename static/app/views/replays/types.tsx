@@ -16,20 +16,6 @@ export type Replay = {
   'user.username': string;
 };
 
-export enum ReplayTabs {
-  CONSOLE = 'console',
-  NETWORK = 'network',
-  NETWORK_2 = 'network 2',
-  TRACE = 'trace',
-  ISSUES = 'issues',
-  TAGS = 'tags',
-  MEMORY = 'memory',
-}
-
-export function isReplayTab(tab: string): tab is ReplayTabs {
-  return tab.toUpperCase().replace('%20', '_') in ReplayTabs;
-}
-
 /**
  * Highlight Replay Plugin types
  */
