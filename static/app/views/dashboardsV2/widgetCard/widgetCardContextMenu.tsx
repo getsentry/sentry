@@ -16,7 +16,7 @@ import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import {TableDataRow, TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {
   getWidgetDiscoverUrl,
   getWidgetIssueUrl,
@@ -37,7 +37,6 @@ type Props = {
   widgetLimitReached: boolean;
   index?: string;
   isPreview?: boolean;
-  issuesData?: TableDataRow[];
   onDelete?: () => void;
   onDuplicate?: () => void;
   onEdit?: () => void;
@@ -65,7 +64,6 @@ function WidgetCardContextMenu({
   index,
   seriesData,
   tableData,
-  issuesData,
   pageLinks,
   totalIssuesCount,
 }: Props) {
@@ -120,11 +118,10 @@ function WidgetCardContextMenu({
                 size="zero"
                 icon={<IconExpand size="xs" />}
                 onClick={() => {
-                  (seriesData || tableData || issuesData) &&
+                  (seriesData || tableData) &&
                     setData({
                       seriesData,
                       tableData,
-                      issuesData,
                       pageLinks,
                       totalIssuesCount,
                     });
@@ -250,7 +247,6 @@ function WidgetCardContextMenu({
                 setData({
                   seriesData,
                   tableData,
-                  issuesData,
                   pageLinks,
                   totalIssuesCount,
                 });

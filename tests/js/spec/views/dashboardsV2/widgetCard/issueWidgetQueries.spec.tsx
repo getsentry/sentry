@@ -5,7 +5,7 @@ import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboardsV2/types';
 import IssueWidgetQueries from 'sentry/views/dashboardsV2/widgetCard/issueWidgetQueries';
 
 describe('IssueWidgetQueries', function () {
-  it('does an issue query and passes correct transformedResults to child component', async function () {
+  it('does an issue query and passes correct tableResults to child component', async function () {
     const {organization} = initializeOrg({
       router: {orgId: 'orgId'},
     } as Parameters<typeof initializeOrg>[0]);
@@ -80,16 +80,20 @@ describe('IssueWidgetQueries', function () {
     await tick();
     expect(mockFunction).toHaveBeenCalledWith(
       expect.objectContaining({
-        transformedResults: [
+        tableResults: [
           expect.objectContaining({
-            id: '1',
-            title: 'Error: Failed',
-            status: 'unresolved',
-            lifetimeEvents: 10,
-            lifetimeUsers: 5,
-            events: 6,
-            users: 3,
-            firstSeen: '2022-01-01T13:04:02Z',
+            data: [
+              expect.objectContaining({
+                id: '1',
+                title: 'Error: Failed',
+                status: 'unresolved',
+                lifetimeEvents: 10,
+                lifetimeUsers: 5,
+                events: 6,
+                users: 3,
+                firstSeen: '2022-01-01T13:04:02Z',
+              }),
+            ],
           }),
         ],
       })

@@ -6,7 +6,7 @@ import {isSelectionEqual} from 'sentry/components/organizations/pageFilters/util
 import {t} from 'sentry/locale';
 import {Organization, PageFilters} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
-import {TableDataRow, TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 
 import {DatasetConfig} from '../datasetConfig/base';
 import {DEFAULT_TABLE_LIMIT, DisplayType, Widget, WidgetQuery} from '../types';
@@ -27,6 +27,13 @@ function getReferrer(displayType: DisplayType) {
   return referrer;
 }
 
+export type OnDataFetchedProps = {
+  pageLinks?: string;
+  tableResults?: TableDataWithTitle[];
+  timeseriesResults?: Series[];
+  totalIssuesCount?: string;
+};
+
 export type GenericWidgetQueriesChildrenProps = {
   loading: boolean;
   errorMessage?: string;
@@ -44,22 +51,18 @@ export type GenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
   selection: PageFilters;
   widget: Widget;
   afterFetchSeriesData?: (result: SeriesResponse) => void;
-  afterFetchTableData?: (result: TableResponse) => void;
+  afterFetchTableData?: (
+    result: TableResponse,
+    response?: ResponseMeta
+  ) => void | {totalIssuesCount?: string};
   cursor?: string;
   limit?: number;
   onDataFetched?: ({
     tableResults,
     timeseriesResults,
-    issuesResults,
     totalIssuesCount,
     pageLinks,
-  }: {
-    issuesResults?: TableDataRow[];
-    pageLinks?: string;
-    tableResults?: TableDataWithTitle[];
-    timeseriesResults?: Series[];
-    totalIssuesCount?: string;
-  }) => void;
+  }: OnDataFetchedProps) => void;
 };
 
 type State<SeriesResponse> = {
@@ -209,8 +212,9 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
 
     let transformedTableResults: TableDataWithTitle[] = [];
     let responsePageLinks: string | null = null;
+    let afterTableFetchData: OnDataFetchedProps | undefined;
     responses.forEach(([data, _textstatus, resp], i) => {
-      afterFetchTableData?.(data);
+      afterTableFetchData = afterFetchTableData?.(data, resp) ?? {};
       // Cast so we can add the title.
       const transformedData = config.transformTable(
         data,
@@ -229,6 +233,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
       onDataFetched?.({
         tableResults: transformedTableResults,
         pageLinks: responsePageLinks ?? undefined,
+        ...afterTableFetchData,
       });
       this.setState({
         tableResults: transformedTableResults,

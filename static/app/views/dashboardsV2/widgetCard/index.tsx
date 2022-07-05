@@ -22,7 +22,7 @@ import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {statsPeriodToDays} from 'sentry/utils/dates';
-import {TableDataRow, TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
@@ -65,7 +65,6 @@ type Props = WithRouterProps & {
 };
 
 type State = {
-  issuesData?: TableDataRow[];
   pageLinks?: string;
   seriesData?: Series[];
   tableData?: TableDataWithTitle[];
@@ -151,7 +150,7 @@ class WidgetCard extends Component<Props, State> {
       index,
     } = this.props;
 
-    const {seriesData, tableData, issuesData, pageLinks, totalIssuesCount} = this.state;
+    const {seriesData, tableData, pageLinks, totalIssuesCount} = this.state;
 
     if (isEditing) {
       return null;
@@ -174,7 +173,6 @@ class WidgetCard extends Component<Props, State> {
         index={index}
         seriesData={seriesData}
         tableData={tableData}
-        issuesData={issuesData}
         pageLinks={pageLinks}
         totalIssuesCount={totalIssuesCount}
       />
@@ -184,11 +182,9 @@ class WidgetCard extends Component<Props, State> {
   setData = ({
     tableResults,
     timeseriesResults,
-    issuesResults,
     totalIssuesCount,
     pageLinks,
   }: {
-    issuesResults?: TableDataRow[];
     pageLinks?: string;
     tableResults?: TableDataWithTitle[];
     timeseriesResults?: Series[];
@@ -197,7 +193,6 @@ class WidgetCard extends Component<Props, State> {
     this.setState({
       seriesData: timeseriesResults,
       tableData: tableResults,
-      issuesData: issuesResults,
       totalIssuesCount,
       pageLinks,
     });

@@ -9,7 +9,7 @@ import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingM
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Organization, PageFilters} from 'sentry/types';
 import {EChartEventHandler, Series} from 'sentry/types/echarts';
-import {TableDataRow, TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 
 import {Widget, WidgetType} from '../types';
 
@@ -30,7 +30,6 @@ type Props = WithRouterProps & {
   legendOptions?: LegendComponentOption;
   noPadding?: boolean;
   onDataFetched?: (results: {
-    issuesResults?: TableDataRow[];
     pageLinks?: string;
     tableResults?: TableDataWithTitle[];
     timeseriesResults?: Series[];
@@ -78,7 +77,7 @@ export function WidgetCardChartContainer({
         limit={tableItemLimit}
         onDataFetched={onDataFetched}
       >
-        {({transformedResults, errorMessage, loading}) => {
+        {({tableResults, errorMessage, loading}) => {
           return (
             <Fragment>
               {typeof renderErrorMessage === 'function'
@@ -86,7 +85,7 @@ export function WidgetCardChartContainer({
                 : null}
               <LoadingScreen loading={loading} />
               <IssueWidgetCard
-                transformedResults={transformedResults}
+                transformedResults={tableResults?.[0].data ?? []}
                 loading={loading}
                 errorMessage={errorMessage}
                 widget={widget}
