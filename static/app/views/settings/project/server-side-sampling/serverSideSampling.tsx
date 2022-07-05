@@ -27,7 +27,9 @@ import {DraggableList, UpdateItemsProps} from '../sampling/rules/draggableList';
 
 import {ActivateModal} from './modals/activateModal';
 import {SpecificConditionsModal} from './modals/specificConditionsModal';
+import {responsiveModal} from './modals/styles';
 import {UniformRateModal} from './modals/uniformRateModal';
+import useProjectStats from './utils/useProjectStats';
 import {Promo} from './promo';
 import {
   ActiveColumn,
@@ -49,9 +51,16 @@ export function ServerSideSampling({project}: Props) {
   const api = useApi();
 
   const hasAccess = organization.access.includes('project:write');
+
   const currentRules = project.dynamicSampling?.rules;
   const previousRules = usePrevious(currentRules);
   const [rules, setRules] = useState<SamplingRules>(currentRules ?? []);
+  const {projectStats} = useProjectStats({
+    orgSlug: organization.slug,
+    projectId: project?.id,
+    interval: '1h',
+    statsPeriod: '48h',
+  });
 
   useEffect(() => {
     if (!isEqual(previousRules, currentRules)) {
@@ -64,9 +73,20 @@ export function ServerSideSampling({project}: Props) {
   }
 
   function handleGetStarted() {
-    openModal(modalProps => (
-      <UniformRateModal {...modalProps} organization={organization} project={project} />
-    ));
+    openModal(
+      modalProps => (
+        <UniformRateModal
+          {...modalProps}
+          organization={organization}
+          project={project}
+          projectStats={projectStats}
+          rules={rules}
+        />
+      ),
+      {
+        modalCss: responsiveModal,
+      }
+    );
   }
 
   async function handleSortRules({overIndex, reorderedItems: ruleIds}: UpdateItemsProps) {
