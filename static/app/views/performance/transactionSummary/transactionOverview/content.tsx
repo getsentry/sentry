@@ -489,7 +489,7 @@ const FilterActions = styled('div')`
   }
 
   @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
-    grid-template-columns: auto auto 1fr auto;
+    grid-template-columns: auto auto 1fr;
   }
 `;
 
