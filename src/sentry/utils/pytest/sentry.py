@@ -139,6 +139,7 @@ def pytest_configure(config):
             "system.url-prefix": "http://testserver",
             "system.base-hostname": "testserver",
             "system.organization-base-hostname": "{slug}.{region}.testserver",
+            "system.customer-url-template": "http://{hostname}",
             "system.secret-key": "a" * 52,
             "slack.client-id": "slack-client-id",
             "slack.client-secret": "slack-client-secret",
