@@ -57,11 +57,11 @@ class RedisProjectConfigDebounceCache(ProjectConfigDebounceCache):
         key = self._get_redis_key(public_key, project_id, organization_id)
         client = self._get_redis_client(key)
         client.setex(key, REDIS_CACHE_TIMEOUT, 1)
-        metrics.incr("relay.projectconfig_debounce_cache.debounce", sample_rate=1)
+        metrics.incr("relay.projectconfig_debounce_cache.debounce")
 
     def mark_task_done(self, *, public_key, project_id, organization_id):
         key = self._get_redis_key(public_key, project_id, organization_id)
         client = self._get_redis_client(key)
         ret = client.delete(key)
-        metrics.incr("relay.projectconfig_debounce_cache.task_done", sample_rate=1)
+        metrics.incr("relay.projectconfig_debounce_cache.task_done")
         return ret

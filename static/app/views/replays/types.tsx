@@ -16,19 +16,6 @@ export type Replay = {
   'user.username': string;
 };
 
-export enum ReplayTabs {
-  CONSOLE = 'console',
-  NETWORK = 'network',
-  TRACE = 'trace',
-  ISSUES = 'issues',
-  TAGS = 'tags',
-  MEMORY = 'memory',
-}
-
-export function isReplayTab(tab: string): tab is ReplayTabs {
-  return tab.toUpperCase() in ReplayTabs;
-}
-
 /**
  * Highlight Replay Plugin types
  */
