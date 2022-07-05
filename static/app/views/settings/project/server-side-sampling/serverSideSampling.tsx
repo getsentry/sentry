@@ -38,7 +38,9 @@ import {DraggableList, UpdateItemsProps} from '../sampling/rules/draggableList';
 import {ActivateModal} from './modals/activateModal';
 import {RecommendedStepsModal} from './modals/recommendedStepsModal';
 import {SpecificConditionsModal} from './modals/specificConditionsModal';
+import {responsiveModal} from './modals/styles';
 import {UniformRateModal} from './modals/uniformRateModal';
+import useProjectStats from './utils/useProjectStats';
 import {Promo} from './promo';
 import {
   ActiveColumn,
@@ -60,10 +62,12 @@ export function ServerSideSampling({project}: Props) {
   const api = useApi();
 
   const hasAccess = organization.access.includes('project:write');
+
   const currentRules = project.dynamicSampling?.rules;
   const previousRules = usePrevious(currentRules);
 
   const [rules, setRules] = useState<SamplingRules>(currentRules ?? []);
+<<<<<<< HEAD
   const [distribution, setDistribution] = useState<SamplingDistribution | null>(null);
   const [sdkUpgrades, setSdkUpgrades] = useState<SamplingSDKUpgrade[] | null>(null);
 
@@ -102,6 +106,14 @@ export function ServerSideSampling({project}: Props) {
       };
     })
     .filter(defined);
+=======
+  const {projectStats} = useProjectStats({
+    orgSlug: organization.slug,
+    projectId: project?.id,
+    interval: '1h',
+    statsPeriod: '48h',
+  });
+>>>>>>> master
 
   useEffect(() => {
     if (!isEqual(previousRules, currentRules)) {
@@ -169,6 +181,7 @@ export function ServerSideSampling({project}: Props) {
   }
 
   function handleGetStarted() {
+<<<<<<< HEAD
     openModal(modalProps => (
       <UniformRateModal
         {...modalProps}
@@ -192,6 +205,22 @@ export function ServerSideSampling({project}: Props) {
         recommendedSdkUpgrades={recommendedSdkUpgrades}
       />
     ));
+=======
+    openModal(
+      modalProps => (
+        <UniformRateModal
+          {...modalProps}
+          organization={organization}
+          project={project}
+          projectStats={projectStats}
+          rules={rules}
+        />
+      ),
+      {
+        modalCss: responsiveModal,
+      }
+    );
+>>>>>>> master
   }
 
   async function handleSortRules({overIndex, reorderedItems: ruleIds}: UpdateItemsProps) {
