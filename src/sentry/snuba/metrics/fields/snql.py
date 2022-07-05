@@ -239,9 +239,9 @@ def tolerated_count_transaction(org_id, metric_ids, alias=None):
     )
 
 
-def apdex(satifactory_snql, tolerable_snql, total_snql, alias=None):
+def apdex(satisfactory_snql, tolerable_snql, total_snql, alias=None):
     return division_float(
-        arg1_snql=addition(satifactory_snql, division_float(tolerable_snql, 2)),
+        arg1_snql=addition(satisfactory_snql, division_float(tolerable_snql, 2)),
         arg2_snql=total_snql,
         alias=alias,
     )

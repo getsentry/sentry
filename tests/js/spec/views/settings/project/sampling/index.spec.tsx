@@ -18,7 +18,7 @@ describe('Sampling', function () {
 
     renderComponent({withModal: false});
 
-    // Subitle has the right link to the docs
+    // Subtitle has the right link to the docs
     expect(
       screen.getByRole('link', {
         name: 'SDK sampling configuration',
