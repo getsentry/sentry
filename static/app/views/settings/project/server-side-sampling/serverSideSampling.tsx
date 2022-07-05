@@ -6,7 +6,7 @@ import {openModal} from 'sentry/actionCreators/modal';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import IdBadge from 'sentry/components/idBadge';
+import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {Panel, PanelFooter, PanelHeader} from 'sentry/components/panels';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconAdd} from 'sentry/icons';
@@ -48,7 +48,30 @@ export function ServerSideSampling({project}: Props) {
   const [rules, _setRules] = useState<SamplingRules>(dynamicSamplingRules);
 
   // TODO(sampling): fetch from API
-  const recommendUpdateSdkForProjects = ['ProjectA', 'ProjectB', 'ProjectC'];
+  const recommendUpdateSdkForProjects = [
+    'ProjectA',
+    'ProjectB',
+    'ProjectC',
+    'ProjectC',
+    'ProjectC',
+    'ProjectC',
+    'ProjectC',
+    'ProjectC',
+    'ProjectC',
+    'ProjectC',
+    'ProjectC',
+    'ProjectC',
+    'ProjectC',
+    'ProjectC',
+  ];
+
+  // async function fetchDistribution() {
+  //   try {
+  //       const distribution = await api.request(
+  //   } catch {
+
+  //   }
+  // }
 
   function handleActivateToggle(rule: SamplingRule) {
     openModal(modalProps => <ActivateModal {...modalProps} rule={rule} />);
@@ -106,15 +129,15 @@ export function ServerSideSampling({project}: Props) {
             {t(
               'To keep a consistent amount of transactions across your applications multiple services, we recommend you update the SDK versions for the following projects:'
             )}
-            {recommendUpdateSdkForProjects.map(recommendUpdateSdkForProject => (
-              <IdBadge
-                key={recommendUpdateSdkForProject}
-                project={project}
-                avatarSize={16}
-                displayName={project.slug}
-                avatarProps={{consistentWidth: true}}
-              />
-            ))}
+            <Projects>
+              {recommendUpdateSdkForProjects.map(recommendUpdateSdkForProject => (
+                <ProjectBadge
+                  key={recommendUpdateSdkForProject}
+                  project={project}
+                  avatarSize={16}
+                />
+              ))}
+            </Projects>
           </Alert>
         )}
         <RulesPanel>
@@ -270,4 +293,13 @@ const AddRuleButton = styled(Button)`
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     width: 100%;
   }
+`;
+
+const Projects = styled('div')`
+  display: flex;
+  flex-wrap: wrap;
+  gap: ${space(1.5)};
+  justify-content: flex-start;
+  margin-top: ${space(1)};
+}
 `;
