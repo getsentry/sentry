@@ -80,16 +80,17 @@ class MsTeamsIntegrationProvider(IntegrationProvider):
 
     def build_integration(self, state):
         data = state[self.key]
-        team_id = data["team_id"]
-        team_name = data["team_name"]
+        external_id = data["external_id"]
+        external_name = data["external_name"]
         service_url = data["service_url"]
+        user_id = data["user_id"]
 
         # TODO: add try/except for request errors
         token_data = get_token_data()
 
         integration = {
-            "name": team_name,
-            "external_id": team_id,
+            "name": external_name,
+            "external_id": external_id,
             "metadata": {
                 "access_token": token_data["access_token"],
                 "expires_at": token_data["expires_at"],
@@ -98,7 +99,12 @@ class MsTeamsIntegrationProvider(IntegrationProvider):
                 "installation_type": "team",
             },
             # TODO: Use user id for external_id in user_identity
-            "user_identity": {"type": "msteams", "external_id": team_id, "scopes": [], "data": {}},
+            "user_identity": {
+                "type": "msteams",
+                "external_id": user_id,
+                "scopes": [],
+                "data": {},
+            },
         }
         return integration
 

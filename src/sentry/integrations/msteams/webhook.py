@@ -191,9 +191,10 @@ class MsTeamsWebhookEndpoint(Endpoint):
 
         # need to keep track of the service url since we won't get it later
         signed_data = {
-            "team_id": team["id"],
-            "team_name": team["name"],
+            "external_id": team["id"],
+            "external_name": team["name"],
             "service_url": data["serviceUrl"],
+            "user_id": data["from"]["id"],
         }
 
         # sign the params so this can't be forged

@@ -9,6 +9,9 @@ from sentry.testutils import IntegrationTestCase
 from sentry.utils.signing import sign
 
 team_id = "19:8d46058cda57449380517cc374727f2a@thread.tacv2"
+user_id = (
+    "29:1XJKJMvc5GBtc2JwZq0oj8tHZmzrQgFmB39ATiQWA85gQtHieVkKilBZ9XHoq9j7Zaqt7CZ-NJWi7me2kHTL3Bw"
+)
 
 
 class MsTeamsIntegrationTest(IntegrationTestCase):
@@ -18,9 +21,10 @@ class MsTeamsIntegrationTest(IntegrationTestCase):
         super().setUp()
         self.start_time = 1594768808
         self.pipeline_state = {
-            "team_id": team_id,
+            "external_id": team_id,
             "service_url": "https://smba.trafficmanager.net/amer/",
-            "team_name": "my_team",
+            "external_name": "my_team",
+            "user_id": user_id,
         }
 
     def assert_setup_flow(self):
