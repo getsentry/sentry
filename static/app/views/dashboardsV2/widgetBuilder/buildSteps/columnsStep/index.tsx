@@ -83,7 +83,9 @@ export function ColumnsStep({
         fieldOptions={datasetConfig.getTableFieldOptions(
           organization,
           tags,
-          customMeasurements
+          organization.features.includes('dashboard-custom-measurement-widgets')
+            ? customMeasurements
+            : undefined
         )}
         filterAggregateParameters={datasetConfig.filterAggregateParams}
         filterPrimaryOptions={datasetConfig.filterTableOptions}
