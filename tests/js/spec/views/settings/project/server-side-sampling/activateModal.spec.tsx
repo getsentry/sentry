@@ -13,8 +13,20 @@ import {OrganizationContext} from 'sentry/views/organizationContext';
 import {RouteContext} from 'sentry/views/routeContext';
 import ServerSideSampling from 'sentry/views/settings/project/server-side-sampling';
 import {SERVER_SIDE_SAMPLING_DOC_LINK} from 'sentry/views/settings/project/server-side-sampling/utils';
+import importedUseProjectStats from 'sentry/views/settings/project/server-side-sampling/utils/useProjectStats';
 
 import {getMockData} from './index.spec';
+
+jest.mock('sentry/views/settings/project/server-side-sampling/utils/useProjectStats');
+const useProjectStats = importedUseProjectStats as jest.MockedFunction<
+  typeof importedUseProjectStats
+>;
+useProjectStats.mockImplementation(() => ({
+  projectStats: TestStubs.Outcomes(),
+  loading: false,
+  error: undefined,
+  projectStatsSeries: [],
+}));
 
 describe('Server-side Sampling - Activate Modal', function () {
   const uniformRule = {
@@ -25,6 +37,7 @@ describe('Server-side Sampling - Activate Modal', function () {
       op: 'and',
       inner: [],
     },
+    id: 1,
   };
 
   it('renders modal', async function () {
@@ -40,11 +53,6 @@ describe('Server-side Sampling - Activate Modal', function () {
           rules: [uniformRule],
         },
       }),
-    });
-
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/stats_v2/',
-      body: TestStubs.Outcomes(),
     });
 
     const saveMock = MockApiClient.addMockResponse({
@@ -72,7 +80,7 @@ describe('Server-side Sampling - Activate Modal', function () {
         }}
       >
         <GlobalModal />
-        <OrganizationContext.Provider value={organization}>
+        <OrganizationContext.Provider value={{...organization, id: 1}}>
           <ServerSideSampling project={project} />
         </OrganizationContext.Provider>
       </RouteContext.Provider>
