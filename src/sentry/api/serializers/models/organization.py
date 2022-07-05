@@ -60,7 +60,7 @@ if TYPE_CHECKING:
     from sentry.api.serializers import UserSerializerResponse, UserSerializerResponseSelf
 
 
-class BaseOrganizationSerializer(serializers.Serializer):
+class BaseOrganizationSerializer(serializers.Serializer):  # type: ignore
     name = serializers.CharField(max_length=64)
     slug = serializers.RegexField(r"^[a-zA-Z0-9][a-zA-Z0-9-]*(?<!-)$", max_length=50)
 
