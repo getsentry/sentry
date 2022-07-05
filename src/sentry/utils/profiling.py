@@ -1,7 +1,9 @@
 from typing import Any, Dict, Optional
+from urllib.parse import urlparse
 
 import google.auth.transport.requests
 import google.oauth2.id_token
+import urllib3
 from django.conf import settings
 from django.http import StreamingHttpResponse
 from parsimonious.exceptions import ParseError
@@ -9,7 +11,45 @@ from requests import Response
 
 from sentry.api.event_search import SearchFilter, parse_search_query
 from sentry.exceptions import InvalidSearchQuery
-from sentry.http import safe_urlopen
+from sentry.net.http import connection_from_url
+from sentry.utils import metrics
+
+
+class RetrySkipTimeout(urllib3.Retry):
+    """
+    urllib3 Retry class does not allow us to retry on read errors but to exclude
+    read timeout. Retrying after a timeout adds useless load to Snuba.
+    """
+
+    def increment(
+        self, method=None, url=None, response=None, error=None, _pool=None, _stacktrace=None
+    ):
+        """
+        Just rely on the parent class unless we have a read timeout. In that case
+        immediately give up
+        """
+        if error and isinstance(error, urllib3.exceptions.ReadTimeoutError):
+            raise error.with_traceback(_stacktrace)
+
+        metrics.incr(
+            "profiling.client.retry",
+            tags={"method": method, "path": urlparse(url).path if url else None},
+        )
+        return super().increment(
+            method=method,
+            url=url,
+            response=response,
+            error=error,
+            _pool=_pool,
+            _stacktrace=_stacktrace,
+        )
+
+
+_profiling_pool = connection_from_url(
+    settings.SENTRY_PROFILING_SERVICE_URL,
+    timeout=30,
+    maxsize=10,
+)
 
 
 def get_from_profiling_service(
@@ -26,8 +66,9 @@ def get_from_profiling_service(
     if settings.ENVIRONMENT == "production":
         id_token = fetch_id_token_for_service(settings.SENTRY_PROFILING_SERVICE_URL)
         kwargs["headers"].update({"Authorization": f"Bearer {id_token}"})
-    return safe_urlopen(
-        f"{settings.SENTRY_PROFILING_SERVICE_URL}{path}",
+    return _profiling_pool.urlopen(
+        method,
+        path,
         **kwargs,
     )
 
