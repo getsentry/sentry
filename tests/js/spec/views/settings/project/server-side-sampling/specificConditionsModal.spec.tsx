@@ -18,8 +18,20 @@ import {RouteContext} from 'sentry/views/routeContext';
 import ServerSideSampling from 'sentry/views/settings/project/server-side-sampling';
 import {distributedTracesConditions} from 'sentry/views/settings/project/server-side-sampling/modals/specificConditionsModal/utils';
 import {getInnerNameLabel} from 'sentry/views/settings/project/server-side-sampling/utils';
+import importedUseProjectStats from 'sentry/views/settings/project/server-side-sampling/utils/useProjectStats';
 
 import {getMockData} from './index.spec';
+
+jest.mock('sentry/views/settings/project/server-side-sampling/utils/useProjectStats');
+const useProjectStats = importedUseProjectStats as jest.MockedFunction<
+  typeof importedUseProjectStats
+>;
+useProjectStats.mockImplementation(() => ({
+  projectStats: TestStubs.Outcomes(),
+  loading: false,
+  error: undefined,
+  projectStatsSeries: [],
+}));
 
 function TestComponent({
   router,

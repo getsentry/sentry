@@ -25,7 +25,6 @@ describe('Server-side Sampling - Activate Modal', function () {
       op: 'and',
       inner: [],
     },
-    id: 1,
   };
 
   it('renders modal', async function () {
@@ -41,6 +40,11 @@ describe('Server-side Sampling - Activate Modal', function () {
           rules: [uniformRule],
         },
       }),
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/stats_v2/',
+      body: TestStubs.Outcomes(),
     });
 
     const saveMock = MockApiClient.addMockResponse({
