@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -6,17 +6,25 @@ import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {NumberField} from 'sentry/components/forms';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {PanelTable} from 'sentry/components/panels';
 import Radio from 'sentry/components/radio';
 import {IconRefresh} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import {Organization, Project, SeriesApi} from 'sentry/types';
+import {SamplingRules, SamplingRuleType} from 'sentry/types/sampling';
 import {defined} from 'sentry/utils';
 import {formatPercentage} from 'sentry/utils/formatters';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import {SERVER_SIDE_SAMPLING_DOC_LINK} from '../utils';
+import {projectStatsToPredictedSeries} from '../utils/projectStatsToPredictedSeries';
+import {projectStatsToSampleRates} from '../utils/projectStatsToSampleRates';
+import {projectStatsToSeries} from '../utils/projectStatsToSeries';
+import useProjectStats from '../utils/useProjectStats';
+
+import {UniformRateChart} from './uniformRateChart';
 
 enum Strategy {
   CURRENT = 'current',
@@ -25,22 +33,57 @@ enum Strategy {
 
 type Props = ModalRenderProps & {
   organization: Organization;
+  rules: SamplingRules;
   project?: Project;
+  projectStats?: SeriesApi;
 };
 
-function UniformRateModal({Header, Body, Footer, closeModal}: Props) {
+function UniformRateModal({
+  organization,
+  project,
+  projectStats,
+  rules,
+  Header,
+  Body,
+  Footer,
+  closeModal,
+}: Props) {
+  const {projectStats: projectStats30d, loading: loading30d} = useProjectStats({
+    orgSlug: organization.slug,
+    projectId: project?.id,
+    interval: '1d',
+    statsPeriod: '30d',
+  });
+
+  const loading = loading30d || !projectStats;
+
   // TODO(sampling): fetch from API
   const affectedProjects = ['ProjectA', 'ProjectB', 'ProjectC'];
 
-  // TODO(sampling): calculate dynamically
-  const currentClientSampling = 10;
-  const currentServerSampling = undefined;
-  const recommendedClientSampling = 100;
-  const recommendedServerSampling = 10;
+  const baseSampleRate = rules.find(
+    rule => rule.type === SamplingRuleType.TRACE && rule.condition.inner.length === 0
+  )?.sampleRate;
+
+  const {trueSampleRate, maxSafeSampleRate} = projectStatsToSampleRates(projectStats);
+
+  const currentClientSampling =
+    defined(trueSampleRate) && !isNaN(trueSampleRate) ? trueSampleRate * 100 : undefined;
+  const currentServerSampling =
+    defined(baseSampleRate) && !isNaN(baseSampleRate) ? baseSampleRate * 100 : undefined;
+  const recommendedClientSampling =
+    defined(maxSafeSampleRate) && !isNaN(maxSafeSampleRate)
+      ? maxSafeSampleRate * 100
+      : undefined;
+  const recommendedServerSampling = currentClientSampling;
 
   const [selectedStrategy, setSelectedStrategy] = useState<Strategy>(Strategy.CURRENT);
   const [client, setClient] = useState(recommendedClientSampling);
   const [server, setServer] = useState(recommendedServerSampling);
+
+  useEffect(() => {
+    setClient(recommendedClientSampling);
+    setServer(recommendedServerSampling);
+  }, [recommendedClientSampling, recommendedServerSampling]);
 
   const isEdited =
     client !== recommendedClientSampling || server !== recommendedServerSampling;
@@ -63,98 +106,121 @@ function UniformRateModal({Header, Body, Footer, closeModal}: Props) {
           )}
         </TextBlock>
 
-        <StyledPanelTable
-          headers={[
-            t('Sampling Values'),
-            <RightAligned key="client">{t('Client')}</RightAligned>,
-            <RightAligned key="server">{t('Server')}</RightAligned>,
-            '',
-          ]}
-        >
+        {loading ? (
+          <LoadingIndicator />
+        ) : (
           <Fragment>
-            <Label htmlFor="sampling-current">
-              <Radio
-                id="sampling-current"
-                checked={selectedStrategy === Strategy.CURRENT}
-                onChange={() => {
-                  setSelectedStrategy(Strategy.CURRENT);
-                }}
-              />
-              {t('Current')}
-            </Label>
-            <RightAligned>{formatPercentage(currentClientSampling / 100)}</RightAligned>
-            <RightAligned>
-              {defined(currentServerSampling)
-                ? formatPercentage(currentServerSampling / 100)
-                : 'N/A'}
-            </RightAligned>
-            <div />
-          </Fragment>
-          <Fragment>
-            <Label htmlFor="sampling-recommended">
-              <Radio
-                id="sampling-recommended"
-                checked={selectedStrategy === Strategy.RECOMMENDED}
-                onChange={() => {
-                  setSelectedStrategy(Strategy.RECOMMENDED);
-                }}
-              />
-              {isEdited ? t('New') : t('Recommended')}
-            </Label>
-            <RightAligned>
-              <StyledNumberField
-                name="recommended-client-sampling"
-                placeholder="%"
-                value={client}
-                onChange={value => {
-                  setClient(value);
-                }}
-                onFocus={() => setSelectedStrategy(Strategy.RECOMMENDED)}
-                stacked
-                flexibleControlStateSize
-                inline={false}
-              />
-            </RightAligned>
-            <RightAligned>
-              <StyledNumberField
-                name="recommended-server-sampling"
-                placeholder="%"
-                value={server}
-                onChange={value => {
-                  setServer(value);
-                }}
-                onFocus={() => setSelectedStrategy(Strategy.RECOMMENDED)}
-                stacked
-                flexibleControlStateSize
-                inline={false}
-              />
-            </RightAligned>
-            <ResetButton>
-              {isEdited && (
-                <Button
-                  icon={<IconRefresh size="sm" />}
-                  aria-label={t('Reset to recommended values')}
-                  onClick={() => {
-                    setClient(recommendedClientSampling);
-                    setServer(recommendedServerSampling);
-                  }}
-                  borderless
-                  size="zero"
-                />
-              )}
-            </ResetButton>
-          </Fragment>
-        </StyledPanelTable>
+            <UniformRateChart
+              series={
+                selectedStrategy === Strategy.CURRENT
+                  ? projectStatsToSeries(projectStats30d)
+                  : projectStatsToPredictedSeries(
+                      projectStats30d,
+                      client ? Math.max(Math.min(client / 100, 1), 0) : undefined, // clamping between 0-1
+                      server ? Math.max(Math.min(server / 100, 1), 0) : undefined
+                    )
+              }
+              isLoading={loading30d}
+            />
 
-        <Alert>
-          {tct(
-            'To ensures that any active server-side sampling rules won’t sharply decrease the amount of accepted transactions, we recommend you update the Sentry SDK versions for [affectedProjects]. More details in [step2: Step 2].',
-            {
-              step2: <strong />,
-              affectedProjects: <strong>{affectedProjects.join(', ')}</strong>,
-            }
-          )}
-        </Alert>
+            <StyledPanelTable
+              headers={[
+                t('Sampling Values'),
+                <RightAligned key="client">{t('Client')}</RightAligned>,
+                <RightAligned key="server">{t('Server')}</RightAligned>,
+                '',
+              ]}
+            >
+              <Fragment>
+                <Label htmlFor="sampling-current">
+                  <Radio
+                    id="sampling-current"
+                    checked={selectedStrategy === Strategy.CURRENT}
+                    onChange={() => {
+                      setSelectedStrategy(Strategy.CURRENT);
+                    }}
+                  />
+                  {t('Current')}
+                </Label>
+                <RightAligned>
+                  {defined(currentClientSampling)
+                    ? formatPercentage(currentClientSampling / 100)
+                    : 'N/A'}
+                </RightAligned>
+                <RightAligned>
+                  {defined(currentServerSampling)
+                    ? formatPercentage(currentServerSampling / 100)
+                    : 'N/A'}
+                </RightAligned>
+                <div />
+              </Fragment>
+              <Fragment>
+                <Label htmlFor="sampling-recommended">
+                  <Radio
+                    id="sampling-recommended"
+                    checked={selectedStrategy === Strategy.RECOMMENDED}
+                    onChange={() => {
+                      setSelectedStrategy(Strategy.RECOMMENDED);
+                    }}
+                  />
+                  {isEdited ? t('New') : t('Recommended')}
+                </Label>
+                <RightAligned>
+                  <StyledNumberField
+                    name="recommended-client-sampling"
+                    placeholder="%"
+                    value={client}
+                    onChange={value => {
+                      setClient(value);
+                    }}
+                    onFocus={() => setSelectedStrategy(Strategy.RECOMMENDED)}
+                    stacked
+                    flexibleControlStateSize
+                    inline={false}
+                  />
+                </RightAligned>
+                <RightAligned>
+                  <StyledNumberField
+                    name="recommended-server-sampling"
+                    placeholder="%"
+                    value={server}
+                    onChange={value => {
+                      setServer(value);
+                    }}
+                    onFocus={() => setSelectedStrategy(Strategy.RECOMMENDED)}
+                    stacked
+                    flexibleControlStateSize
+                    inline={false}
+                  />
+                </RightAligned>
+                <ResetButton>
+                  {isEdited && (
+                    <Button
+                      icon={<IconRefresh size="sm" />}
+                      aria-label={t('Reset to recommended values')}
+                      onClick={() => {
+                        setClient(recommendedClientSampling);
+                        setServer(recommendedServerSampling);
+                      }}
+                      borderless
+                      size="zero"
+                    />
+                  )}
+                </ResetButton>
+              </Fragment>
+            </StyledPanelTable>
+
+            <Alert>
+              {tct(
+                'To ensures that any active server-side sampling rules won’t sharply decrease the amount of accepted transactions, we recommend you update the Sentry SDK versions for [affectedProjects]. More details in [step2: Step 2].',
+                {
+                  step2: <strong />,
+                  affectedProjects: <strong>{affectedProjects.join(', ')}</strong>,
+                }
+              )}
+            </Alert>
+          </Fragment>
+        )}
       </Body>
       <Footer>
         <FooterActions>
@@ -174,7 +240,9 @@ function UniformRateModal({Header, Body, Footer, closeModal}: Props) {
 }
 
 const StyledPanelTable = styled(PanelTable)`
-  grid-template-columns: 1fr 100px 100px 35px;
+  grid-template-columns: 1fr 115px 115px 35px;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
 `;
 
 const RightAligned = styled('div')`

@@ -15,6 +15,11 @@ import ServerSideSampling from 'sentry/views/settings/project/server-side-sampli
 import {SERVER_SIDE_SAMPLING_DOC_LINK} from 'sentry/views/settings/project/server-side-sampling/utils';
 
 describe('Server-side Sampling - Activate Modal', function () {
+  MockApiClient.addMockResponse({
+    url: '/organizations/org-slug/stats_v2/',
+    body: TestStubs.Outcomes(),
+  });
+
   const {organization, project, router} = initializeOrg({
     ...initializeOrg(),
     organization: {
