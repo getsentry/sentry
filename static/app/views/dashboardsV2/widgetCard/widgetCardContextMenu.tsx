@@ -231,7 +231,7 @@ function WidgetCardContextMenu({
           <Feature organization={organization} features={['dashboards-mep']}>
             {isMetricsData === false && (
               <SampledTag
-                tooltipText={t('This widget is only applicable to sampled event data.')}
+                tooltipText={t('This widget is only applicable to sampled events.')}
               >
                 {t('Sampled')}
               </SampledTag>
