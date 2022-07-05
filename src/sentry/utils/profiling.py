@@ -1,5 +1,5 @@
 from typing import Any, Dict, Optional
-from urllib.parse import urlparse
+from urllib.parse import urlencode, urlparse
 
 import google.auth.transport.requests
 import google.oauth2.id_token
@@ -62,9 +62,9 @@ def get_from_profiling_service(
     params: Optional[Dict[Any, Any]] = None,
     headers: Optional[Dict[Any, Any]] = None,
 ) -> Response:
-    kwargs: Dict[str, Any] = {"headers": {}, "stream": True}
+    kwargs: Dict[str, Any] = {"headers": {}, "preload_content": False}
     if params:
-        kwargs["params"] = params
+        path = f"{path}?{urlencode(params, doseq=True)}"
     if headers:
         kwargs["headers"].update(headers)
     if settings.ENVIRONMENT == "production":
@@ -86,11 +86,11 @@ def proxy_profiling_service(
     profiling_response = get_from_profiling_service(method, path, params=params, headers=headers)
 
     def stream():
-        yield from profiling_response.raw.stream(decode_content=False)
+        yield from profiling_response.stream(decode_content=False)
 
     response = StreamingHttpResponse(
         streaming_content=stream(),
-        status=profiling_response.status_code,
+        status=profiling_response.status,
         content_type=profiling_response.headers.get("Content_type", "application/json"),
     )
 
