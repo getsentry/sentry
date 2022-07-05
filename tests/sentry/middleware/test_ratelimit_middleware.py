@@ -306,7 +306,7 @@ class CallableRateLimitConfigEndpoint(Endpoint):
     permission_classes = (AllowAny,)
     enforce_rate_limit = True
 
-    def rate_limits(_):
+    def rate_limits(request):
         return {
             "GET": {
                 RateLimitCategory.IP: RateLimit(20, 1),
