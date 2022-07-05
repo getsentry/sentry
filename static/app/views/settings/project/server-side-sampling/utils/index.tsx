@@ -21,3 +21,5 @@ export function getInnerNameLabel(name: SamplingInnerName | string) {
       return '';
   }
 }
+
+export const quantityField = 'sum(quantity)';
