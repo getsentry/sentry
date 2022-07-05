@@ -241,36 +241,50 @@ def invalidate_project_config(
 
 
 def schedule_invalidate_project_config(
-    *, trigger, organization_id=None, project_id=None, public_key=None
+    *,
+    trigger,
+    organization_id=None,
+    project_id=None,
+    public_key=None,
+    countdown=5,
 ):
     """Schedules the :func:`invalidate_project_config` task.
 
     This takes care of not scheduling a duplicate task if one is already scheduled.  The
     parameters are passed straight to the task.
+
+    :param countdown: The time to delay running this task in seconds.  Normally this is
+       delay a little to increase the likelyhood of deduplicating invalidations but you can
+       tweak this, like e.g. the :func:`invalidate_all` task does.
     """
     from sentry.models import Project, ProjectKey
 
     validate_args(organization_id, project_id, public_key)
 
+    # The keys we need to check for to see if this is debounced, we want to check all
+    # levels.
+    check_debounce_keys = {
+        "public_key": public_key,
+        "project_id": project_id,
+        "organization_id": organization_id,
+    }
     if public_key:
         try:
             key = ProjectKey.objects.get(public_key=public_key)
         except ProjectKey.DoesNotExist:
             pass
         else:
-            project_id = key.project.id
-            organization_id = key.project.organization.id
+            check_debounce_keys["project_id"] = key.project.id
+            check_debounce_keys["organization_id"] = key.project.organization.id
     elif project_id:
         try:
             proj = Project.objects.get(id=project_id)
         except Project.DoesNotExist:
             pass
         else:
-            organization_id = proj.organization.id
+            check_debounce_keys["organization_id"] = proj.organization.id
 
-    if projectconfig_debounce_cache.invalidation.is_debounced(
-        public_key=public_key, project_id=project_id, organization_id=organization_id
-    ):
+    if projectconfig_debounce_cache.invalidation.is_debounced(**check_debounce_keys):
         # If this task is already in the queue, do not schedule another task.
         metrics.incr(
             "relay.projectconfig_cache.skipped",
@@ -284,7 +298,7 @@ def schedule_invalidate_project_config(
     )
 
     invalidate_project_config.apply_async(
-        countdown=5,
+        countdown=countdown,
         kwargs={
             "project_id": project_id,
             "organization_id": organization_id,
@@ -293,8 +307,9 @@ def schedule_invalidate_project_config(
         },
     )
 
+    # Use the original arguments to this function to set the debounce key.
     projectconfig_debounce_cache.invalidation.debounce(
-        public_key=public_key, project_id=project_id, organization_id=organization_id
+        organization_id=organization_id, project_id=project_id, public_key=public_key
     )
 
 
@@ -306,6 +321,15 @@ def schedule_invalidate_project_config(
     time_limit=25 * 60 + 5,
 )
 def invalidate_all(**kwargs):
-    """Invalidates all the currently cached active projects."""
+    """Invalidates all the currently cached active projects.
+
+    This works by scheduling an invalidation for each organisation, this likely backlogs the
+    relay_config_bulk queue however since all other invalidations deduplicate with these
+    org-wide ones this does not matter as long as the backlog is cleared soon.  Calling this
+    task multiple times will result in it executing multiple times, however the
+    organisation-scoped invalidations will deduplicate.
+    """
     for org in Organization.objects.all():
-        schedule_invalidate_project_config(trigger="invalidate-all", organization_id=org.id)
+        schedule_invalidate_project_config(
+            trigger="invalidate-all", organization_id=org.id, countdown=0
+        )
