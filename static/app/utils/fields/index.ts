@@ -222,12 +222,12 @@ export const FIELDS: Record<string, FieldDefinition> = {
     valueType: FieldValueType.STRING,
   },
   [FieldKey.EVENT_TIMESTAMP]: {
-    desc: 'Original value that exhibits error',
+    desc: 'Date and time of the event',
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
   [FieldKey.EVENT_TYPE]: {
-    desc: 'Original value that exhibits error',
+    desc: 'Type of event (Errors, transactions, csp and default)',
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
