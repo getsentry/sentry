@@ -18,6 +18,7 @@ import {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import {TableData} from 'sentry/utils/discover/discoverQuery';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import {QueryFieldValue} from 'sentry/utils/discover/fields';
 import {FieldValueOption} from 'sentry/views/eventsV2/table/queryField';
 import {FieldValue, FieldValueKind} from 'sentry/views/eventsV2/table/types';
 
@@ -63,6 +64,7 @@ export const ReleasesConfig: DatasetConfig<
   SessionApiResponse | MetricsApiResponse
 > = {
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
+  enableEquations: false,
   disableSortOptions,
   getTableRequest: (
     api: Client,
@@ -88,6 +90,9 @@ export const ReleasesConfig: DatasetConfig<
   getTimeseriesSortOptions,
   filterTableOptions: filterPrimaryReleaseTableOptions,
   filterAggregateParams,
+  filterYAxisAggregateParams: (_fieldValue: QueryFieldValue, _displayType: DisplayType) =>
+    filterAggregateParams,
+  filterYAxisOptions,
   getCustomFieldRenderer: (field, meta) => getFieldRenderer(field, meta, false),
   SearchBar: ReleaseSearchBar,
   getTableFieldOptions: getReleasesTableFieldOptions,
@@ -219,6 +224,14 @@ function filterPrimaryReleaseTableOptions(option: FieldValueOption) {
 
 function filterAggregateParams(option: FieldValueOption) {
   return option.value.kind === FieldValueKind.METRICS;
+}
+
+function filterYAxisOptions(_displayType: DisplayType) {
+  return (option: FieldValueOption) => {
+    return [FieldValueKind.FUNCTION, FieldValueKind.NUMERIC_METRICS].includes(
+      option.value.kind
+    );
+  };
 }
 
 function handleReleasesTableOrderByReset(widgetQuery: WidgetQuery, newFields: string[]) {
