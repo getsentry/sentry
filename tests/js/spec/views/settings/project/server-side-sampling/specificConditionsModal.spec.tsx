@@ -253,6 +253,15 @@ describe('Server-side Sampling - Specific Conditions Modal', function () {
       ...specificRule,
       id: 0,
       sampleRate: 0.6,
+      condition: {
+        ...specificRule.condition,
+        inner: [
+          {
+            ...specificRule.condition.inner[0],
+            value: ['1.2.3'],
+          },
+        ],
+      },
     };
 
     const saveMock = MockApiClient.addMockResponse({
