@@ -1,4 +1,3 @@
-// import {initializeData} from 'sentry-test/performance/initializePerformanceData';
 import {browserHistory} from 'react-router';
 
 import {
