@@ -23,10 +23,10 @@ class BackfillProjectHasReleaseTest(TestMigrations):
         for alert, expected_type in zip(
             self.alerts,
             [
-                AlertRule.Type.Error,
-                AlertRule.Type.Performance,
-                AlertRule.Type.CrashRate,
-                AlertRule.Type.CrashRate,
+                AlertRule.Type.ERROR,
+                AlertRule.Type.PERFORMANCE,
+                AlertRule.Type.CRASH_RATE,
+                AlertRule.Type.CRASH_RATE,
             ],
         ):
             alert.refresh_from_db()
