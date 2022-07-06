@@ -95,7 +95,7 @@ const IconPopper = ({icon, setSelectedIcon, boxRef}: Props) => {
                 <StyledSelectField
                   name="size"
                   defaultValue={iconProps.size.default}
-                  choices={iconProps.size.options}
+                  options={iconProps.size.options}
                   onChange={value => setSize(value as string)}
                   clearable={false}
                 />
@@ -106,7 +106,7 @@ const IconPopper = ({icon, setSelectedIcon, boxRef}: Props) => {
                   <StyledSelectField
                     name="type"
                     defaultValue={direction}
-                    choices={iconProps.direction.options}
+                    options={iconProps.direction.options}
                     onChange={value => setDirection(value as string)}
                     clearable={false}
                   />
@@ -118,7 +118,7 @@ const IconPopper = ({icon, setSelectedIcon, boxRef}: Props) => {
                   <StyledSelectField
                     name="type"
                     defaultValue={type}
-                    choices={iconProps.type.options}
+                    options={iconProps.type.options}
                     onChange={value => setType(value as string)}
                     clearable={false}
                   />
