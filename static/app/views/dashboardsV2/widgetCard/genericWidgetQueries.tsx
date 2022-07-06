@@ -37,7 +37,7 @@ export type OnDataFetchedProps = {
 export type GenericWidgetQueriesChildrenProps = {
   loading: boolean;
   errorMessage?: string;
-  pageLinks?: null | string;
+  pageLinks?: string;
   tableResults?: TableDataWithTitle[];
   timeseriesResults?: Series[];
   totalCount?: string;
@@ -56,7 +56,12 @@ export type GenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
     response?: ResponseMeta
   ) => void | {totalIssuesCount?: string};
   cursor?: string;
+  customDidUpdateComparator?: (
+    prevProps: GenericWidgetQueriesProps<SeriesResponse, TableResponse>,
+    nextProps: GenericWidgetQueriesProps<SeriesResponse, TableResponse>
+  ) => boolean;
   limit?: number;
+  loading?: boolean;
   onDataFetched?: ({
     tableResults,
     timeseriesResults,
@@ -91,13 +96,16 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
 
   componentDidMount() {
     this._isMounted = true;
-    this.fetchData();
+    if (!this.props.loading) {
+      this.fetchData();
+    }
   }
 
   componentDidUpdate(
     prevProps: GenericWidgetQueriesProps<SeriesResponse, TableResponse>
   ) {
-    const {selection, widget, cursor, organization, config} = this.props;
+    const {selection, widget, cursor, organization, config, customDidUpdateComparator} =
+      this.props;
 
     // We do not fetch data whenever the query name changes.
     // Also don't count empty fields when checking for field changes
@@ -134,12 +142,14 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
       );
 
     if (
-      widget.limit !== prevProps.widget.limit ||
-      !isEqual(widget.displayType, prevProps.widget.displayType) ||
-      !isEqual(widget.interval, prevProps.widget.interval) ||
-      !isEqual(widgetQueries, prevWidgetQueries) ||
-      !isSelectionEqual(selection, prevProps.selection) ||
-      cursor !== prevProps.cursor
+      customDidUpdateComparator
+        ? customDidUpdateComparator(prevProps, this.props)
+        : widget.limit !== prevProps.widget.limit ||
+          !isEqual(widget.displayType, prevProps.widget.displayType) ||
+          !isEqual(widget.interval, prevProps.widget.interval) ||
+          !isEqual(widgetQueries, prevWidgetQueries) ||
+          !isSelectionEqual(selection, prevProps.selection) ||
+          cursor !== prevProps.cursor
     ) {
       this.fetchData();
       return;
@@ -183,7 +193,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
       afterFetchTableData,
       onDataFetched,
     } = this.props;
-    const responses = await Promise.all<[TableResponse, string, ResponseMeta]>(
+    const responses = await Promise.all(
       widget.queries.map(query => {
         let requestLimit: number | undefined = limit ?? DEFAULT_TABLE_LIMIT;
         let requestCreator = config.getTableRequest;
@@ -211,7 +221,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
     );
 
     let transformedTableResults: TableDataWithTitle[] = [];
-    let responsePageLinks: string | null = null;
+    let responsePageLinks: string | undefined;
     let afterTableFetchData: OnDataFetchedProps | undefined;
     responses.forEach(([data, _textstatus, resp], i) => {
       afterTableFetchData = afterFetchTableData?.(data, resp) ?? {};
@@ -226,13 +236,16 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
 
       // Overwrite the local var to work around state being stale in tests.
       transformedTableResults = [...transformedTableResults, transformedData];
-      responsePageLinks = resp?.getResponseHeader('Link');
+
+      // There is some inconsistency with the capitalization of "link" in response headers
+      responsePageLinks =
+        (resp?.getResponseHeader('Link') || resp?.getResponseHeader('link')) ?? undefined;
     });
 
     if (this._isMounted && this.state.queryFetchID === queryFetchID) {
       onDataFetched?.({
         tableResults: transformedTableResults,
-        pageLinks: responsePageLinks ?? undefined,
+        pageLinks: responsePageLinks,
         ...afterTableFetchData,
       });
       this.setState({
@@ -252,7 +265,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
       afterFetchSeriesData,
       onDataFetched,
     } = this.props;
-    const responses = await Promise.all<SeriesResponse>(
+    const responses = await Promise.all(
       widget.queries.map((_query, index) => {
         return config.getSeriesRequest!(
           api,
@@ -265,10 +278,10 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
       })
     );
     const transformedTimeseriesResults: Series[] = [];
-    responses.forEach((rawResults, requestIndex) => {
-      afterFetchSeriesData?.(rawResults);
+    responses.forEach(([data], requestIndex) => {
+      afterFetchSeriesData?.(data);
       const transformedResult = config.transformSeries!(
-        rawResults,
+        data,
         widget.queries[requestIndex],
         organization
       );
@@ -298,6 +311,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
       loading: true,
       tableResults: undefined,
       timeseriesResults: undefined,
+      errorMessage: undefined,
       queryFetchID,
     });
 
