@@ -507,8 +507,6 @@ def _get_group_limit_filters(
         for field in metrics_query.groupby
     )
 
-    import pdb
-    pdb.set_trace()
 
     # Get an ordered list of tuples containing the values of the group keys.
     # This needs to be deduplicated since in timeseries queries the same

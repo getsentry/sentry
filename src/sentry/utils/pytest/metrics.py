@@ -40,9 +40,6 @@ def control_metrics_access(monkeypatch, request, set_sentry_option):
                             row[k] = indexer.reverse_resolve(row[k])
                             assert isinstance(row[k], str)
 
-                import pdb
-                pdb.set_trace()
-
             return result
 
         monkeypatch.setattr(snuba, "_apply_cache_and_build_results", new_build_results)
