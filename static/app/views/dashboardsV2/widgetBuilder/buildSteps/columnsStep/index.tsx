@@ -34,7 +34,7 @@ export function ColumnsStep({
   explodedFields,
   tags,
 }: Props) {
-  const customMeasurements = useCustomMeasurements().customMeasurements;
+  const {customMeasurements} = useCustomMeasurements();
   const datasetConfig = getDatasetConfig(widgetType);
   return (
     <BuildStep
@@ -83,9 +83,7 @@ export function ColumnsStep({
         fieldOptions={datasetConfig.getTableFieldOptions(
           organization,
           tags,
-          organization.features.includes('dashboard-custom-measurement-widgets')
-            ? customMeasurements
-            : undefined
+          customMeasurements
         )}
         filterAggregateParameters={datasetConfig.filterAggregateParams}
         filterPrimaryOptions={datasetConfig.filterTableOptions}
