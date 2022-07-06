@@ -13,7 +13,7 @@ import GlobalModal from 'sentry/components/globalModal';
 import {ActivateModal} from 'sentry/views/settings/project/server-side-sampling/modals/activateModal';
 import {SERVER_SIDE_SAMPLING_DOC_LINK} from 'sentry/views/settings/project/server-side-sampling/utils';
 
-import {getMockData, uniformRule} from './utils';
+import {getMockData, uniformRule} from '../utils';
 
 describe('Server-side Sampling - Activate Modal', function () {
   it('renders modal', async function () {

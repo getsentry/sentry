@@ -19,7 +19,7 @@ import {SpecificConditionsModal} from 'sentry/views/settings/project/server-side
 import {distributedTracesConditions} from 'sentry/views/settings/project/server-side-sampling/modals/specificConditionsModal/utils';
 import {getInnerNameLabel} from 'sentry/views/settings/project/server-side-sampling/utils';
 
-import {getMockData, uniformRule} from './utils';
+import {getMockData, uniformRule} from '../utils';
 
 describe('Server-side Sampling - Specific Conditions Modal', function () {
   beforeEach(function () {
