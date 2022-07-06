@@ -79,6 +79,10 @@ def _rewrite_query(query):
     convert_select_columns = set()
 
     def _walk_term(term):
+        if (isinstance(term, Column) and term.subscriptable == 'tags'):
+            convert_select_columns.add(term.name)
+            return
+
         if (
             isinstance(term, AliasedExpression) and
             isinstance(col := term.exp, Column) and
@@ -127,6 +131,9 @@ def _rewrite_query(query):
         if isinstance(term, Column):
             # if we end up walking into a term like tags[123], we failed to
             # catch that at an outer call of _walk_term
+            if term.subscriptable == 'tags':
+                import pdb
+                pdb.set_trace()
             assert term.subscriptable != 'tags'
             return
 
