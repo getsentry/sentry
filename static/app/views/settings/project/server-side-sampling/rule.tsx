@@ -4,6 +4,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import MenuItemActionLink from 'sentry/components/actions/menuItemActionLink';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Button from 'sentry/components/button';
 import DropdownLink from 'sentry/components/dropdownLink';
 import NewBooleanField from 'sentry/components/forms/booleanField';
@@ -111,13 +112,22 @@ export function Rule({
         <SampleRate>{`${rule.sampleRate * 100}\u0025`}</SampleRate>
       </RateColumn>
       <ActiveColumn>
-        <ActiveToggle
-          inline={false}
-          hideControlState
-          aria-label={rule.active ? t('Deactivate Rule') : t('Activate Rule')}
-          onClick={onActivate}
-          name="active"
-        />
+        <GuideAnchor
+          target="sampling_rule_toggle"
+          onFinish={() => {
+            // TODO(sampling): activate the rule
+          }}
+          // TODO(sampling): disable if sdks are not yet updated
+          disabled={!isUniform}
+        >
+          <ActiveToggle
+            inline={false}
+            hideControlState
+            aria-label={rule.active ? t('Deactivate Rule') : t('Activate Rule')}
+            onClick={onActivate}
+            name="active"
+          />
+        </GuideAnchor>
       </ActiveColumn>
       <Column>
         <EllipisDropDownButton

@@ -5,6 +5,7 @@ import isEqual from 'lodash/isEqual';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {Panel, PanelFooter, PanelHeader} from 'sentry/components/panels';
@@ -283,19 +284,25 @@ export function ServerSideSampling({project}: Props) {
                   <Button href={SERVER_SIDE_SAMPLING_DOC_LINK} external>
                     {t('Read Docs')}
                   </Button>
-                  <AddRuleButton
-                    disabled={!hasAccess}
-                    title={
-                      !hasAccess
-                        ? t("You don't have permission to add a rule")
-                        : undefined
-                    }
-                    priority="primary"
-                    onClick={handleAddRule}
-                    icon={<IconAdd isCircled />}
+                  <GuideAnchor
+                    target="add_conditional_rule"
+                    // TODO(sampling): disable unless the base rule is active
+                    disabled={!hasAccess || rules.length !== 1}
                   >
-                    {t('Add Rule')}
-                  </AddRuleButton>
+                    <AddRuleButton
+                      disabled={!hasAccess}
+                      title={
+                        !hasAccess
+                          ? t("You don't have permission to add a rule")
+                          : undefined
+                      }
+                      priority="primary"
+                      onClick={handleAddRule}
+                      icon={<IconAdd isCircled />}
+                    >
+                      {t('Add Rule')}
+                    </AddRuleButton>
+                  </GuideAnchor>
                 </ButtonBar>
               </RulesPanelFooter>
             </Fragment>
