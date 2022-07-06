@@ -148,39 +148,41 @@ describe('Server-side Sampling', function () {
 
   it('does not let you delete the base rule', function () {
     const {router, organization, project} = getMockData({
-      project: TestStubs.Project({
-        dynamicSampling: {
-          rules: [
-            {
-              sampleRate: 0.2,
-              type: 'trace',
-              active: false,
-              condition: {
-                op: 'and',
-                inner: [
-                  {
-                    op: 'glob',
-                    name: 'trace.release',
-                    value: ['1.2.3'],
-                  },
-                ],
+      projects: [
+        TestStubs.Project({
+          dynamicSampling: {
+            rules: [
+              {
+                sampleRate: 0.2,
+                type: 'trace',
+                active: false,
+                condition: {
+                  op: 'and',
+                  inner: [
+                    {
+                      op: 'glob',
+                      name: 'trace.release',
+                      value: ['1.2.3'],
+                    },
+                  ],
+                },
+                id: 2,
               },
-              id: 2,
-            },
-            {
-              sampleRate: 0.2,
-              type: 'trace',
-              active: false,
-              condition: {
-                op: 'and',
-                inner: [],
+              {
+                sampleRate: 0.2,
+                type: 'trace',
+                active: false,
+                condition: {
+                  op: 'and',
+                  inner: [],
+                },
+                id: 1,
               },
-              id: 1,
-            },
-          ],
-          next_id: 3,
-        },
-      }),
+            ],
+            next_id: 3,
+          },
+        }),
+      ],
     });
 
     render(
