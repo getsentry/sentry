@@ -277,6 +277,7 @@ def _fetch_tags_or_values_per_ids(
     metric_names: Optional[Sequence[str]],
     referrer: str,
     column: str,
+    use_case_id: UseCaseKey,
 ) -> Tuple[Union[Sequence[Tag], Sequence[TagValue]], Optional[str]]:
     """
     Function that takes as input projects, metric_names, and a column, and based on the column
@@ -375,8 +376,8 @@ def _fetch_tags_or_values_per_ids(
         tag_id = column.split("tags[")[1].split("]")[0]
         tags_or_values = [
             {
-                "key": reverse_resolve(UseCaseKey.RELEASE_HEALTH, int(tag_id)),
-                "value": reverse_resolve(UseCaseKey.RELEASE_HEALTH, value_id),
+                "key": reverse_resolve(use_case_id, int(tag_id)),
+                "value": reverse_resolve(use_case_id, value_id),
             }
             for value_id in tag_or_value_ids
         ]
@@ -385,8 +386,7 @@ def _fetch_tags_or_values_per_ids(
         tags_or_values = [
             {"key": reversed_tag}
             for tag_id in tag_or_value_ids
-            if (reversed_tag := reverse_resolve(UseCaseKey.RELEASE_HEALTH, tag_id))
-            not in UNALLOWED_TAGS
+            if (reversed_tag := reverse_resolve(use_case_id, tag_id)) not in UNALLOWED_TAGS
         ]
         tags_or_values.sort(key=itemgetter("key"))
 
@@ -396,7 +396,9 @@ def _fetch_tags_or_values_per_ids(
     return tags_or_values, None
 
 
-def get_single_metric_info(projects: Sequence[Project], metric_name: str) -> MetricMetaWithTagKeys:
+def get_single_metric_info(
+    projects: Sequence[Project], metric_name: str, use_case_id: UseCaseKey
+) -> MetricMetaWithTagKeys:
     assert projects
 
     tags, metric_type = _fetch_tags_or_values_per_ids(
@@ -404,6 +406,7 @@ def get_single_metric_info(projects: Sequence[Project], metric_name: str) -> Met
         metric_names=[metric_name],
         column="tags.key",
         referrer="snuba.metrics.meta.get_single_metric",
+        use_case_id=use_case_id,
     )
     entity_key = METRIC_TYPE_TO_ENTITY[metric_type]
 
@@ -429,7 +432,9 @@ def get_single_metric_info(projects: Sequence[Project], metric_name: str) -> Met
     return response_dict
 
 
-def get_tags(projects: Sequence[Project], metric_names: Optional[Sequence[str]]) -> Sequence[Tag]:
+def get_tags(
+    projects: Sequence[Project], metric_names: Optional[Sequence[str]], use_case_id: UseCaseKey
+) -> Sequence[Tag]:
     """Get all metric tags for the given projects and metric_names"""
     assert projects
 
@@ -439,6 +444,7 @@ def get_tags(projects: Sequence[Project], metric_names: Optional[Sequence[str]])
             metric_names=metric_names,
             column="tags.key",
             referrer="snuba.metrics.meta.get_tags",
+            use_case_id=use_case_id,
         )
     except InvalidParams:
         return []
@@ -446,13 +452,16 @@ def get_tags(projects: Sequence[Project], metric_names: Optional[Sequence[str]])
 
 
 def get_tag_values(
-    projects: Sequence[Project], tag_name: str, metric_names: Optional[Sequence[str]]
+    projects: Sequence[Project],
+    tag_name: str,
+    metric_names: Optional[Sequence[str]],
+    use_case_id: UseCaseKey,
 ) -> Sequence[TagValue]:
     """Get all known values for a specific tag"""
     assert projects
 
     org_id = org_id_from_projects(projects)
-    tag_id = indexer.resolve(org_id, tag_name)
+    tag_id = indexer.resolve(org_id, tag_name, use_case_id=use_case_id)
 
     if tag_name in UNALLOWED_TAGS:
         raise InvalidParams(f"Tag name {tag_name} is an unallowed tag")
@@ -466,6 +475,7 @@ def get_tag_values(
             column=f"tags[{tag_id}]",
             metric_names=metric_names,
             referrer="snuba.metrics.meta.get_tag_values",
+            use_case_id=use_case_id,
         )
     except InvalidParams:
         return []

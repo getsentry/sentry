@@ -42,7 +42,7 @@ class OrganizationMetricDetailsEndpoint(OrganizationEndpoint):
 
         projects = self.get_projects(request, organization)
         try:
-            metric = get_single_metric_info(projects, metric_name)
+            metric = get_single_metric_info(projects, metric_name, UseCaseKey.PERFORMANCE)
         except InvalidParams as e:
             raise ResourceDoesNotExist(e)
         except (InvalidField, DerivedMetricParseException) as exc:
@@ -70,7 +70,7 @@ class OrganizationMetricsTagsEndpoint(OrganizationEndpoint):
         metric_names = request.GET.getlist("metric") or None
         projects = self.get_projects(request, organization)
         try:
-            tags = get_tags(projects, metric_names)
+            tags = get_tags(projects, metric_names, UseCaseKey.PERFORMANCE)
         except (InvalidParams, DerivedMetricParseException) as exc:
             raise (ParseError(detail=str(exc)))
 
@@ -89,7 +89,7 @@ class OrganizationMetricsTagDetailsEndpoint(OrganizationEndpoint):
 
         projects = self.get_projects(request, organization)
         try:
-            tag_values = get_tag_values(projects, tag_name, metric_names)
+            tag_values = get_tag_values(projects, tag_name, metric_names, UseCaseKey.PERFORMANCE)
         except (InvalidParams, DerivedMetricParseException) as exc:
             msg = str(exc)
             # TODO: Use separate error type once we have real data
