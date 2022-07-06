@@ -1,5 +1,6 @@
 import logging
 import time
+from typing import Mapping
 
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.exceptions import AuthenticationFailed, NotAuthenticated
@@ -27,7 +28,7 @@ from .card_builder.identity import (
     build_linking_card,
     build_unlink_identity_card,
 )
-from .card_builder.installation import build_personal_installation_message, build_welcome_card
+from .card_builder.installation import build_welcome_card
 from .client import CLOCK_SKEW, MsTeamsClient, MsTeamsJwtClient
 from .link_identity import build_linking_url
 from .unlink_identity import build_unlinking_url
@@ -167,43 +168,50 @@ class MsTeamsWebhookEndpoint(Endpoint):
 
     def handle_personal_member_add(self, request: Request):
         data = request.data
-        # only care if our bot is the new member added
-        matches = list(filter(lambda x: x["id"] == data["recipient"]["id"], data["membersAdded"]))
-        if not matches:
-            return self.respond(status=204)
+        data["conversation_id"] = data["conversation"]["id"]
 
-        client = get_preinstall_client(data["serviceUrl"])
+        # need to keep track of the service url since we won't get it later
+        params = {
+            "external_id": data["conversation"]["tenantId"],
+            "external_name": data["conversation"]["tenantId"],
+            "service_url": data["serviceUrl"],
+            "user_id": data["from"]["id"],
+            "conversation_id": data["conversation_id"],
+        }
 
-        user_conversation_id = data["conversation"]["id"]
-        card = build_personal_installation_message()
-        client.send_card(user_conversation_id, card)
-        return self.respond(status=204)
+        return self.handle_member_add(data, params)
 
     def handle_team_member_added(self, request: Request):
         data = request.data
-        channel_data = data["channelData"]
-        # only care if our bot is the new member added
-        matches = list(filter(lambda x: x["id"] == data["recipient"]["id"], data["membersAdded"]))
-        if not matches:
-            return self.respond(status=204)
-
-        team = channel_data["team"]
+        team = data["channelData"]["team"]
+        data["conversation_id"] = team["id"]
 
         # need to keep track of the service url since we won't get it later
-        signed_data = {
+        params = {
             "external_id": team["id"],
             "external_name": team["name"],
             "service_url": data["serviceUrl"],
             "user_id": data["from"]["id"],
+            "conversation_id": data["conversation_id"],
         }
 
+        return self.handle_member_add(data, params)
+
+    def handle_member_add(self, data: Mapping[str, str], params: Mapping[str, str]) -> Response:
+        # only care if our bot is the new member added
+        matches = list(filter(lambda x: x["id"] == data["recipient"]["id"], data["membersAdded"]))
+        if not matches:
+            return self.respond(status=204)
+
         # sign the params so this can't be forged
-        signed_params = sign(**signed_data)
+        signed_params = sign(**params)
 
         # send welcome message to the team
         client = get_preinstall_client(data["serviceUrl"])
+        conversation_id = data["conversation_id"]
         card = build_welcome_card(signed_params)
-        client.send_card(team["id"], card)
+        client.send_card(conversation_id, card)
+
         return self.respond(status=201)
 
     def handle_team_member_removed(self, request: Request):

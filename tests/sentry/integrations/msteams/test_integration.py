@@ -25,6 +25,7 @@ class MsTeamsIntegrationTest(IntegrationTestCase):
             "service_url": "https://smba.trafficmanager.net/amer/",
             "external_name": "my_team",
             "user_id": user_id,
+            "conversation_id": team_id,
         }
 
     def assert_setup_flow(self):
