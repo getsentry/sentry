@@ -5,7 +5,7 @@ import {Flamegraph} from '../flamegraph';
 import {FlamegraphTheme} from '../flamegraph/flamegraphTheme';
 import {getContext, Rect} from '../gl/utils';
 
-function computeIntervals(startedAt: number, weights: readonly number[]) {
+function computeAbsoluteSampleTimestamps(startedAt: number, weights: readonly number[]) {
   const timeline = [startedAt + weights[0]];
   for (let i = 1; i < weights.length; i++) {
     timeline.push(timeline[i - 1] + weights[i]);
@@ -29,7 +29,10 @@ class InternalSampleTickRenderer {
     this.canvas = canvas;
     this.flamegraph = flamegraph;
     this.theme = theme;
-    this.intervals = computeIntervals(configSpace.x, this.flamegraph.profile.weights);
+    this.intervals = computeAbsoluteSampleTimestamps(
+      configSpace.x,
+      this.flamegraph.profile.weights
+    );
     this.context = getContext(canvas, '2d');
   }
 
