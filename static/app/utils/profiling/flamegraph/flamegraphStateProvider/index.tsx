@@ -189,6 +189,7 @@ export function FlamegraphStateProvider(
   const reducer = useUndoableReducer(combinedReducers, {
     profiles: {
       selectedNode: null,
+      highlightedNode: null,
       threadId:
         props.initialState?.profiles?.threadId ??
         DEFAULT_FLAMEGRAPH_STATE.profiles.threadId,
