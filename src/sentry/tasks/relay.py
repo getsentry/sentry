@@ -253,8 +253,8 @@ def schedule_invalidate_project_config(
     This takes care of not scheduling a duplicate task if one is already scheduled.  The
     parameters are passed straight to the task.
 
-    :param countdown: The time to delay running this task in seconds.  Normally this is
-       delay a little to increase the likelyhood of deduplicating invalidations but you can
+    :param countdown: The time to delay running this task in seconds.  Normally there is a
+       slight delay to increase the likelihood of deduplicating invalidations but you can
        tweak this, like e.g. the :func:`invalidate_all` task does.
     """
     from sentry.models import Project, ProjectKey
@@ -270,19 +270,23 @@ def schedule_invalidate_project_config(
     }
     if public_key:
         try:
-            key = ProjectKey.objects.get(public_key=public_key)
+            proj_id, org_id = (
+                ProjectKey.objects.select_related("project__organization")
+                .values_list("project__id", "project__organization__id")
+                .get(public_key=public_key)
+            )
         except ProjectKey.DoesNotExist:
             pass
         else:
-            check_debounce_keys["project_id"] = key.project.id
-            check_debounce_keys["organization_id"] = key.project.organization.id
+            check_debounce_keys["project_id"] = proj_id
+            check_debounce_keys["organization_id"] = org_id
     elif project_id:
         try:
-            proj = Project.objects.get(id=project_id)
+            (org_id,) = Project.objects.values_list("organization__id").get(id=project_id)
         except Project.DoesNotExist:
             pass
         else:
-            check_debounce_keys["organization_id"] = proj.organization.id
+            check_debounce_keys["organization_id"] = org_id
 
     if projectconfig_debounce_cache.invalidation.is_debounced(**check_debounce_keys):
         # If this task is already in the queue, do not schedule another task.
