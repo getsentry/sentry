@@ -1,10 +1,11 @@
-import {browserHistory, RouteComponentProps} from 'react-router';
+import {Fragment, useCallback, useEffect, useState} from 'react';
+import * as Sentry from '@sentry/react';
 
-import {t} from 'sentry/locale';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {CursorHandler} from 'sentry/components/pagination';
 import {AuditLog, Organization} from 'sentry/types';
-import routeTitleGen from 'sentry/utils/routeTitle';
+import useApi from 'sentry/utils/useApi';
 import withOrganization from 'sentry/utils/withOrganization';
-import AsyncView from 'sentry/views/asyncView';
 
 import AuditLogList from './auditLogList';
 
@@ -69,64 +70,96 @@ const EVENT_TYPES = [
   'sentry-app.uninstall',
 ];
 
-type Props = RouteComponentProps<{orgId: string}, {}> &
-  AsyncView['props'] & {
-    organization: Organization;
-  };
-
-type State = AsyncView['state'] & {
-  entryList: AuditLog[] | null;
-  entryListPageLinks: string | null;
+type Props = {
+  organization: Organization;
 };
 
-class OrganizationAuditLog extends AsyncView<Props, State> {
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    return [
-      [
-        'entryList',
-        `/organizations/${this.props.params.orgId}/audit-logs/`,
-        {
-          query: this.props.location.query,
-        },
-      ],
-    ];
-  }
+type State = {
+  entryList: AuditLog[] | null;
+  entryListPageLinks: string | null;
+  isLoading: boolean;
+  currentCursor?: string;
+  eventType?: string;
+};
 
-  getTitle() {
-    return routeTitleGen(t('Audit Log'), this.props.organization.slug, false);
-  }
+function OrganizationAuditLog({organization}: Props) {
+  const [state, setState] = useState<State>({
+    entryList: [],
+    entryListPageLinks: null,
+    isLoading: true,
+  });
 
-  handleEventSelect = (value: string) => {
-    // Dont update if event has not changed
-    if (this.props.location.query.event === value) {
-      return;
-    }
+  const api = useApi();
 
-    browserHistory.push({
-      pathname: this.props.location.pathname,
-      search: `?event=${value}`,
-    });
+  const handleCursor: CursorHandler = resultsCursor => {
+    setState(prevState => ({
+      ...prevState,
+      currentCursor: resultsCursor,
+    }));
   };
 
-  renderLoading() {
-    return this.renderBody();
-  }
+  const fetchAuditLogData = useCallback(
+    async (cursor = state.currentCursor, event = state.eventType) => {
+      try {
+        const payload = {cursor, event};
+        if (!payload.cursor) {
+          delete payload.cursor;
+        }
+        if (!payload.event) {
+          delete payload.event;
+        }
+        const [data, _, response] = await api.requestPromise(
+          `/organizations/${organization.slug}/audit-logs/`,
+          {
+            method: 'GET',
+            includeAllArgs: true,
+            query: payload,
+          }
+        );
+        setState(prevState => ({
+          ...prevState,
+          entryList: data,
+          isLoading: false,
+          entryListPageLinks: response?.getResponseHeader('Link') ?? null,
+        }));
+      } catch (err) {
+        if (err.status !== 401 && err.status !== 403) {
+          Sentry.captureException(err);
+        }
+        setState(prevState => ({
+          ...prevState,
+          isLoading: false,
+        }));
+        addErrorMessage('Unable to load usage loads.');
+      }
+    },
+    [api, organization.slug, state.currentCursor, state.eventType]
+  );
 
-  renderBody() {
-    const {entryList, entryListPageLinks, loading, reloading} = this.state;
-    const currentEventType = this.props.location.query.event;
-    return (
+  useEffect(() => {
+    fetchAuditLogData();
+  }, [fetchAuditLogData]);
+
+  const handleEventSelect = (value: string | undefined) => {
+    setState(prevState => ({
+      ...prevState,
+      eventType: value,
+    }));
+  };
+
+  return (
+    <Fragment>
       <AuditLogList
-        entries={entryList}
-        pageLinks={entryListPageLinks}
-        eventType={currentEventType}
+        entries={state.entryList}
+        pageLinks={state.entryListPageLinks}
+        eventType={state.eventType}
         eventTypes={EVENT_TYPES}
-        onEventSelect={this.handleEventSelect}
-        isLoading={loading || reloading}
-        {...this.props}
+        onEventSelect={handleEventSelect}
+        isLoading={state.isLoading}
+        onCursor={handleCursor}
       />
-    );
-  }
+    </Fragment>
+  );
 }
 
 export default withOrganization(OrganizationAuditLog);
