@@ -84,12 +84,18 @@ def run_deletion(deletion_id, first_pass=True):
         deletion.delete()
         return
 
+    if deletion.model_name == "Organization":
+        # TODO(mark) Organization deletions are temporarily disabled.
+        # We had a bad data used to schedule deletions for organizations in bulk.
+        return
+
     task = deletions.get(
         model=deletion.get_model(),
         query={"id": deletion.object_id},
         transaction_id=deletion.guid,
         actor_id=deletion.actor_id,
     )
+
     if not task.should_proceed(instance):
         logger.info(
             "object.delete.aborted",
