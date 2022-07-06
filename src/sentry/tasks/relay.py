@@ -315,25 +315,3 @@ def schedule_invalidate_project_config(
     projectconfig_debounce_cache.invalidation.debounce(
         organization_id=organization_id, project_id=project_id, public_key=public_key
     )
-
-
-@instrumented_task(
-    name="sentry.tasks.relay.invalidate_all_project_configs",
-    queue="relay_config_bulk",
-    acks_late=True,
-    soft_time_limit=25 * 60,  # 25mins
-    time_limit=25 * 60 + 5,
-)
-def invalidate_all_project_configs(**kwargs):
-    """Invalidates all the currently cached active projects.
-
-    This works by scheduling an invalidation for each organisation, this likely backlogs the
-    relay_config_bulk queue however since all other invalidations deduplicate with these
-    org-wide ones this does not matter as long as the backlog is cleared soon.  Calling this
-    task multiple times will result in it executing multiple times, however the
-    organisation-scoped invalidations will deduplicate.
-    """
-    for org in Organization.objects.all():
-        schedule_invalidate_project_config(
-            trigger="invalidate-all", organization_id=org.id, countdown=0
-        )
