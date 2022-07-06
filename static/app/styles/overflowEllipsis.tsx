@@ -1,5 +1,8 @@
 /**
- * CSS styles used to add a ellipsis overflow
+ * CSS styles used to add a ellipsis overflow. This is deprecated, use the
+ * styles from theme instead (``p.theme.overflowEllipsis`).
+ *
+ * @deprecated
  */
 const overflowEllipsis = `
   display: block;

@@ -23,7 +23,7 @@ class DummyNotification(BaseNotification):
     def get_title_link(self, *args):
         return None
 
-    def get_notification_title(self, *args):
+    def get_notification_title(self, context: Mapping[str, Any] | None = None) -> str:
         return "Notification Title"
 
     def record_notification_sent(self, *args):

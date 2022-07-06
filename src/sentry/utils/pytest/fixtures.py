@@ -20,6 +20,8 @@ import sentry
 
 # These chars cannot be used in Windows paths so replace them:
 # https://docs.microsoft.com/en-us/windows/desktop/FileIO/naming-a-file#naming-conventions
+from sentry.types.activity import ActivityType
+
 UNSAFE_PATH_CHARS = ("<", ">", ":", '"', " | ", "?", "*")
 
 
@@ -146,6 +148,11 @@ def factories():
 
 @pytest.fixture
 def task_runner():
+    """Context manager that ensures Celery tasks run directly inline where invoked.
+
+    While this context manager is active any Celery tasks created will run immediately at
+    the callsite rather than being sent to RabbitMQ and handled by a worker.
+    """
     from sentry.testutils.helpers.task_runner import TaskRunner
 
     return TaskRunner
@@ -238,7 +245,11 @@ def default_activity(default_group, default_project, default_user):
     from sentry.models import Activity
 
     return Activity.objects.create(
-        group=default_group, project=default_project, type=Activity.NOTE, user=default_user, data={}
+        group=default_group,
+        project=default_project,
+        type=ActivityType.NOTE.value,
+        user=default_user,
+        data={},
     )
 
 

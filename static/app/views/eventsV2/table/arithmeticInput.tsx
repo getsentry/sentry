@@ -4,7 +4,6 @@ import isEqual from 'lodash/isEqual';
 
 import Input from 'sentry/components/forms/controls/input';
 import {t} from 'sentry/locale';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {
   Column,
@@ -475,7 +474,7 @@ const DropdownItemTitleWrapper = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
   margin: 0;
   line-height: ${p => p.theme.text.lineHeightHeading};
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
 `;
 
 const Info = styled('div')`

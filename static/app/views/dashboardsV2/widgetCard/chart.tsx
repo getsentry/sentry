@@ -25,7 +25,7 @@ import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
 import {EChartDataZoomHandler, EChartEventHandler} from 'sentry/types/echarts';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
-import {getFieldFormatter, getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import {getFieldFormatter} from 'sentry/utils/discover/fieldRenderers';
 import {
   getAggregateArg,
   getEquation,
@@ -39,9 +39,10 @@ import getDynamicText from 'sentry/utils/getDynamicText';
 import {Theme} from 'sentry/utils/theme';
 import {eventViewFromWidget} from 'sentry/views/dashboardsV2/utils';
 
+import {getDatasetConfig} from '../datasetConfig/base';
 import {DisplayType, Widget, WidgetType} from '../types';
 
-import WidgetQueries from './widgetQueries';
+import {GenericWidgetQueriesChildrenProps} from './genericWidgetQueries';
 
 const OTHER = 'Other';
 export const SLIDER_HEIGHT = 60;
@@ -55,12 +56,12 @@ export type AugmentedEChartDataZoomHandler = (
 ) => void;
 
 type TableResultProps = Pick<
-  WidgetQueries['state'],
+  GenericWidgetQueriesChildrenProps,
   'errorMessage' | 'loading' | 'tableResults'
 >;
 
 type WidgetCardChartProps = Pick<
-  WidgetQueries['state'],
+  GenericWidgetQueriesChildrenProps,
   'timeseriesResults' | 'tableResults' | 'errorMessage' | 'loading'
 > & {
   location: Location;
@@ -142,6 +143,8 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
       return <LoadingPlaceholder />;
     }
 
+    const datasetConfig = getDatasetConfig(widget.widgetType);
+
     return tableResults.map((result, i) => {
       const fields = widget.queries[i]?.fields?.map(stripDerivedMetricsPrefix) ?? [];
       const fieldAliases = widget.queries[i]?.fieldAliases ?? [];
@@ -166,9 +169,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
           data={result.data}
           organization={organization}
           stickyHeaders
-          getCustomFieldRenderer={(field, meta) =>
-            getFieldRenderer(field, meta, widget.widgetType !== WidgetType.RELEASE)
-          }
+          getCustomFieldRenderer={datasetConfig.getCustomFieldRenderer}
         />
       );
     });
@@ -193,6 +194,9 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
 
     const {containerHeight} = this.state;
     const {organization, widget, isMobile, expandNumbers} = this.props;
+    const isAlias =
+      !organization.features.includes('discover-frontend-use-events-endpoint') &&
+      widget.widgetType !== WidgetType.RELEASE;
 
     return tableResults.map(result => {
       const tableMeta = {...result.meta};
@@ -211,11 +215,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
       }
 
       const dataRow = result.data[0];
-      const fieldRenderer = getFieldFormatter(
-        field,
-        tableMeta,
-        widget.widgetType !== WidgetType.RELEASE
-      );
+      const fieldRenderer = getFieldFormatter(field, tableMeta, isAlias);
 
       const rendered = fieldRenderer(
         shouldExpandInteger ? {[field]: dataRow[field].toLocaleString()} : dataRow

@@ -1,6 +1,7 @@
 from snuba_sdk import Column, Function
 
 from sentry.sentry_metrics import indexer
+from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.snuba.metrics import (
     TransactionStatusTagValue,
     TransactionTagsKey,
@@ -35,7 +36,8 @@ class DerivedMetricSnQLTestCase(TestCase):
         self.org_id = 666
         self.metric_ids = [0, 1, 2]
         indexer.bulk_record(
-            {
+            use_case_id=UseCaseKey.RELEASE_HEALTH,
+            org_strings={
                 self.org_id: [
                     "abnormal",
                     "crashed",
@@ -53,7 +55,7 @@ class DerivedMetricSnQLTestCase(TestCase):
                     TransactionTagsKey.TRANSACTION_SATISFACTION.value,
                     TransactionTagsKey.TRANSACTION_STATUS.value,
                 ]
-            }
+            },
         )
 
     def test_counter_sum_aggregation_on_session_status(self):
@@ -88,7 +90,6 @@ class DerivedMetricSnQLTestCase(TestCase):
 
     def test_set_uniq_aggregation_on_session_status(self):
         for status, func in [
-            ("init", all_users),
             ("crashed", crashed_users),
             ("abnormal", abnormal_users),
             ("errored", errored_all_users),
@@ -116,6 +117,16 @@ class DerivedMetricSnQLTestCase(TestCase):
                 ],
                 status,
             )
+
+    def test_set_uniq_aggregation_all_users(self):
+        assert all_users(self.org_id, self.metric_ids, alias="foo") == Function(
+            "uniqIf",
+            [
+                Column("value"),
+                Function("in", [Column("metric_id"), list(self.metric_ids)]),
+            ],
+            alias="foo",
+        )
 
     def test_set_sum_aggregation_for_errored_sessions(self):
         alias = "whatever"

@@ -259,7 +259,12 @@ class TimeRangeSelector extends PureComponent<Props, State> {
   };
 
   handleAbsoluteClick = () => {
-    const {relative, onChange, defaultPeriod, defaultAbsolute} = this.props;
+    const {relative, onChange, defaultPeriod, defaultAbsolute, start, end} = this.props;
+
+    // If we already have a start/end we don't have to set a default
+    if (start && end) {
+      return;
+    }
 
     // Set default range to equivalent of last relative period,
     // or use default stats period
@@ -448,7 +453,7 @@ class TimeRangeSelector extends PureComponent<Props, State> {
                 onSelect={this.handleSelect}
                 subPanel={
                   isAbsoluteSelected && (
-                    <div>
+                    <AbsoluteRangeWrap>
                       <DateRangeHook
                         start={start ?? null}
                         end={end ?? null}
@@ -467,7 +472,7 @@ class TimeRangeSelector extends PureComponent<Props, State> {
                           }
                         />
                       </SubmitRow>
-                    </div>
+                    </AbsoluteRangeWrap>
                   )
                 }
               >
@@ -476,7 +481,7 @@ class TimeRangeSelector extends PureComponent<Props, State> {
                     customDropdownButton({getActorProps, isOpen})
                   ) : (
                     <StyledHeaderItem
-                      data-test-id="global-header-timerange-selector"
+                      data-test-id="page-filter-timerange-selector"
                       icon={label ?? <IconCalendar />}
                       isOpen={isOpen}
                       hasSelected={
@@ -525,6 +530,11 @@ const StyledDropdownAutoComplete = styled(DropdownAutoComplete)`
 
 const StyledHeaderItem = styled(HeaderItem)`
   height: 100%;
+`;
+
+const AbsoluteRangeWrap = styled('div')`
+  display: flex;
+  flex-direction: column;
 `;
 
 const SubmitRow = styled('div')`

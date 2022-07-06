@@ -57,6 +57,8 @@ class MetricsDatasetConfig(DatasetConfig):
         """While the final functions in clickhouse must have their -Merge combinators in order to function, we don't
         need to add them here since snuba has a FunctionMapper that will add it for us. Basically it turns expressions
         like quantiles(0.9)(value) into quantilesMerge(0.9)(percentiles)
+        Make sure to update METRIC_FUNCTION_LIST_BY_TYPE when adding functions here, can't be a dynamic list since the
+        Metric Layer will actually handle which dataset each function goes to
         """
         resolve_metric_id = {
             "name": "metric_id",
@@ -80,7 +82,8 @@ class MetricsDatasetConfig(DatasetConfig):
                     "avg",
                     required_args=[
                         fields.MetricArg(
-                            "column", allowed_columns=constants.METRIC_DURATION_COLUMNS
+                            "column",
+                            allowed_columns=constants.METRIC_DURATION_COLUMNS,
                         )
                     ],
                     calculated_args=[resolve_metric_id],
@@ -102,7 +105,11 @@ class MetricsDatasetConfig(DatasetConfig):
                 ),
                 fields.MetricsFunction(
                     "count_miserable",
-                    required_args=[fields.MetricArg("column", allowed_columns=["user"])],
+                    required_args=[
+                        fields.MetricArg(
+                            "column", allowed_columns=["user"], allow_custom_measurements=False
+                        )
+                    ],
                     calculated_args=[resolve_metric_id],
                     snql_set=self._resolve_count_miserable_function,
                     default_result_type="integer",
@@ -209,6 +216,73 @@ class MetricsDatasetConfig(DatasetConfig):
                     default_result_type="duration",
                 ),
                 fields.MetricsFunction(
+                    "max",
+                    required_args=[
+                        fields.MetricArg("column"),
+                    ],
+                    calculated_args=[resolve_metric_id],
+                    snql_distribution=lambda args, alias: Function(
+                        "maxIf",
+                        [
+                            Column("value"),
+                            Function("equals", [Column("metric_id"), args["metric_id"]]),
+                        ],
+                        alias,
+                    ),
+                ),
+                fields.MetricsFunction(
+                    "min",
+                    required_args=[
+                        fields.MetricArg("column"),
+                    ],
+                    calculated_args=[resolve_metric_id],
+                    snql_distribution=lambda args, alias: Function(
+                        "minIf",
+                        [
+                            Column("value"),
+                            Function("equals", [Column("metric_id"), args["metric_id"]]),
+                        ],
+                        alias,
+                    ),
+                ),
+                fields.MetricsFunction(
+                    "sum",
+                    required_args=[
+                        fields.MetricArg("column"),
+                    ],
+                    calculated_args=[resolve_metric_id],
+                    snql_distribution=lambda args, alias: Function(
+                        "sumIf",
+                        [
+                            Column("value"),
+                            Function("equals", [Column("metric_id"), args["metric_id"]]),
+                        ],
+                        alias,
+                    ),
+                ),
+                fields.MetricsFunction(
+                    "sumIf",
+                    required_args=[
+                        fields.ColumnTagArg("if_col"),
+                        fields.FunctionArg("if_val"),
+                    ],
+                    calculated_args=[
+                        {
+                            "name": "resolved_val",
+                            "fn": lambda args: self.resolve_value(args["if_val"]),
+                        }
+                    ],
+                    snql_counter=lambda args, alias: Function(
+                        "sumIf",
+                        [
+                            Column("value"),
+                            Function("equals", [args["if_col"], args["resolved_val"]]),
+                        ],
+                        alias,
+                    ),
+                    default_result_type="integer",
+                ),
+                fields.MetricsFunction(
                     "percentile",
                     required_args=[
                         fields.with_default(
@@ -225,13 +299,47 @@ class MetricsDatasetConfig(DatasetConfig):
                 ),
                 fields.MetricsFunction(
                     "count_unique",
-                    required_args=[fields.MetricArg("column", allowed_columns=["user"])],
+                    required_args=[
+                        fields.MetricArg(
+                            "column", allowed_columns=["user"], allow_custom_measurements=False
+                        )
+                    ],
                     calculated_args=[resolve_metric_id],
                     snql_set=lambda args, alias: Function(
                         "uniqIf",
                         [
                             Column("value"),
                             Function("equals", [Column("metric_id"), args["metric_id"]]),
+                        ],
+                        alias,
+                    ),
+                    default_result_type="integer",
+                ),
+                fields.MetricsFunction(
+                    "uniq",
+                    snql_set=lambda args, alias: Function(
+                        "uniq",
+                        [Column("value")],
+                        alias,
+                    ),
+                ),
+                fields.MetricsFunction(
+                    "uniqIf",
+                    required_args=[
+                        fields.ColumnTagArg("if_col"),
+                        fields.FunctionArg("if_val"),
+                    ],
+                    calculated_args=[
+                        {
+                            "name": "resolved_val",
+                            "fn": lambda args: self.resolve_value(args["if_val"]),
+                        }
+                    ],
+                    snql_set=lambda args, alias: Function(
+                        "uniqIf",
+                        [
+                            Column("value"),
+                            Function("equals", [args["if_col"], args["resolved_val"]]),
                         ],
                         alias,
                     ),
@@ -267,6 +375,7 @@ class MetricsDatasetConfig(DatasetConfig):
                                 "measurements.fid",
                                 "measurements.cls",
                             ],
+                            allow_custom_measurements=False,
                         ),
                         fields.SnQLStringArg(
                             "quality", allowed_strings=["good", "meh", "poor", "any"]
@@ -354,6 +463,14 @@ class MetricsDatasetConfig(DatasetConfig):
                         alias,
                     ),
                     default_result_type="integer",
+                ),
+                fields.MetricsFunction(
+                    "histogram",
+                    required_args=[fields.MetricArg("column")],
+                    calculated_args=[resolve_metric_id],
+                    snql_distribution=self._resolve_histogram_function,
+                    default_result_type="number",
+                    private=True,
                 ),
             ]
         }
@@ -467,6 +584,28 @@ class MetricsDatasetConfig(DatasetConfig):
                     ],
                 ),
                 Function("countIf", [metric_condition]),
+            ],
+            alias,
+        )
+
+    def _resolve_histogram_function(
+        self,
+        args: Mapping[str, Union[str, Column, SelectType, int, float]],
+        alias: Optional[str] = None,
+    ) -> SelectType:
+        """zoom_params is based on running metrics zoom_histogram function that adds conditions based on min, max,
+        buckets"""
+        zoom_params = getattr(self.builder, "zoom_params", None)
+        num_buckets = getattr(self.builder, "num_buckets", 250)
+        metric_condition = Function("equals", [Column("metric_id"), args["metric_id"]])
+        self.builder.histogram_aliases.append(alias)
+        return Function(
+            f"histogramIf({num_buckets})",
+            [
+                Column("value"),
+                Function("and", [zoom_params, metric_condition])
+                if zoom_params
+                else metric_condition,
             ],
             alias,
         )

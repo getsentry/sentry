@@ -68,7 +68,7 @@ class TransactionThresholdModal extends Component<Props, State> {
     return projects.find(proj => proj.id === projectId);
   }
 
-  handleApply = async (event: React.FormEvent) => {
+  handleApply = (event: React.FormEvent) => {
     event.preventDefault();
 
     const {api, closeModal, organization, transactionName, onApply} = this.props;
@@ -118,7 +118,7 @@ class TransactionThresholdModal extends Component<Props, State> {
     });
   };
 
-  handleReset = async (event: React.FormEvent) => {
+  handleReset = (event: React.FormEvent) => {
     event.preventDefault();
 
     const {api, closeModal, organization, transactionName, onApply} = this.props;

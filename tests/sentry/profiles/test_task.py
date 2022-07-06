@@ -1,5 +1,4 @@
 from io import BytesIO
-from os import pardir
 from os.path import join
 from zipfile import ZipFile
 
@@ -7,12 +6,13 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 from exam import fixture
 
-from sentry.constants import MODULE_ROOT
+from sentry.models import Project
 from sentry.profiles.task import _deobfuscate, _normalize
 from sentry.testutils import TestCase
+from sentry.testutils.factories import get_fixture_path
 from sentry.utils import json
 
-PROFILES_FIXTURES_PATH = join(MODULE_ROOT, pardir, pardir, "tests", "fixtures", "profiles")
+PROFILES_FIXTURES_PATH = get_fixture_path("profiles")
 
 PROGUARD_UUID = "6dc7fdb0-d2fb-4c8e-9d6b-bb1aa98929b1"
 PROGUARD_SOURCE = b"""\
@@ -88,12 +88,14 @@ class ProfilesProcessTaskTest(TestCase):
             return json.loads(f.read())
 
     def test_normalize_ios_profile(self):
-        profile = _normalize(self.ios_profile)
+        profile = self.ios_profile
+        _normalize(profile=profile, organization=self.organization)
         for k in ["device_os_build_number", "device_classification"]:
             assert k in profile
 
     def test_normalize_android_profile(self):
-        profile = _normalize(self.android_profile)
+        profile = self.android_profile
+        _normalize(profile=profile, organization=self.organization)
         for k in ["android_api_level", "device_classification"]:
             assert k in profile
 
@@ -141,8 +143,8 @@ class ProfilesProcessTaskTest(TestCase):
                 },
             }
         )
-
-        profile = _deobfuscate(profile)
+        project = Project.objects.get_from_cache(id=profile["project_id"])
+        _deobfuscate(profile, project)
         frames = profile["profile"]["methods"]
 
         assert frames[0]["name"] == "getClassContext"
@@ -193,7 +195,8 @@ class ProfilesProcessTaskTest(TestCase):
             }
         )
 
-        profile = _deobfuscate(profile)
+        project = Project.objects.get_from_cache(id=profile["project_id"])
+        _deobfuscate(profile, project)
         frames = profile["profile"]["methods"]
 
         assert sum(len(f.get("inline_frames", [{}])) for f in frames) == 4
@@ -255,7 +258,8 @@ class ProfilesProcessTaskTest(TestCase):
             }
         )
 
+        project = Project.objects.get_from_cache(id=profile["project_id"])
         obfuscated_frames = profile["profile"]["methods"].copy()
-        profile = _deobfuscate(profile)
+        _deobfuscate(profile, project)
 
         assert profile["profile"]["methods"] == obfuscated_frames

@@ -170,7 +170,6 @@ class CreateSampleEventButton extends Component<CreateSampleEventButtonProps, St
     return (
       <Button
         {...props}
-        data-test-id="create-sample-event"
         disabled={props.disabled || creating}
         onClick={this.createSampleGroup}
       />

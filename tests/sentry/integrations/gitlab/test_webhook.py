@@ -1,7 +1,4 @@
-from sentry.models import Commit, CommitAuthor, GroupLink, PullRequest
-from sentry.utils import json
-
-from .testutils import (
+from fixtures.gitlab import (
     EXTERNAL_ID,
     MERGE_REQUEST_OPENED_EVENT,
     PUSH_EVENT,
@@ -9,6 +6,8 @@ from .testutils import (
     WEBHOOK_TOKEN,
     GitLabTestCase,
 )
+from sentry.models import Commit, CommitAuthor, GroupLink, PullRequest
+from sentry.utils import json
 
 
 class WebhookTest(GitLabTestCase):

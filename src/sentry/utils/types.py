@@ -176,4 +176,4 @@ def type_from_value(value):
     return _type_mapping[type(value)]
 
 
-AnyCallable = Callable[..., Any]
+AnyCallable = Callable[..., AnyType]

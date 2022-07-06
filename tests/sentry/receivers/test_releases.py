@@ -26,13 +26,17 @@ from sentry.models import (
 )
 from sentry.signals import buffer_incr_complete
 from sentry.testutils import TestCase
+from sentry.types.activity import ActivityType
 
 
 class ResolveGroupResolutionsTest(TestCase):
     @patch("sentry.tasks.clear_expired_resolutions.clear_expired_resolutions.delay")
     def test_simple(self, mock_delay):
-        release = Release.objects.create(version="a", organization_id=self.project.organization_id)
-        release.add_project(self.project)
+        with self.capture_on_commit_callbacks(execute=True):
+            release = Release.objects.create(
+                version="a", organization_id=self.project.organization_id
+            )
+            release.add_project(self.project)
 
         mock_delay.assert_called_once_with(release_id=release.id)
 
@@ -174,7 +178,7 @@ class ResolvedInCommitTest(TestCase):
         assert GroupAssignee.objects.filter(group=group, user=user).exists()
 
         assert Activity.objects.filter(
-            project=group.project, group=group, type=Activity.ASSIGNED, user=user
+            project=group.project, group=group, type=ActivityType.ASSIGNED.value, user=user
         )[0].data == {
             "assignee": str(user.id),
             "assigneeEmail": user.email,
@@ -207,7 +211,7 @@ class ResolvedInCommitTest(TestCase):
         self.assertResolvedFromCommit(group, commit)
 
         assert not Activity.objects.filter(
-            project=group.project, group=group, type=Activity.ASSIGNED, user=user
+            project=group.project, group=group, type=ActivityType.ASSIGNED.value, user=user
         ).exists()
 
         assert GroupSubscription.objects.filter(group=group, user=user).exists()

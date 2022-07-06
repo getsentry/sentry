@@ -1,10 +1,10 @@
 from exam import fixture
 
-from sentry.testutils import AcceptanceTestCase
-from sentry_plugins.opsgenie.plugin import OpsGeniePlugin
-from tests.acceptance.page_objects.organization_integration_settings import (
+from fixtures.page_objects.organization_integration_settings import (
     OrganizationAbstractDetailViewPage,
 )
+from sentry.testutils import AcceptanceTestCase
+from sentry_plugins.opsgenie.plugin import OpsGeniePlugin
 
 
 class OrganizationPluginDetailedView(AcceptanceTestCase):

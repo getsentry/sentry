@@ -159,15 +159,12 @@ class GroupEvents extends Component<Props, State> {
   }
 
   render() {
-    const hasPageFilters =
-      this.props.organization.features.includes('selection-filters-v2');
-
     return (
       <Layout.Body>
         <Layout.Main fullWidth>
           <Wrapper>
-            <FilterSection hasPageFilters={hasPageFilters}>
-              {hasPageFilters && <EnvironmentPageFilter />}
+            <FilterSection>
+              <EnvironmentPageFilter />
               <SearchBar
                 defaultQuery=""
                 placeholder={t('Search events by id, message, or tags')}
@@ -187,10 +184,10 @@ class GroupEvents extends Component<Props, State> {
   }
 }
 
-const FilterSection = styled('div')<{hasPageFilters?: boolean}>`
+const FilterSection = styled('div')`
   display: grid;
   gap: ${space(1)};
-  grid-template-columns: ${p => (p.hasPageFilters ? 'max-content 1fr' : '1fr')};
+  grid-template-columns: max-content 1fr;
 `;
 
 const Wrapper = styled('div')`

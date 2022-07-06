@@ -48,7 +48,7 @@ describe('Modals -> DashboardWidgetLibraryModal', function () {
     }
   });
 
-  it('opens modal and renders correctly', async function () {
+  it('opens modal and renders correctly', function () {
     // Checking initial modal states
     container = mountModal({initialData});
 
@@ -122,7 +122,7 @@ describe('Modals -> DashboardWidgetLibraryModal', function () {
       }),
       expect.objectContaining({
         displayType: 'top_n',
-        id: undefined,
+        id: 'high-throughput-transactions',
         interval: '5m',
         description: 'Top 5 transactions with the largest volume.',
         queries: [

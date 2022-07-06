@@ -1,17 +1,23 @@
+import {Fragment} from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {updateDateTime} from 'sentry/actionCreators/pageFilters';
+import Datetime from 'sentry/components/dateTime';
 import PageFilterDropdownButton from 'sentry/components/organizations/pageFilters/pageFilterDropdownButton';
 import PageFilterPinIndicator from 'sentry/components/organizations/pageFilters/pageFilterPinIndicator';
 import TimeRangeSelector, {
   ChangeData,
 } from 'sentry/components/organizations/timeRangeSelector';
 import {IconCalendar} from 'sentry/icons';
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import space from 'sentry/styles/space';
+import {
+  DEFAULT_DAY_END_TIME,
+  DEFAULT_DAY_START_TIME,
+  getFormattedDate,
+} from 'sentry/utils/dates';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 
 type Props = Omit<
   React.ComponentProps<typeof TimeRangeSelector>,
@@ -25,7 +31,7 @@ type Props = Omit<
   };
 
 function DatePageFilter({router, resetParamsOnChange, ...props}: Props) {
-  const {selection, desyncedFilters} = useLegacyStore(PageFiltersStore);
+  const {selection, desyncedFilters} = usePageFilters();
   const organization = useOrganization();
   const {start, end, period, utc} = selection.datetime;
 
@@ -42,12 +48,20 @@ function DatePageFilter({router, resetParamsOnChange, ...props}: Props) {
   const customDropdownButton = ({getActorProps, isOpen}) => {
     let label;
     if (start && end) {
-      const startString = start.toLocaleString('default', {
-        month: 'short',
-        day: 'numeric',
-      });
-      const endString = end.toLocaleString('default', {month: 'short', day: 'numeric'});
-      label = `${startString} - ${endString}`;
+      const startTimeFormatted = getFormattedDate(start, 'HH:mm:ss', {local: true});
+      const endTimeFormatted = getFormattedDate(end, 'HH:mm:ss', {local: true});
+
+      const showDateOnly =
+        startTimeFormatted === DEFAULT_DAY_START_TIME &&
+        endTimeFormatted === DEFAULT_DAY_END_TIME;
+
+      label = (
+        <Fragment>
+          <Datetime date={start} dateOnly={showDateOnly} />
+          {' – '}
+          <Datetime date={end} dateOnly={showDateOnly} />
+        </Fragment>
+      );
     } else {
       label = period?.toUpperCase();
     }
@@ -58,7 +72,7 @@ function DatePageFilter({router, resetParamsOnChange, ...props}: Props) {
         hideBottomBorder={false}
         isOpen={isOpen}
         highlighted={desyncedFilters.has('datetime')}
-        data-test-id="global-header-timerange-selector"
+        data-test-id="page-filter-timerange-selector"
         {...getActorProps()}
       >
         <DropdownTitle>
@@ -100,6 +114,7 @@ const DropdownTitle = styled('div')`
   display: flex;
   align-items: center;
   flex: 1;
+  width: 100%;
 `;
 
 export default withRouter(DatePageFilter);

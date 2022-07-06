@@ -1,10 +1,10 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render} from 'sentry-test/reactTestingLibrary';
 
 import {EventsTableRow} from 'sentry/components/eventsTable/eventsTableRow';
 
 describe('EventsTableRow', function () {
   it('renders', function () {
-    const wrapper = mountWithTheme(
+    const {container} = render(
       <table>
         <tbody>
           <EventsTableRow
@@ -16,6 +16,6 @@ describe('EventsTableRow', function () {
         </tbody>
       </table>
     );
-    expect(wrapper).toSnapshot();
+    expect(container).toSnapshot();
   });
 });

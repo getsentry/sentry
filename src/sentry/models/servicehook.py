@@ -10,7 +10,6 @@ from sentry.db.models import (
     ArrayField,
     BaseManager,
     BoundedPositiveIntegerField,
-    EncryptedTextField,
     FlexibleForeignKey,
     Model,
     sane_repr,
@@ -51,7 +50,7 @@ class ServiceHook(Model):
     project_id = BoundedPositiveIntegerField(db_index=True, null=True)
     organization_id = BoundedPositiveIntegerField(db_index=True, null=True)
     url = models.URLField(max_length=512)
-    secret = EncryptedTextField(default=generate_secret)
+    secret = models.TextField(default=generate_secret)
     events = ArrayField(of=models.TextField)
     status = BoundedPositiveIntegerField(
         default=0, choices=ObjectStatus.as_choices(), db_index=True

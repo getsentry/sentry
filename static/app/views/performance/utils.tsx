@@ -144,15 +144,18 @@ export function getTransactionSearchQuery(location: Location, query: string = ''
 export function handleTrendsClick({
   location,
   organization,
+  projectPlatforms,
 }: {
   location: Location;
   organization: Organization;
+  projectPlatforms: string;
 }) {
   trackAnalyticsEvent({
     eventKey: 'performance_views.change_view',
     eventName: 'Performance Views: Change View',
     organization_id: parseInt(organization.id, 10),
     view_name: 'TRENDS',
+    project_platforms: projectPlatforms,
   });
 
   const target = trendsTargetRoute({location, organization});
@@ -264,4 +267,21 @@ export function getTransactionName(location: Location): string | undefined {
 
 export function getPerformanceDuration(milliseconds: number) {
   return getDuration(milliseconds / 1000, milliseconds > 1000 ? 2 : 0, true);
+}
+
+export function getSelectedProjectPlatforms(location: Location, projects: Project[]) {
+  const projectQuery = location.query.project;
+  const selectedProjectIdSet = Array.isArray(projectQuery)
+    ? new Set(projectQuery)
+    : new Set([projectQuery]);
+
+  const selectedProjectPlatforms = projects.reduce((acc: string[], project) => {
+    if (selectedProjectIdSet.has(project.id)) {
+      acc.push(project.platform ?? 'undefined');
+    }
+
+    return acc;
+  }, []);
+
+  return selectedProjectPlatforms.join(', ');
 }

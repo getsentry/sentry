@@ -79,7 +79,7 @@ class AlertRuleListEndpointTest(AlertRuleIndexBase, APITestCase):
 
         self.login_as(self.user)
         with self.feature("organizations:incidents"):
-            resp = self.get_valid_response(self.organization.slug)
+            resp = self.get_success_response(self.organization.slug)
 
         assert resp.data == serialize([alert_rule])
 
@@ -104,7 +104,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, APITestCase):
 
     def test_simple(self):
         with self.feature("organizations:incidents"):
-            resp = self.get_valid_response(
+            resp = self.get_success_response(
                 self.organization.slug, status_code=201, **deepcopy(self.alert_rule_dict)
             )
         assert "id" in resp.data
@@ -135,7 +135,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, APITestCase):
         }
 
         with self.feature("organizations:incidents"):
-            resp = self.get_valid_response(
+            resp = self.get_success_response(
                 self.organization.slug, status_code=201, **valid_alert_rule
             )
         assert "id" in resp.data
@@ -162,7 +162,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, APITestCase):
         }
 
         with self.feature("organizations:incidents"):
-            self.get_valid_response(self.organization.slug, status_code=400, **valid_alert_rule)
+            self.get_error_response(self.organization.slug, status_code=400, **valid_alert_rule)
 
     def test_invalid_sentry_app(self):
         valid_alert_rule = deepcopy(self.alert_rule_dict)
@@ -175,7 +175,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, APITestCase):
         }
 
         with self.feature("organizations:incidents"):
-            self.get_valid_response(self.organization.slug, status_code=400, **valid_alert_rule)
+            self.get_error_response(self.organization.slug, status_code=400, **valid_alert_rule)
 
     def test_no_label(self):
         rule_one_trigger_no_label = {
@@ -198,7 +198,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, APITestCase):
         }
 
         with self.feature("organizations:incidents"):
-            self.get_valid_response(
+            self.get_error_response(
                 self.organization.slug, status_code=400, **rule_one_trigger_no_label
             )
 
@@ -223,7 +223,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, APITestCase):
             ],
         }
         with self.feature("organizations:incidents"):
-            resp = self.get_valid_response(
+            resp = self.get_success_response(
                 self.organization.slug, status_code=201, **rule_one_trigger_only_critical
             )
         assert "id" in resp.data
@@ -242,7 +242,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, APITestCase):
         }
 
         with self.feature("organizations:incidents"):
-            resp = self.get_valid_response(
+            resp = self.get_error_response(
                 self.organization.slug, status_code=400, **rule_no_triggers
             )
             assert resp.data == {"triggers": ["This field is required."]}
@@ -269,7 +269,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, APITestCase):
         }
 
         with self.feature("organizations:incidents"):
-            resp = self.get_valid_response(
+            resp = self.get_error_response(
                 self.organization.slug, status_code=400, **rule_one_trigger_only_warning
             )
             assert resp.data == {"nonFieldErrors": ['Trigger 1 must be labeled "critical"']}
@@ -288,7 +288,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, APITestCase):
         }
 
         with self.feature("organizations:incidents"):
-            resp = self.get_valid_response(
+            resp = self.get_success_response(
                 self.organization.slug, status_code=201, **rule_one_trigger_only_critical_no_action
             )
         assert "id" in resp.data
@@ -297,7 +297,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, APITestCase):
 
     def test_invalid_projects(self):
         with self.feature("organizations:incidents"):
-            resp = self.get_valid_response(
+            resp = self.get_error_response(
                 self.organization.slug,
                 status_code=400,
                 projects=[
@@ -353,7 +353,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, APITestCase):
         }
 
         with self.feature("organizations:incidents"):
-            resp = self.get_valid_response(self.organization.slug, status_code=201, **rule_data)
+            resp = self.get_success_response(self.organization.slug, status_code=201, **rule_data)
         assert "id" in resp.data
         alert_rule = AlertRule.objects.get(id=resp.data["id"])
         assert resp.data == serialize(alert_rule, self.user)
@@ -368,11 +368,11 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         perf_alert_rule = self.create_alert_rule(query="p95", dataset=QueryDatasets.TRANSACTIONS)
         self.login_as(self.user)
         with self.feature("organizations:incidents"):
-            resp = self.get_valid_response(self.organization.slug)
+            resp = self.get_success_response(self.organization.slug)
             assert perf_alert_rule.id not in [x["id"] for x in list(resp.data)]
 
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
-            resp = self.get_valid_response(self.organization.slug)
+            resp = self.get_success_response(self.organization.slug)
             assert perf_alert_rule.id in [int(x["id"]) for x in list(resp.data)]
 
     def setup_project_and_rules(self):

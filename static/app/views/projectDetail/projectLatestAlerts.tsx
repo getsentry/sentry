@@ -12,7 +12,6 @@ import TimeSince from 'sentry/components/timeSince';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {IconCheckmark, IconExclamation, IconFire, IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 
@@ -262,7 +261,7 @@ const AlertBadgeWrapper = styled('div')<{icon: React.ReactNode} & StatusColorPro
 const AlertDetails = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
   margin-left: ${space(1.5)};
-  ${overflowEllipsis}
+  ${p => p.theme.overflowEllipsis}
   line-height: 1.35;
 `;
 

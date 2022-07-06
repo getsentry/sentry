@@ -361,7 +361,17 @@ class BaseTSDB(Service):
         """
         raise NotImplementedError
 
-    def get_sums(self, model, keys, start, end, rollup=None, environment_id=None, use_cache=False):
+    def get_sums(
+        self,
+        model,
+        keys,
+        start,
+        end,
+        rollup=None,
+        environment_id=None,
+        use_cache=False,
+        jitter_value=None,
+    ):
         range_set = self.get_range(
             model,
             keys,
@@ -370,9 +380,18 @@ class BaseTSDB(Service):
             rollup,
             environment_ids=[environment_id] if environment_id is not None else None,
             use_cache=use_cache,
+            jitter_value=jitter_value,
         )
         sum_set = {key: sum(p for _, p in points) for (key, points) in range_set.items()}
         return sum_set
+
+    def _add_jitter_to_series(self, series, start, rollup, jitter_value):
+        if jitter_value and series:
+            jitter = jitter_value % rollup
+            if (start - to_datetime(series[0])).total_seconds() < jitter:
+                jitter -= rollup
+            return [value + jitter for value in series]
+        return series
 
     def rollup(self, values, rollup):
         """
@@ -423,6 +442,7 @@ class BaseTSDB(Service):
         rollup=None,
         environment_id=None,
         use_cache=False,
+        jitter_value=None,
     ):
         """
         Count distinct items during a time range.

@@ -9,7 +9,7 @@ import Feature from 'sentry/components/acl/feature';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import DropdownControl, {DropdownItem} from 'sentry/components/dropdownControl';
+import CompactSelect from 'sentry/components/forms/compactSelect';
 import {Title} from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
@@ -168,18 +168,13 @@ class ManageDashboards extends AsyncView<Props, State> {
           placeholder={t('Search Dashboards')}
           onSearch={query => this.handleSearch(query)}
         />
-        <DropdownControl buttonProps={{prefix: t('Sort By')}} label={activeSort.label}>
-          {SORT_OPTIONS.map(({label, value}) => (
-            <DropdownItem
-              key={value}
-              onSelect={this.handleSortChange}
-              eventKey={value}
-              isActive={value === activeSort.value}
-            >
-              {label}
-            </DropdownItem>
-          ))}
-        </DropdownControl>
+        <CompactSelect
+          triggerProps={{prefix: t('Sort By')}}
+          value={activeSort.value}
+          options={SORT_OPTIONS}
+          onChange={opt => this.handleSortChange(opt.value)}
+          placement="bottom right"
+        />
       </StyledActions>
     );
   }
@@ -337,7 +332,7 @@ const StyledActions = styled('div')`
   gap: ${space(2)};
   margin-bottom: ${space(2)};
 
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: auto;
   }
 `;
@@ -356,11 +351,11 @@ const TemplateContainer = styled('div')`
   gap: ${space(2)};
   margin-bottom: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: repeat(2, minmax(200px, 1fr));
   }
 
-  @media (min-width: ${p => p.theme.breakpoints[2]}) {
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
     grid-template-columns: repeat(4, minmax(200px, 1fr));
   }
 `;

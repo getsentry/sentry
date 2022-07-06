@@ -1,10 +1,10 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {BreadcrumbContextProvider} from 'sentry-test/providers/breadcrumbContextProvider';
+import {render} from 'sentry-test/reactTestingLibrary';
 
 import * as OrgActions from 'sentry/actionCreators/organizations';
 import AccountSettingsLayout from 'sentry/views/settings/account/accountSettingsLayout';
 
 describe('AccountSettingsLayout', function () {
-  let wrapper;
   let spy;
   let api;
 
@@ -19,15 +19,21 @@ describe('AccountSettingsLayout', function () {
     api = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/`,
     });
-    wrapper = mountWithTheme(
-      <AccountSettingsLayout router={TestStubs.router()} params={{}} />
-    );
   });
 
   it('fetches org details for SidebarDropdown', function () {
+    const {rerender} = render(
+      <BreadcrumbContextProvider>
+        <AccountSettingsLayout params={{}} />
+      </BreadcrumbContextProvider>
+    );
+
     // org from index endpoint, no `access` info
-    wrapper.setProps({organization});
-    wrapper.update();
+    rerender(
+      <BreadcrumbContextProvider>
+        <AccountSettingsLayout params={{}} organization={organization} />
+      </BreadcrumbContextProvider>
+    );
 
     expect(spy).toHaveBeenCalledWith(organization.slug, {
       setActive: true,
@@ -37,9 +43,17 @@ describe('AccountSettingsLayout', function () {
   });
 
   it('does not fetch org details for SidebarDropdown', function () {
-    // org already has details
-    wrapper.setProps({organization: TestStubs.Organization()});
-    wrapper.update();
+    const {rerender} = render(
+      <BreadcrumbContextProvider>
+        <AccountSettingsLayout params={{}} />
+      </BreadcrumbContextProvider>
+    );
+
+    rerender(
+      <BreadcrumbContextProvider>
+        <AccountSettingsLayout params={{}} organization={TestStubs.Organization()} />
+      </BreadcrumbContextProvider>
+    );
 
     expect(spy).not.toHaveBeenCalledWith();
     expect(api).not.toHaveBeenCalled();

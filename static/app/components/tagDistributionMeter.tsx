@@ -8,7 +8,6 @@ import Link from 'sentry/components/links/link';
 import Tooltip from 'sentry/components/tooltip';
 import Version from 'sentry/components/version';
 import {t} from 'sentry/locale';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {percent} from 'sentry/utils';
 
@@ -213,7 +212,7 @@ const Title = styled('div')`
 const TitleType = styled('div')`
   color: ${p => p.theme.textColor};
   font-weight: bold;
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
 `;
 
 const TitleDescription = styled('div')`
@@ -223,7 +222,7 @@ const TitleDescription = styled('div')`
 `;
 
 const Label = styled('div')`
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
   max-width: 150px;
 `;
 

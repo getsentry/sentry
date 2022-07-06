@@ -144,7 +144,7 @@ function TeamStatsHealth({location, router}: Props) {
 export default TeamStatsHealth;
 
 const Body = styled(Layout.Body)`
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
     display: block;
   }
 `;

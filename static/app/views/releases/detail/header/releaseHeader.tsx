@@ -180,7 +180,7 @@ const StyledNavTabs = styled(NavTabs)`
 `;
 
 const NavTabsBadge = styled(Badge)`
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     display: none;
   }
 `;

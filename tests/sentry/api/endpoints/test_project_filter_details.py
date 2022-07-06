@@ -15,7 +15,7 @@ class ProjectFilterDetailsTest(APITestCase):
         project = self.create_project(name="Bar", slug="bar", teams=[team])
 
         project.update_option("filters:browser-extensions", "0")
-        self.get_valid_response(
+        self.get_success_response(
             org.slug, project.slug, "browser-extensions", active=True, status_code=201
         )
 

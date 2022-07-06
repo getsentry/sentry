@@ -50,7 +50,7 @@ const Wrapper = styled('div')`
 
   grid-column: 2/-1;
 
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     margin-top: ${space(1)};
     grid-template-columns: max-content 1fr;
     gap: ${space(1)};
@@ -66,7 +66,7 @@ const Value = styled('div')`
   font-family: ${p => p.theme.text.familyMono};
   background-color: ${p => p.theme.backgroundSecondary};
 
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     :not(:last-child) {
       margin-bottom: ${space(1)};
     }

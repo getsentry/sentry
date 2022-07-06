@@ -10,6 +10,7 @@ from exam import fixture
 
 from sentry import audit_log
 from sentry.auth.authenticators import TotpInterface
+from sentry.auth.helper import AuthHelperSessionStore
 from sentry.auth.providers.saml2.provider import HAS_SAML2, Attributes, SAML2Provider
 from sentry.models import AuditLogEntry, AuthProvider, Organization
 from sentry.testutils import AuthProviderTestCase
@@ -116,6 +117,24 @@ class AuthSAML2Test(AuthProviderTestCase):
 
     def test_auth_idp_initiated(self):
         auth = self.accept_auth()
+
+        assert auth.status_code == 200
+        assert auth.context["existing_user"] == self.user
+
+    def test_auth_idp_initiated_invalid_flow_from_session(self):
+        original_is_valid = AuthHelperSessionStore.is_valid
+
+        def side_effect(self):
+            self.flow = None
+            assert original_is_valid(self) is False
+            return False
+
+        with mock.patch(
+            "sentry.auth.helper.AuthHelperSessionStore.is_valid",
+            side_effect=side_effect,
+            autospec=True,
+        ):
+            auth = self.accept_auth()
 
         assert auth.status_code == 200
         assert auth.context["existing_user"] == self.user

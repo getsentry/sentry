@@ -3,7 +3,7 @@ import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {SwitchOrganization} from 'sentry/components/sidebar/sidebarDropdown/switchOrganization';
 
 describe('SwitchOrganization', function () {
-  it('can list organizations', async function () {
+  it('can list organizations', function () {
     jest.useFakeTimers();
     render(
       <SwitchOrganization

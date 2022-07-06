@@ -1,6 +1,7 @@
 from sentry.models import Activity
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.types.activity import ActivityType
 
 
 class OrganizationActivityTest(APITestCase):
@@ -21,7 +22,7 @@ class OrganizationActivityTest(APITestCase):
         activity = Activity.objects.create(
             group=group,
             project=group.project,
-            type=Activity.NOTE,
+            type=ActivityType.NOTE.value,
             user=self.user,
             data={"text": "hello world"},
         )
@@ -44,21 +45,21 @@ class OrganizationActivityTest(APITestCase):
         activity = Activity.objects.create(
             group=group,
             project=group.project,
-            type=Activity.NOTE,
+            type=ActivityType.NOTE.value,
             user=self.user,
             data={"text": "hello world"},
         )
         activity_2 = Activity.objects.create(
             group=group_2,
             project=group_2.project,
-            type=Activity.NOTE,
+            type=ActivityType.NOTE.value,
             user=self.user,
             data={"text": "hello world 2"},
         )
         activity_3 = Activity.objects.create(
             group=group,
             project=group.project,
-            type=Activity.NOTE,
+            type=ActivityType.NOTE.value,
             user=self.user,
             data={"text": "hello world 3"},
         )

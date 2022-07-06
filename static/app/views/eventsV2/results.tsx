@@ -73,6 +73,7 @@ type State = {
   showTags: boolean;
   totalValues: null | number;
   savedQuery?: SavedQuery;
+  showMetricsAlert?: boolean;
 };
 const SHOW_TAGS_STORAGE_KEY = 'discover2:show-tags';
 
@@ -121,6 +122,13 @@ class Results extends Component<Props, State> {
 
   componentDidMount() {
     const {organization, selection, location} = this.props;
+    if (location.query.fromMetric) {
+      this.setState({showMetricsAlert: true});
+      browserHistory.replace({
+        ...location,
+        query: {...location.query, fromMetric: undefined},
+      });
+    }
     loadOrganizationTags(this.tagsApi, organization.slug, selection);
     addRoutePerformanceContext(selection);
     this.checkEventView();
@@ -234,7 +242,7 @@ class Results extends Component<Props, State> {
     return null;
   };
 
-  handleConfirmed = async () => {
+  handleConfirmed = () => {
     this.setState({needConfirmation: false, confirmedQuery: true}, () => {
       this.setState({confirmedQuery: false});
     });
@@ -468,6 +476,19 @@ class Results extends Component<Props, State> {
     this.setState({error, errorCode});
   };
 
+  renderMetricsFallbackBanner() {
+    if (this.state.showMetricsAlert) {
+      return (
+        <Alert type="info" showIcon>
+          {t(
+            "You've navigated to this page from a performance metric widget generated from processed events. The results here only show sampled events."
+          )}
+        </Alert>
+      );
+    }
+    return null;
+  }
+
   render() {
     const {organization, location, router} = this.props;
     const {
@@ -503,6 +524,7 @@ class Results extends Component<Props, State> {
             <Layout.Body>
               {incompatibleAlertNotice && <Top fullWidth>{incompatibleAlertNotice}</Top>}
               <Top fullWidth>
+                {this.renderMetricsFallbackBanner()}
                 {this.renderError(error)}
                 <StyledPageFilterBar condensed>
                   <ProjectPageFilter />
@@ -629,13 +651,16 @@ function ResultsContainer(props: Props) {
    *
    * Also, we skip loading last used projects if you have multiple projects feature as
    * you no longer need to enforce a project if it is empty. We assume an empty project is
-   * the desired behavior because saved queries can contain a project filter.
+   * the desired behavior because saved queries can contain a project filter. The only
+   * exception is if we are showing a prebuilt saved query in which case we want to
+   * respect pinned filters.
    */
 
   return (
     <PageFiltersContainer
-      skipLoadLastUsed={props.organization.features.includes('global-views')}
-      hideGlobalHeader
+      skipLoadLastUsed={
+        props.organization.features.includes('global-views') && !!props.savedQuery
+      }
     >
       <SavedQueryAPI {...props} />
     </PageFiltersContainer>

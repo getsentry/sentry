@@ -34,16 +34,13 @@ function RelatedIssues({rule, organization, projects, query, timePeriod}: Props)
       detail === RELATED_ISSUES_BOOLEAN_QUERY_ERROR &&
       !isSessionAggregate(rule.aggregate)
     ) {
-      const ctaOpts = {
+      const {buttonText, to} = makeDefaultCta({
         orgSlug: organization.slug,
         projects,
         rule,
-        eventType: query,
-        start: timePeriod.start,
-        end: timePeriod.end,
-      };
-
-      const {buttonText, to} = makeDefaultCta(ctaOpts);
+        query,
+        timePeriod,
+      });
       return <RelatedIssuesNotAvailable buttonTo={to} buttonText={buttonText} />;
     }
 

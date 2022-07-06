@@ -30,6 +30,8 @@ import {SpanSort, SpansTotalValues} from './types';
 import {
   getSuspectSpanSortFromEventView,
   getTotalsView,
+  SPAN_RELATIVE_PERIODS,
+  SPAN_RETENTION_DAYS,
   SPAN_SORT_OPTIONS,
   SPAN_SORT_TO_FIELDS,
 } from './utils';
@@ -103,7 +105,11 @@ function SpansContent(props: Props) {
         />
         <PageFilterBar condensed>
           <EnvironmentPageFilter />
-          <DatePageFilter alignDropdown="left" />
+          <DatePageFilter
+            alignDropdown="left"
+            maxPickableDays={SPAN_RETENTION_DAYS}
+            relativeOptions={SPAN_RELATIVE_PERIODS}
+          />
         </PageFilterBar>
         <StyledSearchBar
           organization={organization}
@@ -127,6 +133,7 @@ function SpansContent(props: Props) {
         referrer="api.performance.transaction-spans"
         cursor="0:0:1"
         noPagination
+        useEvents
       >
         {({tableData}) => {
           const totals: SpansTotalValues | null =
@@ -176,22 +183,22 @@ const FilterActions = styled('div')`
   gap: ${space(2)};
   margin-bottom: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: repeat(3, min-content);
   }
 
-  @media (min-width: ${p => p.theme.breakpoints[3]}) {
+  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
     grid-template-columns: auto auto 1fr auto;
   }
 `;
 
 const StyledSearchBar = styled(SearchBar)`
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     order: 1;
     grid-column: 1/5;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints[3]}) {
+  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
     order: initial;
     grid-column: auto;
   }

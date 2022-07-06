@@ -236,15 +236,12 @@ class AuthLoginTest(TestCase):
         resp = self.client.post(
             self.path,
             {"username": self.user.username, "password": "admin", "op": "login"},
-            follow=False,
-        )
-        self.assertRedirects(resp, reverse("sentry-login"), target_status_code=302)
-        resp = self.client.post(
-            self.path,
-            {"username": self.user.username, "password": "admin", "op": "login"},
             follow=True,
         )
-        self.assertRedirects(resp, "/organizations/new/")
+        assert resp.redirect_chain == [
+            (reverse("sentry-login"), 302),
+            ("/organizations/new/", 302),
+        ]
 
     def test_redirects_already_authed_non_superuser(self):
         self.user.update(is_superuser=False)

@@ -14,7 +14,7 @@ display: grid;
 
 grid-template-columns: 1fr 1.5fr 0.7fr ${scrollbarWidth ? `${scrollbarWidth}px` : `0fr`};
 
-@media (min-width: ${theme.breakpoints[0]}) {
+@media (min-width: ${theme.breakpoints.small}) {
   > *:nth-child(4n-1) {
     display: flex;
   }
@@ -23,13 +23,13 @@ grid-template-columns: 1fr 1.5fr 0.7fr ${scrollbarWidth ? `${scrollbarWidth}px` 
   };
 }
 
-@media (min-width: ${theme.breakpoints[3]}) {
+@media (min-width: ${theme.breakpoints.xlarge}) {
   grid-template-columns: 1fr 1.5fr 1.5fr 0.6fr ${
     scrollbarWidth ? `${scrollbarWidth}px` : `0fr`
   };
 }
 
-@media (min-width: ${theme.breakpoints[4]}) {
+@media (min-width: ${theme.breakpoints.xxlarge}) {
   grid-template-columns: 0.5fr 1.5fr 1fr 0.5fr ${
     scrollbarWidth ? `${scrollbarWidth}px` : `0fr`
   };

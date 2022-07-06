@@ -1,5 +1,7 @@
 import {Location} from 'history';
 
+import {GridColumnOrder} from 'sentry/components/gridEditable';
+import SortLink from 'sentry/components/gridEditable/sortLink';
 import {t} from 'sentry/locale';
 import {SelectValue} from 'sentry/types';
 import {defined} from 'sentry/utils';
@@ -32,4 +34,18 @@ export function getColorEncodingFromLocation(location: Location): ColorEncoding 
   }
 
   return 'transaction_name';
+}
+
+export function renderTableHeader<K>(rightAlignedColumns: Set<K>) {
+  return (column: GridColumnOrder<K>, _columnIndex: number) => {
+    return (
+      <SortLink
+        align={rightAlignedColumns.has(column.key) ? 'right' : 'left'}
+        title={column.name}
+        direction={undefined}
+        canSort={false}
+        generateSortLink={() => undefined}
+      />
+    );
+  };
 }

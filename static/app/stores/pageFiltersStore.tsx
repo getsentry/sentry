@@ -9,23 +9,12 @@ import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 import {CommonStoreDefinition} from './types';
 
-type State = {
-  desyncedFilters: Set<PinnedPageFilter>;
-  isReady: boolean;
-  pinnedFilters: Set<PinnedPageFilter>;
-  selection: PageFilters;
-};
-
-type InternalDefinition = {
+interface CommonState {
   /**
    * The set of page filters which have been pinned but do not match the current
    * URL state.
    */
   desyncedFilters: Set<PinnedPageFilter>;
-  /**
-   * Have we initalized page filters?
-   */
-  hasInitialState: boolean;
   /**
    * The set of page filters which are currently pinned
    */
@@ -34,7 +23,24 @@ type InternalDefinition = {
    * The current page filter selection
    */
   selection: PageFilters;
-};
+}
+
+/**
+ * External state
+ */
+interface State extends CommonState {
+  /**
+   * Are page filters ready?
+   */
+  isReady: boolean;
+}
+
+interface InternalDefinition extends CommonState {
+  /**
+   * Have we initalized page filters?
+   */
+  hasInitialState: boolean;
+}
 
 interface PageFiltersStoreDefinition
   extends InternalDefinition,
@@ -80,7 +86,7 @@ const storeConfig: PageFiltersStoreDefinition = {
   },
 
   reset(selection) {
-    this._hasInitialState = false;
+    this._isReady = false;
     this.selection = selection || getDefaultSelection();
     this.pinnedFilters = new Set();
   },
@@ -89,7 +95,7 @@ const storeConfig: PageFiltersStoreDefinition = {
    * Initializes the page filters store data
    */
   onInitializeUrlState(newSelection, pinned) {
-    this._hasInitialState = true;
+    this._isReady = true;
 
     this.selection = newSelection;
     this.pinnedFilters = pinned;
@@ -101,7 +107,7 @@ const storeConfig: PageFiltersStoreDefinition = {
       selection: this.selection,
       pinnedFilters: this.pinnedFilters,
       desyncedFilters: this.desyncedFilters,
-      isReady: this._hasInitialState,
+      isReady: this._isReady,
     };
   },
 

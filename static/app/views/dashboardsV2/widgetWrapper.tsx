@@ -14,12 +14,12 @@ const WidgetWrapper = styled(motion.div)<{displayType: Widget['displayType']}>`
           /* 2 cols */
           grid-area: span 1 / span 2;
 
-          @media (min-width: ${p.theme.breakpoints[0]}) {
+          @media (min-width: ${p.theme.breakpoints.small}) {
             /* 4 cols */
             grid-area: span 1 / span 1;
           }
 
-          @media (min-width: ${p.theme.breakpoints[3]}) {
+          @media (min-width: ${p.theme.breakpoints.xlarge}) {
             /* 6 and 8 cols */
             grid-area: span 1 / span 2;
           }

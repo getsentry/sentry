@@ -29,7 +29,7 @@ class OrganizationIncidentCommentCreateEndpointTest(APITestCase):
         comment = "hello"
         incident = self.create_incident()
         with self.feature("organizations:incidents"):
-            resp = self.get_valid_response(
+            resp = self.get_success_response(
                 self.organization.slug, incident.identifier, comment=comment, status_code=201
             )
         activity = IncidentActivity.objects.get(id=resp.data["id"])
@@ -50,7 +50,7 @@ class OrganizationIncidentCommentCreateEndpointTest(APITestCase):
         comment = "hello **@%s**" % mentioned_member.username
         incident = self.create_incident()
         with self.feature("organizations:incidents"):
-            resp = self.get_valid_response(
+            resp = self.get_success_response(
                 self.organization.slug,
                 incident.identifier,
                 comment=comment,

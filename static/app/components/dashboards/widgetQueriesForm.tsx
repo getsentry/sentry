@@ -23,7 +23,10 @@ import {
 } from 'sentry/utils/discover/fields';
 import {Widget, WidgetQuery, WidgetType} from 'sentry/views/dashboardsV2/types';
 import {ReleaseSearchBar} from 'sentry/views/dashboardsV2/widgetBuilder/buildSteps/filterResultsStep/releaseSearchBar';
-import {DISABLED_SORT} from 'sentry/views/dashboardsV2/widgetBuilder/releaseWidget/fields';
+import {
+  DISABLED_SORT,
+  TAG_SORT_DENY_LIST,
+} from 'sentry/views/dashboardsV2/widgetBuilder/releaseWidget/fields';
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 
 import WidgetQueryFields from './widgetQueryFields';
@@ -42,9 +45,13 @@ export const generateOrderOptions = ({
   const isRelease = widgetType === WidgetType.RELEASE;
   const options: SelectValue<string>[] = [];
   let equations = 0;
-  (isRelease ? aggregates.map(stripDerivedMetricsPrefix) : [...aggregates, ...columns])
+  (isRelease
+    ? [...aggregates.map(stripDerivedMetricsPrefix), ...columns]
+    : [...aggregates, ...columns]
+  )
     .filter(field => !!field)
     .filter(field => !DISABLED_SORT.includes(field))
+    .filter(field => (isRelease ? !TAG_SORT_DENY_LIST.includes(field) : true))
     .forEach(field => {
       let alias;
       const label = stripEquationPrefix(field);
@@ -124,8 +131,8 @@ class WidgetQueriesForm extends Component<Props> {
 
     return widgetType === WidgetType.RELEASE ? (
       <ReleaseSearchBar
-        orgSlug={organization.slug}
-        query={widgetQuery}
+        organization={organization}
+        widgetQuery={widgetQuery}
         onSearch={field => {
           // SearchBar will call handlers for both onSearch and onBlur
           // when selecting a value from the autocomplete dropdown. This can
@@ -139,7 +146,12 @@ class WidgetQueriesForm extends Component<Props> {
           }, 200);
           return this.handleFieldChange(queryIndex, 'conditions')(field);
         }}
-        projectIds={selection.projects}
+        onBlur={field => {
+          if (!this.blurTimeout) {
+            this.handleFieldChange(queryIndex, 'conditions')(field);
+          }
+        }}
+        pageFilters={selection}
       />
     ) : (
       <StyledSearchBar

@@ -89,6 +89,101 @@ describe('GroupActivity', function () {
     );
   });
 
+  it('resolved in commit with no releases', function () {
+    const wrapper = createWrapper({
+      activity: [
+        {
+          type: 'set_resolved_in_commit',
+          id: '123',
+          data: {
+            author: 'hello',
+            commit: {
+              id: 'komal-commit',
+              repository: {},
+              releases: [],
+            },
+          },
+          user: TestStubs.User(),
+        },
+      ],
+    });
+    expect(wrapper.find('GroupActivityItem').text()).toContain(
+      'Foo Bar marked this issue as resolved in komal-commit'
+    );
+  });
+
+  it('resolved in commit with one release', function () {
+    const wrapper = createWrapper({
+      activity: [
+        {
+          type: 'set_resolved_in_commit',
+          id: '123',
+          data: {
+            author: 'hello',
+            commit: {
+              id: 'komal-commit',
+              repository: {},
+              releases: [
+                {
+                  dateCreated: '2022-05-01',
+                  dateReleased: '2022-05-02',
+                  version: 'random',
+                },
+              ],
+            },
+          },
+          user: TestStubs.User(),
+        },
+      ],
+    });
+    expect(wrapper.find('GroupActivityItem').text()).toContain(
+      'Foo Bar marked this issue as resolved in komal-commit This commit was released in random'
+    );
+  });
+
+  it('resolved in commit with multiple releases', function () {
+    const wrapper = createWrapper({
+      activity: [
+        {
+          type: 'set_resolved_in_commit',
+          id: '123',
+          data: {
+            commit: {
+              id: 'komal-commit',
+              repository: {},
+              releases: [
+                {
+                  dateCreated: '2022-05-01',
+                  dateReleased: '2022-05-02',
+                  version: 'random',
+                },
+                {
+                  dateCreated: '2022-06-01',
+                  dateReleased: '2022-06-02',
+                  version: 'newest',
+                },
+                {
+                  dateCreated: '2021-08-03',
+                  dateReleased: '2021-08-03',
+                  version: 'oldest-release',
+                },
+                {
+                  dateCreated: '2022-04-21',
+                  dateReleased: '2022-04-21',
+                  version: 'randomTwo',
+                },
+              ],
+            },
+          },
+          user: TestStubs.User(),
+        },
+      ],
+    });
+    expect(wrapper.find('GroupActivityItem').text()).toContain(
+      'Foo Bar marked this issue as resolved in komal-commit This commit was released in oldest-release and 3 others'
+    );
+  });
+
   it('requests assignees that are not in the team store', async function () {
     const team = TestStubs.Team({id: '123', name: 'workflow'});
     const teamRequest = MockApiClient.addMockResponse({

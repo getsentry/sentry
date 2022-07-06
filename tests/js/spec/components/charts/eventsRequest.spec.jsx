@@ -38,7 +38,7 @@ describe('EventsRequest', function () {
       wrapper = mountWithTheme(<EventsRequest {...DEFAULTS}>{mock}</EventsRequest>);
     });
 
-    it('makes requests', async function () {
+    it('makes requests', function () {
       expect(mock).toHaveBeenNthCalledWith(
         1,
         expect.objectContaining({
@@ -574,7 +574,7 @@ describe('EventsRequest', function () {
       doEventsRequest.mockClear();
     });
 
-    it('does not make request', async function () {
+    it('does not make request', function () {
       wrapper = mountWithTheme(
         <EventsRequest {...DEFAULTS} expired>
           {mock}
@@ -583,7 +583,7 @@ describe('EventsRequest', function () {
       expect(doEventsRequest).not.toHaveBeenCalled();
     });
 
-    it('errors', async function () {
+    it('errors', function () {
       wrapper = mountWithTheme(
         <EventsRequest {...DEFAULTS} expired>
           {mock}

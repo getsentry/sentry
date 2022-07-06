@@ -30,6 +30,11 @@ function getGPUKnownDataDetails(data: GPUData, type: GPUKnownDataType): Output {
         subject: t('NPOT Support'),
         value: data.npot_support,
       };
+    case GPUKnownDataType.VENDOR_NAME:
+      return {
+        subject: t('Vendor Name'),
+        value: data.vendor_name,
+      };
     case GPUKnownDataType.MULTI_THREAD_RENDERING:
       return {
         subject: t('Multi-Thread rendering'),

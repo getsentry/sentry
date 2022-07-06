@@ -61,7 +61,7 @@ describe('OrganizationContextContainer', function () {
     jest.spyOn(OrganizationActionCreator, 'fetchOrganizationDetails');
   });
 
-  afterEach(async function () {
+  afterEach(function () {
     wrapper.unmount();
     OrganizationStore.reset();
 

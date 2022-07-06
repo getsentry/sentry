@@ -90,3 +90,53 @@ class ChartcuterieTest(TestCase):
             RuntimeError, match="Chartcuterie responded with 500: Service down"
         ):
             generate_chart(ChartType.SLACK_DISCOVER_TOTAL_PERIOD, chart_data)
+
+    @responses.activate
+    @patch("sentry.charts.chartcuterie.uuid4")
+    def test_custom_size(self, mock_uuid):
+        mock_uuid.return_value = self.get_mock_uuid()
+
+        chart_data = {
+            "seriesName": "Discover total period",
+            "series": [
+                [1616168400, [{"count": 0}]],
+                [1616168700, [{"count": 12}]],
+                [1616169000, [{"count": 13}]],
+            ],
+        }
+
+        service_url = "http://chartcuterie"
+        image_data = b"this is png data"
+
+        responses.add(
+            method=responses.POST,
+            url=f"{service_url}/render",
+            status=200,
+            content_type="image/png",
+            body=image_data,
+        )
+
+        options = {
+            "chart-rendering.enabled": True,
+            "chart-rendering.chartcuterie": {"url": service_url},
+        }
+
+        with self.options(options):
+            data = generate_chart(
+                ChartType.SLACK_DISCOVER_TOTAL_PERIOD,
+                chart_data,
+                upload=False,
+                size={"width": 1000, "height": 200},
+            )
+
+        assert data == image_data
+
+        request = responses.calls[0].request
+        payload = json.loads(request.body)
+        assert payload == {
+            "requestId": "abc123",
+            "style": ChartType.SLACK_DISCOVER_TOTAL_PERIOD.value,
+            "data": chart_data,
+            "width": 1000,
+            "height": 200,
+        }

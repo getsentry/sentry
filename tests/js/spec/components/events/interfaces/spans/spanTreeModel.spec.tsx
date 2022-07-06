@@ -339,7 +339,7 @@ describe('SpanTreeModel', () => {
       isNestedSpanGroupExpanded: false,
       addTraceBounds: () => {},
       removeTraceBounds: () => {},
-      isAutogroupSiblingFeatureEnabled: false,
+      directParent: null,
     });
 
     expect(spans).toEqual(fullWaterfall);
@@ -384,7 +384,7 @@ describe('SpanTreeModel', () => {
       isNestedSpanGroupExpanded: false,
       addTraceBounds: () => {},
       removeTraceBounds: () => {},
-      isAutogroupSiblingFeatureEnabled: false,
+      directParent: null,
     });
 
     const fullWaterfallExpected: EnhancedProcessedSpanType[] = [...fullWaterfall];
@@ -490,7 +490,7 @@ describe('SpanTreeModel', () => {
       isNestedSpanGroupExpanded: false,
       addTraceBounds: () => {},
       removeTraceBounds: () => {},
-      isAutogroupSiblingFeatureEnabled: false,
+      directParent: null,
     });
 
     expect(spans).toEqual(fullWaterfall);
@@ -585,7 +585,7 @@ describe('SpanTreeModel', () => {
       isNestedSpanGroupExpanded: false,
       addTraceBounds: () => {},
       removeTraceBounds: () => {},
-      isAutogroupSiblingFeatureEnabled: true,
+      directParent: null,
     });
 
     expect(spans.length).toEqual(2);
@@ -662,7 +662,7 @@ describe('SpanTreeModel', () => {
       isNestedSpanGroupExpanded: false,
       addTraceBounds: () => {},
       removeTraceBounds: () => {},
-      isAutogroupSiblingFeatureEnabled: true,
+      directParent: null,
     });
 
     expect(spans.length).toEqual(5);
@@ -760,7 +760,7 @@ describe('SpanTreeModel', () => {
       isNestedSpanGroupExpanded: false,
       addTraceBounds: () => {},
       removeTraceBounds: () => {},
-      isAutogroupSiblingFeatureEnabled: true,
+      directParent: null,
     });
 
     expect(spans.length).toEqual(4);

@@ -8,6 +8,7 @@ export type Trace = {
   device_locale: string;
   device_manufacturer: string;
   device_model: string;
+  device_os_version: string;
   failed: boolean;
   id: string;
   project_id: string;
@@ -51,19 +52,32 @@ type Percentiles = {
 
 export type FunctionCall = {
   duration_ns: Percentiles;
-  duration_values: number[];
   frequency: Percentiles;
-  frequency_values: number[];
   image: string;
   key: string;
   line: number;
-  main_thread_percent: Record<string, number>;
+  main_thread_percent: number;
   path: string;
+  profile_id_to_thread_id: Record<string, number>;
   profile_ids: string[];
   symbol: string;
-  transaction_names;
+  transaction_names: string[];
 };
 
 export type VersionedFunctionCalls = {
   Versions: Record<string, {FunctionCalls: FunctionCall[]}>;
+};
+
+export type ProfileTransaction = {
+  duration_ms: {
+    p50: number;
+    p75: number;
+    p90: number;
+    p95: number;
+    p99: number;
+  };
+  last_profile_at: string;
+  name: string;
+  profiles_count: number;
+  project_id: string;
 };

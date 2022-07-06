@@ -5,7 +5,6 @@ import {Location} from 'history';
 
 import Button from 'sentry/components/button';
 import {SectionHeading} from 'sentry/components/charts/styles';
-import FeatureBadge from 'sentry/components/featureBadge';
 import Pagination, {CursorHandler} from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -116,10 +115,7 @@ function SuspectSpansHeader(props: HeaderProps) {
 
   return (
     <Header>
-      <div>
-        <SectionHeading>{t('Suspect Spans')}</SectionHeading>
-        <FeatureBadge type="new" />
-      </div>
+      <SectionHeading>{t('Suspect Spans')}</SectionHeading>
       <Button to={viewAllTarget} size="xsmall" data-test-id="suspect-spans-open-tab">
         {t('View All Spans')}
       </Button>

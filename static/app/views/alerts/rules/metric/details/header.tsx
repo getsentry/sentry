@@ -6,7 +6,7 @@ import Breadcrumbs from 'sentry/components/breadcrumbs';
 import Button from 'sentry/components/button';
 import IdBadge from 'sentry/components/idBadge';
 import PageHeading from 'sentry/components/pageHeading';
-import {IconEdit} from 'sentry/icons';
+import {IconCopy, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {PageHeader} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
@@ -30,6 +30,16 @@ function DetailsHeader({hasMetricRuleDetailsError, rule, params, project}: Props
       isIssueAlert(rule) ? 'rules' : 'metric-rules'
     }/${project?.slug ?? rule?.projects?.[0]}/${rule.id}/`;
 
+  const duplicateLink = {
+    pathname: `/organizations/${params.orgId}/alerts/new/metric/`,
+    query: {
+      project: project?.slug,
+      duplicateRuleId: rule?.id,
+      createFromDuplicate: true,
+      referrer: 'metric_rule_details',
+    },
+  };
+
   return (
     <Header>
       <BreadCrumbBar>
@@ -40,6 +50,9 @@ function DetailsHeader({hasMetricRuleDetailsError, rule, params, project}: Props
           ]}
         />
         <Controls>
+          <Button icon={<IconCopy />} to={duplicateLink}>
+            {t('Duplicate')}
+          </Button>
           <Button icon={<IconEdit />} to={settingsLink}>
             {t('Edit Rule')}
           </Button>
@@ -96,7 +109,7 @@ const Details = styled(PageHeader)`
   gap: ${space(3)};
   grid-auto-flow: column;
 
-  @media (max-width: ${p => p.theme.breakpoints[1]}) {
+  @media (max-width: ${p => p.theme.breakpoints.medium}) {
     grid-template-columns: auto;
     grid-auto-flow: row;
   }

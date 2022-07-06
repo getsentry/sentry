@@ -6,11 +6,7 @@ import {NoteType} from 'sentry/types/alerts';
 /**
  * Fetches a list of activities for an incident
  */
-export async function fetchIncidentActivities(
-  api: Client,
-  orgId: string,
-  alertId: string
-) {
+export function fetchIncidentActivities(api: Client, orgId: string, alertId: string) {
   return api.requestPromise(`/organizations/${orgId}/incidents/${alertId}/activity/`);
 }
 

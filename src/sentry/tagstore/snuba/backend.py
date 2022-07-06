@@ -175,6 +175,7 @@ class SnubaTagStorage(TagStorage):
         keys=None,
         include_values_seen=True,
         include_transactions=False,
+        denylist=None,
         **kwargs,
     ):
         return self.__get_tag_keys_for_projects(
@@ -187,6 +188,7 @@ class SnubaTagStorage(TagStorage):
             keys,
             include_values_seen=include_values_seen,
             include_transactions=include_transactions,
+            denylist=denylist,
         )
 
     def __get_tag_keys_for_projects(
@@ -201,6 +203,7 @@ class SnubaTagStorage(TagStorage):
         include_values_seen=True,
         use_cache=False,
         include_transactions=False,
+        denylist=None,
         **kwargs,
     ):
         """Query snuba for tag keys based on projects
@@ -288,7 +291,12 @@ class SnubaTagStorage(TagStorage):
             ctor = functools.partial(GroupTagKey, group_id=group_id)
 
         results = set()
+
         for key, data in result.items():
+            # Ignore key (skip interation) if it's in denylist
+            if denylist is not None and key in denylist:
+                continue
+
             params = {"key": key}
             if include_values_seen:
                 params["values_seen"] = data["values_seen"]
@@ -336,10 +344,17 @@ class SnubaTagStorage(TagStorage):
         return self.__get_tag_key_and_top_values(project_id, None, environment_id, key, **kwargs)
 
     def get_tag_keys(
-        self, project_id, environment_id, status=TagKeyStatus.VISIBLE, include_values_seen=False
+        self,
+        project_id,
+        environment_id,
+        status=TagKeyStatus.VISIBLE,
+        include_values_seen=False,
+        denylist=None,
     ):
         assert status is TagKeyStatus.VISIBLE
-        return self.__get_tag_keys(project_id, None, environment_id and [environment_id])
+        return self.__get_tag_keys(
+            project_id, None, environment_id and [environment_id], denylist=denylist
+        )
 
     def get_tag_keys_for_projects(
         self,

@@ -20,9 +20,9 @@ function ReplaysFilters({organization, handleSearchQuery, query}: Props) {
     <FilterContainer>
       <SearchContainer>
         <PageFilterBar condensed>
-          <ProjectPageFilter />
-          <EnvironmentPageFilter />
-          <DatePageFilter alignDropdown="left" />
+          <ProjectPageFilter resetParamsOnChange={['cursor']} />
+          <EnvironmentPageFilter resetParamsOnChange={['cursor']} />
+          <DatePageFilter alignDropdown="left" resetParamsOnChange={['cursor']} />
         </PageFilterBar>
         <SearchBar
           organization={organization}
@@ -49,7 +49,7 @@ const SearchContainer = styled('div')`
   width: 100%;
   margin-bottom: ${space(1)};
 
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: minmax(0, 1fr);
   }
 `;

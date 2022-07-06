@@ -50,11 +50,13 @@ describe('Performance Transaction Events Content', function () {
   let data;
   let transactionName;
   let eventView;
+  let totalEventCount;
   let initialData;
   const query =
-    'transaction.duration:<15m event.type:transaction transaction:/api/0/organizations/{organization_slug}/eventsv2/';
+    'transaction.duration:<15m event.type:transaction transaction:/api/0/organizations/{organization_slug}/events/';
   beforeEach(function () {
     transactionName = 'transactionName';
+    totalEventCount = '200';
     fields = [
       'id',
       'user.display',
@@ -110,19 +112,21 @@ describe('Performance Transaction Events Content', function () {
     ];
     // Transaction list response
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/eventsv2/',
+      url: '/organizations/org-slug/events/',
       headers: {
         Link:
-          '<http://localhost/api/0/organizations/org-slug/eventsv2/?cursor=2:0:0>; rel="next"; results="true"; cursor="2:0:0",' +
-          '<http://localhost/api/0/organizations/org-slug/eventsv2/?cursor=1:0:0>; rel="previous"; results="false"; cursor="1:0:0"',
+          '<http://localhost/api/0/organizations/org-slug/events/?cursor=2:0:0>; rel="next"; results="true"; cursor="2:0:0",' +
+          '<http://localhost/api/0/organizations/org-slug/events/?cursor=1:0:0>; rel="previous"; results="false"; cursor="1:0:0"',
       },
       body: {
         meta: {
-          id: 'string',
-          'user.display': 'string',
-          'transaction.duration': 'duration',
-          'project.id': 'integer',
-          timestamp: 'date',
+          fields: {
+            id: 'string',
+            'user.display': 'string',
+            'transaction.duration': 'duration',
+            'project.id': 'integer',
+            timestamp: 'date',
+          },
         },
         data,
       },
@@ -161,6 +165,7 @@ describe('Performance Transaction Events Content', function () {
     const wrapper = mountWithTheme(
       <OrganizationContext.Provider value={organization}>
         <EventsPageContent
+          totalEventCount={totalEventCount}
           eventView={eventView}
           organization={organization}
           location={initialData.router.location}
@@ -178,7 +183,7 @@ describe('Performance Transaction Events Content', function () {
     wrapper.update();
 
     expect(wrapper.find('EventsTable')).toHaveLength(1);
-    expect(wrapper.find('DropdownControl')).toHaveLength(1);
+    expect(wrapper.find('CompactSelect')).toHaveLength(1);
     expect(wrapper.find('StyledSearchBar')).toHaveLength(1);
     expect(wrapper.find('Filter')).toHaveLength(1);
 
@@ -197,6 +202,7 @@ describe('Performance Transaction Events Content', function () {
     const wrapper = mountWithTheme(
       <OrganizationContext.Provider value={organization}>
         <EventsPageContent
+          totalEventCount={totalEventCount}
           eventView={eventView}
           organization={organization}
           location={initialData.router.location}
@@ -215,7 +221,7 @@ describe('Performance Transaction Events Content', function () {
     wrapper.update();
 
     expect(wrapper.find('EventsTable')).toHaveLength(1);
-    expect(wrapper.find('DropdownControl')).toHaveLength(1);
+    expect(wrapper.find('CompactSelect')).toHaveLength(1);
     expect(wrapper.find('StyledSearchBar')).toHaveLength(1);
     expect(wrapper.find('Filter')).toHaveLength(1);
 

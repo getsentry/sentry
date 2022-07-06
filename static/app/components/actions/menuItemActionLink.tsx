@@ -2,7 +2,6 @@ import styled from '@emotion/styled';
 
 import ActionLink from 'sentry/components/actions/actionLink';
 import MenuItem from 'sentry/components/menuItem';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 
 function MenuItemActionLink({
   className,
@@ -16,7 +15,7 @@ function MenuItemActionLink({
 }
 const InnerActionLink = styled(ActionLink)`
   color: ${p => p.theme.textColor};
-  ${overflowEllipsis}
+  ${p => p.theme.overflowEllipsis}
   &:hover {
     color: ${p => p.theme.textColor};
   }

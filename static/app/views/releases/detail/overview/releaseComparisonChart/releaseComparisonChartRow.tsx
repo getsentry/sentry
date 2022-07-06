@@ -7,7 +7,6 @@ import Placeholder from 'sentry/components/placeholder';
 import Radio from 'sentry/components/radio';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {ReleaseComparisonChartType} from 'sentry/types';
 import {defined} from 'sentry/utils';
@@ -107,7 +106,7 @@ function ReleaseComparisonChartRow({
 const Cell = styled('div')`
   text-align: right;
   color: ${p => p.theme.subText};
-  ${overflowEllipsis}
+  ${p => p.theme.overflowEllipsis}
 `;
 
 const NumericCell = styled(Cell)`

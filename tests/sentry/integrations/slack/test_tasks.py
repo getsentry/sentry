@@ -6,15 +6,14 @@ import responses
 from exam import fixture
 
 from sentry.incidents.models import AlertRule, AlertRuleTriggerAction
-from sentry.integrations.slack.tasks import (
-    RedisRuleStatus,
+from sentry.integrations.slack.utils import SLACK_RATE_LIMITED_MESSAGE, RedisRuleStatus
+from sentry.models import Rule
+from sentry.receivers.rules import DEFAULT_RULE_LABEL
+from sentry.tasks.integrations.slack import (
     find_channel_id_for_alert_rule,
     find_channel_id_for_rule,
     post_message,
 )
-from sentry.integrations.slack.utils import SLACK_RATE_LIMITED_MESSAGE
-from sentry.models import Rule
-from sentry.receivers.rules import DEFAULT_RULE_LABEL
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import install_slack
 from sentry.utils import json
@@ -332,8 +331,7 @@ class SlackTasksTest(TestCase):
         assert AlertRule.objects.get(id=alert_rule.id)
 
     @responses.activate
-    @patch("sentry.integrations.slack.tasks.logger.info")
-    def test_post_message_success(self, mock_log_info):
+    def test_post_message_success(self):
         responses.add(
             responses.POST,
             "https://slack.com/api/chat.postMessage",
@@ -350,11 +348,9 @@ class SlackTasksTest(TestCase):
             )
         data = parse_qs(responses.calls[0].request.body)
         assert data == {"key": ["val"]}
-        assert mock_log_info.call_count == 0
 
     @responses.activate
-    @patch("sentry.integrations.slack.tasks.logger.info")
-    def test_post_message_failure(self, mock_log_info):
+    def test_post_message_failure(self):
         responses.add(
             responses.POST,
             "https://slack.com/api/chat.postMessage",
@@ -371,6 +367,3 @@ class SlackTasksTest(TestCase):
             )
         data = parse_qs(responses.calls[0].request.body)
         assert data == {"key": ["val"]}
-        mock_log_info.assert_called_once_with(
-            "my_message", extra={"log_key": "log_value", "error": "my_error"}
-        )

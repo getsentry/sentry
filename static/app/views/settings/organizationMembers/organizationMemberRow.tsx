@@ -264,14 +264,14 @@ const MemberDescription = styled(Link)`
 
 const UserName = styled('div')`
   display: block;
-  font-size: ${p => p.theme.fontSizeLarge};
   overflow: hidden;
+  font-size: ${p => p.theme.fontSizeMedium};
   text-overflow: ellipsis;
 `;
 
 const Email = styled('div')`
-  color: ${p => p.theme.textColor};
-  font-size: ${p => p.theme.fontSizeMedium};
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSizeSmall};
   overflow: hidden;
   text-overflow: ellipsis;
 `;

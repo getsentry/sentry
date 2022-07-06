@@ -115,7 +115,7 @@ const StyledPanelItem = styled(PanelItem)`
 
   grid-template-columns: max-content 1fr;
 
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: max-content 1fr max-content;
   }
 `;
@@ -123,7 +123,7 @@ const StyledPanelItem = styled(PanelItem)`
 const Name = styled('div')`
   grid-column: 2/2;
 
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     grid-column: 2/3;
     grid-row: 1/2;
   }
@@ -139,7 +139,7 @@ const TypeAndStatus = styled('div')`
   grid-column: 2/2;
   gap: ${space(1.5)};
 
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     grid-column: 2/3;
     grid-row: 2/2;
     gap: ${space(1)};

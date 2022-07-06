@@ -1,5 +1,7 @@
 from unittest.mock import patch
 
+import pytest
+
 from sentry.coreapi import APIUnauthorized
 from sentry.mediators.token_exchange import Refresher
 from sentry.models import ApiApplication, ApiToken, SentryApp, SentryAppInstallation
@@ -46,22 +48,22 @@ class TestRefresher(TestCase):
             application=ApiApplication.objects.create(owner_id=self.create_user().id),
         ).refresh_token
 
-        with self.assertRaises(APIUnauthorized):
+        with pytest.raises(APIUnauthorized):
             self.refresher.call()
 
     @patch("sentry.models.ApiToken.objects.get", side_effect=ApiToken.DoesNotExist)
     def test_token_must_exist(self, _):
-        with self.assertRaises(APIUnauthorized):
+        with pytest.raises(APIUnauthorized):
             self.refresher.call()
 
     @patch("sentry.models.ApiApplication.objects.get", side_effect=ApiApplication.DoesNotExist)
     def test_api_application_must_exist(self, _):
-        with self.assertRaises(APIUnauthorized):
+        with pytest.raises(APIUnauthorized):
             self.refresher.call()
 
     @patch("sentry.models.ApiApplication.sentry_app", side_effect=SentryApp.DoesNotExist)
     def test_sentry_app_must_exist(self, _):
-        with self.assertRaises(APIUnauthorized):
+        with pytest.raises(APIUnauthorized):
             self.refresher.call()
 
     @patch("sentry.analytics.record")

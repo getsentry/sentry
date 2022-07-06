@@ -17,7 +17,9 @@ describe('retryableImport', function () {
     const result = await retryableImport(() => importMock());
 
     expect(result).toEqual({
-      foo: 'bar',
+      default: {
+        foo: 'bar',
+      },
     });
     expect(importMock).toHaveBeenCalledTimes(1);
   });
@@ -60,7 +62,9 @@ describe('retryableImport', function () {
     const result = await retryableImport(() => importMock());
 
     expect(result).toEqual({
-      foo: 'bar',
+      default: {
+        foo: 'bar',
+      },
     });
     expect(importMock).toHaveBeenCalledTimes(3);
   });

@@ -5,7 +5,7 @@ import sentry_sdk
 
 from sentry.constants import DataCategory
 from sentry.quotas.base import NotRateLimited, Quota, QuotaConfig, QuotaScope, RateLimited
-from sentry.utils.compat import map, zip
+from sentry.utils.compat import map
 from sentry.utils.redis import (
     get_dynamic_cluster_from_options,
     load_script,

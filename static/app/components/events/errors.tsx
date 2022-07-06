@@ -185,7 +185,7 @@ class Errors extends Component<Props, State> {
 const StyledDataSection = styled(DataSection)`
   border-top: none;
 
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     padding-top: 0;
   }
 `;

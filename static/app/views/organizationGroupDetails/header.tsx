@@ -5,6 +5,7 @@ import omit from 'lodash/omit';
 
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {Client} from 'sentry/api';
+import Feature from 'sentry/components/acl/feature';
 import AssigneeSelector from 'sentry/components/assigneeSelector';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Badge from 'sentry/components/badge';
@@ -31,6 +32,8 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Group, Organization, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {getUtcDateString} from 'sentry/utils/dates';
 import {getMessage} from 'sentry/utils/events';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -48,6 +51,7 @@ type Props = WithRouterProps & {
   groupReprocessingStatus: ReprocessingStatus;
   organization: Organization;
   project: Project;
+  replaysCount: number | null;
   event?: Event;
 };
 
@@ -71,6 +75,22 @@ class GroupHeader extends Component<Props, State> {
       this.setState({memberList: users});
     });
   }
+
+  trackAssign: React.ComponentProps<typeof AssigneeSelector>['onAssign'] = () => {
+    const {group, project, organization, location} = this.props;
+    const {alert_date, alert_rule_id, alert_type} = location.query;
+    trackAdvancedAnalyticsEvent('issue_details.action_clicked', {
+      organization,
+      project_id: parseInt(project.id, 10),
+      group_id: parseInt(group.id, 10),
+      action_type: 'assign',
+      // Alert properties track if the user came from email/slack alerts
+      alert_date:
+        typeof alert_date === 'string' ? getUtcDateString(Number(alert_date)) : undefined,
+      alert_rule_id: typeof alert_rule_id === 'string' ? alert_rule_id : undefined,
+      alert_type: typeof alert_type === 'string' ? alert_type : undefined,
+    });
+  };
 
   getDisabledTabs() {
     const {organization} = this.props;
@@ -113,8 +133,16 @@ class GroupHeader extends Component<Props, State> {
   }
 
   render() {
-    const {project, group, currentTab, baseUrl, event, organization, location} =
-      this.props;
+    const {
+      project,
+      group,
+      currentTab,
+      baseUrl,
+      event,
+      organization,
+      location,
+      replaysCount,
+    } = this.props;
     const projectFeatures = new Set(project ? project.features : []);
     const organizationFeatures = new Set(organization ? organization.features : []);
     const userCount = group.userCount;
@@ -149,18 +177,23 @@ class GroupHeader extends Component<Props, State> {
 
     const shortIdBreadCrumb = group.shortId && (
       <GuideAnchor target="issue_number" position="bottom">
-        <StyledTooltip
-          className="help-link"
-          title={t(
-            'This identifier is unique across your organization, and can be used to reference an issue in various places, like commit messages.'
-          )}
-          position="bottom"
-        >
-          <StyledShortId
-            shortId={group.shortId}
-            avatar={<StyledProjectBadge project={project} avatarSize={16} hideName />}
+        <IssueBreadcrumbWrapper>
+          <BreadcrumbProjectBadge
+            project={project}
+            avatarSize={16}
+            hideName
+            avatarProps={{hasTooltip: true, tooltip: project.slug}}
           />
-        </StyledTooltip>
+          <StyledTooltip
+            className="help-link"
+            title={t(
+              'This identifier is unique across your organization, and can be used to reference an issue in various places, like commit messages.'
+            )}
+            position="bottom"
+          >
+            <StyledShortId shortId={group.shortId} />
+          </StyledTooltip>
+        </IssueBreadcrumbWrapper>
       </GuideAnchor>
     );
 
@@ -178,12 +211,14 @@ class GroupHeader extends Component<Props, State> {
           <div className="row">
             <div className="col-sm-7">
               <TitleWrapper>
-                <StyledIdBadge
-                  project={project}
-                  avatarSize={24}
-                  hideName
-                  avatarProps={{hasTooltip: true, tooltip: project.slug}}
-                />
+                {!hasIssueIdBreadcrumbs && (
+                  <StyledIdBadge
+                    project={project}
+                    avatarSize={24}
+                    hideName
+                    avatarProps={{hasTooltip: true, tooltip: project.slug}}
+                  />
+                )}
                 <h3>
                   <EventOrGroupTitle hasGuideAnchor data={group} />
                 </h3>
@@ -212,12 +247,6 @@ class GroupHeader extends Component<Props, State> {
                           </Link>
                         </EventAnnotationWithSpace>
                       )}
-                      {group.annotations.map((annotation, i) => (
-                        <EventAnnotationWithSpace
-                          key={i}
-                          dangerouslySetInnerHTML={{__html: annotation}}
-                        />
-                      ))}
                     </Fragment>
                   }
                 />
@@ -256,6 +285,7 @@ class GroupHeader extends Component<Props, State> {
                     id={group.id}
                     memberList={memberList}
                     disabled={disableActions}
+                    onAssign={this.trackAssign}
                   />
                 </div>
               </StatsWrapper>
@@ -322,6 +352,7 @@ class GroupHeader extends Component<Props, State> {
                       id={group.id}
                       memberList={memberList}
                       disabled={disableActions}
+                      onAssign={this.trackAssign}
                     />
                   </div>
                 </div>
@@ -413,6 +444,14 @@ class GroupHeader extends Component<Props, State> {
                 {t('Similar Issues')}
               </ListLink>
             )}
+            <Feature features={['session-replay']} organization={organization}>
+              <ListLink
+                to={`${baseUrl}replays/${location.search}`}
+                isActive={() => currentTab === Tab.REPLAYS}
+              >
+                {t('Replays')} <Badge text={replaysCount ?? ''} />
+              </ListLink>
+            </Feature>
           </NavTabs>
         </div>
       </Layout.Header>
@@ -429,6 +468,11 @@ const TitleWrapper = styled('div')`
 
 const StyledBreadcrumbs = styled(Breadcrumbs)`
   margin-bottom: ${space(2)};
+`;
+
+const IssueBreadcrumbWrapper = styled('div')`
+  display: flex;
+  align-items: center;
 `;
 
 const StyledIdBadge = styled(IdBadge)`
@@ -463,7 +507,7 @@ const StyledTagAndMessageWrapper = styled(TagAndMessageWrapper)`
   justify-content: flex-start;
   line-height: 1.2;
 
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     margin-bottom: ${space(2)};
   }
 `;
@@ -478,6 +522,10 @@ const StyledListLink = styled(ListLink)`
 
 const StyledProjectBadge = styled(ProjectBadge)`
   flex-shrink: 0;
+`;
+
+const BreadcrumbProjectBadge = styled(StyledProjectBadge)`
+  margin-right: ${space(0.75)};
 `;
 
 const EventAnnotationWithSpace = styled(EventAnnotation)`

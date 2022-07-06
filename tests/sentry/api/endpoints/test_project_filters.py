@@ -14,6 +14,6 @@ class ProjectFiltersTest(APITestCase):
         project = self.create_project(name="Bar", slug="bar", teams=[team])
 
         project.update_option("filters:browser-extension", "0")
-        response = self.get_valid_response(org.slug, project.slug)
+        response = self.get_success_response(org.slug, project.slug)
 
         self.insta_snapshot(response.data)

@@ -2,8 +2,9 @@ import {Component} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage, addMessage} from 'sentry/actionCreators/indicator';
 import AsyncComponent from 'sentry/components/asyncComponent';
+import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
@@ -31,9 +32,13 @@ type Props = RouteComponentProps<{orgId: string}, {}> & {
 };
 
 type State = {
+  alertRuleCount?: number;
+  issueRuleCount?: number;
   ruleList?: CombinedMetricIssueAlerts[];
   teamFilterSearch?: string;
 };
+
+const HookHeader = HookOrDefault({hookName: 'component:alerts-header'});
 
 class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state']> {
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
@@ -58,21 +63,31 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
     ];
   }
 
+  onRequestSuccess({stateKey, resp}) {
+    if (stateKey === 'ruleList') {
+      const issueRuleCount = resp.getResponseHeader('X-Sentry-Issue-Rule-Hits');
+      const alertRuleCount = resp.getResponseHeader('X-Sentry-Alert-Rule-Hits');
+      this.setState({
+        issueRuleCount: parseInt(issueRuleCount, 10),
+        alertRuleCount: parseInt(alertRuleCount, 10),
+      });
+    }
+  }
+
   get projectsFromIncidents() {
     const {ruleList = []} = this.state;
 
     return [...new Set(ruleList?.map(({projects}) => projects).flat())];
   }
 
-  handleChangeFilter = (activeFilters: Set<string>) => {
+  handleChangeFilter = (activeFilters: string[]) => {
     const {router, location} = this.props;
     const {cursor: _cursor, page: _page, ...currentQuery} = location.query;
-    const teams = [...activeFilters];
     router.push({
       pathname: location.pathname,
       query: {
         ...currentQuery,
-        team: teams.length ? teams : '',
+        team: activeFilters.length > 0 ? activeFilters : '',
       },
     });
   };
@@ -89,9 +104,30 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
     });
   };
 
+  handleOwnerChange = (
+    projectId: string,
+    rule: CombinedMetricIssueAlerts,
+    ownerValue: string
+  ) => {
+    const {orgId} = this.props.params;
+    const alertPath = rule.type === 'alert_rule' ? 'alert-rules' : 'rules';
+    const endpoint = `/projects/${orgId}/${projectId}/${alertPath}/${rule.id}/`;
+    const updatedRule = {...rule, owner: ownerValue};
+
+    this.api.request(endpoint, {
+      method: 'PUT',
+      data: updatedRule,
+      success: () => {
+        addMessage(t('Updated alert rule'), 'success');
+      },
+      error: () => {
+        addMessage(t('Unable to save change'), 'error');
+      },
+    });
+  };
+
   handleDeleteRule = async (projectId: string, rule: CombinedMetricIssueAlerts) => {
-    const {params} = this.props;
-    const {orgId} = params;
+    const {orgId} = this.props.params;
     const alertPath = isIssueAlert(rule) ? 'rules' : 'alert-rules';
 
     try {
@@ -118,8 +154,15 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
       organization,
       router,
     } = this.props;
-    const {loading, ruleList = [], ruleListPageLinks} = this.state;
+    const {
+      loading,
+      ruleList = [],
+      ruleListPageLinks,
+      issueRuleCount,
+      alertRuleCount,
+    } = this.state;
     const {query} = location;
+    const hasEditAccess = organization.access.includes('alerts:write');
 
     const sort: {
       asc: boolean;
@@ -138,6 +181,10 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
     return (
       <Layout.Body>
         <Layout.Main fullWidth>
+          {issueRuleCount !== undefined &&
+            issueRuleCount > 0 &&
+            alertRuleCount === 0 &&
+            !query.name && <HookHeader organization={organization} />}
           <FilterBar
             location={location}
             onChangeFilter={this.handleChangeFilter}
@@ -190,27 +237,6 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
 
                   t('Project'),
                   t('Team'),
-                  <StyledSortLink
-                    key="dateAdded"
-                    role="columnheader"
-                    aria-sort={
-                      sort.field !== 'date_added'
-                        ? 'none'
-                        : sort.asc
-                        ? 'ascending'
-                        : 'descending'
-                    }
-                    to={{
-                      pathname: location.pathname,
-                      query: {
-                        ...currentQuery,
-                        asc: sort.field === 'date_added' && !sort.asc ? '1' : undefined,
-                        sort: 'date_added',
-                      },
-                    }}
-                  >
-                    {t('Created')} {sort.field === 'date_added' && sortArrow}
-                  </StyledSortLink>,
                   t('Actions'),
                 ]}
                 isLoading={loading || !loadedTeams}
@@ -229,11 +255,13 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
                         projects={projects as Project[]}
                         rule={rule}
                         orgId={orgId}
+                        onOwnerChange={this.handleOwnerChange}
                         onDelete={this.handleDeleteRule}
                         userTeams={new Set(teams.map(team => team.id))}
                         hasDuplicateAlertRules={organization.features.includes(
                           'duplicate-alert-rule'
                         )}
+                        hasEditAccess={hasEditAccess}
                       />
                     ))
                   }
@@ -267,12 +295,7 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
 
     return (
       <SentryDocumentTitle title={t('Alerts')} orgSlug={orgId}>
-        <PageFiltersContainer
-          organization={organization}
-          showDateSelector={false}
-          showEnvironmentSelector={false}
-          hideGlobalHeader
-        >
+        <PageFiltersContainer>
           <AlertHeader
             organization={organization}
             router={router}
@@ -327,11 +350,11 @@ const StyledSortLink = styled(Link)`
 const StyledPanelTable = styled(PanelTable)`
   position: static;
   overflow: auto;
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     overflow: initial;
   }
 
-  grid-template-columns: 4fr auto 140px 60px 110px auto;
+  grid-template-columns: 4fr auto 140px 60px auto;
   white-space: nowrap;
   font-size: ${p => p.theme.fontSizeMedium};
 `;

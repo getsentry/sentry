@@ -58,7 +58,7 @@ class TeamDetailsTest(TeamDetailsTestBase):
     def test_simple(self):
         team = self.team  # force creation
 
-        response = self.get_valid_response(team.organization.slug, team.slug)
+        response = self.get_success_response(team.organization.slug, team.slug)
         assert response.data["id"] == str(team.id)
 
 
@@ -68,7 +68,7 @@ class TeamUpdateTest(TeamDetailsTestBase):
     def test_simple(self):
         team = self.team  # force creation
 
-        self.get_valid_response(
+        self.get_success_response(
             team.organization.slug, team.slug, name="hello world", slug="foobar"
         )
 
@@ -90,7 +90,7 @@ class TeamDeleteTest(TeamDetailsTestBase):
 
         self.login_as(admin_user)
 
-        self.get_valid_response(team.organization.slug, team.slug, status_code=204)
+        self.get_success_response(team.organization.slug, team.slug, status_code=204)
 
         original_slug = team.slug
         team.refresh_from_db()
@@ -107,7 +107,7 @@ class TeamDeleteTest(TeamDetailsTestBase):
 
         self.login_as(admin_user)
 
-        self.get_valid_response(team.organization.slug, team.slug, status_code=204)
+        self.get_success_response(team.organization.slug, team.slug, status_code=204)
 
         team.refresh_from_db()
         self.assert_team_deleted(team.id)
@@ -131,14 +131,14 @@ class TeamDeleteTest(TeamDetailsTestBase):
         self.login_as(admin_user)
 
         # first, try deleting the team with open membership off
-        self.get_valid_response(team.organization.slug, team.slug, status_code=403)
+        self.get_error_response(team.organization.slug, team.slug, status_code=403)
         self.assert_team_not_deleted(team.id)
 
         # now, with open membership on
         org.flags.allow_joinleave = True
         org.save()
 
-        self.get_valid_response(team.organization.slug, team.slug, status_code=204)
+        self.get_success_response(team.organization.slug, team.slug, status_code=204)
         self.assert_team_deleted(team.id)
 
     def test_cannot_remove_as_member(self):
@@ -157,5 +157,5 @@ class TeamDeleteTest(TeamDetailsTestBase):
 
         self.login_as(member_user)
 
-        self.get_valid_response(team.organization.slug, team.slug, status_code=403)
+        self.get_error_response(team.organization.slug, team.slug, status_code=403)
         self.assert_team_not_deleted(team.id)

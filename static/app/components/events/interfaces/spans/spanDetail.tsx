@@ -35,6 +35,7 @@ import {Organization} from 'sentry/types';
 import {EventTransaction} from 'sentry/types/event';
 import {assert} from 'sentry/types/utils';
 import {defined} from 'sentry/utils';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
 import getDynamicText from 'sentry/utils/getDynamicText';
@@ -79,6 +80,18 @@ class SpanDetail extends Component<Props, State> {
   state: State = {
     errorsOpened: false,
   };
+
+  componentDidMount() {
+    const {span, organization} = this.props;
+    if ('type' in span) {
+      return;
+    }
+
+    trackAdvancedAnalyticsEvent('performance_views.event_details.open_span_details', {
+      organization,
+      operation: span.op ?? 'undefined',
+    });
+  }
 
   renderTraversalButton(): React.ReactNode {
     if (!this.props.childTransactions) {
@@ -271,7 +284,7 @@ class SpanDetail extends Component<Props, State> {
       : relatedErrors.slice(0, DEFAULT_ERRORS_VISIBLE);
 
     return (
-      <Alert type="error" showIcon system>
+      <Alert type="error" system>
         <ErrorMessageTitle>
           {tn(
             'An error event occurred in this transaction.',
@@ -362,7 +375,12 @@ class SpanDetail extends Component<Props, State> {
                     <SpanIdTitle>Span ID</SpanIdTitle>
                   ) : (
                     <SpanIdTitle
-                      onClick={scrollToSpan(span.span_id, scrollToHash, location)}
+                      onClick={scrollToSpan(
+                        span.span_id,
+                        scrollToHash,
+                        location,
+                        organization
+                      )}
                     >
                       Span ID
                       <StyledIconAnchor />
@@ -387,7 +405,7 @@ class SpanDetail extends Component<Props, State> {
                   fixed: 'Mar 16, 2020 9:10:12 AM UTC',
                   value: (
                     <Fragment>
-                      <DateTime date={startTimestamp * 1000} />
+                      <DateTime date={startTimestamp * 1000} year seconds timeZone />
                       {` (${startTimestamp})`}
                     </Fragment>
                   ),
@@ -398,7 +416,7 @@ class SpanDetail extends Component<Props, State> {
                   fixed: 'Mar 16, 2020 9:10:13 AM UTC',
                   value: (
                     <Fragment>
-                      <DateTime date={endTimestamp * 1000} />
+                      <DateTime date={endTimestamp * 1000} year seconds timeZone />
                       {` (${endTimestamp})`}
                     </Fragment>
                   ),

@@ -1,7 +1,10 @@
+import {Fragment} from 'react';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, within} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import EventTagsAndScreenshot from 'sentry/components/events/eventTagsAndScreenshot';
+import GlobalModal from 'sentry/components/globalModal';
 import {EventAttachment} from 'sentry/types';
 
 import {deviceNameMapper} from '../../../../../static/app/components/deviceName';
@@ -112,10 +115,12 @@ describe('EventTagsAndScreenshot', function () {
     organization: {
       role: 'member',
       attachmentsRole: 'member',
-      availableRoles: [
+      orgRoleList: [
         {
           id: 'member',
           name: 'Member',
+          desc: '...',
+          minimumTeamRole: 'contributor',
         },
       ],
     },
@@ -244,17 +249,35 @@ describe('EventTagsAndScreenshot', function () {
   });
 
   describe('renders screenshot only', function () {
-    it('no context and no tags', function () {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/repos/',
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/releases/io.sentry.sample.iOS-Swift%407.2.3%2B390/',
+      body: {},
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/releases/io.sentry.sample.iOS-Swift%407.2.3%2B390/deploys/',
+      body: [],
+    });
+
+    it('no context and no tags', async function () {
       const {container} = render(
-        <EventTagsAndScreenshot
-          event={event}
-          organization={organization}
-          projectId={project.slug}
-          location={router.location}
-          attachments={attachments}
-          onDeleteScreenshot={() => jest.fn()}
-          hasContext={false}
-        />
+        <Fragment>
+          <GlobalModal />
+          <EventTagsAndScreenshot
+            event={event}
+            organization={organization}
+            projectId={project.slug}
+            location={router.location}
+            attachments={attachments}
+            onDeleteScreenshot={() => jest.fn()}
+            hasContext={false}
+          />
+        </Fragment>
       );
 
       // Tags Container
@@ -267,6 +290,26 @@ describe('EventTagsAndScreenshot', function () {
         'src',
         `/api/0/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/${attachments[1].id}/?download`
       );
+
+      // Display help text when hovering question element
+      userEvent.hover(screen.getByTestId('more-information'));
+
+      expect(
+        await screen.findByText(
+          'This image was captured around the time that the event occurred.'
+        )
+      ).toBeInTheDocument();
+
+      // Screenshot is clickable
+      userEvent.click(screen.getByRole('img'));
+
+      // Open 'view screenshot' dialog
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
+      expect(
+        within(screen.getByRole('dialog')).getByText('Screenshot')
+      ).toBeInTheDocument();
+
+      userEvent.click(screen.getByLabelText('Close Modal'));
 
       expect(container).toSnapshot();
     });

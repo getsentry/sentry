@@ -51,13 +51,21 @@ class OrganizationEventsHistogramEndpoint(OrganizationEventsV2EndpointBase):
         except NoProjects:
             return Response({})
 
+        use_metrics = features.has(
+            "organizations:performance-use-metrics", organization=organization, actor=request.user
+        )
+        dataset = self.get_dataset(request) if use_metrics else discover
+        metrics_enhanced = dataset != discover
+
+        sentry_sdk.set_tag("performance.metrics_enhanced", metrics_enhanced)
+
         with sentry_sdk.start_span(op="discover.endpoint", description="histogram"):
             serializer = HistogramSerializer(data=request.GET)
             if serializer.is_valid():
                 data = serializer.validated_data
 
                 with self.handle_query_errors():
-                    results = discover.histogram_query(
+                    results = dataset.histogram_query(
                         data["field"],
                         data.get("query"),
                         params,

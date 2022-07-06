@@ -347,11 +347,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
 
     it('opens a modal with the correct params for top 5 display mode', async function () {
       const featuredOrganization = TestStubs.Organization({
-        features: [
-          'dashboards-edit',
-          'new-widget-builder-experience',
-          'new-widget-builder-experience-design',
-        ],
+        features: ['dashboards-edit', 'new-widget-builder-experience-design'],
       });
       const testData = initializeOrg({
         ...initializeOrg(),
@@ -407,11 +403,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
 
     it('opens a modal with the correct params for default display mode', async function () {
       const featuredOrganization = TestStubs.Organization({
-        features: [
-          'dashboards-edit',
-          'new-widget-builder-experience',
-          'new-widget-builder-experience-design',
-        ],
+        features: ['dashboards-edit', 'new-widget-builder-experience-design'],
       });
       const testData = initializeOrg({
         ...initializeOrg(),
@@ -635,7 +627,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
       MockApiClient.clearMockResponses();
     });
 
-    it('opens widget modal when add to dashboard is clicked', async () => {
+    it('opens widget modal when add to dashboard is clicked', () => {
       mount(
         initialData.router.location,
         initialData.organization,
@@ -662,7 +654,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
       );
     });
 
-    it('populates dashboard widget modal with saved query data if created from discover', async () => {
+    it('populates dashboard widget modal with saved query data if created from discover', () => {
       mount(
         initialData.router.location,
         initialData.organization,
@@ -689,7 +681,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
       );
     });
 
-    it('adds equation to query fields if yAxis includes comprising functions', async () => {
+    it('adds equation to query fields if yAxis includes comprising functions', () => {
       mount(
         initialData.router.location,
         initialData.organization,

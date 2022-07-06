@@ -156,10 +156,6 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
             allow_metric_aggregates = request.GET.get("preventMetricAggregates") != "1"
             sentry_sdk.set_tag("performance.metrics_enhanced", metrics_enhanced)
 
-            query_modified_by_user = request.GET.get("user_modified")
-            if query_modified_by_user in ["true", "false"]:
-                sentry_sdk.set_tag("query.user_modified", query_modified_by_user)
-
         def get_event_stats(
             query_columns: Sequence[str],
             query: str,

@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import TimeSince from 'sentry/components/timeSince';
 import {IconClock} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 
 /**
@@ -42,7 +41,7 @@ const Container = styled('div')`
 `;
 
 const FlexWrapper = styled('div')`
-  ${overflowEllipsis}
+  ${p => p.theme.overflowEllipsis}
 
   /* The following aligns the icon with the text, fixes bug in Firefox */
   display: flex;

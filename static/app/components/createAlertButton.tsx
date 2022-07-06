@@ -31,6 +31,7 @@ import {
 import {getQueryDatasource} from 'sentry/views/alerts/utils';
 import {
   AlertType,
+  AlertWizardAlertNames,
   AlertWizardRuleTemplates,
   DEFAULT_WIZARD_TEMPLATE,
 } from 'sentry/views/alerts/wizard/options';
@@ -297,6 +298,11 @@ function CreateAlertFromViewButton({
     );
   }
   const hasErrors = Object.values(errors).some(x => x);
+
+  const alertTemplate = alertType
+    ? AlertWizardRuleTemplates[alertType]
+    : DEFAULT_WIZARD_TEMPLATE;
+
   const to = hasErrors
     ? undefined
     : {
@@ -309,10 +315,9 @@ function CreateAlertFromViewButton({
           referrer,
           ...(useAlertWizardV3
             ? {
+                ...alertTemplate,
                 project: project?.slug,
-                ...(alertType
-                  ? AlertWizardRuleTemplates[alertType]
-                  : DEFAULT_WIZARD_TEMPLATE),
+                aggregate: queryParams.yAxis ?? alertTemplate.aggregate,
               }
             : {}),
         },
@@ -351,8 +356,15 @@ function CreateAlertFromViewButton({
 
 type Props = {
   organization: Organization;
+  alertOption?: keyof typeof AlertWizardAlertNames;
   hideIcon?: boolean;
   iconProps?: SVGIconProps;
+  /**
+   * Callback when the button is clicked.
+   * This is different from `onClick` which always overrides the default
+   * behavior when the button was clicked.
+   */
+  onEnter?: () => void;
   projectSlug?: string;
   referrer?: string;
   showPermissionGuide?: boolean;
@@ -368,6 +380,8 @@ const CreateAlertButton = withRouter(
     router,
     hideIcon,
     showPermissionGuide,
+    alertOption,
+    onEnter,
     ...buttonProps
   }: Props) => {
     const api = useApi();
@@ -383,6 +397,7 @@ const CreateAlertButton = withRouter(
             ? `project=${providedProj}`
             : ''
         }`,
+        alertOption ? `alert_option=${alertOption}` : '',
       ].filter(item => item !== '');
 
       return `${alertsBaseUrl}/wizard/${alertsArgs.length ? '?' : ''}${alertsArgs.join(
@@ -392,6 +407,7 @@ const CreateAlertButton = withRouter(
 
     function handleClickWithoutProject(event: React.MouseEvent) {
       event.preventDefault();
+      onEnter?.();
 
       navigateTo(createAlertUrl(':projectId'), router);
     }
@@ -430,7 +446,7 @@ const CreateAlertButton = withRouter(
             maxWidth: '270px',
           },
         }}
-        onClick={projectSlug ? undefined : handleClickWithoutProject}
+        onClick={projectSlug ? onEnter : handleClickWithoutProject}
         {...buttonProps}
       >
         {buttonProps.children ?? t('Create Alert')}

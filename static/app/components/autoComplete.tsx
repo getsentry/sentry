@@ -59,7 +59,7 @@ type GetItemArgs<T> = {
 
 type ChildrenProps<T> = Parameters<DropdownMenu['props']['children']>[0] & {
   /**
-   * Retruns props for the input element that handles searching the items
+   * Returns props for the input element that handles searching the items
    */
   getInputProps: <E extends HTMLInputElement = HTMLInputElement>(
     args: GetInputArgs<E>
@@ -149,6 +149,10 @@ class AutoComplete<T extends Item> extends Component<Props<T>, State<T>> {
     };
   }
 
+  componentDidMount() {
+    this._mounted = true;
+  }
+
   componentDidUpdate(_prevProps: Props<T>, prevState: State<T>) {
     // If we do NOT want to close on select, then we should not reset highlight state
     // when we select an item (when we select an item, `this.state.selectedItem` changes)
@@ -158,9 +162,12 @@ class AutoComplete<T extends Item> extends Component<Props<T>, State<T>> {
   }
 
   componentWillUnmount() {
+    this._mounted = false;
     window.clearTimeout(this.blurTimeout);
     window.clearTimeout(this.cancelCloseTimeout);
   }
+
+  private _mounted: boolean = false;
 
   /**
    * Used to track keyboard navigation of items.
@@ -196,8 +203,19 @@ class AutoComplete<T extends Item> extends Component<Props<T>, State<T>> {
   makeHandleInputChange<E extends HTMLInputElement>(
     onChange: GetInputArgs<E>['onChange']
   ) {
-    return (e: React.ChangeEvent<E>) => {
-      const value = e.target.value;
+    // Some inputs (e.g. input) pass in only the event to the onChange listener and
+    // others (e.g. TextField) pass in both the value and the event to the onChange listener.
+    // This returned function is to accomodate both kinds of input components.
+    return (
+      valueOrEvent: string | React.ChangeEvent<E>,
+      event?: React.ChangeEvent<E>
+    ) => {
+      const value: string =
+        event === undefined
+          ? (valueOrEvent as React.ChangeEvent<E>).target.value
+          : (valueOrEvent as string);
+      const changeEvent: React.ChangeEvent<E> =
+        event === undefined ? (valueOrEvent as React.ChangeEvent<E>) : event;
 
       // We force `isOpen: true` here because:
       // 1) it's possible to have menu closed but input with focus (i.e. hitting "Esc")
@@ -207,7 +225,7 @@ class AutoComplete<T extends Item> extends Component<Props<T>, State<T>> {
         inputValue: value,
       });
 
-      onChange?.(e);
+      onChange?.(changeEvent);
     };
   }
 
@@ -219,7 +237,6 @@ class AutoComplete<T extends Item> extends Component<Props<T>, State<T>> {
   }
 
   /**
-   *
    * We need this delay because we want to close the menu when input
    * is blurred (i.e. clicking or via keyboard). However we have to handle the
    * case when we want to click on the dropdown and causes focus.
@@ -383,7 +400,7 @@ class AutoComplete<T extends Item> extends Component<Props<T>, State<T>> {
 
     onClose?.(...args);
 
-    if (this.isControlled) {
+    if (this.isControlled || !this._mounted) {
       return;
     }
 

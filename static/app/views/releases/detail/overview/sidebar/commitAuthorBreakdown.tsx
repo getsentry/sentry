@@ -6,7 +6,6 @@ import Button from 'sentry/components/button';
 import Collapsible from 'sentry/components/collapsible';
 import SidebarSection from 'sentry/components/sidebarSection';
 import {t, tn} from 'sentry/locale';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {Commit, User} from 'sentry/types';
 import {percent} from 'sentry/utils';
@@ -119,7 +118,7 @@ const AuthorLine = styled('div')`
 
 const AuthorName = styled('div')`
   color: ${p => p.theme.textColor};
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
 `;
 
 const Commits = styled('div')`

@@ -13,7 +13,7 @@ import {getQueryStatus, getTeamParams} from './utils';
 
 interface Props {
   location: Location<any>;
-  onChangeFilter: (activeFilters: Set<string>) => void;
+  onChangeFilter: (activeFilters: string[]) => void;
   onChangeSearch: (query: string) => void;
   hasStatusFilters?: boolean;
   onChangeStatus?: (status: string) => void;
@@ -26,7 +26,7 @@ function FilterBar({
   onChangeStatus,
   hasStatusFilters,
 }: Props) {
-  const selectedTeams = new Set(getTeamParams(location.query.team));
+  const selectedTeams = getTeamParams(location.query.team);
   const selectedStatus = getQueryStatus(location.query.status);
 
   return (
@@ -74,19 +74,19 @@ const Wrapper = styled('div')`
   gap: ${space(1.5)};
   margin-bottom: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: min-content 1fr;
   }
 `;
 
 const FilterButtons = styled(ButtonBar)`
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     display: flex;
     align-items: flex-start;
     gap: ${space(1.5)};
   }
 
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     display: grid;
     grid-auto-columns: minmax(auto, 300px);
   }

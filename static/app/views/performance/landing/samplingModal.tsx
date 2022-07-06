@@ -40,7 +40,7 @@ const SamplingModal = (props: Props) => {
       <Body>
         <Instruction>
           {tct(
-            "The visualizations shown are based on your data without any filters or sampling. This does not contribute to your quota usage but transaction details are limited. If you'd like to improve accuracy, we recommend adding more transactions to your quota. or modifying your data set through [projectSettings: Filters & Sampling in settings].",
+            "The visualizations shown are based on your data without any filters or sampling. This does not contribute to your quota usage but transaction details are limited. If you'd like to improve accuracy, we recommend adding more transactions to your quota. or modifying your dataset through [projectSettings: Sampling in settings].",
             {
               projectSettings: (
                 <Link

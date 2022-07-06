@@ -53,6 +53,9 @@ import {getSortField} from './fieldRenderers';
 
 // Metadata mapping for discover results.
 export type MetaType = Record<string, ColumnType> & {isMetricsData?: boolean};
+export type EventsMetaType = {fields: Record<string, ColumnType>} & {
+  isMetricsData?: boolean;
+};
 
 // Data in discover results.
 export type EventData = Record<string, any>;
@@ -239,7 +242,9 @@ const decodeTeams = (location: Location): ('myteams' | number)[] => {
     return [];
   }
   const value = location.query.team;
-  return Array.isArray(value) ? value.map(decodeTeam) : [decodeTeam(value)];
+  return (Array.isArray(value) ? value.map(decodeTeam) : [decodeTeam(value)]).filter(
+    team => team === 'myteams' || !isNaN(team)
+  );
 };
 
 const decodeProjects = (location: Location): number[] => {
@@ -281,7 +286,7 @@ class EventView {
   interval: string | undefined;
   expired?: boolean;
   createdBy: User | undefined;
-  additionalConditions: MutableSearch; // This allows views to always add additional conditins to the query to get specific data. It should not show up in the UI unless explicitly called.
+  additionalConditions: MutableSearch; // This allows views to always add additional conditions to the query to get specific data. It should not show up in the UI unless explicitly called.
 
   constructor(props: {
     additionalConditions: MutableSearch;
@@ -543,9 +548,9 @@ class EventView {
 
       if (currentValue && otherValue) {
         const currentDateTime = moment.utc(currentValue);
-        const othereDateTime = moment.utc(otherValue);
+        const otherDateTime = moment.utc(otherValue);
 
-        if (!currentDateTime.isSame(othereDateTime)) {
+        if (!currentDateTime.isSame(otherDateTime)) {
           return false;
         }
       }
@@ -718,8 +723,8 @@ class EventView {
     return this.fields.length;
   }
 
-  getColumns(): TableColumn<React.ReactText>[] {
-    return decodeColumnOrder(this.fields);
+  getColumns(useFullEquationAsKey?: boolean): TableColumn<React.ReactText>[] {
+    return decodeColumnOrder(this.fields, useFullEquationAsKey);
   }
 
   getDays(): number {

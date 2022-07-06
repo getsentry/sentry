@@ -49,7 +49,7 @@ export const PackageStatusIcon = styled('span')`
   cursor: pointer;
   visibility: hidden;
   display: none;
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     display: block;
   }
 `;

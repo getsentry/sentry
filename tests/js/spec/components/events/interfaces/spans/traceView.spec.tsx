@@ -752,7 +752,7 @@ describe('TraceView', () => {
     expect(within(labelContainer!).getByText(/lcp/i)).toBeInTheDocument();
   });
 
-  it('should not merge web vitals labels if they are spaced away from each other', async () => {
+  it('should not merge web vitals labels if they are spaced away from each other', () => {
     const data = initializeData({});
 
     const event = generateSampleEvent();

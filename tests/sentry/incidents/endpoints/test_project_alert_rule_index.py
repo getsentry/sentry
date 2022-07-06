@@ -12,6 +12,7 @@ from sentry.api.serializers import serialize
 from sentry.incidents.models import AlertRule, AlertRuleTrigger, AlertRuleTriggerAction
 from sentry.models import AuditLogEntry, Integration
 from sentry.sentry_metrics import indexer
+from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.models import QueryDatasets
@@ -45,7 +46,7 @@ class AlertRuleListEndpointTest(APITestCase):
 
         self.login_as(self.user)
         with self.feature("organizations:incidents"):
-            resp = self.get_valid_response(self.organization.slug, self.project.slug)
+            resp = self.get_success_response(self.organization.slug, self.project.slug)
 
         assert resp.data == serialize([alert_rule])
 
@@ -55,11 +56,11 @@ class AlertRuleListEndpointTest(APITestCase):
         perf_alert_rule = self.create_alert_rule(query="p95", dataset=QueryDatasets.TRANSACTIONS)
         self.login_as(self.user)
         with self.feature("organizations:incidents"):
-            resp = self.get_valid_response(self.organization.slug, self.project.slug)
+            resp = self.get_success_response(self.organization.slug, self.project.slug)
             assert resp.data == serialize([alert_rule])
 
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
-            resp = self.get_valid_response(self.organization.slug, self.project.slug)
+            resp = self.get_success_response(self.organization.slug, self.project.slug)
             assert resp.data == serialize([perf_alert_rule, alert_rule])
 
     def test_no_feature(self):
@@ -113,7 +114,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
 
     def test_simple(self):
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
-            resp = self.get_valid_response(
+            resp = self.get_success_response(
                 self.organization.slug, self.project.slug, status_code=201, **self.valid_alert_rule
             )
         assert "id" in resp.data
@@ -128,7 +129,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
     @override_settings(MAX_QUERY_SUBSCRIPTIONS_PER_ORG=1)
     def test_enforce_max_subscriptions(self):
         with self.feature("organizations:incidents"):
-            resp = self.get_valid_response(
+            resp = self.get_success_response(
                 self.organization.slug, self.project.slug, status_code=201, **self.valid_alert_rule
             )
         alert_rule = AlertRule.objects.get(id=resp.data["id"])
@@ -158,8 +159,8 @@ class AlertRuleCreateEndpointTest(APITestCase):
         "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout",
         return_value=("#", None, True),
     )
-    @patch("sentry.integrations.slack.tasks.find_channel_id_for_alert_rule.apply_async")
-    @patch("sentry.integrations.slack.tasks.uuid4")
+    @patch("sentry.tasks.integrations.slack.find_channel_id_for_alert_rule.apply_async")
+    @patch("sentry.integrations.slack.utils.rule_status.uuid4")
     def test_kicks_off_slack_async_job(
         self, mock_uuid4, mock_find_channel_id_for_alert_rule, mock_get_channel_id
     ):
@@ -189,7 +190,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
             ],
         }
         with self.feature(["organizations:incidents"]):
-            resp = self.get_valid_response(
+            resp = self.get_success_response(
                 self.organization.slug, self.project.slug, status_code=202, **valid_alert_rule
             )
         resp.data["uuid"] = "abc123"
@@ -210,7 +211,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
         }
 
         with self.feature("organizations:incidents"):
-            resp = self.get_valid_response(
+            resp = self.get_success_response(
                 self.organization.slug, self.project.slug, status_code=201, **rule_data
             )
         assert "id" in resp.data
@@ -221,7 +222,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
         "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout",
         side_effect=[("#", 10, False), ("#", 10, False), ("#", 20, False)],
     )
-    @patch("sentry.integrations.slack.tasks.uuid4")
+    @patch("sentry.integrations.slack.utils.rule_status.uuid4")
     def test_async_lookup_outside_transaction(self, mock_uuid4, mock_get_channel_id):
         mock_uuid4.return_value = self.get_mock_uuid()
 
@@ -349,7 +350,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
             ],
         }
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
-            self.get_valid_response(
+            self.get_success_response(
                 self.organization.slug, self.project.slug, status_code=201, **alert_rule
             )
 
@@ -401,7 +402,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
         }
 
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
-            self.get_valid_response(
+            self.get_success_response(
                 self.organization.slug, self.project.slug, status_code=201, **alert_rule
             )
 
@@ -470,11 +471,11 @@ class ProjectCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, APITestC
         perf_alert_rule = self.create_alert_rule(query="p95", dataset=QueryDatasets.TRANSACTIONS)
         self.login_as(self.user)
         with self.feature("organizations:incidents"):
-            resp = self.get_valid_response(self.organization.slug, self.project.slug)
+            resp = self.get_success_response(self.organization.slug, self.project.slug)
             assert perf_alert_rule.id not in [x["id"] for x in list(resp.data)]
 
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
-            resp = self.get_valid_response(self.organization.slug, self.project.slug)
+            resp = self.get_success_response(self.organization.slug, self.project.slug)
             assert perf_alert_rule.id in [int(x["id"]) for x in list(resp.data)]
 
     def setup_project_and_rules(self):
@@ -714,7 +715,7 @@ class AlertRuleCreateEndpointTestCrashRateAlert(APITestCase):
 
     def test_simple_crash_rate_alerts_for_sessions(self):
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
-            resp = self.get_valid_response(
+            resp = self.get_success_response(
                 self.organization.slug, self.project.slug, status_code=201, **self.valid_alert_rule
             )
         assert "id" in resp.data
@@ -728,7 +729,7 @@ class AlertRuleCreateEndpointTestCrashRateAlert(APITestCase):
             }
         )
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
-            resp = self.get_valid_response(
+            resp = self.get_success_response(
                 self.organization.slug, self.project.slug, status_code=201, **self.valid_alert_rule
             )
         assert "id" in resp.data
@@ -738,7 +739,7 @@ class AlertRuleCreateEndpointTestCrashRateAlert(APITestCase):
     def test_simple_crash_rate_alerts_for_sessions_drops_event_types(self):
         self.valid_alert_rule["eventTypes"] = ["sessions", "events"]
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
-            resp = self.get_valid_response(
+            resp = self.get_success_response(
                 self.organization.slug, self.project.slug, status_code=201, **self.valid_alert_rule
             )
         assert "id" in resp.data
@@ -748,7 +749,7 @@ class AlertRuleCreateEndpointTestCrashRateAlert(APITestCase):
     def test_simple_crash_rate_alerts_for_sessions_with_invalid_time_window(self):
         self.valid_alert_rule["timeWindow"] = "90"
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
-            resp = self.get_valid_response(
+            resp = self.get_error_response(
                 self.organization.slug, self.project.slug, status_code=400, **self.valid_alert_rule
             )
         assert (
@@ -760,7 +761,7 @@ class AlertRuleCreateEndpointTestCrashRateAlert(APITestCase):
     def test_simple_crash_rate_alerts_for_non_supported_aggregate(self):
         self.valid_alert_rule.update({"aggregate": "count(sessions)"})
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
-            resp = self.get_valid_response(
+            resp = self.get_error_response(
                 self.organization.slug, self.project.slug, status_code=400, **self.valid_alert_rule
             )
         assert (
@@ -773,8 +774,8 @@ class AlertRuleCreateEndpointTestCrashRateAlert(APITestCase):
         "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout",
         return_value=("#", None, True),
     )
-    @patch("sentry.integrations.slack.tasks.find_channel_id_for_alert_rule.apply_async")
-    @patch("sentry.integrations.slack.tasks.uuid4")
+    @patch("sentry.tasks.integrations.slack.find_channel_id_for_alert_rule.apply_async")
+    @patch("sentry.integrations.slack.utils.rule_status.uuid4")
     def test_crash_rate_alerts_kicks_off_slack_async_job(
         self, mock_uuid4, mock_find_channel_id_for_alert_rule, mock_get_channel_id
     ):
@@ -801,7 +802,7 @@ class AlertRuleCreateEndpointTestCrashRateAlert(APITestCase):
             },
         ]
         with self.feature(["organizations:incidents"]):
-            resp = self.get_valid_response(
+            resp = self.get_success_response(
                 self.organization.slug, self.project.slug, status_code=202, **self.valid_alert_rule
             )
         resp.data["uuid"] = "abc123"
@@ -830,4 +831,6 @@ class MetricsCrashRateAlertCreationTest(AlertRuleCreateEndpointTestCrashRateAler
             "init",
             "crashed",
         ]:
-            indexer.record(self.organization.id, tag)
+            indexer.record(
+                use_case_id=UseCaseKey.RELEASE_HEALTH, org_id=self.organization.id, string=tag
+            )

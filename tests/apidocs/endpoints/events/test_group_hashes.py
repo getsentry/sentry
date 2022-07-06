@@ -1,6 +1,6 @@
 from django.test.client import RequestFactory
 
-from tests.apidocs.util import APIDocsTestCase
+from fixtures.apidocs_test_case import APIDocsTestCase
 
 
 class ProjectGroupHashesDocs(APIDocsTestCase):

@@ -99,7 +99,7 @@ describe('ProjectSelector', function () {
     expect(screen.getByText(anotherProject.slug)).toBeInTheDocument();
   });
 
-  it('can filter projects by project name', async function () {
+  it('can filter projects by project name', function () {
     render(<ProjectSelector {...props} />, {context: routerContext});
     openMenu();
 
@@ -122,7 +122,7 @@ describe('ProjectSelector', function () {
     expect(screen.getByText('No projects found')).toBeInTheDocument();
   });
 
-  it('does not close dropdown when input is clicked', async function () {
+  it('does not close dropdown when input is clicked', function () {
     render(<ProjectSelector {...props} />, {context: routerContext});
     openMenu();
 

@@ -1,3 +1,4 @@
+import pytest
 from rest_framework import status
 
 from sentry.api.serializers.base import serialize
@@ -257,7 +258,7 @@ class DeleteDocIntegrationDetailsTest(DocIntegrationDetailsTest):
         assert features.exists()
         assert self.doc_delete.avatar.exists()
         self.get_success_response(self.doc_delete.slug, status_code=status.HTTP_204_NO_CONTENT)
-        with self.assertRaises(DocIntegration.DoesNotExist):
+        with pytest.raises(DocIntegration.DoesNotExist):
             DocIntegration.objects.get(id=self.doc_delete.id)
         assert not features.exists()
         assert not self.doc_delete.avatar.exists()

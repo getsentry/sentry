@@ -56,7 +56,7 @@ from sentry.release_health.metrics import MetricsReleaseHealthBackend
 from sentry.release_health.sessions import SessionsReleaseHealthBackend
 from sentry.snuba.metrics.utils import get_intervals
 from sentry.snuba.sessions import get_rollup_starts_and_buckets
-from sentry.snuba.sessions_v2 import QueryDefinition
+from sentry.snuba.sessions_v2 import InvalidParams, QueryDefinition
 from sentry.tasks.base import instrumented_task
 from sentry.utils.metrics import incr, timer, timing
 
@@ -811,6 +811,10 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
             try:
                 with timer("releasehealth.metrics.duration", tags=tags, sample_rate=1.0):
                     metrics_result = metrics_fn(*args)
+            except InvalidParams:
+                # This is a valid result from metrics, not a crash
+                # -> no need to fall back to session_fn, just re-raise
+                raise
             except Exception:
                 capture_exception()
 

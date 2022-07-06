@@ -5,9 +5,11 @@ from sentry.models import Activity, Commit, GroupAssignee, GroupLink, Release, R
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers.faux import faux
 
-
 # This testcase needs to be an APITestCase because all of the logic to resolve
 # Issues and kick off side effects are just chillin in the endpoint code -_-
+from sentry.types.activity import ActivityType
+
+
 @patch("sentry.tasks.sentry_apps.workflow_notification.delay")
 class TestIssueWorkflowNotifications(APITestCase):
     def setUp(self):
@@ -217,7 +219,9 @@ class TestComments(APITestCase):
         url = f"/api/0/issues/{self.issue.id}/notes/"
         data = {"text": "hello world"}
         self.client.post(url, data=data, format="json")
-        note = Activity.objects.get(group=self.issue, project=self.project, type=Activity.NOTE)
+        note = Activity.objects.get(
+            group=self.issue, project=self.project, type=ActivityType.NOTE.value
+        )
         data = {
             "comment_id": note.id,
             "timestamp": note.datetime,

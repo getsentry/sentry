@@ -14,6 +14,7 @@ import ReleasesList from 'sentry/views/releases/list/';
 import {ReleasesDisplayOption} from 'sentry/views/releases/list/releasesDisplayOptions';
 import {ReleasesSortOption} from 'sentry/views/releases/list/releasesSortOptions';
 import {ReleasesStatusOption} from 'sentry/views/releases/list/releasesStatusOptions';
+import {RouteContext} from 'sentry/views/routeContext';
 
 describe('ReleasesList', () => {
   const {organization, routerContext, router} = initializeOrg();
@@ -41,8 +42,8 @@ describe('ReleasesList', () => {
   };
   let endpointMock, sessionApiMock;
 
-  beforeEach(async () => {
-    ProjectsStore.loadInitialData(organization.projects);
+  beforeEach(() => {
+    act(() => ProjectsStore.loadInitialData(organization.projects));
     endpointMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/',
       body: [
@@ -95,27 +96,48 @@ describe('ReleasesList', () => {
 
   it('displays the right empty state', async () => {
     let location;
+
     const project = TestStubs.Project({
       id: '3',
       slug: 'test-slug',
       name: 'test-name',
       features: ['releases'],
     });
-    const org = TestStubs.Organization({projects: [project]});
+    const projectWithouReleases = TestStubs.Project({
+      id: '4',
+      slug: 'test-slug-2',
+      name: 'test-name-2',
+      features: [],
+    });
+    const org = TestStubs.Organization({projects: [project, projectWithouReleases]});
     ProjectsStore.loadInitialData(org.projects);
-
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/',
       body: [],
     });
-
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/sentry-apps/',
+      body: [],
+    });
     // does not have releases set up and no releases
     location = {query: {}};
-    const {rerender} = render(<ReleasesList location={location} {...props} />, {
-      context: routerContext,
-      organization,
-    });
-    expect(await screen.findByText('Demystify Releases')).toBeInTheDocument();
+    const {rerender} = render(
+      <RouteContext.Provider value={routerContext}>
+        <ReleasesList
+          location={location}
+          {...props}
+          selection={{...props.selection, projects: [4]}}
+        />
+      </RouteContext.Provider>,
+      {
+        context: routerContext,
+        organization,
+      }
+    );
+
+    expect(
+      await screen.findByText('Configure Releases with the CLI')
+    ).toBeInTheDocument();
     expect(screen.queryByTestId('release-panel')).not.toBeInTheDocument();
 
     // has releases set up and no releases
@@ -279,12 +301,10 @@ describe('ReleasesList', () => {
       )
     );
 
-    const sortDropdown = await screen.findByText('Sort By');
-    const sortByOptions = within(sortDropdown.closest('div')).getAllByTestId('menu-item');
+    userEvent.click(screen.getByText('Sort By'));
 
-    const dateCreatedOption = sortByOptions.at(0);
-    expect(sortByOptions).toHaveLength(7);
-    expect(dateCreatedOption).toHaveTextContent('Date Created');
+    const dateCreatedOption = screen.getByText('Date Created');
+    expect(dateCreatedOption).toBeInTheDocument();
 
     userEvent.click(dateCreatedOption);
 
@@ -316,25 +336,24 @@ describe('ReleasesList', () => {
     expect(sortDropdown.parentElement).toHaveTextContent('Sort ByDate Created');
   });
 
-  it('display the right Crash Free column', async () => {
+  it('display the right Crash Free column', () => {
     render(<ReleasesList {...props} />, {
       context: routerContext,
       organization,
     });
-    const displayDropdown = await screen.findByText('Display');
 
-    expect(displayDropdown.parentElement).toHaveTextContent('DisplaySessions');
+    // Find and click on the display menu's trigger button
+    const statusTriggerButton = screen.getByRole('button', {
+      name: 'Display Sessions',
+    });
+    expect(statusTriggerButton).toBeInTheDocument();
+    userEvent.click(statusTriggerButton);
 
-    const displayOptions = within(displayDropdown.closest('div')).getAllByTestId(
-      'menu-item'
-    );
-    expect(displayOptions).toHaveLength(2);
-
-    const crashFreeSessionsOption = displayOptions.at(0);
-    expect(crashFreeSessionsOption).toHaveTextContent('Sessions');
-
-    const crashFreeUsersOption = displayOptions.at(1);
-    expect(crashFreeUsersOption).toHaveTextContent('Users');
+    // Expect to have 2 options in the status dropdown
+    const crashFreeSessionsOption = screen.getAllByText('Sessions')[1];
+    const crashFreeUsersOption = screen.getByText('Users');
+    expect(crashFreeSessionsOption).toBeInTheDocument();
+    expect(crashFreeUsersOption).toBeInTheDocument();
 
     userEvent.click(crashFreeUsersOption);
 
@@ -370,21 +389,18 @@ describe('ReleasesList', () => {
       await screen.findByText('These releases have been archived.')
     ).toBeInTheDocument();
 
-    const statusDropdown = screen.getByText('Status');
+    // Find and click on the status menu's trigger button
+    const statusTriggerButton = screen.getByRole('button', {
+      name: 'Status Archived',
+    });
+    expect(statusTriggerButton).toBeInTheDocument();
+    userEvent.click(statusTriggerButton);
 
-    expect(statusDropdown.parentElement).toHaveTextContent('StatusArchived');
-
-    const statusOptions = within(statusDropdown.closest('div')).getAllByTestId(
-      'menu-item'
-    );
-    expect(statusOptions).toHaveLength(2);
-
-    const statusActiveOption = statusOptions.at(0);
-    const statusArchivedOption = statusOptions.at(1);
-
-    expect(statusOptions).toHaveLength(2);
-    expect(statusActiveOption).toHaveTextContent('Active');
-    expect(statusArchivedOption).toHaveTextContent('Archived');
+    // Expect to have 2 options in the status dropdown
+    const statusActiveOption = screen.getByText('Active');
+    let statusArchivedOption = screen.getAllByText('Archived')[1];
+    expect(statusActiveOption).toBeInTheDocument();
+    expect(statusArchivedOption).toBeInTheDocument();
 
     userEvent.click(statusActiveOption);
     expect(router.push).toHaveBeenLastCalledWith({
@@ -393,6 +409,8 @@ describe('ReleasesList', () => {
       }),
     });
 
+    userEvent.click(statusTriggerButton);
+    statusArchivedOption = screen.getAllByText('Archived')[1];
     userEvent.click(statusArchivedOption);
     expect(router.push).toHaveBeenLastCalledWith({
       query: expect.objectContaining({

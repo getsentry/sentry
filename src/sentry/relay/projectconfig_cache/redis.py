@@ -1,5 +1,5 @@
 from sentry.relay.projectconfig_cache.base import ProjectConfigCache
-from sentry.utils import json, redis
+from sentry.utils import json, metrics, redis
 from sentry.utils.redis import validate_dynamic_cluster
 
 REDIS_CACHE_TIMEOUT = 3600  # 1 hr
@@ -19,6 +19,8 @@ class RedisProjectConfigCache(ProjectConfigCache):
         return f"relayconfig:{public_key}"
 
     def set_many(self, configs):
+        metrics.incr("relay.projectconfig_cache.write", amount=len(configs), tags={"action": "set"})
+
         # Note: Those are multiple pipelines, one per cluster node
         p = self.cluster.pipeline()
         for public_key, config in configs.items():
@@ -28,11 +30,14 @@ class RedisProjectConfigCache(ProjectConfigCache):
 
     def delete_many(self, public_keys):
         # Note: Those are multiple pipelines, one per cluster node
-        p = self.cluster.pipeline()
-        for public_key in public_keys:
-            p.delete(self.__get_redis_key(public_key))
+        with self.cluster.pipeline() as p:
+            for public_key in public_keys:
+                p.delete(self.__get_redis_key(public_key))
+            return_values = p.execute()
 
-        p.execute()
+        metrics.incr(
+            "relay.projectconfig_cache.write", amount=sum(return_values), tags={"action": "delete"}
+        )
 
     def get(self, public_key):
         rv = self.cluster.get(self.__get_redis_key(public_key))

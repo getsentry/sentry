@@ -1,3 +1,4 @@
+import pytest
 from django.urls import NoReverseMatch, reverse
 
 from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryProject
@@ -34,7 +35,7 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
         self.query_id_without_access = invalid.id
 
     def test_invalid_id(self):
-        with self.assertRaises(NoReverseMatch):
+        with pytest.raises(NoReverseMatch):
             reverse("sentry-api-0-discover-saved-query-detail", args=[self.org.slug, "not-an-id"])
 
     def test_get(self):

@@ -50,7 +50,7 @@ const GroupReleaseStats = ({
   const releaseTrackingUrl = `/settings/${organization.slug}/projects/${project.slug}/release-tracking/`;
 
   return (
-    <SidebarSection title={<span data-test-id="env-label">{environmentLabel}</span>}>
+    <div>
       {!group || !allEnvironments ? (
         <Placeholder height="288px" />
       ) : (
@@ -157,7 +157,7 @@ const GroupReleaseStats = ({
           ) : null}
         </Fragment>
       )}
-    </SidebarSection>
+    </div>
   );
 };
 

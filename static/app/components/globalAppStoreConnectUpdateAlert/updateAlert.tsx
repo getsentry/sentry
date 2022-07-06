@@ -4,13 +4,11 @@ import styled from '@emotion/styled';
 import Alert from 'sentry/components/alert';
 import AppStoreConnectContext from 'sentry/components/projects/appStoreConnectContext';
 import space from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import {Project} from 'sentry/types';
 
 type Props = {
-  organization: Organization;
   Wrapper?: React.ComponentType;
   className?: string;
-  isCompact?: boolean;
   project?: Project;
 };
 

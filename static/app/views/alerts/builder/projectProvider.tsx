@@ -1,7 +1,8 @@
-import {cloneElement, isValidElement, useEffect} from 'react';
+import {cloneElement, Fragment, isValidElement, useEffect} from 'react';
 import {RouteComponentProps} from 'react-router';
 
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
+import {navigateTo} from 'sentry/actionCreators/navigation';
 import Alert from 'sentry/components/alert';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
@@ -38,7 +39,7 @@ function AlertBuilderProjectProvider(props: Props) {
         }
   );
   const project = useFirstProject
-    ? projects.find(p => p.isMember)
+    ? projects.find(p => p.isMember) ?? (projects.length && projects[0])
     : projects.find(({slug}) => slug === projectId);
 
   useEffect(() => {
@@ -54,6 +55,16 @@ function AlertBuilderProjectProvider(props: Props) {
     return <LoadingIndicator />;
   }
 
+  // If there's no project show the project selector modal
+  if (!project && !fetchError) {
+    navigateTo(
+      hasAlertWizardV3
+        ? `/organizations/${organization.slug}/alerts/wizard/?referrer=${props.location.query.referrer}&project=:projectId`
+        : `/organizations/${organization.slug}/alerts/:projectId/wizard/?referrer=${props.location.query.referrer}`,
+      props.router
+    );
+  }
+
   // if loaded, but project fetching states incomplete or project can't be found, project doesn't exist
   if (!project || fetchError) {
     return (
@@ -61,15 +72,19 @@ function AlertBuilderProjectProvider(props: Props) {
     );
   }
 
-  return children && isValidElement(children)
-    ? cloneElement(children, {
-        ...other,
-        ...children.props,
-        project,
-        projectId: useFirstProject ? project.slug : projectId,
-        organization,
-      })
-    : children;
+  return (
+    <Fragment>
+      {children && isValidElement(children)
+        ? cloneElement(children, {
+            ...other,
+            ...children.props,
+            project,
+            projectId: useFirstProject ? project.slug : projectId,
+            organization,
+          })
+        : children}
+    </Fragment>
+  );
 }
 
 export default AlertBuilderProjectProvider;

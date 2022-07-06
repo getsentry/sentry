@@ -1,10 +1,9 @@
 import styled from '@emotion/styled';
 
 import {IconLock} from 'sentry/icons';
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import space from 'sentry/styles/space';
 import {PinnedPageFilter} from 'sentry/types';
+import usePageFilters from 'sentry/utils/usePageFilters';
 
 type Props = {
   children: React.ReactNode;
@@ -12,7 +11,7 @@ type Props = {
 };
 
 function PageFilterPinIndicator({children, filter}: Props) {
-  const {pinnedFilters} = useLegacyStore(PageFiltersStore);
+  const {pinnedFilters} = usePageFilters();
   const pinned = pinnedFilters.has(filter);
 
   return (
@@ -43,7 +42,6 @@ const IndicatorWrap = styled('div')`
   transform: translate(50%, 35%);
   border-radius: 50%;
   background-color: ${p => p.theme.background};
-  opacity: 0.95;
 
   padding: ${space(0.25)};
 
@@ -55,5 +53,5 @@ const IndicatorWrap = styled('div')`
 const StyledIconLock = styled(IconLock)`
   width: 0.5rem;
   height: 0.5rem;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.textColor};
 `;

@@ -50,7 +50,7 @@ export function useShortInterval(datetimeObj: DateTimeObject): boolean {
   return diffInMinutes <= TWENTY_FOUR_HOURS;
 }
 
-type Fidelity = 'high' | 'medium' | 'low';
+export type Fidelity = 'high' | 'medium' | 'low';
 
 export function getInterval(datetimeObj: DateTimeObject, fidelity: Fidelity = 'medium') {
   const diffInMinutes = getDiffInMinutes(datetimeObj);
@@ -251,13 +251,13 @@ export const processTableResults = (tableResults?: TableDataWithTitle[]) => {
 
   const tableResult = tableResults[0];
 
-  const {data, meta} = tableResult;
+  const {data} = tableResult;
 
-  if (!data || !data.length || !meta) {
+  if (!data || !data.length) {
     return DEFAULT_GEO_DATA;
   }
 
-  const preAggregate = Object.keys(meta).find(column => {
+  const preAggregate = Object.keys(data[0]).find(column => {
     return column !== 'geo.country_code';
   });
 

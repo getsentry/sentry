@@ -33,8 +33,6 @@ export type SessionsOperation =
   | 'count_crashed';
 
 export type SessionAggregationColumn = {
-  columnTypes: string[];
-  defaultValue: SessionsMeta['name'];
   outputType: AggregationOutputType | null;
   parameters: Readonly<AggregateParameter[]>;
 };

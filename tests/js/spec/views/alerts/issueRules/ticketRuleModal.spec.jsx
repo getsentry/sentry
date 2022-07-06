@@ -124,7 +124,7 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
   };
 
   describe('Create Rule', function () {
-    it('should render the Ticket Rule modal', async function () {
+    it('should render the Ticket Rule modal', function () {
       const wrapper = createWrapper();
       expect(wrapper.find('Button[data-test-id="form-submit"]').text()).toEqual(
         'Apply Changes'
@@ -135,19 +135,19 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
       expect(formFields.at(1).text()).toEqual('Description');
     });
 
-    it('should save the modal data when "Apply Changes" is clicked with valid data', async function () {
+    it('should save the modal data when "Apply Changes" is clicked with valid data', function () {
       const wrapper = createWrapper();
       selectByValue(wrapper, 'a', {name: 'reporter'});
       submitSuccess(wrapper);
     });
 
-    it('should raise validation errors when "Apply Changes" is clicked with invalid data', async function () {
+    it('should raise validation errors when "Apply Changes" is clicked with invalid data', function () {
       // This doesn't test anything TicketRules specific but I'm leaving it here as an example.
       const wrapper = createWrapper();
       submitErrors(wrapper, 1);
     });
 
-    it('should reload fields when an "updatesForm" field changes', async function () {
+    it('should reload fields when an "updatesForm" field changes', function () {
       const wrapper = createWrapper();
       selectByValue(wrapper, 'a', {name: 'reporter'});
 
@@ -165,7 +165,7 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
       submitSuccess(wrapper);
     });
 
-    it('should persist values when the modal is reopened', async function () {
+    it('should persist values when the modal is reopened', function () {
       const wrapper = createWrapper({data: {reporter: 'a'}});
       submitSuccess(wrapper);
     });

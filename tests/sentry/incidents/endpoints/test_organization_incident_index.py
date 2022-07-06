@@ -32,7 +32,7 @@ class IncidentListEndpointTest(APITestCase):
 
         self.login_as(self.user)
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
-            resp = self.get_valid_response(self.organization.slug)
+            resp = self.get_success_response(self.organization.slug)
 
         assert resp.data == serialize([other_incident, incident])
 
@@ -43,8 +43,8 @@ class IncidentListEndpointTest(APITestCase):
         self.login_as(self.user)
 
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
-            resp_closed = self.get_valid_response(self.organization.slug, status="closed")
-            resp_open = self.get_valid_response(self.organization.slug, status="open")
+            resp_closed = self.get_success_response(self.organization.slug, status="closed")
+            resp_open = self.get_success_response(self.organization.slug, status="open")
 
         assert len(resp_closed.data) == 1
         assert len(resp_open.data) == 1
@@ -62,8 +62,10 @@ class IncidentListEndpointTest(APITestCase):
         self.login_as(self.user)
 
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
-            resp_filter_env = self.get_valid_response(self.organization.slug, environment=env.name)
-            resp_no_env_filter = self.get_valid_response(self.organization.slug)
+            resp_filter_env = self.get_success_response(
+                self.organization.slug, environment=env.name
+            )
+            resp_no_env_filter = self.get_success_response(self.organization.slug)
 
         # The alert without an environment assigned should not be selected
         assert len(resp_filter_env.data) == 1
@@ -88,11 +90,11 @@ class IncidentListEndpointTest(APITestCase):
 
         self.login_as(self.user)
         with self.feature("organizations:incidents"):
-            resp = self.get_valid_response(self.organization.slug)
+            resp = self.get_success_response(self.organization.slug)
             assert resp.data == serialize([incident])
 
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
-            resp = self.get_valid_response(self.organization.slug)
+            resp = self.get_success_response(self.organization.slug)
             assert resp.data == serialize([incident, perf_incident])
 
     def test_filter_start_end_times(self):
@@ -111,13 +113,13 @@ class IncidentListEndpointTest(APITestCase):
         )
         self.login_as(self.user)
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
-            resp_all = self.get_valid_response(self.organization.slug)
-            resp_new = self.get_valid_response(
+            resp_all = self.get_success_response(self.organization.slug)
+            resp_new = self.get_success_response(
                 self.organization.slug,
                 start=(timezone.now() - timedelta(hours=12)).isoformat(),
                 end=timezone.now().isoformat(),
             )
-            resp_old = self.get_valid_response(
+            resp_old = self.get_success_response(
                 self.organization.slug,
                 start=(timezone.now() - timedelta(hours=36)).isoformat(),
                 end=(timezone.now() - timedelta(hours=24)).isoformat(),
@@ -133,8 +135,8 @@ class IncidentListEndpointTest(APITestCase):
         self.login_as(self.user)
 
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
-            results = self.get_valid_response(self.organization.slug, title="yet")
-            no_results = self.get_valid_response(self.organization.slug, title="no results")
+            results = self.get_success_response(self.organization.slug, title="yet")
+            no_results = self.get_success_response(self.organization.slug, title="no results")
 
         assert len(results.data) == 1
         assert len(no_results.data) == 0
@@ -166,20 +168,17 @@ class IncidentListEndpointTest(APITestCase):
         self.login_as(self.user)
 
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
-            results = self.get_valid_response(self.organization.slug, project=[self.project.id])
-        assert results.status_code == 200
+            results = self.get_success_response(self.organization.slug, project=[self.project.id])
         assert len(results.data) == 3
 
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
-            results = self.get_valid_response(
+            results = self.get_success_response(
                 self.organization.slug, project=[self.project.id], team=[team.id]
             )
-        assert results.status_code == 200
         assert len(results.data) == 1
 
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
-            results = self.get_valid_response(
+            results = self.get_success_response(
                 self.organization.slug, project=[self.project.id], team=[team.id, other_team.id]
             )
-        assert results.status_code == 200
         assert len(results.data) == 2

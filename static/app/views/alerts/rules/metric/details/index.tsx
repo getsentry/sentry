@@ -75,6 +75,9 @@ class MetricAlertDetails extends Component<Props, State> {
       organization,
       rule_id: parseInt(params.ruleId, 10),
       alert: (location.query.alert as string) ?? '',
+      has_chartcuterie: organization.features
+        .includes('metric-alert-chartcuterie')
+        .toString(),
     });
   }
 
@@ -91,9 +94,9 @@ class MetricAlertDetails extends Component<Props, State> {
         label: t('Custom time'),
         display: (
           <Fragment>
-            <DateTime date={moment.utc(location.query.start)} timeAndDate />
+            <DateTime date={moment.utc(location.query.start)} />
             {' — '}
-            <DateTime date={moment.utc(location.query.end)} timeAndDate />
+            <DateTime date={moment.utc(location.query.end)} />
           </Fragment>
         ),
         custom: true,
@@ -110,9 +113,9 @@ class MetricAlertDetails extends Component<Props, State> {
         label: t('Custom time'),
         display: (
           <Fragment>
-            <DateTime date={moment.utc(start)} timeAndDate />
+            <DateTime date={moment.utc(start)} />
             {' — '}
-            <DateTime date={moment.utc(end)} timeAndDate />
+            <DateTime date={moment.utc(end)} />
           </Fragment>
         ),
         custom: true,
@@ -216,13 +219,8 @@ class MetricAlertDetails extends Component<Props, State> {
       <PageFiltersContainer
         skipLoadLastUsed
         skipInitializeUrlParams
-        isGlobalSelectionReady={isGlobalSelectionReady}
         shouldForceProject={isGlobalSelectionReady}
         forceProject={project}
-        forceEnvironment={rule?.environment ?? ''}
-        lockedMessageSubject={t('alert rule')}
-        showDateSelector={false}
-        hideGlobalHeader
       >
         <SentryDocumentTitle title={rule?.name ?? ''} />
 

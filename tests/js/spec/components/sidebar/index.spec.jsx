@@ -18,15 +18,14 @@ describe('Sidebar', function () {
   const location = {...router.location, ...{pathname: '/test/'}};
 
   const getElement = props => (
-    <SidebarContainer organization={organization} location={location} {...props} />
+    <OrganizationContext.Provider value={organization}>
+      <PersistedStoreProvider>
+        <SidebarContainer organization={organization} location={location} {...props} />
+      </PersistedStoreProvider>
+    </OrganizationContext.Provider>
   );
 
-  const renderSidebar = props =>
-    render(
-      <OrganizationContext.Provider value={organization}>
-        <PersistedStoreProvider>{getElement(props)}</PersistedStoreProvider>
-      </OrganizationContext.Provider>
-    );
+  const renderSidebar = props => render(getElement(props));
 
   beforeEach(function () {
     apiMocks.broadcasts = MockApiClient.addMockResponse({
@@ -146,7 +145,6 @@ describe('Sidebar', function () {
       expect(screen.getByText("What's new in Sentry")).toBeInTheDocument();
 
       rerender(getElement({location: {...router.location, pathname: 'new-path-name'}}));
-
       expect(screen.queryByText("What's new in Sentry")).not.toBeInTheDocument();
       await tick();
     });
@@ -251,6 +249,7 @@ describe('Sidebar', function () {
       const {container} = renderSidebar();
 
       userEvent.click(await screen.findByText('Service status'));
+      await screen.findByText('Recent service updates');
 
       expect(container).toSnapshot();
     });

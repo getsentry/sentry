@@ -35,9 +35,13 @@ import {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getUtcDateString} from 'sentry/utils/dates';
-import {TableDataRow, TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
-import {isAggregateField, isEquation} from 'sentry/utils/discover/fields';
+import {
+  isAggregateField,
+  isEquation,
+  isEquationAlias,
+} from 'sentry/utils/discover/fields';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {decodeInteger, decodeList, decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
@@ -50,11 +54,13 @@ import {
   getWidgetDiscoverUrl,
   getWidgetIssueUrl,
   getWidgetReleasesUrl,
+  isCustomMeasurementWidget,
 } from 'sentry/views/dashboardsV2/utils';
 import WidgetCardChart, {
   AugmentedEChartDataZoomHandler,
   SLIDER_HEIGHT,
 } from 'sentry/views/dashboardsV2/widgetCard/chart';
+import {GenericWidgetQueriesChildrenProps} from 'sentry/views/dashboardsV2/widgetCard/genericWidgetQueries';
 import IssueWidgetQueries from 'sentry/views/dashboardsV2/widgetCard/issueWidgetQueries';
 import ReleaseWidgetQueries from 'sentry/views/dashboardsV2/widgetCard/releaseWidgetQueries';
 import {WidgetCardChartContainer} from 'sentry/views/dashboardsV2/widgetCard/widgetCardChartContainer';
@@ -72,7 +78,6 @@ import {
 export interface WidgetViewerModalOptions {
   organization: Organization;
   widget: Widget;
-  issuesData?: TableDataRow[];
   onEdit?: () => void;
   pageLinks?: string;
   seriesData?: Series[];
@@ -153,7 +158,6 @@ function WidgetViewerModal(props: Props) {
     params,
     seriesData,
     tableData,
-    issuesData,
     totalIssuesCount,
     pageLinks: defaultPageLinks,
   } = props;
@@ -254,12 +258,13 @@ function WidgetViewerModal(props: Props) {
     : [...columns, ...aggregates];
 
   // Some Discover Widgets (Line, Area, Bar) allow the user to specify an orderby
-  // that is not explicitly selected as an aggregate or column. We need to explictly
+  // that is not explicitly selected as an aggregate or column. We need to explicitly
   // include the orderby in the table widget aggregates and columns otherwise
   // eventsv2 will complain about sorting on an unselected field.
   if (
     widget.widgetType === WidgetType.DISCOVER &&
     orderby &&
+    !isEquationAlias(rawOrderby) &&
     !fields.includes(rawOrderby)
   ) {
     fields.push(rawOrderby);
@@ -357,7 +362,8 @@ function WidgetViewerModal(props: Props) {
   let columnOrder = decodeColumnOrder(
     fields.map(field => ({
       field,
-    }))
+    })),
+    organization.features.includes('discover-frontend-use-events-endpoint')
   );
   const columnSortBy = eventView.getSorts();
   columnOrder = columnOrder.map((column, index) => ({
@@ -432,11 +438,11 @@ function WidgetViewerModal(props: Props) {
     });
   }
 
-  const renderDiscoverTable: WidgetQueries['props']['children'] = ({
+  const renderDiscoverTable = ({
     tableResults,
     loading,
     pageLinks,
-  }) => {
+  }: GenericWidgetQueriesChildrenProps) => {
     const links = parseLinkHeader(pageLinks ?? null);
     const isFirstPage = links.previous?.results === false;
     return (
@@ -497,12 +503,12 @@ function WidgetViewerModal(props: Props) {
     );
   };
 
-  const renderIssuesTable: IssueWidgetQueries['props']['children'] = ({
-    transformedResults,
+  const renderIssuesTable = ({
+    tableResults,
     loading,
     pageLinks,
     totalCount,
-  }) => {
+  }: GenericWidgetQueriesChildrenProps) => {
     if (totalResults === undefined && totalCount) {
       setTotalResults(totalCount);
     }
@@ -511,7 +517,7 @@ function WidgetViewerModal(props: Props) {
       <Fragment>
         <GridEditable
           isLoading={loading}
-          data={transformedResults}
+          data={tableResults?.[0]?.data ?? []}
           columnOrder={columnOrder}
           columnSortBy={columnSortBy}
           grid={{
@@ -609,25 +615,26 @@ function WidgetViewerModal(props: Props) {
           }}
           location={location}
         />
-        {(links?.previous?.results || links?.next?.results) && (
-          <Pagination
-            pageLinks={pageLinks}
-            onCursor={newCursor => {
-              router.replace({
-                pathname: location.pathname,
-                query: {
-                  ...location.query,
-                  [WidgetViewerQueryField.CURSOR]: newCursor,
-                },
-              });
-              trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.paginate', {
-                organization,
-                widget_type: WidgetType.RELEASE,
-                display_type: widget.displayType,
-              });
-            }}
-          />
-        )}
+        {!tableWidget.queries[0].orderby.match(/^-?release$/) &&
+          (links?.previous?.results || links?.next?.results) && (
+            <Pagination
+              pageLinks={pageLinks}
+              onCursor={newCursor => {
+                router.replace({
+                  pathname: location.pathname,
+                  query: {
+                    ...location.query,
+                    [WidgetViewerQueryField.CURSOR]: newCursor,
+                  },
+                });
+                trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.paginate', {
+                  organization,
+                  widget_type: WidgetType.RELEASE,
+                  display_type: widget.displayType,
+                });
+              }}
+            />
+          )}
       </Fragment>
     );
   };
@@ -682,9 +689,9 @@ function WidgetViewerModal(props: Props) {
   function renderWidgetViewerTable() {
     switch (widget.widgetType) {
       case WidgetType.ISSUE:
-        if (issuesData && chartUnmodified && widget.displayType === DisplayType.TABLE) {
+        if (tableData && chartUnmodified && widget.displayType === DisplayType.TABLE) {
           return renderIssuesTable({
-            transformedResults: issuesData,
+            tableResults: tableData,
             loading: false,
             errorMessage: undefined,
             pageLinks: defaultPageLinks,
@@ -726,7 +733,6 @@ function WidgetViewerModal(props: Props) {
                 ? FULL_TABLE_ITEM_LIMIT
                 : HALF_TABLE_ITEM_LIMIT
             }
-            includeAllArgs
             cursor={cursor}
           >
             {renderReleaseTable}
@@ -973,6 +979,7 @@ function WidgetViewerModal(props: Props) {
                 to={path}
                 priority="primary"
                 type="button"
+                disabled={isCustomMeasurementWidget(widget)}
                 onClick={() => {
                   trackAdvancedAnalyticsEvent(
                     'dashboards_views.widget_viewer.open_source',
@@ -1050,6 +1057,7 @@ const HighlightContainer = styled('span')<{display?: 'block' | 'flex'}>`
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSizeSmall};
   line-height: 2;
+  flex: 1;
 `;
 
 const ResultsContainer = styled('div')`
@@ -1058,7 +1066,7 @@ const ResultsContainer = styled('div')`
   flex-direction: column;
   gap: ${space(1)};
 
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     align-items: center;
     flex-direction: row;
     justify-content: space-between;

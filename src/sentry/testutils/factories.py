@@ -90,20 +90,16 @@ from sentry.models.integrations.integration_feature import Feature, IntegrationT
 from sentry.models.releasefile import update_artifact_index
 from sentry.signals import project_created
 from sentry.snuba.models import QueryDatasets
+from sentry.types.activity import ActivityType
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json, loremipsum
 
 
-def get_fixture_path(name):
-    return os.path.join(
-        os.path.dirname(__file__),  # src/sentry/testutils/
-        os.pardir,  # src/sentry/
-        os.pardir,  # src/
-        os.pardir,
-        "tests",
-        "fixtures",
-        name,
-    )
+def get_fixture_path(*parts: str) -> str:
+    path = os.path.realpath(__file__)
+    for _ in range(4):  # src/sentry/testutils/{__file__}
+        path = os.path.dirname(path)
+    return os.path.join(path, "fixtures", *parts)
 
 
 def make_sentence(words=None):
@@ -414,7 +410,7 @@ class Factories:
                 )
 
         Activity.objects.create(
-            type=Activity.RELEASE,
+            type=ActivityType.RELEASE.value,
             project=project,
             ident=Activity.get_version_ident(version),
             user=user,
@@ -1207,5 +1203,9 @@ class Factories:
     def create_comment(issue, project, user, text="hello world"):
         data = {"text": text}
         return Activity.objects.create(
-            project=project, group=issue, type=Activity.NOTE, user=user, data=data
+            project=project,
+            group=issue,
+            type=ActivityType.NOTE.value,
+            user=user,
+            data=data,
         )

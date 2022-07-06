@@ -4,6 +4,13 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 
+from fixtures.page_objects.dashboard_detail import (
+    EDIT_WIDGET_BUTTON,
+    WIDGET_DRAG_HANDLE,
+    WIDGET_RESIZE_HANDLE,
+    WIDGET_TITLE_FIELD,
+    DashboardDetailPage,
+)
 from sentry.models import (
     Dashboard,
     DashboardWidget,
@@ -13,13 +20,6 @@ from sentry.models import (
 )
 from sentry.testutils import AcceptanceTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from tests.acceptance.page_objects.dashboard_detail import (
-    EDIT_WIDGET_BUTTON,
-    WIDGET_DRAG_HANDLE,
-    WIDGET_RESIZE_HANDLE,
-    WIDGET_TITLE_FIELD,
-    DashboardDetailPage,
-)
 
 FEATURE_NAMES = [
     "organizations:discover-basic",

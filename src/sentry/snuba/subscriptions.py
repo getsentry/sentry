@@ -38,16 +38,17 @@ def create_snuba_query(
         environment=environment,
     )
     if not event_types:
-        event_types = [
-            SnubaQueryEventType.EventType.ERROR
-            if dataset == QueryDatasets.EVENTS
-            else SnubaQueryEventType.EventType.TRANSACTION
+        if dataset == QueryDatasets.EVENTS:
+            event_types = [SnubaQueryEventType.EventType.ERROR]
+        elif dataset == QueryDatasets.TRANSACTIONS:
+            event_types = [SnubaQueryEventType.EventType.TRANSACTION]
+
+    if event_types:
+        sq_event_types = [
+            SnubaQueryEventType(snuba_query=snuba_query, type=event_type.value)
+            for event_type in set(event_types)
         ]
-    sq_event_types = [
-        SnubaQueryEventType(snuba_query=snuba_query, type=event_type.value)
-        for event_type in set(event_types)
-    ]
-    SnubaQueryEventType.objects.bulk_create(sq_event_types)
+        SnubaQueryEventType.objects.bulk_create(sq_event_types)
     return snuba_query
 
 

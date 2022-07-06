@@ -5,11 +5,10 @@ from typing import Any
 
 from django.utils import timezone
 
+from fixtures.bitbucket import PUSH_EVENT_EXAMPLE
 from sentry.integrations.bitbucket.webhook import PROVIDER_NAME
 from sentry.models import Commit, CommitAuthor, Repository
 from sentry.testutils import APITestCase
-
-from .testutils import PUSH_EVENT_EXAMPLE
 
 BAD_IP = "109.111.111.10"
 BITBUCKET_IP_IN_RANGE = "104.192.143.10"

@@ -3,7 +3,7 @@ import {render} from 'sentry-test/reactTestingLibrary';
 import TeamAlertsTriggered from 'sentry/views/organizationStats/teamInsights/teamAlertsTriggered';
 
 describe('TeamAlertsTriggered', () => {
-  it('should render graph of alerts triggered', async () => {
+  it('should render graph of alerts triggered', () => {
     const team = TestStubs.Team();
     const organization = TestStubs.Organization();
     const alertsTriggeredApi = MockApiClient.addMockResponse({

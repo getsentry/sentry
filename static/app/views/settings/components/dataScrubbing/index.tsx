@@ -181,8 +181,8 @@ class DataScrubbing<T extends ProjectId = undefined> extends Component<Props<T>,
             disabled={disabled}
           />
           <PanelAction>
-            <Button href={ADVANCED_DATASCRUBBING_LINK} target="_blank">
-              {t('Read the docs')}
+            <Button href={ADVANCED_DATASCRUBBING_LINK} external>
+              {t('Read Docs')}
             </Button>
             <Button
               disabled={disabled}

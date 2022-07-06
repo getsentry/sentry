@@ -21,6 +21,7 @@ from sentry.models import (
     Repository,
 )
 from sentry.testutils import APITestCase
+from sentry.types.activity import ActivityType
 
 
 class ReleaseDetailsTest(APITestCase):
@@ -845,7 +846,7 @@ class UpdateReleaseDetailsTest(APITestCase):
 
         # Simulate a concurrent request by using an existing release
         # that has its commit lock taken out.
-        lock = locks.get(Release.get_lock_key(org.id, release.id), duration=10)
+        lock = locks.get(Release.get_lock_key(org.id, release.id), duration=10, name="release")
         lock.acquire()
 
         url = reverse(
@@ -914,7 +915,7 @@ class UpdateReleaseDetailsTest(APITestCase):
         assert release.date_released
 
         activity = Activity.objects.filter(
-            type=Activity.RELEASE, project=project, ident=release.version
+            type=ActivityType.RELEASE.value, project=project, ident=release.version
         )
         assert activity.exists()
 
@@ -948,7 +949,7 @@ class UpdateReleaseDetailsTest(APITestCase):
         assert release.date_released
 
         activity = Activity.objects.filter(
-            type=Activity.RELEASE, project=project, ident=release.version[:64]
+            type=ActivityType.RELEASE.value, project=project, ident=release.version[:64]
         )
         assert activity.exists()
 

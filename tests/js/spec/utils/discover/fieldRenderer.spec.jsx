@@ -133,7 +133,7 @@ describe('getFieldRenderer', function () {
     const renderer = getFieldRenderer('timestamp.to_day', {'timestamp.to_day': 'date'});
     const wrapper = mountWithTheme(renderer(data, {location, organization}));
     const text = wrapper.find('Container');
-    expect(text.text()).toEqual('September 5, 2021');
+    expect(text.text()).toEqual('Sep 5, 2021');
   });
 
   it('can render error.handled values', function () {
@@ -254,7 +254,7 @@ describe('getFieldRenderer', function () {
     expect(value.text()).toEqual(project.slug);
   });
 
-  it('can render team key transaction as a star with the dropdown', async function () {
+  it('can render team key transaction as a star with the dropdown', function () {
     const renderer = getFieldRenderer('team_key_transaction', {
       team_key_transaction: 'boolean',
     });
@@ -271,7 +271,7 @@ describe('getFieldRenderer', function () {
     expect(wrapper.find('TeamKeyTransaction')).toHaveLength(1);
   });
 
-  it('can render team key transaction as a star without the dropdown', async function () {
+  it('can render team key transaction as a star without the dropdown', function () {
     const renderer = getFieldRenderer('team_key_transaction', {
       team_key_transaction: 'boolean',
     });
@@ -294,7 +294,7 @@ describe('getFieldRenderer', function () {
     const getWidth = (wrapper, index) =>
       wrapper.children().children().at(index).getDOMNode().style.width;
 
-    it('can render operation breakdowns', async function () {
+    it('can render operation breakdowns', function () {
       const renderer = getFieldRenderer(SPAN_OP_RELATIVE_BREAKDOWN_FIELD, {
         [SPAN_OP_RELATIVE_BREAKDOWN_FIELD]: 'string',
       });
@@ -312,7 +312,7 @@ describe('getFieldRenderer', function () {
       expect(getWidth(value, 3)).toEqual('26.667%');
     });
 
-    it('renders operation breakdowns in sorted order when a sort field is provided', async function () {
+    it('renders operation breakdowns in sorted order when a sort field is provided', function () {
       const renderer = getFieldRenderer(SPAN_OP_RELATIVE_BREAKDOWN_FIELD, {
         [SPAN_OP_RELATIVE_BREAKDOWN_FIELD]: 'string',
       });

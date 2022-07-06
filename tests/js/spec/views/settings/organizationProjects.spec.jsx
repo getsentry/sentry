@@ -54,7 +54,7 @@ describe('OrganizationProjects', function () {
     expect(projectsPutMock).toHaveBeenCalledTimes(1);
   });
 
-  it('should search organization projects', async function () {
+  it('should search organization projects', function () {
     const searchMock = MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/projects/`,
       body: [],

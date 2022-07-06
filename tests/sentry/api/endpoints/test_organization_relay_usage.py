@@ -82,7 +82,7 @@ class OrganizationRelayHistoryTest(APITestCase):
         """
 
         self.login_as(user=self.user)
-        response = self.get_valid_response(self.organization.slug)
+        response = self.get_success_response(self.organization.slug)
         assert response.data == []
 
     @with_feature({"organizations:relay": False})
@@ -103,7 +103,7 @@ class OrganizationRelayHistoryTest(APITestCase):
         self.login_as(user=self.user)
         pks = self._public_keys()
         self._set_org_public_keys([pks[0], pks[1]])
-        response = self.get_valid_response(self.organization.slug)
+        response = self.get_success_response(self.organization.slug)
 
         data = response.data
 

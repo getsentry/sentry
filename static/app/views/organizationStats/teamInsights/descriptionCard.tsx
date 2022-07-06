@@ -29,7 +29,7 @@ const Wrapper = styled('div')`
   margin-bottom: ${space(3)};
   flex-direction: column;
 
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
     flex-direction: row;
   }
 `;
@@ -38,7 +38,7 @@ const LeftPanel = styled('div')`
   padding: ${space(2)} ${space(2)};
   border-bottom: 1px solid ${p => p.theme.border};
 
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
     max-width: 250px;
     border-right: 1px solid ${p => p.theme.border};
     border-bottom: 0;

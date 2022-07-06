@@ -8,6 +8,7 @@ from sentry import eventstore, eventstream, nodestore
 from sentry.eventstore.models import Event
 from sentry.reprocessing2 import buffered_delete_old_primary_hash
 from sentry.tasks.base import instrumented_task, retry
+from sentry.tasks.process_buffer import buffer_incr
 from sentry.utils import metrics
 from sentry.utils.query import celery_run_batch_query
 
@@ -155,7 +156,6 @@ def handle_remaining_events(
     See doc comment in sentry.reprocessing2.
     """
 
-    from sentry import buffer
     from sentry.models.group import Group
     from sentry.reprocessing2 import EVENT_MODELS_TO_MIGRATE, pop_batched_events_from_redis
 
@@ -196,7 +196,7 @@ def handle_remaining_events(
             to_timestamp=to_timestamp,
         )
 
-        buffer.incr(Group, {"times_seen": len(event_ids)}, {"id": new_group_id})
+        buffer_incr(Group, {"times_seen": len(event_ids)}, {"id": new_group_id})
     else:
         raise ValueError(f"Invalid value for remaining_events: {remaining_events}")
 

@@ -142,6 +142,19 @@ class SnubaTSDBTest(OutcomesSnubaTest):
                 1,
             )
 
+        # Add client-discards (which we shouldn't show in total queries)
+        self.store_outcomes(
+            {
+                "org_id": other_organization.id,
+                "project_id": self.project.id,
+                "outcome": Outcome.CLIENT_DISCARD.value,
+                "category": DataCategory.ERROR,
+                "timestamp": self.start_time,
+                "quantity": 1,
+            },
+            5,
+        )
+
         for tsdb_model, granularity, floor_func, start_time_count, day_later_count in [
             (TSDBModel.organization_total_received, 3600, floor_to_hour_epoch, 4 * 3, 5 * 3),
             (TSDBModel.organization_total_rejected, 3600, floor_to_hour_epoch, 4, 5),

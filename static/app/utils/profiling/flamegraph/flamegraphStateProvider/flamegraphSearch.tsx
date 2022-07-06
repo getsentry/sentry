@@ -1,9 +1,16 @@
+import type Fuse from 'fuse.js';
+
 import {FlamegraphFrame} from '../../flamegraphFrame';
 
-type FlamegraphSearch = {
+export type FlamegraphSearchResult = {
+  frame: FlamegraphFrame;
+  matchIndices: Fuse.RangeTuple[];
+};
+
+export type FlamegraphSearch = {
   index: number | null;
   query: string;
-  results: Record<string, FlamegraphFrame> | null;
+  results: Record<string, FlamegraphSearchResult> | null;
 };
 
 type ClearFlamegraphSearchAction = {

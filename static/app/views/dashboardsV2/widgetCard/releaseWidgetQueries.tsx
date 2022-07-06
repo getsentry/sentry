@@ -4,15 +4,15 @@ import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 import trimStart from 'lodash/trimStart';
 
-import {doMetricsRequest} from 'sentry/actionCreators/metrics';
-import {doSessionsRequest} from 'sentry/actionCreators/sessions';
-import {Client, ResponseMeta} from 'sentry/api';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {Client} from 'sentry/api';
 import {isSelectionEqual} from 'sentry/components/organizations/pageFilters/utils';
 import {t} from 'sentry/locale';
 import {
   MetricsApiResponse,
-  OrganizationSummary,
+  Organization,
   PageFilters,
+  Release,
   SessionApiResponse,
 } from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
@@ -20,32 +20,27 @@ import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {stripDerivedMetricsPrefix} from 'sentry/utils/discover/fields';
 import {TOP_N} from 'sentry/utils/discover/types';
 
-import {DEFAULT_TABLE_LIMIT, DisplayType, Widget} from '../types';
-import {getWidgetInterval} from '../utils';
+import {ReleasesConfig} from '../datasetConfig/releases';
+import {DEFAULT_TABLE_LIMIT, DisplayType, Widget, WidgetQuery} from '../types';
 import {
   DERIVED_STATUS_METRICS_PATTERN,
   DerivedStatusFields,
   DISABLED_SORT,
-  FIELD_TO_METRICS_EXPRESSION,
   METRICS_EXPRESSION_TO_FIELD,
 } from '../widgetBuilder/releaseWidget/fields';
 
-import {transformSessionsResponseToSeries} from './transformSessionsResponseToSeries';
-import {transformSessionsResponseToTable} from './transformSessionsResponseToTable';
+import GenericWidgetQueries, {
+  GenericWidgetQueriesChildrenProps,
+  GenericWidgetQueriesProps,
+} from './genericWidgetQueries';
 
 type Props = {
   api: Client;
-  children: (
-    props: Pick<
-      State,
-      'loading' | 'timeseriesResults' | 'tableResults' | 'errorMessage' | 'pageLinks'
-    >
-  ) => React.ReactNode;
-  organization: OrganizationSummary;
+  children: (props: GenericWidgetQueriesChildrenProps) => JSX.Element;
+  organization: Organization;
   selection: PageFilters;
   widget: Widget;
   cursor?: string;
-  includeAllArgs?: boolean;
   limit?: number;
   onDataFetched?: (results: {
     tableResults?: TableDataWithTitle[];
@@ -56,19 +51,33 @@ type Props = {
 type State = {
   loading: boolean;
   errorMessage?: string;
-  pageLinks?: string;
-  queryFetchID?: symbol;
-  rawResults?: SessionApiResponse[] | MetricsApiResponse[];
-  tableResults?: TableDataWithTitle[];
-  timeseriesResults?: Series[];
+  releases?: Release[];
 };
-
-function fieldsToDerivedMetrics(field: string): string {
-  return FIELD_TO_METRICS_EXPRESSION[field] ?? field;
-}
 
 export function derivedMetricsToField(field: string): string {
   return METRICS_EXPRESSION_TO_FIELD[field] ?? field;
+}
+
+function getReleasesQuery(releases: Release[]): {
+  releaseQueryString: string;
+  releasesUsed: string[];
+} {
+  let releaseCondition = '';
+  const releasesArray: string[] = [];
+  releaseCondition += 'release:[' + releases[0].version;
+  releasesArray.push(releases[0].version);
+  for (let i = 1; i < releases.length; i++) {
+    releaseCondition += ',' + releases[i].version;
+    releasesArray.push(releases[i].version);
+  }
+  releaseCondition += ']';
+  if (releases.length < 10) {
+    return {releaseQueryString: releaseCondition, releasesUsed: releasesArray};
+  }
+  if (releases.length > 10 && releaseCondition.length > 1500) {
+    return getReleasesQuery(releases.slice(0, -10));
+  }
+  return {releaseQueryString: releaseCondition, releasesUsed: releasesArray};
 }
 
 /**
@@ -80,8 +89,9 @@ export function derivedMetricsToField(field: string): string {
  * requested but required to calculate the value of a derived
  * status field so will need to be stripped away in post processing.
  */
-function resolveDerivedStatusFields(
+export function resolveDerivedStatusFields(
   fields: string[],
+  orderby: string,
   useSessionAPI: boolean
 ): {
   aggregates: string[];
@@ -94,6 +104,16 @@ function resolveDerivedStatusFields(
   );
 
   const injectedFields: string[] = [];
+
+  const rawOrderby = trimStart(orderby, '-');
+  const unsupportedOrderby =
+    DISABLED_SORT.includes(rawOrderby) || useSessionAPI || rawOrderby === 'release';
+
+  if (rawOrderby && !!!unsupportedOrderby && !!!fields.includes(rawOrderby)) {
+    if (!!!injectedFields.includes(rawOrderby)) {
+      injectedFields.push(rawOrderby);
+    }
+  }
 
   if (!!!useSessionAPI) {
     return {aggregates, derivedStatusFields, injectedFields};
@@ -116,25 +136,96 @@ function resolveDerivedStatusFields(
   return {aggregates, derivedStatusFields, injectedFields};
 }
 
+export function requiresCustomReleaseSorting(query: WidgetQuery): boolean {
+  const useMetricsAPI = !!!query.columns.includes('session.status');
+  const rawOrderby = trimStart(query.orderby, '-');
+  return useMetricsAPI && rawOrderby === 'release';
+}
+
 class ReleaseWidgetQueries extends Component<Props, State> {
   state: State = {
     loading: true,
-    queryFetchID: undefined,
     errorMessage: undefined,
-    timeseriesResults: undefined,
-    rawResults: undefined,
-    tableResults: undefined,
+    releases: undefined,
   };
 
   componentDidMount() {
     this._isMounted = true;
-    this.fetchData();
+    if (requiresCustomReleaseSorting(this.props.widget.queries[0])) {
+      this.fetchReleases();
+      return;
+    }
   }
 
-  componentDidUpdate(prevProps: Props) {
-    const {loading, rawResults} = this.state;
-    const {selection, widget, organization, limit, cursor} = this.props;
-    const ignroredWidgetProps = [
+  componentWillUnmount() {
+    this._isMounted = false;
+  }
+
+  config = ReleasesConfig;
+  private _isMounted: boolean = false;
+
+  fetchReleases = async () => {
+    this.setState({loading: true, errorMessage: undefined});
+    const {selection, api, organization} = this.props;
+    const {environments, projects} = selection;
+
+    try {
+      const releases = await api.requestPromise(
+        `/organizations/${organization.slug}/releases/`,
+        {
+          method: 'GET',
+          data: {
+            sort: 'date',
+            project: projects,
+            per_page: 50,
+            environments,
+          },
+        }
+      );
+      if (!this._isMounted) {
+        return;
+      }
+      this.setState({releases, loading: false});
+    } catch (error) {
+      if (!this._isMounted) {
+        return;
+      }
+
+      const message = error.responseJSON
+        ? error.responseJSON.error
+        : t('Error sorting by releases');
+      this.setState({errorMessage: message, loading: false});
+      addErrorMessage(message);
+    }
+  };
+
+  get limit() {
+    const {limit} = this.props;
+
+    switch (this.props.widget.displayType) {
+      case DisplayType.TOP_N:
+        return TOP_N;
+      case DisplayType.TABLE:
+        return limit ?? DEFAULT_TABLE_LIMIT;
+      case DisplayType.BIG_NUMBER:
+        return 1;
+      default:
+        return limit ?? 20; // TODO(dam): Can be changed to undefined once [INGEST-1079] is resolved
+    }
+  }
+
+  customDidUpdateComparator = (
+    prevProps: GenericWidgetQueriesProps<
+      SessionApiResponse | MetricsApiResponse,
+      SessionApiResponse | MetricsApiResponse
+    >,
+    nextProps: GenericWidgetQueriesProps<
+      SessionApiResponse | MetricsApiResponse,
+      SessionApiResponse | MetricsApiResponse
+    >
+  ) => {
+    const {loading, limit, widget, cursor, organization, selection} = nextProps;
+    const ignoredWidgetProps = [
       'queries',
       'title',
       'id',
@@ -143,17 +234,14 @@ class ReleaseWidgetQueries extends Component<Props, State> {
       'widgetType',
     ];
     const ignoredQueryProps = ['name', 'fields', 'aggregates', 'columns'];
-    const widgetQueryNames = widget.queries.map(q => q.name);
-    const prevWidgetQueryNames = prevProps.widget.queries.map(q => q.name);
-
-    if (
+    return (
       limit !== prevProps.limit ||
       organization.slug !== prevProps.organization.slug ||
       !isSelectionEqual(selection, prevProps.selection) ||
       // If the widget changed (ignore unimportant fields, + queries as they are handled lower)
       !isEqual(
-        omit(widget, ignroredWidgetProps),
-        omit(prevProps.widget, ignroredWidgetProps)
+        omit(widget, ignoredWidgetProps),
+        omit(prevProps.widget, ignoredWidgetProps)
       ) ||
       // If the queries changed (ignore unimportant name, + fields as they are handled lower)
       !isEqual(
@@ -175,271 +263,113 @@ class ReleaseWidgetQueries extends Component<Props, State> {
         widget.queries.flatMap(q => q.columns.filter(column => !!column)),
         prevProps.widget.queries.flatMap(q => q.columns.filter(column => !!column))
       ) ||
+      loading !== prevProps.loading ||
       cursor !== prevProps.cursor
-    ) {
-      this.fetchData();
-      return;
+    );
+  };
+
+  transformWidget = (initialWidget: Widget): Widget => {
+    const {releases} = this.state;
+    const widget = cloneDeep(initialWidget);
+
+    const isCustomReleaseSorting = requiresCustomReleaseSorting(widget.queries[0]);
+    const isDescending = widget.queries[0].orderby.startsWith('-');
+    const useSessionAPI = widget.queries[0].columns.includes('session.status');
+
+    let releaseCondition = '';
+    const releasesArray: string[] = [];
+    if (isCustomReleaseSorting) {
+      if (releases && releases.length === 1) {
+        releaseCondition += `release:${releases[0].version}`;
+        releasesArray.push(releases[0].version);
+      }
+      if (releases && releases.length > 1) {
+        const {releaseQueryString, releasesUsed} = getReleasesQuery(releases);
+        releaseCondition += releaseQueryString;
+        releasesArray.push(...releasesUsed);
+
+        if (!!!isDescending) {
+          releasesArray.reverse();
+        }
+      }
     }
 
-    // If the query names have changed, then update timeseries labels
-    const useSessionAPI = widget.queries[0].columns.includes('session.status');
-    if (
-      !loading &&
-      !isEqual(widgetQueryNames, prevWidgetQueryNames) &&
-      rawResults?.length === widget.queries.length
-    ) {
-      const {derivedStatusFields, injectedFields} = resolveDerivedStatusFields(
-        widget.queries[0].aggregates,
-        useSessionAPI
-      );
-      // eslint-disable-next-line react/no-did-update-set-state
-      this.setState(prevState => {
-        return {
-          ...prevState,
-          timeseriesResults: prevState.rawResults?.flatMap((rawResult, index) =>
-            transformSessionsResponseToSeries(
-              rawResult,
-              derivedStatusFields,
-              injectedFields,
-              widget.queries[index].name
-            )
-          ),
-        };
+    if (!useSessionAPI) {
+      widget.queries.forEach(query => {
+        query.conditions =
+          query.conditions + (releaseCondition === '' ? '' : ` ${releaseCondition}`);
       });
     }
-  }
 
-  componentWillUnmount() {
-    this._isMounted = false;
-  }
+    return widget;
+  };
 
-  private _isMounted: boolean = false;
+  afterFetchData = (data: SessionApiResponse | MetricsApiResponse) => {
+    const {widget} = this.props;
+    const {releases} = this.state;
 
-  get limit() {
-    const {limit} = this.props;
-
-    switch (this.props.widget.displayType) {
-      case DisplayType.TOP_N:
-        return TOP_N;
-      case DisplayType.TABLE:
-        return limit ?? DEFAULT_TABLE_LIMIT;
-      case DisplayType.BIG_NUMBER:
-        return 1;
-      default:
-        return limit ?? 20; // TODO(dam): Can be changed to undefined once [INGEST-1079] is resolved
-    }
-  }
-
-  fetchData() {
-    const {selection, api, organization, widget, includeAllArgs, cursor, onDataFetched} =
-      this.props;
-
-    if (widget.displayType === DisplayType.WORLD_MAP) {
-      this.setState({errorMessage: t('World Map is not supported by metrics.')});
-      return;
-    }
-
-    const queryFetchID = Symbol('queryFetchID');
-
-    this.setState({
-      loading: true,
-      errorMessage: undefined,
-      timeseriesResults: [],
-      rawResults: [],
-      tableResults: [],
-      queryFetchID,
-    });
-    const {environments, projects, datetime} = selection;
-    const {start, end, period} = datetime;
-    const interval = getWidgetInterval(widget, {start, end, period});
-
-    const promises: Promise<
-      MetricsApiResponse | [MetricsApiResponse, string, ResponseMeta] | SessionApiResponse
-    >[] = [];
-
-    // Only time we need to use sessions API is when session.status is requested
-    // as a group by.
-    const useSessionAPI = widget.queries[0].columns.includes('session.status');
     const isDescending = widget.queries[0].orderby.startsWith('-');
-    const rawOrderby = trimStart(widget.queries[0].orderby, '-');
-    const unsupportedOrderby = DISABLED_SORT.includes(rawOrderby) || useSessionAPI;
 
-    const {aggregates, derivedStatusFields, injectedFields} = resolveDerivedStatusFields(
-      widget.queries[0].aggregates,
-      useSessionAPI
-    );
-    const columns = widget.queries[0].columns;
+    const releasesArray: string[] = [];
+    if (requiresCustomReleaseSorting(widget.queries[0])) {
+      if (releases && releases.length === 1) {
+        releasesArray.push(releases[0].version);
+      }
+      if (releases && releases.length > 1) {
+        const {releasesUsed} = getReleasesQuery(releases);
+        releasesArray.push(...releasesUsed);
 
-    widget.queries.forEach(query => {
-      let requestData;
-      let requester;
-      if (useSessionAPI) {
-        const sessionAggregates = aggregates.filter(
-          agg =>
-            !!!Object.values(DerivedStatusFields).includes(agg as DerivedStatusFields)
-        );
-        requestData = {
-          field: sessionAggregates,
-          orgSlug: organization.slug,
-          end,
-          environment: environments,
-          groupBy: columns,
-          limit: undefined,
-          orderBy: '', // Orderby not supported with session.status
-          interval,
-          project: projects,
-          query: query.conditions,
-          start,
-          statsPeriod: period,
-          includeAllArgs,
-          cursor,
-        };
-        requester = doSessionsRequest;
-      } else {
-        requestData = {
-          field: aggregates.map(fieldsToDerivedMetrics),
-          orgSlug: organization.slug,
-          end,
-          environment: environments,
-          groupBy: columns.map(fieldsToDerivedMetrics),
-          limit: unsupportedOrderby || rawOrderby === '' ? undefined : this.limit,
-          orderBy: unsupportedOrderby
-            ? ''
-            : isDescending
-            ? `-${fieldsToDerivedMetrics(rawOrderby)}`
-            : fieldsToDerivedMetrics(rawOrderby),
-          interval,
-          project: projects,
-          query: query.conditions,
-          start,
-          statsPeriod: period,
-          includeAllArgs,
-          cursor,
-        };
-        requester = doMetricsRequest;
-
-        if (
-          rawOrderby &&
-          !!!unsupportedOrderby &&
-          !!!aggregates.includes(rawOrderby) &&
-          !!!columns.includes(rawOrderby)
-        ) {
-          requestData.field = [...requestData.field, fieldsToDerivedMetrics(rawOrderby)];
-          if (!!!injectedFields.includes(rawOrderby)) {
-            injectedFields.push(rawOrderby);
-          }
+        if (!!!isDescending) {
+          releasesArray.reverse();
         }
       }
+    }
 
-      promises.push(requester(api, requestData));
-    });
-
-    let completed = 0;
-    promises.forEach(async (promise, requestIndex) => {
-      try {
-        const res = await promise;
-        let data: SessionApiResponse | MetricsApiResponse;
-        let response: ResponseMeta;
-        if (Array.isArray(res)) {
-          data = res[0];
-          response = res[2];
-        } else {
-          data = res;
-        }
-        if (!this._isMounted) {
-          return;
-        }
-        this.setState(prevState => {
-          if (prevState.queryFetchID !== queryFetchID) {
-            // invariant: a different request was initiated after this request
-            return prevState;
-          }
-
-          // Transform to fit the table format
-          const tableData = transformSessionsResponseToTable(
-            data,
-            derivedStatusFields,
-            injectedFields
-          ) as TableDataWithTitle; // Cast so we can add the title.
-          tableData.title = widget.queries[requestIndex]?.name ?? '';
-          const tableResults = [...(prevState.tableResults ?? []), tableData];
-
-          // Transform to fit the chart format
-          const timeseriesResults = [...(prevState.timeseriesResults ?? [])];
-          const transformedResult = transformSessionsResponseToSeries(
-            data,
-            derivedStatusFields,
-            injectedFields,
-            widget.queries[requestIndex].name
-          );
-
-          // When charting timeseriesData on echarts, color association to a timeseries result
-          // is order sensitive, ie series at index i on the timeseries array will use color at
-          // index i on the color array. This means that on multi series results, we need to make
-          // sure that the order of series in our results do not change between fetches to avoid
-          // coloring inconsistencies between renders.
-          transformedResult.forEach((result, resultIndex) => {
-            timeseriesResults[requestIndex * transformedResult.length + resultIndex] =
-              result;
-          });
-
-          onDataFetched?.({timeseriesResults, tableResults});
-
-          if ([DisplayType.TABLE, DisplayType.BIG_NUMBER].includes(widget.displayType)) {
-            return {
-              ...prevState,
-              errorMessage: undefined,
-              tableResults,
-              pageLinks: response?.getResponseHeader('link') ?? undefined,
-            };
-          }
-
-          const rawResultsClone = cloneDeep(prevState.rawResults ?? []);
-          rawResultsClone[requestIndex] = data;
-
-          return {
-            ...prevState,
-            errorMessage: undefined,
-            timeseriesResults,
-            rawResults: rawResultsClone,
-            pageLinks: response?.getResponseHeader('link') ?? undefined,
-          };
-        });
-      } catch (err) {
-        const errorMessage = err?.responseJSON?.detail || t('An unknown error occurred.');
-        this.setState({errorMessage});
-      } finally {
-        completed++;
-        if (!this._isMounted) {
-          return;
-        }
-        this.setState(prevState => {
-          if (prevState.queryFetchID !== queryFetchID) {
-            // invariant: a different request was initiated after this request
-            return prevState;
-          }
-
-          return {
-            ...prevState,
-            loading: completed === promises.length ? false : true,
-          };
-        });
-      }
-    });
-  }
+    if (releasesArray.length) {
+      data.groups.sort(function (group1, group2) {
+        const release1 = group1.by.release;
+        const release2 = group2.by.release;
+        return releasesArray.indexOf(release1) - releasesArray.indexOf(release2);
+      });
+      data.groups = data.groups.slice(0, this.limit);
+    }
+  };
 
   render() {
-    const {children} = this.props;
-    const {loading, timeseriesResults, tableResults, errorMessage, pageLinks} =
-      this.state;
+    const {api, children, organization, selection, widget, cursor, onDataFetched} =
+      this.props;
+    const config = ReleasesConfig;
 
-    return children({
-      loading,
-      timeseriesResults,
-      tableResults,
-      errorMessage,
-      pageLinks,
-    });
+    return (
+      <GenericWidgetQueries<
+        SessionApiResponse | MetricsApiResponse,
+        SessionApiResponse | MetricsApiResponse
+      >
+        config={config}
+        api={api}
+        organization={organization}
+        selection={selection}
+        widget={this.transformWidget(widget)}
+        cursor={cursor}
+        limit={this.limit}
+        onDataFetched={onDataFetched}
+        loading={
+          requiresCustomReleaseSorting(widget.queries[0])
+            ? !this.state.releases
+            : undefined
+        }
+        customDidUpdateComparator={this.customDidUpdateComparator}
+        afterFetchTableData={this.afterFetchData}
+        afterFetchSeriesData={this.afterFetchData}
+      >
+        {({errorMessage, ...rest}) =>
+          children({
+            errorMessage: this.state.errorMessage ?? errorMessage,
+            ...rest,
+          })
+        }
+      </GenericWidgetQueries>
+    );
   }
 }
 

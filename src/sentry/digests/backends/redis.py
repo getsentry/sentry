@@ -96,7 +96,9 @@ class RedisBackend(Backend):
 
     def _get_timeline_lock(self, key: str, duration: int) -> Lock:
         lock_key = f"{self.namespace}:t:{key}"
-        return self.locks.get(lock_key, duration=duration, routing_key=lock_key)
+        return self.locks.get(
+            lock_key, duration=duration, routing_key=lock_key, name="digest_timeline_lock"
+        )
 
     def add(
         self,

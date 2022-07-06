@@ -51,7 +51,7 @@ def get_subject_with_prefix(
 ) -> bytes:
     prefix = ""
     if isinstance(notification, ProjectNotification):
-        prefix = build_subject_prefix(notification.project)
+        prefix = f"{build_subject_prefix(notification.project).rstrip()} "
     return f"{prefix}{notification.get_subject(context)}".encode()
 
 

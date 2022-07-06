@@ -1,30 +1,33 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
-import {initializeOrg} from 'sentry-test/initializeOrg';
+import ReactEchartsCore from 'echarts-for-react/lib/core';
+
+import {render} from 'sentry-test/reactTestingLibrary';
 
 import BaseChart from 'sentry/components/charts/baseChart';
 import theme from 'sentry/utils/theme';
 
-describe('BaseChart', function () {
-  const {routerContext} = initializeOrg();
+jest.mock('echarts-for-react/lib/core', () => {
+  return jest.fn(() => null);
+});
 
+describe('BaseChart', function () {
   it('renders with grey dotted previous period when using only a single series', function () {
-    const wrapper = mountWithTheme(
+    render(
       <BaseChart
         colors={['#444674', '#d6567f', '#f2b712']}
         previousPeriod={[
           {seriesName: 'count()', data: [{value: 123, name: new Date().getTime()}]},
         ]}
-      />,
-      routerContext
+      />
     );
-    const series = wrapper.find('ChartContainer').props().children.props.option.series;
+    // @ts-expect-error
+    const series = ReactEchartsCore.mock.calls[0][0].option.series;
     expect(series.length).toEqual(1);
     expect(series[0].lineStyle.color).toEqual(theme.gray200);
     expect(series[0].lineStyle.type).toEqual('dotted');
   });
 
   it('renders with lightened colored dotted previous period when using multiple series', function () {
-    const wrapper = mountWithTheme(
+    render(
       <BaseChart
         colors={['#444674', '#d6567f', '#f2b712']}
         previousPeriod={[
@@ -38,10 +41,12 @@ describe('BaseChart', function () {
             data: [{value: 123, name: new Date().getTime()}],
           },
         ]}
-      />,
-      routerContext
+      />
     );
-    const series = wrapper.find('ChartContainer').props().children.props.option.series;
+    const series =
+      // @ts-expect-error
+      ReactEchartsCore.mock.calls[ReactEchartsCore.mock.calls.length - 1][0].option
+        .series;
     expect(series.length).toEqual(3);
     expect(series[0].lineStyle.color).toEqual('rgb(98, 100, 146)');
     expect(series[0].lineStyle.type).toEqual('dotted');

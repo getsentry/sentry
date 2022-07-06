@@ -1,8 +1,8 @@
-from sentry.models import SentryAppInstallation
-from sentry.testutils import AcceptanceTestCase
-from tests.acceptance.page_objects.organization_integration_settings import (
+from fixtures.page_objects.organization_integration_settings import (
     OrganizationSentryAppDetailViewPage,
 )
+from sentry.models import SentryAppInstallation
+from sentry.testutils import AcceptanceTestCase
 
 
 class OrganizationSentryAppDetailedView(AcceptanceTestCase):

@@ -171,6 +171,7 @@ class OwnerInput extends Component<Props, State> {
             placeholder={
               '#example usage\n' +
               'path:src/example/pipeline/* person@sentry.io #infra\n' +
+              'module:com.module.name.example #sdks\n' +
               'url:http://example.com/settings/* #product\n' +
               'tags.sku_class:enterprise #enterprise'
             }

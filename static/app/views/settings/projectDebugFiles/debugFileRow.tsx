@@ -13,7 +13,6 @@ import TimeSince from 'sentry/components/timeSince';
 import Tooltip from 'sentry/components/tooltip';
 import {IconClock, IconDelete, IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {DebugFile} from 'sentry/types/debugFiles';
 
@@ -219,13 +218,13 @@ const Name = styled('div')`
 const Description = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.subText};
-  @media (max-width: ${p => p.theme.breakpoints[2]}) {
+  @media (max-width: ${p => p.theme.breakpoints.large}) {
     line-height: 1.7;
   }
 `;
 
 const DetailsItem = styled('div')`
-  ${overflowEllipsis}
+  ${p => p.theme.overflowEllipsis}
   margin-top: ${space(1)}
 `;
 

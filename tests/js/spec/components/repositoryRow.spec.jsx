@@ -154,7 +154,7 @@ describe('RepositoryRow', function () {
     });
     const routerContext = TestStubs.routerContext([{organization}]);
 
-    it('sends api request to cancel', async function () {
+    it('sends api request to cancel', function () {
       const cancel = Client.addMockResponse({
         url: `/organizations/${organization.slug}/repos/${pendingRepo.id}/`,
         method: 'PUT',

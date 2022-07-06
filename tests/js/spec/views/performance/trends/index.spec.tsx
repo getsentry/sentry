@@ -45,45 +45,39 @@ jest.mock('moment', () => {
 });
 
 async function getTrendDropdown() {
-  const dropdown = (await screen.findAllByTestId('dropdown-control'))[0];
+  const dropdown = await screen.findByRole('button', {name: /Percentile.+/});
   expect(dropdown).toBeInTheDocument();
   return dropdown;
 }
 
 async function getParameterDropdown() {
-  const dropdown = (await screen.findAllByTestId('dropdown-control'))[1];
+  const dropdown = await screen.findByRole('button', {name: /Parameter.+/});
   expect(dropdown).toBeInTheDocument();
   return dropdown;
 }
 
-async function selectMenuItemFromDropdown(dropdownEl, testid) {
+async function selectMenuItemFromDropdown(value) {
   (browserHistory.push as any).mockReset();
   expect(browserHistory.push).not.toHaveBeenCalled();
-  const option = await within(await within(dropdownEl).findByTestId(testid)).findByTestId(
-    'menu-item'
-  );
+  const option = await screen.findByTestId(value);
   expect(option).toBeInTheDocument();
   clickEl(option);
 
   await waitFor(() => expect(browserHistory.push).toHaveBeenCalled());
 }
 
-async function selectTrendFunction(field) {
+async function selectTrendFunction(value) {
   const dropdown = await getTrendDropdown();
   clickEl(dropdown);
 
-  await selectMenuItemFromDropdown(dropdown, field);
+  await selectMenuItemFromDropdown(value);
 }
 
-async function getDropdownButtons() {
-  return await screen.findAllByTestId('dropdown-control-button');
-}
-
-async function selectTrendParameter(label) {
+async function selectTrendParameter(value) {
   const dropdown = await getParameterDropdown();
   clickEl(dropdown);
 
-  await selectMenuItemFromDropdown(dropdown, label);
+  await selectMenuItemFromDropdown(value);
 }
 
 async function waitForMockCall(mock: any) {
@@ -92,13 +86,13 @@ async function waitForMockCall(mock: any) {
   });
 }
 
-async function enterSearch(el, text) {
+function enterSearch(el, text) {
   fireEvent.change(el, {target: {value: text}});
   fireEvent.submit(el);
 }
 
 // Might swap on/off the skiphover to check perf later.
-async function clickEl(el) {
+function clickEl(el) {
   userEvent.click(el, undefined, {skipHover: true, skipPointerEventsCheck: true});
 }
 
@@ -131,7 +125,14 @@ function _initializeData(
   const data = initializeData(newSettings);
 
   // Modify page filters store to stop rerendering due to the test harness.
-  (PageFiltersStore as any)._hasInitialState = true;
+  PageFiltersStore.onInitializeUrlState(
+    {
+      projects: [],
+      environments: [],
+      datetime: {start: null, end: null, period: '24h', utc: null},
+    },
+    new Set()
+  );
   PageFiltersStore.updateDateTime(defaultTrendsSelectionDate);
   if (!options?.selectedProjectId) {
     PageFiltersStore.updateProjects(
@@ -288,7 +289,8 @@ describe('Performance > Trends', function () {
       }
     );
 
-    expect(await screen.findByTestId('trends-dropdown')).toBeInTheDocument();
+    expect(await getTrendDropdown()).toBeInTheDocument();
+    expect(await getParameterDropdown()).toBeInTheDocument();
     expect(screen.getAllByTestId('changed-transactions')).toHaveLength(2);
   });
 
@@ -484,8 +486,8 @@ describe('Performance > Trends', function () {
       }
     );
 
-    const dropdownButton = await getDropdownButtons();
-    expect(dropdownButton[1]).toHaveTextContent('LCP');
+    const trendDropdownButton = await getTrendDropdown();
+    expect(trendDropdownButton).toHaveTextContent('Percentilep50');
   });
 
   it('sets duration as a default trend parameter for backend project if query does not specify trend parameter', async function () {
@@ -500,8 +502,8 @@ describe('Performance > Trends', function () {
       }
     );
 
-    const dropdownButton = await getDropdownButtons();
-    expect(dropdownButton[1]).toHaveTextContent('Duration');
+    const parameterDropdownButton = await getParameterDropdown();
+    expect(parameterDropdownButton).toHaveTextContent('ParameterDuration');
   });
 
   it('sets trend parameter from query and ignores default trend parameter', async function () {
@@ -516,8 +518,8 @@ describe('Performance > Trends', function () {
       }
     );
 
-    const dropdownButton = await getDropdownButtons();
-    expect(dropdownButton[1]).toHaveTextContent('FCP');
+    const parameterDropdownButton = await getParameterDropdown();
+    expect(parameterDropdownButton).toHaveTextContent('ParameterFCP');
   });
 
   it('choosing a parameter changes location', async function () {
@@ -671,7 +673,7 @@ describe('Performance > Trends', function () {
     }
   });
 
-  it('Visiting trends with trends feature will update filters if none are set', async function () {
+  it('Visiting trends with trends feature will update filters if none are set', function () {
     const data = initializeTrendsData(undefined, {}, false);
 
     render(

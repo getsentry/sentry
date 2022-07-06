@@ -39,6 +39,11 @@ class ThresholdDict(TypedDict):
     meh: float
 
 
+QUERY_TIPS: Dict[str, str] = {
+    "CHAINED_OR": "Did you know you can replace chained or conditions like `field:a OR field:b OR field:c` with `field:[a,b,c]`"
+}
+
+
 VITAL_THRESHOLDS: Dict[str, ThresholdDict] = {
     "lcp": {
         "poor": 4000,
@@ -219,10 +224,35 @@ DRY_RUN_COLUMNS = {
     "transaction.status",
 }
 METRIC_PERCENTILES = {
+    0.25,
     0.5,
     0.75,
     0.9,
     0.95,
     0.99,
     1,
+}
+
+CUSTOM_MEASUREMENT_PATTERN = re.compile(r"^measurements\..+$")
+METRIC_FUNCTION_LIST_BY_TYPE = {
+    "distribution": [
+        "apdex",
+        "avg",
+        "p50",
+        "p75",
+        "p90",
+        "p95",
+        "p99",
+        "p100",
+        "max",
+        "min",
+        "sum",
+        "percentile",
+    ],
+    "set": [
+        "count_miserable",
+        "user_misery",
+        "count_unique",
+    ],
+    "counter": [],
 }

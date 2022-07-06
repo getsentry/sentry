@@ -31,6 +31,7 @@ function DataSection({title, description, children, className, ...props}: Props)
         </TitleWrapper>
       }
       wrapTitle={false}
+      showPermalink={false}
     >
       {children}
     </StyledEventDataSection>
@@ -56,12 +57,5 @@ const Title = styled('h3')`
 const StyledEventDataSection = styled(EventDataSection)`
   ${SectionContents} {
     flex: 1;
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    && {
-      padding: 0;
-      border: 0;
-    }
   }
 `;

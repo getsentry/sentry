@@ -229,7 +229,7 @@ describe('Organization Developer Settings', function () {
       expect(deleteButton).toHaveAttribute('aria-disabled', 'false');
     });
 
-    it('publish button does not exist', async () => {
+    it('publish button does not exist', () => {
       render(
         <OrganizationDeveloperSettings params={{orgId: org.slug}} organization={org} />
       );

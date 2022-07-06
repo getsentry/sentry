@@ -5,6 +5,7 @@ from dateutil.parser import parse as parse_date
 from django.core import mail
 from django.utils import timezone
 from pytz import UTC
+from rest_framework import status
 
 from sentry import audit_log
 from sentry.api.endpoints.organization_details import ERR_NO_2FA, ERR_SSO_ENABLED
@@ -59,6 +60,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         assert response.data["onboardingTasks"] == []
         assert response.data["id"] == str(self.organization.id)
         assert response.data["role"] == "owner"
+        assert response.data["orgRole"] == "owner"
         assert len(response.data["teams"]) == 0
         assert len(response.data["projects"]) == 0
 
@@ -208,10 +210,20 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         illegal_slug = list(RESERVED_ORGANIZATION_SLUGS)[0]
         self.get_error_response(self.organization.slug, slug=illegal_slug, status_code=400)
 
-    def test_invalid_slug(self):
+    def test_valid_slugs(self):
+        valid_slugs = ["santry", "downtown-canada", "1234", "SaNtRy"]
+        for slug in valid_slugs:
+            self.organization.refresh_from_db()
+            self.get_success_response(self.organization.slug, slug=slug)
+
+    def test_invalid_slugs(self):
         self.get_error_response(self.organization.slug, slug=" i have whitespace ", status_code=400)
         self.get_error_response(self.organization.slug, slug="foo-bar ", status_code=400)
         self.get_error_response(self.organization.slug, slug="bird-company!", status_code=400)
+        self.get_error_response(self.organization.slug, slug="downtown_canada", status_code=400)
+        self.get_error_response(self.organization.slug, slug="canada-", status_code=400)
+        self.get_error_response(self.organization.slug, slug="-canada", status_code=400)
+        self.get_error_response(self.organization.slug, slug="----", status_code=400)
 
     def test_upload_avatar(self):
         data = {"avatarType": "upload", "avatar": b64encode(self.load_fixture("avatar.jpg"))}
@@ -638,7 +650,7 @@ class OrganizationDeleteTest(OrganizationDetailsTestBase):
         assert len(owners) > 0
 
         with self.tasks():
-            self.get_success_response(self.organization.slug, status_code=202)
+            self.get_success_response(self.organization.slug, status_code=status.HTTP_202_ACCEPTED)
 
         org = Organization.objects.get(id=self.organization.id)
 
@@ -682,7 +694,7 @@ class OrganizationDeleteTest(OrganizationDetailsTestBase):
         org = self.create_organization(owner=self.user)
         ScheduledDeletion.schedule(org, days=1)
 
-        self.get_success_response(org.slug)
+        self.get_success_response(org.slug, status_code=status.HTTP_202_ACCEPTED)
 
         org = Organization.objects.get(id=org.id)
         assert org.status == OrganizationStatus.PENDING_DELETION

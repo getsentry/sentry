@@ -61,7 +61,7 @@ const BOTTOM_MOBILE_VIEW_POSITION = {
   x: 0,
   y: Number.MAX_SAFE_INTEGER,
 };
-const MOBILE_BREAKPOINT = parseInt(theme.breakpoints[0], 10);
+const MOBILE_BREAKPOINT = parseInt(theme.breakpoints.small, 10);
 const BREAKPOINTS = {[MOBILE]: 0, [DESKTOP]: MOBILE_BREAKPOINT};
 const COLUMNS = {[MOBILE]: NUM_MOBILE_COLS, [DESKTOP]: NUM_DESKTOP_COLS};
 
@@ -139,7 +139,7 @@ class Dashboard extends Component<Props, State> {
     return null;
   }
 
-  async componentDidMount() {
+  componentDidMount() {
     const {organization, newWidget} = this.props;
     if (organization.features.includes('dashboard-grid-layout')) {
       window.addEventListener('resize', this.debouncedHandleResize);
@@ -156,7 +156,7 @@ class Dashboard extends Component<Props, State> {
     this.fetchMemberList();
   }
 
-  async componentDidUpdate(prevProps: Props) {
+  componentDidUpdate(prevProps: Props) {
     const {selection, newWidget} = this.props;
 
     if (newWidget && newWidget !== prevProps.newWidget) {
@@ -225,7 +225,7 @@ class Dashboard extends Component<Props, State> {
       paramDashboardId,
     } = this.props;
 
-    if (organization.features.includes('new-widget-builder-experience')) {
+    if (organization.features.includes('new-widget-builder-experience-design')) {
       if (paramDashboardId) {
         router.push({
           pathname: `/organizations/${organization.slug}/dashboard/${paramDashboardId}/widget/new/`,
@@ -335,7 +335,7 @@ class Dashboard extends Component<Props, State> {
     } = this.props;
 
     if (
-      organization.features.includes('new-widget-builder-experience') &&
+      organization.features.includes('new-widget-builder-experience-design') &&
       (!organization.features.includes('new-widget-builder-experience-modal-access') ||
         isEditing)
     ) {
@@ -640,15 +640,15 @@ const WidgetContainer = styled('div')`
   grid-auto-flow: row dense;
   gap: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
-  @media (min-width: ${p => p.theme.breakpoints[3]}) {
+  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
     grid-template-columns: repeat(6, minmax(0, 1fr));
   }
 
-  @media (min-width: ${p => p.theme.breakpoints[4]}) {
+  @media (min-width: ${p => p.theme.breakpoints.xxlarge}) {
     grid-template-columns: repeat(8, minmax(0, 1fr));
   }
 `;

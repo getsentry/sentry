@@ -82,7 +82,7 @@ class Monitors extends AsyncView<Props, State> {
           </HeaderTitle>
         </PageHeader>
         <Filters>
-          <ProjectPageFilter />
+          <ProjectPageFilter resetParamsOnChange={['cursor']} />
           <SearchBar
             query={decodeScalar(qs.parse(location.search)?.query, '')}
             placeholder={t('Search for monitors.')}

@@ -11,7 +11,6 @@ import {ControlProps} from 'sentry/components/forms/selectControl';
 import QueryCount from 'sentry/components/queryCount';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {Organization, SavedSearch} from 'sentry/types';
 import {defined} from 'sentry/utils';
@@ -200,7 +199,7 @@ const Details = styled('span')`
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSizeExtraSmall};
   max-width: 16rem;
-  ${overflowEllipsis}
+  ${p => p.theme.overflowEllipsis}
 `;
 
 const TooltipSearchQuery = styled('span')`

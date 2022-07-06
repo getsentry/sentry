@@ -10,7 +10,7 @@ import {
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
-import {NewQuery, Organization, SelectValue} from 'sentry/types';
+import {NewQuery, Organization, OrganizationSummary, SelectValue} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getUtcDateString} from 'sentry/utils/dates';
@@ -66,7 +66,10 @@ const TEMPLATE_TABLE_COLUMN: TableColumn<string> = {
 
 // TODO(mark) these types are coupled to the gridEditable component types and
 // I'd prefer the types to be more general purpose but that will require a second pass.
-export function decodeColumnOrder(fields: Readonly<Field[]>): TableColumn<string>[] {
+export function decodeColumnOrder(
+  fields: Readonly<Field[]>,
+  useFullEquationAsKey?: boolean
+): TableColumn<string>[] {
   let equations = 0;
   return fields.map((f: Field) => {
     const column: TableColumn<string> = {...TEMPLATE_TABLE_COLUMN};
@@ -74,7 +77,7 @@ export function decodeColumnOrder(fields: Readonly<Field[]>): TableColumn<string
     const col = explodeFieldString(f.field, f.alias);
     const columnName = f.field;
     if (isEquation(f.field)) {
-      column.key = `equation[${equations}]`;
+      column.key = useFullEquationAsKey ? f.field : `equation[${equations}]`;
       column.name = getEquation(columnName);
       equations += 1;
     } else {
@@ -434,7 +437,7 @@ function generateExpandedConditions(
 }
 
 type FieldGeneratorOpts = {
-  organization: Organization;
+  organization: OrganizationSummary;
   aggregations?: Record<string, Aggregation>;
   fields?: Record<string, ColumnType>;
   measurementKeys?: string[] | null;

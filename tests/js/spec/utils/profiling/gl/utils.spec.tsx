@@ -1,6 +1,8 @@
 import {mat3, vec2} from 'gl-matrix';
 
 import {
+  Bounds,
+  computeHighlightedBounds,
   createProgram,
   createShader,
   ELLIPSIS,
@@ -359,12 +361,126 @@ describe('findRangeBinarySearch', () => {
 
 describe('trimTextCenter', () => {
   it('trims nothing if low > length', () => {
-    expect(trimTextCenter('abc', 4)).toBe('abc');
+    expect(trimTextCenter('abc', 4)).toMatchObject({
+      end: 0,
+      length: 0,
+      start: 0,
+      text: 'abc',
+    });
   });
   it('trims center perfectly', () => {
-    expect(trimTextCenter('abcdef', 5.5)).toBe(`ab${ELLIPSIS}ef`);
+    expect(trimTextCenter('abcdef', 5.5)).toMatchObject({
+      end: 4,
+      length: 2,
+      start: 2,
+      text: `ab${ELLIPSIS}ef`,
+    });
   });
   it('favors prefix length', () => {
-    expect(trimTextCenter('abcdef', 5)).toBe(`ab${ELLIPSIS}f`);
+    expect(trimTextCenter('abcdef', 5)).toMatchObject({
+      end: 5,
+      length: 3,
+      start: 2,
+      text: `ab${ELLIPSIS}f`,
+    });
+  });
+});
+
+describe('computeHighlightedBounds', () => {
+  const testTable = [
+    {
+      name: 'reduces bounds[1] if tail is truncated',
+      text: 'CA::Display::DisplayLink::dispatch_items(unsigned long long, unsigned long long, unsigned long long)',
+      args: {
+        bounds: [4, 11],
+        trim: {
+          // match tail truncated
+          text: 'CA::Dis…long)',
+          start: 7,
+          end: 95,
+          length: 88,
+        },
+      },
+      expected: [4, 8], // Dis...
+    },
+    {
+      name: 'shifts bounds if truncated before bounds',
+      text: '-[UIScrollView _smoothScrollDisplayLink:]',
+      args: {
+        bounds: [28, 35],
+        trim: {
+          text: '-[UIScrollView…playLink:]',
+          start: 14,
+          end: 31,
+          length: 17,
+        },
+      },
+      expected: [14, 19], // ...play
+    },
+    {
+      name: 'shifts bounds if truncated before bounds',
+      text: '-[UIScrollView _smoothScrollDisplayLink:]',
+      args: {
+        bounds: [28, 35],
+        trim: {
+          // match bounds are shifted after truncate
+          text: '-[UIScrollView _sm…rollDisplayLink:]',
+          start: 18,
+          end: 24,
+          length: 6,
+        },
+      },
+      expected: [23, 30], // Display
+    },
+    {
+      name: 'reduces bounds if fully truncated',
+      text: '-[UIScrollView _smoothScrollDisplayLink:]',
+      args: {
+        bounds: [28, 35],
+        trim: {
+          // matched text is within truncated ellipsis ,
+          text: '-[UIScr…Link:]',
+          start: 7,
+          end: 35,
+          length: 28,
+        },
+      },
+      expected: [7, 8], // …
+    },
+    {
+      name: 'matched bounds fall before and after truncate',
+      text: '-[UIScrollView _smoothScrollDisplayLink:]',
+      args: {
+        bounds: [16, 28],
+        trim: {
+          // match bounds are shifted after truncate
+          text: '-[UIScrollView _sm…rollDisplayLink:]',
+          start: 18,
+          end: 24,
+          length: 6,
+        },
+      },
+      expected: [16, 23], // smoothScroll
+    },
+    {
+      name: 'matched bounds fall before  truncate',
+      text: '-[UIScrollView _smoothScrollDisplayLink:]',
+      args: {
+        bounds: [4, 14],
+        trim: {
+          // match bounds are shifted after truncate
+          text: '-[UIScrollView _sm…rollDisplayLink:]',
+          start: 18,
+          end: 24,
+          length: 6,
+        },
+      },
+      expected: [4, 14], // smoothScroll
+    },
+  ];
+
+  it.each(testTable)(`$name`, ({args, expected}) => {
+    const value = computeHighlightedBounds(args.bounds as Bounds, args.trim);
+    expect(value).toEqual(expected);
   });
 });

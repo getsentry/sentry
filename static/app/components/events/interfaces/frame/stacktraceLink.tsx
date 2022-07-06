@@ -19,6 +19,7 @@ import {
   RepositoryProjectPathConfigWithIntegration,
 } from 'sentry/types';
 import {Event} from 'sentry/types/event';
+import {StacktraceLinkEvents} from 'sentry/utils/analytics/integrations/stacktraceLinkAnalyticsEvents';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import {
   getIntegrationIcon,
@@ -137,11 +138,22 @@ class StacktraceLink extends AsyncComponent<Props, State> {
     }
     const commitId = event.release?.lastCommit?.id;
     const platform = event.platform;
+    const sdkName = event.sdk?.name;
     return [
       [
         'match',
         `/projects/${organization.slug}/${project.slug}/stacktrace-link/`,
-        {query: {file: frame.filename, platform, commitId}},
+        {
+          query: {
+            file: frame.filename,
+            platform,
+            commitId,
+            ...(sdkName && {sdkName}),
+            ...(frame.absPath && {absPath: frame.absPath}),
+            ...(frame.module && {module: frame.module}),
+            ...(frame.package && {package: frame.package}),
+          },
+        },
       ],
     ];
   }
@@ -165,7 +177,7 @@ class StacktraceLink extends AsyncComponent<Props, State> {
     const provider = this.config?.provider;
     if (provider) {
       trackIntegrationAnalytics(
-        'integrations.stacktrace_link_clicked',
+        StacktraceLinkEvents.OPEN_LINK,
         {
           view: 'stacktrace_issue_details',
           provider: provider.key,

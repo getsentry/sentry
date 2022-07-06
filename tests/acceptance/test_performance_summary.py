@@ -3,12 +3,11 @@ from urllib.parse import urlencode
 
 import pytz
 
+from fixtures.page_objects.transaction_summary import TransactionSummaryPage
 from sentry.models import AssistantActivity
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils.samples import load_data
-
-from .page_objects.transaction_summary import TransactionSummaryPage
 
 FEATURES = {"organizations:performance-view": True}
 

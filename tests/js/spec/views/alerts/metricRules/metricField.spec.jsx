@@ -56,7 +56,20 @@ describe('MetricField', function () {
     openSelectMenu('(Required)');
 
     // 10 error aggregate configs
-    expect(screen.getAllByTestId('label')).toHaveLength(10);
+    [
+      'avg(…)',
+      'percentile(…)',
+      'p50(…)',
+      'p75(…)',
+      'p95(…)',
+      'p99(…)',
+      'p100(…)',
+      'failure_rate()',
+      'apdex(…)',
+      'count()',
+    ].forEach(label => {
+      expect(screen.getByText(label)).toBeInTheDocument();
+    });
     userEvent.click(screen.getByText('avg(…)'));
     expect(model.fields.get('metric')).toBe('avg(transaction.duration)');
 
@@ -64,34 +77,5 @@ describe('MetricField', function () {
     expect(screen.getByText('measurements.lcp')).toBeInTheDocument();
     expect(screen.getByText('measurements.fcp')).toBeInTheDocument();
     expect(screen.getByText('measurements.ttfb.requesttime')).toBeInTheDocument();
-  });
-
-  it('maps field value to selected presets', function () {
-    render(
-      <Form initialData={{dataset: Dataset.TRANSACTIONS}} model={model}>
-        <MetricField name="metric" organization={organization} />
-      </Form>
-    );
-    openSelectMenu('(Required)');
-    userEvent.click(screen.getByText('failure_rate()'));
-
-    expect(screen.getByLabelText('Failure rate')).toBeDisabled();
-
-    openSelectMenu('failure_rate()');
-    userEvent.click(screen.getByText('p95(…)'));
-
-    expect(screen.getByLabelText('Latency')).toBeDisabled();
-  });
-
-  it('changes field values when selecting presets', function () {
-    render(
-      <Form initialData={{dataset: Dataset.TRANSACTIONS}} model={model}>
-        <MetricField name="metric" organization={organization} />
-      </Form>
-    );
-
-    userEvent.click(screen.getByText('Failure rate'));
-
-    expect(screen.getByText('failure_rate()')).toBeInTheDocument();
   });
 });

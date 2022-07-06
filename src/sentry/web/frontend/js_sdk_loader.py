@@ -1,6 +1,7 @@
 import time
 
 from django.conf import settings
+from packaging.version import Version
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -25,8 +26,24 @@ class JavaScriptSdkLoader(BaseView):
             return ({}, None, None)
 
         sdk_version = get_browser_sdk_version(key)
+
+        # From JavaScript SDK version 7 onwards, the default bundle code is ES6, however, in the loader we
+        # want to provide the ES5 version. This is why we need to modify the requested bundle name here.
+        bundle_kind_modifier = ""
+        if sdk_version >= Version("7.0.0"):
+            bundle_kind_modifier = ".es5"
+
+        js_sdk_loader_default_sdk_url_template_slot_count = (
+            settings.JS_SDK_LOADER_DEFAULT_SDK_URL.count("%s")
+        )
+
         try:
-            if "%s" in settings.JS_SDK_LOADER_DEFAULT_SDK_URL:
+            if js_sdk_loader_default_sdk_url_template_slot_count == 2:
+                sdk_url = settings.JS_SDK_LOADER_DEFAULT_SDK_URL % (
+                    sdk_version,
+                    bundle_kind_modifier,
+                )
+            elif js_sdk_loader_default_sdk_url_template_slot_count == 1:
                 sdk_url = settings.JS_SDK_LOADER_DEFAULT_SDK_URL % (sdk_version,)
             else:
                 sdk_url = settings.JS_SDK_LOADER_DEFAULT_SDK_URL

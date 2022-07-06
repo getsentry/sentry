@@ -14,6 +14,7 @@ import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {EventTransaction} from 'sentry/types/event';
 import {objectIsEmpty} from 'sentry/utils';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import * as QuickTraceContext from 'sentry/utils/performance/quickTrace/quickTraceContext';
 import {TraceError} from 'sentry/utils/performance/quickTrace/types';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -21,13 +22,14 @@ import withOrganization from 'sentry/utils/withOrganization';
 import * as AnchorLinkManager from './anchorLinkManager';
 import Filter from './filter';
 import TraceView from './traceView';
-import {ParsedTraceType} from './types';
+import {FocusedSpanIDMap, ParsedTraceType} from './types';
 import {parseTrace, scrollToSpan} from './utils';
 import WaterfallModel from './waterfallModel';
 
 type Props = {
   event: EventTransaction;
   organization: Organization;
+  focusedSpanIds?: FocusedSpanIDMap;
 } & WithRouterProps;
 
 type State = {
@@ -38,7 +40,7 @@ type State = {
 class SpansInterface extends PureComponent<Props, State> {
   state: State = {
     parsedTrace: parseTrace(this.props.event),
-    waterfallModel: new WaterfallModel(this.props.event),
+    waterfallModel: new WaterfallModel(this.props.event, this.props.focusedSpanIds),
   };
 
   static getDerivedStateFromProps(props: Readonly<Props>, state: State): State {
@@ -49,13 +51,18 @@ class SpansInterface extends PureComponent<Props, State> {
     return {
       ...state,
       parsedTrace: parseTrace(props.event),
-      waterfallModel: new WaterfallModel(props.event),
+      waterfallModel: new WaterfallModel(props.event, props.focusedSpanIds),
     };
   }
 
   handleSpanFilter = (searchQuery: string) => {
     const {waterfallModel} = this.state;
+    const {organization} = this.props;
     waterfallModel.querySpanSearch(searchQuery);
+
+    trackAdvancedAnalyticsEvent('performance_views.event_details.search_query', {
+      organization,
+    });
   };
 
   renderTraceErrorsAlert({
@@ -118,7 +125,7 @@ class SpansInterface extends PureComponent<Props, State> {
 
     return (
       <AlertContainer>
-        <Alert type="error" showIcon>
+        <Alert type="error">
           <ErrorLabel>{label}</ErrorLabel>
           <AnchorLinkManager.Consumer>
             {({scrollToHash}) => (
@@ -132,7 +139,8 @@ class SpansInterface extends PureComponent<Props, State> {
                           onClick={scrollToSpan(
                             spanId,
                             scrollToHash,
-                            this.props.location
+                            this.props.location,
+                            this.props.organization
                           )}
                         >
                           {operation}
@@ -222,7 +230,7 @@ const Container = styled('div')<{hasErrors: boolean}>`
     `
   padding: ${space(2)} 0;
 
-  @media (min-width: ${p.theme.breakpoints[0]}) {
+  @media (min-width: ${p.theme.breakpoints.small}) {
     padding: ${space(3)} 0 0 0;
   }
   `}

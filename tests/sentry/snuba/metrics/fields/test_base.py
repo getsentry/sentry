@@ -6,6 +6,7 @@ import pytest
 from snuba_sdk import Column, Direction, Function, OrderBy
 
 from sentry.sentry_metrics import indexer
+from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.utils import resolve_weak
 from sentry.snuba.dataset import EntityKey
 from sentry.snuba.metrics import (
@@ -37,6 +38,10 @@ from sentry.snuba.metrics.fields.snql import (
 from sentry.snuba.metrics.naming_layer import SessionMRI, TransactionMRI, get_public_name_from_mri
 from sentry.testutils import TestCase
 from tests.sentry.snuba.metrics.test_query_builder import PseudoProject
+
+
+def _indexer_record(org_id: int, string: str) -> int:
+    return indexer.record(use_case_id=UseCaseKey.RELEASE_HEALTH, org_id=org_id, string=string)
 
 
 def get_entity_of_metric_mocked(_, metric_mri):
@@ -128,13 +133,13 @@ class SingleEntityDerivedMetricTestCase(TestCase):
         Test that ensures that method generate_select_statements generates the equivalent SnQL
         required to query for the instance of DerivedMetric
         """
-        query_definition = object()
+        metrics_query = object()
 
         org_id = self.project.organization_id
         for status in ("init", "abnormal", "crashed", "errored"):
-            indexer.record(org_id, status)
-        session_ids = [indexer.record(org_id, SessionMRI.SESSION.value)]
-        session_user_ids = [indexer.record(org_id, SessionMRI.USER.value)]
+            _indexer_record(org_id, status)
+        session_ids = [_indexer_record(org_id, SessionMRI.SESSION.value)]
+        session_user_ids = [_indexer_record(org_id, SessionMRI.USER.value)]
 
         derived_name_snql = {
             SessionMRI.ALL.value: (all_sessions, session_ids),
@@ -148,7 +153,7 @@ class SingleEntityDerivedMetricTestCase(TestCase):
         }
         for metric_mri, (func, metric_ids_list) in derived_name_snql.items():
             assert DERIVED_METRICS[metric_mri].generate_select_statements(
-                [self.project], query_definition=query_definition
+                [self.project], metrics_query=metrics_query
             ) == [
                 func(
                     org_id=self.project.organization_id,
@@ -157,9 +162,9 @@ class SingleEntityDerivedMetricTestCase(TestCase):
                 ),
             ]
 
-        session_error_metric_ids = [indexer.record(org_id, SessionMRI.ERROR.value)]
+        session_error_metric_ids = [_indexer_record(org_id, SessionMRI.ERROR.value)]
         assert DERIVED_METRICS[SessionMRI.ERRORED_SET.value].generate_select_statements(
-            [self.project], query_definition=query_definition
+            [self.project], metrics_query=metrics_query
         ) == [
             uniq_aggregation_on_metric(
                 metric_ids=session_error_metric_ids,
@@ -169,7 +174,7 @@ class SingleEntityDerivedMetricTestCase(TestCase):
 
         assert MOCKED_DERIVED_METRICS[
             SessionMRI.CRASHED_AND_ABNORMAL_USER.value
-        ].generate_select_statements([self.project], query_definition=query_definition) == [
+        ].generate_select_statements([self.project], metrics_query=metrics_query) == [
             addition(
                 crashed_users(org_id, session_user_ids, alias=SessionMRI.CRASHED_USER.value),
                 abnormal_users(org_id, session_user_ids, alias=SessionMRI.ABNORMAL_USER.value),
@@ -177,7 +182,7 @@ class SingleEntityDerivedMetricTestCase(TestCase):
             )
         ]
         assert MOCKED_DERIVED_METRICS[SessionMRI.ERRORED_USER.value].generate_select_statements(
-            [self.project], query_definition=query_definition
+            [self.project], metrics_query=metrics_query
         ) == [
             subtraction(
                 errored_all_users(
@@ -193,7 +198,7 @@ class SingleEntityDerivedMetricTestCase(TestCase):
         ]
 
         assert MOCKED_DERIVED_METRICS[SessionMRI.HEALTHY_USER.value].generate_select_statements(
-            [self.project], query_definition=query_definition
+            [self.project], metrics_query=metrics_query
         ) == [
             subtraction(
                 all_users(org_id, session_user_ids, alias=SessionMRI.ALL_USER.value),
@@ -205,7 +210,7 @@ class SingleEntityDerivedMetricTestCase(TestCase):
         ]
 
         assert MOCKED_DERIVED_METRICS[SessionMRI.CRASH_FREE_RATE.value].generate_select_statements(
-            [self.project], query_definition=query_definition
+            [self.project], metrics_query=metrics_query
         ) == [
             complement(
                 division_float(
@@ -220,7 +225,7 @@ class SingleEntityDerivedMetricTestCase(TestCase):
         ]
         assert MOCKED_DERIVED_METRICS[
             SessionMRI.CRASH_FREE_USER_RATE.value
-        ].generate_select_statements([self.project], query_definition=query_definition) == [
+        ].generate_select_statements([self.project], metrics_query=metrics_query) == [
             complement(
                 division_float(
                     crashed_users(
@@ -237,7 +242,7 @@ class SingleEntityDerivedMetricTestCase(TestCase):
         # `get_entity` is called, and thereby the entity validation logic, we throw an exception
         with pytest.raises(DerivedMetricParseException):
             self.crash_free_fake.generate_select_statements(
-                [self.project], query_definition=query_definition
+                [self.project], metrics_query=metrics_query
             )
 
     @mock.patch(
@@ -246,9 +251,9 @@ class SingleEntityDerivedMetricTestCase(TestCase):
     @mock.patch("sentry.snuba.metrics.fields.base.org_id_from_projects", lambda _: 0)
     def test_generate_metric_ids(self):
         org_id = self.project.organization_id
-        session_metric_id = indexer.record(org_id, SessionMRI.SESSION.value)
-        session_error_metric_id = indexer.record(org_id, SessionMRI.ERROR.value)
-        session_user_id = indexer.record(org_id, SessionMRI.USER.value)
+        session_metric_id = _indexer_record(org_id, SessionMRI.SESSION.value)
+        session_error_metric_id = _indexer_record(org_id, SessionMRI.ERROR.value)
+        session_user_id = _indexer_record(org_id, SessionMRI.USER.value)
 
         for derived_metric_mri in [
             SessionMRI.ALL.value,
@@ -284,7 +289,7 @@ class SingleEntityDerivedMetricTestCase(TestCase):
         mocked_mri_resolver(["crash_free_fake"], get_public_name_from_mri),
     )
     def test_generate_order_by_clause(self):
-        query_definition = object()
+        metrics_query = object()
 
         for derived_metric_mri in MOCKED_DERIVED_METRICS.keys():
             if derived_metric_mri == self.crash_free_fake.metric_mri:
@@ -293,11 +298,11 @@ class SingleEntityDerivedMetricTestCase(TestCase):
             if not isinstance(derived_metric_obj, SingularEntityDerivedMetric):
                 continue
             assert derived_metric_obj.generate_orderby_clause(
-                projects=[self.project], direction=Direction.ASC, query_definition=query_definition
+                projects=[self.project], direction=Direction.ASC, metrics_query=metrics_query
             ) == [
                 OrderBy(
                     derived_metric_obj.generate_select_statements(
-                        [self.project], query_definition=query_definition
+                        [self.project], metrics_query=metrics_query
                     )[0],
                     Direction.ASC,
                 )
@@ -305,7 +310,7 @@ class SingleEntityDerivedMetricTestCase(TestCase):
 
         with pytest.raises(DerivedMetricParseException):
             self.crash_free_fake.generate_orderby_clause(
-                projects=[self.project], direction=Direction.DESC, query_definition=query_definition
+                projects=[self.project], direction=Direction.DESC, metrics_query=metrics_query
             )
 
     def test_generate_default_value(self):
@@ -345,7 +350,7 @@ class SingleEntityDerivedMetricTestCase(TestCase):
             )
 
     def test_run_post_query_function(self):
-        query_definition = object()
+        metrics_query = object()
         totals = {
             SessionMRI.CRASHED.value: 7,
         }
@@ -353,19 +358,13 @@ class SingleEntityDerivedMetricTestCase(TestCase):
             SessionMRI.CRASHED.value: [4, 0, 0, 0, 3, 0],
         }
         crashed_sessions = MOCKED_DERIVED_METRICS[SessionMRI.CRASHED.value]
+        assert crashed_sessions.run_post_query_function(totals, metrics_query=metrics_query) == 7
         assert (
-            crashed_sessions.run_post_query_function(totals, query_definition=query_definition) == 7
-        )
-        assert (
-            crashed_sessions.run_post_query_function(
-                series, query_definition=query_definition, idx=0
-            )
+            crashed_sessions.run_post_query_function(series, metrics_query=metrics_query, idx=0)
             == 4
         )
         assert (
-            crashed_sessions.run_post_query_function(
-                series, query_definition=query_definition, idx=4
-            )
+            crashed_sessions.run_post_query_function(series, metrics_query=metrics_query, idx=4)
             == 3
         )
 
@@ -411,19 +410,19 @@ class CompositeEntityDerivedMetricTestCase(TestCase):
             self.sessions_errored.generate_metric_ids(projects=[1])
 
     def test_generate_select_snql_of_derived_metric(self):
-        query_definition = object()
+        metrics_query = object()
 
         with pytest.raises(NotSupportedOverCompositeEntityException):
             self.sessions_errored.generate_select_statements(
-                projects=[1], query_definition=query_definition
+                projects=[1], metrics_query=metrics_query
             )
 
     def test_generate_orderby_clause(self):
-        query_definition = object()
+        metrics_query = object()
 
         with pytest.raises(NotSupportedOverCompositeEntityException):
             self.sessions_errored.generate_orderby_clause(
-                direction=Direction.ASC, projects=[1], query_definition=query_definition
+                direction=Direction.ASC, projects=[1], metrics_query=metrics_query
             )
 
     def test_generate_default_value(self):
@@ -453,7 +452,7 @@ class CompositeEntityDerivedMetricTestCase(TestCase):
         ]
 
     def test_run_post_query_function(self):
-        query_definition = object()
+        metrics_query = object()
         totals = {
             SessionMRI.ERRORED_SET.value: 3,
             SessionMRI.ERRORED_PREAGGREGATED.value: 4.0,
@@ -469,18 +468,17 @@ class CompositeEntityDerivedMetricTestCase(TestCase):
             SessionMRI.ERRORED_ALL.value: [4.0, 0, 0, 0, 3, 0],
         }
         assert (
-            self.sessions_errored.run_post_query_function(totals, query_definition=query_definition)
-            == 7
+            self.sessions_errored.run_post_query_function(totals, metrics_query=metrics_query) == 7
         )
         assert (
             self.sessions_errored.run_post_query_function(
-                series, query_definition=query_definition, idx=0
+                series, metrics_query=metrics_query, idx=0
             )
             == 4
         )
         assert (
             self.sessions_errored.run_post_query_function(
-                series, query_definition=query_definition, idx=4
+                series, metrics_query=metrics_query, idx=4
             )
             == 3
         )

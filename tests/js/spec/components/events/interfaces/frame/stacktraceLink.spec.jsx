@@ -73,7 +73,7 @@ describe('StacktraceLink', function () {
     );
   });
 
-  it('renders source url link', async function () {
+  it('renders source url link', function () {
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
       query: {file: frame.filename, commitId: 'master', platform},
@@ -92,7 +92,7 @@ describe('StacktraceLink', function () {
     expect(wrapper.find('OpenInName').text()).toEqual('GitHub');
   });
 
-  it('renders file_not_found message', async function () {
+  it('renders file_not_found message', function () {
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
       query: {file: frame.filename, commitId: 'master', platform},
@@ -120,7 +120,7 @@ describe('StacktraceLink', function () {
     expect(wrapper.state('match').attemptedUrl).toEqual('https://something.io/blah');
   });
 
-  it('renders stack_root_mismatch message', async function () {
+  it('renders stack_root_mismatch message', function () {
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
       query: {file: frame.filename, commitId: 'master', platform},
@@ -146,7 +146,7 @@ describe('StacktraceLink', function () {
     );
   });
 
-  it('renders default error message', async function () {
+  it('renders default error message', function () {
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
       query: {file: frame.filename, commitId: 'master', platform},

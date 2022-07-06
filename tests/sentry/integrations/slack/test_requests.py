@@ -1,6 +1,8 @@
 from unittest import mock
 from urllib.parse import urlencode
 
+import pytest
+
 from sentry import options
 from sentry.integrations.slack.requests.action import SlackActionRequest
 from sentry.integrations.slack.requests.base import SlackRequest, SlackRequestError
@@ -59,31 +61,31 @@ class SlackRequestTest(TestCase):
     def test_validate_existence_of_data(self):
         type(self.request).DATA = mock.PropertyMock(side_effect=ValueError())
 
-        with self.assertRaises(SlackRequestError):
+        with pytest.raises(SlackRequestError):
             self.slack_request.validate()
 
     def test_returns_400_on_invalid_data(self):
         type(self.request).DATA = mock.PropertyMock(side_effect=ValueError())
 
-        with self.assertRaises(SlackRequestError) as e:
+        with pytest.raises(SlackRequestError) as e:
             self.slack_request.validate()
             assert e.status == 400
 
     def test_validates_token(self):
         self.request.data["token"] = "notthetoken"
 
-        with self.assertRaises(SlackRequestError):
+        with pytest.raises(SlackRequestError):
             self.slack_request.validate()
 
     def test_returns_401_on_invalid_token(self):
         self.request.data["token"] = "notthetoken"
 
-        with self.assertRaises(SlackRequestError) as e:
+        with pytest.raises(SlackRequestError) as e:
             self.slack_request.validate()
             assert e.status == 401
 
     def test_validates_existence_of_integration(self):
-        with self.assertRaises(SlackRequestError) as e:
+        with pytest.raises(SlackRequestError) as e:
             self.slack_request.validate()
             assert e.status == 403
 
@@ -134,13 +136,13 @@ class SlackEventRequestTest(TestCase):
     def test_validate_missing_event(self):
         self.request.data.pop("event")
 
-        with self.assertRaises(SlackRequestError):
+        with pytest.raises(SlackRequestError):
             self.slack_request.validate()
 
     def test_validate_missing_event_type(self):
         self.request.data["event"] = {}
 
-        with self.assertRaises(SlackRequestError):
+        with pytest.raises(SlackRequestError):
             self.slack_request.validate()
 
     def test_type(self):
@@ -155,7 +157,7 @@ class SlackEventRequestTest(TestCase):
         self.request.body = urlencode(self.request.data).encode("utf-8")
 
         self.request.META = set_signing_secret("bad_key", self.request.body)
-        with self.assertRaises(SlackRequestError) as e:
+        with pytest.raises(SlackRequestError) as e:
             self.slack_request.validate()
             assert e.status == 401
 
@@ -206,11 +208,11 @@ class SlackActionRequestTest(TestCase):
     def test_validates_existence_of_payload(self):
         self.request.data.pop("payload")
 
-        with self.assertRaises(SlackRequestError):
+        with pytest.raises(SlackRequestError):
             self.slack_request.validate()
 
     def test_validates_payload_json(self):
         self.request.data["payload"] = "notjson"
 
-        with self.assertRaises(SlackRequestError):
+        with pytest.raises(SlackRequestError):
             self.slack_request.validate()

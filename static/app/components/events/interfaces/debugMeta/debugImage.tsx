@@ -265,7 +265,7 @@ export default DebugImage;
 
 const DebugImageItem = styled(PanelItem)`
   font-size: ${p => p.theme.fontSizeSmall};
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     display: grid;
     gap: ${space(1)};
     position: relative;
@@ -281,14 +281,14 @@ const ImageInfoGroup = styled('div')<{fullWidth?: boolean}>`
   flex-grow: ${p => (p.fullWidth ? 1 : null)};
 
   &:first-child {
-    @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    @media (min-width: ${p => p.theme.breakpoints.small}) {
       margin-left: 0;
     }
   }
 `;
 
 const ImageActions = styled(ImageInfoGroup)`
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     position: absolute;
     top: 15px;
     right: 20px;
@@ -319,13 +319,13 @@ const ImageProp = styled('span')`
 
 const StatusLine = styled(ImageSubtext)`
   display: flex;
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     display: grid;
   }
 `;
 
 const AddressDivider = styled('br')`
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     display: none;
   }
 `;
@@ -335,7 +335,7 @@ const IconWrapper = styled('span')`
   margin-top: ${space(0.5)};
   height: 16px;
 
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     margin-top: ${space(0.25)};
   }
 `;

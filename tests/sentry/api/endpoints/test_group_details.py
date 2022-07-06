@@ -26,6 +26,7 @@ from sentry.models import (
 )
 from sentry.plugins.base import plugins
 from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.types.activity import ActivityType
 
 
 class GroupDetailsTest(APITestCase, SnubaTestCase):
@@ -323,7 +324,9 @@ class GroupUpdateTest(APITestCase):
         assert GroupAssignee.objects.filter(group=group, user=self.user).exists()
 
         assert (
-            Activity.objects.filter(group=group, user=self.user, type=Activity.ASSIGNED).count()
+            Activity.objects.filter(
+                group=group, user=self.user, type=ActivityType.ASSIGNED.value
+            ).count()
             == 1
         )
 
@@ -357,7 +360,9 @@ class GroupUpdateTest(APITestCase):
         assert GroupAssignee.objects.filter(group=group, user=self.user).exists()
 
         assert (
-            Activity.objects.filter(group=group, user=self.user, type=Activity.ASSIGNED).count()
+            Activity.objects.filter(
+                group=group, user=self.user, type=ActivityType.ASSIGNED.value
+            ).count()
             == 1
         )
 
@@ -410,7 +415,7 @@ class GroupUpdateTest(APITestCase):
 
         assert GroupAssignee.objects.filter(group=group, team=team).exists()
 
-        assert Activity.objects.filter(group=group, type=Activity.ASSIGNED).count() == 1
+        assert Activity.objects.filter(group=group, type=ActivityType.ASSIGNED.value).count() == 1
 
         assert GroupSubscription.objects.filter(
             user=self.user, group=group, is_active=True

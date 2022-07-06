@@ -1,4 +1,4 @@
-from django.db.backends.postgresql_psycopg2.base import DatabaseOperations
+from django.db.backends.postgresql.base import DatabaseOperations
 
 
 class DatabaseOperations(DatabaseOperations):

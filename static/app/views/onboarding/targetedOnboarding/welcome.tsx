@@ -55,7 +55,7 @@ function TargetedOnboardingWelcome({organization, ...props}: StepProps) {
       organization,
       source,
     });
-  }, []);
+  });
 
   const onComplete = () => {
     trackAdvancedAnalyticsEvent('growth.onboarding_clicked_instrument_app', {
@@ -112,7 +112,7 @@ function TargetedOnboardingWelcome({organization, ...props}: StepProps) {
           </ActionItem>
           <ActionItem {...fadeAway}>
             <InnerAction
-              title={t('Setup my team')}
+              title={t('Set up my team')}
               subText={tct(
                 'Invite [friends] coworkers. You shouldn’t have to fix what you didn’t break',
                 {friends: <Strike>{t('friends')}</Strike>}
@@ -190,13 +190,13 @@ const ActionItem = styled(motion.div)`
   margin-bottom: ${space(2)};
   justify-content: space-around;
   border: 1px solid ${p => p.theme.gray200};
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     display: grid;
     grid-template-columns: 125px auto 125px;
     width: 680px;
     align-items: center;
   }
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     display: flex;
     flex-direction: column;
   }
@@ -206,7 +206,7 @@ const TextWrapper = styled('div')`
   text-align: left;
   margin: auto ${space(3)};
   min-height: 70px;
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     text-align: center;
     margin: ${space(1)} ${space(1)};
     margin-top: ${space(3)};

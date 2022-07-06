@@ -7,7 +7,7 @@ import pytest
 from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
 
-from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils import APITestCase, MetricsEnhancedPerformanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils.samples import load_data
 from sentry.utils.snuba import get_array_column_alias
@@ -1017,3 +1017,137 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
             (0, 1, [("transaction.duration", 0)]),
         ]
         assert response.data == self.as_response_data(expected)
+
+
+class OrganizationEventsMetricsEnhancedPerformanceHistogramEndpointTest(
+    MetricsEnhancedPerformanceTestCase
+):
+    def setUp(self):
+        super().setUp()
+        self.min_ago = iso_format(before_now(minutes=1))
+        self.features = {}
+
+    def populate_events(self, specs):
+        start = before_now(minutes=5)
+        for spec in specs:
+            spec = HistogramSpec(*spec)
+            for suffix_key, count in spec.fields:
+                for i in range(count):
+                    self.store_metric(
+                        (spec.end + spec.start) / 2,
+                        metric=suffix_key,
+                        tags={"transaction": suffix_key},
+                        timestamp=start,
+                    )
+
+    def as_response_data(self, specs):
+        data = {}
+        for spec in specs:
+            spec = HistogramSpec(*spec)
+            for measurement, count in sorted(spec.fields):
+                if measurement not in data:
+                    data[measurement] = []
+                data[measurement].append({"bin": spec.start, "count": count})
+        return data
+
+    def do_request(self, query, features=None):
+        if features is None:
+            features = {
+                "organizations:performance-view": True,
+                "organizations:performance-use-metrics": True,
+            }
+        features.update(self.features)
+        self.login_as(user=self.user)
+        url = reverse(
+            "sentry-api-0-organization-events-histogram",
+            kwargs={"organization_slug": self.organization.slug},
+        )
+        with self.feature(features):
+            return self.client.get(url, query, format="json")
+
+    def test_no_projects(self):
+        response = self.do_request({})
+
+        assert response.status_code == 200, response.content
+        assert response.data == {}
+
+    def test_histogram_simple(self):
+        specs = [
+            (0, 1, [("transaction.duration", 5)]),
+            (1, 2, [("transaction.duration", 10)]),
+            (2, 3, [("transaction.duration", 1)]),
+            (4, 5, [("transaction.duration", 15)]),
+        ]
+        self.populate_events(specs)
+        query = {
+            "project": [self.project.id],
+            "field": ["transaction.duration"],
+            "numBuckets": 5,
+            "dataset": "metrics",
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        expected = [
+            (0, 1, [("transaction.duration", 6)]),
+            (1, 2, [("transaction.duration", 9)]),
+            (2, 3, [("transaction.duration", 3)]),
+            (3, 4, [("transaction.duration", 8)]),
+            (4, 5, [("transaction.duration", 7)]),
+        ]
+        # Note metrics data is approximate, these values are based on running the test and asserting the results
+        expected_response = self.as_response_data(expected)
+        expected_response["meta"] = {"isMetricsData": True}
+        assert response.data == expected_response
+
+    def test_multi_histogram(self):
+        specs = [
+            (0, 1, [("measurements.fcp", 5), ("measurements.lcp", 5)]),
+            (1, 2, [("measurements.fcp", 5), ("measurements.lcp", 5)]),
+        ]
+        self.populate_events(specs)
+        query = {
+            "project": [self.project.id],
+            "field": ["measurements.fcp", "measurements.lcp"],
+            "numBuckets": 2,
+            "dataset": "metrics",
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        expected = [
+            (0, 1, [("measurements.fcp", 5), ("measurements.lcp", 5)]),
+            (1, 2, [("measurements.fcp", 5), ("measurements.lcp", 5)]),
+        ]
+        # Note metrics data is approximate, these values are based on running the test and asserting the results
+        expected_response = self.as_response_data(expected)
+        expected_response["meta"] = {"isMetricsData": True}
+        assert response.data == expected_response
+
+    def test_histogram_exclude_outliers_data_filter(self):
+        specs = [
+            (0, 0, [("transaction.duration", 4)]),
+            (1, 1, [("transaction.duration", 4)]),
+            (4000, 4001, [("transaction.duration", 1)]),
+        ]
+        self.populate_events(specs)
+
+        query = {
+            "project": [self.project.id],
+            "field": ["transaction.duration"],
+            "numBuckets": 5,
+            "dataFilter": "exclude_outliers",
+            "dataset": "metrics",
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        # Metrics approximation means both buckets got merged
+        expected = [
+            (0, 0, [("transaction.duration", 8)]),
+            (1, 2, [("transaction.duration", 0)]),
+            (2, 3, [("transaction.duration", 0)]),
+            (3, 4, [("transaction.duration", 0)]),
+            (4, 5, [("transaction.duration", 0)]),
+        ]
+        expected_response = self.as_response_data(expected)
+        expected_response["meta"] = {"isMetricsData": True}
+        assert response.data == expected_response

@@ -3,6 +3,7 @@ from io import BytesIO
 from sentry.models import EventAttachment, File
 from sentry.testutils import APITestCase, PermissionTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.response import close_streaming_response
 
 
 class CreateAttachmentMixin:
@@ -61,7 +62,7 @@ class EventAttachmentDetailsTest(APITestCase, CreateAttachmentMixin):
         assert response.get("Content-Disposition") == 'attachment; filename="hello.png"'
         assert response.get("Content-Length") == str(self.file.size)
         assert response.get("Content-Type") == "application/octet-stream"
-        assert b"File contents here" == BytesIO(b"".join(response.streaming_content)).getvalue()
+        assert b"File contents here" == b"".join(response.streaming_content)
 
     def test_delete(self):
         self.login_as(user=self.user)
@@ -84,14 +85,14 @@ class EventAttachmentDetailsPermissionTest(PermissionTestCase, CreateAttachmentM
 
     def test_member_can_access_by_default(self):
         with self.feature("organizations:event-attachments"):
-            self.assert_member_can_access(self.path)
-            self.assert_can_access(self.owner, self.path)
+            close_streaming_response(self.assert_member_can_access(self.path))
+            close_streaming_response(self.assert_can_access(self.owner, self.path))
 
     def test_member_cannot_access_for_owner_role(self):
         self.organization.update_option("sentry:attachments_role", "owner")
         with self.feature("organizations:event-attachments"):
             self.assert_member_cannot_access(self.path)
-            self.assert_can_access(self.owner, self.path)
+            close_streaming_response(self.assert_can_access(self.owner, self.path))
 
     def test_random_user_cannot_access(self):
         self.organization.update_option("sentry:attachments_role", "owner")
@@ -105,4 +106,4 @@ class EventAttachmentDetailsPermissionTest(PermissionTestCase, CreateAttachmentM
         superuser = self.create_user(is_superuser=True)
 
         with self.feature("organizations:event-attachments"):
-            self.assert_can_access(superuser, self.path)
+            close_streaming_response(self.assert_can_access(superuser, self.path))

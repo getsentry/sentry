@@ -69,7 +69,7 @@ describe('Team Selector', function () {
     );
   });
 
-  it('respects the team filter', async function () {
+  it('respects the team filter', function () {
     const teamFilter = team => team.slug === 'team1';
     createWrapper({teamFilter});
 
@@ -82,7 +82,7 @@ describe('Team Selector', function () {
     expect(screen.queryByText('#team3')).not.toBeInTheDocument();
   });
 
-  it('respects the project filter', async function () {
+  it('respects the project filter', function () {
     createWrapper({project});
     userEvent.type(screen.getByText('Select...'), '{keyDown}');
 
@@ -92,7 +92,7 @@ describe('Team Selector', function () {
     expect(screen.getAllByRole('button').length).toBe(2);
   });
 
-  it('respects the team and project filter', async function () {
+  it('respects the team and project filter', function () {
     const teamFilter = team => team.slug === 'team1' || team.slug === 'team2';
     createWrapper({teamFilter, project});
     userEvent.type(screen.getByText('Select...'), '{keyDown}');
@@ -106,7 +106,7 @@ describe('Team Selector', function () {
     expect(screen.getAllByRole('button').length).toBe(1);
   });
 
-  it('allows you to add teams outside of project', async function () {
+  it('allows you to add teams outside of project', function () {
     createWrapper({project});
     userEvent.type(screen.getByText('Select...'), '{keyDown}');
 

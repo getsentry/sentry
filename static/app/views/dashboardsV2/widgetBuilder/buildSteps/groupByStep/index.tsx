@@ -1,29 +1,13 @@
 import {t} from 'sentry/locale';
 import {Organization, TagCollection} from 'sentry/types';
 import {QueryFieldValue} from 'sentry/utils/discover/fields';
-import Measurements from 'sentry/utils/measurements/measurements';
-import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
+import {getDatasetConfig} from 'sentry/views/dashboardsV2/datasetConfig/base';
 
-import {SESSIONS_TAGS} from '../../releaseWidget/fields';
-import {DataSet, getAmendedFieldOptions} from '../../utils';
+import {DataSet} from '../../utils';
+import {DATA_SET_TO_WIDGET_TYPE} from '../../widgetBuilder';
 import {BuildStep} from '../buildStep';
 
 import {GroupBySelector} from './groupBySelector';
-
-// Tags are sorted alphabetically to make it easier to find the correct option
-// and are converted to fieldOptions format
-const releaseFieldOptions = Object.values(SESSIONS_TAGS)
-  .sort((a, b) => a.localeCompare(b))
-  .reduce((acc, tagKey) => {
-    acc[`tag:${tagKey}`] = {
-      label: tagKey,
-      value: {
-        kind: FieldValueKind.TAG,
-        meta: {name: tagKey, dataType: 'string'},
-      },
-    };
-    return acc;
-  }, {});
 
 interface Props {
   columns: QueryFieldValue[];
@@ -40,32 +24,21 @@ export function GroupByStep({
   organization,
   tags,
 }: Props) {
+  const datasetConfig = getDatasetConfig(DATA_SET_TO_WIDGET_TYPE[dataSet]);
   return (
     <BuildStep
       title={t('Group your results')}
       description={t('This is how you can group your data result by field or tag.')}
     >
-      {dataSet === DataSet.RELEASES ? (
-        <GroupBySelector
-          columns={columns}
-          fieldOptions={releaseFieldOptions}
-          onChange={onGroupByChange}
-        />
-      ) : (
-        <Measurements>
-          {({measurements}) => (
-            <GroupBySelector
-              columns={columns}
-              fieldOptions={getAmendedFieldOptions({
-                measurements,
-                tags,
-                organization,
-              })}
-              onChange={onGroupByChange}
-            />
-          )}
-        </Measurements>
-      )}
+      <GroupBySelector
+        columns={columns}
+        fieldOptions={
+          datasetConfig.getGroupByFieldOptions
+            ? datasetConfig.getGroupByFieldOptions(organization, tags)
+            : {}
+        }
+        onChange={onGroupByChange}
+      />
     </BuildStep>
   );
 }

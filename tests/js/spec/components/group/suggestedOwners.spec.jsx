@@ -1,4 +1,11 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {
+  act,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  waitForElementToBeRemoved,
+} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
 import SuggestedOwners from 'sentry/components/group/suggestedOwners/suggestedOwners';
@@ -11,12 +18,6 @@ describe('SuggestedOwners', function () {
   const project = TestStubs.Project();
   const event = TestStubs.Event();
   const group = TestStubs.Group({firstRelease: {}});
-
-  const routerContext = TestStubs.routerContext([
-    {
-      organization,
-    },
-  ]);
 
   const endpoint = `/projects/${organization.slug}/${project.slug}/events/${event.id}`;
 
@@ -40,7 +41,7 @@ describe('SuggestedOwners', function () {
 
   afterEach(function () {
     Client.clearMockResponses();
-    CommitterStore.reset();
+    act(() => CommitterStore.reset());
   });
 
   it('Renders suggested owners', async function () {
@@ -64,31 +65,14 @@ describe('SuggestedOwners', function () {
       },
     });
 
-    const wrapper = mountWithTheme(
-      <SuggestedOwners project={project} group={group} event={event} />,
-      routerContext
+    render(<SuggestedOwners project={project} group={group} event={event} />, {
+      organization,
+    });
+
+    await waitFor(() =>
+      expect(screen.getAllByTestId('suggested-assignee')).toHaveLength(2)
     );
-
-    await tick();
-    await tick(); // Run Store.load and fire Action.loadSuccess
-    await tick(); // Run Store.loadSuccess
-    wrapper.update();
-
-    expect(wrapper.find('ActorAvatar')).toHaveLength(2);
-
-    // One includes committers, the other includes ownership rules
-    expect(
-      wrapper
-        .find('SuggestedOwnerHovercard')
-        .map(node => node.props())
-        .some(p => p.commits === undefined && p.rules !== undefined)
-    ).toBe(true);
-    expect(
-      wrapper
-        .find('SuggestedOwnerHovercard')
-        .map(node => node.props())
-        .some(p => p.commits !== undefined && p.rules === undefined)
-    ).toBe(true);
+    userEvent.hover(screen.getAllByTestId('suggested-assignee')[0]);
   });
 
   it('does not call committers endpoint if `group.firstRelease` does not exist', async function () {
@@ -112,18 +96,14 @@ describe('SuggestedOwners', function () {
       },
     });
 
-    const wrapper = mountWithTheme(
+    render(
       <SuggestedOwners project={project} group={TestStubs.Group()} event={event} />,
-      routerContext
+      {organization}
     );
 
-    await tick();
-    await tick(); // Run Store.load and fire Action.loadSuccess
-    await tick(); // Run Store.loadSuccess
-    wrapper.update();
+    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
     expect(committers).not.toHaveBeenCalled();
-    expect(wrapper.find('ActorAvatar')).toHaveLength(1);
   });
 
   it('Merges owner matching rules and having suspect commits', async function () {
@@ -144,20 +124,13 @@ describe('SuggestedOwners', function () {
       },
     });
 
-    const wrapper = mountWithTheme(
-      <SuggestedOwners project={project} group={group} event={event} />,
-      routerContext
-    );
+    render(<SuggestedOwners project={project} group={group} event={event} />, {
+      organization,
+    });
 
-    await tick();
-    await tick(); // Run Store.load and fire Action.loadSuccess
-    await tick(); // Run Store.loadSuccess
-    wrapper.update();
+    userEvent.hover(await screen.findByTestId('suggested-assignee'));
 
-    expect(wrapper.find('ActorAvatar')).toHaveLength(1);
-
-    const hovercardProps = wrapper.find('SuggestedOwnerHovercard').props();
-    expect(hovercardProps.commits).not.toBeUndefined();
-    expect(hovercardProps.rules).not.toBeUndefined();
+    expect(await screen.findByText('sentry/tagstore/*')).toBeInTheDocument();
+    expect(screen.getByText('Matching Ownership Rules')).toBeInTheDocument();
   });
 });

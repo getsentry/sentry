@@ -7,7 +7,7 @@ class SocialAuthBaseException(ValueError):
 
 class BackendError(SocialAuthBaseException):
     def __str__(self):
-        return ugettext("Backend error: %s" % self.message)
+        return ugettext("Backend error: %s") % super().__str__()
 
 
 class WrongBackend(BackendError):
@@ -39,7 +39,7 @@ class AuthFailed(AuthException):
     """Auth process failed for some reason."""
 
     def __str__(self):
-        if self.message == "access_denied":
+        if self.args == ("access_denied",):
             return ugettext("Authentication process was cancelled")
         else:
             return ugettext("Authentication failed: %s") % super().__str__()

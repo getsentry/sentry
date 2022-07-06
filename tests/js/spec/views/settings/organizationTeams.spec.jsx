@@ -41,7 +41,7 @@ describe('OrganizationTeams', function () {
         routerContext
       );
 
-    it('opens "create team modal" when creating a new team from header', async function () {
+    it('opens "create team modal" when creating a new team from header', function () {
       const wrapper = createWrapper();
 
       // Click "Create Team" in Panel Header
@@ -67,6 +67,29 @@ describe('OrganizationTeams', function () {
 
       // Should also link to details
       expect(wrapper.find('Link')).not.toHaveLength(0);
+    });
+
+    it('reloads projects after joining a team', async function () {
+      const team = TestStubs.Team({hasAccess: true, isMember: false});
+      const getOrgMock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/',
+        body: TestStubs.Organization(),
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/members/me/teams/${team.slug}/`,
+        method: 'POST',
+        body: {...team, isMember: true},
+      });
+
+      const mockTeams = [team];
+      act(() => void TeamStore.loadInitialData(mockTeams, false, null));
+      const wrapper = createWrapper({
+        access: new Set([]),
+      });
+      act(() => void wrapper.find('button[aria-label="Join Team"]').simulate('click'));
+      await act(() => tick());
+
+      expect(getOrgMock).toHaveBeenCalledTimes(1);
     });
   });
 

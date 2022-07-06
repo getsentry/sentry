@@ -26,11 +26,7 @@ import withApi from 'sentry/utils/withApi';
 import {handleCreateQuery, handleDeleteQuery} from './savedQuery/utils';
 import MiniGraph from './miniGraph';
 import QueryCard from './querycard';
-import {
-  constructAddQueryToDashboardLink,
-  getPrebuiltQueries,
-  handleAddQueryToDashboard,
-} from './utils';
+import {getPrebuiltQueries, handleAddQueryToDashboard} from './utils';
 
 type Props = {
   api: Client;
@@ -166,27 +162,14 @@ class QueryList extends Component<Props> {
         {
           key: 'add-to-dashboard',
           label: t('Add to Dashboard'),
-          ...(organization.features.includes('new-widget-builder-experience') &&
-          !organization.features.includes('new-widget-builder-experience-design')
-            ? {
-                to: constructAddQueryToDashboardLink({
-                  eventView,
-                  query: view,
-                  organization,
-                  yAxis: view?.yAxis,
-                  location,
-                }),
-              }
-            : {
-                onAction: () =>
-                  handleAddQueryToDashboard({
-                    eventView,
-                    query: view,
-                    organization,
-                    yAxis: view?.yAxis,
-                    router,
-                  }),
-              }),
+          onAction: () =>
+            handleAddQueryToDashboard({
+              eventView,
+              query: view,
+              organization,
+              yAxis: view?.yAxis,
+              router,
+            }),
         },
       ];
 
@@ -253,27 +236,14 @@ class QueryList extends Component<Props> {
               {
                 key: 'add-to-dashboard',
                 label: t('Add to Dashboard'),
-                ...(organization.features.includes('new-widget-builder-experience') &&
-                !organization.features.includes('new-widget-builder-experience-design')
-                  ? {
-                      to: constructAddQueryToDashboardLink({
-                        eventView,
-                        query: savedQuery,
-                        organization,
-                        yAxis: savedQuery?.yAxis ?? eventView.yAxis,
-                        location,
-                      }),
-                    }
-                  : {
-                      onAction: () =>
-                        handleAddQueryToDashboard({
-                          eventView,
-                          query: savedQuery,
-                          organization,
-                          yAxis: savedQuery?.yAxis ?? eventView.yAxis,
-                          router,
-                        }),
-                    }),
+                onAction: () =>
+                  handleAddQueryToDashboard({
+                    eventView,
+                    query: savedQuery,
+                    organization,
+                    yAxis: savedQuery?.yAxis ?? eventView.yAxis,
+                    router,
+                  }),
               },
             ]
           : []),
@@ -367,11 +337,11 @@ const QueryGrid = styled('div')`
   grid-template-columns: minmax(100px, 1fr);
   gap: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
     grid-template-columns: repeat(2, minmax(100px, 1fr));
   }
 
-  @media (min-width: ${p => p.theme.breakpoints[2]}) {
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
     grid-template-columns: repeat(3, minmax(100px, 1fr));
   }
 `;

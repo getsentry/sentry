@@ -2,21 +2,22 @@ import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react
 import styled from '@emotion/styled';
 import {mat3, vec2} from 'gl-matrix';
 
-import {FrameStack} from 'sentry/components/profiling/frameStack';
+import {FrameStack} from 'sentry/components/profiling/FrameStack/frameStack';
 import space from 'sentry/styles/space';
 import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
 import {CanvasPoolManager, CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
 import {DifferentialFlamegraph} from 'sentry/utils/profiling/differentialFlamegraph';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
+import {useFlamegraphSearch} from 'sentry/utils/profiling/flamegraph/useFlamegraphSearch';
 import {
   useDispatchFlamegraphState,
   useFlamegraphState,
 } from 'sentry/utils/profiling/flamegraph/useFlamegraphState';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
-import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {FlamegraphView} from 'sentry/utils/profiling/flamegraphView';
 import {formatColorForFrame, Rect} from 'sentry/utils/profiling/gl/utils';
+import {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
 import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
 import {GridRenderer} from 'sentry/utils/profiling/renderers/gridRenderer';
 import {SelectedFrameRenderer} from 'sentry/utils/profiling/renderers/selectedFrameRenderer';
@@ -24,10 +25,7 @@ import {TextRenderer} from 'sentry/utils/profiling/renderers/textRenderer';
 import usePrevious from 'sentry/utils/usePrevious';
 
 import {BoundTooltip} from './boundTooltip';
-import {
-  FlamegraphOptionsContextMenu,
-  useContextMenu,
-} from './flamegraphOptionsContextMenu';
+import {FlamegraphOptionsContextMenu} from './flamegraphOptionsContextMenu';
 
 function formatWeightToProfileDuration(frame: CallTreeNode, flamegraph: Flamegraph) {
   return `(${Math.round((frame.totalWeight / flamegraph.profile.duration) * 100)}%)`;
@@ -59,6 +57,7 @@ function FlamegraphZoomView({
   setFlamegraphOverlayCanvasRef,
 }: FlamegraphZoomViewProps): React.ReactElement {
   const flamegraphTheme = useFlamegraphTheme();
+  const [flamegraphSearch] = useFlamegraphSearch();
 
   const [lastInteraction, setLastInteraction] = useState<
     'pan' | 'click' | 'zoom' | 'scroll' | null
@@ -280,7 +279,8 @@ function FlamegraphZoomView({
     const drawText = () => {
       textRenderer.draw(
         flamegraphView.configView,
-        flamegraphView.fromConfigView(flamegraphCanvas.physicalSpace)
+        flamegraphView.fromConfigView(flamegraphCanvas.physicalSpace),
+        flamegraphSearch.results
       );
     };
 
@@ -317,6 +317,7 @@ function FlamegraphZoomView({
     flamegraphState.profiles.selectedNode,
     hoveredNode,
     selectedFrameRenderer,
+    flamegraphSearch,
   ]);
 
   useEffect(() => {
@@ -328,9 +329,8 @@ function FlamegraphZoomView({
       setConfigSpaceCursor(null);
     };
 
-    const onZoomIntoFrame = (frame: FlamegraphFrame) => {
+    const onZoomIntoFrame = () => {
       setConfigSpaceCursor(null);
-      dispatchFlamegraphState({type: 'set selected node', payload: frame});
     };
 
     scheduler.on('resetZoom', onResetZoom);
@@ -381,7 +381,7 @@ function FlamegraphZoomView({
       }
 
       // Only dispatch the zoom action if the new clicked node is not the same as the old selected node.
-      // This essentialy tracks double click action on a rectangle
+      // This essentially tracks double click action on a rectangle
       if (lastInteraction === 'click') {
         if (
           hoveredNode &&
@@ -573,7 +573,8 @@ function FlamegraphZoomView({
       // rendered on the flamegraph are removed from the flamegraphView
       setConfigSpaceCursor(null);
 
-      if (evt.metaKey) {
+      // pinch to zoom is recognized as `ctrlKey + wheelEvent`
+      if (evt.metaKey || evt.ctrlKey) {
         zoom(evt);
         setLastInteraction('zoom');
       } else {
@@ -590,32 +591,7 @@ function FlamegraphZoomView({
     };
   }, [flamegraphCanvasRef, zoom, scroll]);
 
-  // Context menu coordinates
-  const contextMenuProps = useContextMenu();
-  const [contextMenuCoordinates, setContextMenuCoordinates] = useState<Rect | null>(null);
-  const onContextMenu = useCallback(
-    (evt: React.MouseEvent) => {
-      evt.preventDefault();
-      evt.stopPropagation();
-
-      if (!flamegraphCanvasRef) {
-        return;
-      }
-
-      const parentPosition = flamegraphCanvasRef.getBoundingClientRect();
-
-      setContextMenuCoordinates(
-        new Rect(
-          evt.clientX - parentPosition.left,
-          evt.clientY - parentPosition.top,
-          0,
-          0
-        )
-      );
-      contextMenuProps.setOpen(true);
-    },
-    [flamegraphCanvasRef, contextMenuProps]
-  );
+  const contextMenu = useContextMenu({container: flamegraphCanvasRef});
 
   return (
     <Fragment>
@@ -626,7 +602,7 @@ function FlamegraphZoomView({
           onMouseUp={onCanvasMouseUp}
           onMouseMove={onCanvasMouseMove}
           onMouseLeave={onCanvasMouseLeave}
-          onContextMenu={onContextMenu}
+          onContextMenu={contextMenu.handleContextMenu}
           style={{cursor: lastInteraction === 'pan' ? 'grab' : 'default'}}
         />
         <Canvas
@@ -635,13 +611,7 @@ function FlamegraphZoomView({
             pointerEvents: 'none',
           }}
         />
-        {contextMenuProps.open ? (
-          <FlamegraphOptionsContextMenu
-            container={flamegraphCanvasRef}
-            contextMenuCoordinates={contextMenuCoordinates}
-            contextMenuProps={contextMenuProps}
-          />
-        ) : null}
+        <FlamegraphOptionsContextMenu contextMenu={contextMenu} />
         {flamegraphCanvas &&
         flamegraphRenderer &&
         flamegraphView &&

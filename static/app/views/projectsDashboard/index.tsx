@@ -64,15 +64,15 @@ function Dashboard({teams, organization, loadingTeams, error, router, location}:
   const canJoinTeam = organization.access.includes('team:read');
   const hasProjectAccess = organization.access.includes('project:read');
 
-  const selectedTeams = new Set(getTeamParams(location ? location.query.team : ''));
-  const filteredTeams = teams.filter(team => selectedTeams.has(team.id));
+  const selectedTeams = getTeamParams(location ? location.query.team : '');
+  const filteredTeams = teams.filter(team => selectedTeams.includes(team.id));
 
   const filteredTeamProjects = uniqBy(
     flatten((filteredTeams ?? teams).map(team => team.projects)),
     'id'
   );
   const projects = uniqBy(flatten(teams.map(teamObj => teamObj.projects)), 'id');
-  const currentProjects = !selectedTeams.size ? projects : filteredTeamProjects;
+  const currentProjects = selectedTeams.length === 0 ? projects : filteredTeamProjects;
   const filteredProjects = (currentProjects ?? projects).filter(project =>
     project.slug.includes(projectQuery)
   );
@@ -85,15 +85,14 @@ function Dashboard({teams, organization, loadingTeams, error, router, location}:
     setProjectQuery(searchQuery);
   }
 
-  function handleChangeFilter(activeFilters: Set<string>) {
+  function handleChangeFilter(activeFilters: string[]) {
     const {...currentQuery} = location.query;
-    const team = activeFilters.size ? [...activeFilters] : '';
 
     router.push({
       pathname: location.pathname,
       query: {
         ...currentQuery,
-        team: team.length === 0 ? '' : team,
+        team: activeFilters.length > 0 ? activeFilters : '',
       },
     });
   }
@@ -151,9 +150,8 @@ function Dashboard({teams, organization, loadingTeams, error, router, location}:
                 <TeamFilter
                   selectedTeams={selectedTeams}
                   handleChangeFilter={handleChangeFilter}
-                  fullWidth
                   showIsMemberTeams
-                  showMyTeamsAndUnassigned={false}
+                  showSuggestedOptions={false}
                   showMyTeamsDescription
                 />
                 <StyledSearchBar
@@ -194,7 +192,7 @@ const ProjectsHeader = styled(Layout.Header)`
   border-bottom: none;
   align-items: end;
 
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
     padding: 26px ${space(4)} 0 ${space(4)};
   }
 `;
@@ -215,11 +213,11 @@ const SearchAndSelectorWrapper = styled('div')`
   align-items: flex-end;
   margin-bottom: ${space(2)};
 
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     display: block;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints[3]}) {
+  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
     display: flex;
   }
 `;
@@ -227,7 +225,7 @@ const SearchAndSelectorWrapper = styled('div')`
 const StyledSearchBar = styled(SearchBar)`
   flex-grow: 1;
 
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     margin-top: ${space(1)};
   }
 `;
@@ -242,11 +240,11 @@ const ProjectCards = styled('div')`
   grid-template-columns: minmax(100px, 1fr);
   gap: ${space(3)};
 
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: repeat(2, minmax(100px, 1fr));
   }
 
-  @media (min-width: ${p => p.theme.breakpoints[3]}) {
+  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
     grid-template-columns: repeat(3, minmax(100px, 1fr));
   }
 `;

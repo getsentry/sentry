@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+import pytest
 from django.urls import NoReverseMatch, reverse
 
 from sentry.models import Group
@@ -176,7 +177,7 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 404, response.content
 
     def test_invalid_event_id(self):
-        with self.assertRaises(NoReverseMatch):
+        with pytest.raises(NoReverseMatch):
             reverse(
                 "sentry-api-0-organization-event-details",
                 kwargs={
@@ -260,4 +261,4 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase):
                 format="json",
             )
 
-        assert response.status_code == 400, response.content
+        assert response.status_code == 404, response.content

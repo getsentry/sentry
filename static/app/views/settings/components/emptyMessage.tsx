@@ -50,7 +50,7 @@ const EmptyMessage = styled(
   flex-direction: column;
   color: ${p => p.theme.textColor};
   font-size: ${p =>
-    p.size && p.size === 'large' ? p.theme.fontSizeExtraLarge : p.theme.fontSizeLarge};
+    p.size && p.size === 'large' ? p.theme.fontSizeExtraLarge : p.theme.fontSizeMedium};
 `;
 
 const IconWrapper = styled('div')`

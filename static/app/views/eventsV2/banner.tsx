@@ -99,7 +99,7 @@ function DiscoverBanner({organization, resultsUrl}: Props) {
     });
   }
 
-  const isSmallBanner = useMedia(`(max-width: ${theme.breakpoints[1]})`);
+  const isSmallBanner = useMedia(`(max-width: ${theme.breakpoints.medium})`);
 
   return (
     <Banner

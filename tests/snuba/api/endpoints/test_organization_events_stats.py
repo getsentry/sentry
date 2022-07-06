@@ -1152,6 +1152,26 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
         assert response.status_code == 200, response.content
         return not response.data["isMetricsData"]
 
+    def test_sum_transaction_duration(self):
+        self.store_metric(123, timestamp=self.day_ago + timedelta(minutes=30))
+        self.store_metric(456, timestamp=self.day_ago + timedelta(hours=1, minutes=30))
+        self.store_metric(789, timestamp=self.day_ago + timedelta(hours=1, minutes=30))
+        response = self.do_request(
+            data={
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "interval": "1h",
+                "yAxis": "sum(transaction.duration)",
+                "metricsEnhanced": "1",
+            },
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["isMetricsData"]
+        assert [attrs for time, attrs in response.data["data"]] == [
+            [{"count": 123}],
+            [{"count": 1245}],
+        ]
+
 
 class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
     def setUp(self):

@@ -60,6 +60,8 @@ export const DISABLED_SORT = [
   'session.status',
 ];
 
+export const TAG_SORT_DENY_LIST = ['project', 'environment'];
+
 export const SESSIONS_FIELDS: Readonly<Partial<Record<SessionField, SessionsMeta>>> = {
   [SessionField.SESSION]: {
     name: 'session',
@@ -98,8 +100,6 @@ export const SESSIONS_OPERATIONS: Readonly<
   Record<SessionsOperation, SessionAggregationColumn>
 > = {
   sum: {
-    columnTypes: ['integer'],
-    defaultValue: SessionField.SESSION,
     outputType: 'integer',
     parameters: [
       {
@@ -111,8 +111,6 @@ export const SESSIONS_OPERATIONS: Readonly<
     ],
   },
   count_unique: {
-    columnTypes: ['string'],
-    defaultValue: SessionField.USER,
     outputType: 'integer',
     parameters: [
       {
@@ -124,8 +122,6 @@ export const SESSIONS_OPERATIONS: Readonly<
     ],
   },
   count_healthy: {
-    columnTypes: ['integer', 'string'],
-    defaultValue: SessionField.SESSION,
     outputType: 'integer',
     parameters: [
       {
@@ -137,8 +133,6 @@ export const SESSIONS_OPERATIONS: Readonly<
     ],
   },
   count_abnormal: {
-    columnTypes: ['integer', 'string'],
-    defaultValue: SessionField.SESSION,
     outputType: 'integer',
     parameters: [
       {
@@ -150,8 +144,6 @@ export const SESSIONS_OPERATIONS: Readonly<
     ],
   },
   count_crashed: {
-    columnTypes: ['integer', 'string'],
-    defaultValue: SessionField.SESSION,
     outputType: 'integer',
     parameters: [
       {
@@ -163,8 +155,6 @@ export const SESSIONS_OPERATIONS: Readonly<
     ],
   },
   count_errored: {
-    columnTypes: ['integer', 'string'],
-    defaultValue: SessionField.SESSION,
     outputType: 'integer',
     parameters: [
       {
@@ -176,8 +166,6 @@ export const SESSIONS_OPERATIONS: Readonly<
     ],
   },
   crash_rate: {
-    columnTypes: ['integer', 'string'],
-    defaultValue: SessionField.SESSION,
     outputType: 'percentage',
     parameters: [
       {
@@ -189,8 +177,6 @@ export const SESSIONS_OPERATIONS: Readonly<
     ],
   },
   crash_free_rate: {
-    columnTypes: ['integer', 'string'],
-    defaultValue: SessionField.SESSION,
     outputType: 'percentage',
     parameters: [
       {
@@ -202,8 +188,6 @@ export const SESSIONS_OPERATIONS: Readonly<
     ],
   },
   avg: {
-    columnTypes: ['duration'],
-    defaultValue: SessionField.SESSION_DURATION,
     outputType: null,
     parameters: [
       {
@@ -215,8 +199,6 @@ export const SESSIONS_OPERATIONS: Readonly<
     ],
   },
   max: {
-    columnTypes: ['duration'],
-    defaultValue: SessionField.SESSION_DURATION,
     outputType: null,
     parameters: [
       {
@@ -228,8 +210,6 @@ export const SESSIONS_OPERATIONS: Readonly<
     ],
   },
   p50: {
-    columnTypes: ['duration'],
-    defaultValue: SessionField.SESSION_DURATION,
     outputType: null,
     parameters: [
       {
@@ -241,8 +221,6 @@ export const SESSIONS_OPERATIONS: Readonly<
     ],
   },
   p75: {
-    columnTypes: ['duration'],
-    defaultValue: SessionField.SESSION_DURATION,
     outputType: null,
     parameters: [
       {
@@ -254,8 +232,6 @@ export const SESSIONS_OPERATIONS: Readonly<
     ],
   },
   p95: {
-    columnTypes: ['duration'],
-    defaultValue: SessionField.SESSION_DURATION,
     outputType: null,
     parameters: [
       {
@@ -267,8 +243,6 @@ export const SESSIONS_OPERATIONS: Readonly<
     ],
   },
   p99: {
-    columnTypes: ['duration'],
-    defaultValue: SessionField.SESSION_DURATION,
     outputType: null,
     parameters: [
       {
@@ -291,21 +265,13 @@ export function generateReleaseWidgetFieldOptions(
 ) {
   const fieldOptions: Record<string, SelectValue<FieldValue>> = {};
 
-  const fieldNames: string[] = [];
   const operations = new Set<SessionsOperation>();
   const knownOperations = Object.keys(SESSIONS_OPERATIONS);
-
-  // If there are no fields, we do not want to render aggregations, nor tags
-  // Metrics API needs at least one field to be able to return data
-  if (fields.length === 0) {
-    return {};
-  }
 
   fields
     .sort((a, b) => a.name.localeCompare(b.name))
     .forEach(field => {
       field.operations.forEach(operation => operations.add(operation));
-      fieldNames.push(field.name);
 
       fieldOptions[`field:${field.name}`] = {
         label: field.name,
@@ -336,13 +302,14 @@ export function generateReleaseWidgetFieldOptions(
     });
 
   if (defined(tagKeys)) {
+    // Expose environment. session.status, project etc. as fields.
     tagKeys
       .sort((a, b) => a.localeCompare(b))
       .forEach(tag => {
-        fieldOptions[`tag:${tag}`] = {
+        fieldOptions[`field:${tag}`] = {
           label: tag,
           value: {
-            kind: FieldValueKind.TAG,
+            kind: FieldValueKind.FIELD,
             meta: {name: tag, dataType: 'string'},
           },
         };

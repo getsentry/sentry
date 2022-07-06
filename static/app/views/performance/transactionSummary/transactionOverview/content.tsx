@@ -90,6 +90,9 @@ function SummaryContent({
   transactionName,
   onChangeFilter,
 }: Props) {
+  const useAggregateAlias = !organization.features.includes(
+    'performance-frontend-use-events-endpoint'
+  );
   function handleSearch(query: string) {
     const queryParams = normalizeDateTimeParams({
       ...(location.query || {}),
@@ -153,7 +156,7 @@ function SummaryContent({
     transactionsListTitles: string[]
   ) {
     const {selected} = getTransactionsListSort(location, {
-      p95: totalValues?.p95 ?? 0,
+      p95: (useAggregateAlias ? totalValues?.p95 : totalValues?.['p95()']) ?? 0,
       spanOperationBreakdownFilter,
     });
     const sortedEventView = transactionsListEventView.withSorts([selected.sort]);
@@ -177,7 +180,12 @@ function SummaryContent({
   );
 
   const query = decodeScalar(location.query.query, '');
-  const totalCount = totalValues === null ? null : totalValues.count;
+  const totalCount =
+    totalValues === null
+      ? null
+      : useAggregateAlias
+      ? totalValues.count
+      : totalValues['count()'];
 
   // NOTE: This is not a robust check for whether or not a transaction is a front end
   // transaction, however it will suffice for now.
@@ -186,8 +194,11 @@ function SummaryContent({
     (totalValues !== null &&
       VITAL_GROUPS.some(group =>
         group.vitals.some(vital => {
-          const alias = getAggregateAlias(`percentile(${vital}, ${VITAL_PERCENTILE})`);
-          return Number.isFinite(totalValues[alias]);
+          const functionName = `percentile(${vital},${VITAL_PERCENTILE})`;
+          const field = useAggregateAlias
+            ? getAggregateAlias(functionName)
+            : functionName;
+          return Number.isFinite(totalValues[field]);
         })
       ));
 
@@ -315,7 +326,7 @@ function SummaryContent({
           }}
           handleCellAction={handleCellAction}
           {...getTransactionsListSort(location, {
-            p95: totalValues?.p95 ?? 0,
+            p95: (useAggregateAlias ? totalValues?.p95 : totalValues?.['p95()']) ?? 0,
             spanOperationBreakdownFilter,
           })}
           forceLoading={isLoading}
@@ -328,7 +339,11 @@ function SummaryContent({
             location={location}
             organization={organization}
             eventView={eventView}
-            totals={defined(totalValues?.count) ? {count: totalValues!.count} : null}
+            totals={
+              defined(totalValues?.['count()'])
+                ? {'count()': totalValues!['count()']}
+                : null
+            }
             projectId={projectId}
             transactionName={transactionName}
           />
@@ -469,22 +484,22 @@ const FilterActions = styled('div')`
   gap: ${space(2)};
   margin-bottom: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: repeat(2, min-content);
   }
 
-  @media (min-width: ${p => p.theme.breakpoints[3]}) {
+  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
     grid-template-columns: auto auto 1fr;
   }
 `;
 
 const StyledSearchBar = styled(SearchBar)`
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     order: 1;
     grid-column: 1/4;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints[3]}) {
+  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
     order: initial;
     grid-column: auto;
   }

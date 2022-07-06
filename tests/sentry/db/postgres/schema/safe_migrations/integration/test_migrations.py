@@ -8,7 +8,7 @@ from sentry.testutils import TestCase
 
 
 class BaseSafeMigrationTest(TestCase):
-    BASE_PATH = "tests.sentry.db.postgres.schema.safe_migrations.apps"
+    BASE_PATH = "fixtures.safe_migrations_apps"
     app = None
     migrate_from = None
     migrate_to = None

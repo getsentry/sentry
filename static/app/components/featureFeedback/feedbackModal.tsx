@@ -32,14 +32,18 @@ const feedbackClient = new BrowserClient({
   integrations: defaultIntegrations,
 });
 
+const defaultFeedbackTypes = [
+  t("I don't like this feature"),
+  t('I like this feature'),
+  t('Other reason'),
+];
+
 export interface FeedBackModalProps {
   featureName: string;
-  feedbackTypes: string[];
+  feedbackTypes?: string[];
 }
 
-interface Props
-  extends FeedBackModalProps,
-    Pick<ModalRenderProps, 'Header' | 'Body' | 'Footer' | 'closeModal'> {}
+interface Props extends FeedBackModalProps, ModalRenderProps {}
 
 type State = {additionalInfo?: string; subject?: number};
 
@@ -48,7 +52,7 @@ export function FeedbackModal({
   Body,
   Footer,
   closeModal,
-  feedbackTypes,
+  feedbackTypes = defaultFeedbackTypes,
   featureName,
 }: Props) {
   const {organization} = useLegacyStore(OrganizationStore);
@@ -66,7 +70,7 @@ export function FeedbackModal({
       return projects.find(p => p.id === location.query.project);
     }
     return undefined;
-  }, [projectsLoaded, location.query.project]);
+  }, [projectsLoaded, projects, location.query.project]);
 
   function handleSubmit() {
     const {subject, additionalInfo} = state;

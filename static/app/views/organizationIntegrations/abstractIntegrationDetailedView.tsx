@@ -23,7 +23,7 @@ import {
 import {
   IntegrationAnalyticsKey,
   IntegrationEventParameters,
-} from 'sentry/utils/analytics/integrationAnalyticsEvents';
+} from 'sentry/utils/analytics/integrations';
 import {
   getCategories,
   getIntegrationFeatureGate,
@@ -31,6 +31,7 @@ import {
 } from 'sentry/utils/integrationUtil';
 import marked, {singleLineRenderer} from 'sentry/utils/marked';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
+import BreadcrumbTitle from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 
 import RequestIntegrationButton from './integrationRequest/RequestIntegrationButton';
 import IntegrationStatus from './integrationStatus';
@@ -376,6 +377,7 @@ class AbstractIntegrationDetailedView<
   renderBody() {
     return (
       <Fragment>
+        <BreadcrumbTitle routes={this.props.routes} title={this.integrationName} />
         {this.renderAlert()}
         {this.renderTopSection()}
         {this.renderTabs()}
@@ -389,6 +391,7 @@ class AbstractIntegrationDetailedView<
 
 const Flex = styled('div')`
   display: flex;
+  align-items: center;
 `;
 
 const FlexContainer = styled('div')`
@@ -417,7 +420,7 @@ const NameContainer = styled('div')`
 const Name = styled('div')`
   font-weight: bold;
   font-size: 1.4em;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${space(0.5)};
 `;
 
 const IconCloseCircle = styled(IconClose)`
@@ -455,10 +458,11 @@ const Metadata = styled(Flex)`
   display: grid;
   grid-auto-rows: max-content;
   grid-auto-flow: row;
-  gap: ${space(2)};
+  gap: ${space(1)};
   font-size: 0.9em;
   margin-left: ${space(4)};
   margin-right: 100px;
+  align-self: flex-start;
 `;
 
 const AuthorInfo = styled('div')`
@@ -473,9 +477,8 @@ const ExternalLinkContainer = styled('div')`
 `;
 
 const StatusWrapper = styled('div')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${space(0.5)};
   padding-left: ${space(2)};
-  line-height: 1.5em;
 `;
 
 const DisableWrapper = styled('div')`

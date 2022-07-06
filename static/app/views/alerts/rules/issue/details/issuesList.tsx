@@ -10,7 +10,6 @@ import Link from 'sentry/components/links/link';
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {Group, Organization, Project} from 'sentry/types';
 import {IssueAlertRule} from 'sentry/types/alerts';
@@ -131,6 +130,9 @@ class AlertRuleIssuesList extends AsyncComponent<Props, State> {
                       value: lastTriggered,
                       fixed: 'Mar 16, 2020 9:10:13 AM UTC',
                     })}
+                    year
+                    seconds
+                    timeZone
                   />
                 </div>
               </Fragment>
@@ -172,14 +174,14 @@ const StyledDateTime = styled(DateTime)`
 `;
 
 const TitleWrapper = styled('div')`
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
   display: flex;
   gap: ${space(0.5)};
   min-width: 200px;
 `;
 
 const MessageWrapper = styled('span')`
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
   color: ${p => p.theme.textColor};
 `;
 

@@ -312,7 +312,6 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
                     project_id=project_id,
                     order_by=order_by,
                 )
-                q.using = db_router.db_for_read(model, replica=True)
 
                 for chunk in q.iterator(chunk_size=100):
                     task_queue.put((imp, chunk))
@@ -353,7 +352,6 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
                         project_id=project_id_for_deletion,
                         order_by=order_by,
                     )
-                    q.using = db_router.db_for_read(model, replica=True)
 
                     for chunk in q.iterator(chunk_size=100):
                         task_queue.put((imp, chunk))

@@ -136,6 +136,13 @@ if (
   }
 }
 
+/**
+ * For performance we don't want to try and compile everything in the
+ * node_modules, but some packages which use ES6 syntax only NEED to be
+ * transformed.
+ */
+const ESM_NODE_MODULES = ['copy-text-to-clipboard'];
+
 const config: Config.InitialOptions = {
   verbose: false,
   collectCoverageFrom: [
@@ -150,8 +157,10 @@ const config: Config.InitialOptions = {
     '^sentry-locale/(.*)': '<rootDir>/src/sentry/locale/$1',
     '\\.(css|less|png|jpg|mp4)$': '<rootDir>/tests/js/sentry-test/importStyleMock.js',
     '\\.(svg)$': '<rootDir>/tests/js/sentry-test/svgMock.js',
-    'integration-docs-platforms':
-      '<rootDir>/tests/fixtures/integration-docs/_platforms.json',
+    'integration-docs-platforms': '<rootDir>/fixtures/integration-docs/_platforms.json',
+
+    // Disable echarts in test, since they're very slow and take time to
+    // transform
     '^echarts/(.*)': '<rootDir>/tests/js/sentry-test/echartsMock.js',
     '^zrender/(.*)': '<rootDir>/tests/js/sentry-test/echartsMock.js',
   },
@@ -177,7 +186,8 @@ const config: Config.InitialOptions = {
     '^.+\\.tsx?$': ['babel-jest', babelConfig as any],
     '^.+\\.pegjs?$': '<rootDir>/tests/js/jest-pegjs-transform.js',
   },
-  transformIgnorePatterns: ['/node_modules/'],
+  transformIgnorePatterns: [`/node_modules/(?!${ESM_NODE_MODULES.join('|')})`],
+
   moduleFileExtensions: ['js', 'ts', 'jsx', 'tsx'],
   globals: {},
 

@@ -3,8 +3,9 @@ from unittest.mock import Mock
 from django.contrib.auth.models import AnonymousUser
 
 from sentry.auth import access
-from sentry.auth.access import Access
+from sentry.auth.access import Access, NoAccess
 from sentry.models import (
+    ApiKey,
     AuthIdentity,
     AuthProvider,
     ObjectStatus,
@@ -405,6 +406,52 @@ class FromRequestTest(TestCase):
         assert result.has_global_access
         assert result.has_team_access(self.team2)
         assert result.has_project_access(self.project2)
+
+    def test_with_valid_auth(self):
+        user = self.create_user()
+        organization = self.create_organization()
+
+        member_team = self.create_team(organization=organization)
+        member_project = self.create_project(organization=organization, teams=[member_team])
+        non_member_team = self.create_team(organization=organization)
+        non_member_project = self.create_project(organization=organization, teams=[non_member_team])
+        self.create_member(user=user, organization=organization, role="admin", teams=[member_team])
+
+        request = self.make_request()
+        request.auth = ApiKey.objects.create(organization=organization, allowed_origins="*")
+        result = access.from_request(request, organization)
+
+        assert result.teams == frozenset({})
+        assert result.has_team_access(member_team)
+        assert result.has_team_access(non_member_team)
+        assert result.projects == frozenset({})
+        assert result.has_project_access(member_project)
+        assert result.has_project_access(non_member_project)
+        assert result.has_project_membership(member_project) is False
+        assert result.has_project_membership(non_member_project) is False
+        assert result.has_global_access
+
+    def test_with_invalid_auth(self):
+        self.create_user()
+        organization = self.create_organization()
+        other_organization = self.create_organization()
+
+        team = self.create_team(organization=organization)
+        project = self.create_project(organization=organization, teams=[team])
+
+        request = self.make_request()
+        # Using an API key for another org should be invalid
+        request.auth = ApiKey.objects.create(organization=other_organization, allowed_origins="*")
+        result = access.from_request(request, organization)
+
+        assert result == NoAccess()
+
+        assert result.teams == frozenset({})
+        assert result.has_team_access(team) is False
+        assert result.projects == frozenset({})
+        assert result.has_project_access(project) is False
+        assert result.has_project_membership(project) is False
+        assert result.has_global_access is False
 
 
 class FromSentryAppTest(TestCase):

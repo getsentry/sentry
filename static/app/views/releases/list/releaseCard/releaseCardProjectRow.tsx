@@ -18,7 +18,6 @@ import Tag from 'sentry/components/tag';
 import Tooltip from 'sentry/components/tooltip';
 import {IconCheckmark, IconFire, IconWarning} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {Organization, Release, ReleaseProject} from 'sentry/types';
 import {defined} from 'sentry/utils';
@@ -236,7 +235,7 @@ export default ReleaseCardProjectRow;
 
 const ProjectRow = styled(PanelItem)`
   padding: ${space(1)} ${space(2)};
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
     font-size: ${p => p.theme.fontSizeMedium};
   }
 `;
@@ -268,7 +267,7 @@ const CrashFreeWrapper = styled('div')`
 `;
 
 const ViewColumn = styled('div')`
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
   line-height: 20px;
   text-align: right;
 `;

@@ -148,9 +148,7 @@ def all_sessions(org_id: int, metric_ids, alias=None):
 
 
 def all_users(org_id: int, metric_ids, alias=None):
-    return _set_uniq_aggregation_on_session_status_factory(
-        org_id, session_status="init", metric_ids=metric_ids, alias=alias
-    )
+    return uniq_aggregation_on_metric(metric_ids, alias)
 
 
 def crashed_sessions(org_id: int, metric_ids, alias=None):
@@ -241,9 +239,9 @@ def tolerated_count_transaction(org_id, metric_ids, alias=None):
     )
 
 
-def apdex(satifactory_snql, tolerable_snql, total_snql, alias=None):
+def apdex(satisfactory_snql, tolerable_snql, total_snql, alias=None):
     return division_float(
-        arg1_snql=addition(satifactory_snql, division_float(tolerable_snql, 2)),
+        arg1_snql=addition(satisfactory_snql, division_float(tolerable_snql, 2)),
         arg2_snql=total_snql,
         alias=alias,
     )

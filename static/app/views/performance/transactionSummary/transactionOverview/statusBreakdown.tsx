@@ -12,6 +12,7 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -24,6 +25,9 @@ type Props = {
 };
 
 function StatusBreakdown({eventView, location, organization}: Props) {
+  const useEvents = organization.features.includes(
+    'performance-frontend-use-events-endpoint'
+  );
   const breakdownView = eventView
     .withColumns([
       {kind: 'function', function: ['count', '', '', undefined]},
@@ -46,6 +50,7 @@ function StatusBreakdown({eventView, location, organization}: Props) {
         location={location}
         orgSlug={organization.slug}
         referrer="api.performance.status-breakdown"
+        useEvents={useEvents}
       >
         {({isLoading, error, tableData}) => {
           if (isLoading) {
@@ -65,7 +70,7 @@ function StatusBreakdown({eventView, location, organization}: Props) {
           }
           const points = tableData.data.map(row => ({
             label: String(row['transaction.status']),
-            value: parseInt(String(row.count), 10),
+            value: parseInt(String(row[useEvents ? 'count()' : 'count']), 10),
             onClick: () => {
               const query = new MutableSearch(eventView.query);
               query
@@ -81,6 +86,14 @@ function StatusBreakdown({eventView, location, organization}: Props) {
                   query: query.formatString(),
                 },
               });
+
+              trackAdvancedAnalyticsEvent(
+                'performance_views.transaction_summary.status_breakdown_click',
+                {
+                  organization,
+                  status: row['transaction.status'] as string,
+                }
+              );
             },
           }));
           return <BreakdownBars data={points} />;

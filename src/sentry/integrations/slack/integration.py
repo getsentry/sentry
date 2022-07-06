@@ -12,10 +12,10 @@ from sentry.integrations import (
     IntegrationMetadata,
     IntegrationProvider,
 )
-from sentry.integrations.slack import tasks
 from sentry.models import Integration, NotificationSetting, Organization, User
 from sentry.pipeline import NestedPipelineView
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
+from sentry.tasks.integrations.slack import link_slack_user_identities
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.http import absolute_uri
 from sentry.utils.json import JSONData
@@ -195,4 +195,4 @@ class SlackIntegrationProvider(IntegrationProvider):  # type: ignore
         Create Identity records for an organization's users if their emails match in Sentry and Slack
         """
         run_args = {"integration": integration, "organization": organization}
-        tasks.link_slack_user_identities.apply_async(kwargs=run_args)
+        link_slack_user_identities.apply_async(kwargs=run_args)

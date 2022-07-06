@@ -80,7 +80,8 @@ class BaseNotification(abc.ABC):
         # Basically a noop.
         return {**extra_context}
 
-    def get_notification_title(self) -> str:
+    def get_notification_title(self, context: Mapping[str, Any] | None = None) -> str:
+        """The subject line when sending this notifications as a chat notification."""
         raise NotImplementedError
 
     def get_title_link(self, recipient: Team | User) -> str | None:

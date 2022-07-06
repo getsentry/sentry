@@ -24,15 +24,10 @@ require() {
 }
 
 configure-sentry-cli() {
-    # XXX: For version 1.70.1 there's a bug hitting SENTRY_CLI_NO_EXIT_TRAP: unbound variable
-    # We can remove this after it's fixed
-    # https://github.com/getsentry/sentry-cli/pull/1059
-    export SENTRY_CLI_NO_EXIT_TRAP=${SENTRY_CLI_NO_EXIT_TRAP-0}
-    if [ -n "${SENTRY_DSN+x}" ] && [ -z "${SENTRY_DEVENV_NO_REPORT+x}" ]; then
+    if [ -z "${SENTRY_DEVENV_NO_REPORT+x}" ]; then
         if ! require sentry-cli; then
             curl -sL https://sentry.io/get-cli/ | SENTRY_CLI_VERSION=2.0.4 bash
         fi
-        eval "$(sentry-cli bash-hook)"
     fi
 }
 
@@ -121,13 +116,6 @@ install-py-dev() {
     # Webpacked assets are only necessary for devserver (which does it lazily anyways)
     # and acceptance tests, which webpack automatically if run.
     SENTRY_LIGHT_BUILD=1 pip install -e '.[dev]'
-    patch-selenium
-}
-
-patch-selenium() {
-    # XXX: getsentry repo calls this!
-    # This hack is until we can upgrade to a newer version of Selenium
-    python -S -m tools.patch_selenium
 }
 
 setup-git-config() {
@@ -145,7 +133,9 @@ setup-git() {
         echo 'Please run `make setup-pyenv` to install the required Python 3 version.'
         exit 1
     )
-    pip install -r requirements-pre-commit.txt
+    if ! require pre-commit; then
+        pip install -r requirements-dev.txt
+    fi
     pre-commit install --install-hooks
     echo ""
 }
@@ -174,9 +164,9 @@ install-js-dev() {
 }
 
 develop() {
-    setup-git
     install-js-dev
     install-py-dev
+    setup-git
 }
 
 init-config() {
@@ -208,6 +198,8 @@ create-user() {
 build-platform-assets() {
     echo "--> Building platform assets"
     echo "from sentry.utils.integrationdocs import sync_docs; sync_docs(quiet=True)" | sentry exec
+    # make sure this didn't silently do nothing
+    test -f src/sentry/integration-docs/android.json
 }
 
 bootstrap() {
@@ -257,7 +249,7 @@ prerequisites() {
 
 direnv-help() {
     cat >&2 <<EOF
-If you're a Sentry employee and you're stuck or have questions, ask in #discuss-dev-tooling.
+If you're a Sentry employee and you're stuck or have questions, ask in #discuss-dev-infra.
 If you're not, please file an issue under https://github.com/getsentry/sentry/issues/new/choose and mention @getsentry/owners-sentry-dev
 
 You can configure the behaviour of direnv by adding the following variables to a .env file:

@@ -1,3 +1,5 @@
+from django.core.exceptions import SuspiciousFileOperation
+from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -13,11 +15,14 @@ class ProjectCreateSampleEndpoint(ProjectEndpoint):
     permission_classes = (ProjectEventPermission,)
 
     def post(self, request: Request, project) -> Response:
-        event = create_sample_event(
-            project, platform=project.platform, default="javascript", tagged=True
-        )
-        add_group_to_inbox(event.group, GroupInboxReason.NEW)
+        try:
+            event = create_sample_event(
+                project, platform=project.platform, default="javascript", tagged=True
+            )
+            add_group_to_inbox(event.group, GroupInboxReason.NEW)
 
-        data = serialize(event, request.user)
+            data = serialize(event, request.user)
 
-        return Response(data)
+            return Response(data)
+        except (SuspiciousFileOperation, IsADirectoryError):
+            return Response(status=status.HTTP_400_BAD_REQUEST)

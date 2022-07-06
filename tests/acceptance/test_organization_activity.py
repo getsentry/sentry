@@ -2,6 +2,7 @@ from django.utils import timezone
 
 from sentry.models import Activity
 from sentry.testutils import AcceptanceTestCase
+from sentry.types.activity import ActivityType
 
 
 class OrganizationActivityTest(AcceptanceTestCase):
@@ -21,7 +22,7 @@ class OrganizationActivityTest(AcceptanceTestCase):
         Activity.objects.create(
             group=self.group,
             project=self.group.project,
-            type=Activity.NOTE,
+            type=ActivityType.NOTE.value,
             user=self.user,
             data={"text": "hello world"},
         )

@@ -68,7 +68,7 @@ describe('Events ActionCreator', function () {
     );
   });
 
-  it('requests events stats with absolute period', async function () {
+  it('requests events stats with absolute period', function () {
     const start = new Date('2017-10-12T12:00:00.000Z');
     const end = new Date('2017-10-17T00:00:00.000Z');
     doEventsRequest(api, {

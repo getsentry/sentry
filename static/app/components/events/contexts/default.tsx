@@ -1,3 +1,5 @@
+import startCase from 'lodash/startCase';
+
 import ContextBlock from 'sentry/components/events/contexts/contextBlock';
 import {Event} from 'sentry/types/event';
 
@@ -12,7 +14,7 @@ function getKnownData(data: Props['data']) {
     .filter(([k]) => k !== 'type' && k !== 'title')
     .map(([key, value]) => ({
       key,
-      subject: key,
+      subject: startCase(key),
       value,
     }));
 }

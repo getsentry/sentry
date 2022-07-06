@@ -521,10 +521,11 @@ from sentry.integrations.jira_server.webhooks import (
     JiraIssueUpdatedWebhook as JiraServerIssueUpdatedWebhook,
 )
 from sentry.integrations.msteams.webhook import MsTeamsWebhookEndpoint
-from sentry.integrations.slack.endpoints.action import SlackActionEndpoint
-from sentry.integrations.slack.endpoints.command import SlackCommandsEndpoint
-from sentry.integrations.slack.endpoints.event import SlackEventEndpoint
-from sentry.integrations.vercel.generic_webhook import VercelGenericWebhookEndpoint
+from sentry.integrations.slack.webhooks import (
+    SlackActionEndpoint,
+    SlackCommandsEndpoint,
+    SlackEventEndpoint,
+)
 from sentry.integrations.vercel.webhook import VercelWebhookEndpoint
 from sentry.integrations.vsts.search import VstsSearchEndpoint
 from sentry.integrations.vsts.webhooks import WorkItemWebhook
@@ -921,7 +922,6 @@ __EXCLUDED_FROM_PUBLIC_ENDPOINTS = {
     BitbucketUninstalledEndpoint,
     BitbucketSearchEndpoint,
     VercelWebhookEndpoint,
-    VercelGenericWebhookEndpoint,
     MsTeamsWebhookEndpoint,
     OrganizationCodeOwnersAssociationsEndpoint,
     PluginGroupEndpoint,

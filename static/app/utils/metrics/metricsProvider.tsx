@@ -9,7 +9,7 @@ import useApi from 'sentry/utils/useApi';
 
 import {MetricsContext, MetricsContextValue} from './metricsContext';
 
-async function fetchMetricMetas(
+function fetchMetricMetas(
   api: Client,
   organization: Organization,
   projects?: number[]
@@ -21,7 +21,7 @@ async function fetchMetricMetas(
   });
 }
 
-async function fetchMetricTags(
+function fetchMetricTags(
   api: Client,
   organization: Organization,
   projects?: number[],

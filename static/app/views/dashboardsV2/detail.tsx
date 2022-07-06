@@ -131,7 +131,7 @@ class DashboardDetail extends Component<Props, State> {
       location,
       router,
     } = this.props;
-    const {seriesData, tableData, issuesData, pageLinks, totalIssuesCount} = this.state;
+    const {seriesData, tableData, pageLinks, totalIssuesCount} = this.state;
     if (isWidgetViewerPath(location.pathname)) {
       const widget =
         defined(widgetId) &&
@@ -143,7 +143,6 @@ class DashboardDetail extends Component<Props, State> {
           widget,
           seriesData,
           tableData,
-          issuesData,
           pageLinks,
           totalIssuesCount,
           onClose: () => {
@@ -156,7 +155,7 @@ class DashboardDetail extends Component<Props, State> {
           },
           onEdit: () => {
             if (
-              organization.features.includes('new-widget-builder-experience') &&
+              organization.features.includes('new-widget-builder-experience-design') &&
               !organization.features.includes(
                 'new-widget-builder-experience-modal-access'
               )
@@ -441,7 +440,7 @@ class DashboardDetail extends Component<Props, State> {
     });
 
     if (
-      organization.features.includes('new-widget-builder-experience') &&
+      organization.features.includes('new-widget-builder-experience-design') &&
       !organization.features.includes('new-widget-builder-experience-modal-access')
     ) {
       if (dashboardId) {
@@ -598,8 +597,6 @@ class DashboardDetail extends Component<Props, State> {
 
     return (
       <PageFiltersContainer
-        skipLoadLastUsed={organization.features.includes('global-views')}
-        hideGlobalHeader
         defaultSelection={{
           datetime: {
             start: null,
@@ -686,8 +683,6 @@ class DashboardDetail extends Component<Props, State> {
     return (
       <SentryDocumentTitle title={dashboard.title} orgSlug={organization.slug}>
         <PageFiltersContainer
-          skipLoadLastUsed={organization.features.includes('global-views')}
-          hideGlobalHeader
           defaultSelection={{
             datetime: {
               start: null,
@@ -789,7 +784,7 @@ const StyledPageHeader = styled('div')`
   align-items: center;
   margin-bottom: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
     grid-template-columns: minmax(0, 1fr) max-content;
     grid-column-gap: ${space(2)};
     height: 40px;

@@ -14,10 +14,12 @@ from sentry.models import (
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import before_now, iso_format
 
-
 # XXX(dcramer): this is a compatibility layer to transition to pytest-based fixtures
 # all of the memoized fixtures are copypasta due to our inability to use pytest fixtures
 # on a per-class method basis
+from sentry.types.activity import ActivityType
+
+
 class Fixtures:
     @cached_property
     def session(self):
@@ -79,7 +81,11 @@ class Fixtures:
     @cached_property
     def activity(self):
         return Activity.objects.create(
-            group=self.group, project=self.project, type=Activity.NOTE, user=self.user, data={}
+            group=self.group,
+            project=self.project,
+            type=ActivityType.NOTE.value,
+            user=self.user,
+            data={},
         )
 
     @cached_property

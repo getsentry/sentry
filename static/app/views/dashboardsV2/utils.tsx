@@ -1,6 +1,7 @@
 import {Query} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 import pick from 'lodash/pick';
+import trimStart from 'lodash/trimStart';
 import * as qs from 'query-string';
 
 import WidgetArea from 'sentry-images/dashboard/widget-area.svg';
@@ -11,17 +12,27 @@ import WidgetTable from 'sentry-images/dashboard/widget-table.svg';
 import WidgetWorldMap from 'sentry-images/dashboard/widget-world-map.svg';
 
 import {parseArithmetic} from 'sentry/components/arithmeticInput/parser';
-import {getDiffInMinutes, getInterval} from 'sentry/components/charts/utils';
+import {
+  Fidelity,
+  getDiffInMinutes,
+  getInterval,
+  SIX_HOURS,
+  TWENTY_FOUR_HOURS,
+} from 'sentry/components/charts/utils';
 import {Organization, PageFilters} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {getUtcDateString, parsePeriodToHours} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
 import {
+  getAggregateAlias,
+  getAggregateArg,
   getColumnsAndAggregates,
   isEquation,
+  isMeasurement,
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
 import {DisplayModes} from 'sentry/utils/discover/types';
+import {getMeasurements} from 'sentry/utils/measurements/measurements';
 import {
   DashboardDetails,
   DisplayType,
@@ -63,13 +74,18 @@ export function eventViewFromWidget(
       ? `${query.conditions} has:geo.country_code`.trim()
       : query.conditions;
 
+  const {orderby} = query;
+  // Need to convert orderby to aggregate alias because eventView still uses aggregate alias format
+  const aggregateAliasOrderBy = orderby
+    ? `${orderby.startsWith('-') ? '-' : ''}${getAggregateAlias(trimStart(orderby, '-'))}`
+    : orderby;
   return EventView.fromSavedQuery({
     id: undefined,
     name: title,
     version: 2,
     fields,
     query: conditions,
-    orderby: query.orderby,
+    orderby: aggregateAliasOrderBy,
     projects,
     range: statsPeriod ?? undefined,
     start: start ? getUtcDateString(start) : undefined,
@@ -142,21 +158,33 @@ export function miniWidget(displayType: DisplayType): string {
 }
 
 export function getWidgetInterval(
-  widget: Widget,
-  datetimeObj: Partial<PageFilters['datetime']>
+  displayType: DisplayType,
+  datetimeObj: Partial<PageFilters['datetime']>,
+  widgetInterval?: string,
+  fidelity?: Fidelity
 ): string {
   // Don't fetch more than 66 bins as we're plotting on a small area.
   const MAX_BIN_COUNT = 66;
 
   // Bars charts are daily totals to aligned with discover. It also makes them
   // usefully different from line/area charts until we expose the interval control, or remove it.
-  let interval = widget.displayType === 'bar' ? '1d' : widget.interval;
+  let interval = displayType === 'bar' ? '1d' : widgetInterval;
   if (!interval) {
     // Default to 5 minutes
     interval = '5m';
   }
   const desiredPeriod = parsePeriodToHours(interval);
   const selectedRange = getDiffInMinutes(datetimeObj);
+
+  if (fidelity) {
+    // Primarily to support lower fidelity for Release Health widgets
+    // the sort on releases and hit the metrics API endpoint.
+    interval = getInterval(datetimeObj, fidelity);
+    if (selectedRange > SIX_HOURS && selectedRange <= TWENTY_FOUR_HOURS) {
+      interval = '1h';
+    }
+    return displayType === 'bar' ? '1d' : interval;
+  }
 
   // selectedRange is in minutes, desiredPeriod is in hours
   // convert desiredPeriod to minutes
@@ -321,4 +349,36 @@ export function getDashboardsMEPQueryParams(isMEPEnabled: boolean) {
 
 export function getNumEquations(possibleEquations: string[]) {
   return possibleEquations.filter(isEquation).length;
+}
+
+function isCustomMeasurement(field: string) {
+  const definedMeasurements = Object.keys(getMeasurements());
+  return isMeasurement(field) && !definedMeasurements.includes(field);
+}
+
+export function isCustomMeasurementWidget(widget: Widget) {
+  return (
+    widget.widgetType === WidgetType.DISCOVER &&
+    widget.queries.some(({aggregates, columns, fields}) => {
+      const aggregateArgs = aggregates.reduce((acc: string[], aggregate) => {
+        // Should be ok to use getAggregateArg. getAggregateArg only returns the first arg
+        // but there aren't any custom measurement aggregates that use custom measurements
+        // outside of the first arg.
+        const aggregateArg = getAggregateArg(aggregate);
+        if (aggregateArg) {
+          acc.push(aggregateArg);
+        }
+        return acc;
+      }, []);
+      return [...aggregateArgs, ...columns, ...(fields ?? [])].some(field =>
+        isCustomMeasurement(field)
+      );
+    })
+  );
+}
+
+export function getCustomMeasurementQueryParams() {
+  return {
+    dataset: 'metrics',
+  };
 }

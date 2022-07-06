@@ -563,7 +563,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
             }}
             flexibleControlStateSize
           >
-            {({onChange, onBlur, onKeyDown, initialData}) => (
+            {({onChange, onBlur, onKeyDown, initialData, model}) => (
               <SearchContainer>
                 <StyledSearchBar
                   searchSource="alert_builder"
@@ -583,6 +583,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                   organization={organization}
                   placeholder={this.searchPlaceholder}
                   onChange={onChange}
+                  query={model.getValue('query')}
                   onKeyDown={e => {
                     /**
                      * Do not allow enter key to submit the alerts form since it is unlikely

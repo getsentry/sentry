@@ -212,7 +212,6 @@ const EditAndDelete = styled('div')`
 `;
 
 const RepositoryTitle = styled('div')`
-  margin-bottom: ${space(1)};
   /* accommodate cancel button height */
   line-height: 26px;
 `;

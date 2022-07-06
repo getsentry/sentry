@@ -13,18 +13,22 @@ import {useReplayContext} from 'sentry/components/replays/replayContext';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
-import {RawCrumb} from 'sentry/types/breadcrumbs';
+import space from 'sentry/styles/space';
+import {Crumb} from 'sentry/types/breadcrumbs';
 import {Event} from 'sentry/types/event';
 import getUrlPathname from 'sentry/utils/getUrlPathname';
 
 type Props = {
   children: React.ReactNode;
   orgId: string;
-  crumbs?: RawCrumb[];
-  event?: Event;
 };
 
-function DetailLayout({children, event, orgId, crumbs}: Props) {
+function DetailLayout({children, orgId}: Props) {
+  const {replay} = useReplayContext();
+
+  const event = replay?.getEvent();
+  const crumbs = replay?.getRawCrumbs();
+
   const title = event ? `${event.id} - Replays - ${orgId}` : `Replays - ${orgId}`;
 
   return (
@@ -49,17 +53,9 @@ function DetailLayout({children, event, orgId, crumbs}: Props) {
               ]}
             />
           </Layout.HeaderContent>
-          <FeedbackButtonWrapper>
-            <FeatureFeedback
-              featureName="replay"
-              feedbackTypes={[
-                'Something is broken',
-                "I don't understand how to use this feature",
-                'I like this feature',
-                'Other reason',
-              ]}
-            />
-          </FeedbackButtonWrapper>
+          <ButtonActionsWrapper>
+            <FeatureFeedback featureName="replay" />
+          </ButtonActionsWrapper>
           <React.Fragment>
             <Layout.HeaderContent>
               <EventHeader event={event} />
@@ -83,7 +79,7 @@ const HeaderPlaceholder = styled(function HeaderPlaceholder(
   background-color: ${p => p.theme.background};
 `;
 
-function EventHeader({event}: Pick<Props, 'event'>) {
+function EventHeader({event}: {event: Event | undefined}) {
   if (!event) {
     return <HeaderPlaceholder width="500px" height="48px" />;
   }
@@ -111,7 +107,13 @@ const MetaDataColumn = styled(Layout.HeaderActions)`
   width: 325px;
 `;
 
-function EventMetaData({event, crumbs}: Pick<Props, 'event' | 'crumbs'>) {
+function EventMetaData({
+  event,
+  crumbs,
+}: {
+  crumbs: Crumb[] | undefined;
+  event: Event | undefined;
+}) {
   const {duration} = useReplayContext();
 
   const errors = crumbs?.filter(crumb => crumb.type === 'error').length;
@@ -154,8 +156,11 @@ const BigNameUserBadge = styled(UserBadge)`
 `;
 
 // TODO(replay); This could make a lot of sense to put inside HeaderActions by default
-const FeedbackButtonWrapper = styled(Layout.HeaderActions)`
-  align-items: end;
+const ButtonActionsWrapper = styled(Layout.HeaderActions)`
+  display: grid;
+  grid-template-columns: repeat(2, max-content);
+  justify-content: flex-end;
+  gap: ${space(1)};
 `;
 
 export default DetailLayout;

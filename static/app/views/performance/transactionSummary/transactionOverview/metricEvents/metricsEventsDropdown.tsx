@@ -1,9 +1,6 @@
-import styled from '@emotion/styled';
-
 import Feature from 'sentry/components/acl/feature';
-import DropdownControl, {DropdownItem} from 'sentry/components/dropdownControl';
+import CompactSelect from 'sentry/components/forms/compactSelect';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
 import {
   AutoSampleState,
   MEPState,
@@ -12,9 +9,9 @@ import {
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 
 interface MetricsEventsOption {
-  field: MEPState;
   label: string;
   prefix: string;
+  value: MEPState;
 }
 
 const autoTextMap: Record<AutoSampleState, string> = {
@@ -29,17 +26,17 @@ function getOptions(mepContext: MetricsEnhancedSettingContext): MetricsEventsOpt
 
   return [
     {
-      field: MEPState.auto,
+      value: MEPState.auto,
       prefix,
       label: autoText,
     },
     {
-      field: MEPState.metricsOnly,
+      value: MEPState.metricsOnly,
       prefix,
       label: t('Ingested only'),
     },
     {
-      field: MEPState.transactionsOnly,
+      value: MEPState.transactionsOnly,
       prefix,
       label: t('Stored only'),
     },
@@ -60,29 +57,14 @@ function InnerDropdown() {
   const options = getOptions(mepSetting);
 
   const currentOption =
-    options.find(({field}) => field === mepSetting.metricSettingState) || options[0];
+    options.find(({value}) => value === mepSetting.metricSettingState) || options[0];
 
   return (
-    <DropdownContainer>
-      <DropdownControl
-        buttonProps={{prefix: currentOption.prefix}}
-        label={currentOption.label}
-      >
-        {options.map(option => (
-          <DropdownItem
-            key={option.field}
-            eventKey={option.field}
-            isActive={option.field === currentOption.field}
-            onSelect={key => mepSetting.setMetricSettingState(key)}
-          >
-            {option.label}
-          </DropdownItem>
-        ))}
-      </DropdownControl>
-    </DropdownContainer>
+    <CompactSelect
+      triggerProps={{prefix: currentOption.prefix}}
+      value={currentOption.value}
+      options={options}
+      onChange={opt => mepSetting.setMetricSettingState(opt.value)}
+    />
   );
 }
-
-const DropdownContainer = styled('div')`
-  margin-left: ${space(1)};
-`;

@@ -45,13 +45,13 @@ function SidebarSection({title, children, secondary, ...props}: SidebarSectionPr
   return (
     <Fragment>
       <HeaderComponent {...props}>{title}</HeaderComponent>
-      <SectionContent secondary={secondary}>{children}</SectionContent>
+      <SectionContent>{children}</SectionContent>
     </Fragment>
   );
 }
 
-const SectionContent = styled('div')<{secondary?: boolean}>`
-  margin-bottom: ${p => (p.secondary ? space(4) : space(4))};
+const SectionContent = styled('div')`
+  margin-bottom: ${space(4)};
   line-height: 1;
 `;
 

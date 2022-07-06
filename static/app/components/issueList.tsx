@@ -66,7 +66,7 @@ function IssueList({
         });
       },
       error: () => {
-        setState({...state, status: 'error'});
+        setState(prevState => ({...prevState, status: 'error'}));
       },
     });
   }, [query, endpoint, location.query, api]);

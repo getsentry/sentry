@@ -15,7 +15,6 @@ import {extractSelectionParameters} from 'sentry/components/organizations/pageFi
 import {Panel, PanelBody} from 'sentry/components/panels';
 import Version from 'sentry/components/version';
 import {tct} from 'sentry/locale';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {Group, Organization, TagWithTopValues} from 'sentry/types';
 import {percent} from 'sentry/utils';
@@ -118,17 +117,12 @@ class GroupTags extends AsyncComponent<Props, State> {
   }
 
   renderBody() {
-    const hasPageFilters =
-      this.props.organization.features.includes('selection-filters-v2');
-
     return (
       <Layout.Body>
         <Layout.Main fullWidth>
-          {hasPageFilters && (
-            <FilterSection>
-              <EnvironmentPageFilter />
-            </FilterSection>
-          )}
+          <FilterSection>
+            <EnvironmentPageFilter />
+          </FilterSection>
           <Alert type="info">
             {tct(
               'Tags are automatically indexed for searching and breakdown charts. Learn how to [link: add custom tags to issues]',
@@ -215,7 +209,7 @@ const TagBarLabel = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
   position: relative;
   flex-grow: 1;
-  ${overflowEllipsis}
+  ${p => p.theme.overflowEllipsis}
 `;
 
 const TagBarCount = styled('div')`

@@ -12,6 +12,7 @@ from sentry.models import Activity, Release
 from sentry.models.release import UnsafeReleaseDeletion
 from sentry.plugins.interfaces.releasehook import ReleaseHook
 from sentry.snuba.sessions import STATS_PERIODS
+from sentry.types.activity import ActivityType
 from sentry.utils.sdk import bind_organization_context, configure_scope
 
 
@@ -129,7 +130,7 @@ class ProjectReleaseDetailsEndpoint(ProjectEndpoint, ReleaseAnalyticsMixin):
 
             if not was_released and release.date_released:
                 Activity.objects.create(
-                    type=Activity.RELEASE,
+                    type=ActivityType.RELEASE.value,
                     project=project,
                     ident=Activity.get_version_ident(release.version),
                     data={"version": release.version},

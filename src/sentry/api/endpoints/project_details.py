@@ -46,7 +46,6 @@ from sentry.notifications.utils import has_alert_integration
 from sentry.notifications.utils.legacy_mappings import get_option_value_from_boolean
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
-from sentry.utils.compat import filter
 
 
 def clean_newline_inputs(value, case_insensitive=True):
@@ -180,7 +179,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
         return data
 
     def validate_allowedDomains(self, value):
-        value = filter(bool, value)
+        value = list(filter(bool, value))
         if len(value) == 0:
             raise serializers.ValidationError(
                 "Empty value will block all requests, use * to accept from all domains"
@@ -441,16 +440,10 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             "organizations:filters-and-sampling", project.organization, actor=request.user
         )
 
-        allow_dynamic_sampling_error_rules = features.has(
-            "organizations:filters-and-sampling-error-rules",
-            project.organization,
-            actor=request.user,
-        )
-
         if not allow_dynamic_sampling and result.get("dynamicSampling"):
-            # trying to set dynamic sampling with feature disabled
+            # trying to set sampling with feature disabled
             return Response(
-                {"detail": ["You do not have permission to set dynamic sampling."]},
+                {"detail": ["You do not have permission to set sampling."]},
                 status=403,
             )
 
@@ -616,19 +609,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         if "dynamicSampling" in result:
             raw_dynamic_sampling = result["dynamicSampling"]
-            if (
-                not allow_dynamic_sampling_error_rules
-                and self._dynamic_sampling_contains_error_rule(raw_dynamic_sampling)
-            ):
-                return Response(
-                    {
-                        "detail": [
-                            "Dynamic Sampling only accepts rules of type transaction or trace"
-                        ]
-                    },
-                    status=400,
-                )
-
             fixed_rules = self._fix_rule_ids(project, raw_dynamic_sampling)
             project.update_option("sentry:dynamic_sampling", fixed_rules)
 

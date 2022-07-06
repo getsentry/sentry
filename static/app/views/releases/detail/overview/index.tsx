@@ -476,14 +476,8 @@ class ReleaseOverview extends AsyncView<Props> {
                                           (
                                           <DateTime
                                             date={releaseBounds.releaseStart}
-                                            timeAndDate
-                                          />{' '}
-                                          -{' '}
-                                          <DateTime
-                                            date={releaseBounds.releaseEnd}
-                                            timeAndDate
-                                          />
-                                          )
+                                          /> -{' '}
+                                          <DateTime date={releaseBounds.releaseEnd} />)
                                         </Fragment>
                                       ),
                                       ...DEFAULT_RELATIVE_PERIODS,
@@ -719,7 +713,7 @@ function getTransactionsListSort(location: Location): {
 
 const ReleaseDetailsPageFilters = styled('div')`
   display: grid;
-  grid-template-columns: minmax(0, max-content) minmax(0, max-content);
+  grid-template-columns: minmax(0, max-content) 1fr;
   gap: ${space(2)};
   margin-bottom: ${space(2)};
 `;

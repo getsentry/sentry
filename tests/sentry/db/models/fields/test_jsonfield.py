@@ -1,3 +1,4 @@
+import pytest
 from django import forms
 from django.db import models
 from django.utils.encoding import force_text
@@ -10,14 +11,14 @@ class JSONFieldTestModel(models.Model):
     json = JSONField("test", null=True, blank=True)
 
     class Meta:
-        app_label = "tests"
+        app_label = "fixtures"
 
 
 class JSONFieldWithDefaultTestModel(models.Model):
     json = JSONField(default={"sukasuka": "YAAAAAZ"})
 
     class Meta:
-        app_label = "tests"
+        app_label = "fixtures"
 
 
 class BlankJSONFieldTestModel(models.Model):
@@ -25,7 +26,7 @@ class BlankJSONFieldTestModel(models.Model):
     blank_json = JSONField(blank=True)
 
     class Meta:
-        app_label = "tests"
+        app_label = "fixtures"
 
 
 def default():
@@ -36,7 +37,7 @@ class CallableDefaultModel(models.Model):
     json = JSONField(default=default)
 
     class Meta:
-        app_label = "tests"
+        app_label = "fixtures"
 
 
 class JSONFieldTest(TestCase):
@@ -136,7 +137,7 @@ class JSONFieldTest(TestCase):
         # self.assertEqual(1, JSONFieldTestModel.objects.filter(json__contains={'baz':'bing', 'foo':'bar'}).count())
         self.assertEqual(2, JSONFieldTestModel.objects.filter(json__contains="foo").count())
         # This code needs to be implemented!
-        self.assertRaises(
+        pytest.raises(
             TypeError, lambda: JSONFieldTestModel.objects.filter(json__contains=["baz", "foo"])
         )
 
@@ -179,11 +180,11 @@ class JSONFieldTest(TestCase):
         obj = JSONFieldTestModel()
         obj.json = '{"foo": 2}'
         assert "foo" in obj.json
-        with self.assertRaises(forms.ValidationError):
+        with pytest.raises(forms.ValidationError):
             obj.json = '{"foo"}'
 
     def test_invalid_json_default(self):
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             JSONField("test", default='{"foo"}')
 
 

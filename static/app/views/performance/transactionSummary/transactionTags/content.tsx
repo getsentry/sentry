@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -16,6 +16,7 @@ import Radio from 'sentry/components/radio';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
 import SegmentExplorerQuery, {
   TableData,
@@ -103,26 +104,33 @@ const InnerContent = (
   const initialTag = decodedTagFromOptions ?? defaultTag;
 
   const [tagSelected, _changeTagSelected] = useState(initialTag);
+  const lastTag = useRef('');
 
-  const changeTagSelected = (tagKey: string) => {
-    const queryParams = normalizeDateTimeParams({
-      ...(location.query || {}),
-      tagKey,
-      [TAG_PAGE_TABLE_CURSOR]: undefined,
-    });
+  const changeTagSelected = useCallback(
+    (tagKey: string) => {
+      if (lastTag.current !== tagKey) {
+        const queryParams = normalizeDateTimeParams({
+          ...(location.query || {}),
+          tagKey,
+          [TAG_PAGE_TABLE_CURSOR]: undefined,
+        });
 
-    browserHistory.replace({
-      pathname: location.pathname,
-      query: queryParams,
-    });
-    _changeTagSelected(tagKey);
-  };
+        browserHistory.replace({
+          pathname: location.pathname,
+          query: queryParams,
+        });
+        _changeTagSelected(tagKey);
+        lastTag.current = decodeScalar(location.query.tagKey, '');
+      }
+    },
+    [location.query, location.pathname]
+  );
 
   useEffect(() => {
     if (initialTag) {
       changeTagSelected(initialTag);
     }
-  }, [initialTag]);
+  }, [initialTag, changeTagSelected]);
 
   const handleSearch = (query: string) => {
     const queryParams = normalizeDateTimeParams({
@@ -136,7 +144,14 @@ const InnerContent = (
     });
   };
 
-  const changeTag = (tag: string) => {
+  const changeTag = (tag: string, isOtherTag: boolean) => {
+    trackAdvancedAnalyticsEvent('performance_views.tags.change_tag', {
+      organization,
+      from_tag: tagSelected!,
+      to_tag: tag,
+      is_other_tag: isOtherTag,
+    });
+
     return changeTagSelected(tag);
   };
   if (tagSelected) {
@@ -175,7 +190,7 @@ const InnerContent = (
 };
 
 const TagsSideBar = (props: {
-  changeTag: (tag: string) => void;
+  changeTag: (tag: string, isOtherTag: boolean) => void;
   otherTags: TagOption[];
   suspectTags: TagOption[];
   isLoading?: boolean;
@@ -202,7 +217,7 @@ const TagsSideBar = (props: {
             <Radio
               aria-label={tag}
               checked={tagSelected === tag}
-              onChange={() => changeTag(tag)}
+              onChange={() => changeTag(tag, false)}
             />
             <SidebarTagValue className="truncate">{tag}</SidebarTagValue>
           </RadioLabel>
@@ -231,7 +246,7 @@ const TagsSideBar = (props: {
             <Radio
               aria-label={tag}
               checked={tagSelected === tag}
-              onChange={() => changeTag(tag)}
+              onChange={() => changeTag(tag, true)}
             />
             <SidebarTagValue className="truncate">{tag}</SidebarTagValue>
           </RadioLabel>
@@ -274,14 +289,14 @@ const ReversedLayoutBody = styled('div')`
   background-color: ${p => p.theme.background};
   flex-grow: 1;
 
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
     display: grid;
     grid-template-columns: auto 66%;
     align-content: start;
     gap: ${space(3)};
   }
 
-  @media (min-width: ${p => p.theme.breakpoints[2]}) {
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
     grid-template-columns: 225px minmax(100px, auto);
   }
 `;
@@ -300,7 +315,7 @@ const FilterActions = styled('div')`
   gap: ${space(2)};
   margin-bottom: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: auto 1fr;
   }
 `;

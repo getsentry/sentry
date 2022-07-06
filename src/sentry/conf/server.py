@@ -12,8 +12,6 @@ import tempfile
 from datetime import timedelta
 from urllib.parse import urlparse
 
-from django.conf.global_settings import *  # NOQA
-
 import sentry
 from sentry.utils.celery import crontab_with_minute_jitter
 from sentry.utils.types import type_from_value
@@ -283,6 +281,7 @@ MIDDLEWARE = (
     "sentry.middleware.stats.RequestTimingMiddleware",
     "sentry.middleware.access_log.access_log_middleware",
     "sentry.middleware.stats.ResponseCodeMiddleware",
+    "sentry.middleware.subdomain.SubdomainMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -520,6 +519,10 @@ BROKER_TRANSPORT_OPTIONS = {}
 # though it would cause timeouts/recursions in some cases
 CELERY_ALWAYS_EAGER = False
 
+# Complain about bad use of pickle.  See sentry.celery.SentryTask.apply_async for how
+# this works.
+CELERY_COMPLAIN_ABOUT_BAD_USE_OF_PICKLE = False
+
 # We use the old task protocol because during benchmarking we noticed that it's faster
 # than the new protocol. If we ever need to bump this it should be fine, there were no
 # compatibility issues, just need to run benchmarks and do some tests to make sure
@@ -597,6 +600,7 @@ CELERY_QUEUES = [
     Queue("assemble", routing_key="assemble"),
     Queue("auth", routing_key="auth"),
     Queue("buffers.process_pending", routing_key="buffers.process_pending"),
+    Queue("buffers.incr", routing_key="buffers.incr"),
     Queue("cleanup", routing_key="cleanup"),
     Queue("code_owners", routing_key="code_owners"),
     Queue("commits", routing_key="commits"),
@@ -621,6 +625,7 @@ CELERY_QUEUES = [
     ),
     Queue("events.save_event", routing_key="events.save_event"),
     Queue("events.save_event_transaction", routing_key="events.save_event_transaction"),
+    Queue("events.save_event_attachments", routing_key="events.save_event_attachments"),
     Queue("events.symbolicate_event", routing_key="events.symbolicate_event"),
     Queue(
         "events.symbolicate_event_low_priority", routing_key="events.symbolicate_event_low_priority"
@@ -640,6 +645,7 @@ CELERY_QUEUES = [
     Queue("merge", routing_key="merge"),
     Queue("options", routing_key="options"),
     Queue("relay_config", routing_key="relay_config"),
+    Queue("relay_config_bulk", routing_key="relay_config_bulk"),
     Queue("reports.deliver", routing_key="reports.deliver"),
     Queue("reports.prepare", routing_key="reports.prepare"),
     Queue("search", routing_key="search"),
@@ -925,12 +931,16 @@ CRISPY_TEMPLATE_PACK = "bootstrap3"
 SENTRY_FEATURES = {
     # Enables user registration.
     "auth:register": True,
+    # Workflow 2.0 Experimental ReleaseMembers who opt-in to get notified as a release committer
+    "organizations:active-release-notification-opt-in": False,
     # Enable advanced search features, like negation and wildcard matching.
     "organizations:advanced-search": True,
     # Use metrics as the dataset for crash free metric alerts
     "organizations:alert-crash-free-metrics": False,
+    # Workflow 2.0 notifications following a release
+    "organizations:alert-release-notification-workflow": False,
     # Alert wizard redesign version 3
-    "organizations:alert-wizard-v3": False,
+    "organizations:alert-wizard-v3": True,
     "organizations:api-keys": False,
     # Enable multiple Apple app-store-connect sources per project.
     "organizations:app-store-connect-multiple": False,
@@ -945,14 +955,18 @@ SENTRY_FEATURES = {
     "organizations:create": True,
     # Enable the 'discover' interface.
     "organizations:discover": False,
+    # Enables events endpoint usage on discover and dashboards frontend
+    "organizations:discover-frontend-use-events-endpoint": True,
+    # Enables events endpoint usage on performance frontend
+    "organizations:performance-frontend-use-events-endpoint": True,
+    # Enables events endpoint rate limit
+    "organizations:discover-events-rate-limit": False,
     # Enable duplicating alert rules.
-    "organizations:duplicate-alert-rule": False,
+    "organizations:duplicate-alert-rule": True,
     # Enable attaching arbitrary files to events.
     "organizations:event-attachments": True,
-    # Enable Filters & Sampling in the org settings
+    # Enable Filters & Sampling in the project settings
     "organizations:filters-and-sampling": False,
-    # Enable Dynamic Sampling errors in the org settings
-    "organizations:filters-and-sampling-error-rules": False,
     # Allow organizations to configure all symbol sources.
     "organizations:symbol-sources": True,
     # Allow organizations to configure custom external symbol sources.
@@ -1054,6 +1068,10 @@ SENTRY_FEATURES = {
     "organizations:dashboards-mep": False,
     # Enable release health widgets in dashboards
     "organizations:dashboards-releases": False,
+    # Enable top level query filters in dashboards
+    "organizations:dashboards-top-level-filter": False,
+    # Enables usage of custom measurements in dashboard widgets
+    "organizations:dashboard-custom-measurement-widgets": False,
     # Enable widget viewer modal in dashboards
     "organizations:widget-viewer-modal": False,
     # Enable minimap in the widget viewer modal in dashboards
@@ -1087,17 +1105,17 @@ SENTRY_FEATURES = {
     "organizations:performance-onboarding-checklist": False,
     # Enable automatic horizontal scrolling on the span tree
     "organizations:performance-span-tree-autoscroll": False,
+    # Enable transaction name only search
+    "organizations:performance-transaction-name-only-search": False,
+    # Enable performance issue view
+    "organizations:performance-extraneous-spans-poc": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
     # Enable usage of external relays, for use with Relay. See
     # https://github.com/getsentry/relay.
     "organizations:relay": True,
-    # Enables experimental new-style selection filters to replace the GSH
-    "organizations:selection-filters-v2": False,
     # Enable experimental session replay features
     "organizations:session-replay": False,
-    # Enable logging for weekly reports
-    "organizations:weekly-report-debugging": False,
     # Enable Session Stats down to a minute resolution
     "organizations:minute-resolution-sessions": True,
     # Notify all project members when fallthrough is disabled, instead of just the auto-assignee
@@ -1115,6 +1133,8 @@ SENTRY_FEATURES = {
     # Enable SAML2 based SSO functionality. getsentry/sentry-auth-saml2 plugin
     # must be installed to use this functionality.
     "organizations:sso-saml2": True,
+    # Enable new server-side sampling UI in the project settings
+    "organizations:server-side-sampling": False,
     # Enable the new images loaded design and features
     "organizations:images-loaded-v2": True,
     # Enable the mobile screenshots feature
@@ -1152,6 +1172,8 @@ SENTRY_FEATURES = {
     "projects:servicehooks": False,
     # Use Kafka (instead of Celery) for ingestion pipeline.
     "projects:kafka-ingest": False,
+    # Automatically opt IN users to receiving Slack notifications.
+    "users:notification-slack-automatic": False,
     # Don't add feature defaults down here! Please add them in their associated
     # group sorted alphabetically.
 }
@@ -1159,6 +1181,8 @@ SENTRY_FEATURES = {
 # Default time zone for localization in the UI.
 # http://en.wikipedia.org/wiki/List_of_tz_zones_by_name
 SENTRY_DEFAULT_TIME_ZONE = "UTC"
+
+SENTRY_DEFAULT_LANGUAGE = "en"
 
 # Enable the Sentry Debugger (Beta)
 SENTRY_DEBUGGER = None
@@ -1352,7 +1376,7 @@ SENTRY_QUOTAS = "sentry.quotas.Quota"
 SENTRY_QUOTA_OPTIONS = {}
 
 # Cache for Relay project configs
-SENTRY_RELAY_PROJECTCONFIG_CACHE = "sentry.relay.projectconfig_cache.base.ProjectConfigCache"
+SENTRY_RELAY_PROJECTCONFIG_CACHE = "sentry.relay.projectconfig_cache.redis.RedisProjectConfigCache"
 SENTRY_RELAY_PROJECTCONFIG_CACHE_OPTIONS = {}
 
 # Which cache to use for debouncing cache updates to the projectconfig cache
@@ -1726,15 +1750,6 @@ SENTRY_DEFAULT_OPTIONS = {}
 # unless you have altered all schemas first
 SENTRY_USE_BIG_INTS = False
 
-# Encryption schemes available to Sentry. You should *never* remove from this
-# list until the key is no longer used in the database. The first listed
-# implementation is considered the default and will be used to encrypt all
-# values (as well as re-encrypt data when it's re-saved).
-SENTRY_ENCRYPTION_SCHEMES = (
-    # identifier: implementation
-    # ('0', Fernet(b'super secret key probably from Fernet.generate_key()')),
-)
-
 # Delay (in ms) to induce on API responses
 #
 # Simulates a small amount of lag which helps uncover more obvious race
@@ -1967,7 +1982,10 @@ SENTRY_DEVSERVICES = {
         {
             "image": "us.gcr.io/sentryio/cbtemulator:23c02d92c7a1747068eb1fc57dddbad23907d614",
             "ports": {"8086/tcp": 8086},
-            "only_if": "bigtable" in settings.SENTRY_NODESTORE,
+            # NEED_BIGTABLE is set by CI so we don't have to pass
+            # --skip-only-if when compiling which services to run.
+            "only_if": os.environ.get("NEED_BIGTABLE", False)
+            or "bigtable" in settings.SENTRY_NODESTORE,
         }
     ),
     "memcached": lambda settings, options: (
@@ -2008,7 +2026,9 @@ SENTRY_DEVSERVICES = {
                 "CHARTCUTERIE_CONFIG_POLLING": "true",
             },
             "ports": {"9090/tcp": 7901},
-            "only_if": options.get("chart-rendering.enabled"),
+            # NEED_CHARTCUTERIE is set by CI so we don't have to pass --skip-only-if when compiling which services to run.
+            "only_if": os.environ.get("NEED_CHARTCUTERIE", False)
+            or options.get("chart-rendering.enabled"),
         }
     ),
     "cdc": lambda settings, options: (
@@ -2292,7 +2312,14 @@ GEOIP_PATH_MMDB = None
 JS_SDK_LOADER_CDN_URL = ""
 # Version of the SDK - Used in header Surrogate-Key sdk/JS_SDK_LOADER_SDK_VERSION
 JS_SDK_LOADER_SDK_VERSION = ""
-# This should be the url pointing to the JS SDK
+# This should be the url pointing to the JS SDK. It may contain up to two "%s".
+# The first "%s" will be replaced with the SDK version, the second one is used
+# to inject a bundle modifier in the JS SDK CDN loader. e.g:
+# - 'https://browser.sentry-cdn.com/%s/bundle%s.min.js' will become
+# 'https://browser.sentry-cdn.com/7.0.0/bundle.es5.min.js'
+# - 'https://browser.sentry-cdn.com/%s/bundle.min.js' will become
+# 'https://browser.sentry-cdn.com/7.0.0/bundle.min.js'
+# - 'https://browser.sentry-cdn.com/6.19.7/bundle.min.js' will stay the same.
 JS_SDK_LOADER_DEFAULT_SDK_URL = ""
 
 # block domains which are generally used by spammers -- keep this configurable
@@ -2314,6 +2341,15 @@ KAFKA_CLUSTERS = {
     }
 }
 
+# These constants define kafka topic names, as well as keys into `KAFKA_TOPICS`
+# which contains cluster mappings for these topics. Follow these steps to
+# override a kafka topic name:
+#
+#  1. Change the value of the `KAFKA_*` constant (e.g. KAFKA_EVENTS).
+#  2. For changes in override files, such as `sentry.conf.py` or in getsentry's
+#     `prod.py`, also override the entirety of `KAFKA_TOPICS` to ensure the keys
+#     pick up the change.
+
 KAFKA_EVENTS = "events"
 # TODO: KAFKA_TRANSACTIONS is temporarily mapped to "events" since events
 # transactions curently share a Kafka topic. Once we are ready with the code
@@ -2326,55 +2362,50 @@ KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS = "events-subscription-results"
 KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS = "transactions-subscription-results"
 KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS = "sessions-subscription-results"
 KAFKA_METRICS_SUBSCRIPTIONS_RESULTS = "metrics-subscription-results"
-KAFKA_SUBSCRIPTION_RESULT_TOPICS = {
-    "events": KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS,
-    "transactions": KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS,
-    "sessions": KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS,
-    "metrics": KAFKA_METRICS_SUBSCRIPTIONS_RESULTS,
-}
 KAFKA_INGEST_EVENTS = "ingest-events"
 KAFKA_INGEST_ATTACHMENTS = "ingest-attachments"
 KAFKA_INGEST_TRANSACTIONS = "ingest-transactions"
 KAFKA_INGEST_METRICS = "ingest-metrics"
 KAFKA_SNUBA_METRICS = "snuba-metrics"
 KAFKA_PROFILES = "profiles"
+KAFKA_INGEST_PERFORMANCE_METRICS = "ingest-performance-metrics"
+KAFKA_SNUBA_GENERIC_METRICS = "snuba-generic-metrics"
 
+KAFKA_SUBSCRIPTION_RESULT_TOPICS = {
+    "events": KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS,
+    "transactions": KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS,
+    "sessions": KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS,
+    "metrics": KAFKA_METRICS_SUBSCRIPTIONS_RESULTS,
+}
+
+# Cluster configuration for each Kafka topic by name.
 KAFKA_TOPICS = {
-    KAFKA_EVENTS: {"cluster": "default", "topic": KAFKA_EVENTS},
-    KAFKA_TRANSACTIONS: {"cluster": "default", "topic": KAFKA_TRANSACTIONS},
-    KAFKA_OUTCOMES: {"cluster": "default", "topic": KAFKA_OUTCOMES},
+    KAFKA_EVENTS: {"cluster": "default"},
+    KAFKA_TRANSACTIONS: {"cluster": "default"},
+    KAFKA_OUTCOMES: {"cluster": "default"},
     # When OUTCOMES_BILLING is None, it inherits from OUTCOMES and does not
     # create a separate producer. Check ``track_outcome`` for details.
     KAFKA_OUTCOMES_BILLING: None,
-    KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS: {
-        "cluster": "default",
-        "topic": KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS,
-    },
-    KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS: {
-        "cluster": "default",
-        "topic": KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS,
-    },
-    KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS: {
-        "cluster": "default",
-        "topic": KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS,
-    },
-    KAFKA_METRICS_SUBSCRIPTIONS_RESULTS: {
-        "cluster": "default",
-        "topic": KAFKA_METRICS_SUBSCRIPTIONS_RESULTS,
-    },
+    KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS: {"cluster": "default"},
+    KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS: {"cluster": "default"},
+    KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS: {"cluster": "default"},
+    KAFKA_METRICS_SUBSCRIPTIONS_RESULTS: {"cluster": "default"},
     # Topic for receiving simple events (error events without attachments) from Relay
-    KAFKA_INGEST_EVENTS: {"cluster": "default", "topic": KAFKA_INGEST_EVENTS},
+    KAFKA_INGEST_EVENTS: {"cluster": "default"},
     # Topic for receiving 'complex' events (error events with attachments) from Relay
-    KAFKA_INGEST_ATTACHMENTS: {"cluster": "default", "topic": KAFKA_INGEST_ATTACHMENTS},
+    KAFKA_INGEST_ATTACHMENTS: {"cluster": "default"},
     # Topic for receiving transaction events (APM events) from Relay
-    KAFKA_INGEST_TRANSACTIONS: {"cluster": "default", "topic": KAFKA_INGEST_TRANSACTIONS},
+    KAFKA_INGEST_TRANSACTIONS: {"cluster": "default"},
     # Topic for receiving metrics from Relay
-    KAFKA_INGEST_METRICS: {"cluster": "default", "topic": KAFKA_INGEST_METRICS},
+    KAFKA_INGEST_METRICS: {"cluster": "default"},
     # Topic for indexer translated metrics
-    KAFKA_SNUBA_METRICS: {"cluster": "default", "topic": KAFKA_SNUBA_METRICS},
+    KAFKA_SNUBA_METRICS: {"cluster": "default"},
     # Topic for receiving profiles from Relay
-    KAFKA_PROFILES: {"cluster": "default", "topic": KAFKA_PROFILES},
+    KAFKA_PROFILES: {"cluster": "default"},
+    KAFKA_INGEST_PERFORMANCE_METRICS: {"cluster": "default"},
+    KAFKA_SNUBA_GENERIC_METRICS: {"cluster": "default"},
 }
+
 
 # If True, consumers will create the topics if they don't exist
 KAFKA_CONSUMER_AUTO_CREATE_TOPICS = True
@@ -2584,6 +2615,9 @@ SAMPLED_DEFAULT_RATE = 1.0
 # A set of extra URLs to sample
 ADDITIONAL_SAMPLED_URLS = {}
 
+# A set of extra tasks to sample
+ADDITIONAL_SAMPLED_TASKS = {}
+
 # This controls whether Sentry is run in a demo mode.
 # Enabling this will allow users to create accounts without an email or password.
 DEMO_MODE = False
@@ -2641,3 +2675,14 @@ ENABLE_ANALYTICS = False
 
 MAX_ISSUE_ALERTS_PER_PROJECT = 100
 MAX_QUERY_SUBSCRIPTIONS_PER_ORG = 1000
+
+MAX_REDIS_SNOWFLAKE_RETRY_COUNTER = 5
+
+SNOWFLAKE_VERSION_ID = 1
+SNOWFLAKE_REGION_ID = 0
+
+
+SENTRY_POST_PROCESS_LOCKS_BACKEND_OPTIONS = {
+    "path": "sentry.utils.locking.backends.redis.RedisLockBackend",
+    "options": {"cluster": "default"},
+}

@@ -76,23 +76,25 @@ describe('Performance > TransactionSummary', function () {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/eventsv2/',
+      url: '/organizations/org-slug/events/',
       body: {
         data: [
           {
-            p100: 9502,
-            p99: 9285.7,
-            p95: 7273.6,
-            p75: 3639.5,
-            p50: 755.5,
+            'p100()': 9502,
+            'p99()': 9285.7,
+            'p95()': 7273.6,
+            'p75()': 3639.5,
+            'p50()': 755.5,
           },
         ],
         meta: {
-          p100: 'duration',
-          p99: 'duration',
-          p95: 'duration',
-          p75: 'duration',
-          p50: 'duration',
+          fields: {
+            'p100()': 'duration',
+            'p99()': 'duration',
+            'p95()': 'duration',
+            'p75()': 'duration',
+            'p50()': 'duration',
+          },
         },
       },
       match: [
@@ -103,19 +105,21 @@ describe('Performance > TransactionSummary', function () {
     });
     // Transaction list response
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/eventsv2/',
+      url: '/organizations/org-slug/events/',
       headers: {
         Link:
-          '<http://localhost/api/0/organizations/org-slug/eventsv2/?cursor=2:0:0>; rel="next"; results="true"; cursor="2:0:0",' +
-          '<http://localhost/api/0/organizations/org-slug/eventsv2/?cursor=1:0:0>; rel="previous"; results="false"; cursor="1:0:0"',
+          '<http://localhost/api/0/organizations/org-slug/events/?cursor=2:0:0>; rel="next"; results="true"; cursor="2:0:0",' +
+          '<http://localhost/api/0/organizations/org-slug/events/?cursor=1:0:0>; rel="previous"; results="false"; cursor="1:0:0"',
       },
       body: {
         meta: {
-          id: 'string',
-          'user.display': 'string',
-          'transaction.duration': 'duration',
-          'project.id': 'integer',
-          timestamp: 'date',
+          fields: {
+            id: 'string',
+            'user.display': 'string',
+            'transaction.duration': 'duration',
+            'project.id': 'integer',
+            timestamp: 'date',
+          },
         },
         data: [
           {
@@ -141,6 +145,17 @@ describe('Performance > TransactionSummary', function () {
       match: [
         (_url, options) => {
           return options.query?.field?.includes('user.display');
+        },
+      ],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {
+        data: [{'count()': 5161}],
+      },
+      match: [
+        (_url, options) => {
+          return options.query?.field?.includes('count()');
         },
       ],
     });

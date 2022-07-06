@@ -54,7 +54,7 @@ class NewProcessingIssuesActivityNotification(ActivityNotification):
     def title(self) -> str:
         return self.get_subject()
 
-    def get_notification_title(self) -> str:
+    def get_notification_title(self, context: Mapping[str, Any] | None = None) -> str:
         project_url = absolute_uri(
             f"/settings/{self.organization.slug}/projects/{self.project.slug}/processing-issues/"
         )

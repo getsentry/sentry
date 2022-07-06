@@ -6,7 +6,6 @@ import Card from 'sentry/components/card';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {User} from 'sentry/types';
 import {callIfFunction} from 'sentry/utils/callIfFunction';
@@ -105,7 +104,7 @@ const QueryCardHeader = styled('div')`
 const QueryTitle = styled('div')`
   ${p => p.theme.text.cardTitle};
   color: ${p => p.theme.headingColor};
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
   font-weight: initial;
 `;
 
@@ -114,7 +113,7 @@ const QueryDetail = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.gray300};
   line-height: 1.5;
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
 `;
 
 const QueryCardBody = styled('div')`
@@ -135,7 +134,7 @@ const DateSelected = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   display: grid;
   grid-column-gap: ${space(1)};
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
   color: ${p => p.theme.textColor};
 `;
 

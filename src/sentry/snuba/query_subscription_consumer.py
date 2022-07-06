@@ -75,7 +75,7 @@ class QuerySubscriptionConsumer:
             topic = cast(str, settings.KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS)
 
         self.topic = topic
-        cluster_name: str = settings.KAFKA_TOPICS[topic]["cluster"]
+        self.cluster_name: str = settings.KAFKA_TOPICS[topic]["cluster"]
         self.commit_batch_size = commit_batch_size
 
         # Adding time based commit behaviour
@@ -86,7 +86,7 @@ class QuerySubscriptionConsumer:
         self.offsets: Dict[int, Optional[int]] = {}
         self.consumer: Consumer = None
         self.cluster_options = kafka_config.get_kafka_consumer_cluster_options(
-            cluster_name,
+            self.cluster_name,
             {
                 "group.id": self.group_id,
                 "session.timeout.ms": 6000,
@@ -159,7 +159,7 @@ class QuerySubscriptionConsumer:
         self.consumer = Consumer(self.cluster_options)
         self.__shutdown_requested = False
 
-        create_topics([self.topic])
+        create_topics(self.cluster_name, [self.topic])
 
         self.consumer.subscribe([self.topic], on_assign=on_assign, on_revoke=on_revoke)
 

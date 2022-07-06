@@ -1,16 +1,24 @@
+from datetime import datetime
 from time import sleep, time
-from typing import Any, MutableMapping
+from typing import Any, MutableMapping, Optional
 
+import sentry_sdk
 from django.conf import settings
+from pytz import UTC
 from symbolic import ProguardMapper  # type: ignore
 
+from sentry import quotas
+from sentry.constants import DataCategory
 from sentry.lang.native.symbolicator import Symbolicator
-from sentry.models import Project, ProjectDebugFile
+from sentry.models import Organization, Project, ProjectDebugFile
 from sentry.profiles.device import classify_device
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.symbolication import RetrySymbolication
-from sentry.utils import json, kafka_config
+from sentry.utils import json, kafka_config, metrics
+from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.pubsub import KafkaPublisher
+
+Profile = MutableMapping[str, Any]
 
 processed_profiles_publisher = None
 
@@ -22,56 +30,81 @@ processed_profiles_publisher = None
     max_retries=5,
     acks_late=True,
 )
-def process_profile(profile: MutableMapping[str, Any], **kwargs: Any) -> None:
-    if profile["platform"] == "cocoa":
-        profile = _symbolicate(profile=profile)
-    elif profile["platform"] == "android":
-        profile = _deobfuscate(profile=profile)
+def process_profile(
+    profile: Profile,
+    key_id: Optional[int],
+    **kwargs: Any,
+) -> None:
+    project = Project.objects.get_from_cache(id=profile["project_id"])
 
-    profile = _normalize(profile=profile)
+    if _should_symbolicate(profile):
+        _symbolicate(profile=profile, project=project)
+    elif _should_deobfuscate(profile):
+        _deobfuscate(profile=profile, project=project)
 
-    global processed_profiles_publisher
+    organization = Organization.objects.get_from_cache(id=project.organization_id)
 
-    if processed_profiles_publisher is None:
-        config = settings.KAFKA_TOPICS[settings.KAFKA_PROFILES]
-        processed_profiles_publisher = KafkaPublisher(
-            kafka_config.get_kafka_producer_cluster_options(config["cluster"]),
-        )
-
-    processed_profiles_publisher.publish(
-        "processed-profiles",
-        json.dumps(profile),
-    )
+    _normalize(profile=profile, organization=organization)
+    _insert_eventstream(profile=profile)
+    _track_outcome(profile=profile, project=project, key_id=key_id)
 
 
-def _normalize(profile: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
-    classification_options = {
-        "model": profile["device_model"],
-        "os_name": profile["device_os_name"],
-        "is_emulator": profile["device_is_emulator"],
-    }
+def _should_symbolicate(profile: Profile) -> bool:
+    platform: str = profile["platform"]
+    return platform in {"cocoa", "rust"}
 
-    if profile["platform"] == "android":
+
+def _should_deobfuscate(profile: Profile) -> bool:
+    platform: str = profile["platform"]
+    return platform == "android"
+
+
+@metrics.wraps("process_profile.normalize")  # type: ignore
+def _normalize(profile: Profile, organization: Organization) -> None:
+    if profile["platform"] in {"cocoa", "android"}:
+        classification_options = dict()
+
+        if profile["platform"] == "android":
+            classification_options.update(
+                {
+                    "cpu_frequencies": profile["device_cpu_frequencies"],
+                    "physical_memory_bytes": profile["device_physical_memory_bytes"],
+                }
+            )
+
         classification_options.update(
             {
-                "cpu_frequencies": profile["device_cpu_frequencies"],
-                "physical_memory_bytes": profile["device_physical_memory_bytes"],
+                "model": profile["device_model"],
+                "os_name": profile["device_os_name"],
+                "is_emulator": profile["device_is_emulator"],
+            }
+        )
+
+        profile.update({"device_classification": str(classify_device(**classification_options))})
+    else:
+        profile.update(
+            {
+                attr: ""
+                for attr in (
+                    "device_classification",
+                    "device_locale",
+                    "device_manufacturer",
+                    "device_model",
+                )
+                if attr not in profile
             }
         )
 
     profile.update(
         {
-            "device_classification": str(classify_device(**classification_options)),
             "profile": json.dumps(profile["profile"]),
-            "retention_days": 30,
+            "retention_days": quotas.get_event_retention(organization=organization),
         }
     )
 
-    return profile
 
-
-def _symbolicate(profile: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
-    project = Project.objects.get_from_cache(id=profile["project_id"])
+@metrics.wraps("process_profile.symbolicate")  # type: ignore
+def _symbolicate(profile: Profile, project: Project) -> None:
     symbolicator = Symbolicator(project=project, event_id=profile["profile_id"])
     modules = profile["debug_meta"]["images"]
     stacktraces = [
@@ -87,13 +120,18 @@ def _symbolicate(profile: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
     while True:
         try:
             response = symbolicator.process_payload(stacktraces=stacktraces, modules=modules)
+
+            assert len(profile["sampled_profile"]["samples"]) == len(response["stacktraces"])
+
             for original, symbolicated in zip(
                 profile["sampled_profile"]["samples"], response["stacktraces"]
             ):
-                for original_frame, symbolicated_frame in zip(
-                    original["frames"], symbolicated["frames"]
-                ):
-                    original_frame.update(symbolicated_frame)
+                for frame in symbolicated["frames"]:
+                    frame.pop("pre_context", None)
+                    frame.pop("context_line", None)
+                    frame.pop("post_context", None)
+
+                original["frames"] = symbolicated["frames"]
             break
         except RetrySymbolication as e:
             if (
@@ -108,32 +146,31 @@ def _symbolicate(profile: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
                 )
                 sleep(sleep_time)
                 continue
-        except Exception:
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
             break
 
     # remove debug information we don't need anymore
     profile.pop("debug_meta")
 
-    # save the symbolicated frames on the profile
-    profile["profile"] = profile["sampled_profile"]
-
-    return profile
+    # rename the profile key to suggest it has been processed
+    profile["profile"] = profile.pop("sampled_profile")
 
 
-def _deobfuscate(profile: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
+@metrics.wraps("process_profile.deobfuscate")  # type: ignore
+def _deobfuscate(profile: Profile, project: Project) -> None:
     debug_file_id = profile.get("build_id")
     if debug_file_id is None or debug_file_id == "":
-        return profile
+        return
 
-    project = Project.objects.get_from_cache(id=profile["project_id"])
     dif_paths = ProjectDebugFile.difcache.fetch_difs(project, [debug_file_id], features=["mapping"])
     debug_file_path = dif_paths.get(debug_file_id)
     if debug_file_path is None:
-        return profile
+        return
 
     mapper = ProguardMapper.open(debug_file_path)
     if not mapper.has_line_info:
-        return profile
+        return
 
     for method in profile["profile"]["methods"]:
         mapped = mapper.remap_frame(
@@ -167,4 +204,39 @@ def _deobfuscate(profile: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
             if mapped:
                 method["class_name"] = mapped
 
-    return profile
+
+@metrics.wraps("process_profile.track_outcome")  # type: ignore
+def _track_outcome(profile: Profile, project: Project, key_id: Optional[int]) -> None:
+    track_outcome(
+        org_id=project.organization_id,
+        project_id=project.id,
+        key_id=key_id,
+        outcome=Outcome.ACCEPTED,
+        reason=None,
+        timestamp=datetime.utcnow().replace(tzinfo=UTC),
+        event_id=profile["transaction_id"],
+        category=DataCategory.PROFILE,
+        quantity=1,
+    )
+
+
+@metrics.wraps("process_profile.insert_eventstream")  # type: ignore
+def _insert_eventstream(profile: Profile) -> None:
+    """
+    TODO: This function directly publishes the profile to kafka.
+    We'll want to look into the existing eventstream abstraction
+    so we can take advantage of nodestore at some point for single
+    profile access.
+    """
+    global processed_profiles_publisher
+
+    if processed_profiles_publisher is None:
+        config = settings.KAFKA_TOPICS[settings.KAFKA_PROFILES]
+        processed_profiles_publisher = KafkaPublisher(
+            kafka_config.get_kafka_producer_cluster_options(config["cluster"]),
+        )
+
+    processed_profiles_publisher.publish(
+        "processed-profiles",
+        json.dumps(profile),
+    )

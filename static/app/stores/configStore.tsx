@@ -23,7 +23,7 @@ interface ConfigStoreDefinition
 
 const storeConfig: ConfigStoreDefinition = {
   // When the app is booted we will _immediately_ hydrate the config store,
-  // effecively ensureing this is not empty.
+  // effecively ensuring this is not empty.
   config: {} as Config,
 
   init(): void {

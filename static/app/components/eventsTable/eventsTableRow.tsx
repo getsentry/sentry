@@ -61,7 +61,7 @@ class EventsTableRow extends Component<Props> {
         <td>
           <h5>
             <GlobalSelectionLink to={link}>
-              <DateTime date={event.dateCreated} />
+              <DateTime date={event.dateCreated} year seconds timeZone />
             </GlobalSelectionLink>
             <small>{event.title.substr(0, 100)}</small>
             {this.renderCrashFileLink()}

@@ -15,7 +15,7 @@ from sentry.models import EventError
 from sentry.net.http import SafeSession
 
 # Importing for backwards compatible API
-from sentry.net.socket import is_safe_hostname, is_valid_url, safe_socket_connect  # NOQA
+from sentry.net.socket import is_safe_hostname, is_valid_url  # NOQA
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
 from sentry.utils.strings import truncatechars

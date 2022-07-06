@@ -49,7 +49,7 @@ type Props = {
   menuTitle?: string;
   onClose?: () => void;
   /**
-   * Current width of the trigger element. This is used as the menu's minumum
+   * Current width of the trigger element. This is used as the menu's minimum
    * width.
    */
   triggerWidth?: number;
@@ -104,6 +104,8 @@ function Menu({
       shouldCloseOnBlur,
       isDismissable,
       isOpen: true,
+      shouldCloseOnInteractOutside: target =>
+        target && triggerRef.current !== target && !triggerRef.current?.contains(target),
     },
     overlayRef
   );

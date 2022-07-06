@@ -1,20 +1,27 @@
 import logging
 
 import sentry_sdk
+from django.conf import settings
 
 from sentry import analytics, features
-from sentry.app import locks
 from sentry.exceptions import PluginError
 from sentry.killswitches import killswitch_matches_context
 from sentry.signals import event_processed, issue_unignored, transaction_processed
 from sentry.tasks.base import instrumented_task
+from sentry.types.activity import ActivityType
 from sentry.utils import metrics
 from sentry.utils.cache import cache
+from sentry.utils.event_frames import get_sdk_name
 from sentry.utils.locking import UnableToAcquireLock
+from sentry.utils.locking.manager import LockManager
 from sentry.utils.safe import safe_execute
 from sentry.utils.sdk import bind_organization_context, set_current_event_project
+from sentry.utils.services import build_instance_from_options
 
 logger = logging.getLogger("sentry")
+
+
+locks = LockManager(build_instance_from_options(settings.SENTRY_POST_PROCESS_LOCKS_BACKEND_OPTIONS))
 
 
 def _get_service_hooks(project_id):
@@ -152,7 +159,7 @@ def handle_group_owners(project, group, owners):
     from sentry.models.team import Team
     from sentry.models.user import User
 
-    lock = locks.get(f"groupowner-bulk:{group.id}", duration=10)
+    lock = locks.get(f"groupowner-bulk:{group.id}", duration=10, name="groupowner_bulk")
     try:
         with metrics.timer("post_process.handle_group_owners"), sentry_sdk.start_span(
             op="post_process.handle_group_owners"
@@ -364,6 +371,7 @@ def post_process_group(
                 lock = locks.get(
                     f"w-o:{event.group_id}-d-l",
                     duration=10,
+                    name="post_process_w_o",
                 )
                 with lock.acquire():
                     has_commit_key = f"w-o:{event.project.organization_id}-h-c"
@@ -385,13 +393,15 @@ def post_process_group(
                             from sentry.utils.committers import get_frame_paths
 
                             cache.set(group_cache_key, True, 604800)  # 1 week in seconds
-                            event_frames = get_frame_paths(event.data)
+                            event_frames = get_frame_paths(event)
+                            sdk_name = get_sdk_name(event.data)
                             process_suspect_commits.delay(
                                 event_id=event.event_id,
                                 event_platform=event.platform,
                                 event_frames=event_frames,
                                 group_id=event.group_id,
                                 project_id=event.project_id,
+                                sdk_name=sdk_name,
                             )
             except UnableToAcquireLock:
                 pass
@@ -488,7 +498,7 @@ def process_snoozes(group):
         Activity.objects.create(
             project=group.project,
             group=group,
-            type=Activity.SET_UNRESOLVED,
+            type=ActivityType.SET_UNRESOLVED.value,
             user=None,
         )
 

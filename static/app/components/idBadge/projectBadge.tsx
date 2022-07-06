@@ -24,7 +24,7 @@ interface Props
   hideOverflow?: boolean | string;
   organization?: Organization;
   /**
-   * Overides where the project badge links
+   * Overrides where the project badge links
    */
   to?: LinkProps['to'];
 }

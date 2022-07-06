@@ -15,7 +15,7 @@ import * as qs from 'query-string';
 import type {Client} from 'sentry/__mocks__/api';
 import ConfigStore from 'sentry/stores/configStore';
 
-import TestStubFixtures from '../fixtures/js-stubs/types';
+import TestStubFixtures from '../../fixtures/js-stubs/types';
 
 import {loadFixtures} from './sentry-test/loadFixtures';
 
