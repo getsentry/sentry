@@ -30,6 +30,8 @@ import useApi from 'sentry/utils/useApi';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
+import {isUniformRule} from '../../utils';
+
 import {Condition, Conditions} from './conditions';
 import {
   distributedTracesConditions,
@@ -155,11 +157,11 @@ export function SpecificConditionsModal({
     setIsSaving(true);
 
     try {
-      const newProjectDetails = await api.requestPromise(
+      const response = await api.requestPromise(
         `/projects/${organization.slug}/${project.slug}/`,
         {method: 'PUT', data: {dynamicSampling: {rules: newRules}}}
       );
-      ProjectStore.onUpdateSuccess(newProjectDetails);
+      ProjectStore.onUpdateSuccess(response);
       addSuccessMessage(
         rule
           ? t('Successfully edited sampling rule')
@@ -306,6 +308,7 @@ export function SpecificConditionsModal({
                 }
                 placeholder={t('Filter conditions')}
                 isOptionDisabled={opt => opt.disabled}
+                isDisabled={isUniformRule(rule)}
                 options={predefinedConditionsOptions}
                 value={conditions.map(({category}) => category)}
                 onChange={handleAddCondition}
