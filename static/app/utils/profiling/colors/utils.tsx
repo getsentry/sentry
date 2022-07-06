@@ -238,3 +238,10 @@ export const makeColorMapBySystemVsApplication = (
 
   return colors;
 };
+
+export const colorChannelsToFillStyle = (colorChannels: ColorChannels) => {
+  if (colorChannels.length === 4) {
+    return `rgba(${colorChannels.join(',')})`;
+  }
+  return `rgb(${colorChannels.join(',')})`;
+};

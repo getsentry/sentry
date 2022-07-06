@@ -43,6 +43,7 @@ export interface FlamegraphTheme {
     LABEL_FONT_COLOR: string;
     MINIMAP_POSITION_OVERLAY_BORDER_COLOR: string;
     MINIMAP_POSITION_OVERLAY_COLOR: string;
+    RED: ColorChannels;
     REQUEST_2XX_RESPONSE: string;
     REQUEST_4XX_RESPONSE: string;
 
@@ -79,6 +80,7 @@ export interface FlamegraphTheme {
     FRAME_BORDER_WIDTH: number;
     GRID_LINE_WIDTH: number;
     HOVERED_FRAME_BORDER_WIDTH: number;
+    INTERNAL_SAMPLE_TICK_LINE_WIDTH: number;
     LABEL_FONT_PADDING: number;
     LABEL_FONT_SIZE: number;
     MINIMAP_HEIGHT: number;
@@ -137,6 +139,7 @@ export const LightFlamegraphTheme: FlamegraphTheme = {
     LABEL_FONT_PADDING: 6,
     FRAME_BORDER_WIDTH: 2,
     HOVERED_FRAME_BORDER_WIDTH: 1,
+    INTERNAL_SAMPLE_TICK_LINE_WIDTH: 1,
     TOOLTIP_FONT_SIZE: 12,
     GRID_LINE_WIDTH: 2,
   },
@@ -154,6 +157,7 @@ export const LightFlamegraphTheme: FlamegraphTheme = {
     SPAN_FRAME_BACKGROUND: 'rgba(231, 231, 231, 0.5)',
     MINIMAP_POSITION_OVERLAY_COLOR: 'rgba(0,0,0,0.1)',
     MINIMAP_POSITION_OVERLAY_BORDER_COLOR: 'rgba(0,0,0, 0.2)',
+    RED: [255, 0, 0],
     REQUEST_WAIT_TIME: `rgba(253,252,224, 1)`,
     REQUEST_DNS_TIME: `rgba(57, 146, 152, 1)`,
     REQUEST_TCP_TIME: `rgba(242, 146,57,1)`,
@@ -195,6 +199,7 @@ export const DarkFlamegraphTheme: FlamegraphTheme = {
     LABEL_FONT_SIZE: 10,
     LABEL_FONT_PADDING: 6,
     FRAME_BORDER_WIDTH: 2,
+    INTERNAL_SAMPLE_TICK_LINE_WIDTH: 1,
     HOVERED_FRAME_BORDER_WIDTH: 1,
     TOOLTIP_FONT_SIZE: 12,
     GRID_LINE_WIDTH: 2,
@@ -211,6 +216,7 @@ export const DarkFlamegraphTheme: FlamegraphTheme = {
     CURSOR_CROSSHAIR: '#828285',
     SPAN_FRAME_BORDER: '#57575b',
     SPAN_FRAME_BACKGROUND: 'rgba(232, 232, 232, 0.2)',
+    RED: [255, 0, 0],
     REQUEST_WAIT_TIME: `rgba(253,252,224, 1)`,
     REQUEST_DNS_TIME: `rgba(57, 146, 152, 1)`,
     REQUEST_TCP_TIME: `rgba(242, 146,57,1)`,

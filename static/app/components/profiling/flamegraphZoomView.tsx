@@ -18,8 +18,10 @@ import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {FlamegraphView} from 'sentry/utils/profiling/flamegraphView';
 import {formatColorForFrame, Rect} from 'sentry/utils/profiling/gl/utils';
 import {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
+import {useInternalFlamegraphDebugMode} from 'sentry/utils/profiling/hooks/useInternalFlamegraphDebugMode';
 import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
 import {GridRenderer} from 'sentry/utils/profiling/renderers/gridRenderer';
+import {InternalSampleTickRenderer} from 'sentry/utils/profiling/renderers/internalSampleTickRenderer';
 import {SelectedFrameRenderer} from 'sentry/utils/profiling/renderers/selectedFrameRenderer';
 import {TextRenderer} from 'sentry/utils/profiling/renderers/textRenderer';
 import usePrevious from 'sentry/utils/usePrevious';
@@ -58,6 +60,7 @@ function FlamegraphZoomView({
 }: FlamegraphZoomViewProps): React.ReactElement {
   const flamegraphTheme = useFlamegraphTheme();
   const [flamegraphSearch] = useFlamegraphSearch();
+  const isInternalFlamegraphDebugModeEnabled = useInternalFlamegraphDebugMode();
 
   const [lastInteraction, setLastInteraction] = useState<
     'pan' | 'click' | 'zoom' | 'scroll' | null
@@ -98,6 +101,28 @@ function FlamegraphZoomView({
       flamegraph.formatter
     );
   }, [flamegraphOverlayCanvasRef, flamegraph, flamegraphTheme]);
+
+  const internalSampleTickRenderer: InternalSampleTickRenderer | null = useMemo(() => {
+    if (!isInternalFlamegraphDebugModeEnabled) {
+      return null;
+    }
+
+    if (!flamegraphOverlayCanvasRef || !flamegraphView?.configSpace) {
+      return null;
+    }
+    return new InternalSampleTickRenderer(
+      flamegraphOverlayCanvasRef,
+      flamegraph,
+      flamegraphView.configSpace,
+      flamegraphTheme
+    );
+  }, [
+    isInternalFlamegraphDebugModeEnabled,
+    flamegraphOverlayCanvasRef,
+    flamegraph,
+    flamegraphView?.configSpace,
+    flamegraphTheme,
+  ]);
 
   const selectedFrameRenderer = useMemo(() => {
     if (!flamegraphOverlayCanvasRef) {
@@ -293,10 +318,20 @@ function FlamegraphZoomView({
       );
     };
 
+    const drawInternalSampleTicks = () => {
+      if (!internalSampleTickRenderer) {
+        return;
+      }
+      internalSampleTickRenderer.draw(
+        flamegraphView.fromConfigView(flamegraphCanvas.physicalSpace)
+      );
+    };
+
     scheduler.registerBeforeFrameCallback(clearOverlayCanvas);
     scheduler.registerBeforeFrameCallback(drawSelectedFrameBorder);
     scheduler.registerAfterFrameCallback(drawText);
     scheduler.registerAfterFrameCallback(drawGrid);
+    scheduler.registerAfterFrameCallback(drawInternalSampleTicks);
 
     scheduler.draw();
 
@@ -305,6 +340,7 @@ function FlamegraphZoomView({
       scheduler.unregisterBeforeFrameCallback(drawSelectedFrameBorder);
       scheduler.unregisterAfterFrameCallback(drawText);
       scheduler.unregisterAfterFrameCallback(drawGrid);
+      scheduler.unregisterAfterFrameCallback(drawInternalSampleTicks);
     };
   }, [
     flamegraphCanvas,
@@ -314,6 +350,7 @@ function FlamegraphZoomView({
     flamegraphTheme,
     textRenderer,
     gridRenderer,
+    internalSampleTickRenderer,
     flamegraphState.profiles.selectedNode,
     hoveredNode,
     selectedFrameRenderer,
