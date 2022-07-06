@@ -10,6 +10,7 @@ def backfill_alert_owners(apps, schema_editor):
     AlertRule = apps.get_model("sentry", "AlertRule")
     OrganizationMember = apps.get_model("sentry", "OrganizationMember")
     User = apps.get_model("sentry", "User")
+    Team = apps.get_model("sentry", "Team")
 
     for alert_rule in RangeQuerySetWrapperWithProgressBar(AlertRule.objects_with_snapshots.all()):
         owner = alert_rule.owner
@@ -23,8 +24,12 @@ def backfill_alert_owners(apps, schema_editor):
                 organization_id=alert_rule.organization_id, id=user.id
             ).exists():
                 valid_owner = True
+        else:  # Actor is a Team
+            if Team.objects.filter(
+                actor_id=owner.id, organization_id=alert_rule.organization_id
+            ).exists():
+                valid_owner = True
 
-        # Alerts assigned to a team should always have the owner removed.
         if not valid_owner:
             alert_rule.owner = None
             alert_rule.save()
