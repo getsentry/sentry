@@ -12,7 +12,9 @@ def backfill_alert_owners(apps, schema_editor):
     User = apps.get_model("sentry", "User")
     Team = apps.get_model("sentry", "Team")
 
-    for alert_rule in RangeQuerySetWrapperWithProgressBar(AlertRule.objects_with_snapshots.all()):
+    for alert_rule in RangeQuerySetWrapperWithProgressBar(
+        AlertRule.objects_with_snapshots.select_related("owner").all()
+    ):
         owner = alert_rule.owner
         if not owner:
             continue
@@ -21,7 +23,7 @@ def backfill_alert_owners(apps, schema_editor):
         if owner.type == 1:  # Actor is a User
             user = User.objects.get(actor_id=owner.id)
             if OrganizationMember.objects.filter(
-                organization_id=alert_rule.organization_id, id=user.id
+                organization_id=alert_rule.organization_id, user_id=user.id
             ).exists():
                 valid_owner = True
         else:  # Actor is a Team

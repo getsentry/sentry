@@ -7,27 +7,54 @@ class TestBackfill(TestMigrations):
 
     def setup_before_migration(self, apps):
         new_user = self.create_user("b@example.com")
-        organization = self.create_organization(name="New Org", owner=new_user)
-        self.alert_rule_user = self.create_alert_rule(
-            name="test_alert_user",
-            organization=organization,
+        self.alert_rule_invalid_user = self.create_alert_rule(
+            name="test_alert_invalid_user",
+            organization=self.organization,
+            projects=[self.project],
+            owner=new_user.actor.get_actor_tuple(),
+        )
+
+        self.alert_rule_valid_user = self.create_alert_rule(
+            name="test_alert_valid_user",
+            organization=self.project.organization,
             projects=[self.project],
             owner=self.user.actor.get_actor_tuple(),
         )
 
-        new_team = self.create_team(
-            organization=self.project.organization, name="New Team", members=[self.user]
-        )
-        self.alert_rule_team = self.create_alert_rule(
-            name="test_alert_team",
+        organization = self.create_organization(name="New Org", owner=new_user)
+        new_team = self.create_team(organization=organization, name="New Team", members=[self.user])
+        self.alert_rule_invalid_team = self.create_alert_rule(
+            name="test_alert_invalid_team",
             organization=self.organization,
             projects=[self.project],
             owner=new_team.actor.get_actor_tuple(),
+        )
+        self.valid_team = self.team.actor.get_actor_tuple()
+        self.alert_rule_valid_team = self.create_alert_rule(
+            name="test_alert_valid_team",
+            organization=self.organization,
+            projects=[self.project],
+            owner=self.valid_team,
         )
 
     def tearDown(self):
         super().tearDown()
 
     def test(self):
-        assert self.alert_rule_user.refresh_from_db() is None
-        assert self.alert_rule_team.refresh_from_db() is None
+        self.alert_rule_invalid_user.refresh_from_db()
+        assert self.alert_rule_invalid_user.owner is None
+
+        self.alert_rule_valid_user.refresh_from_db()
+        assert (
+            self.alert_rule_valid_user.owner.get_actor_identifier()
+            == self.user.actor.get_actor_tuple().get_actor_identifier()
+        )
+
+        self.alert_rule_invalid_team.refresh_from_db()
+        assert self.alert_rule_invalid_team.owner is None
+
+        self.alert_rule_valid_team.refresh_from_db()
+        assert (
+            self.alert_rule_valid_team.owner.get_actor_identifier()
+            == self.valid_team.get_actor_identifier()
+        )
