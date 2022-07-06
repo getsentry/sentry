@@ -1,5 +1,6 @@
 import os
 
+import dataclasses
 import functools
 import pytest
 
@@ -108,8 +109,12 @@ def _rewrite_query(query):
             lhs.subscriptable == 'tags' and
             term.function == 'equals'
         ):
+            if not isinstance(term.parameters[1], str):
+                import pdb
+                pdb.set_trace()
             assert isinstance(rhs := term.parameters[1], str), f'found resolved integers in tags-related clause {term}'
             resolved_string = indexer.resolve(org_id, rhs)
+            term.__dict__['parameters'] = list(term.parameters)
             term.parameters[1] = resolved_string
             return
 
@@ -121,11 +126,20 @@ def _rewrite_query(query):
             term.function in ('notIn', 'in') and
             isinstance(rhs := term.parameters[1], list)
         ):
+            if not all(isinstance(x, str) for x in rhs):
+                import pdb
+                pdb.set_trace()
+
             assert all(isinstance(x, str) for x in rhs), f'found resolved integers in tags-related clause {term}'
+            term.__dict__['parameters'] = list(term.parameters)
             for i, x in enumerate(rhs):
                 resolved_string = indexer.resolve(org_id, x)
                 term.parameters[1][i] = resolved_string
 
+            return
+
+        if isinstance(term, Function) and term.function in ('in', 'notIn', 'equals'):
+            assert not isinstance(term.parameters[0], Column) or term.parameters[0] != 'tags'
             return
 
         if isinstance(term, Column):

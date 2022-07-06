@@ -1,5 +1,6 @@
-from typing import Optional, Sequence
+from typing import Optional, Sequence, Union
 
+from sentry import options
 from sentry.api.utils import InvalidParams
 from sentry.sentry_metrics import indexer
 
@@ -12,6 +13,16 @@ TAG_NOT_SET = 0
 
 class MetricIndexNotFound(InvalidParams):  # type: ignore
     pass
+
+
+def reverse_tag_value(index: Union[int, str]) -> str:
+    # XXX(markus): Normally there would be a check for the option
+    # "sentry-metrics.performance.tags-values-are-strings", but this function
+    # is sometimes called with metric IDs for reasons I haven't figured out.
+    if isinstance(index, str):
+        return index
+    else:
+        return reverse_resolve(index)
 
 
 def reverse_resolve(index: int) -> str:
@@ -49,6 +60,13 @@ def resolve(org_id: int, string: str) -> int:
 def resolve_tag_key(org_id: int, string: str) -> str:
     resolved = resolve(org_id, string)
     return f"tags[{resolved}]"
+
+
+def resolve_tag_value(org_id: int, string: str) -> Union[str, int]:
+    assert isinstance(string, str)
+    if options.get("sentry-metrics.performance.tags-values-are-strings"):
+        return string
+    return resolve_weak(org_id, string)
 
 
 def resolve_weak(org_id: int, string: str) -> int:
