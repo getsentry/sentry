@@ -44,6 +44,23 @@ const mockedProjects = [
       ],
     },
   }),
+  TestStubs.Project({
+    id: 5,
+    dynamicSampling: {
+      rules: [
+        {
+          sampleRate: 1,
+          type: 'trace',
+          active: true,
+          condition: {
+            op: 'and',
+            inner: [{}],
+          },
+          id: 1,
+        },
+      ],
+    },
+  }),
 ];
 
 jest.mock('sentry/utils/useProjects');
@@ -212,6 +229,47 @@ describe('Server-side Sampling - Recommended Steps Modal', function () {
     userEvent.click(
       within(recommendedSdkUpgradesAlert).getByRole('button', {
         name: 'Learn More',
+      })
+    );
+
+    expect(openModal).toHaveBeenCalled();
+  });
+
+  // TODO(sampling): move this test to the main file
+  it('displays alert if rules are active without updated sdk', async function () {
+    jest.spyOn(modal, 'openModal');
+
+    const {organization, projects, router} = getMockData({
+      projects: mockedProjects,
+    });
+
+    render(
+      <TestComponent organization={organization} project={projects[3]} router={router} />
+    );
+
+    const recommendedSdkUpgradesAlert = await screen.findByTestId(
+      'recommended-sdk-upgrades-alert'
+    );
+
+    expect(
+      within(recommendedSdkUpgradesAlert).getByText(
+        'Server-side sampling rules are in effect without the following SDK’s being updated to their latest version.'
+      )
+    ).toBeInTheDocument();
+
+    expect(
+      within(recommendedSdkUpgradesAlert).getByRole('link', {
+        name: mockedProjects[1].slug,
+      })
+    ).toHaveAttribute(
+      'href',
+      `/organizations/org-slug/projects/sentry/?project=${mockedProjects[1].id}`
+    );
+
+    // Open Modal
+    userEvent.click(
+      within(recommendedSdkUpgradesAlert).getByRole('button', {
+        name: 'Resolve Now',
       })
     );
 
