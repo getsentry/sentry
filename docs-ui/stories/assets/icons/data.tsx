@@ -651,4 +651,9 @@ export const icons: IconData[] = [
     groups: ['logo'],
     keywords: [''],
   },
+  {
+    id: 'option',
+    groups: ['device'],
+    keywords: [''],
+  },
 ];

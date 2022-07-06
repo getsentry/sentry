@@ -909,7 +909,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
           const disabled = loading || !(isActiveSuperuser() || hasAccess);
 
           return (
-            <Layout.Main>
+            <Main>
               <StyledForm
                 key={isSavedAlertRule(rule) ? rule.id : undefined}
                 onCancel={this.handleCancel}
@@ -1198,7 +1198,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                   )}
                 </List>
               </StyledForm>
-            </Layout.Main>
+            </Main>
           );
         }}
       </Access>
@@ -1346,4 +1346,8 @@ const StyledSelectField = styled(SelectField)<{hasAlertWizardV3?: boolean}>`
 
     margin-bottom: ${space(1)};
   `}
+`;
+
+const Main = styled(Layout.Main)`
+  padding: ${space(2)} ${space(4)};
 `;

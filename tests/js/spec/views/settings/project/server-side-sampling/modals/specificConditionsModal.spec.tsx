@@ -1,85 +1,28 @@
-import {InjectedRouter} from 'react-router';
-
 import {
   render,
   screen,
   userEvent,
   waitForElementToBeRemoved,
-  within,
 } from 'sentry-test/reactTestingLibrary';
-import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import * as indicators from 'sentry/actionCreators/indicator';
+import {openModal} from 'sentry/actionCreators/modal';
 import GlobalModal from 'sentry/components/globalModal';
-import {Organization, Project} from 'sentry/types';
-import {SamplingInnerName} from 'sentry/types/sampling';
-import {OrganizationContext} from 'sentry/views/organizationContext';
-import {RouteContext} from 'sentry/views/routeContext';
-import ServerSideSampling from 'sentry/views/settings/project/server-side-sampling';
+import {
+  SamplingConditionOperator,
+  SamplingInnerName,
+  SamplingInnerOperator,
+  SamplingRule,
+  SamplingRuleType,
+} from 'sentry/types/sampling';
+import {SpecificConditionsModal} from 'sentry/views/settings/project/server-side-sampling/modals/specificConditionsModal';
 import {distributedTracesConditions} from 'sentry/views/settings/project/server-side-sampling/modals/specificConditionsModal/utils';
 import {getInnerNameLabel} from 'sentry/views/settings/project/server-side-sampling/utils';
-import importedUseProjectStats from 'sentry/views/settings/project/server-side-sampling/utils/useProjectStats';
 
-import {getMockData} from './index.spec';
-
-jest.mock('sentry/views/settings/project/server-side-sampling/utils/useProjectStats');
-const useProjectStats = importedUseProjectStats as jest.MockedFunction<
-  typeof importedUseProjectStats
->;
-useProjectStats.mockImplementation(() => ({
-  projectStats: TestStubs.Outcomes(),
-  loading: false,
-  error: undefined,
-  projectStatsSeries: [],
-}));
-
-function TestComponent({
-  router,
-  project,
-  organization,
-}: {
-  organization: Organization;
-  project: Project;
-  router: InjectedRouter;
-}) {
-  return (
-    <RouteContext.Provider
-      value={{
-        router,
-        location: router.location,
-        params: {
-          orgId: organization.slug,
-          projectId: project.slug,
-        },
-        routes: [],
-      }}
-    >
-      <GlobalModal />
-      <OrganizationContext.Provider value={organization}>
-        <ServerSideSampling project={project} />
-      </OrganizationContext.Provider>
-    </RouteContext.Provider>
-  );
-}
+import {getMockData, uniformRule} from '../utils';
 
 describe('Server-side Sampling - Specific Conditions Modal', function () {
-  const uniformRule = {
-    sampleRate: 1,
-    type: 'trace',
-    active: false,
-    condition: {
-      op: 'and',
-      inner: [],
-    },
-    id: 1,
-  };
-
   beforeEach(function () {
-    MockApiClient.addMockResponse({
-      url: '/projects/org-slug/project-slug/tags/',
-      body: TestStubs.Tags,
-    });
-
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/release/values/',
       method: 'GET',
@@ -92,12 +35,14 @@ describe('Server-side Sampling - Specific Conditions Modal', function () {
   });
 
   it('add new rule', async function () {
-    const {organization, project, router} = getMockData({
-      project: TestStubs.Project({
-        dynamicSampling: {
-          rules: [uniformRule],
-        },
-      }),
+    const {organization, project} = getMockData({
+      projects: [
+        TestStubs.Project({
+          dynamicSampling: {
+            rules: [uniformRule],
+          },
+        }),
+      ],
     });
 
     const newRule = {
@@ -123,14 +68,16 @@ describe('Server-side Sampling - Specific Conditions Modal', function () {
 
     jest.spyOn(indicators, 'addSuccessMessage');
 
-    render(
-      <TestComponent organization={organization} project={project} router={router} />
-    );
+    render(<GlobalModal />);
 
-    // Rules Panel Content
-    userEvent.click(screen.getByLabelText('Add Rule'));
-
-    const dialog = await screen.findByRole('dialog');
+    openModal(modalProps => (
+      <SpecificConditionsModal
+        {...modalProps}
+        organization={organization}
+        project={project}
+        rules={[uniformRule]}
+      />
+    ));
 
     // Dialog Header
     expect(screen.getByRole('heading', {name: 'Add Rule'})).toBeInTheDocument();
@@ -168,13 +115,11 @@ describe('Server-side Sampling - Specific Conditions Modal', function () {
 
     // Distributed Traces Options
     distributedTracesConditions.forEach(condition => {
-      expect(within(dialog).getByText(getInnerNameLabel(condition))).toBeInTheDocument();
+      expect(screen.getByText(getInnerNameLabel(condition))).toBeInTheDocument();
     });
 
     // Click on the condition option
-    userEvent.click(
-      within(dialog).getByText(getInnerNameLabel(SamplingInnerName.TRACE_RELEASE))
-    );
+    userEvent.click(screen.getByText(getInnerNameLabel(SamplingInnerName.TRACE_RELEASE)));
 
     // Release field is empty
     expect(screen.queryByTestId('multivalue')).not.toBeInTheDocument();
@@ -201,9 +146,7 @@ describe('Server-side Sampling - Specific Conditions Modal', function () {
     userEvent.click(screen.getByLabelText('Save Rule'));
 
     // Dialog should close
-    await waitForElementToBeRemoved(() => screen.queryByText('Save Rule'), {
-      timeout: 2500,
-    });
+    await waitForElementToBeRemoved(() => screen.queryByText('Save Rule'));
 
     expect(saveMock).toHaveBeenCalledTimes(1);
 
@@ -224,41 +167,46 @@ describe('Server-side Sampling - Specific Conditions Modal', function () {
   });
 
   it('edits the rule', async function () {
-    const {organization, project, router} = getMockData({
-      project: TestStubs.Project({
-        dynamicSampling: {
-          rules: [
-            uniformRule,
-            {
-              sampleRate: 0.2,
-              active: false,
-              type: 'trace',
-              condition: {
-                op: 'and',
-                inner: [
-                  {
-                    op: 'glob',
-                    name: 'trace.release',
-                    value: ['1.2.2'],
-                  },
-                ],
-              },
-              id: 2,
-            },
-          ],
-        },
-      }),
+    const specificRule: SamplingRule = {
+      sampleRate: 0.2,
+      active: false,
+      type: SamplingRuleType.TRACE,
+      condition: {
+        op: SamplingConditionOperator.AND,
+        inner: [
+          {
+            op: SamplingInnerOperator.GLOB_MATCH,
+            name: 'trace.release',
+            value: ['1.2.2'],
+          },
+        ],
+      },
+      id: 2,
+    };
+
+    const {organization, project} = getMockData({
+      projects: [
+        TestStubs.Project({
+          dynamicSampling: {
+            rules: [uniformRule, specificRule],
+          },
+        }),
+      ],
     });
 
     const newRule = {
-      condition: {
-        inner: [{name: 'trace.release', op: 'glob', value: ['1.2.3']}],
-        op: 'and',
-      },
+      ...specificRule,
       id: 0,
       sampleRate: 0.6,
-      type: 'trace',
-      active: false,
+      condition: {
+        ...specificRule.condition,
+        inner: [
+          {
+            ...specificRule.condition.inner[0],
+            value: ['1.2.3'],
+          },
+        ],
+      },
     };
 
     const saveMock = MockApiClient.addMockResponse({
@@ -273,21 +221,19 @@ describe('Server-side Sampling - Specific Conditions Modal', function () {
 
     jest.spyOn(indicators, 'addSuccessMessage');
 
-    render(
-      <TestComponent organization={organization} project={project} router={router} />
-    );
+    render(<GlobalModal />);
 
-    expect(screen.getByText('1.2.2')).toBeInTheDocument();
-    expect(screen.getByText('20%')).toBeInTheDocument();
+    openModal(modalProps => (
+      <SpecificConditionsModal
+        {...modalProps}
+        organization={organization}
+        project={project}
+        rule={specificRule}
+        rules={[uniformRule, specificRule]}
+      />
+    ));
 
-    const samplingRule = screen.getAllByTestId('sampling-rule')[1];
-
-    // Rules Panel Content
-    userEvent.click(within(samplingRule).getByLabelText('Actions'));
-
-    userEvent.click(within(samplingRule).getByText('Edit'));
-
-    await screen.findByRole('dialog');
+    expect(screen.getByRole('heading', {name: 'Edit Rule'})).toBeInTheDocument();
 
     // Empty conditions message is not displayed
     expect(screen.queryByText('No conditions added')).not.toBeInTheDocument();
@@ -295,19 +241,17 @@ describe('Server-side Sampling - Specific Conditions Modal', function () {
     // Type into realease field
     userEvent.clear(screen.getByLabelText('Search or add a release'));
     userEvent.paste(screen.getByLabelText('Search or add a release'), '1.2.3');
-
-    // Click on the suggested option
-    userEvent.click(await screen.findByText(textWithMarkupMatcher('Add "1.2.3"')));
+    userEvent.keyboard('{enter}');
 
     // Update sample rate field
     userEvent.clear(screen.getByPlaceholderText('\u0025'));
     userEvent.paste(screen.getByPlaceholderText('\u0025'), '60');
 
     // Click on save button
-    userEvent.click(screen.getByLabelText('Save Rule'));
+    userEvent.click(screen.getByRole('button', {name: 'Save Rule'}));
 
     // Modal will close
-    await waitForElementToBeRemoved(() => screen.queryByText('Edit Rule'));
+    await waitForElementToBeRemoved(() => screen.queryByText('Save Rule'));
 
     expect(saveMock).toHaveBeenCalledTimes(1);
 
@@ -325,26 +269,5 @@ describe('Server-side Sampling - Specific Conditions Modal', function () {
     expect(indicators.addSuccessMessage).toHaveBeenCalledWith(
       'Successfully edited sampling rule'
     );
-  });
-
-  it('does not let you add without permissions', async function () {
-    const {organization, project, router} = getMockData({
-      project: TestStubs.Project({
-        dynamicSampling: {
-          rules: [uniformRule],
-        },
-      }),
-      access: [],
-    });
-
-    render(
-      <TestComponent organization={organization} project={project} router={router} />
-    );
-
-    expect(screen.getByRole('button', {name: 'Add Rule'})).toBeDisabled();
-    userEvent.hover(screen.getByText('Add Rule'));
-    expect(
-      await screen.findByText("You don't have permission to add a rule")
-    ).toBeInTheDocument();
   });
 });
