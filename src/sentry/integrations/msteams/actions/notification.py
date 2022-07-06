@@ -30,7 +30,9 @@ class MsTeamsNotifyServiceAction(IntegrationEventAction):
         }
 
     def get_integrations(self) -> QuerySet[Integration]:
-        return super().get_integrations().exclude(metadata__installation_type="tenant")
+        return (
+            super().get_integrations().exclude(metadata__contains='{"installation_type": "tenant"}')
+        )
 
     def after(self, event, state):
         channel = self.get_option("channel_id")

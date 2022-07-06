@@ -26,6 +26,7 @@ class MsTeamsIntegrationTest(IntegrationTestCase):
             "external_name": "my_team",
             "user_id": user_id,
             "conversation_id": team_id,
+            "installation_type": "team",
         }
 
     def assert_setup_flow(self):
