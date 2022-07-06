@@ -107,6 +107,15 @@ def _rewrite_query(query):
                     assert all(isinstance(x, str) for x in rhs)
                     return dataclasses.replace(term, rhs=[indexer.resolve(org_id, x) for x in rhs])
 
+                if isinstance(rhs, Function) and rhs.function == 'tuple':
+                    assert all(isinstance(x, str) for x in rhs.parameters or ())
+                    return dataclasses.replace(
+                        term, rhs=dataclasses.replace(
+                            rhs, 
+                            parameters=[indexer.resolve(org_id, x) for x in rhs.parameters or ()]
+                        )
+                    )
+
                 raise AssertionError(f"dont know how to deal with condition {term}")
             else:
                 return term
