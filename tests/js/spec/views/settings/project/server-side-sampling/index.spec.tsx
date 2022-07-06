@@ -1,7 +1,6 @@
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import * as modal from 'sentry/actionCreators/modal';
-import {openModal} from 'sentry/actionCreators/modal';
 import {SERVER_SIDE_SAMPLING_DOC_LINK} from 'sentry/views/settings/project/server-side-sampling/utils';
 
 import {getMockData, mockedProjects, TestComponent, uniformRule} from './utils';
@@ -157,7 +156,12 @@ describe('Server-side Sampling', function () {
     });
 
     render(
-      <TestComponent organization={organization} project={projects[2]} router={router} />
+      <TestComponent
+        organization={organization}
+        project={projects[2]}
+        router={router}
+        withModal
+      />
     );
 
     const recommendedSdkUpgradesAlert = await screen.findByTestId(
@@ -186,12 +190,12 @@ describe('Server-side Sampling', function () {
       })
     );
 
-    expect(openModal).toHaveBeenCalled();
+    expect(
+      await screen.findByRole('heading', {name: 'Recommended next steps\u2026'})
+    ).toBeInTheDocument();
   });
 
-  it('Open activate modal', function () {
-    jest.spyOn(modal, 'openModal');
-
+  it('Open activate modal', async function () {
     const {router, project, organization} = getMockData({
       projects: [
         TestStubs.Project({
@@ -214,16 +218,23 @@ describe('Server-side Sampling', function () {
     });
 
     render(
-      <TestComponent organization={organization} project={project} router={router} />
+      <TestComponent
+        organization={organization}
+        project={project}
+        router={router}
+        withModal
+      />
     );
 
     // Open Modal
     userEvent.click(screen.getByLabelText('Activate Rule'));
 
-    expect(openModal).toHaveBeenCalled();
+    expect(
+      await screen.findByRole('heading', {name: 'Activate Rule'})
+    ).toBeInTheDocument();
   });
 
-  it('Open specific conditions modal', function () {
+  it('Open specific conditions modal', async function () {
     jest.spyOn(modal, 'openModal');
 
     const {router, project, organization} = getMockData({
@@ -248,13 +259,18 @@ describe('Server-side Sampling', function () {
     });
 
     render(
-      <TestComponent organization={organization} project={project} router={router} />
+      <TestComponent
+        organization={organization}
+        project={project}
+        router={router}
+        withModal
+      />
     );
 
     // Open Modal
     userEvent.click(screen.getByLabelText('Add Rule'));
 
-    expect(openModal).toHaveBeenCalled();
+    expect(await screen.findByRole('heading', {name: 'Add Rule'})).toBeInTheDocument();
   });
 
   it('does not let user add without permissions', async function () {

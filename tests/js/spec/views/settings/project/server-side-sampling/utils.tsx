@@ -2,6 +2,7 @@ import {InjectedRouter} from 'react-router';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
+import GlobalModal from 'sentry/components/globalModal';
 import {Organization, Project} from 'sentry/types';
 import {
   SamplingConditionOperator,
@@ -163,10 +164,12 @@ export function TestComponent({
   router,
   project,
   organization,
+  withModal,
 }: {
   organization: Organization;
   project: Project;
   router: InjectedRouter;
+  withModal?: boolean;
 }) {
   return (
     <RouteContext.Provider
@@ -180,6 +183,7 @@ export function TestComponent({
         routes: [],
       }}
     >
+      {withModal && <GlobalModal />}
       <OrganizationContext.Provider value={organization}>
         <ServerSideSampling project={project} />
       </OrganizationContext.Provider>
