@@ -24,7 +24,7 @@ export function getInnerNameLabel(name: SamplingInnerName | string) {
 
 export const quantityField = 'sum(quantity)';
 
-export function isBaseRule(rule?: SamplingRule) {
+export function isUniformRule(rule?: SamplingRule) {
   if (!rule) {
     return false;
   }

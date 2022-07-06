@@ -30,7 +30,7 @@ import useApi from 'sentry/utils/useApi';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
-import {isBaseRule} from '../../utils';
+import {isUniformRule} from '../../utils';
 
 import {Condition, Conditions} from './conditions';
 import {
@@ -308,7 +308,7 @@ export function SpecificConditionsModal({
                 }
                 placeholder={t('Filter conditions')}
                 isOptionDisabled={opt => opt.disabled}
-                isDisabled={isBaseRule(rule)}
+                isDisabled={isUniformRule(rule)}
                 options={predefinedConditionsOptions}
                 value={conditions.map(({category}) => category)}
                 onChange={handleAddCondition}

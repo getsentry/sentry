@@ -18,7 +18,7 @@ import {defined} from 'sentry/utils';
 import {formatPercentage} from 'sentry/utils/formatters';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
-import {isBaseRule, SERVER_SIDE_SAMPLING_DOC_LINK} from '../utils';
+import {isUniformRule, SERVER_SIDE_SAMPLING_DOC_LINK} from '../utils';
 import {projectStatsToPredictedSeries} from '../utils/projectStatsToPredictedSeries';
 import {projectStatsToSampleRates} from '../utils/projectStatsToSampleRates';
 import {projectStatsToSeries} from '../utils/projectStatsToSeries';
@@ -60,14 +60,16 @@ function UniformRateModal({
   // TODO(sampling): fetch from API
   const affectedProjects = ['ProjectA', 'ProjectB', 'ProjectC'];
 
-  const baseSampleRate = rules.find(isBaseRule)?.sampleRate;
+  const uniformSampleRate = rules.find(isUniformRule)?.sampleRate;
 
   const {trueSampleRate, maxSafeSampleRate} = projectStatsToSampleRates(projectStats);
 
   const currentClientSampling =
     defined(trueSampleRate) && !isNaN(trueSampleRate) ? trueSampleRate * 100 : undefined;
   const currentServerSampling =
-    defined(baseSampleRate) && !isNaN(baseSampleRate) ? baseSampleRate * 100 : undefined;
+    defined(uniformSampleRate) && !isNaN(uniformSampleRate)
+      ? uniformSampleRate * 100
+      : undefined;
   const recommendedClientSampling =
     defined(maxSafeSampleRate) && !isNaN(maxSafeSampleRate)
       ? maxSafeSampleRate * 100

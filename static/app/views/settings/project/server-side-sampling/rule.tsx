@@ -14,7 +14,7 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {SamplingRule, SamplingRuleOperator} from 'sentry/types/sampling';
 
-import {getInnerNameLabel, isBaseRule} from './utils';
+import {getInnerNameLabel, isUniformRule} from './utils';
 
 type Props = {
   dragging: boolean;
@@ -46,8 +46,8 @@ export function Rule({
   grabAttributes,
   hideGrabButton,
 }: Props) {
-  const isBase = isBaseRule(rule);
-  const canDelete = !noPermission && !isBase;
+  const isUniform = isUniformRule(rule);
+  const canDelete = !noPermission && !isUniform;
 
   return (
     <Fragment>
@@ -160,8 +160,8 @@ export function Rule({
             <Tooltip
               disabled={canDelete}
               title={
-                isBase
-                  ? t("You can't delete the base rule.")
+                isUniform
+                  ? t("You can't delete the uniform rule.")
                   : t('You do not have permission to delete sampling rules.')
               }
               containerDisplayMode="block"
