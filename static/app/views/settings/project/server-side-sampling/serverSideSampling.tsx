@@ -121,6 +121,9 @@ export function ServerSideSampling({project}: Props) {
     })
     .filter(defined);
 
+  // TODO(sampling): test this after the backend work is finished
+  const atLeastOneRuleActive = rules.some(rule => rule.active);
+
   useEffect(() => {
     if (!isEqual(previousRules, currentRules)) {
       setRules(currentRules ?? []);
@@ -263,17 +266,21 @@ export function ServerSideSampling({project}: Props) {
         {!!recommendedSdkUpgrades.length && !!rules.length && (
           <Alert
             data-test-id="recommended-sdk-upgrades-alert"
-            type="info"
+            type={atLeastOneRuleActive ? 'error' : 'info'}
             showIcon
             trailingItems={
               <Button onClick={handleOpenRecommendedSteps} priority="link" borderless>
-                {t('Learn More')}
+                {atLeastOneRuleActive ? t('Resolve Now') : t('Learn More')}
               </Button>
             }
           >
-            {t(
-              'To keep a consistent amount of transactions across your applications multiple services, we recommend you update the SDK versions for the following projects:'
-            )}
+            {atLeastOneRuleActive
+              ? t(
+                  'Server-side sampling rules are in effect without the following SDK’s being updated to their latest version.'
+                )
+              : t(
+                  'To keep a consistent amount of transactions across your applications multiple services, we recommend you update the SDK versions for the following projects:'
+                )}
             <Projects>
               {recommendedSdkUpgrades.map(recommendedSdkUpgrade => (
                 <ProjectBadge
