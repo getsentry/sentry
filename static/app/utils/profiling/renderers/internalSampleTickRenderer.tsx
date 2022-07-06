@@ -1,6 +1,5 @@
 import {mat3} from 'gl-matrix';
 
-import {colorChannelsToFillStyle} from '../colors/utils';
 import {Flamegraph} from '../flamegraph';
 import {FlamegraphTheme} from '../flamegraph/flamegraphTheme';
 import {getContext, Rect} from '../gl/utils';
@@ -47,7 +46,8 @@ class InternalSampleTickRenderer {
       this.theme.SIZES.LABEL_FONT_SIZE * window.devicePixelRatio +
       this.theme.SIZES.LABEL_FONT_PADDING * window.devicePixelRatio * 2 -
       this.theme.SIZES.LABEL_FONT_PADDING;
-    context.strokeStyle = colorChannelsToFillStyle(this.theme.COLORS.RED);
+
+    context.strokeStyle = `rgba(${this.theme.COLORS.SAMPLE_TICK_COLOR.join(',')})`;
     context.lineWidth = this.theme.SIZES.INTERNAL_SAMPLE_TICK_LINE_WIDTH;
 
     for (let i = 0; i < this.intervals.length; i++) {

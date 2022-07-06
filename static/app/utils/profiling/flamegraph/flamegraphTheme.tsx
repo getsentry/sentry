@@ -43,7 +43,6 @@ export interface FlamegraphTheme {
     LABEL_FONT_COLOR: string;
     MINIMAP_POSITION_OVERLAY_BORDER_COLOR: string;
     MINIMAP_POSITION_OVERLAY_COLOR: string;
-    RED: ColorChannels;
     REQUEST_2XX_RESPONSE: string;
     REQUEST_4XX_RESPONSE: string;
 
@@ -52,6 +51,7 @@ export interface FlamegraphTheme {
     REQUEST_TCP_TIME: string;
     // Nice color picker for GLSL colors - https://keiwando.com/color-picker/
     REQUEST_WAIT_TIME: string;
+    SAMPLE_TICK_COLOR: ColorChannels;
     SEARCH_RESULT_FRAME_COLOR: string;
     SELECTED_FRAME_BORDER_COLOR: string;
     SPAN_FRAME_BACKGROUND: string;
@@ -157,7 +157,7 @@ export const LightFlamegraphTheme: FlamegraphTheme = {
     SPAN_FRAME_BACKGROUND: 'rgba(231, 231, 231, 0.5)',
     MINIMAP_POSITION_OVERLAY_COLOR: 'rgba(0,0,0,0.1)',
     MINIMAP_POSITION_OVERLAY_BORDER_COLOR: 'rgba(0,0,0, 0.2)',
-    RED: [255, 0, 0],
+    SAMPLE_TICK_COLOR: [255, 0, 0, 0.5],
     REQUEST_WAIT_TIME: `rgba(253,252,224, 1)`,
     REQUEST_DNS_TIME: `rgba(57, 146, 152, 1)`,
     REQUEST_TCP_TIME: `rgba(242, 146,57,1)`,
@@ -216,7 +216,7 @@ export const DarkFlamegraphTheme: FlamegraphTheme = {
     CURSOR_CROSSHAIR: '#828285',
     SPAN_FRAME_BORDER: '#57575b',
     SPAN_FRAME_BACKGROUND: 'rgba(232, 232, 232, 0.2)',
-    RED: [255, 0, 0],
+    SAMPLE_TICK_COLOR: [255, 0, 0, 0.5],
     REQUEST_WAIT_TIME: `rgba(253,252,224, 1)`,
     REQUEST_DNS_TIME: `rgba(57, 146, 152, 1)`,
     REQUEST_TCP_TIME: `rgba(242, 146,57,1)`,
