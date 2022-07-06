@@ -1,7 +1,6 @@
 import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -12,7 +11,7 @@ import Radio from 'sentry/components/radio';
 import {IconRefresh} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization, Project, SeriesApi} from 'sentry/types';
+import {Project, SeriesApi} from 'sentry/types';
 import {SamplingRules} from 'sentry/types/sampling';
 import {defined} from 'sentry/utils';
 import {formatPercentage} from 'sentry/utils/formatters';
@@ -24,6 +23,7 @@ import {projectStatsToSampleRates} from '../utils/projectStatsToSampleRates';
 import {projectStatsToSeries} from '../utils/projectStatsToSeries';
 import useProjectStats from '../utils/useProjectStats';
 
+import {RecommendedStepsModal, RecommendedStepsModalProps} from './recommendedStepsModal';
 import {UniformRateChart} from './uniformRateChart';
 
 enum Strategy {
@@ -31,22 +31,28 @@ enum Strategy {
   RECOMMENDED = 'recommended',
 }
 
-type Props = ModalRenderProps & {
-  organization: Organization;
+enum Step {
+  SET_UNIFORM_SAMPLE_RATE = 'set_uniform_sample_rate',
+  RECOMMENDED_STEPS = 'recommended_steps',
+}
+
+type Props = RecommendedStepsModalProps & {
   rules: SamplingRules;
   project?: Project;
   projectStats?: SeriesApi;
 };
 
 function UniformRateModal({
-  organization,
-  project,
-  projectStats,
-  rules,
   Header,
   Body,
   Footer,
   closeModal,
+  organization,
+  recommendedSdkUpgrades,
+  projectStats,
+  project,
+  rules,
+  ...props
 }: Props) {
   const {projectStats: projectStats30d, loading: loading30d} = useProjectStats({
     orgSlug: organization.slug,
@@ -59,6 +65,7 @@ function UniformRateModal({
 
   // TODO(sampling): fetch from API
   const affectedProjects = ['ProjectA', 'ProjectB', 'ProjectC'];
+  const [activeStep, setActiveStep] = useState<Step>(Step.SET_UNIFORM_SAMPLE_RATE);
 
   const uniformSampleRate = rules.find(isUniformRule)?.sampleRate;
 
@@ -87,6 +94,22 @@ function UniformRateModal({
 
   const isEdited =
     client !== recommendedClientSampling || server !== recommendedServerSampling;
+
+  if (activeStep === Step.RECOMMENDED_STEPS) {
+    return (
+      <RecommendedStepsModal
+        {...props}
+        Header={Header}
+        Body={Body}
+        Footer={Footer}
+        closeModal={closeModal}
+        organization={organization}
+        recommendedSdkUpgrades={recommendedSdkUpgrades}
+        onGoBack={() => setActiveStep(Step.SET_UNIFORM_SAMPLE_RATE)}
+        onSubmit={() => {}}
+      />
+    );
+  }
 
   return (
     <Fragment>
@@ -231,7 +254,12 @@ function UniformRateModal({
           <ButtonBar gap={1}>
             <Stepper>{t('Step 1 of 2')}</Stepper>
             <Button onClick={closeModal}>{t('Cancel')}</Button>
-            <Button priority="primary">{t('Next')}</Button>
+            <Button
+              priority="primary"
+              onClick={() => setActiveStep(Step.RECOMMENDED_STEPS)}
+            >
+              {t('Next')}
+            </Button>
           </ButtonBar>
         </FooterActions>
       </Footer>
@@ -266,7 +294,7 @@ const StyledNumberField = styled(NumberField)`
   width: 100%;
 `;
 
-const FooterActions = styled('div')`
+export const FooterActions = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -274,7 +302,7 @@ const FooterActions = styled('div')`
   gap: ${space(1)};
 `;
 
-const Stepper = styled('span')`
+export const Stepper = styled('span')`
   font-size: ${p => p.theme.fontSizeMedium};
   color: ${p => p.theme.subText};
 `;

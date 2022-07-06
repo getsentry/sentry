@@ -5,8 +5,10 @@ import isEqual from 'lodash/isEqual';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
+import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {Panel, PanelFooter, PanelHeader} from 'sentry/components/panels';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconAdd} from 'sentry/icons';
@@ -15,10 +17,12 @@ import ProjectStore from 'sentry/stores/projectsStore';
 import space from 'sentry/styles/space';
 import {Project} from 'sentry/types';
 import {SamplingRule, SamplingRuleOperator, SamplingRules} from 'sentry/types/sampling';
+import {defined} from 'sentry/utils';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
+import useProjects from 'sentry/utils/useProjects';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import PermissionAlert from 'sentry/views/settings/organization/permissionAlert';
@@ -26,10 +30,13 @@ import PermissionAlert from 'sentry/views/settings/organization/permissionAlert'
 import {DraggableList, UpdateItemsProps} from '../sampling/rules/draggableList';
 
 import {ActivateModal} from './modals/activateModal';
+import {RecommendedStepsModal} from './modals/recommendedStepsModal';
 import {SpecificConditionsModal} from './modals/specificConditionsModal';
 import {responsiveModal} from './modals/styles';
 import {UniformRateModal} from './modals/uniformRateModal';
 import useProjectStats from './utils/useProjectStats';
+import useSamplingDistribution from './utils/useSamplingDistribution';
+import useSdkVersions from './utils/useSdkVersions';
 import {Promo} from './promo';
 import {
   ActiveColumn,
@@ -54,13 +61,65 @@ export function ServerSideSampling({project}: Props) {
 
   const currentRules = project.dynamicSampling?.rules;
   const previousRules = usePrevious(currentRules);
+
   const [rules, setRules] = useState<SamplingRules>(currentRules ?? []);
+
   const {projectStats} = useProjectStats({
     orgSlug: organization.slug,
     projectId: project?.id,
     interval: '1h',
     statsPeriod: '48h',
   });
+
+  const {samplingDistribution} = useSamplingDistribution({
+    orgSlug: organization.slug,
+    projSlug: project.slug,
+  });
+
+  const {samplingSdkVersions} = useSdkVersions({
+    orgSlug: organization.slug,
+    projSlug: project.slug,
+    projectIds: samplingDistribution?.project_breakdown?.map(
+      projectBreakdown => projectBreakdown.project_id
+    ),
+  });
+
+  const notSendingSampleRateSdkUpgrades =
+    samplingSdkVersions?.filter(
+      samplingSdkVersion => !samplingSdkVersion.isSendingSampleRate
+    ) ?? [];
+
+  const {projects} = useProjects({
+    slugs: notSendingSampleRateSdkUpgrades.map(sdkUpgrade => sdkUpgrade.project),
+    orgId: organization.slug,
+  });
+
+  // Rules without a condition (Else case) always have to be 'pinned' to the bottom of the list
+  // and cannot be sorted
+  const items = rules.map(rule => ({
+    ...rule,
+    id: String(rule.id),
+    bottomPinned: !rule.condition.inner.length,
+  }));
+
+  const recommendedSdkUpgrades = projects
+    .map(upgradeSDKfromProject => {
+      const sdkInfo = notSendingSampleRateSdkUpgrades.find(
+        notSendingSampleRateSdkUpgrade =>
+          notSendingSampleRateSdkUpgrade.project === upgradeSDKfromProject.slug
+      );
+
+      if (!sdkInfo) {
+        return undefined;
+      }
+
+      return {
+        project: upgradeSDKfromProject,
+        latestSDKName: sdkInfo.latestSDKName,
+        latestSDKVersion: sdkInfo.latestSDKVersion,
+      };
+    })
+    .filter(defined);
 
   useEffect(() => {
     if (!isEqual(previousRules, currentRules)) {
@@ -89,12 +148,28 @@ export function ServerSideSampling({project}: Props) {
           project={project}
           projectStats={projectStats}
           rules={rules}
+          recommendedSdkUpgrades={recommendedSdkUpgrades}
         />
       ),
       {
         modalCss: responsiveModal,
       }
     );
+  }
+
+  function handleOpenRecommendedSteps() {
+    if (!recommendedSdkUpgrades.length) {
+      return;
+    }
+
+    openModal(modalProps => (
+      <RecommendedStepsModal
+        {...modalProps}
+        organization={organization}
+        project={project}
+        recommendedSdkUpgrades={recommendedSdkUpgrades}
+      />
+    ));
   }
 
   async function handleSortRules({overIndex, reorderedItems: ruleIds}: UpdateItemsProps) {
@@ -170,14 +245,6 @@ export function ServerSideSampling({project}: Props) {
     }
   }
 
-  // Rules without a condition (Else case) always have to be 'pinned' to the bottom of the list
-  // and cannot be sorted
-  const items = rules.map(rule => ({
-    ...rule,
-    id: String(rule.id),
-    bottomPinned: !rule.condition.inner.length,
-  }));
-
   return (
     <SentryDocumentTitle title={t('Server-side Sampling')}>
       <Fragment>
@@ -193,6 +260,31 @@ export function ServerSideSampling({project}: Props) {
             'These settings can only be edited by users with the organization owner, manager, or admin role.'
           )}
         />
+        {!!recommendedSdkUpgrades.length && !!rules.length && (
+          <Alert
+            data-test-id="recommended-sdk-upgrades-alert"
+            type="info"
+            showIcon
+            trailingItems={
+              <Button onClick={handleOpenRecommendedSteps} priority="link" borderless>
+                {t('Learn More')}
+              </Button>
+            }
+          >
+            {t(
+              'To keep a consistent amount of transactions across your applications multiple services, we recommend you update the SDK versions for the following projects:'
+            )}
+            <Projects>
+              {recommendedSdkUpgrades.map(recommendedSdkUpgrade => (
+                <ProjectBadge
+                  key={recommendedSdkUpgrade.project.id}
+                  project={recommendedSdkUpgrade.project}
+                  avatarSize={16}
+                />
+              ))}
+            </Projects>
+          </Alert>
+        )}
         <RulesPanel>
           <RulesPanelHeader lightText>
             <RulesPanelLayout>
@@ -346,4 +438,12 @@ const AddRuleButton = styled(Button)`
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     width: 100%;
   }
+`;
+
+const Projects = styled('div')`
+  display: flex;
+  flex-wrap: wrap;
+  gap: ${space(1.5)};
+  justify-content: flex-start;
+  margin-top: ${space(1)};
 `;

@@ -19,6 +19,7 @@ import ServerSideSampling from 'sentry/views/settings/project/server-side-sampli
 import {distributedTracesConditions} from 'sentry/views/settings/project/server-side-sampling/modals/specificConditionsModal/utils';
 import {getInnerNameLabel} from 'sentry/views/settings/project/server-side-sampling/utils';
 import importedUseProjectStats from 'sentry/views/settings/project/server-side-sampling/utils/useProjectStats';
+import importedUseSamplingDistribution from 'sentry/views/settings/project/server-side-sampling/utils/useSamplingDistribution';
 
 import {getMockData} from './index.spec';
 
@@ -31,6 +32,22 @@ useProjectStats.mockImplementation(() => ({
   loading: false,
   error: undefined,
   projectStatsSeries: [],
+}));
+
+jest.mock(
+  'sentry/views/settings/project/server-side-sampling/utils/useSamplingDistribution'
+);
+const useSamplingDistribution = importedUseSamplingDistribution as jest.MockedFunction<
+  typeof importedUseSamplingDistribution
+>;
+
+useSamplingDistribution.mockImplementation(() => ({
+  samplingDistribution: {
+    project_breakdown: null,
+    sample_size: 0,
+    null_sample_rate_percentage: null,
+    sample_rate_distributions: null,
+  },
 }));
 
 function TestComponent({
@@ -93,11 +110,13 @@ describe('Server-side Sampling - Specific Conditions Modal', function () {
 
   it('add new rule', async function () {
     const {organization, project, router} = getMockData({
-      project: TestStubs.Project({
-        dynamicSampling: {
-          rules: [uniformRule],
-        },
-      }),
+      projects: [
+        TestStubs.Project({
+          dynamicSampling: {
+            rules: [uniformRule],
+          },
+        }),
+      ],
     });
 
     const newRule = {
@@ -242,11 +261,31 @@ describe('Server-side Sampling - Specific Conditions Modal', function () {
     };
 
     const {organization, project, router} = getMockData({
-      project: TestStubs.Project({
-        dynamicSampling: {
-          rules: [uniformRule, specificRule],
-        },
-      }),
+      projects: [
+        TestStubs.Project({
+          dynamicSampling: {
+            rules: [
+              uniformRule,
+              {
+                sampleRate: 0.2,
+                active: false,
+                type: 'trace',
+                condition: {
+                  op: 'and',
+                  inner: [
+                    {
+                      op: 'glob',
+                      name: 'trace.release',
+                      value: ['1.2.2'],
+                    },
+                  ],
+                },
+                id: 2,
+              },
+            ],
+          },
+        }),
+      ],
     });
 
     const newRule = {
@@ -332,11 +371,13 @@ describe('Server-side Sampling - Specific Conditions Modal', function () {
 
   it('does not let you add without permissions', async function () {
     const {organization, project, router} = getMockData({
-      project: TestStubs.Project({
-        dynamicSampling: {
-          rules: [uniformRule],
-        },
-      }),
+      projects: [
+        TestStubs.Project({
+          dynamicSampling: {
+            rules: [uniformRule],
+          },
+        }),
+      ],
       access: [],
     });
 
