@@ -142,4 +142,64 @@ describe('Server-side Sampling', function () {
 
     expect(container).toSnapshot();
   });
+
+  it('does not let you delete the base rule', function () {
+    const {router, organization, project} = getMockData({
+      project: TestStubs.Project({
+        dynamicSampling: {
+          rules: [
+            {
+              sampleRate: 0.2,
+              type: 'trace',
+              active: false,
+              condition: {
+                op: 'and',
+                inner: [
+                  {
+                    op: 'glob',
+                    name: 'trace.release',
+                    value: ['1.2.3'],
+                  },
+                ],
+              },
+              id: 2,
+            },
+            {
+              sampleRate: 0.2,
+              type: 'trace',
+              active: false,
+              condition: {
+                op: 'and',
+                inner: [],
+              },
+              id: 1,
+            },
+          ],
+          next_id: 3,
+        },
+      }),
+    });
+
+    render(
+      <RouteContext.Provider
+        value={{
+          router,
+          location: router.location,
+          params: {
+            orgId: organization.slug,
+            projectId: project.slug,
+          },
+          routes: [],
+        }}
+      >
+        <OrganizationContext.Provider value={organization}>
+          <ServerSideSampling project={project} />
+        </OrganizationContext.Provider>
+      </RouteContext.Provider>
+    );
+
+    const deleteButtons = screen.getAllByLabelText('Delete');
+    expect(deleteButtons[0]).not.toHaveAttribute('disabled'); // eslint-disable-line jest-dom/prefer-enabled-disabled
+    expect(deleteButtons[1]).toHaveAttribute('disabled'); // eslint-disable-line jest-dom/prefer-enabled-disabled
+  });
 });
