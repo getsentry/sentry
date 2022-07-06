@@ -1824,7 +1824,7 @@ class MetricsQueryBuilder(QueryBuilder):
         """Layer on top of the metric indexer so we'll only hit it at most once per value"""
         if value not in self._indexer_cache:
             result = indexer.resolve(
-                self.organization_id, value, use_case_id=UseCaseKey.RELEASE_HEALTH
+                self.organization_id, value, use_case_id=UseCaseKey.PERFORMANCE
             )
             self._indexer_cache[value] = result
 
