@@ -17,7 +17,6 @@ class InternalSampleTickRenderer {
   canvas: HTMLCanvasElement;
   context: CanvasRenderingContext2D;
   theme: FlamegraphTheme;
-  configSpace: Rect;
   flamegraph: Flamegraph;
   intervals: number[];
 
@@ -30,11 +29,7 @@ class InternalSampleTickRenderer {
     this.canvas = canvas;
     this.flamegraph = flamegraph;
     this.theme = theme;
-    this.configSpace = configSpace;
-    this.intervals = computeIntervals(
-      this.configSpace.x,
-      this.flamegraph.profile.weights
-    );
+    this.intervals = computeIntervals(configSpace.x, this.flamegraph.profile.weights);
     this.context = getContext(canvas, '2d');
   }
 
