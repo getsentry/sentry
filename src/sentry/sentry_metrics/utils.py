@@ -15,11 +15,11 @@ class MetricIndexNotFound(InvalidParams):  # type: ignore
     pass
 
 
-def reverse_tag_value(index: Union[int, str]) -> str:
+def reverse_tag_value(index: Union[int, str, None]) -> str:
     # XXX(markus): Normally there would be a check for the option
     # "sentry-metrics.performance.tags-values-are-strings", but this function
     # is sometimes called with metric IDs for reasons I haven't figured out.
-    if isinstance(index, str):
+    if isinstance(index, str) or index is None:
         return index
     else:
         return reverse_resolve(index)

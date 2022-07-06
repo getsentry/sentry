@@ -5,7 +5,7 @@ import dataclasses
 import functools
 import pytest
 
-from snuba_sdk import AliasedExpression, Column, Condition, Function, Op
+from snuba_sdk import AliasedExpression, Column, Condition, Function, Op, OrderBy
 
 @pytest.fixture(autouse=True)
 def control_metrics_access(monkeypatch, request, set_sentry_option):
@@ -38,7 +38,7 @@ def control_metrics_access(monkeypatch, request, set_sentry_option):
                         if k in row:
                             assert isinstance(row[k], int)
                             row[k] = indexer.reverse_resolve(row[k])
-                            assert isinstance(row[k], str)
+                            assert row[k] is None or isinstance(row[k], str)
 
             return result
 
@@ -86,6 +86,9 @@ def _rewrite_query(query):
 
     def _walk_term(term):
         print("WALK", term)
+        if isinstance(term, OrderBy):
+            return dataclasses.replace(term, exp=_walk_term(term.exp))
+
         if (isinstance(term, Column) and term.subscriptable == 'tags'):
             convert_select_columns.add(term.name)
             return term
@@ -100,41 +103,41 @@ def _rewrite_query(query):
             return term
 
         if isinstance(term, Condition):
-            if (isinstance(lhs := term.lhs, Column) and
-                lhs.subscriptable == 'tags'):
-                rhs = term.rhs
-                if isinstance(rhs, str):
-                    return dataclasses.replace(term, rhs=indexer.resolve(org_id, rhs))
+            if term.op == Op.EQ and isinstance(lhs := term.lhs, Column) and lhs.subscriptable == 'tags' and isinstance(rhs := term.rhs, str):
+                return dataclasses.replace(term, rhs=indexer.resolve(org_id, rhs))
 
-                if isinstance(rhs, (tuple, list)):
-                    assert all(isinstance(x, str) for x in rhs)
-                    return dataclasses.replace(term, rhs=[indexer.resolve(org_id, x) for x in rhs])
+            if term.op == Op.IN and isinstance(lhs := term.lhs, Column) and lhs.subscriptable == 'tags' and isinstance(rhs := term.rhs, (tuple, list)):
+                assert all(isinstance(x, str) for x in rhs)
+                return dataclasses.replace(term, rhs=[indexer.resolve(org_id, x) for x in rhs])
 
-                if isinstance(rhs, Function) and rhs.function == 'tuple' and all(isinstance(x, str) for x in rhs.parameters or ()):
-                    return dataclasses.replace(
-                        term, rhs=dataclasses.replace(
-                            rhs, 
-                            parameters=[indexer.resolve(org_id, x) for x in rhs.parameters or ()]
-                        )
+            if term.op == Op.IN and isinstance(lhs := term.lhs, Column) and lhs.subscriptable == 'tags' and isinstance(rhs := term.rhs, Function) and rhs.function == 'tuple':
+                assert all(isinstance(x, str) for x in rhs.parameters or ())
+                return dataclasses.replace(
+                    term,
+                    rhs=dataclasses.replace(
+                        rhs,
+                        parameters=[indexer.resolve(org_id, x) for x in rhs.parameters or ()]
                     )
+                )
 
-            if isinstance(lhs := term.lhs, Column):
-                return term
+            if term.op == Op.IN and isinstance(lhs := term.lhs, Function) and lhs.function == 'tuple' and isinstance(rhs := term.rhs, Function) and rhs.function == 'tuple':
+                new_rhs = []
+                for right in rhs.parameters:
+                    new_right = []
+                    assert isinstance(right, tuple)
+                    for left, right in zip(lhs.parameters, right):
+                        if isinstance(left, Column) and left.subscriptable == 'tags':
+                            assert isinstance(right, str)
+                            new_right.append(indexer.resolve(org_id, right))
+                        else:
+                            new_right.append(right)
 
-            if (isinstance(lhs := term.lhs, Function) and lhs.function == 'tuple' and all(
-                isinstance(param, Column) and param.subscriptable == 'tags' for param in lhs.parameters or ())):
-                rhs = term.rhs
+                    new_rhs.append(tuple(new_right))
 
-                if isinstance(rhs, Function) and rhs.function == 'tuple' and all(isinstance(x, tuple) and all(isinstance(y, str) for y in x) for x in rhs.parameters or ()):
-                    return dataclasses.replace(
-                        term, rhs=dataclasses.replace(
-                            rhs,
-                            parameters=[tuple(indexer.resolve(org_id, y) for y in x) for x in rhs.parameters or ()]
-                        )
-                    )
+                return dataclasses.replace(term, rhs=dataclasses.replace(rhs, parameters=new_rhs))
+
+            return term
                 
-            raise AssertionError(f"dont know how to deal with condition {term}")
-
         if (
             isinstance(term, Function) and
             term.function == 'equals' and
@@ -232,6 +235,10 @@ def _rewrite_query(query):
         groupby=[
             _walk_term(clause)
             for clause in query.groupby
+        ],
+        orderby=[
+            _walk_term(clause)
+            for clause in query.orderby or ()
         ]
     )
 
