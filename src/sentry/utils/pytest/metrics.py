@@ -25,6 +25,7 @@ def control_metrics_access(monkeypatch, request, set_sentry_option):
 
             if is_metrics:
                 query, convert_select_columns = _rewrite_query(query)
+                args[0][0][0].query = query
 
             result = old_build_results(*args, **kwargs)
 
@@ -81,6 +82,7 @@ def _rewrite_query(query):
     convert_select_columns = set()
 
     def _walk_term(term):
+        print("WALK", term)
         if (isinstance(term, Column) and term.subscriptable == 'tags'):
             convert_select_columns.add(term.name)
             return term
@@ -104,15 +106,17 @@ def _rewrite_query(query):
                 if isinstance(rhs, (tuple, list)):
                     assert all(isinstance(x, str) for x in rhs)
                     return dataclasses.replace(term, rhs=[indexer.resolve(org_id, x) for x in rhs])
+
+                raise AssertionError(f"dont know how to deal with condition {term}")
             else:
                 return term
 
         if (
             isinstance(term, Function) and
+            term.function == 'equals' and
             term.parameters and
             isinstance(lhs := term.parameters[0], Column) and
-            lhs.subscriptable == 'tags' and
-            term.function == 'equals'
+            lhs.subscriptable == 'tags'
         ):
             if not isinstance(term.parameters[1], str):
                 import pdb
