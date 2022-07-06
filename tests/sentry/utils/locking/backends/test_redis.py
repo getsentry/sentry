@@ -58,3 +58,6 @@ class RedisLockBackendTestCase(TestCase):
         self.backend.acquire(key, duration)
         assert self.backend.locked(key)
         self.backend.release(key)
+
+    def test_cluster_as_str(self):
+        assert RedisLockBackend(cluster="default").cluster == self.cluster
