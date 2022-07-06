@@ -143,11 +143,18 @@ class DashboardDetailsSerializer(Serializer):
         return result
 
     def serialize(self, obj, attrs, user, **kwargs):
+        page_filter_keys = ["environment", "range"]
         data = {
             "id": str(obj.id),
             "title": obj.title,
             "dateCreated": obj.date_added,
             "createdBy": serialize(obj.created_by, serializer=UserSerializer()),
             "widgets": attrs["widgets"],
+            "projects": [project.id for project in obj.projects.all()],
         }
+
+        for key in page_filter_keys:
+            if obj.filters is not None and obj.filters.get(key) is not None:
+                data[key] = obj.filters[key]
+
         return data

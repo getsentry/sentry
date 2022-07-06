@@ -8,6 +8,7 @@ from sentry.models import (
     DashboardWidgetQuery,
     DashboardWidgetTypes,
 )
+from sentry.models.project import Project
 from sentry.testutils import OrganizationDashboardWidgetTestCase
 
 
@@ -132,6 +133,21 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
         assert response.status_code == 200, response.content
         assert response.data["widgets"][0]["queries"][0]["fieldAliases"][0] == "Count Alias"
         assert response.data["widgets"][1]["queries"][0]["fieldAliases"] == []
+
+    def test_dashboard_filters_are_returned_in_response(self):
+        filters = {"environment": ["alpha"], "range": "24hr"}
+        dashboard = Dashboard.objects.create(
+            title="Dashboard With Filters",
+            created_by=self.user,
+            organization=self.organization,
+            filters=filters,
+        )
+        dashboard.projects.set([Project.objects.create(organization=self.organization)])
+
+        response = self.do_request("get", self.url(dashboard.id))
+        assert response.data["projects"] == list(dashboard.projects.values_list("id", flat=True))
+        assert response.data["environment"] == filters["environment"]
+        assert response.data["range"] == filters["range"]
 
 
 class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCase):
