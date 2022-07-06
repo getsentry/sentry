@@ -181,9 +181,6 @@ class SpansInterface extends PureComponent<Props, State> {
                         toggleOperationNameFilter={
                           waterfallModel.toggleOperationNameFilter
                         }
-                        toggleAllOperationNameFilters={
-                          waterfallModel.toggleAllOperationNameFilters
-                        }
                       />
                       <StyledSearchBar
                         defaultQuery=""

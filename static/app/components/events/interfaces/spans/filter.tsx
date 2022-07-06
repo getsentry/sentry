@@ -27,7 +27,6 @@ export type ActiveOperationFilter = NoFilter | ActiveFilter;
 type Props = {
   operationNameCounts: Map<string, number>;
   operationNameFilter: ActiveOperationFilter;
-  toggleAllOperationNameFilters: () => void;
   toggleOperationNameFilter: (operationName: string) => void;
 };
 
