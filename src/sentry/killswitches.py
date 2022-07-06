@@ -42,8 +42,12 @@ def _update_project_configs(
         with click.progressbar(length=Organization.objects.count()) as bar:
             # Since all other invalidations, which would happen anyway, will de-duplicate
             # with these ones the extra load of this is reasonable.  A temporary backlog in
-            # the relay_config_bulk queue is just fine.
-            for (org_id,) in Organization.objects.values_list("id").all():
+            # the relay_config_bulk queue is just fine.  We have server-side cursors
+            # disabled so .iterator() fetches 50k u64's at once which is about 390kb and
+            # at time of writing yields about 24 batches.
+            for org_id in (
+                Organization.objects.values_list("id", flat=True).all().iterator(chunk_size=50_000)
+            ):
                 schedule_invalidate_project_config(
                     trigger="invalidate-all", organization_id=org_id, countdown=0
                 )
