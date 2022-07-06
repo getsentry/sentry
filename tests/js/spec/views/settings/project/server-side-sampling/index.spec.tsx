@@ -195,45 +195,6 @@ describe('Server-side Sampling', function () {
     ).toBeInTheDocument();
   });
 
-  it('Open activate modal', async function () {
-    const {router, project, organization} = getMockData({
-      projects: [
-        TestStubs.Project({
-          dynamicSampling: {
-            rules: [
-              {
-                sampleRate: 1,
-                type: 'trace',
-                active: false,
-                condition: {
-                  op: 'and',
-                  inner: [],
-                },
-                id: 1,
-              },
-            ],
-          },
-        }),
-      ],
-    });
-
-    render(
-      <TestComponent
-        organization={organization}
-        project={project}
-        router={router}
-        withModal
-      />
-    );
-
-    // Open Modal
-    userEvent.click(screen.getByLabelText('Activate Rule'));
-
-    expect(
-      await screen.findByRole('heading', {name: 'Activate Rule'})
-    ).toBeInTheDocument();
-  });
-
   it('Open specific conditions modal', async function () {
     jest.spyOn(modal, 'openModal');
 

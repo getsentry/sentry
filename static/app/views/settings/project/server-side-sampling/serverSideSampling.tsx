@@ -30,7 +30,6 @@ import PermissionAlert from 'sentry/views/settings/organization/permissionAlert'
 
 import {DraggableList, UpdateItemsProps} from '../sampling/rules/draggableList';
 
-import {ActivateModal} from './modals/activateModal';
 import {RecommendedStepsModal} from './modals/recommendedStepsModal';
 import {SpecificConditionsModal} from './modals/specificConditionsModal';
 import {responsiveModal} from './modals/styles';
@@ -137,16 +136,34 @@ export function ServerSideSampling({project}: Props) {
     }
   }, [currentRules, previousRules]);
 
-  function handleActivateToggle(ruleId: SamplingRule['id']) {
-    openModal(modalProps => (
-      <ActivateModal
-        {...modalProps}
-        ruleId={ruleId}
-        rules={rules}
-        orgSlug={organization.slug}
-        projSlug={project.slug}
-      />
-    ));
+  async function handleActivateToggle(ruleId: SamplingRule['id']) {
+    // TODO(sampling): test this after the backend work is finished
+    const newRules = rules.map(rule => {
+      if (rule.id === ruleId) {
+        return {
+          ...rule,
+          id: 0,
+          active: !rule.active,
+        };
+      }
+      return rule;
+    });
+
+    try {
+      const result = await api.requestPromise(
+        `/projects/${organization.slug}/${project.slug}/`,
+        {
+          method: 'PUT',
+          data: {dynamicSampling: {rules: newRules}},
+        }
+      );
+      ProjectStore.onUpdateSuccess(result);
+      addSuccessMessage(t('Successfully activated sampling rule'));
+    } catch (error) {
+      const message = t('Unable to activate sampling rule');
+      handleXhrErrorResponse(message)(error);
+      addErrorMessage(message);
+    }
   }
 
   function handleGetStarted() {
@@ -198,14 +215,14 @@ export function ServerSideSampling({project}: Props) {
     setRules(sortedRules);
 
     try {
-      const newProjectDetails = await api.requestPromise(
+      const result = await api.requestPromise(
         `/projects/${organization.slug}/${project.slug}/`,
         {
           method: 'PUT',
           data: {dynamicSampling: {rules: sortedRules}},
         }
       );
-      ProjectStore.onUpdateSuccess(newProjectDetails);
+      ProjectStore.onUpdateSuccess(result);
       addSuccessMessage(t('Successfully sorted sampling rules'));
     } catch (error) {
       setRules(previousRules ?? []);
@@ -240,14 +257,14 @@ export function ServerSideSampling({project}: Props) {
 
   async function handleDeleteRule(rule: SamplingRule) {
     try {
-      const newProjectDetails = await api.requestPromise(
+      const result = await api.requestPromise(
         `/projects/${organization.slug}/${project.slug}/`,
         {
           method: 'PUT',
           data: {dynamicSampling: {rules: rules.filter(({id}) => id !== rule.id)}},
         }
       );
-      ProjectStore.onUpdateSuccess(newProjectDetails);
+      ProjectStore.onUpdateSuccess(result);
       addSuccessMessage(t('Successfully deleted sampling rule'));
     } catch (error) {
       const message = t('Unable to delete sampling rule');
@@ -376,6 +393,7 @@ export function ServerSideSampling({project}: Props) {
                         onDeleteRule={() => handleDeleteRule(currentRule)}
                         onActivate={() => handleActivateToggle(currentRule.id)}
                         noPermission={!hasAccess}
+                        hasRecommendedSdkUpgrades={!!recommendedSdkUpgrades.length}
                         listeners={listeners}
                         grabAttributes={attributes}
                         dragging={dragging}

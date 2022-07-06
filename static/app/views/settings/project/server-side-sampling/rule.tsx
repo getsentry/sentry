@@ -20,6 +20,10 @@ import {getInnerNameLabel, isUniformRule} from './utils';
 type Props = {
   dragging: boolean;
   /**
+   * If true, the activate rule toggle will be disabled.
+   */
+  hasRecommendedSdkUpgrades: boolean;
+  /**
    * Hide the grab button if true.
    * This is used when the list has a single item, making sorting not possible.
    */
@@ -46,6 +50,7 @@ export function Rule({
   operator,
   grabAttributes,
   hideGrabButton,
+  hasRecommendedSdkUpgrades,
 }: Props) {
   const isUniform = isUniformRule(rule);
   const canDelete = !noPermission && !isUniform;
@@ -126,6 +131,14 @@ export function Rule({
             aria-label={rule.active ? t('Deactivate Rule') : t('Activate Rule')}
             onClick={onActivate}
             name="active"
+            disabled={hasRecommendedSdkUpgrades}
+            title={
+              hasRecommendedSdkUpgrades
+                ? t(
+                    'To enable the rule, the sdk versions of the recommended projects must be updated'
+                  )
+                : undefined
+            }
           />
         </GuideAnchor>
       </ActiveColumn>
