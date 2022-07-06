@@ -90,9 +90,9 @@ class ProjectPerformance extends AsyncView<Props, State> {
         name: 'metric',
         type: 'select',
         label: t('Calculation Method'),
-        choices: [
-          ['duration', t('Transaction Duration')],
-          ['lcp', t('Largest Contentful Paint')],
+        options: [
+          {value: 'duration', label: t('Transaction Duration')},
+          {value: 'lcp', label: t('Largest Contentful Paint')},
         ],
         help: tct(
           'This determines which duration is used to set your thresholds. By default, we use transaction duration which measures the entire length of the transaction. You can also set this to use a [link:Web Vital].',
