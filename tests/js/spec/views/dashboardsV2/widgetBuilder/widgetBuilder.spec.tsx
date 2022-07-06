@@ -3427,7 +3427,7 @@ describe('WidgetBuilder', function () {
         });
       });
 
-      it('raises a banner alert and disableds saving widget if widget result is not metrics data', async function () {
+      it('raises an alert banner and disables saving widget if widget result is not metrics data', async function () {
         const defaultWidgetQuery = {
           name: '',
           fields: ['p99(measurements.custom.measurement)'],

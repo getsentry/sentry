@@ -301,10 +301,11 @@ class WidgetCard extends Component<Props, State> {
               <DashboardsMEPConsumer>
                 {({isMetricsData}) => {
                   if (
+                    showStoredAlert &&
                     isMetricsData === false &&
                     widget.widgetType === WidgetType.DISCOVER
                   ) {
-                    if (showStoredAlert && isCustomMeasurementWidget(widget)) {
+                    if (isCustomMeasurementWidget(widget)) {
                       return (
                         <StoredDataAlert showIcon type="error">
                           {tct(
@@ -320,16 +321,14 @@ class WidgetCard extends Component<Props, State> {
                       );
                     }
                     return (
-                      showStoredAlert && (
-                        <StoredDataAlert showIcon>
-                          {tct(
-                            "Your selection is only applicable to [storedData: stored event data]. We've automatically adjusted your results.",
-                            {
-                              storedData: <ExternalLink href="https://docs.sentry.io/" />, // TODO(dashboards): Update the docs URL
-                            }
-                          )}
-                        </StoredDataAlert>
-                      )
+                      <StoredDataAlert showIcon>
+                        {tct(
+                          "Your selection is only applicable to [storedData: stored event data]. We've automatically adjusted your results.",
+                          {
+                            storedData: <ExternalLink href="https://docs.sentry.io/" />, // TODO(dashboards): Update the docs URL
+                          }
+                        )}
+                      </StoredDataAlert>
                     );
                   }
                   return null;
