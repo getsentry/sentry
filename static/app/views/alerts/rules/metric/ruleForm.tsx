@@ -951,8 +951,8 @@ const Side = styled(Layout.Side)`
 
   @media (min-width: ${p => p.theme.breakpoints.large}) {
     border-left: 1px solid ${p => p.theme.gray200};
+    max-width: 400px;
   }
-  max-width: 400px;
 `;
 
 const StyledListItem = styled(ListItem)`
