@@ -177,7 +177,7 @@ function StackTracePreview(props: StackTracePreviewProps): React.ReactElement {
     delayTimeoutRef.current = undefined;
   }, []);
 
-  // Not sure why we need to stop propagation, maybe to to prevent the
+  // Not sure why we need to stop propagation, maybe to prevent the
   // hovercard from closing? If we are doing this often, maybe it should be
   // part of the hovercard component.
   const handleStackTracePreviewClick = useCallback(
