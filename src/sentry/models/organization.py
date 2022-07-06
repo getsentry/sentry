@@ -189,7 +189,8 @@ class Organization(Model):
         if not self.slug:
             lock = locks.get("slug:organization", duration=5, name="organization_slug")
             with TimedRetryPolicy(10)(lock.acquire):
-                slugify_instance(self, self.name, reserved=RESERVED_ORGANIZATION_SLUGS)
+                slugify_target = self.name.replace("_", "-").strip("-")
+                slugify_instance(self, slugify_target, reserved=RESERVED_ORGANIZATION_SLUGS)
             super().save(*args, **kwargs)
         else:
             super().save(*args, **kwargs)
