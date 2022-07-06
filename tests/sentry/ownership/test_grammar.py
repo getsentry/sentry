@@ -867,7 +867,6 @@ def test_parse_code_owners():
 def test_parse_code_owners_with_line_of_spaces():
     data = f"{codeowners_fixture_data}\n                                                                                       \n"
 
-    print(repr(data))
     assert parse_code_owners(data) == (
         ["@getsentry/frontend", "@getsentry/docs", "@getsentry/ecosystem"],
         ["@NisanthanNanthakumar", "@AnotherUser", "@NisanthanNanthakumar"],
