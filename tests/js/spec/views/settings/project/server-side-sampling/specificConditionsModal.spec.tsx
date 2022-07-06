@@ -243,6 +243,23 @@ describe('Server-side Sampling - Specific Conditions Modal', function () {
   });
 
   it('edits the rule', async function () {
+    const specificRule = {
+      sampleRate: 0.2,
+      active: false,
+      type: 'trace',
+      condition: {
+        op: 'and',
+        inner: [
+          {
+            op: 'glob',
+            name: 'trace.release',
+            value: ['1.2.2'],
+          },
+        ],
+      },
+      id: 2,
+    };
+
     const {organization, project, router} = getMockData({
       projects: [
         TestStubs.Project({
@@ -272,14 +289,18 @@ describe('Server-side Sampling - Specific Conditions Modal', function () {
     });
 
     const newRule = {
-      condition: {
-        inner: [{name: 'trace.release', op: 'glob', value: ['1.2.3']}],
-        op: 'and',
-      },
+      ...specificRule,
       id: 0,
       sampleRate: 0.6,
-      type: 'trace',
-      active: false,
+      condition: {
+        ...specificRule.condition,
+        inner: [
+          {
+            ...specificRule.condition.inner[0],
+            value: ['1.2.3'],
+          },
+        ],
+      },
     };
 
     const saveMock = MockApiClient.addMockResponse({

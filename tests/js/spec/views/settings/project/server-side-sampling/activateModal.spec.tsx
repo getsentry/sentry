@@ -1,4 +1,3 @@
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
   screen,
@@ -8,12 +7,16 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
+import * as indicators from 'sentry/actionCreators/indicator';
 import GlobalModal from 'sentry/components/globalModal';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {RouteContext} from 'sentry/views/routeContext';
 import ServerSideSampling from 'sentry/views/settings/project/server-side-sampling';
 import {SERVER_SIDE_SAMPLING_DOC_LINK} from 'sentry/views/settings/project/server-side-sampling/utils';
+import importedUseProjectStats from 'sentry/views/settings/project/server-side-sampling/utils/useProjectStats';
 import importedUseSamplingDistribution from 'sentry/views/settings/project/server-side-sampling/utils/useSamplingDistribution';
+
+import {getMockData} from './index.spec';
 
 jest.mock(
   'sentry/views/settings/project/server-side-sampling/utils/useSamplingDistribution'
@@ -31,46 +34,58 @@ useSamplingDistribution.mockImplementation(() => ({
   },
 }));
 
-describe('Server-side Sampling - Activate Modal', function () {
-  MockApiClient.addMockResponse({
-    url: '/organizations/org-slug/stats_v2/',
-    body: TestStubs.Outcomes(),
-  });
+jest.mock('sentry/views/settings/project/server-side-sampling/utils/useProjectStats');
+const useProjectStats = importedUseProjectStats as jest.MockedFunction<
+  typeof importedUseProjectStats
+>;
+useProjectStats.mockImplementation(() => ({
+  projectStats: TestStubs.Outcomes(),
+  loading: false,
+  error: undefined,
+  projectStatsSeries: [],
+}));
 
-  const {organization, project, router} = initializeOrg({
-    ...initializeOrg(),
-    organization: {
-      ...initializeOrg().organization,
-      features: ['server-side-sampling'],
+describe('Server-side Sampling - Activate Modal', function () {
+  const uniformRule = {
+    sampleRate: 1,
+    type: 'trace',
+    active: false,
+    condition: {
+      op: 'and',
+      inner: [],
     },
-    projects: [
-      TestStubs.Project({
-        dynamicSampling: {
-          rules: [
-            {
-              sampleRate: 0.2,
-              type: 'trace',
-              active: false,
-              condition: {
-                op: 'and',
-                inner: [
-                  {
-                    op: 'glob',
-                    name: 'trace.release',
-                    value: ['1.2.3'],
-                  },
-                ],
-              },
-              id: 1,
-            },
-          ],
-          next_id: 2,
-        },
-      }),
-    ],
-  });
+    id: 1,
+  };
 
   it('renders modal', async function () {
+    const newRule = {
+      ...uniformRule,
+      id: 0,
+      active: true,
+    };
+
+    const {router, project, organization} = getMockData({
+      projects: [
+        TestStubs.Project({
+          dynamicSampling: {
+            rules: [uniformRule],
+          },
+        }),
+      ],
+    });
+
+    const saveMock = MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/',
+      method: 'PUT',
+      body: TestStubs.Project({
+        dynamicSampling: {
+          rules: [newRule],
+        },
+      }),
+    });
+
+    jest.spyOn(indicators, 'addSuccessMessage');
+
     render(
       <RouteContext.Provider
         value={{
@@ -84,7 +99,7 @@ describe('Server-side Sampling - Activate Modal', function () {
         }}
       >
         <GlobalModal />
-        <OrganizationContext.Provider value={organization}>
+        <OrganizationContext.Provider value={{...organization, id: 1}}>
           <ServerSideSampling project={project} />
         </OrganizationContext.Provider>
       </RouteContext.Provider>
@@ -130,6 +145,23 @@ describe('Server-side Sampling - Activate Modal', function () {
     // Dialog should close
     await waitForElementToBeRemoved(() =>
       screen.queryByRole('heading', {name: 'Activate Rule'})
+    );
+
+    expect(saveMock).toHaveBeenCalledTimes(1);
+
+    expect(saveMock).toHaveBeenLastCalledWith(
+      '/projects/org-slug/project-slug/',
+      expect.objectContaining({
+        data: {
+          dynamicSampling: {
+            rules: [newRule],
+          },
+        },
+      })
+    );
+
+    expect(indicators.addSuccessMessage).toHaveBeenCalledWith(
+      'Successfully activated sampling rule'
     );
   });
 });

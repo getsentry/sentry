@@ -127,8 +127,16 @@ export function ServerSideSampling({project}: Props) {
     }
   }, [currentRules, previousRules]);
 
-  function handleActivateToggle(rule: SamplingRule) {
-    openModal(modalProps => <ActivateModal {...modalProps} rule={rule} />);
+  function handleActivateToggle(ruleId: SamplingRule['id']) {
+    openModal(modalProps => (
+      <ActivateModal
+        {...modalProps}
+        ruleId={ruleId}
+        rules={rules}
+        orgSlug={organization.slug}
+        projSlug={project.slug}
+      />
+    ));
   }
 
   function handleGetStarted() {
@@ -351,7 +359,7 @@ export function ServerSideSampling({project}: Props) {
                         }}
                         onEditRule={() => handleEditRule(currentRule)}
                         onDeleteRule={() => handleDeleteRule(currentRule)}
-                        onActivate={() => handleActivateToggle(currentRule)}
+                        onActivate={() => handleActivateToggle(currentRule.id)}
                         noPermission={!hasAccess}
                         listeners={listeners}
                         grabAttributes={attributes}

@@ -12,7 +12,11 @@ class RedisLockBackend(LockBackend):
         if uuid is None:
             uuid = uuid4().hex
 
-        self.cluster = cluster
+        if isinstance(cluster, str):
+            self.cluster = redis.clusters.get(cluster)
+        else:
+            self.cluster = cluster
+
         self.prefix = prefix
         self.uuid = uuid
 
