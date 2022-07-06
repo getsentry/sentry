@@ -385,10 +385,10 @@ class SpanDetail extends Component<Props, State> {
                     >
                       Span ID
                       <Clipboard
-                        value={window.location.href.replace(
-                          location.hash,
-                          `#span-${span.span_id}`
-                        )}
+                        value={`${window.location.href.replace(
+                          window.location.hash,
+                          ''
+                        )}#span-${span.span_id}`}
                       >
                         <StyledIconLink />
                       </Clipboard>
