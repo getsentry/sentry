@@ -323,10 +323,7 @@ class EventsTable extends Component<Props, State> {
           {({pageLinks, isLoading, tableData}) => {
             const parsedPageLinks = parseLinkHeader(pageLinks);
             let currentEvent = parsedPageLinks?.next?.cursor.split(':')[1] ?? 0;
-            if (
-              parseInt(currentEvent.replace(',', ''), 10) >
-              parseInt(totalEventCount.replace(',', ''), 10)
-            ) {
+            if (!parsedPageLinks?.next?.results) {
               currentEvent = totalEventCount;
             }
             const paginationCaption =
