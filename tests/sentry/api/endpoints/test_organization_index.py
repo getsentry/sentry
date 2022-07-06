@@ -1,5 +1,3 @@
-import re
-
 from sentry.auth.authenticators import TotpInterface
 from sentry.models import Authenticator, Organization, OrganizationMember, OrganizationStatus
 from sentry.testutils import APITestCase, TwoFactorAPITestCase
@@ -97,23 +95,7 @@ class OrganizationsCreateTest(OrganizationIndexTest):
         assert org.name == "hello world"
         assert org.slug == "foobar"
 
-        self.get_error_response(status_code=400, **data)
-
-    def test_valid_slugs(self):
-        valid_slugs = ["santry", "downtown-canada", "1234", "SaNtRy"]
-        for slug in valid_slugs:
-            self.organization.refresh_from_db()
-            self.get_success_response(name=slug, slug=slug)
-
-    def test_invalid_slugs(self):
-        with self.options({"api.rate-limit.org-create": 9001}):
-            self.get_error_response(name="name", slug=" i have whitespace ", status_code=400)
-            self.get_error_response(name="name", slug="foo-bar ", status_code=400)
-            self.get_error_response(name="name", slug="bird-company!", status_code=400)
-            self.get_error_response(name="name", slug="downtown_canada", status_code=400)
-            self.get_error_response(name="name", slug="canada-", status_code=400)
-            self.get_error_response(name="name", slug="-canada", status_code=400)
-            self.get_error_response(name="name", slug="----", status_code=400)
+        self.get_error_response(status_code=409, **data)
 
     def test_without_slug(self):
         data = {"name": "hello world"}
@@ -122,34 +104,6 @@ class OrganizationsCreateTest(OrganizationIndexTest):
         organization_id = response.data["id"]
         org = Organization.objects.get(id=organization_id)
         assert org.slug == "hello-world"
-
-    def test_name_slugify(self):
-        response = self.get_success_response(name="---foo")
-        org = Organization.objects.get(id=response.data["id"])
-        assert org.slug == "foo"
-
-        org_slug_pattern = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9-]*(?<!-)$")
-
-        response = self.get_success_response(name="---foo---")
-        org = Organization.objects.get(id=response.data["id"])
-        assert org.slug != "foo-"
-        assert org.slug.startswith("foo-")
-        assert org_slug_pattern.match(org.slug)
-
-        response = self.get_success_response(name="___foo___")
-        org = Organization.objects.get(id=response.data["id"])
-        assert org.slug != "foo-"
-        assert org.slug.startswith("foo-")
-        assert org_slug_pattern.match(org.slug)
-
-        response = self.get_success_response(name="foo_bar")
-        org = Organization.objects.get(id=response.data["id"])
-        assert org.slug == "foo-bar"
-
-        response = self.get_success_response(name="----")
-        org = Organization.objects.get(id=response.data["id"])
-        assert len(org.slug) > 0
-        assert org_slug_pattern.match(org.slug)
 
     def test_required_terms_with_terms_url(self):
         data = {"name": "hello world"}
