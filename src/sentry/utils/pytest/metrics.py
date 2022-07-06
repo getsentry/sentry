@@ -123,7 +123,7 @@ def _rewrite_query(query):
                 pdb.set_trace()
             assert isinstance(rhs := term.parameters[1], str), f'found resolved integers in tags-related clause {term}'
             resolved_string = indexer.resolve(org_id, rhs)
-            new_parameters = copy.deepcopy(term.parameters)
+            new_parameters = list(term.parameters)
             new_parameters[1] = resolved_string
             new_term = dataclasses.replace(term, parameters=new_parameters)
             return new_term
@@ -172,17 +172,17 @@ def _rewrite_query(query):
             return term
 
         if isinstance(term, Function) and 'If' in term.function:
-            new_parameters = copy.deepcopy(term.parameters)
+            new_parameters = list(term.parameters)
             new_parameters[1] = _walk_term(term.parameters[1])
             return dataclasses.replace(term, parameters=new_parameters)
 
         if isinstance(term, Function) and term.function == 'arrayElement':
-            new_parameters = copy.deepcopy(term.parameters)
+            new_parameters = list(term.parameters)
             new_parameters[0] = _walk_term(term.parameters[0])
             return dataclasses.replace(term, parameters=new_parameters)
 
         if isinstance(term, Function) and term.function == 'arrayReduce':
-            new_parameters = copy.deepcopy(term.parameters)
+            new_parameters = list(term.parameters)
             new_parameters[1] = [
                 _walk_term(param)
                 for param in term.parameters[1]
