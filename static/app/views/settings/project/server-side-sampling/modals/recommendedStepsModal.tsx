@@ -32,10 +32,10 @@ type RecommendedSdkUpgrade = {
 };
 
 export type RecommendedStepsModalProps = ModalRenderProps & {
+  onSubmit: () => void;
   organization: Organization;
   recommendedSdkUpgrades: RecommendedSdkUpgrade[];
   onGoBack?: () => void;
-  onSubmit?: () => void;
   project?: Project;
 };
 
