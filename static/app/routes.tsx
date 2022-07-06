@@ -1041,6 +1041,10 @@ function buildRoutes() {
         path=":eventSlug/"
         component={make(() => import('sentry/views/replays/details'))}
       />
+      <Route
+        path=":eventSlug/v2/"
+        component={make(() => import('sentry/views/replays/details_v2'))}
+      />
     </Route>
   );
 

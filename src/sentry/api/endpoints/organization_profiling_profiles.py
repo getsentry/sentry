@@ -12,6 +12,7 @@ from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import Organization
+from sentry.utils import json
 from sentry.utils.profiling import (
     get_from_profiling_service,
     parse_profile_filters,
@@ -77,8 +78,9 @@ class OrganizationProfilingTransactionsEndpoint(OrganizationProfilingPaginatedBa
                 f"/organizations/{organization.id}/transactions",
                 **kwargs,
             )
+            data = json.loads(response.data)
 
-            return response.json().get("transactions", [])
+            return data.get("transactions", [])
 
         return data_fn
 
@@ -94,8 +96,9 @@ class OrganizationProfilingProfilesEndpoint(OrganizationProfilingPaginatedBaseEn
                 f"/organizations/{organization.id}/profiles",
                 **kwargs,
             )
+            data = json.loads(response.data)
 
-            return response.json().get("profiles", [])
+            return data.get("profiles", [])
 
         return data_fn
 

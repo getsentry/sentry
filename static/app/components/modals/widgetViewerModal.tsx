@@ -35,7 +35,7 @@ import {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getUtcDateString} from 'sentry/utils/dates';
-import {TableDataRow, TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {
   isAggregateField,
@@ -78,7 +78,6 @@ import {
 export interface WidgetViewerModalOptions {
   organization: Organization;
   widget: Widget;
-  issuesData?: TableDataRow[];
   onEdit?: () => void;
   pageLinks?: string;
   seriesData?: Series[];
@@ -159,7 +158,6 @@ function WidgetViewerModal(props: Props) {
     params,
     seriesData,
     tableData,
-    issuesData,
     totalIssuesCount,
     pageLinks: defaultPageLinks,
   } = props;
@@ -505,12 +503,12 @@ function WidgetViewerModal(props: Props) {
     );
   };
 
-  const renderIssuesTable: IssueWidgetQueries['props']['children'] = ({
-    transformedResults,
+  const renderIssuesTable = ({
+    tableResults,
     loading,
     pageLinks,
     totalCount,
-  }) => {
+  }: GenericWidgetQueriesChildrenProps) => {
     if (totalResults === undefined && totalCount) {
       setTotalResults(totalCount);
     }
@@ -519,7 +517,7 @@ function WidgetViewerModal(props: Props) {
       <Fragment>
         <GridEditable
           isLoading={loading}
-          data={transformedResults}
+          data={tableResults?.[0]?.data ?? []}
           columnOrder={columnOrder}
           columnSortBy={columnSortBy}
           grid={{
@@ -691,9 +689,9 @@ function WidgetViewerModal(props: Props) {
   function renderWidgetViewerTable() {
     switch (widget.widgetType) {
       case WidgetType.ISSUE:
-        if (issuesData && chartUnmodified && widget.displayType === DisplayType.TABLE) {
+        if (tableData && chartUnmodified && widget.displayType === DisplayType.TABLE) {
           return renderIssuesTable({
-            transformedResults: issuesData,
+            tableResults: tableData,
             loading: false,
             errorMessage: undefined,
             pageLinks: defaultPageLinks,

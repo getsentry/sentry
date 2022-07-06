@@ -372,6 +372,27 @@ class DiscoverDatasetConfig(DatasetConfig):
                     default_result_type="duration",
                 ),
                 SnQLFunction(
+                    "random_number",
+                    snql_aggregate=lambda args, alias: Function(
+                        "rand",
+                        [],
+                        alias,
+                    ),
+                    default_result_type="integer",
+                    private=True,
+                ),
+                SnQLFunction(
+                    "modulo",
+                    required_args=[SnQLStringArg("column"), NumberRange("factor", None, None)],
+                    snql_aggregate=lambda args, alias: Function(
+                        "modulo",
+                        [Column(args["column"]), args["factor"]],
+                        alias,
+                    ),
+                    default_result_type="integer",
+                    private=True,
+                ),
+                SnQLFunction(
                     "avg_range",
                     required_args=[
                         NumericColumn("column"),
@@ -1391,8 +1412,8 @@ class DiscoverDatasetConfig(DatasetConfig):
         Parses a release stage search and returns a snuba condition to filter to the
         requested releases.
         """
-        # TODO: Filter by project here as well. It's done elsewhere, but could critcally limit versions
-        # for orgs with thousands of projects, each with their own releases (potentailly drowning out ones we care about)
+        # TODO: Filter by project here as well. It's done elsewhere, but could critically limit versions
+        # for orgs with thousands of projects, each with their own releases (potentially drowning out ones we care about)
 
         if "organization_id" not in self.builder.params:
             raise ValueError("organization_id is a required param")

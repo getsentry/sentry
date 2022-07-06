@@ -310,7 +310,7 @@ describe('Sampling - Modal', function () {
     // Empty conditions message is not displayed
     expect(screen.queryByText('No conditions added')).not.toBeInTheDocument();
 
-    // Type into realease field
+    // Type into release field
     userEvent.clear(screen.getByLabelText('Search or add a release'));
     userEvent.paste(screen.getByLabelText('Search or add a release'), '1.2.3');
 

@@ -16,6 +16,8 @@ import ThreadsV2 from 'sentry/components/events/interfaces/threadsV2';
 import {Group, Organization, Project, SharedViewOrganization} from 'sentry/types';
 import {Entry, EntryType, Event, EventTransaction} from 'sentry/types/event';
 
+import {FocusedSpanIDMap} from './interfaces/spans/types';
+
 type Props = Pick<React.ComponentProps<typeof Breadcrumbs>, 'route' | 'router'> & {
   entry: Entry;
   event: Event;
@@ -176,6 +178,23 @@ function EventEntry({
         <Spans
           event={event as EventTransaction}
           organization={organization as Organization}
+        />
+      );
+    case EntryType.SPANTREE:
+      if (!organization.features?.includes('performance-extraneous-spans-poc')) {
+        return null;
+      }
+
+      const {focusedSpanIds: _focusedSpanIds} = entry;
+
+      const focusedSpanIds: FocusedSpanIDMap = {};
+      _focusedSpanIds.forEach(spanId => (focusedSpanIds[spanId] = new Set()));
+
+      return (
+        <Spans
+          event={event as EventTransaction}
+          organization={organization as Organization}
+          focusedSpanIds={focusedSpanIds}
         />
       );
     default:
