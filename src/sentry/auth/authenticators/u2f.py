@@ -53,7 +53,6 @@ class U2fInterface(AuthenticatorInterface):
     rp_id = urlparse(options.get("system.url-prefix")).hostname
     rp = PublicKeyCredentialRpEntity(rp_id, "Sentry")
     webauthn_registration_server = Fido2Server(rp)
-    disallow_new_enrollment = bool(options.get("u2f.disallow-new-enrollment"))
 
     def __init__(self, authenticator=None, status=EnrollmentStatus.EXISTING):
         super().__init__(authenticator, status)

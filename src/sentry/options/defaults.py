@@ -95,7 +95,7 @@ register(
     "sms.disallow-new-enrollment",
     default=False,
     type=Bool,
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK,
+    flags=FLAG_ALLOW_EMPTY,
 )
 
 # U2F
@@ -103,6 +103,14 @@ register("u2f.app-id", default="", flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK
 register("u2f.facets", default=(), type=Sequence, flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
 register(
     "u2f.disallow-new-enrollment",
+    default=False,
+    type=Bool,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK,
+)
+
+# Recovery Codes
+register(
+    "recovery.disallow-new-enrollment",
     default=False,
     type=Bool,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK,
