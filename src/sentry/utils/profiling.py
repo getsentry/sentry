@@ -10,7 +10,7 @@ from urllib3.response import HTTPResponse
 from sentry.api.event_search import SearchFilter, parse_search_query
 from sentry.exceptions import InvalidSearchQuery
 from sentry.net.http import connection_from_url
-from sentry.utils import metrics
+from sentry.utils import json, metrics
 
 
 class RetrySkipTimeout(urllib3.Retry):
@@ -59,12 +59,16 @@ def get_from_profiling_service(
     path: str,
     params: Optional[Dict[Any, Any]] = None,
     headers: Optional[Dict[Any, Any]] = None,
+    json_data: Any = None,
 ) -> HTTPResponse:
     kwargs: Dict[str, Any] = {"headers": {}, "preload_content": False}
     if params:
         path = f"{path}?{urlencode(params, doseq=True)}"
     if headers:
         kwargs["headers"].update(headers)
+    if json_data:
+        kwargs["headers"]["Content-Type"] = "application/json"
+        kwargs["body"] = json.dumps(json_data)
     return _profiling_pool.urlopen(
         method,
         path,

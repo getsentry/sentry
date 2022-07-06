@@ -1,9 +1,12 @@
+from __future__ import annotations
+
 from datetime import datetime
 from time import sleep, time
-from typing import Any, MutableMapping, Optional
+from typing import Any, List, MutableMapping, Optional
 
 import sentry_sdk
 from django.conf import settings
+from django.utils import timezone
 from pytz import UTC
 from symbolic import ProguardMapper  # type: ignore
 
@@ -16,6 +19,7 @@ from sentry.tasks.base import instrumented_task
 from sentry.tasks.symbolication import RetrySymbolication
 from sentry.utils import json, kafka_config, metrics
 from sentry.utils.outcomes import Outcome, track_outcome
+from sentry.utils.profiling import get_from_profiling_service
 from sentry.utils.pubsub import KafkaPublisher
 
 Profile = MutableMapping[str, Any]
@@ -45,18 +49,32 @@ def process_profile(
     organization = Organization.objects.get_from_cache(id=project.organization_id)
 
     _normalize(profile=profile, organization=organization)
-    _insert_eventstream(profile=profile)
+    _initialize_publisher()
+    _insert_eventstream_profile(profile=profile)
+    if _should_extract_call_trees(profile):
+        _insert_eventstream_call_tree(profile)
+
     _track_outcome(profile=profile, project=project, key_id=key_id)
+
+
+SHOULD_SYMBOLICATE = frozenset(["cocoa", "rust"])
+SHOULD_DEOBFUSCATE = frozenset(["android"])
+SHOULD_EXTRACT_CALL_TREES = frozenset(["cocoa", "android"])
 
 
 def _should_symbolicate(profile: Profile) -> bool:
     platform: str = profile["platform"]
-    return platform in {"cocoa", "rust"}
+    return platform in SHOULD_SYMBOLICATE
 
 
 def _should_deobfuscate(profile: Profile) -> bool:
     platform: str = profile["platform"]
-    return platform == "android"
+    return platform in SHOULD_DEOBFUSCATE
+
+
+def _should_extract_call_trees(profile: Profile) -> bool:
+    platform: str = profile["platform"]
+    return platform in SHOULD_EXTRACT_CALL_TREES
 
 
 @metrics.wraps("process_profile.normalize")  # type: ignore
@@ -220,14 +238,8 @@ def _track_outcome(profile: Profile, project: Project, key_id: Optional[int]) ->
     )
 
 
-@metrics.wraps("process_profile.insert_eventstream")  # type: ignore
-def _insert_eventstream(profile: Profile) -> None:
-    """
-    TODO: This function directly publishes the profile to kafka.
-    We'll want to look into the existing eventstream abstraction
-    so we can take advantage of nodestore at some point for single
-    profile access.
-    """
+@metrics.wraps("process_profile.initialize_publisher")  # type: ignore
+def _initialize_publisher() -> None:
     global processed_profiles_publisher
 
     if processed_profiles_publisher is None:
@@ -236,7 +248,73 @@ def _insert_eventstream(profile: Profile) -> None:
             kafka_config.get_kafka_producer_cluster_options(config["cluster"]),
         )
 
+
+@metrics.wraps("process_profile.insert_eventstream.profile")  # type: ignore
+def _insert_eventstream_profile(profile: Profile) -> None:
+    """
+    TODO: This function directly publishes the profile to kafka.
+    We'll want to look into the existing eventstream abstraction
+    so we can take advantage of nodestore at some point for single
+    profile access.
+    """
+
+    # just a guard as this should always be initialized already
+    if processed_profiles_publisher is None:
+        return
+
     processed_profiles_publisher.publish(
         "processed-profiles",
         json.dumps(profile),
     )
+
+
+@metrics.wraps("process_profile.insert_eventstream.call_tree")  # type: ignore
+def _insert_eventstream_call_tree(profile: Profile) -> None:
+    # just a guard as this should always be initialized already
+    if processed_profiles_publisher is None:
+        return
+
+    try:
+        event = _get_event_instance(profile)
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+        return
+
+    processed_profiles_publisher.publish(
+        "profiles-call-tree",
+        json.dumps(event),
+    )
+
+
+@metrics.wraps("process_profile.get_event_instance")  # type: ignore
+def _get_event_instance(profile: Profile) -> Any:
+    return {
+        "profile_id": profile["profile_id"],
+        "project_id": profile["project_id"],
+        "transaction_name": profile["transaction_name"],
+        "timestamp": profile["received"],
+        "platform": profile["platform"],
+        "environment": profile.get("environment"),
+        "release": f"{profile['version_name']} ({profile['version_code']})",
+        "os_name": profile["device_os_name"],
+        "os_version": profile["device_os_version"],
+        "retention_days": profile["retention_days"],
+        "call_trees": _get_call_trees(profile),
+    }
+
+
+def _get_call_trees(profile: Profile) -> List[Any]:
+    p = {}
+    for k, v in profile.items():
+        if k == "received":
+            p[k] = datetime.utcfromtimestamp(v).replace(tzinfo=timezone.utc).isoformat()
+        else:
+            p[k] = v
+
+    response = get_from_profiling_service(method="POST", path="/call_tree", json_data=p)
+
+    # TODO: something went wrong
+    if response.status != 200:
+        return {}
+
+    return json.loads(response.data)["call_trees"]
