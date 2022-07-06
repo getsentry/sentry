@@ -26,5 +26,7 @@ export default ([] as PlatformIntegration[]).concat(
       // filter out any tracing platforms; as they're not meant to be used as a platform for
       // the project creation flow
       .filter(integration => !(tracing as readonly string[]).includes(integration.id))
+      // filter out any performance onboarding documentation
+      .filter(integration => !integration.id.includes('performance-onboarding'))
   )
 );
