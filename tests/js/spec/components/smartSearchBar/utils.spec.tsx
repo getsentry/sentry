@@ -5,7 +5,7 @@ import {
   getTagItemsFromKeys,
   removeSpace,
 } from 'sentry/components/smartSearchBar/utils';
-import {FieldKind} from 'sentry/utils/fields';
+import {FieldKind, getFieldDefinition} from 'sentry/utils/fields';
 
 describe('addSpace()', function () {
   it('should add a space when there is no trailing space', function () {
@@ -68,25 +68,16 @@ describe('getTagItemsFromKeys()', function () {
         kind: FieldKind.FIELD,
         key: 'browser',
         name: 'Browser',
-        predefined: true,
-        desc: '',
-        values: [],
       },
       device: {
         kind: FieldKind.FIELD,
         key: 'device',
         name: 'Device',
-        predefined: true,
-        desc: '',
-        values: [],
       },
-      has: {
+      someTag: {
         kind: FieldKind.TAG,
-        key: 'has',
-        name: 'Has',
-        predefined: true,
-        desc: '',
-        values: [],
+        key: 'someTag',
+        name: 'someTag',
       },
     };
     const tagKeys = Object.keys(supportedTags);
@@ -107,8 +98,8 @@ describe('getTagItemsFromKeys()', function () {
         documentation: '-',
       },
       {
-        title: 'has',
-        value: 'has:',
+        title: 'someTag',
+        value: 'someTag:',
         kind: FieldKind.TAG,
         documentation: '-',
       },
@@ -117,29 +108,20 @@ describe('getTagItemsFromKeys()', function () {
 
   it('groups tags', () => {
     const supportedTags = {
-      'device.arch': {
+      'tag1.arch': {
+        key: 'tag1.arch',
+        name: 'Tag1 Arch',
         kind: FieldKind.FIELD,
-        key: 'device.arch',
-        name: 'Device Arch',
-        predefined: true,
-        desc: '',
-        values: [],
       },
-      'device.family': {
+      'tag1.family': {
+        key: 'tag1.family',
+        name: 'Tag1 Family',
         kind: FieldKind.FIELD,
-        key: 'device.family',
-        name: 'Device Family',
-        predefined: true,
-        desc: '',
-        values: [],
       },
-      has: {
+      test: {
+        key: 'test',
+        name: 'Test',
         kind: FieldKind.TAG,
-        key: 'has',
-        name: 'Has',
-        predefined: true,
-        desc: '',
-        values: [],
       },
     };
     const tagKeys = Object.keys(supportedTags);
@@ -148,28 +130,28 @@ describe('getTagItemsFromKeys()', function () {
 
     expect(items).toMatchObject([
       {
-        title: 'device',
+        title: 'tag1',
         value: null,
         kind: FieldKind.FIELD,
         documentation: '-',
         children: [
           {
-            title: 'device.arch',
-            value: 'device.arch:',
+            title: 'tag1.arch',
+            value: 'tag1.arch:',
             kind: FieldKind.FIELD,
             documentation: '-',
           },
           {
-            title: 'device.family',
-            value: 'device.family:',
+            title: 'tag1.family',
+            value: 'tag1.family:',
             kind: FieldKind.FIELD,
             documentation: '-',
           },
         ],
       },
       {
-        title: 'has',
-        value: 'has:',
+        title: 'test',
+        value: 'test:',
         kind: FieldKind.TAG,
         documentation: '-',
       },
@@ -178,29 +160,20 @@ describe('getTagItemsFromKeys()', function () {
 
   it('groups tags with single word parent', () => {
     const supportedTags = {
-      device: {
+      tag1: {
         kind: FieldKind.FIELD,
-        key: 'device',
-        name: 'Device',
-        predefined: true,
-        desc: '',
-        values: [],
+        key: 'tag1',
+        name: 'Tag1',
       },
-      'device.family': {
+      'tag1.family': {
         kind: FieldKind.FIELD,
-        key: 'device.family',
-        name: 'Device Family',
-        predefined: true,
-        desc: '',
-        values: [],
+        key: 'tag1.family',
+        name: 'Tag1 Family',
       },
-      has: {
+      test: {
         kind: FieldKind.TAG,
-        key: 'has',
-        name: 'Has',
-        predefined: true,
-        desc: '',
-        values: [],
+        key: 'test',
+        name: 'Test',
       },
     };
     const tagKeys = Object.keys(supportedTags);
@@ -209,24 +182,55 @@ describe('getTagItemsFromKeys()', function () {
 
     expect(items).toMatchObject([
       {
-        title: 'device',
-        value: 'device:',
+        title: 'tag1',
+        value: 'tag1:',
         kind: FieldKind.FIELD,
         documentation: '-',
         children: [
           {
-            title: 'device.family',
-            value: 'device.family:',
+            title: 'tag1.family',
+            value: 'tag1.family:',
             kind: FieldKind.FIELD,
             documentation: '-',
           },
         ],
       },
       {
-        title: 'has',
-        value: 'has:',
+        title: 'test',
+        value: 'test:',
         kind: FieldKind.TAG,
         documentation: '-',
+      },
+    ]);
+  });
+
+  it('uses field definitions', () => {
+    const supportedTags = {
+      has: {
+        key: 'has',
+        name: 'Has',
+      },
+      'device.family': {
+        key: 'device.family',
+        name: 'Device Family',
+      },
+    };
+    const tagKeys = Object.keys(supportedTags);
+
+    const items = getTagItemsFromKeys(tagKeys, supportedTags);
+
+    expect(items).toMatchObject([
+      {
+        title: 'device.family',
+        value: 'device.family:',
+        kind: getFieldDefinition('device.family')?.kind,
+        documentation: getFieldDefinition('device.family')?.desc,
+      },
+      {
+        title: 'has',
+        value: 'has:',
+        kind: getFieldDefinition('has')?.kind,
+        documentation: getFieldDefinition('has')?.desc,
       },
     ]);
   });
