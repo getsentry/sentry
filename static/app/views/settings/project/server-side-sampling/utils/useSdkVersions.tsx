@@ -19,11 +19,11 @@ function useSdkVersions({orgSlug, projSlug, projectIds = []}: Props) {
   >(undefined);
 
   useEffect(() => {
-    async function fetchSamplingSdkVersions() {
-      if (!projectIds.length) {
-        return;
-      }
+    if (!projectIds.length) {
+      return;
+    }
 
+    async function fetchSamplingSdkVersions() {
       try {
         const response = await api.requestPromise(
           `/organizations/${orgSlug}/dynamic-sampling/sdk-versions/`,

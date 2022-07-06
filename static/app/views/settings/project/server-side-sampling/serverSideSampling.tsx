@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useState} from 'react';
+import {Fragment, useEffect, useMemo, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
@@ -77,12 +77,18 @@ export function ServerSideSampling({project}: Props) {
     projSlug: project.slug,
   });
 
+  const projectIds = useMemo(
+    () =>
+      samplingDistribution?.project_breakdown?.map(
+        projectBreakdown => projectBreakdown.project_id
+      ),
+    [samplingDistribution?.project_breakdown]
+  );
+
   const {samplingSdkVersions} = useSdkVersions({
     orgSlug: organization.slug,
     projSlug: project.slug,
-    projectIds: samplingDistribution?.project_breakdown?.map(
-      projectBreakdown => projectBreakdown.project_id
-    ),
+    projectIds,
   });
 
   const notSendingSampleRateSdkUpgrades =
