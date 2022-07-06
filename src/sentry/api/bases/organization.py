@@ -174,6 +174,13 @@ def parse_subdomain(subdomain):
     return org_slug, region
 
 
+def resolve_org_slug_region(request: Request, organization_slug: Optional[str] = None):
+    region = None
+    if organization_slug is None and request.subdomain is not None:
+        organization_slug, region = parse_subdomain(request.subdomain)
+    return organization_slug, region
+
+
 class OrganizationEndpoint(Endpoint):
     permission_classes = (OrganizationPermission,)
 
@@ -359,8 +366,9 @@ class OrganizationEndpoint(Endpoint):
         return params
 
     def convert_args(self, request: Request, organization_slug=None, *args, **kwargs):
-        if organization_slug is None and request.subdomain is not None:
-            organization_slug, region = parse_subdomain(request.subdomain)
+        organization_slug, region = resolve_org_slug_region(
+            request=request, organization_slug=organization_slug
+        )
 
         if not organization_slug:
             raise ResourceDoesNotExist
