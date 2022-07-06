@@ -10,7 +10,6 @@ export interface FlamegraphEvents {
   highlightFrame: (frame: FlamegraphFrame | null, mode: 'hover' | 'selected') => void;
   resetZoom: () => void;
   setConfigView: (configView: Rect) => void;
-  setSelectedNode: (frame: FlamegraphFrame | null) => void;
   transformConfigView: (transform: mat3) => void;
   zoomIntoFrame: (frame: FlamegraphFrame, strategy: 'min' | 'exact') => void;
 }
@@ -25,7 +24,6 @@ export class CanvasScheduler {
   requestAnimationFrame: number | null = null;
 
   events: EventStore = {
-    setSelectedNode: new Set<FlamegraphEvents['setSelectedNode']>(),
     resetZoom: new Set<FlamegraphEvents['resetZoom']>(),
     highlightFrame: new Set<FlamegraphEvents['highlightFrame']>(),
     setConfigView: new Set<FlamegraphEvents['setConfigView']>(),
