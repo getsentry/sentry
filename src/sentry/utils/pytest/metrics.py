@@ -1,4 +1,5 @@
 import os
+import copy
 
 import dataclasses
 import functools
@@ -23,7 +24,7 @@ def control_metrics_access(monkeypatch, request, set_sentry_option):
             is_metrics = query.match.name.startswith("metrics_")
 
             if is_metrics:
-                convert_select_columns = _rewrite_query(query)
+                query, convert_select_columns = _rewrite_query(query)
 
             result = old_build_results(*args, **kwargs)
 
@@ -82,7 +83,7 @@ def _rewrite_query(query):
     def _walk_term(term):
         if (isinstance(term, Column) and term.subscriptable == 'tags'):
             convert_select_columns.add(term.name)
-            return
+            return term
 
         if (
             isinstance(term, AliasedExpression) and
@@ -91,7 +92,7 @@ def _rewrite_query(query):
             term.alias
         ):
             convert_select_columns.add(term.alias)
-            return
+            return term
 
         if isinstance(term, Condition):
             if (isinstance(lhs := term.lhs, Column) and
@@ -100,7 +101,7 @@ def _rewrite_query(query):
                 assert isinstance(rhs, str), f'found resolved integers in tags-related clause {term}'
                 # HACK: mutating frozen dataclass
                 term.__dict__['rhs'] = indexer.resolve(org_id, rhs)
-            return
+            return term
 
         if (
             isinstance(term, Function) and
@@ -114,9 +115,10 @@ def _rewrite_query(query):
                 pdb.set_trace()
             assert isinstance(rhs := term.parameters[1], str), f'found resolved integers in tags-related clause {term}'
             resolved_string = indexer.resolve(org_id, rhs)
-            term.__dict__['parameters'] = list(term.parameters)
-            term.parameters[1] = resolved_string
-            return
+            new_parameters = copy.deepcopy(term.parameters)
+            new_parameters[1] = resolved_string
+            new_term = dataclasses.replace(term, parameters=new_parameters)
+            return new_term
 
         if (
         isinstance(term, Function) and
@@ -131,16 +133,17 @@ def _rewrite_query(query):
                 pdb.set_trace()
 
             assert all(isinstance(x, str) for x in rhs), f'found resolved integers in tags-related clause {term}'
-            term.__dict__['parameters'] = list(term.parameters)
+            new_parameters = copy.deepcopy(term.parameters)
             for i, x in enumerate(rhs):
                 resolved_string = indexer.resolve(org_id, x)
-                term.parameters[1][i] = resolved_string
+                new_parameters[1][i] = resolved_string
 
-            return
+            new_term = dataclasses.replace(term, parameters=new_parameters)
+            return new_term
 
         if isinstance(term, Function) and term.function in ('in', 'notIn', 'equals'):
             assert not isinstance(term.parameters[0], Column) or term.parameters[0] != 'tags'
-            return
+            return term
 
         if isinstance(term, Column):
             # if we end up walking into a term like tags[123], we failed to
@@ -149,51 +152,60 @@ def _rewrite_query(query):
                 import pdb
                 pdb.set_trace()
             assert term.subscriptable != 'tags'
-            return
+            return term
 
         if isinstance(term, AliasedExpression):
-            _walk_term(term.exp)
-            return
+            return dataclasses.replace(term, exp=_walk_term(term.exp))
 
         if (isinstance(term, Function) and
             term.function in ('and', 'or', 'plus', 'minus', 'divide', 'equals', 'lessOrEquals', 'greaterOrEquals')):
-            for param in term.parameters or ():
-                _walk_term(param)
-            return
+            new_parameters = [_walk_term(param) for param in term.parameters or ()]
+            return dataclasses.replace(term, parameters=new_parameters)
 
         if (
             isinstance(term, Function) and 
             isinstance(col := term.parameters[0], Column) and
             col.name == 'project_id'
         ):
-            return
+            return term
 
         if isinstance(term, Function) and 'If' in term.function:
-            _walk_term(term.parameters[1])
-            return
+            new_parameters = copy.deepcopy(term.parameters)
+            new_parameters[1] = _walk_term(term.parameters[1])
+            return dataclasses.replace(term, parameters=new_parameters)
 
         if isinstance(term, Function) and term.function == 'arrayElement':
-            _walk_term(term.parameters[0])
-            return
+            new_parameters = copy.deepcopy(term.parameters)
+            new_parameters[0] = _walk_term(term.parameters[0])
+            return dataclasses.replace(term, parameters=new_parameters)
 
         if isinstance(term, Function) and term.function == 'arrayReduce':
-            for param in term.parameters[1]:
+            new_parameters = copy.deepcopy(term.parameters)
+            new_parameters[1] = [
                 _walk_term(param)
-            return
+                for param in term.parameters[1]
+            ]
+            return dataclasses.replace(term, parameters=new_parameters)
 
         if isinstance(term, (str, int, float)):
-            return
+            return term
 
         raise AssertionError(f"don't know how to rewrite snql: {term}")
 
 
-    for clause in query.select:
-        _walk_term(clause)
+    query = dataclasses.replace(
+        query,
+        select=[
+            _walk_term(clause)
+            for clause in query.select
+        ],
+        where=[
+            _walk_term(clause)
+            for clause in query.where
+        ]
+    )
 
-    for clause in query.where:
-        _walk_term(clause)
-
-    return convert_select_columns
+    return query, convert_select_columns
 
 
 
