@@ -98,10 +98,14 @@ def _rewrite_query(query):
             if (isinstance(lhs := term.lhs, Column) and
                 lhs.subscriptable == 'tags'):
                 rhs = term.rhs
-                assert isinstance(rhs, str), f'found resolved integers in tags-related clause {term}'
-                # HACK: mutating frozen dataclass
-                term.__dict__['rhs'] = indexer.resolve(org_id, rhs)
-            return term
+                if isinstance(rhs, str):
+                    return dataclasses.replace(term, rhs=indexer.resolve(org_id, rhs))
+
+                if isinstance(rhs, (tuple, list)):
+                    assert all(isinstance(x, str) for x in rhs)
+                    return dataclasses.replace(term, rhs=[indexer.resolve(org_id, x) for x in rhs])
+            else:
+                return term
 
         if (
             isinstance(term, Function) and
@@ -145,13 +149,7 @@ def _rewrite_query(query):
             assert not isinstance(term.parameters[0], Column) or term.parameters[0] != 'tags'
             return term
 
-        if isinstance(term, Column):
-            # if we end up walking into a term like tags[123], we failed to
-            # catch that at an outer call of _walk_term
-            if term.subscriptable == 'tags':
-                import pdb
-                pdb.set_trace()
-            assert term.subscriptable != 'tags'
+        if isinstance(term, Column) and term.subscriptable != 'tags':
             return term
 
         if isinstance(term, AliasedExpression):
