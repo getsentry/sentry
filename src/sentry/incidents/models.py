@@ -348,9 +348,9 @@ class AlertRule(Model):
     __include_in_export__ = True
 
     class Type(Enum):
-        Error = 0
-        Performance = 1
-        CrashRate = 2
+        ERROR = 0
+        PERFORMANCE = 1
+        CRASH_RATE = 2
 
     objects = AlertRuleManager()
     objects_with_snapshots = BaseManager()
