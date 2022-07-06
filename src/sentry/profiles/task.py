@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from time import sleep, time
-from typing import Any, List, Mapping, MutableMapping, Optional
+from typing import Any, List, Mapping, MutableMapping, Optional, cast
 
 import sentry_sdk
 from django.conf import settings
@@ -23,6 +23,7 @@ from sentry.utils.profiling import get_from_profiling_service
 from sentry.utils.pubsub import KafkaPublisher
 
 Profile = MutableMapping[str, Any]
+CallTrees = Mapping[str, List[Any]]
 
 processed_profiles_publisher = None
 
@@ -303,18 +304,18 @@ def _get_event_instance(profile: Profile) -> Any:
     }
 
 
-def _get_call_trees(profile: Profile) -> Mapping[str, List[Any]]:
-    p = {}
-    for k, v in profile.items():
-        if k == "received":
-            p[k] = datetime.utcfromtimestamp(v).replace(tzinfo=timezone.utc).isoformat()
-        else:
-            p[k] = v
+def _get_call_trees(profile: Profile) -> CallTrees:
+    profile = dict(profile)
 
-    response = get_from_profiling_service(method="POST", path="/call_tree", json_data=p)
+    profile["received"] = (
+        datetime.utcfromtimestamp(profile["received"]).replace(tzinfo=timezone.utc).isoformat()
+    )
 
-    # TODO: something went wrong
+    response = get_from_profiling_service(method="POST", path="/call_tree", json_data=profile)
+
+    # something went wrong, return empty call trees
     if response.status != 200:
+        metrics.incr("profiling.get_call_tree", tags={"platform": profile["platform"]})
         return {}
 
-    return json.loads(response.data)["call_trees"]
+    return cast(CallTrees, json.loads(response.data)["call_trees"])
