@@ -260,7 +260,18 @@ class ActiveReleaseAlertNotification(AlertRuleNotification):
         params = {"project": release.project_id, "referrer": "alert_email_release"}
         url = "/organizations/{org}/releases/{version}/{params}".format(
             org=release.organization.slug,
-            version={quote(release.version)},
+            version=release.version,
+            params="?" + urlencode(params),
+        )
+
+        return str(absolute_uri(url))
+
+    @staticmethod
+    def slack_release_url(release: Release) -> str:
+        params = {"project": release.project_id, "referrer": "alert_slack_release"}
+        url = "/organizations/{org}/releases/{version}/{params}".format(
+            org=release.organization.slug,
+            version=quote(release.version),
             params="?" + urlencode(params),
         )
 
