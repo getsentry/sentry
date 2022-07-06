@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from django.db.models import QuerySet
+
 from sentry.integrations.msteams.actions.form import MsTeamsNotifyServiceForm
 from sentry.integrations.msteams.card_builder import build_group_card
 from sentry.integrations.msteams.client import MsTeamsClient
@@ -26,6 +28,9 @@ class MsTeamsNotifyServiceAction(IntegrationEventAction):
             },
             "channel": {"type": "string", "placeholder": "i.e. General, Jane Schmidt"},
         }
+
+    def get_integrations(self) -> QuerySet[Integration]:
+        return super().get_integrations().exclude(metadata__installation_type="tenant")
 
     def after(self, event, state):
         channel = self.get_option("channel_id")
