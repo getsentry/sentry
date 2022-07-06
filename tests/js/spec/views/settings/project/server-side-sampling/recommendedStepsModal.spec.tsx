@@ -1,175 +1,15 @@
-import {InjectedRouter} from 'react-router';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
-
-import * as modal from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
 import GlobalModal from 'sentry/components/globalModal';
-import {Organization, Project} from 'sentry/types';
-import importedUseProjects from 'sentry/utils/useProjects';
-import {OrganizationContext} from 'sentry/views/organizationContext';
-import {RouteContext} from 'sentry/views/routeContext';
-import ServerSideSampling from 'sentry/views/settings/project/server-side-sampling';
-import importedUseProjectStats from 'sentry/views/settings/project/server-side-sampling/utils/useProjectStats';
-import importedUseSamplingDistribution from 'sentry/views/settings/project/server-side-sampling/utils/useSamplingDistribution';
-import importedUseSdkVersions from 'sentry/views/settings/project/server-side-sampling/utils/useSdkVersions';
+import {RecommendedStepsModal} from 'sentry/views/settings/project/server-side-sampling/modals/recommendedStepsModal';
+import {SERVER_SIDE_SAMPLING_DOC_LINK} from 'sentry/views/settings/project/server-side-sampling/utils';
 
-import {getMockData} from './index.spec';
-
-const mockedProjects = [
-  TestStubs.Project({
-    name: 'javascript',
-    slug: 'javascript',
-    id: 1,
-  }),
-  TestStubs.Project({
-    name: 'sentry',
-    slug: 'sentry',
-    id: 2,
-  }),
-  TestStubs.Project({
-    id: 4,
-    dynamicSampling: {
-      rules: [
-        {
-          sampleRate: 1,
-          type: 'trace',
-          active: false,
-          condition: {
-            op: 'and',
-            inner: [],
-          },
-          id: 1,
-        },
-      ],
-    },
-  }),
-];
-
-jest.mock('sentry/utils/useProjects');
-const useProjects = importedUseProjects as jest.MockedFunction<
-  typeof importedUseProjects
->;
-useProjects.mockImplementation(() => ({
-  projects: mockedProjects,
-  fetchError: null,
-  fetching: false,
-  hasMore: false,
-  initiallyLoaded: true,
-  onSearch: jest.fn(),
-  placeholders: [],
-}));
-
-jest.mock('sentry/views/settings/project/server-side-sampling/utils/useProjectStats');
-const useProjectStats = importedUseProjectStats as jest.MockedFunction<
-  typeof importedUseProjectStats
->;
-useProjectStats.mockImplementation(() => ({
-  projectStats: TestStubs.Outcomes(),
-  loading: false,
-  error: undefined,
-  projectStatsSeries: [],
-}));
-
-jest.mock(
-  'sentry/views/settings/project/server-side-sampling/utils/useSamplingDistribution'
-);
-const useSamplingDistribution = importedUseSamplingDistribution as jest.MockedFunction<
-  typeof importedUseSamplingDistribution
->;
-
-useSamplingDistribution.mockImplementation(() => ({
-  samplingDistribution: {
-    project_breakdown: [
-      {
-        project: mockedProjects[0].slug,
-        project_id: mockedProjects[0].id,
-        'count()': 888,
-      },
-      {
-        project: mockedProjects[1].slug,
-        project_id: mockedProjects[1].id,
-        'count()': 100,
-      },
-    ],
-    sample_size: 100,
-    null_sample_rate_percentage: 98,
-    sample_rate_distributions: {
-      min: 1,
-      max: 1,
-      avg: 1,
-      p50: 1,
-      p90: 1,
-      p95: 1,
-      p99: 1,
-    },
-  },
-}));
-
-jest.mock('sentry/views/settings/project/server-side-sampling/utils/useSdkVersions');
-const useSdkVersions = importedUseSdkVersions as jest.MockedFunction<
-  typeof importedUseSdkVersions
->;
-
-useSdkVersions.mockImplementation(() => ({
-  samplingSdkVersions: [
-    {
-      project: mockedProjects[0].slug,
-      latestSDKVersion: '1.0.3',
-      latestSDKName: 'sentry.javascript.react',
-      isSendingSampleRate: true,
-    },
-    {
-      project: mockedProjects[1].slug,
-      latestSDKVersion: '1.0.2',
-      latestSDKName: 'sentry.python',
-      isSendingSampleRate: false,
-    },
-  ],
-}));
-
-function TestComponent({
-  router,
-  project,
-  organization,
-}: {
-  organization: Organization;
-  project: Project;
-  router: InjectedRouter;
-}) {
-  return (
-    <RouteContext.Provider
-      value={{
-        router,
-        location: router.location,
-        params: {
-          orgId: organization.slug,
-          projectId: project.slug,
-        },
-        routes: [],
-      }}
-    >
-      <GlobalModal />
-      <OrganizationContext.Provider value={organization}>
-        <ServerSideSampling project={project} />
-      </OrganizationContext.Provider>
-    </RouteContext.Provider>
-  );
-}
+import {getMockData, mockedProjects, mockedSamplingSdkVersions} from './utils';
 
 describe('Server-side Sampling - Recommended Steps Modal', function () {
   beforeEach(function () {
-    MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/projects/`,
-      method: 'GET',
-      body: mockedProjects,
-    });
-
-    MockApiClient.addMockResponse({
-      url: '/projects/org-slug/project-slug/tags/',
-      body: TestStubs.Tags,
-    });
-
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/release/values/',
       method: 'GET',
@@ -177,44 +17,131 @@ describe('Server-side Sampling - Recommended Steps Modal', function () {
     });
   });
 
-  // TODO(sampling): move this test to the main file
-  it('display "update Sdk versions" alert', async function () {
-    jest.spyOn(modal, 'openModal');
+  it('render all recommended steps', function () {
+    const {organization, project} = getMockData();
 
-    const {organization, projects, router} = getMockData({
-      projects: mockedProjects,
-    });
+    render(<GlobalModal />);
 
-    render(
-      <TestComponent organization={organization} project={projects[2]} router={router} />
-    );
+    openModal(modalProps => (
+      <RecommendedStepsModal
+        {...modalProps}
+        organization={organization}
+        project={project}
+        recommendedSdkUpgrades={[
+          {
+            project: mockedProjects[1],
+            latestSDKName: mockedSamplingSdkVersions[1].latestSDKName,
+            latestSDKVersion: mockedSamplingSdkVersions[1].latestSDKVersion,
+          },
+        ]}
+        onSubmit={jest.fn()}
+      />
+    ));
 
-    const recommendedSdkUpgradesAlert = await screen.findByTestId(
-      'recommended-sdk-upgrades-alert'
-    );
+    expect(screen.getByText('Recommended next steps\u2026')).toBeInTheDocument();
 
+    // First recommended step
     expect(
-      within(recommendedSdkUpgradesAlert).getByText(
-        'To keep a consistent amount of transactions across your applications multiple services, we recommend you update the SDK versions for the following projects:'
-      )
+      screen.getByRole('heading', {name: 'Update the following SDK versions'})
     ).toBeInTheDocument();
 
     expect(
-      within(recommendedSdkUpgradesAlert).getByRole('link', {
-        name: mockedProjects[1].slug,
-      })
-    ).toHaveAttribute(
+      screen.getByText(
+        textWithMarkupMatcher(
+          "I know what you're thinking, “It's already working, why should I?”. By updating the following SDK's before activating any server sampling rules, you're avoiding situations when our servers aren't accepting enough transactions (double sampling) or our servers are accepting too many transactions (exceeded quota)."
+        )
+      )
+    ).toBeInTheDocument();
+
+    expect(screen.getByRole('link', {name: mockedProjects[1].slug})).toHaveAttribute(
       'href',
       `/organizations/org-slug/projects/sentry/?project=${mockedProjects[1].id}`
     );
 
-    // Open Modal
-    userEvent.click(
-      within(recommendedSdkUpgradesAlert).getByRole('button', {
-        name: 'Learn More',
-      })
+    expect(screen.getByTestId('platform-icon-python')).toBeInTheDocument();
+
+    expect(
+      screen.getByText(
+        textWithMarkupMatcher(
+          `This project is on ${mockedSamplingSdkVersions[1].latestSDKName}@v${mockedSamplingSdkVersions[1].latestSDKVersion}`
+        )
+      )
+    ).toBeInTheDocument();
+
+    // Second recommended step
+    expect(
+      screen.getByRole('heading', {name: 'Increase your SDK Transaction sample rate'})
+    ).toBeInTheDocument();
+
+    expect(
+      screen.getByText(
+        textWithMarkupMatcher(
+          'This comes in handy when server-side sampling target the transactions you want to accept, but you need more of those transactions being sent by your client. Here we  already suggest a value based on your quota and throughput.'
+        )
+      )
+    ).toBeInTheDocument();
+
+    expect(screen.getByText(textWithMarkupMatcher(/Sentry.init/))).toBeInTheDocument();
+
+    // Footer
+    expect(screen.getByRole('button', {name: 'Read Docs'})).toHaveAttribute(
+      'href',
+      SERVER_SIDE_SAMPLING_DOC_LINK
     );
 
-    expect(openModal).toHaveBeenCalled();
+    expect(screen.getByRole('button', {name: 'Cancel'})).toBeInTheDocument();
+
+    expect(screen.getByRole('button', {name: 'Done'})).toBeInTheDocument();
+
+    expect(screen.queryByText('Step 2 of 2')).not.toBeInTheDocument();
+
+    expect(screen.queryByRole('button', {name: 'Back'})).not.toBeInTheDocument();
+  });
+
+  it('render only the last recommended step', function () {
+    const {organization, project} = getMockData();
+
+    render(<GlobalModal />);
+
+    openModal(modalProps => (
+      <RecommendedStepsModal
+        {...modalProps}
+        organization={organization}
+        project={project}
+        recommendedSdkUpgrades={[]}
+        onSubmit={jest.fn()}
+      />
+    ));
+
+    expect(
+      screen.queryByRole('heading', {name: 'Update the following SDK versions'})
+    ).not.toBeInTheDocument();
+
+    expect(
+      screen.getByRole('heading', {name: 'Increase your SDK Transaction sample rate'})
+    ).toBeInTheDocument();
+  });
+
+  it('render as a second step of a wizard', function () {
+    const {organization, project} = getMockData();
+
+    const onGoBack = jest.fn();
+
+    render(<GlobalModal />);
+
+    openModal(modalProps => (
+      <RecommendedStepsModal
+        {...modalProps}
+        organization={organization}
+        project={project}
+        recommendedSdkUpgrades={[]}
+        onGoBack={onGoBack}
+        onSubmit={jest.fn()}
+      />
+    ));
+
+    expect(screen.getByText('Step 2 of 2')).toBeInTheDocument();
+    userEvent.click(screen.getByRole('button', {name: 'Back'}));
+    expect(onGoBack).toHaveBeenCalled();
   });
 });

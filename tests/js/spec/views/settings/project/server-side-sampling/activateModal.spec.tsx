@@ -8,55 +8,14 @@ import {
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import * as indicators from 'sentry/actionCreators/indicator';
+import {openModal} from 'sentry/actionCreators/modal';
 import GlobalModal from 'sentry/components/globalModal';
-import {OrganizationContext} from 'sentry/views/organizationContext';
-import {RouteContext} from 'sentry/views/routeContext';
-import ServerSideSampling from 'sentry/views/settings/project/server-side-sampling';
+import {ActivateModal} from 'sentry/views/settings/project/server-side-sampling/modals/activateModal';
 import {SERVER_SIDE_SAMPLING_DOC_LINK} from 'sentry/views/settings/project/server-side-sampling/utils';
-import importedUseProjectStats from 'sentry/views/settings/project/server-side-sampling/utils/useProjectStats';
-import importedUseSamplingDistribution from 'sentry/views/settings/project/server-side-sampling/utils/useSamplingDistribution';
 
-import {getMockData} from './index.spec';
-
-jest.mock(
-  'sentry/views/settings/project/server-side-sampling/utils/useSamplingDistribution'
-);
-const useSamplingDistribution = importedUseSamplingDistribution as jest.MockedFunction<
-  typeof importedUseSamplingDistribution
->;
-
-useSamplingDistribution.mockImplementation(() => ({
-  samplingDistribution: {
-    project_breakdown: null,
-    sample_size: 0,
-    null_sample_rate_percentage: null,
-    sample_rate_distributions: null,
-  },
-}));
-
-jest.mock('sentry/views/settings/project/server-side-sampling/utils/useProjectStats');
-const useProjectStats = importedUseProjectStats as jest.MockedFunction<
-  typeof importedUseProjectStats
->;
-useProjectStats.mockImplementation(() => ({
-  projectStats: TestStubs.Outcomes(),
-  loading: false,
-  error: undefined,
-  projectStatsSeries: [],
-}));
+import {getMockData, uniformRule} from './utils';
 
 describe('Server-side Sampling - Activate Modal', function () {
-  const uniformRule = {
-    sampleRate: 1,
-    type: 'trace',
-    active: false,
-    condition: {
-      op: 'and',
-      inner: [],
-    },
-    id: 1,
-  };
-
   it('renders modal', async function () {
     const newRule = {
       ...uniformRule,
@@ -64,7 +23,7 @@ describe('Server-side Sampling - Activate Modal', function () {
       active: true,
     };
 
-    const {router, project, organization} = getMockData({
+    const {project, organization} = getMockData({
       projects: [
         TestStubs.Project({
           dynamicSampling: {
@@ -86,29 +45,17 @@ describe('Server-side Sampling - Activate Modal', function () {
 
     jest.spyOn(indicators, 'addSuccessMessage');
 
-    render(
-      <RouteContext.Provider
-        value={{
-          router,
-          location: router.location,
-          params: {
-            orgId: organization.slug,
-            projectId: project.slug,
-          },
-          routes: [],
-        }}
-      >
-        <GlobalModal />
-        <OrganizationContext.Provider value={{...organization, id: 1}}>
-          <ServerSideSampling project={project} />
-        </OrganizationContext.Provider>
-      </RouteContext.Provider>
-    );
+    render(<GlobalModal />);
 
-    // Rules Panel Content
-    userEvent.click(screen.getByLabelText('Activate Rule'));
-
-    const dialog = await screen.findByRole('dialog');
+    openModal(modalProps => (
+      <ActivateModal
+        {...modalProps}
+        ruleId={uniformRule.id}
+        rules={[uniformRule]}
+        orgSlug={organization.slug}
+        projSlug={project.slug}
+      />
+    ));
 
     // Dialog Header
     expect(screen.getByRole('heading', {name: 'Activate Rule'})).toBeInTheDocument();
@@ -125,10 +72,9 @@ describe('Server-side Sampling - Activate Modal', function () {
     expect(screen.getByText(/I understand the consequences/)).toBeInTheDocument();
 
     // Dialog Footer
-    expect(within(dialog).getByRole('button', {name: 'Read Docs'})).toHaveAttribute(
-      'href',
-      SERVER_SIDE_SAMPLING_DOC_LINK
-    );
+    expect(
+      within(screen.getByRole('dialog')).getByRole('button', {name: 'Read Docs'})
+    ).toHaveAttribute('href', SERVER_SIDE_SAMPLING_DOC_LINK);
     expect(screen.getByRole('button', {name: 'Cancel'})).toBeEnabled();
     expect(screen.getByRole('button', {name: 'Activate Rule'})).toBeDisabled();
 
