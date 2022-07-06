@@ -74,7 +74,7 @@ def get_letter_avatar(
 ) -> str:
     display_name = (display_name or "").strip() or "?"
     names = display_name.split(" ")
-    initials = initials or  "{}{}".format(names[0][0], names[-1][0] if len(names) > 1 else "")
+    initials = initials or "{}{}".format(names[0][0], names[-1][0] if len(names) > 1 else "")
     initials = escape(initials.upper())
     color = get_letter_avatar_color(identifier)
     if use_svg:

@@ -333,7 +333,7 @@ def alert(request):
 def release_alert(request):
     platform = request.GET.get("platform", "python")
     org = Organization(id=1, slug="example", name="Example")
-    project = Project(id=1, slug="example", name="Example", organization=org)
+    project = Project(id=1, slug="example", name="Example", organization=org, platform="python")
 
     random = get_random(request)
     group = next(make_group_generator(random, project))
