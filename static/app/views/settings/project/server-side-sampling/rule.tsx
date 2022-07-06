@@ -122,16 +122,10 @@ export function Rule({
           onFinish={() => {
             // TODO(sampling): activate the rule
           }}
-          // TODO(sampling): disable if sdks are not yet updated
-          disabled={true || !isUniform}
+          disabled={hasRecommendedSdkUpgrades || !isUniform}
         >
-          <ActiveToggle
-            inline={false}
-            hideControlState
-            aria-label={rule.active ? t('Deactivate Rule') : t('Activate Rule')}
-            onClick={onActivate}
-            name="active"
-            disabled={hasRecommendedSdkUpgrades}
+          <Tooltip
+            disabled={!hasRecommendedSdkUpgrades}
             title={
               hasRecommendedSdkUpgrades
                 ? t(
@@ -139,7 +133,16 @@ export function Rule({
                   )
                 : undefined
             }
-          />
+          >
+            <ActiveToggle
+              inline={false}
+              hideControlState
+              aria-label={rule.active ? t('Deactivate Rule') : t('Activate Rule')}
+              onClick={onActivate}
+              name="active"
+              disabled={hasRecommendedSdkUpgrades}
+            />
+          </Tooltip>
         </GuideAnchor>
       </ActiveColumn>
       <Column>

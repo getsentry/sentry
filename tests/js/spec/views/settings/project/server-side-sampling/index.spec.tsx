@@ -256,4 +256,30 @@ describe('Server-side Sampling', function () {
       await screen.findByText("You don't have permission to add a rule")
     ).toBeInTheDocument();
   });
+
+  it('does not let the user active a rule if sdk updates exists', async function () {
+    const {organization, router, project} = getMockData({
+      projects: [
+        TestStubs.Project({
+          dynamicSampling: {
+            rules: [uniformRule],
+          },
+        }),
+      ],
+    });
+
+    render(
+      <TestComponent organization={organization} project={project} router={router} />
+    );
+
+    expect(screen.getByRole('checkbox', {name: 'Activate Rule'})).toBeDisabled();
+
+    userEvent.hover(screen.getByLabelText('Activate Rule'));
+
+    expect(
+      await screen.findByText(
+        'To enable the rule, the sdk versions of the recommended projects must be updated'
+      )
+    ).toBeInTheDocument();
+  });
 });
