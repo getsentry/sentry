@@ -63,6 +63,8 @@ class RedisBuffer(Buffer):
             # wait 10 seconds at most
             with self.cluster.all(timeout=10) as client:
                 client.ping()
+            # disconnect after successfull service validation
+            self.cluster.disconnect_pools()
         except Exception as e:
             raise InvalidConfiguration(str(e))
 
