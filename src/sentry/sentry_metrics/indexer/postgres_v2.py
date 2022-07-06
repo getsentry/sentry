@@ -251,10 +251,6 @@ class StaticStringsIndexerDecorator(StringIndexer):
     def resolve(
         self, org_id: int, string: str, use_case_id: UseCaseKey = UseCaseKey.RELEASE_HEALTH
     ) -> Optional[int]:
-        if string == 'value1':
-            import pdb
-            pdb.set_trace()
-
         if string in SHARED_STRINGS:
             return SHARED_STRINGS[string]
         return self.indexer.resolve(use_case_id=use_case_id, org_id=org_id, string=string)

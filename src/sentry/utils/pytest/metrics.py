@@ -29,13 +29,19 @@ def control_metrics_access(monkeypatch, request, set_sentry_option):
 
             result = old_build_results(*args, **kwargs)
 
+
             if is_metrics:
-                for row in result:
+                print(convert_select_columns)
+
+                for row in result[0].get("data") or ():
                     for k in convert_select_columns:
                         if k in row:
                             assert isinstance(row[k], int)
                             row[k] = indexer.reverse_resolve(row[k])
                             assert isinstance(row[k], str)
+
+                import pdb
+                pdb.set_trace()
 
             return result
 
@@ -107,8 +113,7 @@ def _rewrite_query(query):
                     assert all(isinstance(x, str) for x in rhs)
                     return dataclasses.replace(term, rhs=[indexer.resolve(org_id, x) for x in rhs])
 
-                if isinstance(rhs, Function) and rhs.function == 'tuple':
-                    assert all(isinstance(x, str) for x in rhs.parameters or ())
+                if isinstance(rhs, Function) and rhs.function == 'tuple' and all(isinstance(x, str) for x in rhs.parameters or ()):
                     return dataclasses.replace(
                         term, rhs=dataclasses.replace(
                             rhs, 
@@ -116,9 +121,22 @@ def _rewrite_query(query):
                         )
                     )
 
-                raise AssertionError(f"dont know how to deal with condition {term}")
-            else:
+            if isinstance(lhs := term.lhs, Column):
                 return term
+
+            if (isinstance(lhs := term.lhs, Function) and lhs.function == 'tuple' and all(
+                isinstance(param, Column) and param.subscriptable == 'tags' for param in lhs.parameters or ())):
+                rhs = term.rhs
+
+                if isinstance(rhs, Function) and rhs.function == 'tuple' and all(isinstance(x, tuple) and all(isinstance(y, str) for y in x) for x in rhs.parameters or ()):
+                    return dataclasses.replace(
+                        term, rhs=dataclasses.replace(
+                            rhs,
+                            parameters=[tuple(indexer.resolve(org_id, y) for y in x) for x in rhs.parameters or ()]
+                        )
+                    )
+                
+            raise AssertionError(f"dont know how to deal with condition {term}")
 
         if (
             isinstance(term, Function) and
@@ -213,6 +231,10 @@ def _rewrite_query(query):
         where=[
             _walk_term(clause)
             for clause in query.where
+        ],
+        groupby=[
+            _walk_term(clause)
+            for clause in query.groupby
         ]
     )
 

@@ -76,9 +76,6 @@ class PGStringIndexer(Service):
 
         Returns None if the entry cannot be found.
         """
-        if string == 'value1':
-            import pdb
-            pdb.set_trace()
         try:
             id: int = MetricsKeyIndexer.objects.get_from_cache(string=string).id
         except MetricsKeyIndexer.DoesNotExist:
