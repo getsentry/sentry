@@ -7,10 +7,11 @@ class TestBackfill(TestMigrations):
     migrate_to = "0286_backfill_alertrule_organization"
 
     def setup_initial_state(self):
+        # typical case
         self.alert_rule = self.create_alert_rule(
             organization=self.organization, projects=[self.project]
         )
-        # typical case
+
         ar = AlertRule.objects_with_snapshots.get(id=self.alert_rule.id)
         ar.organization_id = self.create_organization(name="diff_org").id
         ar.save()
