@@ -13,16 +13,13 @@ import {IconDownload, IconEllipsis} from 'sentry/icons';
 import {IconGrabbable} from 'sentry/icons/iconGrabbable';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
+import {Project} from 'sentry/types';
 import {SamplingRule, SamplingRuleOperator} from 'sentry/types/sampling';
 
 import {getInnerNameLabel, isUniformRule} from './utils';
 
 type Props = {
   dragging: boolean;
-  /**
-   * If true, the activate rule toggle will be disabled.
-   */
-  hasRecommendedSdkUpgrades: boolean;
   /**
    * Hide the grab button if true.
    * This is used when the list has a single item, making sorting not possible.
@@ -36,6 +33,10 @@ type Props = {
   operator: SamplingRuleOperator;
   rule: SamplingRule;
   sorting: boolean;
+  /**
+   * If not empty, the activate rule toggle will be disabled.
+   */
+  upgradeSdkForProjects: Project['slug'][];
   grabAttributes?: UseDraggableArguments['attributes'];
 };
 
@@ -50,10 +51,11 @@ export function Rule({
   operator,
   grabAttributes,
   hideGrabButton,
-  hasRecommendedSdkUpgrades,
+  upgradeSdkForProjects,
 }: Props) {
   const isUniform = isUniformRule(rule);
   const canDelete = !noPermission && !isUniform;
+  const canActivate = !upgradeSdkForProjects.length;
 
   return (
     <Fragment>
@@ -122,15 +124,21 @@ export function Rule({
           onFinish={() => {
             // TODO(sampling): activate the rule
           }}
-          disabled={hasRecommendedSdkUpgrades || !isUniform}
+          disabled={!canActivate || !isUniform}
         >
           <Tooltip
-            disabled={!hasRecommendedSdkUpgrades}
+            disabled={canActivate}
             title={
-              hasRecommendedSdkUpgrades
-                ? t(
-                    'To enable the rule, the sdk versions of the recommended projects must be updated'
-                  )
+              !canActivate
+                ? upgradeSdkForProjects.length === 1
+                  ? t(
+                      'To enable the rule, the sdk version for the project %s have to be updated',
+                      upgradeSdkForProjects[0]
+                    )
+                  : t(
+                      'To enable the rule, the sdk version for the project %s have to be updated',
+                      upgradeSdkForProjects.join(', ')
+                    )
                 : undefined
             }
           >
@@ -140,7 +148,7 @@ export function Rule({
               aria-label={rule.active ? t('Deactivate Rule') : t('Activate Rule')}
               onClick={onActivate}
               name="active"
-              disabled={hasRecommendedSdkUpgrades}
+              disabled={!canActivate}
             />
           </Tooltip>
         </GuideAnchor>

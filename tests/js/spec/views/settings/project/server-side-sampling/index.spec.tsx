@@ -278,7 +278,7 @@ describe('Server-side Sampling', function () {
 
     expect(
       await screen.findByText(
-        'To enable the rule, the sdk versions of the recommended projects must be updated'
+        `To enable the rule, the sdk version for the project ${mockedProjects[1].slug} have to be updated`
       )
     ).toBeInTheDocument();
   });

@@ -393,7 +393,9 @@ export function ServerSideSampling({project}: Props) {
                         onDeleteRule={() => handleDeleteRule(currentRule)}
                         onActivate={() => handleActivateToggle(currentRule.id)}
                         noPermission={!hasAccess}
-                        hasRecommendedSdkUpgrades={!!recommendedSdkUpgrades.length}
+                        upgradeSdkForProjects={recommendedSdkUpgrades.map(
+                          recommendedSdkUpgrade => recommendedSdkUpgrade.project.slug
+                        )}
                         listeners={listeners}
                         grabAttributes={attributes}
                         dragging={dragging}
