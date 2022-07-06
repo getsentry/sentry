@@ -125,7 +125,7 @@ class OrganizationMetricsDataEndpoint(OrganizationEndpoint):
                     projects, request.GET, paginator_kwargs={"limit": limit, "offset": offset}
                 )
                 data = get_series(
-                    projects, query.to_metrics_query(), use_case_id=UseCaseKey.RELEASE_HEALTH
+                    projects, query.to_metrics_query(), use_case_id=UseCaseKey.PERFORMANCE
                 )
                 data["query"] = query.query
             except (

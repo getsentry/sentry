@@ -1130,19 +1130,19 @@ class SessionMetricsTestCase(SnubaTestCase):
 
         def metric_id(key: SessionMRI):
             res = indexer.record(
-                use_case_id=UseCaseKey.RELEASE_HEALTH, org_id=org_id, string=key.value
+                use_case_id=UseCaseKey.PERFORMANCE, org_id=org_id, string=key.value
             )
             assert res is not None, key
             return res
 
         def tag_key(name):
-            res = indexer.record(use_case_id=UseCaseKey.RELEASE_HEALTH, org_id=org_id, string=name)
+            res = indexer.record(use_case_id=UseCaseKey.PERFORMANCE, org_id=org_id, string=name)
             assert res is not None, name
 
             return res
 
         def tag_value(name):
-            res = indexer.record(use_case_id=UseCaseKey.RELEASE_HEALTH, org_id=org_id, string=name)
+            res = indexer.record(use_case_id=UseCaseKey.PERFORMANCE, org_id=org_id, string=name)
             assert res is not None, name
             return res
 
@@ -1237,7 +1237,7 @@ class MetricsEnhancedPerformanceTestCase(SessionMetricsTestCase, TestCase):
         tags: Optional[Dict[str, str]] = None,
         timestamp: Optional[datetime] = None,
         project: Optional[id] = None,
-        use_case_id: UseCaseKey = UseCaseKey.RELEASE_HEALTH,
+        use_case_id: UseCaseKey = UseCaseKey.PERFORMANCE,
     ):
         internal_metric = METRICS_MAP[metric] if internal_metric is None else internal_metric
         entity = self.ENTITY_MAP[metric] if entity is None else entity
@@ -1717,7 +1717,7 @@ class MetricsAPIBaseTestCase(SessionMetricsTestCase, APITestCase):
 
 class OrganizationMetricMetaIntegrationTestCase(MetricsAPIBaseTestCase):
     def __indexer_record(self, org_id: int, value: str) -> int:
-        return indexer.record(use_case_id=UseCaseKey.RELEASE_HEALTH, org_id=org_id, string=value)
+        return indexer.record(use_case_id=UseCaseKey.PERFORMANCE, org_id=org_id, string=value)
 
     def setUp(self):
         super().setUp()

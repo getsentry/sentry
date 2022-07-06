@@ -1,5 +1,6 @@
 import time
 from datetime import datetime, timedelta
+from functools import partial
 from typing import Optional
 from unittest import mock
 from unittest.mock import patch
@@ -22,8 +23,12 @@ from sentry.utils.cursors import Cursor
 from tests.sentry.api.endpoints.test_organization_metrics import MOCKED_DERIVED_METRICS
 
 
-def _indexer_record(org_id: int, string: str) -> int:
-    return indexer.record(use_case_id=UseCaseKey.RELEASE_HEALTH, org_id=org_id, string=string)
+def indexer_record(use_case_id: UseCaseKey, org_id: int, string: str) -> int:
+    return indexer.record(use_case_id=use_case_id, org_id=org_id, string=string)
+
+
+perf_indexer_record = partial(indexer_record, UseCaseKey.PERFORMANCE)
+_indexer_record = partial(indexer_record, UseCaseKey.RELEASE_HEALTH)
 
 
 class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
@@ -485,14 +490,14 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
     def test_orderby(self):
         # Record some strings
         org_id = self.organization.id
-        k_transaction = _indexer_record(org_id, "transaction")
-        v_foo = _indexer_record(org_id, "/foo")
-        v_bar = _indexer_record(org_id, "/bar")
-        v_baz = _indexer_record(org_id, "/baz")
-        k_rating = _indexer_record(org_id, "measurement_rating")
-        v_good = _indexer_record(org_id, "good")
-        v_meh = _indexer_record(org_id, "meh")
-        v_poor = _indexer_record(org_id, "poor")
+        k_transaction = perf_indexer_record(org_id, "transaction")
+        v_foo = perf_indexer_record(org_id, "/foo")
+        v_bar = perf_indexer_record(org_id, "/bar")
+        v_baz = perf_indexer_record(org_id, "/baz")
+        k_rating = perf_indexer_record(org_id, "measurement_rating")
+        v_good = perf_indexer_record(org_id, "good")
+        v_meh = perf_indexer_record(org_id, "meh")
+        v_poor = perf_indexer_record(org_id, "poor")
 
         self._send_buckets(
             [
@@ -546,14 +551,14 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
     def test_multi_field_orderby(self):
         # Record some strings
         org_id = self.organization.id
-        k_transaction = _indexer_record(org_id, "transaction")
-        v_foo = _indexer_record(org_id, "/foo")
-        v_bar = _indexer_record(org_id, "/bar")
-        v_baz = _indexer_record(org_id, "/baz")
-        k_rating = _indexer_record(org_id, "measurement_rating")
-        v_good = _indexer_record(org_id, "good")
-        v_meh = _indexer_record(org_id, "meh")
-        v_poor = _indexer_record(org_id, "poor")
+        k_transaction = perf_indexer_record(org_id, "transaction")
+        v_foo = perf_indexer_record(org_id, "/foo")
+        v_bar = perf_indexer_record(org_id, "/bar")
+        v_baz = perf_indexer_record(org_id, "/baz")
+        k_rating = perf_indexer_record(org_id, "measurement_rating")
+        v_good = perf_indexer_record(org_id, "good")
+        v_meh = perf_indexer_record(org_id, "meh")
+        v_poor = perf_indexer_record(org_id, "poor")
 
         self._send_buckets(
             [
@@ -615,9 +620,9 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
     def test_orderby_percentile(self):
         # Record some strings
         org_id = self.organization.id
-        tag1 = _indexer_record(org_id, "tag1")
-        value1 = _indexer_record(org_id, "value1")
-        value2 = _indexer_record(org_id, "value2")
+        tag1 = perf_indexer_record(org_id, "tag1")
+        value1 = perf_indexer_record(org_id, "value1")
+        value2 = perf_indexer_record(org_id, "value2")
 
         self._send_buckets(
             [
@@ -666,9 +671,9 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
 
     def test_orderby_percentile_with_pagination(self):
         org_id = self.organization.id
-        tag1 = _indexer_record(org_id, "tag1")
-        value1 = _indexer_record(org_id, "value1")
-        value2 = _indexer_record(org_id, "value2")
+        tag1 = perf_indexer_record(org_id, "tag1")
+        value1 = perf_indexer_record(org_id, "value1")
+        value2 = perf_indexer_record(org_id, "value2")
 
         self._send_buckets(
             [
@@ -725,9 +730,9 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         `limit` parameter
         """
         org_id = self.organization.id
-        tag1 = _indexer_record(org_id, "tag1")
-        value1 = _indexer_record(org_id, "value1")
-        value2 = _indexer_record(org_id, "value2")
+        tag1 = perf_indexer_record(org_id, "tag1")
+        value1 = perf_indexer_record(org_id, "value1")
+        value2 = perf_indexer_record(org_id, "value2")
 
         self._send_buckets(
             [
@@ -791,10 +796,10 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         are from the same entity
         """
         org_id = self.organization.id
-        metric_id_fcp = _indexer_record(org_id, TransactionMRI.MEASUREMENTS_FCP.value)
-        transaction_id = _indexer_record(org_id, "transaction")
-        transaction_1 = _indexer_record(org_id, "/foo/")
-        transaction_2 = _indexer_record(org_id, "/bar/")
+        metric_id_fcp = perf_indexer_record(org_id, TransactionMRI.MEASUREMENTS_FCP.value)
+        transaction_id = perf_indexer_record(org_id, "transaction")
+        transaction_1 = perf_indexer_record(org_id, "/foo/")
+        transaction_2 = perf_indexer_record(org_id, "/bar/")
 
         self._send_buckets(
             [
@@ -873,10 +878,10 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         are from the same entity
         """
         org_id = self.organization.id
-        metric_id_fcp = _indexer_record(org_id, TransactionMRI.MEASUREMENTS_FCP.value)
-        transaction_id = _indexer_record(org_id, "transaction")
-        transaction_1 = _indexer_record(org_id, "/foo/")
-        transaction_2 = _indexer_record(org_id, "/bar/")
+        metric_id_fcp = perf_indexer_record(org_id, TransactionMRI.MEASUREMENTS_FCP.value)
+        transaction_id = perf_indexer_record(org_id, "transaction")
+        transaction_1 = perf_indexer_record(org_id, "/foo/")
+        transaction_2 = perf_indexer_record(org_id, "/bar/")
 
         self._send_buckets(
             [
@@ -993,9 +998,9 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         are from multiple entities
         """
         org_id = self.organization.id
-        transaction_id = _indexer_record(org_id, "transaction")
-        transaction_1 = _indexer_record(org_id, "/foo/")
-        transaction_2 = _indexer_record(org_id, "/bar/")
+        transaction_id = perf_indexer_record(org_id, "transaction")
+        transaction_1 = perf_indexer_record(org_id, "/foo/")
+        transaction_2 = perf_indexer_record(org_id, "/bar/")
 
         self._send_buckets(
             [
@@ -1021,7 +1026,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
                 {
                     "org_id": org_id,
                     "project_id": self.project.id,
-                    "metric_id": _indexer_record(org_id, TransactionMRI.USER.value),
+                    "metric_id": perf_indexer_record(org_id, TransactionMRI.USER.value),
                     "timestamp": int(time.time()),
                     "tags": {tag: value},
                     "type": "s",
@@ -1073,9 +1078,9 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         are from multiple entities
         """
         org_id = self.organization.id
-        transaction_id = _indexer_record(org_id, "transaction")
-        transaction_1 = _indexer_record(org_id, "/foo/")
-        transaction_2 = _indexer_record(org_id, "/bar/")
+        transaction_id = perf_indexer_record(org_id, "transaction")
+        transaction_1 = perf_indexer_record(org_id, "/foo/")
+        transaction_2 = perf_indexer_record(org_id, "/bar/")
 
         self._send_buckets(
             [
@@ -1096,7 +1101,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             ],
             entity="metrics_distributions",
         )
-        user_metric = _indexer_record(org_id, TransactionMRI.USER.value)
+        user_metric = perf_indexer_record(org_id, TransactionMRI.USER.value)
         user_ts = time.time()
         for ts, ranges in [
             (int(user_ts), [range(4, 5), range(6, 11)]),
@@ -1243,9 +1248,9 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         populated accordingly
         """
         org_id = self.organization.id
-        transaction_id = _indexer_record(org_id, "transaction")
-        transaction_1 = _indexer_record(org_id, "/foo/")
-        transaction_2 = _indexer_record(org_id, "/bar/")
+        transaction_id = perf_indexer_record(org_id, "transaction")
+        transaction_1 = perf_indexer_record(org_id, "/foo/")
+        transaction_2 = perf_indexer_record(org_id, "/bar/")
 
         self._send_buckets(
             [
@@ -1303,14 +1308,14 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         """
         org_id = self.organization.id
 
-        fcp_metric = _indexer_record(
+        fcp_metric = perf_indexer_record(
             self.project.organization.id, TransactionMRI.MEASUREMENTS_FCP.value
         )
-        tag3 = _indexer_record(org_id, "tag3")
-        value1 = _indexer_record(org_id, "value1")
-        value2 = _indexer_record(org_id, "value2")
-        value3 = _indexer_record(org_id, "value3")
-        value4 = _indexer_record(org_id, "value4")
+        tag3 = perf_indexer_record(org_id, "tag3")
+        value1 = perf_indexer_record(org_id, "value1")
+        value2 = perf_indexer_record(org_id, "value2")
+        value3 = perf_indexer_record(org_id, "value3")
+        value4 = perf_indexer_record(org_id, "value4")
 
         self._send_buckets(
             [
@@ -1376,12 +1381,12 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         org_id = self.organization.id
         user_ts = time.time()
 
-        tag1 = _indexer_record(org_id, "tag1")
-        group1 = _indexer_record(org_id, "group1")
-        group2 = _indexer_record(org_id, "group2")
-        group3 = _indexer_record(org_id, "group3")
-        group4 = _indexer_record(org_id, "group4")
-        group5 = _indexer_record(org_id, "group5")
+        tag1 = perf_indexer_record(org_id, "tag1")
+        group1 = perf_indexer_record(org_id, "group1")
+        group2 = perf_indexer_record(org_id, "group2")
+        group3 = perf_indexer_record(org_id, "group3")
+        group4 = perf_indexer_record(org_id, "group4")
+        group5 = perf_indexer_record(org_id, "group5")
 
         self._send_buckets(
             [
@@ -1463,12 +1468,12 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         org_id = self.organization.id
         user_ts = time.time()
 
-        tag2 = _indexer_record(org_id, "tag2")
-        b1 = _indexer_record(org_id, "B1")
-        b2 = _indexer_record(org_id, "B2")
-        b3 = _indexer_record(org_id, "B3")
-        c1 = _indexer_record(org_id, "C1")
-        a1 = _indexer_record(org_id, "A1")
+        tag2 = perf_indexer_record(org_id, "tag2")
+        b1 = perf_indexer_record(org_id, "B1")
+        b2 = perf_indexer_record(org_id, "B2")
+        b3 = perf_indexer_record(org_id, "B3")
+        c1 = perf_indexer_record(org_id, "C1")
+        a1 = perf_indexer_record(org_id, "A1")
 
         self._send_buckets(
             [
@@ -1565,7 +1570,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         self.store_session(self.build_session(project_id=self.project.id))
 
         # "foo" is known by indexer, "bar" is not
-        _indexer_record(self.organization.id, "foo")
+        perf_indexer_record(self.organization.id, "foo")
 
         response = self.get_success_response(
             self.organization.slug,
@@ -1986,8 +1991,10 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "metric_id": self.session_metric,
                     "timestamp": (user_ts // 60 - 4) * 60,
                     "tags": {
-                        self.session_status_tag: _indexer_record(self.organization.id, "abnormal"),
-                        self.release_tag: _indexer_record(self.organization.id, "foo"),
+                        self.session_status_tag: perf_indexer_record(
+                            self.organization.id, "abnormal"
+                        ),
+                        self.release_tag: perf_indexer_record(self.organization.id, "foo"),
                     },
                     "type": "c",
                     "value": 4,
@@ -1999,8 +2006,10 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "metric_id": self.session_metric,
                     "timestamp": (user_ts // 60 - 2) * 60,
                     "tags": {
-                        self.session_status_tag: _indexer_record(self.organization.id, "abnormal"),
-                        self.release_tag: _indexer_record(self.organization.id, "bar"),
+                        self.session_status_tag: perf_indexer_record(
+                            self.organization.id, "abnormal"
+                        ),
+                        self.release_tag: perf_indexer_record(self.organization.id, "bar"),
                     },
                     "type": "c",
                     "value": 3,
@@ -2036,8 +2045,8 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "metric_id": self.session_user_metric,
                     "timestamp": user_ts,
                     "tags": {
-                        self.session_status_tag: _indexer_record(org_id, "crashed"),
-                        self.release_tag: _indexer_record(org_id, "foo"),
+                        self.session_status_tag: perf_indexer_record(org_id, "crashed"),
+                        self.release_tag: perf_indexer_record(org_id, "foo"),
                     },
                     "type": "s",
                     "value": [1, 2, 4],
@@ -2049,8 +2058,8 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "metric_id": self.session_user_metric,
                     "timestamp": user_ts,
                     "tags": {
-                        self.session_status_tag: _indexer_record(org_id, "crashed"),
-                        self.release_tag: _indexer_record(org_id, "bar"),
+                        self.session_status_tag: perf_indexer_record(org_id, "crashed"),
+                        self.release_tag: perf_indexer_record(org_id, "bar"),
                     },
                     "type": "s",
                     "value": [1, 2, 4, 8, 9, 5],
@@ -2152,7 +2161,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "metric_id": self.session_user_metric,
                     "timestamp": user_ts,
                     "tags": {
-                        self.release_tag: _indexer_record(org_id, "foobar@1.0"),
+                        self.release_tag: perf_indexer_record(org_id, "foobar@1.0"),
                     },
                     "type": "s",
                     "value": [1, 2, 4, 8],
@@ -2164,8 +2173,10 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "metric_id": self.session_user_metric,
                     "timestamp": user_ts,
                     "tags": {
-                        self.session_status_tag: _indexer_record(self.organization.id, "crashed"),
-                        self.release_tag: _indexer_record(org_id, "foobar@1.0"),
+                        self.session_status_tag: perf_indexer_record(
+                            self.organization.id, "crashed"
+                        ),
+                        self.release_tag: perf_indexer_record(org_id, "foobar@1.0"),
                     },
                     "type": "s",
                     "value": [1, 2],
@@ -2177,7 +2188,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "metric_id": self.session_user_metric,
                     "timestamp": user_ts,
                     "tags": {
-                        self.release_tag: _indexer_record(org_id, "foobar@2.0"),
+                        self.release_tag: perf_indexer_record(org_id, "foobar@2.0"),
                     },
                     "type": "s",
                     "value": [3, 5],
@@ -2218,7 +2229,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "metric_id": self.session_user_metric,
                     "timestamp": user_ts,
                     "tags": {
-                        self.release_tag: _indexer_record(org_id, "foobar@1.0"),
+                        self.release_tag: perf_indexer_record(org_id, "foobar@1.0"),
                     },
                     "type": "s",
                     "value": [1, 2, 4, 8],
@@ -2230,8 +2241,10 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "metric_id": self.session_user_metric,
                     "timestamp": user_ts,
                     "tags": {
-                        self.session_status_tag: _indexer_record(self.organization.id, "crashed"),
-                        self.release_tag: _indexer_record(org_id, "foobar@1.0"),
+                        self.session_status_tag: perf_indexer_record(
+                            self.organization.id, "crashed"
+                        ),
+                        self.release_tag: perf_indexer_record(org_id, "foobar@1.0"),
                     },
                     "type": "s",
                     "value": [1, 2],
@@ -2243,7 +2256,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "metric_id": self.session_user_metric,
                     "timestamp": user_ts,
                     "tags": {
-                        self.release_tag: _indexer_record(org_id, "foobar@2.0"),
+                        self.release_tag: perf_indexer_record(org_id, "foobar@2.0"),
                     },
                     "type": "s",
                     "value": [3, 5],
@@ -2263,8 +2276,8 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "metric_id": self.session_metric,
                     "timestamp": (user_ts // 60 - 4) * 60,
                     "tags": {
-                        self.session_status_tag: _indexer_record(self.organization.id, "init"),
-                        self.release_tag: _indexer_record(self.organization.id, "foobar@1.0"),
+                        self.session_status_tag: perf_indexer_record(self.organization.id, "init"),
+                        self.release_tag: perf_indexer_record(self.organization.id, "foobar@1.0"),
                     },
                     "type": "c",
                     "value": 4,
@@ -2276,8 +2289,10 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "metric_id": self.session_metric,
                     "timestamp": (user_ts // 60 - 2) * 60,
                     "tags": {
-                        self.session_status_tag: _indexer_record(self.organization.id, "crashed"),
-                        self.release_tag: _indexer_record(self.organization.id, "foobar@1.0"),
+                        self.session_status_tag: perf_indexer_record(
+                            self.organization.id, "crashed"
+                        ),
+                        self.release_tag: perf_indexer_record(self.organization.id, "foobar@1.0"),
                     },
                     "type": "c",
                     "value": 1,
@@ -2289,8 +2304,8 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "metric_id": self.session_metric,
                     "timestamp": (user_ts // 60 - 4) * 60,
                     "tags": {
-                        self.session_status_tag: _indexer_record(self.organization.id, "init"),
-                        self.release_tag: _indexer_record(self.organization.id, "foobar@2.0"),
+                        self.session_status_tag: perf_indexer_record(self.organization.id, "init"),
+                        self.release_tag: perf_indexer_record(self.organization.id, "foobar@2.0"),
                     },
                     "type": "c",
                     "value": 4,
@@ -2302,8 +2317,10 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "metric_id": self.session_metric,
                     "timestamp": (user_ts // 60 - 2) * 60,
                     "tags": {
-                        self.session_status_tag: _indexer_record(self.organization.id, "crashed"),
-                        self.release_tag: _indexer_record(self.organization.id, "foobar@2.0"),
+                        self.session_status_tag: perf_indexer_record(
+                            self.organization.id, "crashed"
+                        ),
+                        self.release_tag: perf_indexer_record(self.organization.id, "foobar@2.0"),
                     },
                     "type": "c",
                     "value": 3,
