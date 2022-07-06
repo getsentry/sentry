@@ -38,6 +38,7 @@ from sentry.incidents.subscription_processor import (
     update_alert_rule_stats,
 )
 from sentry.models import Integration
+from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.indexer.models import MetricsKeyIndexer
 from sentry.sentry_metrics.utils import resolve_tag_key, resolve_weak
 from sentry.snuba.models import QueryDatasets, QuerySubscription, SnubaQueryEventType
@@ -2134,7 +2135,13 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, SessionMetr
                 "subscription_id": subscription.subscription_id,
                 "values": {
                     # 1001 is a random int that doesn't map to anything in the indexer
-                    "data": [{resolve_tag_key(self.organization.id, "session.status"): 1001}]
+                    "data": [
+                        {
+                            resolve_tag_key(
+                                UseCaseKey.PERFORMANCE, self.organization.id, "session.status"
+                            ): 1001
+                        }
+                    ]
                 },
                 "timestamp": timezone.now(),
                 "interval": 1,
@@ -2187,9 +2194,9 @@ class MetricsCrashRateAlertProcessUpdateV1Test(MetricsCrashRateAlertProcessUpdat
                 else:
                     denominator = count
                     numerator = int(value * denominator)
-            session_status = resolve_tag_key(org_id, "session.status")
-            tag_value_init = resolve_weak(org_id, "init")
-            tag_value_crashed = resolve_weak(org_id, "crashed")
+            session_status = resolve_tag_key(UseCaseKey.PERFORMANCE, org_id, "session.status")
+            tag_value_init = resolve_weak(UseCaseKey.PERFORMANCE, org_id, "init")
+            tag_value_crashed = resolve_weak(UseCaseKey.PERFORMANCE, org_id, "crashed")
             processor.process_update(
                 {
                     "subscription_id": subscription.subscription_id
