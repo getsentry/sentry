@@ -43,9 +43,9 @@ def _update_project_configs(
             # Since all other invalidations, which would happen anyway, will de-duplicate
             # with these ones the extra load of this is reasonable.  A temporary backlog in
             # the relay_config_bulk queueu is just fine.
-            for org in Organization.objects.all():
+            for (org_id,) in Organization.objects.values_list("id").all():
                 schedule_invalidate_project_config(
-                    trigger="invalidate-all", organization_id=org.id, countdown=0
+                    trigger="invalidate-all", organization_id=org_id, countdown=0
                 )
                 bar.update(1)
     else:
