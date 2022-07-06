@@ -24,6 +24,7 @@ class PickledObjectField(django_picklefield.PickledObjectField):
     def __init__(self, *args, **kwargs):
         self.write_json = kwargs.pop("write_json", PICKLE_WRITE_JSON)
         self.read_json = kwargs.pop("read_json", PICKLE_READ_JSON)
+        self.disable_pickle_validation = kwargs.pop("disable_pickle_validation", False)
         super().__init__(*args, **kwargs)
 
     def get_db_prep_value(self, value, *args, **kwargs):
@@ -33,7 +34,10 @@ class PickledObjectField(django_picklefield.PickledObjectField):
             if value is None and self.null:
                 return None
             return json.dumps(value, default=jsonfield.default)
-        elif settings.PICKLED_OBJECT_FIELD_COMPLAIN_ABOUT_BAD_USE_OF_PICKLE:
+        elif (
+            settings.PICKLED_OBJECT_FIELD_COMPLAIN_ABOUT_BAD_USE_OF_PICKLE
+            and not self.disable_pickle_validation
+        ):
             try:
                 json.dumps(value, default=jsonfield.default)
             except Exception as e:
