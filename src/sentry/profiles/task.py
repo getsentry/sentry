@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from time import sleep, time
-from typing import Any, List, MutableMapping, Optional
+from typing import Any, List, Mapping, MutableMapping, Optional
 
 import sentry_sdk
 from django.conf import settings
@@ -303,7 +303,7 @@ def _get_event_instance(profile: Profile) -> Any:
     }
 
 
-def _get_call_trees(profile: Profile) -> List[Any]:
+def _get_call_trees(profile: Profile) -> Mapping[str, List[Any]]:
     p = {}
     for k, v in profile.items():
         if k == "received":
