@@ -432,7 +432,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
         )
         assert alert_rule.snuba_query.subscriptions.get().project == self.project
         assert alert_rule.name == name
-        assert alert_rule.type == AlertRule.Type.Error.value
+        assert alert_rule.type == AlertRule.Type.ERROR.value
         assert alert_rule.owner is None
         assert alert_rule.status == AlertRuleStatus.PENDING.value
         assert alert_rule.snuba_query.subscriptions.all().count() == 1
@@ -585,7 +585,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
             1,
             dataset=QueryDatasets.SESSIONS,
         )
-        assert alert_rule.type == AlertRule.Type.CrashRate.value
+        assert alert_rule.type == AlertRule.Type.CRASH_RATE.value
         assert alert_rule.snuba_query.dataset == QueryDatasets.SESSIONS.value
 
         with self.feature("organizations:alert-crash-free-metrics"):
@@ -600,7 +600,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
                 1,
                 dataset=QueryDatasets.SESSIONS,
             )
-        assert alert_rule.type == AlertRule.Type.CrashRate.value
+        assert alert_rule.type == AlertRule.Type.CRASH_RATE.value
         assert alert_rule.snuba_query.dataset == QueryDatasets.METRICS.value
 
 

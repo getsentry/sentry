@@ -419,10 +419,10 @@ DEFAULT_CMP_ALERT_RULE_RESOLUTION = 2
 # Temporary mapping of `QueryDatasets` to `AlertRule.Type`. In the future, `Performance` will be
 # able to be run on `METRICS` as well.
 query_datasets_to_type = {
-    QueryDatasets.EVENTS: AlertRule.Type.Error,
-    QueryDatasets.TRANSACTIONS: AlertRule.Type.Performance,
-    QueryDatasets.SESSIONS: AlertRule.Type.CrashRate,
-    QueryDatasets.METRICS: AlertRule.Type.CrashRate,
+    QueryDatasets.EVENTS: AlertRule.Type.ERROR,
+    QueryDatasets.TRANSACTIONS: AlertRule.Type.PERFORMANCE,
+    QueryDatasets.SESSIONS: AlertRule.Type.CRASH_RATE,
+    QueryDatasets.METRICS: AlertRule.Type.CRASH_RATE,
 }
 
 
