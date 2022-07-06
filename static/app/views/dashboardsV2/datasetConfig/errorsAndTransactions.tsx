@@ -489,6 +489,7 @@ function getEventsSeriesRequest(
       partial: true,
       field: [...widgetQuery.columns, ...widgetQuery.aggregates],
       queryExtras: getDashboardsMEPQueryParams(isMEPEnabled),
+      includeAllArgs: true,
     };
     if (widgetQuery.orderby) {
       requestData.orderby = widgetQuery.orderby;
@@ -509,6 +510,7 @@ function getEventsSeriesRequest(
       referrer,
       partial: true,
       queryExtras: getDashboardsMEPQueryParams(isMEPEnabled),
+      includeAllArgs: true,
     };
     if (widgetQuery.columns?.length !== 0) {
       requestData.topEvents = limit ?? TOP_N;
@@ -547,5 +549,5 @@ function getEventsSeriesRequest(
     }
   }
 
-  return doEventsRequest(api, requestData);
+  return doEventsRequest<true>(api, requestData);
 }
