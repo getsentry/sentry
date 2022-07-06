@@ -287,7 +287,7 @@ export function ServerSideSampling({project}: Props) {
                   <GuideAnchor
                     target="add_conditional_rule"
                     // TODO(sampling): disable unless the base rule is active
-                    disabled={!hasAccess || rules.length !== 1}
+                    disabled={true || !hasAccess || rules.length !== 1}
                   >
                     <AddRuleButton
                       disabled={!hasAccess}

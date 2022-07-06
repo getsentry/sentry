@@ -118,7 +118,7 @@ export function Rule({
             // TODO(sampling): activate the rule
           }}
           // TODO(sampling): disable if sdks are not yet updated
-          disabled={!isUniform}
+          disabled={true || !isUniform}
         >
           <ActiveToggle
             inline={false}
