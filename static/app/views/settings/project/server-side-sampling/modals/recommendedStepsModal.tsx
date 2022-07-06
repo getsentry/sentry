@@ -18,18 +18,12 @@ import {
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
-import {SamplingSdkVersion} from 'sentry/types/sampling';
+import {RecommendedSdkUpgrade} from 'sentry/types/sampling';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import {SERVER_SIDE_SAMPLING_DOC_LINK} from '../utils';
 
 import {FooterActions, Stepper} from './uniformRateModal';
-
-type RecommendedSdkUpgrade = {
-  latestSDKName: SamplingSdkVersion['latestSDKName'];
-  latestSDKVersion: SamplingSdkVersion['latestSDKVersion'];
-  project: Project;
-};
 
 export type RecommendedStepsModalProps = ModalRenderProps & {
   organization: Organization;

@@ -5,11 +5,9 @@ import isEqual from 'lodash/isEqual';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
-import Alert from 'sentry/components/alert';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {Panel, PanelFooter, PanelHeader} from 'sentry/components/panels';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconAdd} from 'sentry/icons';
@@ -31,7 +29,6 @@ import PermissionAlert from 'sentry/views/settings/organization/permissionAlert'
 import {DraggableList, UpdateItemsProps} from '../sampling/rules/draggableList';
 
 import {ActivateModal} from './modals/activateModal';
-import {RecommendedStepsModal} from './modals/recommendedStepsModal';
 import {SpecificConditionsModal} from './modals/specificConditionsModal';
 import {responsiveModal} from './modals/styles';
 import {UniformRateModal} from './modals/uniformRateModal';
@@ -48,6 +45,7 @@ import {
   RateColumn,
   Rule,
 } from './rule';
+import {SamplingSDKAlert} from './samplingSDKAlert';
 import {SERVER_SIDE_SAMPLING_DOC_LINK} from './utils';
 
 type Props = {
@@ -122,9 +120,6 @@ export function ServerSideSampling({project}: Props) {
     })
     .filter(defined);
 
-  // TODO(sampling): test this after the backend work is finished
-  const atLeastOneRuleActive = rules.some(rule => rule.active);
-
   useEffect(() => {
     if (!isEqual(previousRules, currentRules)) {
       setRules(currentRules ?? []);
@@ -159,21 +154,6 @@ export function ServerSideSampling({project}: Props) {
         modalCss: responsiveModal,
       }
     );
-  }
-
-  function handleOpenRecommendedSteps() {
-    if (!recommendedSdkUpgrades.length) {
-      return;
-    }
-
-    openModal(modalProps => (
-      <RecommendedStepsModal
-        {...modalProps}
-        organization={organization}
-        project={project}
-        recommendedSdkUpgrades={recommendedSdkUpgrades}
-      />
-    ));
   }
 
   async function handleSortRules({overIndex, reorderedItems: ruleIds}: UpdateItemsProps) {
@@ -264,34 +244,13 @@ export function ServerSideSampling({project}: Props) {
             'These settings can only be edited by users with the organization owner, manager, or admin role.'
           )}
         />
-        {!!recommendedSdkUpgrades.length && !!rules.length && (
-          <Alert
-            data-test-id="recommended-sdk-upgrades-alert"
-            type={atLeastOneRuleActive ? 'error' : 'info'}
-            showIcon
-            trailingItems={
-              <Button onClick={handleOpenRecommendedSteps} priority="link" borderless>
-                {atLeastOneRuleActive ? t('Resolve Now') : t('Learn More')}
-              </Button>
-            }
-          >
-            {atLeastOneRuleActive
-              ? t(
-                  'Server-side sampling rules are in effect without the following SDK’s being updated to their latest version.'
-                )
-              : t(
-                  'To keep a consistent amount of transactions across your applications multiple services, we recommend you update the SDK versions for the following projects:'
-                )}
-            <Projects>
-              {recommendedSdkUpgrades.map(recommendedSdkUpgrade => (
-                <ProjectBadge
-                  key={recommendedSdkUpgrade.project.id}
-                  project={recommendedSdkUpgrade.project}
-                  avatarSize={16}
-                />
-              ))}
-            </Projects>
-          </Alert>
+        {!!rules.length && (
+          <SamplingSDKAlert
+            organization={organization}
+            project={project}
+            rules={rules}
+            recommendedSdkUpgrades={recommendedSdkUpgrades}
+          />
         )}
         <RulesPanel>
           <RulesPanelHeader lightText>
@@ -452,12 +411,4 @@ const AddRuleButton = styled(Button)`
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     width: 100%;
   }
-`;
-
-const Projects = styled('div')`
-  display: flex;
-  flex-wrap: wrap;
-  gap: ${space(1.5)};
-  justify-content: flex-start;
-  margin-top: ${space(1)};
 `;
