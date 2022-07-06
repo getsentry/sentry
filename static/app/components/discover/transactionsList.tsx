@@ -181,30 +181,6 @@ class _TransactionsList extends Component<Props> {
             options={options}
             onChange={opt => handleDropdownChange(opt.value)}
           />
-          {/* <DropdownControl
-            button={({isOpen, getActorProps}) => (
-              <StyledDropdownButton
-                {...getActorProps()}
-                isOpen={isOpen}
-                prefix={t('Filter')}
-                size="xsmall"
-              >
-                {selected.label}
-              </StyledDropdownButton>
-            )}
-          >
-            {options.map(({value, label}) => (
-              <DropdownItem
-                data-test-id={`option-${value}`}
-                key={value}
-                onSelect={handleDropdownChange}
-                eventKey={value}
-                isActive={value === selected.value}
-              >
-                {label}
-              </DropdownItem>
-            ))}
-          </DropdownControl> */}
         </div>
         {!this.isTrend() &&
           (handleOpenAllEventsClick ? (
