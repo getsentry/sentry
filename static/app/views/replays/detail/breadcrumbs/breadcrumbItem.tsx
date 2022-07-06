@@ -78,6 +78,8 @@ const CrumbDetails = styled('div')`
 const Title = styled('span')`
   ${p => p.theme.overflowEllipsis};
   text-transform: capitalize;
+  font-weight: 600;
+  color: ${p => p.theme.gray400};
 `;
 
 const Description = styled('span')`
@@ -93,7 +95,7 @@ type CrumbItemProps = {
 
 const CrumbItem = styled(PanelItem)<CrumbItemProps>`
   display: grid;
-  grid-template-columns: max-content max-content auto max-content;
+  grid-template-columns: max-content auto max-content;
   align-items: center;
   gap: ${space(1)};
   width: 100%;
@@ -103,22 +105,33 @@ const CrumbItem = styled(PanelItem)<CrumbItemProps>`
   padding: 0;
   padding-right: ${space(1)};
   text-align: left;
-
   border: none;
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
-  ${p => p.isHovered && `background: ${p.theme.surface400};`}
+  position: relative;
+  ${p => (p.isSelected || p.isHovered) && `background-color: ${p.theme.purple100};`}
+  margin: 0 ${space(0.5)};
+  border-radius: 4px;
 
-  /* overrides PanelItem css */
-  &:last-child {
-    border-bottom: 1px solid ${p => p.theme.innerBorder};
+  &::after {
+    content: '';
+    position: absolute;
+    left: 18px;
+    width: 1px;
+    background: ${p => p.theme.gray200};
+    height: 100%;
+    z-index: 1;
   }
 
-  /* Selected state */
-  ::before {
-    content: '';
-    width: 4px;
-    height: 100%;
-    ${p => p.isSelected && `background-color: ${p.theme.purple300};`}
+  &:first-of-type {
+    margin-top: ${space(0.5)};
+    &::after {
+      bottom: 0;
+      height: 50%;
+    }
+  }
+
+  &:last-of-type::after {
+    top: 0;
+    height: 50%;
   }
 `;
 
@@ -136,6 +149,8 @@ const IconWrapper = styled('div')<Required<Pick<SVGIconProps, 'color'>>>`
   background: ${p => p.theme[p.color] ?? p.color};
   box-shadow: ${p => p.theme.dropShadowLightest};
   position: relative;
+  margin-left: ${space(1)};
+  z-index: 2;
 `;
 
 const MemoizedBreadcrumbItem = memo(BreadcrumbItem);

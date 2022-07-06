@@ -138,11 +138,12 @@ const Panel = styled(BasePanel)`
 
 const PanelHeader = styled(BasePanelHeader)`
   background-color: ${p => p.theme.background};
-  border-bottom: none;
+  border-bottom: 1px solid ${p => p.theme.innerBorder};
   font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.gray500};
   text-transform: capitalize;
-  padding: ${space(1.5)} ${space(2)} ${space(0.5)};
+  padding: ${space(1)} ${space(1.5)} ${space(1)};
+  font-weight: 600;
 `;
 
 const PanelBody = styled(BasePanelBody)`
