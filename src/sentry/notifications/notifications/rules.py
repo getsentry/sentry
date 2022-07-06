@@ -22,7 +22,7 @@ from sentry.notifications.utils.participants import get_send_to
 from sentry.plugins.base.structs import Notification
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import metrics
-from sentry.utils.http import absolute_uri
+from sentry.utils.http import absolute_uri, urlencode
 
 logger = logging.getLogger(__name__)
 
@@ -210,7 +210,9 @@ class ActiveReleaseAlertNotification(AlertRuleNotification):
             "project_label": self.project.get_full_name(),
             "group": self.group,
             "event": self.event,
-            "link": get_group_settings_link(self.group, environment, rule_details),
+            "link": get_group_settings_link(
+                self.group, environment, rule_details, referrer="alert_email_release"
+            ),
             "rules": rule_details,
             "has_integrations": has_integrations(self.organization, self.project),
             "enhanced_privacy": enhanced_privacy,
@@ -251,8 +253,11 @@ class ActiveReleaseAlertNotification(AlertRuleNotification):
         ]
 
     def release_url(self, release: Release) -> str:
-        return str(
-            absolute_uri(
-                f"/organizations/{release.organization.slug}/releases/{release.version}/?project={release.project_id}"
-            )
+        params = {"project": release.project_id, "referrer": "alert_email_release"}
+        url = "/organizations/{org}/releases/{version}/{params}".format(
+            org=release.organization.slug,
+            version=release.version,
+            params="?" + urlencode(params),
         )
+
+        return str(absolute_uri(url))
