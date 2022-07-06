@@ -9,7 +9,6 @@ from queue import Queue
 from random import random
 from threading import Thread, local
 from typing import (
-    TYPE_CHECKING,
     Any,
     Callable,
     Generator,
@@ -24,8 +23,7 @@ from typing import (
 
 from django.conf import settings
 
-if TYPE_CHECKING:
-    from sentry.metrics.base import MetricsBackend
+from sentry.metrics.base import MetricsBackend
 
 metrics_skip_all_internal = getattr(settings, "SENTRY_METRICS_SKIP_ALL_INTERNAL", False)
 metrics_skip_internal_prefixes = tuple(settings.SENTRY_METRICS_SKIP_INTERNAL_PREFIXES)
