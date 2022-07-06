@@ -157,11 +157,11 @@ export function SpecificConditionsModal({
     setIsSaving(true);
 
     try {
-      const newProjectDetails = await api.requestPromise(
+      const response = await api.requestPromise(
         `/projects/${organization.slug}/${project.slug}/`,
         {method: 'PUT', data: {dynamicSampling: {rules: newRules}}}
       );
-      ProjectStore.onUpdateSuccess(newProjectDetails);
+      ProjectStore.onUpdateSuccess(response);
       addSuccessMessage(
         rule
           ? t('Successfully edited sampling rule')

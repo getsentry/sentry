@@ -36,7 +36,7 @@ enum Step {
   RECOMMENDED_STEPS = 'recommended_steps',
 }
 
-type Props = RecommendedStepsModalProps & {
+type Props = Omit<RecommendedStepsModalProps, 'onSubmit'> & {
   rules: SamplingRules;
   project?: Project;
   projectStats?: SeriesApi;

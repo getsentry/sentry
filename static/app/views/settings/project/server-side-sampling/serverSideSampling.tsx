@@ -172,6 +172,7 @@ export function ServerSideSampling({project}: Props) {
         organization={organization}
         project={project}
         recommendedSdkUpgrades={recommendedSdkUpgrades}
+        onSubmit={() => {}}
       />
     ));
   }
