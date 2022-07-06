@@ -9,7 +9,7 @@ import Alert from 'sentry/components/alert';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import Button from 'sentry/components/button';
-import DropdownControl, {DropdownItem} from 'sentry/components/dropdownControl';
+import CompactSelect from 'sentry/components/forms/compactSelect';
 import {Title} from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import SearchBar from 'sentry/components/searchBar';
@@ -216,18 +216,13 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
             toggle={this.togglePrebuilt}
           />
         </PrebuiltSwitch>
-        <DropdownControl buttonProps={{prefix: t('Sort By')}} label={activeSort.label}>
-          {SORT_OPTIONS.map(({label, value}) => (
-            <DropdownItem
-              key={value}
-              onSelect={this.handleSortChange}
-              eventKey={value}
-              isActive={value === activeSort.value}
-            >
-              {label}
-            </DropdownItem>
-          ))}
-        </DropdownControl>
+        <CompactSelect
+          triggerProps={{prefix: t('Sort By')}}
+          value={activeSort.value}
+          options={SORT_OPTIONS}
+          onChange={opt => this.handleSortChange(opt.value)}
+          placement="bottom right"
+        />
       </StyledActions>
     );
   }

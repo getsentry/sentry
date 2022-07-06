@@ -1,5 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {act} from 'sentry-test/reactTestingLibrary';
+import {triggerPress} from 'sentry-test/utils';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {DiscoverLanding} from 'sentry/views/eventsV2/landing';
@@ -96,14 +97,22 @@ describe('EventsV2 > Landing', function () {
     expect(content.text()).toContain("You don't have access to this feature");
   });
 
-  it('has the right sorts', function () {
+  it('has the right sorts', async function () {
     const org = TestStubs.Organization({features});
 
     const wrapper = mountWithTheme(
       <DiscoverLanding organization={org} location={{query: {}}} router={{}} />
     );
 
-    const dropdownItems = wrapper.find('DropdownItem span');
+    // Open sort menu
+    await act(async () => {
+      triggerPress(wrapper.find('CompactSelect Button'));
+
+      await tick();
+      wrapper.update();
+    });
+
+    const dropdownItems = wrapper.find('MenuItemWrap');
     expect(dropdownItems).toHaveLength(8);
 
     const expectedSorts = [

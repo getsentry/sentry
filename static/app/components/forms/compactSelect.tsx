@@ -31,6 +31,7 @@ interface TriggerRenderingProps {
 interface MenuProps extends OverlayProps, Omit<AriaPositionProps, 'overlayRef'> {
   children: (maxHeight: number | string) => React.ReactNode;
   maxMenuHeight?: number;
+  minMenuWidth?: number;
 }
 
 interface Props<OptionType>
@@ -143,6 +144,7 @@ function Menu({
   shouldCloseOnBlur = true,
   isDismissable = true,
   maxMenuHeight = 400,
+  minMenuWidth,
   children,
 }: MenuProps) {
   // Control the overlay's position
@@ -168,27 +170,6 @@ function Menu({
     isOpen: true,
   });
 
-  // Calculate the current trigger element's width. This will be used as
-  // the min width for the menu.
-  const [triggerWidth, setTriggerWidth] = useState<number>();
-  // Update triggerWidth when its size changes using useResizeObserver
-  const updateTriggerWidth = useCallback(async () => {
-    // Wait until the trigger element finishes rendering, otherwise
-    // ResizeObserver might throw an infinite loop error.
-    await new Promise(resolve => window.setTimeout(resolve));
-    const newTriggerWidth = targetRef.current?.offsetWidth;
-    newTriggerWidth && setTriggerWidth(newTriggerWidth);
-  }, [targetRef]);
-  useResizeObserver({ref: targetRef, onResize: updateTriggerWidth});
-  // If ResizeObserver is not available, manually update the width
-  // when any of [trigger, triggerLabel, triggerProps] changes.
-  useEffect(() => {
-    if (typeof window.ResizeObserver !== 'undefined') {
-      return;
-    }
-    updateTriggerWidth();
-  }, [updateTriggerWidth]);
-
   const menuHeight = positionProps.style?.maxHeight
     ? Math.min(+positionProps.style?.maxHeight, maxMenuHeight)
     : 'none';
@@ -196,7 +177,7 @@ function Menu({
   return (
     <Overlay
       ref={overlayRef}
-      minWidth={triggerWidth}
+      minWidth={minMenuWidth}
       {...mergeProps(overlayProps, positionProps)}
     >
       <FocusScope restoreFocus autoFocus>
@@ -283,6 +264,27 @@ function CompactSelect<OptionType extends GeneralSelectValue = GeneralSelectValu
     }
   }
 
+  // Calculate the current trigger element's width. This will be used as
+  // the min width for the menu.
+  const [triggerWidth, setTriggerWidth] = useState<number>();
+  // Update triggerWidth when its size changes using useResizeObserver
+  const updateTriggerWidth = useCallback(async () => {
+    // Wait until the trigger element finishes rendering, otherwise
+    // ResizeObserver might throw an infinite loop error.
+    await new Promise(resolve => window.setTimeout(resolve));
+    const newTriggerWidth = triggerRef.current?.offsetWidth;
+    newTriggerWidth && setTriggerWidth(newTriggerWidth);
+  }, [triggerRef]);
+  useResizeObserver({ref: triggerRef, onResize: updateTriggerWidth});
+  // If ResizeObserver is not available, manually update the width
+  // when any of [trigger, triggerLabel, triggerProps] changes.
+  useEffect(() => {
+    if (typeof window.ResizeObserver !== 'undefined') {
+      return;
+    }
+    updateTriggerWidth();
+  }, [updateTriggerWidth]);
+
   function renderTrigger() {
     if (trigger) {
       return trigger({
@@ -312,7 +314,12 @@ function CompactSelect<OptionType extends GeneralSelectValue = GeneralSelectValu
     }
 
     return (
-      <Menu targetRef={triggerRef} onClose={state.close} {...props}>
+      <Menu
+        targetRef={triggerRef}
+        onClose={state.close}
+        minMenuWidth={triggerWidth}
+        {...props}
+      >
         {menuHeight => (
           <SelectControl
             components={{Control: CompactSelectControl, ClearIndicator: null}}
@@ -355,6 +362,7 @@ const MenuControlWrap = styled('div')``;
 
 const ButtonLabel = styled('span')`
   ${p => p.theme.overflowEllipsis}
+  text-align: left;
 `;
 
 const StyledBadge = styled(Badge)`
