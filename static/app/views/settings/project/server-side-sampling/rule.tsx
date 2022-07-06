@@ -136,7 +136,7 @@ export function Rule({
                       upgradeSdkForProjects[0]
                     )
                   : t(
-                      'To enable the rule, the sdk version for the project %s have to be updated',
+                      'To enable the rule, the sdk version for the projects %s have to be updated',
                       upgradeSdkForProjects.join(', ')
                     )
                 : undefined
