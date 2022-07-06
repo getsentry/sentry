@@ -13,16 +13,14 @@ import {
   RoleOverwriteIcon,
 } from 'sentry/views/settings/organizationTeams/roleOverwriteWarning';
 
-type Props = {
+const TeamMembersRow = (props: {
   hasWriteAccess: boolean;
   member: Member;
   organization: Organization;
   removeMember: (member: Member) => void;
   updateMemberRole: (member: Member, newRole: string) => void;
   user: User;
-};
-
-function TeamMembersRow(props: Props) {
+}) => {
   const {organization, member} = props;
 
   return (
@@ -38,14 +36,14 @@ function TeamMembersRow(props: Props) {
       </div>
     </TeamRolesPanelItem>
   );
-}
+};
 
-function TeamRoleSelect(props: {
+const TeamRoleSelect = (props: {
   hasWriteAccess: boolean;
   member: Member;
   organization: Organization;
   updateMemberRole: (member: Member, newRole: string) => void;
-}) {
+}) => {
   const {hasWriteAccess, organization, member, updateMemberRole} = props;
   const {orgRoleList, teamRoleList, features} = organization;
   if (!features.includes('team-roles')) {
@@ -86,14 +84,14 @@ function TeamRoleSelect(props: {
       />
     </RoleSelectWrapper>
   );
-}
+};
 
-function RemoveButton(props: {
+const RemoveButton = (props: {
   hasWriteAccess: boolean;
   member: Member;
   removeMember: (member: Member) => void;
   user: User;
-}) {
+}) => {
   const {member, user, hasWriteAccess, removeMember} = props;
 
   const isSelf = member.email === user.email;
@@ -115,7 +113,7 @@ function RemoveButton(props: {
       {t('Remove')}
     </Button>
   );
-}
+};
 
 const RoleName = styled('div')`
   display: flex;
