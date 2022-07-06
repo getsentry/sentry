@@ -438,5 +438,4 @@ const Projects = styled('div')`
   gap: ${space(1.5)};
   justify-content: flex-start;
   margin-top: ${space(1)};
-}
 `;
