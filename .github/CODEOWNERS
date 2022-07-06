@@ -379,6 +379,7 @@ yarn.lock           @getsentry/owners-js-deps
 
 ### Growth ###
 
-/src/sentry/api/endpoints/client_state.py       @getsentry/growth
+/src/sentry/api/endpoints/client_state.py                           @getsentry/growth
+/src/sentry/api/endpoints/organization_web_vitals_overview.py       @getsentry/growth
 
 ### End of Growth ###

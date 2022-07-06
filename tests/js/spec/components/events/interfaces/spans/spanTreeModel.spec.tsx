@@ -339,6 +339,7 @@ describe('SpanTreeModel', () => {
       isNestedSpanGroupExpanded: false,
       addTraceBounds: () => {},
       removeTraceBounds: () => {},
+      directParent: null,
     });
 
     expect(spans).toEqual(fullWaterfall);
@@ -383,6 +384,7 @@ describe('SpanTreeModel', () => {
       isNestedSpanGroupExpanded: false,
       addTraceBounds: () => {},
       removeTraceBounds: () => {},
+      directParent: null,
     });
 
     const fullWaterfallExpected: EnhancedProcessedSpanType[] = [...fullWaterfall];
@@ -488,6 +490,7 @@ describe('SpanTreeModel', () => {
       isNestedSpanGroupExpanded: false,
       addTraceBounds: () => {},
       removeTraceBounds: () => {},
+      directParent: null,
     });
 
     expect(spans).toEqual(fullWaterfall);
@@ -582,6 +585,7 @@ describe('SpanTreeModel', () => {
       isNestedSpanGroupExpanded: false,
       addTraceBounds: () => {},
       removeTraceBounds: () => {},
+      directParent: null,
     });
 
     expect(spans.length).toEqual(2);
@@ -658,6 +662,7 @@ describe('SpanTreeModel', () => {
       isNestedSpanGroupExpanded: false,
       addTraceBounds: () => {},
       removeTraceBounds: () => {},
+      directParent: null,
     });
 
     expect(spans.length).toEqual(5);
@@ -755,6 +760,7 @@ describe('SpanTreeModel', () => {
       isNestedSpanGroupExpanded: false,
       addTraceBounds: () => {},
       removeTraceBounds: () => {},
+      directParent: null,
     });
 
     expect(spans.length).toEqual(4);
