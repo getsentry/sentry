@@ -14,8 +14,25 @@ import {RouteContext} from 'sentry/views/routeContext';
 import ServerSideSampling from 'sentry/views/settings/project/server-side-sampling';
 import {SERVER_SIDE_SAMPLING_DOC_LINK} from 'sentry/views/settings/project/server-side-sampling/utils';
 import importedUseProjectStats from 'sentry/views/settings/project/server-side-sampling/utils/useProjectStats';
+import importedUseSamplingDistribution from 'sentry/views/settings/project/server-side-sampling/utils/useSamplingDistribution';
 
 import {getMockData} from './index.spec';
+
+jest.mock(
+  'sentry/views/settings/project/server-side-sampling/utils/useSamplingDistribution'
+);
+const useSamplingDistribution = importedUseSamplingDistribution as jest.MockedFunction<
+  typeof importedUseSamplingDistribution
+>;
+
+useSamplingDistribution.mockImplementation(() => ({
+  samplingDistribution: {
+    project_breakdown: null,
+    sample_size: 0,
+    null_sample_rate_percentage: null,
+    sample_rate_distributions: null,
+  },
+}));
 
 jest.mock('sentry/views/settings/project/server-side-sampling/utils/useProjectStats');
 const useProjectStats = importedUseProjectStats as jest.MockedFunction<
@@ -48,11 +65,13 @@ describe('Server-side Sampling - Activate Modal', function () {
     };
 
     const {router, project, organization} = getMockData({
-      project: TestStubs.Project({
-        dynamicSampling: {
-          rules: [uniformRule],
-        },
-      }),
+      projects: [
+        TestStubs.Project({
+          dynamicSampling: {
+            rules: [uniformRule],
+          },
+        }),
+      ],
     });
 
     const saveMock = MockApiClient.addMockResponse({

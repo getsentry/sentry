@@ -87,4 +87,8 @@ const Description = styled('div')`
     padding: ${space(4)};
     justify-content: flex-start;
   }
+
+  p {
+    font-size: ${p => p.theme.fontSizeLarge};
+  }
 `;
