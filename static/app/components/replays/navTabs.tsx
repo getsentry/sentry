@@ -1,12 +1,14 @@
 import styled from '@emotion/styled';
 
+import space from 'sentry/styles/space';
+
 type Props = {
   underlined: boolean;
 };
 const NavTabs = styled('ul')<Props>`
-  margin: 0 0 20px;
+  margin: 0 0 ${space(3)};
   padding-left: 0;
-  font-size: 14px;
+  font-size: ${p => p.theme.fontSizeMedium};
   border-bottom: ${p => (p.underlined ? '1px solid #e2dee6' : 'none')};
 
   & > li {
@@ -18,7 +20,7 @@ const NavTabs = styled('ul')<Props>`
 
   & > li a {
     position: relative;
-    border-radius: 4px 4px 0 0;
+    border-radius: ${space(0.5)} ${space(0.5)} 0 0;
 
     display: flex;
     align-items: center;
@@ -50,7 +52,7 @@ const NavTabs = styled('ul')<Props>`
   }
 
   & > li.active a > span {
-    border-bottom: 4px solid ${p => p.theme.purple300};
+    border-bottom: ${space(0.5)} solid ${p => p.theme.purple300};
   }
 `;
 
