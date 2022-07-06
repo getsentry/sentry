@@ -302,7 +302,7 @@ function useApiRequests({
 
   // Trigger fetch on location or parameter change
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => void handleFullReload(), [location.search, location.state, params]);
+  useEffect(() => void handleFullReload(), [location?.search, location?.state, params]);
 
   const visibilityReloader = useCallback(
     () => !state.isLoading && !document.hidden && reloadData(),
