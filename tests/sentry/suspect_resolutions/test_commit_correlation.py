@@ -1,6 +1,6 @@
 from sentry.models import Commit, CommitFileChange, GroupRelease, ReleaseCommit
-from sentry.tasks.komal import get_files_changed, is_issue_commit_correlated
 from sentry.testutils import TestCase
+from suspect_resolutions.commit_correlation import get_files_changed, is_issue_commit_correlated
 
 
 class TestKomal(TestCase):
