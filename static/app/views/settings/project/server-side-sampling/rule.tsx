@@ -1,9 +1,10 @@
-import {Fragment, useEffect, useState} from 'react';
+import {Fragment} from 'react';
 import {DraggableSyntheticListeners, UseDraggableArguments} from '@dnd-kit/core';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import MenuItemActionLink from 'sentry/components/actions/menuItemActionLink';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Button from 'sentry/components/button';
 import DropdownLink from 'sentry/components/dropdownLink';
 import NewBooleanField from 'sentry/components/forms/booleanField';
@@ -14,7 +15,7 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {SamplingRule, SamplingRuleOperator} from 'sentry/types/sampling';
 
-import {getInnerNameLabel} from './utils';
+import {getInnerNameLabel, isUniformRule} from './utils';
 
 type Props = {
   dragging: boolean;
@@ -34,13 +35,8 @@ type Props = {
   grabAttributes?: UseDraggableArguments['attributes'];
 };
 
-type State = {
-  isMenuActionsOpen: boolean;
-};
-
 export function Rule({
   dragging,
-  sorting,
   rule,
   noPermission,
   onEditRule,
@@ -51,13 +47,8 @@ export function Rule({
   grabAttributes,
   hideGrabButton,
 }: Props) {
-  const [state, setState] = useState<State>({isMenuActionsOpen: false});
-
-  useEffect(() => {
-    if ((dragging || sorting) && state.isMenuActionsOpen) {
-      setState({isMenuActionsOpen: false});
-    }
-  }, [dragging, sorting, state.isMenuActionsOpen]);
+  const isUniform = isUniformRule(rule);
+  const canDelete = !noPermission && !isUniform;
 
   return (
     <Fragment>
@@ -121,28 +112,29 @@ export function Rule({
         <SampleRate>{`${rule.sampleRate * 100}\u0025`}</SampleRate>
       </RateColumn>
       <ActiveColumn>
-        <ActiveToggle
-          inline={false}
-          hideControlState
-          aria-label={rule.active ? t('Deactivate Rule') : t('Activate Rule')}
-          onClick={onActivate}
-          name="active"
-        />
+        <GuideAnchor
+          target="sampling_rule_toggle"
+          onFinish={() => {
+            // TODO(sampling): activate the rule
+          }}
+          // TODO(sampling): disable if sdks are not yet updated
+          disabled={true || !isUniform}
+        >
+          <ActiveToggle
+            inline={false}
+            hideControlState
+            aria-label={rule.active ? t('Deactivate Rule') : t('Activate Rule')}
+            onClick={onActivate}
+            name="active"
+          />
+        </GuideAnchor>
       </ActiveColumn>
       <Column>
         <EllipisDropDownButton
           caret={false}
           customTitle={
-            <Button
-              aria-label={t('Actions')}
-              icon={<IconEllipsis />}
-              size="sm"
-              onClick={() => {
-                setState({isMenuActionsOpen: !state.isMenuActionsOpen});
-              }}
-            />
+            <Button aria-label={t('Actions')} icon={<IconEllipsis />} size="sm" />
           }
-          isOpen={state.isMenuActionsOpen}
           anchorRight
         >
           <MenuItemActionLink
@@ -171,13 +163,17 @@ export function Rule({
             message={t('Are you sure you wish to delete this sampling rule?')}
             icon={<IconDownload size="xs" />}
             title={t('Delete')}
-            disabled={noPermission}
+            disabled={!canDelete}
             priority="danger"
             shouldConfirm
           >
             <Tooltip
-              disabled={!noPermission}
-              title={t('You do not have permission to delete sampling rules.')}
+              disabled={canDelete}
+              title={
+                isUniform
+                  ? t("You can't delete the uniform rule.")
+                  : t('You do not have permission to delete sampling rules.')
+              }
               containerDisplayMode="block"
             >
               {t('Delete')}

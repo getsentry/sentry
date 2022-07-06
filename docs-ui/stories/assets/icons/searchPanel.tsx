@@ -1,7 +1,6 @@
 import {useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import Fuse from 'fuse.js';
-import debounce from 'lodash/debounce';
 
 import TextField from 'sentry/components/deprecatedforms/textField';
 import space from 'sentry/styles/space';
@@ -21,82 +20,75 @@ export type SelectedIcon = {
   icon: string;
 };
 
-const SearchPanel = () => {
-  /**
-   * The same icon can appear in multiple groups,
-   * so we also need to store which group the
-   * selected icon is in
-   */
-  const [selectedIcon, setSelectedIcon] = useState<SelectedIcon>({group: '', icon: ''});
+const enumerateIconProps = (iconData: ExtendedIconData[], prop: string) =>
+  iconData.reduce<ExtendedIconData[]>((acc, cur) => {
+    const propData = iconProps[prop];
 
-  /**
-   * All the icons, split into iterable groups
-   */
-  const addIconNames = (iconData: IconData[]): ExtendedIconData[] =>
-    iconData.map(icon => {
-      const nameString = icon.id.split('-')[0];
-      const name = nameString.charAt(0).toUpperCase() + nameString.slice(1);
-      return {...icon, name};
+    switch (propData.type) {
+      case 'select':
+        const availableOptions: string[][] = cur.limitOptions?.[prop] ?? propData.options;
+
+        return [
+          ...acc,
+          ...availableOptions.map(option => ({
+            ...cur,
+            id: `${cur.id}-${prop}-${option[0]}`,
+            defaultProps: {
+              ...cur.defaultProps,
+              [prop]: option[0],
+            },
+          })),
+        ];
+      case 'boolean':
+        return [
+          ...acc,
+          {...cur, defaultProps: {...cur.defaultProps, [prop]: false}},
+          {
+            ...cur,
+            id: `${cur.id}-${prop}`,
+            defaultProps: {...cur.defaultProps, [prop]: true},
+          },
+        ];
+      default:
+        return acc;
+    }
+  }, []);
+
+const enumerateIconVariants = (iconData: ExtendedIconData[]): ExtendedIconData[] =>
+  iconData.reduce<ExtendedIconData[]>((acc, cur) => {
+    let iconVariants: ExtendedIconData[] = [{...cur, defaultProps: {}}];
+
+    cur.additionalProps?.forEach(prop => {
+      if (iconProps[prop].enumerate) {
+        iconVariants = enumerateIconProps(iconVariants, prop);
+      }
     });
 
-  const enumerateIconProps = (
-    iconData: ExtendedIconData[],
-    prop: string
-  ): ExtendedIconData[] =>
-    iconData.reduce((acc: ExtendedIconData[], cur: ExtendedIconData) => {
-      const propData = iconProps[prop];
+    return [...acc, ...iconVariants];
+  }, []);
 
-      switch (propData.type) {
-        case 'select':
-          const availableOptions: string[][] =
-            cur.limitOptions?.[prop] ?? propData.options;
-
-          return [
-            ...acc,
-            ...availableOptions.map(option => ({
-              ...cur,
-              id: `${cur.id}-${prop}-${option[0]}`,
-              defaultProps: {
-                ...cur.defaultProps,
-                [prop]: option[0],
-              },
-            })),
-          ];
-        case 'boolean':
-          return [
-            ...acc,
-            {...cur, defaultProps: {...cur.defaultProps, [prop]: false}},
-            {
-              ...cur,
-              id: `${cur.id}-${prop}`,
-              defaultProps: {...cur.defaultProps, [prop]: true},
-            },
-          ];
-        default:
-          return acc;
-      }
-    }, []);
-
-  const enumerateIconVariants = (iconData: ExtendedIconData[]): ExtendedIconData[] =>
-    iconData.reduce((acc: ExtendedIconData[], cur: ExtendedIconData) => {
-      let iconVariants: ExtendedIconData[] = [{...cur, defaultProps: {}}];
-
-      cur.additionalProps?.forEach(prop => {
-        if (iconProps[prop].enumerate) {
-          iconVariants = enumerateIconProps(iconVariants, prop);
-        }
-      });
-
-      return [...acc, ...iconVariants];
-    }, []);
-
-  const groupedIcons: Results = iconGroups.map(group => {
-    const filteredIcons = icons.filter(i => i.groups.includes(group.id));
-    const namedIcons = addIconNames(filteredIcons);
-    const enumeratedIcons = enumerateIconVariants(namedIcons);
-
-    return {...group, icons: enumeratedIcons};
+// All the icons, split into iterable groups
+const addIconNames = (iconData: IconData[]): ExtendedIconData[] =>
+  iconData.map(icon => {
+    const nameString = icon.id.split('-')[0];
+    const name = nameString.charAt(0).toUpperCase() + nameString.slice(1);
+    return {...icon, name};
   });
+
+const groupedIcons: Results = iconGroups.map(group => {
+  const filteredIcons = icons.filter(i => i.groups.includes(group.id));
+  const namedIcons = addIconNames(filteredIcons);
+  const enumeratedIcons = enumerateIconVariants(namedIcons);
+
+  return {...group, icons: enumeratedIcons};
+});
+
+const fuse = new Fuse(icons, {keys: ['id', 'groups', 'keywords'], threshold: 0.3});
+
+function SearchPanel() {
+  // The same icon can appear in multiple groups, so we also need to store
+  // which group the selected icon is in
+  const [selectedIcon, setSelectedIcon] = useState<SelectedIcon>({group: '', icon: ''});
 
   /**
    * Use Fuse.js to implement icon search
@@ -104,29 +96,19 @@ const SearchPanel = () => {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Results>(groupedIcons);
 
-  const fuse = new Fuse(icons, {
-    keys: ['id', 'groups', 'keywords'],
-    threshold: 0.3,
-  });
+  const debouncedSearch = useCallback((newQuery: string) => {
+    if (!newQuery) {
+      setResults(groupedIcons);
+    } else {
+      const searchResults = fuse.search(newQuery).map(result => result.item);
+      const namedIcons = addIconNames(searchResults);
+      const enumeratedIcons = enumerateIconVariants(namedIcons);
 
-  const debouncedSearch = useCallback(
-    debounce(newQuery => {
-      if (!newQuery) {
-        setResults(groupedIcons);
-      } else {
-        const searchResults = fuse.search(newQuery).map(result => result.item);
-        const namedIcons = addIconNames(searchResults);
-        const enumeratedIcons = enumerateIconVariants(namedIcons);
+      setResults([{id: 'search', icons: enumeratedIcons}]);
+    }
+  }, []);
 
-        setResults([{id: 'search', icons: enumeratedIcons}]);
-      }
-    }, 250),
-    []
-  );
-
-  useEffect(() => {
-    debouncedSearch(query);
-  }, [query]);
+  useEffect(() => void debouncedSearch(query), [query, debouncedSearch]);
 
   return (
     <Wrap>
@@ -158,7 +140,7 @@ const SearchPanel = () => {
       ))}
     </Wrap>
   );
-};
+}
 
 export default SearchPanel;
 

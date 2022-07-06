@@ -48,7 +48,7 @@ _Button.argTypes = {
   size: {
     control: {
       type: 'select',
-      options: ['zero', 'xs', 'sm', 'md'],
+      options: ['zero', 'xsmall', 'small', 'xs', 'sm', 'md'],
     },
   },
 };
