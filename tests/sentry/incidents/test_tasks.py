@@ -1,6 +1,7 @@
 from datetime import timedelta
 from unittest.mock import Mock, call, patch
 
+import pytest
 import pytz
 from django.urls import reverse
 from django.utils import timezone
@@ -34,6 +35,8 @@ from sentry.snuba.models import QueryDatasets
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils import TestCase
 from sentry.utils.http import absolute_uri
+
+pytestmark = pytest.mark.sentry_metrics
 
 
 class BaseIncidentActivityTest:

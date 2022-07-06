@@ -54,6 +54,8 @@ from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.metrics.query import MetricField
 from sentry.snuba.metrics.query_builder import QueryDefinition
 
+pytestmark = pytest.mark.sentry_metrics
+
 
 @dataclass
 class PseudoProject:

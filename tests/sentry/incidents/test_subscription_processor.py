@@ -4,6 +4,7 @@ from random import randint
 from unittest.mock import Mock, call, patch
 from uuid import uuid4
 
+import pytest
 import pytz
 from django.utils import timezone
 from exam import fixture, patcher
@@ -48,6 +49,9 @@ from sentry.utils import json
 from sentry.utils.dates import to_timestamp
 
 EMPTY = object()
+
+
+pytestmark = pytest.mark.sentry_metrics
 
 
 @freeze_time()

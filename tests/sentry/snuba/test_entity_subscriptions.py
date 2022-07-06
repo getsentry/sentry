@@ -24,6 +24,10 @@ from sentry.snuba.models import QueryDatasets
 from sentry.testutils import TestCase
 
 
+
+pytestmark = pytest.mark.sentry_metrics
+
+
 class EntitySubscriptionTestCase(TestCase):
     def setUp(self) -> None:
         super().setUp()

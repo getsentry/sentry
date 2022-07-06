@@ -1,5 +1,6 @@
 from unittest.mock import patch
 
+import pytest
 import pytz
 import requests
 import responses
@@ -20,6 +21,9 @@ from sentry.testutils import APITestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils import json
 from tests.sentry.api.serializers.test_alert_rule import BaseAlertRuleSerializerTest
+
+
+pytestmark = pytest.mark.sentry_metrics
 
 
 class AlertRuleListEndpointTest(APITestCase):

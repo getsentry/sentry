@@ -1,3 +1,4 @@
+import pytest
 import copy
 import time
 from unittest.mock import patch
@@ -29,6 +30,7 @@ MOCKED_DERIVED_METRICS_2.update(
     }
 )
 
+pytestmark = pytest.mark.sentry_metrics
 
 def _indexer_record(org_id: int, string: str) -> int:
     return indexer.record(use_case_id=UseCaseKey.RELEASE_HEALTH, org_id=org_id, string=string)

@@ -39,6 +39,8 @@ from sentry.snuba.metrics.naming_layer import SessionMRI, TransactionMRI, get_pu
 from sentry.testutils import TestCase
 from tests.sentry.snuba.metrics.test_query_builder import PseudoProject
 
+pytestmark = pytest.mark.sentry_metrics
+
 
 def _indexer_record(org_id: int, string: str) -> int:
     return indexer.record(use_case_id=UseCaseKey.RELEASE_HEALTH, org_id=org_id, string=string)

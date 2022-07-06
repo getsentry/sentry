@@ -12,6 +12,7 @@ from snuba_sdk.conditions import Condition, Op, Or
 from snuba_sdk.function import Function
 from snuba_sdk.orderby import Direction, LimitBy, OrderBy
 
+from sentry import options
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.search.events import constants
 from sentry.search.events.builder import (
@@ -25,6 +26,8 @@ from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase, TestCase
 from sentry.utils.snuba import Dataset, QueryOutsideRetentionError
+
+pytestmark = pytest.mark.sentry_metrics
 
 
 class QueryBuilderTest(TestCase):
@@ -1048,7 +1051,10 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             selected_columns=["transaction", "project", "p95(transaction.duration)"],
         )
         transaction_index = indexer.resolve(self.organization.id, "transaction")
-        transaction_name = indexer.resolve(self.organization.id, "foo_transaction")
+        if options.get("sentry-metrics.performance.tags-values-are-strings"):
+            transaction_name = 'foo_transaction'
+        else:
+            transaction_name = indexer.resolve(self.organization.id, "foo_transaction")
         transaction = Column(f"tags[{transaction_index}]")
         self.assertCountEqual(
             query.where,
@@ -1066,8 +1072,12 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             selected_columns=["transaction", "project", "p95(transaction.duration)"],
         )
         transaction_index = indexer.resolve(self.organization.id, "transaction")
-        transaction_name1 = indexer.resolve(self.organization.id, "foo_transaction")
-        transaction_name2 = indexer.resolve(self.organization.id, "bar_transaction")
+        if options.get("sentry-metrics.performance.tags-values-are-strings"):
+            transaction_name1 = 'foo_transaction'
+            transaction_name2 = 'bar_transaction'
+        else:
+            transaction_name1 = indexer.resolve(self.organization.id, "foo_transaction")
+            transaction_name2 = indexer.resolve(self.organization.id, "bar_transaction")
         transaction = Column(f"tags[{transaction_index}]")
         self.assertCountEqual(
             query.where,
@@ -1079,6 +1089,9 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         )
 
     def test_missing_transaction_index(self):
+        if options.get("sentry-metrics.performance.tags-values-are-strings"):
+            pytest.skip("test does not apply if tag values are in clickhouse")
+
         with pytest.raises(
             InvalidSearchQuery,
             match=re.escape("Tag value was not found"),
@@ -1090,6 +1103,8 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             )
 
     def test_missing_transaction_index_in_filter(self):
+        if options.get("sentry-metrics.performance.tags-values-are-strings"):
+            pytest.skip("test does not apply if tag values are in clickhouse")
         with pytest.raises(
             InvalidSearchQuery,
             match=re.escape("Tag value was not found"),
@@ -2016,16 +2031,21 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                 "count_web_vitals(measurements.lcp, good)",
             ],
         )
-        self.assertCountEqual(
-            mock_indexer.mock_calls,
-            [
-                mock.call(self.organization.id, "transaction"),
-                mock.call(self.organization.id, "foo_transaction"),
-                mock.call(self.organization.id, constants.METRICS_MAP["measurements.lcp"]),
-                mock.call(self.organization.id, "measurement_rating"),
-                mock.call(self.organization.id, "good"),
-            ],
-        )
+
+        expected = [mock.call(self.organization.id, "transaction")]
+
+        if not options.get("sentry-metrics.performance.tags-values-are-strings"):
+            expected.append(mock.call(self.organization.id, "foo_transaction"))
+
+        expected.extend([
+            mock.call(self.organization.id, constants.METRICS_MAP["measurements.lcp"]),
+            mock.call(self.organization.id, "measurement_rating"),
+        ])
+
+        if not options.get("sentry-metrics.performance.tags-values-are-strings"):
+            expected.append( mock.call(self.organization.id, "good"))
+
+        self.assertCountEqual(mock_indexer.mock_calls, expected)
 
     def test_custom_measurement_allowed(self):
         MetricsQueryBuilder(
@@ -2172,8 +2192,13 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             selected_columns=["p95(transaction.duration)"],
         )
         transaction_index = indexer.resolve(self.organization.id, "transaction")
-        transaction_name1 = indexer.resolve(self.organization.id, "foo_transaction")
-        transaction_name2 = indexer.resolve(self.organization.id, "bar_transaction")
+        if options.get("sentry-metrics.performance.tags-values-are-strings"):
+            transaction_name1 = 'foo_transaction'
+            transaction_name2 = 'bar_transaction'
+        else:
+            transaction_name1 = indexer.resolve(self.organization.id, "foo_transaction")
+            transaction_name2 = indexer.resolve(self.organization.id, "bar_transaction")
+
         transaction = Column(f"tags[{transaction_index}]")
         self.assertCountEqual(
             query.where,
@@ -2185,6 +2210,8 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         )
 
     def test_missing_transaction_index(self):
+        if options.get("sentry-metrics.performance.tags-values-are-strings"):
+            pytest.skip("test does not apply if tag values are in clickhouse")
         with pytest.raises(
             InvalidSearchQuery,
             match=re.escape("Tag value was not found"),
@@ -2197,6 +2224,8 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             )
 
     def test_missing_transaction_index_in_filter(self):
+        if options.get("sentry-metrics.performance.tags-values-are-strings"):
+            pytest.skip("test does not apply if tag values are in clickhouse")
         with pytest.raises(
             InvalidSearchQuery,
             match=re.escape("Tag value was not found"),

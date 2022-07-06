@@ -1,3 +1,4 @@
+import pytest
 import time
 from datetime import datetime, timedelta
 from unittest.mock import patch
@@ -13,6 +14,8 @@ from tests.sentry.api.endpoints.test_organization_metrics import (
     MOCKED_DERIVED_METRICS,
     mocked_mri_resolver,
 )
+
+pytestmark = pytest.mark.sentry_metrics
 
 
 def _indexer_record(org_id: int, string: str) -> int:

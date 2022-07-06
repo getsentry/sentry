@@ -16,6 +16,7 @@ from snuba_sdk.function import CurriedFunction, Function
 from snuba_sdk.orderby import Direction, LimitBy, OrderBy
 from snuba_sdk.query import Query
 
+from sentry import options
 from sentry.api.event_search import (
     AggregateFilter,
     ParenExpression,
@@ -1827,7 +1828,9 @@ class MetricsQueryBuilder(QueryBuilder):
 
         return self._indexer_cache[value]
 
-    def _resolve_tag_value(self, value: str) -> int:
+    def _resolve_tag_value(self, value: str) -> Union[int, str]:
+        if options.get("sentry-metrics.performance.tags-values-are-strings"):
+            return value
         if self.dry_run:
             return -1
         result = self.resolve_metric_index(value)

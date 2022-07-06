@@ -1,3 +1,4 @@
+import pytest
 import time
 from unittest.mock import patch
 
@@ -12,6 +13,9 @@ from tests.sentry.api.endpoints.test_organization_metrics import (
     mocked_mri_resolver,
 )
 
+
+
+pytestmark = pytest.mark.sentry_metrics
 
 class OrganizationMetricsTagsIntegrationTest(OrganizationMetricMetaIntegrationTestCase):
 

@@ -1,5 +1,6 @@
 import logging
 import time
+import pytest
 from copy import deepcopy
 from datetime import datetime, timezone
 from typing import Dict, List, MutableMapping, Sequence, Union
@@ -29,6 +30,8 @@ from sentry.utils import json
 
 logger = logging.getLogger(__name__)
 
+
+pytestmark = pytest.mark.sentry_metrics
 
 def compare_messages_ignoring_mapping_metadata(actual: Message, expected: Message) -> None:
     assert actual.offset == expected.offset

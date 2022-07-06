@@ -1,5 +1,6 @@
 import copy
 import time
+import pytest
 from operator import itemgetter
 from unittest.mock import patch
 
@@ -36,6 +37,8 @@ MOCKED_DERIVED_METRICS.update(
         )
     }
 )
+
+pytestmark = pytest.mark.sentry_metrics
 
 
 def mocked_mri_resolver(metric_names, mri_func):
