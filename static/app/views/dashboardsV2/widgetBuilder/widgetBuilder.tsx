@@ -152,10 +152,17 @@ function WidgetBuilder({
   tags,
 }: Props) {
   const {widgetIndex, orgId, dashboardId} = params;
-  const {source, displayType, defaultTitle, defaultTableColumns, limit} = location.query;
+  const {source, displayType, defaultTitle, limit} = location.query;
   const defaultWidgetQuery = getParsedDefaultWidgetQuery(
     location.query.defaultWidgetQuery
   );
+
+  // defaultTableColumns can be a single string if location.query only contains
+  // 1 value for this key. Ensure it is a string[]
+  let {defaultTableColumns}: {defaultTableColumns: string[]} = location.query;
+  if (typeof defaultTableColumns === 'string') {
+    defaultTableColumns = [defaultTableColumns];
+  }
 
   // Feature flag for new widget builder design. This feature is still a work in progress and not yet available internally.
   const widgetBuilderNewDesign = organization.features.includes(
