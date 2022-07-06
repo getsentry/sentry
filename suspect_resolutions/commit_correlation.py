@@ -21,7 +21,8 @@ def get_files_changed(issue_id: int):
     release = (
         GroupRelease.objects.filter(group_id=issue_id)
         .values_list("release_id")
-        .order_by("-last_seen")[0]
+        .order_by("-last_seen")
+        .first()
     )
 
     # get all files changed in the latest release

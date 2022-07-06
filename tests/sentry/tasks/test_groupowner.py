@@ -407,7 +407,7 @@ class TestGroupOwners(TestCase):
         assert not GroupOwner.objects.filter(user=self.user2.id).exists()
 
     @patch("sentry.tasks.groupowner.get_event_file_committers")
-    def test_low_score(self, patched_committers):
+    def test_low_suspect_committer_score(self, patched_committers):
         self.user = self.create_user()
         patched_committers.return_value = [
             {

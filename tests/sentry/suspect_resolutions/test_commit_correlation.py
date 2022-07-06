@@ -3,7 +3,7 @@ from sentry.testutils import TestCase
 from suspect_resolutions.commit_correlation import get_files_changed, is_issue_commit_correlated
 
 
-class TestKomal(TestCase):
+class TestCommitCorrelation(TestCase):
     def test_get_files_changed(self):
         project = self.create_project()
         release = self.create_release(project=project, version="1")
