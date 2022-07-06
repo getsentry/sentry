@@ -9,6 +9,7 @@ from django.urls import reverse
 from sentry import audit_log
 from sentry.models import AuditLogEntry, Authenticator, Organization, OrganizationMember, UserEmail
 from sentry.testutils import APITestCase
+from sentry.testutils.helpers import override_options
 from tests.sentry.api.endpoints.test_user_authenticator_details import assert_security_email_sent
 
 
@@ -122,6 +123,18 @@ class UserAuthenticatorEnrollTest(APITestCase):
             assert interface.phone_number == "1231234"
 
             assert_security_email_sent("mfa-added")
+
+    @mock.patch("sentry.auth.authenticators.SmsInterface.validate_otp", return_value=True)
+    @mock.patch("sentry.auth.authenticators.SmsInterface.send_text", return_value=True)
+    def test_sms_disallow_new_enrollment(self, send_text, validate_otp):
+        validate_otp.__func__ = None
+
+        form_data = {"phone": "+12345678901"}
+
+        with override_options(
+            {"sms.disallow-new-enrollment": True, "sms.twilio-account": "test-twilio-account"}
+        ):
+            self.get_error_response("me", "sms", method="post", status_code=403, **form_data)
 
     def test_sms_invalid_otp(self):
         new_options = settings.SENTRY_OPTIONS.copy()
