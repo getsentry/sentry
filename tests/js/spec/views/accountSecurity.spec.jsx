@@ -303,6 +303,27 @@ describe('AccountSecurity', function () {
     expect(wrapper.find('TwoFactorRequired')).toHaveLength(1);
   });
 
+  it('does not render primary interface that disallows new enrollments', function () {
+    Client.addMockResponse({
+      url: ENDPOINT,
+      body: [
+        TestStubs.Authenticators().Totp({disallowNewEnrollment: false}),
+        TestStubs.Authenticators().U2f({disallowNewEnrollment: null}),
+        TestStubs.Authenticators().Sms({disallowNewEnrollment: true}),
+      ],
+    });
+
+    const wrapper = mountWithTheme(
+      <AccountSecurityWrapper>
+        <AccountSecurity />
+      </AccountSecurityWrapper>,
+      TestStubs.routerContext()
+    );
+
+    // There should only be two authenticators rendered
+    expect(wrapper.find('AuthenticatorName')).toHaveLength(2);
+  });
+
   it('renders a backup interface that is enrolled', function () {
     Client.addMockResponse({
       url: ENDPOINT,
