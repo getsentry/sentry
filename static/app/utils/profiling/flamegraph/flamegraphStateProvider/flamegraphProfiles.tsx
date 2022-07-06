@@ -25,6 +25,9 @@ export function flamegraphProfilesReducer(
     case 'set selected root': {
       return {...state, selectedRoot: action.payload};
     }
+    case 'set highlighted node': {
+      return {...state, highlightedNode: action.payload};
+    }
     case 'set thread id': {
       // When the profile index changes, we want to drop the selected and hovered nodes
       return {

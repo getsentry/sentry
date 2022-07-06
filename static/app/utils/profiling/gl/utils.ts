@@ -660,7 +660,6 @@ export function computeConfigViewWithStategy(
   }
 
   if (strategy === 'min') {
-<<<<<<< HEAD
     if (view.width <= frame.width) {
       // If view width <= frame width, we need to zoom out, so the behavior is the
       // same as if we were using 'exact'
@@ -673,46 +672,20 @@ export function computeConfigViewWithStategy(
     }
 
     let offset = view.clone();
-=======
-    if (view.width < frame.width) {
-      // If view width < frame width, we need to zoom out,
-      // so the condition = exact
-      return frame.withHeight(view.width);
-    }
-
-    if (view.containsRect(frame)) {
-      // If frame is in the frame, do nothing
-      return view;
-    }
-
-    let offset = view;
->>>>>>> 16ace62c38 (feat(profiling): use min steps to zoom into node)
     if (frame.left < view.left) {
       // If frame is to the left of the view, translate it left
       // to frame.x so that start of the frame is in the view
       offset = offset.withX(frame.x);
-<<<<<<< HEAD
     } else if (frame.right > view.right) {
       // If the right boundary of a frame is outside of the view, translate the view
       // by the difference between the right edge of the frame and the right edge of the view
-=======
-    }
-    if (offset.overlapsRight(frame) || frame.right > view.right) {
-      // If frame is to the right of the view, translate it right
-      // by the difference between the right edge of the frame and the view
->>>>>>> 16ace62c38 (feat(profiling): use min steps to zoom into node)
       offset = view.withX(offset.x + frame.right - offset.right);
     }
 
     if (frame.bottom < view.top) {
       // If frame is above the view, translate view to top of frame
       offset = offset.withY(frame.top);
-<<<<<<< HEAD
     } else if (frame.bottom > view.bottom) {
-=======
-    }
-    if (frame.bottom > view.bottom) {
->>>>>>> 16ace62c38 (feat(profiling): use min steps to zoom into node)
       // If frame is below the view, translate view by the difference
       // of the bottom edge of the frame and the view
       offset = offset.translateY(offset.y + frame.bottom - offset.bottom);
