@@ -324,6 +324,26 @@ describe('AccountSecurity', function () {
     expect(wrapper.find('AuthenticatorName')).toHaveLength(2);
   });
 
+  it('renders primary interface if new enrollments are disallowed, but we are enrolled', function () {
+    Client.addMockResponse({
+      url: ENDPOINT,
+      body: [
+        TestStubs.Authenticators().Sms({isEnrolled: true, disallowNewEnrollment: true}),
+      ],
+    });
+
+    const wrapper = mountWithTheme(
+      <AccountSecurityWrapper>
+        <AccountSecurity />
+      </AccountSecurityWrapper>,
+      TestStubs.routerContext()
+    );
+
+    // Should still render the authenticator since we are already enrolled
+    expect(wrapper.find('AuthenticatorName')).toHaveLength(1);
+    expect(wrapper.find('AuthenticatorName').prop('children')).toBe('Text Message');
+  });
+
   it('renders a backup interface that is enrolled', function () {
     Client.addMockResponse({
       url: ENDPOINT,
