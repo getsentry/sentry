@@ -30,7 +30,7 @@ function useSdkVersions({orgSlug, projSlug, projectIds = []}: Props) {
           {
             method: 'GET',
             query: {
-              projects: projectIds,
+              project: projectIds,
             },
           }
         );
