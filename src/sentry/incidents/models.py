@@ -347,6 +347,11 @@ class AlertRuleExcludedProjects(Model):
 class AlertRule(Model):
     __include_in_export__ = True
 
+    class Type(Enum):
+        Error = 0
+        Performance = 1
+        CrashRate = 2
+
     objects = AlertRuleManager()
     objects_with_snapshots = BaseManager()
 
@@ -357,6 +362,8 @@ class AlertRule(Model):
         "sentry.Project", related_name="alert_rule_exclusions", through=AlertRuleExcludedProjects
     )
     name = models.TextField()
+    # Possible values are in the the `Type` enum
+    type = models.SmallIntegerField(null=True)
     status = models.SmallIntegerField(default=AlertRuleStatus.PENDING.value)
     # Determines whether we include all current and future projects from this
     # organization in this rule.
