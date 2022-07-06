@@ -53,14 +53,23 @@ type Props = {
 
 export function VideoContainer() {
   const {ref: fullscreenRef, isFullscreen, toggle: toggleFullscreen} = useFullscreen();
+
   return (
-    <VideoSection>
+    <VideoSection ref={fullscreenRef}>
       <ErrorBoundary mini>
-        <div ref={fullscreenRef}>
-          <ReplayView toggleFullscreen={toggleFullscreen} isFullscreen={isFullscreen} />
-        </div>
+        <ReplayView toggleFullscreen={toggleFullscreen} isFullscreen={isFullscreen} />
       </ErrorBoundary>
     </VideoSection>
+  );
+}
+
+export function BreadCrumbsContainer() {
+  return (
+    <BreadcrumbSection>
+      <ErrorBoundary mini>
+        <Breadcrumbs />
+      </ErrorBoundary>
+    </BreadcrumbSection>
   );
 }
 
@@ -80,13 +89,7 @@ function ReplayLayout({
 
   const video = showVideo ? <VideoContainer /> : null;
 
-  const crumbs = showCrumbs ? (
-    <BreadcrumbSection>
-      <ErrorBoundary mini>
-        <Breadcrumbs />
-      </ErrorBoundary>
-    </BreadcrumbSection>
-  ) : null;
+  const crumbs = showCrumbs ? <BreadCrumbsContainer /> : null;
 
   const content = (
     <ContentSection>
@@ -105,8 +108,7 @@ function ReplayLayout({
           {content}
           <ResizePanel direction="w" minWidth={SIDEBAR_MIN_WIDTH}>
             <SidebarSection>
-              {showVideo ? <AsideTabsV2 /> : null}
-              {crumbs}
+              <AsideTabsV2 showCrumbs={showCrumbs} showVideo={showVideo} />
             </SidebarSection>
           </ResizePanel>
         </PageRow>
@@ -157,6 +159,7 @@ const ContentSection = styled(PageColumn)`
 `;
 
 const VideoSection = styled(PageColumn)`
+  height: 100%;
   flex-grow: 2;
 `;
 

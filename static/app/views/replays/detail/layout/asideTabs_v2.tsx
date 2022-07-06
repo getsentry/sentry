@@ -10,26 +10,41 @@ import ReplayReader from 'sentry/utils/replays/replayReader';
 import TagPanel from '../tagPanel';
 
 import ResizePanel from './resizePanel';
-import {VideoContainer} from '.';
+import {BreadCrumbsContainer, VideoContainer} from '.';
+
+type Props = {
+  showCrumbs?: boolean;
+  showVideo?: boolean;
+};
 
 const TABS = {
-  video: t('Video Player'),
+  video: t('Replay'),
   tags: t('Tags'),
 };
 
-type Props = {};
-
-function renderTabContent(key: string, loadedReplay: ReplayReader) {
-  if (key === 'tags') {
-    return <TagPanel replay={loadedReplay} />;
-  }
-
-  return <VideoContainer />;
-}
-
-function AsideTabsV2({}: Props) {
+function AsideTabsV2({showCrumbs = true, showVideo = true}: Props) {
   const {replay} = useReplayContext();
   const [active, setActive] = useState<string>('video');
+
+  const renderTabContent = (key: string, loadedReplay: ReplayReader) => {
+    if (key === 'tags') {
+      return <TagPanel replay={loadedReplay} />;
+    }
+
+    return (
+      <React.Fragment>
+        {showVideo ? (
+          <ResizePanel direction="s" style={{height: '325px'}}>
+            <Container>
+              <VideoContainer />
+            </Container>
+          </ResizePanel>
+        ) : null}
+
+        {showCrumbs ? <BreadCrumbsContainer /> : null}
+      </React.Fragment>
+    );
+  };
 
   return (
     <React.Fragment>
@@ -42,20 +57,15 @@ function AsideTabsV2({}: Props) {
           );
         })}
       </NavTabs>
-      <ResizePanel direction="s" style={{height: '325px'}}>
-        <Container>
-          {replay ? renderTabContent(active, replay) : <Placeholder height="100%" />}
-        </Container>
-      </ResizePanel>
+      {replay ? renderTabContent(active, replay) : <Placeholder height="100%" />}
     </React.Fragment>
   );
 }
 
-// TODO(replays): WIP 👇
 const Container = styled('div')`
   height: 100%;
-  min-height: 200px;
-  max-height: calc(100vh - 70%);
+  /* TODO(replays): calc max height so the user can't resize infinitely but always showing both elements */
+  max-height: 50vh;
 `;
 
 export default AsideTabsV2;
