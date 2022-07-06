@@ -82,17 +82,18 @@ export function ActivateModal({
             }
           )}
         </Alert>
-        <Field>
-          <CheckboxFancy
-            isChecked={understandConsequences}
-            onClick={() => setUnderstandConsequences(!understandConsequences)}
-            aria-label={
-              understandConsequences ? t('Uncheck to disagree') : t('Check to agree')
-            }
-          />
-          <FieldLabel>{t('I understand the consequences\u2026')}</FieldLabel>
-          <FieldRequiredBadge />
-        </Field>
+        <UnderstandConsequencesFieldWrapper>
+          <Field onClick={() => setUnderstandConsequences(!understandConsequences)}>
+            <CheckboxFancy
+              isChecked={understandConsequences}
+              aria-label={
+                understandConsequences ? t('Uncheck to disagree') : t('Check to agree')
+              }
+            />
+            <FieldLabel>{t('I understand the consequences\u2026')}</FieldLabel>
+            <FieldRequiredBadge />
+          </Field>
+        </UnderstandConsequencesFieldWrapper>
       </Body>
       <Footer>
         <FooterActions>
@@ -140,4 +141,8 @@ const FieldLabel = styled('div')`
   margin-left: ${space(1)};
   /* match the height of the checkbox */
   line-height: 16px;
+`;
+
+const UnderstandConsequencesFieldWrapper = styled('div')`
+  display: flex;
 `;
