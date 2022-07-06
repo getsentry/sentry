@@ -70,10 +70,11 @@ def get_letter_avatar(
     identifier: str,
     size: Optional[int] = None,
     use_svg: Optional[bool] = True,
+    initials: Optional[str] = None,
 ) -> str:
     display_name = (display_name or "").strip() or "?"
     names = display_name.split(" ")
-    initials = "{}{}".format(names[0][0], names[-1][0] if len(names) > 1 else "")
+    initials = initials or  "{}{}".format(names[0][0], names[-1][0] if len(names) > 1 else "")
     initials = escape(initials.upper())
     color = get_letter_avatar_color(identifier)
     if use_svg:
