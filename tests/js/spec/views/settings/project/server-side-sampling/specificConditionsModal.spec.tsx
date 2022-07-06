@@ -19,6 +19,7 @@ import ServerSideSampling from 'sentry/views/settings/project/server-side-sampli
 import {distributedTracesConditions} from 'sentry/views/settings/project/server-side-sampling/modals/specificConditionsModal/utils';
 import {getInnerNameLabel} from 'sentry/views/settings/project/server-side-sampling/utils';
 import importedUseProjectStats from 'sentry/views/settings/project/server-side-sampling/utils/useProjectStats';
+import importedUseSamplingDistribution from 'sentry/views/settings/project/server-side-sampling/utils/useSamplingDistribution';
 
 import {getMockData} from './index.spec';
 
@@ -31,6 +32,22 @@ useProjectStats.mockImplementation(() => ({
   loading: false,
   error: undefined,
   projectStatsSeries: [],
+}));
+
+jest.mock(
+  'sentry/views/settings/project/server-side-sampling/utils/useSamplingDistribution'
+);
+const useSamplingDistribution = importedUseSamplingDistribution as jest.MockedFunction<
+  typeof importedUseSamplingDistribution
+>;
+
+useSamplingDistribution.mockImplementation(() => ({
+  samplingDistribution: {
+    project_breakdown: null,
+    sample_size: 0,
+    null_sample_rate_percentage: null,
+    sample_rate_distributions: null,
+  },
 }));
 
 function TestComponent({

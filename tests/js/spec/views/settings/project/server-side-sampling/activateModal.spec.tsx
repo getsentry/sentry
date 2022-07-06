@@ -13,6 +13,23 @@ import {OrganizationContext} from 'sentry/views/organizationContext';
 import {RouteContext} from 'sentry/views/routeContext';
 import ServerSideSampling from 'sentry/views/settings/project/server-side-sampling';
 import {SERVER_SIDE_SAMPLING_DOC_LINK} from 'sentry/views/settings/project/server-side-sampling/utils';
+import importedUseSamplingDistribution from 'sentry/views/settings/project/server-side-sampling/utils/useSamplingDistribution';
+
+jest.mock(
+  'sentry/views/settings/project/server-side-sampling/utils/useSamplingDistribution'
+);
+const useSamplingDistribution = importedUseSamplingDistribution as jest.MockedFunction<
+  typeof importedUseSamplingDistribution
+>;
+
+useSamplingDistribution.mockImplementation(() => ({
+  samplingDistribution: {
+    project_breakdown: null,
+    sample_size: 0,
+    null_sample_rate_percentage: null,
+    sample_rate_distributions: null,
+  },
+}));
 
 describe('Server-side Sampling - Activate Modal', function () {
   MockApiClient.addMockResponse({
