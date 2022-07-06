@@ -102,13 +102,12 @@ const CrumbItem = styled(PanelItem)<CrumbItemProps>`
 
   font-size: ${p => p.theme.fontSizeMedium};
   background: transparent;
-  padding: 0;
-  padding-right: ${space(1)};
+  padding: 0 ${space(1)};
   text-align: left;
   border: none;
   position: relative;
   ${p => (p.isSelected || p.isHovered) && `background-color: ${p.theme.purple100};`}
-  margin: 0 ${space(0.5)};
+  /* margin: 0 ${space(0.5)}; */
   border-radius: 4px;
 
   &::after {
@@ -121,12 +120,9 @@ const CrumbItem = styled(PanelItem)<CrumbItemProps>`
     z-index: 1;
   }
 
-  &:first-of-type {
-    margin-top: ${space(0.5)};
-    &::after {
-      bottom: 0;
-      height: 50%;
-    }
+  &:first-of-type::after {
+    bottom: 0;
+    height: 50%;
   }
 
   &:last-of-type::after {
@@ -149,7 +145,6 @@ const IconWrapper = styled('div')<Required<Pick<SVGIconProps, 'color'>>>`
   background: ${p => p.theme[p.color] ?? p.color};
   box-shadow: ${p => p.theme.dropShadowLightest};
   position: relative;
-  margin-left: ${space(1)};
   z-index: 2;
 `;
 
