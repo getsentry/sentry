@@ -125,7 +125,7 @@ def get_available_derived_metrics(
     return found_derived_metrics.intersection(public_derived_metrics)
 
 
-def get_metrics(projects: Sequence[Project]) -> Sequence[MetricMeta]:
+def get_metrics(projects: Sequence[Project], use_case_id: UseCaseKey) -> Sequence[MetricMeta]:
     assert projects
 
     metrics_meta = []
@@ -142,7 +142,7 @@ def get_metrics(projects: Sequence[Project]) -> Sequence[MetricMeta]:
                 metrics_meta.append(
                     MetricMeta(
                         name=get_public_name_from_mri(
-                            reverse_resolve(UseCaseKey.RELEASE_HEALTH, row["metric_id"])
+                            reverse_resolve(use_case_id, row["metric_id"])
                         ),
                         type=metric_type,
                         operations=AVAILABLE_OPERATIONS[METRIC_TYPE_TO_ENTITY[metric_type].value],
@@ -183,7 +183,7 @@ def get_custom_measurements(
     organization: Optional[Organization] = None,
     start: Optional[datetime] = None,
     end: Optional[datetime] = None,
-    use_case_id: UseCaseKey = UseCaseKey.RELEASE_HEALTH,
+    use_case_id: UseCaseKey = UseCaseKey.PERFORMANCE,
 ) -> Sequence[MetricMeta]:
     assert projects
 

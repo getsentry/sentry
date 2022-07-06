@@ -29,7 +29,7 @@ class OrganizationMetricsEndpoint(OrganizationEndpoint):
             return Response(status=404)
 
         projects = self.get_projects(request, organization)
-        metrics = get_metrics(projects)
+        metrics = get_metrics(projects, UseCaseKey.PERFORMANCE)
         return Response(metrics, status=200)
 
 
