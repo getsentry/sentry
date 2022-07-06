@@ -142,6 +142,7 @@ class QueryField extends Component<Props> {
     switch (value.kind) {
       case FieldValueKind.TAG:
       case FieldValueKind.MEASUREMENT:
+      case FieldValueKind.CUSTOM_MEASUREMENT:
       case FieldValueKind.BREAKDOWN:
       case FieldValueKind.FIELD:
         fieldValue = {kind: 'field', field: value.meta.name};
@@ -194,6 +195,7 @@ class QueryField extends Component<Props> {
             (field.kind === FieldValueKind.FIELD ||
               field.kind === FieldValueKind.TAG ||
               field.kind === FieldValueKind.MEASUREMENT ||
+              field.kind === FieldValueKind.CUSTOM_MEASUREMENT ||
               field.kind === FieldValueKind.METRICS ||
               field.kind === FieldValueKind.BREAKDOWN) &&
             validateColumnTypes(param.columnTypes as ValidateColumnTypes, field)
@@ -358,6 +360,7 @@ class QueryField extends Component<Props> {
                   (value.kind === FieldValueKind.FIELD ||
                     value.kind === FieldValueKind.TAG ||
                     value.kind === FieldValueKind.MEASUREMENT ||
+                    value.kind === FieldValueKind.CUSTOM_MEASUREMENT ||
                     value.kind === FieldValueKind.METRICS ||
                     value.kind === FieldValueKind.BREAKDOWN) &&
                   validateColumnTypes(param.columnTypes as ValidateColumnTypes, value)
@@ -538,6 +541,7 @@ class QueryField extends Component<Props> {
         text = 'f(x)';
         tagType = 'success';
         break;
+      case FieldValueKind.CUSTOM_MEASUREMENT:
       case FieldValueKind.MEASUREMENT:
         text = 'field';
         tagType = 'highlight';

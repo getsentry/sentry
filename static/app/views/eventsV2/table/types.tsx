@@ -31,6 +31,7 @@ export type TableState = {
 export enum FieldValueKind {
   TAG = 'tag',
   MEASUREMENT = 'measurement',
+  CUSTOM_MEASUREMENT = 'custom_measurement',
   BREAKDOWN = 'breakdown',
   FIELD = 'field',
   FUNCTION = 'function',
@@ -51,6 +52,13 @@ export type FieldValueColumns =
     }
   | {
       kind: FieldValueKind.MEASUREMENT;
+      meta: {
+        dataType: ColumnType;
+        name: string;
+      };
+    }
+  | {
+      kind: FieldValueKind.CUSTOM_MEASUREMENT;
       meta: {
         dataType: ColumnType;
         name: string;
