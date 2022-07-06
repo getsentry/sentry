@@ -23,6 +23,8 @@ GUIDES = {
     "new_page_filters": 24,
     "new_page_filters_pin": 25,
     "releases_widget": 26,
+    "activate_sampling_rule": 27,
+    "create_conditional_rule": 28,
 }
 
 # demo mode has different guides
