@@ -6,10 +6,10 @@ type Props = {
   underlined: boolean;
 };
 const NavTabs = styled('ul')<Props>`
+  border-bottom: ${p => (p.underlined ? '1px solid #e2dee6' : 'none')};
+  font-size: ${p => p.theme.fontSizeMedium};
   margin: 0 0 ${space(3)};
   padding-left: 0;
-  font-size: ${p => p.theme.fontSizeMedium};
-  border-bottom: ${p => (p.underlined ? '1px solid #e2dee6' : 'none')};
 
   & > li {
     float: left;
@@ -32,9 +32,11 @@ const NavTabs = styled('ul')<Props>`
     min-width: 30px;
     text-align: center;
   }
+
   & > li:first-child a {
     padding-left: 0;
   }
+
   & > li:last-child a {
     padding-right: 0;
   }
@@ -48,7 +50,7 @@ const NavTabs = styled('ul')<Props>`
     border: 0;
     background: none;
     color: #161319;
-    font-weight: 400;
+    font-weight: normal;
   }
 
   & > li.active a > span {
