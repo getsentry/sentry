@@ -36,7 +36,7 @@ describe('Server-side Sampling', function () {
       SERVER_SIDE_SAMPLING_DOC_LINK
     );
 
-    expect(screen.getByRole('button', {name: 'Get Started'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Start Setup'})).toBeInTheDocument();
 
     expect(container).toSnapshot();
   });
@@ -293,6 +293,38 @@ describe('Server-side Sampling', function () {
     userEvent.hover(screen.getByText('Add Rule'));
     expect(
       await screen.findByText("You don't have permission to add a rule")
+    ).toBeInTheDocument();
+  });
+
+  it('open uniform rate modal when editing a uniform rule', async function () {
+    const {organization, router, project} = getMockData({
+      projects: [
+        TestStubs.Project({
+          dynamicSampling: {
+            rules: [uniformRule],
+          },
+        }),
+      ],
+    });
+
+    render(
+      <TestComponent
+        organization={organization}
+        project={project}
+        router={router}
+        withModal
+      />
+    );
+
+    userEvent.click(screen.getByLabelText('Actions'));
+
+    // Open Modal
+    userEvent.click(screen.getByLabelText('Edit'));
+
+    expect(
+      await screen.findByRole('heading', {
+        name: 'Set a uniform sample rate for Transactions',
+      })
     ).toBeInTheDocument();
   });
 });

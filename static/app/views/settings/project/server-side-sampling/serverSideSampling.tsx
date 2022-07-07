@@ -17,7 +17,7 @@ import {t} from 'sentry/locale';
 import ProjectStore from 'sentry/stores/projectsStore';
 import space from 'sentry/styles/space';
 import {Project} from 'sentry/types';
-import {SamplingRule, SamplingRuleOperator, SamplingRules} from 'sentry/types/sampling';
+import {SamplingRule, SamplingRuleOperator} from 'sentry/types/sampling';
 import {defined} from 'sentry/utils';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import useApi from 'sentry/utils/useApi';
@@ -48,7 +48,7 @@ import {
   RateColumn,
   Rule,
 } from './rule';
-import {SERVER_SIDE_SAMPLING_DOC_LINK} from './utils';
+import {isUniformRule, SERVER_SIDE_SAMPLING_DOC_LINK} from './utils';
 
 type Props = {
   project: Project;
@@ -63,7 +63,7 @@ export function ServerSideSampling({project}: Props) {
   const currentRules = project.dynamicSampling?.rules;
   const previousRules = usePrevious(currentRules);
 
-  const [rules, setRules] = useState<SamplingRules>(currentRules ?? []);
+  const [rules, setRules] = useState<SamplingRule[]>(currentRules ?? []);
 
   const {projectStats} = useProjectStats({
     orgSlug: organization.slug,
@@ -227,6 +227,26 @@ export function ServerSideSampling({project}: Props) {
   }
 
   function handleEditRule(rule: SamplingRule) {
+    if (isUniformRule(rule)) {
+      openModal(
+        modalProps => (
+          <UniformRateModal
+            {...modalProps}
+            organization={organization}
+            project={project}
+            projectStats={projectStats}
+            rules={rules}
+            uniformRule={rule}
+            recommendedSdkUpgrades={recommendedSdkUpgrades}
+          />
+        ),
+        {
+          modalCss: responsiveModal,
+        }
+      );
+      return;
+    }
+
     openModal(modalProps => (
       <SpecificConditionsModal
         {...modalProps}

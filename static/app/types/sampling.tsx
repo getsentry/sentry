@@ -177,8 +177,6 @@ export type SamplingRule = {
   bottomPinned?: boolean;
 };
 
-export type SamplingRules = Array<SamplingRule>;
-
 export type SamplingDistribution = {
   null_sample_rate_percentage: null | number;
   project_breakdown:

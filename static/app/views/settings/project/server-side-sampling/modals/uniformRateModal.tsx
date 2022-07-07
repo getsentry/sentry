@@ -12,12 +12,12 @@ import {IconRefresh} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Project, SeriesApi} from 'sentry/types';
-import {SamplingRules} from 'sentry/types/sampling';
+import {SamplingRule} from 'sentry/types/sampling';
 import {defined} from 'sentry/utils';
 import {formatPercentage} from 'sentry/utils/formatters';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
-import {isUniformRule, SERVER_SIDE_SAMPLING_DOC_LINK} from '../utils';
+import {SERVER_SIDE_SAMPLING_DOC_LINK} from '../utils';
 import {projectStatsToPredictedSeries} from '../utils/projectStatsToPredictedSeries';
 import {projectStatsToSampleRates} from '../utils/projectStatsToSampleRates';
 import {projectStatsToSeries} from '../utils/projectStatsToSeries';
@@ -37,9 +37,10 @@ enum Step {
 }
 
 type Props = Omit<RecommendedStepsModalProps, 'onSubmit'> & {
-  rules: SamplingRules;
+  rules: SamplingRule[];
   project?: Project;
   projectStats?: SeriesApi;
+  uniformRule?: SamplingRule;
 };
 
 function UniformRateModal({
@@ -51,7 +52,7 @@ function UniformRateModal({
   recommendedSdkUpgrades,
   projectStats,
   project,
-  rules,
+  uniformRule,
   ...props
 }: Props) {
   const {projectStats: projectStats30d, loading: loading30d} = useProjectStats({
@@ -63,11 +64,13 @@ function UniformRateModal({
 
   const loading = loading30d || !projectStats;
 
-  // TODO(sampling): fetch from API
-  const affectedProjects = ['ProjectA', 'ProjectB', 'ProjectC'];
+  const affectedProjects = recommendedSdkUpgrades.map(
+    recommendedSdkUpgrade => recommendedSdkUpgrade.project.slug
+  );
+
   const [activeStep, setActiveStep] = useState<Step>(Step.SET_UNIFORM_SAMPLE_RATE);
 
-  const uniformSampleRate = rules.find(isUniformRule)?.sampleRate;
+  const uniformSampleRate = uniformRule?.sampleRate;
 
   const {trueSampleRate, maxSafeSampleRate} = projectStatsToSampleRates(projectStats);
 
@@ -232,16 +235,17 @@ function UniformRateModal({
                 </ResetButton>
               </Fragment>
             </StyledPanelTable>
-
-            <Alert>
-              {tct(
-                'To ensures that any active server-side sampling rules won’t sharply decrease the amount of accepted transactions, we recommend you update the Sentry SDK versions for [affectedProjects]. More details in [step2: Step 2].',
-                {
-                  step2: <strong />,
-                  affectedProjects: <strong>{affectedProjects.join(', ')}</strong>,
-                }
-              )}
-            </Alert>
+            {!!affectedProjects.length && (
+              <Alert>
+                {tct(
+                  'To ensures that any active server-side sampling rules won’t sharply decrease the amount of accepted transactions, we recommend you update the Sentry SDK versions for [affectedProjects]. More details in [step2: Step 2].',
+                  {
+                    step2: <strong />,
+                    affectedProjects: <strong>{affectedProjects.join(', ')}</strong>,
+                  }
+                )}
+              </Alert>
+            )}
           </Fragment>
         )}
       </Body>
