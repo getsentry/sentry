@@ -34,7 +34,6 @@ from sentry.utils.snuba import _snuba_pool
 pytestmark = pytest.mark.sentry_metrics
 
 
-
 def _indexer_record(org_id: int, string: str) -> int:
     return indexer.record(use_case_id=UseCaseKey.RELEASE_HEALTH, org_id=org_id, string=string)
 
