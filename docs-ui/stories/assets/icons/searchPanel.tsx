@@ -5,20 +5,16 @@ import Fuse from 'fuse.js';
 import TextField from 'sentry/components/deprecatedforms/textField';
 import space from 'sentry/styles/space';
 
-import {IconData, iconGroups, IconPropName, iconProps, icons} from './data';
+import {IconData, iconGroups, iconProps, icons} from './data';
 import IconInfo from './info';
+import {IconProps} from './sample';
 
 export type ExtendedIconData = IconData & {
   name: string;
-  defaultProps?: Partial<Record<IconPropName, unknown>>;
+  defaultProps?: Partial<IconProps>;
 };
 
 type Results = {icons: ExtendedIconData[]; id: string; label?: string}[];
-
-export type SelectedIcon = {
-  group: string;
-  icon: string;
-};
 
 const enumerateIconProps = (iconData: ExtendedIconData[], prop: string) =>
   iconData.reduce<ExtendedIconData[]>((acc, cur) => {
