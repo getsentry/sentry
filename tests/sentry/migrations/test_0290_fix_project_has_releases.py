@@ -1,4 +1,3 @@
-from sentry.models import ReleaseProject
 from sentry.testutils.cases import TestMigrations
 
 
@@ -7,10 +6,22 @@ class BackfillProjectHasReleaseTest(TestMigrations):
     migrate_to = "0290_fix_project_has_releases"
 
     def setup_before_migration(self, apps):
+        Project = apps.get_model("sentry", "Project")
+        Release = apps.get_model("sentry", "Release")
+        ReleaseProject = apps.get_model("sentry", "ReleaseProject")
+
+        self.project = Project.objects.create(organization_id=self.organization.id, name="p1")
         self.project.flags.has_releases = False
         self.project.save(update_fields=["flags"])
-        ReleaseProject.objects.get_or_create(project=self.project, release=self.release)
-        self.no_release_project = self.create_project()
+        ReleaseProject.objects.create(
+            project_id=self.project.id,
+            release_id=Release.objects.create(
+                organization_id=self.organization.id, version="test"
+            ).id,
+        )
+        self.no_release_project = Project.objects.create(
+            name="p2", organization_id=self.organization.id
+        )
 
     def test(self):
         for project, should_have_releases in [

@@ -1,3 +1,4 @@
+from sentry.snuba.models import SnubaQuery
 from sentry.testutils.cases import TestMigrations
 
 
@@ -5,9 +6,7 @@ class TestBackfill(TestMigrations):
     migrate_from = "0286_backfill_alertrule_organization"
     migrate_to = "0287_backfill_snubaquery_environment"
 
-    def setup_before_migration(self, apps):
-        SnubaQuery = apps.get_model("sentry", "SnubaQuery")
-
+    def setup_initial_state(self):
         # the case when environments exists for both orgs that map nicely
         self.to_org = self.create_organization(name="to_org")
         self.transferred_project = self.create_project(
@@ -23,7 +22,7 @@ class TestBackfill(TestMigrations):
             organization=self.to_org, projects=[self.transferred_project], environment=self.to_env
         )
 
-        self.snuba_query = SnubaQuery.objects.get(id=self.alert_rule.snuba_query_id)
+        self.snuba_query = self.alert_rule.snuba_query
         self.snuba_query.environment_id = self.from_env.id
         self.snuba_query.save()
 
@@ -44,19 +43,18 @@ class TestBackfill(TestMigrations):
         self.create_snuba_query.environment_id = self.create_from_env.id
         self.create_snuba_query.save()
 
-    def tearDown(self):
-        super().tearDown()
-
     def test(self):
+        AlertRule = self.apps.get_model("sentry", "AlertRule")
+        SnubaQuery = self.apps.get_model("sentry", "SnubaQuery")
         # normal scenario
-        self.snuba_query.refresh_from_db()
-        self.alert_rule.refresh_from_db()
+        self.snuba_query = SnubaQuery.objects.get(id=self.snuba_query.id)
+        self.alert_rule = AlertRule.objects_with_snapshots.get(id=self.alert_rule.id)
         assert self.alert_rule.organization_id == self.to_org.id
         assert self.snuba_query.environment_id == self.to_env.id
 
         # when env needs to be created
-        self.create_snuba_query.refresh_from_db()
-        self.create_alert_rule.refresh_from_db()
+        self.create_snuba_query = SnubaQuery.objects.get(id=self.create_snuba_query.id)
+        self.create_alert_rule = AlertRule.objects_with_snapshots.get(id=self.create_alert_rule.id)
         assert self.create_alert_rule.organization_id == self.create_to_org.id
         assert self.create_snuba_query.environment_id != self.create_from_env.id
         assert self.create_snuba_query.environment.name == self.create_from_env.name
