@@ -1,9 +1,9 @@
 import copy
 import time
-import pytest
 from operator import itemgetter
 from unittest.mock import patch
 
+import pytest
 from django.urls import reverse
 
 from sentry.models import ApiToken
