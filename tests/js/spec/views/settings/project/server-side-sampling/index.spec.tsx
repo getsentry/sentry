@@ -36,7 +36,7 @@ describe('Server-side Sampling', function () {
       SERVER_SIDE_SAMPLING_DOC_LINK
     );
 
-    expect(screen.getByRole('button', {name: 'Get Started'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Start Setup'})).toBeInTheDocument();
 
     expect(container).toSnapshot();
   });
@@ -195,45 +195,6 @@ describe('Server-side Sampling', function () {
     ).toBeInTheDocument();
   });
 
-  it('Open activate modal', async function () {
-    const {router, project, organization} = getMockData({
-      projects: [
-        TestStubs.Project({
-          dynamicSampling: {
-            rules: [
-              {
-                sampleRate: 1,
-                type: 'trace',
-                active: false,
-                condition: {
-                  op: 'and',
-                  inner: [],
-                },
-                id: 1,
-              },
-            ],
-          },
-        }),
-      ],
-    });
-
-    render(
-      <TestComponent
-        organization={organization}
-        project={project}
-        router={router}
-        withModal
-      />
-    );
-
-    // Open Modal
-    userEvent.click(screen.getByLabelText('Activate Rule'));
-
-    expect(
-      await screen.findByRole('heading', {name: 'Activate Rule'})
-    ).toBeInTheDocument();
-  });
-
   it('Open specific conditions modal', async function () {
     jest.spyOn(modal, 'openModal');
 
@@ -293,6 +254,64 @@ describe('Server-side Sampling', function () {
     userEvent.hover(screen.getByText('Add Rule'));
     expect(
       await screen.findByText("You don't have permission to add a rule")
+    ).toBeInTheDocument();
+  });
+
+  it('does not let the user activate a rule if sdk updates exists', async function () {
+    const {organization, router, project} = getMockData({
+      projects: [
+        TestStubs.Project({
+          dynamicSampling: {
+            rules: [uniformRule],
+          },
+        }),
+      ],
+    });
+
+    render(
+      <TestComponent organization={organization} project={project} router={router} />
+    );
+
+    expect(screen.getByRole('checkbox', {name: 'Activate Rule'})).toBeDisabled();
+
+    userEvent.hover(screen.getByLabelText('Activate Rule'));
+
+    expect(
+      await screen.findByText(
+        'To enable the rule, the recommended sdk version have to be updated'
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('open uniform rate modal when editing a uniform rule', async function () {
+    const {organization, router, project} = getMockData({
+      projects: [
+        TestStubs.Project({
+          dynamicSampling: {
+            rules: [uniformRule],
+          },
+        }),
+      ],
+    });
+
+    render(
+      <TestComponent
+        organization={organization}
+        project={project}
+        router={router}
+        withModal
+      />
+    );
+
+    userEvent.click(screen.getByLabelText('Actions'));
+
+    // Open Modal
+    userEvent.click(screen.getByLabelText('Edit'));
+
+    expect(
+      await screen.findByRole('heading', {
+        name: 'Set a uniform sample rate for Transactions',
+      })
     ).toBeInTheDocument();
   });
 });

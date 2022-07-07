@@ -36,7 +36,7 @@ export function Promo({onGetStarted, hasAccess}: Props) {
                 : t('You do not have permission to set up the sampling rules.')
             }
           >
-            {t('Get Started')}
+            {t('Start Setup')}
           </Button>
         </Actions>
       </Description>
