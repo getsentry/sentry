@@ -11,6 +11,7 @@ from arroyo.types import Message
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.consumers.indexer.common import MessageBatch
 from sentry.utils import json
+from sentry.utils.safe import get_path
 
 logger = logging.getLogger(__name__)
 
@@ -200,7 +201,7 @@ def process_messages(
                     new_tags[str(new_k)] = new_v
 
                     if new_k is None:
-                        fetch_type_ext = bulk_record_meta[k][2]
+                        fetch_type_ext = get_path(bulk_record_meta, k, 2)
                         logger.error(
                             "process_messages.dropped_string",
                             extra={
@@ -212,7 +213,7 @@ def process_messages(
                         dropped_string = True
 
                     if new_v is None:
-                        fetch_type_ext = bulk_record_meta[v][2]
+                        fetch_type_ext = get_path(bulk_record_meta, v, 2)
                         logger.error(
                             "process_messages.dropped_string",
                             extra={
@@ -243,7 +244,7 @@ def process_messages(
             new_payload_value["tags"] = new_tags
             new_payload_value["metric_id"] = numeric_metric_id = mapping[org_id][metric_name]
             if numeric_metric_id is None:
-                fetch_type_ext = bulk_record_meta[metric_name][2]
+                fetch_type_ext = get_path(bulk_record_meta, metric_name, 2)
                 logger.error(
                     "process_messages.dropped_string",
                     extra={
