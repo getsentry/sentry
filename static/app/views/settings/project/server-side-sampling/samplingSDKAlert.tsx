@@ -7,14 +7,15 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
-import {RecommendedSdkUpgrade, SamplingRules} from 'sentry/types/sampling';
+import {RecommendedSdkUpgrade, SamplingRule} from 'sentry/types/sampling';
 
 import {RecommendedStepsModal} from './modals/recommendedStepsModal';
+import {isUniformRule} from './utils';
 
 type Props = {
   organization: Organization;
   recommendedSdkUpgrades: RecommendedSdkUpgrade[];
-  rules: SamplingRules;
+  rules: SamplingRule[];
   project?: Project;
   showLinkToTheModal?: boolean;
 };
@@ -30,13 +31,14 @@ export function SamplingSDKAlert({
     return null;
   }
 
-  function handleOpenRecommendedSteps() {
+  function handleOpenRecommendedSteps(uniformRule: SamplingRule) {
     openModal(modalProps => (
       <RecommendedStepsModal
         {...modalProps}
         organization={organization}
         project={project}
         recommendedSdkUpgrades={recommendedSdkUpgrades}
+        clientSampleRate={uniformRule.sampleRate}
         onSubmit={() => {}}
       />
     ));
@@ -44,6 +46,7 @@ export function SamplingSDKAlert({
 
   // TODO(sampling): test this after the backend work is finished
   const atLeastOneRuleActive = rules.some(rule => rule.active);
+  const uniformRule = rules.find(isUniformRule);
 
   return (
     <Alert
@@ -51,8 +54,12 @@ export function SamplingSDKAlert({
       type={atLeastOneRuleActive ? 'error' : 'info'}
       showIcon
       trailingItems={
-        showLinkToTheModal ? (
-          <Button onClick={handleOpenRecommendedSteps} priority="link" borderless>
+        showLinkToTheModal && uniformRule ? (
+          <Button
+            onClick={() => handleOpenRecommendedSteps(uniformRule)}
+            priority="link"
+            borderless
+          >
             {atLeastOneRuleActive ? t('Resolve Now') : t('Learn More')}
           </Button>
         ) : undefined

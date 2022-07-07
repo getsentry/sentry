@@ -170,6 +170,7 @@ export function ServerSideSampling({project}: Props) {
           project={project}
           projectStats={projectStats}
           recommendedSdkUpgrades={recommendedSdkUpgrades}
+          rules={rules}
         />
       ),
       {
@@ -232,6 +233,7 @@ export function ServerSideSampling({project}: Props) {
             projectStats={projectStats}
             uniformRule={rule}
             recommendedSdkUpgrades={recommendedSdkUpgrades}
+            rules={rules}
           />
         ),
         {
