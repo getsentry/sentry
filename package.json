@@ -18,9 +18,9 @@
     "@dnd-kit/core": "^3.1.1",
     "@dnd-kit/sortable": "^4.0.0",
     "@emotion/babel-plugin": "^11.9.2",
-    "@emotion/css": "^11.1.3",
+    "@emotion/css": "^11.9.0",
     "@emotion/react": "^11.9.3",
-    "@emotion/styled": "^11.3.0",
+    "@emotion/styled": "^11.9.3",
     "@popperjs/core": "^2.11.5",
     "@react-aria/button": "^3.3.4",
     "@react-aria/focus": "^3.5.0",
@@ -161,7 +161,6 @@
     "zxcvbn": "^4.4.2"
   },
   "devDependencies": {
-    "assert": "^2.0.0",
     "@babel/plugin-transform-react-jsx-source": "^7.16.7",
     "@pmmmwh/react-refresh-webpack-plugin": "0.5.7",
     "@size-limit/preset-small-lib": "^5.0.5",
@@ -179,6 +178,7 @@
     "@storybook/theming": "6.5.9",
     "@types/node": "^18.0.0",
     "@visual-snapshot/jest": "6.0.2",
+    "assert": "^2.0.0",
     "babel-gettext-extractor": "^4.1.3",
     "babel-jest": "^28.1.2",
     "babel-plugin-dynamic-import-node": "^2.2.0",
