@@ -22,8 +22,11 @@ import {
   RenderFunctionBaggage,
 } from 'sentry/utils/discover/fieldRenderers';
 import {
+  errorsAndTransactionsAggregateFunctionOutputType,
   isEquation,
   isEquationAlias,
+  isLegalYAxisType,
+  QueryFieldValue,
   SPAN_OP_BREAKDOWN_FIELDS,
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
@@ -38,7 +41,10 @@ import {
   generateEventSlug,
 } from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';
-import {getMeasurements} from 'sentry/utils/measurements/measurements';
+import {
+  getMeasurements,
+  MeasurementCollection,
+} from 'sentry/utils/measurements/measurements';
 import {FieldValueOption} from 'sentry/views/eventsV2/table/queryField';
 import {FieldValue, FieldValueKind} from 'sentry/views/eventsV2/table/types';
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
@@ -77,9 +83,12 @@ export const ErrorsAndTransactionsConfig: DatasetConfig<
   TableData | EventsTableData
 > = {
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
+  enableEquations: true,
   getCustomFieldRenderer: getCustomEventsFieldRenderer,
   SearchBar: EventsSearchBar,
   filterSeriesSortOptions,
+  filterYAxisAggregateParams,
+  filterYAxisOptions,
   getTableFieldOptions: getEventsTableFieldOptions,
   getTimeseriesSortOptions,
   getTableSortOptions,
@@ -143,6 +152,7 @@ export const ErrorsAndTransactionsConfig: DatasetConfig<
   },
   transformSeries: transformEventsResponseToSeries,
   transformTable: transformEventsResponseToTable,
+  filterTableOptions,
 };
 
 function getTableSortOptions(_organization: Organization, widgetQuery: WidgetQuery) {
@@ -223,13 +233,22 @@ function getTimeseriesSortOptions(
   return {...options, ...fieldOptions};
 }
 
-function getEventsTableFieldOptions(organization: Organization, tags?: TagCollection) {
+function getEventsTableFieldOptions(
+  organization: Organization,
+  tags?: TagCollection,
+  customMeasurements?: MeasurementCollection
+) {
   const measurements = getMeasurements();
 
   return generateFieldOptions({
     organization,
     tagKeys: Object.values(tags ?? {}).map(({key}) => key),
     measurementKeys: Object.values(measurements).map(({key}) => key),
+    customMeasurementKeys: organization.features.includes(
+      'dashboard-custom-measurement-widgets'
+    )
+      ? Object.values(customMeasurements ?? {}).map(({key}) => key)
+      : undefined,
     spanOperationBreakdownKeys: SPAN_OP_BREAKDOWN_FIELDS,
   });
 }
@@ -252,6 +271,64 @@ function transformEventsResponseToTable(
     } as TableData;
   }
   return tableData as TableData;
+}
+
+function filterYAxisAggregateParams(
+  fieldValue: QueryFieldValue,
+  displayType: DisplayType
+) {
+  return (option: FieldValueOption) => {
+    // Only validate function parameters for timeseries widgets and
+    // world map widgets.
+    if (displayType === DisplayType.BIG_NUMBER) {
+      return true;
+    }
+
+    if (fieldValue.kind !== FieldValueKind.FUNCTION) {
+      return true;
+    }
+
+    const functionName = fieldValue.function[0];
+    const primaryOutput = errorsAndTransactionsAggregateFunctionOutputType(
+      functionName as string,
+      option.value.meta.name
+    );
+    if (primaryOutput) {
+      return isLegalYAxisType(primaryOutput);
+    }
+
+    if (
+      option.value.kind === FieldValueKind.FUNCTION ||
+      option.value.kind === FieldValueKind.EQUATION
+    ) {
+      // Functions and equations are not legal options as an aggregate/function parameter.
+      return false;
+    }
+
+    return isLegalYAxisType(option.value.meta.dataType);
+  };
+}
+
+function filterYAxisOptions(displayType: DisplayType) {
+  return (option: FieldValueOption) => {
+    // Only validate function names for timeseries widgets and
+    // world map widgets.
+    if (
+      !(displayType === DisplayType.BIG_NUMBER) &&
+      option.value.kind === FieldValueKind.FUNCTION
+    ) {
+      const primaryOutput = errorsAndTransactionsAggregateFunctionOutputType(
+        option.value.meta.name,
+        undefined
+      );
+      if (primaryOutput) {
+        // If a function returns a specific type, then validate it.
+        return isLegalYAxisType(primaryOutput);
+      }
+    }
+
+    return option.value.kind === FieldValueKind.FUNCTION;
+  };
 }
 
 function transformEventsResponseToSeries(
@@ -425,6 +502,7 @@ function getEventsSeriesRequest(
       partial: true,
       field: [...widgetQuery.columns, ...widgetQuery.aggregates],
       queryExtras: getDashboardsMEPQueryParams(isMEPEnabled),
+      includeAllArgs: true,
     };
     if (widgetQuery.orderby) {
       requestData.orderby = widgetQuery.orderby;
@@ -445,6 +523,7 @@ function getEventsSeriesRequest(
       referrer,
       partial: true,
       queryExtras: getDashboardsMEPQueryParams(isMEPEnabled),
+      includeAllArgs: true,
     };
     if (widgetQuery.columns?.length !== 0) {
       requestData.topEvents = limit ?? TOP_N;
@@ -483,5 +562,10 @@ function getEventsSeriesRequest(
     }
   }
 
-  return doEventsRequest(api, requestData);
+  return doEventsRequest<true>(api, requestData);
+}
+
+// Custom Measurements aren't selectable as columns/yaxis without using an aggregate
+function filterTableOptions(option: FieldValueOption) {
+  return option.value.kind !== FieldValueKind.CUSTOM_MEASUREMENT;
 }

@@ -78,7 +78,7 @@ def _should_extract_call_trees(profile: Profile) -> bool:
     return platform in SHOULD_EXTRACT_CALL_TREES
 
 
-@metrics.wraps("process_profile.normalize")  # type: ignore
+@metrics.wraps("process_profile.normalize")
 def _normalize(profile: Profile, organization: Organization) -> None:
     if profile["platform"] in {"cocoa", "android"}:
         classification_options = dict()
@@ -122,7 +122,7 @@ def _normalize(profile: Profile, organization: Organization) -> None:
     )
 
 
-@metrics.wraps("process_profile.symbolicate")  # type: ignore
+@metrics.wraps("process_profile.symbolicate")
 def _symbolicate(profile: Profile, project: Project) -> None:
     symbolicator = Symbolicator(project=project, event_id=profile["profile_id"])
     modules = profile["debug_meta"]["images"]
@@ -176,7 +176,7 @@ def _symbolicate(profile: Profile, project: Project) -> None:
     profile["profile"] = profile.pop("sampled_profile")
 
 
-@metrics.wraps("process_profile.deobfuscate")  # type: ignore
+@metrics.wraps("process_profile.deobfuscate")
 def _deobfuscate(profile: Profile, project: Project) -> None:
     debug_file_id = profile.get("build_id")
     if debug_file_id is None or debug_file_id == "":
@@ -224,7 +224,7 @@ def _deobfuscate(profile: Profile, project: Project) -> None:
                 method["class_name"] = mapped
 
 
-@metrics.wraps("process_profile.track_outcome")  # type: ignore
+@metrics.wraps("process_profile.track_outcome")
 def _track_outcome(profile: Profile, project: Project, key_id: Optional[int]) -> None:
     track_outcome(
         org_id=project.organization_id,
@@ -239,7 +239,7 @@ def _track_outcome(profile: Profile, project: Project, key_id: Optional[int]) ->
     )
 
 
-@metrics.wraps("process_profile.initialize_publisher")  # type: ignore
+@metrics.wraps("process_profile.initialize_publisher")
 def _initialize_publisher() -> None:
     global processed_profiles_publisher
 
@@ -250,7 +250,7 @@ def _initialize_publisher() -> None:
         )
 
 
-@metrics.wraps("process_profile.insert_eventstream.profile")  # type: ignore
+@metrics.wraps("process_profile.insert_eventstream.profile")
 def _insert_eventstream_profile(profile: Profile) -> None:
     """
     TODO: This function directly publishes the profile to kafka.

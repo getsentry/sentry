@@ -289,8 +289,8 @@ describe('OrganizationStats', function () {
       }),
     });
 
-    const optionDataCategory = wrapper.find('DropdownItem[eventKey="attachments"]');
-    optionDataCategory.props().onSelect(DataCategory.ATTACHMENTS);
+    const optionDataCategory = wrapper.find('DropdownDataCategory');
+    optionDataCategory.props().onChange({value: DataCategory.ATTACHMENTS});
     expect(router.push).toHaveBeenCalledWith({
       query: expect.objectContaining({dataCategory: DataCategory.ATTACHMENTS}),
     });

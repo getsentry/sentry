@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from typing import Any, Iterable, Mapping, MutableMapping, Optional, Sequence, TypedDict
+from urllib.parse import quote
 
 import pytz
 
@@ -22,7 +23,7 @@ from sentry.notifications.utils.participants import get_send_to
 from sentry.plugins.base.structs import Notification
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import metrics
-from sentry.utils.http import absolute_uri
+from sentry.utils.http import absolute_uri, urlencode
 
 logger = logging.getLogger(__name__)
 
@@ -210,13 +211,16 @@ class ActiveReleaseAlertNotification(AlertRuleNotification):
             "project_label": self.project.get_full_name(),
             "group": self.group,
             "event": self.event,
-            "link": get_group_settings_link(self.group, environment, rule_details),
+            "link": get_group_settings_link(
+                self.group, environment, rule_details, referrer="alert_email_release"
+            ),
             "rules": rule_details,
             "has_integrations": has_integrations(self.organization, self.project),
             "enhanced_privacy": enhanced_privacy,
             "last_release": self.last_release,
             "last_release_link": self.release_url(self.last_release),
-            "commits": self.get_release_commits(self.last_release),
+            "last_release_slack_link": self.slack_release_url(self.last_release),
+            "commits": self.get_release_commits(self.last_release)[:15],
             "environment": environment,
             "slack_link": get_integration_link(self.organization, "slack"),
             "has_alert_integration": has_alert_integration(self.project),
@@ -229,7 +233,8 @@ class ActiveReleaseAlertNotification(AlertRuleNotification):
 
         return context
 
-    def get_release_commits(self, release: Release) -> Sequence[CommitData]:
+    @staticmethod
+    def get_release_commits(release: Release) -> Sequence[CommitData]:
         if not release:
             return []
 
@@ -250,9 +255,24 @@ class ActiveReleaseAlertNotification(AlertRuleNotification):
             for rc in release_commits
         ]
 
-    def release_url(self, release: Release) -> str:
-        return str(
-            absolute_uri(
-                f"/organizations/{release.organization.slug}/releases/{release.version}/?project={release.project_id}"
-            )
+    @staticmethod
+    def release_url(release: Release) -> str:
+        params = {"project": release.project_id, "referrer": "alert_email_release"}
+        url = "/organizations/{org}/releases/{version}/{params}".format(
+            org=release.organization.slug,
+            version=release.version,
+            params="?" + urlencode(params),
         )
+
+        return str(absolute_uri(url))
+
+    @staticmethod
+    def slack_release_url(release: Release) -> str:
+        params = {"project": release.project_id, "referrer": "alert_slack_release"}
+        url = "/organizations/{org}/releases/{version}/{params}".format(
+            org=release.organization.slug,
+            version=quote(release.version),
+            params="?" + urlencode(params),
+        )
+
+        return str(absolute_uri(url))
