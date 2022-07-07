@@ -387,7 +387,7 @@ export const FIELDS: Record<string, FieldDefinition> = {
   [FieldKey.STACK_COLNO]: {
     desc: 'Column number of the call starting at 1',
     kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
+    valueType: FieldValueType.NUMBER,
   },
   [FieldKey.STACK_FILENAME]: {
     desc: 'Relative path to the source file from the root directory',
