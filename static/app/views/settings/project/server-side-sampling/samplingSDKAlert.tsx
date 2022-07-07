@@ -31,16 +31,13 @@ export function SamplingSDKAlert({
   }
 
   function handleOpenRecommendedSteps() {
-    if (!recommendedSdkUpgrades.length) {
-      return;
-    }
-
     openModal(modalProps => (
       <RecommendedStepsModal
         {...modalProps}
         organization={organization}
         project={project}
         recommendedSdkUpgrades={recommendedSdkUpgrades}
+        onSubmit={() => {}}
       />
     ));
   }
