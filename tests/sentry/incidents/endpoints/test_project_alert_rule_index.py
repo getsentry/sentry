@@ -22,7 +22,6 @@ from sentry.testutils.helpers.datetime import before_now
 from sentry.utils import json
 from tests.sentry.api.serializers.test_alert_rule import BaseAlertRuleSerializerTest
 
-
 pytestmark = pytest.mark.sentry_metrics
 
 
