@@ -2,7 +2,7 @@ from typing import List
 
 from snuba_sdk import Column, Function
 
-from sentry.sentry_metrics.utils import resolve_weak, resolve_tag_value
+from sentry.sentry_metrics.utils import resolve_tag_value, resolve_weak
 from sentry.snuba.metrics.naming_layer.public import (
     TransactionSatisfactionTagValue,
     TransactionStatusTagValue,
