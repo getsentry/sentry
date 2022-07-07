@@ -89,7 +89,7 @@ describe('Server-side Sampling - Recommended Steps Modal', function () {
 
     expect(screen.getByText(textWithMarkupMatcher(/Sentry.init/))).toBeInTheDocument();
     expect(screen.getByText('0.5')).toBeInTheDocument();
-    expect(screen.getByText('50%')).toBeInTheDocument();
+    expect(screen.getByText('// 50%')).toBeInTheDocument();
 
     // Footer
     expect(screen.getByRole('button', {name: 'Read Docs'})).toHaveAttribute(
