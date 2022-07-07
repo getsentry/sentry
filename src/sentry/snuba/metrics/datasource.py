@@ -326,7 +326,7 @@ def _fetch_tags_or_values_per_ids(
             metric_id = row["metric_id"]
             if column.startswith("tags["):
                 value_id = row[column]
-                if value_id > 0:
+                if value_id:
                     tag_or_value_ids_per_metric_id[metric_id].append(value_id)
             else:
                 tag_or_value_ids_per_metric_id[metric_id].extend(row[column])

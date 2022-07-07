@@ -1319,7 +1319,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         result = query.run_query("test_query")
         assert len(result["data"]) == 1
         assert result["data"][0] == {
-            "transaction": indexer.resolve(self.organization.id, "foo_transaction"),
+            "transaction": resolve_tag_value(self.organization.id, "foo_transaction"),
             "p95_transaction_duration": 100,
             "p100_measurements_lcp": 1000,
         }
@@ -1356,7 +1356,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         result = query.run_query("test_query")
         assert len(result["data"]) == 1
         assert result["data"][0] == {
-            "transaction": indexer.resolve(self.organization.id, "foo_transaction"),
+            "transaction": resolve_tag_value(self.organization.id, "foo_transaction"),
             "p95_transaction_duration": 100,
             "count_unique_user": 1,
         }
@@ -1385,13 +1385,13 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         result = query.run_query("test_query")
         assert len(result["data"]) == 2
         assert result["data"][0] == {
-            "transaction": indexer.resolve(self.organization.id, "foo_transaction"),
+            "transaction": resolve_tag_value(self.organization.id, "foo_transaction"),
             "project": self.project.slug,
             "p95_transaction_duration": 100,
             "count_unique_user": 1,
         }
         assert result["data"][1] == {
-            "transaction": indexer.resolve(self.organization.id, "bar_transaction"),
+            "transaction": resolve_tag_value(self.organization.id, "bar_transaction"),
             "project": self.project.slug,
             "p95_transaction_duration": 50,
             "count_unique_user": 2,

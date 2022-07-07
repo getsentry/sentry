@@ -17,6 +17,15 @@ def control_metrics_access(monkeypatch, request, set_sentry_option):
             return
 
         set_sentry_option("sentry-metrics.performance.tags-values-are-strings", True)
+        old_resolve = indexer.resolve
+
+        def new_resolve(org_id, string, *args, **kwargs):
+            if string in ('staging', 'value1', 'prod', 'exited'):
+                pytest.fail("stop right there! you're about to resolve something that looks like a tag value, but in this test mode, tag values are stored in clickhouse. the indexer might not have the value!")
+            return old_resolve(org_id, string, *args, **kwargs)
+
+        monkeypatch.setattr(indexer, 'resolve', new_resolve)
+
         old_build_results = snuba._apply_cache_and_build_results
 
         def new_build_results(*args, **kwargs):
@@ -24,7 +33,7 @@ def control_metrics_access(monkeypatch, request, set_sentry_option):
             is_metrics = query.match.name.startswith("metrics_")
 
             if is_metrics:
-                query, convert_select_columns = _rewrite_query(query)
+                query, convert_select_columns = _rewrite_query(old_resolve, query)
                 args[0][0][0].query = query
 
             result = old_build_results(*args, **kwargs)
@@ -61,13 +70,11 @@ def control_metrics_access(monkeypatch, request, set_sentry_option):
             )
 
 
-def _rewrite_query(query):
+def _rewrite_query(indexer_resolve, query):
     """
     Rewrites the SNQL query and result to simulate a version of Snuba that
     stores tag values as strings.
     """
-    from sentry.sentry_metrics import indexer
-
     org_id = None
     for clause in query.where:
         if (
@@ -109,7 +116,7 @@ def _rewrite_query(query):
                 and lhs.subscriptable == "tags"
                 and isinstance(rhs := term.rhs, str)
             ):
-                return dataclasses.replace(term, rhs=indexer.resolve(org_id, rhs))
+                return dataclasses.replace(term, rhs=indexer_resolve(org_id, rhs))
 
             if (
                 term.op == Op.IN
@@ -118,7 +125,7 @@ def _rewrite_query(query):
                 and isinstance(rhs := term.rhs, (tuple, list))
             ):
                 assert all(isinstance(x, str) for x in rhs)
-                return dataclasses.replace(term, rhs=[indexer.resolve(org_id, x) for x in rhs])
+                return dataclasses.replace(term, rhs=[indexer_resolve(org_id, x) for x in rhs])
 
             if (
                 term.op == Op.IN
@@ -131,7 +138,7 @@ def _rewrite_query(query):
                 return dataclasses.replace(
                     term,
                     rhs=dataclasses.replace(
-                        rhs, parameters=[indexer.resolve(org_id, x) for x in rhs.parameters or ()]
+                        rhs, parameters=[indexer_resolve(org_id, x) for x in rhs.parameters or ()]
                     ),
                 )
 
@@ -149,7 +156,7 @@ def _rewrite_query(query):
                     for left, right in zip(lhs.parameters, right):
                         if isinstance(left, Column) and left.subscriptable == "tags":
                             assert isinstance(right, str)
-                            new_right.append(indexer.resolve(org_id, right))
+                            new_right.append(indexer_resolve(org_id, right))
                         else:
                             new_right.append(right)
 
@@ -173,7 +180,7 @@ def _rewrite_query(query):
             assert isinstance(
                 rhs := term.parameters[1], str
             ), f"found resolved integers in tags-related clause {term}"
-            resolved_string = indexer.resolve(org_id, rhs)
+            resolved_string = indexer_resolve(org_id, rhs)
             new_parameters = list(term.parameters)
             new_parameters[1] = resolved_string
             new_term = dataclasses.replace(term, parameters=new_parameters)
@@ -197,7 +204,7 @@ def _rewrite_query(query):
             ), f"found resolved integers in tags-related clause {term}"
             new_parameters = copy.deepcopy(term.parameters)
             for i, x in enumerate(rhs):
-                resolved_string = indexer.resolve(org_id, x)
+                resolved_string = indexer_resolve(org_id, x)
                 new_parameters[1][i] = resolved_string
 
             new_term = dataclasses.replace(term, parameters=new_parameters)
