@@ -352,7 +352,7 @@ class TestRatelimitHeader(APITestCase):
             assert int(response["X-Sentry-Rate-Limit-Limit"]) == 2
             assert int(response["X-Sentry-Rate-Limit-Reset"]) == expected_reset_time
 
-            response = self.get_error_response()
+            response = self.get_error_response(status_code=429)
             assert int(response["X-Sentry-Rate-Limit-Remaining"]) == 0
             assert int(response["X-Sentry-Rate-Limit-Limit"]) == 2
             assert int(response["X-Sentry-Rate-Limit-Reset"]) == expected_reset_time

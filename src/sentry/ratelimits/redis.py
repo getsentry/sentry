@@ -91,7 +91,7 @@ class RedisRateLimiter(RateLimiter):
 
     def is_limited_with_value(
         self, key: str, limit: int, project: Project | None = None, window: int | None = None
-    ) -> tuple[bool, int, int]:
+    ) -> tuple[bool, int, int, int]:
         """
         Does a rate limit check as well as returning the new rate limit value and when the next
         rate limit window will start
@@ -104,6 +104,9 @@ class RedisRateLimiter(RateLimiter):
         expiration = window - int(request_time % window)
         # Reset Time = next time bucket's start time
         reset_time = _bucket_start_time(_time_bucket(request_time, window) + 1, window)
+        seconds_left_in_bucket = (
+            int(reset_time - request_time) if int(reset_time - request_time) > 1 else 1
+        )
         try:
             result = self.client.incr(redis_key)
             self.client.expire(redis_key, expiration)
@@ -111,6 +114,6 @@ class RedisRateLimiter(RateLimiter):
             # We don't want rate limited endpoints to fail when ratelimits
             # can't be updated. We do want to know when that happens.
             logger.exception("Failed to retrieve current value from redis")
-            return False, 0, reset_time
+            return False, 0, reset_time, seconds_left_in_bucket
 
-        return result > limit, result, reset_time
+        return result > limit, result, reset_time, seconds_left_in_bucket

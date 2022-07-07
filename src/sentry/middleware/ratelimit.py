@@ -5,7 +5,7 @@ import uuid
 from typing import Callable
 
 from django.conf import settings
-from django.http.response import HttpResponse
+from rest_framework.exceptions import APIException, Throttled
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -18,11 +18,11 @@ from sentry.ratelimits import (
 )
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimitCategory, RateLimitMeta, RateLimitType
-from sentry.utils import json, metrics
+from sentry.utils import metrics
 
 DEFAULT_ERROR_MESSAGE = (
     "You are attempting to use this endpoint too frequently. Limit is "
-    "{limit} requests in {window} seconds"
+    "{limit} requests in {window} seconds."
 )
 
 
@@ -91,19 +91,20 @@ class RatelimitMiddleware:
                     request.will_be_rate_limited = True
                     enforce_rate_limit = getattr(view_class, "enforce_rate_limit", False)
                     if enforce_rate_limit:
-                        return HttpResponse(
-                            json.dumps(
-                                DEFAULT_ERROR_MESSAGE.format(
-                                    limit=request.rate_limit_metadata.limit,
-                                    window=request.rate_limit_metadata.window,
-                                )
+                        raise Throttled(
+                            detail=DEFAULT_ERROR_MESSAGE.format(
+                                limit=request.rate_limit_metadata.limit,
+                                window=request.rate_limit_metadata.window,
                             ),
-                            status=429,
+                            wait=request.rate_limit_metadata.seconds_left_in_window,
                         )
-            except Exception:
-                logging.exception(
-                    "Error during rate limiting, failing open. THIS SHOULD NOT HAPPEN"
-                )
+            except Exception as exc:
+                if not isinstance(exc, APIException):
+                    logging.exception(
+                        "Error during rate limiting, failing open. THIS SHOULD NOT HAPPEN"
+                    )
+                else:
+                    raise
 
     def process_response(self, request: Request, response: Response) -> Response:
         with metrics.timer("middleware.ratelimit.process_response"):

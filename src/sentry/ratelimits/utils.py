@@ -148,7 +148,7 @@ def above_rate_limit_check(
     # paths. Ideally there is just one lua script that does both and just says what kind of limit was hit
     # (if any)
     rate_limit_type = RateLimitType.NOT_LIMITED
-    window_limited, current, reset_time = ratelimiter.is_limited_with_value(
+    window_limited, current, reset_time, seconds_left_in_window = ratelimiter.is_limited_with_value(
         key, limit=rate_limit.limit, window=rate_limit.window
     )
     remaining = rate_limit.limit - current if not window_limited else 0
@@ -176,6 +176,7 @@ def above_rate_limit_check(
         remaining=remaining,
         concurrent_limit=rate_limit.concurrent_limit,
         concurrent_requests=concurrent_requests,
+        seconds_left_in_window=seconds_left_in_window,
     )
 
 
