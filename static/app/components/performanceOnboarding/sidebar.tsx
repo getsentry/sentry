@@ -198,7 +198,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
       <Fragment>
         <div>
           {t(
-            'Fiddlesticks. Performance isn’t available for Elixir yet but we’re definitely still working on it. Stay tuned.'
+            'Fiddlesticks. Performance isn’t available for this project yet but we’re definitely still working on it. Stay tuned.'
           )}
         </div>
         <div>
