@@ -257,7 +257,7 @@ describe('Server-side Sampling', function () {
     ).toBeInTheDocument();
   });
 
-  it('does not let the user active a rule if sdk updates exists', async function () {
+  it('does not let the user activate a rule if sdk updates exists', async function () {
     const {organization, router, project} = getMockData({
       projects: [
         TestStubs.Project({
