@@ -196,16 +196,38 @@ def process_messages(
                 for k, v in tags.items():
                     used_tags.update({k, v})
                     new_k = mapping[org_id][k]
-                    new_tags[str(new_k)] = new_v = mapping[org_id][v]
+                    new_v = mapping[org_id][v]
+                    new_tags[str(new_k)] = new_v
 
-                    if new_k is None or new_v is None:
+                    if new_k is None:
+                        fetch_type_ext = bulk_record_meta[k][2]
+                        logger.error(
+                            "process_messages.dropped_string",
+                            extra={
+                                "is_global_quota": fetch_type_ext
+                                and fetch_type_ext.is_global_quota,
+                                "org_batch_size": len(mapping[org_id]),
+                            },
+                        )
                         dropped_string = True
+
+                    if new_v is None:
+                        fetch_type_ext = bulk_record_meta[v][2]
+                        logger.error(
+                            "process_messages.dropped_string",
+                            extra={
+                                "is_global_quota": fetch_type_ext
+                                and fetch_type_ext.is_global_quota,
+                                "org_batch_size": len(mapping[org_id]),
+                            },
+                        )
+                        dropped_string = True
+
             except KeyError:
                 logger.error("process_messages.key_error", extra={"tags": tags}, exc_info=True)
                 continue
 
             if dropped_string:
-                logger.error("process_messages.dropped_string")
                 continue
 
             fetch_types_encountered = set()
@@ -221,7 +243,14 @@ def process_messages(
             new_payload_value["tags"] = new_tags
             new_payload_value["metric_id"] = numeric_metric_id = mapping[org_id][metric_name]
             if numeric_metric_id is None:
-                logger.error("process_messages.dropped_string")
+                fetch_type_ext = bulk_record_meta[metric_name][2]
+                logger.error(
+                    "process_messages.dropped_string",
+                    extra={
+                        "is_global_quota": fetch_type_ext and fetch_type_ext.is_global_quota,
+                        "org_batch_size": len(mapping[org_id]),
+                    },
+                )
                 continue
             new_payload_value["retention_days"] = 90
             new_payload_value["mapping_meta"] = output_message_meta

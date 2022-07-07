@@ -1,6 +1,4 @@
-from typing import Mapping, Optional, Sequence, Tuple
-
-from django.conf import settings
+from typing import MutableMapping, Optional, Sequence, Tuple
 
 from sentry import options
 from sentry.ratelimits.sliding_windows import (
@@ -10,14 +8,9 @@ from sentry.ratelimits.sliding_windows import (
     RequestedQuota,
     Timestamp,
 )
-from sentry.sentry_metrics.configuration import UseCaseKey
-from sentry.sentry_metrics.indexer.base import KeyCollection, KeyResult
+from sentry.sentry_metrics.configuration import UseCaseKey, get_ingest_config
+from sentry.sentry_metrics.indexer.base import FetchType, FetchTypeExt, KeyCollection, KeyResult
 from sentry.utils import metrics
-
-writes_limiter = RedisSlidingWindowRateLimiter(
-    **settings.SENTRY_METRICS_INDEXER_WRITES_LIMITER_OPTIONS
-)
-
 
 OrgId = int
 
@@ -35,31 +28,31 @@ def _build_quota_key(use_case_id: UseCaseKey, org_id: Optional[OrgId] = None) ->
 
 
 @metrics.wraps("sentry_metrics.indexer.construct_quotas")  # type: ignore
-def _construct_quotas() -> Mapping[UseCaseKey, Sequence[Quota]]:
+def _construct_quotas(use_case_id: UseCaseKey) -> Sequence[Quota]:
     """
     Construct write limit's quotas based on current sentry options.
 
     This value can potentially cached globally as long as it is invalidated
     when sentry.options are.
     """
-    return {
-        UseCaseKey.PERFORMANCE: [
+    if use_case_id == UseCaseKey.PERFORMANCE:
+        return [
             Quota(prefix_override=_build_quota_key(UseCaseKey.PERFORMANCE, None), **args)
             for args in options.get("sentry-metrics.writes-limiter.limits.performance.global")
-        ]
-        + [
+        ] + [
             Quota(prefix_override=None, **args)
             for args in options.get("sentry-metrics.writes-limiter.limits.performance.per-org")
-        ],
-        UseCaseKey.RELEASE_HEALTH: [
+        ]
+    elif use_case_id == UseCaseKey.RELEASE_HEALTH:
+        return [
             Quota(prefix_override=_build_quota_key(UseCaseKey.RELEASE_HEALTH, None), **args)
             for args in options.get("sentry-metrics.writes-limiter.limits.releasehealth.global")
-        ]
-        + [
+        ] + [
             Quota(prefix_override=None, **args)
             for args in options.get("sentry-metrics.writes-limiter.limits.releasehealth.per-org")
-        ],
-    }
+        ]
+    else:
+        raise ValueError(use_case_id)
 
 
 @metrics.wraps("sentry_metrics.indexer.construct_quota_requests")  # type: ignore
@@ -68,69 +61,91 @@ def _construct_quota_requests(
 ) -> Tuple[Sequence[OrgId], Sequence[RequestedQuota]]:
     org_ids = []
     requests = []
-    quotas = _construct_quotas()
+    quotas = _construct_quotas(use_case_id)
 
-    if quotas[use_case_id]:
+    if quotas:
         for org_id, strings in keys.mapping.items():
             org_ids.append(org_id)
             requests.append(
                 RequestedQuota(
                     prefix=_build_quota_key(use_case_id, org_id),
                     requested=len(strings),
-                    quotas=quotas[use_case_id],
+                    quotas=quotas,
                 )
             )
 
     return org_ids, requests
 
 
-RateLimitState = Tuple[Sequence[RequestedQuota], Sequence[GrantedQuota], Timestamp]
+RateLimitState = Tuple[UseCaseKey, Sequence[RequestedQuota], Sequence[GrantedQuota], Timestamp]
 
 
-@metrics.wraps("sentry_metrics.indexer.check_write_limits")  # type: ignore
-def check_write_limits(
-    use_case_id: UseCaseKey, keys: KeyCollection
-) -> Tuple[RateLimitState, KeyCollection, Sequence[KeyResult]]:
-    """
-    Takes a KeyCollection and applies DB write limits as configured via sentry.options.
+class WritesLimiter:
+    def __init__(self) -> None:
+        self.rate_limiters: MutableMapping[UseCaseKey, RedisSlidingWindowRateLimiter] = {}
 
-    Returns a tuple of:
+    def _get_rate_limiter(self, use_case_id: UseCaseKey) -> RedisSlidingWindowRateLimiter:
+        if use_case_id not in self.rate_limiters:
+            options = get_ingest_config(use_case_id).writes_limiter_cluster_options
+            self.rate_limiters[use_case_id] = RedisSlidingWindowRateLimiter(**options)
 
-    1. `RateLimitState` that needs to be passed to `apply_write_limits` in order
-      to commit quotas upon successful DB write.
+        return self.rate_limiters[use_case_id]
 
-    2. A key collection containing all unmapped keys that passed through the
-      rate limiter.
+    @metrics.wraps("sentry_metrics.indexer.check_write_limits")  # type: ignore
+    def check_write_limits(
+        self, use_case_id: UseCaseKey, keys: KeyCollection
+    ) -> Tuple[RateLimitState, KeyCollection, Sequence[Tuple[KeyResult, FetchType, FetchTypeExt]]]:
+        """
+        Takes a KeyCollection and applies DB write limits as configured via sentry.options.
 
-    3. All unmapped keys that did not pass through the rate limiter.
-    """
+        Returns a tuple of:
 
-    org_ids, requests = _construct_quota_requests(use_case_id, keys)
-    timestamp, grants = writes_limiter.check_within_quotas(requests)
+        1. `RateLimitState` that needs to be passed to `apply_write_limits` in order
+          to commit quotas upon successful DB write.
 
-    granted_key_collection = dict(keys.mapping)
-    dropped_key_results = []
+        2. A key collection containing all unmapped keys that passed through the
+          rate limiter.
 
-    for org_id, request, grant in zip(org_ids, requests, grants):
-        allowed_strings = granted_key_collection[org_id]
-        if len(allowed_strings) > grant.granted:
-            allowed_strings = set(allowed_strings)
+        3. All unmapped keys that did not pass through the rate limiter.
+        """
 
-            while len(allowed_strings) > grant.granted:
-                dropped_key_results.append(
-                    KeyResult(org_id=org_id, string=allowed_strings.pop(), id=None)
-                )
+        org_ids, requests = _construct_quota_requests(use_case_id, keys)
+        timestamp, grants = self._get_rate_limiter(use_case_id).check_within_quotas(requests)
 
-        granted_key_collection[org_id] = allowed_strings
+        granted_key_collection = dict(keys.mapping)
+        dropped_key_results = []
 
-    state = requests, grants, timestamp
-    return state, KeyCollection(granted_key_collection), dropped_key_results
+        for org_id, request, grant in zip(org_ids, requests, grants):
+            allowed_strings = granted_key_collection[org_id]
+            if len(allowed_strings) > grant.granted:
+                allowed_strings = set(allowed_strings)
+
+                while len(allowed_strings) > grant.granted:
+                    dropped_key_results.append(
+                        (
+                            KeyResult(org_id=org_id, string=allowed_strings.pop(), id=None),
+                            FetchType.RATE_LIMITED,
+                            FetchTypeExt(
+                                is_global=any(
+                                    quota.prefix_override is not None
+                                    for quota in grant.reached_quotas
+                                ),
+                            ),
+                        )
+                    )
+
+            granted_key_collection[org_id] = allowed_strings
+
+        state = use_case_id, requests, grants, timestamp
+        return state, KeyCollection(granted_key_collection), dropped_key_results
+
+    @metrics.wraps("sentry_metrics.indexer.apply_write_limits")  # type: ignore
+    def apply_write_limits(self, state: RateLimitState) -> None:
+        """
+        Consumes the rate limits returned by `check_write_limits`.
+        """
+        use_case_id, requests, grants, timestamp = state
+        self._get_rate_limiter(use_case_id).use_quotas(requests, grants, timestamp)
 
 
-@metrics.wraps("sentry_metrics.indexer.apply_write_limits")  # type: ignore
-def apply_write_limits(state: RateLimitState) -> None:
-    """
-    Consumes the rate limits returned by `check_write_limits`.
-    """
-    requests, grants, timestamp = state
-    writes_limiter.use_quotas(requests, grants, timestamp)
+writes_limiter = WritesLimiter()

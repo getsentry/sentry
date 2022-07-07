@@ -25,6 +25,11 @@ class FetchType(Enum):
     RATE_LIMITED = "r"
 
 
+@dataclass(frozen=True)
+class FetchTypeExt:
+    is_global: bool
+
+
 KR = TypeVar("KR", bound="KeyResult")
 
 
@@ -86,20 +91,30 @@ class KeyCollection:
 class KeyResults:
     def __init__(self) -> None:
         self.results: MutableMapping[int, MutableMapping[str, Optional[int]]] = defaultdict(dict)
-        self.meta: MutableMapping[str, Tuple[Optional[int], FetchType]] = dict()
+        self.meta: MutableMapping[
+            str, Tuple[Optional[int], FetchType, Optional[FetchTypeExt]]
+        ] = dict()
 
-    def add_key_result(self, key_result: KeyResult, fetch_type: Optional[FetchType] = None) -> None:
+    def add_key_result(
+        self,
+        key_result: KeyResult,
+        fetch_type: Optional[FetchType] = None,
+        fetch_type_ext: Optional[FetchTypeExt] = None,
+    ) -> None:
         self.results[key_result.org_id].update({key_result.string: key_result.id})
         if fetch_type:
-            self.meta[key_result.string] = (key_result.id, fetch_type)
+            self.meta[key_result.string] = (key_result.id, fetch_type, fetch_type_ext)
 
     def add_key_results(
-        self, key_results: Sequence[KeyResult], fetch_type: Optional[FetchType] = None
+        self,
+        key_results: Sequence[KeyResult],
+        fetch_type: Optional[FetchType] = None,
+        fetch_type_ext: Optional[FetchTypeExt] = None,
     ) -> None:
         for key_result in key_results:
             self.results[key_result.org_id].update({key_result.string: key_result.id})
             if fetch_type:
-                self.meta[key_result.string] = (key_result.id, fetch_type)
+                self.meta[key_result.string] = (key_result.id, fetch_type, fetch_type_ext)
 
     def get_mapped_results(self) -> Mapping[int, Mapping[str, Optional[int]]]:
         """
@@ -142,7 +157,9 @@ class KeyResults:
 
         return cache_key_results
 
-    def get_fetch_metadata(self) -> Mapping[str, Tuple[Optional[int], FetchType]]:
+    def get_fetch_metadata(
+        self,
+    ) -> Mapping[str, Tuple[Optional[int], FetchType, Optional[FetchTypeExt]]]:
         return self.meta
 
     def merge(self, other: "KeyResults") -> "KeyResults":

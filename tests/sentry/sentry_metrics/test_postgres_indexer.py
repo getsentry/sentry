@@ -2,7 +2,7 @@ from typing import Mapping, Set, Tuple
 
 from sentry import options
 from sentry.sentry_metrics.configuration import UseCaseKey
-from sentry.sentry_metrics.indexer.base import KeyCollection, KeyResult, KeyResults
+from sentry.sentry_metrics.indexer.base import FetchTypeExt, KeyCollection, KeyResult, KeyResults
 from sentry.sentry_metrics.indexer.cache import indexer_cache
 from sentry.sentry_metrics.indexer.models import MetricsKeyIndexer, StringIndexer
 from sentry.sentry_metrics.indexer.postgres import PGStringIndexer
@@ -285,7 +285,11 @@ class PostgresIndexerV2Test(TestCase):
         assert "g" not in rate_limited_strings
 
         for string in rate_limited_strings:
-            assert results.get_fetch_metadata()[string] == (None, FetchType.RATE_LIMITED)
+            assert results.get_fetch_metadata()[string] == (
+                None,
+                FetchType.RATE_LIMITED,
+                FetchTypeExt(is_global=False),
+            )
 
         options.set("sentry-metrics.writes-limiter.limits.releasehealth.per-org", [])
         options.set(
