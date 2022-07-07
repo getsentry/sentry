@@ -14,7 +14,6 @@ type Props = {
   organization: Organization;
   projectSlug: string;
   transactionID: string;
-  waterfallModel: WaterfallModel;
   focusedSpanIds?: FocusedSpanIDMap;
 };
 

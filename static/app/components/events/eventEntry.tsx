@@ -16,10 +16,9 @@ import ThreadsV2 from 'sentry/components/events/interfaces/threadsV2';
 import {Group, Organization, Project, SharedViewOrganization} from 'sentry/types';
 import {Entry, EntryType, Event, EventTransaction} from 'sentry/types/event';
 
-import TraceView from './interfaces/spans/traceView';
+import {EmbeddedSpanTree} from './interfaces/spans/embeddedSpanTree';
 // import {PerformanceIsseSection} from './interfaces/performance';
 import {FocusedSpanIDMap} from './interfaces/spans/types';
-import WaterfallModel from './interfaces/spans/waterfallModel';
 
 type Props = Pick<React.ComponentProps<typeof Breadcrumbs>, 'route' | 'router'> & {
   entry: Entry;
@@ -194,9 +193,12 @@ function EventEntry({
       _focusedSpanIds.forEach(spanId => (focusedSpanIds[spanId] = new Set()));
 
       return (
-        <TraceView
-          waterfallModel={new WaterfallModel(event as EventTransaction, focusedSpanIds)}
+        <EmbeddedSpanTree
+          event={event}
           organization={organization as Organization}
+          projectSlug="internal"
+          focusedSpanIds={focusedSpanIds}
+          transactionID="123"
         />
       );
     // case EntryType.PERFORMANCE:
