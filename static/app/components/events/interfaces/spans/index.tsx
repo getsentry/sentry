@@ -1,18 +1,14 @@
 import {PureComponent} from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
-import flatten from 'lodash/flatten';
-import groupBy from 'lodash/groupBy';
 import maxBy from 'lodash/maxBy';
 import {Observer} from 'mobx-react';
 
 import Alert from 'sentry/components/alert';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import List from 'sentry/components/list';
-import ListItem from 'sentry/components/list/listItem';
 import {Panel} from 'sentry/components/panels';
 import SearchBar from 'sentry/components/searchBar';
-import {t, tct, tn} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {EventTransaction} from 'sentry/types/event';
@@ -25,8 +21,9 @@ import withOrganization from 'sentry/utils/withOrganization';
 
 import * as AnchorLinkManager from './anchorLinkManager';
 import Filter from './filter';
+import TraceErrorList from './traceErrorList';
 import TraceView from './traceView';
-import {FocusedSpanIDMap, ParsedTraceType, SpanType} from './types';
+import {FocusedSpanIDMap, ParsedTraceType} from './types';
 import {parseTrace, scrollToSpan} from './utils';
 import WaterfallModel from './waterfallModel';
 
@@ -95,56 +92,18 @@ class SpansInterface extends PureComponent<Props, State> {
 
           <AnchorLinkManager.Consumer>
             {({scrollToHash}) => (
-              <List symbol="bullet">
-                {flatten(
-                  Object.entries(groupBy(errors, 'span')).map(([spanId, spanErrors]) => {
-                    const span = findSpanById(parsedTrace, spanId);
-
-                    return Object.entries(groupBy(spanErrors, 'level')).map(
-                      ([level, spanLevelErrors]) => {
-                        if (span) {
-                          return (
-                            <ListItem key={spanId}>
-                              {tct('[errors] [link]', {
-                                errors: tn(
-                                  '%s %s error in ',
-                                  '%s %s errors in ',
-                                  spanLevelErrors.length,
-                                  level === 'error' ? '' : level // Avoid saying "3 error errors"
-                                ),
-                                link: (
-                                  <ErrorLink
-                                    onClick={scrollToSpan(
-                                      spanId,
-                                      scrollToHash,
-                                      this.props.location,
-                                      this.props.organization
-                                    )}
-                                  >
-                                    {span.op}
-                                  </ErrorLink>
-                                ),
-                              })}
-                            </ListItem>
-                          );
-                        }
-                        return (
-                          <ListItem key={spanId}>
-                            {tct('[errors]', {
-                              errors: tn(
-                                '%s %s error',
-                                '%s %s errors',
-                                spanLevelErrors.length,
-                                level
-                              ),
-                            })}
-                          </ListItem>
-                        );
-                      }
-                    );
-                  })
-                )}
-              </List>
+              <TraceErrorList
+                trace={parsedTrace}
+                errors={errors}
+                onClickSpan={(event, spanId) => {
+                  return scrollToSpan(
+                    spanId,
+                    scrollToHash,
+                    this.props.location,
+                    this.props.organization
+                  )(event);
+                }}
+              />
             )}
           </AnchorLinkManager.Consumer>
         </Alert>
@@ -228,13 +187,6 @@ const Container = styled('div')<{hasErrors: boolean}>`
   `}
 `;
 
-const ErrorLink = styled('a')`
-  color: ${p => p.theme.textColor};
-  :hover {
-    color: ${p => p.theme.textColor};
-  }
-`;
-
 const Search = styled('div')`
   display: grid;
   gap: ${space(2)};
@@ -254,13 +206,6 @@ const AlertContainer = styled('div')`
 const ErrorLabel = styled('div')`
   margin-bottom: ${space(1)};
 `;
-
-// Given a span ID, find the associated span. It might be the trace itself
-// (which is technically a type of span) or a specific span associated with
-// the trace
-const findSpanById = (trace: ParsedTraceType, spanId: SpanType['span_id']) => {
-  return trace.spans.find(span => span.span_id === spanId && span?.op) || trace;
-};
 
 export function getOverallAlertLevelFromErrors(
   errors?: Array<{level: TraceError['level']}>
