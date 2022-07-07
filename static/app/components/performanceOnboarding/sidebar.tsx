@@ -244,7 +244,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     <Fragment>
       <div>
         {tct(
-          `Adding performance to your [platform] project is simple. Make sure you've got these basics down.`,
+          `Adding Performance to your [platform] project is simple. Make sure you've got these basics down.`,
           {platform: currentPlatform?.name || currentProject.slug}
         )}
       </div>
