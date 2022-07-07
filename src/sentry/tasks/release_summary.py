@@ -17,16 +17,12 @@ def prepare_release_summary():
     Summarize new issues in a release an hour after deployment
     """
     now = timezone.now()
-    start = now - timedelta(hours=1)
-    end = now - timedelta(hours=1, minutes=5)
-    releases = (
-        Release.objects.filter(
-            deploy__date_finished__gte=start,
-            deploy__date_finished__lt=end,
-            deploy__notified=True,
-        )
-        .order_by("-date_finished")
-        .select_related("deploy")
+    start = now - timedelta(hours=1, minutes=5)
+    end = now - timedelta(hours=1)
+    releases = Release.objects.filter(
+        deploy__date_finished__gte=start,
+        deploy__date_finished__lt=end,
+        deploy__notified=True,
     )
 
     for release in releases:
