@@ -1,10 +1,10 @@
-import pytest
 import time
 from datetime import datetime, timedelta
 from typing import Optional
 from unittest import mock
 from unittest.mock import patch
 
+import pytest
 from django.utils import timezone
 from freezegun import freeze_time
 
@@ -25,6 +25,7 @@ from tests.sentry.api.endpoints.test_organization_metrics import MOCKED_DERIVED_
 
 def _indexer_record(org_id: int, string: str) -> int:
     return indexer.record(use_case_id=UseCaseKey.RELEASE_HEALTH, org_id=org_id, string=string)
+
 
 pytestmark = pytest.mark.sentry_metrics
 
