@@ -38,12 +38,20 @@ To add a new audit log event:
 
 3. Record your AuditLogEvent.
 
+    User initiated example:
     self.create_audit_entry(
         request=request,
         organization_id=organization.id,
         target_object=member.id,
         data={"email": "email@gmail.com"},
-        event=audit_log.get_event_id(MEMBER_INVITE),
+        event=audit_log.get_event_id("MEMBER_INVITE"),
+    )
+
+    Sentry system initiated example -> only use if no user triggers the entry event:
+    create_system_audit_entry(
+        organization=organization,
+        target_object=organization.id,
+        event=audit_log.get_event_id("ORG_REMOVE"),
     )
 """
 

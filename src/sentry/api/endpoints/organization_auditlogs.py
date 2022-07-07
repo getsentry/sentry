@@ -1,3 +1,5 @@
+from urllib import response
+
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -46,10 +48,15 @@ class OrganizationAuditLogsEndpoint(OrganizationEndpoint):
             else:
                 queryset = queryset.filter(event=query["event"])
 
-        return self.paginate(
+        request = self.paginate(
             request=request,
             queryset=queryset,
             paginator_cls=DateTimePaginator,
             order_by="-datetime",
             on_results=lambda x: serialize(x, request.user),
         )
+
+        # TODO: Cleanup after frontend is moved to v2
+        if "v2" in query:
+            response.data = {"rows": response.data, "options": audit_log.get_api_names}
+        return request
