@@ -545,17 +545,10 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.wait_until_loaded()
 
             # Interact with ops filter dropdown
-            self.browser.elements('[data-test-id="filter-button"]')[0].click()
+            self.browser.elements('[aria-haspopup="listbox"]')[0].click()
 
-            # select all ops
-            self.browser.elements(
-                '[data-test-id="op-filter-dropdown"] [data-test-id="checkbox-fancy"]'
-            )[0].click()
-
-            # un-select django.middleware
-            self.browser.elements(
-                '[data-test-id="op-filter-dropdown"] [data-test-id="checkbox-fancy"]'
-            )[1].click()
+            # select django.middleware
+            self.browser.elements('[data-test-id="django.middleware"]')[0].click()
 
             self.browser.snapshot("events-v2 - transactions event detail view - ops filtering")
 
