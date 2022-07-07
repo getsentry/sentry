@@ -34,7 +34,7 @@ describe('splitEventsByProcessAndTraceId', () => {
 });
 
 describe('parseTypescriptChromeTraceArrayFormat', () => {
-  it('returns chrometrace profile', () => {
+  it('returns typescript profile', () => {
     expect(
       parseTypescriptChromeTraceArrayFormat(
         [
