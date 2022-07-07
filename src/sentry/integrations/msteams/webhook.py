@@ -15,13 +15,11 @@ from sentry.utils.audit import create_audit_entry
 from sentry.utils.signing import sign
 from sentry.web.decorators import transaction_start
 
-from .card_builder import (
-    build_group_card,
-    build_help_command_card,
-    build_mentioned_card,
-    build_personal_installation_message,
-    build_unrecognized_command_card,
-    build_welcome_card,
+from .card_builder import build_group_card, build_personal_installation_message, build_welcome_card
+from .card_builder.help import (
+    MSTeamsHelpMessageBuilder,
+    MSTeamsMentionedMessageBuilder,
+    MSTeamsUnrecognizedCommandMessageBuilder,
 )
 from .card_builder.identity import (
     MSTeamsAlreadyLinkedMessageBuilder,
@@ -425,7 +423,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
             )
             if mentioned:
                 client = get_preinstall_client(data["serviceUrl"])
-                card = build_mentioned_card()
+                card = MSTeamsMentionedMessageBuilder().build()
                 conversation_id = data["conversation"]["id"]
                 client.send_card(conversation_id, card)
 
@@ -443,7 +441,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
             unlink_url = build_unlinking_url(conversation_id, data["serviceUrl"], teams_user_id)
             card = MSTeamsUnlinkIdentityMessageBuilder(unlink_url).build()
         elif "help" in lowercase_command:
-            card = build_help_command_card()
+            card = MSTeamsHelpMessageBuilder().build()
         elif "link" == lowercase_command:  # don't to match other types of link commands
             has_linked_identity = Identity.objects.filter(external_id=teams_user_id).exists()
             if has_linked_identity:
@@ -451,7 +449,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
             else:
                 card = MSTeamsLinkCommandMessageBuilder().build()
         else:
-            card = build_unrecognized_command_card(command_text)
+            card = MSTeamsUnrecognizedCommandMessageBuilder(command_text).build()
 
         client = get_preinstall_client(data["serviceUrl"])
         client.send_card(conversation_id, card)
