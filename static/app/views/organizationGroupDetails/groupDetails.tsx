@@ -172,15 +172,15 @@ class GroupDetails extends Component<Props, State> {
       type: EntryType.SPANTREE,
     };
 
-    // // create performance entry
-    // const performanceEntry = {
-    //   data: {},
-    //   type: EntryType.PERFORMANCE,
-    // };
+    // create performance entry
+    const performanceEntry = {
+      data: {},
+      type: EntryType.PERFORMANCE,
+    };
 
     const updatedEvent = {
       ...event,
-      entries: [spanTreeEntry, ...event.entries],
+      entries: [performanceEntry, spanTreeEntry, ...event.entries],
     };
     return updatedEvent;
   }
@@ -658,6 +658,8 @@ class GroupDetails extends Component<Props, State> {
     const {project, group} = this.state;
     const {organization} = this.props;
     const isSampleError = group?.tags.some(tag => tag.key === 'sample_event');
+
+    console.log('group', group)
 
     return (
       <Fragment>

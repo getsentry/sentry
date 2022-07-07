@@ -16,7 +16,7 @@ import ThreadsV2 from 'sentry/components/events/interfaces/threadsV2';
 import {Group, Organization, Project, SharedViewOrganization} from 'sentry/types';
 import {Entry, EntryType, Event, EventTransaction} from 'sentry/types/event';
 
-// import {PerformanceIsseSection} from './interfaces/performance';
+import {PerformanceIssueSection} from './interfaces/performance';
 import {FocusedSpanIDMap} from './interfaces/spans/types';
 
 type Props = Pick<React.ComponentProps<typeof Breadcrumbs>, 'route' | 'router'> & {
@@ -198,12 +198,18 @@ function EventEntry({
           focusedSpanIds={focusedSpanIds}
         />
       );
-    // case EntryType.PERFORMANCE:
-    //   if (!organization.features?.includes('performance-extraneous-spans-poc')) {
-    //     return null;
-    //   }
+    case EntryType.PERFORMANCE:
+      if (!organization.features?.includes('performance-extraneous-spans-poc')) {
+        return null;
+      }
 
-    //   return <PerformanceIsseSection organization={organization as Organization} />;
+      return (
+        <PerformanceIssueSection
+          issue={group as Group}
+          event={event}
+          organization={organization as Organization}
+        />
+      );
     default:
       // this should not happen
       /* eslint no-console:0 */
