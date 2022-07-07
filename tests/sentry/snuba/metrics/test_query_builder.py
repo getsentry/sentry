@@ -25,7 +25,7 @@ from snuba_sdk import (
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.indexer.mock import MockIndexer
 from sentry.sentry_metrics.indexer.strings import SHARED_TAG_STRINGS
-from sentry.sentry_metrics.utils import resolve, resolve_tag_key, resolve_weak
+from sentry.sentry_metrics.utils import resolve, resolve_tag_key, resolve_weak, resolve_tag_value
 from sentry.snuba.dataset import EntityKey
 from sentry.snuba.metrics import (
     MAX_POINTS,
@@ -613,7 +613,7 @@ def test_build_snuba_query_with_derived_alias(mock_now, mock_now2, monkeypatch):
             "equals",
             (
                 Column(f"tags[{resolve_weak(org_id, 'session.status')}]"),
-                resolve_weak(org_id, "exited"),
+                resolve_tag_value(org_id, "exited"),
             ),
         ),
     ]
@@ -640,7 +640,7 @@ def test_build_snuba_query_with_derived_alias(mock_now, mock_now2, monkeypatch):
             Condition(
                 Column(resolve_tag_key(org_id, "release"), entity=None),
                 Op.IN,
-                [resolve(org_id, "staging")],
+                [resolve_tag_value(org_id, "staging")],
             ),
             Condition(Column("metric_id"), Op.IN, [resolve(org_id, SessionMRI.RAW_DURATION.value)]),
         ],

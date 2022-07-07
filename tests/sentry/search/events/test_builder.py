@@ -13,6 +13,7 @@ from snuba_sdk.function import Function
 from snuba_sdk.orderby import Direction, LimitBy, OrderBy
 
 from sentry import options
+from sentry.sentry_metrics.utils import resolve_tag_value
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.search.events import constants
 from sentry.search.events.builder import (
@@ -1051,10 +1052,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             selected_columns=["transaction", "project", "p95(transaction.duration)"],
         )
         transaction_index = indexer.resolve(self.organization.id, "transaction")
-        if options.get("sentry-metrics.performance.tags-values-are-strings"):
-            transaction_name = 'foo_transaction'
-        else:
-            transaction_name = indexer.resolve(self.organization.id, "foo_transaction")
+        transaction_name = resolve_tag_value(self.organization.id, 'foo_transaction')
         transaction = Column(f"tags[{transaction_index}]")
         self.assertCountEqual(
             query.where,
@@ -1072,12 +1070,8 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             selected_columns=["transaction", "project", "p95(transaction.duration)"],
         )
         transaction_index = indexer.resolve(self.organization.id, "transaction")
-        if options.get("sentry-metrics.performance.tags-values-are-strings"):
-            transaction_name1 = 'foo_transaction'
-            transaction_name2 = 'bar_transaction'
-        else:
-            transaction_name1 = indexer.resolve(self.organization.id, "foo_transaction")
-            transaction_name2 = indexer.resolve(self.organization.id, "bar_transaction")
+        transaction_name1 = resolve_tag_value(self.organization.id, 'foo_transaction')
+        transaction_name2 = resolve_tag_value(self.organization.id, 'bar_transaction')
         transaction = Column(f"tags[{transaction_index}]")
         self.assertCountEqual(
             query.where,
@@ -1427,14 +1421,16 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         )
         result = query.run_query("test_query")
         assert len(result["data"]) == 2
+        bar_transaction = resolve_tag_value(self.organization.id, "bar_transaction")
         assert result["data"][0] == {
-            "transaction": indexer.resolve(self.organization.id, "bar_transaction"),
+            "transaction": bar_transaction,
             "project": self.project.slug,
             "p95_transaction_duration": 50,
             "count_unique_user": 2,
         }
+        foo_transaction = resolve_tag_value(self.organization.id, "foo_transaction")
         assert result["data"][1] == {
-            "transaction": indexer.resolve(self.organization.id, "foo_transaction"),
+            "transaction": foo_transaction,
             "project": self.project.slug,
             "p95_transaction_duration": 100,
             "count_unique_user": 1,
@@ -1472,13 +1468,14 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         )
         result = query.run_query("test_query")
         assert len(result["data"]) == 2
+        foo_transaction = resolve_tag_value(self.organization.id, "foo_transaction")
         assert result["data"][0] == {
-            "transaction": indexer.resolve(self.organization.id, "foo_transaction"),
+            "transaction": foo_transaction,
             "project": project_1.slug,
             "p95_transaction_duration": 100,
         }
         assert result["data"][1] == {
-            "transaction": indexer.resolve(self.organization.id, "foo_transaction"),
+            "transaction": foo_transaction,
             "project": project_2.slug,
             "p95_transaction_duration": 100,
         }
@@ -1495,12 +1492,12 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         result = query.run_query("test_query")
         assert len(result["data"]) == 2
         assert result["data"][0] == {
-            "transaction": indexer.resolve(self.organization.id, "foo_transaction"),
+            "transaction": foo_transaction,
             "project": project_2.slug,
             "p95_transaction_duration": 100,
         }
         assert result["data"][1] == {
-            "transaction": indexer.resolve(self.organization.id, "foo_transaction"),
+            "transaction": foo_transaction,
             "project": project_1.slug,
             "p95_transaction_duration": 100,
         }
@@ -1672,20 +1669,23 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         )
         result = query.run_query("test_query")
         assert len(result["data"]) == 3
+        foo_transaction = resolve_tag_value(self.organization.id, "foo_transaction")
+        bar_transaction = resolve_tag_value(self.organization.id, "bar_transaction")
+        baz_transaction = resolve_tag_value(self.organization.id, "baz_transaction")
         assert result["data"][0] == {
-            "transaction": indexer.resolve(self.organization.id, "bar_transaction"),
+            "transaction": bar_transaction,
             "project": self.project.slug,
             "p95_transaction_duration": 50,
             "count_unique_user": 2,
         }
         assert result["data"][1] == {
-            "transaction": indexer.resolve(self.organization.id, "foo_transaction"),
+            "transaction": foo_transaction,
             "project": self.project.slug,
             "p95_transaction_duration": 100,
             "count_unique_user": 1,
         }
         assert result["data"][2] == {
-            "transaction": indexer.resolve(self.organization.id, "baz_transaction"),
+            "transaction": baz_transaction,
             "project": self.project.slug,
             "p95_transaction_duration": 200,
             "count_unique_user": 0,
@@ -1721,19 +1721,22 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         )
         result = query.run_query("test_query")
         assert len(result["data"]) == 3
+        foo_transaction = resolve_tag_value(self.organization.id, "foo_transaction")
+        bar_transaction = resolve_tag_value(self.organization.id, "bar_transaction")
+        baz_transaction = resolve_tag_value(self.organization.id, "baz_transaction")
         assert result["data"][0] == {
-            "transaction": indexer.resolve(self.organization.id, "baz_transaction"),
+            "transaction": baz_transaction,
             "project": self.project.slug,
             "p95_transaction_duration": 200,
         }
         assert result["data"][1] == {
-            "transaction": indexer.resolve(self.organization.id, "foo_transaction"),
+            "transaction": foo_transaction,
             "project": self.project.slug,
             "p95_transaction_duration": 100,
             "count_unique_user": 1,
         }
         assert result["data"][2] == {
-            "transaction": indexer.resolve(self.organization.id, "bar_transaction"),
+            "transaction": bar_transaction,
             "project": self.project.slug,
             "p95_transaction_duration": 50,
             "count_unique_user": 2,
@@ -1825,8 +1828,9 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         )
         result = query.run_query("test_query")
         assert len(result["data"]) == 1
+        baz_transaction = resolve_tag_value(self.organization.id, "baz_transaction")
         assert result["data"][0] == {
-            "transaction": indexer.resolve(self.organization.id, "baz_transaction"),
+            "transaction": baz_transaction,
             "project": self.project.slug,
             "p95_transaction_duration": 200,
             "count_unique_user": 2,
@@ -1874,8 +1878,9 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         )
         result = query.run_query("test_query")
         assert len(result["data"]) == 1
+        baz_transaction = resolve_tag_value(self.organization.id, "baz_transaction")
         assert result["data"][0] == {
-            "transaction": indexer.resolve(self.organization.id, "baz_transaction"),
+            "transaction": baz_transaction,
             "project": self.project.slug,
             "p95_transaction_duration": 200,
             "count_unique_user": 1,
@@ -2192,12 +2197,8 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             selected_columns=["p95(transaction.duration)"],
         )
         transaction_index = indexer.resolve(self.organization.id, "transaction")
-        if options.get("sentry-metrics.performance.tags-values-are-strings"):
-            transaction_name1 = 'foo_transaction'
-            transaction_name2 = 'bar_transaction'
-        else:
-            transaction_name1 = indexer.resolve(self.organization.id, "foo_transaction")
-            transaction_name2 = indexer.resolve(self.organization.id, "bar_transaction")
+        transaction_name1 = resolve_tag_value(self.organization.id, 'foo_transaction')
+        transaction_name2 = resolve_tag_value(self.organization.id, 'bar_transaction')
 
         transaction = Column(f"tags[{transaction_index}]")
         self.assertCountEqual(

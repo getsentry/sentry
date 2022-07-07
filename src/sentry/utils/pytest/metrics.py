@@ -194,7 +194,7 @@ def _rewrite_query(query):
         if (
             isinstance(term, Function) and 
             isinstance(col := term.parameters[0], Column) and
-            col.name == 'project_id'
+            col.name in ('project_id', 'timestamp')
         ):
             return term
 
