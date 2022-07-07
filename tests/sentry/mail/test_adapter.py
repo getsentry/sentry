@@ -108,6 +108,7 @@ class MailAdapterActiveReleaseTest(BaseMailAdapterTest):
         to_committer = mail.outbox[0]
 
         assert to_committer
+        assert to_committer.subject == "**ARM** [Sentry] BAR-1 - Hello world"
 
 
 class MailAdapterGetSendableUsersTest(BaseMailAdapterTest):
