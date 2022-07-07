@@ -320,26 +320,12 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
 
         return projects
 
-    def create(self, validated_data):
-        """
-        Create a dashboard, and create any widgets and their queries
-
-        Only call save() on this serializer from within a transaction or
-        bad things will happen
-        """
+    def update_dashboard_filters(self, instance, validated_data):
         page_filter_keys = ["environment", "range", "start", "end"]
         dashboard_filter_keys = ["releases"]
-        self.instance = Dashboard.objects.create(
-            organization=self.context.get("organization"),
-            title=validated_data["title"],
-            created_by=self.context.get("request").user,
-        )
-
-        if "widgets" in validated_data:
-            self.update_widgets(self.instance, validated_data["widgets"])
 
         if "projects" in validated_data:
-            self.instance.projects.set(validated_data["projects"])
+            instance.projects.set(validated_data["projects"])
 
         filters = {}
         for key in page_filter_keys:
@@ -351,8 +337,26 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
                 filters[key] = validated_data["filters"][key]
 
         if filters:
-            self.instance.filters = filters
-            self.instance.save()
+            instance.filters = filters
+            instance.save()
+
+    def create(self, validated_data):
+        """
+        Create a dashboard, and create any widgets and their queries
+
+        Only call save() on this serializer from within a transaction or
+        bad things will happen
+        """
+        self.instance = Dashboard.objects.create(
+            organization=self.context.get("organization"),
+            title=validated_data["title"],
+            created_by=self.context.get("request").user,
+        )
+
+        if "widgets" in validated_data:
+            self.update_widgets(self.instance, validated_data["widgets"])
+
+        self.update_dashboard_filters(self.instance, validated_data)
 
         return self.instance
 
@@ -373,6 +377,8 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
 
         if "widgets" in validated_data:
             self.update_widgets(instance, validated_data["widgets"])
+
+        self.update_dashboard_filters(instance, validated_data)
 
         return instance
 

@@ -1317,6 +1317,25 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         response = self.do_request("put", self.url(self.dashboard.id), data=data)
         assert response.status_code == 200, response.data
 
+    def test_update_dashboard_with_filters(self):
+        project1 = self.create_project(name="foo", organization=self.organization)
+        project2 = self.create_project(name="bar", organization=self.organization)
+        data = {
+            "title": "First dashboard",
+            "widgets": [],
+            "projects": [project1.id, project2.id],
+            "environment": ["alpha"],
+            "range": "7d",
+            "filters": {"releases": ["v1"]},
+        }
+
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 200, response.data
+        assert response.data["projects"] == [project1.id, project2.id]
+        assert response.data["environment"] == ["alpha"]
+        assert response.data["range"] == "7d"
+        assert response.data["filters"]["releases"] == ["v1"]
+
 
 class OrganizationDashboardVisitTest(OrganizationDashboardDetailsTestCase):
     def url(self, dashboard_id):
