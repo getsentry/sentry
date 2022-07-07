@@ -43,6 +43,8 @@ def control_metrics_access(monkeypatch, request, set_sentry_option):
             query = args[0][0][0].query
             is_metrics = query.match.name.startswith("metrics_")
 
+            convert_select_columns = []
+
             if is_metrics:
                 query, convert_select_columns = _rewrite_query(old_resolve, query)
                 args[0][0][0].query = query
@@ -50,8 +52,6 @@ def control_metrics_access(monkeypatch, request, set_sentry_option):
             result = old_build_results(*args, **kwargs)
 
             if is_metrics:
-                print(convert_select_columns)
-
                 for row in result[0].get("data") or ():
                     for k in convert_select_columns:
                         if k in row:
@@ -103,7 +103,6 @@ def _rewrite_query(indexer_resolve, query):
     convert_select_columns = set()
 
     def _walk_term(term):
-        print("WALK", term)
         if isinstance(term, OrderBy):
             return dataclasses.replace(term, exp=_walk_term(term.exp))
 
@@ -184,10 +183,6 @@ def _rewrite_query(indexer_resolve, query):
             and isinstance(lhs := term.parameters[0], Column)
             and lhs.subscriptable == "tags"
         ):
-            if not isinstance(term.parameters[1], str):
-                import pdb
-
-                pdb.set_trace()
             assert isinstance(
                 rhs := term.parameters[1], str
             ), f"found resolved integers in tags-related clause {term}"
@@ -205,11 +200,6 @@ def _rewrite_query(indexer_resolve, query):
             and term.function in ("notIn", "in")
             and isinstance(rhs := term.parameters[1], list)
         ):
-            if not all(isinstance(x, str) for x in rhs):
-                import pdb
-
-                pdb.set_trace()
-
             assert all(
                 isinstance(x, str) for x in rhs
             ), f"found resolved integers in tags-related clause {term}"
