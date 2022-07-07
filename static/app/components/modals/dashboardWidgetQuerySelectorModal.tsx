@@ -18,9 +18,9 @@ import {Widget} from 'sentry/views/dashboardsV2/types';
 import {getWidgetDiscoverUrl} from 'sentry/views/dashboardsV2/utils';
 
 export type DashboardWidgetQuerySelectorModalOptions = {
-  isMetricsData: boolean;
   organization: Organization;
   widget: Widget;
+  isMetricsData?: boolean;
 };
 
 type Props = ModalRenderProps &
