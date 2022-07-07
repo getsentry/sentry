@@ -98,7 +98,7 @@ class BaseApiClient(TrackResponseMixin):
         metrics.incr(
             f"{self.datadog_prefix}.http_request",
             sample_rate=1.0,
-            tags={self.integration_type: self.name},
+            tags={str(self.integration_type): self.name},
         )
 
         try:

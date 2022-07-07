@@ -58,7 +58,7 @@ from sentry.snuba.metrics.utils import get_intervals
 from sentry.snuba.sessions import get_rollup_starts_and_buckets
 from sentry.snuba.sessions_v2 import InvalidParams, QueryDefinition
 from sentry.tasks.base import instrumented_task
-from sentry.utils.metrics import incr, timer, timing
+from sentry.utils.metrics import Tags, incr, timer, timing
 
 DateLike = Union[datetime, str]
 
@@ -584,7 +584,7 @@ def compare_results(
         return [ComparisonError(f"invalid schema type={type(schema)} at path:'{path}'")]
 
 
-def tag_delta(errors: List[ComparisonError], tags: Mapping[str, str]) -> None:
+def tag_delta(errors: List[ComparisonError], tags: Tags) -> None:
     relative_changes = [e.relative_change for e in errors if e.relative_change is not None]
     if relative_changes:
         max_relative_change = max(relative_changes, key=lambda x: abs(x))
@@ -643,7 +643,7 @@ def run_comparison(
     sessions_result: Any,
     metrics_result: Any,
     sessions_time: datetime,
-    sentry_tags: Optional[Mapping[str, str]] = None,
+    sentry_tags: Optional[Tags] = None,
     **kwargs,
 ) -> None:
     if rollup is None:
@@ -798,7 +798,7 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
         metrics_fn = getattr(self.metrics, fn_name)
 
         now = datetime.now(pytz.utc)
-        tags = {"method": fn_name, "rollup": str(rollup)}
+        tags: Tags = {"method": fn_name, "rollup": str(rollup)}
         incr(
             "releasehealth.metrics.should_return",
             tags={"should_return": str(should_return_metrics), **tags},

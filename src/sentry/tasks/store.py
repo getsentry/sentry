@@ -36,7 +36,7 @@ class RetryProcessing(Exception):
     pass
 
 
-@metrics.wraps("should_process")  # type: ignore
+@metrics.wraps("should_process")
 def should_process(data: CanonicalKeyDict) -> bool:
     """Quick check if processing is needed at all."""
     return _should_process_inner(data)
