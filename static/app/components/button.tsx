@@ -1,4 +1,4 @@
-import {forwardRef as reactForwardRef} from 'react';
+import {forwardRef as reactForwardRef, useCallback} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -19,32 +19,108 @@ type ButtonElement = HTMLButtonElement & HTMLAnchorElement & any;
 
 type TooltipProps = React.ComponentProps<typeof Tooltip>;
 
+type ButtonSize = 'zero' | 'xs' | 'sm' | 'md';
+
 interface BaseButtonProps
   extends Omit<
     React.ButtonHTMLAttributes<ButtonElement>,
     'ref' | 'label' | 'size' | 'title'
   > {
+  /**
+   * Positions the text within the button.
+   */
   align?: 'center' | 'left' | 'right';
-  // This is only used with `<ButtonBar>`
+  /**
+   * Used by ButtonBar to determine active status.
+   */
   barId?: string;
+  /**
+   * Removes borders from the button.
+   */
   borderless?: boolean;
+  /**
+   * Indicates that the button is "doing" something.
+   */
   busy?: boolean;
+  /**
+   * Test ID for the button.
+   */
   'data-test-id'?: string;
+  /**
+   * Disables the button, assigning appropriate aria attributes and disallows
+   * interactions with the button.
+   */
   disabled?: boolean;
+  /**
+   * For use with `href` and `data:` or `blob:` schemes. Tells the browser to
+   * download the contents.
+   *
+   * See: https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#attr-download
+   */
   download?: HTMLAnchorElement['download'];
+  /**
+   * The button is an external link. Similar to the `Link` `external` property.
+   */
   external?: boolean;
+  /**
+   * @internal Used in the Button forwardRef
+   */
   forwardRef?: React.Ref<ButtonElement>;
+  /**
+   * When set the button acts as an anchor link. Use with `external` to have
+   * the link open in a new tab.
+   */
   href?: string;
+  /**
+   * The icon to render inside of the button. The size will be set
+   * appropriately based on the size of the button.
+   */
   icon?: React.ReactNode;
+  /**
+   * Used when the button is part of a form.
+   */
   name?: string;
+  /**
+   * Callback for when the button is clicked.
+   */
   onClick?: (e: React.MouseEvent) => void;
+  /**
+   * The semantic "priority" of the button. Use `primary` when the action is
+   * contextually the primary action, `danger` if the button will do something
+   * destructive, `link` for visual similarity to a link.
+   */
   priority?: 'default' | 'primary' | 'danger' | 'link' | 'form';
+  /**
+   * @deprecated Use `external`
+   */
   rel?: HTMLAnchorElement['rel'];
-  size?: 'zero' | 'xsmall' | 'small';
+  /**
+   * The size of the button
+   *
+   * 'xsmall' and 'small' are deprecated, but temporarily supported.
+   * Please use 'xs' and 'sm' instead.
+   */
+  size?: ButtonSize | 'xsmall' | 'small';
+  /**
+   * @deprecated Use `external`
+   */
   target?: HTMLAnchorElement['target'];
+  /**
+   * Display a tooltip for the button.
+   */
   title?: TooltipProps['title'];
+  /**
+   * Similar to `href`, but for internal links within the app.
+   */
   to?: string | object;
+  /**
+   * Additional properites for the Tooltip when `title` is set.
+   */
   tooltipProps?: Omit<TooltipProps, 'children' | 'title' | 'skipWrapper'>;
+  /**
+   * Userful in scenarios where the border of the button should blend with the
+   * background behind the button.
+   */
   translucentBorder?: boolean;
 }
 
@@ -59,6 +135,21 @@ export interface ButtonPropsWithAriaLabel extends BaseButtonProps {
 export type ButtonProps = ButtonPropsWithoutAriaLabel | ButtonPropsWithAriaLabel;
 
 type Url = ButtonProps['to'] | ButtonProps['href'];
+
+function convertDeprecatedSizeNames(size: BaseButtonProps['size']): ButtonSize {
+  if (!size) {
+    return 'md';
+  }
+
+  switch (size) {
+    case 'xsmall':
+      return 'xs';
+    case 'small':
+      return 'sm';
+    default:
+      return size;
+  }
+}
 
 function BaseButton({
   size,
@@ -78,21 +169,26 @@ function BaseButton({
   onClick,
   ...buttonProps
 }: ButtonProps) {
+  const convertedButtonSize = convertDeprecatedSizeNames(size);
+
   // Intercept onClick and propagate
-  function handleClick(e: React.MouseEvent) {
-    // Don't allow clicks when disabled or busy
-    if (disabled || busy) {
-      e.preventDefault();
-      e.stopPropagation();
-      return;
-    }
+  const handleClick = useCallback(
+    (e: React.MouseEvent) => {
+      // Don't allow clicks when disabled or busy
+      if (disabled || busy) {
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
 
-    if (typeof onClick !== 'function') {
-      return;
-    }
+      if (typeof onClick !== 'function') {
+        return;
+      }
 
-    onClick(e);
-  }
+      onClick(e);
+    },
+    [onClick, busy, disabled]
+  );
 
   function getUrl<T extends Url>(prop: T): T | undefined {
     return disabled ? undefined : prop;
@@ -117,7 +213,7 @@ function BaseButton({
       disabled={disabled}
       to={getUrl(to)}
       href={getUrl(href)}
-      size={size}
+      size={convertedButtonSize}
       priority={priority}
       borderless={borderless}
       translucentBorder={translucentBorder}
@@ -125,9 +221,9 @@ function BaseButton({
       onClick={handleClick}
       role="button"
     >
-      <ButtonLabel align={align} size={size} borderless={borderless}>
+      <ButtonLabel align={align} size={convertedButtonSize} borderless={borderless}>
         {icon && (
-          <Icon size={size} hasChildren={hasChildren}>
+          <Icon size={convertedButtonSize} hasChildren={hasChildren}>
             {icon}
           </Icon>
         )}
@@ -153,6 +249,7 @@ const Button = reactForwardRef<ButtonElement, ButtonProps>((props, ref) => (
 ));
 
 Button.displayName = 'Button';
+
 export default Button;
 
 type StyledButtonProps = ButtonProps & {theme: Theme};
@@ -265,7 +362,7 @@ const getColors = ({
 };
 
 const getSizeStyles = ({size, translucentBorder, theme}: StyledButtonProps) => {
-  const buttonSize = size === 'small' || size === 'xsmall' ? size : 'default';
+  const buttonSize = size === 'zero' ? 'md' : convertDeprecatedSizeNames(size);
   const formStyles = theme.form[buttonSize];
   const buttonPadding = theme.buttonPadding[buttonSize];
 
@@ -369,7 +466,13 @@ const getIconMargin = ({size, hasChildren}: IconProps) => {
     return '0';
   }
 
-  return size && ['xsmall', 'zero'].includes(size) ? '6px' : '8px';
+  switch (convertDeprecatedSizeNames(size)) {
+    case 'xs':
+    case 'zero':
+      return '6px';
+    default:
+      return '8px';
+  }
 };
 
 const Icon = styled('span')<IconProps & Omit<StyledButtonProps, 'theme'>>`

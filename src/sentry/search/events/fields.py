@@ -304,7 +304,11 @@ def normalize_count_if_value(args: Mapping[str, str]) -> Union[float, str, int]:
     """
     column = args["column"]
     value = args["value"]
-    if column == "transaction.duration" or is_measurement(column) or is_span_op_breakdown(column):
+    if (
+        column == "transaction.duration"
+        or is_duration_measurement(column)
+        or is_span_op_breakdown(column)
+    ):
         duration_match = DURATION_PATTERN.match(value.strip("'"))
         if duration_match:
             try:
@@ -316,6 +320,12 @@ def normalize_count_if_value(args: Mapping[str, str]) -> Union[float, str, int]:
                 normalized_value = float(value.strip("'"))
             except Exception:
                 raise InvalidSearchQuery(f"{value} is not a valid value to compare with {column}")
+    # The non duration measurement
+    elif column == "measurements.cls":
+        try:
+            normalized_value = float(value)
+        except Exception:
+            raise InvalidSearchQuery(f"{value} is not a valid value to compare with {column}")
     elif column == "transaction.status":
         code = SPAN_STATUS_NAME_TO_CODE.get(value.strip("'"))
         if code is None:
@@ -363,7 +373,7 @@ FIELD_ALIASES = {
                 params.get("project_id"),
             ),
         ),
-        # the team key transaction field is intentially not added to the discover/fields list yet
+        # the team key transaction field is intentionally not added to the discover/fields list yet
         # because there needs to be some work on the front end to integrate this into discover
         PseudoField(
             TEAM_KEY_TRANSACTION_ALIAS,

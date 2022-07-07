@@ -1,9 +1,7 @@
-import React, {useMemo} from 'react';
+import React from 'react';
 import styled from '@emotion/styled';
 
 import Breadcrumbs from 'sentry/components/breadcrumbs';
-import Button from 'sentry/components/button';
-import Clipboard from 'sentry/components/clipboard';
 import Duration from 'sentry/components/duration';
 import FeatureBadge from 'sentry/components/featureBadge';
 import {FeatureFeedback} from 'sentry/components/featureFeedback';
@@ -14,13 +12,11 @@ import {KeyMetricData, KeyMetrics} from 'sentry/components/replays/keyMetrics';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import TimeSince from 'sentry/components/timeSince';
-import {IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Crumb} from 'sentry/types/breadcrumbs';
 import {Event} from 'sentry/types/event';
 import getUrlPathname from 'sentry/utils/getUrlPathname';
-import createUrlToShare from 'sentry/utils/replays/createUrlToShare';
 
 type Props = {
   children: React.ReactNode;
@@ -28,16 +24,12 @@ type Props = {
 };
 
 function DetailLayout({children, orgId}: Props) {
-  const {currentTime, replay} = useReplayContext();
+  const {replay} = useReplayContext();
 
   const event = replay?.getEvent();
   const crumbs = replay?.getRawCrumbs();
 
   const title = event ? `${event.id} - Replays - ${orgId}` : `Replays - ${orgId}`;
-
-  const urlToShare = useMemo(() => {
-    return createUrlToShare(currentTime);
-  }, [currentTime]);
 
   return (
     <SentryDocumentTitle title={title}>
@@ -62,9 +54,6 @@ function DetailLayout({children, orgId}: Props) {
             />
           </Layout.HeaderContent>
           <ButtonActionsWrapper>
-            <Clipboard hideUnsupported value={urlToShare}>
-              <Button icon={<IconLink />}>{t('Share')}</Button>
-            </Clipboard>
             <FeatureFeedback featureName="replay" />
           </ButtonActionsWrapper>
           <React.Fragment>

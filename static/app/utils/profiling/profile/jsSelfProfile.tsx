@@ -64,15 +64,31 @@ export class JSSelfProfile extends Profile {
     // We start at stack 1, because we've already appended stack 0 above. The weight of each sample is the
     // difference between the current sample and the previous one.
     for (let i = 1; i < profile.samples.length; i++) {
-      jsSelfProfile.appendSample(
-        resolveJSSelfProfilingStack(
-          profile,
-          profile.samples[i].stackId,
-          frameIndex,
-          profile.samples[i].marker
-        ),
-        profile.samples[i].timestamp - profile.samples[i - 1].timestamp
-      );
+      // When gc is triggered, the stack may be indicated as empty. In that case, the thread was not idle
+      // and we should append gc to the top of the previous stack.
+      // https://github.com/WICG/js-self-profiling/issues/59
+      if (profile.samples[i].marker === 'gc') {
+        jsSelfProfile.appendSample(
+          resolveJSSelfProfilingStack(
+            profile,
+            // use the previous sample
+            profile.samples[i - 1].stackId,
+            frameIndex,
+            profile.samples[i].marker
+          ),
+          profile.samples[i].timestamp - profile.samples[i - 1].timestamp
+        );
+      } else {
+        jsSelfProfile.appendSample(
+          resolveJSSelfProfilingStack(
+            profile,
+            profile.samples[i].stackId,
+            frameIndex,
+            profile.samples[i].marker
+          ),
+          profile.samples[i].timestamp - profile.samples[i - 1].timestamp
+        );
+      }
     }
 
     return jsSelfProfile.build();

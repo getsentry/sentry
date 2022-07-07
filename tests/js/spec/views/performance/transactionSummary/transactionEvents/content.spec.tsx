@@ -183,7 +183,7 @@ describe('Performance Transaction Events Content', function () {
     wrapper.update();
 
     expect(wrapper.find('EventsTable')).toHaveLength(1);
-    expect(wrapper.find('DropdownControl')).toHaveLength(1);
+    expect(wrapper.find('CompactSelect')).toHaveLength(1);
     expect(wrapper.find('StyledSearchBar')).toHaveLength(1);
     expect(wrapper.find('Filter')).toHaveLength(1);
 
@@ -221,7 +221,7 @@ describe('Performance Transaction Events Content', function () {
     wrapper.update();
 
     expect(wrapper.find('EventsTable')).toHaveLength(1);
-    expect(wrapper.find('DropdownControl')).toHaveLength(1);
+    expect(wrapper.find('CompactSelect')).toHaveLength(1);
     expect(wrapper.find('StyledSearchBar')).toHaveLength(1);
     expect(wrapper.find('Filter')).toHaveLength(1);
 

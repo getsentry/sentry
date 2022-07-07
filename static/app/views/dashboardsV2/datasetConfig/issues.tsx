@@ -51,6 +51,7 @@ type EndpointParams = Partial<PageFilters['datetime']> & {
 
 export const IssuesConfig: DatasetConfig<never, Group[]> = {
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
+  enableEquations: false,
   disableSortOptions,
   getTableRequest,
   getCustomFieldRenderer: getIssueFieldRenderer,

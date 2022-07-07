@@ -3,8 +3,10 @@ from base64 import b64encode
 from unittest import mock
 
 import pytest
+from django.test import override_settings
 from django.urls import reverse
 from django.utils import timezone
+from freezegun import freeze_time
 from pytz import utc
 from snuba_sdk.column import Column
 from snuba_sdk.conditions import InvalidConditionError
@@ -10611,6 +10613,28 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         )
         assert response.data["data"][0][f"count_if(unicode-phrase, equals, {unicode_phrase1})"] == 1
 
+    def test_count_if_measurements_cls(self):
+        data = load_data("transaction", timestamp=before_now(minutes=1))
+        data["measurements"]["cls"] = {"value": 0.5}
+        self.store_event(data, project_id=self.project.id)
+        data = load_data("transaction", timestamp=before_now(minutes=1))
+        data["measurements"]["cls"] = {"value": 0.1}
+        self.store_event(data, project_id=self.project.id)
+
+        query = {
+            "field": [
+                "count_if(measurements.cls, greater, 0.05)",
+                "count_if(measurements.cls, less, 0.3)",
+            ],
+            "project": [self.project.id],
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200
+        assert len(response.data["data"]) == 1
+
+        assert response.data["data"][0]["count_if(measurements.cls, greater, 0.05)"] == 2
+        assert response.data["data"][0]["count_if(measurements.cls, less, 0.3)"] == 1
+
     def test_count_if_filter(self):
         for i in range(5):
             data = load_data(
@@ -11037,6 +11061,32 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
             "query": "Did you know you can replace chained or conditions like `field:a OR field:b OR field:c` with `field:[a,b,c]`",
             "columns": None,
         }
+
+    @override_settings(SENTRY_SELF_HOSTED=False)
+    def test_ratelimit(self):
+        query = {
+            "field": ["transaction"],
+            "project": [self.project.id],
+        }
+        with freeze_time("2000-01-01"):
+            for _ in range(50):
+                self.do_request(query, features={"organizations:discover-events-rate-limit": True})
+            response = self.do_request(
+                query, features={"organizations:discover-events-rate-limit": True}
+            )
+            assert response.status_code == 429, response.content
+
+    @override_settings(SENTRY_SELF_HOSTED=False)
+    def test_no_ratelimit(self):
+        query = {
+            "field": ["transaction"],
+            "project": [self.project.id],
+        }
+        with freeze_time("2000-01-01"):
+            for _ in range(50):
+                self.do_request(query)
+            response = self.do_request(query)
+            assert response.status_code == 200, response.content
 
 
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPerformanceTestCase):

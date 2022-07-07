@@ -19,9 +19,11 @@ import {
 import WidgetBuilder, {WidgetBuilderProps} from 'sentry/views/dashboardsV2/widgetBuilder';
 
 const defaultOrgFeatures = [
+  'performance-view',
   'new-widget-builder-experience-design',
   'dashboards-edit',
   'global-views',
+  'dashboard-custom-measurement-widgets',
 ];
 
 // Mocking worldMapChart to avoid act warnings
@@ -109,6 +111,7 @@ describe('WidgetBuilder', function () {
   let sessionsDataMock: jest.Mock | undefined;
   let metricsDataMock: jest.Mock | undefined;
   let tagsMock: jest.Mock | undefined;
+  let measurementsMetaMock: jest.Mock | undefined;
 
   beforeEach(function () {
     MockApiClient.addMockResponse({
@@ -210,6 +213,12 @@ describe('WidgetBuilder', function () {
       url: '/organizations/org-slug/tags/',
       method: 'GET',
       body: TestStubs.Tags(),
+    });
+
+    measurementsMetaMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/measurements-meta/',
+      method: 'GET',
+      body: {},
     });
     TagStore.reset();
   });
@@ -3408,6 +3417,122 @@ describe('WidgetBuilder', function () {
             })
           );
         });
+      });
+    });
+
+    describe('Custom Performance Metrics', function () {
+      it('can choose a custom measurement', async function () {
+        measurementsMetaMock = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/measurements-meta/',
+          method: 'GET',
+          body: {'measurements.custom.measurement': {functions: ['p99']}},
+        });
+
+        eventsMock = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/events/',
+          method: 'GET',
+          statusCode: 200,
+          body: {
+            meta: {
+              fields: {'p99(measurements.total.db.calls)': 'duration'},
+              isMetricsData: true,
+            },
+            data: [{'p99(measurements.total.db.calls)': 10}],
+          },
+        });
+
+        const {router} = renderTestComponent({
+          query: {source: DashboardWidgetSource.DISCOVERV2},
+          dashboard: testDashboard,
+          orgFeatures: [...defaultOrgFeatures, 'discover-frontend-use-events-endpoint'],
+        });
+
+        expect(await screen.findAllByText('Custom Widget')).toHaveLength(2);
+
+        // 1 in the table header, 1 in the column selector, 1 in the sort field
+        const countFields = screen.getAllByText('count()');
+        expect(countFields).toHaveLength(3);
+
+        await selectEvent.select(countFields[1], ['p99(…)']);
+        await selectEvent.select(screen.getByText('transaction.duration'), [
+          'measurements.custom.measurement',
+        ]);
+
+        userEvent.click(screen.getByText('Add Widget'));
+
+        await waitFor(() => {
+          expect(router.push).toHaveBeenCalledWith(
+            expect.objectContaining({
+              pathname: '/organizations/org-slug/dashboard/2/',
+              query: {
+                displayType: 'table',
+                interval: '5m',
+                title: 'Custom Widget',
+                queryNames: [''],
+                queryConditions: [''],
+                queryFields: ['p99(measurements.custom.measurement)'],
+                queryOrderby: '-p99(measurements.custom.measurement)',
+                start: null,
+                end: null,
+                statsPeriod: '24h',
+                utc: false,
+                project: [],
+                environment: [],
+              },
+            })
+          );
+        });
+      });
+
+      it('raises an alert banner and disables saving widget if widget result is not metrics data', async function () {
+        eventsMock = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/events/',
+          method: 'GET',
+          statusCode: 200,
+          body: {
+            meta: {
+              fields: {'p99(measurements.total.db.calls)': 'duration'},
+              isMetricsData: false,
+            },
+            data: [{'p99(measurements.total.db.calls)': 10}],
+          },
+        });
+
+        const defaultWidgetQuery = {
+          name: '',
+          fields: ['p99(measurements.custom.measurement)'],
+          columns: [],
+          aggregates: ['p99(measurements.custom.measurement)'],
+          conditions: 'user:test.user@sentry.io',
+          orderby: '',
+        };
+
+        const defaultTableColumns = ['p99(measurements.custom.measurement)'];
+
+        renderTestComponent({
+          query: {
+            source: DashboardWidgetSource.DISCOVERV2,
+            defaultWidgetQuery: urlEncode(defaultWidgetQuery),
+            displayType: DisplayType.TABLE,
+            defaultTableColumns,
+          },
+          orgFeatures: [
+            ...defaultOrgFeatures,
+            'discover-frontend-use-events-endpoint',
+            'dashboards-mep',
+          ],
+        });
+
+        await waitFor(() => {
+          expect(measurementsMetaMock).toHaveBeenCalled();
+        });
+
+        await waitFor(() => {
+          expect(eventsMock).toHaveBeenCalled();
+        });
+
+        screen.getByText('You have inputs that are incompatible with');
+        expect(screen.getByText('Add Widget').closest('button')).toBeDisabled();
       });
     });
   });

@@ -16,6 +16,11 @@ import HighlightReplayPlugin from './highlightReplayPlugin';
 type Dimensions = {height: number; width: number};
 type RootElem = null | HTMLDivElement;
 
+type HighlightParams = {
+  nodeId: number;
+  annotation?: string;
+};
+
 // Important: Don't allow context Consumers to access `Replayer` directly.
 // It has state that, when changed, will not trigger a react render.
 // Instead only expose methods that wrap `Replayer` and manage state.
@@ -58,7 +63,7 @@ type ReplayPlayerContextProps = {
   /**
    * Highlight a node in the replay
    */
-  highlight: ({nodeId}: {nodeId: number}) => void;
+  highlight: (args: HighlightParams) => void;
 
   /**
    * Required to be called with a <div> Ref
@@ -72,6 +77,11 @@ type ReplayPlayerContextProps = {
    * Set to true while the library is reconstructing the DOM
    */
   isBuffering: boolean;
+
+  /**
+   * Set to true when the replay finish event is fired
+   */
+  isFinished: boolean;
 
   /**
    * Whether the video is currently playing
@@ -92,6 +102,11 @@ type ReplayPlayerContextProps = {
    * The core replay data
    */
   replay: ReplayReader | null;
+
+  /**
+   * Restart the replay
+   */
+  restart: () => void;
 
   /**
    * Set the currentHoverTime so collaborating components can highlight related
@@ -139,10 +154,12 @@ const ReplayPlayerContext = React.createContext<ReplayPlayerContextProps>({
   highlight: () => {},
   initRoot: () => {},
   isBuffering: false,
+  isFinished: false,
   isPlaying: false,
   isSkippingInactive: false,
   removeHighlight: () => {},
   replay: null,
+  restart: () => {},
   setCurrentHoverTime: () => {},
   setCurrentTime: () => {},
   setSpeed: () => {},
@@ -183,17 +200,17 @@ export function Provider({children, replay, initialTimeOffset = 0, value = {}}: 
   const [dimensions, setDimensions] = useState<Dimensions>({height: 0, width: 0});
   const [currentHoverTime, setCurrentHoverTime] = useState<undefined | number>();
   const [isPlaying, setIsPlaying] = useState(false);
+  const [finishedAtMS, setFinishedAtMS] = useState<number>(-1);
   const [isSkippingInactive, setIsSkippingInactive] = useState(false);
   const [speed, setSpeedState] = useState(1);
   const [fastForwardSpeed, setFFSpeed] = useState(0);
   const [buffer, setBufferTime] = useState({target: -1, previous: -1});
   const playTimer = useRef<number | undefined>(undefined);
 
+  const isFinished = replayerRef.current?.getCurrentTime() === finishedAtMS;
+
   const forceDimensions = (dimension: Dimensions) => {
     setDimensions(dimension);
-  };
-  const setPlayingFalse = () => {
-    setIsPlaying(false);
   };
   const onFastForwardStart = (e: {speed: number}) => {
     setFFSpeed(e.speed);
@@ -202,13 +219,13 @@ export function Provider({children, replay, initialTimeOffset = 0, value = {}}: 
     setFFSpeed(0);
   };
 
-  const highlight = useCallback(({nodeId}: {nodeId: number}) => {
+  const highlight = useCallback(({nodeId, annotation}: HighlightParams) => {
     const replayer = replayerRef.current;
     if (!replayer) {
       return;
     }
 
-    highlightNode({replayer, nodeId});
+    highlightNode({replayer, nodeId, annotation});
   }, []);
 
   const clearAllHighlightsCallback = useCallback(() => {
@@ -227,6 +244,11 @@ export function Provider({children, replay, initialTimeOffset = 0, value = {}}: 
     }
 
     removeHighlightedNode({replayer, nodeId});
+  }, []);
+
+  const setReplayFinished = useCallback(() => {
+    setFinishedAtMS(replayerRef.current?.getCurrentTime() ?? -1);
+    setIsPlaying(false);
   }, []);
 
   const initRoot = useCallback(
@@ -277,7 +299,7 @@ export function Provider({children, replay, initialTimeOffset = 0, value = {}}: 
 
       // @ts-expect-error: rrweb types event handlers with `unknown` parameters
       inst.on(ReplayerEvents.Resize, forceDimensions);
-      inst.on(ReplayerEvents.Finish, setPlayingFalse);
+      inst.on(ReplayerEvents.Finish, setReplayFinished);
       // @ts-expect-error: rrweb types event handlers with `unknown` parameters
       inst.on(ReplayerEvents.SkipStart, onFastForwardStart);
       inst.on(ReplayerEvents.SkipEnd, onFastForwardEnd);
@@ -288,7 +310,7 @@ export function Provider({children, replay, initialTimeOffset = 0, value = {}}: 
       // @ts-expect-error
       replayerRef.current = inst;
     },
-    [events, theme.purple200, hasNewEvents]
+    [events, theme.purple200, hasNewEvents, setReplayFinished]
   );
 
   useEffect(() => {
@@ -379,6 +401,13 @@ export function Provider({children, replay, initialTimeOffset = 0, value = {}}: 
     [getCurrentTime]
   );
 
+  const restart = useCallback(() => {
+    if (replayerRef.current) {
+      replayerRef.current.play(0);
+      setIsPlaying(true);
+    }
+  }, []);
+
   const toggleSkipInactive = useCallback((skip: boolean) => {
     const replayer = replayerRef.current;
     if (!replayer) {
@@ -425,10 +454,12 @@ export function Provider({children, replay, initialTimeOffset = 0, value = {}}: 
         highlight,
         initRoot,
         isBuffering,
+        isFinished,
         isPlaying,
         isSkippingInactive,
         removeHighlight,
         replay,
+        restart,
         setCurrentHoverTime,
         setCurrentTime,
         setSpeed,
