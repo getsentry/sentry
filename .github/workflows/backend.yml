@@ -106,6 +106,58 @@ jobs:
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
 
+  backend-test-snuba-contains-metrics-tag-values:
+    if: needs.files-changed.outputs.backend == 'true'
+    needs: files-changed
+    name: backend test (snuba contains metrics tag values)
+    runs-on: ubuntu-20.04
+    timeout-minutes: 20
+    strategy:
+      # This helps not having to run multiple jobs because one fails, thus, reducing resource usage
+      # and reducing the risk that one of many runs would turn red again (read: intermittent tests)
+      fail-fast: false
+      matrix:
+        python-version: [3.8.12]
+        # XXX: When updating this, make sure you also update MATRIX_INSTANCE_TOTAL.
+        instance: [0]
+        pg-version: ['9.6']
+
+    env:
+      # XXX: MATRIX_INSTANCE_TOTAL must be hardcoded to the length of strategy.matrix.instance.
+      MATRIX_INSTANCE_TOTAL: 0
+      MIGRATIONS_TEST_MIGRATE: 1
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          # Avoid codecov error message related to SHA resolution:
+          # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
+          fetch-depth: '2'
+
+      - name: Setup sentry env (python ${{ matrix.python-version }})
+        uses: ./.github/actions/setup-sentry
+        id: setup
+        with:
+          python-version: ${{ matrix.python-version }}
+          pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
+          snuba: true
+          # Right now, we run so few bigtable related tests that the
+          # overhead of running bigtable in all backend tests
+          # is way smaller than the time it would take to run in its own job.
+          bigtable: true
+          pg-version: ${{ matrix.pg-version }}
+
+      - name: Run backend test (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
+        run: |
+          # Note: `USE_SNUBA` is not used for backend tests because there are a few failing tests with Snuba enabled.
+          unset USE_SNUBA
+          export PYTEST_ADDOPTS=-m sentry_metrics
+          export SENTRY_METRICS_SIMULATE_TAG_VALUES_IN_CLICKHOUSE=1
+          make test-python-ci
+
+      - name: Handle artifacts
+        uses: ./.github/actions/artifacts
+
   cli:
     if: needs.files-changed.outputs.backend == 'true'
     needs: files-changed
