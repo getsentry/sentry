@@ -23,8 +23,6 @@ from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.models import QueryDatasets
 from sentry.testutils import TestCase
 
-
-
 pytestmark = pytest.mark.sentry_metrics
 
 
