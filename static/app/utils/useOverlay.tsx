@@ -33,7 +33,7 @@ function useOverlay({
   offset = 8,
   position = 'top',
   isDismissable = true,
-  shouldCloseOnBlur = true,
+  shouldCloseOnBlur = false,
   isKeyboardDismissDisabled,
   shouldCloseOnInteractOutside,
 }: UseOverlayProps) {
