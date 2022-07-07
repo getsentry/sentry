@@ -38,7 +38,20 @@ type Layout =
    *│                    │
    *└────────────────────┘
    */
-  | 'topbar';
+  | 'topbar'
+  /**
+   * ### Sidebar Left
+   * ┌───────────────────┐
+   * │ Timeline          │
+   * ├────────┬──────────┤
+   * │ Video  > Details  │
+   * │        >          │
+   * │^^^^^^^ >          |
+   * │ Crumbs >          │
+   * │        >          │
+   * └────────┴──────────┘
+   */
+  | 'sidebar_left';
 
 const SIDEBAR_MIN_WIDTH = 325;
 const TOPBAR_MIN_HEIGHT = 325;
@@ -103,6 +116,23 @@ function ReplayLayout({
               {crumbs}
             </SidebarSection>
           </ResizePanel>
+        </PageRow>
+      </Container>
+    );
+  }
+
+  if (layout === 'sidebar_left') {
+    return (
+      <Container>
+        {timeline}
+        <PageRow>
+          <ResizePanel direction="w" minWidth={SIDEBAR_MIN_WIDTH}>
+            <SidebarSection>
+              {video ? <ResizePanel direction="s">{video}</ResizePanel> : null}
+              {crumbs}
+            </SidebarSection>
+          </ResizePanel>
+          {content}
         </PageRow>
       </Container>
     );
