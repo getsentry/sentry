@@ -22,9 +22,9 @@ from snuba_sdk import (
     Query,
 )
 
+from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.utils import resolve, resolve_tag_key, resolve_tag_value, resolve_weak
-from sentry.sentry_metrics import indexer
 from sentry.snuba.dataset import EntityKey
 from sentry.snuba.metrics import (
     MAX_POINTS,
@@ -90,7 +90,13 @@ def get_entity_of_metric_mocked(_, metric_name):
         ),
         (
             "release:myapp@2.0.0",
-            lambda: [Condition(Column(name=resolve_tag_key(ORG_ID, "release")), Op.IN, rhs=[resolve_tag_value(ORG_ID, "myapp@2.0.0")])],
+            lambda: [
+                Condition(
+                    Column(name=resolve_tag_key(ORG_ID, "release")),
+                    Op.IN,
+                    rhs=[resolve_tag_value(ORG_ID, "myapp@2.0.0")],
+                )
+            ],
         ),
         (
             "release:myapp@2.0.0 and environment:production",
@@ -98,7 +104,9 @@ def get_entity_of_metric_mocked(_, metric_name):
                 And(
                     [
                         Condition(
-                            Column(name=resolve_tag_key(ORG_ID, "release")), Op.IN, rhs=[resolve_tag_value(ORG_ID, "myapp@2.0.0")]
+                            Column(name=resolve_tag_key(ORG_ID, "release")),
+                            Op.IN,
+                            rhs=[resolve_tag_value(ORG_ID, "myapp@2.0.0")],
                         ),
                         Condition(
                             Column(name=resolve_tag_key(ORG_ID, "environment")),
@@ -112,7 +120,11 @@ def get_entity_of_metric_mocked(_, metric_name):
         (
             "release:myapp@2.0.0 environment:production",
             lambda: [
-                Condition(Column(name=resolve_tag_key(ORG_ID, "release")), Op.IN, rhs=[resolve_tag_value(ORG_ID, "myapp@2.0.0")]),
+                Condition(
+                    Column(name=resolve_tag_key(ORG_ID, "release")),
+                    Op.IN,
+                    rhs=[resolve_tag_value(ORG_ID, "myapp@2.0.0")],
+                ),
                 Condition(
                     Column(name=resolve_tag_key(ORG_ID, "environment")),
                     Op.EQ,
@@ -126,7 +138,9 @@ def get_entity_of_metric_mocked(_, metric_name):
                 And(
                     [
                         Condition(
-                            Column(name=resolve_tag_key(ORG_ID, "release")), Op.IN, rhs=[resolve_tag_value(ORG_ID, "myapp@2.0.0")]
+                            Column(name=resolve_tag_key(ORG_ID, "release")),
+                            Op.IN,
+                            rhs=[resolve_tag_value(ORG_ID, "myapp@2.0.0")],
                         ),
                         Condition(
                             Column(name=resolve_tag_key(ORG_ID, "environment")),
@@ -139,7 +153,13 @@ def get_entity_of_metric_mocked(_, metric_name):
         ),
         (
             'transaction:"/bar/:orgId/"',
-            lambda: [Condition(Column(name=resolve_tag_key(ORG_ID, "transaction")), Op.EQ, rhs=resolve_tag_value(ORG_ID, "/bar/:orgId/"))],
+            lambda: [
+                Condition(
+                    Column(name=resolve_tag_key(ORG_ID, "transaction")),
+                    Op.EQ,
+                    rhs=resolve_tag_value(ORG_ID, "/bar/:orgId/"),
+                )
+            ],
         ),
         (
             "release:[production,foo]",
@@ -147,9 +167,15 @@ def get_entity_of_metric_mocked(_, metric_name):
                 Condition(
                     Column(name=resolve_tag_key(ORG_ID, "release")),
                     Op.IN,
-                    rhs=list(filter(None, [
-                        resolve_tag_value(ORG_ID, "production"), resolve_tag_value(ORG_ID, "foo")
-                    ])),
+                    rhs=list(
+                        filter(
+                            None,
+                            [
+                                resolve_tag_value(ORG_ID, "production"),
+                                resolve_tag_value(ORG_ID, "foo"),
+                            ],
+                        )
+                    ),
                 )
             ],
         ),
@@ -159,9 +185,15 @@ def get_entity_of_metric_mocked(_, metric_name):
                 Condition(
                     Column(name=resolve_tag_key(ORG_ID, "release")),
                     Op.NOT_IN,
-                    rhs=list(filter(None, [
-                        resolve_tag_value(ORG_ID, "production"), resolve_tag_value(ORG_ID, "foo")
-                    ])),
+                    rhs=list(
+                        filter(
+                            None,
+                            [
+                                resolve_tag_value(ORG_ID, "production"),
+                                resolve_tag_value(ORG_ID, "foo"),
+                            ],
+                        )
+                    ),
                 )
             ],
         ),
@@ -181,12 +213,17 @@ def get_entity_of_metric_mocked(_, metric_name):
                 Or(
                     [
                         Condition(
-                            Column(name=resolve_tag_key(ORG_ID, "release")), Op.IN, rhs=[resolve_tag_value(ORG_ID, "myapp@2.0.0")]
+                            Column(name=resolve_tag_key(ORG_ID, "release")),
+                            Op.IN,
+                            rhs=[resolve_tag_value(ORG_ID, "myapp@2.0.0")],
                         ),
                         Condition(
                             Column(name=resolve_tag_key(ORG_ID, "environment")),
                             Op.IN,
-                            rhs=[resolve_tag_value(ORG_ID, "production"), resolve_tag_value(ORG_ID, "staging")],
+                            rhs=[
+                                resolve_tag_value(ORG_ID, "production"),
+                                resolve_tag_value(ORG_ID, "staging"),
+                            ],
                         ),
                     ]
                 ),
@@ -297,7 +334,9 @@ def test_build_snuba_query(mock_now, mock_now2):
                     Column("timestamp"), Op.LT, datetime(2021, 8, 25, 23, 59, tzinfo=pytz.utc)
                 ),
                 Condition(
-                    Column(resolve_tag_key(org_id, "release")), Op.EQ, resolve_tag_value(org_id, "staging")
+                    Column(resolve_tag_key(org_id, "release")),
+                    Op.EQ,
+                    resolve_tag_value(org_id, "staging"),
                 ),
                 Condition(Column("metric_id"), Op.IN, [resolve_weak(org_id, get_mri(metric_name))]),
             ],
