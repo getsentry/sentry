@@ -21,7 +21,6 @@ import {
   SamplingConditionOperator,
   SamplingInnerName,
   SamplingRule,
-  SamplingRules,
   SamplingRuleType,
 } from 'sentry/types/sampling';
 import {defined} from 'sentry/utils';
@@ -53,7 +52,7 @@ type State = {
 type Props = ModalRenderProps & {
   organization: Organization;
   project: Project;
-  rules: SamplingRules;
+  rules: SamplingRule[];
   rule?: SamplingRule;
 };
 
@@ -157,11 +156,11 @@ export function SpecificConditionsModal({
     setIsSaving(true);
 
     try {
-      const newProjectDetails = await api.requestPromise(
+      const response = await api.requestPromise(
         `/projects/${organization.slug}/${project.slug}/`,
         {method: 'PUT', data: {dynamicSampling: {rules: newRules}}}
       );
-      ProjectStore.onUpdateSuccess(newProjectDetails);
+      ProjectStore.onUpdateSuccess(response);
       addSuccessMessage(
         rule
           ? t('Successfully edited sampling rule')
