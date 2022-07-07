@@ -100,7 +100,7 @@ interface BaseButtonProps
    * 'xsmall' and 'small' are deprecated, but temporarily supported.
    * Please use 'xs' and 'sm' instead.
    */
-  size?: ButtonSize | 'xsmall' | 'small';
+  size?: ButtonSize;
   /**
    * @deprecated Use `external`
    */
@@ -136,21 +136,6 @@ export type ButtonProps = ButtonPropsWithoutAriaLabel | ButtonPropsWithAriaLabel
 
 type Url = ButtonProps['to'] | ButtonProps['href'];
 
-function convertDeprecatedSizeNames(size: BaseButtonProps['size']): ButtonSize {
-  if (!size) {
-    return 'md';
-  }
-
-  switch (size) {
-    case 'xsmall':
-      return 'xs';
-    case 'small':
-      return 'sm';
-    default:
-      return size;
-  }
-}
-
 function BaseButton({
   size = 'md',
   to,
@@ -169,8 +154,6 @@ function BaseButton({
   onClick,
   ...buttonProps
 }: ButtonProps) {
-  const convertedButtonSize = convertDeprecatedSizeNames(size);
-
   // Intercept onClick and propagate
   const handleClick = useCallback(
     (e: React.MouseEvent) => {
@@ -213,7 +196,7 @@ function BaseButton({
       disabled={disabled}
       to={getUrl(to)}
       href={getUrl(href)}
-      size={convertedButtonSize}
+      size={size}
       priority={priority}
       borderless={borderless}
       translucentBorder={translucentBorder}
@@ -221,9 +204,9 @@ function BaseButton({
       onClick={handleClick}
       role="button"
     >
-      <ButtonLabel align={align} size={convertedButtonSize} borderless={borderless}>
+      <ButtonLabel align={align} size={size} borderless={borderless}>
         {icon && (
-          <Icon size={convertedButtonSize} hasChildren={hasChildren}>
+          <Icon size={size} hasChildren={hasChildren}>
             {icon}
           </Icon>
         )}
@@ -361,8 +344,8 @@ const getColors = ({
   `;
 };
 
-const getSizeStyles = ({size, translucentBorder, theme}: StyledButtonProps) => {
-  const buttonSize = size === 'zero' ? 'md' : convertDeprecatedSizeNames(size);
+const getSizeStyles = ({size = 'md', translucentBorder, theme}: StyledButtonProps) => {
+  const buttonSize = size === 'zero' ? 'md' : size;
   const formStyles = theme.form[buttonSize];
   const buttonPadding = theme.buttonPadding[buttonSize];
 
@@ -466,7 +449,7 @@ const getIconMargin = ({size, hasChildren}: IconProps) => {
     return '0';
   }
 
-  switch (convertDeprecatedSizeNames(size)) {
+  switch (size) {
     case 'xs':
     case 'zero':
       return '6px';
