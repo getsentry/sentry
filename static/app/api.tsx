@@ -614,7 +614,7 @@ function canUseOrganizationUrl(organizationUrl: string | undefined) {
 export function resolveUrl(
   routeType: APIRouteType,
   organization: OrganizationSummary,
-  routeParams: {[key: string]: string | undefined} = {}
+  routeParams: {[key: string]: string | number | undefined} = {}
 ) {
   const [legacyRoute, customerDomainRoute] = routeRenderMap[routeType];
   const {organizationUrl} = organization;
