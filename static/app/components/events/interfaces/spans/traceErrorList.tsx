@@ -18,7 +18,7 @@ interface TraceErrorListProps {
 
 function TraceErrorList({trace, errors, onClickSpan}: TraceErrorListProps) {
   return (
-    <List symbol="bullet">
+    <List symbol="bullet" data-test-id="trace-error-list">
       {flatten(
         Object.entries(groupBy(errors, 'span')).map(([spanId, spanErrors]) => {
           const span = findSpanById(trace, spanId);
@@ -27,7 +27,7 @@ function TraceErrorList({trace, errors, onClickSpan}: TraceErrorListProps) {
             ([level, spanLevelErrors]) => {
               if (span) {
                 return (
-                  <ListItem key={spanId}>
+                  <ListItem key={`${spanId}-${level}`}>
                     {tct('[errors] [link]', {
                       errors: tn(
                         '%s %s error in ',
@@ -45,7 +45,7 @@ function TraceErrorList({trace, errors, onClickSpan}: TraceErrorListProps) {
                 );
               }
               return (
-                <ListItem key={spanId}>
+                <ListItem key={`${spanId}-${level}`}>
                   {tct('[errors]', {
                     errors: tn(
                       '%s %s error',
