@@ -11092,7 +11092,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
 
 
 class CustomerOrganizationEventsEndpointTest(OrganizationEventsEndpointTest):
-    viewname = "sentry-api-0-subdomain-organization-events"
+    viewname = "sentry-api-0-region-organization-events"
 
     def client_get(self, *args, **kwargs):
         if "HTTP_HOST" not in kwargs:
