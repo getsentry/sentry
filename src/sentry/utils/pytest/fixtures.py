@@ -412,6 +412,7 @@ def reset_snuba(call_snuba):
         for response in ThreadPoolExecutor(4).map(call_snuba, init_endpoints)
     )
 
+
 @pytest.fixture
 def set_sentry_option(request):
     """
