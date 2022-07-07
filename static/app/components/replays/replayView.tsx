@@ -78,7 +78,7 @@ const PanelNoMargin = styled(Panel)<{isFullscreen: boolean}>`
       display: grid;
       grid-template-rows: auto 1fr auto;
       `
-      : ''};
+      : ''}
 `;
 
 const PanelHeader = styled(_PanelHeader)<{noBorder?: boolean}>`

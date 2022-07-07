@@ -206,7 +206,7 @@ export function Provider({children, replay, initialTimeOffset = 0, value = {}}: 
   const [fastForwardSpeed, setFFSpeed] = useState(0);
   const [buffer, setBufferTime] = useState({target: -1, previous: -1});
   const playTimer = useRef<number | undefined>(undefined);
-  const unMountedRef = useRef<boolean>(false);
+  const unMountedRef = useRef(false);
 
   const isFinished = replayerRef.current?.getCurrentTime() === finishedAtMS;
 

@@ -1,16 +1,21 @@
-import React, {useState} from 'react';
+import React from 'react';
 import styled from '@emotion/styled';
 
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import NavTabs from 'sentry/components/navTabs';
 import Placeholder from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
+import ReplayView from 'sentry/components/replays/replayView';
 import {t} from 'sentry/locale';
+import useFullscreen from 'sentry/utils/replays/hooks/useFullscreen';
+import useUrlParams from 'sentry/utils/replays/hooks/useUrlParams';
 import ReplayReader from 'sentry/utils/replays/replayReader';
+import Breadcrumbs from 'sentry/views/replays/detail/breadcrumbs';
 
 import TagPanel from '../tagPanel';
 
+import {BreadcrumbSection, VideoSection} from './pageSections';
 import ResizePanel from './resizePanel';
-import {BreadCrumbsContainer, VideoContainer} from '.';
 
 type Props = {
   showCrumbs?: boolean;
@@ -23,8 +28,11 @@ const TABS = {
 };
 
 function AsideTabsV2({showCrumbs = true, showVideo = true}: Props) {
+  const {ref: fullscreenRef, isFullscreen, toggle: toggleFullscreen} = useFullscreen();
   const {replay} = useReplayContext();
-  const [active, setActive] = useState<string>('video');
+
+  const {getParamValue, setParamValue} = useUrlParams('t_side', 'video');
+  const active = getParamValue();
 
   const renderTabContent = (key: string, loadedReplay: ReplayReader) => {
     if (key === 'tags') {
@@ -36,12 +44,25 @@ function AsideTabsV2({showCrumbs = true, showVideo = true}: Props) {
         {showVideo ? (
           <ResizePanel direction="s" style={{height: '325px'}}>
             <Container>
-              <VideoContainer />
+              <VideoSection ref={fullscreenRef}>
+                <ErrorBoundary mini>
+                  <ReplayView
+                    toggleFullscreen={toggleFullscreen}
+                    isFullscreen={isFullscreen}
+                  />
+                </ErrorBoundary>
+              </VideoSection>
             </Container>
           </ResizePanel>
         ) : null}
 
-        {showCrumbs ? <BreadCrumbsContainer /> : null}
+        {showCrumbs ? (
+          <BreadcrumbSection>
+            <ErrorBoundary mini>
+              <Breadcrumbs />
+            </ErrorBoundary>
+          </BreadcrumbSection>
+        ) : null}
       </React.Fragment>
     );
   };
@@ -52,7 +73,7 @@ function AsideTabsV2({showCrumbs = true, showVideo = true}: Props) {
         {Object.entries(TABS).map(([tab, label]) => {
           return (
             <li key={tab} className={active === tab ? 'active' : ''}>
-              <a onClick={() => setActive(tab)}>{label}</a>
+              <a onClick={() => setParamValue(tab)}>{label}</a>
             </li>
           );
         })}
