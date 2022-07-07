@@ -59,10 +59,13 @@ function BreadcrumbItem({
         <BreadcrumbIcon type={crumb.type} />
       </IconWrapper>
       <CrumbDetails>
-        <Title>{title}</Title>
+        <TitleContainer>
+          <Title>{title}</Title>
+          <PlayerRelativeTime relativeTime={startTimestamp} timestamp={crumb.timestamp} />
+        </TitleContainer>
+
         <Description title={description}>{description}</Description>
       </CrumbDetails>
-      <PlayerRelativeTime relativeTime={startTimestamp} timestamp={crumb.timestamp} />
     </CrumbItem>
   );
 }
@@ -71,8 +74,11 @@ const CrumbDetails = styled('div')`
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  line-height: 1.2;
-  padding: ${space(1)} 0;
+`;
+
+const TitleContainer = styled('div')`
+  display: flex;
+  justify-content: space-between;
 `;
 
 const Title = styled('span')`
@@ -80,12 +86,15 @@ const Title = styled('span')`
   text-transform: capitalize;
   font-weight: 600;
   color: ${p => p.theme.gray400};
+  line-height: ${p => p.theme.text.lineHeightBody};
 `;
 
 const Description = styled('span')`
   ${p => p.theme.overflowEllipsis};
   font-size: 0.7rem;
   font-variant-numeric: tabular-nums;
+  line-height: ${p => p.theme.text.lineHeightBody};
+  color: ${p => p.theme.subText};
 `;
 
 type CrumbItemProps = {
@@ -95,25 +104,25 @@ type CrumbItemProps = {
 
 const CrumbItem = styled(PanelItem)<CrumbItemProps>`
   display: grid;
-  grid-template-columns: max-content auto max-content;
-  align-items: center;
+  grid-template-columns: max-content auto;
+  align-items: flex-start;
   gap: ${space(1)};
   width: 100%;
 
   font-size: ${p => p.theme.fontSizeMedium};
   background: transparent;
-  padding: 0 ${space(1)};
+  padding: ${space(1)};
   text-align: left;
   border: none;
   position: relative;
-  ${p => (p.isSelected || p.isHovered) && `background-color: ${p.theme.purple100};`}
-  /* margin: 0 ${space(0.5)}; */
+  ${p => p.isSelected && `background-color: ${p.theme.purple100};`}
+  ${p => p.isHovered && `background-color: ${p.theme.surface100};`}
   border-radius: 4px;
 
   &::after {
     content: '';
     position: absolute;
-    left: 18px;
+    left: 19px;
     width: 1px;
     background: ${p => p.theme.gray200};
     height: 100%;
@@ -138,8 +147,8 @@ const IconWrapper = styled('div')<Required<Pick<SVGIconProps, 'color'>>>`
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   color: ${p => p.theme.white};
   background: ${p => p.theme[p.color] ?? p.color};
