@@ -2,14 +2,17 @@
 name: meta(labels)
 
 on:
-  pull_request:
+  pull_request_target:
 
 jobs:
   label-pullrequest:
+    permissions:
+      contents: read
+      pull-requests: write
     name: labels pull requests (frontend / backend)
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Check for file changes
         uses: getsentry/paths-filter@master
