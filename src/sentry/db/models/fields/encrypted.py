@@ -1,78 +1,22 @@
+# This module used to implement encrypted fields.  These however were never really
+# encrypted and the interface provided by them does not lend itself to useful
+# encryption.  Since the main use of it was the `EncryptedPickledObjectField` in
+# the codebase we want to phase out, this module only acts as a legacy shim at
+# this point.
+
+# New code should not use this module any more.  It will be removed in a future
+# after migrations and models were changed to no longer reference it.
+
+
+from django.db.models import CharField as EncryptedCharField
+from django.db.models import TextField as EncryptedTextField
+
+from sentry.db.models.fields.jsonfield import JSONField as EncryptedJsonField
+from sentry.db.models.fields.picklefield import PickledObjectField as EncryptedPickledObjectField
+
 __all__ = (
     "EncryptedCharField",
-    "EncryptedJsonField",
-    "EncryptedPickledObjectField",
     "EncryptedTextField",
+    "EncryptedPickledObjectField",
+    "EncryptedJsonField",
 )
-
-
-from django.db.models import CharField, TextField
-
-from django_picklefield import PickledObjectField
-from sentry.db.models.fields.jsonfield import JSONField
-from sentry.db.models.utils import Creator
-from sentry.utils.encryption import decrypt, encrypt
-
-
-class EncryptedCharField(CharField):
-    def contribute_to_class(self, cls, name):
-        """
-        Add a descriptor for backwards compatibility
-        with previous Django behavior.
-        """
-        super().contribute_to_class(cls, name)
-        setattr(cls, name, Creator(self))
-
-    def get_db_prep_value(self, value, *args, **kwargs):
-        value = super().get_db_prep_value(value, *args, **kwargs)
-        return encrypt(value)
-
-    def to_python(self, value):
-        if value is not None and isinstance(value, str):
-            value = decrypt(value)
-        return super().to_python(value)
-
-
-class EncryptedJsonField(JSONField):
-    def get_db_prep_value(self, value, *args, **kwargs):
-        value = super().get_db_prep_value(value, *args, **kwargs)
-        return encrypt(value)
-
-    def to_python(self, value):
-        if value is not None and isinstance(value, str):
-            value = decrypt(value)
-        return super().to_python(value)
-
-
-class EncryptedPickledObjectField(PickledObjectField):
-    empty_strings_allowed = True
-
-    def get_db_prep_value(self, value, *args, **kwargs):
-        if isinstance(value, bytes):
-            value = value.decode("utf-8")
-        value = super().get_db_prep_value(value, *args, **kwargs)
-        return encrypt(value)
-
-    def to_python(self, value):
-        if value is not None and isinstance(value, str):
-            value = decrypt(value)
-        return super().to_python(value)
-
-
-class EncryptedTextField(TextField):
-    def contribute_to_class(self, cls, name):
-        """
-        Add a descriptor for backwards compatibility
-        with previous Django behavior.
-        """
-        super().contribute_to_class(cls, name)
-        setattr(cls, name, Creator(self))
-
-    def get_db_prep_value(self, value, *args, **kwargs):
-        value = super().get_db_prep_value(value, *args, **kwargs)
-        return encrypt(value)
-
-    def to_python(self, value):
-        if value is not None and isinstance(value, str):
-            value = decrypt(value)
-        return super().to_python(value)

@@ -10,10 +10,7 @@ import {t} from 'sentry/locale';
 import {Organization, PageFilters, SavedSearchType, Tag, TagValue} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
 import {WidgetQuery} from 'sentry/views/dashboardsV2/types';
-import {
-  MAX_MENU_HEIGHT,
-  MAX_SEARCH_ITEMS,
-} from 'sentry/views/dashboardsV2/widgetBuilder/utils';
+import {MAX_MENU_HEIGHT} from 'sentry/views/dashboardsV2/widgetBuilder/utils';
 
 import {SESSION_STATUSES, SESSIONS_FILTER_TAGS} from '../../releaseWidget/fields';
 
@@ -92,7 +89,6 @@ export function ReleaseSearchBar({
           onSearch={onSearch}
           onBlur={onBlur}
           maxQueryLength={MAX_QUERY_LENGTH}
-          maxSearchItems={MAX_SEARCH_ITEMS}
           searchSource="widget_builder"
           query={widgetQuery.conditions}
           savedSearchType={SavedSearchType.SESSION}

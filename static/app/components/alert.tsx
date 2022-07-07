@@ -11,6 +11,7 @@ import {Theme} from 'sentry/utils/theme';
 
 export interface AlertProps extends React.HTMLAttributes<HTMLDivElement> {
   expand?: React.ReactNode;
+  icon?: React.ReactNode;
   opaque?: boolean;
   showIcon?: boolean;
   system?: boolean;
@@ -23,6 +24,7 @@ const DEFAULT_TYPE = 'info';
 function Alert({
   type = DEFAULT_TYPE,
   showIcon = false,
+  icon,
   opaque,
   system,
   expand,
@@ -70,38 +72,38 @@ function Alert({
       expand={expand}
       hovered={iconIsHovered || messageIsHovered}
       className={classNames(type ? `ref-${type}` : '', className)}
+      onClick={handleClick}
+      {...messageHoverProps}
       {...props}
     >
       {showIcon && (
         <IconWrapper onClick={handleClick} {...iconHoverProps}>
-          {getIcon()}
+          {icon ?? getIcon()}
         </IconWrapper>
       )}
       <ContentWrapper>
-        <MessageContainer
-          onClick={handleClick}
-          showIcon={showIcon}
-          showTrailingItems={showTrailingItems}
-          {...messageHoverProps}
-        >
-          <Message>{children}</Message>
-          {(showExpand || showTrailingItems) && (
-            <TrailingItemsWrap>
-              <TrailingItems onClick={e => e.stopPropagation()}>
-                {trailingItems}
-              </TrailingItems>
-              {showExpand && (
-                <ExpandIconWrap>
-                  <IconChevron direction={isExpanded ? 'up' : 'down'} />
-                </ExpandIconWrap>
-              )}
-            </TrailingItemsWrap>
+        <ContentWrapperInner>
+          <MessageContainer>
+            <Message>{children}</Message>
+            {showTrailingItems && (
+              <TrailingItemsWrap>
+                <TrailingItems onClick={e => e.stopPropagation()}>
+                  {trailingItems}
+                </TrailingItems>
+              </TrailingItemsWrap>
+            )}
+          </MessageContainer>
+
+          {isExpanded && (
+            <ExpandContainer>
+              {Array.isArray(expand) ? expand.map(item => item) : expand}
+            </ExpandContainer>
           )}
-        </MessageContainer>
-        {isExpanded && (
-          <ExpandContainer>
-            {Array.isArray(expand) ? expand.map(item => item) : expand}
-          </ExpandContainer>
+        </ContentWrapperInner>
+        {showExpand && (
+          <ExpandIconWrap>
+            <IconChevron direction={isExpanded ? 'up' : 'down'} />
+          </ExpandIconWrap>
         )}
       </ContentWrapper>
     </Wrap>
@@ -160,9 +162,7 @@ const alertStyles = ({
     `}
 
     ${showExpand &&
-    `${IconWrapper}, ${MessageContainer} {
-        cursor: pointer;
-      }
+    `cursor: pointer;
       ${TrailingItems} {
        cursor: auto;
       }
@@ -178,30 +178,38 @@ const alertStyles = ({
 
 const Wrap = styled('div')<AlertProps & {hovered: boolean}>`
   ${alertStyles}
+  padding: ${space(1.5)}
 `;
 
 const IconWrapper = styled('div')`
   display: flex;
   height: calc(${p => p.theme.fontSizeMedium} * ${p => p.theme.text.lineHeightBody});
-  padding: ${space(1.5)} ${space(1)} ${space(1.5)} ${space(2)};
+  padding-right: ${space(0.5)};
+  padding-left: ${space(0.5)};
   box-sizing: content-box;
   align-items: center;
 `;
 
 const ContentWrapper = styled('div')`
   width: 100%;
+  display: flex;
+  flex-direction: row;
 `;
 
-const MessageContainer = styled('div')<{
-  showIcon: boolean;
-  showTrailingItems: boolean;
-}>`
+const ContentWrapperInner = styled('div')`
+  flex-grow: 1;
+`;
+
+const MessageContainer = styled('div')`
   display: flex;
   width: 100%;
-  padding-top: ${space(1.5)};
-  padding-bottom: ${space(1.5)};
-  padding-left: ${p => (p.showIcon ? '0' : space(2))};
-  padding-right: ${p => (p.showTrailingItems ? space(1.5) : space(2))};
+  padding-left: ${space(0.5)};
+  padding-right: ${space(0.5)};
+  flex-direction: row;
+  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+    flex-direction: column;
+    align-items: start;
+  }
 `;
 
 const Message = styled('span')`
@@ -221,18 +229,26 @@ const TrailingItems = styled('div')`
 
 const TrailingItemsWrap = styled(TrailingItems)`
   margin-left: ${space(1)};
+
+  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+    margin-left: 0;
+    margin-top: ${space(2)};
+  }
 `;
 
 const ExpandIconWrap = styled('div')`
   height: 100%;
   display: flex;
-  align-items: center;
+  align-items: start;
+  padding-left: ${space(0.5)};
+  padding-right: ${space(0.5)};
 `;
 
 const ExpandContainer = styled('div')`
   display: grid;
+  padding-top: ${space(1.5)};
   padding-right: ${space(1.5)};
-  padding-bottom: ${space(1.5)};
+  padding-left: ${space(0.5)};
 `;
 
 export {alertStyles};
