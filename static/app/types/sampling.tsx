@@ -1,3 +1,5 @@
+import {Project} from './project';
+
 export enum SamplingRuleType {
   /**
    * The rule applies to traces (transaction events considered in the context of a trace)
@@ -177,8 +179,6 @@ export type SamplingRule = {
   bottomPinned?: boolean;
 };
 
-export type SamplingRules = Array<SamplingRule>;
-
 export type SamplingDistribution = {
   null_sample_rate_percentage: null | number;
   project_breakdown:
@@ -205,4 +205,10 @@ export type SamplingSdkVersion = {
   latestSDKName: string;
   latestSDKVersion: string;
   project: string;
+};
+
+export type RecommendedSdkUpgrade = {
+  latestSDKName: SamplingSdkVersion['latestSDKName'];
+  latestSDKVersion: SamplingSdkVersion['latestSDKVersion'];
+  project: Project;
 };

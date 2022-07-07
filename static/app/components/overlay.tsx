@@ -133,7 +133,7 @@ const Overlay = styled(
   ${p => p.overlayStyle as any}
 `;
 
-interface PositionWrapperProps extends HTMLMotionProps<'div'> {
+interface PositionWrapperProps extends React.HTMLAttributes<HTMLDivElement> {
   /**
    * Determines the zindex over the position wrapper
    */
@@ -154,7 +154,21 @@ const PositionWrapper = forwardRef<HTMLDivElement, PositionWrapperProps>(
   // XXX(epurkhiser): This is a motion.div NOT because it is animating, but
   // because we need the context of the animation starting for applying the
   // `pointerEvents: none`.
-  ({zIndex, style, ...props}, ref) => (
+  (
+    {
+      // XXX: Some of framer motions props are incompatible with
+      // HTMLAttributes<HTMLDivElement>. Due to the way useOverlay uses this
+      // component it must be compatible with that type.
+      onAnimationStart: _onAnimationStart,
+      onDragStart: _onDragStart,
+      onDragEnd: _onDragEnd,
+      onDrag: _onDrag,
+      zIndex,
+      style,
+      ...props
+    },
+    ref
+  ) => (
     <motion.div
       {...props}
       ref={ref}
