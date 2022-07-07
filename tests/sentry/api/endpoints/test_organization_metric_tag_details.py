@@ -1,8 +1,8 @@
-import pytest
 import time
 from datetime import datetime, timedelta
 from unittest.mock import patch
 
+import pytest
 from freezegun import freeze_time
 
 from sentry.sentry_metrics import indexer
