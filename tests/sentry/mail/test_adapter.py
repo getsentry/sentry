@@ -74,8 +74,9 @@ class BaseMailAdapterTest(TestCase):
 
 
 class MailAdapterActiveReleaseTest(BaseMailAdapterTest):
+    @mock.patch("sentry.signals.active_release_notification_sent.send_robust")
     @mock.patch("sentry.notifications.utils.participants.get_release_committers")
-    def test_simple(self, mock_get_release_committers):
+    def test_simple(self, mock_get_release_committers, send_robust):
         mock_get_release_committers.return_value = [self.create_user(email="test@example.com")]
         event = self.store_event(
             data={"message": "Hello world", "level": "error"}, project_id=self.project.id
@@ -109,6 +110,7 @@ class MailAdapterActiveReleaseTest(BaseMailAdapterTest):
 
         assert to_committer
         assert to_committer.subject == "**ARM** [Sentry] BAR-1 - Hello world"
+        assert send_robust.called
 
 
 class MailAdapterGetSendableUsersTest(BaseMailAdapterTest):

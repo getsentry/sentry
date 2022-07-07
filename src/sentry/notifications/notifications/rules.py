@@ -21,7 +21,8 @@ from sentry.notifications.utils import (
 )
 from sentry.notifications.utils.participants import get_send_to
 from sentry.plugins.base.structs import Notification
-from sentry.types.integrations import ExternalProviders
+from sentry.signals import active_release_notification_sent
+from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.utils import metrics
 from sentry.utils.http import absolute_uri, urlencode
 
@@ -151,6 +152,19 @@ class AlertRuleNotification(ProjectNotification):
         shared_context = self.get_context()
 
         for provider, participants in participants_by_provider.items():
+            if self.target_type == ActionTargetType.RELEASE_MEMBERS:
+                last_release = shared_context["last_release"]
+                release_version = last_release.version if last_release else None
+                for participant in participants:
+                    active_release_notification_sent.send_robust(
+                        project=self.project,
+                        group=self.group,
+                        provider=EXTERNAL_PROVIDERS[provider],
+                        release_version=release_version,
+                        recipient_email=participant.email,
+                        recipient_username=participant.username,
+                        sender=ActiveReleaseAlertNotification.__class__,
+                    )
             notify(provider, self, participants, shared_context)
 
     def get_log_params(self, recipient: Team | User) -> Mapping[str, Any]:
