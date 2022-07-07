@@ -26,12 +26,15 @@ class MSTeamsMessageBuilder(AbstractMessageBuilder, ABC):
         raise NotImplementedError
 
     @staticmethod
-    def get_text_block(text: str, size: Optional[TextSize] = None) -> Any:
+    def get_text_block(
+        text: str, size: Optional[TextSize] = None, weight: Optional[TextWeight] = None
+    ) -> Any:
         return {
             "type": "TextBlock",
             "text": text,
             "wrap": True,
             "size": size.value if size else None,
+            "weight": weight.value if weight else None,
         }
 
     def get_logo_block(self) -> Any:
