@@ -26,14 +26,13 @@ import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHea
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import PermissionAlert from 'sentry/views/settings/organization/permissionAlert';
 
-import {DraggableList, UpdateItemsProps} from '../sampling/rules/draggableList';
-
 import {SpecificConditionsModal} from './modals/specificConditionsModal';
 import {responsiveModal} from './modals/styles';
 import {UniformRateModal} from './modals/uniformRateModal';
 import useProjectStats from './utils/useProjectStats';
 import useSamplingDistribution from './utils/useSamplingDistribution';
 import useSdkVersions from './utils/useSdkVersions';
+import {DraggableRuleList, DraggableRuleListUpdateItemsProps} from './draggableRuleList';
 import {Promo} from './promo';
 import {
   ActiveColumn,
@@ -179,11 +178,12 @@ export function ServerSideSampling({project}: Props) {
     );
   }
 
-  async function handleSortRules({overIndex, reorderedItems: ruleIds}: UpdateItemsProps) {
+  async function handleSortRules({
+    overIndex,
+    reorderedItems: ruleIds,
+  }: DraggableRuleListUpdateItemsProps) {
     if (!rules[overIndex].condition.inner.length) {
-      addErrorMessage(
-        t('Rules with conditions cannot be below rules without conditions')
-      );
+      addErrorMessage(t('Specific rules cannot be below uniform rules'));
       return;
     }
 
@@ -311,7 +311,7 @@ export function ServerSideSampling({project}: Props) {
           )}
           {!!rules.length && (
             <Fragment>
-              <DraggableList
+              <DraggableRuleList
                 disabled={!hasAccess}
                 items={items}
                 onUpdateItems={handleSortRules}

@@ -2,39 +2,32 @@ import {
   render,
   screen,
   userEvent,
+  waitFor,
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
 import * as indicators from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import GlobalModal from 'sentry/components/globalModal';
-import {
-  SamplingConditionOperator,
-  SamplingInnerName,
-  SamplingInnerOperator,
-  SamplingRule,
-  SamplingRuleType,
-} from 'sentry/types/sampling';
+import {SamplingInnerName} from 'sentry/types/sampling';
 import {SpecificConditionsModal} from 'sentry/views/settings/project/server-side-sampling/modals/specificConditionsModal';
 import {distributedTracesConditions} from 'sentry/views/settings/project/server-side-sampling/modals/specificConditionsModal/utils';
 import {getInnerNameLabel} from 'sentry/views/settings/project/server-side-sampling/utils';
 
-import {getMockData, uniformRule} from '../utils';
+import {getMockData, specificRule, uniformRule} from '../utils';
 
 describe('Server-side Sampling - Specific Conditions Modal', function () {
-  beforeEach(function () {
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/tags/release/values/',
-      method: 'GET',
-      body: [{value: '1.2.3'}],
-    });
-  });
-
   afterEach(function () {
     MockApiClient.clearMockResponses();
   });
 
   it('add new rule', async function () {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/tags/release/values/',
+      method: 'GET',
+      body: [{value: '1.2.3'}],
+    });
+
     const {organization, project} = getMockData({
       projects: [
         TestStubs.Project({
@@ -61,7 +54,7 @@ describe('Server-side Sampling - Specific Conditions Modal', function () {
       method: 'PUT',
       body: TestStubs.Project({
         dynamicSampling: {
-          rules: [uniformRule, newRule],
+          rules: [newRule, uniformRule],
         },
       }),
     });
@@ -155,7 +148,7 @@ describe('Server-side Sampling - Specific Conditions Modal', function () {
       expect.objectContaining({
         data: {
           dynamicSampling: {
-            rules: [uniformRule, newRule],
+            rules: [newRule, uniformRule],
           },
         },
       })
@@ -167,28 +160,17 @@ describe('Server-side Sampling - Specific Conditions Modal', function () {
   });
 
   it('edits the rule', async function () {
-    const specificRule: SamplingRule = {
-      sampleRate: 0.2,
-      active: false,
-      type: SamplingRuleType.TRACE,
-      condition: {
-        op: SamplingConditionOperator.AND,
-        inner: [
-          {
-            op: SamplingInnerOperator.GLOB_MATCH,
-            name: 'trace.release',
-            value: ['1.2.2'],
-          },
-        ],
-      },
-      id: 2,
-    };
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/tags/release/values/',
+      method: 'GET',
+      body: [{value: '1.2.3'}],
+    });
 
     const {organization, project} = getMockData({
       projects: [
         TestStubs.Project({
           dynamicSampling: {
-            rules: [uniformRule, specificRule],
+            rules: [specificRule, uniformRule],
           },
         }),
       ],
@@ -214,7 +196,7 @@ describe('Server-side Sampling - Specific Conditions Modal', function () {
       method: 'PUT',
       body: TestStubs.Project({
         dynamicSampling: {
-          rules: [uniformRule, newRule],
+          rules: [newRule, uniformRule],
         },
       }),
     });
@@ -260,7 +242,7 @@ describe('Server-side Sampling - Specific Conditions Modal', function () {
       expect.objectContaining({
         data: {
           dynamicSampling: {
-            rules: [uniformRule, newRule],
+            rules: [newRule, uniformRule],
           },
         },
       })
@@ -269,5 +251,93 @@ describe('Server-side Sampling - Specific Conditions Modal', function () {
     expect(indicators.addSuccessMessage).toHaveBeenCalledWith(
       'Successfully edited sampling rule'
     );
+  });
+
+  it('uniform rules are always submit in the last place', async function () {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/tags/environment/values/',
+      method: 'GET',
+      body: [{value: 'prod'}],
+    });
+
+    const newRule = {
+      condition: {
+        inner: [
+          {
+            name: 'trace.environment',
+            op: 'eq',
+            value: ['prod'],
+            options: {ignoreCase: true},
+          },
+        ],
+        op: 'and',
+      },
+      id: 0,
+      sampleRate: 0.5,
+      type: 'trace',
+      active: false,
+    };
+
+    const {organization, project} = getMockData({
+      projects: [
+        TestStubs.Project({
+          dynamicSampling: {
+            rules: [specificRule, uniformRule],
+          },
+        }),
+      ],
+    });
+
+    const saveMock = MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/',
+      method: 'PUT',
+      body: TestStubs.Project({
+        dynamicSampling: {
+          rules: [specificRule, newRule, uniformRule],
+        },
+      }),
+    });
+
+    render(<GlobalModal />);
+
+    openModal(modalProps => (
+      <SpecificConditionsModal
+        {...modalProps}
+        organization={organization}
+        project={project}
+        rules={[specificRule, uniformRule]}
+      />
+    ));
+
+    // Click on 'Add condition'
+    userEvent.click(screen.getByText('Add Condition'));
+
+    // Click on the condition option
+    userEvent.click(
+      screen.getByText(getInnerNameLabel(SamplingInnerName.TRACE_ENVIRONMENT))
+    );
+
+    // Type into environment field
+    userEvent.paste(screen.getByLabelText('Search or add an environment'), 'prod');
+    userEvent.keyboard('{enter}');
+
+    // Fill sample rate field
+    userEvent.paste(screen.getByPlaceholderText('\u0025'), '50');
+
+    // Click on save button
+    userEvent.click(screen.getByLabelText('Save Rule'));
+
+    await waitFor(() => {
+      expect(saveMock).toHaveBeenLastCalledWith(
+        '/projects/org-slug/project-slug/',
+        expect.objectContaining({
+          data: {
+            dynamicSampling: {
+              rules: [specificRule, newRule, uniformRule],
+            },
+          },
+        })
+      );
+    });
   });
 });
