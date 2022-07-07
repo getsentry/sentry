@@ -1,3 +1,5 @@
+import {GeneralSelectValue} from 'sentry/components/forms/selectControl';
+
 type IconGroupName =
   | 'product'
   | 'action'
@@ -9,17 +11,18 @@ type IconGroupName =
 
 export type IconPropName = 'size' | 'direction' | 'isCircled' | 'isSolid' | 'type';
 
-type IconProps = {
-  [key in IconPropName]: {
-    type: 'boolean' | 'select';
+type IconProps = Record<
+  IconPropName,
+  {
+    type: 'select' | 'boolean';
     default?: string;
     /**
      * Whether to list all variants of this prop in the icon list
      */
     enumerate?: boolean;
-    options?: [string, string][];
-  };
-};
+    options?: GeneralSelectValue[];
+  }
+>;
 
 type IconGroup = {
   id: IconGroupName;
@@ -43,33 +46,33 @@ export type IconData = {
    */
   additionalProps?: IconPropName[];
   /**
-   * Limit the set of options available for certain additional props.
-   * For example, {direction: ['left', 'up']} would limit the available
-   * options for the prop 'direction' to just 'left' and 'up'. Useful for
-   * controlling prop enumeration in the icon list.
+   * Limit the set of options available for certain additional props. For
+   * example, {direction: ['left', 'up']} would limit the available options for
+   * the prop 'direction' to just 'left' and 'up'. Useful for controlling prop
+   * enumeration in the icon list.
    */
-  limitOptions?: Partial<Record<IconPropName, string[][]>>;
+  limitOptions?: Partial<Record<IconPropName, GeneralSelectValue[]>>;
 };
 
 export const iconProps: IconProps = {
   size: {
     type: 'select',
     options: [
-      ['xs', 'Extra small'],
-      ['sm', 'Small'],
-      ['md', 'Medium'],
-      ['lg', 'Large'],
-      ['xl', 'Extra large'],
+      {value: 'xs', label: 'Extra small'},
+      {value: 'sm', label: 'Small'},
+      {value: 'md', label: 'Medium'},
+      {value: 'lg', label: 'Large'},
+      {value: 'xl', label: 'Extra large'},
     ],
     default: 'sm',
   },
   type: {
     type: 'select',
     options: [
-      ['line', 'Line'],
-      ['circle', 'Circle'],
-      ['bar', 'Bar'],
-      ['area', 'Area'],
+      {value: 'line', label: 'Line'},
+      {value: 'circle', label: 'Circle'},
+      {value: 'bar', label: 'Bar'},
+      {value: 'area', label: 'Area'},
     ],
     default: 'line',
     enumerate: true,
@@ -77,10 +80,10 @@ export const iconProps: IconProps = {
   direction: {
     type: 'select',
     options: [
-      ['left', 'Left'],
-      ['right', 'Right'],
-      ['up', 'Up'],
-      ['down', 'Down'],
+      {value: 'left', label: 'Left'},
+      {value: 'right', label: 'Right'},
+      {value: 'up', label: 'Up'},
+      {value: 'down', label: 'Down'},
     ],
     default: 'left',
     enumerate: true,
@@ -451,8 +454,8 @@ export const icons: IconData[] = [
     additionalProps: ['direction'],
     limitOptions: {
       direction: [
-        ['left', 'Left'],
-        ['up', 'Up'],
+        {value: 'left', label: 'Left'},
+        {value: 'up', label: 'Up'},
       ],
     },
   },

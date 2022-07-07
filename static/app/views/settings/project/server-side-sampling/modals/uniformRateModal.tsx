@@ -1,7 +1,6 @@
 import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
-import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {NumberField} from 'sentry/components/forms';
@@ -12,12 +11,13 @@ import {IconRefresh} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Project, SeriesApi} from 'sentry/types';
-import {SamplingRules} from 'sentry/types/sampling';
+import {SamplingRule} from 'sentry/types/sampling';
 import {defined} from 'sentry/utils';
 import {formatPercentage} from 'sentry/utils/formatters';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
-import {isUniformRule, SERVER_SIDE_SAMPLING_DOC_LINK} from '../utils';
+import {SamplingSDKAlert} from '../samplingSDKAlert';
+import {SERVER_SIDE_SAMPLING_DOC_LINK} from '../utils';
 import {projectStatsToPredictedSeries} from '../utils/projectStatsToPredictedSeries';
 import {projectStatsToSampleRates} from '../utils/projectStatsToSampleRates';
 import {projectStatsToSeries} from '../utils/projectStatsToSeries';
@@ -36,10 +36,11 @@ enum Step {
   RECOMMENDED_STEPS = 'recommended_steps',
 }
 
-type Props = Omit<RecommendedStepsModalProps, 'onSubmit'> & {
-  rules: SamplingRules;
+type Props = Omit<RecommendedStepsModalProps, 'onSubmit' | 'clientSampleRate'> & {
+  rules: SamplingRule[];
   project?: Project;
   projectStats?: SeriesApi;
+  uniformRule?: SamplingRule;
 };
 
 function UniformRateModal({
@@ -51,6 +52,7 @@ function UniformRateModal({
   recommendedSdkUpgrades,
   projectStats,
   project,
+  uniformRule,
   rules,
   ...props
 }: Props) {
@@ -63,11 +65,9 @@ function UniformRateModal({
 
   const loading = loading30d || !projectStats;
 
-  // TODO(sampling): fetch from API
-  const affectedProjects = ['ProjectA', 'ProjectB', 'ProjectC'];
   const [activeStep, setActiveStep] = useState<Step>(Step.SET_UNIFORM_SAMPLE_RATE);
 
-  const uniformSampleRate = rules.find(isUniformRule)?.sampleRate;
+  const uniformSampleRate = uniformRule?.sampleRate;
 
   const {trueSampleRate, maxSafeSampleRate} = projectStatsToSampleRates(projectStats);
 
@@ -95,7 +95,7 @@ function UniformRateModal({
   const isEdited =
     client !== recommendedClientSampling || server !== recommendedServerSampling;
 
-  if (activeStep === Step.RECOMMENDED_STEPS) {
+  if (activeStep === Step.RECOMMENDED_STEPS && defined(client)) {
     return (
       <RecommendedStepsModal
         {...props}
@@ -107,6 +107,7 @@ function UniformRateModal({
         recommendedSdkUpgrades={recommendedSdkUpgrades}
         onGoBack={() => setActiveStep(Step.SET_UNIFORM_SAMPLE_RATE)}
         onSubmit={() => {}}
+        clientSampleRate={Math.max(Math.min(Number(client) / 100, 1), 0)}
       />
     );
   }
@@ -233,15 +234,13 @@ function UniformRateModal({
               </Fragment>
             </StyledPanelTable>
 
-            <Alert>
-              {tct(
-                'To ensures that any active server-side sampling rules won’t sharply decrease the amount of accepted transactions, we recommend you update the Sentry SDK versions for [affectedProjects]. More details in [step2: Step 2].',
-                {
-                  step2: <strong />,
-                  affectedProjects: <strong>{affectedProjects.join(', ')}</strong>,
-                }
-              )}
-            </Alert>
+            <SamplingSDKAlert
+              organization={organization}
+              project={project}
+              rules={rules}
+              recommendedSdkUpgrades={recommendedSdkUpgrades}
+              showLinkToTheModal={false}
+            />
           </Fragment>
         )}
       </Body>

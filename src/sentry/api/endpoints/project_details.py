@@ -88,6 +88,7 @@ class DynamicSamplingRuleSerializer(serializers.Serializer):
         required=True,
     )
     condition = DynamicSamplingConditionSerializer()
+    active = serializers.BooleanField(default=False)
     id = serializers.IntegerField(min_value=0, required=False)
 
 

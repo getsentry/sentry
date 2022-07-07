@@ -23,7 +23,6 @@ import {
   SamplingConditionOperator,
   SamplingInnerName,
   SamplingRule,
-  SamplingRules,
   SamplingRuleType,
 } from 'sentry/types/sampling';
 import {defined} from 'sentry/utils';
@@ -65,7 +64,7 @@ type Props = ModalRenderProps & {
   onSubmitSuccess: (project: Project, successMessage: React.ReactNode) => void;
   organization: Organization;
   project: Project;
-  rules: SamplingRules;
+  rules: SamplingRule[];
   type: SamplingRuleType;
   rule?: SamplingRule;
 };

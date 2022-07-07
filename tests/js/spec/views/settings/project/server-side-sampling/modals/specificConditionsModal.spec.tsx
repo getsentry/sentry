@@ -166,7 +166,7 @@ describe('Server-side Sampling - Specific Conditions Modal', function () {
     );
   });
 
-  it('edits the rule', async function () {
+  it('edits specific rule', async function () {
     const specificRule: SamplingRule = {
       sampleRate: 0.2,
       active: false,
