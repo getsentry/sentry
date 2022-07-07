@@ -1,13 +1,10 @@
 from datetime import timedelta
 
-import scipy.stats
-
 from sentry import tsdb
 from sentry.models import Group
 
 
 def is_issue_error_rate_correlated(resolved_issue_id: int, issue2_id: int) -> bool:
-
     resolved_issue = Group.objects.filter(id=resolved_issue_id)
 
     if len(resolved_issue) != 1:
@@ -26,10 +23,23 @@ def is_issue_error_rate_correlated(resolved_issue_id: int, issue2_id: int) -> bo
         end=end_time,
     )
 
-    resolved_issue_events = [events for _, events in data[resolved_issue_id]]
+    x = [events for _, events in data[resolved_issue_id]]
 
-    issue2_events = [events for _, events in data[issue2_id]]
+    y = [events for _, events in data[issue2_id]]
 
-    (r, p) = scipy.stats.pearsonr(resolved_issue_events, issue2_events)
+    # source: https://inside-machinelearning.com/en/pearson-formula-in-python-linear-correlation-coefficient/
 
-    return r > 0.4 and p < 0.4
+    # calculate average
+    mean_x = sum(x) / len(x)
+    mean_y = sum(y) / len(y)
+
+    # calculate covariance
+    cov = sum((a - mean_x) * (b - mean_y) for (a, b) in zip(x, y)) / len(x)
+
+    # calculate standard deviation
+    st_dev_x = (sum((a - mean_x) ** 2 for a in x) / len(x)) ** 0.5
+    st_dev_y = (sum((b - mean_y) ** 2 for b in y) / len(y)) ** 0.5
+
+    result = cov / (st_dev_x * st_dev_y)
+
+    return result > 0.4
