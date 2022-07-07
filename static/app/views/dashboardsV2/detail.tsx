@@ -56,7 +56,7 @@ import {
   calculateColumnDepths,
   getDashboardLayout,
 } from './layoutUtils';
-import ReleaseFilter from './releasesSelectControl';
+import ReleasesSelectControl from './releasesSelectControl';
 import DashboardTitle from './title';
 import {
   DashboardDetails,
@@ -751,7 +751,7 @@ class DashboardDetail extends Component<Props, State> {
                           organization={organization}
                           selection={selection}
                         >
-                          <ReleaseFilter />
+                          <ReleasesSelectControl />
                         </ReleasesProvider>
                       </FilterButtons>
                     </Feature>
