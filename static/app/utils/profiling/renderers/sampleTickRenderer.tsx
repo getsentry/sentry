@@ -12,7 +12,7 @@ function computeAbsoluteSampleTimestamps(startedAt: number, weights: readonly nu
   return timeline;
 }
 
-class InternalSampleTickRenderer {
+class SampleTickRenderer {
   canvas: HTMLCanvasElement;
   context: CanvasRenderingContext2D;
   theme: FlamegraphTheme;
@@ -56,9 +56,17 @@ class InternalSampleTickRenderer {
         this.intervals[i] * configViewToPhysicalSpace[0] + configViewToPhysicalSpace[6]
       );
 
+      if (physicalIntervalPosition < 0) {
+        continue;
+      }
+
+      if (physicalIntervalPosition > this.canvas.clientWidth) {
+        break;
+      }
+
       context.strokeRect(physicalIntervalPosition, 0, 0, height);
     }
   }
 }
 
-export {InternalSampleTickRenderer};
+export {SampleTickRenderer};

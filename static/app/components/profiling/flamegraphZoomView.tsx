@@ -21,7 +21,7 @@ import {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
 import {useInternalFlamegraphDebugMode} from 'sentry/utils/profiling/hooks/useInternalFlamegraphDebugMode';
 import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
 import {GridRenderer} from 'sentry/utils/profiling/renderers/gridRenderer';
-import {InternalSampleTickRenderer} from 'sentry/utils/profiling/renderers/internalSampleTickRenderer';
+import {SampleTickRenderer} from 'sentry/utils/profiling/renderers/sampleTickRenderer';
 import {SelectedFrameRenderer} from 'sentry/utils/profiling/renderers/selectedFrameRenderer';
 import {TextRenderer} from 'sentry/utils/profiling/renderers/textRenderer';
 import usePrevious from 'sentry/utils/usePrevious';
@@ -102,7 +102,7 @@ function FlamegraphZoomView({
     );
   }, [flamegraphOverlayCanvasRef, flamegraph, flamegraphTheme]);
 
-  const internalSampleTickRenderer: InternalSampleTickRenderer | null = useMemo(() => {
+  const sampleTickRenderer: SampleTickRenderer | null = useMemo(() => {
     if (!isInternalFlamegraphDebugModeEnabled) {
       return null;
     }
@@ -110,7 +110,7 @@ function FlamegraphZoomView({
     if (!flamegraphOverlayCanvasRef || !flamegraphView?.configSpace) {
       return null;
     }
-    return new InternalSampleTickRenderer(
+    return new SampleTickRenderer(
       flamegraphOverlayCanvasRef,
       flamegraph,
       flamegraphView.configSpace,
@@ -319,10 +319,10 @@ function FlamegraphZoomView({
     };
 
     const drawInternalSampleTicks = () => {
-      if (!internalSampleTickRenderer) {
+      if (!sampleTickRenderer) {
         return;
       }
-      internalSampleTickRenderer.draw(
+      sampleTickRenderer.draw(
         flamegraphView.fromConfigView(flamegraphCanvas.physicalSpace)
       );
     };
@@ -350,7 +350,7 @@ function FlamegraphZoomView({
     flamegraphTheme,
     textRenderer,
     gridRenderer,
-    internalSampleTickRenderer,
+    sampleTickRenderer,
     flamegraphState.profiles.selectedNode,
     hoveredNode,
     selectedFrameRenderer,
