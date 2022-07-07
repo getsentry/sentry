@@ -132,7 +132,7 @@ def generate_organization_hostname(org_slug: str) -> str:
 
 
 def generate_organization_url(org_slug: str) -> str:
-    org_url_template = options.get("system.customer-url-template")
+    org_url_template = options.get("system.organization-url-template")
     if not org_url_template:
         return options.get("system.url-prefix")
     return org_url_template.replace("{hostname}", generate_organization_hostname(org_slug))
