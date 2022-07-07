@@ -597,7 +597,7 @@ type CustomerDomainRoute = string;
 type RouteTuple = [LegacyRoute, CustomerDomainRoute];
 
 const routeRenderMap: Record<APIRouteType, RouteTuple> = {
-  'organization-events': ['/organizations/:slug/events/', '/events/'],
+  'organization-events': ['/organizations/:org_slug/events/', '/events/'],
 };
 
 function canUseOrganizationUrl(organizationUrl: string | undefined) {
@@ -625,7 +625,7 @@ export function resolveUrl(
   const route = shouldUseLegacyRoute ? legacyRoute : customerDomainRoute;
 
   const renderedRoute = replaceRouterParams(route, {
-    slug: organization.slug,
+    org_slug: organization.slug,
     ...routeParams,
   });
 
