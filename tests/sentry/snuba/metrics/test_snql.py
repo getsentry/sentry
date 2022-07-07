@@ -1,9 +1,9 @@
 import pytest
-
 from snuba_sdk import Column, Function
 
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.sentry_metrics.utils import resolve_tag_key, resolve_tag_value
 from sentry.snuba.metrics import (
     TransactionStatusTagValue,
     TransactionTagsKey,
@@ -30,13 +30,9 @@ from sentry.snuba.metrics.fields.snql import (
     tolerated_count_transaction,
 )
 from sentry.snuba.metrics.naming_layer.public import TransactionSatisfactionTagValue
-from sentry.sentry_metrics.utils import resolve_tag_key, resolve_tag_value
 from sentry.testutils import TestCase
 
-
-
 pytestmark = pytest.mark.sentry_metrics
-
 
 
 class DerivedMetricSnQLTestCase(TestCase):
