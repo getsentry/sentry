@@ -60,10 +60,7 @@ export function GroupBySelector({fieldOptions, columns = [], onChange}: Props) {
 
   const canDrag = columns.length > 1;
   const canDelete = canDrag || hasOnlySingleColumnWithValue;
-  const columnFieldsAsString = useMemo(
-    () => columns.map(generateFieldAsString),
-    [columns]
-  );
+  const columnFieldsAsString = columns.map(generateFieldAsString);
 
   const {filteredFieldOptions, columnsAsFieldOptions} = useMemo(() => {
     return Object.keys(fieldOptions).reduce(
@@ -87,7 +84,7 @@ export function GroupBySelector({fieldOptions, columns = [], onChange}: Props) {
         filteredFieldOptions: FieldOptions;
       }
     );
-  }, [fieldOptions, columnFieldsAsString]);
+  }, [fieldOptions, columns]);
 
   const items = useMemo(() => {
     return columns.reduce((acc, _column, index) => {

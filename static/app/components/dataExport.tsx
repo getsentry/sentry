@@ -44,7 +44,6 @@ function DataExport({
     if (inProgress) {
       setInProgress(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [payload.queryType, payload.queryInfo]);
 
   const handleDataExport = useCallback(() => {

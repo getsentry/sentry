@@ -51,7 +51,6 @@ function CustomRepositories({
 
   useEffect(() => {
     openDebugFileSourceDialog();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.query, appStoreConnectContext]);
 
   const orgSlug = organization.slug;
