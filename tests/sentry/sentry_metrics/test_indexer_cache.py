@@ -7,7 +7,6 @@ from sentry.utils.hashlib import md5_text
 pytestmark = pytest.mark.sentry_metrics
 
 
-
 def test_cache() -> None:
     cache.clear()
     assert indexer_cache.get("blah") is None
