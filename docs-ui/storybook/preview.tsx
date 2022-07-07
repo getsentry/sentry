@@ -1,6 +1,7 @@
 import 'focus-visible';
 import 'docs-ui/index.js';
 
+import {ThemeProvider} from '@emotion/react';
 import {DocsContainer, Meta} from '@storybook/addon-docs';
 import {addDecorator, addParameters, DecoratorFn, Parameters} from '@storybook/react';
 import {themes} from '@storybook/theming';
@@ -10,7 +11,6 @@ import DocsLinks from 'docs-ui/components/docsLinks';
 import DoDont from 'docs-ui/components/doDont';
 import Sample from 'docs-ui/components/sample';
 import TableOfContents from 'docs-ui/components/tableOfContents';
-import {ThemeProvider} from 'emotion-theming';
 import {useDarkMode} from 'storybook-dark-mode';
 
 import GlobalStyles from 'sentry/styles/global';
@@ -133,7 +133,7 @@ addParameters({
      * show/hide tool bar
      * @type {Boolean}
      */
-    isToolshown: true,
+    showToolbar: true,
     /**
      * function to sort stories in the tree view
      * common use is alphabetical `(a, b) => a[1].id.localeCompare(b[1].id)`
