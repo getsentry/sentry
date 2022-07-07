@@ -830,8 +830,14 @@ def _get_or_create_release_associated_models(jobs, projects):
         )
 
 
+@metrics.wraps("save_events.associate_commits_to_release")
 def _associate_commits_to_release(jobs, projects):
-    pass
+    release = [job["release"] for job in jobs]
+    return release
+    # Check for SCM integration
+    # Get the release associated with this event
+    # Find all commits between previous commit and this commit
+    # Add them to
 
 
 @metrics.wraps("save_event.tsdb_record_all_metrics")
