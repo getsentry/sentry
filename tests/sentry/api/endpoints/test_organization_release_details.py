@@ -868,22 +868,24 @@ class UpdateReleaseDetailsTest(APITestCase):
         project = self.create_project(teams=[team], organization=org)
 
         release = Release.objects.create(organization_id=org.id, version="abcabcabc")
-
-        release.add_project(project)
+        release_empty_version = Release.objects.create(organization_id=org.id, version="")
 
         self.create_member(teams=[team], user=user, organization=org)
 
         self.login_as(user=user)
 
-        url = reverse(
-            "sentry-api-0-organization-release-details",
-            kwargs={"organization_slug": org.slug, "version": release.version},
-        )
-        response = self.client.put(url, data={"status": "archived"})
+        def do_archive(release, project):
+            release.add_project(project)
 
-        assert response.status_code == 200, (response.status_code, response.content)
+            url = reverse(
+                "sentry-api-0-organization-release-details",
+                kwargs={"organization_slug": org.slug, "version": release.version},
+            )
+            return self.client.put(url, data={"status": "archived"})
 
-        assert Release.objects.get(id=release.id).status == ReleaseStatus.ARCHIVED
+        for response in [do_archive(r, project) for r in [release, release_empty_version]]:
+            assert response.status_code == 200, (response.status_code, response.content)
+            assert Release.objects.get(id=release.id).status == ReleaseStatus.ARCHIVED
 
     def test_activity_generation(self):
         user = self.create_user(is_staff=False, is_superuser=False)

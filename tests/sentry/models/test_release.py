@@ -676,6 +676,7 @@ class SetRefsTest(SetRefsTestCase):
     def test_invalid_version(self):
         release = Release.objects.create(organization=self.org)
         assert not release.is_valid_version(None)
+        assert not release.is_valid_version("")
 
     @staticmethod
     def test_invalid_chars_in_version():

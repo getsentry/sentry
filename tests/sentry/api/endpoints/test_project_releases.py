@@ -719,6 +719,13 @@ class ReleaseSerializerTest(TestCase):
         )
         assert not serializer.is_valid()
 
+    def test_version_empty(self):
+        serializer = ReleaseWithVersionSerializer(
+            data={"version": ""},
+            context={"organization": self.organization},
+        )
+        assert not serializer.is_valid()
+
     def test_owner_must_have_org_access(self):
         serializer = ReleaseWithVersionSerializer(
             data={

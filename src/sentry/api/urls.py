@@ -1411,7 +1411,7 @@ urlpatterns = [
                     name="sentry-api-0-organization-releases-stats",
                 ),
                 url(
-                    r"^(?P<organization_slug>[^\/]+)/releases/(?P<version>[^/]+)/$",
+                    r"^(?P<organization_slug>[^\/]+)/releases/(?P<version>[^/]*)/$",
                     OrganizationReleaseDetailsEndpoint.as_view(),
                     name="sentry-api-0-organization-release-details",
                 ),
