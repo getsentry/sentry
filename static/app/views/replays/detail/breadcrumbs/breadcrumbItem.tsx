@@ -122,7 +122,7 @@ const CrumbItem = styled(PanelItem)<CrumbItemProps>`
   &::after {
     content: '';
     position: absolute;
-    left: 19px;
+    left: 19.5px;
     width: 1px;
     background: ${p => p.theme.gray200};
     height: 100%;
