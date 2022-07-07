@@ -18,6 +18,7 @@ import {Widget} from 'sentry/views/dashboardsV2/types';
 import {getWidgetDiscoverUrl} from 'sentry/views/dashboardsV2/utils';
 
 export type DashboardWidgetQuerySelectorModalOptions = {
+  isMetricsData: boolean;
   organization: Organization;
   widget: Widget;
 };
@@ -31,7 +32,7 @@ type Props = ModalRenderProps &
 
 class DashboardWidgetQuerySelectorModal extends Component<Props> {
   renderQueries() {
-    const {organization, widget, selection} = this.props;
+    const {organization, widget, selection, isMetricsData} = this.props;
     const querySearchBars = widget.queries.map((query, index) => {
       const discoverLocation = getWidgetDiscoverUrl(
         {
@@ -39,7 +40,9 @@ class DashboardWidgetQuerySelectorModal extends Component<Props> {
           queries: [query],
         },
         selection,
-        organization
+        organization,
+        0,
+        isMetricsData
       );
       return (
         <Fragment key={index}>
