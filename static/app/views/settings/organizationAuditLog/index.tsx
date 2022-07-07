@@ -98,43 +98,40 @@ function OrganizationAuditLog({organization}: Props) {
     }));
   };
 
-  const fetchAuditLogData = useCallback(
-    async (cursor = state.currentCursor, event = state.eventType) => {
-      try {
-        const payload = {cursor, event};
-        if (!payload.cursor) {
-          delete payload.cursor;
-        }
-        if (!payload.event) {
-          delete payload.event;
-        }
-        const [data, _, response] = await api.requestPromise(
-          `/organizations/${organization.slug}/audit-logs/`,
-          {
-            method: 'GET',
-            includeAllArgs: true,
-            query: payload,
-          }
-        );
-        setState(prevState => ({
-          ...prevState,
-          entryList: data,
-          isLoading: false,
-          entryListPageLinks: response?.getResponseHeader('Link') ?? null,
-        }));
-      } catch (err) {
-        if (err.status !== 401 && err.status !== 403) {
-          Sentry.captureException(err);
-        }
-        setState(prevState => ({
-          ...prevState,
-          isLoading: false,
-        }));
-        addErrorMessage('Unable to load usage loads.');
+  const fetchAuditLogData = useCallback(async () => {
+    try {
+      const payload = {cursor: state.currentCursor, event: state.eventType};
+      if (!payload.cursor) {
+        delete payload.cursor;
       }
-    },
-    [api, organization.slug, state.currentCursor, state.eventType]
-  );
+      if (!payload.event) {
+        delete payload.event;
+      }
+      const [data, _, response] = await api.requestPromise(
+        `/organizations/${organization.slug}/audit-logs/`,
+        {
+          method: 'GET',
+          includeAllArgs: true,
+          query: payload,
+        }
+      );
+      setState(prevState => ({
+        ...prevState,
+        entryList: data,
+        isLoading: false,
+        entryListPageLinks: response?.getResponseHeader('Link') ?? null,
+      }));
+    } catch (err) {
+      if (err.status !== 401 && err.status !== 403) {
+        Sentry.captureException(err);
+      }
+      setState(prevState => ({
+        ...prevState,
+        isLoading: false,
+      }));
+      addErrorMessage('Unable to load audit logs.');
+    }
+  }, [api, organization.slug, state.currentCursor, state.eventType]);
 
   useEffect(() => {
     fetchAuditLogData();
