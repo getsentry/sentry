@@ -794,7 +794,6 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             "transaction",
         ]:
             perf_indexer_record(self.organization.id, metric)
-
         response = self.get_success_response(
             self.organization.slug,
             field=[
