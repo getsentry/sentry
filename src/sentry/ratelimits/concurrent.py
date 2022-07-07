@@ -34,6 +34,7 @@ class ConcurrentRateLimiter:
     def validate(self) -> None:
         try:
             self.client.ping()
+            self.client.connection_pool.disconnect()
         except Exception as e:
             raise InvalidConfiguration(str(e))
 
