@@ -261,7 +261,7 @@ function createFrameInfoFromEvent(event: ChromeTrace.Event) {
   };
 }
 
-export function parseChromeTraceArrayFormat(
+export function parseTypescriptChromeTraceArrayFormat(
   input: ChromeTrace.ArrayFormat,
   traceID: string,
   options?: ImportOptions
