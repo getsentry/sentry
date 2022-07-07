@@ -1,7 +1,7 @@
 import {
   ChromeTraceProfile,
   collapseSamples,
-  parseChromeTraceArrayFormat,
+  parseTypescriptChromeTraceArrayFormat,
   splitEventsByProcessAndTraceId,
 } from 'sentry/utils/profiling/profile/chromeTraceProfile';
 
@@ -33,10 +33,10 @@ describe('splitEventsByProcessAndTraceId', () => {
   });
 });
 
-describe('parseChromeTraceArrayFormat', () => {
+describe('parseTypescriptChromeTraceArrayFormat', () => {
   it('returns chrometrace profile', () => {
     expect(
-      parseChromeTraceArrayFormat(
+      parseTypescriptChromeTraceArrayFormat(
         [
           {
             ph: 'M',
@@ -64,7 +64,7 @@ describe('parseChromeTraceArrayFormat', () => {
 
   it('marks process name', () => {
     expect(
-      parseChromeTraceArrayFormat(
+      parseTypescriptChromeTraceArrayFormat(
         [
           {
             ph: 'M',
@@ -92,7 +92,7 @@ describe('parseChromeTraceArrayFormat', () => {
 
   it('marks thread name', () => {
     expect(
-      parseChromeTraceArrayFormat(
+      parseTypescriptChromeTraceArrayFormat(
         [
           {
             ph: 'M',
@@ -119,7 +119,7 @@ describe('parseChromeTraceArrayFormat', () => {
   });
 
   it('imports a simple trace', () => {
-    const trace = parseChromeTraceArrayFormat(
+    const trace = parseTypescriptChromeTraceArrayFormat(
       [
         {
           ph: 'B',
@@ -150,7 +150,7 @@ describe('parseChromeTraceArrayFormat', () => {
   });
 
   it('closes unclosed events', () => {
-    const trace = parseChromeTraceArrayFormat(
+    const trace = parseTypescriptChromeTraceArrayFormat(
       [
         {
           ph: 'B',
@@ -192,7 +192,7 @@ describe('parseChromeTraceArrayFormat', () => {
   });
 
   it('handles out of order E events', () => {
-    const trace = parseChromeTraceArrayFormat(
+    const trace = parseTypescriptChromeTraceArrayFormat(
       [
         {
           ph: 'B',
@@ -248,7 +248,7 @@ describe('parseChromeTraceArrayFormat', () => {
   });
 
   it('handles out of order B events', () => {
-    const trace = parseChromeTraceArrayFormat(
+    const trace = parseTypescriptChromeTraceArrayFormat(
       [
         {
           ph: 'B',
@@ -304,7 +304,7 @@ describe('parseChromeTraceArrayFormat', () => {
   });
 
   it('handles X trace with tdur', () => {
-    const trace = parseChromeTraceArrayFormat(
+    const trace = parseTypescriptChromeTraceArrayFormat(
       [
         {
           ph: 'X',
@@ -324,7 +324,7 @@ describe('parseChromeTraceArrayFormat', () => {
   });
 
   it('handles X trace with dur', () => {
-    const trace = parseChromeTraceArrayFormat(
+    const trace = parseTypescriptChromeTraceArrayFormat(
       [
         {
           ph: 'X',
