@@ -22,6 +22,8 @@ describe('SuggestedOwners', function () {
   const endpoint = `/projects/${organization.slug}/${project.slug}/events/${event.id}`;
 
   beforeEach(function () {
+    CommitterStore.init();
+    TeamStore.init();
     MemberListStore.loadInitialData([user, TestStubs.CommitAuthor()]);
     Client.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/codeowners/`,
