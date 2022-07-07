@@ -25,7 +25,6 @@ from sentry.sentry_metrics.utils import (
     resolve_tag_value,
     resolve_weak,
     reverse_resolve,
-    reverse_resolve_weak,
     reverse_tag_value,
 )
 from sentry.snuba.dataset import Dataset

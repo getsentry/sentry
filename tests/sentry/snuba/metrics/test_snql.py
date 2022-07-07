@@ -3,7 +3,7 @@ from snuba_sdk import Column, Function
 
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
-from sentry.sentry_metrics.utils import resolve_tag_key, resolve_tag_value
+from sentry.sentry_metrics.utils import resolve_tag_value
 from sentry.snuba.metrics import (
     TransactionStatusTagValue,
     TransactionTagsKey,
