@@ -225,12 +225,12 @@ describe('Rect', () => {
     });
 
     it('overlapsLeft', () => {
-      expect(new Rect(0, 0, 1, 1).overlapsLeft(new Rect(-0.5, 0, 1, 1))).toBe(true);
-      expect(new Rect(0, 0, 1, 1).overlapsLeft(new Rect(1, 0, 1, 1))).toBe(false);
+      expect(new Rect(0, 0, 1, 1).leftOverlapsWith(new Rect(-0.5, 0, 1, 1))).toBe(true);
+      expect(new Rect(0, 0, 1, 1).leftOverlapsWith(new Rect(1, 0, 1, 1))).toBe(false);
     });
     it('overlapsRight', () => {
-      expect(new Rect(0, 0, 1, 1).overlapsRight(new Rect(0.5, 0, 1, 1))).toBe(true);
-      expect(new Rect(0, 0, 1, 1).overlapsRight(new Rect(1.5, 0, 1, 1))).toBe(false);
+      expect(new Rect(0, 0, 1, 1).rightOverlapsWith(new Rect(0.5, 0, 1, 1))).toBe(true);
+      expect(new Rect(0, 0, 1, 1).rightOverlapsWith(new Rect(1.5, 0, 1, 1))).toBe(false);
     });
     it('overlaps', () => {
       expect(new Rect(0, 0, 1, 1).overlaps(new Rect(-1, -1, 2, 2))).toBe(true);

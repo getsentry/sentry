@@ -320,11 +320,11 @@ export class Rect {
     );
   }
 
-  overlapsLeft(rect: Rect): boolean {
+  leftOverlapsWith(rect: Rect): boolean {
     return rect.left <= this.left && rect.right >= this.left;
   }
 
-  overlapsRight(rect: Rect): boolean {
+  rightOverlapsWith(rect: Rect): boolean {
     return this.right >= rect.left && this.right <= rect.right;
   }
 
@@ -655,11 +655,11 @@ export function computeConfigViewWithStategy(
     if (view.width < frame.width) {
       // If view width < frame width, we need to zoom out,
       // so the condition = exact
-      return frame.withHeight(view.width);
+      return frame.withHeight(view.height);
     }
 
     if (view.containsRect(frame)) {
-      // If frame is in the frame, do nothing
+      // If frame is in view, do nothing
       return view;
     }
 
@@ -669,9 +669,9 @@ export function computeConfigViewWithStategy(
       // to frame.x so that start of the frame is in the view
       offset = offset.withX(frame.x);
     }
-    if (offset.overlapsRight(frame) || frame.right > view.right) {
-      // If frame is to the right of the view, translate it right
-      // by the difference between the right edge of the frame and the view
+    if (offset.rightOverlapsWith(frame) || frame.right > view.right) {
+      // If the right boundary of a frame is outside of the view, translate the view
+      // by the difference between the right edge of the frame and the right edge of the view
       offset = view.withX(offset.x + frame.right - offset.right);
     }
 
