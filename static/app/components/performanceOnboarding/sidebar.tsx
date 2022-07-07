@@ -150,7 +150,6 @@ function PerformanceOnboardingSidebar(props: CommonSidebarProps) {
       <TopRightBackgroundImage src={HighlightTopRightPattern} />
       <TaskList>
         <Heading>{t('Boost Performance')}</Heading>
-        <div>
           <DropdownMenuControlV2
             items={items}
             triggerLabel={
