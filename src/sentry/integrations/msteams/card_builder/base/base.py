@@ -20,6 +20,14 @@ class TextWeight(Enum):
     LIGHTER = "Lighter"
 
 
+class ActionType(Enum):
+    OPEN_URL = "Action.OpenUrl"
+    SUBMIT = "Action.Submit"
+    SHOW_CARD = "Action.ShowCard"
+    TOGGLE_VISIBILITY = "Action.ToggleVisibility"
+    EXECUTE = "Action.Execute"
+
+
 class MSTeamsMessageBuilder(AbstractMessageBuilder, ABC):
     def build(self) -> Any:
         """Abstract `build` method that all inheritors must implement."""
@@ -57,6 +65,14 @@ class MSTeamsMessageBuilder(AbstractMessageBuilder, ABC):
             ],
         }
 
+    @staticmethod
+    def get_action(action_type: ActionType, title: str, data: Any):
+        return {
+            "type": action_type,
+            "title": title,
+            "data": data,
+        }
+
     def _build(
         self,
         text: Any,
@@ -83,13 +99,10 @@ class MSTeamsMessageBuilder(AbstractMessageBuilder, ABC):
         if footer:
             body.append(footer)
 
-        # TODO MARCOS should this be the buttons instead?
-        for action in actions or []:
-            body.append(action)
-
         return {
             "body": body,
             "type": "AdaptiveCard",
             "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
             "version": "1.2",
+            "actions": actions or [],
         }
