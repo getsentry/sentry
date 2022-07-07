@@ -11,6 +11,7 @@ FEATURE_NAME = "organizations:filters-and-sampling"
 sampling_rule_all_possible_conditions = {
     "id": 4,
     "type": "transaction",
+    "active": False,
     "condition": {
         "op": "and",
         "inner": [
