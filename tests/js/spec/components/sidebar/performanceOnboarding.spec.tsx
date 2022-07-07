@@ -97,7 +97,6 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
 
     userEvent.click(quickStart);
     expect(screen.queryByText('Boost performance')).not.toBeInTheDocument();
-    await tick();
   });
 
   it('checklist feature disabled', async function () {
@@ -128,7 +127,6 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
       'https://docs.sentry.io/product/performance/getting-started/',
       '_blank'
     );
-    await tick();
   });
 
   it('checklist feature enabled > navigate to performance page > project with onboarding support', async function () {
@@ -162,8 +160,6 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
     expect(router.push).toHaveBeenCalledWith(
       '/organizations/org-slug/performance/?project=2#performance-sidequest'
     );
-
-    await tick();
   });
 
   it('checklist feature enabled > navigate to performance page > project without onboarding support', async function () {
@@ -197,8 +193,6 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
     expect(router.push).toHaveBeenCalledWith(
       '/organizations/org-slug/performance/?project=2#performance-sidequest'
     );
-
-    await tick();
   });
 
   it('checklist feature enabled > navigate to performance page > project without performance support', async function () {
@@ -230,8 +224,6 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
     userEvent.click(performanceCard);
     expect(window.open).not.toHaveBeenCalled();
     expect(router.push).toHaveBeenCalledWith('/organizations/org-slug/performance/');
-
-    await tick();
   });
 
   it('displays checklist', async function () {
@@ -280,6 +272,5 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
         await screen.findByText(textWithMarkupMatcher(`${docKey} content`))
       ).toBeInTheDocument();
     }
-    await tick();
   });
 });
