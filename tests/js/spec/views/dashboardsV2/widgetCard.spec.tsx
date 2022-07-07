@@ -497,7 +497,7 @@ describe('Dashboards > WidgetCard', function () {
     );
   });
 
-  it('has sticky table headers', async function () {
+  it.only('has sticky table headers', async function () {
     const tableWidget: Widget = {
       title: 'Table Widget',
       interval: '5m',
@@ -532,7 +532,8 @@ describe('Dashboards > WidgetCard', function () {
         tableItemLimit={20}
       />
     );
-    await tick();
+    await waitFor(() => expect(eventsv2Mock).toHaveBeenCalled());
+
     expect(SimpleTableChart).toHaveBeenCalledWith(
       expect.objectContaining({stickyHeaders: true}),
       expect.anything()
