@@ -1,6 +1,9 @@
 import {Fragment, PureComponent} from 'react';
 import {browserHistory, InjectedRouter} from 'react-router';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {FocusScope} from '@react-aria/focus';
+import {AnimatePresence} from 'framer-motion';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 
@@ -12,9 +15,9 @@ import Banner from 'sentry/components/banner';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
-import DropdownControl from 'sentry/components/dropdownControl';
 import InputControl from 'sentry/components/forms/controls/input';
 import {Hovercard} from 'sentry/components/hovercard';
+import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {IconDelete, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -22,11 +25,63 @@ import {Organization, Project, SavedQuery} from 'sentry/types';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
+import useOverlay from 'sentry/utils/useOverlay';
 import withApi from 'sentry/utils/withApi';
 import withProjects from 'sentry/utils/withProjects';
 import {handleAddQueryToDashboard} from 'sentry/views/eventsV2/utils';
 
 import {handleCreateQuery, handleDeleteQuery, handleUpdateQuery} from './utils';
+
+type SaveAsDropdownProps = {
+  disabled: boolean;
+  modifiedHandleCreateQuery: (e: React.MouseEvent<Element>) => void;
+  onChangeInput: (e: React.FormEvent<HTMLInputElement>) => void;
+  queryName: string;
+};
+
+function SaveAsDropdown({
+  queryName,
+  disabled,
+  onChangeInput,
+  modifiedHandleCreateQuery,
+}: SaveAsDropdownProps) {
+  const {isOpen, triggerProps, overlayProps, arrowProps} = useOverlay({});
+  const theme = useTheme();
+
+  return (
+    <div>
+      <Button icon={<IconStar />} aria-disabled={disabled} {...triggerProps}>
+        Save as
+      </Button>
+      <AnimatePresence>
+        {isOpen && (
+          <FocusScope contain restoreFocus autoFocus>
+            <PositionWrapper zIndex={theme.zIndex.dropdown} {...overlayProps}>
+              <StyledOverlay arrowProps={arrowProps} animated>
+                <ButtonSaveInput
+                  type="text"
+                  name="query_name"
+                  placeholder={t('Display name')}
+                  value={queryName || ''}
+                  onChange={onChangeInput}
+                  disabled={disabled}
+                />
+                <Button
+                  onClick={modifiedHandleCreateQuery}
+                  priority="primary"
+                  disabled={disabled || !queryName}
+                  style={{width: '100%'}}
+                >
+                  {t('Save for Org')}
+                </Button>
+              </StyledOverlay>
+            </PositionWrapper>
+          </FocusScope>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
 
 type DefaultProps = {
   disabled: boolean;
@@ -138,11 +193,6 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
     queryName: '',
   };
 
-  onBlurInput = (event: React.FormEvent<HTMLInputElement>) => {
-    const target = event.target as HTMLInputElement;
-    this.setState({queryName: target.value});
-  };
-
   onChangeInput = (event: React.FormEvent<HTMLInputElement>) => {
     const target = event.target as HTMLInputElement;
     this.setState({queryName: target.value});
@@ -230,38 +280,12 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
      * which breaks `React.createRef`.
      */
     return (
-      <DropdownControl
-        alignRight
-        menuWidth="220px"
-        priority="default"
-        buttonProps={{
-          'aria-label': t('Save as'),
-          showChevron: false,
-          icon: <IconStar />,
-          disabled,
-        }}
-        label={`${t('Save as')}\u{2026}`}
-      >
-        <ButtonSaveDropDown onClick={SavedQueryButtonGroup.stopEventPropagation}>
-          <ButtonSaveInput
-            type="text"
-            name="query_name"
-            placeholder={t('Display name')}
-            value={queryName || ''}
-            onBlur={this.onBlurInput}
-            onChange={this.onChangeInput}
-            disabled={disabled}
-          />
-          <Button
-            onClick={this.handleCreateQuery}
-            priority="primary"
-            disabled={disabled || !this.state.queryName}
-            style={{width: '100%'}}
-          >
-            {t('Save for Org')}
-          </Button>
-        </ButtonSaveDropDown>
-      </DropdownControl>
+      <SaveAsDropdown
+        queryName={queryName}
+        onChangeInput={this.onChangeInput}
+        modifiedHandleCreateQuery={this.handleCreateQuery}
+        disabled={disabled}
+      />
     );
   }
 
@@ -411,15 +435,13 @@ const ResponsiveButtonBar = styled(ButtonBar)`
   }
 `;
 
-const ButtonSaveDropDown = styled('div')`
-  display: flex;
-  flex-direction: column;
+const StyledOverlay = styled(Overlay)`
   padding: ${space(1)};
-  gap: ${space(1)};
 `;
 
 const ButtonSaveInput = styled(InputControl)`
   height: 40px;
+  margin-bottom: ${space(1)};
 `;
 
 const IconUpdate = styled('div')`
