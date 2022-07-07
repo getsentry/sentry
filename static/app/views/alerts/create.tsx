@@ -224,10 +224,6 @@ const Body = styled(Layout.Body)`
   @media (min-width: ${p => p.theme.breakpoints.large}) {
     grid-template-columns: minmax(100px, auto) 400px;
   }
-
-  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
-    grid-template-columns: 1fr;
-  }
 `;
 
 export default Create;

@@ -15,6 +15,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
+import {logExperiment} from 'sentry/utils/analytics';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import withProjects from 'sentry/utils/withProjects';
 import BuilderBreadCrumbs from 'sentry/views/alerts/builder/builderBreadCrumbs';
@@ -132,6 +133,20 @@ class AlertWizard extends Component<Props, State> {
       </Hovercard>
     );
 
+    let showUseTemplateBtn: boolean =
+      !!project?.firstTransactionEvent &&
+      isMetricAlert &&
+      metricRuleTemplate?.dataset === Dataset.TRANSACTIONS &&
+      !!supportedPreset;
+    if (showUseTemplateBtn) {
+      logExperiment({
+        key: 'MetricAlertPresetExperiment',
+        organization,
+      });
+    }
+    showUseTemplateBtn =
+      showUseTemplateBtn && !!organization.experiments.MetricAlertPresetExperiment;
+
     return (
       <Feature
         features={
@@ -155,37 +170,30 @@ class AlertWizard extends Component<Props, State> {
               })
             }
           >
-            {organization.experiments.MetricAlertPresetExperiment &&
-              project?.firstTransactionEvent &&
-              isMetricAlert &&
-              metricRuleTemplate?.dataset === Dataset.TRANSACTIONS &&
-              supportedPreset && (
-                <CreateAlertButton
-                  organization={organization}
-                  projectSlug={projectId}
-                  disabled={!hasFeature}
-                  priority="default"
-                  to={{
-                    pathname: to.pathname,
-                    query: {
-                      ...to.query,
-                      preset: supportedPreset.id,
-                    },
-                  }}
-                  onEnter={() => {
-                    trackAdvancedAnalyticsEvent(
-                      'growth.metric_alert_preset_use_template',
-                      {
-                        organization,
-                        preset: supportedPreset.id,
-                      }
-                    );
-                  }}
-                  hideIcon
-                >
-                  {t('Use Template')}
-                </CreateAlertButton>
-              )}
+            {showUseTemplateBtn && (
+              <CreateAlertButton
+                organization={organization}
+                projectSlug={projectId}
+                disabled={!hasFeature}
+                priority="default"
+                to={{
+                  pathname: to.pathname,
+                  query: {
+                    ...to.query,
+                    preset: supportedPreset.id,
+                  },
+                }}
+                onEnter={() => {
+                  trackAdvancedAnalyticsEvent('growth.metric_alert_preset_use_template', {
+                    organization,
+                    preset: supportedPreset.id,
+                  });
+                }}
+                hideIcon
+              >
+                {t('Use Template')}
+              </CreateAlertButton>
+            )}
             <CreateAlertButton
               organization={organization}
               projectSlug={projectId}
