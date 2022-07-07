@@ -13,7 +13,7 @@ from sentry.web.decorators import transaction_start
 from sentry.web.frontend.base import BaseView
 from sentry.web.helpers import render_to_response
 
-from .card_builder import build_linked_card
+from .card_builder.identity import MSTeamsLinkedMessageBuilder
 from .client import MsTeamsClient
 
 
@@ -61,7 +61,7 @@ class MsTeamsLinkIdentityView(BaseView):
             user=request.user, idp=idp, external_id=params["teams_user_id"]
         )
 
-        card = build_linked_card()
+        card = MSTeamsLinkedMessageBuilder().build()
         client = MsTeamsClient(integration)
         user_conversation_id = client.get_user_conversation_id(
             params["teams_user_id"], params["tenant_id"]

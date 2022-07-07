@@ -5,7 +5,7 @@ from sentry.models import Group, GroupStatus, Project, Team, User
 from sentry.utils.assets import get_asset_url
 from sentry.utils.http import absolute_uri
 
-from .utils import ACTION_TYPE
+from ..utils import ACTION_TYPE
 
 ME = "ME"
 logo = {
@@ -632,51 +632,6 @@ def build_linking_card(url):
         "version": "1.2",
         "body": [desc],
         "actions": [button],
-    }
-
-
-def build_linked_card():
-    image = {
-        "type": "Image",
-        "url": absolute_uri(get_asset_url("sentry", "images/sentry-glyph-black.png")),
-        "size": "Large",
-    }
-    desc = {
-        "type": "TextBlock",
-        "text": "Your Microsoft Teams identity has been linked to your Sentry account. You're good to go.",
-        "size": "Large",
-        "wrap": True,
-    }
-    body = {
-        "type": "ColumnSet",
-        "columns": [
-            {"type": "Column", "items": [image], "width": "auto"},
-            {"type": "Column", "items": [desc]},
-        ],
-    }
-    return {
-        "type": "AdaptiveCard",
-        "body": [body],
-        "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
-        "version": "1.2",
-    }
-
-
-def build_unlinked_card():
-    desc = {
-        "type": "TextBlock",
-        "text": (
-            "Your Microsoft Teams identity has been unlinked to your Sentry account."
-            " You will need to re-link if you want to interact with messages again."
-        ),
-        "wrap": True,
-    }
-
-    return {
-        "type": "AdaptiveCard",
-        "body": [desc],
-        "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
-        "version": "1.2",
     }
 
 

@@ -3,11 +3,13 @@ from __future__ import annotations
 from abc import ABC
 from typing import Any, Mapping, MutableMapping, Sequence
 
+from sentry.integrations.notifications import AbstractMessageBuilder
 from sentry.integrations.slack.message_builder import LEVEL_TO_COLOR, SlackBody
-from sentry.integrations.slack.message_builder.base import AbstractMessageBuilder
 from sentry.notifications.utils.actions import MessageAction
 from sentry.utils.assets import get_asset_url
 from sentry.utils.http import absolute_uri
+
+URL_FORMAT_STR = "<{url}|{text}>"
 
 
 def get_slack_button(action: MessageAction) -> Mapping[str, Any]:
