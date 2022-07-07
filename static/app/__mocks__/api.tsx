@@ -8,6 +8,7 @@ export class Request {}
 
 export const initApiClientErrorHandling = RealApi.initApiClientErrorHandling;
 export const hasProjectBeenRenamed = RealApi.hasProjectBeenRenamed;
+export const resolveUrl = RealApi.resolveUrl;
 
 const respond = (isAsync: boolean, fn?: Function, ...args: any[]): void => {
   if (!fn) {
