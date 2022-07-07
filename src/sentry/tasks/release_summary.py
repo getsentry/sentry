@@ -3,7 +3,9 @@ from datetime import timedelta
 from django.utils import timezone
 
 from sentry.models import Activity, Deploy, Release, ReleaseCommit
-from sentry.notifications.notifications.activity.release_summary import ReleaseRoundupNotification
+from sentry.notifications.notifications.activity.release_summary import (
+    ReleaseSummaryActivityNotification,
+)
 from sentry.notifications.utils.participants import _get_release_committers
 from sentry.tasks.base import instrumented_task
 from sentry.types.activity import ActivityType
@@ -53,5 +55,5 @@ def prepare_release_summary():
         if not activity:
             continue
 
-        release_summary = ReleaseRoundupNotification(activity)
+        release_summary = ReleaseSummaryActivityNotification(activity)
         release_summary.send()

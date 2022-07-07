@@ -19,7 +19,7 @@ from sentry.models import (
     User,
 )
 from sentry.notifications.types import NotificationSettingTypes
-from sentry.notifications.utils import get_deploy, get_environment_for_deploy, get_release
+from sentry.notifications.utils import get_deploy, get_release
 from sentry.notifications.utils.actions import MessageAction
 from sentry.notifications.utils.participants import (
     _get_release_committers,
@@ -31,7 +31,7 @@ from sentry.utils.http import absolute_uri
 from .base import ActivityNotification
 
 
-class ReleaseRoundupNotification(ActivityNotification):
+class ReleaseSummaryActivityNotification(ActivityNotification):
     metrics_key = "release_summary"
     notification_setting_type = NotificationSettingTypes.DEPLOY
     template_path = "sentry/emails/activity/release_summary"
@@ -128,7 +128,7 @@ class ReleaseRoundupNotification(ActivityNotification):
         ]
         issues_links = [
             absolute_uri(
-                f"/organizations/{self.organization.slug}/issues/?project={p.id}&query={quote(f'firstRelease:{self.version}')}"
+                f"/organizations/{self.organization.slug}/issues/?project={p.id}&query={quote(f'firstRelease:{self.version}')}&referrer=release_summary"
             )
             for p in projects
         ]
@@ -151,10 +151,10 @@ class ReleaseRoundupNotification(ActivityNotification):
         # TODO(workflow): Pass all projects as query parameters to issues link
         project = self.release.projects.first()
         release_link = absolute_uri(
-            f"/organizations/{self.organization.slug}/releases/{quote(self.version)}/?project={project.id}"
+            f"/organizations/{self.organization.slug}/releases/{quote(self.version)}/?project={project.id}&referrer=release_summary"
         )
         issues_link = absolute_uri(
-            f"/organizations/{self.organization.slug}/issues/?project={project.id}&query={quote(f'firstRelease:{self.version}')}"
+            f"/organizations/{self.organization.slug}/issues/?project={project.id}&query={quote(f'firstRelease:{self.version}')}&referrer=release_summary"
         )
         new_issue_counts = sum(self.group_counts_by_project.get(p.id, 0) for p in self.projects)
         message = f"Release <{release_link}|{escape_slack_text(self.version_parsed)}> has been deployed to {self.environment} for an hour"
