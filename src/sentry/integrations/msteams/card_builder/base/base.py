@@ -24,8 +24,6 @@ class ActionType(Enum):
     OPEN_URL = "Action.OpenUrl"
     SUBMIT = "Action.Submit"
     SHOW_CARD = "Action.ShowCard"
-    TOGGLE_VISIBILITY = "Action.ToggleVisibility"
-    EXECUTE = "Action.Execute"
 
 
 class MSTeamsMessageBuilder(AbstractMessageBuilder, ABC):
@@ -66,12 +64,20 @@ class MSTeamsMessageBuilder(AbstractMessageBuilder, ABC):
         }
 
     @staticmethod
-    def get_action(action_type: ActionType, title: str, data: Any):
-        return {
-            "type": action_type,
+    def get_action(action_type: ActionType, title: str, **kwargs):
+        action = {
+            "type": action_type.value,
             "title": title,
-            "data": data,
         }
+
+        if action_type == ActionType.OPEN_URL:
+            action["url"] = kwargs.get("url")
+        elif action_type == ActionType.SUBMIT:
+            action["data"] = kwargs.get("data")
+        elif action_type == ActionType.SHOW_CARD:
+            action["card"] = kwargs.get("card")
+
+        return action
 
     def _build(
         self,
