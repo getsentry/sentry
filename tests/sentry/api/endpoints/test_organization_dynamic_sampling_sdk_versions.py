@@ -1,3 +1,4 @@
+import datetime
 from datetime import timedelta
 from unittest import mock
 
@@ -151,13 +152,13 @@ class OrganizationDynamicSamplingSDKVersionsTest(APITestCase):
             response = self.client.get(f"{self.endpoint}?project={self.project.id}")
             assert response.json() == []
 
-    @freeze_time()
+    @freeze_time("2022-07-07 03:21:34")
     @mock.patch("sentry.api.endpoints.organization_dynamic_sampling_sdk_versions.discover.query")
     def test_request_params_are_applied_to_discover_query(self, mock_query):
         self.login_as(self.user)
         mock_query.return_value = mocked_discover_query()
 
-        end_time = timezone.now()
+        end_time = datetime.datetime(2022, 7, 7, 3, 20, 0, tzinfo=timezone.utc)
         start_time = end_time - timedelta(hours=6)
 
         calls = [
