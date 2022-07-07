@@ -8,4 +8,4 @@ to_json:
   abs_path: x
   filename: x
   vars:
-    x: 0
+    x: -0.0

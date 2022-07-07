@@ -26,10 +26,10 @@ import {SERVER_SIDE_SAMPLING_DOC_LINK} from '../utils';
 import {FooterActions, Stepper} from './uniformRateModal';
 
 export type RecommendedStepsModalProps = ModalRenderProps & {
+  onSubmit: () => void;
   organization: Organization;
   recommendedSdkUpgrades: RecommendedSdkUpgrade[];
   onGoBack?: () => void;
-  onSubmit?: () => void;
   project?: Project;
 };
 
