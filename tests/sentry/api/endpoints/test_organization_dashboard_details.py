@@ -135,7 +135,7 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
         assert response.data["widgets"][1]["queries"][0]["fieldAliases"] == []
 
     def test_dashboard_filters_are_returned_in_response(self):
-        filters = {"environment": ["alpha"], "range": "24hr"}
+        filters = {"environment": ["alpha"], "range": "24hr", "releases": ["test-release"]}
         dashboard = Dashboard.objects.create(
             title="Dashboard With Filters",
             created_by=self.user,
@@ -148,6 +148,7 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
         assert response.data["projects"] == list(dashboard.projects.values_list("id", flat=True))
         assert response.data["environment"] == filters["environment"]
         assert response.data["range"] == filters["range"]
+        assert response.data["filters"]["releases"] == filters["releases"]
 
 
 class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCase):
