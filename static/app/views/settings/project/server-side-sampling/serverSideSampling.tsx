@@ -157,7 +157,6 @@ export function ServerSideSampling({project}: Props) {
           organization={organization}
           project={project}
           projectStats={projectStats}
-          rules={rules}
           recommendedSdkUpgrades={recommendedSdkUpgrades}
         />
       ),
