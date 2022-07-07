@@ -122,23 +122,24 @@
         {% endif %}
 
         {% for context_key, context in contexts %}
-          <li>
-            <table>
-              <tr>
-                <th rowspan="2">{% letter_platform_svg context_key context_key 32 %}</th>
-                <td><strong>{{ context.name }}</strong></td>
-              </tr>
-              <tr>
-                <td>Version: {{ context.version }}</td>
-              </tr>
-            </table>
-          </li>
+          {% if context_key == 'browser' or context_key == 'client_os' or context_key == 'os' %}
+            <li>
+              <table>
+                <tr>
+                  <th rowspan="2">{% letter_platform_svg context_key context_key 32 %}</th>
+                  <td><strong>{{ context.name }}</strong></td>
+                </tr>
+                <tr>
+                  <td>Version: {{ context.version }}</td>
+                </tr>
+              </table>
+            </li>
+          {% endif %}
         {% endfor %}
         </ul>
 
         <ul class="new-tag-list">
         {% for tag_key, tag_value in tags %}
-          {% if tag_key == 'browser' or tag_key == 'client_os' or tag_key == 'os' %}
           <li>
             <div class="tag-key">{{ tag_key|as_tag_alias }}</div>
             <div class="tag-value">
@@ -147,7 +148,6 @@
             {% endwith %}
             </div>
           </li>
-          {% endif %}
         {% endfor %}
         </ul>
       {% endif %}
