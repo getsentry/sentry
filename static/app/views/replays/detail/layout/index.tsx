@@ -126,7 +126,7 @@ function ReplayLayout({
       <Container>
         {timeline}
         <PageRow>
-          <ResizePanel direction="w" minWidth={SIDEBAR_MIN_WIDTH}>
+          <ResizePanel direction="e" minWidth={SIDEBAR_MIN_WIDTH}>
             <SidebarSection>
               {video ? <ResizePanel direction="s">{video}</ResizePanel> : null}
               {crumbs}
