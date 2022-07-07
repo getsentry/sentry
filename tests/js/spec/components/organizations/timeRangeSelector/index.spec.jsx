@@ -208,7 +208,7 @@ describe('TimeRangeSelector', function () {
       utc: true,
     });
 
-    userEvent.click(await screen.findByRole('checkbox'));
+    userEvent.click(screen.getByRole('checkbox'));
     expect(onChange).toHaveBeenLastCalledWith({
       relative: null,
       start: new Date('2017-10-09T22:41:20.000Z'),
@@ -216,7 +216,7 @@ describe('TimeRangeSelector', function () {
       utc: false,
     });
 
-    userEvent.click(await screen.findByRole('checkbox'));
+    userEvent.click(screen.getByRole('checkbox'));
     expect(onChange).toHaveBeenLastCalledWith({
       relative: null,
       start: new Date('2017-10-10T02:41:20.000Z'),
@@ -240,7 +240,7 @@ describe('TimeRangeSelector', function () {
       utc: false,
     });
 
-    userEvent.click(await screen.findByRole('checkbox'));
+    userEvent.click(screen.getByRole('checkbox'));
     expect(onChange).toHaveBeenLastCalledWith({
       relative: null,
       start: new Date('2017-10-10T02:41:20.000Z'),
@@ -248,7 +248,7 @@ describe('TimeRangeSelector', function () {
       utc: true,
     });
 
-    userEvent.click(await screen.findByRole('checkbox'));
+    userEvent.click(screen.getByRole('checkbox'));
     expect(onChange).toHaveBeenLastCalledWith({
       relative: null,
       start: new Date('2017-10-09T22:41:20.000Z'),
@@ -257,7 +257,7 @@ describe('TimeRangeSelector', function () {
     });
   });
 
-  it('maintains time when switching UTC to local time', async function () {
+  it('maintains time when switching UTC to local time', function () {
     // Times should never change when changing UTC option
     // Instead, the utc flagged is used when querying to create proper date
 
@@ -271,7 +271,7 @@ describe('TimeRangeSelector', function () {
     userEvent.click(screen.getByRole('button'));
 
     // Local
-    userEvent.click(await screen.findByRole('checkbox'));
+    userEvent.click(screen.getByRole('checkbox'));
     state = {
       relative: null,
       start: new Date('2017-10-10T00:00:00.000Z'),
@@ -283,7 +283,7 @@ describe('TimeRangeSelector', function () {
     rerender(getComponent(state));
 
     // UTC
-    userEvent.click(await screen.findByRole('checkbox'));
+    userEvent.click(screen.getByRole('checkbox'));
     state = {
       relative: null,
       start: new Date('2017-10-10T00:00:00.000Z'),
@@ -295,7 +295,7 @@ describe('TimeRangeSelector', function () {
     rerender(getComponent(state));
 
     // Local
-    userEvent.click(await screen.findByRole('checkbox'));
+    userEvent.click(screen.getByRole('checkbox'));
     expect(onChange).toHaveBeenLastCalledWith({
       relative: null,
       start: new Date('2017-10-10T00:00:00.000Z'),
