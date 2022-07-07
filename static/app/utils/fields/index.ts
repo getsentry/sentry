@@ -402,12 +402,12 @@ export const FIELDS: Record<string, FieldDefinition> = {
   [FieldKey.STACK_IN_APP]: {
     desc: 'Indicates if frame is related to relevant code in stack trace',
     kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
+    valueType: FieldValueType.BOOLEAN,
   },
   [FieldKey.STACK_LINENO]: {
     desc: 'Line number of the call starting at 1',
     kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
+    valueType: FieldValueType.NUMBER,
   },
   [FieldKey.STACK_MODULE]: {
     desc: 'Platform specific module path',
