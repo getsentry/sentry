@@ -163,7 +163,6 @@ function PerformanceOnboardingSidebar(props: CommonSidebarProps) {
             }
             triggerProps={{
               'aria-label': currentProject.slug,
-              // borderless: true,
             }}
             placement="bottom left"
           />
