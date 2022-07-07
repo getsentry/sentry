@@ -1766,7 +1766,7 @@ class SlackActivityNotificationTest(ActivityTestCase):
 
 @apply_feature_flag_on_cls("organizations:metrics")
 @pytest.mark.usefixtures("reset_snuba")
-class MetricsAPIBaseTestCase(SessionMetricsTestCase, APITestCase):
+class MetricsAPIBaseTestCase(SessionMetricsReleaseHealthTestCase, APITestCase):
     ...
 
 
