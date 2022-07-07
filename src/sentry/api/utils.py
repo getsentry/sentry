@@ -117,18 +117,18 @@ def is_member_disabled_from_limit(request, organization):
 
 def generate_organization_hostname(org_slug: str) -> str:
     url_prefix_hostname = urlparse(options.get("system.url-prefix")).netloc
-    customer_base_hostname_template = options.get("system.organization-base-hostname")
-    if not customer_base_hostname_template:
+    org_base_hostname_template = options.get("system.organization-base-hostname")
+    if not org_base_hostname_template:
         return url_prefix_hostname
-    if "{slug}" not in customer_base_hostname_template:
+    if "{slug}" not in org_base_hostname_template:
         return url_prefix_hostname
-    customer_hostname = customer_base_hostname_template.replace("{slug}", org_slug)
-    if "{region}" in customer_base_hostname_template:
+    org_hostname = org_base_hostname_template.replace("{slug}", org_slug)
+    if "{region}" in org_base_hostname_template:
         region = options.get("system.region") or None
         if region is None:
             return url_prefix_hostname
-        customer_hostname = customer_hostname.replace("{region}", region)
-    return customer_hostname
+        org_hostname = org_hostname.replace("{region}", region)
+    return org_hostname
 
 
 def generate_organization_url(org_slug: str) -> str:
