@@ -26,6 +26,7 @@ from sentry.sentry_metrics.utils import (
     reverse_resolve,
     reverse_resolve_weak,
     reverse_tag_value,
+    resolve_tag_value,
 )
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.fields import metric_object_factory
@@ -77,7 +78,7 @@ def parse_field(field: str) -> MetricField:
 FUNCTION_ALLOWLIST = ("and", "or", "equals", "in")
 
 
-def resolve_tags(org_id: int, input_: Any) -> Any:
+def resolve_tags(org_id: int, input_: Any, is_tag_value=False) -> Any:
     """Translate tags in snuba condition
 
     Column("metric_id") is not supported.
@@ -85,7 +86,7 @@ def resolve_tags(org_id: int, input_: Any) -> Any:
     if input_ is None:
         return None
     if isinstance(input_, (list, tuple)):
-        elements = [resolve_tags(org_id, item) for item in input_]
+        elements = [resolve_tags(org_id, item, is_tag_value=True) for item in input_]
         # Lists are either arguments to IN or NOT IN. In both cases, we can
         # drop unknown strings:
         return [x for x in elements if x != STRING_NOT_FOUND]
@@ -98,7 +99,7 @@ def resolve_tags(org_id: int, input_: Any) -> Any:
                 "equals",
                 [
                     resolve_tags(org_id, input_.parameters[0]),
-                    resolve_tags(org_id, ""),
+                    resolve_tags(org_id, "", is_tag_value=True),
                 ],
             )
         elif input_.function in FUNCTION_ALLOWLIST:
@@ -122,7 +123,7 @@ def resolve_tags(org_id: int, input_: Any) -> Any:
     if isinstance(input_, Condition):
         if input_.op == Op.IS_NULL and input_.rhs is None:
             return Condition(
-                lhs=resolve_tags(org_id, input_.lhs), op=Op.EQ, rhs=resolve_tags(org_id, "")
+                lhs=resolve_tags(org_id, input_.lhs), op=Op.EQ, rhs=resolve_tags(org_id, "", is_tag_value=True)
             )
         if (
             isinstance(input_.lhs, Function)
@@ -146,7 +147,7 @@ def resolve_tags(org_id: int, input_: Any) -> Any:
             rhs_ids = [p.id for p in Project.objects.filter(slug__in=rhs_slugs)]
             return Condition(lhs=resolve_tags(org_id, input_.lhs), op=op, rhs=rhs_ids)
         return Condition(
-            lhs=resolve_tags(org_id, input_.lhs), op=input_.op, rhs=resolve_tags(org_id, input_.rhs)
+            lhs=resolve_tags(org_id, input_.lhs), op=input_.op, rhs=resolve_tags(org_id, input_.rhs, is_tag_value=True)
         )
 
     if isinstance(input_, BooleanCondition):
@@ -167,7 +168,10 @@ def resolve_tags(org_id: int, input_: Any) -> Any:
             name = input_.name
         return Column(name=resolve_tag_key(org_id, name))
     if isinstance(input_, str):
-        return resolve_weak(org_id, input_)
+        if is_tag_value:
+            return resolve_tag_value(org_id, input_)
+        else:
+            return resolve_weak(org_id, input_)
     if isinstance(input_, int):
         return input_
 

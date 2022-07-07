@@ -23,9 +23,8 @@ from snuba_sdk import (
 )
 
 from sentry.sentry_metrics.configuration import UseCaseKey
-from sentry.sentry_metrics.indexer.mock import MockIndexer
-from sentry.sentry_metrics.indexer.strings import SHARED_TAG_STRINGS
 from sentry.sentry_metrics.utils import resolve, resolve_tag_key, resolve_tag_value, resolve_weak
+from sentry.sentry_metrics import indexer
 from sentry.snuba.dataset import EntityKey
 from sentry.snuba.metrics import (
     MAX_POINTS,
@@ -81,30 +80,30 @@ def get_entity_of_metric_mocked(_, metric_name):
     [
         (
             'release:""',
-            [
+            lambda: [
                 Condition(
                     Column(name=resolve_tag_key(ORG_ID, "release")),
                     Op.IN,
-                    rhs=[resolve(ORG_ID, "")],
+                    rhs=[resolve_tag_value(ORG_ID, "")],
                 )
             ],
         ),
         (
             "release:myapp@2.0.0",
-            [Condition(Column(name=resolve_tag_key(ORG_ID, "release")), Op.IN, rhs=[10000])],
+            lambda: [Condition(Column(name=resolve_tag_key(ORG_ID, "release")), Op.IN, rhs=[resolve_tag_value(ORG_ID, "myapp@2.0.0")])],
         ),
         (
             "release:myapp@2.0.0 and environment:production",
-            [
+            lambda: [
                 And(
                     [
                         Condition(
-                            Column(name=resolve_tag_key(ORG_ID, "release")), Op.IN, rhs=[10000]
+                            Column(name=resolve_tag_key(ORG_ID, "release")), Op.IN, rhs=[resolve_tag_value(ORG_ID, "myapp@2.0.0")]
                         ),
                         Condition(
                             Column(name=resolve_tag_key(ORG_ID, "environment")),
                             Op.EQ,
-                            rhs=resolve(ORG_ID, "production"),
+                            rhs=resolve_tag_value(ORG_ID, "production"),
                         ),
                     ]
                 )
@@ -112,27 +111,27 @@ def get_entity_of_metric_mocked(_, metric_name):
         ),
         (
             "release:myapp@2.0.0 environment:production",
-            [
-                Condition(Column(name=resolve_tag_key(ORG_ID, "release")), Op.IN, rhs=[10000]),
+            lambda: [
+                Condition(Column(name=resolve_tag_key(ORG_ID, "release")), Op.IN, rhs=[resolve_tag_value(ORG_ID, "myapp@2.0.0")]),
                 Condition(
                     Column(name=resolve_tag_key(ORG_ID, "environment")),
                     Op.EQ,
-                    rhs=resolve(ORG_ID, "production"),
+                    rhs=resolve_tag_value(ORG_ID, "production"),
                 ),
             ],
         ),
         (
             "release:myapp@2.0.0 and environment:production",
-            [
+            lambda: [
                 And(
                     [
                         Condition(
-                            Column(name=resolve_tag_key(ORG_ID, "release")), Op.IN, rhs=[10000]
+                            Column(name=resolve_tag_key(ORG_ID, "release")), Op.IN, rhs=[resolve_tag_value(ORG_ID, "myapp@2.0.0")]
                         ),
                         Condition(
                             Column(name=resolve_tag_key(ORG_ID, "environment")),
                             Op.EQ,
-                            rhs=resolve(ORG_ID, "production"),
+                            rhs=resolve_tag_value(ORG_ID, "production"),
                         ),
                     ]
                 ),
@@ -140,50 +139,54 @@ def get_entity_of_metric_mocked(_, metric_name):
         ),
         (
             'transaction:"/bar/:orgId/"',
-            [Condition(Column(name=resolve_tag_key(ORG_ID, "transaction")), Op.EQ, rhs=10001)],
+            lambda: [Condition(Column(name=resolve_tag_key(ORG_ID, "transaction")), Op.EQ, rhs=resolve_tag_value(ORG_ID, "/bar/:orgId/"))],
         ),
         (
             "release:[production,foo]",
-            [
+            lambda: [
                 Condition(
                     Column(name=resolve_tag_key(ORG_ID, "release")),
                     Op.IN,
-                    rhs=[SHARED_TAG_STRINGS["production"]],
+                    rhs=list(filter(None, [
+                        resolve_tag_value(ORG_ID, "production"), resolve_tag_value(ORG_ID, "foo")
+                    ])),
                 )
             ],
         ),
         (
             "!release:[production,foo]",
-            [
+            lambda: [
                 Condition(
                     Column(name=resolve_tag_key(ORG_ID, "release")),
                     Op.NOT_IN,
-                    rhs=[SHARED_TAG_STRINGS["production"]],
+                    rhs=list(filter(None, [
+                        resolve_tag_value(ORG_ID, "production"), resolve_tag_value(ORG_ID, "foo")
+                    ])),
                 )
             ],
         ),
         (
             "release:[foo]",
-            [
+            lambda: [
                 Condition(
                     Column(name=resolve_tag_key(ORG_ID, "release")),
                     Op.IN,
-                    rhs=[],
+                    rhs=list(filter(None, [resolve_tag_value(ORG_ID, "foo")])),
                 )
             ],
         ),
         (
             "release:myapp@2.0.0 or environment:[production,staging]",
-            [
+            lambda: [
                 Or(
                     [
                         Condition(
-                            Column(name=resolve_tag_key(ORG_ID, "release")), Op.IN, rhs=[10000]
+                            Column(name=resolve_tag_key(ORG_ID, "release")), Op.IN, rhs=[resolve_tag_value(ORG_ID, "myapp@2.0.0")]
                         ),
                         Condition(
                             Column(name=resolve_tag_key(ORG_ID, "environment")),
                             Op.IN,
-                            rhs=[resolve(ORG_ID, "production"), resolve(ORG_ID, "staging")],
+                            rhs=[resolve_tag_value(ORG_ID, "production"), resolve_tag_value(ORG_ID, "staging")],
                         ),
                     ]
                 ),
@@ -191,15 +194,12 @@ def get_entity_of_metric_mocked(_, metric_name):
         ),
     ],
 )
-def test_parse_query(monkeypatch, query_string, expected):
+def test_parse_query(query_string, expected):
     org_id = ORG_ID
-    local_indexer = MockIndexer()
     for s in ("myapp@2.0.0", "/bar/:orgId/"):
-        # will be values 10000, 10001 respectively
-        local_indexer.record(use_case_id=UseCaseKey.RELEASE_HEALTH, org_id=org_id, string=s)
-    monkeypatch.setattr("sentry.sentry_metrics.indexer.resolve", local_indexer.resolve)
+        indexer.record(use_case_id=UseCaseKey.RELEASE_HEALTH, org_id=org_id, string=s)
     parsed = resolve_tags(org_id, parse_query(query_string, []))
-    assert parsed == expected
+    assert parsed == expected()
 
 
 @freeze_time("2018-12-11 03:21:00")
@@ -247,8 +247,7 @@ def test_timestamps():
 
 @mock.patch("sentry.snuba.sessions_v2.get_now", return_value=MOCK_NOW)
 @mock.patch("sentry.api.utils.timezone.now", return_value=MOCK_NOW)
-def test_build_snuba_query(mock_now, mock_now2, monkeypatch):
-    monkeypatch.setattr("sentry.sentry_metrics.indexer.resolve", MockIndexer().resolve)
+def test_build_snuba_query(mock_now, mock_now2):
     # Your typical release health query querying everything
     query_definition = MetricsQuery(
         org_id=1,
@@ -298,7 +297,7 @@ def test_build_snuba_query(mock_now, mock_now2, monkeypatch):
                     Column("timestamp"), Op.LT, datetime(2021, 8, 25, 23, 59, tzinfo=pytz.utc)
                 ),
                 Condition(
-                    Column(resolve_tag_key(org_id, "release")), Op.EQ, resolve(org_id, "staging")
+                    Column(resolve_tag_key(org_id, "release")), Op.EQ, resolve_tag_value(org_id, "staging")
                 ),
                 Condition(Column("metric_id"), Op.IN, [resolve_weak(org_id, get_mri(metric_name))]),
             ],
@@ -359,9 +358,8 @@ def test_build_snuba_query(mock_now, mock_now2, monkeypatch):
 @mock.patch(
     "sentry.snuba.metrics.fields.base._get_entity_of_metric_mri", get_entity_of_metric_mocked
 )
-def test_build_snuba_query_derived_metrics(mock_now, mock_now2, monkeypatch):
+def test_build_snuba_query_derived_metrics(mock_now, mock_now2):
     org_id = 1
-    monkeypatch.setattr("sentry.sentry_metrics.indexer.resolve", MockIndexer().resolve)
     # Your typical release health query querying everything
     query_params = MultiValueDict(
         {
@@ -490,8 +488,7 @@ def test_build_snuba_query_derived_metrics(mock_now, mock_now2, monkeypatch):
 
 @mock.patch("sentry.snuba.sessions_v2.get_now", return_value=MOCK_NOW)
 @mock.patch("sentry.api.utils.timezone.now", return_value=MOCK_NOW)
-def test_build_snuba_query_orderby(mock_now, mock_now2, monkeypatch):
-    monkeypatch.setattr("sentry.sentry_metrics.indexer.resolve", MockIndexer().resolve)
+def test_build_snuba_query_orderby(mock_now, mock_now2):
     query_params = MultiValueDict(
         {
             "query": [
@@ -542,7 +539,7 @@ def test_build_snuba_query_orderby(mock_now, mock_now2, monkeypatch):
             Condition(
                 Column(resolve_tag_key(org_id, "release"), entity=None),
                 Op.IN,
-                [resolve(org_id, "staging")],
+                [resolve_tag_value(org_id, "staging")],
             ),
             Condition(Column("metric_id"), Op.IN, [resolve(org_id, get_mri(metric_name))]),
         ],
@@ -566,7 +563,7 @@ def test_build_snuba_query_orderby(mock_now, mock_now2, monkeypatch):
             Condition(
                 Column(resolve_tag_key(org_id, "release"), entity=None),
                 Op.IN,
-                [resolve(org_id, "staging")],
+                [resolve_tag_value(org_id, "staging")],
             ),
             Condition(Column("metric_id"), Op.IN, [resolve(org_id, get_mri(metric_name))]),
         ],
@@ -579,8 +576,7 @@ def test_build_snuba_query_orderby(mock_now, mock_now2, monkeypatch):
 
 @mock.patch("sentry.snuba.sessions_v2.get_now", return_value=MOCK_NOW)
 @mock.patch("sentry.api.utils.timezone.now", return_value=MOCK_NOW)
-def test_build_snuba_query_with_derived_alias(mock_now, mock_now2, monkeypatch):
-    monkeypatch.setattr("sentry.sentry_metrics.indexer.resolve", MockIndexer().resolve)
+def test_build_snuba_query_with_derived_alias(mock_now, mock_now2):
     query_params = MultiValueDict(
         {
             "query": ["release:staging"],
@@ -663,7 +659,7 @@ def test_build_snuba_query_with_derived_alias(mock_now, mock_now2, monkeypatch):
             Condition(
                 Column(resolve_tag_key(org_id, "release"), entity=None),
                 Op.IN,
-                [resolve(org_id, "staging")],
+                [resolve_tag_value(org_id, "staging")],
             ),
             Condition(Column("metric_id"), Op.IN, [resolve(org_id, SessionMRI.RAW_DURATION.value)]),
         ],
@@ -675,11 +671,7 @@ def test_build_snuba_query_with_derived_alias(mock_now, mock_now2, monkeypatch):
 
 @mock.patch("sentry.snuba.sessions_v2.get_now", return_value=MOCK_NOW)
 @mock.patch("sentry.api.utils.timezone.now", return_value=MOCK_NOW)
-def test_translate_results_derived_metrics(_1, _2, monkeypatch):
-    monkeypatch.setattr(
-        "sentry.sentry_metrics.indexer.reverse_resolve", MockIndexer().reverse_resolve
-    )
-
+def test_translate_results_derived_metrics(_1, _2):
     query_params = MultiValueDict(
         {
             "groupBy": [],
@@ -777,11 +769,8 @@ def test_translate_results_derived_metrics(_1, _2, monkeypatch):
 
 @mock.patch("sentry.snuba.sessions_v2.get_now", return_value=MOCK_NOW)
 @mock.patch("sentry.api.utils.timezone.now", return_value=MOCK_NOW)
-def test_translate_results_missing_slots(_1, _2, monkeypatch):
+def test_translate_results_missing_slots(_1, _2):
     org_id = 1
-    monkeypatch.setattr(
-        "sentry.sentry_metrics.indexer.reverse_resolve", MockIndexer().reverse_resolve
-    )
     query_params = MultiValueDict(
         {
             "field": [
