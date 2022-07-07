@@ -20,23 +20,20 @@ export type SelectedIcon = {
   icon: string;
 };
 
-const enumerateIconProps = (iconData: ExtendedIconData[], prop: string) =>
+const enumerateIconProps = (iconData: ExtendedIconData[], prop: IconPropName) =>
   iconData.reduce<ExtendedIconData[]>((acc, cur) => {
     const propData = iconProps[prop];
 
     switch (propData.type) {
       case 'select':
-        const availableOptions: string[][] = cur.limitOptions?.[prop] ?? propData.options;
+        const availableOptions = cur.limitOptions?.[prop] ?? propData.options ?? [];
 
         return [
           ...acc,
           ...availableOptions.map(option => ({
             ...cur,
-            id: `${cur.id}-${prop}-${option[0]}`,
-            defaultProps: {
-              ...cur.defaultProps,
-              [prop]: option[0],
-            },
+            id: `${cur.id}-${prop}-${option.value}`,
+            defaultProps: {...cur.defaultProps, [prop]: option.value},
           })),
         ];
       case 'boolean':
