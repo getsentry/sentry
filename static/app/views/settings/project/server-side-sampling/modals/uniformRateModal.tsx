@@ -11,13 +11,13 @@ import {IconRefresh} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Project, SeriesApi} from 'sentry/types';
-import {SamplingRules} from 'sentry/types/sampling';
+import {SamplingRule} from 'sentry/types/sampling';
 import {defined} from 'sentry/utils';
 import {formatPercentage} from 'sentry/utils/formatters';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import {SamplingSDKAlert} from '../samplingSDKAlert';
-import {isUniformRule, SERVER_SIDE_SAMPLING_DOC_LINK} from '../utils';
+import {SERVER_SIDE_SAMPLING_DOC_LINK} from '../utils';
 import {projectStatsToPredictedSeries} from '../utils/projectStatsToPredictedSeries';
 import {projectStatsToSampleRates} from '../utils/projectStatsToSampleRates';
 import {projectStatsToSeries} from '../utils/projectStatsToSeries';
@@ -37,9 +37,10 @@ enum Step {
 }
 
 type Props = Omit<RecommendedStepsModalProps, 'onSubmit'> & {
-  rules: SamplingRules;
+  rules: SamplingRule[];
   project?: Project;
   projectStats?: SeriesApi;
+  uniformRule?: SamplingRule;
 };
 
 function UniformRateModal({
@@ -51,6 +52,7 @@ function UniformRateModal({
   recommendedSdkUpgrades,
   projectStats,
   project,
+  uniformRule,
   rules,
   ...props
 }: Props) {
@@ -65,7 +67,7 @@ function UniformRateModal({
 
   const [activeStep, setActiveStep] = useState<Step>(Step.SET_UNIFORM_SAMPLE_RATE);
 
-  const uniformSampleRate = rules.find(isUniformRule)?.sampleRate;
+  const uniformSampleRate = uniformRule?.sampleRate;
 
   const {trueSampleRate, maxSafeSampleRate} = projectStatsToSampleRates(projectStats);
 

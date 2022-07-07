@@ -7,14 +7,14 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
-import {RecommendedSdkUpgrade, SamplingRules} from 'sentry/types/sampling';
+import {RecommendedSdkUpgrade, SamplingRule} from 'sentry/types/sampling';
 
 import {RecommendedStepsModal} from './modals/recommendedStepsModal';
 
 type Props = {
   organization: Organization;
   recommendedSdkUpgrades: RecommendedSdkUpgrade[];
-  rules: SamplingRules;
+  rules: SamplingRule[];
   project?: Project;
   showLinkToTheModal?: boolean;
 };

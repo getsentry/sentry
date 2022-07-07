@@ -11,7 +11,7 @@ import ListLink from 'sentry/components/links/listLink';
 import NavTabs from 'sentry/components/navTabs';
 import {t, tct, tn} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
-import {SamplingRule, SamplingRules, SamplingRuleType} from 'sentry/types/sampling';
+import {SamplingRule, SamplingRuleType} from 'sentry/types/sampling';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import AsyncView from 'sentry/views/asyncView';
@@ -35,7 +35,7 @@ type Props = AsyncView['props'] &
 
 type State = AsyncView['state'] & {
   projectDetails: Project | null;
-  rules: SamplingRules;
+  rules: SamplingRule[];
 };
 
 class Sampling extends AsyncView<Props, State> {
@@ -151,7 +151,7 @@ class Sampling extends AsyncView<Props, State> {
     );
   };
 
-  handleUpdateRules = (rules: Array<SamplingRule>) => {
+  handleUpdateRules = (rules: SamplingRule[]) => {
     if (!rules.length) {
       return;
     }
@@ -160,7 +160,7 @@ class Sampling extends AsyncView<Props, State> {
   };
 
   async submitRules(
-    newRules: SamplingRules,
+    newRules: SamplingRule[],
     successMessage?: string,
     errorMessage?: string
   ) {
