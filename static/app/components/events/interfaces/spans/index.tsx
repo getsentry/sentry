@@ -1,6 +1,7 @@
 import {PureComponent} from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
+import maxBy from 'lodash/maxBy';
 import {Observer} from 'mobx-react';
 
 import Alert from 'sentry/components/alert';
@@ -17,6 +18,7 @@ import {objectIsEmpty} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import * as QuickTraceContext from 'sentry/utils/performance/quickTrace/quickTraceContext';
 import {TraceError} from 'sentry/utils/performance/quickTrace/types';
+import {Theme} from 'sentry/utils/theme';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import * as AnchorLinkManager from './anchorLinkManager';
@@ -125,7 +127,7 @@ class SpansInterface extends PureComponent<Props, State> {
 
     return (
       <AlertContainer>
-        <Alert type="error">
+        <Alert type={getOverallAlertLevelFromErrors(errors)}>
           <ErrorLabel>{label}</ErrorLabel>
           <AnchorLinkManager.Consumer>
             {({scrollToHash}) => (
@@ -259,5 +261,43 @@ const AlertContainer = styled('div')`
 const ErrorLabel = styled('div')`
   margin-bottom: ${space(1)};
 `;
+
+export function getOverallAlertLevelFromErrors(
+  errors?: Array<{level: TraceError['level']}>
+): keyof Theme['alert'] | undefined {
+  const highestErrorLevel = maxBy(
+    errors || [],
+    error => ERROR_LEVEL_WEIGHTS[error.level]
+  )?.level;
+
+  if (!highestErrorLevel) {
+    return undefined;
+  }
+  return ERROR_LEVEL_TO_ALERT_TYPE[highestErrorLevel];
+}
+
+// Maps the six known error levels to one of three Alert component types
+const ERROR_LEVEL_TO_ALERT_TYPE: {
+  [Property in TraceError['level']]: keyof Theme['alert'];
+} = {
+  fatal: 'error',
+  error: 'error',
+  default: 'error',
+  warning: 'warning',
+  sample: 'info',
+  info: 'info',
+};
+
+// Allows sorting errors according to their level of severity
+const ERROR_LEVEL_WEIGHTS: {
+  [Property in TraceError['level']]: number;
+} = {
+  fatal: 5,
+  error: 4,
+  default: 4,
+  warning: 3,
+  sample: 2,
+  info: 1,
+};
 
 export default withRouter(withOrganization(SpansInterface));
