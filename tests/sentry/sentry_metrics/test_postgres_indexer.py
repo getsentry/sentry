@@ -25,6 +25,7 @@ def assert_fetch_type_for_tag_string_set(
 
 pytestmark = pytest.mark.sentry_metrics
 
+
 class PostgresIndexerTest(TestCase):
     def setUp(self) -> None:
         self.indexer = PGStringIndexer()
