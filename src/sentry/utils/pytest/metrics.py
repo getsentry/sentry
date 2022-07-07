@@ -9,16 +9,18 @@ from snuba_sdk import AliasedExpression, Column, Condition, Function, Op, OrderB
 
 @pytest.fixture(autouse=True)
 def control_metrics_access(monkeypatch, request, set_sentry_option):
-    from sentry.utils import snuba
-    from sentry.sentry_metrics.indexer.mock import MockIndexer
     from sentry.sentry_metrics import indexer
+    from sentry.sentry_metrics.indexer.mock import MockIndexer
+    from sentry.utils import snuba
 
     if "sentry_metrics" in {mark.name for mark in request.node.iter_markers()}:
         mock_indexer = MockIndexer()
         monkeypatch.setattr("sentry.sentry_metrics.indexer.bulk_record", mock_indexer.bulk_record)
         monkeypatch.setattr("sentry.sentry_metrics.indexer.record", mock_indexer.record)
         monkeypatch.setattr("sentry.sentry_metrics.indexer.resolve", mock_indexer.resolve)
-        monkeypatch.setattr("sentry.sentry_metrics.indexer.reverse_resolve", mock_indexer.reverse_resolve)
+        monkeypatch.setattr(
+            "sentry.sentry_metrics.indexer.reverse_resolve", mock_indexer.reverse_resolve
+        )
 
         if os.environ.get("SENTRY_METRICS_SIMULATE_TAG_VALUES_IN_CLICKHOUSE") != "1":
             return
@@ -27,11 +29,13 @@ def control_metrics_access(monkeypatch, request, set_sentry_option):
         old_resolve = indexer.resolve
 
         def new_resolve(org_id, string, *args, **kwargs):
-            if string in ('', 'staging', 'value1', 'prod', 'exited', 'myapp@2.0.0'):
-                pytest.fail("stop right there, thief! you're about to resolve something that looks like a tag value, but in this test mode, tag values are stored in clickhouse. the indexer might not have the value!")
+            if string in ("", "staging", "value1", "prod", "exited", "myapp@2.0.0"):
+                pytest.fail(
+                    "stop right there, thief! you're about to resolve something that looks like a tag value, but in this test mode, tag values are stored in clickhouse. the indexer might not have the value!"
+                )
             return old_resolve(org_id, string, *args, **kwargs)
 
-        monkeypatch.setattr(indexer, 'resolve', new_resolve)
+        monkeypatch.setattr(indexer, "resolve", new_resolve)
 
         old_build_results = snuba._apply_cache_and_build_results
 
