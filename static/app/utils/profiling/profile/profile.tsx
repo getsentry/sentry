@@ -55,7 +55,7 @@ export class Profile {
     closeFrame: (node: CallTreeNode, value: number) => void
   ): void {
     let prevStack: CallTreeNode[] = [];
-    let value = 0;
+    let value = 10;
 
     let sampleIndex = 0;
 
