@@ -2138,7 +2138,7 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, SessionMetr
                     "data": [
                         {
                             resolve_tag_key(
-                                UseCaseKey.PERFORMANCE, self.organization.id, "session.status"
+                                UseCaseKey.RELEASE_HEALTH, self.organization.id, "session.status"
                             ): 1001
                         }
                     ]
