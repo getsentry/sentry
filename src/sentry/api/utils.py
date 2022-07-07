@@ -131,8 +131,8 @@ def generate_customer_hostname(org_slug: str) -> str:
     return customer_hostname
 
 
-def generate_customer_url(org_slug: str) -> str:
-    customer_url_template = options.get("system.customer-url-template")
-    if not customer_url_template:
+def generate_organization_url(org_slug: str) -> str:
+    org_url_template = options.get("system.customer-url-template")
+    if not org_url_template:
         return options.get("system.url-prefix")
-    return customer_url_template.replace("{hostname}", generate_customer_hostname(org_slug))
+    return org_url_template.replace("{hostname}", generate_customer_hostname(org_slug))
