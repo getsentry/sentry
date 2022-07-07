@@ -1,39 +1,40 @@
 from __future__ import annotations
 
-from typing import Any, Iterable, Mapping, MutableMapping, Sequence
+from typing import Any, Mapping, MutableMapping, Sequence
+from urllib.parse import quote
 
+from django.db.models import Count, Q
 from sentry_relay import parse_release
 
+from sentry.integrations.slack.utils.escape import escape_slack_text
 from sentry.models import (
     Activity,
     Commit,
     CommitFileChange,
+    Environment,
+    Group,
     OrganizationMember,
     Project,
     Team,
     User,
-    UserEmail,
 )
 from sentry.notifications.types import NotificationSettingTypes
-from sentry.notifications.utils import (
-    get_deploy,
-    get_environment_for_deploy,
-    get_group_counts_by_project,
-    get_release,
-    get_repos,
-)
+from sentry.notifications.utils import get_deploy, get_environment_for_deploy, get_release
 from sentry.notifications.utils.actions import MessageAction
-from sentry.notifications.utils.participants import get_participants_for_release
+from sentry.notifications.utils.participants import (
+    _get_release_committers,
+    get_participants_for_release,
+)
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.http import absolute_uri
 
 from .base import ActivityNotification
 
 
-class ReleaseActivityNotification(ActivityNotification):
-    metrics_key = "release_activity"
+class ReleaseRoundupNotification(ActivityNotification):
+    metrics_key = "release_summary"
     notification_setting_type = NotificationSettingTypes.DEPLOY
-    template_path = "sentry/emails/activity/release"
+    template_path = "sentry/emails/activity/release_summary"
 
     def __init__(self, activity: Activity) -> None:
         super().__init__(activity)
@@ -45,7 +46,6 @@ class ReleaseActivityNotification(ActivityNotification):
         if not self.release:
             self.email_list: set[str] = set()
             self.user_ids: set[int] = set()
-            self.repos: Iterable[Mapping[str, Any]] = set()
             self.projects: set[Project] = set()
             self.version = "unknown"
             self.version_parsed = self.version
@@ -54,11 +54,21 @@ class ReleaseActivityNotification(ActivityNotification):
         self.projects = set(self.release.projects.all())
         self.commit_list = Commit.objects.get_for_release(self.release)
         self.email_list = {c.author.email for c in self.commit_list if c.author}
-        users = UserEmail.objects.get_users_by_emails(self.email_list, self.organization)
-        self.user_ids = {u.id for u in users.values()}
-        self.repos = get_repos(self.commit_list, users, self.organization)
-        self.environment = get_environment_for_deploy(self.deploy)
-        self.group_counts_by_project = get_group_counts_by_project(self.release, self.projects)
+        # TODO(workflow): Can use the same users from the commit list after active-release-notification-opt-in
+        users = _get_release_committers(self.release)
+        self.user_ids = {u.id for u in users}
+        environment = Environment.objects.get(id=self.deploy.environment_id)
+        self.environment = str(environment.name)
+        group_environment_filter = (
+            Q(groupenvironment__environment_id=environment.id) if environment else Q()
+        )
+        self.group_counts_by_project = dict(
+            Group.objects.filter(
+                group_environment_filter, project__in=self.projects, first_release=self.release
+            )
+            .values_list("project")
+            .annotate(num_groups=Count("id"))
+        )
 
         self.version = self.release.version
         self.version_parsed = parse_release(self.version)["description"]
@@ -81,13 +91,11 @@ class ReleaseActivityNotification(ActivityNotification):
             **self.get_base_context(),
             "author_count": len(self.email_list),
             "commit_count": len(self.commit_list),
+            "file_count": CommitFileChange.objects.get_count_for_commits(self.commit_list),
             "deploy": self.deploy,
             "environment": self.environment,
-            "file_count": CommitFileChange.objects.get_count_for_commits(self.commit_list),
             "release": self.release,
-            "repos": self.repos,
-            "setup_repo_link": absolute_uri(f"/organizations/{self.organization.slug}/repos/"),
-            "text_description": f"Version {self.version_parsed} was deployed to {self.environment}",
+            "text_description": f"Release {self.version_parsed} has been deployed to {self.environment} for an hour",
             "version_parsed": self.version_parsed,
         }
 
@@ -114,44 +122,46 @@ class ReleaseActivityNotification(ActivityNotification):
         projects = self.get_projects(recipient)
         release_links = [
             absolute_uri(
-                f"/organizations/{self.organization.slug}/releases/{self.version}/?project={p.id}"
+                f"/organizations/{self.organization.slug}/releases/{quote(self.version)}/?project={p.id}"
+            )
+            for p in projects
+        ]
+        issues_links = [
+            absolute_uri(
+                f"/organizations/{self.organization.slug}/issues/?project={p.id}&query={quote(f'firstRelease:{self.version}')}"
             )
             for p in projects
         ]
 
-        resolved_issue_counts = [self.group_counts_by_project.get(p.id, 0) for p in projects]
+        new_issue_counts = [self.group_counts_by_project.get(p.id, 0) for p in projects]
         return {
             **super().get_recipient_context(recipient, extra_context),
-            "projects": list(zip(projects, release_links, resolved_issue_counts)),
+            "projects": list(zip(projects, release_links, issues_links, new_issue_counts)),
             "project_count": len(projects),
         }
 
     def get_subject(self, context: Mapping[str, Any] | None = None) -> str:
-        return f"Deployed version {self.version_parsed} to {self.environment}"
+        return f"Deployment version {self.version_parsed} to {self.environment} one hour summary"
 
     @property
     def title(self) -> str:
         return self.get_subject()
 
     def get_notification_title(self, context: Mapping[str, Any] | None = None) -> str:
-        message = (
-            f"Release {self.version_parsed} has been deployed to {self.environment} for 1 hour"
+        # TODO(workflow): Pass all projects as query parameters to issues link
+        project = self.release.projects.first()
+        release_link = absolute_uri(
+            f"/organizations/{self.organization.slug}/releases/{quote(self.version)}/?project={project.id}"
         )
-        message += "\nThere are {} new issues"
+        issues_link = absolute_uri(
+            f"/organizations/{self.organization.slug}/issues/?project={project.id}&query={quote(f'firstRelease:{self.version}')}"
+        )
+        new_issue_counts = sum(self.group_counts_by_project.get(p.id, 0) for p in self.projects)
+        message = f"Release <{release_link}|{escape_slack_text(self.version_parsed)}> has been deployed to {self.environment} for an hour"
+        message += f" with <{issues_link}|{new_issue_counts} issues> associated with it"
+        return message
 
     def get_message_actions(self, recipient: Team | User) -> Sequence[MessageAction]:
-        if self.release:
-            release = get_release(self.activity, self.project.organization)
-            if release:
-                return [
-                    MessageAction(
-                        name=project.slug,
-                        url=absolute_uri(
-                            f"/organizations/{project.organization.slug}/releases/{release.version}/?project={project.id}&unselectedSeries=Healthy/"
-                        ),
-                    )
-                    for project in self.release.projects.all()
-                ]
         return []
 
     def build_attachment_title(self, recipient: Team | User) -> str:

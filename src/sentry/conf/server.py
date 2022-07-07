@@ -719,6 +719,11 @@ CELERYBEAT_SCHEDULE = {
         "schedule": timedelta(seconds=30),
         "options": {"expires": 30},
     },
+    "schedule-digest-release-summary": {
+        "task": "sentry.tasks.digest.release_summary",
+        "schedule": timedelta(minutes=5),
+        "options": {"expires": 60 * 5},
+    },
     "check-monitors": {
         "task": "sentry.tasks.check_monitors",
         "schedule": timedelta(minutes=1),
