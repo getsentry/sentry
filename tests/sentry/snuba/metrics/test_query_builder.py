@@ -25,7 +25,7 @@ from snuba_sdk import (
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.indexer.mock import MockIndexer
 from sentry.sentry_metrics.indexer.strings import SHARED_TAG_STRINGS
-from sentry.sentry_metrics.utils import resolve, resolve_tag_key, resolve_weak, resolve_tag_value
+from sentry.sentry_metrics.utils import resolve, resolve_tag_key, resolve_tag_value, resolve_weak
 from sentry.snuba.dataset import EntityKey
 from sentry.snuba.metrics import (
     MAX_POINTS,
