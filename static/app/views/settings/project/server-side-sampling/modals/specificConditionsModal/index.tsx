@@ -21,7 +21,6 @@ import {
   SamplingConditionOperator,
   SamplingInnerName,
   SamplingRule,
-  SamplingRules,
   SamplingRuleType,
 } from 'sentry/types/sampling';
 import {defined} from 'sentry/utils';
@@ -29,6 +28,8 @@ import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAna
 import useApi from 'sentry/utils/useApi';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
+
+import {isUniformRule} from '../../utils';
 
 import {Condition, Conditions} from './conditions';
 import {
@@ -51,7 +52,7 @@ type State = {
 type Props = ModalRenderProps & {
   organization: Organization;
   project: Project;
-  rules: SamplingRules;
+  rules: SamplingRule[];
   rule?: SamplingRule;
 };
 
@@ -155,11 +156,11 @@ export function SpecificConditionsModal({
     setIsSaving(true);
 
     try {
-      const newProjectDetails = await api.requestPromise(
+      const response = await api.requestPromise(
         `/projects/${organization.slug}/${project.slug}/`,
         {method: 'PUT', data: {dynamicSampling: {rules: newRules}}}
       );
-      ProjectStore.onUpdateSuccess(newProjectDetails);
+      ProjectStore.onUpdateSuccess(response);
       addSuccessMessage(
         rule
           ? t('Successfully edited sampling rule')
@@ -306,6 +307,7 @@ export function SpecificConditionsModal({
                 }
                 placeholder={t('Filter conditions')}
                 isOptionDisabled={opt => opt.disabled}
+                isDisabled={isUniformRule(rule)}
                 options={predefinedConditionsOptions}
                 value={conditions.map(({category}) => category)}
                 onChange={handleAddCondition}

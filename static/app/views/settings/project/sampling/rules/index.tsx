@@ -185,6 +185,14 @@ export class Rules extends PureComponent<Props, State> {
   }
 }
 
+const StyledPanelAlert = styled(PanelAlert)`
+  grid-column: 1/-1;
+  white-space: pre-wrap;
+  && {
+    display: flex;
+  }
+`;
+
 const StyledPanelTable = styled(PanelTable)`
   overflow: visible;
   margin-bottom: 0;
@@ -197,7 +205,7 @@ const StyledPanelTable = styled(PanelTable)`
     :not(:last-child) {
       border-bottom: 1px solid ${p => p.theme.border};
     }
-    :nth-child(n + 6) {
+    :nth-child(n + 6):not(${StyledPanelAlert}) {
       ${p =>
         !p.isEmpty
           ? `
@@ -210,13 +218,5 @@ const StyledPanelTable = styled(PanelTable)`
               grid-column: 1/-1;
             `}
     }
-  }
-`;
-
-const StyledPanelAlert = styled(PanelAlert)`
-  grid-column: 1/-1;
-  white-space: pre-wrap;
-  && {
-    display: flex;
   }
 `;
