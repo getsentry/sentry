@@ -27,6 +27,9 @@ import {SERVER_SIDE_SAMPLING_DOC_LINK} from '../utils';
 import {FooterActions, Stepper} from './uniformRateModal';
 
 export type RecommendedStepsModalProps = ModalRenderProps & {
+  /**
+   * Decimal value of the client sample rate
+   */
   clientSampleRate: number;
   onSubmit: () => void;
   organization: Organization;
@@ -46,8 +49,6 @@ export function RecommendedStepsModal({
   onSubmit,
   clientSampleRate,
 }: RecommendedStepsModalProps) {
-  const client = Math.max(Math.min(clientSampleRate / 100, 1), 0);
-
   return (
     <Fragment>
       <Header closeButton>
@@ -111,9 +112,11 @@ export function RecommendedStepsModal({
                     {'  traceSampleRate'}
                   </span>
                   <span className="token operator">:</span>{' '}
-                  <span className="token string">{client}</span>
+                  <span className="token string">{clientSampleRate}</span>
                   <span className="token punctuation">,</span>{' '}
-                  <span className="token comment">// {formatPercentage(client)}</span>
+                  <span className="token comment">
+                    // {formatPercentage(clientSampleRate)}
+                  </span>
                   <br />
                   <span className="token punctuation">{'}'}</span>
                   <span className="token punctuation">)</span>

@@ -107,7 +107,7 @@ function UniformRateModal({
         recommendedSdkUpgrades={recommendedSdkUpgrades}
         onGoBack={() => setActiveStep(Step.SET_UNIFORM_SAMPLE_RATE)}
         onSubmit={() => {}}
-        clientSampleRate={Number(client)}
+        clientSampleRate={Math.max(Math.min(Number(client) / 100, 1), 0)}
       />
     );
   }
