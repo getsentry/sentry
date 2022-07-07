@@ -1,3 +1,5 @@
+import {Project} from './project';
+
 export enum SamplingRuleType {
   /**
    * The rule applies to traces (transaction events considered in the context of a trace)
@@ -203,4 +205,10 @@ export type SamplingSdkVersion = {
   latestSDKName: string;
   latestSDKVersion: string;
   project: string;
+};
+
+export type RecommendedSdkUpgrade = {
+  latestSDKName: SamplingSdkVersion['latestSDKName'];
+  latestSDKVersion: SamplingSdkVersion['latestSDKVersion'];
+  project: Project;
 };

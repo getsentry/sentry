@@ -1,7 +1,6 @@
 import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
-import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {NumberField} from 'sentry/components/forms';
@@ -17,7 +16,12 @@ import {defined} from 'sentry/utils';
 import {formatPercentage} from 'sentry/utils/formatters';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
+<<<<<<< HEAD
 import {SERVER_SIDE_SAMPLING_DOC_LINK} from '../utils';
+=======
+import {SamplingSDKAlert} from '../samplingSDKAlert';
+import {isUniformRule, SERVER_SIDE_SAMPLING_DOC_LINK} from '../utils';
+>>>>>>> master
 import {projectStatsToPredictedSeries} from '../utils/projectStatsToPredictedSeries';
 import {projectStatsToSampleRates} from '../utils/projectStatsToSampleRates';
 import {projectStatsToSeries} from '../utils/projectStatsToSeries';
@@ -63,10 +67,13 @@ function UniformRateModal({
 
   const loading = loading30d || !projectStats;
 
+<<<<<<< HEAD
   const affectedProjects = recommendedSdkUpgrades.map(
     recommendedSdkUpgrade => recommendedSdkUpgrade.project.slug
   );
 
+=======
+>>>>>>> master
   const [activeStep, setActiveStep] = useState<Step>(Step.SET_UNIFORM_SAMPLE_RATE);
 
   const uniformSampleRate = uniformRule?.sampleRate;
@@ -234,6 +241,7 @@ function UniformRateModal({
                 </ResetButton>
               </Fragment>
             </StyledPanelTable>
+<<<<<<< HEAD
             {!!affectedProjects.length && (
               <Alert>
                 {tct(
@@ -245,6 +253,16 @@ function UniformRateModal({
                 )}
               </Alert>
             )}
+=======
+
+            <SamplingSDKAlert
+              organization={organization}
+              project={project}
+              rules={rules}
+              recommendedSdkUpgrades={recommendedSdkUpgrades}
+              showLinkToTheModal={false}
+            />
+>>>>>>> master
           </Fragment>
         )}
       </Body>
