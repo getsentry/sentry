@@ -115,7 +115,7 @@ def is_member_disabled_from_limit(request, organization):
         return member.flags["member-limit:restricted"]
 
 
-def generate_customer_hostname(org_slug: str) -> str:
+def generate_organization_hostname(org_slug: str) -> str:
     url_prefix_hostname = urlparse(options.get("system.url-prefix")).netloc
     customer_base_hostname_template = options.get("system.organization-base-hostname")
     if not customer_base_hostname_template:
@@ -135,4 +135,4 @@ def generate_organization_url(org_slug: str) -> str:
     org_url_template = options.get("system.customer-url-template")
     if not org_url_template:
         return options.get("system.url-prefix")
-    return org_url_template.replace("{hostname}", generate_customer_hostname(org_slug))
+    return org_url_template.replace("{hostname}", generate_organization_hostname(org_slug))
