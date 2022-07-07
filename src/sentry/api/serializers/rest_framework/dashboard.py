@@ -301,6 +301,8 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
     projects = ListField(child=serializers.IntegerField(), required=False, default=[])
     environment = ListField(child=serializers.CharField(), required=False, allow_null=True)
     range = serializers.CharField(required=False, allow_null=True)
+    start = serializers.DateTimeField(required=False, allow_null=True)
+    end = serializers.DateTimeField(required=False, allow_null=True)
     filters = serializers.DictField(required=False)  # TODO: allow empty?
 
     validate_id = validate_id
@@ -325,7 +327,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
         Only call save() on this serializer from within a transaction or
         bad things will happen
         """
-        page_filter_keys = ["environment", "range"]
+        page_filter_keys = ["environment", "range", "start", "end"]
         dashboard_filter_keys = ["releases"]
         self.instance = Dashboard.objects.create(
             organization=self.context.get("organization"),

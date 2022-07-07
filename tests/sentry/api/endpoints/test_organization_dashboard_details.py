@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta
+
 from django.urls import reverse
 
 from sentry.models import (
@@ -10,6 +12,7 @@ from sentry.models import (
 )
 from sentry.models.project import Project
 from sentry.testutils import OrganizationDashboardWidgetTestCase
+from sentry.testutils.helpers.datetime import iso_format
 
 
 class OrganizationDashboardDetailsTestCase(OrganizationDashboardWidgetTestCase):
@@ -134,7 +137,6 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
         assert response.data["widgets"][0]["queries"][0]["fieldAliases"][0] == "Count Alias"
         assert response.data["widgets"][1]["queries"][0]["fieldAliases"] == []
 
-    # TODO: Support start & end as well
     def test_dashboard_filters_are_returned_in_response(self):
         filters = {"environment": ["alpha"], "range": "24hr", "releases": ["test-release"]}
         dashboard = Dashboard.objects.create(
@@ -150,6 +152,22 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
         assert response.data["environment"] == filters["environment"]
         assert response.data["range"] == filters["range"]
         assert response.data["filters"]["releases"] == filters["releases"]
+
+    def test_start_and_end_filters_are_returned_in_response(self):
+        start = iso_format(datetime.now() - timedelta(seconds=10))
+        end = iso_format(datetime.now())
+        filters = {"start": start, "end": end}
+        dashboard = Dashboard.objects.create(
+            title="Dashboard With Filters",
+            created_by=self.user,
+            organization=self.organization,
+            filters=filters,
+        )
+        dashboard.projects.set([Project.objects.create(organization=self.organization)])
+
+        response = self.do_request("get", self.url(dashboard.id))
+        assert response.data["start"] == start
+        assert response.data["end"] == end
 
 
 class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCase):

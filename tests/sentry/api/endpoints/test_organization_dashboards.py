@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta
+
 from django.urls import reverse
 
 from sentry.models import (
@@ -8,7 +10,7 @@ from sentry.models import (
     DashboardWidgetTypes,
 )
 from sentry.testutils import OrganizationDashboardWidgetTestCase
-from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.datetime import before_now, iso_format
 
 
 class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
@@ -475,7 +477,6 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         response = self.do_request("post", self.url, data=data)
         assert response.status_code == 400, response.data
 
-    # TODO: Test for start & end values
     def test_post_dashboard_with_filters(self):
         project1 = self.create_project(name="foo", organization=self.organization)
         project2 = self.create_project(name="bar", organization=self.organization)
@@ -496,6 +497,18 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert response.data["environment"] == ["alpha"]
         assert response.data["range"] == "7d"
         assert response.data["filters"]["releases"] == ["v1"]
+
+    def test_post_with_start_and_end_values(self):
+        start = iso_format(datetime.now() - timedelta(seconds=10))
+        end = iso_format(datetime.now())
+        response = self.do_request(
+            "post",
+            self.url,
+            data={"title": "Dashboard from Post", "start": start, "end": end},
+        )
+        assert response.status_code == 201
+        assert response.data["start"].strftime("%Y-%m-%dT%H:%M:%S") == start
+        assert response.data["end"].strftime("%Y-%m-%dT%H:%M:%S") == end
 
     def test_post_dashboard_with_projects_that_user_is_not_a_part_of(self):
         other_org = self.create_organization()
