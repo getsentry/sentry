@@ -1322,7 +1322,6 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         project2 = self.create_project(name="bar", organization=self.organization)
         data = {
             "title": "First dashboard",
-            "widgets": [],
             "projects": [project1.id, project2.id],
             "environment": ["alpha"],
             "range": "7d",
@@ -1335,6 +1334,19 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert response.data["environment"] == ["alpha"]
         assert response.data["range"] == "7d"
         assert response.data["filters"]["releases"] == ["v1"]
+
+    def test_update_dashboard_with_invalid_project(self):
+        other_project = self.create_project(name="other", organization=self.create_organization())
+        data = {
+            "title": "First dashboard",
+            "projects": [other_project.id],
+            "environment": ["alpha"],
+            "range": "7d",
+            "filters": {"releases": ["v1"]},
+        }
+
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 403, response.data
 
 
 class OrganizationDashboardVisitTest(OrganizationDashboardDetailsTestCase):
