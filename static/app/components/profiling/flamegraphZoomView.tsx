@@ -476,15 +476,15 @@ function FlamegraphZoomView({
       if (lastInteraction === 'click') {
         if (
           hoveredNode &&
-          flamegraphState.profiles.root &&
-          hoveredNode === flamegraphState.profiles.root
+          flamegraphState.profiles.selectedRoot &&
+          hoveredNode === flamegraphState.profiles.selectedRoot
         ) {
           // If double click is fired on a node, then zoom into it
           canvasPoolManager.dispatch('zoomIntoFrame', [hoveredNode, 'exact']);
         }
 
         canvasPoolManager.dispatch('highlightFrame', [hoveredNode, 'selected']);
-        dispatchFlamegraphState({type: 'set root node', payload: hoveredNode});
+        dispatchFlamegraphState({type: 'set selected root', payload: hoveredNode});
       }
 
       setLastInteraction(null);
@@ -492,7 +492,7 @@ function FlamegraphZoomView({
     },
     [
       configSpaceCursor,
-      flamegraphState.profiles.root,
+      flamegraphState.profiles.selectedRoot,
       dispatchFlamegraphState,
       hoveredNode,
       canvasPoolManager,

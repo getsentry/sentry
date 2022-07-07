@@ -22,14 +22,14 @@ interface FrameStackProps {
 
 const FrameStack = memo(function FrameStack(props: FrameStackProps) {
   const theme = useFlamegraphTheme();
-  const {root} = useFlamegraphProfilesValue();
+  const {selectedRoot} = useFlamegraphProfilesValue();
 
   const [tab, setTab] = useState<'bottom up' | 'call order'>('call order');
   const [treeType, setTreeType] = useState<'all' | 'application' | 'system'>('all');
   const [recursion, setRecursion] = useState<'collapsed' | null>(null);
 
   const roots: FlamegraphFrame[] | null = useMemo(() => {
-    if (!root) {
+    if (!selectedRoot) {
       return null;
     }
 
@@ -41,14 +41,16 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
         : () => false;
 
     const maybeFilteredRoots =
-      treeType !== 'all' ? filterFlamegraphTree([root], skipFunction) : [root];
+      treeType !== 'all'
+        ? filterFlamegraphTree([selectedRoot], skipFunction)
+        : [selectedRoot];
 
     if (tab === 'call order') {
       return maybeFilteredRoots;
     }
 
     return invertCallTree(maybeFilteredRoots);
-  }, [root, tab, treeType]);
+  }, [selectedRoot, tab, treeType]);
 
   const handleRecursionChange = useCallback(
     (evt: React.ChangeEvent<HTMLInputElement>) => {
@@ -82,7 +84,7 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
     minHeight: 30,
   });
 
-  return root ? (
+  return selectedRoot ? (
     <FrameDrawer
       style={{
         height,
@@ -157,7 +159,7 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
         {...props}
         recursion={recursion}
         roots={roots ?? []}
-        referenceNode={root}
+        referenceNode={selectedRoot}
         canvasPoolManager={props.canvasPoolManager}
       />
     </FrameDrawer>

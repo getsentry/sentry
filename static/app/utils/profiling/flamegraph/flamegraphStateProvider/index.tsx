@@ -164,7 +164,7 @@ interface FlamegraphStateProviderProps {
 const DEFAULT_FLAMEGRAPH_STATE: FlamegraphState = {
   profiles: {
     threadId: null,
-    root: null,
+    selectedRoot: null,
   },
   position: {
     view: Rect.Empty(),
@@ -188,7 +188,7 @@ export function FlamegraphStateProvider(
   const [profileGroup] = useProfileGroup();
   const reducer = useUndoableReducer(combinedReducers, {
     profiles: {
-      root: null,
+      selectedRoot: null,
       threadId:
         props.initialState?.profiles?.threadId ??
         DEFAULT_FLAMEGRAPH_STATE.profiles.threadId,
