@@ -178,7 +178,10 @@ def _get_project_config(project, full_config=True, project_keys=None):
     if allow_dynamic_sampling:
         dynamic_sampling = project.get_option("sentry:dynamic_sampling")
         if dynamic_sampling is not None:
-            cfg["config"]["dynamicSampling"] = dynamic_sampling
+            # filter out rules that do not have active set to True
+            cfg["config"]["dynamicSampling"] = {
+                "rules": [r for r in dynamic_sampling["rules"] if r.get("active")]
+            }
 
     if not full_config:
         # This is all we need for external Relay processors

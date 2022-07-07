@@ -264,12 +264,13 @@ def default_activity(default_group, default_project, default_user):
 @pytest.fixture()
 def dyn_sampling_data():
     # return a function that returns fresh config so we don't accidentally get tests interfering with each other
-    def inner():
+    def inner(active=True):
         return {
             "rules": [
                 {
                     "sampleRate": 0.7,
                     "type": "trace",
+                    "active": active,
                     "condition": {
                         "op": "and",
                         "inner": [
