@@ -19,8 +19,8 @@ logger = logging.getLogger(__name__)
     name="sentry.tasks.relay.build_project_config",
     queue="relay_config",
     acks_late=True,
-    soft_time_limit=5,
-    time_limit=10,  # Extra 5 seconds to remove the debounce key
+    soft_time_limit=25,
+    time_limit=30,  # Extra 5 seconds to remove the debounce key
 )
 def build_project_config(public_key=None, **kwargs):
     """Build a project config and put it in the Redis cache.
