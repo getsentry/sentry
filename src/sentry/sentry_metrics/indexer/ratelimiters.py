@@ -27,7 +27,7 @@ def _build_quota_key(use_case_id: UseCaseKey, org_id: Optional[OrgId] = None) ->
         return f"metrics-indexer-{use_case_str}-global"
 
 
-@metrics.wraps("sentry_metrics.indexer.construct_quotas")  # type: ignore
+@metrics.wraps("sentry_metrics.indexer.construct_quotas")
 def _construct_quotas(use_case_id: UseCaseKey) -> Sequence[Quota]:
     """
     Construct write limit's quotas based on current sentry options.
@@ -55,7 +55,7 @@ def _construct_quotas(use_case_id: UseCaseKey) -> Sequence[Quota]:
         raise ValueError(use_case_id)
 
 
-@metrics.wraps("sentry_metrics.indexer.construct_quota_requests")  # type: ignore
+@metrics.wraps("sentry_metrics.indexer.construct_quota_requests")
 def _construct_quota_requests(
     use_case_id: UseCaseKey, keys: KeyCollection
 ) -> Tuple[Sequence[OrgId], Sequence[RequestedQuota]]:
@@ -91,7 +91,7 @@ class WritesLimiter:
 
         return self.rate_limiters[use_case_id]
 
-    @metrics.wraps("sentry_metrics.indexer.check_write_limits")  # type: ignore
+    @metrics.wraps("sentry_metrics.indexer.check_write_limits")
     def check_write_limits(
         self, use_case_id: UseCaseKey, keys: KeyCollection
     ) -> Tuple[RateLimitState, KeyCollection, Sequence[Tuple[KeyResult, FetchType, FetchTypeExt]]]:
@@ -139,7 +139,7 @@ class WritesLimiter:
         state = use_case_id, requests, grants, timestamp
         return state, KeyCollection(granted_key_collection), dropped_key_results
 
-    @metrics.wraps("sentry_metrics.indexer.apply_write_limits")  # type: ignore
+    @metrics.wraps("sentry_metrics.indexer.apply_write_limits")
     def apply_write_limits(self, state: RateLimitState) -> None:
         """
         Consumes the rate limits returned by `check_write_limits`.

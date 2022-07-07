@@ -380,22 +380,26 @@ class KeyResultsTest(TestCase):
         read_mappings = {"read3": 3, "read4": 4}
         hardcode_mappings = {"hardcode5": 5, "hardcode6": 6}
         write_mappings = {"write7": 7, "write8": 8}
+        rate_limited_mappings = {"limited9": None, "limited10": None}
 
         mappings = {
             *cache_mappings,
             *read_mappings,
             *hardcode_mappings,
             *write_mappings,
+            *rate_limited_mappings,
         }
 
         kr_cache = KeyResults()
         kr_dbread = KeyResults()
         kr_hardcoded = KeyResults()
         kr_write = KeyResults()
+        kr_limited = KeyResults()
         assert kr_cache.results == {} and kr_cache.meta == {}
         assert kr_dbread.results == {} and kr_dbread.meta == {}
         assert kr_hardcoded.results == {} and kr_hardcoded.meta == {}
         assert kr_write.results == {} and kr_write.meta == {}
+        assert kr_limited.results == {} and kr_limited.meta == {}
 
         kr_cache.add_key_results(
             [KeyResult(org_id=org_id, string=k, id=v) for k, v in cache_mappings.items()],
@@ -414,7 +418,13 @@ class KeyResultsTest(TestCase):
             FetchType.FIRST_SEEN,
         )
 
-        kr_merged = kr_cache.merge(kr_dbread).merge(kr_hardcoded).merge(kr_write)
+        kr_limited.add_key_results(
+            [KeyResult(org_id=org_id, string=k, id=v) for k, v in rate_limited_mappings.items()],
+            FetchType.RATE_LIMITED,
+            FetchTypeExt(is_global=False),
+        )
+
+        kr_merged = kr_cache.merge(kr_dbread).merge(kr_hardcoded).merge(kr_write).merge(kr_limited)
 
         assert len(kr_merged.get_mapped_results()[org_id]) == len(mappings)
         meta = kr_merged.get_fetch_metadata()
@@ -425,3 +435,6 @@ class KeyResultsTest(TestCase):
         )
         assert_fetch_type_for_tag_string_set(meta, FetchType.FIRST_SEEN, set(write_mappings.keys()))
         assert_fetch_type_for_tag_string_set(meta, FetchType.CACHE_HIT, set(cache_mappings.keys()))
+        assert_fetch_type_for_tag_string_set(
+            meta, FetchType.RATE_LIMITED, set(rate_limited_mappings.keys())
+        )
