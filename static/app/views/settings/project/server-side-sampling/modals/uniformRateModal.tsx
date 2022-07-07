@@ -1,7 +1,6 @@
 import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
-import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {NumberField} from 'sentry/components/forms';
@@ -17,6 +16,7 @@ import {defined} from 'sentry/utils';
 import {formatPercentage} from 'sentry/utils/formatters';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
+import {SamplingSDKAlert} from '../samplingSDKAlert';
 import {isUniformRule, SERVER_SIDE_SAMPLING_DOC_LINK} from '../utils';
 import {projectStatsToPredictedSeries} from '../utils/projectStatsToPredictedSeries';
 import {projectStatsToSampleRates} from '../utils/projectStatsToSampleRates';
@@ -63,8 +63,6 @@ function UniformRateModal({
 
   const loading = loading30d || !projectStats;
 
-  // TODO(sampling): fetch from API
-  const affectedProjects = ['ProjectA', 'ProjectB', 'ProjectC'];
   const [activeStep, setActiveStep] = useState<Step>(Step.SET_UNIFORM_SAMPLE_RATE);
 
   const uniformSampleRate = rules.find(isUniformRule)?.sampleRate;
@@ -233,15 +231,13 @@ function UniformRateModal({
               </Fragment>
             </StyledPanelTable>
 
-            <Alert>
-              {tct(
-                'To ensures that any active server-side sampling rules won’t sharply decrease the amount of accepted transactions, we recommend you update the Sentry SDK versions for [affectedProjects]. More details in [step2: Step 2].',
-                {
-                  step2: <strong />,
-                  affectedProjects: <strong>{affectedProjects.join(', ')}</strong>,
-                }
-              )}
-            </Alert>
+            <SamplingSDKAlert
+              organization={organization}
+              project={project}
+              rules={rules}
+              recommendedSdkUpgrades={recommendedSdkUpgrades}
+              showLinkToTheModal={false}
+            />
           </Fragment>
         )}
       </Body>
