@@ -1,6 +1,8 @@
 import {PureComponent} from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
+import flatten from 'lodash/flatten';
+import groupBy from 'lodash/groupBy';
 import maxBy from 'lodash/maxBy';
 import {Observer} from 'mobx-react';
 
@@ -24,7 +26,7 @@ import withOrganization from 'sentry/utils/withOrganization';
 import * as AnchorLinkManager from './anchorLinkManager';
 import Filter from './filter';
 import TraceView from './traceView';
-import {FocusedSpanIDMap, ParsedTraceType} from './types';
+import {FocusedSpanIDMap, ParsedTraceType, SpanType} from './types';
 import {parseTrace, scrollToSpan} from './utils';
 import WaterfallModel from './waterfallModel';
 
@@ -84,73 +86,64 @@ class SpansInterface extends PureComponent<Props, State> {
       return null;
     }
 
-    // This is intentional as unbalanced string formatters in `tn()` are problematic
-    const label =
-      errors.length === 1
-        ? t('There is an error event associated with this transaction event.')
-        : tn(
-            `There are %s error events associated with this transaction event.`,
-            `There are %s error events associated with this transaction event.`,
-            errors.length
-          );
-
-    // mapping from span ids to the span op and the number of errors in that span
-    const errorsMap: {
-      [spanId: string]: {errorsCount: number; operation: string};
-    } = {};
-
-    errors.forEach(error => {
-      if (!errorsMap[error.span]) {
-        // first check of the error belongs to the root span
-        if (parsedTrace.rootSpanID === error.span) {
-          errorsMap[error.span] = {
-            operation: parsedTrace.op,
-            errorsCount: 0,
-          };
-        } else {
-          // since it does not belong to the root span, check if it belongs
-          // to one of the other spans in the transaction
-          const span = parsedTrace.spans.find(s => s.span_id === error.span);
-          if (!span?.op) {
-            return;
-          }
-
-          errorsMap[error.span] = {
-            operation: span.op,
-            errorsCount: 0,
-          };
-        }
-      }
-
-      errorsMap[error.span].errorsCount++;
-    });
-
     return (
       <AlertContainer>
         <Alert type={getOverallAlertLevelFromErrors(errors)}>
-          <ErrorLabel>{label}</ErrorLabel>
+          <ErrorLabel>
+            There is an error event associated with this transaction event.
+          </ErrorLabel>
+
           <AnchorLinkManager.Consumer>
             {({scrollToHash}) => (
               <List symbol="bullet">
-                {Object.entries(errorsMap).map(([spanId, {operation, errorsCount}]) => (
-                  <ListItem key={spanId}>
-                    {tct('[errors] [link]', {
-                      errors: tn('%s error in ', '%s errors in ', errorsCount),
-                      link: (
-                        <ErrorLink
-                          onClick={scrollToSpan(
-                            spanId,
-                            scrollToHash,
-                            this.props.location,
-                            this.props.organization
-                          )}
-                        >
-                          {operation}
-                        </ErrorLink>
-                      ),
-                    })}
-                  </ListItem>
-                ))}
+                {flatten(
+                  Object.entries(groupBy(errors, 'span')).map(([spanId, spanErrors]) => {
+                    const span = findSpanById(parsedTrace, spanId);
+
+                    return Object.entries(groupBy(spanErrors, 'level')).map(
+                      ([level, spanLevelErrors]) => {
+                        if (span) {
+                          return (
+                            <ListItem key={spanId}>
+                              {tct('[errors] [link]', {
+                                errors: tn(
+                                  '%s %s error in ',
+                                  '%s %s errors in ',
+                                  spanLevelErrors.length,
+                                  level === 'error' ? '' : level // Avoid saying "3 error errors"
+                                ),
+                                link: (
+                                  <ErrorLink
+                                    onClick={scrollToSpan(
+                                      spanId,
+                                      scrollToHash,
+                                      this.props.location,
+                                      this.props.organization
+                                    )}
+                                  >
+                                    {span.op}
+                                  </ErrorLink>
+                                ),
+                              })}
+                            </ListItem>
+                          );
+                        }
+                        return (
+                          <ListItem key={spanId}>
+                            {tct('[errors]', {
+                              errors: tn(
+                                '%s %s error',
+                                '%s %s errors',
+                                spanLevelErrors.length,
+                                level
+                              ),
+                            })}
+                          </ListItem>
+                        );
+                      }
+                    );
+                  })
+                )}
               </List>
             )}
           </AnchorLinkManager.Consumer>
@@ -261,6 +254,13 @@ const AlertContainer = styled('div')`
 const ErrorLabel = styled('div')`
   margin-bottom: ${space(1)};
 `;
+
+// Given a span ID, find the associated span. It might be the trace itself
+// (which is technically a type of span) or a specific span associated with
+// the trace
+const findSpanById = (trace: ParsedTraceType, spanId: SpanType['span_id']) => {
+  return trace.spans.find(span => span.span_id === spanId && span?.op) || trace;
+};
 
 export function getOverallAlertLevelFromErrors(
   errors?: Array<{level: TraceError['level']}>
