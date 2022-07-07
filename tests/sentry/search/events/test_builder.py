@@ -2019,23 +2019,21 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         self.assertCountEqual(
             mock_indexer.mock_calls,
             [
+                mock.call(self.organization.id, "transaction", use_case_id=UseCaseKey.PERFORMANCE),
                 mock.call(
-                    self.organization.id, "transaction", use_case_id=UseCaseKey.RELEASE_HEALTH
-                ),
-                mock.call(
-                    self.organization.id, "foo_transaction", use_case_id=UseCaseKey.RELEASE_HEALTH
+                    self.organization.id, "foo_transaction", use_case_id=UseCaseKey.PERFORMANCE
                 ),
                 mock.call(
                     self.organization.id,
                     constants.METRICS_MAP["measurements.lcp"],
-                    use_case_id=UseCaseKey.RELEASE_HEALTH,
+                    use_case_id=UseCaseKey.PERFORMANCE,
                 ),
                 mock.call(
                     self.organization.id,
                     "measurement_rating",
-                    use_case_id=UseCaseKey.RELEASE_HEALTH,
+                    use_case_id=UseCaseKey.PERFORMANCE,
                 ),
-                mock.call(self.organization.id, "good", use_case_id=UseCaseKey.RELEASE_HEALTH),
+                mock.call(self.organization.id, "good", use_case_id=UseCaseKey.PERFORMANCE),
             ],
         )
 
