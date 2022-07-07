@@ -7,7 +7,6 @@ import {useOverlay} from '@react-aria/overlays';
 import {useOverlayTriggerState} from '@react-stately/overlays';
 import {truncate} from '@sentry/utils';
 import type {VisualMapComponentOption} from 'echarts';
-import {HTMLMotionProps} from 'framer-motion';
 import {Location} from 'history';
 import memoize from 'lodash/memoize';
 
@@ -313,7 +312,7 @@ const TagsHeatMap = (
         ref={setOverlayElement}
         zIndex={theme.zIndex.dropdown}
         style={popperStyles.popper}
-        {...(overlayProps as HTMLMotionProps<'div'>)}
+        {...overlayProps}
       >
         <Overlay
           arrowProps={{
