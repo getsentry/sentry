@@ -23,12 +23,18 @@ class ProjectConfigDebounceCache(Service):
         pass
 
     def is_debounced(self, *, public_key, project_id, organization_id):
-        """Checks if the given project/organization should be debounced."""
+        """Checks if the given project/organization should be debounced.
+
+        If this is called this with multiple arguments each scope is checked, so that even
+        if you only need to check a single key an org-level debounce will be respected.  You
+        must make sure that the several arguments relate to each other.
+        """
         return False
 
     def debounce(self, *, public_key, project_id, organization_id):
-        """
-        Debounces the given project/organization, without performing any checks.
+        """Debounces the given project/organization, without performing any checks.
+
+        The highest-scoped argument passed in will be debounced.
         """
 
     def mark_task_done(self, *, public_key, project_id, organization_id):

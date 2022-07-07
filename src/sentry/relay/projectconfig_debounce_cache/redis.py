@@ -34,10 +34,23 @@ class RedisProjectConfigDebounceCache(ProjectConfigDebounceCache):
             return self.cluster.get_local_client_for_key(routing_key)
 
     def is_debounced(self, *, public_key, project_id, organization_id):
-        key = self._get_redis_key(public_key, project_id, organization_id)
-        client = self._get_redis_client(key)
-        if client.get(key):
-            return True
+        if organization_id:
+            key = self._get_redis_key(
+                public_key=None, project_id=None, organization_id=organization_id
+            )
+            client = self._get_redis_client(key)
+            if client.get(key):
+                return True
+        if project_id:
+            key = self._get_redis_key(public_key=None, project_id=project_id, organization_id=None)
+            client = self._get_redis_client(key)
+            if client.get(key):
+                return True
+        if public_key:
+            key = self._get_redis_key(public_key=public_key, project_id=None, organization_id=None)
+            client = self._get_redis_client(key)
+            if client.get(key):
+                return True
         return False
 
     def debounce(self, *, public_key, project_id, organization_id):

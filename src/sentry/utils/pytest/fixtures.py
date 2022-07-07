@@ -160,6 +160,14 @@ def task_runner():
 
 @pytest.fixture
 def burst_task_runner():
+    """Context manager that queues up Celery tasks until called.
+
+    The yielded value which can be assigned by the ``as`` clause is callable and will
+    execute all queued up tasks. It takes a ``max_jobs`` argument to limit the number of
+    jobs to process.
+
+    The queue itself can be inspected via the ``queue`` attribute of the yielded value.
+    """
     from sentry.testutils.helpers.task_runner import BurstTaskRunner
 
     return BurstTaskRunner
