@@ -472,18 +472,18 @@ class ReleaseAnalyticsMixin:
         )
 
 
-def create_customer_endpoint_class(endpoint_class):
+def create_region_endpoint_class(endpoint_class):
     """
-    Create a new class that extends endpoint_class with the same name, but prefixed with Customer.
+    Create a new class that extends endpoint_class with the same name, but prefixed with Region.
     For example, if the endpoint_class's name is "OrganizationEventsEndpoint", then the extended class will be
-    "CustomerOrganizationEventsEndpoint".
+    "RegionOrganizationEventsEndpoint".
 
     In addition, we decorate the extended class with the extend_schema_view decorator such that the operation_id for
-    any and all methods that are decorated with the extend_schema decorator are suffixed with "(customer silo)".
+    any and all methods that are decorated with the extend_schema decorator are suffixed with "(region aware)".
     For example, if a method's operation_id value is "Query Discover Events in Table Format", then the operation_id of
-    the extended class's method will be "Query Discover Events in Table Format (customer silo)".
+    the extended class's method will be "Query Discover Events in Table Format (region aware)".
     """
-    customer_endpoint_class = type(f"Customer{endpoint_class.__name__}", (endpoint_class,), {})
+    region_endpoint_class = type(f"Region{endpoint_class.__name__}", (endpoint_class,), {})
     schema = {}
     for method_name in get_view_method_names(endpoint_class):
         method = isolate_view_method(endpoint_class, method_name)
@@ -498,8 +498,8 @@ def create_customer_endpoint_class(endpoint_class):
         )
         schema[method_name] = extend_schema(
             operation_id=f"{extended_schema.get_operation_id()} (region aware)",
-            # Exclude this endpoint that is specific for customer silo from the schema.
+            # Exclude this endpoint that is specific for a region silo from the schema.
             # In the future, we may include them once we can publicly allow users to consume these APIs.
             exclude=True,
         )
-    return extend_schema_view(**schema)(customer_endpoint_class)
+    return extend_schema_view(**schema)(region_endpoint_class)
