@@ -37,7 +37,6 @@ enum Step {
 }
 
 type Props = Omit<RecommendedStepsModalProps, 'onSubmit'> & {
-  rules: SamplingRule[];
   project?: Project;
   projectStats?: SeriesApi;
   uniformRule?: SamplingRule;
