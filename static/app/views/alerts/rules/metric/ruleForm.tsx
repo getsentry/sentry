@@ -825,6 +825,11 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       />
     );
 
+    const showPresetSidebar = // organization.experiments.MetricAlertPresetExperiment &&
+      dataset === Dataset.TRANSACTIONS &&
+      project.firstTransactionEvent &&
+      !this.props.ruleId;
+
     return (
       <Access access={['alerts:write']}>
         {({hasAccess}) => {
@@ -832,22 +837,19 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
 
           return (
             <Fragment>
-              {organization.experiments.MetricAlertPresetExperiment &&
-                dataset === Dataset.TRANSACTIONS &&
-                project.firstTransactionEvent &&
-                !this.props.ruleId && (
-                  <Side>
-                    <PresetSidebar
-                      organization={organization}
-                      project={project}
-                      onSelect={(preset, context) => {
-                        this.setPreset(preset, context);
-                      }}
-                      selectedPresetId={selectedPresetId}
-                    />
-                  </Side>
-                )}
-              <Main>
+              {showPresetSidebar && (
+                <Side>
+                  <PresetSidebar
+                    organization={organization}
+                    project={project}
+                    onSelect={(preset, context) => {
+                      this.setPreset(preset, context);
+                    }}
+                    selectedPresetId={selectedPresetId}
+                  />
+                </Side>
+              )}
+              <Main fullWidth={!showPresetSidebar}>
                 <Form
                   model={this.form}
                   apiMethod={ruleId ? 'PUT' : 'POST'}
