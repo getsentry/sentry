@@ -320,19 +320,11 @@ export class Rect {
     );
   }
 
-<<<<<<< HEAD
   leftOverlapsWith(rect: Rect): boolean {
     return rect.left <= this.left && rect.right >= this.left;
   }
 
   rightOverlapsWith(rect: Rect): boolean {
-=======
-  overlapsLeft(rect: Rect): boolean {
-    return rect.left <= this.left && rect.right >= this.left;
-  }
-
-  overlapsRight(rect: Rect): boolean {
->>>>>>> 16ace62c38 (feat(profiling): use min steps to zoom into node)
     return this.right >= rect.left && this.right <= rect.right;
   }
 
