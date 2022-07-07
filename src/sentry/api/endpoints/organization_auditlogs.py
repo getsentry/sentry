@@ -58,5 +58,5 @@ class OrganizationAuditLogsEndpoint(OrganizationEndpoint):
 
         # TODO: Cleanup after frontend is moved to v2
         if "v2" in query:
-            response.data = {"rows": response.data, "options": audit_log.get_api_names}
+            response.data = {"rows": response.data, "options": audit_log.get_api_names()}
         return request
