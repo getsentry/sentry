@@ -22,11 +22,11 @@ from sentry.search.events.builder import UnresolvedQuery
 from sentry.sentry_metrics.utils import (
     STRING_NOT_FOUND,
     resolve_tag_key,
+    resolve_tag_value,
     resolve_weak,
     reverse_resolve,
     reverse_resolve_weak,
     reverse_tag_value,
-    resolve_tag_value,
 )
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.fields import metric_object_factory
@@ -123,7 +123,9 @@ def resolve_tags(org_id: int, input_: Any, is_tag_value=False) -> Any:
     if isinstance(input_, Condition):
         if input_.op == Op.IS_NULL and input_.rhs is None:
             return Condition(
-                lhs=resolve_tags(org_id, input_.lhs), op=Op.EQ, rhs=resolve_tags(org_id, "", is_tag_value=True)
+                lhs=resolve_tags(org_id, input_.lhs),
+                op=Op.EQ,
+                rhs=resolve_tags(org_id, "", is_tag_value=True),
             )
         if (
             isinstance(input_.lhs, Function)
@@ -147,7 +149,9 @@ def resolve_tags(org_id: int, input_: Any, is_tag_value=False) -> Any:
             rhs_ids = [p.id for p in Project.objects.filter(slug__in=rhs_slugs)]
             return Condition(lhs=resolve_tags(org_id, input_.lhs), op=op, rhs=rhs_ids)
         return Condition(
-            lhs=resolve_tags(org_id, input_.lhs), op=input_.op, rhs=resolve_tags(org_id, input_.rhs, is_tag_value=True)
+            lhs=resolve_tags(org_id, input_.lhs),
+            op=input_.op,
+            rhs=resolve_tags(org_id, input_.rhs, is_tag_value=True),
         )
 
     if isinstance(input_, BooleanCondition):
