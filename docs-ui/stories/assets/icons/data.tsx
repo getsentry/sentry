@@ -1,4 +1,22 @@
-type IconGroupName =
+import {IconProps} from './sample';
+
+type DefinedIconProps = Required<
+  Pick<IconProps, 'size' | 'direction' | 'isCircled' | 'isSolid' | 'type'>
+>;
+
+type IconPropDefinitions = {
+  [key in keyof DefinedIconProps]: {
+    type: 'boolean' | 'select';
+    default?: DefinedIconProps[key];
+    /**
+     * Whether to list all variants of this prop in the icon list
+     */
+    enumerate?: boolean;
+    options?: {label: string; value: DefinedIconProps[key]}[];
+  };
+};
+
+type IconGroup =
   | 'product'
   | 'action'
   | 'navigation'
@@ -7,30 +25,11 @@ type IconGroupName =
   | 'device'
   | 'logo';
 
-export type IconPropName = 'size' | 'direction' | 'isCircled' | 'isSolid' | 'type';
-
-type IconProps = {
-  [key in IconPropName]: {
-    type: 'boolean' | 'select';
-    default?: string;
-    /**
-     * Whether to list all variants of this prop in the icon list
-     */
-    enumerate?: boolean;
-    options?: [string, string][];
-  };
-};
-
-type IconGroup = {
-  id: IconGroupName;
-  label: string;
-};
-
 export type IconData = {
   /**
    * Groups that the icon belongs to
    */
-  groups: IconGroupName[];
+  groups: IconGroup[];
   id: string;
   /**
    * List of alternative keywords for better icon search, e.g. the
@@ -41,35 +40,37 @@ export type IconData = {
    * Any additional props besides 'size' and 'color'. This includes
    * props like 'isCircled' and 'direction'.
    */
-  additionalProps?: IconPropName[];
+  additionalProps?: (keyof DefinedIconProps)[];
   /**
    * Limit the set of options available for certain additional props.
    * For example, {direction: ['left', 'up']} would limit the available
    * options for the prop 'direction' to just 'left' and 'up'. Useful for
    * controlling prop enumeration in the icon list.
    */
-  limitOptions?: Partial<Record<IconPropName, string[][]>>;
+  limitOptions?: {
+    [key in keyof DefinedIconProps]?: {label: string; value: DefinedIconProps[key]}[];
+  };
 };
 
-export const iconProps: IconProps = {
+export const iconProps: IconPropDefinitions = {
   size: {
     type: 'select',
     options: [
-      ['xs', 'Extra small'],
-      ['sm', 'Small'],
-      ['md', 'Medium'],
-      ['lg', 'Large'],
-      ['xl', 'Extra large'],
+      {value: 'xs', label: 'Extra small'},
+      {value: 'sm', label: 'Small'},
+      {value: 'md', label: 'Medium'},
+      {value: 'lg', label: 'Large'},
+      {value: 'xl', label: 'Extra large'},
     ],
     default: 'sm',
   },
   type: {
     type: 'select',
     options: [
-      ['line', 'Line'],
-      ['circle', 'Circle'],
-      ['bar', 'Bar'],
-      ['area', 'Area'],
+      {value: 'line', label: 'Line'},
+      {value: 'circle', label: 'Circle'},
+      {value: 'bar', label: 'Bar'},
+      {value: 'area', label: 'Area'},
     ],
     default: 'line',
     enumerate: true,
@@ -77,10 +78,10 @@ export const iconProps: IconProps = {
   direction: {
     type: 'select',
     options: [
-      ['left', 'Left'],
-      ['right', 'Right'],
-      ['up', 'Up'],
-      ['down', 'Down'],
+      {value: 'left', label: 'Left'},
+      {value: 'right', label: 'Right'},
+      {value: 'up', label: 'Up'},
+      {value: 'down', label: 'Down'},
     ],
     default: 'left',
     enumerate: true,
@@ -89,35 +90,14 @@ export const iconProps: IconProps = {
   isSolid: {type: 'boolean', enumerate: true},
 };
 
-export const iconGroups: IconGroup[] = [
-  {
-    id: 'product',
-    label: 'Product',
-  },
-  {
-    id: 'logo',
-    label: 'Logos',
-  },
-  {
-    id: 'navigation',
-    label: 'Navigation',
-  },
-  {
-    id: 'status',
-    label: 'Status',
-  },
-  {
-    id: 'action',
-    label: 'Action',
-  },
-  {
-    id: 'chart',
-    label: 'Chart',
-  },
-  {
-    id: 'device',
-    label: 'Device',
-  },
+export const iconGroups: {id: IconGroup; label: string}[] = [
+  {id: 'product', label: 'Product'},
+  {id: 'logo', label: 'Logos'},
+  {id: 'navigation', label: 'Navigation'},
+  {id: 'status', label: 'Status'},
+  {id: 'action', label: 'Action'},
+  {id: 'chart', label: 'Chart'},
+  {id: 'device', label: 'Device'},
 ];
 
 export const icons: IconData[] = [

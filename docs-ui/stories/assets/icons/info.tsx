@@ -6,8 +6,8 @@ import Code from 'docs-ui/components/code';
 import {AnimatePresence} from 'framer-motion';
 
 import Button, {ButtonLabel} from 'sentry/components/button';
-import SelectField from 'sentry/components/deprecatedforms/selectField';
 import BooleanField from 'sentry/components/forms/booleanField';
+import SelectField from 'sentry/components/forms/selectField';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import space from 'sentry/styles/space';
 import useOverlay from 'sentry/utils/useOverlay';
@@ -66,56 +66,55 @@ const IconInfo = ({icon}: {icon: ExtendedIconData}) => {
                     {...(isSolid ? {isSolid} : {})}
                   />
                 </SampleWrap>
-                <SelectorWrap>
-                  <SelectorLabel>Size</SelectorLabel>
+                <div>
                   <StyledSelectField
                     name="size"
-                    defaultValue={size}
-                    choices={iconProps.size.options}
-                    onChange={value => setSize(value as string)}
+                    label="Size"
+                    value={size}
+                    options={iconProps.size.options}
+                    onChange={value => setSize(value)}
                     clearable={false}
+                    flexibleControlStateSize
                   />
-                </SelectorWrap>
-                {icon.additionalProps?.includes('direction') && (
-                  <SelectorWrap>
-                    <SelectorLabel>Direction</SelectorLabel>
+                  {icon.additionalProps?.includes('direction') && (
                     <StyledSelectField
                       name="direction"
-                      defaultValue={direction}
-                      choices={iconProps.direction.options}
-                      onChange={value => setDirection(value as string)}
+                      label="Direction"
+                      value={direction}
+                      options={iconProps.direction.options}
+                      onChange={value => setDirection(value)}
                       clearable={false}
+                      flexibleControlStateSize
                     />
-                  </SelectorWrap>
-                )}
-                {icon.additionalProps?.includes('type') && (
-                  <SelectorWrap>
-                    <SelectorLabel>Type</SelectorLabel>
+                  )}
+                  {icon.additionalProps?.includes('type') && (
                     <StyledSelectField
                       name="type"
-                      defaultValue={type}
-                      choices={iconProps.type.options}
-                      onChange={value => setType(value as string)}
+                      label="Type"
+                      value={type}
+                      options={iconProps.type.options}
+                      onChange={value => setType(value)}
                       clearable={false}
+                      flexibleControlStateSize
                     />
-                  </SelectorWrap>
-                )}
-                {icon.additionalProps?.includes('isCircled') && (
-                  <StyledBooleanField
-                    name="isCircled"
-                    label="Circled"
-                    value={isCircled}
-                    onChange={value => setIsCircled(value)}
-                  />
-                )}
-                {icon.additionalProps?.includes('isSolid') && (
-                  <StyledBooleanField
-                    name="isSolid"
-                    label="Solid"
-                    value={isSolid}
-                    onChange={value => setIsSolid(value)}
-                  />
-                )}
+                  )}
+                  {icon.additionalProps?.includes('isCircled') && (
+                    <StyledBooleanField
+                      name="isCircled"
+                      label="Circled"
+                      value={isCircled}
+                      onChange={value => setIsCircled(value)}
+                    />
+                  )}
+                  {icon.additionalProps?.includes('isSolid') && (
+                    <StyledBooleanField
+                      name="isSolid"
+                      label="Solid"
+                      value={isSolid}
+                      onChange={value => setIsSolid(value)}
+                    />
+                  )}
+                </div>
                 <Code className="language-jsx">{codeSample}</Code>
               </StyledOverlay>
             </PositionWrapper>
@@ -171,29 +170,10 @@ const SampleWrap = styled('div')`
   margin: 0 auto ${space(3)};
 `;
 
-const SelectorWrap = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-
-  &:not(:first-of-type) {
-    padding-top: ${space(2)};
-  }
-  &:not(:last-of-type) {
-    padding-bottom: ${space(2)};
-    border-bottom: solid 1px ${p => p.theme.innerBorder};
-  }
-`;
-
-const SelectorLabel = styled('p')`
-  margin-bottom: 0;
-`;
-
 const StyledSelectField = styled(SelectField)`
-  width: 50%;
-  padding-left: 10px;
+  padding: ${space(1)} 0;
 `;
 
 const StyledBooleanField = styled(BooleanField)`
-  padding-left: 0;
+  padding: ${space(1)} 0;
 `;
