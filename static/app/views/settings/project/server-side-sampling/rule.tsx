@@ -11,7 +11,7 @@ import NewBooleanField from 'sentry/components/forms/booleanField';
 import Tooltip from 'sentry/components/tooltip';
 import {IconDownload, IconEllipsis} from 'sentry/icons';
 import {IconGrabbable} from 'sentry/icons/iconGrabbable';
-import {t} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Project} from 'sentry/types';
 import {SamplingRule, SamplingRuleOperator} from 'sentry/types/sampling';
@@ -124,21 +124,18 @@ export function Rule({
           onFinish={() => {
             // TODO(sampling): activate the rule
           }}
-          disabled={!canActivate || !isUniform}
+          // TODO(sampling): disable if sdks are not yet updated
+          disabled={true || !isUniform}
         >
           <Tooltip
             disabled={canActivate}
             title={
               !canActivate
-                ? upgradeSdkForProjects.length === 1
-                  ? t(
-                      'To enable the rule, the sdk version for the project %s have to be updated',
-                      upgradeSdkForProjects[0]
-                    )
-                  : t(
-                      'To enable the rule, the sdk version for the projects %s have to be updated',
-                      upgradeSdkForProjects.join(', ')
-                    )
+                ? tn(
+                    'To enable the rule, the recommended sdk version have to be updated',
+                    'To enable the rule, the recommended sdk versions have to be updated',
+                    upgradeSdkForProjects.length
+                  )
                 : undefined
             }
           >
