@@ -29,7 +29,7 @@ class OrganizationMetricsEndpoint(OrganizationEndpoint):
             return Response(status=404)
 
         projects = self.get_projects(request, organization)
-        metrics = get_metrics(projects, UseCaseKey.PERFORMANCE)
+        metrics = get_metrics(projects, UseCaseKey.RELEASE_HEALTH)
         return Response(metrics, status=200)
 
 
@@ -42,7 +42,7 @@ class OrganizationMetricDetailsEndpoint(OrganizationEndpoint):
 
         projects = self.get_projects(request, organization)
         try:
-            metric = get_single_metric_info(projects, metric_name, UseCaseKey.PERFORMANCE)
+            metric = get_single_metric_info(projects, metric_name, UseCaseKey.RELEASE_HEALTH)
         except InvalidParams as e:
             raise ResourceDoesNotExist(e)
         except (InvalidField, DerivedMetricParseException) as exc:
@@ -70,7 +70,7 @@ class OrganizationMetricsTagsEndpoint(OrganizationEndpoint):
         metric_names = request.GET.getlist("metric") or None
         projects = self.get_projects(request, organization)
         try:
-            tags = get_tags(projects, metric_names, UseCaseKey.PERFORMANCE)
+            tags = get_tags(projects, metric_names, UseCaseKey.RELEASE_HEALTH)
         except (InvalidParams, DerivedMetricParseException) as exc:
             raise (ParseError(detail=str(exc)))
 
@@ -89,7 +89,7 @@ class OrganizationMetricsTagDetailsEndpoint(OrganizationEndpoint):
 
         projects = self.get_projects(request, organization)
         try:
-            tag_values = get_tag_values(projects, tag_name, metric_names, UseCaseKey.PERFORMANCE)
+            tag_values = get_tag_values(projects, tag_name, metric_names, UseCaseKey.RELEASE_HEALTH)
         except (InvalidParams, DerivedMetricParseException) as exc:
             msg = str(exc)
             # TODO: Use separate error type once we have real data
@@ -125,7 +125,7 @@ class OrganizationMetricsDataEndpoint(OrganizationEndpoint):
                     projects, request.GET, paginator_kwargs={"limit": limit, "offset": offset}
                 )
                 data = get_series(
-                    projects, query.to_metrics_query(), use_case_id=UseCaseKey.PERFORMANCE
+                    projects, query.to_metrics_query(), use_case_id=UseCaseKey.RELEASE_HEALTH
                 )
                 data["query"] = query.query
             except (

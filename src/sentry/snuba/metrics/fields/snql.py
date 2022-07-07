@@ -115,9 +115,9 @@ def _aggregation_on_tx_satisfaction_func_factory(aggregate):
                             "equals",
                             [
                                 Column(
-                                    f"tags[{resolve_weak(UseCaseKey.RELEASE_HEALTH, org_id, TransactionTagsKey.TRANSACTION_SATISFACTION.value)}]"
+                                    f"tags[{resolve_weak(UseCaseKey.PERFORMANCE, org_id, TransactionTagsKey.TRANSACTION_SATISFACTION.value)}]"
                                 ),
-                                resolve_weak(UseCaseKey.RELEASE_HEALTH, org_id, satisfaction_value),
+                                resolve_weak(UseCaseKey.PERFORMANCE, org_id, satisfaction_value),
                             ],
                         ),
                         Function("in", [Column("metric_id"), list(metric_ids)]),

@@ -2194,7 +2194,7 @@ class MetricsCrashRateAlertProcessUpdateV1Test(MetricsCrashRateAlertProcessUpdat
                 else:
                     denominator = count
                     numerator = int(value * denominator)
-            session_status = resolve_tag_key(UseCaseKey.PERFORMANCE, org_id, "session.status")
+            session_status = resolve_tag_key(UseCaseKey.RELEASE_HEALTH, org_id, "session.status")
             tag_value_init = resolve_weak(UseCaseKey.PERFORMANCE, org_id, "init")
             tag_value_crashed = resolve_weak(UseCaseKey.PERFORMANCE, org_id, "crashed")
             processor.process_update(

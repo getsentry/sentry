@@ -16,6 +16,7 @@ __all__ = (
     "IntegrationTestCase",
     "SnubaTestCase",
     "SessionMetricsTestCase",
+    "SessionMetricsReleaseHealthTestCase",
     "BaseIncidentsTest",
     "IntegrationRepositoryTestCase",
     "ReleaseCommitPatchTest",
@@ -1187,6 +1188,60 @@ class SessionMetricsTestCase(SnubaTestCase):
         )
 
 
+class SessionMetricsReleaseHealthTestCase(SessionMetricsTestCase):
+    @classmethod
+    def _push_metric(cls, session, type, key: SessionMRI, tags, value):
+        org_id = session["org_id"]
+
+        def metric_id(key: SessionMRI):
+            res = indexer.record(
+                use_case_id=UseCaseKey.RELEASE_HEALTH, org_id=org_id, string=key.value
+            )
+            assert res is not None, key
+            return res
+
+        def tag_key(name):
+            res = indexer.record(use_case_id=UseCaseKey.RELEASE_HEALTH, org_id=org_id, string=name)
+            assert res is not None, name
+
+            return res
+
+        def tag_value(name):
+            res = indexer.record(use_case_id=UseCaseKey.RELEASE_HEALTH, org_id=org_id, string=name)
+            assert res is not None, name
+            return res
+
+        base_tags = {
+            tag_key(tag): tag_value(session[tag])
+            for tag in (
+                "release",
+                "environment",
+            )
+            if session[tag] is not None
+        }
+
+        extra_tags = {tag_key(k): tag_value(v) for k, v in tags.items()}
+
+        if type == "set":
+            # Relay uses a different hashing algorithm, but that's ok
+            value = [int.from_bytes(hashlib.md5(value.encode()).digest()[:8], "big")]
+        elif type == "distribution":
+            value = [value]
+
+        msg = {
+            "org_id": session["org_id"],
+            "project_id": session["project_id"],
+            "metric_id": metric_id(key),
+            "timestamp": session["started"],
+            "tags": {**base_tags, **extra_tags},
+            "type": {"counter": "c", "set": "s", "distribution": "d"}[type],
+            "value": value,
+            "retention_days": 90,
+        }
+
+        cls._send_buckets([msg], entity=f"metrics_{type}s")
+
+
 class MetricsEnhancedPerformanceTestCase(SessionMetricsTestCase, TestCase):
     TYPE_MAP = {
         "metrics_distributions": "d",
@@ -1717,7 +1772,7 @@ class MetricsAPIBaseTestCase(SessionMetricsTestCase, APITestCase):
 
 class OrganizationMetricMetaIntegrationTestCase(MetricsAPIBaseTestCase):
     def __indexer_record(self, org_id: int, value: str) -> int:
-        return indexer.record(use_case_id=UseCaseKey.PERFORMANCE, org_id=org_id, string=value)
+        return indexer.record(use_case_id=UseCaseKey.RELEASE_HEALTH, org_id=org_id, string=value)
 
     def setUp(self):
         super().setUp()
