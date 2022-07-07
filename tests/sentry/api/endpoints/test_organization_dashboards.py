@@ -475,6 +475,41 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         response = self.do_request("post", self.url, data=data)
         assert response.status_code == 400, response.data
 
+    # TODO: Test for start & end values
+    def test_post_dashboard_with_filters(self):
+        project1 = self.create_project(name="foo", organization=self.organization)
+        project2 = self.create_project(name="bar", organization=self.organization)
+
+        response = self.do_request(
+            "post",
+            self.url,
+            data={
+                "title": "Dashboard from Post",
+                "projects": [project1.id, project2.id],
+                "environment": ["alpha"],
+                "range": "7d",
+                "filters": {"releases": ["v1"]},
+            },
+        )
+        assert response.status_code == 201
+        assert response.data["projects"] == [project1.id, project2.id]
+        assert response.data["environment"] == ["alpha"]
+        assert response.data["range"] == "7d"
+        assert response.data["filters"]["releases"] == ["v1"]
+
+    def test_post_dashboard_with_projects_that_user_is_not_a_part_of(self):
+        other_org = self.create_organization()
+        other_project = self.create_project(name="other", organization=other_org)
+        response = self.do_request(
+            "post",
+            self.url,
+            data={
+                "title": "Dashboard from Post",
+                "projects": [other_project.id],
+            },
+        )
+        assert response.status_code == 403
+
     def test_add_widget_with_limit(self):
         data = {
             "title": "Dashboard from Post",

@@ -3,10 +3,12 @@ from datetime import datetime, timedelta
 
 from django.db.models import Max
 from rest_framework import serializers
+from rest_framework.exceptions import PermissionDenied
 
 from sentry.api.issue_search import parse_search_query
-from sentry.api.serializers.rest_framework import CamelSnakeSerializer
+from sentry.api.serializers.rest_framework import CamelSnakeSerializer, ListField
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
+from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.discover.arithmetic import ArithmeticError, categorize_columns
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import (
@@ -296,8 +298,25 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
     id = serializers.CharField(required=False)
     title = serializers.CharField(required=False, max_length=255)
     widgets = DashboardWidgetSerializer(many=True, required=False)
+    projects = ListField(child=serializers.IntegerField(), required=False, default=[])
+    environment = ListField(child=serializers.CharField(), required=False, allow_null=True)
+    range = serializers.CharField(required=False, allow_null=True)
+    filters = serializers.DictField(required=False)  # TODO: allow empty?
 
     validate_id = validate_id
+
+    def validate_projects(self, projects):
+        projects = set(projects)
+
+        # Don't need to check all projects or my projects
+        if projects == ALL_ACCESS_PROJECTS or len(projects) == 0:
+            return projects
+
+        # Check that there aren't projects in the query the user doesn't have access to
+        if len(projects - {project.id for project in self.context["projects"]}) > 0:
+            raise PermissionDenied
+
+        return projects
 
     def create(self, validated_data):
         """
@@ -306,6 +325,8 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
         Only call save() on this serializer from within a transaction or
         bad things will happen
         """
+        page_filter_keys = ["environment", "range"]
+        dashboard_filter_keys = ["releases"]
         self.instance = Dashboard.objects.create(
             organization=self.context.get("organization"),
             title=validated_data["title"],
@@ -314,6 +335,22 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
 
         if "widgets" in validated_data:
             self.update_widgets(self.instance, validated_data["widgets"])
+
+        if "projects" in validated_data:
+            self.instance.projects.set(validated_data["projects"])
+
+        filters = {}
+        for key in page_filter_keys:
+            if key in validated_data:
+                filters[key] = validated_data[key]
+
+        for key in dashboard_filter_keys:
+            if "filters" in validated_data and key in validated_data["filters"]:
+                filters[key] = validated_data["filters"][key]
+
+        if filters:
+            self.instance.filters = filters
+            self.instance.save()
 
         return self.instance
 

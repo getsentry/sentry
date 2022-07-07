@@ -134,6 +134,7 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
         assert response.data["widgets"][0]["queries"][0]["fieldAliases"][0] == "Count Alias"
         assert response.data["widgets"][1]["queries"][0]["fieldAliases"] == []
 
+    # TODO: Support start & end as well
     def test_dashboard_filters_are_returned_in_response(self):
         filters = {"environment": ["alpha"], "range": "24hr", "releases": ["test-release"]}
         dashboard = Dashboard.objects.create(
