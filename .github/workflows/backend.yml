@@ -124,7 +124,7 @@ jobs:
 
     env:
       # XXX: MATRIX_INSTANCE_TOTAL must be hardcoded to the length of strategy.matrix.instance.
-      MATRIX_INSTANCE_TOTAL: 0
+      MATRIX_INSTANCE_TOTAL: 1
       MIGRATIONS_TEST_MIGRATE: 1
 
     steps:
