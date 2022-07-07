@@ -2,7 +2,7 @@ from datetime import timedelta
 
 from django.utils import timezone
 
-from sentry.models import Activity, Deploy, Release, ReleaseCommit
+from sentry.models import Activity, Release, ReleaseCommit
 from sentry.notifications.notifications.activity.release_summary import (
     ReleaseSummaryActivityNotification,
 )
@@ -17,19 +17,19 @@ def prepare_release_summary():
     Summarize new issues in a release an hour after deployment
     """
     now = timezone.now()
-    deploys = (
-        Deploy.objects.filter(
-            date_finished__gte=now - timedelta(hours=1),
-            date_finished__lt=now - timedelta(hours=1, minutes=5),
-            notified=True,
+    start = now - timedelta(hours=1)
+    end = now - timedelta(hours=1, minutes=5)
+    releases = (
+        Release.objects.filter(
+            deploy__date_finished__gte=start,
+            deploy__date_finished__lt=end,
+            deploy__notified=True,
         )
         .order_by("-date_finished")
-        .select_related("release")
-        .distinct("release")
+        .select_related("deploy")
     )
 
-    for deploy in deploys:
-        release: Release = deploy.release
+    for release in releases:
         release_has_commits = ReleaseCommit.objects.filter(
             organization_id=release.organization_id, release=release
         ).exists()
@@ -48,6 +48,8 @@ def prepare_release_summary():
                 type=ActivityType.DEPLOY.value,
                 project=release.projects.first(),
                 ident=Activity.get_version_ident(release.version),
+                datetime__gte=start,
+                datetime__lt=end,
             )
             .order_by("-datetime")
             .first()
