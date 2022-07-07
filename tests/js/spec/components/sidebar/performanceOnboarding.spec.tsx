@@ -263,7 +263,7 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
 
     expect(
       await screen.findByText(
-        textWithMarkupMatcher('Adding performance to your React project is simple.')
+        textWithMarkupMatcher('Adding Performance to your React project is simple.')
       )
     ).toBeInTheDocument();
 
