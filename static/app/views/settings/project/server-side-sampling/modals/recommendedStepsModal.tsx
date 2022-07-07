@@ -19,6 +19,7 @@ import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {RecommendedSdkUpgrade} from 'sentry/types/sampling';
+import {formatPercentage} from 'sentry/utils/formatters';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import {SERVER_SIDE_SAMPLING_DOC_LINK} from '../utils';
@@ -26,6 +27,10 @@ import {SERVER_SIDE_SAMPLING_DOC_LINK} from '../utils';
 import {FooterActions, Stepper} from './uniformRateModal';
 
 export type RecommendedStepsModalProps = ModalRenderProps & {
+  /**
+   * Decimal value of the client sample rate
+   */
+  clientSampleRate: number;
   onSubmit: () => void;
   organization: Organization;
   recommendedSdkUpgrades: RecommendedSdkUpgrade[];
@@ -42,6 +47,7 @@ export function RecommendedStepsModal({
   recommendedSdkUpgrades,
   onGoBack,
   onSubmit,
+  clientSampleRate,
 }: RecommendedStepsModalProps) {
   return (
     <Fragment>
@@ -106,9 +112,11 @@ export function RecommendedStepsModal({
                     {'  traceSampleRate'}
                   </span>
                   <span className="token operator">:</span>{' '}
-                  <span className="token string">1.0</span>
+                  <span className="token string">{clientSampleRate}</span>
                   <span className="token punctuation">,</span>{' '}
-                  <span className="token comment">// 100%</span>
+                  <span className="token comment">
+                    // {formatPercentage(clientSampleRate)}
+                  </span>
                   <br />
                   <span className="token punctuation">{'}'}</span>
                   <span className="token punctuation">)</span>
