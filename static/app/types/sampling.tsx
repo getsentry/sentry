@@ -1,3 +1,5 @@
+import {Project} from './project';
+
 export enum SamplingRuleType {
   /**
    * The rule applies to traces (transaction events considered in the context of a trace)
@@ -167,9 +169,46 @@ export type SamplingRule = {
    */
   type: SamplingRuleType;
   /**
-   * A rule can be disabled if it doesn't contain a condition (Else case)
+   * Indicates if the rule is enabled for server-side sampling
    */
-  disabled?: boolean;
+  active?: boolean;
+  /**
+   * A rule without a condition (Else case) always have to be 'pinned'
+   * to the bottom of the list and cannot be sorted.
+   */
+  bottomPinned?: boolean;
 };
 
-export type SamplingRules = Array<SamplingRule>;
+export type SamplingDistribution = {
+  null_sample_rate_percentage: null | number;
+  project_breakdown:
+    | null
+    | {
+        'count()': number;
+        project: string;
+        project_id: number;
+      }[];
+  sample_rate_distributions: null | {
+    avg: null | number;
+    max: null | number;
+    min: null | number;
+    p50: null | number;
+    p90: null | number;
+    p95: null | number;
+    p99: null | number;
+  };
+  sample_size: number;
+};
+
+export type SamplingSdkVersion = {
+  isSendingSampleRate: boolean;
+  latestSDKName: string;
+  latestSDKVersion: string;
+  project: string;
+};
+
+export type RecommendedSdkUpgrade = {
+  latestSDKName: SamplingSdkVersion['latestSDKName'];
+  latestSDKVersion: SamplingSdkVersion['latestSDKVersion'];
+  project: Project;
+};

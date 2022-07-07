@@ -82,3 +82,11 @@ class GetOrganizationSentryAppsTest(OrganizationSentryAppsTest):
         response = self.client.get(url, format="json")
 
         assert response.status_code == 403
+
+    def test_filter_for_internal(self):
+        self.login_as(user=self.user)
+        self.create_project(organization=self.org)
+        internal_integration = self.create_internal_integration(organization=self.org)
+        response = self.client.get(f"{self.url}?status=internal", format="json")
+        assert len(response.data) == 1
+        assert response.data[0]["uuid"] == internal_integration.uuid

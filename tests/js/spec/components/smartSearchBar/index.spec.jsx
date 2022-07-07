@@ -935,7 +935,7 @@ describe('SmartSearchBar', function () {
       }
     });
 
-    it('negate token', async () => {
+    it('exclude token', async () => {
       const props = {
         query: 'is:unresolved sdk.name:sentry-cocoa has:key',
         organization,
@@ -949,11 +949,11 @@ describe('SmartSearchBar', function () {
 
       await tick();
 
-      const deleteAction = shortcuts.find(a => a.shortcutType === ShortcutType.Negate);
+      const excludeAction = shortcuts.find(shortcut => shortcut.text === 'Exclude');
 
-      expect(deleteAction).toBeDefined();
-      if (deleteAction) {
-        searchBar.runShortcut(deleteAction);
+      expect(excludeAction).toBeDefined();
+      if (excludeAction) {
+        searchBar.runShortcut(excludeAction);
 
         await tick();
 
@@ -963,7 +963,7 @@ describe('SmartSearchBar', function () {
       }
     });
 
-    it('un-negate token', async () => {
+    it('include token', async () => {
       const props = {
         query: 'is:unresolved !sdk.name:sentry-cocoa has:key',
         organization,
@@ -977,11 +977,11 @@ describe('SmartSearchBar', function () {
 
       await tick();
 
-      const deleteAction = shortcuts.find(a => a.shortcutType === ShortcutType.Negate);
+      const includeAction = shortcuts.find(shortcut => shortcut.text === 'Include');
 
-      expect(deleteAction).toBeDefined();
-      if (deleteAction) {
-        searchBar.runShortcut(deleteAction);
+      expect(includeAction).toBeDefined();
+      if (includeAction) {
+        searchBar.runShortcut(includeAction);
 
         await tick();
 

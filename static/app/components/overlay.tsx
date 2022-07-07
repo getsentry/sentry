@@ -4,16 +4,24 @@ import {SerializedStyles} from '@emotion/react';
 import styled from '@emotion/styled';
 import {HTMLMotionProps, motion, MotionProps, MotionStyle} from 'framer-motion';
 
+import OverlayArrow from 'sentry/components/overlayArrow';
+import {defined} from 'sentry/utils';
 import testableTransition from 'sentry/utils/testableTransition';
 
 type OriginPoint = Partial<{x: number; y: number}>;
 
-interface AnimatedOverlayProps extends HTMLMotionProps<'div'> {
+interface OverlayProps extends HTMLMotionProps<'div'> {
   /**
-   * Indicates where the overlay is placed. This is useful for the animation to
-   * be animated 'towards' the placment origin, giving it a pleasing effect.
+   * Whether the overlay should animate in/out. If true, we'll also need
+   * the `placement` and `originPoint` props.
    */
-  placement: PopperProps<any>['placement'];
+  animated?: boolean;
+  /**
+   * Props to be passed into <OverlayArrow />. If undefined, the overlay will
+   * render with no arrow.
+   */
+  arrowProps?: React.ComponentProps<typeof OverlayArrow>;
+  children?: React.ReactNode;
   /**
    * The CSS styles for the "origin point" over the overlay. Typically this
    * would be the arrow (or tip).
@@ -23,6 +31,11 @@ interface AnimatedOverlayProps extends HTMLMotionProps<'div'> {
    * Additional style rules for the overlay content.
    */
   overlayStyle?: React.CSSProperties | SerializedStyles;
+  /**
+   * Indicates where the overlay is placed. This is useful for the animation to
+   * be animated 'towards' the placment origin, giving it a pleasing effect.
+   */
+  placement?: PopperProps<any>['placement'];
 }
 
 const overlayAnimation: MotionProps = {
@@ -72,32 +85,52 @@ function computeOriginFromArrow(
 }
 
 /**
- * A overlay component that has a nice ease in animation along with a
- * scale-down animation that animates towards an origin (think a tooltip
+ * A overlay component that has an optional nice ease in animation along with
+ * a scale-down animation that animates towards an origin (think a tooltip
  * pointing at something).
  *
- * Should be used within a `<AnimatePresence />`.
+ * If animated (`animated` prop is true), should be used within a
+ * `<AnimatePresence />`.
  */
-const AnimatedOverlay = styled(
+const Overlay = styled(
   ({
+    children,
+    arrowProps,
+    animated,
     placement,
     originPoint,
     style,
     overlayStyle: _overlayStyle,
     ...props
-  }: AnimatedOverlayProps) => (
-    <motion.div
-      style={{
-        ...style,
-        ...computeOriginFromArrow(placement, originPoint),
-      }}
-      {...overlayAnimation}
-      {...props}
-    />
-  )
+  }: OverlayProps) => {
+    const animationProps = animated
+      ? {
+          ...overlayAnimation,
+          style: {
+            ...style,
+            ...computeOriginFromArrow(placement, originPoint),
+          },
+        }
+      : {style};
+
+    return (
+      <motion.div {...props} {...animationProps}>
+        {defined(arrowProps) && <OverlayArrow {...arrowProps} />}
+        {children}
+      </motion.div>
+    );
+  }
 )`
-  will-change: transform, opacity;
-  ${p => p.overlayStyle as any};
+  position: relative;
+  border-radius: ${p => p.theme.borderRadius};
+  background: ${p => p.theme.backgroundElevated};
+  box-shadow: 0 0 0 1px ${p => p.theme.translucentBorder}, ${p => p.theme.dropShadowHeavy};
+  font-size: ${p => p.theme.fontSizeMedium};
+
+  /* Override z-index from useOverlayPosition */
+  z-index: ${p => p.theme.zIndex.dropdown} !important;
+  ${p => p.animated && `will-change: transform, opacity;`}
+  ${p => p.overlayStyle as any}
 `;
 
 interface PositionWrapperProps extends HTMLMotionProps<'div'> {
@@ -108,13 +141,19 @@ interface PositionWrapperProps extends HTMLMotionProps<'div'> {
 }
 
 /**
- * The PositionWrapper may be used when you're using the AnimatedOverlay as
- * part of dynamically positioned component (useOverlayPosition).
+ * The PositionWrapper should be used when you're using the AnimatedOverlay as
+ * part of dynamically positioned component (useOverlayPosition). Generally
+ * this component will receive the `overlayProps`.
  *
  * This component ensures the wrapped AnimatedOverlay will not receive pointer
- * events while it is being animated out.
+ * events while it is being animated out. Especially useful since the
+ * `overlayProps` includes a onMouseEnter to allow the overlay to be hovered,
+ * which we would not want while its fading away.
  */
 const PositionWrapper = forwardRef<HTMLDivElement, PositionWrapperProps>(
+  // XXX(epurkhiser): This is a motion.div NOT because it is animating, but
+  // because we need the context of the animation starting for applying the
+  // `pointerEvents: none`.
   ({zIndex, style, ...props}, ref) => (
     <motion.div
       {...props}
@@ -126,4 +165,4 @@ const PositionWrapper = forwardRef<HTMLDivElement, PositionWrapperProps>(
   )
 );
 
-export {AnimatedOverlay, PositionWrapper};
+export {Overlay, PositionWrapper};

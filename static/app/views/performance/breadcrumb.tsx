@@ -1,4 +1,3 @@
-import {Component} from 'react';
 import {Location, LocationDescriptor} from 'history';
 
 import Breadcrumbs, {Crumb} from 'sentry/components/breadcrumbs';
@@ -30,8 +29,8 @@ type Props = {
   vitalName?: string;
 };
 
-class Breadcrumb extends Component<Props> {
-  getCrumbs() {
+function Breadcrumb(props: Props) {
+  function getCrumbs() {
     const crumbs: Crumb[] = [];
     const {
       organization,
@@ -42,7 +41,7 @@ class Breadcrumb extends Component<Props> {
       eventSlug,
       traceSlug,
       tab,
-    } = this.props;
+    } = props;
 
     const performanceTarget: LocationDescriptor = {
       pathname: getPerformanceLandingUrl(organization),
@@ -148,9 +147,7 @@ class Breadcrumb extends Component<Props> {
     return crumbs;
   }
 
-  render() {
-    return <Breadcrumbs crumbs={this.getCrumbs()} />;
-  }
+  return <Breadcrumbs crumbs={getCrumbs()} />;
 }
 
 export default Breadcrumb;
