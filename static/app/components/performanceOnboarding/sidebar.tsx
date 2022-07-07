@@ -167,7 +167,6 @@ function PerformanceOnboardingSidebar(props: CommonSidebarProps) {
             }}
             placement="bottom left"
           />
-        </div>
         <OnboardingContent currentProject={currentProject} />
       </TaskList>
     </TaskSidebarPanel>
