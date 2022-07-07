@@ -121,7 +121,7 @@ class OrganizationDynamicSamplingSDKVersionsEndpoint(OrganizationEndpoint):
             ] = {
                 "project": project_sdk_info["project"],
                 "latestSDKName": project_sdk_info["sdk.name"],
-                "lastestSDKVersion": project_sdk_info["sdk.version"],
+                "latestSDKVersion": project_sdk_info["sdk.version"],
                 "isSendingSampleRate": bool(project_sdk_info[f"equation|{avg_equation}"]),
             }
 

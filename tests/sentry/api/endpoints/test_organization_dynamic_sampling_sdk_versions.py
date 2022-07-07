@@ -127,19 +127,19 @@ class OrganizationDynamicSamplingSDKVersionsTest(APITestCase):
                 {
                     "project": "fire",
                     "latestSDKName": "javascript",
-                    "lastestSDKVersion": "7.1.6",
+                    "latestSDKVersion": "7.1.6",
                     "isSendingSampleRate": True,
                 },
                 {
                     "project": "water",
                     "latestSDKName": "javascript",
-                    "lastestSDKVersion": "7.1.6",
+                    "latestSDKVersion": "7.1.6",
                     "isSendingSampleRate": True,
                 },
                 {
                     "project": "wind",
                     "latestSDKName": "javascript",
-                    "lastestSDKVersion": "7.1.5",
+                    "latestSDKVersion": "7.1.5",
                     "isSendingSampleRate": False,
                 },
             ]
