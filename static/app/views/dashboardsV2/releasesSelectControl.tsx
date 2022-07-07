@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import Badge from 'sentry/components/badge';
 import CompactSelect from 'sentry/components/forms/compactSelect';
+import TextOverflow from 'sentry/components/textOverflow';
 import {IconReleases} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Release} from 'sentry/types';
@@ -14,7 +15,11 @@ function ReleasesSelectControl() {
   const {releases, loading} = useReleases();
   const [selectedReleases, setSelectedReleases] = useState<Release[]>([]);
 
-  const triggerLabel = selectedReleases.length ? selectedReleases[0] : t('All Releases');
+  const triggerLabel = selectedReleases.length ? (
+    <TextOverflow>{selectedReleases[0]}</TextOverflow>
+  ) : (
+    t('All Releases')
+  );
 
   return (
     <CompactSelect
