@@ -13,7 +13,6 @@ from snuba_sdk.function import Function
 from snuba_sdk.orderby import Direction, LimitBy, OrderBy
 
 from sentry import options
-from sentry.sentry_metrics.utils import resolve_tag_value
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.search.events import constants
 from sentry.search.events.builder import (
@@ -25,6 +24,7 @@ from sentry.search.events.builder import (
 from sentry.search.events.types import HistogramParams
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.sentry_metrics.utils import resolve_tag_value
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase, TestCase
 from sentry.utils.snuba import Dataset, QueryOutsideRetentionError
 
@@ -1052,7 +1052,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             selected_columns=["transaction", "project", "p95(transaction.duration)"],
         )
         transaction_index = indexer.resolve(self.organization.id, "transaction")
-        transaction_name = resolve_tag_value(self.organization.id, 'foo_transaction')
+        transaction_name = resolve_tag_value(self.organization.id, "foo_transaction")
         transaction = Column(f"tags[{transaction_index}]")
         self.assertCountEqual(
             query.where,
@@ -1070,8 +1070,8 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             selected_columns=["transaction", "project", "p95(transaction.duration)"],
         )
         transaction_index = indexer.resolve(self.organization.id, "transaction")
-        transaction_name1 = resolve_tag_value(self.organization.id, 'foo_transaction')
-        transaction_name2 = resolve_tag_value(self.organization.id, 'bar_transaction')
+        transaction_name1 = resolve_tag_value(self.organization.id, "foo_transaction")
+        transaction_name2 = resolve_tag_value(self.organization.id, "bar_transaction")
         transaction = Column(f"tags[{transaction_index}]")
         self.assertCountEqual(
             query.where,
@@ -2042,13 +2042,15 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         if not options.get("sentry-metrics.performance.tags-values-are-strings"):
             expected.append(mock.call(self.organization.id, "foo_transaction"))
 
-        expected.extend([
-            mock.call(self.organization.id, constants.METRICS_MAP["measurements.lcp"]),
-            mock.call(self.organization.id, "measurement_rating"),
-        ])
+        expected.extend(
+            [
+                mock.call(self.organization.id, constants.METRICS_MAP["measurements.lcp"]),
+                mock.call(self.organization.id, "measurement_rating"),
+            ]
+        )
 
         if not options.get("sentry-metrics.performance.tags-values-are-strings"):
-            expected.append( mock.call(self.organization.id, "good"))
+            expected.append(mock.call(self.organization.id, "good"))
 
         self.assertCountEqual(mock_indexer.mock_calls, expected)
 
@@ -2197,8 +2199,8 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             selected_columns=["p95(transaction.duration)"],
         )
         transaction_index = indexer.resolve(self.organization.id, "transaction")
-        transaction_name1 = resolve_tag_value(self.organization.id, 'foo_transaction')
-        transaction_name2 = resolve_tag_value(self.organization.id, 'bar_transaction')
+        transaction_name1 = resolve_tag_value(self.organization.id, "foo_transaction")
+        transaction_name2 = resolve_tag_value(self.organization.id, "bar_transaction")
 
         transaction = Column(f"tags[{transaction_index}]")
         self.assertCountEqual(
