@@ -150,21 +150,21 @@ function PerformanceOnboardingSidebar(props: CommonSidebarProps) {
       <TopRightBackgroundImage src={HighlightTopRightPattern} />
       <TaskList>
         <Heading>{t('Boost Performance')}</Heading>
-          <DropdownMenuControlV2
-            items={items}
-            triggerLabel={
-              <StyledIdBadge
-                project={currentProject}
-                avatarSize={16}
-                hideOverflow
-                disableLink
-              />
-            }
-            triggerProps={{
-              'aria-label': currentProject.slug,
-            }}
-            placement="bottom left"
-          />
+        <DropdownMenuControlV2
+          items={items}
+          triggerLabel={
+            <StyledIdBadge
+              project={currentProject}
+              avatarSize={16}
+              hideOverflow
+              disableLink
+            />
+          }
+          triggerProps={{
+            'aria-label': currentProject.slug,
+          }}
+          placement="bottom left"
+        />
         <OnboardingContent currentProject={currentProject} />
       </TaskList>
     </TaskSidebarPanel>
