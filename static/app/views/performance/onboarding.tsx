@@ -156,6 +156,7 @@ function Onboarding({organization, project}: Props) {
         priority="primary"
         onClick={event => {
           event.preventDefault();
+          window.location.hash = 'performance-sidequest';
           SidebarPanelStore.activatePanel(SidebarPanelKey.PerformanceOnboarding);
         }}
       >
