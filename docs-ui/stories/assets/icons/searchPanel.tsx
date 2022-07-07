@@ -6,7 +6,7 @@ import TextField from 'sentry/components/deprecatedforms/textField';
 import space from 'sentry/styles/space';
 
 import {IconData, iconGroups, IconPropName, iconProps, icons} from './data';
-import IconInfoBox from './infoBox';
+import IconInfo from './info';
 
 export type ExtendedIconData = IconData & {
   name: string;
@@ -86,10 +86,6 @@ const groupedIcons: Results = iconGroups.map(group => {
 const fuse = new Fuse(icons, {keys: ['id', 'groups', 'keywords'], threshold: 0.3});
 
 function SearchPanel() {
-  // The same icon can appear in multiple groups, so we also need to store
-  // which group the selected icon is in
-  const [selectedIcon, setSelectedIcon] = useState<SelectedIcon>({group: '', icon: ''});
-
   /**
    * Use Fuse.js to implement icon search
    */
@@ -116,10 +112,7 @@ function SearchPanel() {
         name="query"
         placeholder="Search icons by name or similar keywords"
         value={query}
-        onChange={value => {
-          setQuery(value as string);
-          setSelectedIcon({group: '', icon: ''});
-        }}
+        onChange={value => setQuery(value as string)}
       />
 
       {results.map(group => (
@@ -127,13 +120,7 @@ function SearchPanel() {
           <GroupLabel>{group.label}</GroupLabel>
           <GroupIcons>
             {group.icons.map(icon => (
-              <IconInfoBox
-                key={icon.id}
-                icon={icon}
-                selectedIcon={selectedIcon}
-                setSelectedIcon={setSelectedIcon}
-                groupId={group.id}
-              />
+              <IconInfo key={icon.id} icon={icon} />
             ))}
           </GroupIcons>
         </GroupWrap>

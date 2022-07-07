@@ -1,17 +1,14 @@
 import * as Icons from 'sentry/icons';
-import {Aliases, Color, IconSize} from 'sentry/utils/theme';
+import {SVGIconProps} from 'sentry/icons/svgIcon';
 
-type Props = {
-  color: Color | Aliases;
-  name: string;
-  size: IconSize;
+export type IconProps = SVGIconProps & {
   direction?: 'left' | 'right' | 'up' | 'down';
   isCircled?: boolean;
   isSolid?: boolean;
-  type?: 'line' | 'circle' | 'bar';
+  type?: 'line' | 'circle' | 'bar' | 'area';
 };
 
-const IconSample = ({name, ...props}: Props) => {
+const IconSample = ({name, ...props}: IconProps & {name: string}) => {
   const Icon = Icons[`Icon${name}`];
 
   if (!Icon) {
