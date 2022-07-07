@@ -19,6 +19,8 @@ type ButtonElement = HTMLButtonElement & HTMLAnchorElement & any;
 
 type TooltipProps = React.ComponentProps<typeof Tooltip>;
 
+type ButtonSize = 'zero' | 'xs' | 'sm' | 'md';
+
 interface BaseButtonProps
   extends Omit<
     React.ButtonHTMLAttributes<ButtonElement>,
@@ -94,8 +96,11 @@ interface BaseButtonProps
   rel?: HTMLAnchorElement['rel'];
   /**
    * The size of the button
+   *
+   * 'xsmall' and 'small' are deprecated, but temporarily supported.
+   * Please use 'xs' and 'sm' instead.
    */
-  size?: 'zero' | 'xsmall' | 'small';
+  size?: ButtonSize | 'xsmall' | 'small';
   /**
    * @deprecated Use `external`
    */
@@ -131,6 +136,21 @@ export type ButtonProps = ButtonPropsWithoutAriaLabel | ButtonPropsWithAriaLabel
 
 type Url = ButtonProps['to'] | ButtonProps['href'];
 
+function convertDeprecatedSizeNames(size: BaseButtonProps['size']): ButtonSize {
+  if (!size) {
+    return 'md';
+  }
+
+  switch (size) {
+    case 'xsmall':
+      return 'xs';
+    case 'small':
+      return 'sm';
+    default:
+      return size;
+  }
+}
+
 function BaseButton({
   size,
   to,
@@ -149,6 +169,8 @@ function BaseButton({
   onClick,
   ...buttonProps
 }: ButtonProps) {
+  const convertedButtonSize = convertDeprecatedSizeNames(size);
+
   // Intercept onClick and propagate
   const handleClick = useCallback(
     (e: React.MouseEvent) => {
@@ -191,7 +213,7 @@ function BaseButton({
       disabled={disabled}
       to={getUrl(to)}
       href={getUrl(href)}
-      size={size}
+      size={convertedButtonSize}
       priority={priority}
       borderless={borderless}
       translucentBorder={translucentBorder}
@@ -199,9 +221,9 @@ function BaseButton({
       onClick={handleClick}
       role="button"
     >
-      <ButtonLabel align={align} size={size} borderless={borderless}>
+      <ButtonLabel align={align} size={convertedButtonSize} borderless={borderless}>
         {icon && (
-          <Icon size={size} hasChildren={hasChildren}>
+          <Icon size={convertedButtonSize} hasChildren={hasChildren}>
             {icon}
           </Icon>
         )}
@@ -340,7 +362,7 @@ const getColors = ({
 };
 
 const getSizeStyles = ({size, translucentBorder, theme}: StyledButtonProps) => {
-  const buttonSize = size === 'small' || size === 'xsmall' ? size : 'default';
+  const buttonSize = size === 'zero' ? 'md' : convertDeprecatedSizeNames(size);
   const formStyles = theme.form[buttonSize];
   const buttonPadding = theme.buttonPadding[buttonSize];
 
@@ -444,7 +466,13 @@ const getIconMargin = ({size, hasChildren}: IconProps) => {
     return '0';
   }
 
-  return size && ['xsmall', 'zero'].includes(size) ? '6px' : '8px';
+  switch (convertDeprecatedSizeNames(size)) {
+    case 'xs':
+    case 'zero':
+      return '6px';
+    default:
+      return '8px';
+  }
 };
 
 const Icon = styled('span')<IconProps & Omit<StyledButtonProps, 'theme'>>`
