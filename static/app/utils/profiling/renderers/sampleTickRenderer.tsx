@@ -37,11 +37,13 @@ class SampleTickRenderer {
 
   draw(
     configViewToPhysicalSpace: mat3,
+    configView: Rect,
     context: CanvasRenderingContext2D = this.context
   ): void {
     if (this.intervals.length === 0) {
       return;
     }
+
     const height =
       this.theme.SIZES.LABEL_FONT_SIZE * window.devicePixelRatio +
       this.theme.SIZES.LABEL_FONT_PADDING * window.devicePixelRatio * 2 -
@@ -51,18 +53,20 @@ class SampleTickRenderer {
     context.lineWidth = this.theme.SIZES.INTERNAL_SAMPLE_TICK_LINE_WIDTH;
 
     for (let i = 0; i < this.intervals.length; i++) {
-      // Compute the x position of our interval from config space to physical
-      const physicalIntervalPosition = Math.round(
-        this.intervals[i] * configViewToPhysicalSpace[0] + configViewToPhysicalSpace[6]
-      );
+      const interval = this.intervals[i];
 
-      if (physicalIntervalPosition < 0) {
+      if (interval < configView.left) {
         continue;
       }
 
-      if (physicalIntervalPosition > this.canvas.clientWidth) {
+      if (interval > configView.right) {
         break;
       }
+
+      // Compute the x position of our interval from config space to physical
+      const physicalIntervalPosition = Math.round(
+        interval * configViewToPhysicalSpace[0] + configViewToPhysicalSpace[6]
+      );
 
       context.strokeRect(physicalIntervalPosition, 0, 0, height);
     }

@@ -323,7 +323,8 @@ function FlamegraphZoomView({
         return;
       }
       sampleTickRenderer.draw(
-        flamegraphView.fromConfigView(flamegraphCanvas.physicalSpace)
+        flamegraphView.fromConfigView(flamegraphCanvas.physicalSpace),
+        flamegraphView.configView
       );
     };
 
