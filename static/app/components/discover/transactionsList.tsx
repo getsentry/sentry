@@ -176,7 +176,7 @@ class _TransactionsList extends Component<Props> {
       <Fragment>
         <div>
           <CompactSelect
-            triggerProps={{prefix: t('Filter'), size: 'xsmall'}}
+            triggerProps={{prefix: t('Filter'), size: 'xs'}}
             value={selected.value}
             options={options}
             onChange={opt => handleDropdownChange(opt.value)}

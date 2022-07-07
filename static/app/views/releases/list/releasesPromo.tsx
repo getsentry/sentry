@@ -206,7 +206,7 @@ const ReleasesPromo = ({organization, project}: Props) => {
         <StyledPageHeader>
           <h3>{t('Configure Releases with the CLI')}</h3>
 
-          <Button priority="primary" size="small" href={releasesSetupUrl} external>
+          <Button priority="primary" size="sm" href={releasesSetupUrl} external>
             {t('Full Documentation')}
           </Button>
         </StyledPageHeader>
