@@ -71,6 +71,7 @@ def get_letter_avatar(
     size: Optional[int] = None,
     use_svg: Optional[bool] = True,
     initials: Optional[str] = None,
+    rounded: Optional[str] = False,
 ) -> str:
     display_name = (display_name or "").strip() or "?"
     names = display_name.split(" ")
@@ -91,8 +92,9 @@ def get_letter_avatar(
         size_attrs = f"height:{size}px;width:{size}px;" if size else ""
         font_size = "font-size:%spx;" % (size / 2) if size else ""
         line_height = "line-height:%spx;" % size if size else ""
+        span_class = " rounded" if rounded else ""
         return (
-            '<span class="html-avatar" '
+            '<span class="html-avatar{span_class}" '
             'style="background-color:{color};{size_attrs}{font_size}{line_height}">'
             "{initials}</span>"
         ).format(
@@ -101,6 +103,7 @@ def get_letter_avatar(
             size_attrs=size_attrs,
             font_size=font_size,
             line_height=line_height,
+            span_class=span_class,
         )
 
 
@@ -126,6 +129,14 @@ def get_email_avatar(
                     gravatar_url = get_gravatar_url(identifier, size=size)
                     return f'<img class="avatar" src="{gravatar_url}">'
     return get_letter_avatar(display_name, identifier, size, use_svg=False)
+
+
+def get_platform_avatar(
+    display_name: Optional[str],
+    size: Optional[int] = None,
+) -> str:
+    # TODO: @taylangocmen add platformicons from package when available
+    return f'<img class="avatar" src="https://raw.githubusercontent.com/getsentry/platformicons/master/svg/{display_name}.svg" height={size}>'
 
 
 def is_black_alpha_only(data: TextIO) -> bool:

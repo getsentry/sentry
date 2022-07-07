@@ -2,6 +2,7 @@
 
 {% load timezone from tz %}
 {% load sentry_avatars %}
+{% load sentry_platforms %}
 {% load sentry_helpers %}
 {% load sentry_features %}
 {% load sentry_assets %}
@@ -44,15 +45,34 @@
 <div class="container">
   <div class="inner">
     <div>
-      <h1 style="color:red;margin-bottom: 15px;font-weight:bold">
-        ACTIVE RELEASE NOTIFICATION EMAIL EXPERIMENT
-      </h1>
-      <h2 style="margin-bottom: 15px">
-        {{ event.title }}
-        <h5>
-          {{ project.slug }}{% if environment %} in {{ environment }}{% endif %}
-        </h5>
-      </h2>
+      <table style="height:180px;background-color:rgba(108, 95, 199, 0.08);">
+        <tr style="">
+          <td style="text-align:center;vertical-align:bottom;font-size:24px;font-weight:600;">
+            New issue in {{ last_release.version }}
+          </td>
+        </tr>
+        <tr style="">
+          <td style="text-align:center;vertical-align:top;font-size:16px;font-weight:400;">
+            You are getting this notification because you made a commit in this release
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <div>
+      <h3 class="new-event-title" style="margin-bottom:5px">
+      {{ event.title }}
+      </h3>
+      <table class="table">
+        <tr>
+          <td style="padding:0;width:24px">
+            <span class="platform">{% platform_avatar project.platform 16 %}</span>
+          </td>
+          <td style="padding:0;">
+            <span style="text-transform:uppercase;">{{ project.slug }}</span> {% if environment %} in {{ environment }}{% endif %}
+          </td>
+        </tr>
+      </table>
     </div>
 
     {% if enhanced_privacy %}
@@ -65,23 +85,11 @@
           {% endif %}
       </div>
 
-      <div class="notice">Details about this issue are not shown in this notification since enhanced privacy
-        controls are enabled. For more details about this issue, <a href="{{ link }}">view this issue on Sentry</a>.</div>
+      <div class="notice">
+        Details about this issue are not shown in this notification since enhanced privacy
+        controls are enabled. For more details about this issue, <a href="{{ link }}">view this issue on Sentry</a>.
+      </div>
     {% else %}
-      {% for commit in commits %}
-        <div class="committers">
-          <table class="table commit-table">
-            <tr>
-              <td style="padding:0;width:32px;">{% email_avatar commit.author.name commit.author.email 32 %}</td>
-              <td>
-                <h5 class="truncate">{{commit.author.name}} made a commit in release <a href="{{ last_release_link }}">{{ last_release.version }}</a>.</h5>
-                <div><small>{{ commit.subject }}</small></div>
-              </td>
-            </tr>
-          </table>
-        </div>
-      {% endfor %}
-
       <div class="event">
         <div class="event-id">ID: {{ event.event_id }}</div>
         {% if timezone %}
@@ -92,25 +100,54 @@
       </div>
 
       {% if interfaces.Stacktrace %}
-        <div class="interface">
-          <h3 class="title">Exception</h3>
-          {{ interfaces.Stacktrace.html }}
-        </div>
+        <h4 class="new-title">Exception</h4>
+        {{ interfaces.Stacktrace.html }}
       {% endif %}
 
       {% if tags %}
-        <h3>Tags from Latest Event</h3>
-        <ul class="tag-list">
-        {% for tag_key, tag_value in tags %}
+        <h4 class="new-title">Tags from Latest Event</h4>
+        <ul class="new-event-contexts">
+        {% if event_user %}
           <li>
-              <strong>{{ tag_key|as_tag_alias }}</strong>
-              <em>=</em>
-              <span>
-              {% with query=tag_key|as_tag_alias|add:":\""|add:tag_value|add:"\""|urlencode %}
-                <a href="{% absolute_uri '/organizations/{}/issues/' group.project.organization.slug %}?project={{ group.project.id }}&query={{ query }}">{{ tag_value|truncatechars:50 }}</a> {% if tag_value|is_url %}<a href="{{ tag_value }}" class="icon-share"></a>{% endif %}
-              {% endwith %}
-              </span>
+            <table>
+              <tr>
+                <th rowspan="2">{% email_avatar event_user.name event_user.email 32 %}</th>
+                <td><strong>{{ event_user.email }}</strong></td>
+              </tr>
+              <tr>
+                <td>ID: {{ event_user.id }}</td>
+              </tr>
+            </table>
           </li>
+        {% endif %}
+
+        {% for context_key, context in contexts %}
+          <li>
+            <table>
+              <tr>
+                <th rowspan="2">{% letter_platform_svg context_key context_key 32 %}</th>
+                <td><strong>{{ context.name }}</strong></td>
+              </tr>
+              <tr>
+                <td>Version: {{ context.version }}</td>
+              </tr>
+            </table>
+          </li>
+        {% endfor %}
+        </ul>
+
+        <ul class="new-tag-list">
+        {% for tag_key, tag_value in tags %}
+          {% if tag_key == 'browser' or tag_key == 'client_os' or tag_key == 'os' %}
+          <li>
+            <div class="tag-key">{{ tag_key|as_tag_alias }}</div>
+            <div class="tag-value">
+            {% with query=tag_key|as_tag_alias|add:":\""|add:tag_value|add:"\""|urlencode %}
+              <a href="{% absolute_uri '/organizations/{}/issues/' group.project.organization.slug %}?project={{ group.project.id }}&query={{ query }}">{{ tag_value|truncatechars:50 }}</a> {% if tag_value|is_url %}<a href="{{ tag_value }}" class="icon-share"></a>{% endif %}
+            {% endwith %}
+            </div>
+          </li>
+          {% endif %}
         {% endfor %}
         </ul>
       {% endif %}

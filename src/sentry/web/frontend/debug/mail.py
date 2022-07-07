@@ -385,33 +385,18 @@ def release_alert(request):
             "rules": get_rules([rule], org, project),
             "group": group,
             "event": event,
+            "event_user": event.data["user"],
             "timezone": pytz.timezone("Europe/Vienna"),
             "link": get_group_settings_link(group, None, get_rules([rule], org, project), 1337),
             "interfaces": interfaces,
             "tags": event.tags,
+            "contexts": event.data["contexts"].items(),
             "project": project,
             "last_release": {
                 "version": "13.9.2",
             },
             "last_release_link": f"http://testserver/organizations/{org.slug}/releases/13.9.2/?project={project.id}",
             "environment": "production",
-            "commits": [
-                {
-                    "subject": "fix bug really",
-                    "author": {"name": "committer1", "email": "test@example.com"},
-                    "key": "sha8910",
-                },
-                {
-                    "subject": "fix bug",
-                    "author": {"name": "committer2", "email": "test2@example.com"},
-                    "key": "sha567",
-                },
-                {
-                    "subject": "first commit",
-                    "author": {"name": "committer1", "email": "test@example.com"},
-                    "key": "sha1234",
-                },
-            ],
         },
     ).render(request)
 

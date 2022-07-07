@@ -294,6 +294,17 @@
     margin-bottom: 15px;
   }
 
+  .new-title {
+    margin-bottom: 15px;
+    color:#80708F;
+    font-size: 14px;
+    font-weight: 900;
+  }
+
+  .new-event-title {
+    color: #3D74DB;
+  }
+
   .inner .interface table {
     border-collapse: separate;
     border-spacing: 5px;
@@ -341,14 +352,72 @@
     font-weight: 200;
   }
 
+  .new-tag-list {
+    list-style: none;
+    margin: 0 0 20px;
+    padding: 0;
+  }
+  .new-tag-list li {
+    /*border: 1px solid #DBD6E1;*/
+    /*box-shadow: 0 0 2px rgb(43 34 51 / 4%);*/
+    display: inline-block;
+    margin-right: 5px;
+    margin-bottom: 10px;
+    /*border-radius: 3px;*/
+  }
+  .new-tag-list li .tag-key {
+    display: inline-block;
+    border: 1px solid #DBD6E1;
+    box-shadow: 0 0 2px rgb(43 34 51 / 4%);
+    padding: 5px;
+    border-top-left-radius: 3px;
+    border-bottom-left-radius: 3px;
+    background-color: #FFFFFF;
+  }
+  .new-tag-list li .tag-value {
+    display: inline-block;
+    border: 1px solid #DBD6E1;
+    border-left: none;
+    padding: 5px;
+    margin-left: -3px;
+    border-top-right-radius: 3px;
+    border-bottom-right-radius: 3px;
+    background-color: #FAF9FB;
+    color: #3D74DB;
+  }
+
+  .new-event-contexts {
+    list-style: none;
+    margin: 0 0 10px;
+    padding: 0;
+  }
+  .new-event-contexts li {
+    display: inline-block;
+    margin-right: 5px;
+    margin-bottom: 10px;
+  }
+
+  .new-event-contexts li table {
+    margin: 0;
+  }
+  .new-event-contexts li table tr {
+  }
+  .new-event-contexts li table tr th {
+    padding: 0 10px 0 0;
+    min-width: 0;
+  }
+  .new-event-contexts li table tr td {
+    padding: 0 10px 0 0;
+  }
+
+
   .inner p.via {
-    border-radius: 4px;
+    border-radius: 3px;
     margin-top: 15px;
     font-size: 14px;
     background-color: #f7f8f9;
     text-align: center;
     padding: 15px;
-    border-radius: 3px;
   }
 
   .notice {
@@ -547,8 +616,12 @@
     vertical-align: text-top;
   }
   .avatar,
-  .html-avatar {
+  .html-avatar,
+  .platform {
     border-radius: 3px;
+  }
+  .html-avatar.rounded {
+    border-radius: 50%;
   }
   .html-avatar {
     display: inline-block;
