@@ -16,16 +16,18 @@ from sentry.utils.signing import sign
 from sentry.web.decorators import transaction_start
 
 from .card_builder import (
-    build_already_linked_identity_command_card,
     build_group_card,
     build_help_command_card,
-    build_link_identity_command_card,
-    build_linking_card,
     build_mentioned_card,
     build_personal_installation_message,
-    build_unlink_identity_card,
     build_unrecognized_command_card,
     build_welcome_card,
+)
+from .card_builder.identity import (
+    MSTeamsAlreadyLinkedMessageBuilder,
+    MSTeamsLinkCommandMessageBuilder,
+    MSTeamsLinkIdentityMessageBuilder,
+    MSTeamsUnlinkIdentityMessageBuilder,
 )
 from .client import CLOCK_SKEW, MsTeamsClient, MsTeamsJwtClient
 from .link_identity import build_linking_url
@@ -370,7 +372,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
                 integration, group.organization, user_id, team_id, tenant_id
             )
 
-            card = build_linking_card(associate_url)
+            card = MSTeamsLinkIdentityMessageBuilder(associate_url).build()
             user_conversation_id = client.get_user_conversation_id(user_id, tenant_id)
             client.send_card(user_conversation_id, card)
             return self.respond(status=201)
@@ -439,15 +441,15 @@ class MsTeamsWebhookEndpoint(Endpoint):
         # only supporting unlink for now
         if "unlink" in lowercase_command:
             unlink_url = build_unlinking_url(conversation_id, data["serviceUrl"], teams_user_id)
-            card = build_unlink_identity_card(unlink_url)
+            card = MSTeamsUnlinkIdentityMessageBuilder(unlink_url).build()
         elif "help" in lowercase_command:
             card = build_help_command_card()
         elif "link" == lowercase_command:  # don't to match other types of link commands
             has_linked_identity = Identity.objects.filter(external_id=teams_user_id).exists()
             if has_linked_identity:
-                card = build_already_linked_identity_command_card()
+                card = MSTeamsAlreadyLinkedMessageBuilder().build()
             else:
-                card = build_link_identity_command_card()
+                card = MSTeamsLinkCommandMessageBuilder().build()
         else:
             card = build_unrecognized_command_card(command_text)
 

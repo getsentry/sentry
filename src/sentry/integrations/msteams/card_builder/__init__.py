@@ -256,57 +256,6 @@ def build_help_command_card():
     }
 
 
-def build_link_identity_command_card():
-    link_identity = {
-        "type": "TextBlock",
-        "text": (
-            "Your Microsoft Teams identity will be linked to your"
-            " Sentry account when you interact with alerts from Sentry."
-        ),
-        "wrap": True,
-    }
-    return {
-        "type": "AdaptiveCard",
-        "body": [link_identity],
-        "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
-        "version": "1.2",
-    }
-
-
-def build_unlink_identity_card(unlink_url):
-    unlink_identity = {
-        "type": "TextBlock",
-        "text": "Click below to unlink your identity",
-        "wrap": True,
-    }
-    button = {
-        "type": "Action.OpenUrl",
-        "title": "Unlink Identity",
-        "url": unlink_url,
-    }
-    return {
-        "type": "AdaptiveCard",
-        "body": [unlink_identity],
-        "actions": [button],
-        "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
-        "version": "1.2",
-    }
-
-
-def build_already_linked_identity_command_card():
-    link_identity = {
-        "type": "TextBlock",
-        "text": ("Your Microsoft Teams identity is already linked to a" " Sentry account."),
-        "wrap": True,
-    }
-    return {
-        "type": "AdaptiveCard",
-        "body": [link_identity],
-        "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
-        "version": "1.2",
-    }
-
-
 def build_group_title(group):
     # TODO: implement with event as well
     ev_metadata = group.get_event_metadata()
@@ -613,27 +562,6 @@ def build_group_card(group, event, rules, integration):
         "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
         "version": "1.2",
         "body": body,
-    }
-
-
-def build_linking_card(url):
-    desc = {
-        "type": "TextBlock",
-        "size": "Medium",
-        "text": "You need to link your Microsoft Teams account to your Sentry account before you can take action through Teams messages. Please click here to do so.",
-        "wrap": True,
-    }
-    button = {
-        "type": "Action.OpenUrl",
-        "title": "Link Identities",
-        "url": url,
-    }
-    return {
-        "type": "AdaptiveCard",
-        "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
-        "version": "1.2",
-        "body": [desc],
-        "actions": [button],
     }
 
 
