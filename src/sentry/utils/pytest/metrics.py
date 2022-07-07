@@ -1,18 +1,18 @@
-import os
 import copy
-
 import dataclasses
 import functools
-import pytest
+import os
 
+import pytest
 from snuba_sdk import AliasedExpression, Column, Condition, Function, Op, OrderBy
+
 
 @pytest.fixture(autouse=True)
 def control_metrics_access(monkeypatch, request, set_sentry_option):
     from sentry.sentry_metrics import indexer
     from sentry.utils import snuba
 
-    if 'sentry_metrics' in set(mark.name for mark in request.node.iter_markers()):
+    if "sentry_metrics" in {mark.name for mark in request.node.iter_markers()}:
         if os.environ.get("SENTRY_METRICS_SIMULATE_TAG_VALUES_IN_CLICKHOUSE") != "1":
             return
 
@@ -28,7 +28,6 @@ def control_metrics_access(monkeypatch, request, set_sentry_option):
                 args[0][0][0].query = query
 
             result = old_build_results(*args, **kwargs)
-
 
             if is_metrics:
                 print(convert_select_columns)
@@ -51,8 +50,8 @@ def control_metrics_access(monkeypatch, request, set_sentry_option):
             should_fail = True
             return old_fn(*args, **kwargs)
 
-        monkeypatch.setattr(indexer, 'resolve', functools.partial(fail, indexer.resolve))
-        monkeypatch.setattr(indexer, 'bulk_record', functools.partial(fail, indexer.bulk_record))
+        monkeypatch.setattr(indexer, "resolve", functools.partial(fail, indexer.resolve))
+        monkeypatch.setattr(indexer, "bulk_record", functools.partial(fail, indexer.bulk_record))
 
         if should_fail:
             pytest.fail(
@@ -60,7 +59,6 @@ def control_metrics_access(monkeypatch, request, set_sentry_option):
                 "metadata. Add this to your testfile:\n\n"
                 "pytestmark = pytest.mark.sentry_metrics"
             )
-
 
 
 def _rewrite_query(query):
@@ -72,11 +70,13 @@ def _rewrite_query(query):
 
     org_id = None
     for clause in query.where:
-        if (isinstance(clause, Condition)
+        if (
+            isinstance(clause, Condition)
             and clause.op == Op.EQ
-            and isinstance(clause.lhs, Column) 
-            and clause.lhs.name == 'org_id' 
-            and isinstance(clause.rhs, int)):
+            and isinstance(clause.lhs, Column)
+            and clause.lhs.name == "org_id"
+            and isinstance(clause.rhs, int)
+        ):
             org_id = clause.rhs
             break
 
@@ -89,44 +89,65 @@ def _rewrite_query(query):
         if isinstance(term, OrderBy):
             return dataclasses.replace(term, exp=_walk_term(term.exp))
 
-        if (isinstance(term, Column) and term.subscriptable == 'tags'):
+        if isinstance(term, Column) and term.subscriptable == "tags":
             convert_select_columns.add(term.name)
             return term
 
         if (
-            isinstance(term, AliasedExpression) and
-            isinstance(col := term.exp, Column) and
-            col.subscriptable == 'tags' and
-            term.alias
+            isinstance(term, AliasedExpression)
+            and isinstance(col := term.exp, Column)
+            and col.subscriptable == "tags"
+            and term.alias
         ):
             convert_select_columns.add(term.alias)
             return term
 
         if isinstance(term, Condition):
-            if term.op == Op.EQ and isinstance(lhs := term.lhs, Column) and lhs.subscriptable == 'tags' and isinstance(rhs := term.rhs, str):
+            if (
+                term.op == Op.EQ
+                and isinstance(lhs := term.lhs, Column)
+                and lhs.subscriptable == "tags"
+                and isinstance(rhs := term.rhs, str)
+            ):
                 return dataclasses.replace(term, rhs=indexer.resolve(org_id, rhs))
 
-            if term.op == Op.IN and isinstance(lhs := term.lhs, Column) and lhs.subscriptable == 'tags' and isinstance(rhs := term.rhs, (tuple, list)):
+            if (
+                term.op == Op.IN
+                and isinstance(lhs := term.lhs, Column)
+                and lhs.subscriptable == "tags"
+                and isinstance(rhs := term.rhs, (tuple, list))
+            ):
                 assert all(isinstance(x, str) for x in rhs)
                 return dataclasses.replace(term, rhs=[indexer.resolve(org_id, x) for x in rhs])
 
-            if term.op == Op.IN and isinstance(lhs := term.lhs, Column) and lhs.subscriptable == 'tags' and isinstance(rhs := term.rhs, Function) and rhs.function == 'tuple':
+            if (
+                term.op == Op.IN
+                and isinstance(lhs := term.lhs, Column)
+                and lhs.subscriptable == "tags"
+                and isinstance(rhs := term.rhs, Function)
+                and rhs.function == "tuple"
+            ):
                 assert all(isinstance(x, str) for x in rhs.parameters or ())
                 return dataclasses.replace(
                     term,
                     rhs=dataclasses.replace(
-                        rhs,
-                        parameters=[indexer.resolve(org_id, x) for x in rhs.parameters or ()]
-                    )
+                        rhs, parameters=[indexer.resolve(org_id, x) for x in rhs.parameters or ()]
+                    ),
                 )
 
-            if term.op == Op.IN and isinstance(lhs := term.lhs, Function) and lhs.function == 'tuple' and isinstance(rhs := term.rhs, Function) and rhs.function == 'tuple':
+            if (
+                term.op == Op.IN
+                and isinstance(lhs := term.lhs, Function)
+                and lhs.function == "tuple"
+                and isinstance(rhs := term.rhs, Function)
+                and rhs.function == "tuple"
+            ):
                 new_rhs = []
                 for right in rhs.parameters:
                     new_right = []
                     assert isinstance(right, tuple)
                     for left, right in zip(lhs.parameters, right):
-                        if isinstance(left, Column) and left.subscriptable == 'tags':
+                        if isinstance(left, Column) and left.subscriptable == "tags":
                             assert isinstance(right, str)
                             new_right.append(indexer.resolve(org_id, right))
                         else:
@@ -137,18 +158,21 @@ def _rewrite_query(query):
                 return dataclasses.replace(term, rhs=dataclasses.replace(rhs, parameters=new_rhs))
 
             return term
-                
+
         if (
-            isinstance(term, Function) and
-            term.function == 'equals' and
-            term.parameters and
-            isinstance(lhs := term.parameters[0], Column) and
-            lhs.subscriptable == 'tags'
+            isinstance(term, Function)
+            and term.function == "equals"
+            and term.parameters
+            and isinstance(lhs := term.parameters[0], Column)
+            and lhs.subscriptable == "tags"
         ):
             if not isinstance(term.parameters[1], str):
                 import pdb
+
                 pdb.set_trace()
-            assert isinstance(rhs := term.parameters[1], str), f'found resolved integers in tags-related clause {term}'
+            assert isinstance(
+                rhs := term.parameters[1], str
+            ), f"found resolved integers in tags-related clause {term}"
             resolved_string = indexer.resolve(org_id, rhs)
             new_parameters = list(term.parameters)
             new_parameters[1] = resolved_string
@@ -156,18 +180,21 @@ def _rewrite_query(query):
             return new_term
 
         if (
-        isinstance(term, Function) and
-            term.parameters and
-            isinstance(lhs := term.parameters[0], Column) and
-            lhs.subscriptable == 'tags' and
-            term.function in ('notIn', 'in') and
-            isinstance(rhs := term.parameters[1], list)
+            isinstance(term, Function)
+            and term.parameters
+            and isinstance(lhs := term.parameters[0], Column)
+            and lhs.subscriptable == "tags"
+            and term.function in ("notIn", "in")
+            and isinstance(rhs := term.parameters[1], list)
         ):
             if not all(isinstance(x, str) for x in rhs):
                 import pdb
+
                 pdb.set_trace()
 
-            assert all(isinstance(x, str) for x in rhs), f'found resolved integers in tags-related clause {term}'
+            assert all(
+                isinstance(x, str) for x in rhs
+            ), f"found resolved integers in tags-related clause {term}"
             new_parameters = copy.deepcopy(term.parameters)
             for i, x in enumerate(rhs):
                 resolved_string = indexer.resolve(org_id, x)
@@ -176,44 +203,49 @@ def _rewrite_query(query):
             new_term = dataclasses.replace(term, parameters=new_parameters)
             return new_term
 
-        if isinstance(term, Function) and term.function in ('in', 'notIn', 'equals'):
-            assert not isinstance(term.parameters[0], Column) or term.parameters[0] != 'tags'
+        if isinstance(term, Function) and term.function in ("in", "notIn", "equals"):
+            assert not isinstance(term.parameters[0], Column) or term.parameters[0] != "tags"
             return term
 
-        if isinstance(term, Column) and term.subscriptable != 'tags':
+        if isinstance(term, Column) and term.subscriptable != "tags":
             return term
 
         if isinstance(term, AliasedExpression):
             return dataclasses.replace(term, exp=_walk_term(term.exp))
 
-        if (isinstance(term, Function) and
-            term.function in ('and', 'or', 'plus', 'minus', 'divide', 'equals', 'lessOrEquals', 'greaterOrEquals')):
+        if isinstance(term, Function) and term.function in (
+            "and",
+            "or",
+            "plus",
+            "minus",
+            "divide",
+            "equals",
+            "lessOrEquals",
+            "greaterOrEquals",
+        ):
             new_parameters = [_walk_term(param) for param in term.parameters or ()]
             return dataclasses.replace(term, parameters=new_parameters)
 
         if (
-            isinstance(term, Function) and 
-            isinstance(col := term.parameters[0], Column) and
-            col.name in ('project_id', 'timestamp')
+            isinstance(term, Function)
+            and isinstance(col := term.parameters[0], Column)
+            and col.name in ("project_id", "timestamp")
         ):
             return term
 
-        if isinstance(term, Function) and 'If' in term.function:
+        if isinstance(term, Function) and "If" in term.function:
             new_parameters = list(term.parameters)
             new_parameters[1] = _walk_term(term.parameters[1])
             return dataclasses.replace(term, parameters=new_parameters)
 
-        if isinstance(term, Function) and term.function == 'arrayElement':
+        if isinstance(term, Function) and term.function == "arrayElement":
             new_parameters = list(term.parameters)
             new_parameters[0] = _walk_term(term.parameters[0])
             return dataclasses.replace(term, parameters=new_parameters)
 
-        if isinstance(term, Function) and term.function == 'arrayReduce':
+        if isinstance(term, Function) and term.function == "arrayReduce":
             new_parameters = list(term.parameters)
-            new_parameters[1] = [
-                _walk_term(param)
-                for param in term.parameters[1]
-            ]
+            new_parameters[1] = [_walk_term(param) for param in term.parameters[1]]
             return dataclasses.replace(term, parameters=new_parameters)
 
         if isinstance(term, (str, int, float)):
@@ -221,29 +253,15 @@ def _rewrite_query(query):
 
         raise AssertionError(f"don't know how to rewrite snql: {term}")
 
-
     query = dataclasses.replace(
         query,
-        select=[
-            _walk_term(clause)
-            for clause in query.select
-        ],
-        where=[
-            _walk_term(clause)
-            for clause in query.where
-        ],
-        groupby=[
-            _walk_term(clause)
-            for clause in query.groupby
-        ],
-        orderby=[
-            _walk_term(clause)
-            for clause in query.orderby or ()
-        ]
+        select=[_walk_term(clause) for clause in query.select],
+        where=[_walk_term(clause) for clause in query.where],
+        groupby=[_walk_term(clause) for clause in query.groupby],
+        orderby=[_walk_term(clause) for clause in query.orderby or ()],
     )
 
     return query, convert_select_columns
-
 
 
 def _resolve_integers_in_result(result, int_to_str):
