@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
@@ -14,16 +13,14 @@ export function ProfilingFlamechartLayout(props: ProfilingFlamechartLayoutProps)
   const flamegraphTheme = useFlamegraphTheme();
 
   return (
-    <Fragment>
-      <ProfilingFlamechartLayoutContainer>
-        <ProfilingFlamechartGrid layoutType={props.layoutType}>
-          <MinimapContainer height={flamegraphTheme.SIZES.MINIMAP_HEIGHT}>
-            {props.minimap}
-          </MinimapContainer>
-          <ZoomViewContainer>{props.flamechart}</ZoomViewContainer>
-        </ProfilingFlamechartGrid>
-      </ProfilingFlamechartLayoutContainer>
-    </Fragment>
+    <ProfilingFlamechartLayoutContainer>
+      <ProfilingFlamechartGrid layoutType={props.layoutType}>
+        <MinimapContainer height={flamegraphTheme.SIZES.MINIMAP_HEIGHT}>
+          {props.minimap}
+        </MinimapContainer>
+        <ZoomViewContainer>{props.flamechart}</ZoomViewContainer>
+      </ProfilingFlamechartGrid>
+    </ProfilingFlamechartLayoutContainer>
   );
 }
 
