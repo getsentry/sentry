@@ -80,10 +80,10 @@ class ReleaseSummaryTestCase(ActivityTestCase):
         assert sent_email_addresses == {self.user1.email}
 
         release_link = absolute_uri(
-            f"/organizations/{self.org.slug}/releases/{quote(self.release.version)}/?project={self.project.id}&referrer=release_summary"
+            f"/organizations/{self.org.slug}/releases/{quote(self.release.version)}/?referrer=release_summary&project={self.project.id}"
         )
         issues_link = absolute_uri(
-            f"/organizations/{self.org.slug}/issues/?project={self.project.id}&query={quote(f'firstRelease:{self.release.version}')}&referrer=release_summary"
+            f"/organizations/{self.org.slug}/issues/?query={quote(f'firstRelease:{self.release.version}')}&project={self.project.id}&referrer=release_summary"
         )
 
         slack_message = release_summary.get_notification_title()

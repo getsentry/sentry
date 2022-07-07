@@ -260,7 +260,7 @@ def get_release_committers(project: Project, event: Event) -> Sequence[User]:
     if not last_release:
         return []
 
-    return _get_release_committers(project.organization, last_release)
+    return _get_release_committers(last_release)
 
 
 def _get_release_committers(release: Release) -> Sequence[User]:

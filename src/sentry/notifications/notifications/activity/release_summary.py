@@ -43,7 +43,7 @@ class ReleaseSummaryActivityNotification(ActivityNotification):
         self.deploy = get_deploy(activity)
         self.release = get_release(activity, self.organization)
 
-        if not self.release:
+        if not self.release or not self.deploy:
             self.email_list: set[str] = set()
             self.user_ids: set[int] = set()
             self.projects: set[Project] = set()
@@ -57,8 +57,8 @@ class ReleaseSummaryActivityNotification(ActivityNotification):
         # TODO(workflow): Can use the same users from the commit list after active-release-notification-opt-in
         users = _get_release_committers(self.release)
         self.user_ids = {u.id for u in users}
-        environment = Environment.objects.get(id=self.deploy.environment_id)
-        self.environment = str(environment.name)
+        environment = Environment.objects.filter(id=self.deploy.environment_id).first()
+        self.environment = str(environment.name) if environment else "Default Environment"
         group_environment_filter = (
             Q(groupenvironment__environment_id=environment.id) if environment else Q()
         )
@@ -149,12 +149,16 @@ class ReleaseSummaryActivityNotification(ActivityNotification):
 
     def get_notification_title(self, context: Mapping[str, Any] | None = None) -> str:
         # TODO(workflow): Pass all projects as query parameters to issues link
-        project = self.release.projects.first()
+        project_query = ""
+        if self.release:
+            project = self.release.projects.first()
+            project_query = f"&project={project.id}"
+
         release_link = absolute_uri(
-            f"/organizations/{self.organization.slug}/releases/{quote(self.version)}/?project={project.id}&referrer=release_summary"
+            f"/organizations/{self.organization.slug}/releases/{quote(self.version)}/?referrer=release_summary{project_query}"
         )
         issues_link = absolute_uri(
-            f"/organizations/{self.organization.slug}/issues/?project={project.id}&query={quote(f'firstRelease:{self.version}')}&referrer=release_summary"
+            f"/organizations/{self.organization.slug}/issues/?query={quote(f'firstRelease:{self.version}')}{project_query}&referrer=release_summary"
         )
         new_issue_counts = sum(self.group_counts_by_project.get(p.id, 0) for p in self.projects)
         message = f"Release <{release_link}|{escape_slack_text(self.version_parsed)}> has been deployed to {self.environment} for an hour"
