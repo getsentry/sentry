@@ -303,7 +303,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
     range = serializers.CharField(required=False, allow_null=True)
     start = serializers.DateTimeField(required=False, allow_null=True)
     end = serializers.DateTimeField(required=False, allow_null=True)
-    filters = serializers.DictField(required=False)  # TODO: allow empty?
+    filters = serializers.DictField(required=False)
 
     validate_id = validate_id
 
