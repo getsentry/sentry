@@ -2,6 +2,7 @@ import copy
 import ipaddress
 import logging
 import random
+import re
 import time
 from datetime import datetime, timedelta
 from io import BytesIO
@@ -80,6 +81,7 @@ from sentry.plugins.base import plugins
 from sentry.projectoptions.defaults import BETA_GROUPING_CONFIG, DEFAULT_GROUPING_CONFIG
 from sentry.reprocessing2 import is_reprocessed_event, save_unprocessed_event
 from sentry.signals import first_event_received, first_transaction_received, issue_unresolved
+from sentry.tasks.commits import fetch_commits
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.tasks.process_buffer import buffer_incr
 from sentry.types.activity import ActivityType
@@ -491,7 +493,6 @@ class EventManager:
             job["is_new_group_environment"] = False
 
         _get_or_create_release_associated_models(jobs, projects)
-        _associate_commits_to_release(jobs, projects)
 
         if job["release"] and job["group"]:
             job["grouprelease"] = GroupRelease.get_or_create(
@@ -689,6 +690,26 @@ def _pull_out_data(jobs, projects):
         )
 
 
+def _is_commit_sha(version: str):
+    return re.match(r"[0-9a-f]{40}", version) is not None
+
+
+def _get_last_release(release: Release):
+    return None
+
+
+def _associate_commits_with_release(release: Release):
+    last_release = _get_last_release(release)
+    fetch_commits.apply_async(
+        kwargs={
+            "release_id": release.id,
+            "user_id": None,
+            "repository": [],
+            "prev_release_id": last_release.id,
+        }
+    )
+
+
 @metrics.wraps("save_event.get_or_create_release_many")
 def _get_or_create_release_many(jobs, projects):
     jobs_with_releases = {}
@@ -711,6 +732,9 @@ def _get_or_create_release_many(jobs, projects):
             version=version,
             date_added=release_date_added[(project_id, version)],
         )
+
+        if _is_commit_sha(release.version):
+            _associate_commits_with_release(release)
 
         for job in jobs_to_update:
             # Don't allow a conflicting 'release' tag
@@ -828,16 +852,6 @@ def _get_or_create_release_associated_models(jobs, projects):
         ReleaseProjectEnvironment.get_or_create(
             project=project, release=release, environment=environment, datetime=date
         )
-
-
-@metrics.wraps("save_events.associate_commits_to_release")
-def _associate_commits_to_release(jobs, projects):
-    release = [job["release"] for job in jobs]
-    return release
-    # Check for SCM integration
-    # Get the release associated with this event
-    # Find all commits between previous commit and this commit
-    # Add them to
 
 
 @metrics.wraps("save_event.tsdb_record_all_metrics")
