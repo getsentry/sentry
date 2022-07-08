@@ -1,8 +1,8 @@
 import {loadFixtures} from 'sentry-test/loadFixtures';
 
 import {
+  parseQuery,
   ParseResult,
-  parseSearch,
   Token,
   TokenResult,
 } from 'sentry/components/searchSyntax/parser';
@@ -59,7 +59,7 @@ describe('searchSyntax/parser', function () {
 
   const registerTestCase = (testCase: TestCase) =>
     it(`handles ${testCase.query}`, () => {
-      const result = parseSearch(testCase.query);
+      const result = parseQuery(testCase.query);
 
       // Handle errors
       if (testCase.raisesError) {
