@@ -983,7 +983,7 @@ function WidgetViewerModal(props: Props) {
                 title={
                   isCustomMeasurementWidget(widget)
                     ? t(
-                        'Widget using custom performance metrics cannot be opened in Discover.'
+                        'Widgets using custom performance metrics cannot be opened in Discover.'
                       )
                     : undefined
                 }
