@@ -96,9 +96,6 @@ interface BaseButtonProps
   rel?: HTMLAnchorElement['rel'];
   /**
    * The size of the button
-   *
-   * 'xsmall' and 'small' are deprecated, but temporarily supported.
-   * Please use 'xs' and 'sm' instead.
    */
   size?: ButtonSize;
   /**
