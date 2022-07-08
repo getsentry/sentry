@@ -90,7 +90,7 @@ function UniformRateModal({
 
   const [saving, setSaving] = useState(false);
 
-  const shouldHaveStep2 =
+  const shouldHaveNextStep =
     client !== currentClientSampling || recommendedSdkUpgrades.length > 0;
 
   useEffect(() => {
@@ -110,7 +110,7 @@ function UniformRateModal({
       return;
     }
 
-    if (shouldHaveStep2) {
+    if (shouldHaveNextStep) {
       setActiveStep(Step.RECOMMENDED_STEPS);
       return;
     }
@@ -288,7 +288,7 @@ function UniformRateModal({
           </Button>
 
           <ButtonBar gap={1}>
-            {shouldHaveStep2 && <Stepper>{t('Step 1 of 2')}</Stepper>}
+            {shouldHaveNextStep && <Stepper>{t('Step 1 of 2')}</Stepper>}
             <Button onClick={closeModal}>{t('Cancel')}</Button>
             <Button
               priority="primary"
@@ -302,7 +302,7 @@ function UniformRateModal({
                   : undefined
               }
             >
-              {shouldHaveStep2 ? t('Next') : t('Done')}
+              {shouldHaveNextStep ? t('Next') : t('Done')}
             </Button>
           </ButtonBar>
         </FooterActions>
