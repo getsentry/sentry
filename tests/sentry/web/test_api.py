@@ -106,7 +106,7 @@ class ClientConfigViewTest(TestCase):
         assert data["user"]["email"] == user.email
         assert data["user"]["isSuperuser"]
 
-    def test_url_prefix_unauthenticated(self):
+    def test_organization_url_unauthenticated(self):
         resp = self.client.get(self.path)
         assert resp.status_code == 200
         assert resp["Content-Type"] == "application/json"
@@ -118,7 +118,7 @@ class ClientConfigViewTest(TestCase):
         assert data["sentryUrl"] == "http://testserver"
         assert data["organizationUrl"] is None
 
-    def test_url_prefix_authenticated(self):
+    def test_organization_url_authenticated(self):
         self.login_as(self.user)
 
         # Induce last active organization
