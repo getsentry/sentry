@@ -15,7 +15,7 @@ class MetricIndexNotFound(InvalidParams):  # type: ignore
     pass
 
 
-def reverse_resolve_tag_value(index: Union[int, str, None], weak=False) -> Optional[str]:
+def reverse_resolve_tag_value(index: Union[int, str, None], weak: bool = False) -> Optional[str]:
     # XXX(markus): Normally there would be a check for the option
     # "sentry-metrics.performance.tags-values-are-strings", but this function
     # is sometimes called with metric IDs for reasons I haven't figured out.
