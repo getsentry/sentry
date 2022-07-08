@@ -320,6 +320,15 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
 
         return projects
 
+    def validate(self, data):
+        start = data.get("start")
+        end = data.get("end")
+
+        if start and end and start >= end:
+            raise serializers.ValidationError("start must be before end")
+
+        return data
+
     def update_dashboard_filters(self, instance, validated_data):
         page_filter_keys = ["environment", "range", "start", "end"]
         dashboard_filter_keys = ["releases"]

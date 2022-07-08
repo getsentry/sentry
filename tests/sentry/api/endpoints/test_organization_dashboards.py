@@ -523,6 +523,16 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         )
         assert response.status_code == 403
 
+    def test_post_dashboard_with_invalid_start_end_filter(self):
+        start = iso_format(datetime.now())
+        end = iso_format(datetime.now() - timedelta(seconds=10))
+        response = self.do_request(
+            "post",
+            self.url,
+            data={"title": "Dashboard from Post", "start": start, "end": end},
+        )
+        assert response.status_code == 400
+
     def test_add_widget_with_limit(self):
         data = {
             "title": "Dashboard from Post",
