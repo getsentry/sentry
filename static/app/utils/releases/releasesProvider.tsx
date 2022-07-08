@@ -17,7 +17,7 @@ function fetchReleases(api: Client, orgSlug: string, selection: PageFilters) {
       sort: 'date',
       project: projects,
       per_page: 50,
-      environments,
+      environment: environments,
     },
   });
 }
