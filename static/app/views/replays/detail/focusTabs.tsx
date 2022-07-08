@@ -1,7 +1,7 @@
 import {MouseEvent} from 'react';
 import styled from '@emotion/styled';
 
-import NavTabs from 'sentry/components/navTabs';
+import NavTabs from 'sentry/components/replays/navTabs';
 import useActiveReplayTab, {
   ReplayTabs,
 } from 'sentry/utils/replays/hooks/useActiveReplayTab';
@@ -22,7 +22,7 @@ function FocusTabs({}: Props) {
               e.preventDefault();
             }}
           >
-            {label}
+            <span>{label}</span>
           </a>
         </Tab>
       ))}

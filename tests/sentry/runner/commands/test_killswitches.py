@@ -130,8 +130,15 @@ class KillswitchesTest(CliTestCase):
             mock.call(project_id="42", trigger="killswitches.relay.drop-transaction-metrics")
         ]
 
-        mock_set.reset_mock()
-        mock_schedule.reset_mock()
+    @mock.patch(
+        "sentry.tasks.relay.schedule_invalidate_project_config",
+    )
+    @mock.patch(
+        "sentry.options.set",
+    )
+    def test_relay_drop_transaction_metrics_all(self, mock_set, mock_schedule):
+
+        option = "relay.drop-transaction-metrics"
 
         rv = self.invoke("push", "--yes", option, "-", input=("- project_id: null\n"))
         assert rv.exit_code == 0, rv.output
@@ -140,5 +147,7 @@ class KillswitchesTest(CliTestCase):
             mock.call("relay.drop-transaction-metrics", [{"project_id": None}])
         ]
 
-        # No invalidation task scheduled if everything matches:
-        assert mock_schedule.mock_calls == []
+        # All organisations should have been invalidated:
+        assert mock_schedule.mock_calls == [
+            mock.call(trigger="invalidate-all", organization_id=1, countdown=0)
+        ]

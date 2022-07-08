@@ -1,13 +1,14 @@
 import trimStart from 'lodash/trimStart';
 
-import {Client} from 'sentry/api';
+import {Client, ResponseMeta} from 'sentry/api';
 import {SearchBarProps} from 'sentry/components/events/searchBar';
 import {Organization, PageFilters, SelectValue, TagCollection} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {TableData} from 'sentry/utils/discover/discoverQuery';
 import {MetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import {isEquation} from 'sentry/utils/discover/fields';
+import {isEquation, QueryFieldValue} from 'sentry/utils/discover/fields';
+import {MeasurementCollection} from 'sentry/utils/measurements/measurements';
 import {FieldValueOption} from 'sentry/views/eventsV2/table/queryField';
 import {FieldValue} from 'sentry/views/eventsV2/table/types';
 
@@ -37,13 +38,15 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
    * Widget Builder.
    */
   defaultWidgetQuery: WidgetQuery;
+  enableEquations: boolean;
   /**
    * Field options to display in the Column selectors for
    * Table display type.
    */
   getTableFieldOptions: (
     organization: Organization,
-    tags?: TagCollection
+    tags?: TagCollection,
+    customMeasurements?: MeasurementCollection
   ) => Record<string, SelectValue<FieldValue>>;
   /**
    * List of supported display types for dataset.
@@ -92,6 +95,18 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
    */
   filterTableOptions?: (option: FieldValueOption) => boolean;
   /**
+   * Filter the options available to the parameters list
+   * of an aggregate function in QueryField component on the
+   * Widget Builder.
+   */
+  filterYAxisAggregateParams?: (
+    fieldValue: QueryFieldValue,
+    displayType: DisplayType
+  ) => (option: FieldValueOption) => boolean;
+  filterYAxisOptions?: (
+    displayType: DisplayType
+  ) => (option: FieldValueOption) => boolean;
+  /**
    * Used to select custom renderers for field types.
    */
   getCustomFieldRenderer?: (
@@ -117,7 +132,7 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     organization: Organization,
     pageFilters: PageFilters,
     referrer?: string
-  ) => ReturnType<Client['requestPromise']>;
+  ) => Promise<[SeriesResponse, string | undefined, ResponseMeta | undefined]>;
   /**
    * Generate the request promises for fetching
    * tabular data.
@@ -130,7 +145,7 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     limit?: number,
     cursor?: string,
     referrer?: string
-  ) => ReturnType<Client['requestPromise']>;
+  ) => Promise<[TableResponse, string | undefined, ResponseMeta | undefined]>;
   /**
    * Generate the list of sort options for table
    * displays on the 'Sort by' step of the Widget Builder.
