@@ -112,7 +112,6 @@ class _EntitySpecificParams(TypedDict, total=False):
 
 @dataclass
 class _EntitySubscription:
-    entity_key: EntityKey
     dataset: QueryDatasets
     time_col: str
 
@@ -128,7 +127,7 @@ class BaseEntitySubscription(ABC, _EntitySubscription):
     def __init__(
         self, aggregate: str, time_window: int, extra_fields: Optional[_EntitySpecificParams] = None
     ):
-        self.time_col = ENTITY_TIME_COLUMNS[self.entity_key]
+        pass
 
     @abstractmethod
     def get_entity_extra_params(self) -> Mapping[str, Any]:
@@ -204,17 +203,14 @@ class BaseEventsAndTransactionEntitySubscription(BaseEntitySubscription, ABC):
 
 class EventsEntitySubscription(BaseEventsAndTransactionEntitySubscription):
     dataset = QueryDatasets.EVENTS
-    entity_key = EntityKey.Events
 
 
 class TransactionsEntitySubscription(BaseEventsAndTransactionEntitySubscription):
     dataset = QueryDatasets.TRANSACTIONS
-    entity_key = EntityKey.Transactions
 
 
 class SessionsEntitySubscription(BaseEntitySubscription):
     dataset = QueryDatasets.SESSIONS
-    entity_key = EntityKey.Sessions
 
     def __init__(
         self, aggregate: str, time_window: int, extra_fields: Optional[_EntitySpecificParams] = None
@@ -289,7 +285,6 @@ class SessionsEntitySubscription(BaseEntitySubscription):
 
 class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
     dataset = QueryDatasets.METRICS
-    entity_key: EntityKey
     metric_key: SessionMRI
 
     def __init__(
@@ -466,7 +461,6 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
 
 
 class MetricsCountersEntitySubscription(BaseMetricsEntitySubscription):
-    entity_key: EntityKey = EntityKey.MetricsCounters
     metric_key: SessionMRI = SessionMRI.SESSION
 
     def get_snql_aggregations(self) -> List[str]:
@@ -486,7 +480,6 @@ class MetricsCountersEntitySubscription(BaseMetricsEntitySubscription):
 
 
 class MetricsSetsEntitySubscription(BaseMetricsEntitySubscription):
-    entity_key: EntityKey = EntityKey.MetricsSets
     metric_key: SessionMRI = SessionMRI.USER
 
     def get_snql_aggregations(self) -> List[str]:

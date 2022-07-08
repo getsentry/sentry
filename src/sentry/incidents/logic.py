@@ -37,7 +37,12 @@ from sentry.models import Integration, PagerDutyService, Project, SentryApp
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.fields import resolve_field
 from sentry.shared_integrations.exceptions import DuplicateDisplayNameError
-from sentry.snuba.entity_subscription import EntitySubscription, get_entity_subscription_for_dataset
+from sentry.snuba.dataset import EntityKey
+from sentry.snuba.entity_subscription import (
+    ENTITY_TIME_COLUMNS,
+    EntitySubscription,
+    get_entity_subscription_for_dataset,
+)
 from sentry.snuba.models import QueryDatasets
 from sentry.snuba.subscriptions import (
     bulk_create_snuba_subscriptions,
@@ -309,7 +314,7 @@ def build_incident_query_builder(
     for i, column in enumerate(query_builder.columns):
         if column.alias == CRASH_RATE_ALERT_AGGREGATE_ALIAS:
             query_builder.columns[i] = replace(column, alias="count")
-    time_col = entity_subscription.time_col
+    time_col = ENTITY_TIME_COLUMNS[EntityKey(query_builder.get_snql_query().query.match.name)]
     query_builder.add_conditions(
         [
             Condition(Column(time_col), Op.GTE, start),
@@ -382,7 +387,7 @@ def get_incident_aggregates(
             "incidents.get_incident_aggregates.snql.query.error",
             tags={
                 "dataset": snuba_query.dataset,
-                "entity": entity_subscription.entity_key.value,
+                "entity": query_builder.get_snql_query().query.match.name,
             },
         )
         raise
