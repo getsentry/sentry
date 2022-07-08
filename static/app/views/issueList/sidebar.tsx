@@ -35,7 +35,6 @@ type Props = DefaultProps & {
 
 type State = {
   filters: Record<string, TokenResult<Token.Filter>>;
-  queryObj: Record<string, string>;
   textFilter: string;
 };
 
@@ -58,12 +57,8 @@ class IssueListSidebar extends Component<Props, State> {
     const parsedFilters = parsedQuery.filter(
       (p): p is TokenResult<Token.Filter> => p.type === Token.Filter
     );
-    const queryObj = Object.fromEntries(
-      parsedFilters.map((p: TokenResult<Token.Filter>) => [p.key.text, p.value.text])
-    );
 
     return {
-      queryObj,
       filters: Object.fromEntries(parsedFilters.map(p => [p.key.text, p])),
       textFilter: joinQuery(parsedQuery.filter(p => p.type === Token.FreeText)),
     };
@@ -119,6 +114,7 @@ class IssueListSidebar extends Component<Props, State> {
 
   render() {
     const {loading, tagValueLoader, tags} = this.props;
+    // TODO: @taylangocmen: 1. We need to render negated tags better, 2. We need an option to add negated tags to query
     return (
       <StreamSidebar>
         {loading ? (
