@@ -73,6 +73,8 @@ from sentry.testutils import BaseIncidentsTest, SnubaTestCase, TestCase
 from sentry.testutils.cases import SessionMetricsTestCase
 from sentry.utils import json
 
+pytestmark = pytest.mark.sentry_metrics
+
 
 class CreateIncidentTest(TestCase):
     record_event = patcher("sentry.analytics.base.Analytics.record_event")

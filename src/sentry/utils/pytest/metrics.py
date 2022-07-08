@@ -268,6 +268,7 @@ def _rewrite_query(indexer_resolve, query):
             "lessOrEquals",
             "greaterOrEquals",
             "uniq",
+            "sum",
         ):
             new_parameters = [_walk_term(param) for param in term.parameters or ()]
             return dataclasses.replace(term, parameters=new_parameters)

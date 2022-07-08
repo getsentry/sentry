@@ -1,6 +1,7 @@
 import time
 from unittest import mock
 
+import pytest
 from django.db.models import F
 from django.utils import timezone
 
@@ -10,6 +11,8 @@ from sentry.release_health.release_monitor.sessions import SessionReleaseMonitor
 from sentry.release_health.tasks import monitor_release_adoption, process_projects_with_sessions
 from sentry.testutils import SessionMetricsTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+
+pytestmark = pytest.mark.sentry_metrics
 
 
 class BaseTestReleaseMonitor:
