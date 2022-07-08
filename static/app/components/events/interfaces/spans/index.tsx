@@ -222,9 +222,7 @@ export function getCumulativeAlertLevelFromErrors(
 }
 
 // Maps the six known error levels to one of three Alert component types
-const ERROR_LEVEL_TO_ALERT_TYPE: {
-  [Property in TraceError['level']]: keyof Theme['alert'];
-} = {
+const ERROR_LEVEL_TO_ALERT_TYPE: Record<TraceError['level'], keyof Theme['alert']> = {
   fatal: 'error',
   error: 'error',
   default: 'error',
