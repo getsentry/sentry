@@ -23,7 +23,7 @@ steps:
       - builder-run
     args:
       [
-        '--cache=true',
+        '--cache=false',
         '--use-new-run',
         '--build-arg',
         'SOURCE_COMMIT=$COMMIT_SHA',
