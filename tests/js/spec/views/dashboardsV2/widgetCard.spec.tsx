@@ -532,7 +532,8 @@ describe('Dashboards > WidgetCard', function () {
         tableItemLimit={20}
       />
     );
-    await tick();
+    await waitFor(() => expect(eventsv2Mock).toHaveBeenCalled());
+
     expect(SimpleTableChart).toHaveBeenCalledWith(
       expect.objectContaining({stickyHeaders: true}),
       expect.anything()
