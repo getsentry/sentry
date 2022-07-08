@@ -6,6 +6,7 @@ import GlobalModal from 'sentry/components/globalModal';
 import {Organization, Project} from 'sentry/types';
 import {
   SamplingConditionOperator,
+  SamplingInnerOperator,
   SamplingRule,
   SamplingRuleType,
 } from 'sentry/types/sampling';
@@ -26,6 +27,23 @@ export const uniformRule: SamplingRule = {
     inner: [],
   },
   id: 1,
+};
+
+export const specificRule: SamplingRule = {
+  sampleRate: 0.2,
+  active: false,
+  type: SamplingRuleType.TRACE,
+  condition: {
+    op: SamplingConditionOperator.AND,
+    inner: [
+      {
+        op: SamplingInnerOperator.GLOB_MATCH,
+        name: 'trace.release',
+        value: ['1.2.2'],
+      },
+    ],
+  },
+  id: 2,
 };
 
 export const mockedProjects = [

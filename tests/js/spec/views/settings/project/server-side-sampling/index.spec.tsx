@@ -3,7 +3,13 @@ import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary
 import * as modal from 'sentry/actionCreators/modal';
 import {SERVER_SIDE_SAMPLING_DOC_LINK} from 'sentry/views/settings/project/server-side-sampling/utils';
 
-import {getMockData, mockedProjects, TestComponent, uniformRule} from './utils';
+import {
+  getMockData,
+  mockedProjects,
+  specificRule,
+  TestComponent,
+  uniformRule,
+} from './utils';
 
 describe('Server-side Sampling', function () {
   it('renders onboarding promo', function () {
@@ -46,25 +52,7 @@ describe('Server-side Sampling', function () {
       projects: [
         TestStubs.Project({
           dynamicSampling: {
-            rules: [
-              {
-                sampleRate: 0.2,
-                type: 'trace',
-                active: false,
-                condition: {
-                  op: 'and',
-                  inner: [
-                    {
-                      op: 'glob',
-                      name: 'trace.release',
-                      value: ['1.2.3'],
-                    },
-                  ],
-                },
-                id: 1,
-              },
-            ],
-            next_id: 2,
+            rules: [{...uniformRule, sampleRate: 1}],
           },
         }),
       ],
@@ -84,9 +72,8 @@ describe('Server-side Sampling', function () {
     expect(screen.getAllByTestId('sampling-rule').length).toBe(1);
     expect(screen.queryByLabelText('Drag Rule')).not.toBeInTheDocument();
     expect(screen.getByTestId('sampling-rule')).toHaveTextContent('If');
-    expect(screen.getByTestId('sampling-rule')).toHaveTextContent('Release');
-    expect(screen.getByTestId('sampling-rule')).toHaveTextContent('1.2.3');
-    expect(screen.getByTestId('sampling-rule')).toHaveTextContent('20%');
+    expect(screen.getByTestId('sampling-rule')).toHaveTextContent('All');
+    expect(screen.getByTestId('sampling-rule')).toHaveTextContent('100%');
     expect(screen.getByLabelText('Activate Rule')).toBeInTheDocument();
     expect(screen.getByLabelText('Actions')).toBeInTheDocument();
 
@@ -312,6 +299,39 @@ describe('Server-side Sampling', function () {
       await screen.findByRole('heading', {
         name: 'Set a uniform sample rate for Transactions',
       })
+    ).toBeInTheDocument();
+  });
+
+  it('does not let user reorder uniform rule', async function () {
+    const {organization, router, project} = getMockData({
+      projects: [
+        TestStubs.Project({
+          dynamicSampling: {
+            rules: [specificRule, uniformRule],
+          },
+        }),
+      ],
+    });
+
+    render(
+      <TestComponent
+        organization={organization}
+        project={project}
+        router={router}
+        withModal
+      />
+    );
+
+    const samplingUniformRule = screen.getAllByTestId('sampling-rule')[1];
+
+    expect(
+      within(samplingUniformRule).getByRole('button', {name: 'Drag Rule'})
+    ).toHaveAttribute('aria-disabled', 'true');
+
+    userEvent.hover(within(samplingUniformRule).getByLabelText('Drag Rule'));
+
+    expect(
+      await screen.findByText('Uniform rules cannot be reordered')
     ).toBeInTheDocument();
   });
 });
