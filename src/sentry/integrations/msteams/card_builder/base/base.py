@@ -6,7 +6,6 @@ from sentry.integrations.notifications import AbstractMessageBuilder
 from sentry.utils.assets import get_asset_url
 from sentry.utils.http import absolute_uri
 
-URL_FORMAT_STR = "[{text}]({url})"
 SENTRY_ICON_URL = "images/sentry-glyph-black.png"
 
 # NOTE: The classes below need to inherit from `str` as well to be serialized correctly.
