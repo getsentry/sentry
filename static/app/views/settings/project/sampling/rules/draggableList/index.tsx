@@ -5,6 +5,8 @@ import {arrayMove, SortableContext, verticalListSortingStrategy} from '@dnd-kit/
 
 import {SamplingRule} from 'sentry/types/sampling';
 
+import {isUniformRule} from '../../../server-side-sampling/utils';
+
 import {Item, ItemProps} from './item';
 import {SortableItem, SortableItemProps} from './sortableItem';
 
@@ -74,7 +76,7 @@ export function DraggableList({
             id={itemId}
             index={index}
             renderItem={renderItem}
-            disabled={disabled || items[index].bottomPinned}
+            disabled={disabled || items[index].condition.inner.length === 0}
             wrapperStyle={wrapperStyle}
           />
         ))}

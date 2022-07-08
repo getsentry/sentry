@@ -107,7 +107,6 @@ export function ServerSideSampling({project}: Props) {
   const items = rules.map(rule => ({
     ...rule,
     id: String(rule.id),
-    bottomPinned: !rule.condition.inner.length,
   }));
 
   const recommendedSdkUpgrades = projects

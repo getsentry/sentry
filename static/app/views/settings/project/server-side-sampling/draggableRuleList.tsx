@@ -10,6 +10,7 @@ import {
   DraggableRuleListSortableItem,
   SortableItemProps,
 } from './draggableRuleListSortableItem';
+import {isUniformRule} from './utils';
 
 export type DraggableRuleListUpdateItemsProps = {
   activeIndex: string;
@@ -77,7 +78,9 @@ export function DraggableRuleList({
             id={itemId}
             index={index}
             renderItem={renderItem}
-            disabled={disabled || items[index].bottomPinned}
+            disabled={
+              disabled || isUniformRule({...items[index], id: Number(items[index].id)})
+            }
             wrapperStyle={wrapperStyle}
           />
         ))}
