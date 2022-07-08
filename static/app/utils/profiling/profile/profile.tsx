@@ -46,6 +46,8 @@ export class Profile {
     this.unit = unit;
   }
 
+  static Dead() {}
+
   static Empty() {
     return new Profile(1000, 0, 1000, '', 'milliseconds', 0).build();
   }
@@ -55,7 +57,7 @@ export class Profile {
     closeFrame: (node: CallTreeNode, value: number) => void
   ): void {
     let prevStack: CallTreeNode[] = [];
-    let value = 10;
+    let value = 0;
 
     let sampleIndex = 0;
 
