@@ -13,7 +13,7 @@ from sentry.api.decorators import email_verification_required, sudo_required
 from sentry.api.invite_helper import ApiInviteHelper, remove_invite_cookie
 from sentry.api.serializers import serialize
 from sentry.app import ratelimiter
-from sentry.auth.authenticators.base import EnrollmentStatus
+from sentry.auth.authenticators.base import EnrollmentStatus, NewEnrollmentDisallowed
 from sentry.auth.authenticators.sms import SMSRateLimitExceeded
 from sentry.models import Authenticator
 from sentry.security import capture_security_activity
@@ -23,6 +23,9 @@ logger = logging.getLogger(__name__)
 ALREADY_ENROLLED_ERR = {"details": "Already enrolled"}
 INVALID_OTP_ERR = ({"details": "Invalid OTP"},)
 SEND_SMS_ERR = {"details": "Error sending SMS"}
+DISALLOWED_NEW_ENROLLMENT_ERR = {
+    "details": "New enrollments for this 2FA interface are not allowed"
+}
 
 
 class TotpRestSerializer(serializers.Serializer):
@@ -185,6 +188,11 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
 
         interface = Authenticator.objects.get_interface(request.user, interface_id)
 
+        # Check if the 2FA interface allows new enrollment, if not we should error
+        # on any POSTs
+        if interface.disallow_new_enrollment:
+            return Response(DISALLOWED_NEW_ENROLLMENT_ERR, status=status.HTTP_403_FORBIDDEN)
+
         # Not all interfaces allow multi enrollment
         #
         # This is probably un-needed because we catch
@@ -250,6 +258,8 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
                 interface.enroll(request.user)
             except Authenticator.AlreadyEnrolled:
                 return Response(ALREADY_ENROLLED_ERR, status=status.HTTP_400_BAD_REQUEST)
+            except NewEnrollmentDisallowed:
+                return Response(DISALLOWED_NEW_ENROLLMENT_ERR, status=status.HTTP_403_FORBIDDEN)
 
         context.update({"authenticator": interface.authenticator})
         capture_security_activity(

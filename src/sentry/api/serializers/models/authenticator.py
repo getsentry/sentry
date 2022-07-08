@@ -21,6 +21,7 @@ class AuthenticatorInterfaceSerializer(Serializer):
             "removeButton": obj.remove_button,
             "isBackupInterface": obj.is_backup_interface,
             "isEnrolled": obj.is_enrolled(),
+            "disallowNewEnrollment": obj.disallow_new_enrollment,
             "status": str(obj.status.value),
             "canValidateOtp": obj.can_validate_otp,
             "allowMultiEnrollment": obj.allow_multi_enrollment,
