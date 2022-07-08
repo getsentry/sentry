@@ -17,7 +17,7 @@ export function ProfilingFlamechartLayout(props: ProfilingFlamechartLayoutProps)
   return (
     <Fragment>
       <ProfilingFlamechartLayoutContainer>
-        <ProfilingFlamechartGrid layoutType={props.layoutType}>
+        <ProfilingFlamechartGrid layoutType="minimap_top">
           <MinimapContainer height={flamegraphTheme.SIZES.MINIMAP_HEIGHT}>
             {props.minimap}
           </MinimapContainer>

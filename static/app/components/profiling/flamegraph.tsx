@@ -52,12 +52,12 @@ interface FlamegraphProps {
 }
 
 function Flamegraph(props: FlamegraphProps): ReactElement {
+  const canvasBounds = useRef<Rect>(Rect.Empty());
   const devicePixelRatio = useDevicePixelRatio();
 
   const flamegraphTheme = useFlamegraphTheme();
   const [{sorting, view, xAxis}, dispatch] = useFlamegraphPreferences();
-  const [{threadId}, dispatchThreadId] = useFlamegraphProfiles();
-  const canvasBounds = useRef<Rect>(Rect.Empty());
+  const [{threadId, selectedNode}, dispatchThreadId] = useFlamegraphProfiles();
 
   const [flamegraphCanvasRef, setFlamegraphCanvasRef] =
     useState<HTMLCanvasElement | null>(null);
@@ -266,6 +266,15 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
     [flamegraphRenderer]
   );
 
+  const tableRoot = useMemo(
+    () => (selectedNode ? selectedNode : flamegraph.root),
+    [selectedNode, flamegraph.root]
+  );
+
+  const roots = useMemo(() => {
+    return selectedNode ? [selectedNode] : flamegraph.root.children;
+  }, [selectedNode, flamegraph.root]);
+
   return (
     <Fragment>
       <FlamegraphToolbar>
@@ -325,6 +334,8 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
         }
         frameStack={
           <FrameStack
+            root={tableRoot}
+            roots={roots}
             getFrameColor={getFrameColor}
             formatDuration={flamegraph ? flamegraph.formatter : noopColor}
             canvasPoolManager={canvasPoolManager}

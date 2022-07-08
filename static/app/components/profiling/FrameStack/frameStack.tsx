@@ -7,7 +7,6 @@ import space from 'sentry/styles/space';
 import {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
 import {filterFlamegraphTree} from 'sentry/utils/profiling/filterFlamegraphTree';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
-import {useFlamegraphProfilesValue} from 'sentry/utils/profiling/flamegraph/useFlamegraphProfiles';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {useVerticallyResizableDrawer} from 'sentry/utils/profiling/hooks/useResizableDrawer';
@@ -19,21 +18,18 @@ interface FrameStackProps {
   canvasPoolManager: CanvasPoolManager;
   formatDuration: Flamegraph['formatter'];
   getFrameColor: (frame: FlamegraphFrame) => string;
+  root: FlamegraphFrame;
+  roots: FlamegraphFrame[];
 }
 
 const FrameStack = memo(function FrameStack(props: FrameStackProps) {
   const theme = useFlamegraphTheme();
-  const {selectedNode} = useFlamegraphProfilesValue();
 
   const [tab, setTab] = useState<'bottom up' | 'call order'>('call order');
   const [treeType, setTreeType] = useState<'all' | 'application' | 'system'>('all');
   const [recursion, setRecursion] = useState<'collapsed' | null>(null);
 
   const roots: FlamegraphFrame[] | null = useMemo(() => {
-    if (!selectedNode) {
-      return null;
-    }
-
     const skipFunction: (f: FlamegraphFrame) => boolean =
       treeType === 'application'
         ? f => !f.frame.is_application
@@ -42,16 +38,14 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
         : () => false;
 
     const maybeFilteredRoots =
-      treeType !== 'all'
-        ? filterFlamegraphTree([selectedNode], skipFunction)
-        : [selectedNode];
+      treeType !== 'all' ? filterFlamegraphTree(props.roots, skipFunction) : props.roots;
 
     if (tab === 'call order') {
       return maybeFilteredRoots;
     }
 
     return invertCallTree(maybeFilteredRoots);
-  }, [selectedNode, tab, treeType]);
+  }, [tab, treeType, props.roots]);
 
   const handleRecursionChange = useCallback(
     (evt: React.ChangeEvent<HTMLInputElement>) => {
@@ -85,7 +79,7 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
     minHeight: 30,
   });
 
-  return selectedNode ? (
+  return (
     <FrameDrawer
       style={{
         height,
@@ -159,12 +153,12 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
       <FrameStackTable
         {...props}
         recursion={recursion}
-        roots={roots ?? []}
-        referenceNode={selectedNode}
+        root={props.root}
+        frames={roots ?? []}
         canvasPoolManager={props.canvasPoolManager}
       />
     </FrameDrawer>
-  ) : null;
+  );
 });
 
 const FrameDrawerLabel = styled('label')`
