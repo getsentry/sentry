@@ -154,14 +154,15 @@ class DashboardDetailsSerializer(Serializer):
             "projects": [project.id for project in obj.projects.all()],
         }
 
-        for key in page_filter_keys:
-            if obj.filters is not None and obj.filters.get(key) is not None:
-                data[key] = obj.filters[key]
+        if obj.filters is not None:
+            for key in page_filter_keys:
+                if obj.filters.get(key) is not None:
+                    data[key] = obj.filters[key]
 
-        for key in dashboard_filter_keys:
-            if obj.filters is not None and obj.filters.get(key) is not None:
-                if data.get("filters") is None:
-                    data["filters"] = {}
-                data["filters"][key] = obj.filters[key]
+            for key in dashboard_filter_keys:
+                if obj.filters.get(key) is not None:
+                    if data.get("filters") is None:
+                        data["filters"] = {}
+                    data["filters"][key] = obj.filters[key]
 
         return data
