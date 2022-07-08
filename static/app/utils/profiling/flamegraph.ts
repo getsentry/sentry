@@ -214,7 +214,7 @@ export class Flamegraph {
       }
 
       stackTop.end = offset + value;
-      stackTop.depth = stack.length - 1;
+      stackTop.depth = stack.length;
 
       // Dont draw 0 width frames
       if (stackTop.end - stackTop.start === 0) {
@@ -236,7 +236,9 @@ export class Flamegraph {
         childTime += child.totalWeight;
       });
 
-      closeFrame(node, start + node.totalWeight);
+      if (!node.frame.isRoot()) {
+        closeFrame(node, start + node.totalWeight);
+      }
     }
     visit(profile.appendOrderTree, 0);
     return frames;
