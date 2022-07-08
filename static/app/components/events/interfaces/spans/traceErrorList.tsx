@@ -30,7 +30,7 @@ function TraceErrorList({trace, errors, onClickSpan}: TraceErrorListProps) {
                 {tn('error', 'errors', spanLevelErrors.length)}
                 {span ? (
                   <React.Fragment>
-                    {' in '}
+                    {t(' in ')}
                     <ErrorLink onClick={event => onClickSpan(event, spanId)}>
                       {span.op}
                     </ErrorLink>
