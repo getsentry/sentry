@@ -67,6 +67,7 @@ function ReplayDetails() {
       <ReplayContextProvider replay={replay} initialTimeOffset={initialTimeOffset}>
         <Layout
           layout={
+            // TODO(replay): If we end up keeping this, we'll fix up the typing
             LAYOUT_NAMES.includes(getParamValue()) ? (getParamValue() as any) : 'topbar'
           }
         />
