@@ -303,7 +303,6 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
       </FlamegraphToolbar>
 
       <ProfilingFlamechartLayout
-        layoutType="minimap_top"
         minimap={
           <FlamegraphZoomViewMinimap
             canvasPoolManager={canvasPoolManager}

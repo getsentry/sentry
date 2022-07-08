@@ -2,11 +2,13 @@ import {memo, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
+import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
 import {filterFlamegraphTree} from 'sentry/utils/profiling/filterFlamegraphTree';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
+import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/useFlamegraphPreferences';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {useVerticallyResizableDrawer} from 'sentry/utils/profiling/hooks/useResizableDrawer';
@@ -24,6 +26,7 @@ interface FrameStackProps {
 
 const FrameStack = memo(function FrameStack(props: FrameStackProps) {
   const theme = useFlamegraphTheme();
+  const [_, dispatchFlamegraphPreferences] = useFlamegraphPreferences();
 
   const [tab, setTab] = useState<'bottom up' | 'call order'>('call order');
   const [treeType, setTreeType] = useState<'all' | 'application' | 'system'>('all');
@@ -73,6 +76,18 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
   const onSystemsClick = useCallback(() => {
     setTreeType('system');
   }, []);
+
+  const onTableLeftClick = useCallback(() => {
+    dispatchFlamegraphPreferences({type: 'set layout', payload: 'table_left'});
+  }, [dispatchFlamegraphPreferences]);
+
+  const onTableBottomClick = useCallback(() => {
+    dispatchFlamegraphPreferences({type: 'set layout', payload: 'table_bottom'});
+  }, [dispatchFlamegraphPreferences]);
+
+  const onTableRightClick = useCallback(() => {
+    dispatchFlamegraphPreferences({type: 'set layout', payload: 'table_right'});
+  }, [dispatchFlamegraphPreferences]);
 
   const {height, onMouseDown} = useVerticallyResizableDrawer({
     initialHeight: (theme.SIZES.FLAMEGRAPH_DEPTH_OFFSET + 2) * theme.SIZES.BAR_HEIGHT,
@@ -149,6 +164,19 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
           </FrameDrawerLabel>
         </li>
         <li style={{flex: '1 1 100%', cursor: 'ns-resize'}} onMouseDown={onMouseDown} />
+        <li>
+          <LayoutSelectionContainer>
+            <Button onClick={onTableLeftClick} size="xs" title={t('Table left')}>
+              <IconArrow size="xs" direction="left" />
+            </Button>
+            <Button onClick={onTableBottomClick} size="xs" title={t('Table bottom')}>
+              <IconArrow size="xs" direction="down" />
+            </Button>
+            <Button onClick={onTableRightClick} size="xs" title={t('Table right')}>
+              <IconArrow size="xs" direction="right" />
+            </Button>
+          </LayoutSelectionContainer>
+        </li>
       </FrameTabs>
       <FrameStackTable
         {...props}
@@ -232,6 +260,11 @@ const FrameTabs = styled('ul')`
       border-bottom: 2px solid ${prop => prop.theme.active};
     }
   }
+`;
+
+const LayoutSelectionContainer = styled('div')`
+  display: flex;
+  align-items: center;
 `;
 
 const FRAME_WEIGHT_CELL_WIDTH_PX = 164;
