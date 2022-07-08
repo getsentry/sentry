@@ -98,6 +98,8 @@ describe('VisualizationStep', function () {
 
     await screen.findByText('Table');
 
+    await waitFor(() => expect(eventsv2Mock).toHaveBeenCalledTimes(1));
+
     userEvent.type(screen.getByPlaceholderText('Alias'), 'First Alias{enter}');
     act(() => {
       jest.advanceTimersByTime(DEFAULT_DEBOUNCE_DURATION + 1);
