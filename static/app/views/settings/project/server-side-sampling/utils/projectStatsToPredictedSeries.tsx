@@ -59,8 +59,8 @@ export function projectStatsToPredictedSeries(
     const total = accepted + filtered + invalid + dropped + rateLimited + clientDiscard;
     const newSentClient = clientRate * total;
     const droppedClient = total - newSentClient;
-    const validEvents = newSentClient - (filtered + invalid + rateLimited);
-    const newAccepted = serverRate * validEvents;
+    const validEvents = Math.max(newSentClient - (filtered + invalid + rateLimited), 0);
+    const newAccepted = serverRate > clientRate ? validEvents : serverRate * validEvents;
     const droppedServer = newSentClient - newAccepted;
 
     const name = moment(interval).valueOf();
