@@ -121,11 +121,8 @@ export function Rule({
       <ActiveColumn>
         <GuideAnchor
           target="sampling_rule_toggle"
-          onFinish={() => {
-            // TODO(sampling): activate the rule
-          }}
-          // TODO(sampling): disable if sdks are not yet updated
-          disabled={true || !isUniform}
+          onFinish={onActivate}
+          disabled={!canActivate || !isUniform}
         >
           <Tooltip
             disabled={canActivate}
@@ -146,6 +143,7 @@ export function Rule({
               onClick={onActivate}
               name="active"
               disabled={!canActivate}
+              value={rule.active}
             />
           </Tooltip>
         </GuideAnchor>

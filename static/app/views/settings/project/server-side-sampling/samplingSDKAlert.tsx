@@ -42,7 +42,6 @@ export function SamplingSDKAlert({
     ));
   }
 
-  // TODO(sampling): test this after the backend work is finished
   const atLeastOneRuleActive = rules.some(rule => rule.active);
   const uniformRule = rules.find(isUniformRule);
 
