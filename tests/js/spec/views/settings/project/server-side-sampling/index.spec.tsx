@@ -52,7 +52,7 @@ describe('Server-side Sampling', function () {
       projects: [
         TestStubs.Project({
           dynamicSampling: {
-            rules: [uniformRule],
+            rules: [{...uniformRule, sampleRate: 1}],
           },
         }),
       ],

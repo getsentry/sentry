@@ -160,6 +160,12 @@ describe('Server-side Sampling - Specific Conditions Modal', function () {
   });
 
   it('edits specific rule', async function () {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/tags/release/values/',
+      method: 'GET',
+      body: [{value: '1.2.3'}],
+    });
+
     const {organization, project} = getMockData({
       projects: [
         TestStubs.Project({
