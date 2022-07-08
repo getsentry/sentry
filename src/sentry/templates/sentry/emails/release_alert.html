@@ -90,14 +90,6 @@
         controls are enabled. For more details about this issue, <a href="{{ link }}">view this issue on Sentry</a>.
       </div>
     {% else %}
-      <div class="event">
-        <div class="event-id">ID: {{ event.event_id }}</div>
-        {% if timezone %}
-          <div class="event-date">{{ event.datetime|timezone:timezone|date:"N j, Y, g:i:s a e"}}</div>
-        {% else %}
-          <div class="event-date">{{ event.datetime|date:"N j, Y, g:i:s a e"}}</div>
-        {% endif %}
-      </div>
 
       {% if interfaces.Stacktrace %}
         <h4 class="new-title">Exception</h4>
