@@ -6,12 +6,12 @@ from django.utils.datastructures import MultiValueDict
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.snuba.metrics.datasource import get_custom_measurements, get_series
 from sentry.snuba.metrics.query_builder import QueryDefinition
-from sentry.testutils import SessionMetricsTestCase, TestCase
+from sentry.testutils import SessionMetricsReleaseHealthTestCase, TestCase
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
 from sentry.testutils.helpers.datetime import before_now
 
 
-class DataSourceTestCase(TestCase, SessionMetricsTestCase):
+class DataSourceTestCase(TestCase, SessionMetricsReleaseHealthTestCase):
     def test_valid_filter_include_meta(self):
         self.create_release(version="foo", project=self.project)
         self.store_session(

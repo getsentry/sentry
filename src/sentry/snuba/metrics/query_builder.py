@@ -435,6 +435,7 @@ class SnubaQueryBuilder:
                     projects=self._projects,
                     direction=orderby.direction,
                     metrics_query=self._metrics_query,
+                    use_case_id=self._use_case_id,
                 )
             )
         return orderby_fields
@@ -499,7 +500,9 @@ class SnubaQueryBuilder:
                 #  that we are able to generate the original CompositeEntityDerivedMetric later
                 #  on as a result of a post query operation on the results of the constituent
                 #  SingleEntityDerivedMetric instances
-                component_entities = metric_field_obj.get_entity(projects=self._projects)
+                component_entities = metric_field_obj.get_entity(
+                    projects=self._projects, use_case_id=self._use_case_id
+                )
                 if isinstance(component_entities, dict):
                     # In this case, component_entities is a dictionary with entity keys and
                     # lists of metric_mris as values representing all the entities and
@@ -538,9 +541,13 @@ class SnubaQueryBuilder:
             for field in fields:
                 metric_field_obj = metric_mri_to_obj_dict[field]
                 select += metric_field_obj.generate_select_statements(
-                    projects=self._projects, metrics_query=self._metrics_query
+                    projects=self._projects,
+                    metrics_query=self._metrics_query,
+                    use_case_id=self._use_case_id,
                 )
-                metric_ids_set |= metric_field_obj.generate_metric_ids(self._projects)
+                metric_ids_set |= metric_field_obj.generate_metric_ids(
+                    self._projects, self._use_case_id
+                )
 
             where_for_entity = [
                 Condition(

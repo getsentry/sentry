@@ -66,7 +66,7 @@ ORG_ID = 1
 USE_CASE_ID = UseCaseKey.RELEASE_HEALTH
 
 
-def get_entity_of_metric_mocked(_, metric_name):
+def get_entity_of_metric_mocked(_, metric_name, use_case_id):
     return {
         "sentry.sessions.session": EntityKey.MetricsCounters,
         SessionMRI.SESSION.value: EntityKey.MetricsCounters,

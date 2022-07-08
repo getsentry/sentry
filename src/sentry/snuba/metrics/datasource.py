@@ -78,6 +78,7 @@ def _get_metrics_for_entity(
 def get_available_derived_metrics(
     projects: Sequence[Project],
     supported_metric_ids_in_entities: Dict[MetricType, Sequence[int]],
+    use_case_id: UseCaseKey,
 ) -> Set[str]:
     """
     Function that takes as input a dictionary of the available ids in each entity, and in turn
@@ -97,7 +98,7 @@ def get_available_derived_metrics(
 
     for derived_metric_mri, derived_metric_obj in all_derived_metrics.items():
         try:
-            derived_metric_obj_ids = derived_metric_obj.generate_metric_ids(projects)
+            derived_metric_obj_ids = derived_metric_obj.generate_metric_ids(projects, use_case_id)
         except NotSupportedOverCompositeEntityException:
             # If we encounter a derived metric composed of constituents spanning multiple
             # entities then we store it in this set
@@ -116,7 +117,7 @@ def get_available_derived_metrics(
         # then we add that instance of composite metric to the found derived metric.
         composite_derived_metric_obj = all_derived_metrics[composite_derived_metric_mri]
         single_entity_constituents = (
-            composite_derived_metric_obj.naively_generate_singular_entity_constituents()
+            composite_derived_metric_obj.naively_generate_singular_entity_constituents(use_case_id)
         )
         if single_entity_constituents.issubset(found_derived_metrics):
             found_derived_metrics.add(composite_derived_metric_obj.metric_mri)
@@ -162,7 +163,9 @@ def get_metrics(projects: Sequence[Project], use_case_id: UseCaseKey) -> Sequenc
     # their constituent metrics. A derived metric should be added to the response list if its
     # metric ids are a subset of the metric ids in one of the entities i.e. Its an instance of
     # SingularEntityDerivedMetric.
-    found_derived_metrics = get_available_derived_metrics(projects, metric_ids_in_entities)
+    found_derived_metrics = get_available_derived_metrics(
+        projects, metric_ids_in_entities, use_case_id
+    )
     public_derived_metrics = get_derived_metrics(exclude_private=True)
 
     for derived_metric_mri in found_derived_metrics:
@@ -211,7 +214,9 @@ def get_custom_measurements(
     return metrics_meta
 
 
-def _get_metrics_filter_ids(projects: Sequence[Project], metric_mris: Sequence[str]) -> Set[int]:
+def _get_metrics_filter_ids(
+    projects: Sequence[Project], metric_mris: Sequence[str], use_case_id: UseCaseKey
+) -> Set[int]:
     """
     Returns a set of metric_ids that map to input metric names and raises an exception if
     metric cannot be resolved in the indexer
@@ -232,10 +237,10 @@ def _get_metrics_filter_ids(projects: Sequence[Project], metric_mris: Sequence[s
         else:
             derived_metric_obj = all_derived_metrics[mri]
             try:
-                metric_ids |= derived_metric_obj.generate_metric_ids(projects)
+                metric_ids |= derived_metric_obj.generate_metric_ids(projects, use_case_id)
             except NotSupportedOverCompositeEntityException:
                 single_entity_constituents = (
-                    derived_metric_obj.naively_generate_singular_entity_constituents()
+                    derived_metric_obj.naively_generate_singular_entity_constituents(use_case_id)
                 )
                 metric_mris_deque.extend(single_entity_constituents)
     if None in metric_ids or -1 in metric_ids:
@@ -249,6 +254,7 @@ def _validate_requested_derived_metrics_in_input_metrics(
     projects: Sequence[Project],
     metric_mris: Sequence[str],
     supported_metric_ids_in_entities: Dict[MetricType, Sequence[int]],
+    use_case_id: UseCaseKey,
 ) -> None:
     """
     Function that takes metric_mris list and a mapping of entity to its metric ids, and ensures
@@ -262,7 +268,7 @@ def _validate_requested_derived_metrics_in_input_metrics(
         metric_mri for metric_mri in metric_mris if metric_mri in public_derived_metrics
     }
     found_derived_metrics = get_available_derived_metrics(
-        projects, supported_metric_ids_in_entities
+        projects, supported_metric_ids_in_entities, use_case_id
     )
     if not requested_derived_metrics.issubset(found_derived_metrics):
         raise DerivedMetricParseException(
@@ -300,7 +306,9 @@ def _fetch_tags_or_values_per_ids(
             raise InvalidParams(f"Metric names {metric_names} do not exist")
 
     try:
-        metric_ids = _get_metrics_filter_ids(projects=projects, metric_mris=metric_mris)
+        metric_ids = _get_metrics_filter_ids(
+            projects=projects, metric_mris=metric_mris, use_case_id=use_case_id
+        )
     except MetricDoesNotExistInIndexer:
         raise InvalidParams(
             f"Some or all of the metric names in {metric_names} do not exist in the indexer"
@@ -365,6 +373,7 @@ def _fetch_tags_or_values_per_ids(
             projects,
             metric_mris=metric_mris,
             supported_metric_ids_in_entities=supported_metric_ids_in_entities,
+            use_case_id=use_case_id,
         )
 
         # Only return tags/tag values that occur in all metrics
@@ -510,7 +519,7 @@ class GroupLimitFilters:
 
 
 def _get_group_limit_filters(
-    metrics_query: MetricsQuery, results: List[Mapping[str, int]]
+    metrics_query: MetricsQuery, results: List[Mapping[str, int]], use_case_id: UseCaseKey
 ) -> Optional[GroupLimitFilters]:
     if not metrics_query.groupby or not results:
         return None
@@ -519,7 +528,7 @@ def _get_group_limit_filters(
     # will be used to filter down and order the results of the 2nd query.
     # For example, (project_id, transaction) is translated to (project_id, tags[3])
     keys = tuple(
-        resolve_tag_key(UseCaseKey.RELEASE_HEALTH, metrics_query.org_id, field)
+        resolve_tag_key(use_case_id, metrics_query.org_id, field)
         if field not in FIELD_ALIAS_MAPPINGS.values()
         else field
         for field in metrics_query.groupby
@@ -705,7 +714,7 @@ def get_series(
             snuba_queries, fields_in_entities = query_builder.get_snuba_queries()
 
             group_limit_filters = _get_group_limit_filters(
-                metrics_query, initial_query_results_data
+                metrics_query, initial_query_results_data, use_case_id
             )
 
             # This loop has constant time complexity as it will always have a maximum of
@@ -763,7 +772,9 @@ def get_series(
                     and snuba_limit
                     and len(snuba_result_data) == snuba_limit
                 ):
-                    group_limit_filters = _get_group_limit_filters(metrics_query, snuba_result_data)
+                    group_limit_filters = _get_group_limit_filters(
+                        metrics_query, snuba_result_data, use_case_id
+                    )
 
                     # We're now applying a filter that past queries may not have
                     # had. To avoid partial results, remove extra groups that

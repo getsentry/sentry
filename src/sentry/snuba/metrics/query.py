@@ -9,6 +9,7 @@ from snuba_sdk import Column, Direction, Function, Granularity, Limit, Offset
 from snuba_sdk.conditions import Condition, ConditionGroup
 
 from sentry.api.utils import InvalidParams
+from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.snuba.metrics.fields import metric_object_factory
 from sentry.snuba.metrics.fields.base import get_derived_metrics
 from sentry.utils.dates import to_timestamp
@@ -139,7 +140,7 @@ class MetricsQuery(MetricsQueryValidationRunner):
             metric_mri = get_mri(f.field.metric_name)
             # Construct a metrics expression
             metric_field_obj = metric_object_factory(f.field.op, metric_mri)
-            entity = metric_field_obj.get_entity(self.project_ids)
+            entity = metric_field_obj.get_entity(self.project_ids, UseCaseKey.RELEASE_HEALTH)
 
             if isinstance(entity, Mapping):
                 metric_entities.update(entity.keys())
