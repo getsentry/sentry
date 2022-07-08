@@ -34,6 +34,7 @@ describe('OrganizationAuditLog', () => {
     expect(screen.getByText('IP')).toBeInTheDocument();
     expect(screen.getByText('Time')).toBeInTheDocument();
     expect(screen.queryByText('No audit entries available')).not.toBeInTheDocument();
+    expect(screen.getByText('edited project ludic-science')).toBeInTheDocument();
   });
 
   it('renders empty', async () => {
