@@ -22,7 +22,7 @@ const avatarStyle = {
 type Props = {
   entries: AuditLog[] | null;
   eventType: string | undefined;
-  eventTypes: string[];
+  eventTypes: string[] | null;
   isLoading: boolean;
   onCursor: CursorHandler | undefined;
   onEventSelect: (value: string) => void;
@@ -41,7 +41,7 @@ const AuditLogList = ({
   const hasEntries = entries && entries.length > 0;
   const ipv4Length = 15;
 
-  const eventOptions = eventTypes.map(type => ({
+  const eventOptions = eventTypes?.map(type => ({
     label: type,
     value: type,
   }));
