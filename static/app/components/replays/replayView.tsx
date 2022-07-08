@@ -71,10 +71,10 @@ const ReplayControllerWrapper = styled(PanelBody)`
 
 const PanelNoMargin = styled(Panel)<{isFullscreen: boolean}>`
   margin-bottom: 0;
-
+  height: 100%;
   ${p =>
     p.isFullscreen
-      ? `height: 100%;
+      ? `
       display: grid;
       grid-template-rows: auto 1fr auto;
       `

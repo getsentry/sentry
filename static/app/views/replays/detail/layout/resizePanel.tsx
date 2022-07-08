@@ -1,3 +1,4 @@
+import {CSSProperties} from 'react';
 import BaseResizePanel from 'react-resize-panel';
 import styled from '@emotion/styled';
 
@@ -6,6 +7,7 @@ type Props = {
   minHeight?: number;
   minWidth?: number;
   modifierClass?: string;
+  style?: CSSProperties;
 };
 
 export const CLASSNAMES = {
