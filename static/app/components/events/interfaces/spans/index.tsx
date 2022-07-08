@@ -7,7 +7,7 @@ import Alert from 'sentry/components/alert';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Panel} from 'sentry/components/panels';
 import SearchBar from 'sentry/components/searchBar';
-import {t} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {EventTransaction} from 'sentry/types/event';
@@ -81,12 +81,19 @@ class SpansInterface extends PureComponent<Props, State> {
       return null;
     }
 
+    const label =
+      errors.length === 1
+        ? t('There is an error event associated with this transaction event.')
+        : tn(
+            `There are %s error events associated with this transaction event.`,
+            `There are %s error events associated with this transaction event.`,
+            errors.length
+          );
+
     return (
       <AlertContainer>
         <Alert type={getCumulativeAlertLevelFromErrors(errors)}>
-          <ErrorLabel>
-            There is an error event associated with this transaction event.
-          </ErrorLabel>
+          <ErrorLabel>{label}</ErrorLabel>
 
           <AnchorLinkManager.Consumer>
             {({scrollToHash}) => (
