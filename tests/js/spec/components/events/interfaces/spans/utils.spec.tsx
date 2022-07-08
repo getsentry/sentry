@@ -1,4 +1,4 @@
-import {getCumulativeAlertLevelFromErrors} from 'sentry/components/events/interfaces/spans';
+import {getCumulativeAlertLevelFromErrors} from 'sentry/components/events/interfaces/spans/utils';
 
 describe('getCumulativeAlertLevelFromErrors', () => {
   it('returns undefined for an empty array', () => {
