@@ -17,7 +17,7 @@ describe('OrganizationAuditLog', () => {
     ConfigStore.loadInitialData({user});
   });
 
-  it('renders', () => {
+  it('renders', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/audit-logs/`,
       method: 'GET',
@@ -65,7 +65,7 @@ describe('OrganizationAuditLog', () => {
       }
     );
 
-    expect(screen.getByText('project.remove')).toBeInTheDocument();
+    expect(await screen.findByText('project.remove')).toBeInTheDocument();
     expect(screen.getByText('org.create')).toBeInTheDocument();
     expect(screen.getAllByText('127.0.0.1')).toHaveLength(2);
     expect(screen.getByText('17:29 PDT')).toBeInTheDocument();

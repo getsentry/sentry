@@ -74,7 +74,7 @@ export function DraggableList({
             id={itemId}
             index={index}
             renderItem={renderItem}
-            disabled={disabled || items[index].bottomPinned}
+            disabled={disabled || items[index].condition.inner.length === 0}
             wrapperStyle={wrapperStyle}
           />
         ))}
