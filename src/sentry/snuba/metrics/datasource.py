@@ -21,7 +21,7 @@ from snuba_sdk.conditions import ConditionGroup
 from sentry.api.utils import InvalidParams
 from sentry.models import Organization, Project
 from sentry.sentry_metrics import indexer
-from sentry.sentry_metrics.utils import resolve_tag_key, reverse_resolve, reverse_tag_value
+from sentry.sentry_metrics.utils import resolve_tag_key, reverse_resolve, reverse_resolve_tag_value
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.fields import run_metrics_query
 from sentry.snuba.metrics.fields.base import get_derived_metrics, org_id_from_projects
@@ -370,7 +370,7 @@ def _fetch_tags_or_values_per_ids(
     if column.startswith("tags["):
         tag_id = column.split("tags[")[1].split("]")[0]
         tags_or_values = [
-            {"key": reverse_resolve(int(tag_id)), "value": reverse_tag_value(value_id)}
+            {"key": reverse_resolve(int(tag_id)), "value": reverse_resolve_tag_value(value_id)}
             for value_id in tag_or_value_ids
         ]
         tags_or_values.sort(key=lambda tag: (tag["key"], tag["value"]))

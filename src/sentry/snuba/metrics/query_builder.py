@@ -25,7 +25,7 @@ from sentry.sentry_metrics.utils import (
     resolve_tag_value,
     resolve_weak,
     reverse_resolve,
-    reverse_tag_value,
+    reverse_resolve_tag_value,
 )
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.fields import metric_object_factory
@@ -673,7 +673,7 @@ class SnubaResultConverter:
         groups = [
             dict(
                 by=dict(
-                    (parse_tag(key), reverse_tag_value(value, weak=True))
+                    (parse_tag(key), reverse_resolve_tag_value(value, weak=True))
                     if key not in FIELD_ALIAS_MAPPINGS.values()
                     else (key, value)
                     for key, value in tags

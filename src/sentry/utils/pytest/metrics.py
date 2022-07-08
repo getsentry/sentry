@@ -27,6 +27,9 @@ def control_metrics_access(monkeypatch, request, set_sentry_option):
     from sentry.snuba import tasks
     from sentry.utils import snuba
 
+    # Explicitly set option to avoid hitting DB from within resolve_tag_values
+    set_sentry_option("sentry-metrics.performance.tags-values-are-strings", False)
+
     if "sentry_metrics" in {mark.name for mark in request.node.iter_markers()}:
         mock_indexer = MockIndexer()
         monkeypatch.setattr("sentry.sentry_metrics.indexer.bulk_record", mock_indexer.bulk_record)
@@ -37,6 +40,7 @@ def control_metrics_access(monkeypatch, request, set_sentry_option):
         )
 
         if os.environ.get("SENTRY_METRICS_SIMULATE_TAG_VALUES_IN_CLICKHOUSE") != "1":
+            yield
             return
 
         set_sentry_option("sentry-metrics.performance.tags-values-are-strings", True)
@@ -92,6 +96,7 @@ def control_metrics_access(monkeypatch, request, set_sentry_option):
             )
 
         monkeypatch.setattr(tasks, "_create_snql_in_snuba", new_create_snql_in_snuba)
+        yield
     else:
         should_fail = False
 
@@ -102,6 +107,8 @@ def control_metrics_access(monkeypatch, request, set_sentry_option):
 
         monkeypatch.setattr(indexer, "resolve", functools.partial(fail, indexer.resolve))
         monkeypatch.setattr(indexer, "bulk_record", functools.partial(fail, indexer.bulk_record))
+
+        yield
 
         if should_fail:
             pytest.fail(

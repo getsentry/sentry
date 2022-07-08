@@ -15,7 +15,7 @@ class MetricIndexNotFound(InvalidParams):  # type: ignore
     pass
 
 
-def reverse_tag_value(index: Union[int, str, None], weak=False) -> Optional[str]:
+def reverse_resolve_tag_value(index: Union[int, str, None], weak=False) -> Optional[str]:
     # XXX(markus): Normally there would be a check for the option
     # "sentry-metrics.performance.tags-values-are-strings", but this function
     # is sometimes called with metric IDs for reasons I haven't figured out.
@@ -70,6 +70,16 @@ def resolve_tag_value(org_id: int, string: str) -> Union[str, int]:
     if options.get("sentry-metrics.performance.tags-values-are-strings"):
         return string
     return resolve_weak(org_id, string)
+
+
+def resolve_tag_values(org_id: int, strings: Sequence[str]) -> Sequence[Union[str, int]]:
+    rv = []
+    for string in strings:
+        resolved = resolve_tag_value(org_id, string)
+        if resolved != STRING_NOT_FOUND:
+            rv.append(resolved)
+
+    return rv
 
 
 def resolve_weak(org_id: int, string: str) -> int:
