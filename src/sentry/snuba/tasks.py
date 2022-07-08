@@ -11,7 +11,6 @@ from sentry.models import Any, Environment, Mapping, Optional
 from sentry.snuba.dataset import EntityKey
 from sentry.snuba.entity_subscription import (
     BaseEntitySubscription,
-    get_entity_key_from_query_builder,
     get_entity_subscription_for_dataset,
     map_aggregate_to_entity_key,
 )
@@ -195,7 +194,7 @@ def _create_in_snuba(subscription: QuerySubscription) -> str:
 
     response = _snuba_pool.urlopen(
         "POST",
-        f"/{snuba_query.dataset}/{get_entity_key_from_query_builder(snql_query).value}/subscriptions",
+        f"/{snuba_query.dataset}/{snql_query.query.match.name}/subscriptions",
         body=json.dumps(body),
     )
     if response.status != 202:

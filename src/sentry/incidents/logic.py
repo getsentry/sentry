@@ -314,9 +314,7 @@ def build_incident_query_builder(
     for i, column in enumerate(query_builder.columns):
         if column.alias == CRASH_RATE_ALERT_AGGREGATE_ALIAS:
             query_builder.columns[i] = replace(column, alias="count")
-    time_col = ENTITY_TIME_COLUMNS[
-        get_entity_key_from_query_builder(query_builder.get_snql_query())
-    ]
+    time_col = ENTITY_TIME_COLUMNS[get_entity_key_from_query_builder(query_builder)]
     query_builder.add_conditions(
         [
             Condition(Column(time_col), Op.GTE, start),
