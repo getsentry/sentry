@@ -3,7 +3,11 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  addSuccessMessage,
+} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Button from 'sentry/components/button';
@@ -130,6 +134,8 @@ export function ServerSideSampling({project}: Props) {
     })
     .filter(defined);
 
+  const uniformRule = rules.find(rule => isUniformRule(rule));
+
   useEffect(() => {
     if (!isEqual(previousRules, currentRules)) {
       setRules(currentRules ?? []);
@@ -137,7 +143,6 @@ export function ServerSideSampling({project}: Props) {
   }, [currentRules, previousRules]);
 
   async function handleActivateToggle(ruleId: SamplingRule['id']) {
-    // TODO(sampling): test this after the backend work is finished
     const newRules = rules.map(rule => {
       if (rule.id === ruleId) {
         return {
@@ -149,6 +154,7 @@ export function ServerSideSampling({project}: Props) {
       return rule;
     });
 
+    addLoadingMessage();
     try {
       const result = await api.requestPromise(
         `/projects/${organization.slug}/${project.slug}/`,
@@ -158,9 +164,9 @@ export function ServerSideSampling({project}: Props) {
         }
       );
       ProjectStore.onUpdateSuccess(result);
-      addSuccessMessage(t('Successfully activated sampling rule'));
+      addSuccessMessage(t('Successfully updated the sampling rule'));
     } catch (error) {
-      const message = t('Unable to activate sampling rule');
+      const message = t('Unable to update the sampling rule');
       handleXhrErrorResponse(message)(error);
       addErrorMessage(message);
     }
@@ -441,8 +447,7 @@ export function ServerSideSampling({project}: Props) {
                   </Button>
                   <GuideAnchor
                     target="add_conditional_rule"
-                    // TODO(sampling): disable unless the base rule is active
-                    disabled={true || !hasAccess || rules.length !== 1}
+                    disabled={!uniformRule?.active || !hasAccess || rules.length !== 1}
                   >
                     <AddRuleButton
                       disabled={!hasAccess}
