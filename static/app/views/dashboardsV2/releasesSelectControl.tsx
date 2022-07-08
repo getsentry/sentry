@@ -10,8 +10,6 @@ import {Release} from 'sentry/types';
 import {useReleases} from 'sentry/utils/releases/releasesProvider';
 
 function ReleasesSelectControl() {
-  const triggerIcon = <IconReleases key={0} />;
-
   const {releases, loading} = useReleases();
   const [selectedReleases, setSelectedReleases] = useState<Release[]>([]);
 
@@ -48,7 +46,7 @@ function ReleasesSelectControl() {
           )}
         </Fragment>
       }
-      triggerProps={{icon: triggerIcon}}
+      triggerProps={{icon: <IconReleases />}}
     />
   );
 }

@@ -29,7 +29,7 @@ describe('useReleases', function () {
     },
   } as PageFilters;
 
-  it("fetches releasess and save values in the context's state", async function () {
+  it("fetches releases and save values in the context's state", async function () {
     const mockReleases = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/',
       body: [
@@ -59,8 +59,8 @@ describe('useReleases', function () {
 
     expect(mockReleases).toHaveBeenCalledTimes(1);
 
-    expect(await screen.findByText('sentry-android-shop@1.2.0')).toBeInTheDocument();
+    expect(await screen.findByText('loading: false')).toBeInTheDocument();
+    expect(screen.getByText('sentry-android-shop@1.2.0')).toBeInTheDocument();
     expect(screen.getByText('sentry-android-shop@1.3.0')).toBeInTheDocument();
-    expect(screen.getByText('loading: false')).toBeInTheDocument();
   });
 });

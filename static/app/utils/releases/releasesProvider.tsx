@@ -46,6 +46,7 @@ function ReleasesProvider({
     }
 
     let shouldCancelRequest = false;
+    setLoading(true);
     fetchReleases(api, organization.slug, selection)
       .then(response => {
         if (shouldCancelRequest) {
