@@ -673,7 +673,7 @@ class SnubaResultConverter:
         groups = [
             dict(
                 by=dict(
-                    (parse_tag(key), reverse_tag_value(value))
+                    (parse_tag(key), reverse_tag_value(value, weak=True))
                     if key not in FIELD_ALIAS_MAPPINGS.values()
                     else (key, value)
                     for key, value in tags
