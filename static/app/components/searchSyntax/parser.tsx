@@ -838,8 +838,6 @@ export function joinQuery(
     (leadingSpace ? ' ' : '') +
     (parsedTerms.length === 1
       ? parsedTerms[0].text
-      : additionalSpaceBetween
-      ? parsedTerms.map(p => p.text).join(' ')
-      : parsedTerms.map(p => p.text).reduce((a, b) => a + b))
+      : parsedTerms.map(p => p.text).join(additionalSpaceBetween ? ' ' : ''))
   );
 }
