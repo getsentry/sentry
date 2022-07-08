@@ -193,12 +193,13 @@ function EventEntry({
       _focusedSpanIds.forEach(spanId => (focusedSpanIds[spanId] = new Set()));
 
       return (
+        // TODO: We need projectSlug and transactionID to be determined dynamically
         <EmbeddedSpanTree
           event={event}
           organization={organization as Organization}
-          projectSlug="internal"
+          projectSlug="javascript"
           focusedSpanIds={focusedSpanIds}
-          transactionID="123"
+          transactionID="f8cbff973aa643248c8605ffc8572c5c"
         />
       );
     // case EntryType.PERFORMANCE:

@@ -190,13 +190,13 @@ class GroupDetails extends Component<Props, State> {
       this.setState({loadingEvent: true, eventError: false});
     }
 
-    const {params, environments, api, organization} = this.props;
+    const {params, environments, api} = this.props;
     const orgSlug = params.orgId;
     const groupId = params.groupId;
     const eventId = params?.eventId || 'latest';
     const projectId = group?.project?.slug;
     try {
-      let event = await fetchGroupEvent(
+      const event = await fetchGroupEvent(
         api,
         orgSlug,
         groupId,
@@ -206,11 +206,11 @@ class GroupDetails extends Component<Props, State> {
       );
 
       // add extra perf issue specific entries like span tree and duration and span count charts
-      if (organization.features.includes('performance-extraneous-spans-poc')) {
-        const updatedEvent = this.addPerformanceSpecificEntries(event);
-        // TODO (udameli): fix typing here
-        event = updatedEvent as Event;
-      }
+      // if (organization.features.includes('performance-extraneous-spans-poc')) {
+      //   const updatedEvent = this.addPerformanceSpecificEntries(event);
+      //   // TODO (udameli): fix typing here
+      //   event = updatedEvent as Event;
+      // }
 
       this.setState({event, loading: false, eventError: false, loadingEvent: false});
     } catch (err) {
