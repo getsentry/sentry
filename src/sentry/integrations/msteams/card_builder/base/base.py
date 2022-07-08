@@ -9,6 +9,8 @@ from sentry.utils.http import absolute_uri
 URL_FORMAT_STR = "[{text}]({url})"
 SENTRY_ICON_URL = "images/sentry-glyph-black.png"
 
+# NOTE: The classes below need to inherit from `str` as well to be serialized correctly.
+
 
 class TextSize(str, Enum):
     SMALL = "Small"
@@ -60,7 +62,7 @@ class MSTeamsMessageBuilder(AbstractMessageBuilder, ABC):
         return {
             "type": "Image",
             "url": absolute_uri(url),
-            "size": "Large",
+            "size": "Medium",
         }
 
     @staticmethod
