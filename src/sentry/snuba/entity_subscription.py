@@ -26,10 +26,10 @@ from sentry.models import Environment
 from sentry.sentry_metrics.utils import (
     MetricIndexNotFound,
     resolve,
-    resolve_many_weak,
     resolve_tag_key,
+    resolve_tag_value,
     resolve_weak,
-    reverse_resolve,
+    reverse_tag_value,
 )
 from sentry.snuba.dataset import EntityKey
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
@@ -345,7 +345,7 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
             translated_data: Dict[str, Any] = {}
             session_status = resolve_tag_key(org_id, "session.status")
             for row in data:
-                tag_value = reverse_resolve(row[session_status])
+                tag_value = reverse_tag_value(row[session_status])
                 translated_data[tag_value] = row[value_col_name]
 
             total_session_count = translated_data.get("init", 0)
@@ -480,7 +480,7 @@ class MetricsCountersEntitySubscription(BaseMetricsEntitySubscription):
             Condition(
                 Column(self.session_status),
                 Op.IN,
-                resolve_many_weak(self.org_id, ["crashed", "init"]),
+                [resolve_tag_value(self.org_id, "crashed"), resolve_tag_value(self.org_id, "init")],
             ),
         ]
 

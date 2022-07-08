@@ -6,11 +6,23 @@ import os
 import pytest
 from snuba_sdk import AliasedExpression, Column, Condition, Function, Op, OrderBy
 
+STRINGS_THAT_LOOK_LIKE_TAG_VALUES = (
+    "",
+    "staging",
+    "value1",
+    "prod",
+    "exited",
+    "myapp@2.0.0",
+    "crashed",
+    "init",
+)
+
 
 @pytest.fixture(autouse=True)
 def control_metrics_access(monkeypatch, request, set_sentry_option):
     from sentry.sentry_metrics import indexer
     from sentry.sentry_metrics.indexer.mock import MockIndexer
+    from sentry.snuba import tasks
     from sentry.utils import snuba
 
     if "sentry_metrics" in {mark.name for mark in request.node.iter_markers()}:
@@ -29,9 +41,9 @@ def control_metrics_access(monkeypatch, request, set_sentry_option):
         old_resolve = indexer.resolve
 
         def new_resolve(org_id, string, *args, **kwargs):
-            if string in ("", "staging", "value1", "prod", "exited", "myapp@2.0.0"):
+            if string in STRINGS_THAT_LOOK_LIKE_TAG_VALUES:
                 pytest.fail(
-                    "stop right there, thief! you're about to resolve something that looks like a tag value, but in this test mode, tag values are stored in clickhouse. the indexer might not have the value!"
+                    f"stop right there, thief! you're about to resolve the string {string!r}. that looks like a tag value, but in this test mode, tag values are stored in clickhouse. the indexer might not have the value!"
                 )
             return old_resolve(org_id, string, *args, **kwargs)
 
@@ -43,25 +55,41 @@ def control_metrics_access(monkeypatch, request, set_sentry_option):
             query = args[0][0][0].query
             is_metrics = query.match.name.startswith("metrics_")
 
-            convert_select_columns = []
+            if not is_metrics:
+                return old_build_results(*args, **kwargs)
 
-            if is_metrics:
-                query, convert_select_columns = _rewrite_query(old_resolve, query)
-                args[0][0][0].query = query
+            query, convert_select_columns = _rewrite_query(old_resolve, query)
+            args[0][0][0].query = query
 
             result = old_build_results(*args, **kwargs)
 
-            if is_metrics:
-                for row in result[0].get("data") or ():
-                    for k in convert_select_columns:
-                        if k in row:
-                            assert isinstance(row[k], int)
-                            row[k] = indexer.reverse_resolve(row[k])
-                            assert row[k] is None or isinstance(row[k], str)
+            for row in result[0].get("data") or ():
+                for k in convert_select_columns:
+                    if k in row:
+                        assert isinstance(row[k], int)
+                        row[k] = indexer.reverse_resolve(row[k])
+                        assert row[k] is None or isinstance(row[k], str)
 
             return result
 
         monkeypatch.setattr(snuba, "_apply_cache_and_build_results", new_build_results)
+
+        old_create_snql_in_snuba = tasks._create_snql_in_snuba
+
+        def new_create_snql_in_snuba(subscription, snuba_query, snql_query, entity_subscription):
+            is_metrics = snql_query.query.match.name.startswith("metrics_")
+            if not is_metrics:
+                return old_create_snql_in_snuba(
+                    subscription, snuba_query, snql_query, entity_subscription
+                )
+
+            query, convert_select_columns = _rewrite_query(old_resolve, snql_query.query)
+            snql_query.query = query
+            return old_create_snql_in_snuba(
+                subscription, snuba_query, snql_query, entity_subscription
+            )
+
+        monkeypatch.setattr(tasks, "_create_snql_in_snuba", new_create_snql_in_snuba)
     else:
         should_fail = False
 
@@ -230,6 +258,7 @@ def _rewrite_query(indexer_resolve, query):
             "equals",
             "lessOrEquals",
             "greaterOrEquals",
+            "uniq",
         ):
             new_parameters = [_walk_term(param) for param in term.parameters or ()]
             return dataclasses.replace(term, parameters=new_parameters)
