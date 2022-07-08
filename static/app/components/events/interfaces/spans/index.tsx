@@ -232,9 +232,7 @@ const ERROR_LEVEL_TO_ALERT_TYPE: Record<TraceError['level'], keyof Theme['alert'
 };
 
 // Allows sorting errors according to their level of severity
-const ERROR_LEVEL_WEIGHTS: {
-  [Property in TraceError['level']]: number;
-} = {
+const ERROR_LEVEL_WEIGHTS: Record<TraceError['level'], number> = {
   fatal: 5,
   error: 4,
   default: 4,
