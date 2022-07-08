@@ -12236,10 +12236,10 @@ react-list@^0.8.13:
   dependencies:
     prop-types "15"
 
-react-mentions@4.4.2:
-  version "4.4.2"
-  resolved "https://registry.yarnpkg.com/react-mentions/-/react-mentions-4.4.2.tgz#b832eeca0b2e141a6fc80d49cadd7c17680c99b1"
-  integrity sha512-vkhTeUQaxUYlWKxj/wTFBX+h+JmsKIwjLvigeeYar/+UlJ8vFVKq7iM/9YwAsVg+Wye3nvihH7WPld66fVrjmg==
+react-mentions@4.4.5:
+  version "4.4.5"
+  resolved "https://registry.yarnpkg.com/react-mentions/-/react-mentions-4.4.5.tgz#eca42fba0eb3abae16d541343511faf83ef74974"
+  integrity sha512-AWqWikMcf7mu3iGf+t/nGp/atW9jr3pN8GxyLVBnWkH1Unw7emWlSigKElzQ2An0rPZgx9Mg4TcOK+YsjBUgFQ==
   dependencies:
     "@babel/runtime" "7.4.5"
     invariant "^2.2.4"
