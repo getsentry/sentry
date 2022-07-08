@@ -519,8 +519,7 @@ export function trimTextCenter(text: string, low: number): TrimTextCenter {
     };
   }
   const prefixLength = Math.floor(low / 2);
-  // Use 1 character less than the low value to account for ellipsis
-  // and favor displaying the prefix
+  // Use 1 character less than the low value to account for ellipsis and favor displaying the prefix
   const postfixLength = low - prefixLength - 1;
 
   const start = prefixLength;

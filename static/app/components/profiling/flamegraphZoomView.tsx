@@ -2,7 +2,6 @@ import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react
 import styled from '@emotion/styled';
 import {mat3, vec2} from 'gl-matrix';
 
-import {FrameStack} from 'sentry/components/profiling/FrameStack/frameStack';
 import space from 'sentry/styles/space';
 import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
 import {CanvasPoolManager, CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
@@ -40,6 +39,7 @@ interface FlamegraphZoomViewProps {
   flamegraphCanvas: FlamegraphCanvas | null;
   flamegraphCanvasRef: HTMLCanvasElement | null;
   flamegraphOverlayCanvasRef: HTMLCanvasElement | null;
+  flamegraphRenderer: FlamegraphRenderer | null;
   flamegraphView: FlamegraphView | null;
   setFlamegraphCanvasRef: React.Dispatch<React.SetStateAction<HTMLCanvasElement | null>>;
   setFlamegraphOverlayCanvasRef: React.Dispatch<
@@ -50,6 +50,7 @@ interface FlamegraphZoomViewProps {
 function FlamegraphZoomView({
   canvasPoolManager,
   canvasBounds,
+  flamegraphRenderer,
   flamegraph,
   flamegraphCanvas,
   flamegraphCanvasRef,
@@ -73,16 +74,6 @@ function FlamegraphZoomView({
   const [flamegraphState, dispatchFlamegraphState] = useFlamegraphState();
   const [startPanVector, setStartPanVector] = useState<vec2 | null>(null);
   const [configSpaceCursor, setConfigSpaceCursor] = useState<vec2 | null>(null);
-
-  const flamegraphRenderer = useMemo(() => {
-    if (!flamegraphCanvasRef) {
-      return null;
-    }
-
-    return new FlamegraphRenderer(flamegraphCanvasRef, flamegraph, flamegraphTheme, {
-      draw_border: true,
-    });
-  }, [flamegraph, flamegraphCanvasRef, flamegraphTheme]);
 
   const textRenderer: TextRenderer | null = useMemo(() => {
     if (!flamegraphOverlayCanvasRef) {
@@ -680,12 +671,6 @@ function FlamegraphZoomView({
           </BoundTooltip>
         ) : null}
       </CanvasContainer>
-      {flamegraphRenderer ? (
-        <FrameStack
-          canvasPoolManager={canvasPoolManager}
-          flamegraphRenderer={flamegraphRenderer}
-        />
-      ) : null}
     </Fragment>
   );
 }

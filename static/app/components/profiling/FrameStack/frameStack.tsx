@@ -6,18 +6,19 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
 import {filterFlamegraphTree} from 'sentry/utils/profiling/filterFlamegraphTree';
+import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import {useFlamegraphProfilesValue} from 'sentry/utils/profiling/flamegraph/useFlamegraphProfiles';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {useVerticallyResizableDrawer} from 'sentry/utils/profiling/hooks/useResizableDrawer';
 import {invertCallTree} from 'sentry/utils/profiling/profile/utils';
-import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
 
 import {FrameStackTable} from './frameStackTable';
 
 interface FrameStackProps {
   canvasPoolManager: CanvasPoolManager;
-  flamegraphRenderer: FlamegraphRenderer;
+  formatDuration: Flamegraph['formatter'];
+  getFrameColor: (frame: FlamegraphFrame) => string;
 }
 
 const FrameStack = memo(function FrameStack(props: FrameStackProps) {
@@ -183,6 +184,7 @@ const FrameDrawer = styled('div')`
   display: flex;
   flex-shrink: 0;
   flex-direction: column;
+  height: 100%;
 `;
 
 const Separator = styled('li')`

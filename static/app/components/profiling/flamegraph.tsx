@@ -1,6 +1,7 @@
 import {
   Fragment,
   ReactElement,
+  useCallback,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -15,6 +16,7 @@ import {FlamegraphToolbar} from 'sentry/components/profiling/flamegraphToolbar';
 import {FlamegraphViewSelectMenu} from 'sentry/components/profiling/flamegraphViewSelectMenu';
 import {FlamegraphZoomView} from 'sentry/components/profiling/flamegraphZoomView';
 import {FlamegraphZoomViewMinimap} from 'sentry/components/profiling/flamegraphZoomViewMinimap';
+import {FrameStack} from 'sentry/components/profiling/FrameStack/frameStack';
 import {
   ProfileDragDropImport,
   ProfileDragDropImportProps,
@@ -28,9 +30,10 @@ import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegrap
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {FlamegraphView} from 'sentry/utils/profiling/flamegraphView';
-import {Rect, watchForResize} from 'sentry/utils/profiling/gl/utils';
+import {formatColorForFrame, Rect, watchForResize} from 'sentry/utils/profiling/gl/utils';
 import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import {Profile} from 'sentry/utils/profiling/profile/profile';
+import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
 import {useDevicePixelRatio} from 'sentry/utils/useDevicePixelRatio';
 import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
 
@@ -41,6 +44,8 @@ function getTransactionConfigSpace(profiles: Profile[]): Rect {
   const endedAt = Math.max(...profiles.map(p => p.endedAt));
   return new Rect(startedAt, 0, endedAt - startedAt, 0);
 }
+
+const noopColor = () => '';
 interface FlamegraphProps {
   onImport: ProfileDragDropImportProps['onImport'];
   profiles: ProfileGroup;
@@ -52,7 +57,6 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
   const flamegraphTheme = useFlamegraphTheme();
   const [{sorting, view, xAxis}, dispatch] = useFlamegraphPreferences();
   const [{threadId}, dispatchThreadId] = useFlamegraphProfiles();
-
   const canvasBounds = useRef<Rect>(Rect.Empty());
 
   const [flamegraphCanvasRef, setFlamegraphCanvasRef] =
@@ -66,7 +70,6 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
     useState<HTMLCanvasElement | null>(null);
 
   const canvasPoolManager = useMemo(() => new CanvasPoolManager(), []);
-
   const scheduler = useMemo(() => new CanvasScheduler(), []);
 
   const flamegraph = useMemo(() => {
@@ -243,6 +246,26 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
     flamegraphView,
   ]);
 
+  const flamegraphRenderer = useMemo(() => {
+    if (!flamegraphCanvasRef) {
+      return null;
+    }
+
+    return new FlamegraphRenderer(flamegraphCanvasRef, flamegraph, flamegraphTheme, {
+      draw_border: true,
+    });
+  }, [flamegraph, flamegraphCanvasRef, flamegraphTheme]);
+
+  const getFrameColor = useCallback(
+    (frame: FlamegraphFrame) => {
+      if (!flamegraphRenderer) {
+        return '';
+      }
+      return formatColorForFrame(frame, flamegraphRenderer);
+    },
+    [flamegraphRenderer]
+  );
+
   return (
     <Fragment>
       <FlamegraphToolbar>
@@ -287,6 +310,7 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
         flamechart={
           <ProfileDragDropImport onImport={props.onImport}>
             <FlamegraphZoomView
+              flamegraphRenderer={flamegraphRenderer}
               canvasBounds={canvasBounds.current}
               canvasPoolManager={canvasPoolManager}
               flamegraph={flamegraph}
@@ -298,6 +322,13 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
               setFlamegraphOverlayCanvasRef={setFlamegraphOverlayCanvasRef}
             />
           </ProfileDragDropImport>
+        }
+        frameStack={
+          <FrameStack
+            getFrameColor={getFrameColor}
+            formatDuration={flamegraph ? flamegraph.formatter : noopColor}
+            canvasPoolManager={canvasPoolManager}
+          />
         }
       />
     </Fragment>
