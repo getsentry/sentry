@@ -161,3 +161,17 @@ class GetCustomMeasurementsTest(MetricsEnhancedPerformanceTestCase):
                 "unit": "millisecond",
             }
         ]
+
+    def test_broken_custom_metric(self):
+        self.store_metric(
+            999,
+            metric="measurements.something_custom",
+            internal_metric="d:transactions/measurements.something_custom@millisecond",
+            entity="metrics_distributions",
+            timestamp=self.day_ago + timedelta(hours=1, minutes=0),
+        )
+
+        result = get_custom_measurements(
+            projects=[self.project], organization=self.organization, start=self.day_ago
+        )
+        assert result == []
