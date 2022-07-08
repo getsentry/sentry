@@ -551,5 +551,5 @@ def map_aggregate_to_entity_key(dataset: QueryDatasets, aggregate: str) -> Entit
     return entity_key
 
 
-def get_entity_key_from_query_builder(query_builder: QueryBuilder):
+def get_entity_key_from_query_builder(query_builder: QueryBuilder) -> EntityKey:
     return EntityKey(query_builder.get_snql_query().query.match.name)
