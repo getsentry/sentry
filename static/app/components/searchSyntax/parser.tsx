@@ -809,7 +809,7 @@ const options = {
  * Parse a search query into a ParseResult. Failing to parse the search query
  * will result in null.
  */
-export function parseSearch(query: string): ParseResult | null {
+export function parseQuery(query: string): ParseResult | null {
   try {
     return grammar.parse(query, options);
   } catch (e) {
@@ -820,13 +820,15 @@ export function parseSearch(query: string): ParseResult | null {
 }
 
 /**
- * Join a parsed query array into a string. Should handle null cases to chain
- * easily with parseSearch. Option to add a leading space when applicable to
- * combine with other strings easily.
+ * Join a parsed query array into a string.
+ * Should handle null cases to chain easily with parseQuery.
+ * Option to add a leading space when applicable (e.g. to combine with other strings).
+ * Option to add a space between elements (e.g. for when no Token.Spaces present).
  */
-export function joinSearch(
+export function joinQuery(
   parsedTerms: ParseResult | null | undefined,
-  leadingSpace?: boolean
+  leadingSpace?: boolean,
+  additionalSpaceBetween?: boolean
 ): string {
   if (!parsedTerms || !parsedTerms.length) {
     return '';
@@ -834,8 +836,10 @@ export function joinSearch(
 
   return (
     (leadingSpace ? ' ' : '') +
-    (parsedTerms.length > 1
-      ? parsedTerms.map(p => p.text).reduce((a, b) => a + b)
-      : parsedTerms[0].text)
+    (parsedTerms.length === 1
+      ? parsedTerms[0].text
+      : additionalSpaceBetween
+      ? parsedTerms.map(p => p.text).join(' ')
+      : parsedTerms.map(p => p.text).reduce((a, b) => a + b))
   );
 }

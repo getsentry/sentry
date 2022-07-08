@@ -1,5 +1,5 @@
 import {Client} from 'sentry/api';
-import {joinSearch, parseSearch, Token} from 'sentry/components/searchSyntax/parser';
+import {joinQuery, parseQuery, Token} from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {Group, Organization, PageFilters} from 'sentry/types';
@@ -136,12 +136,12 @@ export function transformIssuesResponseToTable(
 
       // Discover Url properties
       const query = widgetQuery.conditions;
-      const parsedResult = parseSearch(query);
+      const parsedResult = parseQuery(query);
       const filteredTerms = parsedResult?.filter(
         p => !(p.type === Token.Filter && DISCOVER_EXCLUSION_FIELDS.includes(p.key.text))
       );
 
-      transformedTableResult.discoverSearchQuery = joinSearch(filteredTerms, true);
+      transformedTableResult.discoverSearchQuery = joinQuery(filteredTerms, true);
       transformedTableResult.projectId = project.id;
 
       const {period, start, end} = pageFilters.datetime || {};

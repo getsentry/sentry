@@ -12,7 +12,7 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import {Panel, PanelBody} from 'sentry/components/panels';
-import {parseSearch, Token} from 'sentry/components/searchSyntax/parser';
+import {parseQuery, Token} from 'sentry/components/searchSyntax/parser';
 import {treeResultLocator} from 'sentry/components/searchSyntax/utils';
 import StreamGroup, {
   DEFAULT_STREAM_GROUP_STATS_PERIOD,
@@ -128,7 +128,7 @@ class GroupList extends Component<Props, State> {
 
     const endpoint = this.getGroupListEndpoint();
 
-    const parsedQuery = parseSearch((queryParams ?? this.getQueryParams()).query);
+    const parsedQuery = parseQuery((queryParams ?? this.getQueryParams()).query);
     const hasLogicBoolean = parsedQuery
       ? treeResultLocator<boolean>({
           tree: parsedQuery,

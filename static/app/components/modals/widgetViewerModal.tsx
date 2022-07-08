@@ -27,7 +27,7 @@ import GridEditable, {
 } from 'sentry/components/gridEditable';
 import Pagination from 'sentry/components/pagination';
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import {parseSearch} from 'sentry/components/searchSyntax/parser';
+import {parseQuery} from 'sentry/components/searchSyntax/parser';
 import HighlightQuery from 'sentry/components/searchSyntax/renderer';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -378,7 +378,7 @@ function WidgetViewerModal(props: Props) {
 
   const queryOptions = sortedQueries.map(({name, conditions}, index) => {
     // Creates the highlighted query elements to be used in the Query Select
-    const parsedQuery = !!!name && !!conditions ? parseSearch(conditions) : null;
+    const parsedQuery = !!!name && !!conditions ? parseQuery(conditions) : null;
     const getHighlightedQuery = (
       highlightedContainerProps: React.ComponentProps<typeof HighlightContainer>
     ) => {

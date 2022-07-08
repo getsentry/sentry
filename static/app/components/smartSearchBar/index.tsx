@@ -15,8 +15,8 @@ import DropdownLink from 'sentry/components/dropdownLink';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {
   FilterType,
+  parseQuery,
   ParseResult,
-  parseSearch,
   TermOperator,
   Token,
   TokenResult,
@@ -76,7 +76,7 @@ const makeQueryState = (query: string) => ({
   query,
   // Anytime the query changes and it is not "" the dropdown should show
   showDropdown: true,
-  parsedQuery: parseSearch(query),
+  parsedQuery: parseQuery(query),
 });
 
 const generateOpAutocompleteGroup = (
@@ -316,7 +316,7 @@ class SmartSearchBar extends Component<Props, State> {
   state: State = {
     query: this.initialQuery,
     showDropdown: false,
-    parsedQuery: parseSearch(this.initialQuery),
+    parsedQuery: parseQuery(this.initialQuery),
     searchTerm: '',
     searchGroups: [],
     flatSearchItems: [],

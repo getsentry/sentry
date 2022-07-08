@@ -6,8 +6,9 @@ import map from 'lodash/map';
 import Input from 'sentry/components/forms/controls/input';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {
+  joinQuery,
+  parseQuery,
   ParseResult,
-  parseSearch,
   Token,
   TokenResult,
 } from 'sentry/components/searchSyntax/parser';
@@ -16,7 +17,6 @@ import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Tag, TagCollection} from 'sentry/types';
-import {objToQuery} from 'sentry/utils/stream';
 
 import IssueListTagFilter from './tagFilter';
 import {TagValueLoader} from './types';
@@ -28,11 +28,13 @@ type DefaultProps = {
 };
 
 type Props = DefaultProps & {
+  parsedQuery: ParseResult;
   tagValueLoader: TagValueLoader;
   loading?: boolean;
 };
 
 type State = {
+  filters: Record<string, TokenResult<Token.Filter>>;
   queryObj: Record<string, string>;
   textFilter: string;
 };
@@ -44,25 +46,16 @@ class IssueListSidebar extends Component<Props, State> {
     onQueryChange: function () {},
   };
 
-  state: State = this.parseQueryToState(this.props.query);
+  state: State = this.parsedQueryToState(this.props.parsedQuery);
 
   componentWillReceiveProps(nextProps: Props) {
-    // If query was updated by another source (e.g. SearchBar),
-    // clobber state of sidebar with new query.
-    const query = objToQuery(this.state.queryObj);
-
-    if (!isEqual(nextProps.query, query)) {
-      this.setState(this.parseQueryToState(nextProps.query));
+    if (!isEqual(nextProps.query, this.props.query)) {
+      this.setState(this.parsedQueryToState(nextProps.parsedQuery));
     }
   }
 
-  parseQueryToState(query: string): State {
-    const parsedResult: ParseResult = parseSearch(query) ?? [];
-    const textFilter = parsedResult
-      ?.filter(p => p.type === Token.FreeText)
-      .map(p => p.text)
-      .join(' ');
-    const parsedFilters = parsedResult?.filter(
+  parsedQueryToState(parsedQuery: ParseResult): State {
+    const parsedFilters = parsedQuery.filter(
       (p): p is TokenResult<Token.Filter> => p.type === Token.Filter
     );
     const queryObj = Object.fromEntries(
@@ -71,21 +64,30 @@ class IssueListSidebar extends Component<Props, State> {
 
     return {
       queryObj,
-      textFilter,
+      filters: Object.fromEntries(parsedFilters.map(p => [p.key.text, p])),
+      textFilter: joinQuery(parsedQuery.filter(p => p.type === Token.FreeText)),
     };
   }
 
   onSelectTag = (tag: Tag, value: string | null) => {
-    const newQuery = {...this.state.queryObj};
+    const parsedResult: TokenResult<Token.Filter>[] = (
+      parseQuery(`${tag.key}:${value}`) ?? []
+    ).filter((p): p is TokenResult<Token.Filter> => p.type === Token.Filter);
+    if (parsedResult.length !== 1 || parsedResult[0].type !== Token.Filter) {
+      return;
+    }
+    const newEntry = parsedResult[0] as TokenResult<Token.Filter>;
+    const newFilters = {...this.state.filters};
+
     if (value) {
-      newQuery[tag.key] = value;
+      newFilters[tag.key] = newEntry;
     } else {
-      delete newQuery[tag.key];
+      delete newFilters[tag.key];
     }
 
     this.setState(
       {
-        queryObj: newQuery,
+        filters: newFilters,
       },
       this.onQueryChange
     );
@@ -95,25 +97,15 @@ class IssueListSidebar extends Component<Props, State> {
     this.setState({textFilter: evt.target.value});
   };
 
-  onTextFilterSubmit = (evt?: React.FormEvent<HTMLFormElement>) => {
-    evt && evt.preventDefault();
-
-    const newQueryObj = {
-      ...this.state.queryObj,
-      __text: this.state.textFilter,
-    };
-
-    this.setState(
-      {
-        queryObj: newQueryObj,
-      },
-      this.onQueryChange
-    );
-  };
-
   onQueryChange = () => {
-    const query = objToQuery(this.state.queryObj);
-    this.props.onQueryChange && this.props.onQueryChange(query);
+    const newQuery = [
+      joinQuery(Object.values(this.state.filters), false, true),
+      this.state.textFilter,
+    ]
+      .filter(f => f) // filter out empty strings
+      .join(' ');
+
+    this.props.onQueryChange && this.props.onQueryChange(newQuery);
   };
 
   onClearSearch = () => {
@@ -121,7 +113,7 @@ class IssueListSidebar extends Component<Props, State> {
       {
         textFilter: '',
       },
-      this.onTextFilterSubmit
+      this.onQueryChange
     );
   };
 
@@ -134,7 +126,7 @@ class IssueListSidebar extends Component<Props, State> {
         ) : (
           <Fragment>
             <SidebarSection title={t('Text')}>
-              <form onSubmit={this.onTextFilterSubmit}>
+              <form onSubmit={this.onQueryChange}>
                 <Input
                   placeholder={t('Search title and culprit text body')}
                   onChange={this.onTextChange}
@@ -149,7 +141,7 @@ class IssueListSidebar extends Component<Props, State> {
 
             {map(tags, tag => (
               <IssueListTagFilter
-                value={this.state.queryObj[tag.key]}
+                value={this.state.filters[tag.key]?.value.text || undefined}
                 key={tag.key}
                 tag={tag}
                 onSelect={this.onSelectTag}

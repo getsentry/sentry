@@ -16,7 +16,7 @@ import {getRelativeSummary} from 'sentry/components/organizations/timeRangeSelec
 import {PanelItem} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
 import ProgressBar from 'sentry/components/progressBar';
-import {joinSearch, parseSearch, Token} from 'sentry/components/searchSyntax/parser';
+import {joinQuery, parseQuery, Token} from 'sentry/components/searchSyntax/parser';
 import GroupChart from 'sentry/components/stream/groupChart';
 import GroupCheckBox from 'sentry/components/stream/groupCheckBox';
 import TimeSince from 'sentry/components/timeSince';
@@ -225,13 +225,11 @@ class StreamGroup extends Component<Props, State> {
     // when there is no discover feature open events page
     const hasDiscoverQuery = organization.features.includes('discover-basic');
 
-    const parsedResult = parseSearch(
-      isFiltered && typeof query === 'string' ? query : ''
-    );
+    const parsedResult = parseQuery(isFiltered && typeof query === 'string' ? query : '');
     const filteredTerms = parsedResult?.filter(
       p => !(p.type === Token.Filter && DISCOVER_EXCLUSION_FIELDS.includes(p.key.text))
     );
-    const filteredQuery = joinSearch(filteredTerms, true);
+    const filteredQuery = joinQuery(filteredTerms, true);
 
     const commonQuery = {projects: [Number(data.project.id)]};
 
