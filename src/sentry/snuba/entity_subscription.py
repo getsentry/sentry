@@ -346,6 +346,8 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
             session_status = resolve_tag_key(org_id, "session.status")
             for row in data:
                 tag_value = reverse_tag_value(row[session_status])
+                if not tag_value:
+                    raise MetricIndexNotFound()
                 translated_data[tag_value] = row[value_col_name]
 
             total_session_count = translated_data.get("init", 0)
