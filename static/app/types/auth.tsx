@@ -33,6 +33,10 @@ export type Authenticator = {
   description: string;
   devices: AuthenticatorDevice[];
   /**
+   * New enrollments of this 2FA interface are not allowed
+   */
+  disallowNewEnrollment: boolean;
+  /**
    * String used to display on button for user as CTA to enroll
    */
   enrollButton: string;

@@ -136,9 +136,13 @@ class AccountSecurity extends AsyncView<Props> {
                   description,
                   isBackupInterface,
                   isEnrolled,
+                  disallowNewEnrollment,
                   configureButton,
                   name,
                 } = auth;
+                if (disallowNewEnrollment && !isEnrolled) {
+                  return null;
+                }
                 return (
                   <AuthenticatorPanelItem key={id}>
                     <AuthenticatorHeader>
