@@ -15,7 +15,7 @@ from sentry.utils.audit import create_audit_entry
 from sentry.utils.signing import sign
 from sentry.web.decorators import transaction_start
 
-from .card_builder import build_group_card, build_personal_installation_message
+from .card_builder import build_group_card
 from .card_builder.help import (
     MSTeamsHelpMessageBuilder,
     MSTeamsMentionedMessageBuilder,
@@ -27,7 +27,10 @@ from .card_builder.identity import (
     MSTeamsLinkIdentityMessageBuilder,
     MSTeamsUnlinkIdentityMessageBuilder,
 )
-from .card_builder.install import MSTeamsWelcomeMessageBuilder
+from .card_builder.installation import (
+    MSTeamsPersonalIntallationMessageBuilder,
+    MSTeamsTeamInstallationMessageBuilder,
+)
 from .client import CLOCK_SKEW, MsTeamsClient, MsTeamsJwtClient
 from .link_identity import build_linking_url
 from .unlink_identity import build_unlinking_url
@@ -175,7 +178,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
         client = get_preinstall_client(data["serviceUrl"])
 
         user_conversation_id = data["conversation"]["id"]
-        card = build_personal_installation_message()
+        card = MSTeamsPersonalIntallationMessageBuilder().build()
         client.send_card(user_conversation_id, card)
         return self.respond(status=204)
 
@@ -201,7 +204,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
 
         # send welcome message to the team
         client = get_preinstall_client(data["serviceUrl"])
-        card = MSTeamsWelcomeMessageBuilder(signed_params).build()
+        card = MSTeamsTeamInstallationMessageBuilder(signed_params).build()
         logger.warning(f"card: {card}")
         client.send_card(team["id"], card)
         return self.respond(status=201)
