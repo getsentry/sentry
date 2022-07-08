@@ -82,11 +82,11 @@ class MSTeamsMessageBuilder(AbstractMessageBuilder, ABC):
     def get_action_block(action_type: ActionType, title: str, **kwargs):
         param = REQUIRED_ACTION_PARAM[action_type]
 
-        return {"type": action_type.value, "title": title, f"{param}": kwargs.get(param)}
+        return {"type": action_type, "title": title, f"{param}": kwargs[param]}
 
     def _build(
         self,
-        text: Any,
+        text: Optional[Any] = None,
         title: Optional[Any] = None,
         footer: Optional[Any] = None,
         actions: Optional[Sequence[Any]] = None,
