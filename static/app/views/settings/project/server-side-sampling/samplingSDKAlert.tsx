@@ -31,15 +31,13 @@ export function SamplingSDKAlert({
     return null;
   }
 
-  function handleOpenRecommendedSteps(uniformRule: SamplingRule) {
+  function handleOpenRecommendedSteps() {
     openModal(modalProps => (
       <RecommendedStepsModal
         {...modalProps}
         organization={organization}
         project={project}
         recommendedSdkUpgrades={recommendedSdkUpgrades}
-        clientSampleRate={uniformRule.sampleRate}
-        onSubmit={() => {}}
       />
     ));
   }
@@ -55,11 +53,7 @@ export function SamplingSDKAlert({
       showIcon
       trailingItems={
         showLinkToTheModal && uniformRule ? (
-          <Button
-            onClick={() => handleOpenRecommendedSteps(uniformRule)}
-            priority="link"
-            borderless
-          >
+          <Button onClick={handleOpenRecommendedSteps} priority="link" borderless>
             {atLeastOneRuleActive ? t('Resolve Now') : t('Learn More')}
           </Button>
         ) : undefined
