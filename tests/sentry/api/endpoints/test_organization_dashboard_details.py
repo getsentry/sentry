@@ -1335,14 +1335,11 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert response.data["range"] == "7d"
         assert response.data["filters"]["releases"] == ["v1"]
 
-    def test_update_dashboard_with_invalid_project(self):
+    def test_update_dashboard_with_invalid_project_filter(self):
         other_project = self.create_project(name="other", organization=self.create_organization())
         data = {
             "title": "First dashboard",
             "projects": [other_project.id],
-            "environment": ["alpha"],
-            "range": "7d",
-            "filters": {"releases": ["v1"]},
         }
 
         response = self.do_request("put", self.url(self.dashboard.id), data=data)

@@ -498,7 +498,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert response.data["range"] == "7d"
         assert response.data["filters"]["releases"] == ["v1"]
 
-    def test_post_with_start_and_end_values(self):
+    def test_post_with_start_and_end_filter(self):
         start = iso_format(datetime.now() - timedelta(seconds=10))
         end = iso_format(datetime.now())
         response = self.do_request(
@@ -510,7 +510,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert response.data["start"].strftime("%Y-%m-%dT%H:%M:%S") == start
         assert response.data["end"].strftime("%Y-%m-%dT%H:%M:%S") == end
 
-    def test_post_dashboard_with_projects_that_user_is_not_a_part_of(self):
+    def test_post_dashboard_with_invalid_project_filter(self):
         other_org = self.create_organization()
         other_project = self.create_project(name="other", organization=other_org)
         response = self.do_request(
