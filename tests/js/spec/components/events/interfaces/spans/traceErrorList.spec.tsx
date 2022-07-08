@@ -37,14 +37,13 @@ describe('TraceErrorList', () => {
       }),
     ];
 
-    const trace = parseTrace(event);
+    render(
+      <TraceErrorList trace={parseTrace(event)} errors={errors} onClickSpan={jest.fn()} />
+    );
 
-    render(<TraceErrorList trace={trace} errors={errors} onClickSpan={jest.fn()} />);
-    expect(screen.getByTestId('trace-error-list')).toHaveTextContent(
-      '2 warning errors in /api/fetchitems'
-    );
-    expect(screen.getByTestId('trace-error-list')).toHaveTextContent(
-      '1 error in /api/fetchitems'
-    );
+    const listItems = screen.getAllByRole('listitem');
+    expect(listItems).toHaveLength(2);
+    expect(listItems[0]).toHaveTextContent('2 warning errors in /api/fetchitems');
+    expect(listItems[1]).toHaveTextContent('1 error in /api/fetchitems');
   });
 });
