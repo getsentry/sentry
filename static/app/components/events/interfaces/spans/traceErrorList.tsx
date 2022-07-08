@@ -5,7 +5,7 @@ import groupBy from 'lodash/groupBy';
 
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
-import {tct, tn} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import {TraceError} from 'sentry/utils/performance/quickTrace/types';
 
 import {ParsedTraceType, SpanType} from './types';
@@ -24,39 +24,20 @@ function TraceErrorList({trace, errors, onClickSpan}: TraceErrorListProps) {
           const span = findSpanById(trace, spanId);
 
           return Object.entries(groupBy(spanErrors, 'level')).map(
-            ([level, spanLevelErrors]) => {
-              if (span) {
-                return (
-                  <ListItem key={`${spanId}-${level}`}>
-                    {tct('[errors] [link]', {
-                      errors: tn(
-                        '%s %s error in ',
-                        '%s %s errors in ',
-                        spanLevelErrors.length,
-                        level === 'error' ? '' : level // Avoid saying "3 error errors"
-                      ),
-                      link: (
-                        <ErrorLink onClick={event => onClickSpan(event, spanId)}>
-                          {span.op}
-                        </ErrorLink>
-                      ),
-                    })}
-                  </ListItem>
-                );
-              }
-              return (
-                <ListItem key={`${spanId}-${level}`}>
-                  {tct('[errors]', {
-                    errors: tn(
-                      '%s %s error',
-                      '%s %s errors',
-                      spanLevelErrors.length,
-                      level
-                    ),
-                  })}
-                </ListItem>
-              );
-            }
+            ([level, spanLevelErrors]) => (
+              <ListItem key={`${spanId}-${level}`}>
+                {t('%d', spanLevelErrors.length)} {` ${level === 'error' ? '' : level} `}
+                {tn('error', 'errors', spanLevelErrors.length)}
+                {span ? (
+                  <React.Fragment>
+                    {' in '}
+                    <ErrorLink onClick={event => onClickSpan(event, spanId)}>
+                      {span.op}
+                    </ErrorLink>
+                  </React.Fragment>
+                ) : null}
+              </ListItem>
+            )
           );
         })
       )}
