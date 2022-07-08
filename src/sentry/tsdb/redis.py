@@ -1,6 +1,5 @@
 import itertools
 import logging
-import operator
 import random
 import uuid
 from collections import defaultdict, namedtuple
@@ -667,7 +666,7 @@ class RedisTSDB(BaseTSDB):
 
     def make_frequency_table_keys(self, model, rollup, timestamp, key, environment_id):
         prefix = self.make_key(model, rollup, timestamp, key, environment_id)
-        return map(operator.methodcaller("format", prefix), ("{}:i", "{}:e"))
+        return [f"{prefix}:i", f"{prefix}:e"]
 
     def record_frequency_multi(self, requests, timestamp=None, environment_id=None):
         self.validate_arguments([model for model, request in requests], [environment_id])
