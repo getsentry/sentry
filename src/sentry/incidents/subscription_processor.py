@@ -30,8 +30,11 @@ from sentry.incidents.models import (
 )
 from sentry.incidents.tasks import handle_trigger_action
 from sentry.models import Project
-from sentry.snuba.dataset import EntityKey
-from sentry.snuba.entity_subscription import ENTITY_TIME_COLUMNS, BaseMetricsEntitySubscription
+from sentry.snuba.entity_subscription import (
+    ENTITY_TIME_COLUMNS,
+    BaseMetricsEntitySubscription,
+    get_entity_key_from_query_builder,
+)
 from sentry.snuba.models import QueryDatasets
 from sentry.snuba.tasks import build_query_builder, get_entity_subscription_for_dataset
 from sentry.utils import metrics, redis
@@ -192,9 +195,7 @@ class SubscriptionProcessor:
                     "end": end,
                 },
             )
-            time_col = ENTITY_TIME_COLUMNS[
-                EntityKey(query_builder.get_snql_query().query.match.name)
-            ]
+            time_col = ENTITY_TIME_COLUMNS[get_entity_key_from_query_builder(query_builder)]
             query_builder.add_conditions(
                 [
                     Condition(Column(time_col), Op.GTE, start),

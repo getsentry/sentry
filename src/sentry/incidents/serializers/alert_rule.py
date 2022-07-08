@@ -24,9 +24,10 @@ from sentry.incidents.logic import (
     update_alert_rule,
 )
 from sentry.incidents.models import AlertRule, AlertRuleThresholdType, AlertRuleTrigger
-from sentry.snuba.dataset import Dataset, EntityKey
+from sentry.snuba.dataset import Dataset
 from sentry.snuba.entity_subscription import (
     ENTITY_TIME_COLUMNS,
+    get_entity_key_from_query_builder,
     get_entity_subscription_for_dataset,
 )
 from sentry.snuba.models import QueryDatasets, QuerySubscription, SnubaQueryEventType
@@ -262,7 +263,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
         dataset = Dataset(data["dataset"].value)
         self._validate_time_window(dataset, data.get("time_window"))
 
-        time_col = ENTITY_TIME_COLUMNS[EntityKey(query_builder.get_snql_query().query.match.name)]
+        time_col = ENTITY_TIME_COLUMNS[get_entity_key_from_query_builder(query_builder)]
         query_builder.add_conditions(
             [
                 Condition(Column(time_col), Op.GTE, start),

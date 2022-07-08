@@ -549,3 +549,7 @@ def map_aggregate_to_entity_key(dataset: QueryDatasets, aggregate: str) -> Entit
             f"{dataset} dataset does not have an entity key mapped to it"
         )
     return entity_key
+
+
+def get_entity_key_from_query_builder(query_builder: QueryBuilder):
+    return EntityKey(query_builder.get_snql_query().query.match.name)
