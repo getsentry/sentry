@@ -409,15 +409,12 @@ export function ServerSideSampling({project}: Props) {
                         operator={
                           itemsRule.id === items[0].id
                             ? SamplingRuleOperator.IF
-                            : itemsRule.bottomPinned
+                            : isUniformRule(currentRule)
                             ? SamplingRuleOperator.ELSE
                             : SamplingRuleOperator.ELSE_IF
                         }
                         hideGrabButton={items.length === 1}
-                        rule={{
-                          ...currentRule,
-                          bottomPinned: itemsRule.bottomPinned,
-                        }}
+                        rule={currentRule}
                         onEditRule={() => handleEditRule(currentRule)}
                         onDeleteRule={() => handleDeleteRule(currentRule)}
                         onActivate={() => handleActivateToggle(currentRule.id)}
