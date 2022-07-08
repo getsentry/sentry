@@ -379,7 +379,7 @@ class MetricExpressionBase(ABC):
 
     @abstractmethod
     def generate_select_statements(
-        self, projects: Sequence[Project], metrics_query: MetricsQuery
+        self, projects: Sequence[Project], metrics_query: MetricsQuery, use_case_id: UseCaseKey
     ) -> List[Function]:
         """
         Method that generates a list of SnQL functions required to query an instance of
@@ -769,7 +769,7 @@ class CompositeEntityDerivedMetric(DerivedMetricExpression):
         raise NotSupportedOverCompositeEntityException()
 
     def generate_select_statements(
-        self, projects: Sequence[Project], metrics_query: MetricsQuery
+        self, projects: Sequence[Project], metrics_query: MetricsQuery, use_case_id: UseCaseKey
     ) -> List[Function]:
         raise NotSupportedOverCompositeEntityException()
 
@@ -778,6 +778,7 @@ class CompositeEntityDerivedMetric(DerivedMetricExpression):
         direction: Direction,
         projects: Sequence[Project],
         metrics_query: MetricsQuery,
+        use_case_id: UseCaseKey,
     ) -> List[OrderBy]:
         raise OrderByNotSupportedOverCompositeEntityException(
             f"It is not possible to orderBy field "

@@ -445,7 +445,7 @@ class CompositeEntityDerivedMetricTestCase(TestCase):
 
         with pytest.raises(NotSupportedOverCompositeEntityException):
             self.sessions_errored.generate_select_statements(
-                projects=[1], metrics_query=metrics_query
+                projects=[1], metrics_query=metrics_query, use_case_id=UseCaseKey.RELEASE_HEALTH
             )
 
     def test_generate_orderby_clause(self):
@@ -453,7 +453,10 @@ class CompositeEntityDerivedMetricTestCase(TestCase):
 
         with pytest.raises(NotSupportedOverCompositeEntityException):
             self.sessions_errored.generate_orderby_clause(
-                direction=Direction.ASC, projects=[1], metrics_query=metrics_query
+                direction=Direction.ASC,
+                projects=[1],
+                metrics_query=metrics_query,
+                use_case_id=UseCaseKey.RELEASE_HEALTH,
             )
 
     def test_generate_default_value(self):
