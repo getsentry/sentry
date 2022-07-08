@@ -56,7 +56,7 @@ class Migration(CheckedMigration):
     atomic = False
 
     dependencies = [
-        ("sentry", "0293_restore_metrics_based_alerts"),
+        ("sentry", "0296_alertrule_type_not_null"),
     ]
 
     operations = [

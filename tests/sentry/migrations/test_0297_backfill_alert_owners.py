@@ -2,8 +2,8 @@ from sentry.testutils.cases import TestMigrations
 
 
 class TestBackfill(TestMigrations):
-    migrate_from = "0293_restore_metrics_based_alerts"
-    migrate_to = "0294_backfill_alert_owners"
+    migrate_from = "0296_alertrule_type_not_null"
+    migrate_to = "0297_backfill_alert_owners"
 
     def setup_before_migration(self, apps):
         new_user = self.create_user("b@example.com")
