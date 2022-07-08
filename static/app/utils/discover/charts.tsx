@@ -83,7 +83,7 @@ export function axisDuration(value: number, durationUnit?: number): string {
     }
     case MINUTE: {
       const label = (value / MINUTE).toFixed(0);
-      return t('%sm', label);
+      return t('%smin', label);
     }
     case SECOND: {
       const label = (value / SECOND).toFixed(0);
@@ -96,8 +96,9 @@ export function axisDuration(value: number, durationUnit?: number): string {
 }
 
 /**
- *
- * @param value
+ * Categorizes the duration by Second, Minute, Hour, etc
+ * Ex) categorizeDuration(1200) = MINUTE
+ * @param value Duration in ms
  */
 export function categorizeDuration(value): number {
   if (value >= WEEK) {
