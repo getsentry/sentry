@@ -8,14 +8,38 @@ on:
   #
   # See https://github.com/getsentry/sentry/pull/21600 for more details
   pull_request_target:
+    types: [labeled, opened, reopened, synchronize]
+
+# disable all other special privileges
+permissions:
+  # needed for `actions/checkout` to clone the code
+  contents: read
+  # needed to remove the pull-request label
+  pull-requests: write
 
 jobs:
   dispatch:
+    if: github.event.action != 'labeled' || github.event.label.name == 'trigger-getsentry-external'
     name: getsentry dispatch
     runs-on: ubuntu-20.04
     steps:
-      # Need to checkout just for `github/file-filters.yml`
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
+        with:
+          persist-credentials: false
+
+      - name: permissions
+        run: |
+          python3 -uS .github/workflows/scripts/getsentry-dispatch-setup \
+              --repo-id ${{ github.event.repository.id }} \
+              --pr ${{ github.event.number }} \
+              --event ${{ github.event.action }} \
+              --username "$ARG_USERNAME" \
+              --label-names "$ARG_LABEL_NAMES"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # these can contain special characters
+          ARG_USERNAME: ${{ github.event.pull_request.user.login }}
+          ARG_LABEL_NAMES: ${{ toJSON(github.event.pull_request.labels.*.name) }}
 
       - name: Check for file changes
         uses: getsentry/paths-filter@v2
