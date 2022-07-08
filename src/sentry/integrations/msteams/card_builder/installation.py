@@ -1,6 +1,8 @@
 from typing import Any
 
-from sentry.integrations.msteams.card_builder.base.base import (
+from sentry.utils.http import absolute_uri
+
+from .base.base import (
     ActionType,
     ColumnWidth,
     MSTeamsMessageBuilder,
@@ -8,7 +10,6 @@ from sentry.integrations.msteams.card_builder.base.base import (
     TextWeight,
     VerticalContentAlignment,
 )
-from sentry.utils.http import absolute_uri
 
 MSTEAMS_CONFIGURE_URL = "/extensions/msteams/configure/?signed_params={signed_params}"
 TEAM_INSTALLTION_TITLE = "Welcome to Sentry for Microsoft Teams"
