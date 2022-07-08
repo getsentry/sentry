@@ -303,6 +303,47 @@ describe('AccountSecurity', function () {
     expect(wrapper.find('TwoFactorRequired')).toHaveLength(1);
   });
 
+  it('does not render primary interface that disallows new enrollments', function () {
+    Client.addMockResponse({
+      url: ENDPOINT,
+      body: [
+        TestStubs.Authenticators().Totp({disallowNewEnrollment: false}),
+        TestStubs.Authenticators().U2f({disallowNewEnrollment: null}),
+        TestStubs.Authenticators().Sms({disallowNewEnrollment: true}),
+      ],
+    });
+
+    const wrapper = mountWithTheme(
+      <AccountSecurityWrapper>
+        <AccountSecurity />
+      </AccountSecurityWrapper>,
+      TestStubs.routerContext()
+    );
+
+    // There should only be two authenticators rendered
+    expect(wrapper.find('AuthenticatorName')).toHaveLength(2);
+  });
+
+  it('renders primary interface if new enrollments are disallowed, but we are enrolled', function () {
+    Client.addMockResponse({
+      url: ENDPOINT,
+      body: [
+        TestStubs.Authenticators().Sms({isEnrolled: true, disallowNewEnrollment: true}),
+      ],
+    });
+
+    const wrapper = mountWithTheme(
+      <AccountSecurityWrapper>
+        <AccountSecurity />
+      </AccountSecurityWrapper>,
+      TestStubs.routerContext()
+    );
+
+    // Should still render the authenticator since we are already enrolled
+    expect(wrapper.find('AuthenticatorName')).toHaveLength(1);
+    expect(wrapper.find('AuthenticatorName').prop('children')).toBe('Text Message');
+  });
+
   it('renders a backup interface that is enrolled', function () {
     Client.addMockResponse({
       url: ENDPOINT,

@@ -1,6 +1,6 @@
 import 'prism-sentry/index.css';
 
-import {Fragment} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -18,19 +18,29 @@ import {
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
-import {RecommendedSdkUpgrade} from 'sentry/types/sampling';
+import {
+  RecommendedSdkUpgrade,
+  SamplingRule,
+  UniformModalsSubmit,
+} from 'sentry/types/sampling';
+import {formatPercentage} from 'sentry/utils/formatters';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
-import {SERVER_SIDE_SAMPLING_DOC_LINK} from '../utils';
+import {isValidSampleRate, SERVER_SIDE_SAMPLING_DOC_LINK} from '../utils';
+import {projectStatsToSampleRates} from '../utils/projectStatsToSampleRates';
+import useProjectStats from '../utils/useProjectStats';
 
 import {FooterActions, Stepper} from './uniformRateModal';
 
 export type RecommendedStepsModalProps = ModalRenderProps & {
-  onSubmit: () => void;
   organization: Organization;
   recommendedSdkUpgrades: RecommendedSdkUpgrade[];
+  clientSampleRate?: number;
   onGoBack?: () => void;
+  onSubmit?: UniformModalsSubmit;
   project?: Project;
+  serverSampleRate?: number;
+  uniformRule?: SamplingRule;
 };
 
 export function RecommendedStepsModal({
@@ -42,7 +52,51 @@ export function RecommendedStepsModal({
   recommendedSdkUpgrades,
   onGoBack,
   onSubmit,
+  clientSampleRate,
+  serverSampleRate,
+  uniformRule,
+  project,
 }: RecommendedStepsModalProps) {
+  const [saving, setSaving] = useState(false);
+  const {projectStats} = useProjectStats({
+    orgSlug: organization.slug,
+    projectId: project?.id,
+    interval: '1h',
+    statsPeriod: '48h',
+    disable: !!clientSampleRate,
+  });
+  const {maxSafeSampleRate} = projectStatsToSampleRates(projectStats);
+  const suggestedClientSampleRate = clientSampleRate
+    ? clientSampleRate / 100
+    : maxSafeSampleRate;
+
+  const isValid =
+    isValidSampleRate(clientSampleRate) && isValidSampleRate(serverSampleRate);
+
+  function handleDone() {
+    if (!onSubmit) {
+      closeModal();
+    }
+
+    if (!isValid) {
+      return;
+    }
+
+    setSaving(true);
+
+    onSubmit?.(
+      serverSampleRate!,
+      uniformRule,
+      () => {
+        setSaving(false);
+        closeModal();
+      },
+      () => {
+        setSaving(false);
+      }
+    );
+  }
+
   return (
     <Fragment>
       <Header closeButton>
@@ -66,10 +120,13 @@ export function RecommendedStepsModal({
               </TextBlock>
               <UpgradeSDKfromProjects>
                 {recommendedSdkUpgrades.map(
-                  ({project, latestSDKName, latestSDKVersion}) => {
+                  ({project: upgradableProject, latestSDKName, latestSDKVersion}) => {
                     return (
-                      <div key={project.id}>
-                        <SdkProjectBadge project={project} organization={organization} />
+                      <div key={upgradableProject.id}>
+                        <SdkProjectBadge
+                          project={upgradableProject}
+                          organization={organization}
+                        />
                         <SdkOutdatedVersion>
                           {tct('This project is on [current-version]', {
                             ['current-version']: (
@@ -106,9 +163,14 @@ export function RecommendedStepsModal({
                     {'  traceSampleRate'}
                   </span>
                   <span className="token operator">:</span>{' '}
-                  <span className="token string">1.0</span>
+                  <span className="token string">{suggestedClientSampleRate || ''}</span>
                   <span className="token punctuation">,</span>{' '}
-                  <span className="token comment">// 100%</span>
+                  <span className="token comment">
+                    //{' '}
+                    {suggestedClientSampleRate
+                      ? formatPercentage(suggestedClientSampleRate)
+                      : ''}
+                  </span>
                   <br />
                   <span className="token punctuation">{'}'}</span>
                   <span className="token punctuation">)</span>
@@ -132,7 +194,18 @@ export function RecommendedStepsModal({
               </Fragment>
             )}
             {!onGoBack && <Button onClick={closeModal}>{t('Cancel')}</Button>}
-            <Button priority="primary" onClick={onSubmit}>
+            <Button
+              priority="primary"
+              onClick={handleDone}
+              disabled={onSubmit ? saving || !isValid : false} // do not disable the button if there's on onSubmit handler (modal was opened from the sdk alert)
+              title={
+                onSubmit
+                  ? !isValid
+                    ? t('Sample rate is not valid')
+                    : undefined
+                  : undefined
+              }
+            >
               {t('Done')}
             </Button>
           </ButtonBar>

@@ -172,14 +172,7 @@ export type SamplingRule = {
    * Indicates if the rule is enabled for server-side sampling
    */
   active?: boolean;
-  /**
-   * A rule without a condition (Else case) always have to be 'pinned'
-   * to the bottom of the list and cannot be sorted.
-   */
-  bottomPinned?: boolean;
 };
-
-export type SamplingRules = Array<SamplingRule>;
 
 export type SamplingDistribution = {
   null_sample_rate_percentage: null | number;
@@ -214,3 +207,10 @@ export type RecommendedSdkUpgrade = {
   latestSDKVersion: SamplingSdkVersion['latestSDKVersion'];
   project: Project;
 };
+
+export type UniformModalsSubmit = (
+  sampleRate: number,
+  rule?: SamplingRule,
+  onSuccess?: () => void,
+  onError?: () => void
+) => void;

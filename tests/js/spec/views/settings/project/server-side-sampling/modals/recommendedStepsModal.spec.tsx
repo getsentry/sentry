@@ -6,7 +6,12 @@ import GlobalModal from 'sentry/components/globalModal';
 import {RecommendedStepsModal} from 'sentry/views/settings/project/server-side-sampling/modals/recommendedStepsModal';
 import {SERVER_SIDE_SAMPLING_DOC_LINK} from 'sentry/views/settings/project/server-side-sampling/utils';
 
-import {getMockData, mockedProjects, mockedSamplingSdkVersions} from '../utils';
+import {
+  getMockData,
+  mockedProjects,
+  mockedSamplingSdkVersions,
+  uniformRule,
+} from '../utils';
 
 describe('Server-side Sampling - Recommended Steps Modal', function () {
   beforeEach(function () {
@@ -35,6 +40,7 @@ describe('Server-side Sampling - Recommended Steps Modal', function () {
           },
         ]}
         onSubmit={jest.fn()}
+        clientSampleRate={50}
       />
     ));
 
@@ -82,6 +88,8 @@ describe('Server-side Sampling - Recommended Steps Modal', function () {
     ).toBeInTheDocument();
 
     expect(screen.getByText(textWithMarkupMatcher(/Sentry.init/))).toBeInTheDocument();
+    expect(screen.getByText('0.5')).toBeInTheDocument();
+    expect(screen.getByText('// 50%')).toBeInTheDocument();
 
     // Footer
     expect(screen.getByRole('button', {name: 'Read Docs'})).toHaveAttribute(
@@ -110,6 +118,7 @@ describe('Server-side Sampling - Recommended Steps Modal', function () {
         project={project}
         recommendedSdkUpgrades={[]}
         onSubmit={jest.fn()}
+        clientSampleRate={uniformRule.sampleRate}
       />
     ));
 
@@ -137,6 +146,7 @@ describe('Server-side Sampling - Recommended Steps Modal', function () {
         recommendedSdkUpgrades={[]}
         onGoBack={onGoBack}
         onSubmit={jest.fn()}
+        clientSampleRate={uniformRule.sampleRate}
       />
     ));
 
