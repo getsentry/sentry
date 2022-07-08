@@ -137,6 +137,21 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
         assert response.data["widgets"][0]["queries"][0]["fieldAliases"][0] == "Count Alias"
         assert response.data["widgets"][1]["queries"][0]["fieldAliases"] == []
 
+    def test_filters_are_not_in_response_if_not_applicable(self):
+        filters = {"environment": ["alpha"]}
+        dashboard = Dashboard.objects.create(
+            title="Dashboard With Filters",
+            created_by=self.user,
+            organization=self.organization,
+            filters=filters,
+        )
+
+        response = self.do_request("get", self.url(dashboard.id))
+        assert response.data["projects"] == []
+        assert response.data["environment"] == filters["environment"]
+        assert "range" not in response.data
+        assert "filters" not in response.data
+
     def test_dashboard_filters_are_returned_in_response(self):
         filters = {"environment": ["alpha"], "range": "24hr", "releases": ["test-release"]}
         dashboard = Dashboard.objects.create(
