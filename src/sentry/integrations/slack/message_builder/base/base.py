@@ -9,8 +9,6 @@ from sentry.notifications.utils.actions import MessageAction
 from sentry.utils.assets import get_asset_url
 from sentry.utils.http import absolute_uri
 
-URL_FORMAT_STR = "<{url}|{text}>"
-
 
 def get_slack_button(action: MessageAction) -> Mapping[str, Any]:
     kwargs: MutableMapping[str, Any] = {
