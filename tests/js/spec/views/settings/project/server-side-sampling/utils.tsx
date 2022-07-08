@@ -14,8 +14,8 @@ import {OrganizationContext} from 'sentry/views/organizationContext';
 import {RouteContext} from 'sentry/views/routeContext';
 import ServerSideSampling from 'sentry/views/settings/project/server-side-sampling';
 import importedUseProjectStats from 'sentry/views/settings/project/server-side-sampling/utils/useProjectStats';
+import importedUseSdkVersions from 'sentry/views/settings/project/server-side-sampling/utils/useRecommendedSdkUpgrades';
 import importedUseSamplingDistribution from 'sentry/views/settings/project/server-side-sampling/utils/useSamplingDistribution';
-import importedUseSdkVersions from 'sentry/views/settings/project/server-side-sampling/utils/useSdkVersions';
 
 export const uniformRule: SamplingRule = {
   sampleRate: 0.5,

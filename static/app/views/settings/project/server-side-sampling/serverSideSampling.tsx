@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useMemo, useState} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
@@ -16,12 +16,10 @@ import ProjectStore from 'sentry/stores/projectsStore';
 import space from 'sentry/styles/space';
 import {Project} from 'sentry/types';
 import {SamplingRule, SamplingRuleOperator} from 'sentry/types/sampling';
-import {defined} from 'sentry/utils';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
-import useProjects from 'sentry/utils/useProjects';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import PermissionAlert from 'sentry/views/settings/organization/permissionAlert';
@@ -32,8 +30,7 @@ import {SpecificConditionsModal} from './modals/specificConditionsModal';
 import {responsiveModal} from './modals/styles';
 import {UniformRateModal} from './modals/uniformRateModal';
 import useProjectStats from './utils/useProjectStats';
-import useSamplingDistribution from './utils/useSamplingDistribution';
-import useSdkVersions from './utils/useSdkVersions';
+import {useRecommendedSdkUpgrades} from './utils/useRecommendedSdkUpgrades';
 import {Promo} from './promo';
 import {
   ActiveColumn,
@@ -56,11 +53,16 @@ export function ServerSideSampling({project}: Props) {
   const api = useApi();
 
   const hasAccess = organization.access.includes('project:write');
-
   const currentRules = project.dynamicSampling?.rules;
   const previousRules = usePrevious(currentRules);
 
   const [rules, setRules] = useState<SamplingRule[]>(currentRules ?? []);
+
+  useEffect(() => {
+    if (!isEqual(previousRules, currentRules)) {
+      setRules(currentRules ?? []);
+    }
+  }, [currentRules, previousRules]);
 
   const {projectStats} = useProjectStats({
     orgSlug: organization.slug,
@@ -69,67 +71,10 @@ export function ServerSideSampling({project}: Props) {
     statsPeriod: '48h',
   });
 
-  const {samplingDistribution} = useSamplingDistribution({
+  const {recommendedSdkUpgrades} = useRecommendedSdkUpgrades({
     orgSlug: organization.slug,
     projSlug: project.slug,
   });
-
-  const projectIds = useMemo(
-    () =>
-      samplingDistribution?.project_breakdown?.map(
-        projectBreakdown => projectBreakdown.project_id
-      ),
-    [samplingDistribution?.project_breakdown]
-  );
-
-  const {samplingSdkVersions} = useSdkVersions({
-    orgSlug: organization.slug,
-    projSlug: project.slug,
-    projectIds,
-  });
-
-  const notSendingSampleRateSdkUpgrades =
-    samplingSdkVersions?.filter(
-      samplingSdkVersion => !samplingSdkVersion.isSendingSampleRate
-    ) ?? [];
-
-  const {projects} = useProjects({
-    slugs: notSendingSampleRateSdkUpgrades.map(sdkUpgrade => sdkUpgrade.project),
-    orgId: organization.slug,
-  });
-
-  // Rules without a condition (Else case) always have to be 'pinned' to the bottom of the list
-  // and cannot be sorted
-  const items = rules.map(rule => ({
-    ...rule,
-    id: String(rule.id),
-    bottomPinned: !rule.condition.inner.length,
-  }));
-
-  const recommendedSdkUpgrades = projects
-    .map(upgradeSDKfromProject => {
-      const sdkInfo = notSendingSampleRateSdkUpgrades.find(
-        notSendingSampleRateSdkUpgrade =>
-          notSendingSampleRateSdkUpgrade.project === upgradeSDKfromProject.slug
-      );
-
-      if (!sdkInfo) {
-        return undefined;
-      }
-
-      return {
-        project: upgradeSDKfromProject,
-        latestSDKName: sdkInfo.latestSDKName,
-        latestSDKVersion: sdkInfo.latestSDKVersion,
-      };
-    })
-    .filter(defined);
-
-  useEffect(() => {
-    if (!isEqual(previousRules, currentRules)) {
-      setRules(currentRules ?? []);
-    }
-  }, [currentRules, previousRules]);
 
   async function handleActivateToggle(ruleId: SamplingRule['id']) {
     // TODO(sampling): test this after the backend work is finished
@@ -272,6 +217,14 @@ export function ServerSideSampling({project}: Props) {
     }
   }
 
+  // Rules without a condition (Else case) always have to be 'pinned' to the bottom of the list
+  // and cannot be sorted
+  const items = rules.map(rule => ({
+    ...rule,
+    id: String(rule.id),
+    bottomPinned: !rule.condition.inner.length,
+  }));
+
   return (
     <SentryDocumentTitle title={t('Server-side Sampling')}>
       <Fragment>
@@ -358,15 +311,12 @@ export function ServerSideSampling({project}: Props) {
                         operator={
                           itemsRule.id === items[0].id
                             ? SamplingRuleOperator.IF
-                            : itemsRule.bottomPinned
+                            : isUniformRule(currentRule)
                             ? SamplingRuleOperator.ELSE
                             : SamplingRuleOperator.ELSE_IF
                         }
                         hideGrabButton={items.length === 1}
-                        rule={{
-                          ...currentRule,
-                          bottomPinned: itemsRule.bottomPinned,
-                        }}
+                        rule={currentRule}
                         onEditRule={() => handleEditRule(currentRule)}
                         onDeleteRule={() => handleDeleteRule(currentRule)}
                         onActivate={() => handleActivateToggle(currentRule.id)}

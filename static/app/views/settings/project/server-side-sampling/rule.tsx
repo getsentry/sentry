@@ -56,10 +56,11 @@ export function Rule({
   const isUniform = isUniformRule(rule);
   const canDelete = !noPermission && !isUniform;
   const canActivate = !upgradeSdkForProjects.length;
+  const canDrag = !noPermission && !isUniform;
 
   return (
     <Fragment>
-      <GrabColumn disabled={rule.bottomPinned || noPermission}>
+      <GrabColumn disabled={!canDrag}>
         {hideGrabButton ? null : (
           <Tooltip
             title={
