@@ -13,8 +13,10 @@ STRINGS_THAT_LOOK_LIKE_TAG_VALUES = (
     "prod",
     "exited",
     "myapp@2.0.0",
+    "ahmed@12.2",
     "crashed",
     "init",
+    "development",
 )
 
 
@@ -53,7 +55,7 @@ def control_metrics_access(monkeypatch, request, set_sentry_option):
 
         def new_build_results(*args, **kwargs):
             query = args[0][0][0].query
-            is_metrics = query.match.name.startswith("metrics_")
+            is_metrics = "metrics" in query.match.name
 
             if not is_metrics:
                 return old_build_results(*args, **kwargs)
@@ -77,7 +79,7 @@ def control_metrics_access(monkeypatch, request, set_sentry_option):
         old_create_snql_in_snuba = tasks._create_snql_in_snuba
 
         def new_create_snql_in_snuba(subscription, snuba_query, snql_query, entity_subscription):
-            is_metrics = snql_query.query.match.name.startswith("metrics_")
+            is_metrics = "metrics" in snql_query.query.match.name
             if not is_metrics:
                 return old_create_snql_in_snuba(
                     subscription, snuba_query, snql_query, entity_subscription

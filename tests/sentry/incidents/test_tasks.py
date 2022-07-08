@@ -30,7 +30,7 @@ from sentry.incidents.tasks import (
     handle_trigger_action,
     send_subscriber_notifications,
 )
-from sentry.sentry_metrics.utils import resolve, resolve_tag_key
+from sentry.sentry_metrics.utils import resolve_tag_key, resolve_tag_value
 from sentry.snuba.models import QueryDatasets
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils import TestCase
@@ -261,13 +261,13 @@ class TestHandleSubscriptionMetricsLoggerV1(TestHandleSubscriptionMetricsLogger)
         values = {
             "data": [
                 {
-                    resolve_tag_key(self.organization.id, "session.status"): resolve(
+                    resolve_tag_key(self.organization.id, "session.status"): resolve_tag_value(
                         self.organization.id, "init"
                     ),
                     "value": 100.0,
                 },
                 {
-                    resolve_tag_key(self.organization.id, "session.status"): resolve(
+                    resolve_tag_key(self.organization.id, "session.status"): resolve_tag_value(
                         self.organization.id, "crashed"
                     ),
                     "value": 2.0,

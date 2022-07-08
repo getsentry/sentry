@@ -11,7 +11,7 @@ from snuba_sdk import And, Column, Condition, Entity, Function, Op, Or, Query
 
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
-from sentry.sentry_metrics.utils import resolve, resolve_many_weak, resolve_tag_key, resolve_weak
+from sentry.sentry_metrics.utils import resolve, resolve_tag_key, resolve_tag_value
 from sentry.snuba.entity_subscription import (
     apply_dataset_query_conditions,
     get_entity_subscription_for_dataset,
@@ -306,7 +306,7 @@ class BuildSnqlQueryTest(TestCase):
                             function="equals",
                             parameters=[
                                 Column(name=resolve_tag_key(org_id, "session.status")),
-                                resolve(org_id, "init"),
+                                resolve_tag_value(org_id, "init"),
                             ],
                         ),
                     ],
@@ -320,7 +320,7 @@ class BuildSnqlQueryTest(TestCase):
                             function="equals",
                             parameters=[
                                 Column(name=resolve_tag_key(org_id, "session.status")),
-                                resolve(org_id, "crashed"),
+                                resolve_tag_value(org_id, "crashed"),
                             ],
                         ),
                     ],
@@ -343,7 +343,7 @@ class BuildSnqlQueryTest(TestCase):
                             function="equals",
                             parameters=[
                                 Column(name=resolve_tag_key(org_id, "session.status")),
-                                resolve(org_id, "crashed"),
+                                resolve_tag_value(org_id, "crashed"),
                             ],
                         ),
                     ],
@@ -679,7 +679,10 @@ class BuildSnqlQueryTest(TestCase):
             Condition(
                 Column(name=resolve_tag_key(self.organization.id, "session.status")),
                 Op.IN,
-                resolve_many_weak(self.organization.id, ["crashed", "init"]),
+                [
+                    resolve_tag_value(self.organization.id, "crashed"),
+                    resolve_tag_value(self.organization.id, "init"),
+                ],
             ),
         ]
         self.run_test(
@@ -733,7 +736,7 @@ class BuildSnqlQueryTest(TestCase):
             Condition(
                 Column(name=resolve_tag_key(self.organization.id, "release")),
                 Op.EQ,
-                resolve_weak(self.organization.id, "ahmed@12.2"),
+                resolve_tag_value(self.organization.id, "ahmed@12.2"),
             ),
             Condition(Column(name="project_id"), Op.IN, (self.project.id,)),
             Condition(Column(name="org_id"), Op.EQ, self.organization.id),
@@ -745,12 +748,15 @@ class BuildSnqlQueryTest(TestCase):
             Condition(
                 Column(name=resolve_tag_key(self.organization.id, "session.status")),
                 Op.IN,
-                resolve_many_weak(self.organization.id, ["crashed", "init"]),
+                [
+                    resolve_tag_value(self.organization.id, "crashed"),
+                    resolve_tag_value(self.organization.id, "init"),
+                ],
             ),
             Condition(
                 Column(resolve_tag_key(self.organization.id, "environment")),
                 Op.EQ,
-                resolve_weak(self.organization.id, env.name),
+                resolve_tag_value(self.organization.id, env.name),
             ),
         ]
         self.run_test(
@@ -782,7 +788,7 @@ class BuildSnqlQueryTest(TestCase):
             Condition(
                 Column(name=resolve_tag_key(self.organization.id, "release")),
                 Op.EQ,
-                resolve_weak(self.organization.id, "ahmed@12.2"),
+                resolve_tag_value(self.organization.id, "ahmed@12.2"),
             ),
             Condition(Column(name="project_id"), Op.IN, (self.project.id,)),
             Condition(Column(name="org_id"), Op.EQ, self.organization.id),
@@ -794,7 +800,7 @@ class BuildSnqlQueryTest(TestCase):
             Condition(
                 Column(resolve_tag_key(self.organization.id, "environment")),
                 Op.EQ,
-                resolve_weak(self.organization.id, env.name),
+                resolve_tag_value(self.organization.id, env.name),
             ),
         ]
         self.run_test(

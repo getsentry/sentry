@@ -8,7 +8,7 @@ from sentry.exceptions import (
 )
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
-from sentry.sentry_metrics.utils import resolve, resolve_tag_key
+from sentry.sentry_metrics.utils import resolve, resolve_tag_key, resolve_tag_value
 from sentry.snuba.dataset import EntityKey
 from sentry.snuba.entity_subscription import (
     ENTITY_TIME_COLUMNS,
@@ -154,7 +154,7 @@ class EntitySubscriptionTestCase(TestCase):
         assert entity_subscription.time_col == ENTITY_TIME_COLUMNS[EntityKey.MetricsSets]
         assert entity_subscription.dataset == QueryDatasets.METRICS
         session_status = resolve_tag_key(org_id, "session.status")
-        session_status_crashed = resolve(org_id, "crashed")
+        session_status_crashed = resolve_tag_value(org_id, "crashed")
         snql_query = entity_subscription.build_query_builder(
             "", [self.project.id], None, {"organization_id": self.organization.id}
         ).get_snql_query()
@@ -208,8 +208,8 @@ class EntitySubscriptionTestCase(TestCase):
         assert entity_subscription.time_col == ENTITY_TIME_COLUMNS[EntityKey.MetricsCounters]
         assert entity_subscription.dataset == QueryDatasets.METRICS
         session_status = resolve_tag_key(org_id, "session.status")
-        session_status_crashed = resolve(org_id, "crashed")
-        session_status_init = resolve(org_id, "init")
+        session_status_crashed = resolve_tag_value(org_id, "crashed")
+        session_status_init = resolve_tag_value(org_id, "init")
         snql_query = entity_subscription.build_query_builder(
             "", [self.project.id], None, {"organization_id": self.organization.id}
         ).get_snql_query()

@@ -28,7 +28,6 @@ from sentry.sentry_metrics.utils import (
     resolve,
     resolve_tag_key,
     resolve_tag_value,
-    resolve_weak,
     reverse_tag_value,
 )
 from sentry.snuba.dataset import EntityKey
@@ -459,7 +458,7 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
                 Condition(
                     Column(resolve_tag_key(self.org_id, "environment")),
                     Op.EQ,
-                    resolve_weak(self.org_id, environment.name),
+                    resolve_tag_value(self.org_id, environment.name),
                 )
             )
         qb.add_conditions(extra_conditions)
