@@ -85,7 +85,7 @@ class SpansInterface extends PureComponent<Props, State> {
 
     return (
       <AlertContainer>
-        <Alert type={getOverallAlertLevelFromErrors(errors)}>
+        <Alert type={getCumulativeAlertLevelFromErrors(errors)}>
           <ErrorLabel>
             There is an error event associated with this transaction event.
           </ErrorLabel>
@@ -207,7 +207,7 @@ const ErrorLabel = styled('div')`
   margin-bottom: ${space(1)};
 `;
 
-export function getOverallAlertLevelFromErrors(
+export function getCumulativeAlertLevelFromErrors(
   errors?: Array<{level: TraceError['level']}>
 ): keyof Theme['alert'] | undefined {
   const highestErrorLevel = maxBy(
