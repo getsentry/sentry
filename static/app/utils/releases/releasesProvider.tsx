@@ -70,7 +70,8 @@ function ReleasesProvider({
     return () => {
       shouldCancelRequest = true;
     };
-  }, [skipLoad, api, organization.slug, selection]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [skipLoad, api, organization.slug, JSON.stringify(selection)]);
 
   return (
     <ReleasesContext.Provider value={{releases, loading}}>

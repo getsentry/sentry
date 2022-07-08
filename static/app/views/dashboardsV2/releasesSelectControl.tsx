@@ -25,7 +25,7 @@ function ReleasesSelectControl() {
       isClearable
       isSearchable
       isLoading={loading}
-      menuTitle={t('All Releases')}
+      menuTitle={t('Filter Releases')}
       options={
         releases.length
           ? releases.map(release => {
