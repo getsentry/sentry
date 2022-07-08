@@ -36,7 +36,7 @@ enum Step {
   RECOMMENDED_STEPS = 'recommended_steps',
 }
 
-type Props = Omit<RecommendedStepsModalProps, 'onSubmit'> & {
+type Props = Omit<RecommendedStepsModalProps, 'onSubmit' | 'clientSampleRate'> & {
   rules: SamplingRule[];
   project?: Project;
   projectStats?: SeriesApi;
@@ -95,7 +95,7 @@ function UniformRateModal({
   const isEdited =
     client !== recommendedClientSampling || server !== recommendedServerSampling;
 
-  if (activeStep === Step.RECOMMENDED_STEPS) {
+  if (activeStep === Step.RECOMMENDED_STEPS && defined(client)) {
     return (
       <RecommendedStepsModal
         {...props}
@@ -107,6 +107,7 @@ function UniformRateModal({
         recommendedSdkUpgrades={recommendedSdkUpgrades}
         onGoBack={() => setActiveStep(Step.SET_UNIFORM_SAMPLE_RATE)}
         onSubmit={() => {}}
+        clientSampleRate={Math.max(Math.min(Number(client) / 100, 1), 0)}
       />
     );
   }

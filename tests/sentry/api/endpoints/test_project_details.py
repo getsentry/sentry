@@ -40,6 +40,7 @@ def _dyn_sampling_data():
             {
                 "sampleRate": 0.7,
                 "type": "trace",
+                "active": True,
                 "condition": {
                     "op": "and",
                     "inner": [
@@ -52,6 +53,7 @@ def _dyn_sampling_data():
             {
                 "sampleRate": 0.8,
                 "type": "trace",
+                "active": True,
                 "condition": {
                     "op": "and",
                     "inner": [
@@ -757,6 +759,17 @@ class ProjectUpdateTest(APITestCase):
         new_next_id = saved_config["next_id"]
         assert new_next_id == 7
 
+    def test_dynamic_sampling_rules_have_active_flag(self):
+        """
+        Tests that the active flag is set for all rules
+        """
+        data = _dyn_sampling_data()
+        with Feature({"organizations:filters-and-sampling": True}):
+            self.get_success_response(self.org_slug, self.proj_slug, dynamicSampling=data)
+            response = self.get_success_response(self.org_slug, self.proj_slug, method="get")
+        saved_config = response.data["dynamicSampling"]
+        assert all([rule["active"] for rule in saved_config["rules"]])
+
     def test_cap_secondary_grouping_expiry(self):
         now = time()
 
@@ -1187,6 +1200,7 @@ def test_rule_config_serializer():
             {
                 "sampleRate": 0.7,
                 "type": "trace",
+                "active": False,
                 "id": 1,
                 "condition": {
                     "op": "and",

@@ -19,7 +19,7 @@ import importedUseSamplingDistribution from 'sentry/views/settings/project/serve
 import importedUseSdkVersions from 'sentry/views/settings/project/server-side-sampling/utils/useSdkVersions';
 
 export const uniformRule: SamplingRule = {
-  sampleRate: 1,
+  sampleRate: 0.5,
   type: SamplingRuleType.TRACE,
   active: false,
   condition: {
