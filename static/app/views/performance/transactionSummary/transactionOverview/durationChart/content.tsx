@@ -78,13 +78,22 @@ function Content({
         .reverse()
     : [];
 
+  // Finds the range of yAxis values based on what is selected in the legend
   let range;
   if (series[1]) {
-    const p90max = Math.max(...series[1]?.data.map(({value}) => value));
-    const p50min = Math.min(
-      ...series[4]?.data.map(({value}) => value).filter(value => !!value)
+    let minSeries = series[0];
+    let maxSeries;
+    series.forEach(({seriesName}, idx) => {
+      if (legend?.selected?.[seriesName] !== false) {
+        minSeries = series[idx];
+        maxSeries ??= series[idx];
+      }
+    });
+    const max = Math.max(...maxSeries?.data.map(({value}) => value));
+    const min = Math.min(
+      ...minSeries?.data.map(({value}) => value).filter(value => !!value)
     );
-    range = {max: p90max, min: p50min};
+    range = {max, min};
   }
 
   const durationUnit = range ? categorizeDuration((range.min + range.max) * 0.5) : 0;
