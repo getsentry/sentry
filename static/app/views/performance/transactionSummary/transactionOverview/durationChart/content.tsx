@@ -11,7 +11,11 @@ import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingM
 import Placeholder from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons';
 import {Series} from 'sentry/types/echarts';
-import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
+import {
+  axisLabelFormatter,
+  categorizeDuration,
+  tooltipFormatter,
+} from 'sentry/utils/discover/charts';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {Theme} from 'sentry/utils/theme';
 
@@ -83,6 +87,8 @@ function Content({
     range = {max: p90max, min: p50min};
   }
 
+  const durationUnit = range ? categorizeDuration((range.min + range.max) * 0.5) : 0;
+
   const chartOptions = {
     grid: {
       left: '10px',
@@ -104,11 +110,12 @@ function Content({
         }
       : undefined,
     yAxis: {
+      minInterval: durationUnit,
       axisLabel: {
         color: theme.chartLabel,
         // p50() coerces the axis to be time based
         formatter: (value: number) => {
-          return axisLabelFormatter(value, 'p50()', undefined, range);
+          return axisLabelFormatter(value, 'p50()', undefined, durationUnit);
         },
       },
     },

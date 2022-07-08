@@ -12,11 +12,6 @@ import {
   WEEK,
 } from 'sentry/utils/formatters';
 
-interface Range {
-  max: number;
-  min: number;
-}
-
 /**
  * Formatter for chart tooltips that handle a variety of discover and metrics result values.
  * If the result is metric values, the value can be of type number or null
@@ -46,7 +41,7 @@ export function axisLabelFormatter(
   value: number,
   seriesName: string,
   abbreviation: boolean = false,
-  range?: Range
+  durationUnit?: number
 ): string {
   switch (aggregateOutputType(seriesName)) {
     case 'integer':
@@ -55,10 +50,6 @@ export function axisLabelFormatter(
     case 'percentage':
       return formatPercentage(value, 0);
     case 'duration':
-      let durationUnit;
-      if (range) {
-        durationUnit = categorizeDuration((range.max - range.min) * 0.5);
-      }
       return axisDuration(value, durationUnit);
     default:
       return value.toString();
@@ -108,7 +99,7 @@ export function axisDuration(value: number, durationUnit?: number): string {
  *
  * @param value
  */
-function categorizeDuration(value): number {
+export function categorizeDuration(value): number {
   if (value >= WEEK) {
     return WEEK;
   }
