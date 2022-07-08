@@ -207,3 +207,10 @@ export type RecommendedSdkUpgrade = {
   latestSDKVersion: SamplingSdkVersion['latestSDKVersion'];
   project: Project;
 };
+
+export type UniformModalsSubmit = (
+  sampleRate: number,
+  rule?: SamplingRule,
+  onSuccess?: () => void,
+  onError?: () => void
+) => void;

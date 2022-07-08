@@ -15,7 +15,12 @@ import {t} from 'sentry/locale';
 import ProjectStore from 'sentry/stores/projectsStore';
 import space from 'sentry/styles/space';
 import {Project} from 'sentry/types';
-import {SamplingRule, SamplingRuleOperator} from 'sentry/types/sampling';
+import {
+  SamplingConditionOperator,
+  SamplingRule,
+  SamplingRuleOperator,
+  SamplingRuleType,
+} from 'sentry/types/sampling';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -116,6 +121,7 @@ export function ServerSideSampling({project}: Props) {
           projectStats={projectStats}
           recommendedSdkUpgrades={recommendedSdkUpgrades}
           rules={rules}
+          onSubmit={saveUniformRule}
         />
       ),
       {
@@ -179,6 +185,7 @@ export function ServerSideSampling({project}: Props) {
             uniformRule={rule}
             rules={rules}
             recommendedSdkUpgrades={recommendedSdkUpgrades}
+            onSubmit={saveUniformRule}
           />
         ),
         {
@@ -217,12 +224,55 @@ export function ServerSideSampling({project}: Props) {
     }
   }
 
+  async function saveUniformRule(
+    sampleRate: number,
+    rule?: SamplingRule,
+    onSuccess?: () => void,
+    onError?: () => void
+  ) {
+    const newRule: SamplingRule = {
+      // All new/updated rules must have id equal to 0
+      id: 0,
+      active: rule ? rule.active : false,
+      type: SamplingRuleType.TRACE,
+      condition: {
+        op: SamplingConditionOperator.AND,
+        inner: [],
+      },
+      sampleRate: sampleRate / 100,
+    };
+
+    const newRules = rule
+      ? rules.map(existingRule => (existingRule.id === rule.id ? newRule : existingRule))
+      : [...rules, newRule];
+
+    try {
+      const response = await api.requestPromise(
+        `/projects/${organization.slug}/${project.slug}/`,
+        {method: 'PUT', data: {dynamicSampling: {rules: newRules}}}
+      );
+      ProjectStore.onUpdateSuccess(response);
+      addSuccessMessage(
+        rule
+          ? t('Successfully edited sampling rule')
+          : t('Successfully added sampling rule')
+      );
+      onSuccess?.();
+    } catch (error) {
+      addErrorMessage(
+        typeof error === 'string'
+          ? error
+          : error.message || t('Failed to save sampling rule')
+      );
+      onError?.();
+    }
+  }
+
   // Rules without a condition (Else case) always have to be 'pinned' to the bottom of the list
   // and cannot be sorted
   const items = rules.map(rule => ({
     ...rule,
     id: String(rule.id),
-    bottomPinned: !rule.condition.inner.length,
   }));
 
   return (
