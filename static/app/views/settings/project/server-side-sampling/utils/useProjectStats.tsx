@@ -7,7 +7,7 @@ import useApi from 'sentry/utils/useApi';
 
 import {projectStatsToSeries} from './projectStatsToSeries';
 
-function useProjectStats({orgSlug, projectId, interval, statsPeriod}) {
+function useProjectStats({orgSlug, projectId, interval, statsPeriod, disable = false}) {
   const api = useApi();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | undefined>(undefined);
@@ -37,8 +37,10 @@ function useProjectStats({orgSlug, projectId, interval, statsPeriod}) {
         setLoading(false);
       }
     }
-    fetchStats();
-  }, [api, projectId, orgSlug, interval, statsPeriod]);
+    if (!disable) {
+      fetchStats();
+    }
+  }, [api, projectId, orgSlug, interval, statsPeriod, disable]);
 
   return {
     loading,

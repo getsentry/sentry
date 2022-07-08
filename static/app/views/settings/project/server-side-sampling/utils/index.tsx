@@ -1,5 +1,6 @@
 import {t} from 'sentry/locale';
 import {SamplingInnerName, SamplingRule, SamplingRuleType} from 'sentry/types/sampling';
+import {defined} from 'sentry/utils';
 
 // TODO: Update this link as soon as we have one for sampling
 export const SERVER_SIDE_SAMPLING_DOC_LINK =
@@ -30,4 +31,12 @@ export function isUniformRule(rule?: SamplingRule) {
   }
 
   return rule.type === SamplingRuleType.TRACE && rule.condition.inner.length === 0;
+}
+
+export function isValidSampleRate(sampleRate: number | undefined) {
+  if (!defined(sampleRate)) {
+    return false;
+  }
+
+  return !isNaN(sampleRate) && sampleRate <= 100 && sampleRate >= 0;
 }
