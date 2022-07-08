@@ -188,8 +188,8 @@ ALL_KILLSWITCH_OPTIONS = {
         Note that this change will not take effect immediately, it takes time
         for downstream Relay instances to update their caches.
 
-        If project_id is set to None, the kill switch will match *any* project_id,
-        but no invalidation task will be run.
+        If project_id is set to None, extraction will be disabled for all projects.
+        In this case, the invalidation of existing project configs can take up to one hour.
         """,
         fields={
             "project_id": "project ID for which we want to stop extracting transaction metrics",
