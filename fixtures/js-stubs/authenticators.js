@@ -12,6 +12,7 @@ export function Authenticators() {
       configureButton: 'Info',
       name: 'Authenticator App',
       allowMultiEnrollment: false,
+      disallowNewEnrollment: false,
       authId: '15',
       canValidateOtp: true,
       isBackupInterface: false,
@@ -27,6 +28,7 @@ export function Authenticators() {
       configureButton: 'Info',
       id: 'sms',
       isBackupInterface: false,
+      disallowNewEnrollment: false,
       description:
         "This authenticator sends you text messages for verification.  It's useful as a backup method or when you do not have a phone that supports an authenticator application.",
       ...params,
@@ -43,6 +45,7 @@ export function Authenticators() {
       configureButton: 'Configure',
       name: 'U2F (Universal 2nd Factor)',
       allowMultiEnrollment: true,
+      disallowNewEnrollment: false,
       authId: '23',
       canValidateOtp: false,
       isBackupInterface: false,
