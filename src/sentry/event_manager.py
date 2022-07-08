@@ -694,18 +694,14 @@ def _is_commit_sha(version: str):
     return re.match(r"[0-9a-f]{40}", version) is not None
 
 
-def _get_last_release(release: Release):
-    return None
-
-
 def _associate_commits_with_release(release: Release):
-    last_release = _get_last_release(release)
+    previous_release = release.previous_release
     fetch_commits.apply_async(
         kwargs={
             "release_id": release.id,
             "user_id": None,
             "repository": [],
-            "prev_release_id": last_release.id,
+            "prev_release_id": previous_release.id if previous_release is not None else None,
         }
     )
 

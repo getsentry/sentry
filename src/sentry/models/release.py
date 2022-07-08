@@ -540,6 +540,19 @@ class Release(Model):
     def is_semver_release(self):
         return self.package is not None
 
+    @cached_property
+    def previous_release(self):
+        """Get the release prior to this one. None if none exists"""
+        return (
+            (
+                Release.objects.filter(project_id=self.project_id, date_added__lt=self.date_added)
+                .order_by("-date_added")
+                .first()
+            )
+            if self.project_id is not None
+            else None
+        )
+
     @staticmethod
     def is_semver_version(version):
         """

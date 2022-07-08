@@ -209,6 +209,9 @@ default_manager.add("projects:similarity-view-v2", ProjectFeature)
 default_manager.add("projects:plugins", ProjectPluginFeature)
 default_manager.add("users:notification-slack-automatic", UserFeature)
 
+# Workflow 2.0 commit association
+default_manager.add("organizations:commit-event-association", OrganizationFeature)
+
 
 # This is a gross hardcoded list, but there's no
 # other sensible way to manage this right now without augmenting
