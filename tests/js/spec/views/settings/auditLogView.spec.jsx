@@ -74,7 +74,7 @@ describe('OrganizationAuditLog', () => {
       }
     );
 
-    expect(await screen.findByText('Foo Bar (Sentry Staff)')).toBeInTheDocument();
-    expect(screen.getByText('Foo Bar')).toBeInTheDocument();
+    expect(await screen.findByText('Sentry Staff')).toBeInTheDocument();
+    expect(screen.getAllByText('Foo Bar')).toHaveLength(2);
   });
 });
