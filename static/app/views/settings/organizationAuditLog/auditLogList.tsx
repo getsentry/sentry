@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 
 import UserAvatar from 'sentry/components/avatar/userAvatar';
 import DateTime from 'sentry/components/dateTime';
-import SelectField from 'sentry/components/deprecatedforms/selectField';
-import Pagination from 'sentry/components/pagination';
+import SelectControl from 'sentry/components/forms/selectControl';
+import Pagination, {CursorHandler} from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels';
 import Tooltip from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
@@ -21,9 +21,10 @@ const avatarStyle = {
 
 type Props = {
   entries: AuditLog[] | null;
-  eventType: string;
+  eventType: string | undefined;
   eventTypes: string[];
   isLoading: boolean;
+  onCursor: CursorHandler | undefined;
   onEventSelect: (value: string) => void;
   pageLinks: string | null;
 };
@@ -32,28 +33,30 @@ const AuditLogList = ({
   isLoading,
   pageLinks,
   entries,
-  eventType,
   eventTypes,
+  onCursor,
   onEventSelect,
 }: Props) => {
   const is24Hours = shouldUse24Hours();
   const hasEntries = entries && entries.length > 0;
   const ipv4Length = 15;
-  const options = [
-    {value: '', label: t('Any action'), clearableValue: false},
-    ...eventTypes.map(type => ({label: type, value: type, clearableValue: false})),
-  ];
+
+  const eventOptions = eventTypes.map(type => ({
+    label: type,
+    value: type,
+  }));
 
   const action = (
-    <form>
-      <SelectField
-        name="event"
-        onChange={onEventSelect as SelectField['props']['onChange']}
-        value={eventType}
-        style={{width: 250}}
-        options={options}
-      />
-    </form>
+    <EventSelector
+      clearable
+      isDisabled={isLoading}
+      name="eventFilter"
+      placeholder={t('Select Action: ')}
+      options={eventOptions}
+      onChange={options => {
+        onEventSelect(options?.value);
+      }}
+    />
   );
 
   return (
@@ -61,7 +64,7 @@ const AuditLogList = ({
       <SettingsPageHeader title={t('Audit Log')} action={action} />
       <PanelTable
         headers={[t('Member'), t('Action'), t('IP'), t('Time')]}
-        isEmpty={!hasEntries}
+        isEmpty={!hasEntries && entries?.length === 0}
         emptyMessage={t('No audit entries available')}
         isLoading={isLoading}
       >
@@ -108,10 +111,14 @@ const AuditLogList = ({
           </Fragment>
         ))}
       </PanelTable>
-      {pageLinks && <Pagination pageLinks={pageLinks} />}
+      {pageLinks && <Pagination pageLinks={pageLinks} onCursor={onCursor} />}
     </div>
   );
 };
+
+const EventSelector = styled(SelectControl)`
+  width: 250px;
+`;
 
 const UserInfo = styled('div')`
   display: flex;
