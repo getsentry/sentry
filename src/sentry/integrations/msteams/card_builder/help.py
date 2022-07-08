@@ -44,5 +44,5 @@ class MSTeamsMentionedMessageBuilder(MSTeamsMessageBuilder):
         return self._build(
             title=self.get_text_block(MENTIONED_TITLE),
             text=self.get_text_block(MENTIONED_TEXT),
-            actions=[self.get_action(ActionType.OPEN_URL, title=DOCS_BUTTON, url=DOCS_URL)],
+            actions=[self.get_action_block(ActionType.OPEN_URL, title=DOCS_BUTTON, url=DOCS_URL)],
         )
