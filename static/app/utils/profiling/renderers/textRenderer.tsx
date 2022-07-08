@@ -77,7 +77,7 @@ class TextRenderer {
     // This allows us to do a couple optimizations that improve our best case performance.
     // 1. We can skip drawing the entire tree if the root frame is not visible
     // 2. We can skip drawing and
-    const frames: FlamegraphFrame[] = [...this.flamegraph.roots];
+    const frames: FlamegraphFrame[] = [...this.flamegraph.root.children];
     while (frames.length) {
       const frame = frames.pop()!;
 

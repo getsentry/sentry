@@ -83,7 +83,7 @@ class FlamegraphRenderer {
 
     this.colors = new Array(VERTICES * COLOR_COMPONENTS);
     this.frames = [...this.flamegraph.frames];
-    this.roots = this.flamegraph.frames.filter(f => !f.parent);
+    this.roots = [...this.flamegraph.root.children];
 
     // Generate colors for the flamegraph
     const {colorBuffer, colorMap} = this.theme.COLORS.STACK_TO_COLOR(
