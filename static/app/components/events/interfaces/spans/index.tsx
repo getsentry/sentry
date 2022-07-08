@@ -208,7 +208,7 @@ const ErrorLabel = styled('div')`
 `;
 
 export function getCumulativeAlertLevelFromErrors(
-  errors?: Array<{level: TraceError['level']}>
+  errors?: Pick<TraceError, 'level'>[]
 ): keyof Theme['alert'] | undefined {
   const highestErrorLevel = maxBy(
     errors || [],
