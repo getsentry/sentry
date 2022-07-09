@@ -1,6 +1,6 @@
 import pytest
 
-from sentry.integrations.msteams.card_builder.base.base import ActionType, MSTeamsMessageBuilder
+from sentry.integrations.msteams.card_builder.base import ActionType, MSTeamsMessageBuilder
 from sentry.integrations.msteams.card_builder.help import (
     MSTeamsHelpMessageBuilder,
     MSTeamsMentionedMessageBuilder,
