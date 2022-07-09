@@ -1,9 +1,10 @@
-from sentry.integrations.msteams.card_builder.base.base import (
+from typing import Any
+
+from sentry.integrations.msteams.card_builder.base import (
     ActionType,
     MSTeamsMessageBuilder,
     TextSize,
 )
-from sentry.utils.types import Any
 
 LINK_IDENTITY_BUTTON = "Link Identities"
 LINK_IDENTITY = "You need to link your Microsoft Teams account to your Sentry account before you can take action through Teams messages. Please click here to do so."
@@ -43,7 +44,7 @@ class MSTeamsLinkedMessageBuilder(MSTeamsMessageBuilder):
 
 
 class MSTeamsLinkIdentityMessageBuilder(MSTeamsMessageBuilder):
-    def __init__(self, url):
+    def __init__(self, url: str):
         self.url = url
 
     def build(self) -> Any:
@@ -56,7 +57,7 @@ class MSTeamsLinkIdentityMessageBuilder(MSTeamsMessageBuilder):
 
 
 class MSTeamsUnlinkIdentityMessageBuilder(MSTeamsMessageBuilder):
-    def __init__(self, url):
+    def __init__(self, url: str):
         self.url = url
 
     def build(self) -> Any:

@@ -8,7 +8,7 @@ from sentry.utils.http import absolute_uri
 
 SENTRY_ICON_URL = "images/sentry-glyph-black.png"
 
-# NOTE: The classes below need to inherit from `str` as well to be serialized correctly.
+# NOTE: The classes below need to inherit from `str` as well to be serialized correctly.]
 
 
 class TextSize(str, Enum):
@@ -44,13 +44,13 @@ REQUIRED_ACTION_PARAM = {
 }
 
 
-class MSTeamsMessageBuilder(AbstractMessageBuilder, ABC):
+class MSTeamsMessageBuilder(AbstractMessageBuilder, ABC):  # type: ignore
     def build(self) -> Any:
         """Abstract `build` method that all inheritors must implement."""
         raise NotImplementedError
 
     @staticmethod
-    def get_text_block(text: str, **kwargs) -> Any:
+    def get_text_block(text: str, **kwargs: str) -> Any:
         return {"type": "TextBlock", "text": text, "wrap": True, **kwargs}
 
     def get_logo_block(self) -> Any:
@@ -65,7 +65,7 @@ class MSTeamsMessageBuilder(AbstractMessageBuilder, ABC):
         }
 
     @staticmethod
-    def get_column_block(item: Any, **kwargs) -> Any:
+    def get_column_block(item: Any, **kwargs: str) -> Any:
         kwargs["width"] = kwargs.get("width", ColumnWidth.AUTO)
 
         return {"type": "Column", "items": [item], **kwargs}
@@ -78,7 +78,7 @@ class MSTeamsMessageBuilder(AbstractMessageBuilder, ABC):
         }
 
     @staticmethod
-    def get_action_block(action_type: ActionType, title: str, **kwargs):
+    def get_action_block(action_type: ActionType, title: str, **kwargs: str) -> Any:
         param = REQUIRED_ACTION_PARAM[action_type]
 
         return {"type": action_type, "title": title, f"{param}": kwargs[param]}

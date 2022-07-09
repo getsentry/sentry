@@ -1,8 +1,9 @@
 from typing import Any
 
+from sentry.models import Organization
 from sentry.utils.http import absolute_uri
 
-from .base.base import (
+from .base import (
     ActionType,
     ColumnWidth,
     MSTeamsMessageBuilder,
@@ -51,7 +52,7 @@ class MSTeamsTeamInstallationMessageBuilder(MSTeamsInstallationTitleMessageBuild
     def __init__(self, signed_params: str):
         self.url = MSTEAMS_CONFIGURE_URL.format(signed_params=signed_params)
 
-    def build(self):
+    def build(self) -> Any:
         return self._build(
             title=self.get_title_block(TEAM_INSTALLTION_TITLE),
             text=self.get_text_block(TEAM_INSTALLATION_DESCRIPTION),
@@ -65,7 +66,7 @@ class MSTeamsTeamInstallationMessageBuilder(MSTeamsInstallationTitleMessageBuild
 
 
 class MSTeamsPersonalIntallationMessageBuilder(MSTeamsInstallationTitleMessageBuilder):
-    def build(self):
+    def build(self) -> Any:
         return self._build(
             title=self.get_title_block(PERSONAL_INSTALLATION_TITLE),
             text=self.get_text_block(PERSONAL_INSTALLATION_INSTRUCTION),
@@ -73,10 +74,10 @@ class MSTeamsPersonalIntallationMessageBuilder(MSTeamsInstallationTitleMessageBu
 
 
 class MSTeamsInstallationConfirmationMessageBuilder(MSTeamsInstallationTitleMessageBuilder):
-    def __init__(self, organization):
+    def __init__(self, organization: Organization):
         self.organization = organization
 
-    def build(self):
+    def build(self) -> Any:
         alert_rule_url = absolute_uri(
             ALERT_RULE_URL.format(organization_slug=self.organization.slug)
         )

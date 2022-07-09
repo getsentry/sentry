@@ -1,4 +1,6 @@
-from sentry.integrations.msteams.card_builder.base.base import ActionType, MSTeamsMessageBuilder
+from typing import Any
+
+from sentry.integrations.msteams.card_builder.base import ActionType, MSTeamsMessageBuilder
 
 HELP_TITLE = "Please use one of the following commands for Sentry:"
 HELP_MESSAGE = (
@@ -22,17 +24,17 @@ DOCS_URL = "https://docs.sentry.io/product/alerts-notifications/alerts/"
 
 
 class MSTeamsHelpMessageBuilder(MSTeamsMessageBuilder):
-    def build(self):
+    def build(self) -> Any:
         return self._build(
             title=self.get_text_block(HELP_TITLE), text=self.get_text_block(HELP_MESSAGE)
         )
 
 
 class MSTeamsUnrecognizedCommandMessageBuilder(MSTeamsMessageBuilder):
-    def __init__(self, command_text):
+    def __init__(self, command_text: str):
         self.command_text = command_text
 
-    def build(self):
+    def build(self) -> Any:
         return self._build(
             title=self.get_text_block(UNRECOGNIZED_COMMAND.format(command_text=self.command_text)),
             text=self.get_text_block(AVAILABLE_COMMANDS_TEXT),
@@ -40,7 +42,7 @@ class MSTeamsUnrecognizedCommandMessageBuilder(MSTeamsMessageBuilder):
 
 
 class MSTeamsMentionedMessageBuilder(MSTeamsMessageBuilder):
-    def build(self):
+    def build(self) -> Any:
         return self._build(
             title=self.get_text_block(MENTIONED_TITLE),
             text=self.get_text_block(MENTIONED_TEXT),
