@@ -186,6 +186,10 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
   const {docContents, isLoading, hasOnboardingContents} =
     usePerformanceOnboardingDocs(currentProject);
 
+  const currentPlatform = currentProject.platform
+    ? platforms.find(p => p.id === currentProject.platform)
+    : undefined;
+
   const doesNotSupportPerformance = currentProject.platform
     ? withoutPerformanceSupport.has(currentProject.platform)
     : false;
@@ -194,8 +198,9 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     return (
       <Fragment>
         <div>
-          {t(
-            'Fiddlesticks. Performance isn’t available for this project yet but we’re definitely still working on it. Stay tuned.'
+          {tct(
+            'Fiddlesticks. Performance isn’t available for your [platform] project yet but we’re definitely still working on it. Stay tuned.',
+            {platform: currentPlatform?.name || currentProject.slug}
           )}
         </div>
         <div>
@@ -211,15 +216,13 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     return <LoadingIndicator />;
   }
 
-  const currentPlatform = currentProject.platform
-    ? platforms.find(p => p.id === currentProject.platform)
-    : undefined;
   if (!currentPlatform || !hasOnboardingContents) {
     return (
       <Fragment>
         <div>
-          {t(
-            'Fiddlesticks. This checklist isn’t available for this project yet, but for now, go to Sentry docs for installation details.'
+          {tct(
+            'Fiddlesticks. This checklist isn’t available for your [project] project yet, but for now, go to Sentry docs for installation details.',
+            {project: currentProject.slug}
           )}
         </div>
         <div>
