@@ -57,7 +57,9 @@ class MSTeamsTeamInstallationMessageBuilder(MSTeamsInstallationTitleMessageBuild
             text=self.get_text_block(TEAM_INSTALLATION_DESCRIPTION),
             fields=[self.get_text_block(TEAM_INSTALLATION_INSTRUCTION)],
             actions=[
-                self.get_action_block(ActionType.OPEN_URL, TEAM_INSTALLATION_BUTTON, url=self.url)
+                self.get_action_block(
+                    ActionType.OPEN_URL, title=TEAM_INSTALLATION_BUTTON, url=self.url
+                )
             ],
         )
 
@@ -85,7 +87,7 @@ class MSTeamsInstallationConfirmationMessageBuilder(MSTeamsInstallationTitleMess
             text=self.get_text_block(INSTALLATION_CONFIRMATION_INSTRUCTION),
             actions=[
                 self.get_action_block(
-                    ActionType.OPEN_URL, INSTALLATION_CONFIRMATION_BUTTON, url=alert_rule_url
+                    ActionType.OPEN_URL, title=INSTALLATION_CONFIRMATION_BUTTON, url=alert_rule_url
                 )
             ],
         )
