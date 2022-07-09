@@ -53,15 +53,17 @@ class MSTeamsMessageBuilder(AbstractMessageBuilder, ABC):  # type: ignore
     def get_text_block(text: str, **kwargs: str) -> Any:
         return {"type": "TextBlock", "text": text, "wrap": True, **kwargs}
 
-    def get_logo_block(self) -> Any:
-        return self.get_image_block(get_asset_url("sentry", SENTRY_ICON_URL))
+    def get_logo_block(self, for_footer: bool = False) -> Any:
+        kwargs = {"height": "20px"} if for_footer else {"size": "Medium"}
+
+        return self.get_image_block(get_asset_url("sentry", SENTRY_ICON_URL), **kwargs)
 
     @staticmethod
-    def get_image_block(url: str) -> Any:
+    def get_image_block(url: str, **kwargs) -> Any:
         return {
             "type": "Image",
             "url": absolute_uri(url),
-            "size": "Medium",
+            **kwargs,
         }
 
     @staticmethod
@@ -82,6 +84,14 @@ class MSTeamsMessageBuilder(AbstractMessageBuilder, ABC):  # type: ignore
         param = REQUIRED_ACTION_PARAM[action_type]
 
         return {"type": action_type, "title": title, f"{param}": kwargs[param]}
+
+    @staticmethod
+    def get_input_choice_set_block(id: str, choices: Sequence[Any]) -> Any:
+        return {
+            "type": "Input.ChoiceSet",
+            "id": id,
+            choices: [{"title": title, "value": value} for title, value in choices],
+        }
 
     def _build(
         self,
