@@ -48,9 +48,9 @@ class MSTeamsLinkIdentityMessageBuilder(MSTeamsMessageBuilder):
 
     def build(self) -> Any:
         return self._build(
-            text=self.get_text_block(LINK_IDENTITY, TextSize.MEDIUM),
+            text=self.get_text_block(LINK_IDENTITY, size=TextSize.MEDIUM),
             actions=[
-                self.get_action_block(ActionType.OPEN_URL, LINK_IDENTITY_BUTTON, url=self.url)
+                self.get_action_block(ActionType.OPEN_URL, title=LINK_IDENTITY_BUTTON, url=self.url)
             ],
         )
 
@@ -63,7 +63,9 @@ class MSTeamsUnlinkIdentityMessageBuilder(MSTeamsMessageBuilder):
         return self._build(
             text=self.get_text_block(UNLINK_IDENTITY),
             actions=[
-                self.get_action_block(ActionType.OPEN_URL, UNLINK_IDENTITY_BUTTON, url=self.url)
+                self.get_action_block(
+                    ActionType.OPEN_URL, title=UNLINK_IDENTITY_BUTTON, url=self.url
+                )
             ],
         )
 
