@@ -186,6 +186,10 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
   const {docContents, isLoading, hasOnboardingContents} =
     usePerformanceOnboardingDocs(currentProject);
 
+  if (isLoading) {
+    return <LoadingIndicator />;
+  }
+
   const currentPlatform = currentProject.platform
     ? platforms.find(p => p.id === currentProject.platform)
     : undefined;
@@ -210,10 +214,6 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
         </div>
       </Fragment>
     );
-  }
-
-  if (isLoading) {
-    return <LoadingIndicator />;
   }
 
   if (!currentPlatform || !hasOnboardingContents) {
