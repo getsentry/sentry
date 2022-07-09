@@ -19,6 +19,7 @@ from sentry.snuba.entity_subscription import (
 )
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.models import QueryDatasets, QuerySubscription, SnubaQuery, SnubaQueryEventType
+from sentry.snuba.subscriptions import query_datasets_to_type
 from sentry.snuba.tasks import (
     SUBSCRIPTION_STATUS_MAX_AGE,
     build_query_builder,
@@ -66,7 +67,6 @@ class BaseSnubaTaskTest(metaclass=abc.ABCMeta):
             status = self.expected_status
         if dataset is None:
             dataset = QueryDatasets.EVENTS
-        dataset = dataset.value
         if aggregate is None:
             aggregate = "count_unique(tags[sentry:user])"
         if query is None:
@@ -76,7 +76,8 @@ class BaseSnubaTaskTest(metaclass=abc.ABCMeta):
         resolution = 60
 
         snuba_query = SnubaQuery.objects.create(
-            dataset=dataset,
+            type=query_datasets_to_type[dataset].value,
+            dataset=dataset.value,
             aggregate=aggregate,
             query=query,
             time_window=time_window,
@@ -922,6 +923,7 @@ class SubscriptionCheckerTest(TestCase):
         resolution = 60
 
         snuba_query = SnubaQuery.objects.create(
+            type=SnubaQuery.Type.ERROR.value,
             dataset=dataset,
             aggregate=aggregate,
             query=query,
