@@ -9,7 +9,6 @@ from sentry.plugins.bases import IssueTrackingPlugin, IssueTrackingPlugin2
 from sentry.plugins.bases.notify import NotificationPlugin
 from sentry.receivers.rules import DEFAULT_RULE_DATA, DEFAULT_RULE_LABEL
 from sentry.signals import (
-    active_release_notification_sent,
     advanced_search,
     advanced_search_feature_gated,
     alert_rule_created,
@@ -228,28 +227,6 @@ def record_issue_unresolved(project, user, group, transition_type, **kwargs):
         organization_id=project.organization_id,
         group_id=group.id,
         transition_type=transition_type,
-    )
-
-
-@active_release_notification_sent.connect(weak=False)
-def record_active_release_notification_sent(
-    project,
-    group,
-    provider,
-    release_version,
-    recipient_email,
-    recipient_username,
-    **kwargs,
-):
-    analytics.record(
-        "active_release_notification.sent",
-        organization_id=project.organization_id,
-        project_id=project.id,
-        group_id=group.id,
-        provider=provider,
-        release_version=release_version,
-        email=recipient_email,
-        username=recipient_username,
     )
 
 

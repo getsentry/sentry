@@ -74,10 +74,12 @@ class BaseMailAdapterTest(TestCase):
 
 
 class MailAdapterActiveReleaseTest(BaseMailAdapterTest):
-    @mock.patch("sentry.signals.active_release_notification_sent.send_robust")
+    @mock.patch("sentry.analytics.record")
     @mock.patch("sentry.notifications.utils.participants.get_release_committers")
-    def test_simple(self, mock_get_release_committers, send_robust):
-        mock_get_release_committers.return_value = [self.create_user(email="test@example.com")]
+    def test_simple(self, mock_get_release_committers, record):
+        mock_get_release_committers.return_value = [
+            self.create_user(email="test@example.com", username="foo")
+        ]
         event = self.store_event(
             data={"message": "Hello world", "level": "error"}, project_id=self.project.id
         )
@@ -110,7 +112,22 @@ class MailAdapterActiveReleaseTest(BaseMailAdapterTest):
 
         assert to_committer
         assert to_committer.subject == "**ARM** [Sentry] BAR-1 - Hello world"
-        assert send_robust.called
+
+        notification_record = [
+            r for r in record.call_args_list if r[0][0] == "active_release_notification.sent"
+        ]
+        assert notification_record == [
+            mock.call(
+                "active_release_notification.sent",
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                group_id=event.group.id,
+                provider="email",
+                release_version="2",
+                recipient_email="test@example.com",
+                recipient_username="foo",
+            )
+        ]
 
 
 class MailAdapterGetSendableUsersTest(BaseMailAdapterTest):

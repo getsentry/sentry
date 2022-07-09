@@ -6,6 +6,7 @@ from urllib.parse import quote
 
 import pytz
 
+from sentry import analytics
 from sentry.db.models import Model
 from sentry.models import Release, ReleaseCommit, Team, User, UserOption
 from sentry.notifications.notifications.base import ProjectNotification
@@ -21,7 +22,6 @@ from sentry.notifications.utils import (
 )
 from sentry.notifications.utils.participants import get_send_to
 from sentry.plugins.base.structs import Notification
-from sentry.signals import active_release_notification_sent
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.utils import metrics
 from sentry.utils.http import absolute_uri, urlencode
@@ -153,17 +153,18 @@ class AlertRuleNotification(ProjectNotification):
 
         for provider, participants in participants_by_provider.items():
             if self.target_type == ActionTargetType.RELEASE_MEMBERS:
-                last_release = shared_context["last_release"]
+                last_release = shared_context.get("last_release", None)
                 release_version = last_release.version if last_release else None
                 for participant in participants:
-                    active_release_notification_sent.send_robust(
-                        project=self.project,
-                        group=self.group,
+                    analytics.record(
+                        "active_release_notification.sent",
+                        organization_id=self.project.organization_id,
+                        project_id=self.project.id,
+                        group_id=self.group.id,
                         provider=EXTERNAL_PROVIDERS[provider],
                         release_version=release_version,
                         recipient_email=participant.email,
                         recipient_username=participant.username,
-                        sender=ActiveReleaseAlertNotification.__class__,
                     )
             notify(provider, self, participants, shared_context)
 

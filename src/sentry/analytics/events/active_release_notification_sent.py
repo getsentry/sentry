@@ -6,6 +6,7 @@ class ActiveReleaseNotificationSent(analytics.Event):
 
     attributes = (
         analytics.Attribute("organization_id"),
+        analytics.Attribute("project_id"),
         analytics.Attribute("group_id"),
         analytics.Attribute("provider"),
         analytics.Attribute("release_version"),

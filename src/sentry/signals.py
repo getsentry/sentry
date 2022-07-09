@@ -114,18 +114,6 @@ issue_ignored = BetterSignal(providing_args=["project", "user", "group_list", "a
 issue_unignored = BetterSignal(providing_args=["project", "user", "group", "transition_type"])
 issue_mark_reviewed = BetterSignal(providing_args=["project", "user", "group"])
 
-active_release_notification_sent = BetterSignal(
-    providing_args=[
-        "project",
-        "group",
-        "provider",
-        "release_version",
-        "recipient_email",
-        "recipient_username",
-        "notification_type",
-    ]
-)
-
 # comments
 comment_created = BetterSignal(providing_args=["project", "user", "group", "activity_data"])
 comment_updated = BetterSignal(providing_args=["project", "user", "group", "activity_data"])
