@@ -135,9 +135,7 @@ describe('ReleasesList', () => {
       }
     );
 
-    expect(
-      await screen.findByText('Configure Releases with the CLI')
-    ).toBeInTheDocument();
+    expect(await screen.findByText('Set up Releases')).toBeInTheDocument();
     expect(screen.queryByTestId('release-panel')).not.toBeInTheDocument();
 
     // has releases set up and no releases

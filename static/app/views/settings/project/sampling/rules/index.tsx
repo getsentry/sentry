@@ -109,7 +109,6 @@ export class Rules extends PureComponent<Props, State> {
     const items = rules.map(rule => ({
       ...rule,
       id: String(rule.id),
-      disabled: !rule.condition.inner.length,
     }));
 
     return (
@@ -163,7 +162,7 @@ export class Rules extends PureComponent<Props, State> {
                 operator={
                   itemsRule.id === items[0].id
                     ? SamplingRuleOperator.IF
-                    : itemsRule.disabled
+                    : currentRule.condition.inner.length === 0
                     ? SamplingRuleOperator.ELSE
                     : SamplingRuleOperator.ELSE_IF
                 }

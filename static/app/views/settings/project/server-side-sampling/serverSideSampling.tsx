@@ -3,7 +3,11 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  addSuccessMessage,
+} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import {
   fetchSamplingDistribution,
@@ -32,8 +36,6 @@ import usePrevious from 'sentry/utils/usePrevious';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import PermissionAlert from 'sentry/views/settings/organization/permissionAlert';
-
-import {DraggableList, UpdateItemsProps} from '../sampling/rules/draggableList';
 
 import {SpecificConditionsModal} from './modals/specificConditionsModal';
 import {responsiveModal} from './modals/styles';
@@ -102,7 +104,6 @@ export function ServerSideSampling({project}: Props) {
   });
 
   async function handleActivateToggle(ruleId: SamplingRule['id']) {
-    // TODO(sampling): test this after the backend work is finished
     const newRules = rules.map(rule => {
       if (rule.id === ruleId) {
         return {
@@ -114,6 +115,7 @@ export function ServerSideSampling({project}: Props) {
       return rule;
     });
 
+    addLoadingMessage();
     try {
       const result = await api.requestPromise(
         `/projects/${organization.slug}/${project.slug}/`,
@@ -123,9 +125,9 @@ export function ServerSideSampling({project}: Props) {
         }
       );
       ProjectStore.onUpdateSuccess(result);
-      addSuccessMessage(t('Successfully activated sampling rule'));
+      addSuccessMessage(t('Successfully updated the sampling rule'));
     } catch (error) {
-      const message = t('Unable to activate sampling rule');
+      const message = t('Unable to update the sampling rule');
       handleXhrErrorResponse(message)(error);
       addErrorMessage(message);
     }
@@ -149,11 +151,12 @@ export function ServerSideSampling({project}: Props) {
     );
   }
 
-  async function handleSortRules({overIndex, reorderedItems: ruleIds}: UpdateItemsProps) {
+  async function handleSortRules({
+    overIndex,
+    reorderedItems: ruleIds,
+  }: DraggableRuleListUpdateItemsProps) {
     if (!rules[overIndex].condition.inner.length) {
-      addErrorMessage(
-        t('Rules with conditions cannot be below rules without conditions')
-      );
+      addErrorMessage(t('Specific rules cannot be below uniform rules'));
       return;
     }
 
@@ -332,7 +335,7 @@ export function ServerSideSampling({project}: Props) {
           )}
           {!!rules.length && (
             <Fragment>
-              <DraggableList
+              <DraggableRuleList
                 disabled={!hasAccess}
                 items={items}
                 onUpdateItems={handleSortRules}
@@ -408,8 +411,7 @@ export function ServerSideSampling({project}: Props) {
                   </Button>
                   <GuideAnchor
                     target="add_conditional_rule"
-                    // TODO(sampling): disable unless the base rule is active
-                    disabled={true || !hasAccess || rules.length !== 1}
+                    disabled={!uniformRule?.active || !hasAccess || rules.length !== 1}
                   >
                     <AddRuleButton
                       disabled={!hasAccess}

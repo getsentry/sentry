@@ -56,7 +56,7 @@ export function Rule({
   const isUniform = isUniformRule(rule);
   const canDelete = !noPermission && !isUniform;
   const canActivate = !upgradeSdkForProjects.length;
-  const canDrag = !noPermission && !isUniform;
+  const canDrag = !isUniform && !noPermission;
 
   return (
     <Fragment>
@@ -65,9 +65,9 @@ export function Rule({
           <Tooltip
             title={
               noPermission
-                ? t('You do not have permission to reorder rules.')
-                : operator === SamplingRuleOperator.ELSE
-                ? t('Rules without conditions cannot be reordered.')
+                ? t('You do not have permission to reorder rules')
+                : isUniform
+                ? t('Uniform rules cannot be reordered')
                 : undefined
             }
             containerDisplayMode="flex"
@@ -76,6 +76,7 @@ export function Rule({
               {...listeners}
               {...grabAttributes}
               aria-label={dragging ? t('Drop Rule') : t('Drag Rule')}
+              aria-disabled={!canDrag}
             >
               <IconGrabbable />
             </IconGrabbableWrapper>
@@ -122,11 +123,8 @@ export function Rule({
       <ActiveColumn>
         <GuideAnchor
           target="sampling_rule_toggle"
-          onFinish={() => {
-            // TODO(sampling): activate the rule
-          }}
-          // TODO(sampling): disable if sdks are not yet updated
-          disabled={true || !isUniform}
+          onFinish={onActivate}
+          disabled={!canActivate || !isUniform}
         >
           <Tooltip
             disabled={canActivate}
@@ -147,6 +145,7 @@ export function Rule({
               onClick={onActivate}
               name="active"
               disabled={!canActivate}
+              value={rule.active}
             />
           </Tooltip>
         </GuideAnchor>
@@ -174,7 +173,7 @@ export function Rule({
           >
             <Tooltip
               disabled={!noPermission}
-              title={t('You do not have permission to edit sampling rules.')}
+              title={t('You do not have permission to edit sampling rules')}
               containerDisplayMode="block"
             >
               {t('Edit')}
@@ -193,8 +192,8 @@ export function Rule({
               disabled={canDelete}
               title={
                 isUniform
-                  ? t("You can't delete the uniform rule.")
-                  : t('You do not have permission to delete sampling rules.')
+                  ? t("You can't delete the uniform rule")
+                  : t('You do not have permission to delete sampling rules')
               }
               containerDisplayMode="block"
             >
