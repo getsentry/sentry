@@ -1,28 +1,32 @@
 import {createStore} from 'reflux';
 
-import {SamplingSdkVersion} from 'sentry/types/sampling';
+import {SamplingDistribution, SamplingSdkVersion} from 'sentry/types/sampling';
 import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 import {CommonStoreDefinition} from './types';
 
 type State = {
-  loaded: boolean;
+  samplingDistribution: SamplingDistribution;
   samplingSdkVersions: SamplingSdkVersion[];
 };
 
 interface ServerSideSamplingStoreDefinition extends CommonStoreDefinition<State> {
-  loadSuccess(data: SamplingSdkVersion[]): void;
+  loadSamplingDistributionSuccess(data: SamplingDistribution): void;
+  loadSamplingSdkVersionsSuccess(data: SamplingSdkVersion[]): void;
   reset(): void;
 }
 
 const storeConfig: ServerSideSamplingStoreDefinition = {
   state: {
+    samplingDistribution: {},
     samplingSdkVersions: [],
-    loaded: false,
   },
 
   reset() {
-    this.state = {samplingSdkVersions: [], loaded: false};
+    this.state = {
+      samplingDistribution: {},
+      samplingSdkVersions: [],
+    };
     this.trigger(this.state);
   },
 
@@ -30,8 +34,19 @@ const storeConfig: ServerSideSamplingStoreDefinition = {
     return this.state;
   },
 
-  loadSuccess(samplingSdkVersions) {
-    this.state = {samplingSdkVersions, loaded: true};
+  loadSamplingSdkVersionsSuccess(data: SamplingSdkVersion[]) {
+    this.state = {
+      ...this.state,
+      samplingSdkVersions: data,
+    };
+    this.trigger(this.state);
+  },
+
+  loadSamplingDistributionSuccess(data: SamplingDistribution) {
+    this.state = {
+      ...this.state,
+      samplingDistribution: data,
+    };
     this.trigger(this.state);
   },
 };

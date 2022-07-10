@@ -3,9 +3,57 @@ import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary
 import * as modal from 'sentry/actionCreators/modal';
 import {SERVER_SIDE_SAMPLING_DOC_LINK} from 'sentry/views/settings/project/server-side-sampling/utils';
 
-import {getMockData, mockedProjects, TestComponent, uniformRule} from './utils';
+import {
+  getMockData,
+  mockedProjects,
+  mockedSamplingSdkVersions,
+  TestComponent,
+  uniformRule,
+} from './utils';
 
 describe('Server-side Sampling', function () {
+  beforeAll(function () {
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/dynamic-sampling/distribution/',
+      method: 'GET',
+      body: {
+        samplingDistribution: {
+          project_breakdown: [
+            {
+              project: mockedProjects[0].slug,
+              project_id: mockedProjects[0].id,
+              'count()': 888,
+            },
+            {
+              project: mockedProjects[1].slug,
+              project_id: mockedProjects[1].id,
+              'count()': 100,
+            },
+          ],
+          sample_size: 100,
+          null_sample_rate_percentage: 98,
+          sample_rate_distributions: {
+            min: 1,
+            max: 1,
+            avg: 1,
+            p50: 1,
+            p90: 1,
+            p95: 1,
+            p99: 1,
+          },
+        },
+      },
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dynamic-sampling/sdk-versions/',
+      method: 'GET',
+      body: {
+        samplingSdkVersions: mockedSamplingSdkVersions,
+      },
+    });
+  });
+
   it('renders onboarding promo', function () {
     const {router, organization, project} = getMockData();
 

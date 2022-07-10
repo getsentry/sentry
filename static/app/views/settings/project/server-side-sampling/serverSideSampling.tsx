@@ -5,6 +5,10 @@ import isEqual from 'lodash/isEqual';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
+import {
+  fetchSamplingDistribution,
+  fetchSamplingSdkVersions,
+} from 'sentry/actionCreators/serverSideSampling';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -69,6 +73,23 @@ export function ServerSideSampling({project}: Props) {
     }
   }, [currentRules, previousRules]);
 
+  useEffect(() => {
+    async function fetchRecommendedSdkUpgrades() {
+      await fetchSamplingDistribution({
+        orgSlug: organization.slug,
+        projSlug: project.slug,
+        api,
+      });
+
+      await fetchSamplingSdkVersions({
+        orgSlug: organization.slug,
+        api,
+      });
+    }
+
+    fetchRecommendedSdkUpgrades();
+  }, [api, organization.slug, project.slug]);
+
   const {projectStats} = useProjectStats({
     orgSlug: organization.slug,
     projectId: project?.id,
@@ -78,7 +99,6 @@ export function ServerSideSampling({project}: Props) {
 
   const {recommendedSdkUpgrades} = useRecommendedSdkUpgrades({
     orgSlug: organization.slug,
-    projSlug: project.slug,
   });
 
   async function handleActivateToggle(ruleId: SamplingRule['id']) {
@@ -119,7 +139,6 @@ export function ServerSideSampling({project}: Props) {
           organization={organization}
           project={project}
           projectStats={projectStats}
-          recommendedSdkUpgrades={recommendedSdkUpgrades}
           rules={rules}
           onSubmit={saveUniformRule}
         />
@@ -184,7 +203,6 @@ export function ServerSideSampling({project}: Props) {
             projectStats={projectStats}
             uniformRule={rule}
             rules={rules}
-            recommendedSdkUpgrades={recommendedSdkUpgrades}
             onSubmit={saveUniformRule}
           />
         ),
