@@ -6,7 +6,8 @@ import responses
 from django.conf import settings
 from django.core import mail
 from django.utils import timezone
-from exam import fixture, patcher
+from django.utils.functional import cached_property as fixture
+from exam import patcher
 from freezegun import freeze_time
 
 from sentry.constants import ObjectStatus

@@ -2,7 +2,6 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from django.core.cache import cache
-from django.test import override_settings
 
 from sentry.integrations.aws_lambda.utils import (
     OPTION_ACCOUNT_NUMBER,
@@ -19,6 +18,7 @@ from sentry.integrations.aws_lambda.utils import (
 )
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils import TestCase
+from sentry.testutils.helpers.django import override_settings
 from sentry.testutils.helpers.faux import Mock
 
 

@@ -1,10 +1,10 @@
 import pytest
-from django.test import override_settings
 from django.urls import NoReverseMatch, reverse
 from freezegun import freeze_time
 
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.django import override_settings
 
 
 class EventIdLookupEndpointTest(APITestCase, SnubaTestCase):

@@ -2,7 +2,7 @@ from urllib.parse import parse_qs, urlparse
 
 import responses
 from django.urls import reverse
-from exam import fixture
+from django.utils.functional import cached_property as fixture
 
 from sentry.testutils import APITestCase
 

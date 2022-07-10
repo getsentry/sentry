@@ -1,5 +1,5 @@
 import responses
-from exam import fixture
+from django.utils.functional import cached_property as fixture
 
 from sentry.models import Rule
 from sentry.plugins.base import Notification

@@ -2,14 +2,14 @@ from datetime import datetime
 from unittest import mock
 
 import pytz
-from exam import fixture
+from django.utils.functional import cached_property as fixture
 
 from sentry.api.serializers import serialize
 from sentry.incidents.models import Incident, IncidentActivity, IncidentStatus
 from sentry.testutils import APITestCase
 
 
-class BaseIncidentDetailsTest:
+class IncidentDetailsTestBase:
     endpoint = "sentry-api-0-organization-incident-details"
 
     def setUp(self):
@@ -41,7 +41,7 @@ class BaseIncidentDetailsTest:
         assert resp.status_code == 404
 
 
-class OrganizationIncidentDetailsTest(BaseIncidentDetailsTest, APITestCase):
+class OrganizationIncidentDetailsTest(IncidentDetailsTestBase, APITestCase):
     @mock.patch("django.utils.timezone.now")
     def test_simple(self, mock_now):
         mock_now.return_value = datetime.utcnow().replace(tzinfo=pytz.utc)
@@ -64,7 +64,7 @@ class OrganizationIncidentDetailsTest(BaseIncidentDetailsTest, APITestCase):
         assert [item["id"] for item in resp.data["seenBy"]] == [item["id"] for item in seen_by]
 
 
-class OrganizationIncidentUpdateStatusTest(BaseIncidentDetailsTest, APITestCase):
+class OrganizationIncidentUpdateStatusTest(IncidentDetailsTestBase, APITestCase):
     method = "put"
 
     def get_success_response(self, *args, **params):

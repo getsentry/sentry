@@ -48,3 +48,4 @@ filterwarnings = [
 # This is for people who install pytest-xdist locally,
 # and use the -f/--looponfail feature.
 looponfailroots = ["src", "tests"]
+python_classes = "Test* *Test"

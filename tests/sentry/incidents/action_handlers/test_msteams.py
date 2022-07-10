@@ -9,11 +9,11 @@ from sentry.models import Integration
 from sentry.testutils import TestCase
 from sentry.utils import json
 
-from . import FireTest
+from . import FireTestBase
 
 
 @freeze_time()
-class MsTeamsActionHandlerTest(FireTest, TestCase):
+class MsTeamsActionHandlerTest(FireTestBase, TestCase):
     @responses.activate
     def run_test(self, incident, method):
         from sentry.integrations.msteams.card_builder import build_incident_attachment

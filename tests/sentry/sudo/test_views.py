@@ -1,7 +1,7 @@
 from django.template.response import TemplateResponse
-from django.test import override_settings
 
 from fixtures.sudo_testutils import BaseTestCase
+from sentry.testutils.helpers.django import override_settings
 from sudo.forms import SudoForm
 from sudo.settings import REDIRECT_FIELD_NAME, REDIRECT_TO_FIELD_NAME, REDIRECT_URL
 from sudo.views import redirect_to_sudo, sudo

@@ -1,7 +1,7 @@
 from datetime import timedelta
 
 from django.urls import reverse
-from exam import fixture
+from django.utils.functional import cached_property as fixture
 
 from sentry.search.events.constants import RELEASE_ALIAS, SEMVER_ALIAS
 from sentry.testutils import APITestCase, SnubaTestCase

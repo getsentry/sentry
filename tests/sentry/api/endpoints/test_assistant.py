@@ -1,5 +1,5 @@
 from django.utils import timezone
-from exam import fixture
+from django.utils.functional import cached_property as fixture
 
 from sentry.assistant import manager
 from sentry.models import AssistantActivity

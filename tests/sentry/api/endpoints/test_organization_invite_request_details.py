@@ -1,6 +1,6 @@
 from unittest.mock import patch
 
-from exam import fixture
+from django.utils.functional import cached_property as fixture
 
 from sentry import audit_log
 from sentry.models import (

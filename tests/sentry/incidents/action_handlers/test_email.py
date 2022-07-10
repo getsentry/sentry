@@ -4,7 +4,7 @@ import responses
 from django.core import mail
 from django.urls import reverse
 from django.utils import timezone
-from exam import fixture
+from django.utils.functional import cached_property as fixture
 from freezegun import freeze_time
 
 from sentry.incidents.action_handlers import (
@@ -25,11 +25,11 @@ from sentry.testutils import TestCase
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.http import absolute_uri
 
-from . import FireTest
+from . import FireTestBase
 
 
 @freeze_time()
-class EmailActionHandlerTest(FireTest, TestCase):
+class EmailActionHandlerTest(FireTestBase, TestCase):
     @responses.activate
     def run_test(self, incident, method):
         action = self.create_alert_rule_trigger_action(

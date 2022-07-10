@@ -1,4 +1,4 @@
-class BaseFetchProjectsWithRecentSessionsTest:
+class FetchProjectsWithRecentSessionsTestBase:
     backend_class = None
 
     def setUp(self):
@@ -37,7 +37,7 @@ class BaseFetchProjectsWithRecentSessionsTest:
         }
 
 
-class BaseFetchProjectReleaseHealthTotalsTest:
+class FetchProjectReleaseHealthTotalsTestBase:
     backend_class = None
 
     def setUp(self):

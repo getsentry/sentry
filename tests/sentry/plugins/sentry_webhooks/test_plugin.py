@@ -1,6 +1,6 @@
 import pytest
 import responses
-from exam import fixture
+from django.utils.functional import cached_property as fixture
 
 from sentry.exceptions import PluginError
 from sentry.models import Rule

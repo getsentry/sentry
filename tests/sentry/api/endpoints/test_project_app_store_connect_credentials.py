@@ -2,13 +2,13 @@ from unittest import mock
 
 import django.urls
 import pytest
-from django.test import override_settings
 
 import sentry.tasks.app_store_connect
 from sentry.api.endpoints.project_app_store_connect_credentials import (
     AppStoreUpdateCredentialsSerializer,
 )
 from sentry.lang.native.appconnect import AppStoreConnectConfig
+from sentry.testutils.helpers.django import override_settings
 from sentry.utils import json
 
 

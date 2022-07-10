@@ -1,18 +1,18 @@
 from sentry.release_health.release_monitor.sessions import SessionReleaseMonitorBackend
 from sentry.testutils import SnubaTestCase, TestCase
 from tests.sentry.release_health.release_monitor import (
-    BaseFetchProjectReleaseHealthTotalsTest,
-    BaseFetchProjectsWithRecentSessionsTest,
+    FetchProjectReleaseHealthTotalsTestBase,
+    FetchProjectsWithRecentSessionsTestBase,
 )
 
 
 class SessionFetchProjectsWithRecentSessionsTest(
-    BaseFetchProjectsWithRecentSessionsTest, TestCase, SnubaTestCase
+    FetchProjectsWithRecentSessionsTestBase, TestCase, SnubaTestCase
 ):
     backend_class = SessionReleaseMonitorBackend
 
 
 class SessionFetchProjectReleaseHealthTotalsTest(
-    BaseFetchProjectReleaseHealthTotalsTest, TestCase, SnubaTestCase
+    FetchProjectReleaseHealthTotalsTestBase, TestCase, SnubaTestCase
 ):
     backend_class = SessionReleaseMonitorBackend

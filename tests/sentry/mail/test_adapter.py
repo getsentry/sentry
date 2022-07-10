@@ -8,7 +8,7 @@ from django.contrib.auth.models import AnonymousUser
 from django.core import mail
 from django.db.models import F
 from django.utils import timezone
-from exam import fixture
+from django.utils.functional import cached_property as fixture
 
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.userreport import UserReportWithGroupSerializer

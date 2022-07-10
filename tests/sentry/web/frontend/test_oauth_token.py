@@ -1,5 +1,5 @@
 from django.utils import timezone
-from exam import fixture
+from django.utils.functional import cached_property as fixture
 
 from sentry.models import ApiApplication, ApiGrant, ApiToken
 from sentry.testutils import TestCase

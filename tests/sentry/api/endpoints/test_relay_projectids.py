@@ -2,12 +2,12 @@ import re
 import uuid
 from contextlib import contextmanager
 
-from django.test import override_settings
 from django.urls import reverse
 from sentry_relay.auth import generate_key_pair
 
 from sentry.models.relay import Relay
 from sentry.testutils import APITestCase
+from sentry.testutils.helpers.django import override_settings
 from sentry.utils import json, safe
 
 

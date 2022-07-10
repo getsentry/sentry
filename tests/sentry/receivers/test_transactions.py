@@ -1,6 +1,6 @@
 from unittest.mock import patch
 
-from exam import fixture
+from django.utils.functional import cached_property as fixture
 
 from sentry.models import OrganizationMember, Project
 from sentry.signals import event_processed, transaction_processed

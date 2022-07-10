@@ -1,11 +1,11 @@
-from exam import fixture
+from django.utils.functional import cached_property as fixture
 
 from sentry.incidents.logic import subscribe_to_incident
 from sentry.incidents.models import IncidentSubscription
 from sentry.testutils import APITestCase
 
 
-class BaseOrganizationSubscriptionEndpointTest:
+class OrganizationSubscriptionEndpointTestBase:
     endpoint = "sentry-api-0-organization-incident-subscription-index"
 
     @fixture
@@ -35,7 +35,7 @@ class BaseOrganizationSubscriptionEndpointTest:
 
 
 class OrganizationIncidentSubscribeEndpointTest(
-    BaseOrganizationSubscriptionEndpointTest, APITestCase
+    OrganizationSubscriptionEndpointTestBase, APITestCase
 ):
     method = "post"
 
@@ -53,7 +53,7 @@ class OrganizationIncidentSubscribeEndpointTest(
 
 
 class OrganizationIncidentUnsubscribeEndpointTest(
-    BaseOrganizationSubscriptionEndpointTest, APITestCase
+    OrganizationSubscriptionEndpointTestBase, APITestCase
 ):
     method = "delete"
 

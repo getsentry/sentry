@@ -4,7 +4,7 @@ from sentry.testutils import TestCase
 from sentry.utils.linksign import generate_signed_link
 
 
-class UnsubscribeNotificationsBaseTest:
+class UnsubscribeNotificationsTestBase:
     def create_instance(self):
         raise NotImplementedError()
 
@@ -44,7 +44,7 @@ class UnsubscribeNotificationsBaseTest:
         assert resp.status_code == 404
 
 
-class UnsubscribeIssueNotificationsTest(UnsubscribeNotificationsBaseTest, TestCase):
+class UnsubscribeIssueNotificationsTest(UnsubscribeNotificationsTestBase, TestCase):
     view_name = "sentry-account-email-unsubscribe-issue"
 
     def create_instance(self):
@@ -58,7 +58,7 @@ class UnsubscribeIssueNotificationsTest(UnsubscribeNotificationsBaseTest, TestCa
         assert GroupSubscription.objects.filter(user=user, group=instance, is_active=False).exists()
 
 
-class UnsubscribeIncidentNotificationsTest(UnsubscribeNotificationsBaseTest, TestCase):
+class UnsubscribeIncidentNotificationsTest(UnsubscribeNotificationsTestBase, TestCase):
     view_name = "sentry-account-email-unsubscribe-incident"
 
     def create_instance(self):

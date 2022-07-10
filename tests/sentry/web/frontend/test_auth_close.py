@@ -1,6 +1,6 @@
 from django.urls import reverse
+from django.utils.functional import cached_property as fixture
 from django.utils.http import urlquote
-from exam import fixture
 
 from sentry.testutils import TestCase
 

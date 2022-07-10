@@ -1,6 +1,6 @@
 from urllib.parse import parse_qs, urlparse
 
-from exam import fixture
+from django.utils.functional import cached_property as fixture
 
 from sentry.models import ApiApplication, ApiAuthorization, ApiGrant, ApiToken
 from sentry.testutils import TestCase

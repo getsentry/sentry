@@ -6,11 +6,11 @@ from sentry.incidents.models import AlertRuleTriggerAction, IncidentStatus
 from sentry.testutils import TestCase
 from sentry.utils import json
 
-from . import FireTest
+from . import FireTestBase
 
 
 @freeze_time()
-class SentryAppActionHandlerTest(FireTest, TestCase):
+class SentryAppActionHandlerTest(FireTestBase, TestCase):
     def setUp(self):
         self.sentry_app = self.create_sentry_app(
             name="foo",
@@ -61,7 +61,7 @@ class SentryAppActionHandlerTest(FireTest, TestCase):
 
 
 @freeze_time()
-class SentryAppAlertRuleUIComponentActionHandlerTest(FireTest, TestCase):
+class SentryAppAlertRuleUIComponentActionHandlerTest(FireTestBase, TestCase):
     def setUp(self):
         self.sentry_app = self.create_sentry_app(
             name="foo",

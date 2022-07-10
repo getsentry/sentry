@@ -36,7 +36,7 @@ def _indexer_record(org_id: int, string: str) -> int:
     return indexer.record(use_case_id=UseCaseKey.RELEASE_HEALTH, org_id=org_id, string=string)
 
 
-class BaseSnubaTaskTest(metaclass=abc.ABCMeta):
+class SnubaTaskTestBase(metaclass=abc.ABCMeta):
     metrics = patcher("sentry.snuba.tasks.metrics")
 
     status_translations = {
@@ -108,7 +108,7 @@ class BaseSnubaTaskTest(metaclass=abc.ABCMeta):
         )
 
 
-class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest, TestCase):
+class CreateSubscriptionInSnubaTest(SnubaTaskTestBase, TestCase):
     expected_status = QuerySubscription.Status.CREATING
     task = create_subscription_in_snuba
 
@@ -191,7 +191,7 @@ class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest, TestCase):
                     assert request_body["granularity"] == expected_granularity
 
 
-class UpdateSubscriptionInSnubaTest(BaseSnubaTaskTest, TestCase):
+class UpdateSubscriptionInSnubaTest(SnubaTaskTestBase, TestCase):
     expected_status = QuerySubscription.Status.UPDATING
     task = update_subscription_in_snuba
 
@@ -215,7 +215,7 @@ class UpdateSubscriptionInSnubaTest(BaseSnubaTaskTest, TestCase):
         assert sub.subscription_id is not None
 
 
-class DeleteSubscriptionFromSnubaTest(BaseSnubaTaskTest, TestCase):
+class DeleteSubscriptionFromSnubaTest(SnubaTaskTestBase, TestCase):
     expected_status = QuerySubscription.Status.DELETING
     task = delete_subscription_from_snuba
 

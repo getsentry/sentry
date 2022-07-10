@@ -3,7 +3,7 @@ from unittest import mock
 from urllib.parse import parse_qs, urlencode, urlparse
 
 from django.urls import reverse
-from exam import fixture
+from django.utils.functional import cached_property as fixture
 
 from sentry.auth.providers.oauth2 import OAuth2Callback, OAuth2Login, OAuth2Provider
 from sentry.models import AuthProvider

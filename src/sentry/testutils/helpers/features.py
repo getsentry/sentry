@@ -1,10 +1,11 @@
 __all__ = ["Feature", "with_feature", "apply_feature_flag_on_cls"]
 
-import inspect
 import logging
 from collections.abc import Mapping
 from contextlib import contextmanager
 from unittest.mock import patch
+
+import pytest
 
 import sentry.features
 from sentry.features.exceptions import FeatureNotRegistered
@@ -83,9 +84,16 @@ def with_feature(feature):
 
 
 def apply_feature_flag_on_cls(feature_flag):
+    @pytest.fixture(autouse=True)
+    def apply_feature(self):
+        with Feature(feature_flag):
+            yield
+
+    fixture_name = f"apply_feature_{feature_flag}"
+    apply_feature.__name__ = fixture_name
+
     def decorate(cls):
-        for name, fn in inspect.getmembers(cls, inspect.isfunction):
-            setattr(cls, name, with_feature(feature_flag)(fn))
+        setattr(cls, fixture_name, apply_feature)
         return cls
 
     return decorate

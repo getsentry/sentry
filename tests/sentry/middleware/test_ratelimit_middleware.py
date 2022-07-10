@@ -4,9 +4,9 @@ from unittest.mock import patch
 
 from django.conf.urls import url
 from django.contrib.auth.models import AnonymousUser
-from django.test import RequestFactory, override_settings
+from django.test import RequestFactory
 from django.urls import reverse
-from exam import fixture
+from django.utils.functional import cached_property as fixture
 from freezegun import freeze_time
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
@@ -22,6 +22,7 @@ from sentry.middleware.ratelimit import (
 from sentry.models import ApiKey, ApiToken, SentryAppInstallation, User
 from sentry.ratelimits.config import RateLimitConfig, get_default_rate_limits_for_group
 from sentry.testutils import APITestCase, TestCase
+from sentry.testutils.helpers.django import override_settings
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
@@ -30,11 +31,11 @@ class RatelimitMiddlewareTest(TestCase):
     middleware = RatelimitMiddleware(None)
     factory = fixture(RequestFactory)
 
-    class TestEndpoint(Endpoint):
+    class DummyEndpoint(Endpoint):
         def get(self):
             return Response({"ok": True})
 
-    _test_endpoint = TestEndpoint.as_view()
+    _test_endpoint = DummyEndpoint.as_view()
 
     def populate_sentry_app_request(self, request):
         sentry_app = self.create_sentry_app(
@@ -211,7 +212,7 @@ class RatelimitMiddlewareTest(TestCase):
 
 
 @override_settings(SENTRY_SELF_HOSTED=False)
-class TestGetRateLimitValue(TestCase):
+class TestGetRateLimitValue:
     def test_default_rate_limit_values(self):
         """Ensure that the default rate limits are called for endpoints without overrides"""
 

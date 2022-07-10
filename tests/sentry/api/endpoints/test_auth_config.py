@@ -1,9 +1,9 @@
 import pytest
 from django.conf import settings
-from django.test.utils import override_settings
 
 from sentry import newsletter
 from sentry.testutils import APITestCase
+from sentry.testutils.helpers.django import override_settings
 
 
 class AuthConfigEndpointTest(APITestCase):

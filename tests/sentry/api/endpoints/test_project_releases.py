@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 import pytz
 from django.urls import reverse
 from django.utils import timezone
-from exam import fixture
+from django.utils.functional import cached_property as fixture
 from rest_framework.exceptions import ErrorDetail
 
 from sentry.api.endpoints.project_releases import ReleaseWithVersionSerializer

@@ -30,8 +30,6 @@ __all__ = (
 
 import hashlib
 import inspect
-import os
-import os.path
 import time
 from contextlib import contextmanager
 from datetime import datetime
@@ -52,15 +50,14 @@ from django.core.cache import cache
 from django.db import DEFAULT_DB_ALIAS, connection, connections
 from django.db.migrations.executor import MigrationExecutor
 from django.http import HttpRequest
-from django.test import TestCase, TransactionTestCase, override_settings
+from django.test import Client
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.functional import cached_property
-from exam import Exam, before, fixture
 from pkg_resources import iter_entry_points
 from rest_framework import status
-from rest_framework.test import APITestCase as BaseAPITestCase
+from rest_framework.test import APIClient
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
 
 from sentry import auth, eventstore
@@ -134,42 +131,54 @@ from .helpers import (
     override_options,
     parse_queries,
 )
+from .helpers.django import override_settings
 from .skips import requires_snuba
+from .unittest_compat import UnittestCompatMixin
 
 DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36"
 
 
-DETECT_TESTCASE_MISUSE = os.environ.get("SENTRY_DETECT_TESTCASE_MISUSE") == "1"
-SILENCE_MIXED_TESTCASE_MISUSE = os.environ.get("SENTRY_SILENCE_MIXED_TESTCASE_MISUSE") == "1"
+class BaseTestCase(Fixtures, UnittestCompatMixin):
+    settings = override_settings
 
-
-class BaseTestCase(Fixtures, Exam):
     def assertRequiresAuthentication(self, path, method="GET"):
         resp = getattr(self.client, method.lower())(path)
         assert resp.status_code == 302
         assert resp["Location"].startswith("http://testserver" + reverse("sentry-login"))
 
-    @before
-    def setup_dummy_auth_provider(self):
+    @pytest.fixture(autouse=True)
+    def setup_dummy_auth_provider(self, unittest_compat):
         auth.register("dummy", DummyProvider)
         self.addCleanup(auth.unregister, "dummy", DummyProvider)
 
     def tasks(self):
         return TaskRunner()
 
-    @pytest.fixture(autouse=True)
-    def polyfill_capture_on_commit_callbacks(self, django_capture_on_commit_callbacks):
-        """
-        https://pytest-django.readthedocs.io/en/latest/helpers.html#django_capture_on_commit_callbacks
+    @pytest.fixture
+    def patch_self_base(self, request):
+        def addCleanup(f, *args, **kwargs):
+            request.addfinalizer(lambda: f(*args, **kwargs))
 
-        pytest-django comes with its own polyfill of this Django helper for
-        older Django versions, so we're using that.
-        """
-        self.capture_on_commit_callbacks = django_capture_on_commit_callbacks
+        self.addCleanup = addCleanup
+
+    @pytest.fixture
+    def patch_self(self):
+        pass
+
+    def setUp(self):
+        pass
+
+    def tearDown(self):
+        pass
 
     @pytest.fixture(autouse=True)
-    def expose_stale_database_reads(self, stale_database_reads):
-        self.stale_database_reads = stale_database_reads
+    def unittest_compat(self, patch_self, patch_self_base):
+        cache.clear()
+        ProjectOption.objects.clear_local_cache()
+        GroupMeta.objects.clear_local_cache()
+        self.setUp()
+        yield
+        self.tearDown()
 
     def feature(self, names):
         """
@@ -278,16 +287,6 @@ class BaseTestCase(Fixtures, Exam):
         with open(get_fixture_path(filepath), "rb") as fp:
             return fp.read()
 
-    def _pre_setup(self):
-        super()._pre_setup()
-
-        cache.clear()
-        ProjectOption.objects.clear_local_cache()
-        GroupMeta.objects.clear_local_cache()
-
-    def _post_teardown(self):
-        super()._post_teardown()
-
     def options(self, options):
         """
         A context manager that temporarily sets a global option and reverts
@@ -377,80 +376,30 @@ class _AssertQueriesContext(CaptureQueriesContext):
 
 
 @override_settings(ROOT_URLCONF="sentry.web.urls")
-class TestCase(BaseTestCase, TestCase):
-    # Ensure that testcases that ask for DB setup actually make use of the
-    # DB. If they don't, they're wasting CI time.
-    if DETECT_TESTCASE_MISUSE:
+class TestCase(BaseTestCase):
+    @pytest.fixture(autouse=True, params=[pytest.param(0, marks=pytest.mark.django_db)])
+    def uses_normal_django_setup(self):
+        pass
 
-        @pytest.fixture(autouse=True, scope="class")
-        def _require_db_usage(self, request):
-            class State:
-                used_db = {}
-                base = request.cls
+    @cached_property
+    def client(self):
+        return Client()
 
-            state = State()
-
-            yield state
-
-            did_not_use = set()
-            did_use = set()
-            for name, used in state.used_db.items():
-                if used:
-                    did_use.add(name)
-                else:
-                    did_not_use.add(name)
-
-            if did_not_use and not did_use:
-                pytest.fail(
-                    f"none of the test functions in {state.base} used the DB! Use `unittest.TestCase` "
-                    f"instead of `sentry.testutils.TestCase` for those kinds of tests."
-                )
-            elif did_not_use and did_use and not SILENCE_MIXED_TESTCASE_MISUSE:
-                pytest.fail(
-                    f"Some of the test functions in {state.base} used the DB and some did not! "
-                    f"test functions using the db: {did_use}\n"
-                    f"Use `unittest.TestCase` instead of `sentry.testutils.TestCase` for the tests not using the db."
-                )
-
-        @pytest.fixture(autouse=True, scope="function")
-        def _check_function_for_db(self, request, monkeypatch, _require_db_usage):
-            from django.db.backends.base.base import BaseDatabaseWrapper
-
-            real_ensure_connection = BaseDatabaseWrapper.ensure_connection
-
-            state = _require_db_usage
-
-            def ensure_connection(*args, **kwargs):
-                for info in inspect.stack():
-                    frame = info.frame
-                    try:
-                        first_arg_name = frame.f_code.co_varnames[0]
-                        first_arg = frame.f_locals[first_arg_name]
-                    except LookupError:
-                        continue
-
-                    # make an exact check here for two reasons.  One is that this is
-                    # good enough as we do not expect subclasses, secondly however because
-                    # it turns out doing an isinstance check on untrusted input can cause
-                    # bad things to happen because it's hookable.  In particular this
-                    # blows through max recursion limits here if it encounters certain
-                    # types of broken lazy proxy objects.
-                    if type(first_arg) is state.base and info.function in state.used_db:
-                        state.used_db[info.function] = True
-                        break
-
-                return real_ensure_connection(*args, **kwargs)
-
-            monkeypatch.setattr(BaseDatabaseWrapper, "ensure_connection", ensure_connection)
-            state.used_db[request.function.__name__] = False
-            yield
+    @pytest.fixture
+    def patch_self(self, django_capture_on_commit_callbacks, stale_database_reads):
+        self.capture_on_commit_callbacks = django_capture_on_commit_callbacks
+        self.stale_database_reads = stale_database_reads
 
 
-class TransactionTestCase(BaseTestCase, TransactionTestCase):
-    pass
+class TransactionTestCase(TestCase):
+    @pytest.fixture(
+        autouse=True, params=[pytest.param(0, marks=pytest.mark.django_db(transaction=True))]
+    )
+    def uses_transactional_django_setup(self):
+        pass
 
 
-class APITestCase(BaseTestCase, BaseAPITestCase):
+class APITestCase(TestCase):
     """
     Extend APITestCase to inherit access to `client`, an object with methods
     that simulate API calls to Sentry, and the helper `get_response`, which
@@ -460,6 +409,10 @@ class APITestCase(BaseTestCase, BaseAPITestCase):
     """
 
     method = "get"
+
+    @cached_property
+    def client(self):
+        return APIClient()
 
     @property
     def endpoint(self):
@@ -566,7 +519,7 @@ class APITestCase(BaseTestCase, BaseAPITestCase):
 
 
 class TwoFactorAPITestCase(APITestCase):
-    @fixture
+    @cached_property
     def path_2fa(self):
         return reverse("sentry-account-settings-security")
 
@@ -791,7 +744,7 @@ class PluginTestCase(TestCase):
 
 
 class CliTestCase(TestCase):
-    runner = fixture(CliRunner)
+    runner = cached_property(CliRunner)
 
     @property
     def command(self):
@@ -1377,7 +1330,7 @@ class ReleaseCommitPatchTest(APITestCase):
         self.create_member(teams=[team], user=user, organization=self.org)
         self.login_as(user=user)
 
-    @fixture
+    @cached_property
     def url(self):
         raise NotImplementedError(f"implement for {type(self).__module__}.{type(self).__name__}")
 
@@ -1679,7 +1632,7 @@ class ActivityTestCase(TestCase):
 
 
 class SlackActivityNotificationTest(ActivityTestCase):
-    @fixture
+    @cached_property
     def adapter(self):
         return mail_adapter
 
@@ -1724,9 +1677,10 @@ class SlackActivityNotificationTest(ActivityTestCase):
 
 
 @apply_feature_flag_on_cls("organizations:metrics")
-@pytest.mark.usefixtures("reset_snuba")
 class MetricsAPIBaseTestCase(SessionMetricsTestCase, APITestCase):
-    ...
+    @pytest.fixture(autouse=True)
+    def use_reset_snuba(self, reset_snuba):
+        pass
 
 
 class OrganizationMetricMetaIntegrationTestCase(MetricsAPIBaseTestCase):

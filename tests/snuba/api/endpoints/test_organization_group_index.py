@@ -3,7 +3,6 @@ from unittest.mock import Mock, patch
 from uuid import uuid4
 
 from dateutil.parser import parse as parse_datetime
-from django.test import override_settings
 from django.urls import reverse
 from django.utils import timezone
 from freezegun import freeze_time
@@ -50,6 +49,7 @@ from sentry.search.events.constants import (
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.django import override_settings
 from sentry.types.activity import ActivityType
 from sentry.utils import json
 

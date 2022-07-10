@@ -1,10 +1,10 @@
 import responses
-from django.test.utils import override_settings
 from requests.exceptions import ReadTimeout
 
 from sentry.integrations.jira_server import JiraServerIntegrationProvider
 from sentry.models import Identity, IdentityProvider, Integration, OrganizationIntegration
 from sentry.testutils import IntegrationTestCase
+from sentry.testutils.helpers.django import override_settings
 from sentry.utils import json, jwt
 
 from . import EXAMPLE_PRIVATE_KEY

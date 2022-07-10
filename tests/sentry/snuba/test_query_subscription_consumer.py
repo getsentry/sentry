@@ -7,7 +7,8 @@ import pytest
 import pytz
 from dateutil.parser import parse as parse_date
 from django.conf import settings
-from exam import fixture, patcher
+from django.utils.functional import cached_property as fixture
+from exam import patcher
 
 from sentry.snuba.dataset import EntityKey
 from sentry.snuba.models import QueryDatasets, QuerySubscription

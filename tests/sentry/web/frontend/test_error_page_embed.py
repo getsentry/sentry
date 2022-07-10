@@ -2,15 +2,14 @@ import logging
 from urllib.parse import quote, urlencode
 from uuid import uuid4
 
-from django.test import override_settings
 from django.urls import reverse
 
 from sentry.models import Environment, UserReport
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.django import override_settings
 
 
-@override_settings(ROOT_URLCONF="sentry.conf.urls")
 class ErrorPageEmbedTest(TestCase):
     def setUp(self):
         super().setUp()

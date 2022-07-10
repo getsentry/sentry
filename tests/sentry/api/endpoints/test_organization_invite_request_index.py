@@ -1,7 +1,7 @@
 import responses
 from django.core import mail
 from django.urls import reverse
-from exam import fixture
+from django.utils.functional import cached_property as fixture
 
 from sentry.models import (
     InviteStatus,

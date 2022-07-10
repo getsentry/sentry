@@ -1,7 +1,7 @@
-from django.test.utils import override_settings
+from unittest import TestCase
 
-from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import get_fixture_path
+from sentry.testutils.helpers.django import override_settings
 
 
 @override_settings(GEOIP_PATH_MMDB=get_fixture_path("test.mmdb"))

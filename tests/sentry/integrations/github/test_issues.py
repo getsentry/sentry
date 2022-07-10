@@ -2,7 +2,7 @@ from unittest.mock import patch
 
 import responses
 from django.test import RequestFactory
-from exam import fixture
+from django.utils.functional import cached_property as fixture
 
 from sentry.integrations.github.integration import GitHubIntegration
 from sentry.models import ExternalIssue, Integration

@@ -2,7 +2,6 @@ from base64 import b64encode
 from datetime import timedelta
 from unittest import mock
 
-from django.test import override_settings
 from django.utils import timezone
 from freezegun import freeze_time
 
@@ -26,6 +25,7 @@ from sentry.models import (
 )
 from sentry.plugins.base import plugins
 from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils.helpers.django import override_settings
 from sentry.types.activity import ActivityType
 
 

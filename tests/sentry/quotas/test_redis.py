@@ -1,7 +1,8 @@
 import time
 from unittest import mock
 
-from exam import fixture, patcher
+from django.utils.functional import cached_property as fixture
+from exam import patcher
 
 from sentry.constants import DataCategory
 from sentry.quotas.base import QuotaConfig, QuotaScope

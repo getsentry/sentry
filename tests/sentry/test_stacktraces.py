@@ -1,3 +1,5 @@
+from unittest import TestCase
+
 import pytest
 
 from sentry.grouping.api import get_default_grouping_config_dict, load_grouping_config
@@ -6,7 +8,6 @@ from sentry.stacktraces.processing import (
     get_crash_frame_from_event_data,
     normalize_stacktraces_for_grouping,
 )
-from sentry.testutils import TestCase
 
 
 class FindStacktracesTest(TestCase):
@@ -157,7 +158,7 @@ class FindStacktracesTest(TestCase):
         assert len(infos[0].stacktrace["frames"]) == 3
 
 
-class NormalizeInApptest(TestCase):
+class NormalizeInAppTest(TestCase):
     def test_normalize_with_system_frames(self):
         data = {
             "stacktrace": {

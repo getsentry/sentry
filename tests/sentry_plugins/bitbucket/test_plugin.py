@@ -2,7 +2,7 @@ import pytest
 import responses
 from django.contrib.auth.models import AnonymousUser
 from django.test import RequestFactory
-from exam import fixture
+from django.utils.functional import cached_property as fixture
 
 from sentry.plugins.bases.issue2 import PluginError
 from sentry.testutils import PluginTestCase

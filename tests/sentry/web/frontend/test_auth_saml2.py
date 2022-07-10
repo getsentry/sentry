@@ -6,7 +6,7 @@ import pytest
 from django.conf import settings
 from django.db import models
 from django.urls import reverse
-from exam import fixture
+from django.utils.functional import cached_property as fixture
 
 from sentry import audit_log
 from sentry.auth.authenticators import TotpInterface

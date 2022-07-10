@@ -3,8 +3,7 @@ from unittest.mock import patch
 import pytz
 import requests
 import responses
-from django.test.utils import override_settings
-from exam import fixture
+from django.utils.functional import cached_property as fixture
 from freezegun import freeze_time
 
 from sentry import audit_log
@@ -18,6 +17,7 @@ from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.models import QueryDatasets
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.django import override_settings
 from sentry.utils import json
 from tests.sentry.api.serializers.test_alert_rule import BaseAlertRuleSerializerTest
 

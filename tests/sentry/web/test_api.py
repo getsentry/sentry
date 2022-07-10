@@ -1,7 +1,7 @@
 from unittest import mock
 
 from django.urls import reverse
-from exam import fixture
+from django.utils.functional import cached_property as fixture
 
 from sentry.testutils import TestCase
 from sentry.utils import json

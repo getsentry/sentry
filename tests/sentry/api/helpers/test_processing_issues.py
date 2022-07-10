@@ -1,4 +1,4 @@
-from exam import fixture
+from django.utils.functional import cached_property as fixture
 
 from sentry.api.helpers.processing_issues import get_processing_issues
 from sentry.models import (

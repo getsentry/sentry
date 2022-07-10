@@ -1,7 +1,7 @@
 from unittest.mock import Mock
 
 import responses
-from exam import fixture
+from django.utils.functional import cached_property as fixture
 from requests.exceptions import SSLError
 
 import sentry.identity

@@ -1,8 +1,8 @@
 import pytest
 from django.forms import ValidationError
-from django.test import override_settings
 
 from fixtures.sudo_testutils import BaseTestCase, EmailUser
+from sentry.testutils.helpers.django import override_settings
 from sudo.forms import SudoForm
 
 

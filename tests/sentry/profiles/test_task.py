@@ -4,7 +4,7 @@ from zipfile import ZipFile
 
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
-from exam import fixture
+from django.utils.functional import cached_property as fixture
 
 from sentry.models import Project
 from sentry.profiles.task import _deobfuscate, _normalize

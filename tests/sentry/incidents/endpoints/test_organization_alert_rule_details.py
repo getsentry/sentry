@@ -2,7 +2,7 @@ from copy import deepcopy
 
 import responses
 from django.conf import settings
-from exam import fixture
+from django.utils.functional import cached_property as fixture
 
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.alert_rule import DetailedAlertRuleSerializer

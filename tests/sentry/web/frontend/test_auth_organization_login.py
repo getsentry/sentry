@@ -1,10 +1,9 @@
 from unittest import mock
 from urllib.parse import urlencode
 
-from django.test import override_settings
 from django.urls import reverse
+from django.utils.functional import cached_property as fixture
 from django.utils.http import urlquote
-from exam import fixture
 
 from sentry.auth.authenticators import RecoveryCodeInterface, TotpInterface
 from sentry.models import (
@@ -16,6 +15,7 @@ from sentry.models import (
 )
 from sentry.testutils import AuthProviderTestCase
 from sentry.testutils.helpers import with_feature
+from sentry.testutils.helpers.django import override_settings
 from sentry.utils import json
 
 
