@@ -281,12 +281,12 @@ from .endpoints.organization_member import (
     OrganizationMemberDetailsEndpoint,
     OrganizationMemberIndexEndpoint,
 )
+from .endpoints.organization_member.team_details import OrganizationMemberTeamDetailsEndpoint
 from .endpoints.organization_member_issues_assigned import OrganizationMemberIssuesAssignedEndpoint
 from .endpoints.organization_member_issues_bookmarked import (
     OrganizationMemberIssuesBookmarkedEndpoint,
 )
 from .endpoints.organization_member_issues_viewed import OrganizationMemberIssuesViewedEndpoint
-from .endpoints.organization_member_team_details import OrganizationMemberTeamDetailsEndpoint
 from .endpoints.organization_member_unreleased_commits import (
     OrganizationMemberUnreleasedCommitsEndpoint,
 )
