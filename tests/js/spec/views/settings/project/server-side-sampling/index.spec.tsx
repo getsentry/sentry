@@ -1,6 +1,5 @@
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
-import * as modal from 'sentry/actionCreators/modal';
 import {SERVER_SIDE_SAMPLING_DOC_LINK} from 'sentry/views/settings/project/server-side-sampling/utils';
 
 import {
@@ -152,8 +151,6 @@ describe('Server-side Sampling', function () {
   });
 
   it('display "update sdk versions" alert and open "recommended next step" modal', async function () {
-    jest.spyOn(modal, 'openModal');
-
     const {organization, projects, router} = getMockData({
       projects: mockedProjects,
     });
@@ -199,8 +196,6 @@ describe('Server-side Sampling', function () {
   });
 
   it('Open specific conditions modal', async function () {
-    jest.spyOn(modal, 'openModal');
-
     const {router, project, organization} = getMockData({
       projects: [
         TestStubs.Project({
