@@ -42,6 +42,7 @@ import {responsiveModal} from './modals/styles';
 import {UniformRateModal} from './modals/uniformRateModal';
 import useProjectStats from './utils/useProjectStats';
 import {useRecommendedSdkUpgrades} from './utils/useRecommendedSdkUpgrades';
+import {DraggableRuleList, DraggableRuleListUpdateItemsProps} from './draggableRuleList';
 import {Promo} from './promo';
 import {
   ActiveColumn,
@@ -295,6 +296,8 @@ export function ServerSideSampling({project}: Props) {
     ...rule,
     id: String(rule.id),
   }));
+
+  const uniformRule = rules.find(isUniformRule);
 
   return (
     <SentryDocumentTitle title={t('Server-side Sampling')}>
