@@ -51,7 +51,7 @@ function ReplayPlayPauseBar() {
   return (
     <ButtonBar merged>
       <Button
-        size="xsmall"
+        size="xs"
         title={t('Go back 10 seconds')}
         icon={<IconRefresh size="sm" />}
         onClick={() => setCurrentTime(currentTime - 10 * SECOND)}
@@ -59,7 +59,7 @@ function ReplayPlayPauseBar() {
       />
       {isFinished ? (
         <Button
-          size="xsmall"
+          size="xs"
           title={t('Restart Replay')}
           icon={<IconPrevious size="sm" />}
           onClick={restart}
@@ -67,7 +67,7 @@ function ReplayPlayPauseBar() {
         />
       ) : (
         <Button
-          size="xsmall"
+          size="xs"
           title={isPlaying ? t('Pause the Replay') : t('Play the Replay')}
           icon={isPlaying ? <IconPause size="sm" /> : <IconPlay size="sm" />}
           onClick={() => togglePlayPause(!isPlaying)}
@@ -75,7 +75,7 @@ function ReplayPlayPauseBar() {
         />
       )}
       <Button
-        size="xsmall"
+        size="xs"
         title={t('Jump to next event')}
         icon={<IconNext size="sm" />}
         onClick={() => {
@@ -114,7 +114,7 @@ function ReplayPlaybackSpeed({speedOptions}: {speedOptions: number[]}) {
   return (
     <CompactSelect
       triggerProps={{
-        size: 'xsmall',
+        size: 'xs',
         prefix: t('Speed'),
       }}
       value={speed}
@@ -144,7 +144,7 @@ const ReplayControls = ({
 
       {/* TODO(replay): Need a better icon for the FastForward toggle */}
       <Button
-        size="xsmall"
+        size="xs"
         title={t('Fast-forward idle moments')}
         aria-label={t('Fast-forward idle moments')}
         icon={<IconArrow size="sm" direction="right" />}
@@ -155,7 +155,7 @@ const ReplayControls = ({
       <ReplayPlaybackSpeed speedOptions={speedOptions} />
 
       <Button
-        size="xsmall"
+        size="xs"
         title={isFullscreen ? t('Exit full screen') : t('View in full screen')}
         aria-label={isFullscreen ? t('Exit full screen') : t('View in full screen')}
         icon={<IconResize size="sm" />}

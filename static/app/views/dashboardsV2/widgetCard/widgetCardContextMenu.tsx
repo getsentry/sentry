@@ -103,7 +103,7 @@ function WidgetCardContextMenu({
               ]}
               triggerProps={{
                 'aria-label': t('Widget actions'),
-                size: 'xsmall',
+                size: 'xs',
                 borderless: true,
                 showChevron: false,
                 icon: <IconEllipsis direction="down" size="sm" />,
@@ -229,7 +229,7 @@ function WidgetCardContextMenu({
             items={menuOptions}
             triggerProps={{
               'aria-label': t('Widget actions'),
-              size: 'xsmall',
+              size: 'xs',
               borderless: true,
               showChevron: false,
               icon: <IconEllipsis direction="down" size="sm" />,

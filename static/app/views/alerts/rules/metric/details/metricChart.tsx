@@ -227,7 +227,7 @@ class MetricChart extends PureComponent<Props, State> {
         </StyledInlineContainer>
         {!isSessionAggregate(rule.aggregate) && (
           <Feature features={['discover-basic']}>
-            <Button size="small" {...props}>
+            <Button size="sm" {...props}>
               {buttonText}
             </Button>
           </Feature>
