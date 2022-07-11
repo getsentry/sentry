@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import flatten from 'lodash/flatten';
 import groupBy from 'lodash/groupBy';
@@ -29,12 +29,12 @@ function TraceErrorList({trace, errors, onClickSpan}: TraceErrorListProps) {
                 {t('%d', spanLevelErrors.length)} {` ${level === 'error' ? '' : level} `}
                 {tn('error', 'errors', spanLevelErrors.length)}
                 {span ? (
-                  <React.Fragment>
+                  <Fragment>
                     {t(' in ')}
                     <ErrorLink onClick={event => onClickSpan(event, spanId)}>
                       {span.op}
                     </ErrorLink>
-                  </React.Fragment>
+                  </Fragment>
                 ) : null}
               </ListItem>
             )
