@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, memo} from 'react';
 import styled from '@emotion/styled';
 import flatten from 'lodash/flatten';
 import groupBy from 'lodash/groupBy';
@@ -59,4 +59,4 @@ const findSpanById = (trace: ParsedTraceType, spanId: SpanType['span_id']) => {
   return trace.spans.find(span => span.span_id === spanId && span?.op) || trace;
 };
 
-export default React.memo(TraceErrorList);
+export default memo(TraceErrorList);
