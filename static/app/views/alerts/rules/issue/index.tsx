@@ -909,7 +909,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
           const disabled = loading || !(isActiveSuperuser() || hasAccess);
 
           return (
-            <Main>
+            <Main fullWidth>
               <StyledForm
                 key={isSavedAlertRule(rule) ? rule.id : undefined}
                 onCancel={this.handleCancel}

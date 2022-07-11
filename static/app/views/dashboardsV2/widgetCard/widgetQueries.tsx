@@ -133,15 +133,14 @@ function WidgetQueries({
     [isMetricsData, setIsMetricsData]
   );
 
-  const afterFetchTableData = useCallback(
-    (rawResults: TableResult) => {
-      // If one of the queries is sampled, then mark the whole thing as sampled
-      const currentResultIsMetricsData =
-        isMetricsData === false ? false : rawResults.meta?.isMetricsData;
-      setIsMetricsData?.(currentResultIsMetricsData);
-    },
-    [isMetricsData, setIsMetricsData]
-  );
+  const isMetricsDataResults: boolean[] = [];
+  const afterFetchTableData = (rawResults: TableResult) => {
+    if (rawResults.meta?.isMetricsData !== undefined) {
+      isMetricsDataResults.push(rawResults.meta.isMetricsData);
+    }
+    // If one of the queries is sampled, then mark the whole thing as sampled
+    setIsMetricsData?.(!isMetricsDataResults.includes(false));
+  };
 
   return (
     <GenericWidgetQueries<SeriesResult, TableResult>
