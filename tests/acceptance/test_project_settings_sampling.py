@@ -62,7 +62,7 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
         )
         self.create_member(user=self.user, organization=self.org, role="owner", teams=[self.team])
         self.login_as(self.user)
-        self.path = f"/settings/{self.org.slug}/projects/{self.project.slug}/server-side-sampling"
+        self.path = f"/settings/{self.org.slug}/projects/{self.project.slug}/server-side-sampling/"
 
     def wait_until_loaded(self):
         self.browser.get(self.path)
