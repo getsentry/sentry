@@ -172,3 +172,7 @@ class OrganizationAuditLogsTest(APITestCase):
         assert len(response.data) == 2
         assert response.data["rows"][0]["id"] == str(entry.id)
         assert set(response.data["options"]) == audit_log_api_names
+
+        response_2 = self.get_success_response(self.organization.slug, qs_params={"version": "3"})
+        assert len(response_2.data) == 1
+        assert response_2.data[0]["id"] == str(entry.id)
