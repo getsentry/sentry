@@ -10,10 +10,10 @@ import {CommonSidebarProps} from 'sentry/components/sidebar/types';
 import Tooltip from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {OnboardingTask, OnboardingTaskKey, Organization, Project} from 'sentry/types';
+import {OnboardingTask, OnboardingTaskKey, Project} from 'sentry/types';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
-import withOrganization from 'sentry/utils/withOrganization';
+import useOrganization from 'sentry/utils/useOrganization';
 import withProjects from 'sentry/utils/withProjects';
 import {usePersistedOnboardingState} from 'sentry/views/onboarding/targetedOnboarding/utils';
 
@@ -24,7 +24,6 @@ import {findActiveTasks, findCompleteTasks, findUpcomingTasks, taskIsDone} from 
 
 type Props = Pick<CommonSidebarProps, 'orientation' | 'collapsed'> & {
   onClose: () => void;
-  organization: Organization;
   projects: Project[];
 };
 
@@ -67,14 +66,10 @@ const upcomingTasksHeading = (
 );
 const completedTasksHeading = <Heading key="complete">{t('Completed')}</Heading>;
 
-function OnboardingWizardSidebar({
-  organization,
-  collapsed,
-  orientation,
-  onClose,
-  projects,
-}: Props) {
+function OnboardingWizardSidebar({collapsed, orientation, onClose, projects}: Props) {
   const api = useApi();
+  const organization = useOrganization();
+
   const [onboardingState, setOnboardingState] = usePersistedOnboardingState();
 
   const markCompletionTimeout = useRef<number | undefined>();
@@ -269,4 +264,4 @@ const TopRight = styled('img')`
   width: 60%;
 `;
 
-export default withOrganization(withProjects(OnboardingWizardSidebar));
+export default withProjects(OnboardingWizardSidebar);
