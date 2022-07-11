@@ -82,7 +82,6 @@ default_manager.add(
 default_manager.add("organizations:discover-events-rate-limit", OrganizationFeature, True)
 default_manager.add("organizations:duplicate-alert-rule", OrganizationFeature, True)
 default_manager.add("organizations:enterprise-perf", OrganizationFeature)
-default_manager.add("organizations:filters-and-sampling", OrganizationFeature, True)
 default_manager.add("organizations:grouping-stacktrace-ui", OrganizationFeature, True)
 default_manager.add("organizations:grouping-title-ui", OrganizationFeature, True)
 default_manager.add("organizations:grouping-tree-ui", OrganizationFeature, True)

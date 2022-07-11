@@ -630,7 +630,7 @@ class ProjectUpdateTest(APITestCase):
         """
         Test that we can set sampling rules
         """
-        with Feature({"organizations:filters-and-sampling": True}):
+        with Feature({"organizations:server-side-sampling": True}):
             self.get_success_response(
                 self.org_slug, self.proj_slug, dynamicSampling=_dyn_sampling_data()
             )
@@ -654,7 +654,7 @@ class ProjectUpdateTest(APITestCase):
         Tests that we get the same dynamic sampling rules that previously set
         """
         data = _dyn_sampling_data()
-        with Feature({"organizations:filters-and-sampling": True}):
+        with Feature({"organizations:server-side-sampling": True}):
             self.get_success_response(self.org_slug, self.proj_slug, dynamicSampling=data)
             response = self.get_success_response(self.org_slug, self.proj_slug, method="get")
         saved_config = _remove_ids_from_dynamic_rules(response.data["dynamicSampling"])
@@ -702,7 +702,7 @@ class ProjectUpdateTest(APITestCase):
                 },
             ]
         }
-        with Feature({"organizations:filters-and-sampling": True}):
+        with Feature({"organizations:server-side-sampling": True}):
             self.get_success_response(self.org_slug, self.proj_slug, dynamicSampling=config)
         response = self.get_success_response(self.org_slug, self.proj_slug, method="get")
         saved_config = response.data["dynamicSampling"]
@@ -745,7 +745,7 @@ class ProjectUpdateTest(APITestCase):
         }
 
         saved_config["rules"].append(new_rule_2)
-        with Feature({"organizations:filters-and-sampling": True}):
+        with Feature({"organizations:server-side-sampling": True}):
             # turn it back from ordered dict to dict (both main obj and rules)
             saved_config = dict(saved_config)
             saved_config["rules"] = [dict(rule) for rule in saved_config["rules"]]
@@ -764,7 +764,7 @@ class ProjectUpdateTest(APITestCase):
         Tests that the active flag is set for all rules
         """
         data = _dyn_sampling_data()
-        with Feature({"organizations:filters-and-sampling": True}):
+        with Feature({"organizations:server-side-sampling": True}):
             self.get_success_response(self.org_slug, self.proj_slug, dynamicSampling=data)
             response = self.get_success_response(self.org_slug, self.proj_slug, method="get")
         saved_config = response.data["dynamicSampling"]

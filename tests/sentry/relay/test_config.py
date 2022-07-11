@@ -84,11 +84,11 @@ def test_project_config_uses_filters_and_sampling_feature(
 ):
     """
     Tests that dynamic sampling information is retrieved for both "full config" and "restricted config"
-    but only when the organization has "organizations:filters-and-sampling" feature enabled.
+    but only when the organization has "organizations:server-side-sampling" feature enabled.
     """
     default_project.update_option("sentry:dynamic_sampling", dyn_sampling_data())
 
-    with Feature({"organizations:filters-and-sampling": has_dyn_sampling}):
+    with Feature({"organizations:server-side-sampling": has_dyn_sampling}):
         cfg = get_project_config(default_project, full_config=full_config)
 
     cfg = cfg.to_dict()
@@ -110,7 +110,7 @@ def test_project_config_filters_out_non_active_rules_in_dynamic_sampling(
     """
     default_project.update_option("sentry:dynamic_sampling", dyn_sampling_data(active))
 
-    with Feature({"organizations:filters-and-sampling": True}):
+    with Feature({"organizations:server-side-sampling": True}):
         cfg = get_project_config(default_project)
 
     cfg = cfg.to_dict()
