@@ -801,6 +801,7 @@ export const SPAN_OP_BREAKDOWN_FIELDS = [
   'spans.db',
   'spans.browser',
   'spans.resource',
+  'spans.ui',
 ];
 
 // This list contains fields/functions that are available with performance-view feature.
