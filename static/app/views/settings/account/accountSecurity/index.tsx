@@ -136,9 +136,13 @@ class AccountSecurity extends AsyncView<Props> {
                   description,
                   isBackupInterface,
                   isEnrolled,
+                  disallowNewEnrollment,
                   configureButton,
                   name,
                 } = auth;
+                if (disallowNewEnrollment && !isEnrolled) {
+                  return null;
+                }
                 return (
                   <AuthenticatorPanelItem key={id}>
                     <AuthenticatorHeader>
@@ -151,7 +155,7 @@ class AccountSecurity extends AsyncView<Props> {
                         {!isBackupInterface && !isEnrolled && hasVerifiedEmail && (
                           <Button
                             to={`/settings/account/security/mfa/${id}/enroll/`}
-                            size="small"
+                            size="sm"
                             priority="primary"
                             className="enroll-button"
                           >
@@ -161,7 +165,7 @@ class AccountSecurity extends AsyncView<Props> {
                         {!isBackupInterface && !isEnrolled && !hasVerifiedEmail && (
                           <Button
                             onClick={this.handleAdd2FAClicked}
-                            size="small"
+                            size="sm"
                             priority="primary"
                             className="enroll-button"
                           >
@@ -172,7 +176,7 @@ class AccountSecurity extends AsyncView<Props> {
                         {isEnrolled && authId && (
                           <Button
                             to={`/settings/account/security/mfa/${authId}/`}
-                            size="small"
+                            size="sm"
                             className="details-button"
                           >
                             {configureButton}
@@ -191,7 +195,7 @@ class AccountSecurity extends AsyncView<Props> {
                               disabled={deleteDisabled}
                             >
                               <Button
-                                size="small"
+                                size="sm"
                                 aria-label={t('delete')}
                                 icon={<IconDelete />}
                               />

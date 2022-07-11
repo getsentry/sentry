@@ -102,11 +102,10 @@ from sentry.models import (
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.plugins.base import plugins
 from sentry.search.events.constants import (
-    METRIC_FALSE_TAG_VALUE,
-    METRIC_MISERABLE_TAG_KEY,
-    METRIC_SATISFIED_TAG_KEY,
-    METRIC_TOLERATED_TAG_KEY,
-    METRIC_TRUE_TAG_VALUE,
+    METRIC_FRUSTRATED_TAG_VALUE,
+    METRIC_SATISFACTION_TAG_KEY,
+    METRIC_SATISFIED_TAG_VALUE,
+    METRIC_TOLERATED_TAG_VALUE,
     METRICS_MAP,
 )
 from sentry.sentry_metrics import indexer
@@ -1216,11 +1215,10 @@ class MetricsEnhancedPerformanceTestCase(SessionMetricsTestCase, TestCase):
             "environment",
             "http.status",
             "transaction.status",
-            METRIC_SATISFIED_TAG_KEY,
-            METRIC_TOLERATED_TAG_KEY,
-            METRIC_MISERABLE_TAG_KEY,
-            METRIC_TRUE_TAG_VALUE,
-            METRIC_FALSE_TAG_VALUE,
+            METRIC_TOLERATED_TAG_VALUE,
+            METRIC_SATISFIED_TAG_VALUE,
+            METRIC_FRUSTRATED_TAG_VALUE,
+            METRIC_SATISFACTION_TAG_KEY,
             *self.METRIC_STRINGS,
             *list(SPAN_STATUS_NAME_TO_CODE.keys()),
             *list(METRICS_MAP.values()),
@@ -1562,6 +1560,8 @@ class TestMigrations(TransactionTestCase):
 
     def setUp(self):
         super().setUp()
+        self.setup_initial_state()
+
         self.migrate_from = [(self.app, self.migrate_from)]
         self.migrate_to = [(self.app, self.migrate_to)]
 
@@ -1593,7 +1593,19 @@ class TestMigrations(TransactionTestCase):
         executor.loader.build_graph()  # reload.
         executor.migrate(self.current_migration)
 
+    def setup_initial_state(self):
+        # Add code here that will run before we roll back the database to the `migrate_from`
+        # migration. This can be useful to allow us to use the various `self.create_*` convenience
+        # methods.
+        # Any objects created here will need to be converted over to migration models if any further
+        # database operations are required.
+        pass
+
     def setup_before_migration(self, apps):
+        # Add code here to run after we have rolled the database back to the `migrate_from`
+        # migration. This code must use `apps` to create any database models, and not directly
+        # access Django models.
+        # It's preferable to create models here, when not overly complex to do so.
         pass
 
 

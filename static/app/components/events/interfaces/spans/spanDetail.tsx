@@ -8,6 +8,7 @@ import {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
+import Clipboard from 'sentry/components/clipboard';
 import DateTime from 'sentry/components/dateTime';
 import DiscoverButton from 'sentry/components/discoverButton';
 import FileSize from 'sentry/components/fileSize';
@@ -28,7 +29,7 @@ import {
   generateTraceTarget,
 } from 'sentry/components/quickTrace/utils';
 import {ALL_ACCESS_PROJECTS, PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
-import {IconAnchor} from 'sentry/icons';
+import {IconLink} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
@@ -98,7 +99,7 @@ class SpanDetail extends Component<Props, State> {
       // TODO: Amend size to use theme when we eventually refactor LoadingIndicator
       // 12px is consistent with theme.iconSizes['xs'] but theme returns a string.
       return (
-        <StyledDiscoverButton size="xsmall" disabled>
+        <StyledDiscoverButton size="xs" disabled>
           <StyledLoadingIndicator size={12} />
         </StyledDiscoverButton>
       );
@@ -147,7 +148,7 @@ class SpanDetail extends Component<Props, State> {
     return (
       <StyledDiscoverButton
         data-test-id="view-child-transactions"
-        size="xsmall"
+        size="xs"
         to={childrenEventView.getResultsViewUrlTarget(organization.slug)}
       >
         {t('View Children')}
@@ -194,10 +195,10 @@ class SpanDetail extends Component<Props, State> {
 
           return (
             <ButtonGroup>
-              <StyledButton data-test-id="view-child-transaction" size="xsmall" to={to}>
+              <StyledButton data-test-id="view-child-transaction" size="xs" to={to}>
                 {t('View Transaction')}
               </StyledButton>
-              <StyledButton size="xsmall" to={target}>
+              <StyledButton size="xs" to={target}>
                 {t('View Summary')}
               </StyledButton>
             </ButtonGroup>
@@ -221,7 +222,7 @@ class SpanDetail extends Component<Props, State> {
     }
 
     return (
-      <StyledButton size="xsmall" to={generateTraceTarget(event, organization)}>
+      <StyledButton size="xs" to={generateTraceTarget(event, organization)}>
         {t('View Trace')}
       </StyledButton>
     );
@@ -245,7 +246,7 @@ class SpanDetail extends Component<Props, State> {
     });
 
     return (
-      <StyledButton size="xsmall" to={target}>
+      <StyledButton size="xs" to={target}>
         {t('View Similar Spans')}
       </StyledButton>
     );
@@ -306,7 +307,7 @@ class SpanDetail extends Component<Props, State> {
           ))}
         </ErrorMessageContent>
         {relatedErrors.length > DEFAULT_ERRORS_VISIBLE && (
-          <ErrorToggle size="xsmall" onClick={this.toggleErrors}>
+          <ErrorToggle size="xs" onClick={this.toggleErrors}>
             {errorsOpened ? t('Show less') : t('Show more')}
           </ErrorToggle>
         )}
@@ -383,7 +384,14 @@ class SpanDetail extends Component<Props, State> {
                       )}
                     >
                       Span ID
-                      <StyledIconAnchor />
+                      <Clipboard
+                        value={`${window.location.href.replace(
+                          window.location.hash,
+                          ''
+                        )}#span-${span.span_id}`}
+                      >
+                        <StyledIconLink />
+                      </Clipboard>
                     </SpanIdTitle>
                   )
                 }
@@ -549,7 +557,7 @@ const SpanIdTitle = styled('a')`
   }
 `;
 
-const StyledIconAnchor = styled(IconAnchor)`
+const StyledIconLink = styled(IconLink)`
   display: block;
   color: ${p => p.theme.gray300};
   margin-left: ${space(1)};

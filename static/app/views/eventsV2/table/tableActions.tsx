@@ -56,7 +56,7 @@ function renderBrowserExportButton(canEdit: boolean, props: Props) {
 
   return (
     <Button
-      size="small"
+      size="sm"
       disabled={disabled}
       onClick={onClick}
       data-test-id="grid-download-csv"
@@ -90,7 +90,7 @@ function renderEditButton(canEdit: boolean, props: Props) {
   return (
     <GuideAnchor target="columns_header_button">
       <Button
-        size="small"
+        size="sm"
         disabled={!canEdit}
         onClick={onClick}
         data-test-id="grid-edit-enable"
@@ -107,7 +107,7 @@ function renderSummaryButton({onChangeShowTags, showTags}: Props) {
   return (
     <Button
       data-test-id="toggle-show-tags"
-      size="small"
+      size="sm"
       onClick={onChangeShowTags}
       icon={<IconTag size="xs" />}
     >
