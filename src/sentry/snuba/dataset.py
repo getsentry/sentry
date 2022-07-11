@@ -9,7 +9,9 @@ class Dataset(Enum):
     Outcomes = "outcomes"
     OutcomesRaw = "outcomes_raw"
     Sessions = "sessions"
+    # Actually Release Health
     Metrics = "metrics"
+    PerformanceMetrics = "generic_metrics"
 
 
 @unique

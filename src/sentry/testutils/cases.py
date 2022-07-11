@@ -1277,9 +1277,11 @@ class MetricsEnhancedPerformanceTestCase(SessionMetricsTestCase, TestCase):
                     "type": self.TYPE_MAP[entity],
                     "value": value,
                     "retention_days": 90,
+                    "mapping_meta": {},
+                    "use_case_id": use_case_id,
                 }
             ],
-            entity=entity,
+            entity=f"generic_{entity}",
         )
 
 

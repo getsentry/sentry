@@ -192,12 +192,14 @@ METRICS_MAP = {
 }
 # 50 to match the size of tables in the UI + 1 for pagination reasons
 METRICS_MAX_LIMIT = 101
-METRICS_GRANULARITIES = [86400, 3600, 60, 10]
+METRICS_GRANULARITIES = [86400, 3600, 60]
 METRIC_TOLERATED_TAG_KEY = "is_tolerated"
 METRIC_SATISFIED_TAG_KEY = "is_satisfied"
 METRIC_MISERABLE_TAG_KEY = "is_user_miserable"
 METRIC_TRUE_TAG_VALUE = "true"
 METRIC_FALSE_TAG_VALUE = "false"
+
+
 # Only the metrics that are on the distributions & are in milliseconds
 METRIC_DURATION_COLUMNS = {
     key

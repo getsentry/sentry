@@ -771,6 +771,8 @@ class MetricBuilderBaseTest(MetricsEnhancedPerformanceTestCase):
             Condition(Column("timestamp"), Op.LT, self.end),
             Condition(Column("project_id"), Op.IN, self.projects),
             Condition(Column("org_id"), Op.EQ, self.organization.id),
+            # Hack cause snuba isn't handling granularity right now
+            Condition(Column("granularity"), Op.EQ, 2),
         ]
 
         for string in self.METRIC_STRINGS:
@@ -2099,18 +2101,25 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         snql_query = query.get_snql_query()
         assert len(snql_query) == 1
         query = snql_query[0].query
-        assert query.where == [
-            *self.default_conditions,
-            *_metric_conditions(self.organization.id, ["transaction.duration"]),
-        ]
+        del self.default_conditions[-1]
+        self.default_conditions.append(Condition(Column("granularity"), Op.EQ, 1))
+        self.assertCountEqual(
+            query.where,
+            [
+                *self.default_conditions,
+                *_metric_conditions(self.organization.id, ["transaction.duration"]),
+            ],
+        )
         assert query.select == [_metric_percentile_definition(self.organization.id, "50")]
-        assert query.match.name == "metrics_distributions"
+        assert query.match.name == "generic_metrics_distributions"
         assert query.granularity.granularity == 60
 
     def test_default_conditions(self):
         query = TimeseriesMetricQueryBuilder(
             self.params, interval=900, query="", selected_columns=[]
         )
+        del self.default_conditions[-1]
+        self.default_conditions.append(Condition(Column("granularity"), Op.EQ, 1))
         self.assertCountEqual(query.where, self.default_conditions)
 
     def test_granularity(self):
@@ -2128,7 +2137,6 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         # If we're doing atleast day and its midnight we should use the daily bucket
         start = datetime.datetime(2015, 5, 18, 0, 0, 0, tzinfo=timezone.utc)
         end = datetime.datetime(2015, 5, 19, 0, 0, 0, tzinfo=timezone.utc)
-        assert get_granularity(start, end, 30) == 10, "A day at midnight, 30s interval"
         assert get_granularity(start, end, 900) == 60, "A day at midnight, 15min interval"
         assert get_granularity(start, end, 3600) == 60, "A day at midnight, 1hr interval"
         assert get_granularity(start, end, 86400) == 3600, "A day at midnight, 1d interval"
@@ -2136,7 +2144,6 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         # If we're on the start of the hour we should use the hour granularity
         start = datetime.datetime(2015, 5, 18, 23, 0, 0, tzinfo=timezone.utc)
         end = datetime.datetime(2015, 5, 20, 1, 0, 0, tzinfo=timezone.utc)
-        assert get_granularity(start, end, 30) == 10, "On the hour, 30s interval"
         assert get_granularity(start, end, 900) == 60, "On the hour, 15min interval"
         assert get_granularity(start, end, 3600) == 60, "On the hour, 1hr interval"
         assert get_granularity(start, end, 86400) == 3600, "On the hour, 1d interval"
@@ -2145,7 +2152,6 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         # granularity
         start = datetime.datetime(2015, 5, 18, 10, 15, 1, tzinfo=timezone.utc)
         end = datetime.datetime(2015, 5, 19, 15, 15, 1, tzinfo=timezone.utc)
-        assert get_granularity(start, end, 30) == 10, "A few hours, but random minute, 30s interval"
         assert (
             get_granularity(start, end, 900) == 60
         ), "A few hours, but random minute, 15min interval"
@@ -2159,7 +2165,6 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         # Less than a minute, no reason to work hard for such a small window, just use a minute
         start = datetime.datetime(2015, 5, 18, 10, 15, 1, tzinfo=timezone.utc)
         end = datetime.datetime(2015, 5, 19, 10, 15, 34, tzinfo=timezone.utc)
-        assert get_granularity(start, end, 30) == 10, "less than a minute, 30s interval"
         assert get_granularity(start, end, 900) == 60, "less than a minute, 15min interval"
         assert get_granularity(start, end, 3600) == 60, "less than a minute, 1hr interval"
         assert get_granularity(start, end, 86400) == 3600, "less than a minute, 1d interval"
@@ -2175,6 +2180,8 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         transaction_name1 = indexer.resolve(self.organization.id, "foo_transaction")
         transaction_name2 = indexer.resolve(self.organization.id, "bar_transaction")
         transaction = Column(f"tags[{transaction_index}]")
+        del self.default_conditions[-1]
+        self.default_conditions.append(Condition(Column("granularity"), Op.EQ, 1))
         self.assertCountEqual(
             query.where,
             [
@@ -2215,6 +2222,8 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             query=f"project:{self.project.slug}",
             selected_columns=["p95(transaction.duration)"],
         )
+        del self.default_conditions[-1]
+        self.default_conditions.append(Condition(Column("granularity"), Op.EQ, 1))
         self.assertCountEqual(
             query.where,
             [
