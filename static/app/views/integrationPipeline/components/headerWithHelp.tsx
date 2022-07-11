@@ -9,7 +9,7 @@ export default function HeaderWithHelp({docsUrl}: {docsUrl: string}) {
   return (
     <Header>
       <StyledLogoSentry />
-      <Button external href={docsUrl} size="xsmall">
+      <Button external href={docsUrl} size="xs">
         {t('Need Help?')}
       </Button>
     </Header>
