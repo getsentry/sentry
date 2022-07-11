@@ -14,7 +14,7 @@ class SimpleIndexer(StringIndexer):
 
     def __init__(self) -> None:
         self._counter = itertools.count(start=10000)
-        self._strings: DefaultDict[int, DefaultDict[str, Optional[int]]] = defaultdict(
+        self._strings: DefaultDict[int, DefaultDict[str, int]] = defaultdict(
             lambda: defaultdict(self._counter.__next__)
         )
         self._reverse: Dict[int, str] = {}
@@ -24,7 +24,7 @@ class SimpleIndexer(StringIndexer):
     ) -> KeyResults:
         acc = KeyResults()
         for org_id, strs in org_strings.items():
-            strings_to_ints: Dict[str, Optional[int]] = {}
+            strings_to_ints = {}
             for string in strs:
                 if string in SHARED_STRINGS:
                     strings_to_ints[string] = SHARED_STRINGS[string]
@@ -34,7 +34,7 @@ class SimpleIndexer(StringIndexer):
 
         return acc
 
-    def record(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
+    def record(self, use_case_id: UseCaseKey, org_id: int, string: str) -> int:
         if string in SHARED_STRINGS:
             return SHARED_STRINGS[string]
         return self._record(org_id, string)
@@ -55,10 +55,9 @@ class SimpleIndexer(StringIndexer):
             return REVERSE_SHARED_STRINGS[id]
         return self._reverse.get(id)
 
-    def _record(self, org_id: int, string: str) -> Optional[int]:
+    def _record(self, org_id: int, string: str) -> int:
         index = self._strings[org_id][string]
-        if index is not None:
-            self._reverse[index] = string
+        self._reverse[index] = string
         return index
 
 

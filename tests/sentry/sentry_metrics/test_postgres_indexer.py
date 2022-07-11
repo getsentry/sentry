@@ -1,7 +1,7 @@
 from typing import Mapping, Set, Tuple
 
 from sentry.sentry_metrics.configuration import UseCaseKey
-from sentry.sentry_metrics.indexer.base import FetchTypeExt, KeyCollection, KeyResult, KeyResults
+from sentry.sentry_metrics.indexer.base import KeyCollection, KeyResult, KeyResults
 from sentry.sentry_metrics.indexer.cache import indexer_cache
 from sentry.sentry_metrics.indexer.models import MetricsKeyIndexer, StringIndexer
 from sentry.sentry_metrics.indexer.postgres import PGStringIndexer
@@ -12,7 +12,6 @@ from sentry.sentry_metrics.indexer.postgres_v2 import (
 )
 from sentry.sentry_metrics.indexer.strings import SHARED_STRINGS
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.options import override_options
 from sentry.utils.cache import cache
 
 
@@ -141,7 +140,6 @@ class PostgresIndexerV2Test(TestCase):
         """
         Test `resolve` and `reverse_resolve` methods
         """
-
         org1_id = self.organization.id
         org_strings = {org1_id: self.strings}
         self.indexer.bulk_record(use_case_id=self.use_case_id, org_strings=org_strings)
@@ -255,70 +253,6 @@ class PostgresIndexerV2Test(TestCase):
         assert indexer_cache.get(string.id) is None
         assert indexer_cache.get(key) is None
 
-    def test_rate_limited(self):
-        """
-        Assert that rate limits per-org and globally are applied at all.
-
-        Since we don't have control over ordering in sets/dicts, we have no
-        control over which string gets rate-limited. That makes assertions
-        quite awkward and imprecise.
-        """
-        org_strings = {1: {"a", "b", "c"}, 2: {"e", "f"}, 3: {"g"}}
-
-        with override_options(
-            {
-                "sentry-metrics.writes-limiter.limits.releasehealth.per-org": [
-                    {"window_seconds": 10, "granularity_seconds": 10, "limit": 1}
-                ],
-            }
-        ):
-            results = self.indexer.bulk_record(
-                use_case_id=self.use_case_id, org_strings=org_strings
-            )
-
-        assert len(results[1]) == 3
-        assert len(results[2]) == 2
-        assert len(results[3]) == 1
-        assert results[3]["g"] is not None
-
-        rate_limited_strings = set()
-
-        for org_id in 1, 2, 3:
-            for k, v in results[org_id].items():
-                if v is None:
-                    rate_limited_strings.add(k)
-
-        assert len(rate_limited_strings) == 3
-        assert "g" not in rate_limited_strings
-
-        for string in rate_limited_strings:
-            assert results.get_fetch_metadata()[string] == (
-                None,
-                FetchType.RATE_LIMITED,
-                FetchTypeExt(is_global=False),
-            )
-
-        org_strings = {1: rate_limited_strings}
-
-        with override_options(
-            {
-                "sentry-metrics.writes-limiter.limits.releasehealth.global": [
-                    {"window_seconds": 10, "granularity_seconds": 10, "limit": 2}
-                ],
-            }
-        ):
-            results = self.indexer.bulk_record(
-                use_case_id=self.use_case_id, org_strings=org_strings
-            )
-
-        rate_limited_strings2 = set()
-        for k, v in results[1].items():
-            if v is None:
-                rate_limited_strings2.add(k)
-
-        assert len(rate_limited_strings2) == 1
-        assert len(rate_limited_strings - rate_limited_strings2) == 2
-
 
 class KeyCollectionTest(TestCase):
     def test_no_data(self) -> None:
@@ -391,26 +325,22 @@ class KeyResultsTest(TestCase):
         read_mappings = {"read3": 3, "read4": 4}
         hardcode_mappings = {"hardcode5": 5, "hardcode6": 6}
         write_mappings = {"write7": 7, "write8": 8}
-        rate_limited_mappings = {"limited9": None, "limited10": None}
 
         mappings = {
             *cache_mappings,
             *read_mappings,
             *hardcode_mappings,
             *write_mappings,
-            *rate_limited_mappings,
         }
 
         kr_cache = KeyResults()
         kr_dbread = KeyResults()
         kr_hardcoded = KeyResults()
         kr_write = KeyResults()
-        kr_limited = KeyResults()
         assert kr_cache.results == {} and kr_cache.meta == {}
         assert kr_dbread.results == {} and kr_dbread.meta == {}
         assert kr_hardcoded.results == {} and kr_hardcoded.meta == {}
         assert kr_write.results == {} and kr_write.meta == {}
-        assert kr_limited.results == {} and kr_limited.meta == {}
 
         kr_cache.add_key_results(
             [KeyResult(org_id=org_id, string=k, id=v) for k, v in cache_mappings.items()],
@@ -429,13 +359,7 @@ class KeyResultsTest(TestCase):
             FetchType.FIRST_SEEN,
         )
 
-        kr_limited.add_key_results(
-            [KeyResult(org_id=org_id, string=k, id=v) for k, v in rate_limited_mappings.items()],
-            FetchType.RATE_LIMITED,
-            FetchTypeExt(is_global=False),
-        )
-
-        kr_merged = kr_cache.merge(kr_dbread).merge(kr_hardcoded).merge(kr_write).merge(kr_limited)
+        kr_merged = kr_cache.merge(kr_dbread).merge(kr_hardcoded).merge(kr_write)
 
         assert len(kr_merged.get_mapped_results()[org_id]) == len(mappings)
         meta = kr_merged.get_fetch_metadata()
@@ -446,6 +370,3 @@ class KeyResultsTest(TestCase):
         )
         assert_fetch_type_for_tag_string_set(meta, FetchType.FIRST_SEEN, set(write_mappings.keys()))
         assert_fetch_type_for_tag_string_set(meta, FetchType.CACHE_HIT, set(cache_mappings.keys()))
-        assert_fetch_type_for_tag_string_set(
-            meta, FetchType.RATE_LIMITED, set(rate_limited_mappings.keys())
-        )
