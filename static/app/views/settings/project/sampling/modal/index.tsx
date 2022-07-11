@@ -259,7 +259,7 @@ export function SamplingRuleModal({
     const analyticsConditions = conditions.map(condition => condition.category);
     const analyticsConditionsStringified = analyticsConditions.sort().join(', ');
 
-    trackAdvancedAnalyticsEvent('sampling.settings.rule.save', {
+    trackAdvancedAnalyticsEvent('sampling.settings.rule_specific_save', {
       organization,
       project_id: project.id,
       sampling_rate: sampleRate,
@@ -268,7 +268,7 @@ export function SamplingRuleModal({
     });
 
     if (defined(rule)) {
-      trackAdvancedAnalyticsEvent('sampling.settings.rule.update', {
+      trackAdvancedAnalyticsEvent('sampling.settings.rule_specific_update', {
         organization,
         project_id: project.id,
         sampling_rate: sampleRate,
@@ -284,7 +284,7 @@ export function SamplingRuleModal({
       return;
     }
 
-    trackAdvancedAnalyticsEvent('sampling.settings.rule.create', {
+    trackAdvancedAnalyticsEvent('sampling.settings.rule_specific_create', {
       organization,
       project_id: project.id,
       sampling_rate: sampleRate,
@@ -303,7 +303,7 @@ export function SamplingRuleModal({
       )
       .map(({value}) => value);
 
-    trackAdvancedAnalyticsEvent('sampling.settings.condition.add', {
+    trackAdvancedAnalyticsEvent('sampling.settings.rule_specific_condition_add', {
       organization,
       project_id: project.id,
       conditions: addedCategories,
@@ -336,7 +336,7 @@ export function SamplingRuleModal({
     if (field === 'category') {
       newConditions[index].match = '';
 
-      trackAdvancedAnalyticsEvent('sampling.settings.condition.add', {
+      trackAdvancedAnalyticsEvent('sampling.settings.rule_specific_condition_add', {
         organization,
         project_id: project.id,
         conditions: [value as SamplingInnerName],

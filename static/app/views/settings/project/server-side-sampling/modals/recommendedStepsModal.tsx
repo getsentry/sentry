@@ -23,6 +23,7 @@ import {
   SamplingRule,
   UniformModalsSubmit,
 } from 'sentry/types/sampling';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {formatPercentage} from 'sentry/utils/formatters';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
@@ -33,12 +34,13 @@ import useProjectStats from '../utils/useProjectStats';
 import {FooterActions, Stepper} from './uniformRateModal';
 
 export type RecommendedStepsModalProps = ModalRenderProps & {
+  onReadDocs: () => void;
   organization: Organization;
+  projectId: Project['id'];
   recommendedSdkUpgrades: RecommendedSdkUpgrade[];
   clientSampleRate?: number;
   onGoBack?: () => void;
   onSubmit?: UniformModalsSubmit;
-  project?: Project;
   serverSampleRate?: number;
   uniformRule?: SamplingRule;
 };
@@ -51,16 +53,17 @@ export function RecommendedStepsModal({
   organization,
   recommendedSdkUpgrades,
   onGoBack,
+  onReadDocs,
   onSubmit,
   clientSampleRate,
   serverSampleRate,
   uniformRule,
-  project,
+  projectId,
 }: RecommendedStepsModalProps) {
   const [saving, setSaving] = useState(false);
   const {projectStats} = useProjectStats({
     orgSlug: organization.slug,
-    projectId: project?.id,
+    projectId,
     interval: '1h',
     statsPeriod: '48h',
     disable: !!clientSampleRate,
@@ -84,17 +87,52 @@ export function RecommendedStepsModal({
 
     setSaving(true);
 
-    onSubmit?.(
-      serverSampleRate!,
-      uniformRule,
-      () => {
+    onSubmit?.({
+      uniformRateModalOrigin: false,
+      sampleRate: serverSampleRate!,
+      rule: uniformRule,
+      onSuccess: () => {
         setSaving(false);
         closeModal();
       },
-      () => {
+      onError: () => {
         setSaving(false);
+      },
+    });
+  }
+
+  function handleCancel() {
+    trackAdvancedAnalyticsEvent('sampling.settings.modal_recommended_next_steps_cancel', {
+      organization: organization.slug,
+      project_id: projectId,
+    });
+
+    closeModal();
+  }
+
+  function handleGoBack() {
+    if (!onGoBack) {
+      return;
+    }
+
+    trackAdvancedAnalyticsEvent('sampling.settings.modal_recommended_next_steps_back', {
+      organization: organization.slug,
+      project_id: projectId,
+    });
+
+    onGoBack();
+  }
+
+  function handleReadDocs() {
+    trackAdvancedAnalyticsEvent(
+      'sampling.settings.modal_recommended_next_steps_read_docs',
+      {
+        organization: organization.slug,
+        project_id: projectId,
       }
     );
+
+    onReadDocs();
   }
 
   return (
@@ -183,17 +221,17 @@ export function RecommendedStepsModal({
       </Body>
       <Footer>
         <FooterActions>
-          <Button href={SERVER_SIDE_SAMPLING_DOC_LINK} external>
+          <Button href={SERVER_SIDE_SAMPLING_DOC_LINK} onClick={handleReadDocs} external>
             {t('Read Docs')}
           </Button>
           <ButtonBar gap={1}>
             {onGoBack && (
               <Fragment>
                 <Stepper>{t('Step 2 of 2')}</Stepper>
-                <Button onClick={onGoBack}>{t('Back')}</Button>
+                <Button onClick={handleGoBack}>{t('Back')}</Button>
               </Fragment>
             )}
-            {!onGoBack && <Button onClick={closeModal}>{t('Cancel')}</Button>}
+            {!onGoBack && <Button onClick={handleCancel}>{t('Cancel')}</Button>}
             <Button
               priority="primary"
               onClick={handleDone}

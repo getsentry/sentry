@@ -13,6 +13,7 @@ import space from 'sentry/styles/space';
 import {Project, SeriesApi} from 'sentry/types';
 import {SamplingRule, UniformModalsSubmit} from 'sentry/types/sampling';
 import {defined} from 'sentry/utils';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {formatPercentage} from 'sentry/utils/formatters';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
@@ -37,7 +38,10 @@ enum Step {
   RECOMMENDED_STEPS = 'recommended_steps',
 }
 
-type Props = Omit<RecommendedStepsModalProps, 'onSubmit' | 'recommendedSdkUpgrades'> & {
+type Props = Omit<
+  RecommendedStepsModalProps,
+  'onSubmit' | 'recommendedSdkUpgrades' | 'projectId'
+> & {
   onSubmit: UniformModalsSubmit;
   project: Project;
   rules: SamplingRule[];
@@ -55,6 +59,7 @@ function UniformRateModal({
   uniformRule,
   rules,
   onSubmit,
+  onReadDocs,
   ...props
 }: Props) {
   const {projectStats: projectStats30d, loading: loading30d} = useProjectStats({
@@ -115,23 +120,47 @@ function UniformRateModal({
     }
 
     if (shouldHaveNextStep) {
+      trackAdvancedAnalyticsEvent('sampling.settings.modal_uniform_rate_next', {
+        organization: organization.slug,
+        project_id: project.id,
+      });
+
       setActiveStep(Step.RECOMMENDED_STEPS);
       return;
     }
 
     setSaving(true);
 
-    onSubmit(
-      server!,
-      uniformRule,
-      () => {
+    onSubmit({
+      uniformRateModalOrigin: true,
+      sampleRate: server!,
+      rule: uniformRule,
+      onSuccess: () => {
         setSaving(false);
         closeModal();
       },
-      () => {
+      onError: () => {
         setSaving(false);
-      }
-    );
+      },
+    });
+  }
+
+  function handleCancel() {
+    trackAdvancedAnalyticsEvent('sampling.settings.modal_uniform_rate_cancel', {
+      organization: organization.slug,
+      project_id: project.id,
+    });
+
+    closeModal();
+  }
+
+  function handleReadDocs() {
+    trackAdvancedAnalyticsEvent('sampling.settings.modal_uniform_rate_read_docs', {
+      organization: organization.slug,
+      project_id: project.id,
+    });
+
+    onReadDocs();
   }
 
   if (activeStep === Step.RECOMMENDED_STEPS) {
@@ -146,9 +175,11 @@ function UniformRateModal({
         recommendedSdkUpgrades={recommendedSdkUpgrades}
         onGoBack={() => setActiveStep(Step.SET_UNIFORM_SAMPLE_RATE)}
         onSubmit={onSubmit}
+        onReadDocs={onReadDocs}
         clientSampleRate={client}
         serverSampleRate={server}
         uniformRule={uniformRule}
+        projectId={project.id}
       />
     );
   }
@@ -277,23 +308,24 @@ function UniformRateModal({
 
             <SamplingSDKAlert
               organization={organization}
-              project={project}
+              projectId={project.id}
               rules={rules}
               recommendedSdkUpgrades={recommendedSdkUpgrades}
               showLinkToTheModal={false}
+              onReadDocs={onReadDocs}
             />
           </Fragment>
         )}
       </Body>
       <Footer>
         <FooterActions>
-          <Button href={SERVER_SIDE_SAMPLING_DOC_LINK} external>
+          <Button href={SERVER_SIDE_SAMPLING_DOC_LINK} onClick={handleReadDocs} external>
             {t('Read Docs')}
           </Button>
 
           <ButtonBar gap={1}>
             {shouldHaveNextStep && <Stepper>{t('Step 1 of 2')}</Stepper>}
-            <Button onClick={closeModal}>{t('Cancel')}</Button>
+            <Button onClick={handleCancel}>{t('Cancel')}</Button>
             <Button
               priority="primary"
               onClick={handlePrimaryButtonClick}

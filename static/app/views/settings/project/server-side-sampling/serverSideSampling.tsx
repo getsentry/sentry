@@ -143,7 +143,7 @@ export function ServerSideSampling({project}: Props) {
   }
 
   function handleGetStarted() {
-    trackAdvancedAnalyticsEvent('sampling.settings.get_started', {
+    trackAdvancedAnalyticsEvent('sampling.settings.view_get_started', {
       organization: organization.slug,
       project_id: project.id,
     });
@@ -157,6 +157,7 @@ export function ServerSideSampling({project}: Props) {
           projectStats={projectStats}
           rules={rules}
           onSubmit={saveUniformRule}
+          onReadDocs={handleReadDocs}
         />
       ),
       {
@@ -221,6 +222,7 @@ export function ServerSideSampling({project}: Props) {
             uniformRule={rule}
             rules={rules}
             onSubmit={saveUniformRule}
+            onReadDocs={handleReadDocs}
           />
         ),
         {
@@ -244,7 +246,7 @@ export function ServerSideSampling({project}: Props) {
   async function handleDeleteRule(rule: SamplingRule) {
     const conditions = rule.condition.inner.map(({name}) => name);
 
-    trackAdvancedAnalyticsEvent('sampling.settings.rule.delete', {
+    trackAdvancedAnalyticsEvent('sampling.settings.rule_specific_delete', {
       organization,
       project_id: project.id,
       sampling_rate: rule.sampleRate * 100,
@@ -269,12 +271,26 @@ export function ServerSideSampling({project}: Props) {
     }
   }
 
-  async function saveUniformRule(
-    sampleRate: number,
-    rule?: SamplingRule,
-    onSuccess?: () => void,
-    onError?: () => void
-  ) {
+  function handleReadDocs() {
+    trackAdvancedAnalyticsEvent('sampling.settings.view_read_docs', {
+      organization: organization.slug,
+      project_id: project.id,
+    });
+  }
+
+  async function saveUniformRule({
+    sampleRate,
+    uniformRateModalOrigin,
+    onError,
+    onSuccess,
+    rule,
+  }: {
+    sampleRate: number;
+    uniformRateModalOrigin: boolean;
+    onError?: () => void;
+    onSuccess?: () => void;
+    rule?: SamplingRule;
+  }) {
     const newRule: SamplingRule = {
       // All new/updated rules must have id equal to 0
       id: 0,
@@ -286,6 +302,28 @@ export function ServerSideSampling({project}: Props) {
       },
       sampleRate: sampleRate / 100,
     };
+
+    trackAdvancedAnalyticsEvent(
+      uniformRateModalOrigin
+        ? 'sampling.settings.modal_uniform_rate_done'
+        : 'sampling.settings.modal_recommended_next_steps_done',
+      {
+        organization: organization.slug,
+        project_id: project.id,
+      }
+    );
+
+    trackAdvancedAnalyticsEvent(
+      rule
+        ? 'sampling.settings.rule_uniform_update'
+        : 'sampling.settings.rule_uniform_create',
+      {
+        organization: organization.slug,
+        project_id: project.id,
+        sampling_rate: newRule.sampleRate * 100,
+        old_sampling_rate: rule ? rule.sampleRate * 100 : null,
+      }
+    );
 
     const newRules = rule
       ? rules.map(existingRule => (existingRule.id === rule.id ? newRule : existingRule))
@@ -340,9 +378,10 @@ export function ServerSideSampling({project}: Props) {
         {!!rules.length && (
           <SamplingSDKAlert
             organization={organization}
-            project={project}
+            projectId={project.id}
             rules={rules}
             recommendedSdkUpgrades={recommendedSdkUpgrades}
+            onReadDocs={handleReadDocs}
           />
         )}
         <RulesPanel>
@@ -357,7 +396,11 @@ export function ServerSideSampling({project}: Props) {
             </RulesPanelLayout>
           </RulesPanelHeader>
           {!rules.length && (
-            <Promo onGetStarted={handleGetStarted} hasAccess={hasAccess} />
+            <Promo
+              onGetStarted={handleGetStarted}
+              onReadDocs={handleReadDocs}
+              hasAccess={hasAccess}
+            />
           )}
           {!!rules.length && (
             <Fragment>
@@ -432,7 +475,11 @@ export function ServerSideSampling({project}: Props) {
               />
               <RulesPanelFooter>
                 <ButtonBar gap={1}>
-                  <Button href={SERVER_SIDE_SAMPLING_DOC_LINK} external>
+                  <Button
+                    href={SERVER_SIDE_SAMPLING_DOC_LINK}
+                    onClick={handleReadDocs}
+                    external
+                  >
                     {t('Read Docs')}
                   </Button>
                   <GuideAnchor

@@ -134,7 +134,7 @@ class Sampling extends AsyncView<Props, State> {
 
     const conditions = rule.condition.inner.map(({name}) => name);
 
-    trackAdvancedAnalyticsEvent('sampling.settings.rule.delete', {
+    trackAdvancedAnalyticsEvent('sampling.settings.rule_specific_delete', {
       organization,
       project_id: project.id,
       sampling_rate: rule.sampleRate * 100,
