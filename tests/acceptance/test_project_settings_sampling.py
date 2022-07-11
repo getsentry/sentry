@@ -18,15 +18,6 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
                 "next_id": 4,
                 "rules": [
                     {
-                        "sampleRate": 0.7,
-                        "type": "trace",
-                        "condition": {
-                            "op": "and",
-                            "inner": [],
-                        },
-                        "id": 1,
-                    },
-                    {
                         "sampleRate": 0.8,
                         "type": "trace",
                         "condition": {
@@ -57,12 +48,21 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
                         },
                         "id": 3,
                     },
+                    {
+                        "sampleRate": 0.7,
+                        "type": "trace",
+                        "condition": {
+                            "op": "and",
+                            "inner": [],
+                        },
+                        "id": 1,
+                    },
                 ],
             },
         )
         self.create_member(user=self.user, organization=self.org, role="owner", teams=[self.team])
         self.login_as(self.user)
-        self.path = f"/settings/{self.org.slug}/projects/{self.project.slug}/sampling/trace/"
+        self.path = f"/settings/{self.org.slug}/projects/{self.project.slug}/server-side-sampling/"
 
     def wait_until_loaded(self):
         self.browser.get(self.path)
