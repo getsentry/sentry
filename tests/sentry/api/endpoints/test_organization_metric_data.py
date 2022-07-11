@@ -793,7 +793,15 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             TransactionMRI.MEASUREMENTS_FCP.value,
             "transaction",
         ]:
+<<<<<<< HEAD
             perf_indexer_record(self.organization.id, metric)
+||||||| parent of eb68d99586 (add useCase optional query param)
+            rh_indexer_record(self.organization.id, metric)
+
+=======
+            perf_indexer_record(self.organization.id, metric)
+
+>>>>>>> eb68d99586 (add useCase optional query param)
         response = self.get_success_response(
             self.organization.slug,
             field=[
