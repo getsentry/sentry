@@ -192,7 +192,8 @@ def process_messages(
             used_tags.add(metric_name)
 
             new_tags: MutableMapping[str, int] = {}
-            dropped_string = False
+            exceeded_global_quotas = 0
+            exceeded_org_quotas = 0
             try:
                 for k, v in tags.items():
                     used_tags.update({k, v})
@@ -202,33 +203,32 @@ def process_messages(
 
                     if new_k is None:
                         fetch_type_ext = get_path(bulk_record_meta, k, 2)
-                        logger.error(
-                            "process_messages.dropped_string",
-                            extra={
-                                "is_global_quota": fetch_type_ext
-                                and fetch_type_ext.is_global_quota,
-                                "org_batch_size": len(mapping[org_id]),
-                            },
-                        )
-                        dropped_string = True
+                        if fetch_type_ext and fetch_type_ext.is_global_quota:
+                            exceeded_global_quotas += 1
+                        else:
+                            exceeded_org_quotas += 1
 
                     if new_v is None:
                         fetch_type_ext = get_path(bulk_record_meta, v, 2)
-                        logger.error(
-                            "process_messages.dropped_string",
-                            extra={
-                                "is_global_quota": fetch_type_ext
-                                and fetch_type_ext.is_global_quota,
-                                "org_batch_size": len(mapping[org_id]),
-                            },
-                        )
-                        dropped_string = True
+                        if fetch_type_ext and fetch_type_ext.is_global_quota:
+                            exceeded_global_quotas += 1
+                        else:
+                            exceeded_org_quotas += 1
 
             except KeyError:
                 logger.error("process_messages.key_error", extra={"tags": tags}, exc_info=True)
                 continue
 
-            if dropped_string:
+            if exceeded_org_quotas or exceeded_global_quotas:
+                logger.error(
+                    "process_messages.dropped_message",
+                    extra={
+                        "string_type": "tags",
+                        "num_global_quotas": exceeded_global_quotas,
+                        "num_org_quotas": exceeded_org_quotas,
+                        "org_batch_size": len(mapping[org_id]),
+                    },
+                )
                 continue
 
             fetch_types_encountered = set()
@@ -246,8 +246,9 @@ def process_messages(
             if numeric_metric_id is None:
                 fetch_type_ext = get_path(bulk_record_meta, metric_name, 2)
                 logger.error(
-                    "process_messages.dropped_string",
+                    "process_messages.dropped_message",
                     extra={
+                        "string_type": "metric_id",
                         "is_global_quota": fetch_type_ext and fetch_type_ext.is_global_quota,
                         "org_batch_size": len(mapping[org_id]),
                     },
