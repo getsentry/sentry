@@ -115,11 +115,11 @@ jobs:
       matrix:
         python-version: [3.8.12]
         # XXX: When updating this, make sure you also update MATRIX_INSTANCE_TOTAL.
-        instance: [0, 1, 2, 3, 4, 5, 6, 7]
+        instance: [0, 1, 2, 3]
         pg-version: ['9.6']
     env:
       # XXX: MATRIX_INSTANCE_TOTAL must be hardcoded to the length of strategy.matrix.instance.
-      MATRIX_INSTANCE_TOTAL: 8
+      MATRIX_INSTANCE_TOTAL: 4
       VISUAL_SNAPSHOT_ENABLE: 1
       TEST_GROUP_STRATEGY: roundrobin
 
