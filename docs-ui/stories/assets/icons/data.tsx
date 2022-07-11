@@ -659,4 +659,10 @@ export const icons: IconData[] = [
     groups: ['device'],
     keywords: [''],
   },
+  {
+    id: 'panel',
+    groups: ['navigation'],
+    keywords: ['sidebar', 'footer'],
+    additionalProps: ['direction'],
+  },
 ];
