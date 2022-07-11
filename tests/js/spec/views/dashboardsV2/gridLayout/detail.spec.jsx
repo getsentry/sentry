@@ -442,6 +442,44 @@ describe('Dashboards > Detail', function () {
       expect(openEditModal).toHaveBeenCalledTimes(1);
     });
 
+    it('shows top level release filter', async function () {
+      const mockReleases = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/releases/',
+        body: [TestStubs.Release()],
+      });
+
+      initialData = initializeOrg({
+        organization: TestStubs.Organization({
+          features: [
+            'global-views',
+            'dashboards-basic',
+            'dashboards-edit',
+            'discover-query',
+            'dashboards-top-level-filter',
+          ],
+          projects: [TestStubs.Project()],
+        }),
+      });
+
+      wrapper = mountWithTheme(
+        <OrganizationContext.Provider value={initialData.organization}>
+          <ViewEditDashboard
+            organization={initialData.organization}
+            params={{orgId: 'org-slug', dashboardId: '1'}}
+            router={initialData.router}
+            location={initialData.router.location}
+          />
+        </OrganizationContext.Provider>,
+        initialData.routerContext
+      );
+      await act(async () => {
+        await tick();
+        wrapper.update();
+      });
+      expect(wrapper.find('ReleasesSelectControl').exists()).toBe(true);
+      expect(mockReleases).toHaveBeenCalledTimes(1);
+    });
+
     it('opens widget library when add widget option is clicked', async function () {
       initialData = initializeOrg({
         organization: TestStubs.Organization({

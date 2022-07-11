@@ -150,7 +150,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
       '/organizations/org-slug/releases/',
       expect.objectContaining({
         data: {
-          environments: ['prod'],
+          environment: ['prod'],
           per_page: 50,
           project: [1],
           sort: 'date',
