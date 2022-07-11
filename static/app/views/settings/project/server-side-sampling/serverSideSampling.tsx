@@ -29,6 +29,7 @@ import {
   SamplingRuleOperator,
   SamplingRuleType,
 } from 'sentry/types/sampling';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -69,6 +70,13 @@ export function ServerSideSampling({project}: Props) {
   const previousRules = usePrevious(currentRules);
 
   const [rules, setRules] = useState<SamplingRule[]>(currentRules ?? []);
+
+  useEffect(() => {
+    trackAdvancedAnalyticsEvent('sampling.settings.view', {
+      organization: organization.slug,
+      project_id: project.id,
+    });
+  }, [project.id, organization.slug]);
 
   useEffect(() => {
     if (!isEqual(previousRules, currentRules)) {
@@ -135,6 +143,11 @@ export function ServerSideSampling({project}: Props) {
   }
 
   function handleGetStarted() {
+    trackAdvancedAnalyticsEvent('sampling.settings.get_started', {
+      organization: organization.slug,
+      project_id: project.id,
+    });
+
     openModal(
       modalProps => (
         <UniformRateModal
@@ -229,6 +242,16 @@ export function ServerSideSampling({project}: Props) {
   }
 
   async function handleDeleteRule(rule: SamplingRule) {
+    const conditions = rule.condition.inner.map(({name}) => name);
+
+    trackAdvancedAnalyticsEvent('sampling.settings.rule.delete', {
+      organization,
+      project_id: project.id,
+      sampling_rate: rule.sampleRate * 100,
+      conditions,
+      conditions_stringified: conditions.sort().join(', '),
+    });
+
     try {
       const result = await api.requestPromise(
         `/projects/${organization.slug}/${project.slug}/`,
