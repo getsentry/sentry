@@ -24,6 +24,14 @@ class TextWeight(str, Enum):
     LIGHTER = "Lighter"
 
 
+class ImageSize(str, Enum):
+    SMALL = "Small"
+    MEDIUM = "Medium"
+    LARGE = "Large"
+    AUTO = "Auto"
+    STRECH = "Strech"
+
+
 class ActionType(str, Enum):
     OPEN_URL = "Action.OpenUrl"
     SUBMIT = "Action.Submit"
@@ -63,7 +71,7 @@ class MSTeamsMessageBuilder(AbstractMessageBuilder, ABC):  # type: ignore
         return {
             "type": "Image",
             "url": absolute_uri(url),
-            "size": "Medium",
+            "size": ImageSize.MEDIUM,
         }
 
     @staticmethod
