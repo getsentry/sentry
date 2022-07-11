@@ -229,9 +229,9 @@ const ItemTitle = ({item, searchSubstring, isChild}: ItemTitleProps) => {
   );
 };
 
-type KindTagProps = {kind: FieldKind};
+type KindTagProps = {kind: FieldKind; isDeprecated?: boolean};
 
-const KindTag = ({kind}: KindTagProps) => {
+const KindTag = ({kind, isDeprecated}: KindTagProps) => {
   let text, tagType;
   switch (kind) {
     case FieldKind.FUNCTION:
@@ -258,6 +258,12 @@ const KindTag = ({kind}: KindTagProps) => {
     default:
       text = kind;
   }
+
+  if (isDeprecated) {
+    text = 'deprecated';
+    tagType = 'error';
+  }
+
   return <Tag type={tagType}>{text}</Tag>;
 };
 

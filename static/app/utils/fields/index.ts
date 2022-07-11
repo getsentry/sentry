@@ -109,11 +109,13 @@ export enum FieldValueType {
 export interface FieldDefinition {
   kind: FieldKind;
   valueType: FieldValueType;
+  deprecated?: boolean;
   desc?: string;
 }
 
 export const FIELDS: Record<string, FieldDefinition> = {
   [FieldKey.AGE]: {
+    desc: 'The age of the issue in relative time',
     kind: FieldKind.FIELD,
     valueType: FieldValueType.DURATION,
   },
@@ -128,6 +130,7 @@ export const FIELDS: Record<string, FieldDefinition> = {
     valueType: FieldValueType.STRING,
   },
   [FieldKey.CULPRIT]: {
+    deprecated: true,
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
@@ -142,7 +145,7 @@ export const FIELDS: Record<string, FieldDefinition> = {
     valueType: FieldValueType.STRING,
   },
   [FieldKey.DEVICE_BATTERY_LEVEL]: {
-    desc: 'Indicator of how much battery is at',
+    desc: 'Indicates remaining battery life',
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
@@ -187,12 +190,17 @@ export const FIELDS: Record<string, FieldDefinition> = {
     valueType: FieldValueType.STRING,
   },
   [FieldKey.DEVICE_SIMULATOR]: {
-    desc: 'Determines if it occured on a simulator',
+    desc: 'Indicates if it occured on a simulator',
     kind: FieldKind.FIELD,
     valueType: FieldValueType.BOOLEAN,
   },
   [FieldKey.DEVICE_UUID]: {
     desc: 'Unique device identifier',
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FieldKey.DIST]: {
+    desc: 'Distinguishes between build or deployment variants of the same release of an application.',
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
@@ -257,7 +265,7 @@ export const FIELDS: Record<string, FieldDefinition> = {
     valueType: FieldValueType.STRING,
   },
   [FieldKey.HTTP_STATUS_CODE]: {
-    desc: 'Type of response (i.e. 200, 404)',
+    desc: 'TType of response (i.e., 200, 404)',
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
@@ -296,7 +304,7 @@ export const FIELDS: Record<string, FieldDefinition> = {
     valueType: FieldValueType.STRING,
   },
   [FieldKey.MESSAGE]: {
-    desc: 'Matches the error message or transaction name',
+    desc: 'Error message or transaction name',
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
@@ -360,7 +368,7 @@ export const FIELDS: Record<string, FieldDefinition> = {
     valueType: FieldValueType.STRING,
   },
   [FieldKey.RELEASE_STAGE]: {
-    desc: 'Stage of usage (i.e. Adopted, replaced, low)',
+    desc: 'Stage of usage (i.e., adopted, replaced, low)',
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
@@ -495,7 +503,7 @@ export const FIELDS: Record<string, FieldDefinition> = {
     valueType: FieldValueType.STRING,
   },
   [FieldKey.USER_DISPLAY]: {
-    desc: 'The first user field available of email, username, ID and IP',
+    desc: 'The first user field available of email, username, ID, and IP',
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },

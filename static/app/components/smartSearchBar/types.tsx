@@ -32,6 +32,7 @@ export type SearchItem = {
    * Child search items, we only support 1 level of nesting though.
    */
   children?: SearchItem[];
+  deprecated?: boolean;
   desc?: string;
   documentation?: React.ReactNode;
   ignoreMaxSearchItems?: boolean;
