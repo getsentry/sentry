@@ -46,4 +46,39 @@ describe('TraceErrorList', () => {
     expect(listItems[0]).toHaveTextContent('2 warning errors in /api/fetchitems');
     expect(listItems[1]).toHaveTextContent('1 error in /api/fetchitems');
   });
+
+  it('groups span-less errors under the transaction', () => {
+    const event = TestStubs.Event({
+      contexts: {
+        trace: {
+          op: '/path',
+        },
+      },
+      entries: [
+        {
+          type: 'spans',
+          data: [
+            TestStubs.Span({
+              op: '/api/fetchitems',
+              span_id: '42118aba',
+            }),
+          ],
+        },
+      ],
+    });
+
+    const errors = [
+      TestStubs.TraceError({
+        event_id: '1',
+        level: 'warning',
+      }),
+    ];
+
+    render(
+      <TraceErrorList trace={parseTrace(event)} errors={errors} onClickSpan={jest.fn()} />
+    );
+
+    const listItem = screen.getByRole('listitem');
+    expect(listItem).toHaveTextContent('1 warning error in /path');
+  });
 });
