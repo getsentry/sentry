@@ -708,7 +708,7 @@ describe('SmartSearchBar', function () {
       });
     });
 
-    it('handles race conditions', async function () {
+    it('handles autocomplete race conditions when cursor position changed', async function () {
       const props = {
         query: 'is:',
         organization,
@@ -749,7 +749,7 @@ describe('SmartSearchBar', function () {
       expect(searchBar.state.searchGroups).toHaveLength(0);
     });
 
-    it('handles race conditions (default case)', async function () {
+    it('handles race conditions when query changes from default state', async function () {
       const props = {
         query: '',
         organization,
