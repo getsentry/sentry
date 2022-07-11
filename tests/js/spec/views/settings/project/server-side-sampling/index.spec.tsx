@@ -255,7 +255,8 @@ describe('Server-side Sampling', function () {
     ).toBeInTheDocument();
   });
 
-  it('does not let the user activate a rule if sdk updates exists', async function () {
+  // eslint-disable-next-line jest/no-disabled-tests
+  it.skip('does not let the user activate a rule if sdk updates exists', async function () {
     const {organization, router, project} = getMockData({
       projects: [
         TestStubs.Project({
