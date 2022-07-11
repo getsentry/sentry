@@ -113,20 +113,6 @@ class OrganizationDynamicSamplingSDKVersionsEndpoint(OrganizationEndpoint):
             total_sdk_name_count_per_project[row["project"]].setdefault(row["sdk.name"], 0)
             total_sdk_name_count_per_project[row["project"]][row["sdk.name"]] += row["count()"]
 
-        # Aggregates the statistically relevant sdk names per project. As an example:
-        # {
-        #     "wind": {"sentry.javascript.react"},
-        #     "earth": {"sentry.javascript.react"},
-        # }
-        relevant_project_and_sdk_names = {}
-        for project, sdk_name_counts in total_sdk_name_count_per_project.items():
-            for sdk_name, count in sdk_name_counts.items():
-                # Filter 1: Discard any sdk name that accounts less than or equal to the value
-                # `SDK_NAME_FILTER_THRESHOLD` of total count per project
-                if count > SDK_NAME_FILTER_THRESHOLD * total_count_per_project[project]:
-                    relevant_project_and_sdk_names.setdefault(project, set())
-                    relevant_project_and_sdk_names[project].add(sdk_name)
-
         # Creates a dictionary that has the first level key as project id and values (second
         # level key) as SDK versions, and finally that maps to the expected resulting project
         # sdk version info if that SDKVersion was actually the latest observed, and that info
@@ -152,10 +138,13 @@ class OrganizationDynamicSamplingSDKVersionsEndpoint(OrganizationEndpoint):
         project_to_sdk_version_to_info_dict = {}
         for row in data:
             project = row["project"]
+            # Filter 1: Discard any sdk name that accounts less than or equal to the value
+            # `SDK_NAME_FILTER_THRESHOLD` of total count per project
             # Filter 2: Discard any sdk version that accounts less than or equal to
             # `SDK_VERSION_FILTER_THRESHOLD` of total count in that sdk_name in that project
             if (
-                row["sdk.name"] in relevant_project_and_sdk_names[project]
+                total_sdk_name_count_per_project[project][row["sdk.name"]]
+                > SDK_NAME_FILTER_THRESHOLD * total_count_per_project[project]
                 and row["count()"]
                 > SDK_VERSION_FILTER_THRESHOLD
                 * total_sdk_name_count_per_project[project][row["sdk.name"]]
