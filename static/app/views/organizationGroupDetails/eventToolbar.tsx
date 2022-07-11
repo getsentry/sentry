@@ -130,7 +130,7 @@ class GroupEventToolbar extends Component<Props> {
           onOlderClick={() => this.handleNavigationClick('older')}
           onNewerClick={() => this.handleNavigationClick('newer')}
           onNewestClick={() => this.handleNavigationClick('newest')}
-          size="small"
+          size="sm"
         />
         <Heading>
           {t('Event')}{' '}

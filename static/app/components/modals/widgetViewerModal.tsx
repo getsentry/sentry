@@ -1018,6 +1018,11 @@ function OpenButton({
       priority="primary"
       type="button"
       disabled={isCustomMeasurementWidget(widget)}
+      title={
+        isCustomMeasurementWidget(widget)
+          ? t('Widgets using custom performance metrics cannot be opened in Discover.')
+          : undefined
+      }
       onClick={() => {
         trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.open_source', {
           organization,

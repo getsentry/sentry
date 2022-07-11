@@ -10,6 +10,7 @@ import DropdownMenuControlV2 from 'sentry/components/dropdownMenuControlV2';
 import {MenuItemProps} from 'sentry/components/dropdownMenuItemV2';
 import {isWidgetViewerPath} from 'sentry/components/modals/widgetViewerModal/utils';
 import Tag from 'sentry/components/tag';
+import Tooltip from 'sentry/components/tooltip';
 import {IconEllipsis, IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -103,7 +104,7 @@ function WidgetCardContextMenu({
               ]}
               triggerProps={{
                 'aria-label': t('Widget actions'),
-                size: 'xsmall',
+                size: 'xs',
                 borderless: true,
                 showChevron: false,
                 icon: <IconEllipsis direction="down" size="sm" />,
@@ -150,7 +151,18 @@ function WidgetCardContextMenu({
       );
       menuOptions.push({
         key: 'open-in-discover',
-        label: t('Open in Discover'),
+        label: usingCustomMeasurements ? (
+          <Tooltip
+            skipWrapper
+            title={t(
+              'Widget using custom performance metrics cannot be opened in Discover.'
+            )}
+          >
+            {t('Open in Discover')}
+          </Tooltip>
+        ) : (
+          t('Open in Discover')
+        ),
         to:
           !usingCustomMeasurements && widget.queries.length === 1
             ? discoverPath
@@ -224,18 +236,18 @@ function WidgetCardContextMenu({
         <ContextWrapper>
           <Feature organization={organization} features={['dashboards-mep']}>
             {isMetricsData === false && (
-              <StoredTag
-                tooltipText={t('This widget is only applicable to stored event data.')}
+              <SampledTag
+                tooltipText={t('This widget is only applicable to sampled events.')}
               >
-                {t('Stored')}
-              </StoredTag>
+                {t('Sampled')}
+              </SampledTag>
             )}
           </Feature>
           <StyledDropdownMenuControlV2
             items={menuOptions}
             triggerProps={{
               'aria-label': t('Widget actions'),
-              size: 'xsmall',
+              size: 'xs',
               borderless: true,
               showChevron: false,
               icon: <IconEllipsis direction="down" size="sm" />,
@@ -291,6 +303,6 @@ const OpenWidgetViewerButton = styled(Button)`
   }
 `;
 
-const StoredTag = styled(Tag)`
+const SampledTag = styled(Tag)`
   margin-right: ${space(0.5)};
 `;

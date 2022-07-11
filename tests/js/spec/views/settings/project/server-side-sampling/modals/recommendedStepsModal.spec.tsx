@@ -40,7 +40,7 @@ describe('Server-side Sampling - Recommended Steps Modal', function () {
           },
         ]}
         onSubmit={jest.fn()}
-        clientSampleRate={uniformRule.sampleRate}
+        clientSampleRate={50}
       />
     ));
 
