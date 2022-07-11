@@ -142,7 +142,13 @@ function WidgetCardContextMenu({
   ) {
     // Open Widget in Discover
     if (widget.queries.length) {
-      const discoverPath = getWidgetDiscoverUrl(widget, selection, organization);
+      const discoverPath = getWidgetDiscoverUrl(
+        widget,
+        selection,
+        organization,
+        0,
+        isMetricsData
+      );
       menuOptions.push({
         key: 'open-in-discover',
         label: usingCustomMeasurements ? (
@@ -175,7 +181,7 @@ function WidgetCardContextMenu({
               organization,
               widget_type: widget.displayType,
             });
-            openDashboardWidgetQuerySelectorModal({organization, widget});
+            openDashboardWidgetQuerySelectorModal({organization, widget, isMetricsData});
           }
         },
       });

@@ -66,7 +66,7 @@ describe('Dashboards > WidgetCard', function () {
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-geo/',
-      body: [],
+      body: {meta: {isMetricsData: false}},
     });
     eventsv2Mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/eventsv2/',
