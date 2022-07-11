@@ -67,7 +67,7 @@ const ProjectSelectorFooter = ({
           aria-label={t('Add Project')}
           disabled={!hasProjectWrite}
           to={newProjectUrl}
-          size="xsmall"
+          size="xs"
           icon={<IconAdd size="xs" isCircled />}
           title={
             !hasProjectWrite ? t("You don't have permission to add a project") : undefined
@@ -96,7 +96,7 @@ const ProjectSelectorFooter = ({
               }
               // otherwise render the buton
               return (
-                <Button priority="default" size="xsmall" onClick={onProjectClick}>
+                <Button priority="default" size="xs" onClick={onProjectClick}>
                   {buttonText}
                 </Button>
               );
@@ -104,7 +104,7 @@ const ProjectSelectorFooter = ({
           </Feature>
         )}
         {hasChanges && (
-          <SubmitButton onClick={onApply} size="xsmall" priority="primary">
+          <SubmitButton onClick={onApply} size="xs" priority="primary">
             {t('Apply Filter')}
           </SubmitButton>
         )}

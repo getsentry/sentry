@@ -155,7 +155,7 @@ function Task({router, task, onSkip, onMarkComplete, forwardedRef, organization}
           {task.status === 'pending' ? (
             <InProgressIndicator user={task.user} />
           ) : (
-            <Button priority="primary" size="small">
+            <Button priority="primary" size="sm">
               {t('Start')}
             </Button>
           )}

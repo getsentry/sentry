@@ -116,7 +116,7 @@ class EventGroupingInfo extends AsyncComponent<Props, State> {
           <FeatureFeedback
             featureName="grouping"
             feedbackTypes={groupingFeedbackTypes}
-            buttonProps={{size: 'small'}}
+            buttonProps={{size: 'sm'}}
           />
         </ConfigHeader>
 

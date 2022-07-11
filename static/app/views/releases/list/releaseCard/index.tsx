@@ -154,14 +154,14 @@ class ReleaseCard extends Component<Props> {
             <Collapsible
               expandButton={({onExpand, numberOfHiddenItems}) => (
                 <ExpandButtonWrapper>
-                  <Button priority="primary" size="xsmall" onClick={onExpand}>
+                  <Button priority="primary" size="xs" onClick={onExpand}>
                     {tct('Show [numberOfHiddenItems] More', {numberOfHiddenItems})}
                   </Button>
                 </ExpandButtonWrapper>
               )}
               collapseButton={({onCollapse}) => (
                 <CollapseButtonWrapper>
-                  <Button priority="primary" size="xsmall" onClick={onCollapse}>
+                  <Button priority="primary" size="xs" onClick={onCollapse}>
                     {t('Collapse')}
                   </Button>
                 </CollapseButtonWrapper>

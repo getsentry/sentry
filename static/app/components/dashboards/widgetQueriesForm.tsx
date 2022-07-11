@@ -252,7 +252,7 @@ class WidgetQueriesForm extends Component<Props> {
         })}
         {canAddSearchConditions && (
           <Button
-            size="small"
+            size="sm"
             icon={<IconAdd isCircled />}
             onClick={(event: React.MouseEvent) => {
               event.preventDefault();

@@ -107,7 +107,7 @@ class ProjectTags extends AsyncView<Props, State> {
                             disabled={!enabled}
                           >
                             <Button
-                              size="xsmall"
+                              size="xs"
                               title={
                                 enabled
                                   ? t('Remove tag')

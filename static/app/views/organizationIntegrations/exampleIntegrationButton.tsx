@@ -25,7 +25,7 @@ function ExampleIntegrationButton({
 }: ExampleIntegrationButtonProps) {
   return (
     <Button
-      size="small"
+      size="sm"
       external
       href={platformEventLinkMap[PlatformEvents.EXAMPLE_SOURCE]}
       onClick={() => {

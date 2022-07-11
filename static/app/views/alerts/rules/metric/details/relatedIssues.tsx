@@ -81,7 +81,7 @@ function RelatedIssues({rule, organization, projects, query, timePeriod}: Props)
     <Fragment>
       <ControlsWrapper>
         <StyledSectionHeading>{t('Related Issues')}</StyledSectionHeading>
-        <Button data-test-id="issues-open" size="xsmall" to={issueSearch}>
+        <Button data-test-id="issues-open" size="xs" to={issueSearch}>
           {t('Open in Issues')}
         </Button>
       </ControlsWrapper>

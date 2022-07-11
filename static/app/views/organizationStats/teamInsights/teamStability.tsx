@@ -242,7 +242,7 @@ class TeamStability extends AsyncComponent<Props, State> {
             emptyMessage={t('No projects with release health enabled')}
             emptyAction={
               <Button
-                size="small"
+                size="sm"
                 external
                 href="https://docs.sentry.io/platforms/dotnet/guides/nlog/configuration/releases/#release-health"
               >

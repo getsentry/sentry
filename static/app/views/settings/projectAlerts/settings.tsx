@@ -105,7 +105,7 @@ class Settings extends AsyncView<Props, State> {
                 pathname: `/organizations/${orgId}/alerts/rules/`,
                 query: {project: project.id},
               }}
-              size="small"
+              size="sm"
             >
               {t('View Alert Rules')}
             </Button>

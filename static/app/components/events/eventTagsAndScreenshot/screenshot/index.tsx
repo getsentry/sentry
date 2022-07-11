@@ -78,7 +78,7 @@ function Screenshot({event, organization, screenshot, projectSlug, onDelete}: Pr
         <StyledPanelFooter>
           <StyledButtonbar gap={1}>
             <Button
-              size="xsmall"
+              size="xs"
               onClick={() =>
                 handleOpenVisualizationModal(
                   screenshotAttachment,
@@ -93,7 +93,7 @@ function Screenshot({event, organization, screenshot, projectSlug, onDelete}: Pr
               customTitle={
                 <Button
                   aria-label={t('Actions')}
-                  size="xsmall"
+                  size="xs"
                   icon={<IconEllipsis size="xs" />}
                 />
               }

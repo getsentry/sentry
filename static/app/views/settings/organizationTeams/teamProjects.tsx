@@ -159,7 +159,7 @@ class TeamProjects extends Component<Props, State> {
             title={t('You do not have enough permission to change project association.')}
           >
             <Button
-              size="small"
+              size="sm"
               disabled={!canWrite}
               icon={<IconSubtract isCircled size="xs" />}
               aria-label={t('Remove')}
@@ -208,7 +208,7 @@ class TeamProjects extends Component<Props, State> {
                 <DropdownButton
                   disabled
                   title={t('You do not have enough permission to associate a project.')}
-                  size="xsmall"
+                  size="xs"
                 >
                   {t('Add Project')}
                 </DropdownButton>
@@ -221,7 +221,7 @@ class TeamProjects extends Component<Props, State> {
                   alignMenu="right"
                 >
                   {({isOpen}) => (
-                    <DropdownButton isOpen={isOpen} size="xsmall">
+                    <DropdownButton isOpen={isOpen} size="xs">
                       {t('Add Project')}
                     </DropdownButton>
                   )}

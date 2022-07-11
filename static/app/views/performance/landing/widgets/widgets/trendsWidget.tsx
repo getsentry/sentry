@@ -109,7 +109,7 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
                     projectPlatforms: getSelectedProjectPlatforms(location, projects),
                   })
                 }
-                size="small"
+                size="sm"
                 data-test-id="view-all-button"
               >
                 {t('View All')}

@@ -75,7 +75,7 @@ export class ApiTokens extends AsyncView<Props, State> {
     const action = (
       <Button
         priority="primary"
-        size="small"
+        size="sm"
         to="/settings/account/api/auth-tokens/new-token/"
         data-test-id="create-token"
       >

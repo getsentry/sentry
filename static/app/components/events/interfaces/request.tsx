@@ -64,17 +64,13 @@ class RequestInterface extends Component<Props, State> {
         <ButtonBar merged active={view}>
           <Button
             barId="formatted"
-            size="xsmall"
+            size="xs"
             onClick={this.toggleView.bind(this, 'formatted')}
           >
             {/* Translators: this means "formatted" rendering (fancy tables) */}
             {t('Formatted')}
           </Button>
-          <MonoButton
-            barId="curl"
-            size="xsmall"
-            onClick={this.toggleView.bind(this, 'curl')}
-          >
+          <MonoButton barId="curl" size="xs" onClick={this.toggleView.bind(this, 'curl')}>
             curl
           </MonoButton>
         </ButtonBar>

@@ -116,10 +116,10 @@ function SuspectSpansHeader(props: HeaderProps) {
   return (
     <Header>
       <SectionHeading>{t('Suspect Spans')}</SectionHeading>
-      <Button to={viewAllTarget} size="xsmall" data-test-id="suspect-spans-open-tab">
+      <Button to={viewAllTarget} size="xs" data-test-id="suspect-spans-open-tab">
         {t('View All Spans')}
       </Button>
-      <StyledPagination pageLinks={pageLinks} onCursor={handleCursor} size="xsmall" />
+      <StyledPagination pageLinks={pageLinks} onCursor={handleCursor} size="xs" />
     </Header>
   );
 }

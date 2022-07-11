@@ -57,7 +57,7 @@ function GroupTombstoneRow({data, onUndiscard}: RowProps) {
           <Button
             aria-label={t('Undiscard')}
             title={t('Undiscard')}
-            size="xsmall"
+            size="xs"
             icon={<IconDelete size="xs" />}
           />
         </Confirm>

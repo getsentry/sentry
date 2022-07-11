@@ -31,7 +31,7 @@ const CodeOwnersCTA = HookOrDefault({
   hookName: 'component:codeowners-cta',
   defaultComponent: ({organization, project}) => (
     <SetupButton
-      size="xsmall"
+      size="xs"
       priority="primary"
       to={`/settings/${organization.slug}/projects/${project.slug}/ownership/`}
       onClick={() =>
@@ -66,7 +66,7 @@ const OwnershipRules = ({
         <GuideAnchor target="owners" position="bottom" offset={20}>
           <Button
             onClick={handleOpenCreateOwnershipRule}
-            size="small"
+            size="sm"
             disabled={!hasAccess}
             title={t("You don't have permission to create ownership rules.")}
             tooltipProps={{disabled: hasAccess}}
@@ -97,7 +97,7 @@ const OwnershipRules = ({
       <ButtonBar gap={1}>
         <CodeOwnersCTA organization={organization} project={project} />
         <Button
-          size="xsmall"
+          size="xs"
           external
           href="https://docs.sentry.io/product/issues/issue-owners/#code-owners"
           onClick={() =>

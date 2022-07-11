@@ -150,7 +150,7 @@ CloseButton.defaultProps = {
   ['aria-label']: t('Close'),
   priority: 'link',
   borderless: true,
-  size: 'xsmall',
+  size: 'xs',
 };
 
 export default Banner;

@@ -51,7 +51,7 @@ function OrganizationTeams({
   const action = (
     <Button
       priority="primary"
-      size="small"
+      size="sm"
       disabled={!canCreateTeams}
       title={
         !canCreateTeams ? t('You do not have permission to create teams') : undefined

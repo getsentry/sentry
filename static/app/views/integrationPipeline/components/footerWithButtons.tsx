@@ -27,7 +27,7 @@ export default function FooterWithButtons({
       {formFields?.map(field => {
         return <input type="hidden" key={field.name} {...field} />;
       })}
-      <Button priority="primary" type="submit" size="xsmall" {...rest}>
+      <Button priority="primary" type="submit" size="xs" {...rest}>
         {buttonText}
       </Button>
     </Footer>

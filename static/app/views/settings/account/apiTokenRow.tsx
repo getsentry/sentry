@@ -25,7 +25,7 @@ function ApiTokenRow({token, onRemove}: Props) {
           </TextCopyInput>
         </InputWrapper>
         <Button
-          size="small"
+          size="sm"
           onClick={() => onRemove(token)}
           icon={<IconSubtract isCircled size="xs" />}
         >

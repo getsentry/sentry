@@ -153,7 +153,7 @@ class ActionsPanel extends PureComponent<Props> {
         trailingItems={
           <Button
             href="https://docs.sentry.io/product/integrations/notification-incidents/slack/#rate-limiting-error"
-            size="xsmall"
+            size="xs"
           >
             {t('Learn More')}
           </Button>

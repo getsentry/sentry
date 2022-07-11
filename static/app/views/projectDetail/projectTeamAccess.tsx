@@ -36,7 +36,7 @@ function ProjectTeamAccess({organization, project}: Props) {
             hasEditPermissions ? undefined : t('You do not have permission to do this')
           }
           priority="primary"
-          size="small"
+          size="sm"
         >
           {t('Assign Team')}
         </Button>

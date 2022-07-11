@@ -150,13 +150,13 @@ class ProjectPluginDetails extends AsyncView<Props, State> {
     const enabled = this.getEnabled();
 
     const enable = (
-      <StyledButton size="small" onClick={this.handleEnable}>
+      <StyledButton size="sm" onClick={this.handleEnable}>
         {t('Enable Plugin')}
       </StyledButton>
     );
 
     const disable = (
-      <StyledButton size="small" priority="danger" onClick={this.handleDisable}>
+      <StyledButton size="sm" priority="danger" onClick={this.handleDisable}>
         {t('Disable Plugin')}
       </StyledButton>
     );
@@ -166,7 +166,7 @@ class ProjectPluginDetails extends AsyncView<Props, State> {
     return (
       <div className="pull-right">
         {pluginDetails.canDisable && toggleEnable}
-        <Button size="small" onClick={this.handleReset}>
+        <Button size="sm" onClick={this.handleReset}>
           {t('Reset Configuration')}
         </Button>
       </div>

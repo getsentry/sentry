@@ -166,7 +166,7 @@ class RelayWrapper extends AsyncView<Props, State> {
                 disabled ? t('You do not have permission to register keys') : undefined
               }
               priority="primary"
-              size="small"
+              size="sm"
               icon={<IconAdd size="xs" isCircled />}
               onClick={this.handleOpenAddDialog}
               disabled={disabled}

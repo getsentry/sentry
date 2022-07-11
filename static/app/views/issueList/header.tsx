@@ -81,7 +81,7 @@ function IssueListHeader({
       <Layout.HeaderActions>
         <ButtonBar gap={1}>
           <Button
-            size="small"
+            size="sm"
             data-test-id="real-time"
             title={
               realtimeActive

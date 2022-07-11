@@ -41,7 +41,7 @@ function OtherProjects({projects, location, version, organization}: Props) {
           <Row key={project.id}>
             <IdBadge project={project} avatarSize={16} />
             <Button
-              size="xsmall"
+              size="xs"
               to={{
                 pathname: `/organizations/${
                   organization.slug

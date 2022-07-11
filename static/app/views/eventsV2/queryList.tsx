@@ -111,7 +111,7 @@ class QueryList extends Component<Props> {
             ref={triggerRef}
             {...triggerProps}
             aria-label={t('Query actions')}
-            size="xsmall"
+            size="xs"
             borderless
             onClick={e => {
               e.stopPropagation();

@@ -388,7 +388,7 @@ class ReleaseIssues extends Component<Props, State> {
               <Button
                 key={value}
                 barId={value}
-                size="xsmall"
+                size="xs"
                 onClick={() => this.handleIssuesTypeSelection(value)}
                 data-test-id={`filter-${value}`}
               >
@@ -399,11 +399,11 @@ class ReleaseIssues extends Component<Props, State> {
           </StyledButtonBar>
 
           <OpenInButtonBar gap={1}>
-            <Button to={this.getIssuesUrl()} size="xsmall" data-test-id="issues-button">
+            <Button to={this.getIssuesUrl()} size="xs" data-test-id="issues-button">
               {t('Open in Issues')}
             </Button>
 
-            <StyledPagination pageLinks={pageLinks} onCursor={onCursor} size="xsmall" />
+            <StyledPagination pageLinks={pageLinks} onCursor={onCursor} size="xs" />
           </OpenInButtonBar>
         </ControlsWrapper>
         <div data-test-id="release-wrapper">

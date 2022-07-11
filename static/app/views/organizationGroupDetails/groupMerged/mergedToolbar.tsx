@@ -105,7 +105,7 @@ class MergedToolbar extends Component<Props, State> {
             )}
           >
             <Button
-              size="small"
+              size="sm"
               title={tct('Unmerging [unmergeCount] events', {unmergeCount})}
             >
               {t('Unmerge')} ({unmergeCount || 0})
@@ -113,14 +113,14 @@ class MergedToolbar extends Component<Props, State> {
           </Confirm>
 
           <CompareButton
-            size="small"
+            size="sm"
             disabled={!enableFingerprintCompare}
             onClick={this.handleShowDiff}
           >
             {t('Compare')}
           </CompareButton>
         </div>
-        <Button size="small" onClick={onToggleCollapse}>
+        <Button size="sm" onClick={onToggleCollapse}>
           {unmergeLastCollapsed ? t('Expand All') : t('Collapse All')}
         </Button>
       </PanelHeader>

@@ -24,7 +24,7 @@ function SampleEventAlert({
         )}
       </TextWrapper>
       <Button
-        size="xsmall"
+        size="xs"
         priority="primary"
         to={`/${organization.slug}/${project.slug}/getting-started/${
           project.platform || ''

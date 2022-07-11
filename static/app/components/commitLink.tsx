@@ -72,7 +72,7 @@ function CommitLink({inline, commitId, repository}: Props) {
     });
 
   return !inline ? (
-    <Button external href={commitUrl} size="small" icon={providerData.icon}>
+    <Button external href={commitUrl} size="sm" icon={providerData.icon}>
       {shortId}
     </Button>
   ) : (

@@ -52,7 +52,7 @@ class GroupingConfigSelect extends AsyncComponent<Props, State> {
       <DropdownAutoComplete onSelect={onSelect} items={options}>
         {({isOpen}) => (
           <Tooltip title={t('Click here to experiment with other grouping configs')}>
-            <StyledDropdownButton isOpen={isOpen} size="small">
+            <StyledDropdownButton isOpen={isOpen} size="sm">
               <GroupingConfigItem isActive={eventConfigId === configId}>
                 {configId}
               </GroupingConfigItem>

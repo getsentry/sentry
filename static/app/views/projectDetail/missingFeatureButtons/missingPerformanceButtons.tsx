@@ -41,7 +41,7 @@ function MissingPerformanceButtons({organization}: Props) {
       organization={organization}
     >
       <ButtonBar gap={1}>
-        <Button size="small" priority="primary" external href={DOCS_URL}>
+        <Button size="sm" priority="primary" external href={DOCS_URL}>
           {t('Start Setup')}
         </Button>
 
@@ -53,7 +53,7 @@ function MissingPerformanceButtons({organization}: Props) {
           doneUrl={DOCS_URL}
         >
           {({showModal}) => (
-            <Button size="small" onClick={showModal}>
+            <Button size="sm" onClick={showModal}>
               {t('Get Tour')}
             </Button>
           )}

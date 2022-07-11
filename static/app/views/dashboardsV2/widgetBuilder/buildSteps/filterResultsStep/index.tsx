@@ -69,7 +69,7 @@ export function FilterResultsStep({
         onQueryChange(queryIndex, newQuery);
       };
     },
-    [queries]
+    [onQueryChange, queries]
   );
 
   const handleBlur = useCallback(
@@ -84,7 +84,7 @@ export function FilterResultsStep({
         }
       };
     },
-    [queries]
+    [onQueryChange, queries]
   );
 
   const datasetConfig = getDatasetConfig(widgetType);
@@ -148,11 +148,7 @@ export function FilterResultsStep({
           );
         })}
         {canAddSearchConditions && (
-          <Button
-            size="small"
-            icon={<IconAdd isCircled />}
-            onClick={onAddSearchConditions}
-          >
+          <Button size="sm" icon={<IconAdd isCircled />} onClick={onAddSearchConditions}>
             {t('Add Query')}
           </Button>
         )}

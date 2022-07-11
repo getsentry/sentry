@@ -24,7 +24,7 @@ export default function FinishSetupAlert({
         )}
       </TextWrapper>
       <Button
-        size="xsmall"
+        size="xs"
         priority="primary"
         external
         href="https://docs.sentry.io/performance-monitoring/getting-started/"

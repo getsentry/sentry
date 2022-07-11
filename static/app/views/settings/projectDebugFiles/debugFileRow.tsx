@@ -115,7 +115,7 @@ const DebugFileRow = ({
                 isHoverable
               >
                 <Button
-                  size="xsmall"
+                  size="xs"
                   icon={<IconDownload size="xs" />}
                   href={downloadUrl}
                   disabled={!hasRole}
@@ -140,7 +140,7 @@ const DebugFileRow = ({
                   <Button
                     priority="danger"
                     icon={<IconDelete size="xs" />}
-                    size="xsmall"
+                    size="xs"
                     disabled={!hasAccess}
                     data-test-id="delete-dif"
                     aria-label={t('Delete')}

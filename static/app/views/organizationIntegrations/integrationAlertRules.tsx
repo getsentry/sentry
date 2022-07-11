@@ -28,7 +28,7 @@ const IntegrationAlertRules = ({projects, organization}: Props) => (
           <ProjectBadge project={project} avatarSize={16} />
           <Button
             to={`/organizations/${organization.slug}/alerts/${project.slug}/wizard/`}
-            size="xsmall"
+            size="xs"
           >
             {t('Add Alert Rule')}
           </Button>

@@ -102,7 +102,7 @@ class TransactionDetail extends Component<Props> {
     );
 
     return (
-      <StyledButton size="xsmall" to={target}>
+      <StyledButton size="xs" to={target}>
         {t('View Event')}
       </StyledButton>
     );
@@ -119,7 +119,7 @@ class TransactionDetail extends Component<Props> {
     });
 
     return (
-      <StyledButton size="xsmall" to={target}>
+      <StyledButton size="xs" to={target}>
         {t('View Summary')}
       </StyledButton>
     );

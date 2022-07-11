@@ -97,7 +97,7 @@ class WidgetCard extends Component<Props, State> {
         <IconContainer style={{visibility: hideToolbar ? 'hidden' : 'visible'}}>
           {!isMobile && (
             <GrabbableButton
-              size="xsmall"
+              size="xs"
               aria-label={t('Drag Widget')}
               icon={<IconGrabbable />}
               borderless
@@ -109,14 +109,14 @@ class WidgetCard extends Component<Props, State> {
           <Button
             data-test-id="widget-edit"
             aria-label={t('Edit Widget')}
-            size="xsmall"
+            size="xs"
             borderless
             onClick={onEdit}
             icon={<IconEdit />}
           />
           <Button
             aria-label={t('Duplicate Widget')}
-            size="xsmall"
+            size="xs"
             borderless
             onClick={onDuplicate}
             icon={<IconCopy />}
@@ -125,7 +125,7 @@ class WidgetCard extends Component<Props, State> {
             data-test-id="widget-delete"
             aria-label={t('Delete Widget')}
             borderless
-            size="xsmall"
+            size="xs"
             onClick={onDelete}
             icon={<IconDelete />}
           />

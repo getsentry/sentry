@@ -152,7 +152,7 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
                 <Button
                   disabled={!canAddMembers}
                   priority="primary"
-                  size="small"
+                  size="sm"
                   onClick={this.handleSendInvite}
                 >
                   {pending ? t('Resend invite') : t('Resend SSO link')}
@@ -184,7 +184,7 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
                 <Button
                   data-test-id="remove"
                   icon={<IconSubtract isCircled size="xs" />}
-                  size="small"
+                  size="sm"
                   busy={this.state.busy}
                 >
                   {t('Remove')}
@@ -195,7 +195,7 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
             {showRemoveButton && !canRemoveMember && (
               <Button
                 disabled
-                size="small"
+                size="sm"
                 title={t('You do not have access to remove members')}
                 icon={<IconSubtract isCircled size="xs" />}
               >
@@ -210,7 +210,7 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
                 })}
                 onConfirm={this.handleLeave}
               >
-                <Button priority="danger" size="small" icon={<IconClose size="xs" />}>
+                <Button priority="danger" size="sm" icon={<IconClose size="xs" />}>
                   {t('Leave')}
                 </Button>
               </Confirm>
@@ -218,7 +218,7 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
 
             {showLeaveButton && !memberCanLeave && (
               <Button
-                size="small"
+                size="sm"
                 icon={<IconClose size="xs" />}
                 disabled
                 title={t(

@@ -140,7 +140,7 @@ class AlertRuleIssuesList extends AsyncComponent<Props, State> {
           })}
         </StyledPanelTable>
         <PaginationWrapper>
-          <StyledPagination pageLinks={groupHistoryPageLinks} size="xsmall" />
+          <StyledPagination pageLinks={groupHistoryPageLinks} size="xs" />
         </PaginationWrapper>
       </Fragment>
     );

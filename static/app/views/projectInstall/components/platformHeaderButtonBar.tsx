@@ -9,10 +9,10 @@ type Props = {
 export default function PlatformHeaderButtonBar({gettingStartedLink, docsLink}: Props) {
   return (
     <ButtonBar gap={1}>
-      <Button size="small" to={gettingStartedLink}>
+      <Button size="sm" to={gettingStartedLink}>
         {t('< Back')}
       </Button>
-      <Button size="small" href={docsLink} external>
+      <Button size="sm" href={docsLink} external>
         {t('Full Documentation')}
       </Button>
     </ButtonBar>

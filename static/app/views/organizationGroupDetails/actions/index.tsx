@@ -427,7 +427,7 @@ class Actions extends Component<Props, State> {
                 'aria-label': t('More Actions'),
                 icon: <IconEllipsis size="xs" />,
                 showChevron: false,
-                size: 'xsmall',
+                size: 'xs',
               }}
               items={[
                 {

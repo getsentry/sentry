@@ -141,10 +141,7 @@ class SearchDropdown extends PureComponent<Props> {
                 );
               })}
           </ShortcutsRow>
-          <Button
-            size="xsmall"
-            href="https://docs.sentry.io/product/sentry-basics/search/"
-          >
+          <Button size="xs" href="https://docs.sentry.io/product/sentry-basics/search/">
             Read the docs
           </Button>
         </DropdownFooter>

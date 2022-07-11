@@ -243,7 +243,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
               <Button
                 onClick={handleViewAllClick}
                 to={target}
-                size="small"
+                size="sm"
                 data-test-id="view-all-button"
               >
                 {t('View All')}

@@ -150,7 +150,7 @@ function renderInviteMembersButton({
   const action = (
     <Button
       priority="primary"
-      size="small"
+      size="sm"
       onClick={onTriggerModal}
       data-test-id="email-invite"
       icon={<IconMail />}

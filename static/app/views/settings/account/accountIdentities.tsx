@@ -97,11 +97,11 @@ class AccountIdentities extends AsyncView<Props, State> {
           </Fragment>
         }
       >
-        <Button size="small">{t('Disconnect')}</Button>
+        <Button size="sm">{t('Disconnect')}</Button>
       </Confirm>
     ) : (
       <Button
-        size="small"
+        size="sm"
         disabled
         title={
           identity.status === UserIdentityStatus.NEEDED_FOR_GLOBAL_AUTH

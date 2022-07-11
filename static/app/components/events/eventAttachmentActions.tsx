@@ -43,7 +43,7 @@ class EventAttachmentActions extends Component<Props> {
           disabled={!url}
         >
           <Button
-            size="xsmall"
+            size="xs"
             icon={<IconDelete size="xs" />}
             aria-label={t('Delete')}
             disabled={!url}
@@ -52,7 +52,7 @@ class EventAttachmentActions extends Component<Props> {
         </Confirm>
 
         <DownloadButton
-          size="xsmall"
+          size="xs"
           icon={<IconDownload size="xs" />}
           href={url ? `${url}?download=1` : ''}
           disabled={!url}
@@ -62,7 +62,7 @@ class EventAttachmentActions extends Component<Props> {
 
         {withPreviewButton && (
           <DownloadButton
-            size="xsmall"
+            size="xs"
             disabled={!url || !hasPreview}
             priority={previewIsOpen ? 'primary' : 'default'}
             icon={<IconShow size="xs" />}

@@ -210,7 +210,7 @@ function ReleaseCardProjectRow({
         <ViewColumn>
           <GuideAnchor disabled={!isTopRelease || index !== 0} target="view_release">
             <Button
-              size="xsmall"
+              size="xs"
               to={{
                 pathname: `/organizations/${
                   organization.slug

@@ -273,7 +273,7 @@ tags.sku_class:enterprise #enterprise`;
                   pathname: `/organizations/${organization.slug}/issues/`,
                   query: {project: project.id},
                 }}
-                size="small"
+                size="sm"
               >
                 {t('View Issues')}
               </Button>
@@ -283,7 +283,7 @@ tags.sku_class:enterprise #enterprise`;
                     hasAccess ? (
                       <CodeOwnerButton
                         onClick={this.handleAddCodeOwner}
-                        size="small"
+                        size="sm"
                         priority="primary"
                         data-test-id="add-codeowner-button"
                       >
@@ -292,7 +292,7 @@ tags.sku_class:enterprise #enterprise`;
                     ) : (
                       <CodeOwnerButton
                         onClick={this.handleAddCodeOwnerRequest}
-                        size="small"
+                        size="sm"
                         priority="primary"
                         data-test-id="add-codeowner-request-button"
                       >
@@ -319,7 +319,7 @@ tags.sku_class:enterprise #enterprise`;
           controls={[
             <Button
               key="edit"
-              size="xsmall"
+              size="xs"
               onClick={() =>
                 openEditOwnershipRules({
                   organization,

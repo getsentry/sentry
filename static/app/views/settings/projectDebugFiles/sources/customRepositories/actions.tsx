@@ -94,7 +94,7 @@ function Actions({
         }
         disabled={actionsDisabled}
       >
-        <ActionBtn disabled={actionsDisabled} onClick={onEdit} size="small">
+        <ActionBtn disabled={actionsDisabled} onClick={onEdit} size="sm">
           {t('Configure')}
         </ActionBtn>
       </ButtonTooltip>
@@ -112,12 +112,12 @@ function Actions({
           }
           disabled={actionsDisabled}
         >
-          <ActionBtn size="small" disabled>
+          <ActionBtn size="sm" disabled>
             {t('Delete')}
           </ActionBtn>
         </ButtonTooltip>
       ) : (
-        renderConfirmDelete(<ActionBtn size="small">{t('Delete')}</ActionBtn>)
+        renderConfirmDelete(<ActionBtn size="sm">{t('Delete')}</ActionBtn>)
       )}
       <DropDownWrapper>
         <DropdownLink

@@ -32,7 +32,7 @@ function SearchBarAction({
     ref,
   }) => (
     <StyledTrigger
-      size="small"
+      size="sm"
       priority={filterSelections && filterSelections.length > 0 ? 'primary' : 'default'}
       ref={ref}
       {...props}

@@ -68,14 +68,14 @@ const MonitorHeaderActions = ({monitor, orgId, onUpdate}: Props) => {
     <ButtonContainer>
       <ButtonBar gap={1}>
         <Button
-          size="small"
+          size="sm"
           icon={<IconEdit size="xs" />}
           to={`/organizations/${orgId}/monitors/${monitor.id}/edit/`}
         >
           &nbsp;
           {t('Edit')}
         </Button>
-        <Button size="small" onClick={toggleStatus}>
+        <Button size="sm" onClick={toggleStatus}>
           {monitor.status !== 'disabled' ? t('Pause') : t('Enable')}
         </Button>
         <Confirm
@@ -84,7 +84,7 @@ const MonitorHeaderActions = ({monitor, orgId, onUpdate}: Props) => {
             'Deleting this monitor is permanent. Are you sure you wish to continue?'
           )}
         >
-          <Button size="small" icon={<IconDelete size="xs" />}>
+          <Button size="sm" icon={<IconDelete size="xs" />}>
             {t('Delete')}
           </Button>
         </Confirm>

@@ -173,7 +173,7 @@ class ProjectKeys extends AsyncView<Props, State> {
             access.has('project:write') ? (
               <Button
                 onClick={this.handleCreateKey}
-                size="small"
+                size="sm"
                 priority="primary"
                 icon={<IconAdd size="xs" isCircled />}
               >

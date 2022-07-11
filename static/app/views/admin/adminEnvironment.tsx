@@ -52,7 +52,7 @@ export default class AdminEnvironment extends AsyncView<{}, State> {
                   priority="link"
                   href="https://github.com/getsentry/sentry/releases"
                   icon={<IconQuestion size="sm" />}
-                  size="small"
+                  size="sm"
                   external
                 />
               )}

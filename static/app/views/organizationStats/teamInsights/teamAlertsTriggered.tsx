@@ -154,13 +154,13 @@ class TeamAlertsTriggered extends AsyncComponent<Props, State> {
             <ButtonsContainer>
               <Button
                 priority="primary"
-                size="small"
+                size="sm"
                 to={`/organizations/${organization.slug}/alerts/rules/`}
               >
                 {t('Create Alert')}
               </Button>
               <Button
-                size="small"
+                size="sm"
                 external
                 to="https://docs.sentry.io/product/alerts/create-alerts/"
               >

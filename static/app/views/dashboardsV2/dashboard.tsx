@@ -559,7 +559,7 @@ class Dashboard extends Component<Props, State> {
             aria-label={t('Resize Widget')}
             data-test-id="custom-resize-handle"
             className={DRAG_RESIZE_CLASS}
-            size="xsmall"
+            size="xs"
             borderless
             icon={<IconResize size="xs" />}
           />

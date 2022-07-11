@@ -99,15 +99,15 @@ export const _6633WithManyHeaderControls = () => (
       </Layout.HeaderContent>
       <Layout.HeaderActions>
         <MarginedButtonBar gap={1}>
-          <Button size="small">Save</Button>
-          <Button size="small">Update</Button>
+          <Button size="sm">Save</Button>
+          <Button size="sm">Update</Button>
         </MarginedButtonBar>
         <ButtonBar gap={1}>
-          <Button size="small">rollup</Button>
-          <Button size="small">modify</Button>
-          <Button size="small">create</Button>
-          <Button size="small">update</Button>
-          <Button size="small">delete</Button>
+          <Button size="sm">rollup</Button>
+          <Button size="sm">modify</Button>
+          <Button size="sm">create</Button>
+          <Button size="sm">update</Button>
+          <Button size="sm">delete</Button>
         </ButtonBar>
       </Layout.HeaderActions>
     </Layout.Header>
@@ -141,8 +141,8 @@ export const SingleColumnMode = () => (
       </Layout.HeaderContent>
       <Layout.HeaderActions>
         <ButtonBar gap={1}>
-          <Button size="small">clicker</Button>
-          <Button size="small">clicker</Button>
+          <Button size="sm">clicker</Button>
+          <Button size="sm">clicker</Button>
         </ButtonBar>
       </Layout.HeaderActions>
     </Layout.Header>
@@ -175,8 +175,8 @@ export const _6633WithTabNavigation = () => (
       </Layout.HeaderContent>
       <Layout.HeaderActions>
         <ButtonBar gap={1}>
-          <Button size="small">clicker</Button>
-          <Button size="small">clicker</Button>
+          <Button size="sm">clicker</Button>
+          <Button size="sm">clicker</Button>
         </ButtonBar>
       </Layout.HeaderActions>
     </BorderlessHeader>

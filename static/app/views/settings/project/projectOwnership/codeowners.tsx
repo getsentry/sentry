@@ -76,7 +76,7 @@ class CodeOwnersPanel extends Component<Props> {
               <Button
                 key="sync"
                 icon={<IconSync size="xs" />}
-                size="xsmall"
+                size="xs"
                 onClick={() => this.handleSync(codeowner)}
                 disabled={disabled}
                 aria-label={t('Sync')}
@@ -91,7 +91,7 @@ class CodeOwnersPanel extends Component<Props> {
                   key="delete"
                   icon={<IconDelete size="xs" />}
                   aria-label={t('Delete')}
-                  size="xsmall"
+                  size="xs"
                 />
               </Confirm>,
             ]}
