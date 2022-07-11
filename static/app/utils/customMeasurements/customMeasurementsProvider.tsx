@@ -15,7 +15,7 @@ import {
   CustomMeasurementsContextValue,
 } from './customMeasurementsContext';
 
-type measurementsMetaResponse = {
+type MeasurementsMetaResponse = {
   [x: string]: {functions: string[]};
 };
 
@@ -23,7 +23,7 @@ function fetchCustomMeasurements(
   api: Client,
   organization: Organization,
   selection?: PageFilters
-): Promise<measurementsMetaResponse> {
+): Promise<MeasurementsMetaResponse> {
   const query: Query = selection?.datetime
     ? {...normalizeDateTimeParams(selection.datetime)}
     : {};
@@ -69,7 +69,7 @@ export function CustomMeasurementsProvider({
           acc[customMeasurement] = {
             key: customMeasurement,
             name: customMeasurement,
-            supportedFunctions: response[customMeasurement]?.functions ?? [],
+            functions: response[customMeasurement].functions,
           };
           return acc;
         }, {});
