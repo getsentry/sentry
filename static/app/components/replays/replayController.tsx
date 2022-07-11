@@ -9,12 +9,13 @@ import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {formatTime, relativeTimeInMs} from 'sentry/components/replays/utils';
 import {
   IconArrow,
+  IconBackTen,
+  IconFullscreenEnter,
+  IconFullscreenExit,
   IconNext,
   IconPause,
   IconPlay,
-  IconPrevious,
-  IconRefresh,
-  IconResize,
+  IconRestart,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -52,31 +53,31 @@ function ReplayPlayPauseBar() {
     <ButtonBar merged>
       <Button
         size="xs"
-        title={t('Go back 10 seconds')}
-        icon={<IconRefresh size="sm" />}
+        title={t('Rewind 10s')}
+        icon={<IconBackTen size="sm" />}
         onClick={() => setCurrentTime(currentTime - 10 * SECOND)}
-        aria-label={t('Go back 10 seconds')}
+        aria-label={t('Rewind 10 seconds')}
       />
       {isFinished ? (
         <Button
           size="xs"
-          title={t('Restart Replay')}
-          icon={<IconPrevious size="sm" />}
+          title={t('Restart')}
+          icon={<IconRestart size="sm" />}
           onClick={restart}
-          aria-label={t('Restart the Replay')}
+          aria-label={t('Restart')}
         />
       ) : (
         <Button
           size="xs"
-          title={isPlaying ? t('Pause the Replay') : t('Play the Replay')}
+          title={isPlaying ? t('Pause') : t('Play')}
           icon={isPlaying ? <IconPause size="sm" /> : <IconPlay size="sm" />}
           onClick={() => togglePlayPause(!isPlaying)}
-          aria-label={isPlaying ? t('Pause the Replay') : t('Play the Replay')}
+          aria-label={isPlaying ? t('Pause') : t('Play')}
         />
       )}
       <Button
         size="xs"
-        title={t('Jump to next event')}
+        title={t('Next breadcrumb')}
         icon={<IconNext size="sm" />}
         onClick={() => {
           const startTimestampSec = replay?.getEvent().startTimestamp;
@@ -93,7 +94,7 @@ function ReplayPlayPauseBar() {
             setCurrentTime(relativeTimeInMs(next.timestamp, startTimestampSec));
           }
         }}
-        aria-label={t('Jump to next event')}
+        aria-label={t('Fast-forward to next breadcrumb')}
       />
     </ButtonBar>
   );
@@ -156,10 +157,15 @@ const ReplayControls = ({
 
       <Button
         size="xs"
-        title={isFullscreen ? t('Exit full screen') : t('View in full screen')}
-        aria-label={isFullscreen ? t('Exit full screen') : t('View in full screen')}
-        icon={<IconResize size="sm" />}
-        priority={isFullscreen ? 'primary' : undefined}
+        title={isFullscreen ? t('Exit full screen') : t('Enter full screen')}
+        aria-label={isFullscreen ? t('Exit full screen') : t('Enter full screen')}
+        icon={
+          isFullscreen ? (
+            <IconFullscreenExit size="sm" />
+          ) : (
+            <IconFullscreenEnter size="sm" />
+          )
+        }
         onClick={toggleFullscreen}
       />
     </ButtonGrid>
