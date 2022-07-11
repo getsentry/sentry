@@ -1252,7 +1252,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
     def test_get_snql_query(self):
         query = MetricsQueryBuilder(self.params, "", selected_columns=["p90(transaction.duration)"])
         snql_request = query.get_snql_query()
-        assert snql_request.dataset == "metrics"
+        assert snql_request.dataset == "generic_metrics"
         snql_query = snql_request.query
         self.assertCountEqual(
             snql_query.select,
