@@ -310,13 +310,8 @@ function FlamegraphZoomView({
     flamegraphTheme,
     textRenderer,
     gridRenderer,
-<<<<<<< HEAD
-    sampleTickRenderer,
-    flamegraphState.profiles.selectedNode,
-    hoveredNode,
-=======
->>>>>>> e01f5136b2 (feat(profiling): split highlighted node draw from selected node)
     selectedFrameRenderer,
+    sampleTickRenderer,
     canvasPoolManager,
     flamegraphSearch,
   ]);
