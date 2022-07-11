@@ -19,7 +19,7 @@ class Deploy(Model):
     organization_id = BoundedPositiveIntegerField(db_index=True)
     release = FlexibleForeignKey("sentry.Release")
     environment_id = BoundedPositiveIntegerField(db_index=True)
-    date_finished = models.DateTimeField(default=timezone.now)
+    date_finished = models.DateTimeField(default=timezone.now, db_index=True)
     date_started = models.DateTimeField(null=True, blank=True)
     name = models.CharField(max_length=64, null=True, blank=True)
     url = models.URLField(null=True, blank=True)
