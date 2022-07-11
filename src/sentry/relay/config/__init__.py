@@ -172,7 +172,7 @@ def _get_project_config(project, full_config=True, project_keys=None):
             "projectId": project.id,  # XXX: Unused by Relay, required by Python store
         }
     allow_dynamic_sampling = features.has(
-        "organizations:filters-and-sampling",
+        "organizations:server-side-sampling",
         project.organization,
     )
     if allow_dynamic_sampling:

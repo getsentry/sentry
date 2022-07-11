@@ -150,7 +150,7 @@ class BaseGuideAnchor extends Component<Props, State> {
 
     const dismissButton = (
       <DismissButton
-        size="small"
+        size="sm"
         translucentBorder
         href={href}
         onClick={this.handleDismiss}
@@ -171,7 +171,7 @@ class BaseGuideAnchor extends Component<Props, State> {
             {lastStep ? (
               <Fragment>
                 <StyledButton
-                  size="small"
+                  size="sm"
                   translucentBorder
                   to={to}
                   onClick={this.handleFinish}
@@ -184,7 +184,7 @@ class BaseGuideAnchor extends Component<Props, State> {
             ) : (
               <Fragment>
                 <StyledButton
-                  size="small"
+                  size="sm"
                   translucentBorder
                   onClick={this.handleNextStep}
                   to={to}
