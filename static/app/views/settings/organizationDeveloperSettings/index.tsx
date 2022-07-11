@@ -146,6 +146,7 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
     const tabs = [
       ['internal', t('Internal Integration')],
       ['public', t('Public Integration')],
+      // ['sentry-functions', t('Sentry Functions')],
     ] as [id: Tab, label: string][];
 
     return (
