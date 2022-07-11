@@ -154,7 +154,7 @@ export function Rule({
         <EllipisDropDownButton
           caret={false}
           customTitle={
-            <Button aria-label={t('Actions')} icon={<IconEllipsis />} size="small" />
+            <Button aria-label={t('Actions')} icon={<IconEllipsis />} size="sm" />
           }
           anchorRight
         >
