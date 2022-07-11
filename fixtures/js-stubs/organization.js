@@ -2,6 +2,7 @@ export function Organization(params = {}) {
   return {
     id: '3',
     slug: 'org-slug',
+    organizationUrl: 'https://org-slug.us.sentry.io',
     name: 'Organization Name',
     access: [
       'org:read',
