@@ -102,7 +102,7 @@ export function RecommendedStepsModal({
   }
 
   function handleCancel() {
-    trackAdvancedAnalyticsEvent('sampling.settings.modal_recommended_next_steps_cancel', {
+    trackAdvancedAnalyticsEvent('sampling.settings.modal.recommended.next.steps_cancel', {
       organization: organization.slug,
       project_id: projectId,
     });
@@ -115,7 +115,7 @@ export function RecommendedStepsModal({
       return;
     }
 
-    trackAdvancedAnalyticsEvent('sampling.settings.modal_recommended_next_steps_back', {
+    trackAdvancedAnalyticsEvent('sampling.settings.modal.recommended.next.steps_back', {
       organization: organization.slug,
       project_id: projectId,
     });
@@ -125,7 +125,7 @@ export function RecommendedStepsModal({
 
   function handleReadDocs() {
     trackAdvancedAnalyticsEvent(
-      'sampling.settings.modal_recommended_next_steps_read_docs',
+      'sampling.settings.modal.recommended.next.steps_read_docs',
       {
         organization: organization.slug,
         project_id: projectId,

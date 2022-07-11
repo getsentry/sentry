@@ -120,7 +120,7 @@ function UniformRateModal({
     }
 
     if (shouldHaveNextStep) {
-      trackAdvancedAnalyticsEvent('sampling.settings.modal_uniform_rate_next', {
+      trackAdvancedAnalyticsEvent('sampling.settings.modal.uniform.rate_next', {
         organization: organization.slug,
         project_id: project.id,
       });
@@ -146,7 +146,7 @@ function UniformRateModal({
   }
 
   function handleCancel() {
-    trackAdvancedAnalyticsEvent('sampling.settings.modal_uniform_rate_cancel', {
+    trackAdvancedAnalyticsEvent('sampling.settings.modal.uniform.rate_cancel', {
       organization: organization.slug,
       project_id: project.id,
     });
@@ -155,7 +155,7 @@ function UniformRateModal({
   }
 
   function handleReadDocs() {
-    trackAdvancedAnalyticsEvent('sampling.settings.modal_uniform_rate_read_docs', {
+    trackAdvancedAnalyticsEvent('sampling.settings.modal.uniform.rate_read_docs', {
       organization: organization.slug,
       project_id: project.id,
     });

@@ -246,7 +246,7 @@ export function ServerSideSampling({project}: Props) {
   async function handleDeleteRule(rule: SamplingRule) {
     const conditions = rule.condition.inner.map(({name}) => name);
 
-    trackAdvancedAnalyticsEvent('sampling.settings.rule_specific_delete', {
+    trackAdvancedAnalyticsEvent('sampling.settings.rule.specific_delete', {
       organization,
       project_id: project.id,
       sampling_rate: rule.sampleRate * 100,
@@ -305,8 +305,8 @@ export function ServerSideSampling({project}: Props) {
 
     trackAdvancedAnalyticsEvent(
       uniformRateModalOrigin
-        ? 'sampling.settings.modal_uniform_rate_done'
-        : 'sampling.settings.modal_recommended_next_steps_done',
+        ? 'sampling.settings.modal.uniform.rate_done'
+        : 'sampling.settings.modal.recommended.next.steps_done',
       {
         organization: organization.slug,
         project_id: project.id,
@@ -315,8 +315,8 @@ export function ServerSideSampling({project}: Props) {
 
     trackAdvancedAnalyticsEvent(
       rule
-        ? 'sampling.settings.rule_uniform_update'
-        : 'sampling.settings.rule_uniform_create',
+        ? 'sampling.settings.rule.uniform_update'
+        : 'sampling.settings.rule.uniform_create',
       {
         organization: organization.slug,
         project_id: project.id,
