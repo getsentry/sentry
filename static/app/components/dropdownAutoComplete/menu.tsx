@@ -9,7 +9,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 
-import autoCompleteFilter from './autoCompleteFilter';
+import defaultAutoCompleteFilter from './autoCompleteFilter';
 import List from './list';
 import {Item, ItemsBeforeFilter} from './types';
 
@@ -36,6 +36,11 @@ type Props = {
    * Dropdown menu alignment.
    */
   alignMenu?: 'left' | 'right';
+  /**
+   * Optionally provide a custom implementation for filtering result items
+   * Userful if you want to show items that don't strictly match the input value
+   */
+  autoCompleteFilter?: typeof defaultAutoCompleteFilter;
   /**
    * Should menu visually lock to a direction (so we don't display a rounded corner)
    */
@@ -191,6 +196,7 @@ type Props = {
 >;
 
 function Menu({
+  autoCompleteFilter = defaultAutoCompleteFilter,
   maxHeight = 300,
   emptyMessage = t('No items'),
   searchPlaceholder = t('Filter search'),
@@ -244,7 +250,7 @@ function Menu({
   // This avoids producing a new array on every call.
   const stableItemFilter = useCallback(
     (filterValueOrInput: string) => autoCompleteFilter(items, filterValueOrInput),
-    [items]
+    [autoCompleteFilter, items]
   );
 
   // Memoize the filterValueOrInput to the stableItemFilter so that we get the
