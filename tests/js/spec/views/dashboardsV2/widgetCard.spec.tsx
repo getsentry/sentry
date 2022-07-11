@@ -532,7 +532,8 @@ describe('Dashboards > WidgetCard', function () {
         tableItemLimit={20}
       />
     );
-    await tick();
+    await waitFor(() => expect(eventsv2Mock).toHaveBeenCalled());
+
     expect(SimpleTableChart).toHaveBeenCalledWith(
       expect.objectContaining({stickyHeaders: true}),
       expect.anything()
@@ -643,7 +644,7 @@ describe('Dashboards > WidgetCard', function () {
 
     await waitFor(() => {
       // Badge in the widget header
-      expect(screen.getByText('Stored')).toBeInTheDocument();
+      expect(screen.getByText('Sampled')).toBeInTheDocument();
     });
 
     await waitFor(() => {
@@ -809,7 +810,7 @@ describe('Dashboards > WidgetCard', function () {
 
       await waitFor(() => {
         // Badge in the widget header
-        expect(screen.getByText('Stored')).toBeInTheDocument();
+        expect(screen.getByText('Sampled')).toBeInTheDocument();
       });
 
       await waitFor(() => {
