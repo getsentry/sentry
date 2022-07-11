@@ -19,6 +19,7 @@ from sentry.api.serializers.models.role import (
     TeamRoleSerializer,
 )
 from sentry.api.serializers.models.team import TeamSerializerResponse
+from sentry.api.utils import generate_organization_url
 from sentry.app import quotas
 from sentry.auth.access import Access
 from sentry.constants import (
@@ -149,6 +150,7 @@ class OrganizationSerializerResponse(TypedDict):
     name: str
     dateCreated: datetime
     isEarlyAdopter: bool
+    organizationUrl: str
     require2FA: bool
     requireEmailVerification: bool
     avatar: Any  # TODO replace with Avatar
@@ -240,6 +242,7 @@ class OrganizationSerializer(Serializer):  # type: ignore
             "name": obj.name or obj.slug,
             "dateCreated": obj.date_added,
             "isEarlyAdopter": bool(obj.flags.early_adopter),
+            "organizationUrl": generate_organization_url(obj.slug),
             "require2FA": bool(obj.flags.require_2fa),
             "requireEmailVerification": bool(
                 features.has("organizations:required-email-verification", obj)
