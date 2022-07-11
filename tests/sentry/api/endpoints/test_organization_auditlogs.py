@@ -154,3 +154,25 @@ class OrganizationAuditLogsTest(APITestCase):
                 )
             ]
         }
+
+    def test_version_two_response(self):
+        # Test that version two request will send "rows" with audit log entries
+        # and "options" with the audit log api names list.
+        now = timezone.now()
+
+        entry = AuditLogEntry.objects.create(
+            organization=self.organization,
+            event=audit_log.get_event_id("ORG_EDIT"),
+            actor=self.user,
+            datetime=now,
+        )
+        audit_log_api_names = set(audit_log.get_api_names())
+
+        response = self.get_success_response(self.organization.slug, qs_params={"version": "2"})
+        assert len(response.data) == 2
+        assert response.data["rows"][0]["id"] == str(entry.id)
+        assert set(response.data["options"]) == audit_log_api_names
+
+        response_2 = self.get_success_response(self.organization.slug, qs_params={"version": "3"})
+        assert len(response_2.data) == 1
+        assert response_2.data[0]["id"] == str(entry.id)
