@@ -1,6 +1,5 @@
 from typing import Mapping, Set, Tuple
 
-from sentry import options
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.indexer.base import FetchTypeExt, KeyCollection, KeyResult, KeyResults
 from sentry.sentry_metrics.indexer.cache import indexer_cache
@@ -13,6 +12,7 @@ from sentry.sentry_metrics.indexer.postgres_v2 import (
 )
 from sentry.sentry_metrics.indexer.strings import SHARED_STRINGS
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.utils.cache import cache
 
 
@@ -141,6 +141,7 @@ class PostgresIndexerV2Test(TestCase):
         """
         Test `resolve` and `reverse_resolve` methods
         """
+
         org1_id = self.organization.id
         org_strings = {org1_id: self.strings}
         self.indexer.bulk_record(use_case_id=self.use_case_id, org_strings=org_strings)
@@ -262,13 +263,19 @@ class PostgresIndexerV2Test(TestCase):
         control over which string gets rate-limited. That makes assertions
         quite awkward and imprecise.
         """
-        options.set(
-            "sentry-metrics.writes-limiter.limits.releasehealth.per-org",
-            [{"window_seconds": 10, "granularity_seconds": 10, "limit": 1}],
-        )
-
         org_strings = {1: {"a", "b", "c"}, 2: {"e", "f"}, 3: {"g"}}
-        results = self.indexer.bulk_record(use_case_id=self.use_case_id, org_strings=org_strings)
+
+        with override_options(
+            {
+                "sentry-metrics.writes-limiter.limits.releasehealth.per-org": [
+                    {"window_seconds": 10, "granularity_seconds": 10, "limit": 1}
+                ],
+            }
+        ):
+            results = self.indexer.bulk_record(
+                use_case_id=self.use_case_id, org_strings=org_strings
+            )
+
         assert len(results[1]) == 3
         assert len(results[2]) == 2
         assert len(results[3]) == 1
@@ -291,15 +298,19 @@ class PostgresIndexerV2Test(TestCase):
                 FetchTypeExt(is_global=False),
             )
 
-        options.set("sentry-metrics.writes-limiter.limits.releasehealth.per-org", [])
-        options.set(
-            "sentry-metrics.writes-limiter.limits.releasehealth.global",
-            [{"window_seconds": 10, "granularity_seconds": 10, "limit": 2}],
-        )
-
         org_strings = {1: rate_limited_strings}
 
-        results = self.indexer.bulk_record(use_case_id=self.use_case_id, org_strings=org_strings)
+        with override_options(
+            {
+                "sentry-metrics.writes-limiter.limits.releasehealth.global": [
+                    {"window_seconds": 10, "granularity_seconds": 10, "limit": 2}
+                ],
+            }
+        ):
+            results = self.indexer.bulk_record(
+                use_case_id=self.use_case_id, org_strings=org_strings
+            )
+
         rate_limited_strings2 = set()
         for k, v in results[1].items():
             if v is None:
