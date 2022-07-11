@@ -63,10 +63,10 @@ def _aggregation_on_tx_status_func_factory(aggregate):
             return metric_match
 
         tx_col = Column(
-            f"tags[{resolve_weak(UseCaseKey.RELEASE_HEALTH, org_id, TransactionTagsKey.TRANSACTION_STATUS.value)}]"
+            f"tags[{resolve_weak(UseCaseKey.PERFORMANCE, org_id, TransactionTagsKey.TRANSACTION_STATUS.value)}]"
         )
         excluded_statuses = [
-            resolve_weak(UseCaseKey.RELEASE_HEALTH, org_id, s) for s in exclude_tx_statuses
+            resolve_weak(UseCaseKey.PERFORMANCE, org_id, s) for s in exclude_tx_statuses
         ]
         exclude_tx_statuses = Function(
             "notIn",

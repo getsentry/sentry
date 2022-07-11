@@ -155,7 +155,7 @@ def get_entity_of_metric_mocked(_, metric_name, use_case_id):
             'transaction:"/bar/:orgId/"',
             [
                 Condition(
-                    Column(name=resolve_tag_key(USE_CASE_ID, ORG_ID, "transaction")),
+                    Column(name=resolve_tag_key(UseCaseKey.PERFORMANCE, ORG_ID, "transaction")),
                     Op.EQ,
                     rhs=10001,
                 )
@@ -939,7 +939,7 @@ def test_translate_meta_results():
         {"name": "metric_id", "type": "UInt64"},
     ]
     assert translate_meta_results(
-        meta, {"p50(transaction.measurements.lcp)"}, UseCaseKey.RELEASE_HEALTH
+        meta, {"p50(transaction.measurements.lcp)"}, UseCaseKey.PERFORMANCE
     ) == sorted(
         [
             {"name": "p50(transaction.measurements.lcp)", "type": "Array(Float64)"},
