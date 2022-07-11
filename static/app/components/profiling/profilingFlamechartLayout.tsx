@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphPreferences';
@@ -8,7 +9,7 @@ import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegrap
 
 interface ProfilingFlamechartLayoutProps {
   flamechart: React.ReactNode;
-  frameStack: React.ReactNode | null;
+  frameStack: React.ReactNode;
   minimap: React.ReactNode;
 }
 
@@ -24,9 +25,7 @@ export function ProfilingFlamechartLayout(props: ProfilingFlamechartLayoutProps)
             {props.minimap}
           </MinimapContainer>
           <ZoomViewContainer>{props.flamechart}</ZoomViewContainer>
-          {props.frameStack ? (
-            <FrameStackContainer>{props.frameStack}</FrameStackContainer>
-          ) : null}
+          <FrameStackContainer layout={layout}>{props.frameStack}</FrameStackContainer>
         </ProfilingFlamechartGrid>
       </ProfilingFlamechartLayoutContainer>
     </Fragment>
@@ -47,8 +46,10 @@ const ProfilingFlamechartGrid = styled('div')<{
     layout === 'table_bottom'
       ? 'auto 1fr'
       : layout === 'table_right'
-      ? 'auto 1fr'
-      : '1fr auto'};
+      ? '100px auto'
+      : '100px auto'};
+  grid-template-columns: ${({layout}) =>
+    layout === 'table_bottom' ? '100%' : '50% 50%'};
 
   /* false positive for grid layout */
   /* stylelint-disable */
@@ -61,7 +62,7 @@ const ProfilingFlamechartGrid = styled('div')<{
         `
       : layout === 'table_right'
       ? `
-        "minimap frame-stack"
+        "minimap    frame-stack"
         "flamegraph frame-stack"
       `
       : layout === 'table_left'
@@ -87,6 +88,26 @@ const ZoomViewContainer = styled('div')`
   grid-area: flamegraph;
 `;
 
-const FrameStackContainer = styled('div')`
+const FrameStackContainer = styled('div')<{layout: FlamegraphPreferences['layout']}>`
   grid-area: frame-stack;
+  position: relative;
+
+  ${({layout}) => {
+    if (layout === 'table_left' || layout === 'table_right') {
+      // If the table is left/right, the height is no longer managed
+      // and this grid area will fill the screen. We absolutely position
+      // the child so that it cannot overgrow the container.
+      return css`
+        > div {
+          position: absolute;
+          left: 0;
+          top: 0;
+          width: 100%;
+          height: 100%;
+        }
+      `;
+    }
+
+    return ``;
+  }}
 `;

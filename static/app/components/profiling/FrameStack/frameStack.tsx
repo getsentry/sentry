@@ -26,7 +26,8 @@ interface FrameStackProps {
 
 const FrameStack = memo(function FrameStack(props: FrameStackProps) {
   const theme = useFlamegraphTheme();
-  const [_, dispatchFlamegraphPreferences] = useFlamegraphPreferences();
+  const [flamegraphPreferences, dispatchFlamegraphPreferences] =
+    useFlamegraphPreferences();
 
   const [tab, setTab] = useState<'bottom up' | 'call order'>('call order');
   const [treeType, setTreeType] = useState<'all' | 'application' | 'system'>('all');
@@ -97,7 +98,8 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
   return (
     <FrameDrawer
       style={{
-        height,
+        // If the table is not at the bottom, the height should not be managed
+        height: flamegraphPreferences.layout === 'table_bottom' ? height : undefined,
       }}
     >
       <FrameTabs>
@@ -163,7 +165,16 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
             {t('Collapse recursion')}
           </FrameDrawerLabel>
         </li>
-        <li style={{flex: '1 1 100%', cursor: 'ns-resize'}} onMouseDown={onMouseDown} />
+        <li
+          style={{
+            flex: '1 1 100%',
+            cursor:
+              flamegraphPreferences.layout === 'table_bottom' ? 'ns-resize' : undefined,
+          }}
+          onMouseDown={
+            flamegraphPreferences.layout === 'table_bottom' ? onMouseDown : undefined
+          }
+        />
         <li>
           <LayoutSelectionContainer>
             <Button onClick={onTableLeftClick} size="xs" title={t('Table left')}>
