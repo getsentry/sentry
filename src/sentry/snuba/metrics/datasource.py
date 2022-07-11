@@ -318,7 +318,7 @@ def _fetch_tags_or_values_per_ids(
             where=where,
             groupby=[Column("metric_id"), Column(column)],
             referrer=referrer,
-            projects=[p.id for p in projects],
+            project_ids=[p.id for p in projects],
             org_id=projects[0].organization_id,
         )
 
