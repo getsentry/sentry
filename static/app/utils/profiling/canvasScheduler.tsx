@@ -7,9 +7,9 @@ type DrawFn = () => void;
 type ArgumentTypes<F> = F extends (...args: infer A) => any ? A : never;
 
 export interface FlamegraphEvents {
+  highlightFrame: (frame: FlamegraphFrame | null, mode: 'hover' | 'selected') => void;
   resetZoom: () => void;
   setConfigView: (configView: Rect) => void;
-  setSelectedNode: (frame: FlamegraphFrame | null) => void;
   transformConfigView: (transform: mat3) => void;
   zoomIntoFrame: (frame: FlamegraphFrame, strategy: 'min' | 'exact') => void;
 }
@@ -25,7 +25,7 @@ export class CanvasScheduler {
 
   events: EventStore = {
     resetZoom: new Set<FlamegraphEvents['resetZoom']>(),
-    setSelectedNode: new Set<FlamegraphEvents['setSelectedNode']>(),
+    highlightFrame: new Set<FlamegraphEvents['highlightFrame']>(),
     setConfigView: new Set<FlamegraphEvents['setConfigView']>(),
     transformConfigView: new Set<FlamegraphEvents['transformConfigView']>(),
     zoomIntoFrame: new Set<FlamegraphEvents['zoomIntoFrame']>(),

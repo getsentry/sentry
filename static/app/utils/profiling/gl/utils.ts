@@ -663,7 +663,7 @@ export function computeConfigViewWithStategy(
       return view;
     }
 
-    let offset = view;
+    let offset = view.clone();
     if (frame.left < view.left) {
       // If frame is to the left of the view, translate it left
       // to frame.x so that start of the frame is in the view
