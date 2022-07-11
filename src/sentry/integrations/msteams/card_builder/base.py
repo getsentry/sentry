@@ -8,7 +8,9 @@ from sentry.utils.http import absolute_uri
 
 SENTRY_ICON_URL = "images/sentry-glyph-black.png"
 
-# NOTE: The classes below need to inherit from `str` as well to be serialized correctly.]
+# NOTE: The classes below need to inherit from `str` as well to be serialized correctly.
+# `TextSize.SMALL` has to serialized to `Small`, if not inheriting from `str` it would be
+# serialized into something like `<TextSize.SMALL: 'Small'>`.
 
 
 class TextSize(str, Enum):
