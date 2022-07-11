@@ -67,7 +67,6 @@ class ErrorEvent(BaseEvent):
             "flutter",
             "dart-flutter",
             "unity",
-            "dotnet-maui",
             "dotnet-xamarin",
         )
 
