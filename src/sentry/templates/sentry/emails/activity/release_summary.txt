@@ -1,5 +1,0 @@
-Release {{ version_parsed }} has been deployed to {{ environment }} for 1 hour
-
-{% for project, release_link, issues_link, new_issue_count in projects %}
-    {{ project.slug }} has {{ new_issue_count }} new issue{{ new_issue_count|pluralize }} {{ issues_link }}
-{% endfor %}
