@@ -1890,9 +1890,7 @@ class MetricsQueryBuilder(QueryBuilder):
 
         return Request(
             # TODO: Actually introduce this as a dataset
-            dataset="generic_metrics"
-            if self.dataset.value is Dataset.Metrics
-            else self.dataset.value,
+            dataset="generic_metrics" if self.dataset is Dataset.Metrics else self.dataset.value,
             app_id="default",
             query=Query(
                 match=primary_framework.entity,
@@ -2089,7 +2087,7 @@ class MetricsQueryBuilder(QueryBuilder):
                 request = Request(
                     # TODO: Actually introduce this as a dataset
                     dataset="generic_metrics"
-                    if self.dataset.value is Dataset.Metrics
+                    if self.dataset is Dataset.Metrics
                     else self.dataset.value,
                     app_id="default",
                     query=query,
@@ -2283,7 +2281,9 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
             if len(query_details.functions) > 0:
                 queries.append(
                     Request(
-                        dataset=self.dataset.value,
+                        dataset="generic_metrics"
+                        if self.dataset is Dataset.Metrics
+                        else self.dataset.value,
                         app_id="default",
                         query=Query(
                             match=query_details.entity,
