@@ -55,6 +55,7 @@ export const mobile = [
   'flutter',
   'dart-flutter',
   'unity',
+  'dotnet-maui',
   'dotnet-xamarin',
   'unreal',
   // Old platforms
@@ -121,6 +122,7 @@ export const desktop = [
   'dotnet',
   'dotnet-winforms',
   'dotnet-wpf',
+  'dotnet-maui',
   'java',
   'electron',
   'javascript-electron',
