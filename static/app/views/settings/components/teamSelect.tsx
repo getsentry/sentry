@@ -122,7 +122,7 @@ function TeamSelect({
             <DropdownButton
               aria-label={t('Add Team')}
               isOpen={isOpen}
-              size="xsmall"
+              size="xs"
               disabled={disabled}
             >
               {t('Add Team')}
@@ -155,11 +155,7 @@ const TeamRow = ({orgId, team, onRemove, disabled, confirmMessage}: TeamRowProps
       onConfirm={() => onRemove(team.slug)}
       disabled={disabled}
     >
-      <Button
-        size="xsmall"
-        icon={<IconSubtract isCircled size="xs" />}
-        disabled={disabled}
-      >
+      <Button size="xs" icon={<IconSubtract isCircled size="xs" />} disabled={disabled}>
         {t('Remove')}
       </Button>
     </Confirm>
