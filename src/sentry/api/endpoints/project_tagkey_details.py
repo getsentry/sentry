@@ -6,6 +6,7 @@ from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
+from sentry.app import ratelimiter
 from sentry.constants import PROTECTED_TAG_KEYS
 from sentry.models import Environment
 
@@ -34,6 +35,13 @@ class ProjectTagKeyDetailsEndpoint(ProjectEndpoint, EnvironmentMixin):
             {method} {path}
 
         """
+        if ratelimiter.is_limited(
+            "api.rate-limit.project-tag-delete",
+            limit=1,
+            window=1,
+        ):
+            return Response({"detail": "Rate limit exceeded."}, status=429)
+
         if key in PROTECTED_TAG_KEYS:
             return Response(status=403)
 

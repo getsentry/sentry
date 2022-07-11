@@ -128,6 +128,9 @@ register(
 
 
 register("api.rate-limit.org-create", default=5, flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
+register(
+    "api.rate-limit.project-tag-delete", default=1, flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK
+)
 
 # Beacon
 register("beacon.anonymous", type=Bool, flags=FLAG_REQUIRED)
