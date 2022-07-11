@@ -9,7 +9,6 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {SamplingRule, SamplingRuleOperator} from 'sentry/types/sampling';
 
-import {isUniformRule} from '../../../server-side-sampling/utils';
 import {getInnerNameLabel} from '../../utils';
 import {layout} from '../utils';
 
@@ -58,7 +57,7 @@ export function Rule({
   }, [dragging, sorting, state.isMenuActionsOpen]);
 
   return (
-    <Columns disabled={isUniformRule(rule) || noPermission}>
+    <Columns disabled={!rule.condition.inner.length || noPermission}>
       {hideGrabButton ? (
         <Column />
       ) : (
