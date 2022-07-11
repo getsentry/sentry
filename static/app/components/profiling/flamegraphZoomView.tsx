@@ -15,6 +15,10 @@ import {
 } from 'sentry/utils/profiling/flamegraph/useFlamegraphState';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
+import {
+  FlamegraphFrame,
+  getFlamegraphFrameId,
+} from 'sentry/utils/profiling/flamegraphFrame';
 import {FlamegraphView} from 'sentry/utils/profiling/flamegraphView';
 import {formatColorForFrame, Rect} from 'sentry/utils/profiling/gl/utils';
 import {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
@@ -407,6 +411,37 @@ function FlamegraphZoomView({
     setStartPanVector(physicalMousePos);
   }, []);
 
+  const handleSelectNode = useCallback(
+    (node: FlamegraphFrame | null, zoomIntoFrame?: boolean) => {
+      if (!node) {
+        return;
+      }
+
+      if (zoomIntoFrame) {
+        canvasPoolManager.dispatch('zoomIntoFrame', [node]);
+      }
+
+      canvasPoolManager.dispatch('selectedNode', [node]);
+      dispatchFlamegraphState({type: 'set selected node', payload: node});
+    },
+    [dispatchFlamegraphState, canvasPoolManager]
+  );
+
+  useEffect(() => {
+    const {selectedNode, selectedNodeId} = flamegraphState.profiles;
+    if (selectedNode || !selectedNodeId) {
+      return;
+    }
+
+    for (let i = 0; i < flamegraph.frames.length; i++) {
+      const frame = flamegraph.frames[i];
+      const frameId = getFlamegraphFrameId(frame);
+      if (frameId === selectedNodeId) {
+        handleSelectNode(frame);
+        break;
+      }
+    }
+  }, [handleSelectNode, flamegraphState, flamegraph]);
   const onCanvasMouseUp = useCallback(
     (evt: React.MouseEvent<HTMLCanvasElement>) => {
       evt.preventDefault();
@@ -418,18 +453,15 @@ function FlamegraphZoomView({
         return;
       }
 
-      // Only dispatch the zoom action if the new clicked node is not the same as the old selected node.
-      // This essentially tracks double click action on a rectangle
       if (lastInteraction === 'click') {
-        if (
+        // Only dispatch the zoom action if the new clicked node is not the same as the old selected node.
+        // This essentially tracks double click action on a rectangle
+        const shouldZoomIntoFrame = Boolean(
           hoveredNode &&
-          flamegraphState.profiles.selectedNode &&
-          hoveredNode === flamegraphState.profiles.selectedNode
-        ) {
-          canvasPoolManager.dispatch('zoomIntoFrame', [hoveredNode]);
-        }
-        canvasPoolManager.dispatch('selectedNode', [hoveredNode]);
-        dispatchFlamegraphState({type: 'set selected node', payload: hoveredNode});
+            flamegraphState.profiles.selectedNode &&
+            hoveredNode === flamegraphState.profiles.selectedNode
+        );
+        handleSelectNode(hoveredNode, shouldZoomIntoFrame);
       }
 
       setLastInteraction(null);
@@ -438,10 +470,9 @@ function FlamegraphZoomView({
     [
       configSpaceCursor,
       flamegraphState.profiles.selectedNode,
-      dispatchFlamegraphState,
       hoveredNode,
-      canvasPoolManager,
       lastInteraction,
+      handleSelectNode,
     ]
   );
 

@@ -1,4 +1,7 @@
-import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
+import {
+  FlamegraphFrame,
+  getFlamegraphFrameId,
+} from 'sentry/utils/profiling/flamegraphFrame';
 
 type SetProfilesActiveIndex = {
   payload: number;
@@ -14,6 +17,7 @@ type FlamegraphProfilesAction = SetProfilesActiveIndex | SetSelectedNode;
 
 type FlamegraphProfilesState = {
   selectedNode: FlamegraphFrame | null;
+  selectedNodeId: string | null;
   threadId: number | null;
 };
 
@@ -23,7 +27,11 @@ export function flamegraphProfilesReducer(
 ): FlamegraphProfilesState {
   switch (action.type) {
     case 'set selected node': {
-      return {...state, selectedNode: action.payload};
+      return {
+        ...state,
+        selectedNode: action.payload,
+        selectedNodeId: getFlamegraphFrameId(action.payload!),
+      };
     }
     case 'set thread id': {
       // When the profile index changes, we want to drop the selected and hovered nodes

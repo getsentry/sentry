@@ -75,6 +75,10 @@ export function decodeFlamegraphStateFromQueryParams(
         typeof query.tid === 'string' && !isNaN(parseInt(query.tid, 10))
           ? parseInt(query.tid, 10)
           : null,
+      selectedNodeId:
+        typeof query.selectedNodeId === 'string'
+          ? query.selectedNodeId
+          : DEFAULT_FLAMEGRAPH_STATE.profiles.selectedNodeId,
     },
     position: {view: Rect.decode(query.fov) ?? Rect.Empty()},
     preferences: {
@@ -102,6 +106,11 @@ export function encodeFlamegraphStateToQueryParams(state: FlamegraphState) {
     view: state.preferences.view,
     xAxis: state.preferences.xAxis,
     query: state.search.query,
+    ...(state.profiles.selectedNode
+      ? {
+          selectedNodeId: state.profiles.selectedNodeId,
+        }
+      : {}),
     ...(state.position.view.isEmpty()
       ? {fov: undefined}
       : {fov: Rect.encode(state.position.view)}),
@@ -165,6 +174,7 @@ const DEFAULT_FLAMEGRAPH_STATE: FlamegraphState = {
   profiles: {
     threadId: null,
     selectedNode: null,
+    selectedNodeId: null,
   },
   position: {
     view: Rect.Empty(),
@@ -189,6 +199,10 @@ export function FlamegraphStateProvider(
   const reducer = useUndoableReducer(combinedReducers, {
     profiles: {
       selectedNode: null,
+
+      selectedNodeId:
+        props.initialState?.profiles?.selectedNodeId ??
+        DEFAULT_FLAMEGRAPH_STATE.profiles.selectedNodeId,
       threadId:
         props.initialState?.profiles?.threadId ??
         DEFAULT_FLAMEGRAPH_STATE.profiles.threadId,
