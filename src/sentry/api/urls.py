@@ -1,6 +1,5 @@
 from django.conf.urls import include, url
 
-from sentry.api.base import create_region_endpoint_class
 from sentry.api.endpoints.integration_features import IntegrationFeaturesEndpoint
 from sentry.api.endpoints.organization_codeowners_associations import (
     OrganizationCodeOwnersAssociationsEndpoint,
@@ -835,12 +834,9 @@ urlpatterns = [
             ]
         ),
     ),
+    # Organizations - region aware
+    url(r"", include("sentry.api.region_organization_urls")),
     # Organizations
-    url(
-        r"^events/$",
-        create_region_endpoint_class(OrganizationEventsEndpoint).as_view(),
-        name="sentry-api-0-region-organization-events",
-    ),
     url(
         r"^organizations/",
         include(
