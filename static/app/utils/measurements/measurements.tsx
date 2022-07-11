@@ -7,7 +7,7 @@ import {
 } from 'sentry/utils/performance/vitals/constants';
 import {Vital} from 'sentry/utils/performance/vitals/types';
 
-type Measurement = {
+export type Measurement = {
   key: string;
   name: string;
 };

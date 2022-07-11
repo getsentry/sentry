@@ -1,9 +1,9 @@
 import {createContext} from 'react';
 
-import {MeasurementCollection} from 'sentry/utils/measurements/measurements';
+import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 
 export interface CustomMeasurementsContextValue {
-  customMeasurements: MeasurementCollection;
+  customMeasurements: CustomMeasurementCollection;
 }
 
 export const CustomMeasurementsContext = createContext<
