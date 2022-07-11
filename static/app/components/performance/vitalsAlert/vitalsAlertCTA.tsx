@@ -148,7 +148,7 @@ export default function VitalsAlertCTA({data, dismissAlert}: Props) {
       <NotificationBarButtons gap={1}>
         <Button
           to={getVitalsURL()}
-          size="xsmall"
+          size="xs"
           onClick={() => {
             dismissAndPromptUpdate();
             trackAdvancedAnalyticsEvent('vitals_alert.clicked_see_vitals', {
@@ -169,7 +169,7 @@ export default function VitalsAlertCTA({data, dismissAlert}: Props) {
               organization,
             });
           }}
-          size="xsmall"
+          size="xs"
           priority="link"
           title={t('Dismiss')}
           aria-label={t('Dismiss')}
