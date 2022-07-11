@@ -940,6 +940,8 @@ CRISPY_TEMPLATE_PACK = "bootstrap3"
 SENTRY_FEATURES = {
     # Enables user registration.
     "auth:register": True,
+    # Workflow 2.0 Alpha Functionality for sentry users only
+    "organizations:active-release-monitor-alpha": False,
     # Workflow 2.0 Experimental ReleaseMembers who opt-in to get notified as a release committer
     "organizations:active-release-notification-opt-in": False,
     # Enable advanced search features, like negation and wildcard matching.
