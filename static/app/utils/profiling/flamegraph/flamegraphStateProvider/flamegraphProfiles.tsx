@@ -30,7 +30,7 @@ export function flamegraphProfilesReducer(
       return {
         ...state,
         selectedNode: action.payload,
-        selectedNodeId: getFlamegraphFrameId(action.payload!),
+        selectedNodeId: action.payload ? getFlamegraphFrameId(action.payload!) : null,
       };
     }
     case 'set thread id': {
@@ -38,6 +38,7 @@ export function flamegraphProfilesReducer(
       return {
         ...state,
         selectedNode: null,
+        selectedNodeId: null,
         threadId: action.payload,
       };
     }

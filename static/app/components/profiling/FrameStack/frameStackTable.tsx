@@ -129,6 +129,7 @@ export function FrameStackTable({
     ) => {
       return (
         <FrameStackTableRow
+          key={r.key}
           ref={n => {
             r.ref = n;
           }}

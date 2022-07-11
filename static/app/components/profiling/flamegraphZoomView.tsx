@@ -413,10 +413,6 @@ function FlamegraphZoomView({
 
   const handleSelectNode = useCallback(
     (node: FlamegraphFrame | null, zoomIntoFrame?: boolean) => {
-      if (!node) {
-        return;
-      }
-
       if (zoomIntoFrame) {
         canvasPoolManager.dispatch('zoomIntoFrame', [node]);
       }
@@ -442,6 +438,7 @@ function FlamegraphZoomView({
       }
     }
   }, [handleSelectNode, flamegraphState, flamegraph]);
+
   const onCanvasMouseUp = useCallback(
     (evt: React.MouseEvent<HTMLCanvasElement>) => {
       evt.preventDefault();

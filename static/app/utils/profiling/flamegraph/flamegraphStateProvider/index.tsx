@@ -106,11 +106,7 @@ export function encodeFlamegraphStateToQueryParams(state: FlamegraphState) {
     view: state.preferences.view,
     xAxis: state.preferences.xAxis,
     query: state.search.query,
-    ...(state.profiles.selectedNode
-      ? {
-          selectedNodeId: state.profiles.selectedNodeId,
-        }
-      : {}),
+    selectedNodeId: state.profiles.selectedNodeId || undefined,
     ...(state.position.view.isEmpty()
       ? {fov: undefined}
       : {fov: Rect.encode(state.position.view)}),
