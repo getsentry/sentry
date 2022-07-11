@@ -29,7 +29,8 @@ class OrganizationMetricsEndpoint(OrganizationEndpoint):
             return Response(status=404)
 
         projects = self.get_projects(request, organization)
-        metrics = get_metrics(projects, UseCaseKey.RELEASE_HEALTH)
+        use_case_id = UseCaseKey.from_str(request.GET.get("useCase", "releath-health"))
+        metrics = get_metrics(projects, use_case_id)
         return Response(metrics, status=200)
 
 
@@ -41,8 +42,9 @@ class OrganizationMetricDetailsEndpoint(OrganizationEndpoint):
             return Response(status=404)
 
         projects = self.get_projects(request, organization)
+        use_case_id = UseCaseKey.from_str(request.GET.get("useCase", "releath-health"))
         try:
-            metric = get_single_metric_info(projects, metric_name, UseCaseKey.RELEASE_HEALTH)
+            metric = get_single_metric_info(projects, metric_name, use_case_id)
         except InvalidParams as e:
             raise ResourceDoesNotExist(e)
         except (InvalidField, DerivedMetricParseException) as exc:
@@ -69,8 +71,9 @@ class OrganizationMetricsTagsEndpoint(OrganizationEndpoint):
 
         metric_names = request.GET.getlist("metric") or None
         projects = self.get_projects(request, organization)
+        use_case_id = UseCaseKey.from_str(request.GET.get("useCase", "releath-health"))
         try:
-            tags = get_tags(projects, metric_names, UseCaseKey.RELEASE_HEALTH)
+            tags = get_tags(projects, metric_names, use_case_id)
         except (InvalidParams, DerivedMetricParseException) as exc:
             raise (ParseError(detail=str(exc)))
 
@@ -88,8 +91,9 @@ class OrganizationMetricsTagDetailsEndpoint(OrganizationEndpoint):
         metric_names = request.GET.getlist("metric") or None
 
         projects = self.get_projects(request, organization)
+        use_case_id = UseCaseKey.from_str(request.GET.get("useCase", "releath-health"))
         try:
-            tag_values = get_tag_values(projects, tag_name, metric_names, UseCaseKey.RELEASE_HEALTH)
+            tag_values = get_tag_values(projects, tag_name, metric_names, use_case_id)
         except (InvalidParams, DerivedMetricParseException) as exc:
             msg = str(exc)
             # TODO: Use separate error type once we have real data
@@ -125,7 +129,9 @@ class OrganizationMetricsDataEndpoint(OrganizationEndpoint):
                     projects, request.GET, paginator_kwargs={"limit": limit, "offset": offset}
                 )
                 data = get_series(
-                    projects, query.to_metrics_query(), use_case_id=UseCaseKey.RELEASE_HEALTH
+                    projects,
+                    query.to_metrics_query(),
+                    use_case_id=UseCaseKey.from_str(request.GET.get("useCase", "releath-health")),
                 )
                 data["query"] = query.query
             except (

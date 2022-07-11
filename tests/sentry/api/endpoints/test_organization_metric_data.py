@@ -39,7 +39,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         self.project2 = self.create_project()
         self.login_as(user=self.user)
 
-        self.transaction_lcp_metric = rh_indexer_record(
+        self.transaction_lcp_metric = perf_indexer_record(
             self.project.organization.id, TransactionMRI.MEASUREMENTS_LCP.value
         )
         org_id = self.organization.id
@@ -491,13 +491,13 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         # Record some strings
         org_id = self.organization.id
         k_transaction = perf_indexer_record(org_id, "transaction")
-        v_foo = rh_indexer_record(org_id, "/foo")
-        v_bar = rh_indexer_record(org_id, "/bar")
-        v_baz = rh_indexer_record(org_id, "/baz")
+        v_foo = perf_indexer_record(org_id, "/foo")
+        v_bar = perf_indexer_record(org_id, "/bar")
+        v_baz = perf_indexer_record(org_id, "/baz")
         k_rating = perf_indexer_record(org_id, "measurement_rating")
-        v_good = rh_indexer_record(org_id, "good")
-        v_meh = rh_indexer_record(org_id, "meh")
-        v_poor = rh_indexer_record(org_id, "poor")
+        v_good = perf_indexer_record(org_id, "good")
+        v_meh = perf_indexer_record(org_id, "meh")
+        v_poor = perf_indexer_record(org_id, "poor")
 
         self._send_buckets(
             [
@@ -530,6 +530,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             groupBy="transaction",
             orderBy=f"-count({TransactionMetricKey.MEASUREMENTS_LCP.value})",
             per_page=2,
+            useCase="performance",
         )
         groups = response.data["groups"]
         assert len(groups) == 2
@@ -552,13 +553,13 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         # Record some strings
         org_id = self.organization.id
         k_transaction = perf_indexer_record(org_id, "transaction")
-        v_foo = rh_indexer_record(org_id, "/foo")
-        v_bar = rh_indexer_record(org_id, "/bar")
-        v_baz = rh_indexer_record(org_id, "/baz")
+        v_foo = perf_indexer_record(org_id, "/foo")
+        v_bar = perf_indexer_record(org_id, "/bar")
+        v_baz = perf_indexer_record(org_id, "/baz")
         k_rating = perf_indexer_record(org_id, "measurement_rating")
-        v_good = rh_indexer_record(org_id, "good")
-        v_meh = rh_indexer_record(org_id, "meh")
-        v_poor = rh_indexer_record(org_id, "poor")
+        v_good = perf_indexer_record(org_id, "good")
+        v_meh = perf_indexer_record(org_id, "meh")
+        v_poor = perf_indexer_record(org_id, "poor")
 
         self._send_buckets(
             [
@@ -597,6 +598,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
                 f"-count({TransactionMetricKey.MEASUREMENTS_FCP.value})",
             ],
             per_page=2,
+            useCase="performance",
         )
         groups = response.data["groups"]
         assert len(groups) == 2
@@ -620,9 +622,9 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
     def test_orderby_percentile(self):
         # Record some strings
         org_id = self.organization.id
-        tag1 = rh_indexer_record(org_id, "tag1")
-        value1 = rh_indexer_record(org_id, "value1")
-        value2 = rh_indexer_record(org_id, "value2")
+        tag1 = perf_indexer_record(org_id, "tag1")
+        value1 = perf_indexer_record(org_id, "value1")
+        value2 = perf_indexer_record(org_id, "value2")
 
         self._send_buckets(
             [
@@ -651,6 +653,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             interval="1h",
             groupBy="tag1",
             orderBy=f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
+            useCase="performance",
         )
         groups = response.data["groups"]
         assert len(groups) == 2
@@ -671,9 +674,9 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
 
     def test_orderby_percentile_with_pagination(self):
         org_id = self.organization.id
-        tag1 = rh_indexer_record(org_id, "tag1")
-        value1 = rh_indexer_record(org_id, "value1")
-        value2 = rh_indexer_record(org_id, "value2")
+        tag1 = perf_indexer_record(org_id, "tag1")
+        value1 = perf_indexer_record(org_id, "value1")
+        value2 = perf_indexer_record(org_id, "value2")
 
         self._send_buckets(
             [
@@ -703,6 +706,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             groupBy="tag1",
             orderBy=f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
             per_page=1,
+            useCase="performance",
         )
         groups = response.data["groups"]
         assert len(groups) == 1
@@ -718,6 +722,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             orderBy=f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
             per_page=1,
             cursor=Cursor(0, 1),
+            useCase="performance",
         )
         groups = response.data["groups"]
         assert len(groups) == 1
@@ -730,9 +735,9 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         `limit` parameter
         """
         org_id = self.organization.id
-        tag1 = rh_indexer_record(org_id, "tag1")
-        value1 = rh_indexer_record(org_id, "value1")
-        value2 = rh_indexer_record(org_id, "value2")
+        tag1 = perf_indexer_record(org_id, "tag1")
+        value1 = perf_indexer_record(org_id, "value1")
+        value2 = perf_indexer_record(org_id, "value2")
 
         self._send_buckets(
             [
@@ -761,6 +766,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             groupBy="tag1",
             orderBy=f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
             per_page=1,
+            useCase="performance",
         )
         groups = response.data["groups"]
         assert len(groups) == 1
@@ -774,7 +780,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             TransactionMRI.MEASUREMENTS_FCP.value,
             "transaction",
         ]:
-            rh_indexer_record(self.organization.id, metric)
+            perf_indexer_record(self.organization.id, metric)
 
         response = self.get_success_response(
             self.organization.slug,
@@ -798,8 +804,8 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         org_id = self.organization.id
         metric_id_fcp = perf_indexer_record(org_id, TransactionMRI.MEASUREMENTS_FCP.value)
         transaction_id = perf_indexer_record(org_id, "transaction")
-        transaction_1 = rh_indexer_record(org_id, "/foo/")
-        transaction_2 = rh_indexer_record(org_id, "/bar/")
+        transaction_1 = perf_indexer_record(org_id, "/foo/")
+        transaction_2 = perf_indexer_record(org_id, "/bar/")
 
         self._send_buckets(
             [
@@ -850,6 +856,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             interval="1h",
             groupBy=["project_id", "transaction"],
             orderBy=f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
+            useCase="performance",
         )
         groups = response.data["groups"]
         assert len(groups) == 2
@@ -880,8 +887,8 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         org_id = self.organization.id
         metric_id_fcp = perf_indexer_record(org_id, TransactionMRI.MEASUREMENTS_FCP.value)
         transaction_id = perf_indexer_record(org_id, "transaction")
-        transaction_1 = rh_indexer_record(org_id, "/foo/")
-        transaction_2 = rh_indexer_record(org_id, "/bar/")
+        transaction_1 = perf_indexer_record(org_id, "/foo/")
+        transaction_2 = perf_indexer_record(org_id, "/bar/")
 
         self._send_buckets(
             [
@@ -930,6 +937,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             statsPeriod="1h",
             interval="1h",
             groupBy=["project_id", "transaction"],
+            useCase="performance",
         )
 
         # Test order by DESC
@@ -999,8 +1007,8 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         """
         org_id = self.organization.id
         transaction_id = perf_indexer_record(org_id, "transaction")
-        transaction_1 = rh_indexer_record(org_id, "/foo/")
-        transaction_2 = rh_indexer_record(org_id, "/bar/")
+        transaction_1 = perf_indexer_record(org_id, "/foo/")
+        transaction_2 = perf_indexer_record(org_id, "/bar/")
 
         self._send_buckets(
             [
@@ -1051,6 +1059,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             interval="1h",
             groupBy=["project_id", "transaction"],
             orderBy=f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
+            useCase="performance",
         )
         groups = response.data["groups"]
         assert len(groups) == 2
@@ -1079,8 +1088,8 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         """
         org_id = self.organization.id
         transaction_id = perf_indexer_record(org_id, "transaction")
-        transaction_1 = rh_indexer_record(org_id, "/foo/")
-        transaction_2 = rh_indexer_record(org_id, "/bar/")
+        transaction_1 = perf_indexer_record(org_id, "/foo/")
+        transaction_2 = perf_indexer_record(org_id, "/bar/")
 
         self._send_buckets(
             [
@@ -1138,6 +1147,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             "groupBy": ["project_id", "transaction"],
             "orderBy": f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
             "per_page": 1,
+            "useCase": "performance",
         }
 
         response = self.get_success_response(self.organization.slug, **request_args)
@@ -1249,8 +1259,8 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         """
         org_id = self.organization.id
         transaction_id = perf_indexer_record(org_id, "transaction")
-        transaction_1 = rh_indexer_record(org_id, "/foo/")
-        transaction_2 = rh_indexer_record(org_id, "/bar/")
+        transaction_1 = perf_indexer_record(org_id, "/foo/")
+        transaction_2 = perf_indexer_record(org_id, "/bar/")
 
         self._send_buckets(
             [
@@ -1281,6 +1291,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             interval="1h",
             groupBy=["project_id", "transaction"],
             orderBy=f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
+            useCase="performance",
         )
         groups = response.data["groups"]
         assert len(groups) == 2
@@ -1311,11 +1322,11 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         fcp_metric = perf_indexer_record(
             self.project.organization.id, TransactionMRI.MEASUREMENTS_FCP.value
         )
-        tag3 = rh_indexer_record(org_id, "tag3")
-        value1 = rh_indexer_record(org_id, "value1")
-        value2 = rh_indexer_record(org_id, "value2")
-        value3 = rh_indexer_record(org_id, "value3")
-        value4 = rh_indexer_record(org_id, "value4")
+        tag3 = perf_indexer_record(org_id, "tag3")
+        value1 = perf_indexer_record(org_id, "value1")
+        value2 = perf_indexer_record(org_id, "value2")
+        value3 = perf_indexer_record(org_id, "value3")
+        value4 = perf_indexer_record(org_id, "value4")
 
         self._send_buckets(
             [
@@ -1362,6 +1373,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             interval="1h",
             groupBy="tag3",
             per_page=2,
+            useCase="performance",
         )
 
         groups = response.data["groups"]

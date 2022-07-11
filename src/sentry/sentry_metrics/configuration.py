@@ -9,6 +9,15 @@ class UseCaseKey(Enum):
     RELEASE_HEALTH = "release-health"
     PERFORMANCE = "performance"
 
+    @staticmethod
+    def from_str(use_case):
+        if use_case == "performance":
+            return UseCaseKey.PERFORMANCE
+        elif use_case in ("release-health", "releaseHealth"):
+            return UseCaseKey.RELEASE_HEALTH
+        else:
+            return UseCaseKey.RELEASE_HEALTH
+
 
 class DbKey(Enum):
     STRING_INDEXER = "StringIndexer"
