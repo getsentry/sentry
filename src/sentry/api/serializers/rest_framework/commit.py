@@ -5,7 +5,7 @@ from sentry.models import CommitFileChange
 
 
 class CommitPatchSetSerializer(serializers.Serializer):
-    path = serializers.CharField(max_length=255)
+    path = serializers.CharField(max_length=510)
     type = serializers.CharField(max_length=1)
 
     def validate_type(self, value):
