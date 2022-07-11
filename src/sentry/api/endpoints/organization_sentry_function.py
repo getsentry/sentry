@@ -14,6 +14,7 @@ class SentryFunctionSerializer(CamelSnakeSerializer):
 
 
 class OrganizationSentryFunctionEndpoint(OrganizationEndpoint):
+    # Creating a new sentry function
     def post(self, request, organization):
         serializer = SentryFunctionSerializer(data=request.data)
         if not serializer.is_valid():
