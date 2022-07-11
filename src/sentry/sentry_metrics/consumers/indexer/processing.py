@@ -11,6 +11,7 @@ from arroyo.types import Message
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.consumers.indexer.common import MessageBatch
 from sentry.utils import json
+from sentry.utils.safe import get_path
 
 logger = logging.getLogger(__name__)
 
@@ -191,12 +192,43 @@ def process_messages(
             used_tags.add(metric_name)
 
             new_tags: MutableMapping[str, int] = {}
+            exceeded_global_quotas = 0
+            exceeded_org_quotas = 0
             try:
                 for k, v in tags.items():
                     used_tags.update({k, v})
-                    new_tags[str(mapping[org_id][k])] = mapping[org_id][v]
+                    new_k = mapping[org_id][k]
+                    new_v = mapping[org_id][v]
+                    new_tags[str(new_k)] = new_v
+
+                    if new_k is None:
+                        fetch_type_ext = get_path(bulk_record_meta, k, 2)
+                        if fetch_type_ext and fetch_type_ext.is_global_quota:
+                            exceeded_global_quotas += 1
+                        else:
+                            exceeded_org_quotas += 1
+
+                    if new_v is None:
+                        fetch_type_ext = get_path(bulk_record_meta, v, 2)
+                        if fetch_type_ext and fetch_type_ext.is_global_quota:
+                            exceeded_global_quotas += 1
+                        else:
+                            exceeded_org_quotas += 1
+
             except KeyError:
                 logger.error("process_messages.key_error", extra={"tags": tags}, exc_info=True)
+                continue
+
+            if exceeded_org_quotas or exceeded_global_quotas:
+                logger.error(
+                    "process_messages.dropped_message",
+                    extra={
+                        "string_type": "tags",
+                        "num_global_quotas": exceeded_global_quotas,
+                        "num_org_quotas": exceeded_org_quotas,
+                        "org_batch_size": len(mapping[org_id]),
+                    },
+                )
                 continue
 
             fetch_types_encountered = set()
@@ -210,7 +242,18 @@ def process_messages(
                 "".join([t.value for t in fetch_types_encountered]), "utf-8"
             )
             new_payload_value["tags"] = new_tags
-            new_payload_value["metric_id"] = mapping[org_id][metric_name]
+            new_payload_value["metric_id"] = numeric_metric_id = mapping[org_id][metric_name]
+            if numeric_metric_id is None:
+                fetch_type_ext = get_path(bulk_record_meta, metric_name, 2)
+                logger.error(
+                    "process_messages.dropped_message",
+                    extra={
+                        "string_type": "metric_id",
+                        "is_global_quota": fetch_type_ext and fetch_type_ext.is_global_quota,
+                        "org_batch_size": len(mapping[org_id]),
+                    },
+                )
+                continue
             new_payload_value["retention_days"] = 90
             new_payload_value["mapping_meta"] = output_message_meta
             new_payload_value["use_case_id"] = use_case_id.value

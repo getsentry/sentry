@@ -17,22 +17,23 @@ TIMESTAMP_OFFSET = 100
 
 
 def test_empty_quota(limiter):
+    quotas = [
+        Quota(
+            window_seconds=10,
+            granularity_seconds=1,
+            limit=0,
+        )
+    ]
     resp = limiter.check_and_use_quotas(
         [
             RequestedQuota(
                 prefix="foo",
                 requested=1,
-                quotas=[
-                    Quota(
-                        window_seconds=10,
-                        granularity_seconds=1,
-                        limit=0,
-                    )
-                ],
+                quotas=quotas,
             )
         ]
     )
-    assert resp == [GrantedQuota(prefix="foo", granted=0)]
+    assert resp == [GrantedQuota(prefix="foo", granted=0, reached_quotas=quotas)]
 
 
 def test_basic(limiter):
@@ -49,12 +50,12 @@ def test_basic(limiter):
             [RequestedQuota(prefix="foo", requested=1, quotas=quotas)],
             timestamp=TIMESTAMP_OFFSET + timestamp,
         )
-        assert resp == [GrantedQuota(prefix="foo", granted=1)]
+        assert resp == [GrantedQuota(prefix="foo", granted=1, reached_quotas=[])]
 
     resp = limiter.check_and_use_quotas(
         [RequestedQuota(prefix="foo", requested=1, quotas=quotas)], timestamp=TIMESTAMP_OFFSET + 9
     )
-    assert resp == [GrantedQuota(prefix="foo", granted=0)]
+    assert resp == [GrantedQuota(prefix="foo", granted=0, reached_quotas=quotas)]
 
     for timestamp in range(10, 20):
         resp = limiter.check_and_use_quotas(
@@ -62,14 +63,14 @@ def test_basic(limiter):
             timestamp=TIMESTAMP_OFFSET + timestamp,
         )
 
-        assert resp == [GrantedQuota(prefix="foo", granted=1)]
+        assert resp == [GrantedQuota(prefix="foo", granted=1, reached_quotas=[])]
 
         resp = limiter.check_and_use_quotas(
             [RequestedQuota(prefix="foo", requested=1, quotas=quotas)],
             timestamp=TIMESTAMP_OFFSET + timestamp,
         )
 
-        assert resp == [GrantedQuota(prefix="foo", granted=0)]
+        assert resp == [GrantedQuota(prefix="foo", granted=0, reached_quotas=quotas)]
 
 
 def test_multiple_windows(limiter):
@@ -82,22 +83,22 @@ def test_multiple_windows(limiter):
         [RequestedQuota(prefix="foo", requested=6, quotas=quotas)], timestamp=TIMESTAMP_OFFSET
     )
 
-    assert resp == [GrantedQuota(prefix="foo", granted=5)]
+    assert resp == [GrantedQuota(prefix="foo", granted=5, reached_quotas=quotas[1:])]
 
     resp = limiter.check_and_use_quotas(
         [RequestedQuota(prefix="foo", requested=6, quotas=quotas)], timestamp=TIMESTAMP_OFFSET
     )
 
-    assert resp == [GrantedQuota(prefix="foo", granted=0)]
+    assert resp == [GrantedQuota(prefix="foo", granted=0, reached_quotas=quotas)]
 
     resp = limiter.check_and_use_quotas(
         [RequestedQuota(prefix="foo", requested=6, quotas=quotas)], timestamp=TIMESTAMP_OFFSET + 2
     )
 
-    assert resp == [GrantedQuota(prefix="foo", granted=0)]
+    assert resp == [GrantedQuota(prefix="foo", granted=0, reached_quotas=quotas)]
 
     resp = limiter.check_and_use_quotas(
         [RequestedQuota(prefix="foo", requested=6, quotas=quotas)], timestamp=TIMESTAMP_OFFSET + 6
     )
 
-    assert resp == [GrantedQuota(prefix="foo", granted=5)]
+    assert resp == [GrantedQuota(prefix="foo", granted=5, reached_quotas=quotas[:1])]
