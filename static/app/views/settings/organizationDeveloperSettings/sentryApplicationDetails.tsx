@@ -284,7 +284,7 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
           </CreatedDate>
           <Button
             onClick={this.onRemoveToken.bind(this, token)}
-            size="small"
+            size="sm"
             icon={<IconDelete />}
             data-test-id="token-delete"
             type="button"
@@ -441,7 +441,7 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
               <PanelHeader hasButtons>
                 {t('Tokens')}
                 <Button
-                  size="xsmall"
+                  size="xs"
                   icon={<IconAdd size="xs" isCircled />}
                   onClick={evt => this.onAddToken(evt)}
                   data-test-id="token-add"
