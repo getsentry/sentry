@@ -26,7 +26,7 @@
                 </h5>
               </td>
               <td style="text-align: right">
-                <a href="{{ issues_link }}" class="btn btn-sm btn-primary">View {{ new_issue_count }} new issues</a>
+                <a href="{{ issues_link }}" class="btn btn-sm btn-primary">View {{ new_issue_count }} new issue{{ new_issue_count|pluralize }}</a>
               </td>
             </tr>
           {% endfor %}

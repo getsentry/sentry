@@ -48,7 +48,7 @@ class ReleaseSummaryTestCase(ActivityTestCase):
                 Activity(
                     project=self.project,
                     user=self.user1,
-                    type=ActivityType.RELEASE.value,
+                    type=ActivityType.DEPLOY.value,
                     data={"version": self.release.version, "deploy_id": self.deploy.id},
                 )
             )
