@@ -6,17 +6,17 @@ import GlobalModal from 'sentry/components/globalModal';
 import {Organization, Project} from 'sentry/types';
 import {
   SamplingConditionOperator,
+  SamplingDistribution,
   SamplingInnerOperator,
   SamplingRule,
   SamplingRuleType,
+  SamplingSdkVersion,
 } from 'sentry/types/sampling';
-import importedUseProjects from 'sentry/utils/useProjects';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {RouteContext} from 'sentry/views/routeContext';
 import ServerSideSampling from 'sentry/views/settings/project/server-side-sampling';
 import importedUseProjectStats from 'sentry/views/settings/project/server-side-sampling/utils/useProjectStats';
-import importedUseSamplingDistribution from 'sentry/views/settings/project/server-side-sampling/utils/useSamplingDistribution';
-import importedUseSdkVersions from 'sentry/views/settings/project/server-side-sampling/utils/useSdkVersions';
+import {useRecommendedSdkUpgrades as importedUseRecommendedSdkUpgrades} from 'sentry/views/settings/project/server-side-sampling/utils/useRecommendedSdkUpgrades';
 
 export const uniformRule: SamplingRule = {
   sampleRate: 0.5,
@@ -77,7 +77,7 @@ export const mockedProjects = [
   }),
 ];
 
-export const mockedSamplingSdkVersions = [
+export const mockedSamplingSdkVersions: SamplingSdkVersion[] = [
   {
     project: mockedProjects[0].slug,
     latestSDKVersion: '1.0.3',
@@ -92,19 +92,31 @@ export const mockedSamplingSdkVersions = [
   },
 ];
 
-jest.mock('sentry/utils/useProjects');
-const useProjects = importedUseProjects as jest.MockedFunction<
-  typeof importedUseProjects
->;
-useProjects.mockImplementation(() => ({
-  projects: mockedProjects,
-  fetchError: null,
-  fetching: false,
-  hasMore: false,
-  initiallyLoaded: true,
-  onSearch: jest.fn(),
-  placeholders: [],
-}));
+export const mockedSamplingDistribution: SamplingDistribution = {
+  project_breakdown: [
+    {
+      project: mockedProjects[0].slug,
+      project_id: mockedProjects[0].id,
+      'count()': 888,
+    },
+    {
+      project: mockedProjects[1].slug,
+      project_id: mockedProjects[1].id,
+      'count()': 100,
+    },
+  ],
+  sample_size: 100,
+  null_sample_rate_percentage: 98,
+  sample_rate_distributions: {
+    min: 1,
+    max: 1,
+    avg: 1,
+    p50: 1,
+    p90: 1,
+    p95: 1,
+    p99: 1,
+  },
+};
 
 jest.mock('sentry/views/settings/project/server-side-sampling/utils/useProjectStats');
 const useProjectStats = importedUseProjectStats as jest.MockedFunction<
@@ -118,48 +130,20 @@ useProjectStats.mockImplementation(() => ({
 }));
 
 jest.mock(
-  'sentry/views/settings/project/server-side-sampling/utils/useSamplingDistribution'
+  'sentry/views/settings/project/server-side-sampling/utils/useRecommendedSdkUpgrades'
 );
-
-const useSamplingDistribution = importedUseSamplingDistribution as jest.MockedFunction<
-  typeof importedUseSamplingDistribution
->;
-
-useSamplingDistribution.mockImplementation(() => ({
-  samplingDistribution: {
-    project_breakdown: [
-      {
-        project: mockedProjects[0].slug,
-        project_id: mockedProjects[0].id,
-        'count()': 888,
-      },
-      {
-        project: mockedProjects[1].slug,
-        project_id: mockedProjects[1].id,
-        'count()': 100,
-      },
-    ],
-    sample_size: 100,
-    null_sample_rate_percentage: 98,
-    sample_rate_distributions: {
-      min: 1,
-      max: 1,
-      avg: 1,
-      p50: 1,
-      p90: 1,
-      p95: 1,
-      p99: 1,
+const useRecommendedSdkUpgrades =
+  importedUseRecommendedSdkUpgrades as jest.MockedFunction<
+    typeof importedUseRecommendedSdkUpgrades
+  >;
+useRecommendedSdkUpgrades.mockImplementation(() => ({
+  recommendedSdkUpgrades: [
+    {
+      project: mockedProjects[1],
+      latestSDKName: mockedSamplingSdkVersions[1].latestSDKName,
+      latestSDKVersion: mockedSamplingSdkVersions[1].latestSDKVersion,
     },
-  },
-}));
-
-jest.mock('sentry/views/settings/project/server-side-sampling/utils/useSdkVersions');
-const useSdkVersions = importedUseSdkVersions as jest.MockedFunction<
-  typeof importedUseSdkVersions
->;
-
-useSdkVersions.mockImplementation(() => ({
-  samplingSdkVersions: mockedSamplingSdkVersions,
+  ],
 }));
 
 export function getMockData({
