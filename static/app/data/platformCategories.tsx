@@ -56,6 +56,7 @@ export const mobile = [
   'dart-flutter',
   'unity',
   'dotnet-xamarin',
+  'dotnet-maui',
   'unreal',
   // Old platforms
   'java-android',
