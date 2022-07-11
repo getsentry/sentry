@@ -4,6 +4,7 @@ import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 
 import AsyncComponent from 'sentry/components/asyncComponent';
+import {MultipleCheckboxField} from 'sentry/components/deprecatedforms';
 import Input from 'sentry/components/forms/controls/input';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import SelectControl from 'sentry/components/forms/selectControl';
@@ -12,6 +13,8 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
+
+import {PRESET_AGGREGATES} from '../alerts/rules/metric/presets';
 
 enum MetricValues {
   ERRORS,
@@ -51,6 +54,8 @@ type State = AsyncComponent['state'] & {
   interval: string;
   intervalChoices: [string, string][] | undefined;
   metric: MetricValues;
+  metricAlertPresets: string[];
+
   threshold: string;
 };
 
@@ -60,6 +65,7 @@ type RequestDataFragment = {
   conditions: {id: string; interval: string; value: string}[] | undefined;
   defaultRules: boolean;
   frequency: number;
+  metricAlertPresets: string[];
   name: string;
   shouldCreateCustomRule: boolean;
 };
@@ -111,6 +117,7 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
       metric: MetricValues.ERRORS,
       interval: '',
       threshold: '',
+      metricAlertPresets: [],
     };
   }
 
@@ -224,6 +231,7 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
       actions: [{id: NOTIFY_EVENT_ACTION}],
       actionMatch: 'all',
       frequency: 5,
+      metricAlertPresets: this.state.metricAlertPresets,
     };
   }
 
@@ -291,18 +299,43 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
         <PageHeadingWithTopMargins withMargins>
           {t('Set your default alert settings')}
         </PageHeadingWithTopMargins>
-        <RadioGroupWithPadding
-          choices={issueAlertOptionsChoices}
-          label={t('Options for creating an alert')}
-          onChange={alertSetting => this.setStateAndUpdateParents({alertSetting})}
-          value={this.state.alertSetting}
-        />
+        <Content>
+          <Subheading>Issue Alerts</Subheading>
+          <RadioGroupWithPadding
+            choices={issueAlertOptionsChoices}
+            label={t('Options for creating an alert')}
+            onChange={alertSetting => this.setStateAndUpdateParents({alertSetting})}
+            value={this.state.alertSetting}
+          />
+          <Subheading>Performance Alerts</Subheading>
+          <StyledMultipleCheckboxField
+            hideLabelDivider
+            name="fieldName"
+            choices={PRESET_AGGREGATES.map(agg => [agg.id, agg.description])}
+            onChange={selectedPresets =>
+              this.setStateAndUpdateParents({
+                metricAlertPresets: selectedPresets as unknown as string[],
+              })
+            }
+          />
+        </Content>
       </Fragment>
     );
   }
 }
 
 export default withOrganization(IssueAlertOptions);
+
+const StyledMultipleCheckboxField = styled(MultipleCheckboxField)`
+  label.checkbox {
+    font-weight: 100;
+  }
+`;
+
+const Content = styled('div')`
+  padding-top: ${space(2)};
+  padding-bottom: ${space(4)};
+`;
 
 const CustomizeAlertsGrid = styled('div')`
   display: grid;
@@ -317,16 +350,20 @@ const InlineSelectControl = styled(SelectControl)`
   width: 160px;
 `;
 const RadioGroupWithPadding = styled(RadioGroup)`
-  padding: ${space(3)} 0;
-  margin-bottom: 50px;
-  box-shadow: 0 -1px 0 rgba(0, 0, 0, 0.1);
+  margin-bottom: ${space(2)};
 `;
 const PageHeadingWithTopMargins = styled(PageHeading)`
   margin-top: 65px;
+  margin-bottom: 0;
+  padding-bottom: ${space(3)};
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
 `;
 const RadioItemWrapper = styled('div')`
   min-height: 35px;
   display: flex;
   flex-direction: column;
   justify-content: center;
+`;
+const Subheading = styled('b')`
+  display: block;
 `;

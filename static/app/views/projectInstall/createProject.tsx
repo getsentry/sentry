@@ -25,6 +25,8 @@ import withOrganization from 'sentry/utils/withOrganization';
 import withTeams from 'sentry/utils/withTeams';
 import IssueAlertOptions from 'sentry/views/projectInstall/issueAlertOptions';
 
+import {PRESET_AGGREGATES} from '../alerts/rules/metric/presets';
+
 const getCategoryName = (category?: string) =>
   categoryList.find(({id}) => id === category)?.id;
 
@@ -175,6 +177,7 @@ class CreateProject extends Component<Props, State> {
       actionMatch,
       frequency,
       defaultRules,
+      metricAlertPresets,
     } = dataFragment || {};
 
     this.setState({inFlight: true});
@@ -213,6 +216,37 @@ class CreateProject extends Component<Props, State> {
           }
         );
         ruleId = ruleData.id;
+      }
+      if (metricAlertPresets && metricAlertPresets.length > 0) {
+        const presets = PRESET_AGGREGATES.filter(aggregate =>
+          metricAlertPresets.includes(aggregate.id)
+        );
+        for (const preset of presets) {
+          const context = preset.makeUnqueriedContext(projectData, organization);
+
+          await api.requestPromise(
+            `/projects/${organization.slug}/${projectData.slug}/alert-rules/?referrer=create_project`,
+            {
+              method: 'POST',
+              data: {
+                aggregate: context.aggregate,
+                comparisonDelta: context.comparisonDelta,
+                dataset: context.dataset,
+                eventTypes: context.eventTypes,
+                name: context.name,
+                owner: null,
+                projectId: projectData.id,
+                projects: null,
+                query: '',
+                resolveThreshold: null,
+                thresholdPeriod: 1,
+                thresholdType: context.thresholdType,
+                timeWindow: context.timeWindow,
+                triggers: context.triggers,
+              },
+            }
+          );
+        }
       }
       this.trackIssueAlertOptionSelectedEvent(
         projectData,
