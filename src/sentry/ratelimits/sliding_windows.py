@@ -160,6 +160,10 @@ class GrantedQuota:
     # How much of RequestedQuota.requested can actually be used.
     granted: int
 
+    # If RequestedQuota.requested > GrantedQuota.granted, this contains the
+    # quotas that were reached.
+    reached_quotas: Sequence[Quota]
+
 
 Timestamp = int
 
@@ -308,7 +312,7 @@ class RedisSlidingWindowRateLimiter(SlidingWindowRateLimiter):
         else:
             timestamp = int(timestamp)
 
-        keys_to_fetch = []
+        keys_to_fetch = set()
         for request in requests:
             # We could potentially run this check inside of __post__init__ of
             # RequestedQuota, but the list is actually mutable after
@@ -317,7 +321,7 @@ class RedisSlidingWindowRateLimiter(SlidingWindowRateLimiter):
 
             for quota in request.quotas:
                 for granule in quota.iter_window(timestamp):
-                    keys_to_fetch.append(
+                    keys_to_fetch.add(
                         self._build_redis_key(request=request, quota=quota, granule=granule)
                     )
 
@@ -329,6 +333,7 @@ class RedisSlidingWindowRateLimiter(SlidingWindowRateLimiter):
             # We start out with assuming the entire request can be granted in
             # its entirety.
             granted_quota = request.requested
+            reached_quotas = []
 
             # A request succeeds (partially) if it fits (partially) into all
             # quotas. For each quota, we calculate how much quota has been used
@@ -348,9 +353,17 @@ class RedisSlidingWindowRateLimiter(SlidingWindowRateLimiter):
                     for granule in quota.iter_window(timestamp)
                 )
 
-                granted_quota = max(0, min(granted_quota, quota.limit - used_quota))
+                remaining_quota = max(0, quota.limit - used_quota)
 
-            results.append(GrantedQuota(prefix=request.prefix, granted=granted_quota))
+                if remaining_quota < granted_quota:
+                    granted_quota = remaining_quota
+                    reached_quotas.append(quota)
+
+            results.append(
+                GrantedQuota(
+                    prefix=request.prefix, granted=granted_quota, reached_quotas=reached_quotas
+                )
+            )
 
         return timestamp, results
 
