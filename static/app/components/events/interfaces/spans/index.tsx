@@ -81,6 +81,7 @@ class SpansInterface extends PureComponent<Props, State> {
       return null;
     }
 
+    // This is intentional as unbalanced string formatters in `tn()` are problematic
     const label =
       errors.length === 1
         ? t('There is an error event associated with this transaction event.')
