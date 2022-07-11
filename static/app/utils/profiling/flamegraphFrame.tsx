@@ -14,7 +14,7 @@ export interface FlamegraphFrame {
   threadId?: number;
 }
 
-export function getFlamegraphFrameSearchId(frame: FlamegraphFrame) {
+export function getFlamegraphFrameId(frame: FlamegraphFrame) {
   return (
     frame.frame.name + (frame.frame.file ? frame.frame.file : '') + String(frame.start)
   );

@@ -3,7 +3,7 @@ import {mat3} from 'gl-matrix';
 import {Flamegraph} from '../flamegraph';
 import {FlamegraphSearch} from '../flamegraph/flamegraphStateProvider/flamegraphSearch';
 import {FlamegraphTheme} from '../flamegraph/flamegraphTheme';
-import {FlamegraphFrame, getFlamegraphFrameSearchId} from '../flamegraphFrame';
+import {FlamegraphFrame, getFlamegraphFrameId} from '../flamegraphFrame';
 import {
   computeHighlightedBounds,
   ELLIPSIS,
@@ -142,7 +142,7 @@ class TextRenderer {
       const {text: trimText} = trim;
 
       if (flamegraphSearchResults) {
-        const frameId = getFlamegraphFrameSearchId(frame);
+        const frameId = getFlamegraphFrameId(frame);
         const frameSearchResult = flamegraphSearchResults[frameId];
 
         if (frameSearchResult && frameSearchResult.matchIndices.length > 0) {

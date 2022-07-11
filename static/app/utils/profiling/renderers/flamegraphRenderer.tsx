@@ -3,7 +3,7 @@ import {mat3, vec2} from 'gl-matrix';
 import {Flamegraph} from '../flamegraph';
 import {FlamegraphSearch} from '../flamegraph/flamegraphStateProvider/flamegraphSearch';
 import {FlamegraphTheme} from '../flamegraph/flamegraphTheme';
-import {FlamegraphFrame, getFlamegraphFrameSearchId} from '../flamegraphFrame';
+import {FlamegraphFrame, getFlamegraphFrameId} from '../flamegraphFrame';
 import {
   createProgram,
   createShader,
@@ -445,7 +445,7 @@ class FlamegraphRenderer {
       for (let i = 0; i < length; i++) {
         frame = this.frames[i];
         const vertexOffset = i * VERTICES;
-        const frameId = getFlamegraphFrameSearchId(frame);
+        const frameId = getFlamegraphFrameId(frame);
         this.gl.uniform1i(
           this.uniforms.u_is_search_result,
           searchResults[frameId] ? 1 : 0

@@ -11,7 +11,7 @@ import {FlamegraphSearchResult} from 'sentry/utils/profiling/flamegraph/flamegra
 import {useFlamegraphSearch} from 'sentry/utils/profiling/flamegraph/useFlamegraphSearch';
 import {
   FlamegraphFrame,
-  getFlamegraphFrameSearchId,
+  getFlamegraphFrameId,
 } from 'sentry/utils/profiling/flamegraphFrame';
 import {memoizeByReference} from 'sentry/utils/profiling/profile/utils';
 import {isRegExpString, parseRegExp} from 'sentry/utils/profiling/validators/regExp';
@@ -54,7 +54,7 @@ function frameSearch(
         const re = new RegExp(lookup, flags ?? 'g');
         const reMatches = Array.from(frame.frame.name.trim().matchAll(re));
         if (reMatches.length > 0) {
-          const frameId = getFlamegraphFrameSearchId(frame);
+          const frameId = getFlamegraphFrameId(frame);
           results[frameId] = {
             frame,
             matchIndices: reMatches.reduce((acc, match) => {
@@ -90,7 +90,7 @@ function frameSearch(
   for (let i = 0; i < fuseResults.length; i++) {
     const fuseFrameResult = fuseResults[i];
     const frame = fuseFrameResult.item;
-    const frameId = getFlamegraphFrameSearchId(frame);
+    const frameId = getFlamegraphFrameId(frame);
     results[frameId] = {
       frame,
       // matches will be defined when using 'includeMatches' in FuseOptions

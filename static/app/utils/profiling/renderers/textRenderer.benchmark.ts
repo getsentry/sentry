@@ -14,7 +14,7 @@ import {Rect, Transform} from '../gl/utils';
 import typescriptTrace from '../profile/formats/typescript/trace.json';
 import {importProfile} from '../profile/importProfile';
 
-import {FlamegraphFrame, getFlamegraphFrameSearchId} from './../flamegraphFrame';
+import {FlamegraphFrame, getFlamegraphFrameId} from './../flamegraphFrame';
 
 // This logs an error which is annoying to see in the outputs
 initializeLocale({} as any);
@@ -143,7 +143,7 @@ const [word, data] = maxBy(
 
 const searchResults: FlamegraphSearch = {
   results: Array.from(data.frames.values()).reduce((acc, frame) => {
-    acc[getFlamegraphFrameSearchId(frame)] = frame;
+    acc[getFlamegraphFrameId(frame)] = frame;
     return acc;
   }, {}),
   query: word,
