@@ -4,7 +4,7 @@ export enum Outcome {
   ACCEPTED = 'accepted',
   FILTERED = 'filtered',
   INVALID = 'invalid',
-  DROPPED = 'dropped',
+  DROPPED = 'dropped', // this is not a real outcome coming from the server
   RATE_LIMITED = 'rate_limited',
   CLIENT_DISCARD = 'client_discard',
 }
