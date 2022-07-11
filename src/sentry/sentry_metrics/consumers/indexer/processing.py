@@ -11,7 +11,6 @@ from arroyo.types import Message
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.consumers.indexer.common import MessageBatch
 from sentry.utils import json
-from sentry.utils.safe import get_path
 
 logger = logging.getLogger(__name__)
 
@@ -199,21 +198,26 @@ def process_messages(
                     used_tags.update({k, v})
                     new_k = mapping[org_id][k]
                     new_v = mapping[org_id][v]
-                    new_tags[str(new_k)] = new_v
 
                     if new_k is None:
-                        fetch_type_ext = get_path(bulk_record_meta, k, 2)
-                        if fetch_type_ext and fetch_type_ext.is_global_quota:
+                        _, _, fetch_type_ext = bulk_record_meta[k]
+                        if fetch_type_ext and fetch_type_ext.is_global:
                             exceeded_global_quotas += 1
                         else:
                             exceeded_org_quotas += 1
 
+                        continue
+
                     if new_v is None:
-                        fetch_type_ext = get_path(bulk_record_meta, v, 2)
-                        if fetch_type_ext and fetch_type_ext.is_global_quota:
+                        _, _, fetch_type_ext = bulk_record_meta[v]
+                        if fetch_type_ext and fetch_type_ext.is_global:
                             exceeded_global_quotas += 1
                         else:
                             exceeded_org_quotas += 1
+
+                        continue
+
+                    new_tags[str(new_k)] = new_v
 
             except KeyError:
                 logger.error("process_messages.key_error", extra={"tags": tags}, exc_info=True)
@@ -234,7 +238,7 @@ def process_messages(
             fetch_types_encountered = set()
             for tag in used_tags:
                 if tag in bulk_record_meta:
-                    int_id, fetch_type = bulk_record_meta.get(tag)
+                    int_id, fetch_type, _ = bulk_record_meta[tag]
                     fetch_types_encountered.add(fetch_type)
                     output_message_meta[fetch_type.value][str(int_id)] = tag
 
@@ -244,12 +248,12 @@ def process_messages(
             new_payload_value["tags"] = new_tags
             new_payload_value["metric_id"] = numeric_metric_id = mapping[org_id][metric_name]
             if numeric_metric_id is None:
-                fetch_type_ext = get_path(bulk_record_meta, metric_name, 2)
+                _, _, fetch_type_ext = bulk_record_meta[metric_name]
                 logger.error(
                     "process_messages.dropped_message",
                     extra={
                         "string_type": "metric_id",
-                        "is_global_quota": fetch_type_ext and fetch_type_ext.is_global_quota,
+                        "is_global_quota": fetch_type_ext and fetch_type_ext.is_global,
                         "org_batch_size": len(mapping[org_id]),
                     },
                 )

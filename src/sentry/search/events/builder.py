@@ -1822,7 +1822,7 @@ class MetricsQueryBuilder(QueryBuilder):
     def resolve_metric_index(self, value: str) -> Optional[int]:
         """Layer on top of the metric indexer so we'll only hit it at most once per value"""
         if value not in self._indexer_cache:
-            result = indexer.resolve(self.organization_id, value)
+            result = indexer.resolve(self.organization_id, value)  # type: ignore
             self._indexer_cache[value] = result
 
         return self._indexer_cache[value]
