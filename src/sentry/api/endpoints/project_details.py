@@ -438,7 +438,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         result = serializer.validated_data
 
         allow_dynamic_sampling = features.has(
-            "organizations:filters-and-sampling", project.organization, actor=request.user
+            "organizations:server-side-sampling", project.organization, actor=request.user
         )
 
         if not allow_dynamic_sampling and result.get("dynamicSampling"):

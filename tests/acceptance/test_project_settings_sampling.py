@@ -2,7 +2,7 @@ from selenium.webdriver.common.action_chains import ActionChains
 
 from sentry.testutils import AcceptanceTestCase
 
-FEATURE_NAME = "organizations:filters-and-sampling"
+FEATURE_NAME = "organizations:server-side-sampling"
 
 
 class ProjectSettingsSamplingTest(AcceptanceTestCase):
