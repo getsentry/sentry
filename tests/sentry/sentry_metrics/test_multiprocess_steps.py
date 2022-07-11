@@ -506,7 +506,7 @@ def test_process_messages_rate_limited(caplog) -> None:
         )
     ]
     compare_message_batches_ignoring_metadata(new_batch, expected_new_batch)
-    assert "dropped_string" in caplog.text
+    assert "dropped_message" in caplog.text
 
 
 def test_valid_metric_name() -> None:
