@@ -555,7 +555,7 @@ describe('computeConfigViewWithStategy', () => {
     const frame = new Rect(0, 0, 10, 1);
 
     expect(
-      computeConfigViewWithStategy('min', view, frame).equals(new Rect(0, 1, 10, 1))
+      computeConfigViewWithStategy('min', view, frame).equals(new Rect(0, 0, 10, 1))
     ).toBe(true);
   });
 

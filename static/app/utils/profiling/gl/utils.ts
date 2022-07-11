@@ -652,9 +652,9 @@ export function computeConfigViewWithStategy(
   }
 
   if (strategy === 'min') {
-    if (view.width < frame.width) {
-      // If view width < frame width, we need to zoom out,
-      // so the condition = exact
+    if (view.width <= frame.width) {
+      // If view width <= frame width, we need to zoom out, so the behavior is the
+      // same as if we were using 'exact'
       return frame.withHeight(view.height);
     }
 
@@ -668,8 +668,7 @@ export function computeConfigViewWithStategy(
       // If frame is to the left of the view, translate it left
       // to frame.x so that start of the frame is in the view
       offset = offset.withX(frame.x);
-    }
-    if (offset.rightOverlapsWith(frame) || frame.right > view.right) {
+    } else if (frame.right > view.right) {
       // If the right boundary of a frame is outside of the view, translate the view
       // by the difference between the right edge of the frame and the right edge of the view
       offset = view.withX(offset.x + frame.right - offset.right);
@@ -678,8 +677,7 @@ export function computeConfigViewWithStategy(
     if (frame.bottom < view.top) {
       // If frame is above the view, translate view to top of frame
       offset = offset.withY(frame.top);
-    }
-    if (frame.bottom > view.bottom) {
+    } else if (frame.bottom > view.bottom) {
       // If frame is below the view, translate view by the difference
       // of the bottom edge of the frame and the view
       offset = offset.translateY(offset.y + frame.bottom - offset.bottom);
