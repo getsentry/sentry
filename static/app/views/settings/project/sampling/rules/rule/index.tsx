@@ -57,7 +57,7 @@ export function Rule({
   }, [dragging, sorting, state.isMenuActionsOpen]);
 
   return (
-    <Columns disabled={rule.bottomPinned || noPermission}>
+    <Columns disabled={!rule.condition.inner.length || noPermission}>
       {hideGrabButton ? (
         <Column />
       ) : (
