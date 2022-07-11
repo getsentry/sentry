@@ -57,7 +57,6 @@ export default function sentryFunctionDetails(props: Props) {
       >
         <JsonForm forms={[{title: 'Sentry Function Details', fields: formFields}]} />
       </Form>
-      {/* <h2></h2> */}
     </div>
   );
 }
