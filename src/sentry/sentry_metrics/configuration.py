@@ -10,7 +10,7 @@ class UseCaseKey(Enum):
     PERFORMANCE = "performance"
 
     @staticmethod
-    def from_str(use_case):
+    def from_str(use_case: str) -> "UseCaseKey":
         if use_case == "performance":
             return UseCaseKey.PERFORMANCE
         elif use_case in ("release-health", "releaseHealth"):
