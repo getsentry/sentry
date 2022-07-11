@@ -45,7 +45,7 @@ function getTransactionConfigSpace(profiles: Profile[]): Rect {
   return new Rect(startedAt, 0, endedAt - startedAt, 0);
 }
 
-const noopColor = () => '';
+const noopFormatDuration = () => '';
 interface FlamegraphProps {
   onImport: ProfileDragDropImportProps['onImport'];
   profiles: ProfileGroup;
@@ -326,7 +326,7 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
         frameStack={
           <FrameStack
             getFrameColor={getFrameColor}
-            formatDuration={flamegraph ? flamegraph.formatter : noopColor}
+            formatDuration={flamegraph ? flamegraph.formatter : noopFormatDuration}
             canvasPoolManager={canvasPoolManager}
           />
         }
