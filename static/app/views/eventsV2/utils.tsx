@@ -439,7 +439,7 @@ function generateExpandedConditions(
 type FieldGeneratorOpts = {
   organization: OrganizationSummary;
   aggregations?: Record<string, Aggregation>;
-  customMeasurementKeys?: string[] | null;
+  customMeasurements?: {functions: string[]; key: string}[] | null;
   fields?: Record<string, ColumnType>;
   measurementKeys?: string[] | null;
   spanOperationBreakdownKeys?: string[];
@@ -450,8 +450,8 @@ export function generateFieldOptions({
   organization,
   tagKeys,
   measurementKeys,
-  customMeasurementKeys,
   spanOperationBreakdownKeys,
+  customMeasurements,
   aggregations = AGGREGATIONS,
   fields = FIELDS,
 }: FieldGeneratorOpts) {
@@ -519,14 +519,18 @@ export function generateFieldOptions({
     });
   }
 
-  if (customMeasurementKeys !== undefined && customMeasurementKeys !== null) {
-    customMeasurementKeys.sort();
-    customMeasurementKeys.forEach(customMeasurement => {
-      fieldOptions[`measurement:${customMeasurement}`] = {
-        label: customMeasurement,
+  if (customMeasurements !== undefined && customMeasurements !== null) {
+    customMeasurements.sort();
+    customMeasurements.forEach(({key, functions: supportedFunctions}) => {
+      fieldOptions[`measurement:${key}`] = {
+        label: key,
         value: {
           kind: FieldValueKind.CUSTOM_MEASUREMENT,
-          meta: {name: customMeasurement, dataType: measurementType(customMeasurement)},
+          meta: {
+            name: key,
+            dataType: measurementType(key),
+            functions: supportedFunctions,
+          },
         },
       };
     });
