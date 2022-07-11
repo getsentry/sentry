@@ -35,6 +35,7 @@ from sentry.models import (
     UserOption,
     UserReport,
 )
+from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.notifications.types import (
     ActionTargetType,
@@ -77,11 +78,20 @@ class MailAdapterActiveReleaseTest(BaseMailAdapterTest):
     @mock.patch("sentry.analytics.record")
     @mock.patch("sentry.notifications.utils.participants.get_release_committers")
     def test_simple(self, mock_get_release_committers, record):
-        mock_get_release_committers.return_value = [
-            self.create_user(email="test@example.com", username="foo")
-        ]
+        new_user = self.create_user(email="test@example.com", username="foo")
+        mock_get_release_committers.return_value = [new_user]
+        self.team = self.create_team(
+            name="Team Name", organization=self.organization, members=[new_user]
+        )
         event = self.store_event(
             data={"message": "Hello world", "level": "error"}, project_id=self.project.id
+        )
+        GroupOwner.objects.create(
+            group_id=event.group.id,
+            project=event.project,
+            organization_id=self.organization.id,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+            user=new_user,
         )
         newRelease = Release.objects.create(
             organization_id=self.organization.id,
@@ -126,6 +136,9 @@ class MailAdapterActiveReleaseTest(BaseMailAdapterTest):
                 release_version="2",
                 recipient_email="test@example.com",
                 recipient_username="foo",
+                suspect_committer_ids=["user:1"],
+                code_owner_ids=[1],
+                team_ids=[self.team.id],
             )
         ]
 
