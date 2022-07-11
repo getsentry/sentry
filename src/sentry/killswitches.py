@@ -28,6 +28,7 @@ def _update_project_configs(
     """Callback for the relay.drop-transaction-metrics kill switch.
     On every change, force a recomputation of the corresponding project configs
     """
+    from sentry.models import Organization
     from sentry.tasks.relay import schedule_invalidate_project_config
 
     old_project_ids = {ctx["project_id"] for ctx in old_option_value}
@@ -37,9 +38,23 @@ def _update_project_configs(
     # or removed
     changed_project_ids = old_project_ids ^ new_project_ids
 
-    with click.progressbar(changed_project_ids) as ids:
-        for project_id in ids:
-            if project_id is not None:
+    if None in changed_project_ids:
+        with click.progressbar(length=Organization.objects.count()) as bar:
+            # Since all other invalidations, which would happen anyway, will de-duplicate
+            # with these ones the extra load of this is reasonable.  A temporary backlog in
+            # the relay_config_bulk queue is just fine.  We have server-side cursors
+            # disabled so .iterator() fetches 50k u64's at once which is about 390kb and
+            # at time of writing yields about 24 batches.
+            for org_id in (
+                Organization.objects.values_list("id", flat=True).all().iterator(chunk_size=50_000)
+            ):
+                schedule_invalidate_project_config(
+                    trigger="invalidate-all", organization_id=org_id, countdown=0
+                )
+                bar.update(1)
+    else:
+        with click.progressbar(changed_project_ids) as ids:
+            for project_id in ids:
                 schedule_invalidate_project_config(
                     project_id=project_id, trigger="killswitches.relay.drop-transaction-metrics"
                 )
@@ -173,8 +188,8 @@ ALL_KILLSWITCH_OPTIONS = {
         Note that this change will not take effect immediately, it takes time
         for downstream Relay instances to update their caches.
 
-        If project_id is set to None, the kill switch will match *any* project_id,
-        but no invalidation task will be run.
+        If project_id is set to None, extraction will be disabled for all projects.
+        In this case, the invalidation of existing project configs can take up to one hour.
         """,
         fields={
             "project_id": "project ID for which we want to stop extracting transaction metrics",

@@ -41,7 +41,10 @@ import {
   generateEventSlug,
 } from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';
-import {getMeasurements} from 'sentry/utils/measurements/measurements';
+import {
+  getMeasurements,
+  MeasurementCollection,
+} from 'sentry/utils/measurements/measurements';
 import {FieldValueOption} from 'sentry/views/eventsV2/table/queryField';
 import {FieldValue, FieldValueKind} from 'sentry/views/eventsV2/table/types';
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
@@ -149,6 +152,7 @@ export const ErrorsAndTransactionsConfig: DatasetConfig<
   },
   transformSeries: transformEventsResponseToSeries,
   transformTable: transformEventsResponseToTable,
+  filterTableOptions,
 };
 
 function getTableSortOptions(_organization: Organization, widgetQuery: WidgetQuery) {
@@ -229,13 +233,22 @@ function getTimeseriesSortOptions(
   return {...options, ...fieldOptions};
 }
 
-function getEventsTableFieldOptions(organization: Organization, tags?: TagCollection) {
+function getEventsTableFieldOptions(
+  organization: Organization,
+  tags?: TagCollection,
+  customMeasurements?: MeasurementCollection
+) {
   const measurements = getMeasurements();
 
   return generateFieldOptions({
     organization,
     tagKeys: Object.values(tags ?? {}).map(({key}) => key),
     measurementKeys: Object.values(measurements).map(({key}) => key),
+    customMeasurementKeys: organization.features.includes(
+      'dashboard-custom-measurement-widgets'
+    )
+      ? Object.values(customMeasurements ?? {}).map(({key}) => key)
+      : undefined,
     spanOperationBreakdownKeys: SPAN_OP_BREAKDOWN_FIELDS,
   });
 }
@@ -489,6 +502,7 @@ function getEventsSeriesRequest(
       partial: true,
       field: [...widgetQuery.columns, ...widgetQuery.aggregates],
       queryExtras: getDashboardsMEPQueryParams(isMEPEnabled),
+      includeAllArgs: true,
     };
     if (widgetQuery.orderby) {
       requestData.orderby = widgetQuery.orderby;
@@ -509,6 +523,7 @@ function getEventsSeriesRequest(
       referrer,
       partial: true,
       queryExtras: getDashboardsMEPQueryParams(isMEPEnabled),
+      includeAllArgs: true,
     };
     if (widgetQuery.columns?.length !== 0) {
       requestData.topEvents = limit ?? TOP_N;
@@ -547,5 +562,10 @@ function getEventsSeriesRequest(
     }
   }
 
-  return doEventsRequest(api, requestData);
+  return doEventsRequest<true>(api, requestData);
+}
+
+// Custom Measurements aren't selectable as columns/yaxis without using an aggregate
+function filterTableOptions(option: FieldValueOption) {
+  return option.value.kind !== FieldValueKind.CUSTOM_MEASUREMENT;
 }

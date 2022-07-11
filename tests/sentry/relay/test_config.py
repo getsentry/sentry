@@ -101,6 +101,28 @@ def test_project_config_uses_filters_and_sampling_feature(
 
 
 @pytest.mark.django_db
+@pytest.mark.parametrize("active", [False, True])
+def test_project_config_filters_out_non_active_rules_in_dynamic_sampling(
+    default_project, dyn_sampling_data, active
+):
+    """
+    Tests that dynamic sampling information is retrieved only for "active" rules.
+    """
+    default_project.update_option("sentry:dynamic_sampling", dyn_sampling_data(active))
+
+    with Feature({"organizations:filters-and-sampling": True}):
+        cfg = get_project_config(default_project)
+
+    cfg = cfg.to_dict()
+    dynamic_sampling = get_path(cfg, "config", "dynamicSampling")
+
+    if active:
+        assert dynamic_sampling == dyn_sampling_data(active)
+    else:
+        assert dynamic_sampling == {"rules": []}
+
+
+@pytest.mark.django_db
 @pytest.mark.parametrize("transaction_metrics", ("with_metrics", "without_metrics"))
 def test_project_config_with_breakdown(default_project, insta_snapshot, transaction_metrics):
     with Feature(

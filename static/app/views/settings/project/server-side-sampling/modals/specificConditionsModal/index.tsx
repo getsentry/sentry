@@ -1,6 +1,7 @@
 import {Fragment, KeyboardEvent, useEffect, useState} from 'react';
 import {createFilter} from 'react-select';
 import styled from '@emotion/styled';
+import partition from 'lodash/partition';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -21,7 +22,6 @@ import {
   SamplingConditionOperator,
   SamplingInnerName,
   SamplingRule,
-  SamplingRules,
   SamplingRuleType,
 } from 'sentry/types/sampling';
 import {defined} from 'sentry/utils';
@@ -53,7 +53,7 @@ type State = {
 type Props = ModalRenderProps & {
   organization: Organization;
   project: Project;
-  rules: SamplingRules;
+  rules: SamplingRule[];
   rule?: SamplingRule;
 };
 
@@ -154,14 +154,20 @@ export function SpecificConditionsModal({
       ? rules.map(existingRule => (existingRule.id === rule.id ? newRule : existingRule))
       : [...rules, newRule];
 
+    // Make sure that a uniform rule is always send in the last position of the rules array
+    const [uniformRule, specificRules] = partition(newRules, isUniformRule);
+
     setIsSaving(true);
 
     try {
-      const newProjectDetails = await api.requestPromise(
+      const response = await api.requestPromise(
         `/projects/${organization.slug}/${project.slug}/`,
-        {method: 'PUT', data: {dynamicSampling: {rules: newRules}}}
+        {
+          method: 'PUT',
+          data: {dynamicSampling: {rules: [...specificRules, ...uniformRule]}},
+        }
       );
-      ProjectStore.onUpdateSuccess(newProjectDetails);
+      ProjectStore.onUpdateSuccess(response);
       addSuccessMessage(
         rule
           ? t('Successfully edited sampling rule')
