@@ -27,8 +27,13 @@ register("system.url-prefix", ttl=60, grace=3600, flags=FLAG_REQUIRED | FLAG_PRI
 register("system.internal-url-prefix", flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
 register("system.base-hostname", flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_NOSTORE)
 register(
-    "system.customer-base-hostname", flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_NOSTORE
+    "system.organization-base-hostname",
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_NOSTORE,
 )
+register(
+    "system.organization-url-template", flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_NOSTORE
+)
+register("system.region", flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_NOSTORE)
 register("system.root-api-key", flags=FLAG_PRIORITIZE_DISK)
 register("system.logging-format", default=LoggingFormat.HUMAN, flags=FLAG_NOSTORE)
 # This is used for the chunk upload endpoint
@@ -79,15 +84,44 @@ register("mail.reply-hostname", default="", flags=FLAG_ALLOW_EMPTY | FLAG_PRIORI
 register("mail.mailgun-api-key", default="", flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
 register("mail.timeout", default=10, type=Int, flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
 
+# TOTP (Auth app)
+register(
+    "totp.disallow-new-enrollment",
+    default=False,
+    type=Bool,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK,
+)
+
 # SMS
 register("sms.twilio-account", default="", flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
 register("sms.twilio-token", default="", flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
 register("sms.twilio-number", default="", flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
+register(
+    "sms.disallow-new-enrollment",
+    default=False,
+    type=Bool,
+    flags=FLAG_ALLOW_EMPTY,
+)
 
 # U2F
 register("u2f.app-id", default="", flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
 register("u2f.facets", default=(), type=Sequence, flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
+register(
+    "u2f.disallow-new-enrollment",
+    default=False,
+    type=Bool,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK,
+)
 
+# Recovery Codes
+register(
+    "recovery.disallow-new-enrollment",
+    default=False,
+    type=Bool,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK,
+)
+
+# Auth
 register("auth.ip-rate-limit", default=0, flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
 register("auth.user-rate-limit", default=0, flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
 register(
@@ -95,6 +129,7 @@ register(
     default=False,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_REQUIRED,
 )
+
 
 register("api.rate-limit.org-create", default=5, flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
 

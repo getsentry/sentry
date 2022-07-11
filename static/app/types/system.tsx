@@ -132,12 +132,14 @@ export interface Config {
   messages: {level: keyof Theme['alert']; message: string}[];
   needsUpgrade: boolean;
 
+  organizationUrl: string | undefined;
   privacyUrl: string | null;
   sentryConfig: {
     dsn: string;
     release: string;
     whitelistUrls: string[];
   };
+  sentryUrl: string;
   singleOrganization: boolean;
   supportEmail: string;
   termsUrl: string | null;
