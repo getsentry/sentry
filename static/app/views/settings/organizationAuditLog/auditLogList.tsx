@@ -144,9 +144,8 @@ const SentryAvatar = styled(ActivityAvatar)`
   margin-right: ${space(1)};
 `;
 
-const Name = styled('div')`
-  font-weight: 600;
-  font-size: 15px;
+const Name = styled('strong')`
+  font-size: ${p => p.theme.fontSizeMedium};
 `;
 
 const StaffTag = styled(Tag)`
@@ -161,7 +160,7 @@ const UserInfo = styled('div')`
   display: flex;
   align-items: center;
   line-height: 1.2;
-  font-size: 13px;
+  font-size: ${p => p.theme.fontSizeSmall};
   min-width: 250px;
 `;
 
@@ -172,7 +171,7 @@ const NameContainer = styled('div')`
 `;
 
 const Note = styled('div')`
-  font-size: 13px;
+  font-size: ${p => p.theme.fontSizeSmall};
   word-break: break-word;
 `;
 
