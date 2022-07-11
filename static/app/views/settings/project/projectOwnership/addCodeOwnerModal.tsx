@@ -138,7 +138,7 @@ class AddCodeOwnerModal extends AsyncComponent<Props, State> {
         <SourceFileBody>
           <IconCheckmark size="md" isCircled color="green200" />
           {codeownersFile.filepath}
-          <Button size="small" href={codeownersFile.html_url} external>
+          <Button size="sm" href={codeownersFile.html_url} external>
             {t('Preview File')}
           </Button>
         </SourceFileBody>
@@ -224,7 +224,7 @@ class AddCodeOwnerModal extends AsyncComponent<Props, State> {
                   {t('Install a GitHub or GitLab integration to use this feature.')}
                 </div>
                 <Container style={{paddingTop: space(2)}}>
-                  <Button type="button" priority="primary" size="small" to={baseUrl}>
+                  <Button type="button" priority="primary" size="sm" to={baseUrl}>
                     Setup Integration
                   </Button>
                 </Container>

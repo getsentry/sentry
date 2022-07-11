@@ -44,11 +44,7 @@ const U2fEnrolledDetails = props => {
             />
           ))}
         <AddAnotherPanelItem>
-          <Button
-            type="button"
-            to="/settings/account/security/mfa/u2f/enroll/"
-            size="small"
-          >
+          <Button type="button" to="/settings/account/security/mfa/u2f/enroll/" size="sm">
             {t('Add Another Device')}
           </Button>
         </AddAnotherPanelItem>
@@ -70,7 +66,7 @@ const Device = props => {
           <FadedDateTime date={device.timestamp} />
         </DeviceInformation>
         <Actions>
-          <Button size="small" onClick={() => setEditting(true)}>
+          <Button size="sm" onClick={() => setEditting(true)}>
             {t('Rename Device')}
           </Button>
         </Actions>
@@ -87,7 +83,7 @@ const Device = props => {
               </Fragment>
             }
           >
-            <Button size="small" priority="danger">
+            <Button size="sm" priority="danger">
               <Tooltip
                 disabled={!isLastDevice}
                 title={t('Can not remove last U2F device')}
@@ -116,7 +112,7 @@ const Device = props => {
       <Actions>
         <Button
           priority="primary"
-          size="small"
+          size="sm"
           onClick={() => {
             onRenameU2fDevice(device, deviceName);
             setEditting(false);
@@ -128,7 +124,7 @@ const Device = props => {
 
       <Actions>
         <Button
-          size="small"
+          size="sm"
           title="Cancel rename"
           onClick={() => {
             setDeviceName(device.name);

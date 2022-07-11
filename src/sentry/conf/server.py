@@ -965,8 +965,6 @@ SENTRY_FEATURES = {
     "organizations:duplicate-alert-rule": True,
     # Enable attaching arbitrary files to events.
     "organizations:event-attachments": True,
-    # Enable Filters & Sampling in the project settings
-    "organizations:filters-and-sampling": False,
     # Allow organizations to configure all symbol sources.
     "organizations:symbol-sources": True,
     # Allow organizations to configure custom external symbol sources.
@@ -1452,6 +1450,10 @@ SENTRY_METRICS_SKIP_INTERNAL_PREFIXES = []  # Order this by most frequent prefix
 SENTRY_METRICS_INDEXER = "sentry.sentry_metrics.indexer.postgres_v2.StaticStringsIndexerDecorator"
 SENTRY_METRICS_INDEXER_OPTIONS = {}
 SENTRY_METRICS_INDEXER_CACHE_TTL = 3600 * 2
+SENTRY_METRICS_INDEXER_WRITES_LIMITER_OPTIONS = {}
+SENTRY_METRICS_INDEXER_WRITES_LIMITER_OPTIONS_PERFORMANCE = (
+    SENTRY_METRICS_INDEXER_WRITES_LIMITER_OPTIONS
+)
 
 # Release Health
 SENTRY_RELEASE_HEALTH = "sentry.release_health.sessions.SessionsReleaseHealthBackend"

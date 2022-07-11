@@ -178,7 +178,7 @@ class ReleaseWidgetQueries extends Component<Props, State> {
             sort: 'date',
             project: projects,
             per_page: 50,
-            environments,
+            environment: environments,
           },
         }
       );

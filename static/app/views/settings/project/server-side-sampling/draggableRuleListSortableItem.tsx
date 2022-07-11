@@ -1,9 +1,9 @@
 import {useSortable} from '@dnd-kit/sortable';
 
-import {Item} from './item';
+import {DraggableRuleListItem} from './draggableRuleListItem';
 
 export type SortableItemProps = Pick<
-  React.ComponentProps<typeof Item>,
+  React.ComponentProps<typeof DraggableRuleListItem>,
   'renderItem' | 'index'
 > & {
   id: string;
@@ -16,7 +16,7 @@ export type SortableItemProps = Pick<
   disabled?: boolean;
 };
 
-export function SortableItem({
+export function DraggableRuleListSortableItem({
   id,
   index,
   renderItem,
@@ -34,7 +34,7 @@ export function SortableItem({
   } = useSortable({id, disabled});
 
   return (
-    <Item
+    <DraggableRuleListItem
       forwardRef={setNodeRef}
       value={id}
       sorting={isSorting}

@@ -83,19 +83,19 @@ WithAnIcon.parameters = {
 };
 
 export const Small = () => [
-  <AlertLink to="/settings/account/notifications" size="small" key="1">
+  <AlertLink to="/settings/account/notifications" size="sm" key="1">
     Check out the notifications settings panel.
   </AlertLink>,
-  <AlertLink to="/settings/account/notifications" priority="error" size="small" key="2">
+  <AlertLink to="/settings/account/notifications" priority="error" size="sm" key="2">
     Do not forget to read the docs ya dum dum!
   </AlertLink>,
-  <AlertLink to="/settings/account/notifications" priority="info" size="small" key="3">
+  <AlertLink to="/settings/account/notifications" priority="info" size="sm" key="3">
     Install this thing or else!
   </AlertLink>,
-  <AlertLink to="/settings/account/notifications" priority="success" size="small" key="4">
+  <AlertLink to="/settings/account/notifications" priority="success" size="sm" key="4">
     Gj you did it. Now go here.
   </AlertLink>,
-  <AlertLink to="/settings/account/notifications" priority="muted" size="small" key="5">
+  <AlertLink to="/settings/account/notifications" priority="muted" size="sm" key="5">
     I am saying nothing, ok?
   </AlertLink>,
 ];
