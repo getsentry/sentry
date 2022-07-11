@@ -4269,28 +4269,25 @@
   resolved "https://registry.yarnpkg.com/@webpack-cli/serve/-/serve-1.7.0.tgz#e1993689ac42d2b16e9194376cfb6753f6254db1"
   integrity sha512-oxnCNGj88fL+xzV+dacXs44HcDwf1ovs3AuEzvP7mqXw7fQntqIhQ1BRmynh4qEKQSSSRSWVyXRjmTbZIX9V2Q==
 
-"@wojtekmaj/enzyme-adapter-react-17@0.6.1":
-  version "0.6.1"
-  resolved "https://registry.yarnpkg.com/@wojtekmaj/enzyme-adapter-react-17/-/enzyme-adapter-react-17-0.6.1.tgz#28caa37118c183e5f13c4dfb68cc32cde828ecbc"
-  integrity sha512-xgPfzLVpN0epIHeZofahwr5qwpukEDNAbrufgeDWN6vZPtfblGCC+OZG5TlfK+A6ePVy8sBkD8S2X4tO17JKjg==
+"@wojtekmaj/enzyme-adapter-react-17@0.6.7":
+  version "0.6.7"
+  resolved "https://registry.yarnpkg.com/@wojtekmaj/enzyme-adapter-react-17/-/enzyme-adapter-react-17-0.6.7.tgz#7784bd32f518b186218cebb26c98c852676f30b0"
+  integrity sha512-B+byiwi/T1bx5hcj9wc0fUL5Hlb5giSXJzcnEfJVl2j6dGV2NJfcxDBYX0WWwIxlzNiFz8kAvlkFWI2y/nscZQ==
   dependencies:
-    "@wojtekmaj/enzyme-adapter-utils" "^0.1.0"
+    "@wojtekmaj/enzyme-adapter-utils" "^0.1.4"
     enzyme-shallow-equal "^1.0.0"
     has "^1.0.0"
-    object.assign "^4.1.0"
-    object.values "^1.1.0"
     prop-types "^15.7.0"
     react-is "^17.0.0"
     react-test-renderer "^17.0.0"
 
-"@wojtekmaj/enzyme-adapter-utils@^0.1.0":
-  version "0.1.0"
-  resolved "https://registry.yarnpkg.com/@wojtekmaj/enzyme-adapter-utils/-/enzyme-adapter-utils-0.1.0.tgz#3a2a3db756111d53357e2f119a1612a969ab8c38"
-  integrity sha512-EYK/Vy0Y1ap0jH2UNQjOKtR/7HWkbEq8N+cwC5+yDf+Mwp5uu7j4Qg70RmWuzsA35DGGwgkop6m4pQsGwNOF2A==
+"@wojtekmaj/enzyme-adapter-utils@^0.1.4":
+  version "0.1.4"
+  resolved "https://registry.yarnpkg.com/@wojtekmaj/enzyme-adapter-utils/-/enzyme-adapter-utils-0.1.4.tgz#bcd411ad6e368f17dce5425582c2907104cdb1ad"
+  integrity sha512-ARGIQSIIv3oBia1m5Ihn1VU0FGmft6KPe39SBKTb8p7LSXO23YI4kNtc4M/cKoIY7P+IYdrZcgMObvedyjoSQA==
   dependencies:
     function.prototype.name "^1.1.0"
     has "^1.0.0"
-    object.assign "^4.1.0"
     object.fromentries "^2.0.0"
     prop-types "^15.7.0"
 
