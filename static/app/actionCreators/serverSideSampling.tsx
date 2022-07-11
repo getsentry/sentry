@@ -23,6 +23,7 @@ export function fetchSamplingSdkVersions({
     {
       query: {
         project: projectIds,
+        statsPeriod: '24h',
       },
     }
   );
@@ -47,7 +48,12 @@ export function fetchSamplingDistribution({
   ServerSideSamplingStore.reset();
 
   const promise = api.requestPromise(
-    `/projects/${orgSlug}/${projSlug}/dynamic-sampling/distribution/`
+    `/projects/${orgSlug}/${projSlug}/dynamic-sampling/distribution/`,
+    {
+      query: {
+        statsPeriod: '24h',
+      },
+    }
   );
 
   promise
