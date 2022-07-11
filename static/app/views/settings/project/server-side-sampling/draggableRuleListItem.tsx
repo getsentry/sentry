@@ -5,16 +5,16 @@ import styled from '@emotion/styled';
 
 type UseSortableOutputProps = ReturnType<typeof useSortable>;
 
-export type ItemProps = {
+export type DraggableRuleListItemProps = {
   renderItem(args: {
     dragging: boolean;
     sorting: boolean;
-    value: ItemProps['value'];
-    attributes?: ItemProps['attributes'];
-    index?: ItemProps['index'];
-    listeners?: ItemProps['listeners'];
-    transform?: ItemProps['transform'];
-    transition?: ItemProps['transition'];
+    value: DraggableRuleListItemProps['value'];
+    attributes?: DraggableRuleListItemProps['attributes'];
+    index?: DraggableRuleListItemProps['index'];
+    listeners?: DraggableRuleListItemProps['listeners'];
+    transform?: DraggableRuleListItemProps['transform'];
+    transition?: DraggableRuleListItemProps['transition'];
   }): React.ReactElement | null;
   value: React.ReactNode;
   attributes?: UseSortableOutputProps['attributes'];
@@ -28,7 +28,7 @@ export type ItemProps = {
   wrapperStyle?: React.CSSProperties;
 };
 
-export function Item({
+export function DraggableRuleListItem({
   value,
   dragging,
   index,
@@ -40,7 +40,7 @@ export function Item({
   attributes,
   renderItem,
   wrapperStyle,
-}: ItemProps) {
+}: DraggableRuleListItemProps) {
   return (
     <Wrapper
       data-test-id="sampling-rule"

@@ -247,7 +247,7 @@ const DebugImage = memo(({image, organization, projectId, showDetails, style}: P
           return (
             <ImageActions>
               <Button
-                size="xsmall"
+                size="xs"
                 icon={<IconSearch size="xs" />}
                 to={settingsUrl}
                 title={t('Search for debug files in settings')}

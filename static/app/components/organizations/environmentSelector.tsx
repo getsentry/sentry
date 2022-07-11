@@ -252,7 +252,7 @@ function EnvironmentSelector({
           virtualizedHeight={theme.headerSelectorRowHeight}
           emptyHidesInput
           inputActions={
-            showPin ? <StyledPinButton size="xsmall" filter="environments" /> : undefined
+            showPin ? <StyledPinButton size="xs" filter="environments" /> : undefined
           }
           menuFooter={({actions}) =>
             hasChanges ? (

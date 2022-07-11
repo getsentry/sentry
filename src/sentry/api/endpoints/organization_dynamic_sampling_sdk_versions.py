@@ -53,7 +53,13 @@ class OrganizationDynamicSamplingSDKVersionsEndpoint(OrganizationEndpoint):
         stats_period = min(
             parse_stats_period(request.GET.get("statsPeriod", "24h")), timedelta(days=2)
         )
+
         end_time = timezone.now()
+        # Quantize time boundary down so that during a 5-minute interval, the query time boundaries
+        # remain the same to leverage the snuba cache
+        end_time = end_time.replace(
+            minute=(end_time.minute - end_time.minute % 5), second=0, microsecond=0
+        )
         start_time = end_time - stats_period
 
         avg_equation = 'count_if(trace.client_sample_rate, notEquals, "") / count()'
@@ -115,7 +121,7 @@ class OrganizationDynamicSamplingSDKVersionsEndpoint(OrganizationEndpoint):
             ] = {
                 "project": project_sdk_info["project"],
                 "latestSDKName": project_sdk_info["sdk.name"],
-                "lastestSDKVersion": project_sdk_info["sdk.version"],
+                "latestSDKVersion": project_sdk_info["sdk.version"],
                 "isSendingSampleRate": bool(project_sdk_info[f"equation|{avg_equation}"]),
             }
 

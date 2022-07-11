@@ -5,30 +5,34 @@ import {arrayMove, SortableContext, verticalListSortingStrategy} from '@dnd-kit/
 
 import {SamplingRule} from 'sentry/types/sampling';
 
-import {Item, ItemProps} from './item';
-import {SortableItem, SortableItemProps} from './sortableItem';
+import {DraggableRuleListItem, DraggableRuleListItemProps} from './draggableRuleListItem';
+import {
+  DraggableRuleListSortableItem,
+  SortableItemProps,
+} from './draggableRuleListSortableItem';
+import {isUniformRule} from './utils';
 
-export type UpdateItemsProps = {
+export type DraggableRuleListUpdateItemsProps = {
   activeIndex: string;
   overIndex: string;
   reorderedItems: Array<string>;
 };
 
 type Props = Pick<SortableItemProps, 'disabled' | 'wrapperStyle'> &
-  Pick<ItemProps, 'renderItem'> & {
+  Pick<DraggableRuleListItemProps, 'renderItem'> & {
     items: Array<
       Omit<SamplingRule, 'id'> & {
         id: string;
       }
     >;
-    onUpdateItems: (props: UpdateItemsProps) => void;
+    onUpdateItems: (props: DraggableRuleListUpdateItemsProps) => void;
   };
 
 type State = {
   activeId?: string;
 };
 
-export function DraggableList({
+export function DraggableRuleList({
   items,
   onUpdateItems,
   renderItem,
@@ -69,12 +73,14 @@ export function DraggableList({
     >
       <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>
         {itemIds.map((itemId, index) => (
-          <SortableItem
+          <DraggableRuleListSortableItem
             key={itemId}
             id={itemId}
             index={index}
             renderItem={renderItem}
-            disabled={disabled || items[index].bottomPinned}
+            disabled={
+              disabled || isUniformRule({...items[index], id: Number(items[index].id)})
+            }
             wrapperStyle={wrapperStyle}
           />
         ))}
@@ -82,7 +88,7 @@ export function DraggableList({
       {createPortal(
         <DragOverlay>
           {state.activeId ? (
-            <Item
+            <DraggableRuleListItem
               value={itemIds[activeIndex]}
               renderItem={renderItem}
               wrapperStyle={wrapperStyle({

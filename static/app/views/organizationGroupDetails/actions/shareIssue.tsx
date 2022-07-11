@@ -123,7 +123,7 @@ function ShareUrlContainer({
         <ClipboardButton
           title={t('Copy to clipboard')}
           borderless
-          size="xsmall"
+          size="xs"
           onClick={() => urlRef.current?.selectText()}
           icon={<IconCopy />}
           aria-label={t('Copy to clipboard')}
@@ -142,7 +142,7 @@ function ShareUrlContainer({
           title={t('Generate new URL')}
           aria-label={t('Generate new URL')}
           borderless
-          size="xsmall"
+          size="xs"
           icon={<IconRefresh />}
         />
       </Confirm>
