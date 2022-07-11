@@ -200,7 +200,7 @@ def process_messages(
                     new_v = mapping[org_id][v]
 
                     if new_k is None:
-                        _, _, fetch_type_ext = bulk_record_meta[k]
+                        _, _, fetch_type_ext = bulk_record_meta.get(k) or (None, None, None)
                         if fetch_type_ext and fetch_type_ext.is_global:
                             exceeded_global_quotas += 1
                         else:
@@ -209,7 +209,7 @@ def process_messages(
                         continue
 
                     if new_v is None:
-                        _, _, fetch_type_ext = bulk_record_meta[v]
+                        _, _, fetch_type_ext = bulk_record_meta.get(v) or (None, None, None)
                         if fetch_type_ext and fetch_type_ext.is_global:
                             exceeded_global_quotas += 1
                         else:
@@ -248,7 +248,7 @@ def process_messages(
             new_payload_value["tags"] = new_tags
             new_payload_value["metric_id"] = numeric_metric_id = mapping[org_id][metric_name]
             if numeric_metric_id is None:
-                _, _, fetch_type_ext = bulk_record_meta[metric_name]
+                _, _, fetch_type_ext = bulk_record_meta.get(metric_name) or (None, None, None)
                 logger.error(
                     "process_messages.dropped_message",
                     extra={
