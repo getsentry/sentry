@@ -109,8 +109,9 @@ class OrganizationDynamicSamplingSDKVersionsEndpoint(OrganizationEndpoint):
             #     "wind": {"sentry.javascript.react": 3},
             #     "earth": {"sentry.javascript.react": 45, "sentry.javascript.browser": 4},
             # }
-            total_sdk_name_count_per_project.setdefault(row["project"], {})
-            total_sdk_name_count_per_project[row["project"]].setdefault(row["sdk.name"], 0)
+            total_sdk_name_count_per_project.setdefault(row["project"], {}).setdefault(
+                row["sdk.name"], 0
+            )
             total_sdk_name_count_per_project[row["project"]][row["sdk.name"]] += row["count()"]
 
         # Creates a dictionary that has the first level key as project id and values (second

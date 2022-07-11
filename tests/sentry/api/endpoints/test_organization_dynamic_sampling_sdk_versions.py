@@ -191,7 +191,6 @@ class OrganizationDynamicSamplingSDKVersionsTest(APITestCase):
         mock_query.return_value = mocked_discover_query()
         with Feature({"organizations:server-side-sampling": True}):
             response = self.client.get(f"{self.endpoint}?project={self.project.id}")
-            print(response.json())
             assert response.json() == [
                 {
                     "project": "wind",
