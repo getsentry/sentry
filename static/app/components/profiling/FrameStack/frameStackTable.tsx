@@ -80,15 +80,15 @@ function skipRecursiveNodes(n: VirtualizedTreeNode<FlamegraphFrame>): boolean {
 interface FrameStackTableProps {
   canvasPoolManager: CanvasPoolManager;
   formatDuration: Flamegraph['formatter'];
-  frames: FlamegraphFrame[];
   getFrameColor: (frame: FlamegraphFrame) => string;
   recursion: 'collapsed' | null;
-  root: FlamegraphFrame;
+  referenceNode: FlamegraphFrame;
+  tree: FlamegraphFrame[];
 }
 
 export function FrameStackTable({
-  frames,
-  root,
+  tree,
+  referenceNode,
   canvasPoolManager,
   getFrameColor,
   formatDuration,
@@ -136,7 +136,7 @@ export function FrameStackTable({
           }}
           node={r.item}
           style={r.styles}
-          root={root}
+          referenceNode={referenceNode}
           frameColor={getFrameColor(r.item.node)}
           formatDuration={formatDuration}
           tabIndex={tabIndexKey === r.key ? 0 : 1}
@@ -151,7 +151,7 @@ export function FrameStackTable({
         />
       );
     },
-    [contextMenu, formatDuration, root, getFrameColor]
+    [contextMenu, formatDuration, referenceNode, getFrameColor]
   );
 
   const {
@@ -167,7 +167,7 @@ export function FrameStackTable({
     renderRow,
     scrollContainer: scrollContainerRef,
     rowHeight: 24,
-    roots: frames,
+    tree,
   });
 
   const onSortChange = useCallback(

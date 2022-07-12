@@ -20,8 +20,8 @@ interface FrameStackProps {
   canvasPoolManager: CanvasPoolManager;
   formatDuration: Flamegraph['formatter'];
   getFrameColor: (frame: FlamegraphFrame) => string;
-  root: FlamegraphFrame;
-  roots: FlamegraphFrame[];
+  referenceNode: FlamegraphFrame;
+  rootNodes: FlamegraphFrame[];
 }
 
 const FrameStack = memo(function FrameStack(props: FrameStackProps) {
@@ -33,7 +33,7 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
   const [treeType, setTreeType] = useState<'all' | 'application' | 'system'>('all');
   const [recursion, setRecursion] = useState<'collapsed' | null>(null);
 
-  const roots: FlamegraphFrame[] | null = useMemo(() => {
+  const maybeFilteredOrInvertedTree: FlamegraphFrame[] | null = useMemo(() => {
     const skipFunction: (f: FlamegraphFrame) => boolean =
       treeType === 'application'
         ? f => !f.frame.is_application
@@ -42,14 +42,16 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
         : () => false;
 
     const maybeFilteredRoots =
-      treeType !== 'all' ? filterFlamegraphTree(props.roots, skipFunction) : props.roots;
+      treeType !== 'all'
+        ? filterFlamegraphTree(props.rootNodes, skipFunction)
+        : props.rootNodes;
 
     if (tab === 'call order') {
       return maybeFilteredRoots;
     }
 
     return invertCallTree(maybeFilteredRoots);
-  }, [tab, treeType, props.roots]);
+  }, [tab, treeType, props.rootNodes]);
 
   const handleRecursionChange = useCallback(
     (evt: React.ChangeEvent<HTMLInputElement>) => {
@@ -192,8 +194,8 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
       <FrameStackTable
         {...props}
         recursion={recursion}
-        root={props.root}
-        frames={roots ?? []}
+        referenceNode={props.referenceNode}
+        tree={maybeFilteredOrInvertedTree ?? []}
         canvasPoolManager={props.canvasPoolManager}
       />
     </FrameDrawer>
