@@ -10,5 +10,5 @@ def test_use_case_id_from_str():
 
 
 def test_use_case_id_from_str_raise_exc():
-    with pytest.raises(NotImplementedError):
+    with pytest.raises(ValueError):
         UseCaseKey.from_str("")

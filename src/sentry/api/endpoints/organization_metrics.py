@@ -7,7 +7,6 @@ from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import InvalidParams
-from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.snuba.metrics import (
     QueryDefinition,
     get_metrics,
@@ -29,8 +28,7 @@ class OrganizationMetricsEndpoint(OrganizationEndpoint):
             return Response(status=404)
 
         projects = self.get_projects(request, organization)
-        use_case_id = UseCaseKey.from_str(request.GET.get("useCase", "releath-health"))
-        metrics = get_metrics(projects, use_case_id)
+        metrics = get_metrics(projects, use_case_id=self.get_use_case_id(request))
         return Response(metrics, status=200)
 
 
@@ -42,9 +40,10 @@ class OrganizationMetricDetailsEndpoint(OrganizationEndpoint):
             return Response(status=404)
 
         projects = self.get_projects(request, organization)
-        use_case_id = UseCaseKey.from_str(request.GET.get("useCase", "release-health"))
         try:
-            metric = get_single_metric_info(projects, metric_name, use_case_id)
+            metric = get_single_metric_info(
+                projects, metric_name, use_case_id=self.get_use_case_id(request)
+            )
         except InvalidParams as e:
             raise ResourceDoesNotExist(e)
         except (InvalidField, DerivedMetricParseException) as exc:
@@ -71,9 +70,8 @@ class OrganizationMetricsTagsEndpoint(OrganizationEndpoint):
 
         metric_names = request.GET.getlist("metric") or None
         projects = self.get_projects(request, organization)
-        use_case_id = UseCaseKey.from_str(request.GET.get("useCase", "release-health"))
         try:
-            tags = get_tags(projects, metric_names, use_case_id)
+            tags = get_tags(projects, metric_names, use_case_id=self.get_use_case_id(request))
         except (InvalidParams, DerivedMetricParseException) as exc:
             raise (ParseError(detail=str(exc)))
 
@@ -91,9 +89,10 @@ class OrganizationMetricsTagDetailsEndpoint(OrganizationEndpoint):
         metric_names = request.GET.getlist("metric") or None
 
         projects = self.get_projects(request, organization)
-        use_case_id = UseCaseKey.from_str(request.GET.get("useCase", "release-health"))
         try:
-            tag_values = get_tag_values(projects, tag_name, metric_names, use_case_id)
+            tag_values = get_tag_values(
+                projects, tag_name, metric_names, use_case_id=self.get_use_case_id(request)
+            )
         except (InvalidParams, DerivedMetricParseException) as exc:
             msg = str(exc)
             # TODO: Use separate error type once we have real data
@@ -129,9 +128,7 @@ class OrganizationMetricsDataEndpoint(OrganizationEndpoint):
                     projects, request.GET, paginator_kwargs={"limit": limit, "offset": offset}
                 )
                 data = get_series(
-                    projects,
-                    query.to_metrics_query(),
-                    use_case_id=UseCaseKey.from_str(request.GET.get("useCase", "release-health")),
+                    projects, query.to_metrics_query(), use_case_id=self.get_use_case_id(request)
                 )
                 data["query"] = query.query
             except (

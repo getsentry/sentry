@@ -51,6 +51,16 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         assert response.status_code == 400
         assert response.json()["detail"] == 'Request is missing a "field"'
 
+    def test_incorrect_use_case_id_value(self):
+        response = self.get_response(
+            self.project.organization.slug,
+            field="sum(sentry.sessions.session)",
+            groupBy="environment",
+            useCase="unknown",
+        )
+        assert response.status_code == 400
+        assert response.json()["detail"] == "Invalid useCase parameter."
+
     def test_invalid_field(self):
         for field in ["", "(*&%", "foo(session", "foo(session)"]:
             response = self.get_response(self.project.organization.slug, field=field)

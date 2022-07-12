@@ -16,7 +16,7 @@ class UseCaseKey(Enum):
         elif use_case in ("release-health", "releaseHealth"):
             return UseCaseKey.RELEASE_HEALTH
         else:
-            raise NotImplementedError
+            raise ValueError
 
 
 class DbKey(Enum):
