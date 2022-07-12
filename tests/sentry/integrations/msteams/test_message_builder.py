@@ -25,7 +25,7 @@ from sentry.testutils import TestCase
 
 class SimpleMessageBuilder(MSTeamsMessageBuilder):
     def build(self):
-        return self._build(
+        return self.build_card(
             title=self.get_text_block("title"),
             text=self.get_text_block("text"),
             fields=[self.get_text_block("fields")],
@@ -35,12 +35,12 @@ class SimpleMessageBuilder(MSTeamsMessageBuilder):
 
 class MissingActionParamsMessageBuilder(MSTeamsMessageBuilder):
     def build(self):
-        return self._build(actions=[self.get_action_block(ActionType.OPEN_URL, "button")])
+        return self.build_card(actions=[self.get_action_block(ActionType.OPEN_URL, "button")])
 
 
 class ColumnMessageBuilder(MSTeamsMessageBuilder):
     def build(self):
-        return self._build(
+        return self.build_card(
             text=self.get_column_set_block(
                 self.get_column_block(self.get_text_block("column1")),
                 self.get_column_block(self.get_text_block("column2")),

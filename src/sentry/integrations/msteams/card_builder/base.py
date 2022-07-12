@@ -113,7 +113,7 @@ class MSTeamsMessageBuilder(AbstractMessageBuilder, ABC):  # type: ignore
 
         return {"type": action_type, "title": title, f"{param}": kwargs[param]}
 
-    def _build(
+    def build_card(
         self,
         text: str | ItemBlock = None,
         title: str | ItemBlock = None,
