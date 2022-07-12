@@ -46,17 +46,7 @@ jobs:
           app_id: ${{ secrets.SENTRY_INTERNAL_APP_ID }}
           private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
 
-      - uses: volta-cli/action@v1
-
-      # See https://github.com/actions/cache/blob/master/examples.md#node---yarn for example
-      - name: Get yarn cache directory path
-        id: yarn-cache-dir-path
-        run: echo "::set-output name=dir::$(yarn cache dir)"
-
-      - uses: actions/cache@v3
-        with:
-          path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
-          key: ${{ runner.os }}-v2-yarn-${{ hashFiles('yarn.lock', 'api-docs/yarn.lock') }}
+      - uses: ./.github/actions/setup-volta
 
       - name: Install dependencies
         id: dependencies
@@ -143,17 +133,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - uses: volta-cli/action@v1
-
-      # See https://github.com/actions/cache/blob/master/examples.md#node---yarn for example
-      - name: Get yarn cache directory path
-        id: yarn-cache-dir-path
-        run: echo "::set-output name=dir::$(yarn cache dir)"
-
-      - uses: actions/cache@v3
-        with:
-          path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
-          key: ${{ runner.os }}-v2-yarn-${{ hashFiles('yarn.lock', 'api-docs/yarn.lock') }}
+      - uses: ./.github/actions/setup-volta
 
       - name: Install dependencies
         run: yarn install --frozen-lockfile

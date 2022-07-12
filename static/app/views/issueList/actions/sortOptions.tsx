@@ -61,7 +61,7 @@ const IssueListSortOptions = ({onSelect, sort, query}: Props) => {
           options={getSortOptions(sortKeys, hasTrendSort)}
           value={sortKey}
           triggerProps={{
-            size: 'xsmall',
+            size: 'xs',
             icon: <IconSort size="xs" />,
           }}
         />

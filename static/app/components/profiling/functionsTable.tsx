@@ -82,14 +82,14 @@ function FunctionsTable(props: FunctionsTableProps) {
           <Button
             icon={<IconChevron direction="left" size="sm" />}
             aria-label={t('Previous')}
-            size="xsmall"
+            size="xs"
             disabled={offset === 0}
             onClick={() => setOffset(offset - limit)}
           />
           <Button
             icon={<IconChevron direction="right" size="sm" />}
             aria-label={t('Next')}
-            size="xsmall"
+            size="xs"
             disabled={offset + limit >= allFunctions.length}
             onClick={() => setOffset(offset + limit)}
           />

@@ -116,8 +116,6 @@ def pytest_configure(config):
     settings.DEBUG_VIEWS = True
     settings.SERVE_UPLOADED_FILES = True
 
-    settings.SENTRY_ENCRYPTION_SCHEMES = ()
-
     settings.CACHES = {
         "default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"},
         "nodedata": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"},
@@ -140,7 +138,9 @@ def pytest_configure(config):
             "mail.backend": "django.core.mail.backends.locmem.EmailBackend",
             "system.url-prefix": "http://testserver",
             "system.base-hostname": "testserver",
-            "system.customer-base-hostname": "{slug}.{region}.testserver",
+            "system.organization-base-hostname": "{slug}.{region}.testserver",
+            "system.organization-url-template": "http://{hostname}",
+            "system.region": "us",
             "system.secret-key": "a" * 52,
             "slack.client-id": "slack-client-id",
             "slack.client-secret": "slack-client-secret",

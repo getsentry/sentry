@@ -210,6 +210,7 @@ export enum EntryType {
   THREADS = 'threads',
   DEBUGMETA = 'debugmeta',
   SPANS = 'spans',
+  SPANTREE = 'spantree',
 }
 
 type EntryDebugMeta = {
@@ -246,6 +247,12 @@ type EntryStacktrace = {
 type EntrySpans = {
   data: any;
   type: EntryType.SPANS; // data is not used
+};
+
+type EntrySpanTree = {
+  data: any;
+  focusedSpanIds: string[];
+  type: EntryType.SPANTREE;
 };
 
 type EntryMessage = {
@@ -297,6 +304,7 @@ export type Entry =
   | EntryException
   | EntryStacktrace
   | EntrySpans
+  | EntrySpanTree
   | EntryMessage
   | EntryRequest
   | EntryTemplate

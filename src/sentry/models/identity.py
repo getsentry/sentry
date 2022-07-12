@@ -13,10 +13,10 @@ from sentry.db.models import (
     ArrayField,
     BaseManager,
     BoundedPositiveIntegerField,
-    EncryptedJsonField,
     FlexibleForeignKey,
     Model,
 )
+from sentry.db.models.fields.jsonfield import JSONField
 from sentry.types.integrations import ExternalProviders
 
 if TYPE_CHECKING:
@@ -46,7 +46,7 @@ class IdentityProvider(Model):
     __include_in_export__ = False
 
     type = models.CharField(max_length=64)
-    config = EncryptedJsonField()
+    config = JSONField()
     date_added = models.DateTimeField(default=timezone.now, null=True)
     external_id = models.CharField(max_length=64, null=True)
 
@@ -181,7 +181,7 @@ class Identity(Model):
     idp = FlexibleForeignKey("sentry.IdentityProvider")
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL)
     external_id = models.TextField()
-    data = EncryptedJsonField()
+    data = JSONField()
     status = BoundedPositiveIntegerField(default=IdentityStatus.UNKNOWN)
     scopes = ArrayField()
     date_verified = models.DateTimeField(default=timezone.now)

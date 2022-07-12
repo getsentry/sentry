@@ -928,7 +928,7 @@ def get_histogram_column(fields, key_column, histogram_params, array_column):
 def find_histogram_params(num_buckets, min_value, max_value, multiplier):
     """
     Compute the parameters to use for the histogram. Using the provided
-    arguments, ensure that the generated histogram encapsolates the desired range.
+    arguments, ensure that the generated histogram encapsulates the desired range.
 
     :param int num_buckets: The number of buckets the histogram should contain.
     :param float min_value: The minimum value allowed to be in the histogram inclusive.
