@@ -8,10 +8,10 @@ import space from 'sentry/styles/space';
 import {IconData, iconGroups, IconPropName, iconProps, icons} from './data';
 import IconInfoBox from './infoBox';
 
-export type ExtendedIconData = IconData & {
+export interface ExtendedIconData extends IconData {
   name: string;
   defaultProps?: Partial<Record<IconPropName, unknown>>;
-};
+}
 
 type Results = {icons: ExtendedIconData[]; id: string; label?: string}[];
 

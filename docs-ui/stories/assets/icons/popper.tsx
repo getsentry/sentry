@@ -1,4 +1,11 @@
-import {Dispatch, RefObject, SetStateAction, useEffect, useState} from 'react';
+import {
+  Dispatch,
+  RefObject,
+  SetStateAction,
+  useCallback,
+  useEffect,
+  useState,
+} from 'react';
 import {Popper} from 'react-popper';
 import styled from '@emotion/styled';
 import Code from 'docs-ui/components/code';
@@ -10,6 +17,25 @@ import space from 'sentry/styles/space';
 import {iconProps} from './data';
 import IconSample from './sample';
 import {ExtendedIconData, SelectedIcon} from './searchPanel';
+
+/**
+ * Generate and update code sample based on prop states
+ */
+const getCodeSample = ({
+  name,
+  size,
+  isCircled,
+  isSolid,
+}: {
+  isCircled: boolean | unknown;
+  isSolid: boolean | unknown;
+  name: string;
+  size: string | undefined;
+}) => {
+  return `<Icon${name} color="gray500" size="${size}"${isCircled ? ' isCircled' : ' '}${
+    isSolid ? ' isSolid' : ' '
+  } />`;
+};
 
 type Props = {
   boxRef: RefObject<HTMLDivElement>;
@@ -29,31 +55,27 @@ const IconPopper = ({icon, setSelectedIcon, boxRef}: Props) => {
   const [isCircled, setIsCircled] = useState(icon.defaultProps?.isCircled ?? false);
   const [isSolid, setIsSolid] = useState(icon.defaultProps?.isSolid ?? false);
 
-  /**
-   * Generate and update code sample based on prop states
-   */
-  const getCodeSample = () => {
-    return `<Icon${icon.name} color="gray500" size="${size}"${
-      isCircled ? ' isCircled' : ' '
-    }${isSolid ? ' isSolid' : ' '} />`;
-  };
-  const [codeSample, setCodeSample] = useState(getCodeSample());
-  useEffect(() => {
-    setCodeSample(getCodeSample());
-  }, [size, isCircled, isSolid]);
+  const codeSample = useCallback(
+    () => getCodeSample({name: icon.name, size, isCircled, isSolid}),
+    [icon.name, size, isCircled, isSolid]
+  );
 
   /**
    * Deselect icon box on outside click
    */
-  const clickAwayHandler = e => {
-    if (e.target !== boxRef && !boxRef?.contains?.(e.target)) {
-      setSelectedIcon({group: '', icon: ''});
-    }
-  };
+  const clickAwayHandler = useCallback(
+    e => {
+      if (e.target !== boxRef.current && !boxRef?.current?.contains?.(e.target)) {
+        setSelectedIcon({group: '', icon: ''});
+      }
+    },
+    [boxRef, setSelectedIcon]
+  );
+
   useEffect(() => {
     document.addEventListener('click', clickAwayHandler);
     return () => document.removeEventListener('click', clickAwayHandler);
-  }, []);
+  }, [clickAwayHandler]);
 
   return (
     <Popper
