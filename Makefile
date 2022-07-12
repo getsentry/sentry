@@ -125,7 +125,7 @@ test-js-ci: node-version-check
 
 test-python-ci:
 	@echo "--> Running CI Python tests"
-	pytest tests/integration tests/sentry \
+	pytest tests/integration tests/sentry -s -vv \
 		--ignore tests/sentry/eventstream/kafka \
 		--ignore tests/sentry/snuba \
 		--ignore tests/sentry/search/events \
