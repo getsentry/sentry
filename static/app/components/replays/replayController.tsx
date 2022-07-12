@@ -9,13 +9,12 @@ import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {formatTime, relativeTimeInMs} from 'sentry/components/replays/utils';
 import {
   IconArrow,
-  IconReplayerBackTen,
-  IconReplayerFullscreenEnter,
-  IconReplayerFullscreenExit,
-  IconReplayerNext,
-  IconReplayerPause,
-  IconReplayerPlay,
-  IconReplayerRestart,
+  IconNext,
+  IconPause,
+  IconPlay,
+  IconPrevious,
+  IconRefresh,
+  IconResize,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -54,25 +53,23 @@ function ReplayPlayPauseBar() {
       <Button
         size="xs"
         title={t('Rewind 10s')}
-        icon={<IconReplayerBackTen size="sm" />}
+        icon={<IconRefresh size="sm" />}
         onClick={() => setCurrentTime(currentTime - 10 * SECOND)}
         aria-label={t('Rewind 10 seconds')}
       />
       {isFinished ? (
         <Button
           size="xs"
-          title={t('Restart')}
-          icon={<IconReplayerRestart size="sm" />}
+          title={t('Restart Replay')}
+          icon={<IconPrevious size="sm" />}
           onClick={restart}
-          aria-label={t('Restart')}
+          aria-label={t('Restart the Replay')}
         />
       ) : (
         <Button
           size="xs"
           title={isPlaying ? t('Pause') : t('Play')}
-          icon={
-            isPlaying ? <IconReplayerPause size="sm" /> : <IconReplayerPlay size="sm" />
-          }
+          icon={isPlaying ? <IconPause size="sm" /> : <IconPlay size="sm" />}
           onClick={() => togglePlayPause(!isPlaying)}
           aria-label={isPlaying ? t('Pause') : t('Play')}
         />
@@ -80,7 +77,7 @@ function ReplayPlayPauseBar() {
       <Button
         size="xs"
         title={t('Next breadcrumb')}
-        icon={<IconReplayerNext size="sm" />}
+        icon={<IconNext size="sm" />}
         onClick={() => {
           const startTimestampSec = replay?.getEvent().startTimestamp;
           if (!startTimestampSec) {
@@ -161,13 +158,7 @@ const ReplayControls = ({
         size="xs"
         title={isFullscreen ? t('Exit full screen') : t('Enter full screen')}
         aria-label={isFullscreen ? t('Exit full screen') : t('Enter full screen')}
-        icon={
-          isFullscreen ? (
-            <IconReplayerFullscreenExit size="sm" />
-          ) : (
-            <IconReplayerFullscreenEnter size="sm" />
-          )
-        }
+        icon={<IconResize size="sm" />}
         onClick={toggleFullscreen}
       />
     </ButtonGrid>
