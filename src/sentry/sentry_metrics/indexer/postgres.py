@@ -72,7 +72,9 @@ class PGStringIndexer(Service):
         result = self.bulk_record({org_id: {string}})
         return result[string]
 
-    def resolve(self, org_id: int, string: str, use_case_id: UseCaseKey) -> Optional[int]:
+    def resolve(
+        self, org_id: int, string: str, use_case_id: UseCaseKey = UseCaseKey.RELEASE_HEALTH
+    ) -> Optional[int]:
         """Lookup the integer ID for a string.
 
         Returns None if the entry cannot be found.
@@ -84,7 +86,9 @@ class PGStringIndexer(Service):
 
         return id
 
-    def reverse_resolve(self, id: int, use_case_id: UseCaseKey) -> Optional[str]:
+    def reverse_resolve(
+        self, id: int, use_case_id: UseCaseKey = UseCaseKey.RELEASE_HEALTH
+    ) -> Optional[str]:
         """Lookup the stored string for a given integer ID.
 
         Returns None if the entry cannot be found.
