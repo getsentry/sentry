@@ -2,7 +2,7 @@ import {memo, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
-import {IconArrow} from 'sentry/icons';
+import {IconPanel} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
@@ -179,15 +179,30 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
         />
         <li>
           <LayoutSelectionContainer>
-            <Button onClick={onTableLeftClick} size="xs" title={t('Table left')}>
-              <IconArrow size="xs" direction="left" />
-            </Button>
-            <Button onClick={onTableBottomClick} size="xs" title={t('Table bottom')}>
-              <IconArrow size="xs" direction="down" />
-            </Button>
-            <Button onClick={onTableRightClick} size="xs" title={t('Table right')}>
-              <IconArrow size="xs" direction="right" />
-            </Button>
+            <StyledButton
+              active={flamegraphPreferences.layout === 'table_left'}
+              onClick={onTableLeftClick}
+              size="xs"
+              title={t('Table left')}
+            >
+              <IconPanel size="xs" direction="right" />
+            </StyledButton>
+            <StyledButton
+              active={flamegraphPreferences.layout === 'table_bottom'}
+              onClick={onTableBottomClick}
+              size="xs"
+              title={t('Table bottom')}
+            >
+              <IconPanel size="xs" direction="down" />
+            </StyledButton>
+            <StyledButton
+              active={flamegraphPreferences.layout === 'table_right'}
+              onClick={onTableRightClick}
+              size="xs"
+              title={t('Table right')}
+            >
+              <IconPanel size="xs" direction="left" />
+            </StyledButton>
           </LayoutSelectionContainer>
         </li>
       </FrameTabs>
@@ -275,22 +290,28 @@ const FrameTabs = styled('ul')`
   }
 `;
 
+const StyledButton = styled(Button)<{active: boolean}>`
+  border: none;
+  background-color: transparent;
+  box-shadow: none;
+  transition: none !important;
+  opacity: ${p => (p.active ? 0.7 : 0.5)};
+
+  &:not(:last-child) {
+    margin-right: ${space(1)};
+  }
+
+  &:hover {
+    border: none;
+    background-color: transparent;
+    box-shadow: none;
+    opacity: ${p => (p.active ? 0.6 : 0.5)};
+  }
+`;
+
 const LayoutSelectionContainer = styled('div')`
   display: flex;
   align-items: center;
-
-  button {
-    background-color: transparent;
-    border: none;
-    box-shadow: none;
-    transition: none !important;
-
-    &:hover {
-      border: none;
-      background-color: transparent;
-      box-shadow: none;
-    }
-  }
 `;
 
 const FRAME_WEIGHT_CELL_WIDTH_PX = 164;
