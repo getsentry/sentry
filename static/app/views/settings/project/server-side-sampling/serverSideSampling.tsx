@@ -28,6 +28,7 @@ import {
   SamplingRule,
   SamplingRuleOperator,
   SamplingRuleType,
+  UniformModalsSubmit,
 } from 'sentry/types/sampling';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
@@ -317,13 +318,7 @@ export function ServerSideSampling({project}: Props) {
     onError,
     onSuccess,
     rule,
-  }: {
-    sampleRate: number;
-    uniformRateModalOrigin: boolean;
-    onError?: () => void;
-    onSuccess?: () => void;
-    rule?: SamplingRule;
-  }) {
+  }: Parameters<UniformModalsSubmit>[0]) {
     const newRule: SamplingRule = {
       // All new/updated rules must have id equal to 0
       id: 0,

@@ -213,5 +213,6 @@ export type UniformModalsSubmit = (props: {
   uniformRateModalOrigin: boolean;
   onError?: () => void;
   onSuccess?: () => void;
+  recommendedSampleRate?: boolean;
   rule?: SamplingRule;
 }) => void;

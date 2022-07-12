@@ -40,7 +40,7 @@ enum Step {
 
 type Props = Omit<
   RecommendedStepsModalProps,
-  'onSubmit' | 'recommendedSdkUpgrades' | 'projectId'
+  'onSubmit' | 'recommendedSdkUpgrades' | 'projectId' | 'recommendedSampleRate'
 > & {
   onSubmit: UniformModalsSubmit;
   project: Project;
@@ -132,6 +132,7 @@ function UniformRateModal({
     setSaving(true);
 
     onSubmit({
+      recommendedSampleRate: !isEdited,
       uniformRateModalOrigin: true,
       sampleRate: server!,
       rule: uniformRule,
@@ -180,6 +181,7 @@ function UniformRateModal({
         serverSampleRate={server}
         uniformRule={uniformRule}
         projectId={project.id}
+        recommendedSampleRate={!isEdited}
       />
     );
   }

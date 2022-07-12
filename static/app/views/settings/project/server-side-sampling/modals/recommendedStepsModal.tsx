@@ -41,6 +41,7 @@ export type RecommendedStepsModalProps = ModalRenderProps & {
   clientSampleRate?: number;
   onGoBack?: () => void;
   onSubmit?: UniformModalsSubmit;
+  recommendedSampleRate?: boolean;
   serverSampleRate?: number;
   uniformRule?: SamplingRule;
 };
@@ -59,6 +60,7 @@ export function RecommendedStepsModal({
   serverSampleRate,
   uniformRule,
   projectId,
+  recommendedSampleRate,
 }: RecommendedStepsModalProps) {
   const [saving, setSaving] = useState(false);
   const {projectStats} = useProjectStats({
@@ -88,6 +90,7 @@ export function RecommendedStepsModal({
     setSaving(true);
 
     onSubmit?.({
+      recommendedSampleRate: recommendedSampleRate ?? false, // the recommendedSampleRate prop will always be available in the wizard modal
       uniformRateModalOrigin: false,
       sampleRate: serverSampleRate!,
       rule: uniformRule,
