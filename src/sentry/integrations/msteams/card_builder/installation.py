@@ -16,10 +16,10 @@ from .utils import InstallationMessages
 
 class MSTeamsInstallationTitleMessageBuilder(MSTeamsMessageBuilder):
     def get_title_block(self, text: str) -> Any:
-        return self.get_column_set_block(
-            self.get_logo_block(),
-            self.get_column_block(
-                self.get_text_block(text, size=TextSize.LARGE, weight=TextWeight.BOLDER),
+        return self.create_column_set_block(
+            self.create_logo_block(),
+            self.create_column_block(
+                self.create_text_block(text, size=TextSize.LARGE, weight=TextWeight.BOLDER),
                 width=ColumnWidth.STRECH,
                 verticalContentAlignment=VerticalContentAlignment.CENTER,
             ),
@@ -36,7 +36,7 @@ class MSTeamsTeamInstallationMessageBuilder(MSTeamsInstallationTitleMessageBuild
             text=InstallationMessages.TEAM_INSTALLATION_DESCRIPTION,
             fields=[InstallationMessages.TEAM_INSTALLATION_INSTRUCTION],
             actions=[
-                self.get_action_block(
+                self.create_action_block(
                     ActionType.OPEN_URL,
                     title=InstallationMessages.TEAM_INSTALLATION_BUTTON,
                     url=self.url,
@@ -69,7 +69,7 @@ class MSTeamsInstallationConfirmationMessageBuilder(MSTeamsInstallationTitleMess
             ),
             text=InstallationMessages.INSTALLATION_CONFIRMATION_INSTRUCTION,
             actions=[
-                self.get_action_block(
+                self.create_action_block(
                     ActionType.OPEN_URL,
                     title=InstallationMessages.INSTALLATION_CONFIRMATION_BUTTON,
                     url=alert_rule_url,
