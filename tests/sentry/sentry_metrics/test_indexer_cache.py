@@ -54,3 +54,11 @@ def test_ttl_jitter() -> None:
     assert base_ttl <= ttl_2 <= max_ttl
 
     assert not ttl_1 == ttl_2
+
+
+def test_separate_namespacing() -> None:
+    indexer_cache.set("a", 1, UseCaseKey.RELEASE_HEALTH.value)
+    assert indexer_cache.get("a", UseCaseKey.RELEASE_HEALTH.value) == 1
+    indexer_cache.set("a", 2, UseCaseKey.PERFORMANCE.value)
+    assert indexer_cache.get("a", UseCaseKey.RELEASE_HEALTH.value) == 1
+    assert indexer_cache.get("a", UseCaseKey.PERFORMANCE.value) == 2
