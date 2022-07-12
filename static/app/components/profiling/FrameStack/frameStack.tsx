@@ -33,7 +33,7 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
   const [treeType, setTreeType] = useState<'all' | 'application' | 'system'>('all');
   const [recursion, setRecursion] = useState<'collapsed' | null>(null);
 
-  const roots: FlamegraphFrame[] | null = useMemo(() => {
+  const maybeFilteredOrInvertedTree: FlamegraphFrame[] | null = useMemo(() => {
     const skipFunction: (f: FlamegraphFrame) => boolean =
       treeType === 'application'
         ? f => !f.frame.is_application
@@ -193,7 +193,7 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
         {...props}
         recursion={recursion}
         referenceRoot={props.referenceRoot}
-        frames={roots ?? []}
+        tree={maybeFilteredOrInvertedTree ?? []}
         canvasPoolManager={props.canvasPoolManager}
       />
     </FrameDrawer>
