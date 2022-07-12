@@ -78,7 +78,7 @@ function EnvironmentSelector({
   const [selectedEnvs, setSelectedEnvs] = useState(value);
   const hasChanges = !isEqual(selectedEnvs, value);
 
-  // Update selected envs value on changew
+  // Update selected envs value on change
   useEffect(() => {
     setSelectedEnvs(previousSelectedEnvs => {
       lastSelectedEnvs.current = previousSelectedEnvs;
