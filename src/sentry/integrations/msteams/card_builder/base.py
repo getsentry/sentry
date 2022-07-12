@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from abc import ABC
 from typing import Any, Sequence
 
 from sentry.integrations.msteams.card_builder import Action, AdaptiveCard, Block
@@ -9,7 +8,7 @@ from sentry.integrations.notifications import AbstractMessageBuilder
 from .block import create_text_block
 
 
-class MSTeamsMessageBuilder(AbstractMessageBuilder, ABC):  # type: ignore
+class MSTeamsMessageBuilder(AbstractMessageBuilder):
     def build(
         self,
         text: str | Block | None = None,
