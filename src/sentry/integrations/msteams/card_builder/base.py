@@ -71,25 +71,25 @@ class MSTeamsMessageBuilder(AbstractMessageBuilder, ABC):  # type: ignore
         raise NotImplementedError
 
     @staticmethod
-    def get_text_block(text: str, **kwargs: str) -> TextBlock:
+    def create_text_block(text: str, **kwargs: str) -> TextBlock:
         return {"type": "TextBlock", "text": text, "wrap": True, **kwargs}
 
-    def get_logo_block(self) -> ImageBlock:
-        return self.get_image_block(get_asset_url("sentry", SENTRY_ICON_URL))
+    def create_logo_block(self) -> ImageBlock:
+        return self.create_image_block(get_asset_url("sentry", SENTRY_ICON_URL))
 
     @staticmethod
-    def get_image_block(url: str) -> ImageBlock:
+    def create_image_block(url: str) -> ImageBlock:
         return {
             "type": "Image",
             "url": absolute_uri(url),
             "size": ImageSize.MEDIUM,
         }
 
-    def get_column_block(self, item: str | ItemBlock, **kwargs: str) -> ColumnBlock:
+    def create_column_block(self, item: str | ItemBlock, **kwargs: str) -> ColumnBlock:
         kwargs["width"] = kwargs.get("width", ColumnWidth.AUTO)
 
         if isinstance(item, str):
-            item = self.get_text_block(item)
+            item = self.create_text_block(item)
 
         return {"type": "Column", "items": [item], **kwargs}
 
@@ -97,9 +97,9 @@ class MSTeamsMessageBuilder(AbstractMessageBuilder, ABC):  # type: ignore
     def is_column(item):
         return isinstance(item, dict) and "Column" == item.get("type", "")
 
-    def get_column_set_block(self, *columns: str | ItemBlock | ColumnBlock) -> ColumnSetBlock:
+    def create_column_set_block(self, *columns: str | ItemBlock | ColumnBlock) -> ColumnSetBlock:
         columns = [
-            column if self.is_column(column) else self.get_column_block(column)
+            column if self.is_column(column) else self.create_column_block(column)
             for column in columns
         ]
         return {
@@ -108,7 +108,7 @@ class MSTeamsMessageBuilder(AbstractMessageBuilder, ABC):  # type: ignore
         }
 
     @staticmethod
-    def get_action_block(action_type: ActionType, title: str, **kwargs: str) -> Action:
+    def create_action_block(action_type: ActionType, title: str, **kwargs: str) -> Action:
         param = REQUIRED_ACTION_PARAM[action_type]
 
         return {"type": action_type, "title": title, f"{param}": kwargs[param]}
@@ -138,7 +138,7 @@ class MSTeamsMessageBuilder(AbstractMessageBuilder, ABC):  # type: ignore
         for item in items:
             if item:
                 if isinstance(item, str):
-                    item = self.get_text_block(item)
+                    item = self.create_text_block(item)
 
                 body.append(item)
 

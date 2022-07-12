@@ -27,7 +27,7 @@ class MSTeamsMentionedMessageBuilder(MSTeamsMessageBuilder):
             title=HelpMessages.MENTIONED_TITLE,
             text=HelpMessages.MENTIONED_TEXT,
             actions=[
-                self.get_action_block(
+                self.create_action_block(
                     ActionType.OPEN_URL, title=HelpMessages.DOCS_BUTTON, url=HelpMessages.DOCS_URL
                 )
             ],
