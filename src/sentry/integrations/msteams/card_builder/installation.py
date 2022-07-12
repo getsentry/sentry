@@ -39,7 +39,7 @@ ALERT_RULE_URL = "organizations/{organization_slug}/alerts/rules/"
 class MSTeamsInstallationTitleMessageBuilder(MSTeamsMessageBuilder):
     def get_title_block(self, text: str) -> Any:
         return self.get_column_set_block(
-            self.get_column_block(self.get_logo_block()),
+            self.get_logo_block(),
             self.get_column_block(
                 self.get_text_block(text, size=TextSize.LARGE, weight=TextWeight.BOLDER),
                 width=ColumnWidth.STRECH,
@@ -55,8 +55,8 @@ class MSTeamsTeamInstallationMessageBuilder(MSTeamsInstallationTitleMessageBuild
     def build(self) -> Any:
         return self._build(
             title=self.get_title_block(TEAM_INSTALLTION_TITLE),
-            text=self.get_text_block(TEAM_INSTALLATION_DESCRIPTION),
-            fields=[self.get_text_block(TEAM_INSTALLATION_INSTRUCTION)],
+            text=TEAM_INSTALLATION_DESCRIPTION,
+            fields=[TEAM_INSTALLATION_INSTRUCTION],
             actions=[
                 self.get_action_block(
                     ActionType.OPEN_URL, title=TEAM_INSTALLATION_BUTTON, url=self.url
@@ -69,7 +69,7 @@ class MSTeamsPersonalIntallationMessageBuilder(MSTeamsInstallationTitleMessageBu
     def build(self) -> Any:
         return self._build(
             title=self.get_title_block(PERSONAL_INSTALLATION_TITLE),
-            text=self.get_text_block(PERSONAL_INSTALLATION_INSTRUCTION),
+            text=PERSONAL_INSTALLATION_INSTRUCTION,
         )
 
 
@@ -85,7 +85,7 @@ class MSTeamsInstallationConfirmationMessageBuilder(MSTeamsInstallationTitleMess
             title=self.get_title_block(
                 INSTALLATION_CONFIRMATION_TITLE.format(organization_name=self.organization.name)
             ),
-            text=self.get_text_block(INSTALLATION_CONFIRMATION_INSTRUCTION),
+            text=INSTALLATION_CONFIRMATION_INSTRUCTION,
             actions=[
                 self.get_action_block(
                     ActionType.OPEN_URL, title=INSTALLATION_CONFIRMATION_BUTTON, url=alert_rule_url

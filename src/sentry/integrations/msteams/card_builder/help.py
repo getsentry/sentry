@@ -25,9 +25,7 @@ DOCS_URL = "https://docs.sentry.io/product/alerts-notifications/alerts/"
 
 class MSTeamsHelpMessageBuilder(MSTeamsMessageBuilder):
     def build(self) -> Any:
-        return self._build(
-            title=self.get_text_block(HELP_TITLE), text=self.get_text_block(HELP_MESSAGE)
-        )
+        return self._build(title=HELP_TITLE, text=HELP_MESSAGE)
 
 
 class MSTeamsUnrecognizedCommandMessageBuilder(MSTeamsMessageBuilder):
@@ -36,15 +34,15 @@ class MSTeamsUnrecognizedCommandMessageBuilder(MSTeamsMessageBuilder):
 
     def build(self) -> Any:
         return self._build(
-            title=self.get_text_block(UNRECOGNIZED_COMMAND.format(command_text=self.command_text)),
-            text=self.get_text_block(AVAILABLE_COMMANDS_TEXT),
+            title=UNRECOGNIZED_COMMAND.format(command_text=self.command_text),
+            text=AVAILABLE_COMMANDS_TEXT,
         )
 
 
 class MSTeamsMentionedMessageBuilder(MSTeamsMessageBuilder):
     def build(self) -> Any:
         return self._build(
-            title=self.get_text_block(MENTIONED_TITLE),
-            text=self.get_text_block(MENTIONED_TEXT),
+            title=MENTIONED_TITLE,
+            text=MENTIONED_TEXT,
             actions=[self.get_action_block(ActionType.OPEN_URL, title=DOCS_BUTTON, url=DOCS_URL)],
         )
