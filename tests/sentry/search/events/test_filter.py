@@ -641,8 +641,9 @@ class ParseBooleanSearchQueryTest(TestCase):
             "failure_rate():>0.003&& users:>10 event.type:transaction",
             params={"organization_id": self.organization.id, "project_id": [self.project.id]},
         )
+        assert result.condition_aggregates == ["failure_rate()"]
+        assert result.having == [["failure_rate", ">", "0.003&&"]]
         assert result.conditions == [
-            _om("failure_rate():>0.003&&"),
             [["ifNull", ["users", "''"]], "=", ">10"],
             ["event.type", "=", "transaction"],
         ]
@@ -2450,11 +2451,10 @@ def _project(x):
             "aggregate_like_message_and_columns",
             "failure_rate():>0.003&& users:>10 event.type:transaction",
             [
-                _message("failure_rate():>0.003&&"),
                 _tag("users", ">10"),
                 _cond("type", Op.EQ, "transaction"),
             ],
-            [],
+            [Condition(Function("failure_rate", [], "failure_rate"), Op.GT, "0.003&&")],
         ),
         (
             "message_with_parens",

@@ -93,6 +93,7 @@ export enum FilterType {
   AggregateNumeric = 'aggregateNumeric',
   AggregateDate = 'aggregateDate',
   AggregateRelativeDate = 'aggregateRelativeDate',
+  AggregateGeneric = 'aggregateGeneric',
   Has = 'has',
   Is = 'is',
 }
@@ -217,6 +218,12 @@ export const filterTypeConfig = {
     validKeys: [Token.KeyAggregate],
     validOps: allOperators,
     validValues: [Token.ValueRelativeDate],
+    canNegate: true,
+  },
+  [FilterType.AggregateGeneric]: {
+    validKeys: [Token.KeyAggregate],
+    validOps: allOperators,
+    validValues: [Token.ValueText],
     canNegate: true,
   },
   [FilterType.Has]: {
@@ -598,6 +605,10 @@ export class TokenConverter {
 
     if ([FilterType.TextIn, FilterType.NumericIn].includes(filter)) {
       return this.checkInvalidInFilter(value as InFilter['value']);
+    }
+
+    if (filter === FilterType.AggregateGeneric) {
+      return {reason: 'Aggregate filter is incomplete.'};
     }
 
     return null;

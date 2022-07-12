@@ -54,6 +54,7 @@ filter
   / aggregate_percentage_filter
   / aggregate_date_filter
   / aggregate_rel_date_filter
+  / aggregate_generic_filter
   / has_filter
   / is_filter
   / text_in_filter
@@ -145,6 +146,14 @@ aggregate_date_filter
       return tc.predicateFilter(FilterType.AggregateDate, key)
     } {
       return tc.tokenFilter(FilterType.AggregateDate, key, value, op, !!negation);
+    }
+
+// aggregate generic filter to capture partial values.
+aggregate_generic_filter
+  = negation:negation? key:aggregate_key sep op:operator? value:search_value &{
+      return tc.predicateFilter(FilterType.AggregateGeneric, key)
+    } {
+      return tc.tokenFilter(FilterType.AggregateGeneric, key, value, op, !!negation);
     }
 
 // filter for relative dates

@@ -2,9 +2,57 @@
   {
     "query": "avg(transaction.duration):>..500s",
     "result": [
-      {"type": "spaces", "value": ""},
-      {"type": "freeText", "value": "avg(transaction.duration):>..500s", "quoted": false},
-      {"type": "spaces", "value": ""}
+      {
+        "type": "spaces",
+        "value": ""
+      },
+      {
+        "type": "filter",
+        "filter": "aggregateGeneric",
+        "negated": false,
+        "invalid": {
+          "reason": "Aggregate filter is incomplete."
+        },
+        "key": {
+          "type": "keyAggregate",
+          "name": {
+            "type": "keySimple",
+            "value": "avg",
+            "quoted": false
+          },
+          "args": {
+            "type": "keyAggregateArgs",
+            "args": [
+              {
+                "separator": "",
+                "value": {
+                  "type": "keyAggregateParam",
+                  "value": "transaction.duration",
+                  "quoted": false
+                }
+              }
+            ]
+          },
+          "argsSpaceBefore": {
+            "type": "spaces",
+            "value": ""
+          },
+          "argsSpaceAfter": {
+            "type": "spaces",
+            "value": ""
+          }
+        },
+        "operator": ">",
+        "value": {
+          "quoted": false,
+          "type": "valueText",
+          "value": "..500s"
+        }
+      },
+      {
+        "type": "spaces",
+        "value": ""
+      }
     ]
   }
 ]

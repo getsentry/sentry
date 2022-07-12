@@ -69,6 +69,7 @@ filter = date_filter
        / aggregate_numeric_filter
        / aggregate_date_filter
        / aggregate_rel_date_filter
+       / aggregate_generic_filter
        / has_filter
        / is_filter
        / text_in_filter
@@ -109,6 +110,9 @@ aggregate_date_filter = negation? aggregate_key sep operator? iso_8601_date_form
 
 # aggregate for relative dates
 aggregate_rel_date_filter = negation? aggregate_key sep operator? rel_date_format
+
+# aggregate generic filter to capture partial values
+aggregate_generic_filter = negation? aggregate_key sep operator? search_value
 
 # has filter for not null type checks
 has_filter = negation? &"has:" search_key sep (search_key / search_value)
@@ -811,6 +815,12 @@ class SearchVisitor(NodeVisitor):
         # Invalid formats fall back to text match
         search_value = operator + search_value.text if operator != "=" else search_value
         return AggregateFilter(search_key, "=", SearchValue(search_value))
+
+    def visit_aggregate_generic_filter(self, node, children):
+        (negation, search_key, _, operator, search_value) = children
+        operator = handle_negation(negation, operator)
+
+        raise InvalidSearchQuery("Aggregate filter is incomplete.")
 
     def visit_has_filter(self, node, children):
         # the key is has here, which we don't need

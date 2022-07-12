@@ -2,9 +2,57 @@
   {
     "query": "min(measurements.size):3s",
     "result": [
-      {"type": "spaces", "value": ""},
-      {"type": "freeText", "quoted": false, "value": "min(measurements.size):3s"},
-      {"type": "spaces", "value": ""}
+      {
+        "type": "spaces",
+        "value": ""
+      },
+      {
+        "type": "filter",
+        "filter": "aggregateGeneric",
+        "negated": false,
+        "invalid": {
+          "reason": "Aggregate filter is incomplete."
+        },
+        "key": {
+          "type": "keyAggregate",
+          "name": {
+            "type": "keySimple",
+            "value": "min",
+            "quoted": false
+          },
+          "args": {
+            "type": "keyAggregateArgs",
+            "args": [
+              {
+                "separator": "",
+                "value": {
+                  "type": "keyAggregateParam",
+                  "value": "measurements.size",
+                  "quoted": false
+                }
+              }
+            ]
+          },
+          "argsSpaceBefore": {
+            "type": "spaces",
+            "value": ""
+          },
+          "argsSpaceAfter": {
+            "type": "spaces",
+            "value": ""
+          }
+        },
+        "operator": "",
+        "value": {
+          "quoted": false,
+          "type": "valueText",
+          "value": "3s"
+        }
+      },
+      {
+        "type": "spaces",
+        "value": ""
+      }
     ]
   }
 ]
