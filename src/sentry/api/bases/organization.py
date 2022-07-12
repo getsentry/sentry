@@ -376,7 +376,9 @@ class OrganizationEndpoint(Endpoint):
         try:
             return UseCaseKey.from_str(request.GET.get("useCase", "release-health"))
         except ValueError:
-            raise ParseError(detail="Invalid useCase parameter.")
+            raise ParseError(
+                detail=f"Invalid useCase parameter. Please use one of: {', '.join(use_case.value for use_case in UseCaseKey)}"
+            )
 
 
 class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):

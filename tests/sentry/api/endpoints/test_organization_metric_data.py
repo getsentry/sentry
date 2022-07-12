@@ -59,7 +59,10 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             useCase="unknown",
         )
         assert response.status_code == 400
-        assert response.json()["detail"] == "Invalid useCase parameter."
+        assert (
+            response.json()["detail"]
+            == "Invalid useCase parameter. Please use one of: release-health, performance"
+        )
 
     def test_invalid_field(self):
         for field in ["", "(*&%", "foo(session", "foo(session)"]:
