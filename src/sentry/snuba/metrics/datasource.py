@@ -204,7 +204,7 @@ def get_custom_measurements(
         ):
             mri = reverse_resolve(use_case_id, row["metric_id"])
             parsed_mri = parse_mri(mri)
-            if is_custom_measurement(parsed_mri):
+            if parsed_mri is not None and is_custom_measurement(parsed_mri):
                 metrics_meta.append(
                     MetricMeta(
                         name=parsed_mri.name,
