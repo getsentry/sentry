@@ -214,6 +214,7 @@ export const DATA_CATEGORY_NAMES = {
   [DataCategory.ERRORS]: t('Errors'),
   [DataCategory.TRANSACTIONS]: t('Transactions'),
   [DataCategory.ATTACHMENTS]: t('Attachments'),
+  [DataCategory.TRANSACTIONS_PROCESSED]: t('Processed Transactions'),
 };
 
 // Special Search characters

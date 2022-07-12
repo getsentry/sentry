@@ -75,6 +75,7 @@ from sentry.search.events.types import (
 )
 from sentry.sentry_metrics import indexer
 from sentry.snuba.metrics.fields import histogram as metrics_histogram
+from sentry.snuba.metrics.utils import MetricMeta
 from sentry.utils.dates import outside_retention_with_modified_start, to_timestamp
 from sentry.utils.snuba import (
     DATASETS,
@@ -1595,6 +1596,7 @@ class MetricsQueryBuilder(QueryBuilder):
         self.metric_ids: Set[int] = set()
         self.allow_metric_aggregates = allow_metric_aggregates
         self._indexer_cache: Dict[str, Optional[int]] = {}
+        self._custom_measurement_cache: Optional[List[MetricMeta]] = None
         # Don't do any of the actions that would impact performance in anyway
         # Skips all indexer checks, and won't interact with clickhouse
         self.dry_run = dry_run
