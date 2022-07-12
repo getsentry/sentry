@@ -102,8 +102,10 @@ repo_linked = BetterSignal(providing_args=["repo", "user"])
 release_created = BetterSignal(providing_args=["release"])
 deploy_created = BetterSignal(providing_args=["deploy"])
 ownership_rule_created = BetterSignal(providing_args=["project"])
-issue_assigned = BetterSignal(providing_args=["project", "group", "user"])
 
+# issues
+issue_assigned = BetterSignal(providing_args=["project", "group", "user"])
+issue_deleted = BetterSignal(providing_args=["group", "user", "delete_type"])
 issue_resolved = BetterSignal(
     providing_args=["organization_id", "project", "group", "user", "resolution_type"]
 )
@@ -111,6 +113,8 @@ issue_unresolved = BetterSignal(providing_args=["project", "user", "group", "tra
 issue_ignored = BetterSignal(providing_args=["project", "user", "group_list", "activity_data"])
 issue_unignored = BetterSignal(providing_args=["project", "user", "group", "transition_type"])
 issue_mark_reviewed = BetterSignal(providing_args=["project", "user", "group"])
+
+# comments
 comment_created = BetterSignal(providing_args=["project", "user", "group", "activity_data"])
 comment_updated = BetterSignal(providing_args=["project", "user", "group", "activity_data"])
 comment_deleted = BetterSignal(providing_args=["project", "user", "group", "activity_data"])
@@ -124,7 +128,6 @@ team_created = BetterSignal(providing_args=["organization", "user", "team"])
 integration_added = BetterSignal(providing_args=["integration", "organization", "user"])
 integration_issue_created = BetterSignal(providing_args=["integration", "organization", "user"])
 integration_issue_linked = BetterSignal(providing_args=["integration", "organization", "user"])
-issue_deleted = BetterSignal(providing_args=["group", "user", "delete_type"])
 
 monitor_failed = BetterSignal(providing_args=["monitor"])
 

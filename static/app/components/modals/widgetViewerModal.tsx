@@ -60,6 +60,10 @@ import WidgetCardChart, {
   AugmentedEChartDataZoomHandler,
   SLIDER_HEIGHT,
 } from 'sentry/views/dashboardsV2/widgetCard/chart';
+import {
+  DashboardsMEPProvider,
+  useDashboardsMEPContext,
+} from 'sentry/views/dashboardsV2/widgetCard/dashboardsMEPContext';
 import {GenericWidgetQueriesChildrenProps} from 'sentry/views/dashboardsV2/widgetCard/genericWidgetQueries';
 import IssueWidgetQueries from 'sentry/views/dashboardsV2/widgetCard/issueWidgetQueries';
 import ReleaseWidgetQueries from 'sentry/views/dashboardsV2/widgetCard/releaseWidgetQueries';
@@ -926,78 +930,109 @@ function WidgetViewerModal(props: Props) {
     );
   }
 
+  return (
+    <Fragment>
+      <DashboardsMEPProvider>
+        <Header closeButton>
+          <h3>{widget.title}</h3>
+        </Header>
+        <Body>{renderWidgetViewer()}</Body>
+        <Footer>
+          <ResultsContainer>
+            {renderTotalResults(totalResults, widget.widgetType)}
+            <ButtonBar gap={1}>
+              {onEdit && widget.id && (
+                <Button
+                  type="button"
+                  onClick={() => {
+                    closeModal();
+                    onEdit();
+                    trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.edit', {
+                      organization,
+                      widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+                      display_type: widget.displayType,
+                    });
+                  }}
+                >
+                  {t('Edit Widget')}
+                </Button>
+              )}
+              {widget.widgetType && (
+                <OpenButton
+                  widget={primaryWidget}
+                  organization={organization}
+                  selection={modalTableSelection}
+                  selectedQueryIndex={selectedQueryIndex}
+                />
+              )}
+            </ButtonBar>
+          </ResultsContainer>
+        </Footer>
+      </DashboardsMEPProvider>
+    </Fragment>
+  );
+}
+
+interface OpenButtonProps {
+  organization: Organization;
+  selectedQueryIndex: number;
+  selection: PageFilters;
+  widget: Widget;
+}
+
+function OpenButton({
+  widget,
+  selection,
+  organization,
+  selectedQueryIndex,
+}: OpenButtonProps) {
   let openLabel: string;
   let path: string;
+  const {isMetricsData} = useDashboardsMEPContext();
+
   switch (widget.widgetType) {
     case WidgetType.ISSUE:
       openLabel = t('Open in Issues');
-      path = getWidgetIssueUrl(primaryWidget, modalTableSelection, organization);
+      path = getWidgetIssueUrl(widget, selection, organization);
       break;
     case WidgetType.RELEASE:
       openLabel = t('Open in Releases');
-      path = getWidgetReleasesUrl(primaryWidget, modalTableSelection, organization);
+      path = getWidgetReleasesUrl(widget, selection, organization);
       break;
     case WidgetType.DISCOVER:
     default:
       openLabel = t('Open in Discover');
       path = getWidgetDiscoverUrl(
-        {...primaryWidget, queries: [primaryWidget.queries[selectedQueryIndex]]},
-        modalTableSelection,
-        organization
+        {...widget, queries: [widget.queries[selectedQueryIndex]]},
+        selection,
+        organization,
+        0,
+        isMetricsData
       );
       break;
   }
 
   return (
-    <Fragment>
-      <Header closeButton>
-        <h3>{widget.title}</h3>
-      </Header>
-      <Body>{renderWidgetViewer()}</Body>
-      <Footer>
-        <ResultsContainer>
-          {renderTotalResults(totalResults, widget.widgetType)}
-          <ButtonBar gap={1}>
-            {onEdit && widget.id && (
-              <Button
-                type="button"
-                onClick={() => {
-                  closeModal();
-                  onEdit();
-                  trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.edit', {
-                    organization,
-                    widget_type: widget.widgetType ?? WidgetType.DISCOVER,
-                    display_type: widget.displayType,
-                  });
-                }}
-              >
-                {t('Edit Widget')}
-              </Button>
-            )}
-            {widget.widgetType && (
-              <Button
-                to={path}
-                priority="primary"
-                type="button"
-                disabled={isCustomMeasurementWidget(widget)}
-                onClick={() => {
-                  trackAdvancedAnalyticsEvent(
-                    'dashboards_views.widget_viewer.open_source',
-                    {
-                      organization,
-                      widget_type: widget.widgetType ?? WidgetType.DISCOVER,
-                      display_type: widget.displayType,
-                    }
-                  );
-                }}
-              >
-                {openLabel}
-              </Button>
-            )}
-          </ButtonBar>
-        </ResultsContainer>
-      </Footer>
-    </Fragment>
+    <Button
+      to={path}
+      priority="primary"
+      type="button"
+      disabled={isCustomMeasurementWidget(widget)}
+      title={
+        isCustomMeasurementWidget(widget)
+          ? t('Widgets using custom performance metrics cannot be opened in Discover.')
+          : undefined
+      }
+      onClick={() => {
+        trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.open_source', {
+          organization,
+          widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+          display_type: widget.displayType,
+        });
+      }}
+    >
+      {openLabel}
+    </Button>
   );
 }
 

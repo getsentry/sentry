@@ -30,7 +30,12 @@ import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegrap
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {FlamegraphView} from 'sentry/utils/profiling/flamegraphView';
-import {formatColorForFrame, Rect, watchForResize} from 'sentry/utils/profiling/gl/utils';
+import {
+  computeConfigViewWithStategy,
+  formatColorForFrame,
+  Rect,
+  watchForResize,
+} from 'sentry/utils/profiling/gl/utils';
 import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import {Profile} from 'sentry/utils/profiling/profile/profile';
 import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
@@ -45,7 +50,7 @@ function getTransactionConfigSpace(profiles: Profile[]): Rect {
   return new Rect(startedAt, 0, endedAt - startedAt, 0);
 }
 
-const noopColor = () => '';
+const noopFormatDuration = () => '';
 interface FlamegraphProps {
   onImport: ProfileDragDropImportProps['onImport'];
   profiles: ProfileGroup;
@@ -165,29 +170,27 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
       canvasPoolManager.draw();
     };
 
-    const onZoomIntoFrame = (frame: FlamegraphFrame) => {
-      flamegraphView.setConfigView(
-        new Rect(
-          frame.start,
-          frame.depth,
-          frame.end - frame.start,
-          flamegraphView.configView.height
-        )
+    const onZoomIntoFrame = (frame: FlamegraphFrame, strategy: 'min' | 'exact') => {
+      const newConfigView = computeConfigViewWithStategy(
+        strategy,
+        flamegraphView.configView,
+        new Rect(frame.start, frame.depth, frame.end - frame.start, 1)
       );
 
+      flamegraphView.setConfigView(newConfigView);
       canvasPoolManager.draw();
     };
 
-    scheduler.on('setConfigView', onConfigViewChange);
-    scheduler.on('transformConfigView', onTransformConfigView);
-    scheduler.on('resetZoom', onResetZoom);
-    scheduler.on('zoomIntoFrame', onZoomIntoFrame);
+    scheduler.on('set config view', onConfigViewChange);
+    scheduler.on('transform config view', onTransformConfigView);
+    scheduler.on('reset zoom', onResetZoom);
+    scheduler.on('zoom at frame', onZoomIntoFrame);
 
     return () => {
-      scheduler.off('setConfigView', onConfigViewChange);
-      scheduler.off('transformConfigView', onTransformConfigView);
-      scheduler.off('resetZoom', onResetZoom);
-      scheduler.off('zoomIntoFrame', onZoomIntoFrame);
+      scheduler.off('set config view', onConfigViewChange);
+      scheduler.off('transform config view', onTransformConfigView);
+      scheduler.off('reset zoom', onResetZoom);
+      scheduler.off('zoom at frame', onZoomIntoFrame);
     };
   }, [canvasPoolManager, flamegraphCanvas, flamegraphView, scheduler]);
 
@@ -336,7 +339,7 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
             root={tableRoot}
             roots={roots}
             getFrameColor={getFrameColor}
-            formatDuration={flamegraph ? flamegraph.formatter : noopColor}
+            formatDuration={flamegraph ? flamegraph.formatter : noopFormatDuration}
             canvasPoolManager={canvasPoolManager}
           />
         }

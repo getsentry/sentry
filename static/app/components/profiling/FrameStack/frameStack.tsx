@@ -28,6 +28,7 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
   const theme = useFlamegraphTheme();
   const [flamegraphPreferences, dispatchFlamegraphPreferences] =
     useFlamegraphPreferences();
+  const {selectedRoot} = useFlamegraphProfilesValue();
 
   const [tab, setTab] = useState<'bottom up' | 'call order'>('call order');
   const [treeType, setTreeType] = useState<'all' | 'application' | 'system'>('all');
