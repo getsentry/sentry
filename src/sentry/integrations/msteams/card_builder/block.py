@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import cast
+from typing import Any, Sequence, cast
 
 from sentry.integrations.msteams.card_builder import (
     Action,
+    ActionSet,
+    Block,
     ColumnBlock,
     ColumnSetBlock,
+    ContainerBlock,
     ImageBlock,
     ItemBlock,
     TextBlock,
@@ -72,6 +75,10 @@ def create_text_block(text: str, **kwargs: str) -> TextBlock:
 
 
 def create_logo_block(**kwargs: str) -> ImageBlock:
+    # Default size if no size is given
+    if "height" not in kwargs:
+        kwargs["size"] = ImageSize.MEDIUM
+
     return create_image_block(get_asset_url("sentry", SENTRY_ICON_URL), **kwargs)
 
 
@@ -79,7 +86,6 @@ def create_image_block(url: str, **kwargs: str) -> ImageBlock:
     return {
         "type": "Image",
         "url": absolute_uri(url),
-        "size": ImageSize.MEDIUM,
         **kwargs,
     }
 
@@ -119,3 +125,24 @@ def create_action_block(action_type: ActionType, title: str, **kwargs: str) -> A
         "title": title,
         param: kwargs[param],
     }
+
+
+def create_action_set_block(*actions: Sequence[Action]) -> ActionSet:
+    return {"type": "ActionSet", "actions": list(actions)}
+
+
+def create_container_block(*items: Block) -> ContainerBlock:
+    return {"type": "Container", "items": list(items)}
+
+
+def create_input_choice_set_block(id: str, choices: Sequence[str, Any], default_choice: Any) -> Any:
+    input_choice_set_block = {
+        "type": "Input.ChoiceSet",
+        "id": id,
+        "choices": [{"title": title, "value": value} for title, value in choices],
+    }
+
+    if default_choice:
+        input_choice_set_block["value"] = default_choice
+
+    return input_choice_set_block
