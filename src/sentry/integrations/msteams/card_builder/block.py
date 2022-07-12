@@ -63,18 +63,24 @@ REQUIRED_ACTION_PARAM = {
 
 
 def create_text_block(text: str, **kwargs: str) -> TextBlock:
-    return {"type": "TextBlock", "text": text, "wrap": True, **kwargs}
+    return {
+        "type": "TextBlock",
+        "text": text,
+        "wrap": True,
+        **kwargs,
+    }
 
 
-def create_logo_block() -> ImageBlock:
-    return create_image_block(get_asset_url("sentry", SENTRY_ICON_URL))
+def create_logo_block(**kwargs: str) -> ImageBlock:
+    return create_image_block(get_asset_url("sentry", SENTRY_ICON_URL), **kwargs)
 
 
-def create_image_block(url: str) -> ImageBlock:
+def create_image_block(url: str, **kwargs: str) -> ImageBlock:
     return {
         "type": "Image",
         "url": absolute_uri(url),
         "size": ImageSize.MEDIUM,
+        **kwargs,
     }
 
 
@@ -84,7 +90,11 @@ def create_column_block(item: ItemBlock, **kwargs: str) -> ColumnBlock:
     if isinstance(item, str):
         item = create_text_block(item)
 
-    return {"type": "Column", "items": [item], **kwargs}
+    return {
+        "type": "Column",
+        "items": [item],
+        **kwargs,
+    }
 
 
 def ensure_column_block(item: ItemBlock | ColumnBlock) -> ColumnBlock:
@@ -104,4 +114,8 @@ def create_column_set_block(*columns: ItemBlock | ColumnBlock) -> ColumnSetBlock
 def create_action_block(action_type: ActionType, title: str, **kwargs: str) -> Action:
     param = REQUIRED_ACTION_PARAM[action_type]
 
-    return {"type": action_type, "title": title, f"{param}": kwargs[param]}
+    return {
+        "type": action_type,
+        "title": title,
+        param: kwargs[param],
+    }
