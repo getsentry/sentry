@@ -3,8 +3,11 @@ from sentry.integrations.msteams.card_builder.base import MSTeamsMessageBuilder
 
 from .block import (
     ActionType,
+    ColumnWidth,
+    ImageSize,
     TextSize,
     create_action_block,
+    create_column_block,
     create_column_set_block,
     create_logo_block,
     create_text_block,
@@ -19,7 +22,7 @@ def build_unlinked_card() -> AdaptiveCard:
 def build_linked_card() -> AdaptiveCard:
     return MSTeamsMessageBuilder().build_card(
         text=create_column_set_block(
-            create_logo_block(),
+            create_column_block(create_logo_block(size=ImageSize.LARGE), width=ColumnWidth.AUTO),
             create_text_block(
                 IdentityMessages.IDENTITY_LINKED,
                 size=TextSize.LARGE,
