@@ -6,6 +6,7 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {TagCollection} from 'sentry/types';
 import {QueryFieldValue} from 'sentry/utils/discover/fields';
+import useCustomMeasurements from 'sentry/utils/useCustomMeasurements';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getDatasetConfig} from 'sentry/views/dashboardsV2/datasetConfig/base';
 import {DisplayType, Widget} from 'sentry/views/dashboardsV2/types';
@@ -39,6 +40,8 @@ export function YAxisSelector({
 }: Props) {
   const organization = useOrganization();
   const datasetConfig = getDatasetConfig(widgetType);
+
+  const {customMeasurements} = useCustomMeasurements();
 
   function handleAddOverlay(event: React.MouseEvent) {
     event.preventDefault();
@@ -89,7 +92,11 @@ export function YAxisSelector({
         <QueryFieldWrapper key={`${fieldValue}:${i}`}>
           <QueryField
             fieldValue={fieldValue}
-            fieldOptions={datasetConfig.getTableFieldOptions(organization, tags)}
+            fieldOptions={datasetConfig.getTableFieldOptions(
+              organization,
+              tags,
+              customMeasurements
+            )}
             onChange={value => handleChangeQueryField(value, i)}
             filterPrimaryOptions={datasetConfig.filterYAxisOptions?.(displayType)}
             filterAggregateParameters={datasetConfig.filterYAxisAggregateParams?.(
