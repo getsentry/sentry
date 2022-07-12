@@ -93,6 +93,7 @@ class PostgresIndexerV2Test(TestCase):
         self.indexer = PGStringIndexerV2()
         self.org2 = self.create_organization()
         self.use_case_id = UseCaseKey("release-health")
+        self.cache_namespace = self.use_case_id.value
 
     def tearDown(self) -> None:
         cache.clear()
@@ -108,7 +109,7 @@ class PostgresIndexerV2Test(TestCase):
         assert list(
             indexer_cache.get_many(
                 [f"{org1_id}:{string}" for string in self.strings],
-                use_case_id=self.use_case_id.value,
+                cache_namespace=self.cache_namespace,
             ).values()
         ) == [None, None, None]
 
@@ -128,14 +129,14 @@ class PostgresIndexerV2Test(TestCase):
             assert value in org1_string_ids
 
         for cache_value in indexer_cache.get_many(
-            [f"{org1_id}:{string}" for string in self.strings], use_case_id=self.use_case_id.value
+            [f"{org1_id}:{string}" for string in self.strings], cache_namespace=self.cache_namespace
         ).values():
             assert cache_value in org1_string_ids
 
         # verify org2 results and cache values
         assert results[org2_id]["sup"] == org2_string_id
         assert (
-            indexer_cache.get(f"{org2_id}:sup", use_case_id=self.use_case_id.value)
+            indexer_cache.get(f"{org2_id}:sup", cache_namespace=self.cache_namespace)
             == org2_string_id
         )
 
@@ -218,7 +219,7 @@ class PostgresIndexerV2Test(TestCase):
         """
         org_id = 8
         cached = {f"{org_id}:beep": 10, f"{org_id}:boop": 11}
-        indexer_cache.set_many(cached, use_case_id=UseCaseKey.RELEASE_HEALTH.value)
+        indexer_cache.set_many(cached, self.cache_namespace)
 
         results = self.indexer.bulk_record(
             use_case_id=self.use_case_id, org_strings={org_id: {"beep", "boop"}}
@@ -251,13 +252,13 @@ class PostgresIndexerV2Test(TestCase):
         collection = KeyCollection({123: {"oop"}})
         key = "123:oop"
 
-        assert indexer_cache.get(key, use_case_id=self.use_case_id.value) is None
-        assert indexer_cache.get(string.id, use_case_id=self.use_case_id.value) is None
+        assert indexer_cache.get(key, self.cache_namespace) is None
+        assert indexer_cache.get(string.id, self.cache_namespace) is None
 
         self.indexer._get_db_records(self.use_case_id, collection)
 
-        assert indexer_cache.get(string.id, use_case_id=self.use_case_id.value) is None
-        assert indexer_cache.get(key, use_case_id=self.use_case_id.value) is None
+        assert indexer_cache.get(string.id, self.cache_namespace) is None
+        assert indexer_cache.get(key, self.cache_namespace) is None
 
 
 class KeyCollectionTest(TestCase):
