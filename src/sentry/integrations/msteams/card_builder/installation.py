@@ -34,7 +34,7 @@ def build_welcome_card(signed_params: str) -> AdaptiveCard:
         InstallationMessages.MSTEAMS_CONFIGURE_URL.format(signed_params=signed_params)
     )
 
-    return MSTeamsMessageBuilder().build_card(
+    return MSTeamsMessageBuilder().build(
         title=create_title_block(InstallationMessages.TEAM_INSTALLTION_TITLE),
         text=InstallationMessages.TEAM_INSTALLATION_DESCRIPTION,
         fields=[InstallationMessages.TEAM_INSTALLATION_INSTRUCTION],
@@ -49,7 +49,7 @@ def build_welcome_card(signed_params: str) -> AdaptiveCard:
 
 
 def build_personal_installation_message() -> AdaptiveCard:
-    return MSTeamsMessageBuilder().build_card(
+    return MSTeamsMessageBuilder().build(
         title=create_title_block(InstallationMessages.PERSONAL_INSTALLATION_TITLE),
         text=InstallationMessages.PERSONAL_INSTALLATION_INSTRUCTION,
     )
@@ -59,7 +59,7 @@ def build_installation_confirmation_message(organization: Organization) -> Adapt
     alert_rule_url = absolute_uri(
         InstallationMessages.ALERT_RULE_URL.format(organization_slug=organization.slug)
     )
-    return MSTeamsMessageBuilder().build_card(
+    return MSTeamsMessageBuilder().build(
         title=create_title_block(
             InstallationMessages.INSTALLATION_CONFIRMATION_TITLE.format(
                 organization_name=organization.name
