@@ -30,31 +30,6 @@ from sentry.models import Organization
 from sentry.testutils import TestCase
 
 
-class SimpleMessageBuilder(MSTeamsMessageBuilder):
-    def build(self):
-        return self.build(
-            title=create_text_block("title"),
-            text=create_text_block("text"),
-            fields=[create_text_block("fields")],
-            actions=[create_action_block(ActionType.OPEN_URL, "button", url="url")],
-        )
-
-
-class MissingActionParamsMessageBuilder(MSTeamsMessageBuilder):
-    def build(self):
-        return self.build(actions=[create_action_block(ActionType.OPEN_URL, "button")])
-
-
-class ColumnMessageBuilder(MSTeamsMessageBuilder):
-    def build(self):
-        return self.build(
-            text=create_column_set_block(
-                create_column_block(create_text_block("column1")),
-                create_column_block(create_text_block("column2")),
-            )
-        )
-
-
 class MSTeamsMessageBuilderTest(TestCase):
     """
     Tests to ensure these cards can be created without errors.
@@ -62,7 +37,12 @@ class MSTeamsMessageBuilderTest(TestCase):
     """
 
     def test_simple(self):
-        card = SimpleMessageBuilder().build()
+        card = MSTeamsMessageBuilder().build(
+            title=create_text_block("title"),
+            text="text",
+            fields=[create_text_block("fields")],
+            actions=[create_action_block(ActionType.OPEN_URL, "button", url="url")],
+        )
 
         assert "body" in card
         assert 3 == len(card["body"])
@@ -75,10 +55,17 @@ class MSTeamsMessageBuilderTest(TestCase):
 
     def test_missing_action_params(self):
         with pytest.raises(KeyError):
-            _ = MissingActionParamsMessageBuilder().build()
+            _ = MSTeamsMessageBuilder().build(
+                actions=[create_action_block(ActionType.OPEN_URL, "button")]
+            )
 
     def test_columns(self):
-        card = ColumnMessageBuilder().build()
+        card = MSTeamsMessageBuilder().build(
+            text=create_column_set_block(
+                "column1",
+                create_column_block(create_text_block("column2")),
+            )
+        )
 
         body = card["body"]
         assert 1 == len(body)
