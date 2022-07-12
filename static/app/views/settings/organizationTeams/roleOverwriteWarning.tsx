@@ -58,10 +58,11 @@ export function getOverwriteString(props: Props) {
   }
 
   return tct(
-    '[selfNoun] organization role as a [orgRole] has granted [selfPronoun] a minimum team-level role of [teamRole]',
+    '[selfNoun] organization role as [article] [orgRole] has granted [selfPronoun] a minimum team-level role of [teamRole]',
     {
       selfNoun: isSelf ? 'Your' : "This user's",
       selfPronoun: isSelf ? 'you' : 'them',
+      article: 'AEIOU'.includes(orgRoleObj.name[0]) ? 'an' : 'a',
       orgRole: <strong>{orgRoleObj.name}</strong>,
       teamRole: <strong>{teamRoleObj.name}</strong>,
     }

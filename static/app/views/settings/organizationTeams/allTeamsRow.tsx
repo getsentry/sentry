@@ -166,7 +166,7 @@ class AllTeamsRow extends Component<Props, State> {
     );
   };
 
-  renderTeamRole = () => {
+  getTeamRoleName = () => {
     const {organization, team} = this.props;
     if (!organization.features.includes('team-roles') || !team.teamRole) {
       return null;
@@ -204,7 +204,7 @@ class AllTeamsRow extends Component<Props, State> {
             display
           )}
         </div>
-        <div>{this.renderTeamRole()}</div>
+        <div>{this.getTeamRoleName()}</div>
         <div>
           {this.state.loading ? (
             <Button size="sm" disabled>
