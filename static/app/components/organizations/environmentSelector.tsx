@@ -78,10 +78,12 @@ function EnvironmentSelector({
   const [selectedEnvs, setSelectedEnvs] = useState(value);
   const hasChanges = !isEqual(selectedEnvs, value);
 
-  // Update selected envs value on change
+  // Update selected envs value on changew
   useEffect(() => {
-    setSelectedEnvs(value);
-    lastSelectedEnvs.current = selectedEnvs;
+    setSelectedEnvs(previousSelectedEnvs => {
+      lastSelectedEnvs.current = previousSelectedEnvs;
+      return value;
+    });
   }, [value]);
 
   // We keep a separate list of selected environments to use for sorting. This
