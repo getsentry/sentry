@@ -294,30 +294,36 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
     const issueAlertOptionsChoices = this.getIssueAlertsChoices(
       this.state.conditions?.length > 0
     );
+    const showMetricAlertSelections =
+      !!this.props.organization.experiments.MetricAlertOnProjectCreationExperiment;
     return (
       <Fragment>
         <PageHeadingWithTopMargins withMargins>
           {t('Set your default alert settings')}
         </PageHeadingWithTopMargins>
         <Content>
-          <Subheading>Issue Alerts</Subheading>
+          {showMetricAlertSelections && <Subheading>{t('Issue Alerts')}</Subheading>}
           <RadioGroupWithPadding
             choices={issueAlertOptionsChoices}
             label={t('Options for creating an alert')}
             onChange={alertSetting => this.setStateAndUpdateParents({alertSetting})}
             value={this.state.alertSetting}
           />
-          <Subheading>Performance Alerts</Subheading>
-          <StyledMultipleCheckboxField
-            hideLabelDivider
-            name="fieldName"
-            choices={PRESET_AGGREGATES.map(agg => [agg.id, agg.description])}
-            onChange={selectedPresets =>
-              this.setStateAndUpdateParents({
-                metricAlertPresets: selectedPresets as unknown as string[],
-              })
-            }
-          />
+          {showMetricAlertSelections && (
+            <Fragment>
+              <Subheading>Performance Alerts</Subheading>
+              <StyledMultipleCheckboxField
+                hideLabelDivider
+                name="fieldName"
+                choices={PRESET_AGGREGATES.map(agg => [agg.id, agg.description])}
+                onChange={selectedPresets =>
+                  this.setStateAndUpdateParents({
+                    metricAlertPresets: selectedPresets as unknown as string[],
+                  })
+                }
+              />
+            </Fragment>
+          )}
         </Content>
       </Fragment>
     );

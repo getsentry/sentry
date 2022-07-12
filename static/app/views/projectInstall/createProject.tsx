@@ -18,6 +18,7 @@ import {inputStyles} from 'sentry/styles/input';
 import space from 'sentry/styles/space';
 import {Organization, Project, Team} from 'sentry/types';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import getPlatformName from 'sentry/utils/getPlatformName';
 import slugify from 'sentry/utils/slugify';
 import withApi from 'sentry/utils/withApi';
@@ -83,6 +84,12 @@ class CreateProject extends Component<Props, State> {
   get defaultCategory() {
     const {query} = this.props.location;
     return getCategoryName(query.category);
+  }
+
+  componentDidMount() {
+    trackAdvancedAnalyticsEvent('project.create_page_viewed', {
+      organization: this.props.organization,
+    });
   }
 
   renderProjectForm() {
@@ -217,44 +224,49 @@ class CreateProject extends Component<Props, State> {
         );
         ruleId = ruleData.id;
       }
-      if (metricAlertPresets && metricAlertPresets.length > 0) {
+      if (
+        !!organization.experiments.MetricAlertOnProjectCreationExperiment &&
+        metricAlertPresets &&
+        metricAlertPresets.length > 0
+      ) {
         const presets = PRESET_AGGREGATES.filter(aggregate =>
           metricAlertPresets.includes(aggregate.id)
         );
         const teamObj = this.props.teams.find(aTeam => aTeam.slug === team);
-        for (const preset of presets) {
-          // Patch projectData with teams
-          const context = preset.makeUnqueriedContext(
-            {
-              ...projectData,
-              teams: teamObj ? [teamObj] : [],
-            },
-            organization
-          );
-
-          await api.requestPromise(
-            `/projects/${organization.slug}/${projectData.slug}/alert-rules/?referrer=create_project`,
-            {
-              method: 'POST',
-              data: {
-                aggregate: context.aggregate,
-                comparisonDelta: context.comparisonDelta,
-                dataset: context.dataset,
-                eventTypes: context.eventTypes,
-                name: context.name,
-                owner: null,
-                projectId: projectData.id,
-                projects: [projectData.slug],
-                query: '',
-                resolveThreshold: null,
-                thresholdPeriod: 1,
-                thresholdType: context.thresholdType,
-                timeWindow: context.timeWindow,
-                triggers: context.triggers,
+        await Promise.all([
+          presets.map(preset => {
+            const context = preset.makeUnqueriedContext(
+              {
+                ...projectData,
+                teams: teamObj ? [teamObj] : [],
               },
-            }
-          );
-        }
+              organization
+            );
+
+            return api.requestPromise(
+              `/projects/${organization.slug}/${projectData.slug}/alert-rules/?referrer=create_project`,
+              {
+                method: 'POST',
+                data: {
+                  aggregate: context.aggregate,
+                  comparisonDelta: context.comparisonDelta,
+                  dataset: context.dataset,
+                  eventTypes: context.eventTypes,
+                  name: context.name,
+                  owner: null,
+                  projectId: projectData.id,
+                  projects: [projectData.slug],
+                  query: '',
+                  resolveThreshold: null,
+                  thresholdPeriod: 1,
+                  thresholdType: context.thresholdType,
+                  timeWindow: context.timeWindow,
+                  triggers: context.triggers,
+                },
+              }
+            );
+          }),
+        ]);
       }
       this.trackIssueAlertOptionSelectedEvent(
         projectData,
