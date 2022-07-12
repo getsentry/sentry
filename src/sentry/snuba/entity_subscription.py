@@ -33,7 +33,7 @@ from sentry.sentry_metrics.utils import (
 )
 from sentry.snuba.dataset import EntityKey
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
-from sentry.snuba.models import QueryDatasets, SnubaQueryEventType
+from sentry.snuba.models import QueryDatasets, SnubaQuery, SnubaQueryEventType
 from sentry.utils import metrics
 from sentry.utils.snuba import Dataset
 
@@ -204,7 +204,7 @@ class EventsEntitySubscription(BaseEventsAndTransactionEntitySubscription):
     dataset = QueryDatasets.EVENTS
 
 
-class TransactionsEntitySubscription(BaseEventsAndTransactionEntitySubscription):
+class PerformanceTransactionsEntitySubscription(BaseEventsAndTransactionEntitySubscription):
     dataset = QueryDatasets.TRANSACTIONS
 
 
@@ -495,60 +495,79 @@ EntitySubscription = Union[
     EventsEntitySubscription,
     MetricsCountersEntitySubscription,
     MetricsSetsEntitySubscription,
-    TransactionsEntitySubscription,
+    PerformanceTransactionsEntitySubscription,
     SessionsEntitySubscription,
 ]
-ENTITY_KEY_TO_ENTITY_SUBSCRIPTION: Mapping[EntityKey, Type[EntitySubscription]] = {
-    EntityKey.Events: EventsEntitySubscription,
-    EntityKey.MetricsCounters: MetricsCountersEntitySubscription,
-    EntityKey.MetricsSets: MetricsSetsEntitySubscription,
-    EntityKey.Sessions: SessionsEntitySubscription,
-    EntityKey.Transactions: TransactionsEntitySubscription,
-}
 
 
-def get_entity_subscription_for_dataset(
+def get_entity_subscription(
+    query_type: SnubaQuery.Type,
     dataset: QueryDatasets,
     aggregate: str,
     time_window: int,
     extra_fields: Optional[_EntitySpecificParams] = None,
 ) -> EntitySubscription:
     """
-    Function that routes to the correct instance of `EntitySubscription` based on the dataset,
-    additionally does validation on aggregate for datasets like the sessions dataset and the
-    metrics datasets then returns the instance of `EntitySubscription`
+    Function that routes to the correct instance of `EntitySubscription` based on the query type and
+    dataset, and additionally does validation on aggregate for the sessions and metrics datasets
+    then returns the instance of `EntitySubscription`
     """
-    return ENTITY_KEY_TO_ENTITY_SUBSCRIPTION[map_aggregate_to_entity_key(dataset, aggregate)](
-        aggregate, time_window, extra_fields
-    )
-
-
-def map_aggregate_to_entity_key(dataset: QueryDatasets, aggregate: str) -> EntityKey:
-    if dataset == QueryDatasets.EVENTS:
-        entity_key = EntityKey.Events
-    elif dataset == QueryDatasets.TRANSACTIONS:
-        entity_key = EntityKey.Transactions
-    elif dataset in [QueryDatasets.METRICS, QueryDatasets.SESSIONS]:
-        match = re.match(CRASH_RATE_ALERT_AGGREGATE_RE, aggregate)
-        if not match:
-            raise UnsupportedQuerySubscription(
-                f"Only crash free percentage queries are supported for subscriptions"
-                f"over the {dataset.value} dataset"
-            )
+    entity_subscription_cls: Optional[Type[EntitySubscription]] = None
+    if query_type == SnubaQuery.Type.ERROR:
+        entity_subscription_cls = EventsEntitySubscription
+    if query_type == SnubaQuery.Type.PERFORMANCE:
+        # TODO: Add EntitySubscription for PerformanceMetricsEntitySubscription
+        entity_subscription_cls = PerformanceTransactionsEntitySubscription
+    if query_type == SnubaQuery.Type.CRASH_RATE:
+        entity_key = determine_crash_rate_alert_entity(aggregate)
         if dataset == QueryDatasets.METRICS:
-            count_col_matched = match.group(2)
-            if count_col_matched == "sessions":
-                entity_key = EntityKey.MetricsCounters
-            else:
-                entity_key = EntityKey.MetricsSets
+            if entity_key == EntityKey.MetricsCounters:
+                entity_subscription_cls = MetricsCountersEntitySubscription
+            if entity_key == EntityKey.MetricsSets:
+                entity_subscription_cls = MetricsSetsEntitySubscription
         else:
-            entity_key = EntityKey.Sessions
-    else:
+            entity_subscription_cls = SessionsEntitySubscription
+
+    if entity_subscription_cls is None:
         raise UnsupportedQuerySubscription(
-            f"{dataset} dataset does not have an entity key mapped to it"
+            f"Couldn't determine entity subscription for query type {query_type} with dataset {dataset}"
         )
-    return entity_key
+
+    return entity_subscription_cls(aggregate, time_window, extra_fields)
+
+
+def determine_crash_rate_alert_entity(aggregate: str) -> EntityKey:
+    match = re.match(CRASH_RATE_ALERT_AGGREGATE_RE, aggregate)
+    if not match:
+        raise UnsupportedQuerySubscription(
+            "Only crash free percentage queries are supported for crash rate alerts"
+        )
+    count_col_matched = match.group(2)
+    return EntityKey.MetricsCounters if count_col_matched == "sessions" else EntityKey.MetricsSets
 
 
 def get_entity_key_from_query_builder(query_builder: QueryBuilder) -> EntityKey:
     return EntityKey(query_builder.get_snql_query().query.match.name)
+
+
+def get_entity_subscription_from_snuba_query(snuba_query, organization_id):
+    query_dataset = QueryDatasets(snuba_query.dataset)
+    return get_entity_subscription(
+        SnubaQuery.Type(snuba_query.type),
+        query_dataset,
+        snuba_query.aggregate,
+        snuba_query.time_window,
+        extra_fields={
+            "org_id": organization_id,
+            "event_types": snuba_query.event_types,
+        },
+    )
+
+
+def get_entity_key_from_snuba_query(snuba_query, organization_id, project_id):
+    entity_subscription = get_entity_subscription_from_snuba_query(
+        snuba_query,
+        organization_id,
+    )
+    query_builder = entity_subscription.build_query_builder(snuba_query.query, [project_id], None)
+    return get_entity_key_from_query_builder(query_builder)

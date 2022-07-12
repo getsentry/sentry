@@ -41,7 +41,7 @@ from sentry.snuba.entity_subscription import (
     ENTITY_TIME_COLUMNS,
     EntitySubscription,
     get_entity_key_from_query_builder,
-    get_entity_subscription_for_dataset,
+    get_entity_subscription_from_snuba_query,
 )
 from sentry.snuba.models import QueryDatasets
 from sentry.snuba.subscriptions import (
@@ -371,11 +371,9 @@ def get_incident_aggregates(
     Calculates aggregate stats across the life of an incident, or the provided range.
     """
     snuba_query = incident.alert_rule.snuba_query
-    entity_subscription = get_entity_subscription_for_dataset(
-        dataset=QueryDatasets(snuba_query.dataset),
-        aggregate=snuba_query.aggregate,
-        time_window=snuba_query.time_window,
-        extra_fields={"org_id": incident.organization.id, "event_types": snuba_query.event_types},
+    entity_subscription = get_entity_subscription_from_snuba_query(
+        snuba_query,
+        incident.organization_id,
     )
     query_builder = build_incident_query_builder(
         incident, entity_subscription, start, end, windowed_stats
