@@ -62,7 +62,7 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
 
   const flamegraphTheme = useFlamegraphTheme();
   const [{sorting, view, xAxis}, dispatch] = useFlamegraphPreferences();
-  const [{threadId, selectedNode}, dispatchThreadId] = useFlamegraphProfiles();
+  const [{threadId, selectedRoot}, dispatchThreadId] = useFlamegraphProfiles();
 
   const [flamegraphCanvasRef, setFlamegraphCanvasRef] =
     useState<HTMLCanvasElement | null>(null);
@@ -270,13 +270,13 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
   );
 
   const tableRoot = useMemo(
-    () => (selectedNode ? selectedNode : flamegraph.root),
-    [selectedNode, flamegraph.root]
+    () => (selectedRoot ? selectedRoot : flamegraph.root),
+    [selectedRoot, flamegraph.root]
   );
 
   const roots = useMemo(() => {
-    return selectedNode ? [selectedNode] : flamegraph.root.children;
-  }, [selectedNode, flamegraph.root]);
+    return selectedRoot ? [selectedRoot] : flamegraph.root.children;
+  }, [selectedRoot, flamegraph.root]);
 
   return (
     <Fragment>

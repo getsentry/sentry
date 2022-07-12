@@ -28,7 +28,6 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
   const theme = useFlamegraphTheme();
   const [flamegraphPreferences, dispatchFlamegraphPreferences] =
     useFlamegraphPreferences();
-  const {selectedRoot} = useFlamegraphProfilesValue();
 
   const [tab, setTab] = useState<'bottom up' | 'call order'>('call order');
   const [treeType, setTreeType] = useState<'all' | 'application' | 'system'>('all');
@@ -277,6 +276,19 @@ const FrameTabs = styled('ul')`
 const LayoutSelectionContainer = styled('div')`
   display: flex;
   align-items: center;
+
+  button {
+    background-color: transparent;
+    border: none;
+    box-shadow: none;
+    transition: none !important;
+
+    &:hover {
+      border: none;
+      background-color: transparent;
+      box-shadow: none;
+    }
+  }
 `;
 
 const FRAME_WEIGHT_CELL_WIDTH_PX = 164;
