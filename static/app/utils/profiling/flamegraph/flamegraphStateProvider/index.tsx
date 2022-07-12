@@ -11,8 +11,8 @@ import {
   UndoableReducerAction,
   useUndoableReducer,
 } from 'sentry/utils/useUndoableReducer';
+import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
 
-import {useProfileGroup} from '../../../../views/profiling/profileGroupProvider';
 import {useFlamegraphStateValue} from '../useFlamegraphState';
 
 import {
@@ -174,6 +174,7 @@ const DEFAULT_FLAMEGRAPH_STATE: FlamegraphState = {
     sorting: 'call order',
     view: 'top down',
     xAxis: 'standalone',
+    layout: 'table_left',
   },
   search: {
     index: null,
@@ -198,6 +199,9 @@ export function FlamegraphStateProvider(
         DEFAULT_FLAMEGRAPH_STATE.position.view) as Rect,
     },
     preferences: {
+      layout:
+        props.initialState?.preferences?.layout ??
+        DEFAULT_FLAMEGRAPH_STATE.preferences.layout,
       colorCoding:
         props.initialState?.preferences?.colorCoding ??
         DEFAULT_FLAMEGRAPH_STATE.preferences.colorCoding,
