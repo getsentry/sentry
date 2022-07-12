@@ -269,7 +269,7 @@ def _insert_eventstream_profile(profile: Profile) -> None:
     )
 
 
-@metrics.wraps("process_profile.insert_eventstream.call_tree")  # type: ignore
+@metrics.wraps("process_profile.insert_eventstream.call_tree")
 def _insert_eventstream_call_tree(profile: Profile) -> None:
     # just a guard as this should always be initialized already
     if processed_profiles_publisher is None:
@@ -287,7 +287,7 @@ def _insert_eventstream_call_tree(profile: Profile) -> None:
     )
 
 
-@metrics.wraps("process_profile.get_event_instance")  # type: ignore
+@metrics.wraps("process_profile.get_event_instance")
 def _get_event_instance(profile: Profile) -> Any:
     return {
         "profile_id": profile["profile_id"],
