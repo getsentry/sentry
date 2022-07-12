@@ -108,12 +108,12 @@ export function FrameStackTable({
 
   const contextMenu = useContextMenu({container: scrollContainerRef});
 
-  const handleZoomIntoNodeClick = useCallback(() => {
+  const handleZoomIntoFrameClick = useCallback(() => {
     if (!clickedContextMenuNode) {
       return;
     }
 
-    canvasPoolManager.dispatch('zoomIntoFrame', [clickedContextMenuNode.node]);
+    canvasPoolManager.dispatch('zoom at frame', [clickedContextMenuNode.node, 'exact']);
   }, [canvasPoolManager, clickedContextMenuNode]);
 
   const renderRow: UseVirtualizedListProps<FlamegraphFrame>['renderRow'] = useCallback(
@@ -211,7 +211,7 @@ export function FrameStackTable({
           </FrameNameCell>
         </FrameCallersTableHeader>
         <FrameStackContextMenu
-          onZoomIntoNodeClick={handleZoomIntoNodeClick}
+          onZoomIntoFrameClick={handleZoomIntoFrameClick}
           contextMenu={contextMenu}
         />
         <TableItemsContainer>
