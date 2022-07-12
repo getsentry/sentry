@@ -97,9 +97,6 @@ SECURITY_REPORT_INTERFACES = ("csp", "hpkp", "expectct", "expectstaple")
 # Timeout for cached group crash report counts
 CRASH_REPORT_TIMEOUT = 24 * 3600  # one day
 
-# How long is the migration phase for grouping updates?
-GROUPING_UPDATE_MIGRATION_PHASE = 30 * 24 * 3600  # 30 days
-
 
 def pop_tag(data, key):
     if "tags" not in data:
@@ -593,12 +590,15 @@ class EventManager:
         # Check if the project is configured for auto upgrading and we need to upgrade
         # to the latest grouping config.
         if auto_upgrade_grouping and project.get_option("sentry:grouping_auto_update"):
-            _auto_upgrade_grouping(project)
+            _auto_update_grouping(project)
 
         return job["event"]
 
 
-def _auto_upgrade_grouping(project):
+def _auto_update_grouping(project):
+    if not settings.SENTRY_GROUPING_AUTO_UPDATE_ENABLED:
+        return
+
     old_grouping = project.get_option("sentry:grouping_config")
     new_grouping = DEFAULT_GROUPING_CONFIG
 
@@ -607,7 +607,8 @@ def _auto_upgrade_grouping(project):
     if old_grouping != new_grouping and old_grouping != BETA_GROUPING_CONFIG:
         project.update_option("sentry:secondary_grouping_config", old_grouping)
         project.update_option(
-            "sentry:secondary_grouping_expiry", int(time.time()) + GROUPING_UPDATE_MIGRATION_PHASE
+            "sentry:secondary_grouping_expiry",
+            int(time.time()) + settings.SENTRY_GROUPING_UPDATE_MIGRATION_PHASE,
         )
         project.update_option("sentry:grouping_config", new_grouping)
 
