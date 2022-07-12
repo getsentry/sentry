@@ -4,7 +4,7 @@ describe('projectStatsToSampleRates', function () {
   it('returns correct sample rates', function () {
     expect(projectStatsToSampleRates(TestStubs.Outcomes())).toEqual({
       hoursOverLimit: 18,
-      maxSafeSampleRate: 0.3249,
+      maxSafeSampleRate: 0.3,
       trueSampleRate: 1,
     });
   });
