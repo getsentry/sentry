@@ -99,20 +99,22 @@ class OrganizationDynamicSamplingSDKVersionsEndpoint(OrganizationEndpoint):
         # Create a dictionary of total count per sdk name per project
         total_sdk_name_count_per_project = {}
         for row in data:
+            project = row["project"]
+            sdk_name = row["sdk.name"]
+            count = row["count()"]
             # Aggregates total counts for each project
             # As an example: {'wind': 3, 'earth': 49, 'heart': 3, 'fire': 21, 'water': 102}
-            total_count_per_project.setdefault(row["project"], 0)
-            total_count_per_project[row["project"]] += row["count()"]
+            total_count_per_project[project] = total_count_per_project.get(project, 0) + count
 
             # Aggregates total counts for each sdk name per project. As an example:
             # {
             #     "wind": {"sentry.javascript.react": 3},
             #     "earth": {"sentry.javascript.react": 45, "sentry.javascript.browser": 4},
             # }
-            total_sdk_name_count_per_project.setdefault(row["project"], {}).setdefault(
-                row["sdk.name"], 0
+            total_sdk_name_count_per_project.setdefault(project, {})
+            total_sdk_name_count_per_project[project][sdk_name] = (
+                total_sdk_name_count_per_project[project].get(sdk_name, 0) + count
             )
-            total_sdk_name_count_per_project[row["project"]][row["sdk.name"]] += row["count()"]
 
         # Creates a dictionary that has the first level key as project id and values (second
         # level key) as SDK versions, and finally that maps to the expected resulting project
