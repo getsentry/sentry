@@ -125,7 +125,10 @@ class MSTeamsMessageBuilderTest(TestCase):
         assert 2 == len(confirmation_card["body"])
         assert 1 == len(confirmation_card["actions"])
         assert "test-org" in confirmation_card["body"][0]["columns"][1]["items"][0]["text"]
-        assert "test-org" in confirmation_card["actions"][0]["url"]
+
+        url = confirmation_card["actions"][0]["url"]
+        assert "test-org" in url
+        assert url.startswith("http")
 
     def test_personal_installation_message(self):
         personal_installation_card = build_personal_installation_message()
@@ -139,7 +142,10 @@ class MSTeamsMessageBuilderTest(TestCase):
         assert 3 == len(team_installation_card["body"])
         assert 1 == len(team_installation_card["actions"])
         assert "Complete Setup" in team_installation_card["actions"][0]["title"]
-        assert "signed_params" in team_installation_card["actions"][0]["url"]
+
+        url = team_installation_card["actions"][0]["url"]
+        assert "signed_params" in url
+        assert url.startswith("http")
 
     def test_already_linked_message(self):
         already_linked_card = build_already_linked_identity_command_card()
