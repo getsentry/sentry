@@ -148,7 +148,7 @@ const ReplayControls = ({
   speedOptions = [0.1, 0.25, 0.5, 1, 2, 4],
 }: Props) => {
   const barRef = useRef<HTMLDivElement>(null);
-  const [compactLevel, setCompactLevel] = useState<number>(0);
+  const [compactLevel, setCompactLevel] = useState(0);
   const {isFullscreen} = useFullscreen();
   const {isSkippingInactive, toggleSkipInactive} = useReplayContext();
 
