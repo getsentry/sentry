@@ -21,3 +21,5 @@ export const NotificationBar = styled('div')`
     color: ${p => p.theme.alert.info.iconColor};
   }
 `;
+
+export default NotificationBar;
