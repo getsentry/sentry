@@ -1,7 +1,8 @@
+from django.contrib.postgres.fields import JSONField
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, JSONField, Model
+from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Model
 
 
 class ReleaseActivity(Model):
