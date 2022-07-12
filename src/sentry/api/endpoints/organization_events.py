@@ -55,9 +55,9 @@ ALLOWED_EVENTS_GEO_REFERRERS = {
 
 API_TOKEN_REFERRER = "api.auth-token.events"
 
-RATE_LIMIT = 50
+RATE_LIMIT = 25
 RATE_LIMIT_WINDOW = 1
-CONCURRENT_RATE_LIMIT = 50
+CONCURRENT_RATE_LIMIT = 25
 
 
 def rate_limit_events(request: Request, organization_slug=None, *args, **kwargs) -> RateLimitConfig:
