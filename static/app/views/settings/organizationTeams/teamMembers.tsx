@@ -291,22 +291,6 @@ class TeamMembers extends Component<Props, State> {
     );
   }
 
-<<<<<<< HEAD
-  removeButton(member: Member) {
-    return (
-      <Button
-        size="sm"
-        icon={<IconSubtract size="xs" isCircled />}
-        onClick={() => this.removeMember(member)}
-        aria-label={t('Remove')}
-      >
-        {t('Remove')}
-      </Button>
-    );
-  }
-
-=======
->>>>>>> 2b99ff9dc1 (9 - Add Team Roles to teamMembers page)
   render() {
     if (this.state.loading) {
       return <LoadingIndicator />;
