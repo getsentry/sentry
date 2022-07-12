@@ -14,7 +14,7 @@ from sentry.integrations import (
 )
 from sentry.pipeline import PipelineView
 
-from .card_builder.installation import MSTeamsInstallationConfirmationMessageBuilder
+from .card_builder.installation import build_installation_confirmation_message
 from .client import MsTeamsClient, get_token_data
 
 logger = logging.getLogger("sentry.integrations.msteams")
@@ -104,7 +104,7 @@ class MsTeamsIntegrationProvider(IntegrationProvider):
 
     def post_install(self, integration, organization, extra=None):
         client = MsTeamsClient(integration)
-        card = MSTeamsInstallationConfirmationMessageBuilder(organization).build()
+        card = build_installation_confirmation_message(organization)
         conversation_id = integration.external_id
         client.send_card(conversation_id, card)
 

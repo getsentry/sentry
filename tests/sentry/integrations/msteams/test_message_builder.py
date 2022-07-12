@@ -22,9 +22,9 @@ from sentry.integrations.msteams.card_builder.identity import (
     build_unlinked_card,
 )
 from sentry.integrations.msteams.card_builder.installation import (
-    MSTeamsInstallationConfirmationMessageBuilder,
-    MSTeamsPersonalIntallationMessageBuilder,
-    MSTeamsTeamInstallationMessageBuilder,
+    build_installation_confirmation_message,
+    build_personal_installation_message,
+    build_welcome_card,
 )
 from sentry.models import Organization
 from sentry.testutils import TestCase
@@ -120,7 +120,7 @@ class MSTeamsMessageBuilderTest(TestCase):
 
     def test_insallation_confirmation_message(self):
         organization = Organization(name="test-org", slug="test-org")
-        confirmation_card = MSTeamsInstallationConfirmationMessageBuilder(organization).build()
+        confirmation_card = build_installation_confirmation_message(organization)
 
         assert 2 == len(confirmation_card["body"])
         assert 1 == len(confirmation_card["actions"])
@@ -128,13 +128,13 @@ class MSTeamsMessageBuilderTest(TestCase):
         assert "test-org" in confirmation_card["actions"][0]["url"]
 
     def test_personal_installation_message(self):
-        personal_installation_card = MSTeamsPersonalIntallationMessageBuilder().build()
+        personal_installation_card = build_personal_installation_message()
 
         assert 2 == len(personal_installation_card["body"])
 
     def test_team_installation_message(self):
         signed_params = "signed_params"
-        team_installation_card = MSTeamsTeamInstallationMessageBuilder(signed_params).build()
+        team_installation_card = build_welcome_card(signed_params)
 
         assert 3 == len(team_installation_card["body"])
         assert 1 == len(team_installation_card["actions"])
