@@ -11,17 +11,20 @@ type OptionProps = {
   checked?: boolean;
   disabled?: boolean;
   name?: string;
+  onBlur?: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onChange?: OnChangeHandler;
 };
 
 const Option = forwardRef(function Option(
-  {name, disabled, label, value, checked, onChange}: OptionProps,
+  {name, disabled, label, value, checked, onChange, onBlur}: OptionProps,
   ref: React.Ref<HTMLInputElement>
 ) {
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     const isTrue = e.target.value === 'true';
 
     onChange?.(isTrue, e);
+    // Manually trigger blur to trigger saving on change
+    onBlur?.(e);
   }
 
   return (
@@ -46,6 +49,7 @@ type Props = {
   disabled?: boolean;
   name?: string;
   noLabel?: string;
+  onBlur?: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onChange?: OnChangeHandler;
   value?: boolean;
   yesFirst?: boolean;
@@ -57,6 +61,7 @@ const RadioBoolean = forwardRef(function RadioBoolean(
     disabled,
     name,
     onChange,
+    onBlur,
     value,
     yesFirst = true,
     yesLabel = 'Yes',
@@ -73,6 +78,7 @@ const RadioBoolean = forwardRef(function RadioBoolean(
       disabled={disabled}
       label={yesLabel}
       onChange={onChange}
+      onBlur={onBlur}
     />
   );
   const noOption = (
@@ -83,6 +89,7 @@ const RadioBoolean = forwardRef(function RadioBoolean(
       disabled={disabled}
       label={noLabel}
       onChange={onChange}
+      onBlur={onBlur}
     />
   );
 
