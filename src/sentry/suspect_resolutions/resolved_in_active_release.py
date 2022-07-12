@@ -36,4 +36,10 @@ def is_resolved_issue_within_active_release(issue_id: int) -> bool:
 
         now_minus_1_hour = timezone.now() - timedelta(hours=1.0)
 
+        print("=" * 40)
+        print(now_minus_1_hour)
+        print(latest_deploy_release_time)
+        print(timezone.now())
+        print("=" * 40)
+
         return bool(now_minus_1_hour <= latest_deploy_release_time <= timezone.now())
