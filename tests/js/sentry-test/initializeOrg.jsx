@@ -19,6 +19,8 @@ export function initializeOrg({
   const organization = TestStubs.Organization({
     projects,
     ...additionalOrg,
+    orgRoleList: TestStubs.OrgRoleList(),
+    teamRoleList: TestStubs.TeamRoleList(),
   });
   const router = TestStubs.router({
     ...additionalRouter,

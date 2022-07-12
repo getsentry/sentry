@@ -1,4 +1,4 @@
-export function RoleList(params = [], fullAccess = false) {
+export function OrgRoleList(params = [], fullAccess = false) {
   return [
     {
       scopes: [
@@ -16,6 +16,7 @@ export function RoleList(params = [], fullAccess = false) {
       allowed: true,
       id: 'member',
       desc: 'Members can view and act on events, as well as view most other data within the organization.',
+      minimumTeamRole: 'contributor',
     },
     {
       scopes: [
@@ -38,6 +39,7 @@ export function RoleList(params = [], fullAccess = false) {
       allowed: fullAccess,
       id: 'admin',
       desc: "Admin privileges on any teams of which they're a member. They can create new teams and projects, as well as remove teams and projects on which they already hold membership (or all teams, if open membership is enabled). Additionally, they can manage memberships of teams that they are members of. They cannot invite members to the organization.",
+      minimumTeamRole: 'admin',
     },
     {
       scopes: [
@@ -63,6 +65,7 @@ export function RoleList(params = [], fullAccess = false) {
       allowed: fullAccess,
       id: 'manager',
       desc: 'Gains admin access on all teams as well as the ability to add and remove members.',
+      minimumTeamRole: 'admin',
     },
     {
       scopes: [
@@ -89,6 +92,53 @@ export function RoleList(params = [], fullAccess = false) {
       allowed: fullAccess,
       id: 'owner',
       desc: 'Gains full permission across the organization. Can manage members as well as perform catastrophic operations such as removing the organization.',
+      minimumTeamRole: 'admin',
+    },
+    ...params,
+  ];
+}
+
+export function TeamRoleList(params = []) {
+  return [
+    {
+      id: 'contributor',
+      name: 'Contributor',
+      desc: '...',
+      scopes: [
+        'event:read',
+        'event:write',
+        'event:admin',
+        'project:releases',
+        'project:read',
+        'org:read',
+        'member:read',
+        'team:read',
+        'alerts:read',
+        'alerts:write',
+      ],
+    },
+    {
+      id: 'admin',
+      name: 'Team Admin',
+      desc: '...',
+      scopes: [
+        'event:read',
+        'event:write',
+        'event:admin',
+        'org:read',
+        'member:read',
+        'project:read',
+        'project:write',
+        'project:admin',
+        'project:releases',
+        'team:read',
+        'team:write',
+        'team:admin',
+        'org:integrations',
+        'alerts:read',
+        'alerts:write',
+      ],
+      is_minimum_role_for: 'admin',
     },
     ...params,
   ];
