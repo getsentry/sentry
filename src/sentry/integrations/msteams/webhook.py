@@ -202,7 +202,6 @@ class MsTeamsWebhookEndpoint(Endpoint):
         # send welcome message to the team
         client = get_preinstall_client(data["serviceUrl"])
         card = build_welcome_card(signed_params)
-        logger.warning(f"card: {card}")
         client.send_card(team["id"], card)
         return self.respond(status=201)
 
