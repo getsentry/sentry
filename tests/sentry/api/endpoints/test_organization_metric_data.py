@@ -1457,6 +1457,8 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         response = self.get_success_response(
             self.organization.slug,
             field=[
+                # TODO: avoid of mixing in single test release_health
+                # and performnace metrics at the same time
                 f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
                 f"p50({TransactionMetricKey.MEASUREMENTS_FCP.value})",
                 SessionMetricKey.ERRORED.value,
@@ -1531,6 +1533,8 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         response = self.get_success_response(
             self.organization.slug,
             field=[
+                # TODO: avoid of mixing in single test release_health
+                # and performnace metrics at the same time
                 f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
                 f"p50({TransactionMetricKey.MEASUREMENTS_FCP.value})",
                 SessionMetricKey.ERRORED.value,
