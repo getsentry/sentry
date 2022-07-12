@@ -221,8 +221,16 @@ class CreateProject extends Component<Props, State> {
         const presets = PRESET_AGGREGATES.filter(aggregate =>
           metricAlertPresets.includes(aggregate.id)
         );
+        const teamObj = this.props.teams.find(aTeam => aTeam.slug === team);
         for (const preset of presets) {
-          const context = preset.makeUnqueriedContext(projectData, organization);
+          // Patch projectData with teams
+          const context = preset.makeUnqueriedContext(
+            {
+              ...projectData,
+              teams: teamObj ? [teamObj] : [],
+            },
+            organization
+          );
 
           await api.requestPromise(
             `/projects/${organization.slug}/${projectData.slug}/alert-rules/?referrer=create_project`,
@@ -236,7 +244,7 @@ class CreateProject extends Component<Props, State> {
                 name: context.name,
                 owner: null,
                 projectId: projectData.id,
-                projects: null,
+                projects: [projectData.slug],
                 query: '',
                 resolveThreshold: null,
                 thresholdPeriod: 1,
