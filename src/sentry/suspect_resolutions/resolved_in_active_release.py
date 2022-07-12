@@ -11,12 +11,6 @@ def is_resolved_issue_within_active_release(issue_id: int) -> bool:
     issue = Group.objects.filter(id=issue_id).first()
 
     if issue is None or issue.status != GroupStatus.RESOLVED or issue.get_last_release() is None:
-        print("first if statement")
-        print(issue is None)
-        if issue is not None:
-            print(issue.status)
-            print(issue.get_last_release())
-        print("if statement done")
         return False
 
     # returns the release version associated with the issue
@@ -35,17 +29,10 @@ def is_resolved_issue_within_active_release(issue_id: int) -> bool:
 
     # get the time of the latest deploy
     if not latest_deploy_release:
-        print("latest_deploy_release is None")
         return False
 
     latest_deploy_release_time = latest_deploy_release.date_finished
 
     now_minus_1_hour = timezone.now() - timedelta(hours=1.0)
-
-    print("=" * 40)
-    print(now_minus_1_hour)
-    print(latest_deploy_release_time)
-    print(timezone.now())
-    print("=" * 40)
 
     return now_minus_1_hour <= latest_deploy_release_time <= timezone.now()
