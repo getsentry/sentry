@@ -1,4 +1,4 @@
-import {ChangeEvent, Fragment, ReactNode} from 'react';
+import {ChangeEvent, ReactNode} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import {components} from 'react-select';
 import styled from '@emotion/styled';
@@ -152,10 +152,6 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     return (
       hasDuplicateAlertRules && createFromDuplicate && location?.query.duplicateRuleId
     );
-  }
-
-  get hasAlertWizardV3(): boolean {
-    return this.props.organization.features.includes('alert-wizard-v3');
   }
 
   componentWillUnmount() {
@@ -429,7 +425,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
         data: rule,
         query: {
           duplicateRule: this.isDuplicateRule ? 'true' : 'false',
-          wizardV3: this.hasAlertWizardV3 ? 'true' : 'false',
+          wizardV3: 'true',
         },
       });
 
@@ -696,21 +692,20 @@ class IssueRuleEditor extends AsyncView<Props, State> {
 
     return (
       <StyledField
-        hasAlertWizardV3={this.hasAlertWizardV3}
-        label={this.hasAlertWizardV3 ? null : t('Alert name')}
-        help={this.hasAlertWizardV3 ? null : t('Add a name for this alert')}
+        label={null}
+        help={null}
         error={detailedError?.name?.[0]}
         disabled={disabled}
         required
         stacked
-        flexibleControlStateSize={this.hasAlertWizardV3 ? true : undefined}
+        flexibleControlStateSize
       >
         <Input
           type="text"
           name="name"
           value={name}
           data-test-id="alert-name"
-          placeholder={this.hasAlertWizardV3 ? t('Enter Alert Name') : t('My Rule Name')}
+          placeholder={t('Enter Alert Name')}
           onChange={(event: ChangeEvent<HTMLInputElement>) =>
             this.handleChange('name', event.target.value)
           }
@@ -727,12 +722,11 @@ class IssueRuleEditor extends AsyncView<Props, State> {
 
     return (
       <StyledField
-        hasAlertWizardV3={this.hasAlertWizardV3}
         extraMargin
-        label={this.hasAlertWizardV3 ? null : t('Team')}
-        help={this.hasAlertWizardV3 ? null : t('The team that can edit this alert.')}
+        label={null}
+        help={null}
         disabled={disabled}
-        flexibleControlStateSize={this.hasAlertWizardV3 ? true : undefined}
+        flexibleControlStateSize
       >
         <TeamSelector
           value={this.getTeamId()}
@@ -862,13 +856,8 @@ class IssueRuleEditor extends AsyncView<Props, State> {
 
     return (
       <StyledSelectField
-        hasAlertWizardV3={this.hasAlertWizardV3}
-        label={this.hasAlertWizardV3 ? null : t('Action Interval')}
-        help={
-          this.hasAlertWizardV3
-            ? null
-            : t('Perform these actions once this often for an issue')
-        }
+        label={null}
+        help={null}
         clearable={false}
         name="frequency"
         className={this.hasError('frequency') ? ' error' : ''}
@@ -877,7 +866,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
         options={FREQUENCY_OPTIONS}
         onChange={val => this.handleChange('frequency', val)}
         disabled={disabled}
-        flexibleControlStateSize={this.hasAlertWizardV3 ? true : undefined}
+        flexibleControlStateSize
       />
     );
   }
@@ -942,47 +931,21 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                 <List symbol="colored-numeric">
                   {loading && <SemiTransparentLoadingMask data-test-id="loading-mask" />}
                   <StyledListItem>{t('Add alert settings')}</StyledListItem>
-                  {this.hasAlertWizardV3 ? (
-                    <SettingsContainer>
-                      <StyledSelectField
-                        hasAlertWizardV3={this.hasAlertWizardV3}
-                        className={classNames({
-                          error: this.hasError('environment'),
-                        })}
-                        placeholder={t('Select an Environment')}
-                        clearable={false}
-                        name="environment"
-                        options={environmentOptions}
-                        onChange={val => this.handleEnvironmentChange(val)}
-                        disabled={disabled}
-                        flexibleControlStateSize
-                      />
-                      {this.renderProjectSelect(disabled)}
-                    </SettingsContainer>
-                  ) : (
-                    <Panel>
-                      <PanelBody>
-                        <SelectField
-                          className={classNames({
-                            error: this.hasError('environment'),
-                          })}
-                          label={t('Environment')}
-                          help={t(
-                            'Choose an environment for these conditions to apply to'
-                          )}
-                          placeholder={t('Select an Environment')}
-                          clearable={false}
-                          name="environment"
-                          options={environmentOptions}
-                          onChange={val => this.handleEnvironmentChange(val)}
-                          disabled={disabled}
-                        />
-
-                        {this.renderTeamSelect(disabled)}
-                        {this.renderRuleName(disabled)}
-                      </PanelBody>
-                    </Panel>
-                  )}
+                  <SettingsContainer>
+                    <StyledSelectField
+                      className={classNames({
+                        error: this.hasError('environment'),
+                      })}
+                      placeholder={t('Select an Environment')}
+                      clearable={false}
+                      name="environment"
+                      options={environmentOptions}
+                      onChange={val => this.handleEnvironmentChange(val)}
+                      disabled={disabled}
+                      flexibleControlStateSize
+                    />
+                    {this.renderProjectSelect(disabled)}
+                  </SettingsContainer>
                   <SetConditionsListItem>
                     {t('Set conditions')}
                     <SetupAlertIntegrationButton
@@ -1182,20 +1145,10 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                       {t('Perform the actions above once this often for an issue')}
                     </StyledFieldHelp>
                   </StyledListItem>
-                  {this.hasAlertWizardV3 ? (
-                    this.renderActionInterval(disabled)
-                  ) : (
-                    <Panel>
-                      <PanelBody>{this.renderActionInterval(disabled)}</PanelBody>
-                    </Panel>
-                  )}
-                  {this.hasAlertWizardV3 && (
-                    <Fragment>
-                      <StyledListItem>{t('Establish ownership')}</StyledListItem>
-                      {this.renderRuleName(disabled)}
-                      {this.renderTeamSelect(disabled)}
-                    </Fragment>
-                  )}
+                  {this.renderActionInterval(disabled)}
+                  <StyledListItem>{t('Establish ownership')}</StyledListItem>
+                  {this.renderRuleName(disabled)}
+                  {this.renderTeamSelect(disabled)}
                 </List>
               </StyledForm>
             </Main>
@@ -1312,40 +1265,30 @@ const SettingsContainer = styled('div')`
   gap: ${space(1)};
 `;
 
-const StyledField = styled(Field)<{extraMargin?: boolean; hasAlertWizardV3?: boolean}>`
+const StyledField = styled(Field)<{extraMargin?: boolean}>`
   :last-child {
     padding-bottom: ${space(2)};
   }
 
-  ${p =>
-    p.hasAlertWizardV3 &&
-    `
-    border-bottom: none;
+  border-bottom: none;
+  padding: 0;
+
+  & > div {
     padding: 0;
+    width: 100%;
+  }
 
-    & > div {
-      padding: 0;
-      width: 100%;
-    }
-
-    margin-bottom: ${p.extraMargin ? '60px' : space(1)};
-  `}
+  margin-bottom: ${p => `${p.extraMargin ? '60px' : space(1)}`};
 `;
 
-const StyledSelectField = styled(SelectField)<{hasAlertWizardV3?: boolean}>`
-  ${p =>
-    p.hasAlertWizardV3 &&
-    `
-    border-bottom: none;
+const StyledSelectField = styled(SelectField)`
+  border-bottom: none;
+  padding: 0;
+
+  & > div {
     padding: 0;
-
-    & > div {
-      padding: 0;
-      width: 100%;
-    }
-
-    margin-bottom: ${space(1)};
-  `}
+    width: 100%;
+  }
 `;
 
 const Main = styled(Layout.Main)`

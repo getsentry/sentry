@@ -945,8 +945,6 @@ SENTRY_FEATURES = {
     "organizations:alert-crash-free-metrics": False,
     # Workflow 2.0 notifications following a release
     "organizations:alert-release-notification-workflow": False,
-    # Alert wizard redesign version 3
-    "organizations:alert-wizard-v3": True,
     "organizations:api-keys": False,
     # Enable multiple Apple app-store-connect sources per project.
     "organizations:app-store-connect-multiple": False,

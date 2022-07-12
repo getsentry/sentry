@@ -216,7 +216,6 @@ type CreateAlertFromViewButtonProps = ButtonProps & {
   alertType?: AlertType;
   className?: string;
   referrer?: string;
-  useAlertWizardV3?: boolean;
 };
 
 function incompatibleYAxis(eventView: EventView): boolean {
@@ -271,7 +270,6 @@ function CreateAlertFromViewButton({
   referrer,
   onIncompatibleQuery,
   onSuccess,
-  useAlertWizardV3,
   alertType,
   ...buttonProps
 }: CreateAlertFromViewButtonProps) {
@@ -306,20 +304,14 @@ function CreateAlertFromViewButton({
   const to = hasErrors
     ? undefined
     : {
-        pathname: useAlertWizardV3
-          ? `/organizations/${organization.slug}/alerts/new/metric/`
-          : `/organizations/${organization.slug}/alerts/${project?.slug}/new/`,
+        pathname: `/organizations/${organization.slug}/alerts/new/metric/`,
         query: {
           ...queryParams,
           createFromDiscover: true,
           referrer,
-          ...(useAlertWizardV3
-            ? {
-                ...alertTemplate,
-                project: project?.slug,
-                aggregate: queryParams.yAxis ?? alertTemplate.aggregate,
-              }
-            : {}),
+          ...alertTemplate,
+          project: project?.slug,
+          aggregate: queryParams.yAxis ?? alertTemplate.aggregate,
         },
       };
 
@@ -386,16 +378,11 @@ const CreateAlertButton = withRouter(
   }: Props) => {
     const api = useApi();
     const createAlertUrl = (providedProj: string) => {
-      const hasAlertWizardV3 = organization.features.includes('alert-wizard-v3');
-      const alertsBaseUrl = hasAlertWizardV3
-        ? `/organizations/${organization.slug}/alerts`
-        : `/organizations/${organization.slug}/alerts/${providedProj}`;
+      const alertsBaseUrl = `/organizations/${organization.slug}/alerts`;
       const alertsArgs = [
         `${referrer ? `referrer=${referrer}` : ''}`,
         `${
-          hasAlertWizardV3 && providedProj && providedProj !== ':projectId'
-            ? `project=${providedProj}`
-            : ''
+          providedProj && providedProj !== ':projectId' ? `project=${providedProj}` : ''
         }`,
         alertOption ? `alert_option=${alertOption}` : '',
       ].filter(item => item !== '');

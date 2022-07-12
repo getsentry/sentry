@@ -106,7 +106,6 @@ function VitalDetailContent(props: Props) {
         projects={projects}
         onIncompatibleQuery={handleIncompatibleQuery}
         onSuccess={() => {}}
-        useAlertWizardV3={organization.features.includes('alert-wizard-v3')}
         aria-label={t('Create Alert')}
         alertType={vitalAlertTypes[vitalName]}
         referrer="performance"
