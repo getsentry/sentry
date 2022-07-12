@@ -30,7 +30,9 @@ def create_title_block(text: str) -> ColumnSetBlock:
 
 
 def build_welcome_card(signed_params: str) -> AdaptiveCard:
-    url = InstallationMessages.MSTEAMS_CONFIGURE_URL.format(signed_params=signed_params)
+    url = absolute_uri(
+        InstallationMessages.MSTEAMS_CONFIGURE_URL.format(signed_params=signed_params)
+    )
 
     return MSTeamsMessageBuilder().build_card(
         title=create_title_block(InstallationMessages.TEAM_INSTALLTION_TITLE),
