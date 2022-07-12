@@ -2,7 +2,7 @@ import {forwardRef} from 'react';
 
 import {SvgIcon, SVGIconProps} from './svgIcon';
 
-const IconRestart = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
+const IconReplayerRestart = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
   return (
     <SvgIcon {...props} ref={ref}>
       <path
@@ -21,6 +21,6 @@ const IconRestart = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
   );
 });
 
-IconRestart.displayName = 'IconRestart';
+IconReplayerRestart.displayName = 'IconReplayerRestart';
 
-export {IconRestart};
+export {IconReplayerRestart};

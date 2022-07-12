@@ -9,13 +9,13 @@ import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {formatTime, relativeTimeInMs} from 'sentry/components/replays/utils';
 import {
   IconArrow,
-  IconBackTen,
-  IconFullscreenEnter,
-  IconFullscreenExit,
-  IconNext,
-  IconPause,
-  IconPlay,
-  IconRestart,
+  IconReplayerBackTen,
+  IconReplayerFullscreenEnter,
+  IconReplayerFullscreenExit,
+  IconReplayerNext,
+  IconReplayerPause,
+  IconReplayerPlay,
+  IconReplayerRestart,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -54,7 +54,7 @@ function ReplayPlayPauseBar() {
       <Button
         size="xs"
         title={t('Rewind 10s')}
-        icon={<IconBackTen size="sm" />}
+        icon={<IconReplayerBackTen size="sm" />}
         onClick={() => setCurrentTime(currentTime - 10 * SECOND)}
         aria-label={t('Rewind 10 seconds')}
       />
@@ -62,7 +62,7 @@ function ReplayPlayPauseBar() {
         <Button
           size="xs"
           title={t('Restart')}
-          icon={<IconRestart size="sm" />}
+          icon={<IconReplayerRestart size="sm" />}
           onClick={restart}
           aria-label={t('Restart')}
         />
@@ -70,7 +70,9 @@ function ReplayPlayPauseBar() {
         <Button
           size="xs"
           title={isPlaying ? t('Pause') : t('Play')}
-          icon={isPlaying ? <IconPause size="sm" /> : <IconPlay size="sm" />}
+          icon={
+            isPlaying ? <IconReplayerPause size="sm" /> : <IconReplayerPlay size="sm" />
+          }
           onClick={() => togglePlayPause(!isPlaying)}
           aria-label={isPlaying ? t('Pause') : t('Play')}
         />
@@ -78,7 +80,7 @@ function ReplayPlayPauseBar() {
       <Button
         size="xs"
         title={t('Next breadcrumb')}
-        icon={<IconNext size="sm" />}
+        icon={<IconReplayerNext size="sm" />}
         onClick={() => {
           const startTimestampSec = replay?.getEvent().startTimestamp;
           if (!startTimestampSec) {
@@ -161,9 +163,9 @@ const ReplayControls = ({
         aria-label={isFullscreen ? t('Exit full screen') : t('Enter full screen')}
         icon={
           isFullscreen ? (
-            <IconFullscreenExit size="sm" />
+            <IconReplayerFullscreenExit size="sm" />
           ) : (
-            <IconFullscreenEnter size="sm" />
+            <IconReplayerFullscreenEnter size="sm" />
           )
         }
         onClick={toggleFullscreen}
