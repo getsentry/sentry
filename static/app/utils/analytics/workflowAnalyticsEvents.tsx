@@ -52,7 +52,7 @@ export type TeamInsightsEventParameters = {
     session_id: string;
     wizard_v3: string;
   };
-  'project.create_page_viewed': {};
+  'project_creation_page.viewed': {};
   'team_insights.viewed': {};
 };
 
@@ -76,5 +76,5 @@ export const workflowEventMap: Record<TeamInsightsEventKey, string | null> = {
   'issue_details.viewed': 'Issue Details: Viewed',
   'new_alert_rule.viewed': 'New Alert Rule: Viewed',
   'team_insights.viewed': 'Team Insights: Viewed',
-  'project.create_page_viewed': 'Project Create: Creation page viewed',
+  'project_creation_page.viewed': 'Project Create: Creation page viewed',
 };

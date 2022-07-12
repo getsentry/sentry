@@ -87,7 +87,7 @@ class CreateProject extends Component<Props, State> {
   }
 
   componentDidMount() {
-    trackAdvancedAnalyticsEvent('project.create_page_viewed', {
+    trackAdvancedAnalyticsEvent('project_creation_page.viewed', {
       organization: this.props.organization,
     });
   }
