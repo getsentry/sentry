@@ -219,7 +219,7 @@ class VitalCard extends Component<Props, State> {
         <Description>{description}</Description>
         <div>
           <Button
-            size="xsmall"
+            size="xs"
             to={newEventView
               .withColumns([{kind: 'field', field: column}])
               .withSorts([{kind: 'desc', field: column}])
