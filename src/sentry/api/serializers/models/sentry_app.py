@@ -7,7 +7,6 @@ from sentry.constants import SentryAppStatus
 from sentry.models import IntegrationFeature, SentryApp, SentryAppAvatar, User
 from sentry.models.integrations.integration_feature import IntegrationTypes
 from sentry.models.integrations.sentry_app import MASKED_VALUE
-from sentry.utils.compat import map
 
 
 @register(SentryApp)
@@ -53,7 +52,7 @@ class SentryAppSerializer(Serializer):
         }
 
         if obj.status != SentryAppStatus.INTERNAL:
-            data["featureData"] = map(lambda x: serialize(x, user), attrs.get("features"))
+            data["featureData"] = [serialize(x, user) for x in attrs.get("features")]
 
         if obj.status == SentryAppStatus.PUBLISHED and obj.date_published:
             data.update({"datePublished": obj.date_published})
