@@ -367,6 +367,7 @@ class OrganizationEndpoint(Endpoint):
         kwargs["organization"] = organization
         return (args, kwargs)
 
+<<<<<<< HEAD
     def get_use_case_id(self, request: Request):
         """
         Extracts useCase from request and validate it agains UseCaseKey enum type
@@ -380,6 +381,20 @@ class OrganizationEndpoint(Endpoint):
                 detail=f"Invalid useCase parameter. Please use one of: {', '.join(use_case.value for use_case in UseCaseKey)}"
             )
 
+||||||| parent of fe71ab45a2 (return ParseError whe useCase param has wrong value; update tests)
+=======
+    def get_use_case_id(self, request: Request):
+        """
+        Extracts useCase from request and validate it agains UseCaseKey enum type
+        if request param is omitted fallback to UseCaseKey.RELEATH_HEALTH
+        if request param has wrong value just raise an ParseError.
+        """
+        try:
+            return UseCaseKey.from_str(request.GET.get("useCase", "release-health"))
+        except ValueError:
+            raise ParseError(detail="Invalid useCase parameter.")
+
+>>>>>>> fe71ab45a2 (return ParseError whe useCase param has wrong value; update tests)
 
 class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationReleasePermission,)
