@@ -237,7 +237,7 @@ def _get_metrics_filter_ids(
     while metric_mris_deque:
         mri = metric_mris_deque.popleft()
         if mri not in all_derived_metrics:
-            metric_ids.add(indexer.resolve(org_id, mri))
+            metric_ids.add(indexer.resolve(org_id, mri, use_case_id))
         else:
             derived_metric_obj = all_derived_metrics[mri]
             try:

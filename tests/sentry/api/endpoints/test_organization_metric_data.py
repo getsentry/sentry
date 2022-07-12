@@ -51,7 +51,6 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         assert response.status_code == 400
         assert response.json()["detail"] == 'Request is missing a "field"'
 
-<<<<<<< HEAD
     def test_incorrect_use_case_id_value(self):
         response = self.get_response(
             self.project.organization.slug,
@@ -65,19 +64,6 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             == "Invalid useCase parameter. Please use one of: release-health, performance"
         )
 
-||||||| parent of fe71ab45a2 (return ParseError whe useCase param has wrong value; update tests)
-=======
-    def test_incorrect_use_case_id_value(self):
-        response = self.get_response(
-            self.project.organization.slug,
-            field="sum(sentry.sessions.session)",
-            groupBy="environment",
-            useCase="unknown",
-        )
-        assert response.status_code == 400
-        assert response.json()["detail"] == "Invalid useCase parameter."
-
->>>>>>> fe71ab45a2 (return ParseError whe useCase param has wrong value; update tests)
     def test_invalid_field(self):
         for field in ["", "(*&%", "foo(session", "foo(session)"]:
             response = self.get_response(self.project.organization.slug, field=field)
@@ -807,15 +793,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             TransactionMRI.MEASUREMENTS_FCP.value,
             "transaction",
         ]:
-<<<<<<< HEAD
             perf_indexer_record(self.organization.id, metric)
-||||||| parent of eb68d99586 (add useCase optional query param)
-            rh_indexer_record(self.organization.id, metric)
-
-=======
-            perf_indexer_record(self.organization.id, metric)
-
->>>>>>> eb68d99586 (add useCase optional query param)
         response = self.get_success_response(
             self.organization.slug,
             field=[

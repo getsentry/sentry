@@ -1202,7 +1202,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             ) -> Tuple[int, int]:
                 total = 0
                 crashed = 0
-                metric_id = indexer.resolve(org_id, metric_key.value)
+                metric_id = indexer.resolve(org_id, metric_key.value, USE_CASE_ID)
                 if metric_id is not None:
                     where = conditions + [
                         Condition(Column("metric_id"), Op.EQ, metric_id),
@@ -1561,7 +1561,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         rollup: int,
     ) -> Mapping[datetime, DurationPercentiles]:
         series: MutableMapping[datetime, DurationPercentiles] = {}
-        session_status_healthy = indexer.resolve(org_id, "exited")
+        session_status_healthy = indexer.resolve(org_id, "exited", USE_CASE_ID)
         if session_status_healthy is not None:
             duration_series_data = raw_snql_query(
                 Request(

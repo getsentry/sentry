@@ -125,7 +125,7 @@ class GetCustomMeasurementsTest(MetricsEnhancedPerformanceTestCase):
             projects=[self.project],
             organization=self.organization,
             start=self.day_ago,
-            use_case_id=UseCaseKey.RELEASE_HEALTH,
+            use_case_id=UseCaseKey.PERFORMANCE,
         )
         assert result == [
             {
@@ -144,7 +144,9 @@ class GetCustomMeasurementsTest(MetricsEnhancedPerformanceTestCase):
                     "p99",
                 ],
                 "unit": "millisecond",
-                "metric_id": indexer.resolve(self.organization.id, something_custom_metric),
+                "metric_id": indexer.resolve(
+                    self.organization.id, something_custom_metric, UseCaseKey.PERFORMANCE
+                ),
             }
         ]
 
@@ -170,7 +172,7 @@ class GetCustomMeasurementsTest(MetricsEnhancedPerformanceTestCase):
             projects=[self.project],
             organization=self.organization,
             start=self.day_ago,
-            use_case_id=UseCaseKey.RELEASE_HEALTH,
+            use_case_id=UseCaseKey.PERFORMANCE,
         )
 
         assert result == [
@@ -190,6 +192,8 @@ class GetCustomMeasurementsTest(MetricsEnhancedPerformanceTestCase):
                     "p99",
                 ],
                 "unit": "millisecond",
-                "metric_id": indexer.resolve(self.organization.id, something_custom_metric),
+                "metric_id": indexer.resolve(
+                    self.organization.id, something_custom_metric, UseCaseKey.PERFORMANCE
+                ),
             }
         ]

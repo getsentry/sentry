@@ -132,7 +132,9 @@ class MetricReleaseMonitorBackend(BaseReleaseMonitorBackend):
                             Condition(
                                 Column("metric_id"),
                                 Op.EQ,
-                                indexer.resolve(org_id, SessionMRI.SESSION.value),
+                                indexer.resolve(
+                                    org_id, SessionMRI.SESSION.value, UseCaseKey.RELEASE_HEALTH
+                                ),
                             ),
                         ],
                         granularity=Granularity(21600),

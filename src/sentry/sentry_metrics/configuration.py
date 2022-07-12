@@ -9,7 +9,6 @@ class UseCaseKey(Enum):
     RELEASE_HEALTH = "release-health"
     PERFORMANCE = "performance"
 
-<<<<<<< HEAD
     @staticmethod
     def from_str(use_case: str) -> "UseCaseKey":
         if use_case == "performance":
@@ -19,18 +18,6 @@ class UseCaseKey(Enum):
         else:
             raise ValueError
 
-||||||| parent of eb68d99586 (add useCase optional query param)
-=======
-    @staticmethod
-    def from_str(use_case):
-        if use_case == "performance":
-            return UseCaseKey.PERFORMANCE
-        elif use_case in ("release-health", "releaseHealth"):
-            return UseCaseKey.RELEASE_HEALTH
-        else:
-            return UseCaseKey.RELEASE_HEALTH
-
->>>>>>> eb68d99586 (add useCase optional query param)
 
 class DbKey(Enum):
     STRING_INDEXER = "StringIndexer"
