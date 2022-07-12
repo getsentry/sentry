@@ -12,8 +12,7 @@ class ReleaseActivity(Model):
         unknown = 0
         started = 1
         finished = 2
-        new_issue = 3
-        regression = 4
+        issue = 3
 
     release = FlexibleForeignKey("sentry.Release", db_index=True)
     type = BoundedPositiveIntegerField(
@@ -21,8 +20,7 @@ class ReleaseActivity(Model):
         choices=(
             (Type.started, "Started"),
             (Type.finished, "Finished"),
-            (Type.new_issue, "New Issue"),
-            (Type.regression, "Regression"),
+            (Type.issue, "Issue"),
         ),
     )
     data = JSONField()
