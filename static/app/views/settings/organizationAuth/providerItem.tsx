@@ -58,7 +58,7 @@ const ProviderItem = ({provider, active, onConfigure}: Props) => {
         <Button
           type="submit"
           name="provider"
-          size="small"
+          size="sm"
           value={provider.key}
           disabled={!hasFeature || !hasAccess}
           onClick={handleConfigure}
