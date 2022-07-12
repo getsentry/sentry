@@ -96,10 +96,9 @@ const RemoveButton = (props: {
 
   const isSelf = member.email === user.email;
   const canRemoveMember = hasWriteAccess || isSelf;
-
-  const hoverText = !canRemoveMember
-    ? t('You do not have sufficient permissions to remove this team member')
-    : '';
+  if (!canRemoveMember) {
+    return null;
+  }
 
   return (
     <Button
@@ -108,7 +107,6 @@ const RemoveButton = (props: {
       icon={<IconSubtract size="xs" isCircled />}
       onClick={() => removeMember(member)}
       aria-label={t('Remove')}
-      title={hoverText}
     >
       {t('Remove')}
     </Button>
