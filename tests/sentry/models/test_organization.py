@@ -39,6 +39,18 @@ from sentry.utils.audit import create_system_audit_entry
 
 
 class OrganizationTest(TestCase):
+    def test_slugify_on_new_orgs(self):
+        org = Organization.objects.create(name="name", slug="---downtown_canada---")
+        assert org.slug == "downtown-canada"
+
+        # Only slugify on new instances of Organization
+        org.slug = "---downtown_canada---"
+        org.save()
+        assert org.slug == "---downtown_canada---"
+
+        org = Organization.objects.create(name="---foo_bar---")
+        assert org.slug == "foo-bar"
+
     def test_merge_to(self):
         from_owner = self.create_user("foo@example.com")
         from_org = self.create_organization(owner=from_owner)
