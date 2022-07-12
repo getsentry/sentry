@@ -10,15 +10,17 @@ class ReleaseActivity(Model):
 
     class Type:
         unknown = 0
-        started = 1
-        finished = 2
-        issue = 3
+        created = 1
+        deployed = 2
+        finished = 3
+        issue = 4
 
     release = FlexibleForeignKey("sentry.Release", db_index=True)
     type = BoundedPositiveIntegerField(
         default=Type.unknown,
         choices=(
-            (Type.started, "Started"),
+            (Type.created, "Created"),
+            (Type.deployed, "Deployed"),
             (Type.finished, "Finished"),
             (Type.issue, "Issue"),
         ),

@@ -39,7 +39,13 @@ class ReleaseActivityTest(APITestCase):
             now = timezone.now()
 
             ReleaseActivity.objects.create(
-                type=ReleaseActivity.Type.started,
+                type=ReleaseActivity.Type.created,
+                release=release,
+                date_added=now - timedelta(hours=5),
+            )
+
+            ReleaseActivity.objects.create(
+                type=ReleaseActivity.Type.deployed,
                 release=release,
                 date_added=now - timedelta(hours=1, minutes=1),
             )
@@ -60,8 +66,9 @@ class ReleaseActivityTest(APITestCase):
             self.login_as(user=self.user)
             response = self.get_response(project.organization.slug, project.slug, release.version)
             assert response.status_code == 200
-            assert len(response.data) == 3
+            assert len(response.data) == 4
             assert response.data[0]["type"] == ReleaseActivity.Type.finished
             assert response.data[1]["type"] == ReleaseActivity.Type.issue
             assert response.data[1]["data"]["issue_id"] == self.group.id
-            assert response.data[2]["type"] == ReleaseActivity.Type.started
+            assert response.data[2]["type"] == ReleaseActivity.Type.deployed
+            assert response.data[3]["type"] == ReleaseActivity.Type.created
