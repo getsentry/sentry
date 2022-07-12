@@ -25,11 +25,10 @@ import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAna
 import {useProfileFilters} from 'sentry/utils/profiling/hooks/useProfileFilters';
 import {useProfiles} from 'sentry/utils/profiling/hooks/useProfiles';
 import {useProfileTransactions} from 'sentry/utils/profiling/hooks/useProfileTransactions';
+import {generateProfilingOnboardingRoute} from 'sentry/utils/profiling/routes';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-
-import {generateProfilingOnboardingRoute} from '../../utils/profiling/routes';
 
 import {ProfilingScatterChart} from './landing/profilingScatterChart';
 
