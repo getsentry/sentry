@@ -179,11 +179,11 @@ describe('Server-side Sampling', function () {
       />
     );
 
-    await waitFor(() => {
-      expect(distributionMock).toHaveBeenCalled();
-    });
+    expect(distributionMock).toHaveBeenCalled();
 
-    expect(sdkVersionsMock).toHaveBeenCalled();
+    await waitFor(() => {
+      expect(sdkVersionsMock).toHaveBeenCalled();
+    });
 
     const recommendedSdkUpgradesAlert = screen.getByTestId(
       'recommended-sdk-upgrades-alert'
