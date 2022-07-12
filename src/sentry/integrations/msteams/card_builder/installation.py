@@ -11,29 +11,7 @@ from .base import (
     TextWeight,
     VerticalContentAlignment,
 )
-
-MSTEAMS_CONFIGURE_URL = "/extensions/msteams/configure/?signed_params={signed_params}"
-TEAM_INSTALLTION_TITLE = "Welcome to Sentry for Microsoft Teams"
-TEAM_INSTALLATION_DESCRIPTION = "You can use Sentry for Microsoft Teams to get notifications that allow you to assign, ignore, or resolve directly in your chat."
-TEAM_INSTALLATION_INSTRUCTION = (
-    "Please click **Complete Setup** to finish the setup process."
-    " Don't have a Sentry account? [Sign Up](https://sentry.io/signup/)."
-)
-TEAM_INSTALLATION_BUTTON = "Complete Setup"
-
-PERSONAL_INSTALLATION_TITLE = "Personal Installation of Sentry"
-PERSONAL_INSTALLATION_INSTRUCTION = (
-    "It looks like you have installed Sentry as a personal app."
-    " Sentry for Microsoft Teams needs to be added to a team. Please add"
-    ' Sentry again, and select "Add to a team" from the "Add" button\'s list arrow'
-)
-
-INSTALLATION_CONFIRMATION_TITLE = "Installation for {organization_name} is successful"
-INSTALLATION_CONFIRMATION_INSTRUCTION = (
-    "Now that setup is complete, you can continue by configuring alerts."
-)
-INSTALLATION_CONFIRMATION_BUTTON = "Add Alert Rules"
-ALERT_RULE_URL = "organizations/{organization_slug}/alerts/rules/"
+from .utils import InstallationMessages
 
 
 class MSTeamsInstallationTitleMessageBuilder(MSTeamsMessageBuilder):
@@ -50,16 +28,18 @@ class MSTeamsInstallationTitleMessageBuilder(MSTeamsMessageBuilder):
 
 class MSTeamsTeamInstallationMessageBuilder(MSTeamsInstallationTitleMessageBuilder):
     def __init__(self, signed_params: str):
-        self.url = MSTEAMS_CONFIGURE_URL.format(signed_params=signed_params)
+        self.url = InstallationMessages.MSTEAMS_CONFIGURE_URL.format(signed_params=signed_params)
 
     def build(self) -> Any:
         return self.build_card(
-            title=self.get_title_block(TEAM_INSTALLTION_TITLE),
-            text=TEAM_INSTALLATION_DESCRIPTION,
-            fields=[TEAM_INSTALLATION_INSTRUCTION],
+            title=self.get_title_block(InstallationMessages.TEAM_INSTALLTION_TITLE),
+            text=InstallationMessages.TEAM_INSTALLATION_DESCRIPTION,
+            fields=[InstallationMessages.TEAM_INSTALLATION_INSTRUCTION],
             actions=[
                 self.get_action_block(
-                    ActionType.OPEN_URL, title=TEAM_INSTALLATION_BUTTON, url=self.url
+                    ActionType.OPEN_URL,
+                    title=InstallationMessages.TEAM_INSTALLATION_BUTTON,
+                    url=self.url,
                 )
             ],
         )
@@ -68,8 +48,8 @@ class MSTeamsTeamInstallationMessageBuilder(MSTeamsInstallationTitleMessageBuild
 class MSTeamsPersonalIntallationMessageBuilder(MSTeamsInstallationTitleMessageBuilder):
     def build(self) -> Any:
         return self.build_card(
-            title=self.get_title_block(PERSONAL_INSTALLATION_TITLE),
-            text=PERSONAL_INSTALLATION_INSTRUCTION,
+            title=self.get_title_block(InstallationMessages.PERSONAL_INSTALLATION_TITLE),
+            text=InstallationMessages.PERSONAL_INSTALLATION_INSTRUCTION,
         )
 
 
@@ -79,16 +59,20 @@ class MSTeamsInstallationConfirmationMessageBuilder(MSTeamsInstallationTitleMess
 
     def build(self) -> Any:
         alert_rule_url = absolute_uri(
-            ALERT_RULE_URL.format(organization_slug=self.organization.slug)
+            InstallationMessages.ALERT_RULE_URL.format(organization_slug=self.organization.slug)
         )
         return self.build_card(
             title=self.get_title_block(
-                INSTALLATION_CONFIRMATION_TITLE.format(organization_name=self.organization.name)
+                InstallationMessages.INSTALLATION_CONFIRMATION_TITLE.format(
+                    organization_name=self.organization.name
+                )
             ),
-            text=INSTALLATION_CONFIRMATION_INSTRUCTION,
+            text=InstallationMessages.INSTALLATION_CONFIRMATION_INSTRUCTION,
             actions=[
                 self.get_action_block(
-                    ActionType.OPEN_URL, title=INSTALLATION_CONFIRMATION_BUTTON, url=alert_rule_url
+                    ActionType.OPEN_URL,
+                    title=InstallationMessages.INSTALLATION_CONFIRMATION_BUTTON,
+                    url=alert_rule_url,
                 )
             ],
         )
