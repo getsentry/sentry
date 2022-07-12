@@ -133,7 +133,8 @@ function MenuControl({
 
     const newTriggerWidth = ref.current?.offsetWidth;
     !isSubmenu && newTriggerWidth && setTriggerWidth(newTriggerWidth);
-  }, [trigger, triggerLabel, triggerProps]);
+  }, [isSubmenu]);
+
   useResizeObserver({ref, onResize: updateTriggerWidth});
   // If ResizeObserver is not available, manually update the width
   // when any of [trigger, triggerLabel, triggerProps] changes.
