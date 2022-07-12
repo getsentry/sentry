@@ -53,7 +53,7 @@ class MSTeamsTeamInstallationMessageBuilder(MSTeamsInstallationTitleMessageBuild
         self.url = MSTEAMS_CONFIGURE_URL.format(signed_params=signed_params)
 
     def build(self) -> Any:
-        return self._build(
+        return self.build_card(
             title=self.get_title_block(TEAM_INSTALLTION_TITLE),
             text=TEAM_INSTALLATION_DESCRIPTION,
             fields=[TEAM_INSTALLATION_INSTRUCTION],
@@ -67,7 +67,7 @@ class MSTeamsTeamInstallationMessageBuilder(MSTeamsInstallationTitleMessageBuild
 
 class MSTeamsPersonalIntallationMessageBuilder(MSTeamsInstallationTitleMessageBuilder):
     def build(self) -> Any:
-        return self._build(
+        return self.build_card(
             title=self.get_title_block(PERSONAL_INSTALLATION_TITLE),
             text=PERSONAL_INSTALLATION_INSTRUCTION,
         )
@@ -81,7 +81,7 @@ class MSTeamsInstallationConfirmationMessageBuilder(MSTeamsInstallationTitleMess
         alert_rule_url = absolute_uri(
             ALERT_RULE_URL.format(organization_slug=self.organization.slug)
         )
-        return self._build(
+        return self.build_card(
             title=self.get_title_block(
                 INSTALLATION_CONFIRMATION_TITLE.format(organization_name=self.organization.name)
             ),
