@@ -11069,7 +11069,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
             "project": [self.project.id],
         }
         with freeze_time("2000-01-01"):
-            for _ in range(50):
+            for _ in range(25):
                 self.do_request(query, features={"organizations:discover-events-rate-limit": True})
             response = self.do_request(
                 query, features={"organizations:discover-events-rate-limit": True}
