@@ -27,10 +27,10 @@ def is_resolved_issue_within_active_release(issue_id: int) -> bool:
 
     # get latest deploy of the release associated with the issue
     latest_deploy_release: Deploy = (
-            Deploy.objects.filter(release_id=latest_release_issue.first().id)
-            .order_by("-date_finished")
-            .first()
-            or Deploy.objects.filter(id=latest_release_issue.first().last_deploy_id).first()
+        Deploy.objects.filter(release_id=latest_release_issue.first().id)
+        .order_by("-date_finished")
+        .first()
+        or Deploy.objects.filter(id=latest_release_issue.first().last_deploy_id).first()
     )
 
     # get the time of the latest deploy
