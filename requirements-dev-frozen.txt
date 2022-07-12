@@ -132,7 +132,7 @@ redis==3.4.1
 redis-py-cluster==2.1.0
 requests==2.25.1
 requests-oauthlib==1.2.0
-responses==0.10.12
+responses==0.21.0
 rfc3339-validator==0.1.2
 rfc3986-validator==0.1.1
 rsa==4.8
