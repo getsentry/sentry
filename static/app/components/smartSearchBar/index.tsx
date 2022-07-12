@@ -1216,7 +1216,10 @@ class SmartSearchBar extends Component<Props, State> {
       const [tagKeys, tagType] = this.getTagKeys('');
       const recentSearches = await this.getRecentSearches();
 
-      this.updateAutoCompleteState(tagKeys, recentSearches ?? [], '', tagType);
+      if (this.state.query === query) {
+        this.updateAutoCompleteState(tagKeys, recentSearches ?? [], '', tagType);
+      }
+
       return;
     }
     // cursor on whitespace show default "help" search terms
@@ -1260,7 +1263,11 @@ class SmartSearchBar extends Component<Props, State> {
             autocompleteGroups.unshift(opGroup);
           }
         }
-        this.updateAutoCompleteStateMultiHeader(autocompleteGroups);
+
+        if (cursor === this.cursorPosition) {
+          this.updateAutoCompleteStateMultiHeader(autocompleteGroups);
+        }
+
         return;
       }
 
@@ -1272,8 +1279,11 @@ class SmartSearchBar extends Component<Props, State> {
           const opGroup = generateOpAutocompleteGroup(getValidOps(cursorToken), tagName);
           autocompleteGroups.unshift(opGroup);
         }
-        this.setState({searchTerm: tagName});
-        this.updateAutoCompleteStateMultiHeader(autocompleteGroups);
+
+        if (cursor === this.cursorPosition) {
+          this.setState({searchTerm: tagName});
+          this.updateAutoCompleteStateMultiHeader(autocompleteGroups);
+        }
         return;
       }
 
@@ -1287,8 +1297,11 @@ class SmartSearchBar extends Component<Props, State> {
       const lastToken = cursorToken.text.trim().split(' ').pop() ?? '';
       const keyText = lastToken.replace(new RegExp(`^${NEGATION_OPERATOR}`), '');
       const autocompleteGroups = [await this.generateTagAutocompleteGroup(keyText)];
-      this.setState({searchTerm: keyText});
-      this.updateAutoCompleteStateMultiHeader(autocompleteGroups);
+
+      if (cursor === this.cursorPosition) {
+        this.setState({searchTerm: keyText});
+        this.updateAutoCompleteStateMultiHeader(autocompleteGroups);
+      }
       return;
     }
   };
