@@ -10,6 +10,7 @@ import {Organization, Project} from 'sentry/types';
 import {RecommendedSdkUpgrade, SamplingRule} from 'sentry/types/sampling';
 
 import {RecommendedStepsModal} from './modals/recommendedStepsModal';
+import {isUniformRule} from './utils';
 
 type Props = {
   organization: Organization;
@@ -37,13 +38,12 @@ export function SamplingSDKAlert({
         organization={organization}
         project={project}
         recommendedSdkUpgrades={recommendedSdkUpgrades}
-        onSubmit={() => {}}
       />
     ));
   }
 
-  // TODO(sampling): test this after the backend work is finished
   const atLeastOneRuleActive = rules.some(rule => rule.active);
+  const uniformRule = rules.find(isUniformRule);
 
   return (
     <Alert
@@ -51,7 +51,7 @@ export function SamplingSDKAlert({
       type={atLeastOneRuleActive ? 'error' : 'info'}
       showIcon
       trailingItems={
-        showLinkToTheModal ? (
+        showLinkToTheModal && uniformRule ? (
           <Button onClick={handleOpenRecommendedSteps} priority="link" borderless>
             {atLeastOneRuleActive ? t('Resolve Now') : t('Learn More')}
           </Button>

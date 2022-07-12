@@ -12,16 +12,26 @@ import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhan
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import PerformanceContent from 'sentry/views/performance/content';
 import {DEFAULT_MAX_DURATION} from 'sentry/views/performance/trends/utils';
+import {RouteContext} from 'sentry/views/routeContext';
 
 const FEATURES = ['performance-view'];
 
-function WrappedComponent({organization, isMEPEnabled = false, location}) {
+function WrappedComponent({organization, isMEPEnabled = false, router}) {
   return (
-    <OrganizationContext.Provider value={organization}>
-      <MEPSettingProvider _isMEPEnabled={isMEPEnabled}>
-        <PerformanceContent organization={organization} location={location} />
-      </MEPSettingProvider>
-    </OrganizationContext.Provider>
+    <RouteContext.Provider
+      value={{
+        location,
+        params: {},
+        router,
+        routes: [],
+      }}
+    >
+      <OrganizationContext.Provider value={organization}>
+        <MEPSettingProvider _isMEPEnabled={isMEPEnabled}>
+          <PerformanceContent organization={organization} location={router.location} />
+        </MEPSettingProvider>
+      </OrganizationContext.Provider>
+    </RouteContext.Provider>
   );
 }
 
@@ -274,10 +284,7 @@ describe('Performance > Content', function () {
     const data = initializeData(projects, {});
 
     const wrapper = mountWithTheme(
-      <WrappedComponent
-        organization={data.organization}
-        location={data.router.location}
-      />,
+      <WrappedComponent organization={data.organization} router={data.router} />,
       data.routerContext
     );
 
@@ -308,10 +315,7 @@ describe('Performance > Content', function () {
     const data = initializeData(projects, {project: [1]});
 
     const wrapper = mountWithTheme(
-      <WrappedComponent
-        organization={data.organization}
-        location={data.router.location}
-      />,
+      <WrappedComponent organization={data.organization} router={data.router} />,
       data.routerContext
     );
 
@@ -336,10 +340,7 @@ describe('Performance > Content', function () {
     const data = initializeData(projects, {project: ['-1']});
 
     const wrapper = mountWithTheme(
-      <WrappedComponent
-        organization={data.organization}
-        location={data.router.location}
-      />,
+      <WrappedComponent organization={data.organization} router={data.router} />,
       data.routerContext
     );
 
@@ -357,10 +358,7 @@ describe('Performance > Content', function () {
     const data = initializeData(projects, {project: ['1'], query: 'sentry:yes'});
 
     const wrapper = mountWithTheme(
-      <WrappedComponent
-        organization={data.organization}
-        location={data.router.location}
-      />,
+      <WrappedComponent organization={data.organization} router={data.router} />,
       data.routerContext
     );
 
@@ -386,10 +384,7 @@ describe('Performance > Content', function () {
   it('Default period for trends does not call updateDateTime', async function () {
     const data = initializeTrendsData({query: 'tag:value'}, false);
     const wrapper = mountWithTheme(
-      <WrappedComponent
-        organization={data.organization}
-        location={data.router.location}
-      />,
+      <WrappedComponent organization={data.organization} router={data.router} />,
       data.routerContext
     );
 
@@ -409,10 +404,7 @@ describe('Performance > Content', function () {
     });
 
     const wrapper = mountWithTheme(
-      <WrappedComponent
-        organization={data.organization}
-        location={data.router.location}
-      />,
+      <WrappedComponent organization={data.organization} router={data.router} />,
       data.routerContext
     );
 
@@ -446,10 +438,7 @@ describe('Performance > Content', function () {
     const data = initializeData(projects, {view: undefined});
 
     const wrapper = mountWithTheme(
-      <WrappedComponent
-        organization={data.organization}
-        location={data.router.location}
-      />,
+      <WrappedComponent organization={data.organization} router={data.router} />,
       data.routerContext
     );
 
@@ -466,10 +455,7 @@ describe('Performance > Content', function () {
     const data = initializeTrendsData({view: undefined}, false);
 
     const wrapper = mountWithTheme(
-      <WrappedComponent
-        organization={data.organization}
-        location={data.router.location}
-      />,
+      <WrappedComponent organization={data.organization} router={data.router} />,
       data.routerContext
     );
 
@@ -486,10 +472,7 @@ describe('Performance > Content', function () {
     const data = initializeTrendsData({query: 'device.family:Mac'}, false);
 
     const wrapper = mountWithTheme(
-      <WrappedComponent
-        organization={data.organization}
-        location={data.router.location}
-      />,
+      <WrappedComponent organization={data.organization} router={data.router} />,
       data.routerContext
     );
 
@@ -520,10 +503,7 @@ describe('Performance > Content', function () {
     const data = initializeData(projects, {view: undefined});
 
     const wrapper = mountWithTheme(
-      <WrappedComponent
-        organization={data.organization}
-        location={data.router.location}
-      />,
+      <WrappedComponent organization={data.organization} router={data.router} />,
       data.routerContext
     );
 

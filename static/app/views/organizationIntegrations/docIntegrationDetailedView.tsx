@@ -82,7 +82,7 @@ class DocIntegrationDetailedView extends AbstractIntegrationDetailedView<
         data-test-id="learn-more"
       >
         <LearnMoreButton
-          size="small"
+          size="sm"
           priority="primary"
           style={{marginLeft: space(1)}}
           icon={<StyledIconOpen size="xs" />}

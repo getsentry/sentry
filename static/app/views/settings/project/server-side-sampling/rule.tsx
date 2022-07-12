@@ -55,18 +55,19 @@ export function Rule({
 }: Props) {
   const isUniform = isUniformRule(rule);
   const canDelete = !noPermission && !isUniform;
-  const canActivate = !upgradeSdkForProjects.length;
+  const canActivate = true; // TODO(sampling): Enabling this for demo purposes, change this back to `!upgradeSdkForProjects.length;` for LA
+  const canDrag = !isUniform && !noPermission;
 
   return (
     <Fragment>
-      <GrabColumn disabled={rule.bottomPinned || noPermission}>
+      <GrabColumn disabled={!canDrag}>
         {hideGrabButton ? null : (
           <Tooltip
             title={
               noPermission
-                ? t('You do not have permission to reorder rules.')
-                : operator === SamplingRuleOperator.ELSE
-                ? t('Rules without conditions cannot be reordered.')
+                ? t('You do not have permission to reorder rules')
+                : isUniform
+                ? t('Uniform rules cannot be reordered')
                 : undefined
             }
             containerDisplayMode="flex"
@@ -75,6 +76,7 @@ export function Rule({
               {...listeners}
               {...grabAttributes}
               aria-label={dragging ? t('Drop Rule') : t('Drag Rule')}
+              aria-disabled={!canDrag}
             >
               <IconGrabbable />
             </IconGrabbableWrapper>
@@ -121,11 +123,8 @@ export function Rule({
       <ActiveColumn>
         <GuideAnchor
           target="sampling_rule_toggle"
-          onFinish={() => {
-            // TODO(sampling): activate the rule
-          }}
-          // TODO(sampling): disable if sdks are not yet updated
-          disabled={true || !isUniform}
+          onFinish={onActivate}
+          disabled={!canActivate || !isUniform}
         >
           <Tooltip
             disabled={canActivate}
@@ -146,6 +145,7 @@ export function Rule({
               onClick={onActivate}
               name="active"
               disabled={!canActivate}
+              value={rule.active}
             />
           </Tooltip>
         </GuideAnchor>
@@ -154,7 +154,7 @@ export function Rule({
         <EllipisDropDownButton
           caret={false}
           customTitle={
-            <Button aria-label={t('Actions')} icon={<IconEllipsis />} size="small" />
+            <Button aria-label={t('Actions')} icon={<IconEllipsis />} size="sm" />
           }
           anchorRight
         >
@@ -173,7 +173,7 @@ export function Rule({
           >
             <Tooltip
               disabled={!noPermission}
-              title={t('You do not have permission to edit sampling rules.')}
+              title={t('You do not have permission to edit sampling rules')}
               containerDisplayMode="block"
             >
               {t('Edit')}
@@ -192,8 +192,8 @@ export function Rule({
               disabled={canDelete}
               title={
                 isUniform
-                  ? t("You can't delete the uniform rule.")
-                  : t('You do not have permission to delete sampling rules.')
+                  ? t("You can't delete the uniform rule")
+                  : t('You do not have permission to delete sampling rules')
               }
               containerDisplayMode="block"
             >

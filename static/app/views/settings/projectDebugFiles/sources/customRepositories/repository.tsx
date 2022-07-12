@@ -63,7 +63,7 @@ function Repository({
           disabled={repository.details === undefined}
           syncNowButton={
             <Button
-              size="small"
+              size="sm"
               onClick={() => onSyncNow(id)}
               icon={<IconRefresh />}
               disabled={!detailsAvailable || !authenticated || !hasFeature || !hasAccess}

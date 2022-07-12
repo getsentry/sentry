@@ -46,6 +46,10 @@ type SampleEvent = {
   source: string;
 };
 
+type VitalsAlert = {
+  vital: string;
+};
+
 // define the event key to payload mappings
 export type GrowthEventParameters = {
   'growth.clicked_enter_sandbox': {
@@ -125,6 +129,9 @@ export type GrowthEventParameters = {
   'sdk_updates.clicked': {};
   'sdk_updates.seen': {};
   'sdk_updates.snoozed': {};
+  'vitals_alert.clicked_docs': VitalsAlert;
+  'vitals_alert.clicked_see_vitals': VitalsAlert;
+  'vitals_alert.dismissed': VitalsAlert;
 };
 
 type GrowthAnalyticsKey = keyof GrowthEventParameters;
@@ -186,4 +193,7 @@ export const growthEventMap: Record<GrowthAnalyticsKey, string | null> = {
   'sample_event.button_viewed': null, // high-volume event
   'sample_event.created': 'Sample Event Created',
   'sample_event.failed': 'Sample Event Failed',
+  'vitals_alert.clicked_see_vitals': 'Vitals Alert: Clicked See Vitals',
+  'vitals_alert.dismissed': 'Vitals Alert: Dismissed',
+  'vitals_alert.clicked_docs': 'Vitals Alert: Clicked Docs',
 };
