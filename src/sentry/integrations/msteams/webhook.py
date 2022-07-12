@@ -17,9 +17,9 @@ from sentry.web.decorators import transaction_start
 
 from .card_builder import build_group_card
 from .card_builder.help import (
-    MSTeamsHelpMessageBuilder,
-    MSTeamsMentionedMessageBuilder,
-    MSTeamsUnrecognizedCommandMessageBuilder,
+    build_help_command_card,
+    build_mentioned_card,
+    build_unrecognized_command_card,
 )
 from .card_builder.identity import (
     build_already_linked_identity_command_card,
@@ -428,7 +428,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
             )
             if mentioned:
                 client = get_preinstall_client(data["serviceUrl"])
-                card = MSTeamsMentionedMessageBuilder().build()
+                card = build_mentioned_card()
                 conversation_id = data["conversation"]["id"]
                 client.send_card(conversation_id, card)
 
@@ -446,7 +446,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
             unlink_url = build_unlinking_url(conversation_id, data["serviceUrl"], teams_user_id)
             card = build_unlink_identity_card(unlink_url)
         elif "help" in lowercase_command:
-            card = MSTeamsHelpMessageBuilder().build()
+            card = build_help_command_card()
         elif "link" == lowercase_command:  # don't to match other types of link commands
             has_linked_identity = Identity.objects.filter(external_id=teams_user_id).exists()
             if has_linked_identity:
@@ -454,7 +454,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
             else:
                 card = build_link_identity_command_card()
         else:
-            card = MSTeamsUnrecognizedCommandMessageBuilder(command_text).build()
+            card = build_unrecognized_command_card(command_text)
 
         client = get_preinstall_client(data["serviceUrl"])
         client.send_card(conversation_id, card)

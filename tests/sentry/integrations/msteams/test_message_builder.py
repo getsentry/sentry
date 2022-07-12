@@ -9,9 +9,9 @@ from sentry.integrations.msteams.card_builder.block import (
     create_text_block,
 )
 from sentry.integrations.msteams.card_builder.help import (
-    MSTeamsHelpMessageBuilder,
-    MSTeamsMentionedMessageBuilder,
-    MSTeamsUnrecognizedCommandMessageBuilder,
+    build_help_command_card,
+    build_mentioned_card,
+    build_unrecognized_command_card,
 )
 from sentry.integrations.msteams.card_builder.identity import (
     build_already_linked_identity_command_card,
@@ -92,7 +92,7 @@ class MSTeamsMessageBuilderTest(TestCase):
         assert "column1" == column["items"][0]["text"]
 
     def test_help_messages(self):
-        help_card = MSTeamsHelpMessageBuilder().build()
+        help_card = build_help_command_card()
 
         assert 2 == len(help_card["body"])
 
@@ -104,16 +104,14 @@ class MSTeamsMessageBuilderTest(TestCase):
 
     def test_unrecognized_command(self):
         invalid_command = "xyz"
-        unrecognized_command_card = MSTeamsUnrecognizedCommandMessageBuilder(
-            invalid_command
-        ).build()
+        unrecognized_command_card = build_unrecognized_command_card(invalid_command)
 
         assert 2 == len(unrecognized_command_card["body"])
 
         assert invalid_command in unrecognized_command_card["body"][0]["text"]
 
     def test_mentioned_message(self):
-        mentioned_card = MSTeamsMentionedMessageBuilder().build()
+        mentioned_card = build_mentioned_card()
 
         assert 2 == len(mentioned_card["body"])
         assert 1 == len(mentioned_card["actions"])
