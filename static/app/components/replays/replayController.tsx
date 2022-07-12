@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {transformCrumbs} from 'sentry/components/events/interfaces/breadcrumbs/utils';
-import CompactSelect from 'sentry/components/forms/compactSelect';
+import CompositeSelect from 'sentry/components/forms/compositeSelect';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {formatTime, relativeTimeInMs} from 'sentry/components/replays/utils';
 import {
@@ -15,6 +15,7 @@ import {
   IconPrevious,
   IconRefresh,
   IconResize,
+  IconSettings,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -109,23 +110,52 @@ function ReplayCurrentTime() {
   );
 }
 
-function ReplayPlaybackSpeed({speedOptions}: {speedOptions: number[]}) {
-  const {setSpeed, speed} = useReplayContext();
+function ReplayOptionsMenu({speedOptions}: {speedOptions: number[]}) {
+  const {setSpeed, speed, isSkippingInactive, toggleSkipInactive} = useReplayContext();
+  const SKIP_OPTION_VALUE = 99999;
+
   return (
-    <CompactSelect
-      triggerProps={{
-        size: 'xs',
-        prefix: t('Speed'),
-      }}
-      value={speed}
-      options={speedOptions.map(speedOption => ({
-        value: speedOption,
-        label: `${speedOption}x`,
-        disabled: speedOption === speed,
-      }))}
-      onChange={opt => {
-        setSpeed(opt.value);
-      }}
+    <CompositeSelect
+      closeOnSelect
+      isDismissable
+      placement="bottom"
+      trigger={({props, ref}) => (
+        <Button
+          ref={ref}
+          {...props}
+          size="xs"
+          title={t('Settings')}
+          aria-label={t('Settings')}
+          icon={<IconSettings size="sm" />}
+        />
+      )}
+      sections={[
+        {
+          defaultValue: speed,
+          label: 'Playback Speed',
+          value: 'playback_speed',
+          onChange: setSpeed,
+          options: speedOptions.map(sp => ({
+            label: `${sp}x`,
+            value: sp,
+          })),
+        },
+        {
+          defaultValue: isSkippingInactive ? SKIP_OPTION_VALUE : undefined,
+          multiple: true,
+          label: '',
+          onChange: value => {
+            toggleSkipInactive(Array.isArray(value) && value.length > 0);
+          },
+          value: 'fast_forward',
+          options: [
+            {
+              label: 'Fast-forward inactivity',
+              value: SKIP_OPTION_VALUE,
+            },
+          ],
+        },
+      ]}
     />
   );
 }
@@ -152,7 +182,7 @@ const ReplayControls = ({
         onClick={() => toggleSkipInactive(!isSkippingInactive)}
       />
 
-      <ReplayPlaybackSpeed speedOptions={speedOptions} />
+      <ReplayOptionsMenu speedOptions={speedOptions} />
 
       <Button
         size="xs"
