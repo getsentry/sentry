@@ -11,6 +11,9 @@ from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.snuba import discover
 from sentry.utils.dates import parse_stats_period
 
+SDK_NAME_FILTER_THRESHOLD = 0.1
+SDK_VERSION_FILTER_THRESHOLD = 0.05
+
 
 class OrganizationDynamicSamplingSDKVersionsEndpoint(OrganizationEndpoint):
     private = True
@@ -64,7 +67,7 @@ class OrganizationDynamicSamplingSDKVersionsEndpoint(OrganizationEndpoint):
 
         avg_equation = 'count_if(trace.client_sample_rate, notEquals, "") / count()'
 
-        project_sdks_info = discover.query(
+        data = discover.query(
             selected_columns=[
                 "sdk.name",
                 "sdk.version",
@@ -91,6 +94,28 @@ class OrganizationDynamicSamplingSDKVersionsEndpoint(OrganizationEndpoint):
             referrer="dynamic-sampling.distribution.fetch-project-sdk-versions-info",
         )["data"]
 
+        # Create a dictionary of the total count per project
+        total_count_per_project = {}
+        # Create a dictionary of total count per sdk name per project
+        total_sdk_name_count_per_project = {}
+        for row in data:
+            project = row["project"]
+            sdk_name = row["sdk.name"]
+            count = row["count()"]
+            # Aggregates total counts for each project
+            # As an example: {'wind': 3, 'earth': 49, 'heart': 3, 'fire': 21, 'water': 102}
+            total_count_per_project[project] = total_count_per_project.get(project, 0) + count
+
+            # Aggregates total counts for each sdk name per project. As an example:
+            # {
+            #     "wind": {"sentry.javascript.react": 3},
+            #     "earth": {"sentry.javascript.react": 45, "sentry.javascript.browser": 4},
+            # }
+            total_sdk_name_count_per_project.setdefault(project, {})
+            total_sdk_name_count_per_project[project][sdk_name] = (
+                total_sdk_name_count_per_project[project].get(sdk_name, 0) + count
+            )
+
         # Creates a dictionary that has the first level key as project id and values (second
         # level key) as SDK versions, and finally that maps to the expected resulting project
         # sdk version info if that SDKVersion was actually the latest observed, and that info
@@ -114,16 +139,26 @@ class OrganizationDynamicSamplingSDKVersionsEndpoint(OrganizationEndpoint):
         #     }
         # }
         project_to_sdk_version_to_info_dict = {}
-        for project_sdk_info in project_sdks_info:
-            assert project_sdk_info["sdk.version"] != "", "sdk.version cannot be empty"
-            project_to_sdk_version_to_info_dict.setdefault(project_sdk_info["project"], {})[
-                project_sdk_info["sdk.version"]
-            ] = {
-                "project": project_sdk_info["project"],
-                "latestSDKName": project_sdk_info["sdk.name"],
-                "latestSDKVersion": project_sdk_info["sdk.version"],
-                "isSendingSampleRate": bool(project_sdk_info[f"equation|{avg_equation}"]),
-            }
+        for row in data:
+            project = row["project"]
+            sdk_name = row["sdk.name"]
+            sdk_version = row["sdk.version"]
+            # Filter 1: Discard any sdk name that accounts less than or equal to the value
+            # `SDK_NAME_FILTER_THRESHOLD` of total count per project
+            # Filter 2: Discard any sdk version that accounts less than or equal to
+            # `SDK_VERSION_FILTER_THRESHOLD` of total count in that sdk_name in that project
+            if (
+                total_sdk_name_count_per_project[project][sdk_name]
+                > SDK_NAME_FILTER_THRESHOLD * total_count_per_project[project]
+                and row["count()"]
+                > SDK_VERSION_FILTER_THRESHOLD * total_sdk_name_count_per_project[project][sdk_name]
+            ):
+                project_to_sdk_version_to_info_dict.setdefault(project, {})[sdk_version] = {
+                    "project": project,
+                    "latestSDKName": sdk_name,
+                    "latestSDKVersion": sdk_version,
+                    "isSendingSampleRate": bool(row[f"equation|{avg_equation}"]),
+                }
 
         # Essentially for each project, we fetch all the SDK versions from the previously
         # computed dictionary, and then we find the latest SDK version according to

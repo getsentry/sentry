@@ -13,71 +13,139 @@ from sentry.testutils.helpers import Feature
 def mocked_discover_query():
     return {
         "data": [
+            # project: wind
             {
-                "project": "fire",
-                "sdk.name": "javascript",
-                "sdk.version": "7.1.6",
+                "sdk.version": "7.1.4",
+                "sdk.name": "sentry.javascript.react",
+                "project": "wind",
+                'equation|count_if(trace.client_sample_rate, notEquals, "") / count()': 0.0,
+                'count_if(trace.client_sample_rate, notEquals, "")': 0,
+                "count()": 2,
+            },
+            {
+                "sdk.version": "7.1.3",
+                "sdk.name": "sentry.javascript.react",
+                "project": "wind",
+                'equation|count_if(trace.client_sample_rate, notEquals, "") / count()': 0.0,
+                'count_if(trace.client_sample_rate, notEquals, "")': 0,
+                "count()": 1,
+            },
+            # project: earth
+            {
+                "sdk.version": "7.1.5",
+                "sdk.name": "sentry.javascript.react",
+                "project": "earth",
                 'equation|count_if(trace.client_sample_rate, notEquals, "") / count()': 1.0,
+                'count_if(trace.client_sample_rate, notEquals, "")': 7,
+                "count()": 23,
+            },
+            # Accounts for less than 10% of total count for this project, and so should be discarded
+            {
+                "sdk.version": "7.1.6",
+                "sdk.name": "sentry.javascript.browser",
+                "project": "earth",
+                'equation|count_if(trace.client_sample_rate, notEquals, "") / count()': 1.0,
+                'count_if(trace.client_sample_rate, notEquals, "")': 5,
                 "count()": 4,
-                'count_if(trace.client_sample_rate, notEquals, "")': 4,
             },
+            # Accounts for less than 5% of total count for this project and sdk.name so should be
+            # discarded
             {
-                "project": "water",
-                "sdk.name": "javascript",
-                "sdk.version": "7.1.4",
-                'equation|count_if(trace.client_sample_rate, notEquals, "") / count()': 0.0,
-                "count()": 1,
-                'count_if(trace.client_sample_rate, notEquals, "")': 0,
-            },
-            {
-                "project": "water",
-                "sdk.name": "javascript",
                 "sdk.version": "7.1.6",
+                "sdk.name": "sentry.javascript.react",
+                "project": "earth",
                 'equation|count_if(trace.client_sample_rate, notEquals, "") / count()': 1.0,
+                'count_if(trace.client_sample_rate, notEquals, "")': 5,
                 "count()": 2,
-                'count_if(trace.client_sample_rate, notEquals, "")': 2,
             },
             {
-                "project": "wind",
-                "sdk.name": "javascript",
-                "sdk.version": "7.1.5",
-                'equation|count_if(trace.client_sample_rate, notEquals, "") / count()': 0.0,
-                "count()": 2,
-                'count_if(trace.client_sample_rate, notEquals, "")': 0,
-            },
-            {
-                "project": "wind",
-                "sdk.name": "javascript",
-                "sdk.version": "7.1.3",
-                'equation|count_if(trace.client_sample_rate, notEquals, "") / count()': 0.0,
-                "count()": 1,
-                'count_if(trace.client_sample_rate, notEquals, "")': 0,
-            },
-            {
-                "project": "fire",
-                "sdk.name": "javascript",
                 "sdk.version": "7.1.4",
+                "sdk.name": "sentry.javascript.react",
+                "project": "earth",
                 'equation|count_if(trace.client_sample_rate, notEquals, "") / count()': 0.0,
-                "count()": 6,
                 'count_if(trace.client_sample_rate, notEquals, "")': 0,
+                "count()": 11,
             },
             {
-                "project": "fire",
-                "sdk.name": "javascript",
-                "sdk.version": "7.1.5",
-                'equation|count_if(trace.client_sample_rate, notEquals, "") / count()': 0.0,
-                "count()": 3,
-                'count_if(trace.client_sample_rate, notEquals, "")': 0,
-            },
-            {
-                "project": "fire",
-                "sdk.name": "javascript",
                 "sdk.version": "7.1.3",
+                "sdk.name": "sentry.javascript.react",
+                "project": "earth",
                 'equation|count_if(trace.client_sample_rate, notEquals, "") / count()': 0.0,
-                "count()": 8,
                 'count_if(trace.client_sample_rate, notEquals, "")': 0,
+                "count()": 9,
             },
-        ]
+            # project: heart
+            {
+                "sdk.version": "7.1.5",
+                "sdk.name": "sentry.javascript.react",
+                "project": "heart",
+                'equation|count_if(trace.client_sample_rate, notEquals, "") / count()': 1.0,
+                'count_if(trace.client_sample_rate, notEquals, "")': 3,
+                "count()": 3,
+            },
+            # project: fire
+            {
+                "sdk.version": "7.1.6",
+                "sdk.name": "sentry.javascript.react",
+                "project": "fire",
+                'equation|count_if(trace.client_sample_rate, notEquals, "") / count()': 1.0,
+                'count_if(trace.client_sample_rate, notEquals, "")': 5,
+                "count()": 5,
+            },
+            {
+                "sdk.version": "7.1.5",
+                "sdk.name": "sentry.javascript.react",
+                "project": "fire",
+                'equation|count_if(trace.client_sample_rate, notEquals, "") / count()': 1.0,
+                'count_if(trace.client_sample_rate, notEquals, "")': 5,
+                "count()": 5,
+            },
+            {
+                "sdk.version": "7.1.3",
+                "sdk.name": "sentry.javascript.react",
+                "project": "fire",
+                'equation|count_if(trace.client_sample_rate, notEquals, "") / count()': 0.0,
+                'count_if(trace.client_sample_rate, notEquals, "")': 0,
+                "count()": 6,
+            },
+            {
+                "sdk.version": "7.1.4",
+                "sdk.name": "sentry.javascript.react",
+                "project": "fire",
+                'equation|count_if(trace.client_sample_rate, notEquals, "") / count()': 0.0,
+                'count_if(trace.client_sample_rate, notEquals, "")': 0,
+                "count()": 5,
+            },
+            # project: water
+            {
+                "sdk.version": "7.1.4",
+                "sdk.name": "sentry.javascript.react",
+                "project": "water",
+                'equation|count_if(trace.client_sample_rate, notEquals, "") / count()': 0.0,
+                'count_if(trace.client_sample_rate, notEquals, "")': 0,
+                "count()": 100,
+            },
+            # Accounts for less than 5% of total count for this project and sdk.name so should be
+            # discarded
+            {
+                "sdk.version": "7.1.3",
+                "sdk.name": "sentry.javascript.react",
+                "project": "water",
+                'equation|count_if(trace.client_sample_rate, notEquals, "") / count()': 0.0,
+                'count_if(trace.client_sample_rate, notEquals, "")': 0,
+                "count()": 1,
+            },
+            # Accounts for less than 5% of total count for this project and sdk.name so should be
+            # discarded
+            {
+                "sdk.version": "7.1.6",
+                "sdk.name": "sentry.javascript.react",
+                "project": "water",
+                'equation|count_if(trace.client_sample_rate, notEquals, "") / count()': 1.0,
+                'count_if(trace.client_sample_rate, notEquals, "")': 1,
+                "count()": 1,
+            },
+        ],
     }
 
 
@@ -125,21 +193,33 @@ class OrganizationDynamicSamplingSDKVersionsTest(APITestCase):
             response = self.client.get(f"{self.endpoint}?project={self.project.id}")
             assert response.json() == [
                 {
+                    "project": "wind",
+                    "latestSDKName": "sentry.javascript.react",
+                    "latestSDKVersion": "7.1.4",
+                    "isSendingSampleRate": False,
+                },
+                {
+                    "project": "earth",
+                    "latestSDKName": "sentry.javascript.react",
+                    "latestSDKVersion": "7.1.5",
+                    "isSendingSampleRate": True,
+                },
+                {
+                    "project": "heart",
+                    "latestSDKName": "sentry.javascript.react",
+                    "latestSDKVersion": "7.1.5",
+                    "isSendingSampleRate": True,
+                },
+                {
                     "project": "fire",
-                    "latestSDKName": "javascript",
+                    "latestSDKName": "sentry.javascript.react",
                     "latestSDKVersion": "7.1.6",
                     "isSendingSampleRate": True,
                 },
                 {
                     "project": "water",
-                    "latestSDKName": "javascript",
-                    "latestSDKVersion": "7.1.6",
-                    "isSendingSampleRate": True,
-                },
-                {
-                    "project": "wind",
-                    "latestSDKName": "javascript",
-                    "latestSDKVersion": "7.1.5",
+                    "latestSDKName": "sentry.javascript.react",
+                    "latestSDKVersion": "7.1.4",
                     "isSendingSampleRate": False,
                 },
             ]
