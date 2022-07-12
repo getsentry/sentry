@@ -113,7 +113,6 @@ class _EntitySpecificParams(TypedDict, total=False):
 @dataclass
 class _EntitySubscription:
     dataset: QueryDatasets
-    time_col: str
 
 
 class BaseEntitySubscription(ABC, _EntitySubscription):
