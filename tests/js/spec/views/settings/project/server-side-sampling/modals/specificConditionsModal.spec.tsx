@@ -5,6 +5,7 @@ import {
   waitFor,
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import * as indicators from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
@@ -117,7 +118,13 @@ describe('Server-side Sampling - Specific Conditions Modal', function () {
     // Release field is empty
     expect(screen.queryByTestId('multivalue')).not.toBeInTheDocument();
 
-    // Type into release field
+    // Type an empty string into release field
+    userEvent.paste(screen.getByLabelText('Search or add a release'), ' ');
+
+    // Since empty strings are invalid, autocomplete does not suggest creating a new empty label
+    expect(screen.queryByText(textWithMarkupMatcher('Add " "'))).not.toBeInTheDocument();
+
+    // Type the release version into release field
     userEvent.paste(screen.getByLabelText('Search or add a release'), '1.2.3');
 
     // Autocomplete suggests options
