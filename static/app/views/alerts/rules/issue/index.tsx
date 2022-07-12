@@ -251,7 +251,15 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     const hasDuplicateAlertRules = organization.features.includes('duplicate-alert-rule');
 
     const endpoints = [
-      ['environments', `/projects/${orgId}/${project.slug}/environments/`],
+      [
+        'environments',
+        `/projects/${orgId}/${project.slug}/environments/`,
+        {
+          query: {
+            visibility: 'visible',
+          },
+        },
+      ],
       ['configs', `/projects/${orgId}/${project.slug}/rules/configuration/`],
     ];
 
@@ -952,6 +960,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                         placeholder={t('Select an Environment')}
                         clearable={false}
                         name="environment"
+                        value={environment}
                         options={environmentOptions}
                         onChange={val => this.handleEnvironmentChange(val)}
                         disabled={disabled}
@@ -973,6 +982,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                           placeholder={t('Select an Environment')}
                           clearable={false}
                           name="environment"
+                          value={environment}
                           options={environmentOptions}
                           onChange={val => this.handleEnvironmentChange(val)}
                           disabled={disabled}
