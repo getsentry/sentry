@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {promptsUpdate} from 'sentry/actionCreators/prompts';
 import {
   NotificationBar,
-  StyledNotificationBarIconInfo,
+  NotificationBarIconInfo,
 } from 'sentry/components/alerts/notificationBar';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -143,7 +143,7 @@ export default function VitalsAlertCTA({data, dismissAlert}: Props) {
 
   return (
     <NotificationBar>
-      <StyledNotificationBarIconInfo />
+      <NotificationBarIconInfo />
       {getText()}
       <NotificationBarButtons gap={1}>
         <Button

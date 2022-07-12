@@ -1,4 +1,4 @@
-import NotificationBar from 'sentry/components/alerts/notificationBar';
+import {NotificationBar} from 'sentry/components/alerts/notificationBar';
 
 export default {
   title: 'Components/Alerts/Notification Bar',
