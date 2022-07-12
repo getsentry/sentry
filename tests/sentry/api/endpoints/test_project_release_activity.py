@@ -55,7 +55,7 @@ class ReleaseActivityTest(APITestCase):
             )
 
             ReleaseActivity.objects.create(
-                type=ReleaseActivity.Type.new_issue, data={}, release=release
+                type=ReleaseActivity.Type.issue, data={}, release=release
             )
 
             ReleaseActivity.objects.create(
