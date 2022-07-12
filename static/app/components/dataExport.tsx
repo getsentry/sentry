@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useState} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import debounce from 'lodash/debounce';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -38,6 +38,7 @@ function DataExport({
   payload,
   icon,
 }: DataExportProps): React.ReactElement {
+  const unmountedRef = useRef(false);
   const [inProgress, setInProgress] = useState(false);
 
   // We clear the indicator if export props change so that the user
@@ -53,6 +54,13 @@ function DataExport({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [payload.queryType, payload.queryInfo]);
 
+  // Tracking unmounting of the component to prevent setState call on unmounted component
+  useEffect(() => {
+    return () => {
+      unmountedRef.current = true;
+    };
+  }, []);
+
   const handleDataExport = useCallback(() => {
     setInProgress(true);
 
@@ -67,6 +75,11 @@ function DataExport({
         },
       })
       .then(([_data, _, response]) => {
+        // If component has unmounted, don't do anything
+        if (unmountedRef.current) {
+          return;
+        }
+
         addSuccessMessage(
           response?.status === 201
             ? t(
@@ -76,6 +89,10 @@ function DataExport({
         );
       })
       .catch(err => {
+        // If component has unmounted, don't do anything
+        if (unmountedRef.current) {
+          return;
+        }
         const message =
           err?.responseJSON?.detail ??
           "We tried our hardest, but we couldn't export your data. Give it another go.";
