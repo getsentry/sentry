@@ -370,7 +370,7 @@ class OrganizationEndpoint(Endpoint):
     def get_use_case_id(self, request: Request):
         """
         Extracts useCase from request and validate it agains UseCaseKey enum type
-        if request param is omitted fallback to UseCaseKey.RELEATH_HEALTH
+        if request param is omitted fallback to UseCaseKey.RELEASE_HEALTH
         if request param has wrong value just raise an ParseError.
         """
         try:
