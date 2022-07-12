@@ -237,12 +237,14 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
 
   renderTopButton(disabledFromFeatures: boolean, userHasAccess: boolean) {
     const install = this.install;
+    const capitalizedSlug =
+      this.integrationSlug.charAt(0).toUpperCase() + this.integrationSlug.slice(1);
     if (install) {
       return (
         <Confirm
           disabled={!userHasAccess}
           message={tct('Are you sure you want to remove the [slug] installation?', {
-            slug: this.integrationSlug,
+            slug: capitalizedSlug,
           })}
           onConfirm={() => this.handleUninstall(install)} // called when the user confirms the action
           onConfirming={this.recordUninstallClicked} // called when the confirm modal opens
