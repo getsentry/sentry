@@ -11,6 +11,8 @@ from django.conf import settings
 from django.http import HttpResponse
 from django.utils.http import urlquote
 from django.views.decorators.csrf import csrf_exempt
+from drf_spectacular.drainage import get_view_method_names, isolate_view_method
+from drf_spectacular.utils import extend_schema, extend_schema_view
 from pytz import utc
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.exceptions import ParseError
@@ -468,3 +470,36 @@ class ReleaseAnalyticsMixin:
             project_ids=project_ids,
             user_agent=request.META.get("HTTP_USER_AGENT", ""),
         )
+
+
+def create_region_endpoint_class(endpoint_class):
+    """
+    Create a new class that extends endpoint_class with the same name, but prefixed with Region.
+    For example, if the endpoint_class's name is "OrganizationEventsEndpoint", then the extended class will be
+    "RegionOrganizationEventsEndpoint".
+
+    In addition, we decorate the extended class with the extend_schema_view decorator such that the operation_id for
+    any and all methods that are decorated with the extend_schema decorator are suffixed with "(region aware)".
+    For example, if a method's operation_id value is "Query Discover Events in Table Format", then the operation_id of
+    the extended class's method will be "Query Discover Events in Table Format (region aware)".
+    """
+    region_endpoint_class = type(f"Region{endpoint_class.__name__}", (endpoint_class,), {})
+    schema = {}
+    for method_name in get_view_method_names(endpoint_class):
+        method = isolate_view_method(endpoint_class, method_name)
+        if not (method and hasattr(method, "kwargs") and "schema" in method.kwargs):
+            continue
+        extended_schema = method.kwargs["schema"]()
+        # NOTE: this is a hack to be able to retrieve the operation_id values
+        extended_schema.view = type(
+            "View",
+            (),
+            {"request": None, "kwargs": {}, "determine_version": lambda self: (None, None)},
+        )
+        schema[method_name] = extend_schema(
+            operation_id=f"{extended_schema.get_operation_id()} (region aware)",
+            # Exclude this endpoint that is specific for a region silo from the schema.
+            # In the future, we may include them once we can publicly allow users to consume these APIs.
+            exclude=True,
+        )
+    return extend_schema_view(**schema)(region_endpoint_class)
