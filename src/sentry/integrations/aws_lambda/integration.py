@@ -18,7 +18,6 @@ from sentry.integrations import (
 from sentry.integrations.mixins import ServerlessMixin
 from sentry.models import OrganizationIntegration, Project, ProjectStatus
 from sentry.pipeline import PipelineView
-from sentry.utils.compat import map
 from sentry.utils.sdk import capture_exception
 
 from .client import ConfigurationError, gen_aws_client
@@ -132,7 +131,7 @@ class AwsLambdaIntegration(IntegrationInstallation, ServerlessMixin):
         functions = get_supported_functions(self.client)
         functions.sort(key=lambda x: x["FunctionName"].lower())
 
-        return map(self.serialize_lambda_function, functions)
+        return [self.serialize_lambda_function(function) for function in functions]
 
     @wrap_lambda_updater()
     def enable_function(self, target):
@@ -250,7 +249,7 @@ class AwsLambdaProjectSelectPipelineView(PipelineView):
             pipeline.bind_state("project_id", projects[0].id)
             return pipeline.next_step()
 
-        serialized_projects = map(lambda x: serialize(x, request.user), projects)
+        serialized_projects = [serialize(x, request.user) for x in projects]
         return self.render_react_view(
             request, "awsLambdaProjectSelect", {"projects": serialized_projects}
         )
