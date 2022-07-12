@@ -20,7 +20,7 @@ interface FrameStackProps {
   canvasPoolManager: CanvasPoolManager;
   formatDuration: Flamegraph['formatter'];
   getFrameColor: (frame: FlamegraphFrame) => string;
-  root: FlamegraphFrame;
+  referenceRoot: FlamegraphFrame;
   roots: FlamegraphFrame[];
 }
 
@@ -192,7 +192,7 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
       <FrameStackTable
         {...props}
         recursion={recursion}
-        root={props.root}
+        referenceRoot={props.referenceRoot}
         frames={roots ?? []}
         canvasPoolManager={props.canvasPoolManager}
       />

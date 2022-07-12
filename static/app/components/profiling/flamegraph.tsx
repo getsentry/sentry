@@ -269,7 +269,11 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
     [flamegraphRenderer]
   );
 
-  const tableRoot = useMemo(
+  // referenceNode is passed down to the frameStack and is used to determine
+  // the weights of each frame. In other words, in case there is no user selected root, then all
+  // of the frame weights and timing are relative to the entire profile. If there is a user selected
+  // root however, all weights are relative to that sub tree.
+  const referenceRoot = useMemo(
     () => (selectedRoot ? selectedRoot : flamegraph.root),
     [selectedRoot, flamegraph.root]
   );
@@ -336,7 +340,7 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
         }
         frameStack={
           <FrameStack
-            root={tableRoot}
+            referenceRoot={referenceRoot}
             roots={roots}
             getFrameColor={getFrameColor}
             formatDuration={flamegraph ? flamegraph.formatter : noopFormatDuration}

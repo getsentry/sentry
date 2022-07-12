@@ -29,7 +29,7 @@ interface FrameStackTableRowProps {
   ) => void;
   onKeyDown: React.KeyboardEventHandler<HTMLDivElement>;
   onMouseEnter: React.MouseEventHandler<HTMLDivElement>;
-  root: FlamegraphFrame;
+  referenceRoot: FlamegraphFrame;
   style: React.CSSProperties;
   tabIndex: number;
 }
@@ -38,7 +38,7 @@ export const FrameStackTableRow = forwardRef<HTMLDivElement, FrameStackTableRowP
   (
     {
       node,
-      root,
+      referenceRoot,
       onExpandClick,
       onContextMenu,
       formatDuration,
@@ -77,7 +77,7 @@ export const FrameStackTableRow = forwardRef<HTMLDivElement, FrameStackTableRowP
           <Weight
             isSelected={isSelected}
             weight={computeRelativeWeight(
-              root.node.totalWeight,
+              referenceRoot.node.totalWeight,
               node.node.node.selfWeight
             )}
           />
@@ -90,7 +90,7 @@ export const FrameStackTableRow = forwardRef<HTMLDivElement, FrameStackTableRowP
                 padded
                 isSelected={isSelected}
                 weight={computeRelativeWeight(
-                  root.node.totalWeight,
+                  referenceRoot.node.totalWeight,
                   node.node.node.totalWeight
                 )}
               />

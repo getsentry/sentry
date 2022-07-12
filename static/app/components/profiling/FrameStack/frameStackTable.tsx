@@ -83,12 +83,12 @@ interface FrameStackTableProps {
   frames: FlamegraphFrame[];
   getFrameColor: (frame: FlamegraphFrame) => string;
   recursion: 'collapsed' | null;
-  root: FlamegraphFrame;
+  referenceRoot: FlamegraphFrame;
 }
 
 export function FrameStackTable({
   frames,
-  root,
+  referenceRoot,
   canvasPoolManager,
   getFrameColor,
   formatDuration,
@@ -136,7 +136,7 @@ export function FrameStackTable({
           }}
           node={r.item}
           style={r.styles}
-          root={root}
+          referenceRoot={referenceRoot}
           frameColor={getFrameColor(r.item.node)}
           formatDuration={formatDuration}
           tabIndex={tabIndexKey === r.key ? 0 : 1}
@@ -151,7 +151,7 @@ export function FrameStackTable({
         />
       );
     },
-    [contextMenu, formatDuration, root, getFrameColor]
+    [contextMenu, formatDuration, referenceRoot, getFrameColor]
   );
 
   const {
