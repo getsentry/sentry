@@ -1,7 +1,8 @@
 from typing import Any
 
-from sentry.integrations.msteams.card_builder.base import ActionType, MSTeamsMessageBuilder
+from sentry.integrations.msteams.card_builder.base import MSTeamsMessageBuilder
 
+from .block import ActionType, create_action_block
 from .utils import HelpMessages
 
 
@@ -27,7 +28,7 @@ class MSTeamsMentionedMessageBuilder(MSTeamsMessageBuilder):
             title=HelpMessages.MENTIONED_TITLE,
             text=HelpMessages.MENTIONED_TEXT,
             actions=[
-                self.create_action_block(
+                create_action_block(
                     ActionType.OPEN_URL, title=HelpMessages.DOCS_BUTTON, url=HelpMessages.DOCS_URL
                 )
             ],

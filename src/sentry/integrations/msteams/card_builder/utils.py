@@ -1,7 +1,4 @@
-from enum import Enum
-
-
-class HelpMessages(str, Enum):
+class HelpMessages:
     HELP_TITLE = "Please use one of the following commands for Sentry:"
     HELP_MESSAGE = (
         "- **link**: link your Microsoft Teams identity to your Sentry account"
@@ -23,7 +20,7 @@ class HelpMessages(str, Enum):
     DOCS_URL = "https://docs.sentry.io/product/alerts-notifications/alerts/"
 
 
-class IdentityMessages(str, Enum):
+class IdentityMessages:
     LINK_IDENTITY_BUTTON = "Link Identities"
     LINK_IDENTITY = "You need to link your Microsoft Teams account to your Sentry account before you can take action through Teams messages. Please click here to do so."
 
@@ -41,7 +38,7 @@ class IdentityMessages(str, Enum):
     IDENTITY_UNLINKED = "Your Microsoft Teams identity has been unlinked to your Sentry account. You will need to re-link if you want to interact with messages again."
 
 
-class InstallationMessages(str, Enum):
+class InstallationMessages:
     MSTEAMS_CONFIGURE_URL = "/extensions/msteams/configure/?signed_params={signed_params}"
 
     TEAM_INSTALLTION_TITLE = "Welcome to Sentry for Microsoft Teams"

@@ -1,6 +1,13 @@
 import pytest
 
-from sentry.integrations.msteams.card_builder.base import ActionType, MSTeamsMessageBuilder
+from sentry.integrations.msteams.card_builder.base import MSTeamsMessageBuilder
+from sentry.integrations.msteams.card_builder.block import (
+    ActionType,
+    create_action_block,
+    create_column_block,
+    create_column_set_block,
+    create_text_block,
+)
 from sentry.integrations.msteams.card_builder.help import (
     MSTeamsHelpMessageBuilder,
     MSTeamsMentionedMessageBuilder,
@@ -26,24 +33,24 @@ from sentry.testutils import TestCase
 class SimpleMessageBuilder(MSTeamsMessageBuilder):
     def build(self):
         return self.build_card(
-            title=self.create_text_block("title"),
-            text=self.create_text_block("text"),
-            fields=[self.create_text_block("fields")],
-            actions=[self.create_action_block(ActionType.OPEN_URL, "button", url="url")],
+            title=create_text_block("title"),
+            text=create_text_block("text"),
+            fields=[create_text_block("fields")],
+            actions=[create_action_block(ActionType.OPEN_URL, "button", url="url")],
         )
 
 
 class MissingActionParamsMessageBuilder(MSTeamsMessageBuilder):
     def build(self):
-        return self.build_card(actions=[self.create_action_block(ActionType.OPEN_URL, "button")])
+        return self.build_card(actions=[create_action_block(ActionType.OPEN_URL, "button")])
 
 
 class ColumnMessageBuilder(MSTeamsMessageBuilder):
     def build(self):
         return self.build_card(
-            text=self.create_column_set_block(
-                self.create_column_block(self.create_text_block("column1")),
-                self.create_column_block(self.create_text_block("column2")),
+            text=create_column_set_block(
+                create_column_block(create_text_block("column1")),
+                create_column_block(create_text_block("column2")),
             )
         )
 
