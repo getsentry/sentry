@@ -11,7 +11,7 @@ from sentry.web.decorators import transaction_start
 from sentry.web.frontend.base import BaseView
 from sentry.web.helpers import render_to_response
 
-from .card_builder.identity import MSTeamsUnlinkedMessageBuilder
+from .card_builder.identity import build_unlinked_card
 from .utils import get_preinstall_client
 
 
@@ -63,7 +63,7 @@ class MsTeamsUnlinkIdentityView(BaseView):
         # otherwise, delete the identities, send message to the user, and render a success screen
         identity_list.delete()
         client = get_preinstall_client(params["service_url"])
-        card = MSTeamsUnlinkedMessageBuilder().build()
+        card = build_unlinked_card()
         client.send_card(params["conversation_id"], card)
 
         return render_to_response(

@@ -14,12 +14,12 @@ from sentry.integrations.msteams.card_builder.help import (
     MSTeamsUnrecognizedCommandMessageBuilder,
 )
 from sentry.integrations.msteams.card_builder.identity import (
-    MSTeamsAlreadyLinkedMessageBuilder,
-    MSTeamsLinkCommandMessageBuilder,
-    MSTeamsLinkedMessageBuilder,
-    MSTeamsLinkIdentityMessageBuilder,
-    MSTeamsUnlinkedMessageBuilder,
-    MSTeamsUnlinkIdentityMessageBuilder,
+    build_already_linked_identity_command_card,
+    build_link_identity_command_card,
+    build_linked_card,
+    build_linking_card,
+    build_unlink_identity_card,
+    build_unlinked_card,
 )
 from sentry.integrations.msteams.card_builder.installation import (
     MSTeamsInstallationConfirmationMessageBuilder,
@@ -144,19 +144,19 @@ class MSTeamsMessageBuilderTest(TestCase):
         assert "signed_params" in team_installation_card["actions"][0]["url"]
 
     def test_already_linked_message(self):
-        already_linked_card = MSTeamsAlreadyLinkedMessageBuilder().build()
+        already_linked_card = build_already_linked_identity_command_card()
 
         assert 1 == len(already_linked_card["body"])
         assert "already linked" in already_linked_card["body"][0]["text"]
 
     def test_link_command_message(self):
-        link_command_card = MSTeamsLinkCommandMessageBuilder().build()
+        link_command_card = build_link_identity_command_card()
 
         assert 1 == len(link_command_card["body"])
         assert "interact with alerts" in link_command_card["body"][0]["text"]
 
     def test_linked_message(self):
-        linked_card = MSTeamsLinkedMessageBuilder().build()
+        linked_card = build_linked_card()
 
         assert 1 == len(linked_card["body"])
         columns = linked_card["body"][0]["columns"]
@@ -164,7 +164,7 @@ class MSTeamsMessageBuilderTest(TestCase):
 
     def test_link_identity_message(self):
         url = "test-url"
-        link_identity_card = MSTeamsLinkIdentityMessageBuilder(url).build()
+        link_identity_card = build_linking_card(url)
 
         assert 1 == len(link_identity_card["body"])
         assert 1 == len(link_identity_card["actions"])
@@ -172,14 +172,14 @@ class MSTeamsMessageBuilderTest(TestCase):
         assert "test-url" == link_identity_card["actions"][0]["url"]
 
     def test_unlinked_message(self):
-        unlinked_card = MSTeamsUnlinkedMessageBuilder().build()
+        unlinked_card = build_unlinked_card()
 
         assert 1 == len(unlinked_card["body"])
         assert "unlinked" in unlinked_card["body"][0]["text"]
 
     def test_unlink_indentity_message(self):
         url = "test-url"
-        unlink_identity_card = MSTeamsUnlinkIdentityMessageBuilder(url).build()
+        unlink_identity_card = build_unlink_identity_card(url)
 
         assert 1 == len(unlink_identity_card["body"])
         assert 1 == len(unlink_identity_card["actions"])

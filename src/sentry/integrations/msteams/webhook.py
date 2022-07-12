@@ -22,10 +22,10 @@ from .card_builder.help import (
     MSTeamsUnrecognizedCommandMessageBuilder,
 )
 from .card_builder.identity import (
-    MSTeamsAlreadyLinkedMessageBuilder,
-    MSTeamsLinkCommandMessageBuilder,
-    MSTeamsLinkIdentityMessageBuilder,
-    MSTeamsUnlinkIdentityMessageBuilder,
+    build_already_linked_identity_command_card,
+    build_link_identity_command_card,
+    build_linking_card,
+    build_unlink_identity_card,
 )
 from .card_builder.installation import (
     MSTeamsPersonalIntallationMessageBuilder,
@@ -375,7 +375,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
                 integration, group.organization, user_id, team_id, tenant_id
             )
 
-            card = MSTeamsLinkIdentityMessageBuilder(associate_url).build()
+            card = build_linking_card(associate_url)
             user_conversation_id = client.get_user_conversation_id(user_id, tenant_id)
             client.send_card(user_conversation_id, card)
             return self.respond(status=201)
@@ -444,15 +444,15 @@ class MsTeamsWebhookEndpoint(Endpoint):
         # only supporting unlink for now
         if "unlink" in lowercase_command:
             unlink_url = build_unlinking_url(conversation_id, data["serviceUrl"], teams_user_id)
-            card = MSTeamsUnlinkIdentityMessageBuilder(unlink_url).build()
+            card = build_unlink_identity_card(unlink_url)
         elif "help" in lowercase_command:
             card = MSTeamsHelpMessageBuilder().build()
         elif "link" == lowercase_command:  # don't to match other types of link commands
             has_linked_identity = Identity.objects.filter(external_id=teams_user_id).exists()
             if has_linked_identity:
-                card = MSTeamsAlreadyLinkedMessageBuilder().build()
+                card = build_already_linked_identity_command_card()
             else:
-                card = MSTeamsLinkCommandMessageBuilder().build()
+                card = build_link_identity_command_card()
         else:
             card = MSTeamsUnrecognizedCommandMessageBuilder(command_text).build()
 
