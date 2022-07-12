@@ -16,11 +16,11 @@ from .utils import IdentityMessages
 
 
 def build_unlinked_card() -> AdaptiveCard:
-    return MSTeamsMessageBuilder().build_card(text=IdentityMessages.IDENTITY_UNLINKED)
+    return MSTeamsMessageBuilder().build(text=IdentityMessages.IDENTITY_UNLINKED)
 
 
 def build_linked_card() -> AdaptiveCard:
-    return MSTeamsMessageBuilder().build_card(
+    return MSTeamsMessageBuilder().build(
         text=create_column_set_block(
             create_column_block(create_logo_block(size=ImageSize.LARGE), width=ColumnWidth.AUTO),
             create_text_block(
@@ -32,7 +32,7 @@ def build_linked_card() -> AdaptiveCard:
 
 
 def build_linking_card(url: str) -> AdaptiveCard:
-    return MSTeamsMessageBuilder().build_card(
+    return MSTeamsMessageBuilder().build(
         text=create_text_block(IdentityMessages.LINK_IDENTITY, size=TextSize.MEDIUM),
         actions=[
             create_action_block(
@@ -43,7 +43,7 @@ def build_linking_card(url: str) -> AdaptiveCard:
 
 
 def build_unlink_identity_card(url: str) -> AdaptiveCard:
-    return MSTeamsMessageBuilder().build_card(
+    return MSTeamsMessageBuilder().build(
         text=IdentityMessages.UNLINK_IDENTITY,
         actions=[
             create_action_block(
@@ -54,10 +54,10 @@ def build_unlink_identity_card(url: str) -> AdaptiveCard:
 
 
 def build_link_identity_command_card() -> AdaptiveCard:
-    return MSTeamsMessageBuilder().build_card(
+    return MSTeamsMessageBuilder().build(
         text=IdentityMessages.LINK_COMMAND_MESSAGE,
     )
 
 
 def build_already_linked_identity_command_card() -> AdaptiveCard:
-    return MSTeamsMessageBuilder().build_card(text=IdentityMessages.ALREADY_LINKED)
+    return MSTeamsMessageBuilder().build(text=IdentityMessages.ALREADY_LINKED)

@@ -10,11 +10,7 @@ from .block import create_text_block
 
 
 class MSTeamsMessageBuilder(AbstractMessageBuilder, ABC):  # type: ignore
-    def build(self) -> AdaptiveCard:
-        """Abstract `build` method that all inheritors must implement."""
-        raise NotImplementedError
-
-    def build_card(
+    def build(
         self,
         text: str | Block | None = None,
         title: str | Block | None = None,

@@ -32,7 +32,7 @@ from sentry.testutils import TestCase
 
 class SimpleMessageBuilder(MSTeamsMessageBuilder):
     def build(self):
-        return self.build_card(
+        return self.build(
             title=create_text_block("title"),
             text=create_text_block("text"),
             fields=[create_text_block("fields")],
@@ -42,12 +42,12 @@ class SimpleMessageBuilder(MSTeamsMessageBuilder):
 
 class MissingActionParamsMessageBuilder(MSTeamsMessageBuilder):
     def build(self):
-        return self.build_card(actions=[create_action_block(ActionType.OPEN_URL, "button")])
+        return self.build(actions=[create_action_block(ActionType.OPEN_URL, "button")])
 
 
 class ColumnMessageBuilder(MSTeamsMessageBuilder):
     def build(self):
-        return self.build_card(
+        return self.build(
             text=create_column_set_block(
                 create_column_block(create_text_block("column1")),
                 create_column_block(create_text_block("column2")),
