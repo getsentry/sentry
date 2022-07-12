@@ -452,9 +452,9 @@ class OrganizationMember(Model):
             event=audit_log.get_event_id("INVITE_REQUEST_REMOVE"),
         )
 
-    def get_allowed_roles_to_invite(self):
+    def get_allowed_org_roles_to_invite(self):
         """
-        Return a list of roles which that member could invite
+        Return a list of org-level roles which that member could invite
         Must check if member member has member:admin first before checking
         """
         return [

@@ -329,10 +329,10 @@ class OrganizationMemberTest(TestCase):
         member.reject_member_invitation(user)
         assert not OrganizationMember.objects.filter(id=member.id).exists()
 
-    def test_get_allowed_roles_to_invite(self):
+    def test_get_allowed_org_roles_to_invite(self):
         member = OrganizationMember.objects.get(user=self.user, organization=self.organization)
         member.update(role="manager")
-        assert member.get_allowed_roles_to_invite() == [
+        assert member.get_allowed_org_roles_to_invite() == [
             roles.get("member"),
             roles.get("admin"),
             roles.get("manager"),
