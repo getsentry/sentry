@@ -7,11 +7,14 @@ type DrawFn = () => void;
 type ArgumentTypes<F> = F extends (...args: infer A) => any ? A : never;
 
 export interface FlamegraphEvents {
-  highlightFrame: (frame: FlamegraphFrame | null, mode: 'hover' | 'selected') => void;
-  resetZoom: () => void;
-  setConfigView: (configView: Rect) => void;
-  transformConfigView: (transform: mat3) => void;
-  zoomIntoFrame: (frame: FlamegraphFrame, strategy: 'min' | 'exact') => void;
+  ['highlight frame']: (
+    frame: FlamegraphFrame | null,
+    mode: 'hover' | 'selected'
+  ) => void;
+  ['reset zoom']: () => void;
+  ['set config view']: (configView: Rect) => void;
+  ['transform config view']: (transform: mat3) => void;
+  ['zoom at frame']: (frame: FlamegraphFrame, strategy: 'min' | 'exact') => void;
 }
 
 type EventStore = {[K in keyof FlamegraphEvents]: Set<FlamegraphEvents[K]>};
@@ -24,11 +27,11 @@ export class CanvasScheduler {
   requestAnimationFrame: number | null = null;
 
   events: EventStore = {
-    resetZoom: new Set<FlamegraphEvents['resetZoom']>(),
-    highlightFrame: new Set<FlamegraphEvents['highlightFrame']>(),
-    setConfigView: new Set<FlamegraphEvents['setConfigView']>(),
-    transformConfigView: new Set<FlamegraphEvents['transformConfigView']>(),
-    zoomIntoFrame: new Set<FlamegraphEvents['zoomIntoFrame']>(),
+    ['reset zoom']: new Set<FlamegraphEvents['reset zoom']>(),
+    ['highlight frame']: new Set<FlamegraphEvents['highlight frame']>(),
+    ['set config view']: new Set<FlamegraphEvents['set config view']>(),
+    ['transform config view']: new Set<FlamegraphEvents['transform config view']>(),
+    ['zoom at frame']: new Set<FlamegraphEvents['zoom at frame']>(),
   };
 
   onDispose(cb: () => void): void {
