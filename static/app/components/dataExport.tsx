@@ -40,15 +40,23 @@ function DataExport({
 }: DataExportProps): React.ReactElement {
   const [inProgress, setInProgress] = useState(false);
 
+  // We clear the indicator if export props change so that the user
+  // can fire another export without having to wait for the previous one to finish.
   useEffect(() => {
     if (inProgress) {
       setInProgress(false);
     }
+    // We are skipping the inProgress dependency because it would have fired on each handleDataExport
+    // call and would have immediately turned off the value giving users no feedback on their click action.
+    // An alternative way to handle this would have probably been to key the component by payload/queryType,
+    // but that seems like it can be a complex object so tracking changes could result in very brittle behavior.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [payload.queryType, payload.queryInfo]);
 
   const handleDataExport = useCallback(() => {
     setInProgress(true);
 
+    // This is a fire and forget request.
     api
       .requestPromise(`/organizations/${organization.slug}/data-export/`, {
         includeAllArgs: true,
