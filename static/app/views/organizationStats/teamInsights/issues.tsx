@@ -48,7 +48,7 @@ function TeamStatsIssues({location, router}: Props) {
     trackAdvancedAnalyticsEvent('team_insights.viewed', {
       organization,
     });
-  }, []);
+  }, [organization]);
 
   const {period, start, end, utc} = dataDatetime(query);
 
