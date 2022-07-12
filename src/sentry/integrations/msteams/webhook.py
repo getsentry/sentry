@@ -27,10 +27,7 @@ from .card_builder.identity import (
     build_linking_card,
     build_unlink_identity_card,
 )
-from .card_builder.installation import (
-    MSTeamsPersonalIntallationMessageBuilder,
-    MSTeamsTeamInstallationMessageBuilder,
-)
+from .card_builder.installation import build_personal_installation_message, build_welcome_card
 from .client import CLOCK_SKEW, MsTeamsClient, MsTeamsJwtClient
 from .link_identity import build_linking_url
 from .unlink_identity import build_unlinking_url
@@ -178,7 +175,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
         client = get_preinstall_client(data["serviceUrl"])
 
         user_conversation_id = data["conversation"]["id"]
-        card = MSTeamsPersonalIntallationMessageBuilder().build()
+        card = build_personal_installation_message()
         client.send_card(user_conversation_id, card)
         return self.respond(status=204)
 
@@ -204,7 +201,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
 
         # send welcome message to the team
         client = get_preinstall_client(data["serviceUrl"])
-        card = MSTeamsTeamInstallationMessageBuilder(signed_params).build()
+        card = build_welcome_card(signed_params)
         logger.warning(f"card: {card}")
         client.send_card(team["id"], card)
         return self.respond(status=201)
