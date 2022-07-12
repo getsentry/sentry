@@ -2,6 +2,15 @@ from abc import ABC
 from enum import Enum
 from typing import Any, Optional, Sequence
 
+from sentry.integrations.msteams.card_builder import (
+    Action,
+    AdaptiveCard,
+    ColumnBlock,
+    ColumnSetBlock,
+    ImageBlock,
+    ItemBlock,
+    TextBlock,
+)
 from sentry.integrations.notifications import AbstractMessageBuilder
 from sentry.utils.assets import get_asset_url
 from sentry.utils.http import absolute_uri
@@ -55,19 +64,19 @@ REQUIRED_ACTION_PARAM = {
 
 
 class MSTeamsMessageBuilder(AbstractMessageBuilder, ABC):  # type: ignore
-    def build(self) -> Any:
+    def build(self) -> AdaptiveCard:
         """Abstract `build` method that all inheritors must implement."""
         raise NotImplementedError
 
     @staticmethod
-    def get_text_block(text: str, **kwargs: str) -> Any:
+    def get_text_block(text: str, **kwargs: str) -> TextBlock:
         return {"type": "TextBlock", "text": text, "wrap": True, **kwargs}
 
-    def get_logo_block(self) -> Any:
+    def get_logo_block(self) -> ImageBlock:
         return self.get_image_block(get_asset_url("sentry", SENTRY_ICON_URL))
 
     @staticmethod
-    def get_image_block(url: str) -> Any:
+    def get_image_block(url: str) -> ImageBlock:
         return {
             "type": "Image",
             "url": absolute_uri(url),
@@ -75,20 +84,20 @@ class MSTeamsMessageBuilder(AbstractMessageBuilder, ABC):  # type: ignore
         }
 
     @staticmethod
-    def get_column_block(item: Any, **kwargs: str) -> Any:
+    def get_column_block(item: ItemBlock, **kwargs: str) -> ColumnBlock:
         kwargs["width"] = kwargs.get("width", ColumnWidth.AUTO)
 
         return {"type": "Column", "items": [item], **kwargs}
 
     @staticmethod
-    def get_column_set_block(*columns: Any) -> Any:
+    def get_column_set_block(*columns: ColumnBlock) -> ColumnSetBlock:
         return {
             "type": "ColumnSet",
             "columns": list(columns),
         }
 
     @staticmethod
-    def get_action_block(action_type: ActionType, title: str, **kwargs: str) -> Any:
+    def get_action_block(action_type: ActionType, title: str, **kwargs: str) -> Action:
         param = REQUIRED_ACTION_PARAM[action_type]
 
         return {"type": action_type, "title": title, f"{param}": kwargs[param]}
@@ -100,7 +109,7 @@ class MSTeamsMessageBuilder(AbstractMessageBuilder, ABC):  # type: ignore
         footer: Optional[Any] = None,
         actions: Optional[Sequence[Any]] = None,
         **kwargs: Any,
-    ) -> Any:
+    ) -> AdaptiveCard:
         """
         Helper to DRY up MS Teams specific fields.
         :param string text: Body text.
