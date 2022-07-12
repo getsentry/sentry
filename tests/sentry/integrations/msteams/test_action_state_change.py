@@ -4,7 +4,7 @@ from unittest.mock import patch
 import responses
 from django.http import HttpResponse
 
-from sentry.integrations.msteams.card_builder.identity import MSTeamsLinkIdentityMessageBuilder
+from sentry.integrations.msteams.card_builder.identity import build_linking_card
 from sentry.integrations.msteams.link_identity import build_linking_url
 from sentry.integrations.msteams.utils import ACTION_TYPE
 from sentry.models import (
@@ -154,10 +154,7 @@ class StatusActionTest(BaseEventTest):
 
         assert resp.status_code == 201
         assert "attachments" in data
-        assert (
-            data["attachments"][0]["content"]
-            == MSTeamsLinkIdentityMessageBuilder(linking_url).build()
-        )
+        assert data["attachments"][0]["content"] == build_linking_card(linking_url)
 
     @responses.activate
     @patch("sentry.integrations.msteams.webhook.verify_signature", return_value=True)
