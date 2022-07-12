@@ -11,12 +11,12 @@ export default function ReleaseDetailsActivity() {
 
   return (
     <Feature
-      features={['release-details-activity']}
+      features={['organizations:active-release-monitor-alpha']}
       organization={organization}
       renderDisabled={() => (
         <FeatureDisabled
           alert={PanelAlert}
-          features={['organization:release-details-activity']}
+          features={['organizations:active-release-monitor-alpha']}
           featureName={t('Release Details Activity')}
         />
       )}

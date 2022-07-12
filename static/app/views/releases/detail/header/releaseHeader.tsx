@@ -45,13 +45,11 @@ const ReleaseHeader = ({
   const releasePath = `/organizations/${organization.slug}/releases/${encodeURIComponent(
     version
   )}/`;
-  const hasReleaseDetailsActivity = organization.features.includes(
-    'release-details-activity'
-  );
+  const hasActiveRelease = organization.features.includes('active-release-monitor-alpha');
 
   const tabs = [
     {title: t('Overview'), to: ''},
-    ...(hasReleaseDetailsActivity ? [{title: t('Activity'), to: 'activity/'}] : []),
+    ...(hasActiveRelease ? [{title: t('Activity'), to: 'activity/'}] : []),
     {
       title: (
         <Fragment>
