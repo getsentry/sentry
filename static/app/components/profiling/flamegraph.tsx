@@ -177,16 +177,16 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
       canvasPoolManager.draw();
     };
 
-    scheduler.on('setConfigView', onConfigViewChange);
-    scheduler.on('transformConfigView', onTransformConfigView);
-    scheduler.on('resetZoom', onResetZoom);
-    scheduler.on('zoomIntoFrame', onZoomIntoFrame);
+    scheduler.on('set config view', onConfigViewChange);
+    scheduler.on('transform config view', onTransformConfigView);
+    scheduler.on('reset zoom', onResetZoom);
+    scheduler.on('zoom at frame', onZoomIntoFrame);
 
     return () => {
-      scheduler.off('setConfigView', onConfigViewChange);
-      scheduler.off('transformConfigView', onTransformConfigView);
-      scheduler.off('resetZoom', onResetZoom);
-      scheduler.off('zoomIntoFrame', onZoomIntoFrame);
+      scheduler.off('set config view', onConfigViewChange);
+      scheduler.off('transform config view', onTransformConfigView);
+      scheduler.off('reset zoom', onResetZoom);
+      scheduler.off('zoom at frame', onZoomIntoFrame);
     };
   }, [canvasPoolManager, flamegraphCanvas, flamegraphView, scheduler]);
 
