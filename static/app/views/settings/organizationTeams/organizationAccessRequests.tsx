@@ -112,7 +112,7 @@ class OrganizationAccessRequests extends Component<Props, State> {
                 <div>
                   <StyledButton
                     priority="primary"
-                    size="small"
+                    size="sm"
                     onClick={e => this.handleApprove(id, e)}
                     busy={accessRequestBusy[id]}
                   >
@@ -121,7 +121,7 @@ class OrganizationAccessRequests extends Component<Props, State> {
                   <Button
                     busy={accessRequestBusy[id]}
                     onClick={e => this.handleDeny(id, e)}
-                    size="small"
+                    size="sm"
                   >
                     {t('Deny')}
                   </Button>

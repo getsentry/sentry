@@ -15,9 +15,9 @@ from sentry.db.models import (
     BaseModel,
     BoundedAutoField,
     BoundedPositiveIntegerField,
-    EncryptedPickledObjectField,
     FlexibleForeignKey,
 )
+from sentry.db.models.fields.picklefield import PickledObjectField
 
 
 class AuthenticatorManager(BaseManager):
@@ -119,7 +119,7 @@ class Authenticator(BaseModel):
     created_at = models.DateTimeField(_("created at"), default=timezone.now)
     last_used_at = models.DateTimeField(_("last used at"), null=True)
     type = BoundedPositiveIntegerField(choices=AUTHENTICATOR_CHOICES)
-    config = EncryptedPickledObjectField()
+    config = PickledObjectField()
 
     objects = AuthenticatorManager()
 

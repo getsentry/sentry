@@ -7,7 +7,6 @@ import {
   useRef,
   useState,
 } from 'react';
-import styled from '@emotion/styled';
 import {mat3, vec2} from 'gl-matrix';
 
 import {FlamegraphOptionsMenu} from 'sentry/components/profiling/flamegraphOptionsMenu';
@@ -23,18 +22,23 @@ import {
 import {ThreadMenuSelector} from 'sentry/components/profiling/threadSelector';
 import {CanvasPoolManager, CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
 import {Flamegraph as FlamegraphModel} from 'sentry/utils/profiling/flamegraph';
-import {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/useFlamegraphPreferences';
 import {useFlamegraphProfiles} from 'sentry/utils/profiling/flamegraph/useFlamegraphProfiles';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {FlamegraphView} from 'sentry/utils/profiling/flamegraphView';
-import {Rect, watchForResize} from 'sentry/utils/profiling/gl/utils';
+import {
+  computeConfigViewWithStategy,
+  Rect,
+  watchForResize,
+} from 'sentry/utils/profiling/gl/utils';
 import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import {Profile} from 'sentry/utils/profiling/profile/profile';
 import {useDevicePixelRatio} from 'sentry/utils/useDevicePixelRatio';
 import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
+
+import {ProfilingFlamechartLayout} from './profilingFlamechartLayout';
 
 function getTransactionConfigSpace(profiles: Profile[]): Rect {
   const startedAt = Math.min(...profiles.map(p => p.startedAt));
@@ -162,29 +166,27 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
       canvasPoolManager.draw();
     };
 
-    const onZoomIntoFrame = (frame: FlamegraphFrame) => {
-      flamegraphView.setConfigView(
-        new Rect(
-          frame.start,
-          frame.depth,
-          frame.end - frame.start,
-          flamegraphView.configView.height
-        )
+    const onZoomIntoFrame = (frame: FlamegraphFrame, strategy: 'min' | 'exact') => {
+      const newConfigView = computeConfigViewWithStategy(
+        strategy,
+        flamegraphView.configView,
+        new Rect(frame.start, frame.depth, frame.end - frame.start, 1)
       );
 
+      flamegraphView.setConfigView(newConfigView);
       canvasPoolManager.draw();
     };
 
-    scheduler.on('setConfigView', onConfigViewChange);
-    scheduler.on('transformConfigView', onTransformConfigView);
-    scheduler.on('resetZoom', onResetZoom);
-    scheduler.on('zoomIntoFrame', onZoomIntoFrame);
+    scheduler.on('set config view', onConfigViewChange);
+    scheduler.on('transform config view', onTransformConfigView);
+    scheduler.on('reset zoom', onResetZoom);
+    scheduler.on('zoom at frame', onZoomIntoFrame);
 
     return () => {
-      scheduler.off('setConfigView', onConfigViewChange);
-      scheduler.off('transformConfigView', onTransformConfigView);
-      scheduler.off('resetZoom', onResetZoom);
-      scheduler.off('zoomIntoFrame', onZoomIntoFrame);
+      scheduler.off('set config view', onConfigViewChange);
+      scheduler.off('transform config view', onTransformConfigView);
+      scheduler.off('reset zoom', onResetZoom);
+      scheduler.off('zoom at frame', onZoomIntoFrame);
     };
   }, [canvasPoolManager, flamegraphCanvas, flamegraphView, scheduler]);
 
@@ -270,49 +272,38 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
         <FlamegraphOptionsMenu canvasPoolManager={canvasPoolManager} />
       </FlamegraphToolbar>
 
-      <FlamegraphZoomViewMinimapContainer height={flamegraphTheme.SIZES.MINIMAP_HEIGHT}>
-        <FlamegraphZoomViewMinimap
-          canvasPoolManager={canvasPoolManager}
-          flamegraph={flamegraph}
-          flamegraphMiniMapCanvas={flamegraphMiniMapCanvas}
-          flamegraphMiniMapCanvasRef={flamegraphMiniMapCanvasRef}
-          flamegraphMiniMapOverlayCanvasRef={flamegraphMiniMapOverlayCanvasRef}
-          flamegraphMiniMapView={flamegraphView}
-          setFlamegraphMiniMapCanvasRef={setFlamegraphMiniMapCanvasRef}
-          setFlamegraphMiniMapOverlayCanvasRef={setFlamegraphMiniMapOverlayCanvasRef}
-        />
-      </FlamegraphZoomViewMinimapContainer>
-      <FlamegraphZoomViewContainer>
-        <ProfileDragDropImport onImport={props.onImport}>
-          <FlamegraphZoomView
-            canvasBounds={canvasBounds.current}
+      <ProfilingFlamechartLayout
+        layoutType="minimap_top"
+        minimap={
+          <FlamegraphZoomViewMinimap
             canvasPoolManager={canvasPoolManager}
             flamegraph={flamegraph}
-            flamegraphCanvas={flamegraphCanvas}
-            flamegraphCanvasRef={flamegraphCanvasRef}
-            flamegraphOverlayCanvasRef={flamegraphOverlayCanvasRef}
-            flamegraphView={flamegraphView}
-            setFlamegraphCanvasRef={setFlamegraphCanvasRef}
-            setFlamegraphOverlayCanvasRef={setFlamegraphOverlayCanvasRef}
+            flamegraphMiniMapCanvas={flamegraphMiniMapCanvas}
+            flamegraphMiniMapCanvasRef={flamegraphMiniMapCanvasRef}
+            flamegraphMiniMapOverlayCanvasRef={flamegraphMiniMapOverlayCanvasRef}
+            flamegraphMiniMapView={flamegraphView}
+            setFlamegraphMiniMapCanvasRef={setFlamegraphMiniMapCanvasRef}
+            setFlamegraphMiniMapOverlayCanvasRef={setFlamegraphMiniMapOverlayCanvasRef}
           />
-        </ProfileDragDropImport>
-      </FlamegraphZoomViewContainer>
+        }
+        flamechart={
+          <ProfileDragDropImport onImport={props.onImport}>
+            <FlamegraphZoomView
+              canvasBounds={canvasBounds.current}
+              canvasPoolManager={canvasPoolManager}
+              flamegraph={flamegraph}
+              flamegraphCanvas={flamegraphCanvas}
+              flamegraphCanvasRef={flamegraphCanvasRef}
+              flamegraphOverlayCanvasRef={flamegraphOverlayCanvasRef}
+              flamegraphView={flamegraphView}
+              setFlamegraphCanvasRef={setFlamegraphCanvasRef}
+              setFlamegraphOverlayCanvasRef={setFlamegraphOverlayCanvasRef}
+            />
+          </ProfileDragDropImport>
+        }
+      />
     </Fragment>
   );
 }
-
-const FlamegraphZoomViewMinimapContainer = styled('div')<{
-  height: FlamegraphTheme['SIZES']['MINIMAP_HEIGHT'];
-}>`
-  position: relative;
-  height: ${p => p.height}px;
-  flex-shrink: 0;
-`;
-
-const FlamegraphZoomViewContainer = styled('div')`
-  position: relative;
-  display: flex;
-  flex: 1 1 100%;
-`;
 
 export {Flamegraph};

@@ -861,6 +861,8 @@ metricConditionalTagging:
   - d:transactions/duration@millisecond
   targetTag: histogram_outlier
 transactionMetrics:
+  customMeasurements:
+    limit: 5
   extractCustomTags: []
   extractMetrics:
   - d:transactions/duration@millisecond

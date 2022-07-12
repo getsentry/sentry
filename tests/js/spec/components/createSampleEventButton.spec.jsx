@@ -1,8 +1,7 @@
 import {browserHistory} from 'react-router';
 import * as Sentry from '@sentry/react';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
-import {initializeOrg} from 'sentry-test/initializeOrg';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import CreateSampleEventButton from 'sentry/views/onboarding/createSampleEventButton';
@@ -11,34 +10,39 @@ jest.useFakeTimers();
 jest.mock('sentry/utils/analytics/trackAdvancedAnalyticsEvent');
 
 describe('CreateSampleEventButton', function () {
-  const {org, project, routerContext} = initializeOrg();
+  const org = TestStubs.Organization();
+  const project = TestStubs.Project();
   const groupID = '123';
+  const createSampleText = 'Create a sample event';
 
-  const wrapper = mountWithTheme(
-    <CreateSampleEventButton
-      source="test"
-      project={{...project, platform: 'javascript'}}
-    />,
-    routerContext
-  );
+  function renderComponent() {
+    return render(
+      <CreateSampleEventButton
+        source="test"
+        project={{...project, platform: 'javascript'}}
+      >
+        {createSampleText}
+      </CreateSampleEventButton>
+    );
+  }
 
-  beforeEach(function () {
+  afterEach(function () {
     MockApiClient.clearMockResponses();
   });
 
   it('creates a sample event', async function () {
+    renderComponent();
     const createRequest = MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/create-sample/`,
       method: 'POST',
       body: {groupID},
     });
 
-    wrapper.find('[data-test-id="create-sample-event"]').first().simulate('click');
+    const sampleButton = await screen.findByRole('button', {name: createSampleText});
+    userEvent.click(sampleButton);
 
     // The button should be disabled while creating the event
-    expect(
-      wrapper.find('[data-test-id="create-sample-event"]').first().prop('disabled')
-    ).toBe(true);
+    expect(sampleButton).toBeDisabled();
 
     // We have to await the API calls. We could normally do this using tick(),
     // however since we have enabled fake timers to handle the spin-wait on the
@@ -54,19 +58,10 @@ describe('CreateSampleEventButton', function () {
     // There is a timeout before we check for the existence of the latest
     // event. Wait for it then wait for the request to complete
     jest.runAllTimers();
-    await Promise.resolve();
-    expect(latestIssueRequest).toHaveBeenCalled();
+    await waitFor(() => expect(latestIssueRequest).toHaveBeenCalled());
 
     // Wait for the api request and latestEventAvailable to resolve
-    await Promise.resolve();
-    await Promise.resolve();
-    await Promise.resolve();
-    await Promise.resolve();
-
-    wrapper.update();
-    expect(
-      wrapper.find('[data-test-id="create-sample-event"]').first().prop('disabled')
-    ).toBe(false);
+    expect(sampleButton).toBeEnabled();
 
     expect(browserHistory.push).toHaveBeenCalledWith(
       `/organizations/${org.slug}/issues/${groupID}/?project=${project.id}`
@@ -74,16 +69,16 @@ describe('CreateSampleEventButton', function () {
   });
 
   it('waits for the latest event to be processed', async function () {
+    renderComponent();
     const createRequest = MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/create-sample/`,
       method: 'POST',
       body: {groupID},
     });
 
-    wrapper.find('[data-test-id="create-sample-event"]').first().simulate('click');
+    userEvent.click(await screen.findByRole('button', {name: createSampleText}));
 
-    await Promise.resolve();
-    expect(createRequest).toHaveBeenCalled();
+    await waitFor(() => expect(createRequest).toHaveBeenCalled());
 
     // Start with no latest event
     let latestIssueRequest = MockApiClient.addMockResponse({
@@ -94,9 +89,7 @@ describe('CreateSampleEventButton', function () {
 
     // Wait for the timeout once, the first request will 404
     jest.runAllTimers();
-    await Promise.resolve();
-    expect(latestIssueRequest).toHaveBeenCalled();
-    await Promise.resolve();
+    await waitFor(() => expect(latestIssueRequest).toHaveBeenCalled());
 
     // Second request will be successful
     MockApiClient.clearMockResponses();
@@ -107,12 +100,7 @@ describe('CreateSampleEventButton', function () {
     });
 
     jest.runAllTimers();
-    await Promise.resolve();
-    expect(latestIssueRequest).toHaveBeenCalled();
-    await Promise.resolve();
-
-    // wait for latestEventAvailable to resolve
-    await Promise.resolve();
+    await waitFor(() => expect(latestIssueRequest).toHaveBeenCalled());
 
     expect(browserHistory.push).toHaveBeenCalledWith(
       `/organizations/${org.slug}/issues/${groupID}/?project=${project.id}`

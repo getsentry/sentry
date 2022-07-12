@@ -138,7 +138,7 @@ export default class InstalledIntegration extends Component<Props> {
                       organization={organization}
                       provider={provider}
                       priority="primary"
-                      size="small"
+                      size="sm"
                     />
                   )}
                   <StyledButton

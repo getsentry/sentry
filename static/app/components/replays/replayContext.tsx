@@ -16,6 +16,11 @@ import HighlightReplayPlugin from './highlightReplayPlugin';
 type Dimensions = {height: number; width: number};
 type RootElem = null | HTMLDivElement;
 
+type HighlightParams = {
+  nodeId: number;
+  annotation?: string;
+};
+
 // Important: Don't allow context Consumers to access `Replayer` directly.
 // It has state that, when changed, will not trigger a react render.
 // Instead only expose methods that wrap `Replayer` and manage state.
@@ -58,7 +63,7 @@ type ReplayPlayerContextProps = {
   /**
    * Highlight a node in the replay
    */
-  highlight: ({nodeId}: {nodeId: number}) => void;
+  highlight: (args: HighlightParams) => void;
 
   /**
    * Required to be called with a <div> Ref
@@ -201,6 +206,7 @@ export function Provider({children, replay, initialTimeOffset = 0, value = {}}: 
   const [fastForwardSpeed, setFFSpeed] = useState(0);
   const [buffer, setBufferTime] = useState({target: -1, previous: -1});
   const playTimer = useRef<number | undefined>(undefined);
+  const unMountedRef = useRef(false);
 
   const isFinished = replayerRef.current?.getCurrentTime() === finishedAtMS;
 
@@ -214,13 +220,13 @@ export function Provider({children, replay, initialTimeOffset = 0, value = {}}: 
     setFFSpeed(0);
   };
 
-  const highlight = useCallback(({nodeId}: {nodeId: number}) => {
+  const highlight = useCallback(({nodeId, annotation}: HighlightParams) => {
     const replayer = replayerRef.current;
     if (!replayer) {
       return;
     }
 
-    highlightNode({replayer, nodeId});
+    highlightNode({replayer, nodeId, annotation});
   }, []);
 
   const clearAllHighlightsCallback = useCallback(() => {
@@ -257,7 +263,7 @@ export function Provider({children, replay, initialTimeOffset = 0, value = {}}: 
       }
 
       if (replayerRef.current) {
-        if (!hasNewEvents) {
+        if (!hasNewEvents && !unMountedRef.current) {
           // Already have a player for these events, the parent node must've re-rendered
           return;
         }
@@ -304,8 +310,12 @@ export function Provider({children, replay, initialTimeOffset = 0, value = {}}: 
       // See: https://reactjs.org/docs/hooks-faq.html#is-there-something-like-instance-variables
       // @ts-expect-error
       replayerRef.current = inst;
+
+      if (unMountedRef.current) {
+        unMountedRef.current = false;
+      }
     },
-    [events, theme.purple200, hasNewEvents, setReplayFinished]
+    [events, theme.purple200, setReplayFinished, hasNewEvents]
   );
 
   useEffect(() => {
@@ -419,6 +429,10 @@ export function Provider({children, replay, initialTimeOffset = 0, value = {}}: 
     if (initialTimeOffset && events && replayerRef.current) {
       setCurrentTime(initialTimeOffset * 1000);
     }
+
+    return () => {
+      unMountedRef.current = true;
+    };
   }, [events, replayerRef.current]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const currentPlayerTime = useCurrentTime(getCurrentTime);

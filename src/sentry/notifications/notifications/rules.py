@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Iterable, Mapping, MutableMapping, Optional
+from typing import Any, Iterable, Mapping, MutableMapping, Optional, Sequence, TypedDict
+from urllib.parse import quote
 
 import pytz
 
+from sentry import analytics
 from sentry.db.models import Model
-from sentry.models import Release, Team, User, UserOption
+from sentry.models import Release, ReleaseCommit, Team, User, UserOption
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.types import ActionTargetType, NotificationSettingTypes
 from sentry.notifications.utils import (
@@ -20,8 +22,9 @@ from sentry.notifications.utils import (
 )
 from sentry.notifications.utils.participants import get_send_to
 from sentry.plugins.base.structs import Notification
-from sentry.types.integrations import ExternalProviders
+from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.utils import metrics
+from sentry.utils.http import absolute_uri, urlencode
 
 logger = logging.getLogger(__name__)
 
@@ -149,6 +152,20 @@ class AlertRuleNotification(ProjectNotification):
         shared_context = self.get_context()
 
         for provider, participants in participants_by_provider.items():
+            if self.target_type == ActionTargetType.RELEASE_MEMBERS:
+                last_release = shared_context.get("last_release", None)
+                release_version = last_release.version if last_release else None
+                for participant in participants:
+                    analytics.record(
+                        "active_release_notification.sent",
+                        organization_id=self.project.organization_id,
+                        project_id=self.project.id,
+                        group_id=self.group.id,
+                        provider=EXTERNAL_PROVIDERS[provider],
+                        release_version=release_version,
+                        recipient_email=participant.email,
+                        recipient_username=participant.username,
+                    )
             notify(provider, self, participants, shared_context)
 
     def get_log_params(self, recipient: Team | User) -> Mapping[str, Any]:
@@ -157,6 +174,12 @@ class AlertRuleNotification(ProjectNotification):
             "target_identifier": self.target_identifier,
             **super().get_log_params(recipient),
         }
+
+
+class CommitData(TypedDict):
+    author: User
+    subject: str
+    key: str
 
 
 class ActiveReleaseAlertNotification(AlertRuleNotification):
@@ -172,8 +195,14 @@ class ActiveReleaseAlertNotification(AlertRuleNotification):
         target_identifier: int | None = None,
         last_release: Optional[Release] = None,
     ) -> None:
+        from sentry.rules.conditions.active_release import ActiveReleaseEventCondition
+
         super().__init__(notification, target_type, target_identifier)
-        self.last_release = last_release
+        self.last_release = (
+            last_release
+            if last_release
+            else ActiveReleaseEventCondition.latest_release(notification.event)
+        )
 
     def get_notification_title(self, context: Mapping[str, Any] | None = None) -> str:
         from sentry.integrations.slack.message_builder.issues import build_rule_url
@@ -190,6 +219,75 @@ class ActiveReleaseAlertNotification(AlertRuleNotification):
         return title_str
 
     def get_context(self) -> MutableMapping[str, Any]:
-        ctx = super().get_context()
-        ctx["last_release"] = self.last_release
-        return ctx
+        environment = self.event.get_tag("environment")
+        enhanced_privacy = self.organization.flags.enhanced_privacy
+        rule_details = get_rules(self.rules, self.organization, self.project)
+        context = {
+            "project_label": self.project.get_full_name(),
+            "group": self.group,
+            "event": self.event,
+            "link": get_group_settings_link(
+                self.group, environment, rule_details, referrer="alert_email_release"
+            ),
+            "rules": rule_details,
+            "has_integrations": has_integrations(self.organization, self.project),
+            "enhanced_privacy": enhanced_privacy,
+            "last_release": self.last_release,
+            "last_release_link": self.release_url(self.last_release),
+            "last_release_slack_link": self.slack_release_url(self.last_release),
+            "commits": self.get_release_commits(self.last_release)[:15],
+            "environment": environment,
+            "slack_link": get_integration_link(self.organization, "slack"),
+            "has_alert_integration": has_alert_integration(self.project),
+        }
+
+        # if the organization has enabled enhanced privacy controls we don't send
+        # data which may show PII or source code
+        if not enhanced_privacy:
+            context.update({"tags": self.event.tags, "interfaces": get_interface_list(self.event)})
+
+        return context
+
+    @staticmethod
+    def get_release_commits(release: Release) -> Sequence[CommitData]:
+        if not release:
+            return []
+
+        release_commits = (
+            ReleaseCommit.objects.filter(release_id=release.id)
+            .select_related("commit", "commit__author")
+            .order_by("-order")
+        )
+
+        return [
+            {
+                "author": rc.commit.author,
+                "subject": rc.commit.message.split("\n", 1)[0]
+                if rc.commit.message
+                else "no subject",
+                "key": rc.commit.key,
+            }
+            for rc in release_commits
+        ]
+
+    @staticmethod
+    def release_url(release: Release) -> str:
+        params = {"project": release.project_id, "referrer": "alert_email_release"}
+        url = "/organizations/{org}/releases/{version}/{params}".format(
+            org=release.organization.slug,
+            version=release.version,
+            params="?" + urlencode(params),
+        )
+
+        return str(absolute_uri(url))
+
+    @staticmethod
+    def slack_release_url(release: Release) -> str:
+        params = {"project": release.project_id, "referrer": "alert_slack_release"}
+        url = "/organizations/{org}/releases/{version}/{params}".format(
+            org=release.organization.slug,
+            version=quote(release.version),
+            params="?" + urlencode(params),
+        )
+
+        return str(absolute_uri(url))

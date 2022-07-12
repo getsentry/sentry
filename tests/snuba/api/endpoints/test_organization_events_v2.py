@@ -3,8 +3,10 @@ from base64 import b64encode
 from unittest import mock
 
 import pytest
+from django.test import override_settings
 from django.urls import reverse
 from django.utils import timezone
+from freezegun import freeze_time
 from pytz import utc
 from snuba_sdk.column import Column
 from snuba_sdk.conditions import InvalidConditionError
@@ -5308,8 +5310,7 @@ class OrganizationEventsV2MetricsEnhancedPerformanceEndpointTest(
             1,
             tags={
                 "transaction": "foo_transaction",
-                "is_tolerated": "false",
-                "is_satisfied": "true",
+                constants.METRIC_SATISFACTION_TAG_KEY: constants.METRIC_SATISFIED_TAG_VALUE,
             },
             timestamp=self.min_ago,
         )
@@ -5340,7 +5341,10 @@ class OrganizationEventsV2MetricsEnhancedPerformanceEndpointTest(
         self.store_metric(
             1,
             "user",
-            tags={"transaction": "foo_transaction", "is_user_miserable": "true"},
+            tags={
+                "transaction": "foo_transaction",
+                constants.METRIC_SATISFACTION_TAG_KEY: constants.METRIC_FRUSTRATED_TAG_VALUE,
+            },
             timestamp=self.min_ago,
         )
         for dataset in ["metrics", "metricsEnhanced"]:
@@ -11060,6 +11064,32 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
             "columns": None,
         }
 
+    @override_settings(SENTRY_SELF_HOSTED=False)
+    def test_ratelimit(self):
+        query = {
+            "field": ["transaction"],
+            "project": [self.project.id],
+        }
+        with freeze_time("2000-01-01"):
+            for _ in range(25):
+                self.do_request(query, features={"organizations:discover-events-rate-limit": True})
+            response = self.do_request(
+                query, features={"organizations:discover-events-rate-limit": True}
+            )
+            assert response.status_code == 429, response.content
+
+    @override_settings(SENTRY_SELF_HOSTED=False)
+    def test_no_ratelimit(self):
+        query = {
+            "field": ["transaction"],
+            "project": [self.project.id],
+        }
+        with freeze_time("2000-01-01"):
+            for _ in range(50):
+                self.do_request(query)
+            response = self.do_request(query)
+            assert response.status_code == 200, response.content
+
 
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPerformanceTestCase):
     viewname = "sentry-api-0-organization-events"
@@ -11073,6 +11103,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         "measurement_rating",
         "good",
         "meh",
+        "d:transactions/measurements.something_custom@millisecond",
     ]
 
     def setUp(self):
@@ -11380,8 +11411,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             1,
             tags={
                 "transaction": "foo_transaction",
-                "is_tolerated": "false",
-                "is_satisfied": "true",
+                constants.METRIC_SATISFACTION_TAG_KEY: constants.METRIC_SATISFIED_TAG_VALUE,
             },
             timestamp=self.min_ago,
         )
@@ -11412,7 +11442,10 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         self.store_metric(
             1,
             "user",
-            tags={"transaction": "foo_transaction", "is_user_miserable": "true"},
+            tags={
+                "transaction": "foo_transaction",
+                constants.METRIC_SATISFACTION_TAG_KEY: constants.METRIC_FRUSTRATED_TAG_VALUE,
+            },
             timestamp=self.min_ago,
         )
         for dataset in ["metrics", "metricsEnhanced"]:
@@ -12082,4 +12115,36 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
 
         assert data[0]["transaction"] == "foo_transaction"
         assert data[0]["sum(transaction.duration)"] == 300
+        assert meta["isMetricsData"]
+
+    def test_custom_measurements_simple(self):
+        self.store_metric(
+            1,
+            metric="measurements.something_custom",
+            internal_metric="d:transactions/measurements.something_custom@millisecond",
+            entity="metrics_distributions",
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+
+        query = {
+            "project": [self.project.id],
+            "orderby": "p50(measurements.something_custom)",
+            "field": [
+                "transaction",
+                "p50(measurements.something_custom)",
+            ],
+            "statsPeriod": "24h",
+            "dataset": "metricsEnhanced",
+            "per_page": 50,
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        data = response.data["data"]
+        meta = response.data["meta"]
+
+        assert data[0]["transaction"] == "foo_transaction"
+        assert data[0]["p50(measurements.something_custom)"] == 1
         assert meta["isMetricsData"]

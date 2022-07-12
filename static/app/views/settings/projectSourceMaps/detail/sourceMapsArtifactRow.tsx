@@ -74,7 +74,7 @@ const SourceMapsArtifactRow = ({
                 isHoverable
               >
                 <Button
-                  size="small"
+                  size="sm"
                   icon={<IconDownload size="sm" />}
                   disabled={!hasRole}
                   href={downloadUrl}
@@ -97,7 +97,7 @@ const SourceMapsArtifactRow = ({
                   disabled={!hasAccess}
                 >
                   <Button
-                    size="small"
+                    size="sm"
                     icon={<IconDelete size="sm" />}
                     title={hasAccess ? t('Remove Artifact') : undefined}
                     aria-label={t('Remove Artifact')}

@@ -5,6 +5,7 @@ from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 from rest_framework.request import Request
 
+from sentry import options
 from sentry.utils.otp import TOTP, generate_secret_key
 
 
@@ -39,6 +40,10 @@ class EnrollmentStatus(Enum):
     EXISTING = "existing"
 
 
+class NewEnrollmentDisallowed(Exception):
+    pass
+
+
 class AuthenticatorInterface:
     type = -1
     interface_id = None
@@ -69,6 +74,17 @@ class AuthenticatorInterface:
         authenticator for a user attached).
         """
         return self.authenticator is not None
+
+    @property
+    def disallow_new_enrollment(self):
+        """If new enrollments of this 2FA interface type are no allowed
+        this returns `True`.
+
+        This value can be set with {interface_id}.disallow-new-enrollment.
+        For example, `sms.disallow-new-enrollment = True` would disable new
+        enrollments for text message 2FA.
+        """
+        return bool(options.get(f"{self.interface_id}.disallow-new-enrollment"))
 
     @property
     def requires_activation(self):
@@ -116,8 +132,13 @@ class AuthenticatorInterface:
     def enroll(self, user):
         """Invoked to enroll a user for this interface.  If already enrolled
         an error is raised.
+
+        If `disallow_new_enrollment` is `True`, raises exception: `NewEnrollmentDisallowed`.
         """
         from sentry.models import Authenticator
+
+        if self.disallow_new_enrollment:
+            raise NewEnrollmentDisallowed
 
         if self.authenticator is None:
             self.authenticator = Authenticator.objects.create(

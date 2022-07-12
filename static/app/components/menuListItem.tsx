@@ -235,6 +235,7 @@ export const InnerWrap = styled('div', {
 const ContentWrap = styled('div')<{isFocused: boolean; showDivider: boolean}>`
   position: relative;
   width: 100%;
+  min-width: 0;
   display: flex;
   gap: ${space(1)};
   justify-content: space-between;
@@ -271,6 +272,7 @@ const LeadingItems = styled('div')<{isDisabled: boolean; spanFullHeight: boolean
 const LabelWrap = styled('div')`
   padding-right: ${space(1)};
   width: 100%;
+  min-width: 0;
 `;
 
 const Label = styled('p')`

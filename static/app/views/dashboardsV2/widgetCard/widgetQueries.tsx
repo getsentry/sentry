@@ -10,11 +10,7 @@ import {
   PageFilters,
 } from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
-import {
-  EventsTableData,
-  TableData,
-  TableDataWithTitle,
-} from 'sentry/utils/discover/discoverQuery';
+import {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
 
 import {ErrorsAndTransactionsConfig} from '../datasetConfig/errorsAndTransactions';
 import {Widget} from '../types';
@@ -22,6 +18,7 @@ import {Widget} from '../types';
 import {DashboardsMEPContext} from './dashboardsMEPContext';
 import GenericWidgetQueries, {
   GenericWidgetQueriesChildrenProps,
+  OnDataFetchedProps,
 } from './genericWidgetQueries';
 
 type SeriesResult = EventsStats | MultiSeriesEventsStats;
@@ -102,11 +99,7 @@ type Props = {
   widget: Widget;
   cursor?: string;
   limit?: number;
-  onDataFetched?: (results: {
-    pageLinks?: string;
-    tableResults?: TableDataWithTitle[];
-    timeseriesResults?: Series[];
-  }) => void;
+  onDataFetched?: (results: OnDataFetchedProps) => void;
 };
 
 function WidgetQueries({
@@ -140,15 +133,14 @@ function WidgetQueries({
     [isMetricsData, setIsMetricsData]
   );
 
-  const afterFetchTableData = useCallback(
-    (rawResults: TableResult) => {
-      // If one of the queries is sampled, then mark the whole thing as sampled
-      const currentResultIsMetricsData =
-        isMetricsData === false ? false : rawResults.meta?.isMetricsData;
-      setIsMetricsData?.(currentResultIsMetricsData);
-    },
-    [isMetricsData, setIsMetricsData]
-  );
+  const isMetricsDataResults: boolean[] = [];
+  const afterFetchTableData = (rawResults: TableResult) => {
+    if (rawResults.meta?.isMetricsData !== undefined) {
+      isMetricsDataResults.push(rawResults.meta.isMetricsData);
+    }
+    // If one of the queries is sampled, then mark the whole thing as sampled
+    setIsMetricsData?.(!isMetricsDataResults.includes(false));
+  };
 
   return (
     <GenericWidgetQueries<SeriesResult, TableResult>

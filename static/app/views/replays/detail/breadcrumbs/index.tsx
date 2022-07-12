@@ -17,6 +17,8 @@ import {useCurrentItemScroller} from 'sentry/utils/replays/hooks/useCurrentItemS
 
 import BreadcrumbItem from './breadcrumbItem';
 
+const TAB_HEADER_HEIGHT = 28;
+
 function CrumbPlaceholder({number}: {number: number}) {
   return (
     <Fragment>
@@ -79,7 +81,7 @@ function Breadcrumbs({}: Props) {
         // XXX: Kind of hacky, but mouseLeave does not fire if you move from a
         // crumb to a tooltip
         clearAllHighlights();
-        highlight({nodeId: item.data.nodeId});
+        highlight({nodeId: item.data.nodeId, annotation: item.data.label});
       }
     },
     [setCurrentHoverTime, startTimestamp, highlight, clearAllHighlights]
@@ -145,7 +147,7 @@ const PanelHeader = styled(BasePanelHeader)`
 
 const PanelBody = styled(BasePanelBody)`
   overflow-y: auto;
-  max-height: calc(100% - 34px);
+  max-height: calc(100% - ${TAB_HEADER_HEIGHT}px);
 `;
 
 const PlaceholderMargin = styled(Placeholder)`
