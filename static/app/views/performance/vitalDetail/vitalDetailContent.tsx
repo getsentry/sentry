@@ -36,6 +36,11 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withProjects from 'sentry/utils/withProjects';
 
 import Breadcrumb from '../breadcrumb';
+import {
+  PerformanceWidgetSetting,
+  WIDGET_DEFINITIONS,
+} from '../landing/widgets/widgetDefinitions';
+import {VitalWidget} from '../landing/widgets/widgets/vitalWidget';
 import {getTransactionSearchQuery} from '../utils';
 
 import Table from './table';
@@ -198,6 +203,27 @@ function VitalDetailContent(props: Props) {
     const filterString = getTransactionSearchQuery(location);
     const summaryConditions = getSummaryConditions(filterString);
 
+    const chartSetting = PerformanceWidgetSetting.WORST_LCP_VITALS;
+    const chartDefinition = WIDGET_DEFINITIONS({organization})[chartSetting];
+    chartDefinition.isVitalDetailView = true;
+
+    // ContainerActions: React.FC<{isLoading: boolean}>;
+    // chartDefinition: ChartDefinition;
+    // chartHeight: number;
+
+    // chartSetting: PerformanceWidgetSetting;
+    // eventView: EventView;
+    // fields: string[];
+    // location: Location;
+
+    // organization: Organization;
+    // title: string;
+    // titleTooltip: string;
+
+    // chartColor?: string;
+
+    // withStaticFilters?: boolean;
+
     return (
       <Fragment>
         <FilterActions>
@@ -225,6 +251,19 @@ function VitalDetailContent(props: Props) {
           statsPeriod={statsPeriod}
           interval={interval}
         />
+        <VitalWidget
+          chartDefinition={chartDefinition}
+          chartSetting={chartSetting}
+          chartHeight={180}
+          fields={['measurements.lcp']}
+          location={location}
+          ContainerActions={() => null}
+          eventView={eventView}
+          organization={organization}
+          title="Duration p75"
+          titleTooltip="LCP is .."
+        />
+
         <StyledVitalInfo>
           <VitalInfo
             orgSlug={orgSlug}

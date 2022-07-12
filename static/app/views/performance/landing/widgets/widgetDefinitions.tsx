@@ -13,8 +13,11 @@ export interface ChartDefinition {
   title: string;
   titleTooltip: string; // The first field in the list will be treated as the primary field in most widgets (except for special casing).
 
-  chartColor?: string; // Optional. Will default to colors depending on placement in list or colors from the chart itself.
+  chartColor?: string;
 
+  isVitalDetailView?: boolean;
+
+  // Optional. Will default to colors depending on placement in list or colors from the chart itself.
   vitalStops?: {
     meh: number;
     poor: number;

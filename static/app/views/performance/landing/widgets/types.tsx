@@ -102,6 +102,7 @@ type Visualization<T> = {
   height: number;
   bottomPadding?: boolean;
   dataState?: (data: T) => VisualizationDataState;
+  enabled?: (data: T) => boolean;
   fields?: string;
   noPadding?: boolean;
   queryFields?: string[]; // Used to determine placeholder and loading sizes. Will also be passed to the component.
