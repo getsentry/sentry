@@ -1,4 +1,10 @@
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import {SERVER_SIDE_SAMPLING_DOC_LINK} from 'sentry/views/settings/project/server-side-sampling/utils';
 
@@ -13,18 +19,27 @@ import {
 } from './utils';
 
 describe('Server-side Sampling', function () {
-  beforeAll(function () {
-    MockApiClient.addMockResponse({
+  let distributionMock: ReturnType<typeof MockApiClient.addMockResponse> | undefined =
+    undefined;
+  let sdkVersionsMock: ReturnType<typeof MockApiClient.addMockResponse> | undefined =
+    undefined;
+
+  beforeEach(function () {
+    distributionMock = MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/dynamic-sampling/distribution/',
       method: 'GET',
       body: mockedSamplingDistribution,
     });
 
-    MockApiClient.addMockResponse({
+    sdkVersionsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dynamic-sampling/sdk-versions/',
       method: 'GET',
       body: mockedSamplingSdkVersions,
     });
+  });
+
+  afterEach(() => {
+    MockApiClient.clearMockResponses();
   });
 
   it('renders onboarding promo', function () {
@@ -164,7 +179,13 @@ describe('Server-side Sampling', function () {
       />
     );
 
-    const recommendedSdkUpgradesAlert = await screen.findByTestId(
+    expect(distributionMock).toHaveBeenCalled();
+
+    await waitFor(() => {
+      expect(sdkVersionsMock).toHaveBeenCalled();
+    });
+
+    const recommendedSdkUpgradesAlert = screen.getByTestId(
       'recommended-sdk-upgrades-alert'
     );
 
@@ -253,6 +274,9 @@ describe('Server-side Sampling', function () {
     expect(
       await screen.findByText("You don't have permission to add a rule")
     ).toBeInTheDocument();
+
+    expect(distributionMock).not.toHaveBeenCalled();
+    expect(sdkVersionsMock).not.toHaveBeenCalled();
   });
 
   // eslint-disable-next-line jest/no-disabled-tests

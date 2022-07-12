@@ -77,6 +77,10 @@ export function ServerSideSampling({project}: Props) {
   }, [currentRules, previousRules]);
 
   useEffect(() => {
+    if (!hasAccess) {
+      return;
+    }
+
     async function fetchRecommendedSdkUpgrades() {
       await fetchSamplingDistribution({
         orgSlug: organization.slug,
@@ -91,7 +95,7 @@ export function ServerSideSampling({project}: Props) {
     }
 
     fetchRecommendedSdkUpgrades();
-  }, [api, organization.slug, project.slug]);
+  }, [api, organization.slug, project.slug, hasAccess]);
 
   const {projectStats} = useProjectStats({
     orgSlug: organization.slug,
