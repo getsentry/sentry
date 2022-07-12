@@ -12,10 +12,10 @@ def is_resolved_issue_within_active_release(issue_id: int) -> bool:
 
     if issue is None or issue.status != GroupStatus.RESOLVED or issue.get_last_release() is None:
         print("first if statement")
-        print(issue)
+        print(issue is None)
         if issue is not None:
             print(issue.status)
-            print(issue.get_last_release)
+            print(issue.get_last_release())
         print("if statement done")
         return False
 
