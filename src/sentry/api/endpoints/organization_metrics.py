@@ -42,7 +42,7 @@ class OrganizationMetricDetailsEndpoint(OrganizationEndpoint):
             return Response(status=404)
 
         projects = self.get_projects(request, organization)
-        use_case_id = UseCaseKey.from_str(request.GET.get("useCase", "releath-health"))
+        use_case_id = UseCaseKey.from_str(request.GET.get("useCase", "release-health"))
         try:
             metric = get_single_metric_info(projects, metric_name, use_case_id)
         except InvalidParams as e:
@@ -71,7 +71,7 @@ class OrganizationMetricsTagsEndpoint(OrganizationEndpoint):
 
         metric_names = request.GET.getlist("metric") or None
         projects = self.get_projects(request, organization)
-        use_case_id = UseCaseKey.from_str(request.GET.get("useCase", "releath-health"))
+        use_case_id = UseCaseKey.from_str(request.GET.get("useCase", "release-health"))
         try:
             tags = get_tags(projects, metric_names, use_case_id)
         except (InvalidParams, DerivedMetricParseException) as exc:
@@ -91,7 +91,7 @@ class OrganizationMetricsTagDetailsEndpoint(OrganizationEndpoint):
         metric_names = request.GET.getlist("metric") or None
 
         projects = self.get_projects(request, organization)
-        use_case_id = UseCaseKey.from_str(request.GET.get("useCase", "releath-health"))
+        use_case_id = UseCaseKey.from_str(request.GET.get("useCase", "release-health"))
         try:
             tag_values = get_tag_values(projects, tag_name, metric_names, use_case_id)
         except (InvalidParams, DerivedMetricParseException) as exc:
@@ -131,7 +131,7 @@ class OrganizationMetricsDataEndpoint(OrganizationEndpoint):
                 data = get_series(
                     projects,
                     query.to_metrics_query(),
-                    use_case_id=UseCaseKey.from_str(request.GET.get("useCase", "releath-health")),
+                    use_case_id=UseCaseKey.from_str(request.GET.get("useCase", "release-health")),
                 )
                 data["query"] = query.query
             except (
