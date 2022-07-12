@@ -160,6 +160,7 @@ const ReplayControls = ({
         aria-label={isFullscreen ? t('Exit full screen') : t('Enter full screen')}
         icon={<IconResize size="sm" />}
         onClick={toggleFullscreen}
+        priority={isFullscreen ? 'primary' : undefined}
       />
     </ButtonGrid>
   );
