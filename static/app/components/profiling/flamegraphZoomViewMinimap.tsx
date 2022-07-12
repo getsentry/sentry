@@ -217,7 +217,7 @@ function FlamegraphZoomViewMinimap({
         physicalToConfig
       );
 
-      canvasPoolManager.dispatch('transformConfigView', [
+      canvasPoolManager.dispatch('transform config view', [
         mat3.fromTranslation(mat3.create(), configDelta),
       ]);
 
@@ -254,7 +254,7 @@ function FlamegraphZoomViewMinimap({
           end[0] - start[0],
           flamegraphMiniMapView.configView.height
         );
-        canvasPoolManager.dispatch('setConfigView', [rect]);
+        canvasPoolManager.dispatch('set config view', [rect]);
         setLastInteraction('select');
         return;
       }
@@ -298,7 +298,7 @@ function FlamegraphZoomViewMinimap({
         ]);
 
         const translate = mat3.fromTranslation(mat3.create(), configDelta);
-        canvasPoolManager.dispatch('transformConfigView', [translate]);
+        canvasPoolManager.dispatch('transform config view', [translate]);
       }
     },
     [flamegraphMiniMapCanvas, flamegraphMiniMapView, canvasPoolManager]
@@ -333,7 +333,7 @@ function FlamegraphZoomViewMinimap({
       const scaled = mat3.scale(mat3.create(), translated, vec2.fromValues(scale, 1));
       const translatedBack = mat3.translate(mat3.create(), scaled, invertedConfigCenter);
 
-      canvasPoolManager.dispatch('transformConfigView', [translatedBack]);
+      canvasPoolManager.dispatch('transform config view', [translatedBack]);
     },
     [flamegraphMiniMapCanvas, flamegraphMiniMapView, canvasPoolManager]
   );
