@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import Alert from 'sentry/components/alert';
+import Button from 'sentry/components/button';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -24,6 +25,7 @@ import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAna
 import {useProfileFilters} from 'sentry/utils/profiling/hooks/useProfileFilters';
 import {useProfiles} from 'sentry/utils/profiling/hooks/useProfiles';
 import {useProfileTransactions} from 'sentry/utils/profiling/hooks/useProfileTransactions';
+import {generateProfilingOnboardingRoute} from 'sentry/utils/profiling/routes';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -63,15 +65,20 @@ function ProfilingContent({location}: ProfilingContentProps) {
     [location]
   );
 
+  const onSetupProfilingClick = useCallback(() => {
+    browserHistory.push(generateProfilingOnboardingRoute({orgSlug: organization.slug}));
+  }, [organization.slug]);
+
   return (
     <SentryDocumentTitle title={t('Profiling')} orgSlug={organization.slug}>
       <PageFiltersContainer>
         <NoProjectMessage organization={organization}>
           <StyledPageContent>
             <Layout.Header>
-              <Layout.HeaderContent>
+              <StyledLayoutHeaderContent>
                 <StyledHeading>{t('Profiling')}</StyledHeading>
-              </Layout.HeaderContent>
+                <Button onClick={onSetupProfilingClick}>Setup Profiling</Button>
+              </StyledLayoutHeaderContent>
             </Layout.Header>
             <Layout.Body>
               <Layout.Main fullWidth>
@@ -133,6 +140,12 @@ function ProfilingContent({location}: ProfilingContentProps) {
 
 const StyledPageContent = styled(PageContent)`
   padding: 0;
+`;
+
+const StyledLayoutHeaderContent = styled(Layout.HeaderContent)`
+  display: flex;
+  justify-content: space-between;
+  flex-direction: row;
 `;
 
 const StyledHeading = styled(PageHeading)`
