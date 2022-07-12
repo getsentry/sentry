@@ -76,118 +76,116 @@ export function SortBySelectors({
   }, [values.sortBy, values.sortDirection]);
 
   return (
-    <Tooltip title={disableSortReason} disabled={!(disableSortDirection && disableSort)}>
-      <Wrapper>
-        <Tooltip
-          title={disableSortReason}
-          disabled={!disableSortDirection || (disableSortDirection && disableSort)}
-        >
+    <Wrapper>
+      <Tooltip
+        title={disableSortReason}
+        disabled={!disableSortDirection || (disableSortDirection && disableSort)}
+      >
+        <SelectControl
+          name="sortDirection"
+          aria-label="Sort direction"
+          menuPlacement="auto"
+          disabled={disableSortDirection}
+          options={Object.keys(sortDirections).map(value => ({
+            label: sortDirections[value],
+            value,
+          }))}
+          value={values.sortDirection}
+          onChange={(option: SelectValue<SortDirection>) => {
+            onChange({
+              sortBy: values.sortBy,
+              sortDirection: option.value,
+            });
+          }}
+        />
+      </Tooltip>
+      <Tooltip
+        title={disableSortReason}
+        disabled={!disableSort || (disableSortDirection && disableSort)}
+      >
+        {displayType === DisplayType.TABLE ? (
           <SelectControl
-            name="sortDirection"
-            aria-label="Sort direction"
+            name="sortBy"
+            aria-label="Sort by"
             menuPlacement="auto"
-            disabled={disableSortDirection}
-            options={Object.keys(sortDirections).map(value => ({
-              label: sortDirections[value],
-              value,
-            }))}
-            value={values.sortDirection}
-            onChange={(option: SelectValue<SortDirection>) => {
+            disabled={disableSort}
+            placeholder={`${t('Select a column')}\u{2026}`}
+            value={values.sortBy}
+            options={uniqBy(
+              datasetConfig.getTableSortOptions!(organization, widgetQuery),
+              ({value}) => value
+            )}
+            onChange={(option: SelectValue<string>) => {
               onChange({
-                sortBy: values.sortBy,
-                sortDirection: option.value,
+                sortBy: option.value,
+                sortDirection: values.sortDirection,
               });
             }}
           />
-        </Tooltip>
-        <Tooltip
-          title={disableSortReason}
-          disabled={!disableSort || (disableSortDirection && disableSort)}
-        >
-          {displayType === DisplayType.TABLE ? (
-            <SelectControl
-              name="sortBy"
-              aria-label="Sort by"
-              menuPlacement="auto"
-              disabled={disableSort}
-              placeholder={`${t('Select a column')}\u{2026}`}
-              value={values.sortBy}
-              options={uniqBy(
-                datasetConfig.getTableSortOptions!(organization, widgetQuery),
-                ({value}) => value
-              )}
-              onChange={(option: SelectValue<string>) => {
+        ) : (
+          <QueryField
+            disabled={disableSort}
+            fieldValue={
+              showCustomEquation
+                ? explodeField({field: CUSTOM_EQUATION_VALUE})
+                : explodeField({field: values.sortBy})
+            }
+            fieldOptions={datasetConfig.getTimeseriesSortOptions!(
+              organization,
+              widgetQuery
+            )}
+            filterPrimaryOptions={
+              datasetConfig.filterSeriesSortOptions
+                ? datasetConfig.filterSeriesSortOptions(columnSet)
+                : undefined
+            }
+            filterAggregateParameters={datasetConfig.filterAggregateParams}
+            onChange={value => {
+              if (value.alias && isEquationAlias(value.alias)) {
                 onChange({
-                  sortBy: option.value,
+                  sortBy: value.alias,
                   sortDirection: values.sortDirection,
                 });
-              }}
-            />
-          ) : (
-            <QueryField
-              disabled={disableSort}
-              fieldValue={
-                showCustomEquation
-                  ? explodeField({field: CUSTOM_EQUATION_VALUE})
-                  : explodeField({field: values.sortBy})
+                return;
               }
-              fieldOptions={datasetConfig.getTimeseriesSortOptions!(
-                organization,
-                widgetQuery
-              )}
-              filterPrimaryOptions={
-                datasetConfig.filterSeriesSortOptions
-                  ? datasetConfig.filterSeriesSortOptions(columnSet)
-                  : undefined
+
+              const parsedValue = generateFieldAsString(value);
+              const isSortingByCustomEquation = isEquation(parsedValue);
+              setShowCustomEquation(isSortingByCustomEquation);
+              if (isSortingByCustomEquation) {
+                onChange(customEquation);
+                return;
               }
-              filterAggregateParameters={datasetConfig.filterAggregateParams}
-              onChange={value => {
-                if (value.alias && isEquationAlias(value.alias)) {
-                  onChange({
-                    sortBy: value.alias,
-                    sortDirection: values.sortDirection,
-                  });
-                  return;
-                }
 
-                const parsedValue = generateFieldAsString(value);
-                const isSortingByCustomEquation = isEquation(parsedValue);
-                setShowCustomEquation(isSortingByCustomEquation);
-                if (isSortingByCustomEquation) {
-                  onChange(customEquation);
-                  return;
-                }
-
-                onChange({
-                  sortBy: parsedValue,
-                  sortDirection: values.sortDirection,
-                });
-              }}
-            />
-          )}
-        </Tooltip>
-        {showCustomEquation && (
-          <ArithmeticInputWrapper>
-            <ArithmeticInput
-              name="arithmetic"
-              type="text"
-              required
-              placeholder={t('Enter Equation')}
-              value={getEquation(customEquation.sortBy)}
-              onUpdate={value => {
-                const newValue = {
-                  sortBy: `${EQUATION_PREFIX}${value}`,
-                  sortDirection: values.sortDirection,
-                };
-                onChange(newValue);
-                setCustomEquation(newValue);
-              }}
-              hideFieldOptions
-            />
-          </ArithmeticInputWrapper>
+              onChange({
+                sortBy: parsedValue,
+                sortDirection: values.sortDirection,
+              });
+            }}
+          />
         )}
-      </Wrapper>
-    </Tooltip>
+      </Tooltip>
+      {showCustomEquation && (
+        <ArithmeticInputWrapper>
+          <ArithmeticInput
+            name="arithmetic"
+            type="text"
+            required
+            placeholder={t('Enter Equation')}
+            value={getEquation(customEquation.sortBy)}
+            onUpdate={value => {
+              const newValue = {
+                sortBy: `${EQUATION_PREFIX}${value}`,
+                sortDirection: values.sortDirection,
+              };
+              onChange(newValue);
+              setCustomEquation(newValue);
+            }}
+            hideFieldOptions
+          />
+        </ArithmeticInputWrapper>
+      )}
+    </Wrapper>
   );
 }
 
