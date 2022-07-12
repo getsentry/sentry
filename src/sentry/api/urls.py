@@ -834,6 +834,8 @@ urlpatterns = [
             ]
         ),
     ),
+    # Organizations - region aware
+    url(r"", include("sentry.api.region_organization_urls")),
     # Organizations
     url(
         r"^organizations/",
