@@ -32,6 +32,7 @@ import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {FlamegraphView} from 'sentry/utils/profiling/flamegraphView';
 import {
   computeConfigViewWithStategy,
+  formatColorForFrame,
   Rect,
   watchForResize,
 } from 'sentry/utils/profiling/gl/utils';
