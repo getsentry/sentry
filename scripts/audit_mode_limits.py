@@ -11,7 +11,7 @@ import django.apps
 import django.urls
 
 
-def auditservermodes(format="json"):
+def audit_mode_limits(format="json"):
     """Lists which classes have had server mode decorators applied."""
 
     from sentry.runner import configure
@@ -188,4 +188,4 @@ class ViewPresentation(ConsolePresentation):
 
 
 if __name__ == "__main__":
-    auditservermodes()
+    audit_mode_limits()

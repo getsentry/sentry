@@ -17,7 +17,7 @@ Instructions for use:
 1. Commit or stash any Git changes in progress.
 2. Scroll down to "Fill these predicates in..." and write what you want to do.
 3. From the Sentry project root, do
-     ./scripts/auditservermodes.py | ./scripts/add_mode_limits.py
+     ./scripts/audit_mode_limits.py | ./scripts/add_mode_limits.py
 4. Do `git status` or `git diff` to observe the results. Commit if you're happy.
 """
 
@@ -52,6 +52,14 @@ def parse_audit(audit) -> Iterable[LimitedClass]:
         yield from parse_group(ClassCategory.MODEL, dec_group)
     for dec_group in audit["views"]["decorators"]:
         yield from parse_group(ClassCategory.VIEW, dec_group)
+
+
+def read_audit():
+    pipe_input = sys.stdin.read()
+    brace_index = pipe_input.index("{")
+    pipe_input = pipe_input[brace_index:]  # strip leading junk
+    server_mode_audit = json.loads(pipe_input)
+    return list(parse_audit(server_mode_audit))
 
 
 def find_source_paths():
@@ -101,11 +109,10 @@ def apply_decorators(
 
 
 def main():
-    pipe_input = sys.stdin.read()
-    brace_index = pipe_input.index("{")
-    pipe_input = pipe_input[brace_index:]  # strip leading junk
-    server_mode_audit = json.loads(pipe_input)
-    classes = list(parse_audit(server_mode_audit))
+    classes = read_audit()
+
+    def filter_classes(category, predicate):
+        return (c for c in classes if c.category == category and predicate(c))
 
     ####################################################################
     # Fill these predicates in with the logic you want to apply
@@ -123,9 +130,6 @@ def main():
         return False
 
     ####################################################################
-
-    def filter_classes(category, predicate):
-        return (c for c in classes if c.category == category and predicate(c))
 
     apply_decorators(
         "control_silo_model",
