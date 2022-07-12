@@ -29,10 +29,10 @@ def is_resolved_issue_within_active_release(issue_id: int) -> bool:
         )
 
         # get the time of the latest deploy
-        if latest_deploy_release:
-            latest_deploy_release_time = latest_deploy_release.date_finished
-        else:
+        if not latest_deploy_release:
             return False
+
+        latest_deploy_release_time = latest_deploy_release.date_finished
 
         now_minus_1_hour = timezone.now() - timedelta(hours=1.0)
 
