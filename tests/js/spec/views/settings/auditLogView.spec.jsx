@@ -8,7 +8,7 @@ describe('OrganizationAuditLog', () => {
   const {routerContext, org} = initializeOrg({
     projects: [],
     router: {
-      location: {query: {}},
+      location: {query: {version: '2'}},
       params: {orgId: 'org-slug'},
     },
   });
@@ -18,14 +18,20 @@ describe('OrganizationAuditLog', () => {
     Client.clearMockResponses();
     Client.addMockResponse({
       url: ENDPOINT,
-      body: TestStubs.AuditLogs(),
+      body: {rows: TestStubs.AuditLogs(), options: TestStubs.AuditLogsApiEventNames()},
     });
   });
 
   it('renders', async () => {
-    render(<OrganizationAuditLog location={{query: ''}} params={{orgId: org.slug}} />, {
-      context: routerContext,
-    });
+    render(
+      <OrganizationAuditLog
+        location={{query: {version: '2'}}}
+        params={{orgId: org.slug}}
+      />,
+      {
+        context: routerContext,
+      }
+    );
 
     expect(await screen.findByRole('heading')).toHaveTextContent('Audit Log');
     expect(screen.getByRole('textbox')).toBeInTheDocument();
@@ -41,22 +47,34 @@ describe('OrganizationAuditLog', () => {
     Client.clearMockResponses();
     Client.addMockResponse({
       url: ENDPOINT,
-      body: [],
+      body: {rows: [], options: TestStubs.AuditLogsApiEventNames()},
     });
 
-    render(<OrganizationAuditLog location={{query: ''}} params={{orgId: org.slug}} />, {
-      context: routerContext,
-    });
+    render(
+      <OrganizationAuditLog
+        location={{query: {version: '2'}}}
+        params={{orgId: org.slug}}
+      />,
+      {
+        context: routerContext,
+      }
+    );
 
     expect(await screen.findByText('No audit entries available')).toBeInTheDocument();
   });
 
   it('displays whether an action was done by a superuser', async () => {
-    render(<OrganizationAuditLog location={{query: ''}} params={{orgId: org.slug}} />, {
-      context: routerContext,
-    });
+    render(
+      <OrganizationAuditLog
+        location={{query: {version: '2'}}}
+        params={{orgId: org.slug}}
+      />,
+      {
+        context: routerContext,
+      }
+    );
 
-    expect(await screen.findByText('Foo Bar (Sentry Staff)')).toBeInTheDocument();
-    expect(screen.getByText('Foo Bar')).toBeInTheDocument();
+    expect(await screen.findByText('Sentry Staff')).toBeInTheDocument();
+    expect(screen.getAllByText('Foo Bar')).toHaveLength(2);
   });
 });

@@ -308,7 +308,24 @@ export class Rect {
   }
 
   containsRect(rect: Rect): boolean {
-    return this.left <= rect.left && rect.right <= this.right;
+    return (
+      // left bound
+      this.left <= rect.left &&
+      // right bound
+      rect.right <= this.right &&
+      // top bound
+      this.top <= rect.top &&
+      // bottom bound
+      rect.bottom <= this.bottom
+    );
+  }
+
+  leftOverlapsWith(rect: Rect): boolean {
+    return rect.left <= this.left && rect.right >= this.left;
+  }
+
+  rightOverlapsWith(rect: Rect): boolean {
+    return this.right >= rect.left && this.right <= rect.right;
   }
 
   overlapsX(other: Rect): boolean {
@@ -623,4 +640,51 @@ export function computeHighlightedBounds(
   }
 
   return null;
+}
+
+export function computeConfigViewWithStategy(
+  strategy: 'min' | 'exact',
+  view: Rect,
+  frame: Rect
+): Rect {
+  if (strategy === 'exact') {
+    return frame.withHeight(view.height);
+  }
+
+  if (strategy === 'min') {
+    if (view.width <= frame.width) {
+      // If view width <= frame width, we need to zoom out, so the behavior is the
+      // same as if we were using 'exact'
+      return frame.withHeight(view.height);
+    }
+
+    if (view.containsRect(frame)) {
+      // If frame is in view, do nothing
+      return view;
+    }
+
+    let offset = view.clone();
+    if (frame.left < view.left) {
+      // If frame is to the left of the view, translate it left
+      // to frame.x so that start of the frame is in the view
+      offset = offset.withX(frame.x);
+    } else if (frame.right > view.right) {
+      // If the right boundary of a frame is outside of the view, translate the view
+      // by the difference between the right edge of the frame and the right edge of the view
+      offset = view.withX(offset.x + frame.right - offset.right);
+    }
+
+    if (frame.bottom < view.top) {
+      // If frame is above the view, translate view to top of frame
+      offset = offset.withY(frame.top);
+    } else if (frame.bottom > view.bottom) {
+      // If frame is below the view, translate view by the difference
+      // of the bottom edge of the frame and the view
+      offset = offset.translateY(offset.y + frame.bottom - offset.bottom);
+    }
+
+    return offset;
+  }
+
+  return frame.withHeight(view.height);
 }
