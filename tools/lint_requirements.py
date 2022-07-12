@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 import packaging.requirements
 
 
@@ -8,7 +7,7 @@ def main() -> None:
     due to security concerns. This check ensures we don't have/add any URL/VCS
     dependencies in the base requirements file.
     """
-    with open("requirements-base.txt") as reqs_file:
+    with open("requirements-frozen.txt") as reqs_file:
         for lineno, line in enumerate(reqs_file, start=1):
             line = line.strip()
             line, _, _ = line.partition("#")

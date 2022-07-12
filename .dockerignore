@@ -4,5 +4,5 @@
 !/docker
 !/package.json
 !/yarn.lock
-!/dist/requirements.txt
+!/dist/requirements-frozen.txt
 !/dist/*.whl
