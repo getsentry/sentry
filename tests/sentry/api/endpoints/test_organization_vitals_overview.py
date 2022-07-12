@@ -189,3 +189,28 @@ class OrganizationVitalsOverviewTest(APITestCase):
                 },
             ],
         }
+
+    @mock.patch("sentry.api.endpoints.organization_vitals_overview.experiments.get", return_value=1)
+    @mock.patch(
+        "sentry.api.endpoints.organization_vitals_overview.discover.query",
+    )
+    def test_max_projects(self, mock_query, mock_experiment_get):
+        user2 = self.create_user()
+        self.create_member(user=user2, organization=self.organization)
+        self.create_team_membership(user=user2, team=self.team)
+        self.login_as(user=user2)
+        with self.settings(ORGANIZATION_VITALS_OVERVIEW_PROJECT_LIMIT=1):
+            response = self.get_response(self.organization.slug)
+        assert response.status_code == 200
+        assert response.data == {
+            "FCP": None,
+            "LCP": None,
+            "appStartWarm": None,
+            "appStartCold": None,
+            "fcpCount": 0,
+            "lcpCount": 0,
+            "appColdStartCount": 0,
+            "appWarmStartCount": 0,
+            "projectData": [],
+        }
+        assert mock_query.call_count == 0

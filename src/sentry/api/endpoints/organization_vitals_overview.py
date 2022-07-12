@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+from django.conf import settings
 from django.http import Http404
 from django.utils import timezone
 from rest_framework.request import Request
@@ -10,8 +11,6 @@ from sentry.api.bases import OrganizationEventsEndpointBase
 from sentry.api.serializers.models.project import get_access_by_project
 from sentry.models import Organization, Project, ProjectStatus
 from sentry.snuba import discover
-
-MAX_PROJECTS = 1000
 
 # Web vitals: p75 for LCP and FCP
 # Mobile vitals: Cold Start and Warm Start
@@ -40,6 +39,19 @@ BASIC_COLUMNS = [
     "count_if(measurements.app_start_warm,greaterOrEquals,0)",
 ]
 
+# if we don't have valid results or we have too many projects we can return this instead
+NO_RESULT_RESPONSE = {
+    "FCP": None,
+    "LCP": None,
+    "appStartWarm": None,
+    "appStartCold": None,
+    "fcpCount": 0,
+    "lcpCount": 0,
+    "appColdStartCount": 0,
+    "appWarmStartCount": 0,
+    "projectData": [],
+}
+
 
 class OrganizationVitalsOverviewEndpoint(OrganizationEventsEndpointBase):
     private = True
@@ -52,8 +64,14 @@ class OrganizationVitalsOverviewEndpoint(OrganizationEventsEndpointBase):
         # TODO: add caching
         # try to get all the projects for the org even though it's possible they don't have access
         projects = Project.objects.filter(organization=organization, status=ProjectStatus.VISIBLE)[
-            0:MAX_PROJECTS
-        ]  # only get 1000 because let's be reasonable
+            0 : settings.ORGANIZATION_VITALS_OVERVIEW_PROJECT_LIMIT
+        ]
+
+        # if we are at the limit, then it's likely we didn't get every project in the org
+        # so the result we are returning for the organization aggregatation would not be accurate
+        # as result, just return the payload for no data so the UI won't display the banner
+        if len(projects) >= settings.ORGANIZATION_VITALS_OVERVIEW_PROJECT_LIMIT:
+            return self.respond(NO_RESULT_RESPONSE)
 
         project_ids = list(map(lambda x: x.id, projects))
 
@@ -61,7 +79,7 @@ class OrganizationVitalsOverviewEndpoint(OrganizationEventsEndpointBase):
             result = discover.query(
                 query="transaction.duration:<15m transaction.op:pageload event.type:transaction",
                 selected_columns=columns,
-                limit=MAX_PROJECTS,
+                limit=settings.ORGANIZATION_VITALS_OVERVIEW_PROJECT_LIMIT,
                 params={
                     "start": timezone.now() - timedelta(days=7),
                     "end": timezone.now(),
@@ -76,19 +94,7 @@ class OrganizationVitalsOverviewEndpoint(OrganizationEventsEndpointBase):
             org_data = get_discover_result(BASIC_COLUMNS, "api.organization-vitals")
             # no data at all for any vital
             if not org_data:
-                return self.respond(
-                    {
-                        "FCP": None,
-                        "LCP": None,
-                        "appStartWarm": None,
-                        "appStartCold": None,
-                        "fcpCount": 0,
-                        "lcpCount": 0,
-                        "appColdStartCount": 0,
-                        "appWarmStartCount": 0,
-                        "projectData": [],
-                    }
-                )
+                return self.respond(NO_RESULT_RESPONSE)
             output = {}
             # only a single result
             for key, val in org_data[0].items():
