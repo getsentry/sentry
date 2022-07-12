@@ -9,7 +9,8 @@ class SentryFunctionManager(BaseManager):
         functions = self.filter(
             organization_id=organization_id,
         )
-        return filter(lambda fn: "alert" in fn.events, list(functions))
+        return filter(lambda fn: "alert" in fn.organization, list(functions))
+        # needs to be changed
 
 
 class SentryFunction(DefaultFieldsModel):

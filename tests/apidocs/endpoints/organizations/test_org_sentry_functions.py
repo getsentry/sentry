@@ -21,6 +21,7 @@ class OrganizationSentryFunctions(APIDocsTestCase):
         data = {"name": "foo", "author": "bar"}
         response = self.client.post(self.url, data)
         request = RequestFactory().post(self.url, data)
+        print(response.data)
         print(response)
         print(request)
 

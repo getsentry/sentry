@@ -3,11 +3,13 @@ from uuid import uuid4
 from django.template.defaultfilters import slugify
 from rest_framework import serializers
 from rest_framework.response import Response
-from yaml import serialize
 
 from sentry.api.bases import OrganizationEndpoint
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
-from sentry.models.sentryfunction import SentryFunction
+
+# from yaml import serialize
+
+# from sentry.models.sentryfunction import SentryFunction
 
 
 class SentryFunctionSerializer(CamelSnakeSerializer):
@@ -30,9 +32,9 @@ class OrganizationSentryFunctionEndpoint(OrganizationEndpoint):
         # In future, may add "global_slug" so users can publish their functions
         data["organization_id"] = organization.id
         data["external_id"] = data["slug"] + "-" + uuid4().hex
-        function = SentryFunction.objects.create(**data)
-        return Response(serialize(function), status=201)
-        # return Response("okay", status=201)
+        # function = SentryFunction.objects.create(**data)
+        # return Response(serialize(function), status=201)
+        return Response("okay", status=201)
 
     # def get(self, request, organization):
     #     functions = SentryFunction.objects.filter(organization=organization)
