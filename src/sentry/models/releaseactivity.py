@@ -23,7 +23,7 @@ class ReleaseActivity(Model):
             (Type.issue, "Issue"),
         ),
     )
-    data = JSONField()
+    data = JSONField(default=dict)
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:

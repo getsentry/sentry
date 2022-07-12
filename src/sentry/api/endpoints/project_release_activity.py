@@ -17,7 +17,7 @@ class ProjectReleaseActivityEndpoint(ProjectEndpoint, ReleaseAnalyticsMixin):
 
         activity = ReleaseActivity.objects.filter(
             release__releaseproject__project_id=project.id, release__version=version
-        )
+        ).order_by("-date_added")
 
         return Response(
             serialize(

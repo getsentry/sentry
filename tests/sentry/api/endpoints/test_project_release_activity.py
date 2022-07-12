@@ -1,25 +1,20 @@
-from django.urls import reverse
+from datetime import timedelta
+
+from django.utils import timezone
 
 from sentry.models import Release, ReleaseActivity
 from sentry.testutils import APITestCase
 
 
 class ReleaseActivityTest(APITestCase):
-    ENDPOINT = "sentry-api-0-project-release-activity"
+    endpoint = "sentry-api-0-project-release-activity"
 
     def test_flag_off_404(self):
-        url = reverse(
-            "sentry-api-0-project-release-activity",
-            kwargs={
-                "organization_slug": self.project.organization.slug,
-                "project_slug": self.project.slug,
-                "version": "doesnt_matter",
-            },
-        )
-
         self.login_as(user=self.user)
 
-        response = self.client.get(url)
+        response = self.get_response(
+            self.project.organization.slug, self.project.slug, "doesnt_matter"
+        )
         not_found = self.client.get("/api/0/bad_endpoint")
         assert response.status_code == not_found.status_code == 404
         assert str(response.content) == str(not_found.content)
@@ -30,17 +25,8 @@ class ReleaseActivityTest(APITestCase):
             release = Release.objects.create(organization_id=project.organization_id, version="1")
             release.add_project(project)
 
-            url = reverse(
-                "sentry-api-0-project-release-activity",
-                kwargs={
-                    "organization_slug": project.organization.slug,
-                    "project_slug": project.slug,
-                    "version": release.version,
-                },
-            )
-
             self.login_as(user=self.user)
-            response = self.client.get(url)
+            response = self.get_response(project.organization.slug, project.slug, release.version)
             assert response.status_code == 200
             assert response.data == []
 
@@ -50,28 +36,32 @@ class ReleaseActivityTest(APITestCase):
             release = Release.objects.create(organization_id=project.organization_id, version="1")
             release.add_project(project)
 
+            now = timezone.now()
+
             ReleaseActivity.objects.create(
-                type=ReleaseActivity.Type.started, data={}, release=release
+                type=ReleaseActivity.Type.started,
+                release=release,
+                date_added=now - timedelta(hours=1, minutes=1),
             )
 
             ReleaseActivity.objects.create(
-                type=ReleaseActivity.Type.issue, data={}, release=release
+                type=ReleaseActivity.Type.issue,
+                data={"issue_id": self.group.id},
+                release=release,
+                date_added=now - timedelta(minutes=33),
             )
 
             ReleaseActivity.objects.create(
-                type=ReleaseActivity.Type.finished, data={}, release=release
-            )
-
-            url = reverse(
-                "sentry-api-0-project-release-activity",
-                kwargs={
-                    "organization_slug": project.organization.slug,
-                    "project_slug": project.slug,
-                    "version": release.version,
-                },
+                type=ReleaseActivity.Type.finished,
+                release=release,
+                date_added=now - timedelta(minutes=1),
             )
 
             self.login_as(user=self.user)
-            response = self.client.get(url)
+            response = self.get_response(project.organization.slug, project.slug, release.version)
             assert response.status_code == 200
             assert len(response.data) == 3
+            assert response.data[0]["type"] == ReleaseActivity.Type.finished
+            assert response.data[1]["type"] == ReleaseActivity.Type.issue
+            assert response.data[1]["data"]["issue_id"] == self.group.id
+            assert response.data[2]["type"] == ReleaseActivity.Type.started
