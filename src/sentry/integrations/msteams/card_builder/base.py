@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 from abc import ABC
 from enum import Enum
-from typing import Any, Optional, Sequence
+from typing import Any, Sequence
 
 from sentry.integrations.msteams.card_builder import (
     Action,
@@ -83,17 +85,26 @@ class MSTeamsMessageBuilder(AbstractMessageBuilder, ABC):  # type: ignore
             "size": ImageSize.MEDIUM,
         }
 
-    @staticmethod
-    def get_column_block(item: ItemBlock, **kwargs: str) -> ColumnBlock:
+    def get_column_block(self, item: str | ItemBlock, **kwargs: str) -> ColumnBlock:
         kwargs["width"] = kwargs.get("width", ColumnWidth.AUTO)
+
+        if isinstance(item, str):
+            item = self.get_text_block(item)
 
         return {"type": "Column", "items": [item], **kwargs}
 
     @staticmethod
-    def get_column_set_block(*columns: ColumnBlock) -> ColumnSetBlock:
+    def is_column(item):
+        return isinstance(item, dict) and "Column" == item.get("type", "")
+
+    def get_column_set_block(self, *columns: str | ItemBlock | ColumnBlock) -> ColumnSetBlock:
+        columns = [
+            column if self.is_column(column) else self.get_column_block(column)
+            for column in columns
+        ]
         return {
             "type": "ColumnSet",
-            "columns": list(columns),
+            "columns": columns,
         }
 
     @staticmethod
@@ -104,10 +115,11 @@ class MSTeamsMessageBuilder(AbstractMessageBuilder, ABC):  # type: ignore
 
     def _build(
         self,
-        text: Optional[Any] = None,
-        title: Optional[Any] = None,
-        footer: Optional[Any] = None,
-        actions: Optional[Sequence[Any]] = None,
+        text: str | ItemBlock = None,
+        title: str | ItemBlock = None,
+        fields: Sequence[str | ItemBlock] = None,
+        footer: str | ItemBlock = None,
+        actions: Sequence[Action] = None,
         **kwargs: Any,
     ) -> AdaptiveCard:
         """
@@ -118,15 +130,17 @@ class MSTeamsMessageBuilder(AbstractMessageBuilder, ABC):  # type: ignore
         :param kwargs: Everything else.
         """
         body = []
-        if title:
-            body.append(title)
-        if text:
-            body.append(text)
 
-        body.extend(kwargs.get("fields", []))
+        fields = fields or []
 
-        if footer:
-            body.append(footer)
+        items = [title, text, *fields, footer]
+
+        for item in items:
+            if item:
+                if isinstance(item, str):
+                    item = self.get_text_block(item)
+
+                body.append(item)
 
         return {
             "body": body,

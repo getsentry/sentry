@@ -25,21 +25,19 @@ IDENTITY_UNLINKED = "Your Microsoft Teams identity has been unlinked to your Sen
 
 class MSTeamsUnlinkedMessageBuilder(MSTeamsMessageBuilder):
     def build(self) -> Any:
-        return self._build(text=self.get_text_block(IDENTITY_UNLINKED))
+        return self._build(text=IDENTITY_UNLINKED)
 
 
 class MSTeamsLinkedMessageBuilder(MSTeamsMessageBuilder):
     def build(self) -> Any:
         return self._build(
             text=self.get_column_set_block(
-                self.get_column_block(self.get_logo_block()),
-                self.get_column_block(
-                    self.get_text_block(
-                        IDENTITY_LINKED,
-                        size=TextSize.LARGE,
-                    )
+                self.get_logo_block(),
+                self.get_text_block(
+                    IDENTITY_LINKED,
+                    size=TextSize.LARGE,
                 ),
-            )
+            ),
         )
 
 
@@ -62,7 +60,7 @@ class MSTeamsUnlinkIdentityMessageBuilder(MSTeamsMessageBuilder):
 
     def build(self) -> Any:
         return self._build(
-            text=self.get_text_block(UNLINK_IDENTITY),
+            text=UNLINK_IDENTITY,
             actions=[
                 self.get_action_block(
                     ActionType.OPEN_URL, title=UNLINK_IDENTITY_BUTTON, url=self.url
@@ -74,10 +72,10 @@ class MSTeamsUnlinkIdentityMessageBuilder(MSTeamsMessageBuilder):
 class MSTeamsLinkCommandMessageBuilder(MSTeamsMessageBuilder):
     def build(self) -> Any:
         return self._build(
-            text=self.get_text_block(LINK_COMMAND_MESSAGE),
+            text=LINK_COMMAND_MESSAGE,
         )
 
 
 class MSTeamsAlreadyLinkedMessageBuilder(MSTeamsMessageBuilder):
     def build(self) -> Any:
-        return self._build(text=self.get_text_block(ALREADY_LINKED))
+        return self._build(text=ALREADY_LINKED)
