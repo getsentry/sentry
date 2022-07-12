@@ -92,7 +92,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
     await waitFor(() =>
       expect(children).toHaveBeenLastCalledWith(
         expect.objectContaining({
-          tableResults: [],
+          tableResults: undefined,
           timeseriesResults: [
             {
               data: expect.arrayContaining([
@@ -150,7 +150,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
       '/organizations/org-slug/releases/',
       expect.objectContaining({
         data: {
-          environments: ['prod'],
+          environment: ['prod'],
           per_page: 50,
           project: [1],
           sort: 'date',
@@ -515,7 +515,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
               title: 'sessions',
             },
           ],
-          timeseriesResults: [],
+          timeseriesResults: undefined,
         })
       )
     );

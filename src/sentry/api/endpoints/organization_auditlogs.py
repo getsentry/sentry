@@ -46,10 +46,14 @@ class OrganizationAuditLogsEndpoint(OrganizationEndpoint):
             else:
                 queryset = queryset.filter(event=query["event"])
 
-        return self.paginate(
+        response = self.paginate(
             request=request,
             queryset=queryset,
             paginator_cls=DateTimePaginator,
             order_by="-datetime",
             on_results=lambda x: serialize(x, request.user),
         )
+        # TODO: Cleanup after frontend is fully moved to version 2
+        if "version" in request.GET and request.GET.get("version") == "2":
+            response.data = {"rows": response.data, "options": audit_log.get_api_names()}
+        return response

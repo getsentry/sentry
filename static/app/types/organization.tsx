@@ -15,6 +15,7 @@ export type OrganizationSummary = {
   id: string;
   isEarlyAdopter: boolean;
   name: string;
+  organizationUrl: string;
   require2FA: boolean;
   slug: string;
   status: {

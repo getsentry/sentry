@@ -5,7 +5,7 @@ import type {SDKUpdatesSuggestion} from './event';
 import type {Plugin} from './integrations';
 import type {Organization, Team} from './organization';
 import type {Deploy, Release} from './release';
-import type {SamplingRules} from './sampling';
+import type {SamplingRule} from './sampling';
 
 // Minimal project representation for use with avatars.
 export type AvatarProject = {
@@ -21,7 +21,7 @@ export type Project = {
   // XXX: These are part of the DetailedProject serializer
   dynamicSampling: {
     next_id: number;
-    rules: SamplingRules;
+    rules: SamplingRule[];
   } | null;
   environments: string[];
   eventProcessing: {

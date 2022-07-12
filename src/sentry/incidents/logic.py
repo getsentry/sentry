@@ -416,6 +416,16 @@ DEFAULT_ALERT_RULE_RESOLUTION = 1
 DEFAULT_CMP_ALERT_RULE_RESOLUTION = 2
 
 
+# Temporary mapping of `QueryDatasets` to `AlertRule.Type`. In the future, `Performance` will be
+# able to be run on `METRICS` as well.
+query_datasets_to_type = {
+    QueryDatasets.EVENTS: AlertRule.Type.ERROR,
+    QueryDatasets.TRANSACTIONS: AlertRule.Type.PERFORMANCE,
+    QueryDatasets.SESSIONS: AlertRule.Type.CRASH_RATE,
+    QueryDatasets.METRICS: AlertRule.Type.CRASH_RATE,
+}
+
+
 def create_alert_rule(
     organization,
     projects,
@@ -491,6 +501,7 @@ def create_alert_rule(
         alert_rule = AlertRule.objects.create(
             organization=organization,
             snuba_query=snuba_query,
+            type=query_datasets_to_type[dataset].value,
             name=name,
             threshold_type=threshold_type.value,
             resolve_threshold=resolve_threshold,
@@ -641,6 +652,7 @@ def update_alert_rule(
 
         if dataset.value != alert_rule.snuba_query.dataset:
             updated_query_fields["dataset"] = dataset
+            updated_fields["type"] = query_datasets_to_type[dataset].value
     if event_types is not None:
         updated_query_fields["event_types"] = event_types
     if owner is not NOT_SET:

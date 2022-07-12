@@ -25,7 +25,7 @@ import IndicatorStore from 'sentry/stores/indicatorStore';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import {metric} from 'sentry/utils/analytics';
+import {logExperiment, metric} from 'sentry/utils/analytics';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import withProjects from 'sentry/utils/withProjects';
@@ -825,6 +825,20 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       />
     );
 
+    let showPresetSidebar: boolean =
+      dataset === Dataset.TRANSACTIONS &&
+      project.firstTransactionEvent &&
+      !this.props.ruleId;
+    if (showPresetSidebar) {
+      logExperiment({
+        key: 'MetricAlertPresetExperiment',
+        organization,
+      });
+    }
+
+    showPresetSidebar =
+      showPresetSidebar && !!organization.experiments.MetricAlertPresetExperiment;
+
     return (
       <Access access={['alerts:write']}>
         {({hasAccess}) => {
@@ -832,22 +846,19 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
 
           return (
             <Fragment>
-              {organization.experiments.MetricAlertPresetExperiment &&
-                dataset === Dataset.TRANSACTIONS &&
-                project.firstTransactionEvent &&
-                !this.props.ruleId && (
-                  <Side>
-                    <PresetSidebar
-                      organization={organization}
-                      project={project}
-                      onSelect={(preset, context) => {
-                        this.setPreset(preset, context);
-                      }}
-                      selectedPresetId={selectedPresetId}
-                    />
-                  </Side>
-                )}
-              <Main>
+              {showPresetSidebar && (
+                <Side>
+                  <PresetSidebar
+                    organization={organization}
+                    project={project}
+                    onSelect={(preset, context) => {
+                      this.setPreset(preset, context);
+                    }}
+                    selectedPresetId={selectedPresetId}
+                  />
+                </Side>
+              )}
+              <Main fullWidth={!showPresetSidebar}>
                 <Form
                   model={this.form}
                   apiMethod={ruleId ? 'PUT' : 'POST'}
@@ -951,8 +962,8 @@ const Side = styled(Layout.Side)`
 
   @media (min-width: ${p => p.theme.breakpoints.large}) {
     border-left: 1px solid ${p => p.theme.gray200};
+    max-width: 400px;
   }
-  max-width: 400px;
 `;
 
 const StyledListItem = styled(ListItem)`

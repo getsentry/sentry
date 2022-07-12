@@ -550,10 +550,11 @@ class MetricsDatasetConfig(DatasetConfig):
         _: Mapping[str, Union[str, Column, SelectType, int, float]],
         alias: Optional[str] = None,
     ) -> SelectType:
-        metric_true = self.resolve_value(constants.METRIC_TRUE_TAG_VALUE)
+        metric_satisfied = self.resolve_value(constants.METRIC_SATISFIED_TAG_VALUE)
+        metric_tolerated = self.resolve_value(constants.METRIC_TOLERATED_TAG_VALUE)
 
         # Nothing is satisfied or tolerated, the score must be 0
-        if metric_true is None:
+        if metric_satisfied is None and metric_tolerated is None:
             return Function(
                 "toUInt64",
                 [0],
@@ -561,10 +562,10 @@ class MetricsDatasetConfig(DatasetConfig):
             )
 
         satisfied = Function(
-            "equals", [self.builder.column(constants.METRIC_SATISFIED_TAG_KEY), metric_true]
+            "equals", [self.builder.column(constants.METRIC_SATISFACTION_TAG_KEY), metric_satisfied]
         )
         tolerable = Function(
-            "equals", [self.builder.column(constants.METRIC_TOLERATED_TAG_KEY), metric_true]
+            "equals", [self.builder.column(constants.METRIC_SATISFACTION_TAG_KEY), metric_tolerated]
         )
         metric_condition = Function(
             "equals", [Column("metric_id"), self.resolve_metric("transaction.duration")]
@@ -583,7 +584,7 @@ class MetricsDatasetConfig(DatasetConfig):
                         ),
                     ],
                 ),
-                Function("countIf", [metric_condition]),
+                Function("countIf", [Column("value"), metric_condition]),
             ],
             alias,
         )
@@ -615,10 +616,10 @@ class MetricsDatasetConfig(DatasetConfig):
         args: Mapping[str, Union[str, Column, SelectType, int, float]],
         alias: Optional[str] = None,
     ) -> SelectType:
-        metric_true = self.resolve_value(constants.METRIC_TRUE_TAG_VALUE)
+        metric_frustrated = self.resolve_value(constants.METRIC_FRUSTRATED_TAG_VALUE)
 
         # Nobody is miserable, we can return 0
-        if metric_true is None:
+        if metric_frustrated is None:
             return Function(
                 "toUInt64",
                 [0],
@@ -641,7 +642,10 @@ class MetricsDatasetConfig(DatasetConfig):
                         ),
                         Function(
                             "equals",
-                            [self.builder.column(constants.METRIC_MISERABLE_TAG_KEY), metric_true],
+                            [
+                                self.builder.column(constants.METRIC_SATISFACTION_TAG_KEY),
+                                metric_frustrated,
+                            ],
                         ),
                     ],
                 ),

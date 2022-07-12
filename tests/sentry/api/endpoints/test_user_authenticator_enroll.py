@@ -9,6 +9,7 @@ from django.urls import reverse
 from sentry import audit_log
 from sentry.models import AuditLogEntry, Authenticator, Organization, OrganizationMember, UserEmail
 from sentry.testutils import APITestCase
+from sentry.testutils.helpers import override_options
 from tests.sentry.api.endpoints.test_user_authenticator_details import assert_security_email_sent
 
 
@@ -68,6 +69,15 @@ class UserAuthenticatorEnrollTest(APITestCase):
         assert interface.secret == "secret56"
         assert interface.config == {"secret": "secret56"}
 
+    @override_options({"totp.disallow-new-enrollment": True})
+    def test_totp_disallow_new_enrollment(self):
+        self.get_error_response(
+            "me",
+            "totp",
+            method="post",
+            **{"secret": "secret12", "otp": "1234"},
+        )
+
     @mock.patch("sentry.auth.authenticators.TotpInterface.validate_otp", return_value=False)
     def test_invalid_otp(self, validate_otp):
         # XXX: Pretend an unbound function exists.
@@ -122,6 +132,13 @@ class UserAuthenticatorEnrollTest(APITestCase):
             assert interface.phone_number == "1231234"
 
             assert_security_email_sent("mfa-added")
+
+    @override_options(
+        {"sms.twilio-account": "test-twilio-account", "sms.disallow-new-enrollment": True}
+    )
+    def test_sms_disallow_new_enrollment(self):
+        form_data = {"phone": "+12345678901"}
+        self.get_error_response("me", "sms", method="post", status_code=403, **form_data)
 
     def test_sms_invalid_otp(self):
         new_options = settings.SENTRY_OPTIONS.copy()
@@ -227,6 +244,19 @@ class UserAuthenticatorEnrollTest(APITestCase):
             )
 
             assert_security_email_sent("mfa-added")
+
+    @override_options({"u2f.disallow-new-enrollment": True})
+    def test_u2f_disallow_new_enrollment(self):
+        self.get_error_response(
+            "me",
+            "u2f",
+            method="post",
+            **{
+                "deviceName": "device name",
+                "challenge": "challenge",
+                "response": "response",
+            },
+        )
 
 
 class AcceptOrganizationInviteTest(APITestCase):

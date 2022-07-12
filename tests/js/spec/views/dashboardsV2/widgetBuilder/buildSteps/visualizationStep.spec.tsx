@@ -36,6 +36,12 @@ function mockRequests(orgSlug: Organization['slug']) {
     body: [],
   });
 
+  MockApiClient.addMockResponse({
+    url: '/organizations/org-slug/measurements-meta/',
+    method: 'GET',
+    body: {'measurements.custom.measurement': {functions: ['p99']}},
+  });
+
   return {eventsv2Mock};
 }
 
@@ -91,6 +97,8 @@ describe('VisualizationStep', function () {
     );
 
     await screen.findByText('Table');
+
+    await waitFor(() => expect(eventsv2Mock).toHaveBeenCalledTimes(1));
 
     userEvent.type(screen.getByPlaceholderText('Alias'), 'First Alias{enter}');
     act(() => {

@@ -1,4 +1,4 @@
-import {Component} from 'react';
+import React, {Component} from 'react';
 import LazyLoad from 'react-lazyload';
 import {withRouter, WithRouterProps} from 'react-router';
 import {useSortable} from '@dnd-kit/sortable';
@@ -29,6 +29,7 @@ import withPageFilters from 'sentry/utils/withPageFilters';
 
 import {DRAG_HANDLE_CLASS} from '../dashboard';
 import {DisplayType, Widget, WidgetType} from '../types';
+import {isCustomMeasurementWidget} from '../utils';
 import {DEFAULT_RESULTS_LIMIT} from '../widgetBuilder/utils';
 
 import {DashboardsMEPConsumer, DashboardsMEPProvider} from './dashboardsMEPContext';
@@ -52,6 +53,7 @@ type Props = WithRouterProps & {
   index?: string;
   isMobile?: boolean;
   isPreview?: boolean;
+  noDashboardsMEPProvider?: boolean;
   noLazyLoad?: boolean;
   onDelete?: () => void;
   onDuplicate?: () => void;
@@ -95,7 +97,7 @@ class WidgetCard extends Component<Props, State> {
         <IconContainer style={{visibility: hideToolbar ? 'hidden' : 'visible'}}>
           {!isMobile && (
             <GrabbableButton
-              size="xsmall"
+              size="xs"
               aria-label={t('Drag Widget')}
               icon={<IconGrabbable />}
               borderless
@@ -107,14 +109,14 @@ class WidgetCard extends Component<Props, State> {
           <Button
             data-test-id="widget-edit"
             aria-label={t('Edit Widget')}
-            size="xsmall"
+            size="xs"
             borderless
             onClick={onEdit}
             icon={<IconEdit />}
           />
           <Button
             aria-label={t('Duplicate Widget')}
-            size="xsmall"
+            size="xs"
             borderless
             onClick={onDuplicate}
             icon={<IconCopy />}
@@ -123,7 +125,7 @@ class WidgetCard extends Component<Props, State> {
             data-test-id="widget-delete"
             aria-label={t('Delete Widget')}
             borderless
-            size="xsmall"
+            size="xs"
             onClick={onDelete}
             icon={<IconDelete />}
           />
@@ -210,6 +212,7 @@ class WidgetCard extends Component<Props, State> {
       windowWidth,
       noLazyLoad,
       showStoredAlert,
+      noDashboardsMEPProvider,
     } = this.props;
 
     const {start, period} = selection.datetime;
@@ -241,36 +244,31 @@ class WidgetCard extends Component<Props, State> {
       widget.queries = queries;
       widget.limit = DEFAULT_RESULTS_LIMIT;
     }
+
+    function conditionalWrapWithDashboardsMEPProvider(component: React.ReactNode) {
+      if (noDashboardsMEPProvider) {
+        return component;
+      }
+      return <DashboardsMEPProvider>{component}</DashboardsMEPProvider>;
+    }
     return (
       <ErrorBoundary
         customComponent={<ErrorCard>{t('Error loading widget data')}</ErrorCard>}
       >
-        <DashboardsMEPProvider>
-          <WidgetCardPanel isDragging={false}>
-            <WidgetHeader>
-              <Tooltip
-                title={widget.title}
-                containerDisplayMode="grid"
-                showOnlyOnOverflow
-              >
-                <WidgetTitle>{widget.title}</WidgetTitle>
-              </Tooltip>
-              {this.renderContextMenu()}
-            </WidgetHeader>
-            {noLazyLoad ? (
-              <WidgetCardChartContainer
-                api={api}
-                organization={organization}
-                selection={selection}
-                widget={widget}
-                isMobile={isMobile}
-                renderErrorMessage={renderErrorMessage}
-                tableItemLimit={tableItemLimit}
-                windowWidth={windowWidth}
-                onDataFetched={this.setData}
-              />
-            ) : (
-              <LazyLoad once resize height={200}>
+        {conditionalWrapWithDashboardsMEPProvider(
+          <React.Fragment>
+            <WidgetCardPanel isDragging={false}>
+              <WidgetHeader>
+                <Tooltip
+                  title={widget.title}
+                  containerDisplayMode="grid"
+                  showOnlyOnOverflow
+                >
+                  <WidgetTitle>{widget.title}</WidgetTitle>
+                </Tooltip>
+                {this.renderContextMenu()}
+              </WidgetHeader>
+              {noLazyLoad ? (
                 <WidgetCardChartContainer
                   api={api}
                   organization={organization}
@@ -282,41 +280,77 @@ class WidgetCard extends Component<Props, State> {
                   windowWidth={windowWidth}
                   onDataFetched={this.setData}
                 />
-              </LazyLoad>
-            )}
-            {this.renderToolbar()}
-          </WidgetCardPanel>
-          <Feature organization={organization} features={['dashboards-mep']}>
-            <DashboardsMEPConsumer>
-              {({isMetricsData}) =>
-                showStoredAlert &&
-                widget.widgetType === WidgetType.DISCOVER &&
-                isMetricsData === false && (
-                  <StoredDataAlert showIcon>
-                    {tct(
-                      "Your selection is only applicable to [storedData: stored event data]. We've automatically adjusted your results.",
-                      {
-                        storedData: <ExternalLink href="https://docs.sentry.io/" />, // TODO(dashboards): Update the docs URL
-                      }
-                    )}
-                  </StoredDataAlert>
-                )
-              }
-            </DashboardsMEPConsumer>
-          </Feature>
-          <Feature organization={organization} features={['dashboards-releases']}>
-            {showIncompleteDataAlert && (
-              <StoredDataAlert showIcon>
-                {tct(
-                  'Releases data is only available from [date]. Data may be incomplete as a result.',
-                  {
-                    date: <DateTime date={METRICS_BACKED_SESSIONS_START_DATE} dateOnly />,
+              ) : (
+                <LazyLoad once resize height={200}>
+                  <WidgetCardChartContainer
+                    api={api}
+                    organization={organization}
+                    selection={selection}
+                    widget={widget}
+                    isMobile={isMobile}
+                    renderErrorMessage={renderErrorMessage}
+                    tableItemLimit={tableItemLimit}
+                    windowWidth={windowWidth}
+                    onDataFetched={this.setData}
+                  />
+                </LazyLoad>
+              )}
+              {this.renderToolbar()}
+            </WidgetCardPanel>
+            <Feature organization={organization} features={['dashboards-mep']}>
+              <DashboardsMEPConsumer>
+                {({isMetricsData}) => {
+                  if (
+                    showStoredAlert &&
+                    isMetricsData === false &&
+                    widget.widgetType === WidgetType.DISCOVER
+                  ) {
+                    if (isCustomMeasurementWidget(widget)) {
+                      return (
+                        <StoredDataAlert showIcon type="error">
+                          {tct(
+                            'You have inputs that are incompatible with [customPerformanceMetrics: custom performance metrics]. See all compatible fields and functions [here: here]. Update your inputs or remove any custom performance metrics.',
+                            {
+                              customPerformanceMetrics: (
+                                <ExternalLink href="https://docs.sentry.io/" />
+                              ), // TODO(dashboards): Update the docs URL
+                              here: <ExternalLink href="https://docs.sentry.io/" />, // TODO(dashboards): Update the docs URL
+                            }
+                          )}
+                        </StoredDataAlert>
+                      );
+                    }
+                    return (
+                      <StoredDataAlert showIcon>
+                        {tct(
+                          "Your selection is only applicable to [storedData: stored event data]. We've automatically adjusted your results.",
+                          {
+                            storedData: <ExternalLink href="https://docs.sentry.io/" />, // TODO(dashboards): Update the docs URL
+                          }
+                        )}
+                      </StoredDataAlert>
+                    );
                   }
-                )}
-              </StoredDataAlert>
-            )}
-          </Feature>
-        </DashboardsMEPProvider>
+                  return null;
+                }}
+              </DashboardsMEPConsumer>
+            </Feature>
+            <Feature organization={organization} features={['dashboards-releases']}>
+              {showIncompleteDataAlert && (
+                <StoredDataAlert showIcon>
+                  {tct(
+                    'Releases data is only available from [date]. Data may be incomplete as a result.',
+                    {
+                      date: (
+                        <DateTime date={METRICS_BACKED_SESSIONS_START_DATE} dateOnly />
+                      ),
+                    }
+                  )}
+                </StoredDataAlert>
+              )}
+            </Feature>
+          </React.Fragment>
+        )}
       </ErrorBoundary>
     );
   }

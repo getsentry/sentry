@@ -3,12 +3,19 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  addSuccessMessage,
+} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
-import Alert from 'sentry/components/alert';
+import {
+  fetchSamplingDistribution,
+  fetchSamplingSdkVersions,
+} from 'sentry/actionCreators/serverSideSampling';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {Panel, PanelFooter, PanelHeader} from 'sentry/components/panels';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconAdd} from 'sentry/icons';
@@ -16,27 +23,26 @@ import {t} from 'sentry/locale';
 import ProjectStore from 'sentry/stores/projectsStore';
 import space from 'sentry/styles/space';
 import {Project} from 'sentry/types';
-import {SamplingRule, SamplingRuleOperator, SamplingRules} from 'sentry/types/sampling';
-import {defined} from 'sentry/utils';
+import {
+  SamplingConditionOperator,
+  SamplingRule,
+  SamplingRuleOperator,
+  SamplingRuleType,
+} from 'sentry/types/sampling';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
-import useProjects from 'sentry/utils/useProjects';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import PermissionAlert from 'sentry/views/settings/organization/permissionAlert';
 
-import {DraggableList, UpdateItemsProps} from '../sampling/rules/draggableList';
-
-import {ActivateModal} from './modals/activateModal';
-import {RecommendedStepsModal} from './modals/recommendedStepsModal';
 import {SpecificConditionsModal} from './modals/specificConditionsModal';
 import {responsiveModal} from './modals/styles';
 import {UniformRateModal} from './modals/uniformRateModal';
 import useProjectStats from './utils/useProjectStats';
-import useSamplingDistribution from './utils/useSamplingDistribution';
-import useSdkVersions from './utils/useSdkVersions';
+import {useRecommendedSdkUpgrades} from './utils/useRecommendedSdkUpgrades';
+import {DraggableRuleList, DraggableRuleListUpdateItemsProps} from './draggableRuleList';
 import {Promo} from './promo';
 import {
   ActiveColumn,
@@ -47,7 +53,8 @@ import {
   RateColumn,
   Rule,
 } from './rule';
-import {SERVER_SIDE_SAMPLING_DOC_LINK} from './utils';
+import {SamplingSDKAlert} from './samplingSDKAlert';
+import {isUniformRule, SERVER_SIDE_SAMPLING_DOC_LINK} from './utils';
 
 type Props = {
   project: Project;
@@ -58,11 +65,37 @@ export function ServerSideSampling({project}: Props) {
   const api = useApi();
 
   const hasAccess = organization.access.includes('project:write');
-
   const currentRules = project.dynamicSampling?.rules;
   const previousRules = usePrevious(currentRules);
 
-  const [rules, setRules] = useState<SamplingRules>(currentRules ?? []);
+  const [rules, setRules] = useState<SamplingRule[]>(currentRules ?? []);
+
+  useEffect(() => {
+    if (!isEqual(previousRules, currentRules)) {
+      setRules(currentRules ?? []);
+    }
+  }, [currentRules, previousRules]);
+
+  useEffect(() => {
+    if (!hasAccess) {
+      return;
+    }
+
+    async function fetchRecommendedSdkUpgrades() {
+      await fetchSamplingDistribution({
+        orgSlug: organization.slug,
+        projSlug: project.slug,
+        api,
+      });
+
+      await fetchSamplingSdkVersions({
+        orgSlug: organization.slug,
+        api,
+      });
+    }
+
+    fetchRecommendedSdkUpgrades();
+  }, [api, organization.slug, project.slug, hasAccess]);
 
   const {projectStats} = useProjectStats({
     orgSlug: organization.slug,
@@ -71,72 +104,38 @@ export function ServerSideSampling({project}: Props) {
     statsPeriod: '48h',
   });
 
-  const {samplingDistribution} = useSamplingDistribution({
+  const {recommendedSdkUpgrades} = useRecommendedSdkUpgrades({
     orgSlug: organization.slug,
-    projSlug: project.slug,
   });
 
-  const {samplingSdkVersions} = useSdkVersions({
-    orgSlug: organization.slug,
-    projSlug: project.slug,
-    projectIds: samplingDistribution?.project_breakdown?.map(
-      projectBreakdown => projectBreakdown.project_id
-    ),
-  });
-
-  const notSendingSampleRateSdkUpgrades =
-    samplingSdkVersions?.filter(
-      samplingSdkVersion => !samplingSdkVersion.isSendingSampleRate
-    ) ?? [];
-
-  const {projects} = useProjects({
-    slugs: notSendingSampleRateSdkUpgrades.map(sdkUpgrade => sdkUpgrade.project),
-    orgId: organization.slug,
-  });
-
-  // Rules without a condition (Else case) always have to be 'pinned' to the bottom of the list
-  // and cannot be sorted
-  const items = rules.map(rule => ({
-    ...rule,
-    id: String(rule.id),
-    bottomPinned: !rule.condition.inner.length,
-  }));
-
-  const recommendedSdkUpgrades = projects
-    .map(upgradeSDKfromProject => {
-      const sdkInfo = notSendingSampleRateSdkUpgrades.find(
-        notSendingSampleRateSdkUpgrade =>
-          notSendingSampleRateSdkUpgrade.project === upgradeSDKfromProject.slug
-      );
-
-      if (!sdkInfo) {
-        return undefined;
+  async function handleActivateToggle(ruleId: SamplingRule['id']) {
+    const newRules = rules.map(rule => {
+      if (rule.id === ruleId) {
+        return {
+          ...rule,
+          id: 0,
+          active: !rule.active,
+        };
       }
+      return rule;
+    });
 
-      return {
-        project: upgradeSDKfromProject,
-        latestSDKName: sdkInfo.latestSDKName,
-        latestSDKVersion: sdkInfo.latestSDKVersion,
-      };
-    })
-    .filter(defined);
-
-  useEffect(() => {
-    if (!isEqual(previousRules, currentRules)) {
-      setRules(currentRules ?? []);
+    addLoadingMessage();
+    try {
+      const result = await api.requestPromise(
+        `/projects/${organization.slug}/${project.slug}/`,
+        {
+          method: 'PUT',
+          data: {dynamicSampling: {rules: newRules}},
+        }
+      );
+      ProjectStore.onUpdateSuccess(result);
+      addSuccessMessage(t('Successfully updated the sampling rule'));
+    } catch (error) {
+      const message = t('Unable to update the sampling rule');
+      handleXhrErrorResponse(message)(error);
+      addErrorMessage(message);
     }
-  }, [currentRules, previousRules]);
-
-  function handleActivateToggle(ruleId: SamplingRule['id']) {
-    openModal(modalProps => (
-      <ActivateModal
-        {...modalProps}
-        ruleId={ruleId}
-        rules={rules}
-        orgSlug={organization.slug}
-        projSlug={project.slug}
-      />
-    ));
   }
 
   function handleGetStarted() {
@@ -148,7 +147,7 @@ export function ServerSideSampling({project}: Props) {
           project={project}
           projectStats={projectStats}
           rules={rules}
-          recommendedSdkUpgrades={recommendedSdkUpgrades}
+          onSubmit={saveUniformRule}
         />
       ),
       {
@@ -157,26 +156,12 @@ export function ServerSideSampling({project}: Props) {
     );
   }
 
-  function handleOpenRecommendedSteps() {
-    if (!recommendedSdkUpgrades.length) {
-      return;
-    }
-
-    openModal(modalProps => (
-      <RecommendedStepsModal
-        {...modalProps}
-        organization={organization}
-        project={project}
-        recommendedSdkUpgrades={recommendedSdkUpgrades}
-      />
-    ));
-  }
-
-  async function handleSortRules({overIndex, reorderedItems: ruleIds}: UpdateItemsProps) {
+  async function handleSortRules({
+    overIndex,
+    reorderedItems: ruleIds,
+  }: DraggableRuleListUpdateItemsProps) {
     if (!rules[overIndex].condition.inner.length) {
-      addErrorMessage(
-        t('Rules with conditions cannot be below rules without conditions')
-      );
+      addErrorMessage(t('Specific rules cannot be below uniform rules'));
       return;
     }
 
@@ -187,14 +172,14 @@ export function ServerSideSampling({project}: Props) {
     setRules(sortedRules);
 
     try {
-      const newProjectDetails = await api.requestPromise(
+      const result = await api.requestPromise(
         `/projects/${organization.slug}/${project.slug}/`,
         {
           method: 'PUT',
           data: {dynamicSampling: {rules: sortedRules}},
         }
       );
-      ProjectStore.onUpdateSuccess(newProjectDetails);
+      ProjectStore.onUpdateSuccess(result);
       addSuccessMessage(t('Successfully sorted sampling rules'));
     } catch (error) {
       setRules(previousRules ?? []);
@@ -216,6 +201,26 @@ export function ServerSideSampling({project}: Props) {
   }
 
   function handleEditRule(rule: SamplingRule) {
+    if (isUniformRule(rule)) {
+      openModal(
+        modalProps => (
+          <UniformRateModal
+            {...modalProps}
+            organization={organization}
+            project={project}
+            projectStats={projectStats}
+            uniformRule={rule}
+            rules={rules}
+            onSubmit={saveUniformRule}
+          />
+        ),
+        {
+          modalCss: responsiveModal,
+        }
+      );
+      return;
+    }
+
     openModal(modalProps => (
       <SpecificConditionsModal
         {...modalProps}
@@ -229,14 +234,14 @@ export function ServerSideSampling({project}: Props) {
 
   async function handleDeleteRule(rule: SamplingRule) {
     try {
-      const newProjectDetails = await api.requestPromise(
+      const result = await api.requestPromise(
         `/projects/${organization.slug}/${project.slug}/`,
         {
           method: 'PUT',
           data: {dynamicSampling: {rules: rules.filter(({id}) => id !== rule.id)}},
         }
       );
-      ProjectStore.onUpdateSuccess(newProjectDetails);
+      ProjectStore.onUpdateSuccess(result);
       addSuccessMessage(t('Successfully deleted sampling rule'));
     } catch (error) {
       const message = t('Unable to delete sampling rule');
@@ -244,6 +249,59 @@ export function ServerSideSampling({project}: Props) {
       addErrorMessage(message);
     }
   }
+
+  async function saveUniformRule(
+    sampleRate: number,
+    rule?: SamplingRule,
+    onSuccess?: () => void,
+    onError?: () => void
+  ) {
+    const newRule: SamplingRule = {
+      // All new/updated rules must have id equal to 0
+      id: 0,
+      active: rule ? rule.active : false,
+      type: SamplingRuleType.TRACE,
+      condition: {
+        op: SamplingConditionOperator.AND,
+        inner: [],
+      },
+      sampleRate: sampleRate / 100,
+    };
+
+    const newRules = rule
+      ? rules.map(existingRule => (existingRule.id === rule.id ? newRule : existingRule))
+      : [...rules, newRule];
+
+    try {
+      const response = await api.requestPromise(
+        `/projects/${organization.slug}/${project.slug}/`,
+        {method: 'PUT', data: {dynamicSampling: {rules: newRules}}}
+      );
+      ProjectStore.onUpdateSuccess(response);
+      addSuccessMessage(
+        rule
+          ? t('Successfully edited sampling rule')
+          : t('Successfully added sampling rule')
+      );
+      onSuccess?.();
+    } catch (error) {
+      addErrorMessage(
+        typeof error === 'string'
+          ? error
+          : error.message || t('Failed to save sampling rule')
+      );
+      onError?.();
+    }
+  }
+
+  // Rules without a condition (Else case) always have to be 'pinned' to the bottom of the list
+  // and cannot be sorted
+  const items = rules.map(rule => ({
+    ...rule,
+    id: String(rule.id),
+  }));
+
+  const uniformRule = rules.find(isUniformRule);
 
   return (
     <SentryDocumentTitle title={t('Server-side Sampling')}>
@@ -260,30 +318,13 @@ export function ServerSideSampling({project}: Props) {
             'These settings can only be edited by users with the organization owner, manager, or admin role.'
           )}
         />
-        {!!recommendedSdkUpgrades.length && !!rules.length && (
-          <Alert
-            data-test-id="recommended-sdk-upgrades-alert"
-            type="info"
-            showIcon
-            trailingItems={
-              <Button onClick={handleOpenRecommendedSteps} priority="link" borderless>
-                {t('Learn More')}
-              </Button>
-            }
-          >
-            {t(
-              'To keep a consistent amount of transactions across your applications multiple services, we recommend you update the SDK versions for the following projects:'
-            )}
-            <Projects>
-              {recommendedSdkUpgrades.map(recommendedSdkUpgrade => (
-                <ProjectBadge
-                  key={recommendedSdkUpgrade.project.id}
-                  project={recommendedSdkUpgrade.project}
-                  avatarSize={16}
-                />
-              ))}
-            </Projects>
-          </Alert>
+        {!!rules.length && (
+          <SamplingSDKAlert
+            organization={organization}
+            project={project}
+            rules={rules}
+            recommendedSdkUpgrades={recommendedSdkUpgrades}
+          />
         )}
         <RulesPanel>
           <RulesPanelHeader lightText>
@@ -301,7 +342,7 @@ export function ServerSideSampling({project}: Props) {
           )}
           {!!rules.length && (
             <Fragment>
-              <DraggableList
+              <DraggableRuleList
                 disabled={!hasAccess}
                 items={items}
                 onUpdateItems={handleSortRules}
@@ -348,19 +389,19 @@ export function ServerSideSampling({project}: Props) {
                         operator={
                           itemsRule.id === items[0].id
                             ? SamplingRuleOperator.IF
-                            : itemsRule.bottomPinned
+                            : isUniformRule(currentRule)
                             ? SamplingRuleOperator.ELSE
                             : SamplingRuleOperator.ELSE_IF
                         }
                         hideGrabButton={items.length === 1}
-                        rule={{
-                          ...currentRule,
-                          bottomPinned: itemsRule.bottomPinned,
-                        }}
+                        rule={currentRule}
                         onEditRule={() => handleEditRule(currentRule)}
                         onDeleteRule={() => handleDeleteRule(currentRule)}
                         onActivate={() => handleActivateToggle(currentRule.id)}
                         noPermission={!hasAccess}
+                        upgradeSdkForProjects={recommendedSdkUpgrades.map(
+                          recommendedSdkUpgrade => recommendedSdkUpgrade.project.slug
+                        )}
                         listeners={listeners}
                         grabAttributes={attributes}
                         dragging={dragging}
@@ -375,19 +416,24 @@ export function ServerSideSampling({project}: Props) {
                   <Button href={SERVER_SIDE_SAMPLING_DOC_LINK} external>
                     {t('Read Docs')}
                   </Button>
-                  <AddRuleButton
-                    disabled={!hasAccess}
-                    title={
-                      !hasAccess
-                        ? t("You don't have permission to add a rule")
-                        : undefined
-                    }
-                    priority="primary"
-                    onClick={handleAddRule}
-                    icon={<IconAdd isCircled />}
+                  <GuideAnchor
+                    target="add_conditional_rule"
+                    disabled={!uniformRule?.active || !hasAccess || rules.length !== 1}
                   >
-                    {t('Add Rule')}
-                  </AddRuleButton>
+                    <AddRuleButton
+                      disabled={!hasAccess}
+                      title={
+                        !hasAccess
+                          ? t("You don't have permission to add a rule")
+                          : undefined
+                      }
+                      priority="primary"
+                      onClick={handleAddRule}
+                      icon={<IconAdd isCircled />}
+                    >
+                      {t('Add Rule')}
+                    </AddRuleButton>
+                  </GuideAnchor>
                 </ButtonBar>
               </RulesPanelFooter>
             </Fragment>
@@ -438,12 +484,4 @@ const AddRuleButton = styled(Button)`
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     width: 100%;
   }
-`;
-
-const Projects = styled('div')`
-  display: flex;
-  flex-wrap: wrap;
-  gap: ${space(1.5)};
-  justify-content: flex-start;
-  margin-top: ${space(1)};
 `;
