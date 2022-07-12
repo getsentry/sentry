@@ -1,4 +1,6 @@
-from typing import Optional
+from __future__ import annotations
+
+from typing import Any, Mapping, Sequence, Union
 
 from sentry.integrations.metric_alerts import incident_attachment_info
 from sentry.models import Group, GroupStatus, Project, Team, User
@@ -8,6 +10,24 @@ from sentry.utils.http import absolute_uri
 from ..utils import ACTION_TYPE
 
 ME = "ME"
+
+# TODO: Covert these types to a class hierarchy.
+# This is not ideal, but better than no typing. These types should be
+# converted to a class hierarchy and messages should be built by composition.
+
+TextBlock = Mapping[str, Union[str, bool]]
+ImageBlock = Mapping[str, str]
+ItemBlock = Union[str, TextBlock, ImageBlock]
+
+ColumnBlock = Mapping[str, Union[str, Sequence[ItemBlock]]]
+ColumnSetBlock = Mapping[str, Union[str, Sequence[ColumnBlock]]]
+
+Block = Union[TextBlock, ImageBlock, ColumnSetBlock]
+
+# Maps to Any because Actions can have an arbitrarily nested data field.
+Action = Mapping[str, Any]
+
+AdaptiveCard = Mapping[str, Union[str, Sequence[Block], Sequence[Action]]]
 
 
 def generate_action_payload(action_type, event, rules, integration):
@@ -23,7 +43,7 @@ def generate_action_payload(action_type, event, rules, integration):
     }
 
 
-def get_assignee_string(group: Group) -> Optional[str]:
+def get_assignee_string(group: Group) -> str | None:
     """Get a string representation of the group's assignee."""
     assignee = group.get_assignee()
     if isinstance(assignee, User):
