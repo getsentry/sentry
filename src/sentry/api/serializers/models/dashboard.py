@@ -12,6 +12,7 @@ from sentry.models import (
     DashboardWidgetTypes,
 )
 from sentry.utils import json
+from sentry.utils.dates import outside_retention_with_modified_start, parse_timestamp
 
 
 @register(DashboardWidget)
@@ -163,5 +164,12 @@ class DashboardDetailsSerializer(Serializer):
             for key in dashboard_filter_keys:
                 if obj.filters.get(key) is not None:
                     data["filters"][key] = obj.filters[key]
+
+            start, end = obj.filters.get("start"), obj.filters.get("end")
+            if start and end:
+                start, end = parse_timestamp(start), parse_timestamp(end)
+                data["expired"], data["start"] = outside_retention_with_modified_start(
+                    start, end, obj.organization
+                )
 
         return data

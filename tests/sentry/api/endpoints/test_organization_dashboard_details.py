@@ -184,6 +184,24 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
         assert response.data["start"] == start
         assert response.data["end"] == end
 
+    def test_response_truncates_with_retention(self):
+        start = iso_format(datetime.now() - timedelta(days=3))
+        end = iso_format(datetime.now() - timedelta(days=2))
+        expected_adjusted_retention_start = iso_format(datetime.now() - timedelta(days=1))
+        filters = {"start": start, "end": end}
+        dashboard = Dashboard.objects.create(
+            title="Dashboard With Filters",
+            created_by=self.user,
+            organization=self.organization,
+            filters=filters,
+        )
+
+        with self.options({"system.event-retention-days": 1}):
+            response = self.do_request("get", self.url(dashboard.id))
+
+        assert response.data["expired"]
+        assert iso_format(response.data["start"]) == expected_adjusted_retention_start
+
 
 class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCase):
     def test_delete(self):
