@@ -112,12 +112,6 @@ class ProjectIssueGrouping extends AsyncView<Props, State> {
             />
           </Feature>
 
-          <JsonForm
-            {...jsonFormProps}
-            title={t('Automatic Grouping Updates')}
-            fields={[fields.groupingAutoUpdate]}
-          />
-
           <UpgradeGrouping
             groupingConfigs={groupingConfigs ?? []}
             organization={organization}
