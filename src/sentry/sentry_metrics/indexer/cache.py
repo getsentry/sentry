@@ -22,14 +22,12 @@ class StringIndexerCache:
         jitter = random.uniform(0, 0.25) * cache_ttl
         return int(cache_ttl + jitter)
 
-    def make_cache_key(self, key: str) -> str:
+    def make_cache_key(self, key: str, use_case_id: str) -> str:
         hashed = md5_text(key).hexdigest()
-        return f"indexer:org:str:{hashed}"
+        return f"indexer:org:str:{use_case_id}:{hashed}"
 
     def _format_results(
-        self,
-        keys: Sequence[str],
-        results: Mapping[str, Optional[int]],
+        self, keys: Sequence[str], results: Mapping[str, Optional[int]], use_case_id: str
     ) -> MutableMapping[str, Optional[int]]:
         """
         Takes in keys formatted like "org_id:string", and results that have the
@@ -41,40 +39,40 @@ class StringIndexerCache:
         """
         formatted: MutableMapping[str, Optional[int]] = {}
         for key in keys:
-            cache_key = self.make_cache_key(key)
+            cache_key = self.make_cache_key(key, use_case_id)
             formatted[key] = results.get(cache_key)
 
         return formatted
 
-    def get(self, key: str) -> int:
-        result: int = cache.get(self.make_cache_key(key), version=self.version)
+    def get(self, key: str, use_case_id: str) -> int:
+        result: int = cache.get(self.make_cache_key(key, use_case_id), version=self.version)
         return result
 
-    def set(self, key: str, value: int) -> None:
+    def set(self, key: str, value: int, use_case_id: str) -> None:
         cache.set(
-            key=self.make_cache_key(key),
+            key=self.make_cache_key(key, use_case_id),
             value=value,
             timeout=self.randomized_ttl,
             version=self.version,
         )
 
-    def get_many(self, keys: Sequence[str]) -> MutableMapping[str, Optional[int]]:
-        cache_keys = {self.make_cache_key(key): key for key in keys}
+    def get_many(self, keys: Sequence[str], use_case_id: str) -> MutableMapping[str, Optional[int]]:
+        cache_keys = {self.make_cache_key(key, use_case_id): key for key in keys}
         results: Mapping[str, Optional[int]] = cache.get_many(
             cache_keys.keys(), version=self.version
         )
-        return self._format_results(keys, results)
+        return self._format_results(keys, results, use_case_id)
 
-    def set_many(self, key_values: Mapping[str, int]) -> None:
-        cache_key_values = {self.make_cache_key(k): v for k, v in key_values.items()}
+    def set_many(self, key_values: Mapping[str, int], use_case_id: str) -> None:
+        cache_key_values = {self.make_cache_key(k, use_case_id): v for k, v in key_values.items()}
         cache.set_many(cache_key_values, timeout=self.randomized_ttl, version=self.version)
 
-    def delete(self, key: str) -> None:
-        cache_key = self.make_cache_key(key)
+    def delete(self, key: str, use_case_id: str) -> None:
+        cache_key = self.make_cache_key(key, use_case_id)
         cache.delete(cache_key, version=self.version)
 
-    def delete_many(self, keys: Sequence[str]) -> None:
-        cache_keys = [self.make_cache_key(key) for key in keys]
+    def delete_many(self, keys: Sequence[str], use_case_id: str) -> None:
+        cache_keys = [self.make_cache_key(key, use_case_id) for key in keys]
         cache.delete_many(cache_keys, version=self.version)
 
 
