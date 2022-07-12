@@ -1,11 +1,15 @@
 from typing import Any
 
-from sentry.integrations.msteams.card_builder.base import (
-    ActionType,
-    MSTeamsMessageBuilder,
-    TextSize,
-)
+from sentry.integrations.msteams.card_builder.base import MSTeamsMessageBuilder
 
+from .block import (
+    ActionType,
+    TextSize,
+    create_action_block,
+    create_column_set_block,
+    create_logo_block,
+    create_text_block,
+)
 from .utils import IdentityMessages
 
 
@@ -17,9 +21,9 @@ class MSTeamsUnlinkedMessageBuilder(MSTeamsMessageBuilder):
 class MSTeamsLinkedMessageBuilder(MSTeamsMessageBuilder):
     def build(self) -> Any:
         return self.build_card(
-            text=self.create_column_set_block(
-                self.create_logo_block(),
-                self.create_text_block(
+            text=create_column_set_block(
+                create_logo_block(),
+                create_text_block(
                     IdentityMessages.IDENTITY_LINKED,
                     size=TextSize.LARGE,
                 ),
@@ -33,9 +37,9 @@ class MSTeamsLinkIdentityMessageBuilder(MSTeamsMessageBuilder):
 
     def build(self) -> Any:
         return self.build_card(
-            text=self.create_text_block(IdentityMessages.LINK_IDENTITY, size=TextSize.MEDIUM),
+            text=create_text_block(IdentityMessages.LINK_IDENTITY, size=TextSize.MEDIUM),
             actions=[
-                self.create_action_block(
+                create_action_block(
                     ActionType.OPEN_URL, title=IdentityMessages.LINK_IDENTITY_BUTTON, url=self.url
                 )
             ],
@@ -50,7 +54,7 @@ class MSTeamsUnlinkIdentityMessageBuilder(MSTeamsMessageBuilder):
         return self.build_card(
             text=IdentityMessages.UNLINK_IDENTITY,
             actions=[
-                self.create_action_block(
+                create_action_block(
                     ActionType.OPEN_URL, title=IdentityMessages.UNLINK_IDENTITY_BUTTON, url=self.url
                 )
             ],

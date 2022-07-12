@@ -3,23 +3,28 @@ from typing import Any
 from sentry.models import Organization
 from sentry.utils.http import absolute_uri
 
-from .base import (
+from .base import MSTeamsMessageBuilder
+from .block import (
     ActionType,
     ColumnWidth,
-    MSTeamsMessageBuilder,
     TextSize,
     TextWeight,
     VerticalContentAlignment,
+    create_action_block,
+    create_column_block,
+    create_column_set_block,
+    create_logo_block,
+    create_text_block,
 )
 from .utils import InstallationMessages
 
 
 class MSTeamsInstallationTitleMessageBuilder(MSTeamsMessageBuilder):
     def get_title_block(self, text: str) -> Any:
-        return self.create_column_set_block(
-            self.create_logo_block(),
-            self.create_column_block(
-                self.create_text_block(text, size=TextSize.LARGE, weight=TextWeight.BOLDER),
+        return create_column_set_block(
+            create_logo_block(),
+            create_column_block(
+                create_text_block(text, size=TextSize.LARGE, weight=TextWeight.BOLDER),
                 width=ColumnWidth.STRECH,
                 verticalContentAlignment=VerticalContentAlignment.CENTER,
             ),
@@ -36,7 +41,7 @@ class MSTeamsTeamInstallationMessageBuilder(MSTeamsInstallationTitleMessageBuild
             text=InstallationMessages.TEAM_INSTALLATION_DESCRIPTION,
             fields=[InstallationMessages.TEAM_INSTALLATION_INSTRUCTION],
             actions=[
-                self.create_action_block(
+                create_action_block(
                     ActionType.OPEN_URL,
                     title=InstallationMessages.TEAM_INSTALLATION_BUTTON,
                     url=self.url,
@@ -69,7 +74,7 @@ class MSTeamsInstallationConfirmationMessageBuilder(MSTeamsInstallationTitleMess
             ),
             text=InstallationMessages.INSTALLATION_CONFIRMATION_INSTRUCTION,
             actions=[
-                self.create_action_block(
+                create_action_block(
                     ActionType.OPEN_URL,
                     title=InstallationMessages.INSTALLATION_CONFIRMATION_BUTTON,
                     url=alert_rule_url,
