@@ -1550,7 +1550,7 @@ urlpatterns = [
                 url(
                     r"^(?P<organization_slug>[^\/]+)/functions/$",
                     OrganizationSentryFunctionEndpoint.as_view(),
-                    name="sentry-api-0-organization-functions",
+                    name="sentry-api-0-organization-sentry-functions",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/request-project-creation/$",

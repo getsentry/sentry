@@ -22,6 +22,8 @@ class OrganizationSentryFunctionEndpoint(OrganizationEndpoint):
 
         data = serializer.validated_data
         data["slug"] = slugify(data["name"])
+        # Currently slug unique within organization
+        # In future, may add "global_slug" so users can publish their functions
         data["organization_id"] = organization.id
         data["external_id"] = data["slug"] + "-" + uuid4().hex
         return Response("POSTED!", status=201)
