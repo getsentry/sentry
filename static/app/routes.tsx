@@ -789,16 +789,6 @@ function buildRoutes() {
           )}
         />
         <Route
-          path="new-sentry-function/"
-          name={t('Create Integration')}
-          component={make(
-            () =>
-              import(
-                'sentry/views/settings/organizationDeveloperSettings/sentryFunctionDetails'
-              )
-          )}
-        />
-        <Route
           path=":appSlug/"
           name={t('Edit Integration')}
           component={make(
@@ -818,6 +808,18 @@ function buildRoutes() {
               )
           )}
         />
+        <Route path="sentry-functions/" name={t('Sentry Functions')}>
+          <Route
+            path="new/"
+            name={t('Create Sentry Function')}
+            component={make(
+              () =>
+                import(
+                  'sentry/views/settings/organizationDeveloperSettings/sentryFunctionDetails'
+                )
+            )}
+          />
+        </Route>
       </Route>
     </Route>
   );

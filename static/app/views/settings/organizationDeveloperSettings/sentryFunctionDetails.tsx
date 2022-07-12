@@ -31,14 +31,9 @@ const formFields: Field[] = [
 
 class SentryFunctionFormModel extends FormModel {
   getTransformedData(): {} {
-    const data = super.getTransformedData() as Record<string, any>;
-    const {...output} = data;
-    return output;
+    return super.getTransformedData() as Record<string, any>;
   }
 }
-const handlePreSubmit = () => {
-  addLoadingMessage(t('Saving changes..'));
-};
 
 export default function sentryFunctionDetails(props: Props) {
   const form = new SentryFunctionFormModel();
@@ -53,7 +48,7 @@ export default function sentryFunctionDetails(props: Props) {
         apiMethod={method}
         apiEndpoint={endpoint}
         model={form}
-        onPreSubmit={handlePreSubmit}
+        onPreSubmit={() => addLoadingMessage(t('Saving changes..'))}
       >
         <JsonForm forms={[{title: 'Sentry Function Details', fields: formFields}]} />
       </Form>
