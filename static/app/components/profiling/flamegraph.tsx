@@ -273,7 +273,7 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
   // the weights of each frame. In other words, in case there is no user selected root, then all
   // of the frame weights and timing are relative to the entire profile. If there is a user selected
   // root however, all weights are relative to that sub tree.
-  const referenceRoot = useMemo(
+  const referenceNode = useMemo(
     () => (selectedRoot ? selectedRoot : flamegraph.root),
     [selectedRoot, flamegraph.root]
   );
@@ -281,7 +281,7 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
   // In case a user selected root is present, we will display that root + it's entire sub tree.
   // If no root is selected, we will display the entire sub tree down from the root. We start at
   // root.children because flamegraph.root is a virtual node that we do not want to show in the table.
-  const roots = useMemo(() => {
+  const rootNodes = useMemo(() => {
     return selectedRoot ? [selectedRoot] : flamegraph.root.children;
   }, [selectedRoot, flamegraph.root]);
 
@@ -343,8 +343,8 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
         }
         frameStack={
           <FrameStack
-            referenceRoot={referenceRoot}
-            roots={roots}
+            referenceNode={referenceNode}
+            rootNodes={rootNodes}
             getFrameColor={getFrameColor}
             formatDuration={flamegraph ? flamegraph.formatter : noopFormatDuration}
             canvasPoolManager={canvasPoolManager}

@@ -20,8 +20,8 @@ interface FrameStackProps {
   canvasPoolManager: CanvasPoolManager;
   formatDuration: Flamegraph['formatter'];
   getFrameColor: (frame: FlamegraphFrame) => string;
-  referenceRoot: FlamegraphFrame;
-  roots: FlamegraphFrame[];
+  referenceNode: FlamegraphFrame;
+  rootNodes: FlamegraphFrame[];
 }
 
 const FrameStack = memo(function FrameStack(props: FrameStackProps) {
@@ -42,14 +42,16 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
         : () => false;
 
     const maybeFilteredRoots =
-      treeType !== 'all' ? filterFlamegraphTree(props.roots, skipFunction) : props.roots;
+      treeType !== 'all'
+        ? filterFlamegraphTree(props.rootNodes, skipFunction)
+        : props.rootNodes;
 
     if (tab === 'call order') {
       return maybeFilteredRoots;
     }
 
     return invertCallTree(maybeFilteredRoots);
-  }, [tab, treeType, props.roots]);
+  }, [tab, treeType, props.rootNodes]);
 
   const handleRecursionChange = useCallback(
     (evt: React.ChangeEvent<HTMLInputElement>) => {
@@ -192,7 +194,7 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
       <FrameStackTable
         {...props}
         recursion={recursion}
-        referenceRoot={props.referenceRoot}
+        referenceNode={props.referenceNode}
         tree={maybeFilteredOrInvertedTree ?? []}
         canvasPoolManager={props.canvasPoolManager}
       />
