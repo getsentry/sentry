@@ -3,12 +3,10 @@ from datetime import datetime, timedelta
 
 from django.db.models import Max
 from rest_framework import serializers
-from rest_framework.exceptions import PermissionDenied
 
 from sentry.api.issue_search import parse_search_query
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer, ListField
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
-from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.discover.arithmetic import ArithmeticError, categorize_columns
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import (
@@ -308,17 +306,9 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
     validate_id = validate_id
 
     def validate_projects(self, projects):
-        projects = set(projects)
+        from sentry.api.validators import validate_projects
 
-        # Don't need to check all projects or my projects
-        if projects == ALL_ACCESS_PROJECTS or len(projects) == 0:
-            return projects
-
-        # Check that there aren't projects in the query the user doesn't have access to
-        if len(projects - {project.id for project in self.context["projects"]}) > 0:
-            raise PermissionDenied
-
-        return projects
+        return validate_projects(projects, self.context["projects"])
 
     def validate(self, data):
         start = data.get("start")

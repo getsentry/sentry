@@ -152,6 +152,7 @@ class DashboardDetailsSerializer(Serializer):
             "createdBy": serialize(obj.created_by, serializer=UserSerializer()),
             "widgets": attrs["widgets"],
             "projects": [project.id for project in obj.projects.all()],
+            "filters": {},
         }
 
         if obj.filters is not None:
@@ -161,8 +162,6 @@ class DashboardDetailsSerializer(Serializer):
 
             for key in dashboard_filter_keys:
                 if obj.filters.get(key) is not None:
-                    if data.get("filters") is None:
-                        data["filters"] = {}
                     data["filters"][key] = obj.filters[key]
 
         return data
