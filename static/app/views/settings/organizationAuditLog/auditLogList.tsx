@@ -1,15 +1,17 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import ActivityAvatar from 'sentry/components/activity/item/avatar';
 import UserAvatar from 'sentry/components/avatar/userAvatar';
 import DateTime from 'sentry/components/dateTime';
 import SelectControl from 'sentry/components/forms/selectControl';
 import Pagination, {CursorHandler} from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels';
+import Tag from 'sentry/components/tag';
 import Tooltip from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {AuditLog} from 'sentry/types';
+import {AuditLog, User} from 'sentry/types';
 import {shouldUse24Hours} from 'sentry/utils/dates';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
@@ -19,10 +21,40 @@ const avatarStyle = {
   marginRight: 8,
 };
 
+const getAvatarDisplay = (logEntryUser: User | undefined) => {
+  // Display Sentry's avatar for system or superuser-initiated events
+  if (
+    logEntryUser?.isSuperuser ||
+    (logEntryUser?.name === 'Sentry' && logEntryUser?.email === undefined)
+  ) {
+    return <SentryAvatar type="system" size={36} />;
+  }
+  // Display user's avatar for non-superusers-initiated events
+  if (logEntryUser !== undefined) {
+    return <UserAvatar style={avatarStyle} user={logEntryUser} />;
+  }
+  return null;
+};
+
+const addUsernameDisplay = (logEntryUser: User | undefined) => {
+  if (logEntryUser?.isSuperuser) {
+    return (
+      <Name data-test-id="actor-name">
+        {logEntryUser.name}
+        <StaffTag>{t('Sentry Staff')}</StaffTag>
+      </Name>
+    );
+  }
+  if (logEntryUser !== undefined) {
+    return <Name data-test-id="actor-name">{logEntryUser.name}</Name>;
+  }
+  return null;
+};
+
 type Props = {
   entries: AuditLog[] | null;
   eventType: string | undefined;
-  eventTypes: string[];
+  eventTypes: string[] | null;
   isLoading: boolean;
   onCursor: CursorHandler | undefined;
   onEventSelect: (value: string) => void;
@@ -41,7 +73,7 @@ const AuditLogList = ({
   const hasEntries = entries && entries.length > 0;
   const ipv4Length = 15;
 
-  const eventOptions = eventTypes.map(type => ({
+  const eventOptions = eventTypes?.map(type => ({
     label: type,
     value: type,
   }));
@@ -71,17 +103,9 @@ const AuditLogList = ({
         {entries?.map(entry => (
           <Fragment key={entry.id}>
             <UserInfo>
-              <div>
-                {entry.actor.email && (
-                  <UserAvatar style={avatarStyle} user={entry.actor} />
-                )}
-              </div>
+              <div>{getAvatarDisplay(entry.actor)}</div>
               <NameContainer>
-                <Name data-test-id="actor-name">
-                  {entry.actor.isSuperuser
-                    ? t('%s (Sentry Staff)', entry.actor.name)
-                    : entry.actor.name}
-                </Name>
+                {addUsernameDisplay(entry.actor)}
                 <Note>{entry.note}</Note>
               </NameContainer>
             </UserInfo>
@@ -116,6 +140,18 @@ const AuditLogList = ({
   );
 };
 
+const SentryAvatar = styled(ActivityAvatar)`
+  margin-right: ${space(1)};
+`;
+
+const Name = styled('strong')`
+  font-size: ${p => p.theme.fontSizeMedium};
+`;
+
+const StaffTag = styled(Tag)`
+  padding: ${space(1)};
+`;
+
 const EventSelector = styled(SelectControl)`
   width: 250px;
 `;
@@ -124,7 +160,7 @@ const UserInfo = styled('div')`
   display: flex;
   align-items: center;
   line-height: 1.2;
-  font-size: 13px;
+  font-size: ${p => p.theme.fontSizeSmall};
   min-width: 250px;
 `;
 
@@ -134,13 +170,8 @@ const NameContainer = styled('div')`
   justify-content: center;
 `;
 
-const Name = styled('div')`
-  font-weight: 600;
-  font-size: 15px;
-`;
-
 const Note = styled('div')`
-  font-size: 13px;
+  font-size: ${p => p.theme.fontSizeSmall};
   word-break: break-word;
 `;
 
