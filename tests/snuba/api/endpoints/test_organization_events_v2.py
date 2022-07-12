@@ -5310,8 +5310,7 @@ class OrganizationEventsV2MetricsEnhancedPerformanceEndpointTest(
             1,
             tags={
                 "transaction": "foo_transaction",
-                "is_tolerated": "false",
-                "is_satisfied": "true",
+                constants.METRIC_SATISFACTION_TAG_KEY: constants.METRIC_SATISFIED_TAG_VALUE,
             },
             timestamp=self.min_ago,
         )
@@ -5342,7 +5341,10 @@ class OrganizationEventsV2MetricsEnhancedPerformanceEndpointTest(
         self.store_metric(
             1,
             "user",
-            tags={"transaction": "foo_transaction", "is_user_miserable": "true"},
+            tags={
+                "transaction": "foo_transaction",
+                constants.METRIC_SATISFACTION_TAG_KEY: constants.METRIC_FRUSTRATED_TAG_VALUE,
+            },
             timestamp=self.min_ago,
         )
         for dataset in ["metrics", "metricsEnhanced"]:
@@ -11408,8 +11410,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             1,
             tags={
                 "transaction": "foo_transaction",
-                "is_tolerated": "false",
-                "is_satisfied": "true",
+                constants.METRIC_SATISFACTION_TAG_KEY: constants.METRIC_SATISFIED_TAG_VALUE,
             },
             timestamp=self.min_ago,
         )
@@ -11440,7 +11441,10 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         self.store_metric(
             1,
             "user",
-            tags={"transaction": "foo_transaction", "is_user_miserable": "true"},
+            tags={
+                "transaction": "foo_transaction",
+                constants.METRIC_SATISFACTION_TAG_KEY: constants.METRIC_FRUSTRATED_TAG_VALUE,
+            },
             timestamp=self.min_ago,
         )
         for dataset in ["metrics", "metricsEnhanced"]:

@@ -5,15 +5,15 @@ type SetProfilesActiveIndex = {
   type: 'set thread id';
 };
 
-type SetSelectedNode = {
+type SetRootNode = {
   payload: FlamegraphFrame | null;
-  type: 'set selected node';
+  type: 'set selected root';
 };
 
-type FlamegraphProfilesAction = SetProfilesActiveIndex | SetSelectedNode;
+type FlamegraphProfilesAction = SetProfilesActiveIndex | SetRootNode;
 
 type FlamegraphProfilesState = {
-  selectedNode: FlamegraphFrame | null;
+  selectedRoot: FlamegraphFrame | null;
   threadId: number | null;
 };
 
@@ -22,14 +22,14 @@ export function flamegraphProfilesReducer(
   action: FlamegraphProfilesAction
 ): FlamegraphProfilesState {
   switch (action.type) {
-    case 'set selected node': {
-      return {...state, selectedNode: action.payload};
+    case 'set selected root': {
+      return {...state, selectedRoot: action.payload};
     }
     case 'set thread id': {
       // When the profile index changes, we want to drop the selected and hovered nodes
       return {
         ...state,
-        selectedNode: null,
+        selectedRoot: null,
         threadId: action.payload,
       };
     }

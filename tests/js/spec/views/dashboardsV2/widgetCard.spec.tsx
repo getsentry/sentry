@@ -66,7 +66,7 @@ describe('Dashboards > WidgetCard', function () {
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-geo/',
-      body: [],
+      body: {meta: {isMetricsData: false}},
     });
     eventsv2Mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/eventsv2/',
@@ -644,7 +644,7 @@ describe('Dashboards > WidgetCard', function () {
 
     await waitFor(() => {
       // Badge in the widget header
-      expect(screen.getByText('Stored')).toBeInTheDocument();
+      expect(screen.getByText('Sampled')).toBeInTheDocument();
     });
 
     await waitFor(() => {
@@ -810,7 +810,7 @@ describe('Dashboards > WidgetCard', function () {
 
       await waitFor(() => {
         // Badge in the widget header
-        expect(screen.getByText('Stored')).toBeInTheDocument();
+        expect(screen.getByText('Sampled')).toBeInTheDocument();
       });
 
       await waitFor(() => {

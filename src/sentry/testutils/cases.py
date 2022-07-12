@@ -103,11 +103,10 @@ from sentry.models import (
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.plugins.base import plugins
 from sentry.search.events.constants import (
-    METRIC_FALSE_TAG_VALUE,
-    METRIC_MISERABLE_TAG_KEY,
-    METRIC_SATISFIED_TAG_KEY,
-    METRIC_TOLERATED_TAG_KEY,
-    METRIC_TRUE_TAG_VALUE,
+    METRIC_FRUSTRATED_TAG_VALUE,
+    METRIC_SATISFACTION_TAG_KEY,
+    METRIC_SATISFIED_TAG_VALUE,
+    METRIC_TOLERATED_TAG_VALUE,
     METRICS_MAP,
 )
 from sentry.sentry_metrics import indexer
@@ -1271,11 +1270,10 @@ class MetricsEnhancedPerformanceTestCase(SessionMetricsTestCase, TestCase):
             "environment",
             "http.status",
             "transaction.status",
-            METRIC_SATISFIED_TAG_KEY,
-            METRIC_TOLERATED_TAG_KEY,
-            METRIC_MISERABLE_TAG_KEY,
-            METRIC_TRUE_TAG_VALUE,
-            METRIC_FALSE_TAG_VALUE,
+            METRIC_TOLERATED_TAG_VALUE,
+            METRIC_SATISFIED_TAG_VALUE,
+            METRIC_FRUSTRATED_TAG_VALUE,
+            METRIC_SATISFACTION_TAG_KEY,
             *self.METRIC_STRINGS,
             *list(SPAN_STATUS_NAME_TO_CODE.keys()),
             *list(METRICS_MAP.values()),

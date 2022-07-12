@@ -50,18 +50,22 @@ export function projectStatsToPredictedSeries(
       accepted = 0,
       filtered = 0,
       invalid = 0,
-      dropped = 0,
       rate_limited: rateLimited = 0,
       client_discard: clientDiscard = 0,
       interval,
     } = bucket;
 
-    const total = accepted + filtered + invalid + dropped + rateLimited + clientDiscard;
-    const newSentClient = clientRate * total;
-    const droppedClient = total - newSentClient;
-    const validEvents = Math.max(newSentClient - (filtered + invalid + rateLimited), 0);
-    const newAccepted = serverRate > clientRate ? validEvents : serverRate * validEvents;
-    const droppedServer = newSentClient - newAccepted;
+    if (clientRate < serverRate!) {
+      serverRate = clientRate;
+    }
+
+    const total = accepted + filtered + invalid + rateLimited + clientDiscard;
+
+    const newSentClient = total * clientRate;
+    const newDroppedClient = total - newSentClient;
+
+    const newAccepted = clientRate === 0 ? 0 : newSentClient * (serverRate! / clientRate);
+    const newDroppedServer = newSentClient - newAccepted;
 
     const name = moment(interval).valueOf();
     seriesData.accepted[index] = {
@@ -70,11 +74,11 @@ export function projectStatsToPredictedSeries(
     };
     seriesData.droppedServer[index] = {
       name,
-      value: Math.round(droppedServer),
+      value: Math.round(newDroppedServer),
     };
     seriesData.droppedClient[index] = {
       name,
-      value: Math.round(droppedClient),
+      value: Math.round(newDroppedClient),
     };
   });
 
