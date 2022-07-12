@@ -12,7 +12,14 @@ from .fields.bounded import BoundedBigAutoField
 from .manager import BaseManager, M
 from .query import update
 
-__all__ = ("BaseModel", "Model", "DefaultFieldsModel", "sane_repr", "ModelAvailableOn")
+__all__ = (
+    "BaseModel",
+    "Model",
+    "DefaultFieldsModel",
+    "sane_repr",
+    "control_silo_model",
+    "customer_silo_model",
+)
 
 
 def sane_repr(*attrs: str) -> Callable[[models.Model], str]:
@@ -182,6 +189,8 @@ class ModelAvailableOn(ModeLimited):
             raise TypeError("`@ModelAvailableOn ` must decorate a Model class")
         assert isinstance(model_class.objects, BaseManager)
 
+        model_class._meta.__mode_limit = self  # type: ignore
+
         model_class.objects = model_class.objects.create_mode_limited_copy(self, self.read_only)
 
         # On the model (not manager) class itself, find all methods that are tagged
@@ -202,3 +211,9 @@ class ModelAvailableOn(ModeLimited):
         model_class._meta.__mode_limit = self  # type: ignore
 
         return model_class
+
+
+control_silo_model = ModelAvailableOn(
+    ServerComponentMode.CONTROL, read_only=ServerComponentMode.CUSTOMER
+)
+customer_silo_model = ModelAvailableOn(ServerComponentMode.CUSTOMER)

@@ -1,3 +1,5 @@
+#!/usr/bin/env sentry exec
+
 from __future__ import annotations
 
 import abc
@@ -5,14 +7,11 @@ import json  # noqa - I want the `indent` param
 import sys
 from collections import defaultdict
 
-import click
 import django.apps
 import django.urls
 
 
-@click.command()
-@click.option("--format", type=str, default="json")
-def auditservermodes(format):
+def auditservermodes(format="json"):
     """Lists which classes have had server mode decorators applied."""
 
     from sentry.runner import configure
@@ -186,3 +185,7 @@ class ViewPresentation(ConsolePresentation):
 
     def get_key_repr(self, key):
         return self.format_mode_set(key)
+
+
+if __name__ == "__main__":
+    auditservermodes()
