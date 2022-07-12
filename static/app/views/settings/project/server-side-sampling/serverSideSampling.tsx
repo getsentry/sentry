@@ -116,16 +116,16 @@ export function ServerSideSampling({project}: Props) {
     orgSlug: organization.slug,
   });
 
-  async function handleActivateToggle(ruleId: SamplingRule['id']) {
-    const newRules = rules.map(rule => {
-      if (rule.id === ruleId) {
+  async function handleActivateToggle(rule: SamplingRule) {
+    const newRules = rules.map(r => {
+      if (r.id === rule.id) {
         return {
-          ...rule,
+          ...r,
           id: 0,
-          active: !rule.active,
+          active: !r.active,
         };
       }
-      return rule;
+      return r;
     });
 
     addLoadingMessage();
@@ -143,6 +143,35 @@ export function ServerSideSampling({project}: Props) {
       const message = t('Unable to update the sampling rule');
       handleXhrErrorResponse(message)(error);
       addErrorMessage(message);
+    }
+
+    if (isUniformRule(rule)) {
+      trackAdvancedAnalyticsEvent(
+        rule.active
+          ? 'sampling.settings.rule.uniform_deactivate'
+          : 'sampling.settings.rule.uniform_activate',
+        {
+          organization: organization.slug,
+          project_id: project.id,
+          sampling_rate: rule.sampleRate,
+        }
+      );
+    } else {
+      const analyticsConditions = rule.condition.inner.map(condition => condition.name);
+      const analyticsConditionsStringified = analyticsConditions.sort().join(', ');
+
+      trackAdvancedAnalyticsEvent(
+        rule.active
+          ? 'sampling.settings.rule.specific_deactivate'
+          : 'sampling.settings.rule.specific_activate',
+        {
+          organization: organization.slug,
+          project_id: project.id,
+          sampling_rate: rule.sampleRate,
+          conditions: analyticsConditions,
+          conditions_stringified: analyticsConditionsStringified,
+        }
+      );
     }
   }
 
@@ -463,7 +492,7 @@ export function ServerSideSampling({project}: Props) {
                         rule={currentRule}
                         onEditRule={() => handleEditRule(currentRule)}
                         onDeleteRule={() => handleDeleteRule(currentRule)}
-                        onActivate={() => handleActivateToggle(currentRule.id)}
+                        onActivate={() => handleActivateToggle(currentRule)}
                         noPermission={!hasAccess}
                         upgradeSdkForProjects={recommendedSdkUpgrades.map(
                           recommendedSdkUpgrade => recommendedSdkUpgrade.project.slug
