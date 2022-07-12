@@ -37,7 +37,13 @@ from .authentication import ApiKeyAuthentication, TokenAuthentication
 from .paginator import BadPaginationError, Paginator
 from .permissions import NoPermission
 
-__all__ = ["Endpoint", "EnvironmentMixin", "StatsMixin"]
+__all__ = [
+    "Endpoint",
+    "EnvironmentMixin",
+    "StatsMixin",
+    "control_silo_endpoint",
+    "customer_silo_endpoint",
+]
 
 ONE_MINUTE = 60
 ONE_HOUR = ONE_MINUTE * 60
@@ -520,3 +526,7 @@ class ApiAvailableOn(ModeLimited):
             return self.modify_endpoint_method(decorated_obj)
 
         raise TypeError("`@ApiAvailableOn` must decorate a class or method")
+
+
+control_silo_endpoint = ApiAvailableOn(ServerComponentMode.CONTROL)
+customer_silo_endpoint = ApiAvailableOn(ServerComponentMode.CUSTOMER)
