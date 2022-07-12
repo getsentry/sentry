@@ -29,6 +29,10 @@ class OrganizationMetricsEndpoint(OrganizationEndpoint):
 
         projects = self.get_projects(request, organization)
         metrics = get_metrics(projects)
+        # TODO: replace this with a serializer so that if the structure of MetricMeta changes the response of this
+        # endpoint does not
+        for metric in metrics:
+            del metric["metric_id"]
         return Response(metrics, status=200)
 
 
