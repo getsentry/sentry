@@ -1,11 +1,11 @@
 import {CanvasScheduler, FlamegraphEvents} from 'sentry/utils/profiling/canvasScheduler';
 
 const handlers: (keyof FlamegraphEvents)[] = [
-  'resetZoom',
-  'setConfigView',
-  'highlightFrame',
-  'transformConfigView',
-  'zoomIntoFrame',
+  'reset zoom',
+  'set config view',
+  'highlight frame',
+  'transform config view',
+  'zoom at frame',
 ];
 
 describe('CanvasScheduler', () => {

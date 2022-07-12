@@ -155,8 +155,8 @@ function FlamegraphSearch({
 
   const onZoomIntoFrame = useCallback(
     (frame: FlamegraphFrame) => {
-      canvasPoolManager.dispatch('zoomIntoFrame', [frame, 'min']);
-      canvasPoolManager.dispatch('highlightFrame', [frame, 'selected']);
+      canvasPoolManager.dispatch('zoom at frame', [frame, 'min']);
+      canvasPoolManager.dispatch('highlight frame', [frame, 'selected']);
     },
     [canvasPoolManager]
   );
