@@ -302,7 +302,7 @@ const Title = styled('p')`
 `;
 
 const Indicator = styled(p => <CircleIndicator size={7} {...p} />)`
-  margin-top: 3px;
+  align-self: center;
   color: ${p => p.theme.success};
 `;
 
