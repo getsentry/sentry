@@ -30,7 +30,7 @@ inputs:
   cache-files-hash:
     description: 'A single hash for a set of files. Used for caching.'
     required: false
-    default: ${{ hashFiles('requirements-*.txt') }}
+    default: ${{ hashFiles('requirements-dev-frozen.txt') }}
   python-version:
     description: 'python version to install'
     required: false
@@ -84,7 +84,6 @@ runs:
         fi
 
         echo "PIP_DISABLE_PIP_VERSION_CHECK=on" >> $GITHUB_ENV
-        echo "SENTRY_LIGHT_BUILD=1" >> $GITHUB_ENV
         echo "SENTRY_SKIP_BACKEND_VALIDATION=1" >> $GITHUB_ENV
 
         ### node configuration ###
@@ -153,7 +152,10 @@ runs:
       run: |
         cd "$WORKDIR"
         python setup.py install_egg_info
-        pip install -U -e ".[dev]"
+        # We need to install editable otherwise things like check migration will fail.
+        pip install -r requirements-dev-frozen.txt & \
+        SENTRY_LIGHT_BUILD=1 pip install --no-deps -e . & \
+        wait
         cd -
 
     - name: Start devservices
