@@ -11,9 +11,9 @@ from sentry.utils.suspect_resolutions.metric_correlation import (
     is_issue_error_rate_correlated,
 )
 
-start = 1656393600
-end = 1656396780
-window = 60
+START = 1656393600
+END = 1656396780
+WINDOW = 60
 
 
 def generate_issue_error_series(
@@ -32,14 +32,14 @@ class TestMetricCorrelation(TestCase):
         gen_random_end = 1656393600
 
         group1_data = [
-            (t, random.randint(0, 30)) for t in range(gen_random_start, gen_random_end, window)
+            (t, random.randint(0, 30)) for t in range(gen_random_start, gen_random_end, WINDOW)
         ]
         group2_data = [
-            (t, random.randint(0, 30)) for t in range(gen_random_start, gen_random_end, window)
+            (t, random.randint(0, 30)) for t in range(gen_random_start, gen_random_end, WINDOW)
         ]
 
-        group1_events = generate_issue_error_series(start, end, group1_data)
-        group2_events = generate_issue_error_series(start, end, group2_data)
+        group1_events = generate_issue_error_series(START, END, group1_data)
+        group2_events = generate_issue_error_series(START, END, group2_data)
 
         mock_get_range.return_value = {group1.id: group1_events, group2.id: group2_events}
 
@@ -50,8 +50,8 @@ class TestMetricCorrelation(TestCase):
         group1 = self.create_group(status=GroupStatus.RESOLVED, resolved_at=timezone.now())
         group2 = self.create_group()
 
-        group1_events = [(t, random.randint(0, 30)) for t in range(start, end, window)]
-        group2_events = [(t, random.randint(0, 30)) for t in range(start, end, window)]
+        group1_events = [(t, random.randint(0, 30)) for t in range(START, END, WINDOW)]
+        group2_events = [(t, random.randint(0, 30)) for t in range(START, END, WINDOW)]
 
         mock_get_range.return_value = {group1.id: group1_events, group2.id: group2_events}
 
