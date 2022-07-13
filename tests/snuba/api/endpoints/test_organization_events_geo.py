@@ -7,7 +7,7 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 class OrganizationEventsGeoEndpointTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
-        self.min_ago = iso_format(before_now(minutes=1))
+        self.ten_mins_ago = iso_format(before_now(minutes=10))
         self.features = {}
 
     def do_request(self, query, features=None):
@@ -51,18 +51,18 @@ class OrganizationEventsGeoEndpointTest(APITestCase, SnubaTestCase):
     def test_happy_path(self):
         other_project = self.create_project()
         self.store_event(
-            data={"event_id": "a" * 32, "environment": "staging", "timestamp": self.min_ago},
+            data={"event_id": "a" * 32, "environment": "staging", "timestamp": self.ten_mins_ago},
             project_id=self.project.id,
         )
         self.store_event(
-            data={"event_id": "b" * 32, "environment": "staging", "timestamp": self.min_ago},
+            data={"event_id": "b" * 32, "environment": "staging", "timestamp": self.ten_mins_ago},
             project_id=other_project.id,
         )
         self.store_event(
             data={
                 "event_id": "c" * 32,
                 "environment": "production",
-                "timestamp": self.min_ago,
+                "timestamp": self.ten_mins_ago,
                 "user": {
                     "email": "foo@example.com",
                     "id": "123",
@@ -92,7 +92,7 @@ class OrganizationEventsGeoEndpointTest(APITestCase, SnubaTestCase):
             data={
                 "event_id": "a" * 32,
                 "environment": "staging",
-                "timestamp": self.min_ago,
+                "timestamp": self.ten_mins_ago,
                 "user": {
                     "email": "foo@example.com",
                     "id": "123",
@@ -120,7 +120,7 @@ class OrganizationEventsGeoEndpointTest(APITestCase, SnubaTestCase):
             return {
                 "event_id": str(index) * 32,
                 "environment": "staging",
-                "timestamp": self.min_ago,
+                "timestamp": self.ten_mins_ago,
                 "user": {
                     "email": "foo@example.com",
                     "id": "123",
