@@ -24,6 +24,7 @@ frontend: &frontend
   - 'docs-ui/**'
   - 'static/**'
   - 'tests/js/**'
+  - 'fixtures/search-syntax/**/*'
   - '.github/workflows/frontend.yml'
 
 frontend_modified_lintable:
@@ -57,6 +58,7 @@ backend: &backend
   - 'src/sentry/!(static)/**'
   - 'migrations_lockfile.txt'
   - 'config/**/*'
+  - 'fixtures/search-syntax/**/*'
 
 # This is the ultimate controller for acceptance.yml
 acceptance: &acceptance
