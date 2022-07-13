@@ -194,7 +194,7 @@ const alertStyles = ({
 
 const Wrap = styled('div')<AlertProps & {hovered: boolean}>`
   ${alertStyles}
-  padding: ${space(1.5)}
+  padding: ${space(1.5)} ${space(2)};
 `;
 
 const IconWrapper = styled('div')`
@@ -229,7 +229,6 @@ const TrailingItems = styled('div')<{showIcon: boolean}>`
 
 const ExpandIconWrap = styled(IconWrapper)`
   margin-left: ${space(0.5)};
-  margin-right: ${space(0.5)};
 `;
 
 const ExpandContainer = styled('div')<{showIcon: boolean; showTrailingItems: boolean}>`
