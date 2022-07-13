@@ -20,7 +20,7 @@ class SentryFunction(DefaultFieldsModel):
     organization = FlexibleForeignKey("sentry.Organization")
     name = models.TextField()
     slug = models.CharField(max_length=64, unique=True)
-    author = models.TextField(null=True)
+    author = models.TextField()
     external_id = models.CharField(max_length=128, unique=True)
 
     objects = SentryFunctionManager()
