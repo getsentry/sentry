@@ -37,8 +37,7 @@ export function Conditions({conditions, orgSlug, projectId, onDelete, onChange}:
 
         const isAutoCompleteField =
           category === SamplingInnerName.TRACE_ENVIRONMENT ||
-          category === SamplingInnerName.TRACE_RELEASE ||
-          category === SamplingInnerName.TRACE_TRANSACTION;
+          category === SamplingInnerName.TRACE_RELEASE;
 
         return (
           <ConditionWrapper key={index}>
