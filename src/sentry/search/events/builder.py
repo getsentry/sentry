@@ -548,6 +548,8 @@ class QueryBuilder:
         overwrite_alias: Optional[str] = None,
     ) -> SelectType:
         """Given a public function, resolve to the corresponding Snql function
+
+
         :param function: the public alias for a function eg. "p50(transaction.duration)"
         :param match: the Match so we don't have to run the regex twice
         :param resolve_only: whether we should add the aggregate to self.aggregates
@@ -615,6 +617,7 @@ class QueryBuilder:
         function: str,
     ) -> Optional[str]:
         """Given a function, resolve it and then get the result_type
+
         params to this function should match that of resolve_function
         """
         if function in TREND_FUNCTION_TYPE_MAP:
@@ -752,6 +755,7 @@ class QueryBuilder:
         """Given a public field, construct the corresponding Snql, this
         function will determine the type of the field alias, whether its a
         column, field alias or function and call the corresponding resolver
+
         :param field: The public field string to resolve into Snql. This may
                       be a column, field alias, or even a function.
         :param alias: Whether or not the resolved column is aliased to the
@@ -826,6 +830,7 @@ class QueryBuilder:
 
     def validate_having_clause(self) -> None:
         """Validate that the functions in having are selected columns
+
         Skipped if auto_aggregations are enabled, and at least one other aggregate is selected
         This is so we don't change grouping suddenly
         """
@@ -877,6 +882,7 @@ class QueryBuilder:
     def aliased_column(self, name: str) -> SelectType:
         """Given an unresolved sentry name and an expected alias, return a snql
         column that will be aliased to the expected alias.
+
         :param name: The unresolved sentry name.
         :param alias: The expected alias in the result.
         """
@@ -902,6 +908,7 @@ class QueryBuilder:
 
     def column(self, name: str) -> Column:
         """Given an unresolved sentry name and return a snql column.
+
         :param name: The unresolved sentry name.
         """
         resolved_column = self.resolve_column_name(name)
@@ -1184,6 +1191,7 @@ class QueryBuilder:
 
     def get_public_alias(self, function: CurriedFunction) -> str:
         """Given a function resolved by QueryBuilder, get the public alias of that function
+
         ie. any_user_display -> any(user_display)
         """
         return self.function_alias_map[function.alias].field  # type: ignore
@@ -1340,10 +1348,13 @@ class TimeseriesQueryBuilder(UnresolvedQuery):
 class TopEventsQueryBuilder(TimeseriesQueryBuilder):
     """Create one of two top events queries, which is used for the Top Period &
     Top Daily displays
+
     This builder requires a Snuba response dictionary that already contains
     the top events for the parameters being queried. eg.
     `[{transaction: foo, count: 100}, {transaction: bar, count:50}]`
+
     Two types of queries can be constructed through this builder:
+
     First getting each timeseries for each top event (other=False). Which
     roughly results in a query like the one below. The Groupby allow us to
     get additional rows per time window for each transaction. And the Where
@@ -1358,6 +1369,7 @@ class TopEventsQueryBuilder(TimeseriesQueryBuilder):
         WHERE
             transaction IN ['foo', 'bar']
     ```
+
     Secondly This builder can also be used for getting a single timeseries
     for all events not in the top (other=True). Which is done by taking the
     previous query, dropping the groupby, and negating the condition eg.
@@ -1649,6 +1661,7 @@ class MetricsQueryBuilder(QueryBuilder):
 
     def column(self, name: str) -> Column:
         """Given an unresolved sentry name and return a snql column.
+
         :param name: The unresolved sentry name.
         """
         missing_column = IncompatibleMetricsQuery(f"Column {name} was not found in metrics indexer")
@@ -1677,10 +1690,12 @@ class MetricsQueryBuilder(QueryBuilder):
     def resolve_granularity(self) -> Granularity:
         """Granularity impacts metric queries even when they aren't timeseries because the data needs to be
         pre-aggregated
+
         Granularity is determined by checking the alignment of our start & end timestamps with the timestamps in
         snuba. eg. we can only use the daily granularity if the query starts and ends at midnight
         Seconds are ignored under the assumption that there currently isn't a valid use case to have
         to-the-second accurate information
+
         We also allow some flexibility on the granularity used the larger the duration of the query since the hypothesis
         is that users won't be able to notice the loss of accuracy regardless. With that in mind:
         - If duration is between 12 hours to 3d we allow 15 minutes on the hour boundaries for hourly granularity
@@ -2114,6 +2129,7 @@ class MetricsQueryBuilder(QueryBuilder):
     @staticmethod
     def get_default_value(meta_type: str) -> Any:
         """Given a meta type return the expected default type
+
         for example with a UInt64 (like a count_unique) return 0
         """
         if (
@@ -2221,19 +2237,23 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
 
     def resolve_time_column(self, interval: int) -> Function:
         """Need to round the timestamp to the interval requested
+
         We commonly use interval & granularity interchangeably, but in the case of the metrics dataset they must be
         considered as two separate things. The reason being the way we store metrics will rarely align with the
         start&end of the query.
         This means that we'll need to select granularity for data accuracy, and then use the clickhouse
         toStartOfInterval function to group results by their displayed interval
+
         eg.
         See test_builder.test_run_query_with_hour_interval for this in test form
         we have a query from yesterday at 15:30 -> today at 15:30
         there is 1 event at 15:45
         and we want the timeseries displayed at 1 hour intervals
+
         The event is in the quantized hour-aligned metrics bucket of 15:00, since the bounds of the query are
         (Yesterday 15:30, Today 15:30) the condition > Yesterday 15:30 means using the hour-aligned bucket you'd
         miss that event.
+
         So instead in this case we want the minute-aligned bucket, while rounding timestamp to the hour, so we'll
         only get data that is relevant because of the timestamp filters. And Snuba will merge the datasketches for
         us to get correct data.
@@ -2255,6 +2275,7 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
 
     def get_snql_query(self) -> List[Request]:
         """Because of the way metrics are structured a single request can result in >1 snql query
+
         This is because different functions will use different entities
         """
         # No need for primary from the query framework since there's no orderby to worry about
