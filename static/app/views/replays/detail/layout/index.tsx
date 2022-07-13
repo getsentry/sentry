@@ -47,7 +47,20 @@ type Layout =
    *│                    │
    *└────────────────────┘
    */
-  | 'topbar';
+  | 'topbar'
+  /**
+   * ### Sidebar Left
+   * ┌───────────────────┐
+   * │ Timeline          │
+   * ├────────┬──────────┤
+   * │ Video  > Details  │
+   * │        >          │
+   * │^^^^^^^ >          |
+   * │ Crumbs >          │
+   * │        >          │
+   * └────────┴──────────┘
+   */
+  | 'sidebar_left';
 
 type Props = {
   layout?: Layout;
@@ -108,6 +121,22 @@ function ReplayLayout({
               <AsideTabsV2 showCrumbs={showCrumbs} showVideo={showVideo} />
             </SidebarSection>
           </ResizePanel>
+        </PageRow>
+      </Container>
+    );
+  }
+
+  if (layout === 'sidebar_left') {
+    return (
+      <Container>
+        {timeline}
+        <PageRow>
+          <ResizePanel direction="e" minWidth={SIDEBAR_MIN_WIDTH}>
+            <SidebarSection>
+              <AsideTabsV2 showCrumbs={showCrumbs} showVideo={showVideo} />
+            </SidebarSection>
+          </ResizePanel>
+          {content}
         </PageRow>
       </Container>
     );

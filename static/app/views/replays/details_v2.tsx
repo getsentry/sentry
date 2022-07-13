@@ -11,6 +11,8 @@ import {useRouteContext} from 'sentry/utils/useRouteContext';
 import Layout from 'sentry/views/replays/detail/layout';
 import Page from 'sentry/views/replays/detail/page';
 
+const LAYOUT_NAMES = ['topbar', 'sidebar', 'sidebar_left'];
+
 function ReplayDetails() {
   const {
     location,
@@ -63,7 +65,12 @@ function ReplayDetails() {
   return (
     <Page eventSlug={eventSlug} orgId={orgId} event={replay?.getEvent()}>
       <ReplayContextProvider replay={replay} initialTimeOffset={initialTimeOffset}>
-        <Layout layout={getParamValue() === 'sidebar' ? 'sidebar' : 'topbar'} />
+        <Layout
+          layout={
+            // TODO(replay): If we end up keeping this, we'll fix up the typing
+            LAYOUT_NAMES.includes(getParamValue()) ? (getParamValue() as any) : 'topbar'
+          }
+        />
       </ReplayContextProvider>
     </Page>
   );
