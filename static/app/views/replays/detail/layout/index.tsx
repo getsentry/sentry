@@ -133,8 +133,7 @@ function ReplayLayout({
         <PageRow>
           <ResizePanel direction="e" minWidth={SIDEBAR_MIN_WIDTH}>
             <SidebarSection>
-              {video ? <ResizePanel direction="s">{video}</ResizePanel> : null}
-              {crumbs}
+              <AsideTabsV2 showCrumbs={showCrumbs} showVideo={showVideo} />
             </SidebarSection>
           </ResizePanel>
           {content}
