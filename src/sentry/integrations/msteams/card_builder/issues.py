@@ -74,7 +74,7 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
         return max(ts, self.event.datetime) if self.event else ts
 
     def create_date_block(self) -> TextBlock:
-        date = self.get_timestamp(self.group, self.event)
+        date = self.get_timestamp()
 
         # Adaptive cards is strict about the isoformat.
         date = date.replace(microsecond=0).isoformat()
@@ -107,7 +107,7 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
         assignee = self.group.get_assignee()
 
         if assignee:
-            assignee_string = format_actor_option(assignee)
+            assignee_string = format_actor_option(assignee)["text"]
             return create_text_block(
                 IssueConstants.ASSIGNEE_NOTE.format(assignee=assignee_string), size=TextSize.SMALL
             )

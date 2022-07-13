@@ -32,6 +32,7 @@ from sentry.models import (
 from sentry.notifications.notifications.base import BaseNotification, ProjectNotification
 from sentry.notifications.notifications.rules import AlertRuleNotification, CommitData
 from sentry.notifications.utils.actions import MessageAction
+from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 from sentry.utils.dates import to_timestamp
 
@@ -281,7 +282,12 @@ class SlackIssuesMessageBuilder(SlackMessageBuilder):
             text=text,
             title=build_attachment_title(obj),
             title_link=build_title_link(
-                self.group, self.event, self.link_to_event, self.issue_details, self.notification
+                self.group,
+                self.event,
+                self.link_to_event,
+                self.issue_details,
+                self.notification,
+                provider=ExternalProviders.SLACK,
             ),
             ts=get_timestamp(self.group, self.event) if not self.issue_details else None,
         )
