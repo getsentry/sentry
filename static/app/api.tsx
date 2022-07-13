@@ -448,7 +448,7 @@ export class Client {
       method,
       body,
       headers,
-      credentials: 'same-origin',
+      credentials: 'include',
       signal: aborter?.signal,
     });
 
