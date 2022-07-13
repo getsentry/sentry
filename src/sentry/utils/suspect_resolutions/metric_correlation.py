@@ -1,32 +1,36 @@
 from datetime import timedelta
+from typing import List
 
 from sentry import tsdb
 from sentry.models import Group
 
 
-def is_issue_error_rate_correlated(resolved_issue_id: int, issue2_id: int) -> bool:
-    resolved_issue = Group.objects.filter(id=resolved_issue_id)
-
-    if len(resolved_issue) != 1:
+def is_issue_error_rate_correlated(
+    resolved_issue: Group, candidate_suspect_resolution: Group
+) -> bool:
+    if resolved_issue is None or candidate_suspect_resolution is None:
         return False
 
-    resolution_time = resolved_issue.values_list("resolved_at", flat=True)[0]
+    resolution_time = resolved_issue.resolved_at
 
     start_time = resolution_time - timedelta(hours=1)
     end_time = resolution_time + timedelta(hours=1)
 
     data = tsdb.get_range(
         model=tsdb.models.group,
-        keys=[resolved_issue_id, issue2_id],
+        keys=[resolved_issue.id, candidate_suspect_resolution.id],
         rollup=60,
         start=start_time,
         end=end_time,
     )
 
-    x = [events for _, events in data[resolved_issue_id]]
+    x = [events for _, events in data[resolved_issue.id]]
+    y = [events for _, events in data[candidate_suspect_resolution.id]]
 
-    y = [events for _, events in data[issue2_id]]
+    return calculate_pearson_correlation_coefficient(x, y) > 0.4
 
+
+def calculate_pearson_correlation_coefficient(x: List[int], y: List[int]) -> int:
     # source: https://inside-machinelearning.com/en/pearson-formula-in-python-linear-correlation-coefficient/
 
     # calculate average
@@ -42,4 +46,4 @@ def is_issue_error_rate_correlated(resolved_issue_id: int, issue2_id: int) -> bo
 
     result = cov / (st_dev_x * st_dev_y)
 
-    return result > 0.4
+    return result
