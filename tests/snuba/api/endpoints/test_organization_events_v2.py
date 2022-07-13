@@ -11085,7 +11085,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
             "project": [self.project.id],
         }
         with freeze_time("2000-01-01"):
-            for _ in range(50):
+            for _ in range(25):
                 self.do_request(query)
             response = self.do_request(query)
             assert response.status_code == 200, response.content
