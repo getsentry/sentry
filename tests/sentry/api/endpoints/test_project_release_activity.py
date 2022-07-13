@@ -19,30 +19,17 @@ class ReleaseActivityTest(APITestCase):
         assert response.status_code == not_found.status_code == 404
         assert str(response.content) == str(not_found.content)
 
-    def test_no_activity(self):
-        with self.feature("organizations:active-release-monitor-alpha"):
-            project = self.create_project(name="foo")
-            release = Release.objects.create(organization_id=project.organization_id, version="1")
-            release.add_project(project)
-
-            self.login_as(user=self.user)
-            response = self.get_response(project.organization.slug, project.slug, release.version)
-            assert response.status_code == 200
-            assert response.data == []
-
     def test_simple(self):
         with self.feature("organizations:active-release-monitor-alpha"):
-            project = self.create_project(name="foo")
-            release = Release.objects.create(organization_id=project.organization_id, version="1")
-            release.add_project(project)
-
             now = timezone.now()
 
-            ReleaseActivity.objects.create(
-                type=ReleaseActivity.Type.created,
-                release=release,
+            project = self.create_project(name="foo")
+            release = Release.objects.create(
+                organization_id=project.organization_id,
+                version="1",
                 date_added=now - timedelta(hours=5),
             )
+            release.add_project(project)
 
             ReleaseActivity.objects.create(
                 type=ReleaseActivity.Type.deployed,
