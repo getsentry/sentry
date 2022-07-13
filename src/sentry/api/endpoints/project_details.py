@@ -780,10 +780,12 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
     @staticmethod
     def _is_uniform_sampling_rule(rule):
-        # Currently UI sends top level condition op as always 'and' so asserting this here to
-        # guarantee that it will always have an `inner` key
+        # A uniform sampling rule must be an 'and' with no rules. An 'or' with no rules will not
+        # match anything.
         assert rule["condition"]["op"] == "and"
-        # Matching the uniform sampling rule check on UI
+        # Matching the uniform sampling rule check on UI because currently we only support
+        # uniform rules on traces, not on single transactions. If we change this spec in the
+        # future, we will have to update this to also support single transactions.
         return len(rule["condition"]["inner"]) == 0 and rule["type"] == "trace"
 
     def validate_uniform_sampling_rule(self, rules):
