@@ -796,8 +796,8 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         uniform_rule = rules[-1]
         # Guards against placing uniform sampling rule not in last position or adding multiple
         # uniform sampling rules
-        for i in range(0, len(rules) - 2):
-            if self._is_uniform_sampling_rule(rules[i]):
+        for rule in rules[:-1]:
+            if self._is_uniform_sampling_rule(rule):
                 raise UniformDynamicSamplingRuleException(
                     "Uniform rule must be in the last position only"
                 )
