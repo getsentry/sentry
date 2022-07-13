@@ -111,6 +111,7 @@ def pytest_configure(config):
     settings.BROKER_URL = "memory://"
     settings.CELERY_ALWAYS_EAGER = False
     settings.CELERY_COMPLAIN_ABOUT_BAD_USE_OF_PICKLE = True
+    settings.PICKLED_OBJECT_FIELD_COMPLAIN_ABOUT_BAD_USE_OF_PICKLE = True
     settings.CELERY_EAGER_PROPAGATES_EXCEPTIONS = True
 
     settings.DEBUG_VIEWS = True
@@ -139,6 +140,8 @@ def pytest_configure(config):
             "system.url-prefix": "http://testserver",
             "system.base-hostname": "testserver",
             "system.organization-base-hostname": "{slug}.{region}.testserver",
+            "system.organization-url-template": "http://{hostname}",
+            "system.region": "us",
             "system.secret-key": "a" * 52,
             "slack.client-id": "slack-client-id",
             "slack.client-secret": "slack-client-secret",

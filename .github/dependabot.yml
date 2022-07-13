@@ -56,7 +56,6 @@ updates:
       - dependency-name: '@types/react-router'
       - dependency-name: '@types/react-select'
       - dependency-name: '@types/reflux'
-      - dependency-name: '@wojtekmaj/enzyme-adapter-react-17'
       - dependency-name: 'babel-jest'
       - dependency-name: 'gettext-parser'
       - dependency-name: 'jest-junit'

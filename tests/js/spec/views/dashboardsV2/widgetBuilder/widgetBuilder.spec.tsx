@@ -2414,13 +2414,14 @@ describe('WidgetBuilder', function () {
       it('issue query does not work on default search bar', async function () {
         renderTestComponent();
 
-        userEvent.paste(
-          await screen.findByPlaceholderText('Search for events, users, tags, and more'),
-          'bookmarks',
-          {
-            clipboardData: {getData: () => ''},
-          } as unknown as React.ClipboardEvent<HTMLTextAreaElement>
-        );
+        const input = (await screen.findByPlaceholderText(
+          'Search for events, users, tags, and more'
+        )) as HTMLTextAreaElement;
+        userEvent.paste(input, 'bookmarks', {
+          clipboardData: {getData: () => ''},
+        } as unknown as React.ClipboardEvent<HTMLTextAreaElement>);
+        input.setSelectionRange(9, 9);
+
         expect(await screen.findByText('No items found')).toBeInTheDocument();
       });
 
@@ -2430,13 +2431,15 @@ describe('WidgetBuilder', function () {
         userEvent.click(
           await screen.findByText('Issues (States, Assignment, Time, etc.)')
         );
-        userEvent.paste(
-          screen.getByPlaceholderText('Search for issues, status, assigned, and more'),
-          'is:',
-          {
-            clipboardData: {getData: () => ''},
-          } as unknown as React.ClipboardEvent<HTMLTextAreaElement>
-        );
+
+        const input = (await screen.findByPlaceholderText(
+          'Search for issues, status, assigned, and more'
+        )) as HTMLTextAreaElement;
+        userEvent.paste(input, 'is:', {
+          clipboardData: {getData: () => ''},
+        } as unknown as React.ClipboardEvent<HTMLTextAreaElement>);
+        input.setSelectionRange(3, 3);
+
         expect(await screen.findByText('resolved')).toBeInTheDocument();
       });
 

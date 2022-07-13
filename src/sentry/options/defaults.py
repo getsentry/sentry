@@ -30,6 +30,10 @@ register(
     "system.organization-base-hostname",
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_NOSTORE,
 )
+register(
+    "system.organization-url-template", flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_NOSTORE
+)
+register("system.region", flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_NOSTORE)
 register("system.root-api-key", flags=FLAG_PRIORITIZE_DISK)
 register("system.logging-format", default=LoggingFormat.HUMAN, flags=FLAG_NOSTORE)
 # This is used for the chunk upload endpoint
@@ -450,21 +454,3 @@ register("sentry-metrics.last-seen-updater.accept-rate", default=0.0)
 register("api.deprecation.brownout-cron", default="0 12 * * *", type=String)
 # Brownout duration to be stored in ISO8601 format for durations (See https://en.wikipedia.org/wiki/ISO_8601#Durations)
 register("api.deprecation.brownout-duration", default="PT1M")
-
-# Global and per-organization limits on the writes to the string indexer's DB.
-#
-# Format is a list of dictionaries of format {
-#   "window_seconds": ...,
-#   "granularity_seconds": ...,
-#   "limit": ...
-# }
-#
-# See sentry.ratelimiters.sliding_windows for an explanation of what each of
-# those terms mean.
-#
-# Note that changing either window or granularity_seconds of a limit will
-# effectively reset it, as the previous data can't/won't be converted.
-register("sentry-metrics.writes-limiter.limits.performance.per-org", default=[])
-register("sentry-metrics.writes-limiter.limits.releasehealth.per-org", default=[])
-register("sentry-metrics.writes-limiter.limits.performance.global", default=[])
-register("sentry-metrics.writes-limiter.limits.releasehealth.global", default=[])

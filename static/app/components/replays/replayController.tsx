@@ -1,5 +1,6 @@
-import React from 'react';
+import React, {useCallback, useLayoutEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {useResizeObserver} from '@react-aria/utils';
 
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -38,7 +39,7 @@ interface Props {
   toggleFullscreen?: () => void;
 }
 
-function ReplayPlayPauseBar() {
+function ReplayPlayPauseBar({isCompact}: {isCompact: boolean}) {
   const {
     currentTime,
     isFinished,
@@ -51,13 +52,15 @@ function ReplayPlayPauseBar() {
 
   return (
     <ButtonBar merged>
-      <Button
-        size="xs"
-        title={t('Go back 10 seconds')}
-        icon={<IconRefresh size="sm" />}
-        onClick={() => setCurrentTime(currentTime - 10 * SECOND)}
-        aria-label={t('Go back 10 seconds')}
-      />
+      {!isCompact && (
+        <Button
+          size="xs"
+          title={t('Go back 10 seconds')}
+          icon={<IconRefresh size="sm" />}
+          onClick={() => setCurrentTime(currentTime - 10 * SECOND)}
+          aria-label={t('Go back 10 seconds')}
+        />
+      )}
       {isFinished ? (
         <Button
           size="xs"
@@ -75,27 +78,31 @@ function ReplayPlayPauseBar() {
           aria-label={isPlaying ? t('Pause the Replay') : t('Play the Replay')}
         />
       )}
-      <Button
-        size="xs"
-        title={t('Jump to next event')}
-        icon={<IconNext size="sm" />}
-        onClick={() => {
-          const startTimestampSec = replay?.getEvent().startTimestamp;
-          if (!startTimestampSec) {
-            return;
-          }
-          const transformedCrumbs = transformCrumbs(replay?.getRawCrumbs() || []);
-          const next = getNextBreadcrumb({
-            crumbs: transformedCrumbs.filter(crumb => USER_ACTIONS.includes(crumb.type)),
-            targetTimestampMs: startTimestampSec * 1000 + currentTime,
-          });
+      {!isCompact && (
+        <Button
+          size="xs"
+          title={t('Jump to next event')}
+          icon={<IconNext size="sm" />}
+          onClick={() => {
+            const startTimestampSec = replay?.getEvent().startTimestamp;
+            if (!startTimestampSec) {
+              return;
+            }
+            const transformedCrumbs = transformCrumbs(replay?.getRawCrumbs() || []);
+            const next = getNextBreadcrumb({
+              crumbs: transformedCrumbs.filter(crumb =>
+                USER_ACTIONS.includes(crumb.type)
+              ),
+              targetTimestampMs: startTimestampSec * 1000 + currentTime,
+            });
 
-          if (startTimestampSec !== undefined && next?.timestamp) {
-            setCurrentTime(relativeTimeInMs(next.timestamp, startTimestampSec));
-          }
-        }}
-        aria-label={t('Jump to next event')}
-      />
+            if (startTimestampSec !== undefined && next?.timestamp) {
+              setCurrentTime(relativeTimeInMs(next.timestamp, startTimestampSec));
+            }
+          }}
+          aria-label={t('Jump to next event')}
+        />
+      )}
     </ButtonBar>
   );
 }
@@ -132,25 +139,25 @@ function ReplayOptionsMenu({speedOptions}: {speedOptions: number[]}) {
       sections={[
         {
           defaultValue: speed,
-          label: 'Playback Speed',
-          value: 'playback_speed',
+          label: t('Playback Speed'),
+          value: t('playback_speed'),
           onChange: setSpeed,
-          options: speedOptions.map(sp => ({
-            label: `${sp}x`,
-            value: sp,
+          options: speedOptions.map(option => ({
+            label: `${option}x`,
+            value: option,
           })),
         },
         {
-          defaultValue: isSkippingInactive ? SKIP_OPTION_VALUE : undefined,
           multiple: true,
-          label: '',
+          defaultValue: isSkippingInactive ? SKIP_OPTION_VALUE : undefined,
+          label: t(''),
+          value: t('fast_forward'),
           onChange: value => {
             toggleSkipInactive(Array.isArray(value) && value.length > 0);
           },
-          value: 'fast_forward',
           options: [
             {
-              label: 'Fast-forward inactivity',
+              label: t('Fast-forward inactivity'),
               value: SKIP_OPTION_VALUE,
             },
           ],
@@ -164,12 +171,29 @@ const ReplayControls = ({
   toggleFullscreen = () => {},
   speedOptions = [0.1, 0.25, 0.5, 1, 2, 4],
 }: Props) => {
+  const barRef = useRef<HTMLDivElement>(null);
+  const [compactLevel, setCompactLevel] = useState(0);
   const {isFullscreen} = useFullscreen();
   const {isSkippingInactive, toggleSkipInactive} = useReplayContext();
 
+  const updateCompactLevel = useCallback(() => {
+    const {width} = barRef.current?.getBoundingClientRect() ?? {width: 500};
+    if (width < 400) {
+      setCompactLevel(1);
+    } else {
+      setCompactLevel(0);
+    }
+  }, []);
+
+  useResizeObserver({
+    ref: barRef,
+    onResize: updateCompactLevel,
+  });
+  useLayoutEffect(() => updateCompactLevel, [updateCompactLevel]);
+
   return (
-    <ButtonGrid>
-      <ReplayPlayPauseBar />
+    <ButtonGrid ref={barRef}>
+      <ReplayPlayPauseBar isCompact={compactLevel > 0} />
       <ReplayCurrentTime />
 
       {/* TODO(replay): Need a better icon for the FastForward toggle */}
