@@ -600,17 +600,6 @@ const routeRenderMap: Record<APIRouteType, RouteTuple> = {
   'organization-events': ['/organizations/:org_slug/events/', '/events/'],
 };
 
-function canUseOrganizationUrl(organizationUrl: string | undefined) {
-  if (!organizationUrl) {
-    return false;
-  }
-  const currentURL = new URL('/', window.location.origin);
-  const organizationUrlParsed = new URL('/', organizationUrl);
-  return (
-    currentURL.hostname.toLowerCase() === organizationUrlParsed.hostname.toLowerCase()
-  );
-}
-
 export function resolveUrl(
   routeType: APIRouteType,
   organization: OrganizationSummary,
@@ -619,9 +608,7 @@ export function resolveUrl(
   const [legacyRoute, customerDomainRoute] = routeRenderMap[routeType];
   const {organizationUrl} = organization;
 
-  const useOrganizationUrl = canUseOrganizationUrl(organizationUrl);
-  const shouldUseLegacyRoute = !organizationUrl || !useOrganizationUrl;
-
+  const shouldUseLegacyRoute = !organizationUrl;
   const route = shouldUseLegacyRoute ? legacyRoute : customerDomainRoute;
 
   const renderedRoute = replaceRouterParams(route, {
@@ -631,7 +618,7 @@ export function resolveUrl(
 
   const result = shouldUseLegacyRoute
     ? renderedRoute
-    : `${generateOrganizationBaseUrl(organizationUrl)}/${renderedRoute}`;
+    : `${generateOrganizationBaseUrl(organizationUrl)}${renderedRoute}`;
 
   const currentTransaction = Sentry.getCurrentHub().getScope()?.getTransaction();
   if (currentTransaction && currentTransaction.tags.hasOrganizationUrl !== String(true)) {
