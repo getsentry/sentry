@@ -2773,8 +2773,8 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
 
         features = {"organizations:discover-basic": True, "organizations:global-views": True}
         query = {
-            "field": ["event.type", "p99()"],
-            "query": "event.type:transaction p99():5s",
+            "field": ["event.type", "count()"],
+            "query": "event.type:transaction count():1",
             "statsPeriod": "24h",
         }
         response = self.do_request(query, features=features)
@@ -2783,8 +2783,8 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert len(data) == 1
 
         query = {
-            "field": ["event.type", "p99()"],
-            "query": "event.type:transaction !p99():5s",
+            "field": ["event.type", "count()"],
+            "query": "event.type:transaction !count():1",
             "statsPeriod": "24h",
         }
         response = self.do_request(query, features=features)
