@@ -50,7 +50,7 @@ describe('useVirtualizedTree', () => {
       useVirtualizedTree({
         overscroll: 0,
         rowHeight: 10,
-        roots: [],
+        tree: [],
         scrollContainer: null,
         renderRow: () => <div />,
       })
@@ -62,20 +62,19 @@ describe('useVirtualizedTree', () => {
   it('shows first 10 items', () => {
     const mockScrollContainer = makeScrollContainerMock({height: 100});
 
-    const roots = [chain('child', 10)];
+    const tree = [chain('child', 10)];
 
     const {result} = reactHooks.renderHook(() =>
       useVirtualizedTree({
         rowHeight: 10,
         scrollContainer: mockScrollContainer,
         overscroll: 0,
-        roots,
+        tree,
         renderRow: () => <div />,
       })
     );
 
     reactHooks.act(() => {
-      // @ts-ignore
       result.current.handleExpandTreeNode(result.current.tree.roots[0], {
         expandChildren: true,
       });
@@ -90,14 +89,14 @@ describe('useVirtualizedTree', () => {
   it('shows 5-15 items', async () => {
     const mockScrollContainer = makeScrollContainerMock({height: 100});
 
-    const roots = [chain('child', 20)];
+    const tree = [chain('child', 20)];
 
     const {result} = reactHooks.renderHook(() =>
       useVirtualizedTree({
         rowHeight: 10,
         scrollContainer: mockScrollContainer,
         overscroll: 0,
-        roots,
+        tree,
         renderRow: () => <div />,
       })
     );
@@ -121,14 +120,14 @@ describe('useVirtualizedTree', () => {
   it('shows last 10 items', async () => {
     const mockScrollContainer = makeScrollContainerMock({height: 100});
 
-    const roots = [chain('child', 20)];
+    const tree = [chain('child', 20)];
 
     const {result} = reactHooks.renderHook(() =>
       useVirtualizedTree({
         rowHeight: 10,
         scrollContainer: mockScrollContainer,
         overscroll: 0,
-        roots,
+        tree,
         renderRow: () => <div />,
       })
     );
@@ -152,14 +151,14 @@ describe('useVirtualizedTree', () => {
   it('shows overscroll items', () => {
     const mockScrollContainer = makeScrollContainerMock({height: 100});
 
-    const roots = [chain('child', 20)];
+    const tree = [chain('child', 20)];
 
     const {result} = reactHooks.renderHook(() =>
       useVirtualizedTree({
         rowHeight: 10,
         scrollContainer: mockScrollContainer,
         overscroll: 2,
-        roots,
+        tree,
         renderRow: () => <div />,
       })
     );
@@ -181,14 +180,14 @@ describe('useVirtualizedTree', () => {
   it('items have a stable key', () => {
     const mockScrollContainer = makeScrollContainerMock({height: 100});
 
-    const roots = [chain('child', 20)];
+    const tree = [chain('child', 20)];
 
     const {result} = reactHooks.renderHook(() =>
       useVirtualizedTree({
         rowHeight: 10,
         scrollContainer: mockScrollContainer,
         overscroll: 0,
-        roots,
+        tree,
         renderRow: () => <div />,
       })
     );

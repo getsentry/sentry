@@ -20,7 +20,6 @@ export interface TagValueAutocompleteProps {
   category:
     | SamplingInnerName.TRACE_ENVIRONMENT
     | SamplingInnerName.TRACE_RELEASE
-    | SamplingInnerName.TRACE_TRANSACTION
     | string;
   onChange: (value: string) => void;
   orgSlug: Organization['slug'];
@@ -46,8 +45,6 @@ function TagValueAutocomplete({
         return t('Search or add a release');
       case SamplingInnerName.TRACE_ENVIRONMENT:
         return t('Search or add an environment');
-      case SamplingInnerName.TRACE_TRANSACTION:
-        return t('Search or add a transaction');
       default:
         return undefined;
     }

@@ -2,37 +2,38 @@ import {memo, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
+import {IconPanel} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
 import {filterFlamegraphTree} from 'sentry/utils/profiling/filterFlamegraphTree';
-import {useFlamegraphProfilesValue} from 'sentry/utils/profiling/flamegraph/useFlamegraphProfiles';
+import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
+import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/useFlamegraphPreferences';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {useVerticallyResizableDrawer} from 'sentry/utils/profiling/hooks/useResizableDrawer';
 import {invertCallTree} from 'sentry/utils/profiling/profile/utils';
-import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
 
 import {FrameStackTable} from './frameStackTable';
 
 interface FrameStackProps {
   canvasPoolManager: CanvasPoolManager;
-  flamegraphRenderer: FlamegraphRenderer;
+  formatDuration: Flamegraph['formatter'];
+  getFrameColor: (frame: FlamegraphFrame) => string;
+  referenceNode: FlamegraphFrame;
+  rootNodes: FlamegraphFrame[];
 }
 
 const FrameStack = memo(function FrameStack(props: FrameStackProps) {
   const theme = useFlamegraphTheme();
-  const {selectedRoot} = useFlamegraphProfilesValue();
+  const [flamegraphPreferences, dispatchFlamegraphPreferences] =
+    useFlamegraphPreferences();
 
   const [tab, setTab] = useState<'bottom up' | 'call order'>('call order');
   const [treeType, setTreeType] = useState<'all' | 'application' | 'system'>('all');
   const [recursion, setRecursion] = useState<'collapsed' | null>(null);
 
-  const roots: FlamegraphFrame[] | null = useMemo(() => {
-    if (!selectedRoot) {
-      return null;
-    }
-
+  const maybeFilteredOrInvertedTree: FlamegraphFrame[] | null = useMemo(() => {
     const skipFunction: (f: FlamegraphFrame) => boolean =
       treeType === 'application'
         ? f => !f.frame.is_application
@@ -42,15 +43,15 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
 
     const maybeFilteredRoots =
       treeType !== 'all'
-        ? filterFlamegraphTree([selectedRoot], skipFunction)
-        : [selectedRoot];
+        ? filterFlamegraphTree(props.rootNodes, skipFunction)
+        : props.rootNodes;
 
     if (tab === 'call order') {
       return maybeFilteredRoots;
     }
 
     return invertCallTree(maybeFilteredRoots);
-  }, [selectedRoot, tab, treeType]);
+  }, [tab, treeType, props.rootNodes]);
 
   const handleRecursionChange = useCallback(
     (evt: React.ChangeEvent<HTMLInputElement>) => {
@@ -79,15 +80,28 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
     setTreeType('system');
   }, []);
 
+  const onTableLeftClick = useCallback(() => {
+    dispatchFlamegraphPreferences({type: 'set layout', payload: 'table_left'});
+  }, [dispatchFlamegraphPreferences]);
+
+  const onTableBottomClick = useCallback(() => {
+    dispatchFlamegraphPreferences({type: 'set layout', payload: 'table_bottom'});
+  }, [dispatchFlamegraphPreferences]);
+
+  const onTableRightClick = useCallback(() => {
+    dispatchFlamegraphPreferences({type: 'set layout', payload: 'table_right'});
+  }, [dispatchFlamegraphPreferences]);
+
   const {height, onMouseDown} = useVerticallyResizableDrawer({
     initialHeight: (theme.SIZES.FLAMEGRAPH_DEPTH_OFFSET + 2) * theme.SIZES.BAR_HEIGHT,
     minHeight: 30,
   });
 
-  return selectedRoot ? (
+  return (
     <FrameDrawer
       style={{
-        height,
+        // If the table is not at the bottom, the height should not be managed
+        height: flamegraphPreferences.layout === 'table_bottom' ? height : undefined,
       }}
     >
       <FrameTabs>
@@ -153,17 +167,54 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
             {t('Collapse recursion')}
           </FrameDrawerLabel>
         </li>
-        <li style={{flex: '1 1 100%', cursor: 'ns-resize'}} onMouseDown={onMouseDown} />
+        <li
+          style={{
+            flex: '1 1 100%',
+            cursor:
+              flamegraphPreferences.layout === 'table_bottom' ? 'ns-resize' : undefined,
+          }}
+          onMouseDown={
+            flamegraphPreferences.layout === 'table_bottom' ? onMouseDown : undefined
+          }
+        />
+        <li>
+          <LayoutSelectionContainer>
+            <StyledButton
+              active={flamegraphPreferences.layout === 'table_left'}
+              onClick={onTableLeftClick}
+              size="xs"
+              title={t('Table left')}
+            >
+              <IconPanel size="xs" direction="right" />
+            </StyledButton>
+            <StyledButton
+              active={flamegraphPreferences.layout === 'table_bottom'}
+              onClick={onTableBottomClick}
+              size="xs"
+              title={t('Table bottom')}
+            >
+              <IconPanel size="xs" direction="down" />
+            </StyledButton>
+            <StyledButton
+              active={flamegraphPreferences.layout === 'table_right'}
+              onClick={onTableRightClick}
+              size="xs"
+              title={t('Table right')}
+            >
+              <IconPanel size="xs" direction="left" />
+            </StyledButton>
+          </LayoutSelectionContainer>
+        </li>
       </FrameTabs>
       <FrameStackTable
         {...props}
         recursion={recursion}
-        roots={roots ?? []}
-        referenceNode={selectedRoot}
+        referenceNode={props.referenceNode}
+        tree={maybeFilteredOrInvertedTree ?? []}
         canvasPoolManager={props.canvasPoolManager}
       />
     </FrameDrawer>
-  ) : null;
+  );
 });
 
 const FrameDrawerLabel = styled('label')`
@@ -183,6 +234,7 @@ const FrameDrawer = styled('div')`
   display: flex;
   flex-shrink: 0;
   flex-direction: column;
+  height: 100%;
 `;
 
 const Separator = styled('li')`
@@ -236,6 +288,30 @@ const FrameTabs = styled('ul')`
       border-bottom: 2px solid ${prop => prop.theme.active};
     }
   }
+`;
+
+const StyledButton = styled(Button)<{active: boolean}>`
+  border: none;
+  background-color: transparent;
+  box-shadow: none;
+  transition: none !important;
+  opacity: ${p => (p.active ? 0.7 : 0.5)};
+
+  &:not(:last-child) {
+    margin-right: ${space(1)};
+  }
+
+  &:hover {
+    border: none;
+    background-color: transparent;
+    box-shadow: none;
+    opacity: ${p => (p.active ? 0.6 : 0.5)};
+  }
+`;
+
+const LayoutSelectionContainer = styled('div')`
+  display: flex;
+  align-items: center;
 `;
 
 const FRAME_WEIGHT_CELL_WIDTH_PX = 164;
