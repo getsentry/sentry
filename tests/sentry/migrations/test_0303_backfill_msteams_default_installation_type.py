@@ -3,8 +3,8 @@ from sentry.testutils.cases import TestMigrations
 
 
 class TestBackfill(TestMigrations):
-    migrate_from = "0301_mep_move_type_to_snuba_query"
-    migrate_to = "0302_backfill_msteams_default_installation_type"
+    migrate_from = "0302_mep_backfill_and_not_null_snuba_query_type"
+    migrate_to = "0303_backfill_msteams_default_installation_type"
 
     def setup_before_migration(self, apps):
         self.msteams_1 = Integration(
