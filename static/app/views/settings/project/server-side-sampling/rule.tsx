@@ -184,7 +184,7 @@ export function Rule({
             message={t('Are you sure you wish to delete this sampling rule?')}
             icon={<IconDownload size="xs" />}
             title={t('Delete')}
-            // disabled={!canDelete}
+            disabled={!canDelete}
             priority="danger"
             shouldConfirm
           >
