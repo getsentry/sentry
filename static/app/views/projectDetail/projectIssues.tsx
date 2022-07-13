@@ -254,7 +254,7 @@ function ProjectIssues({organization, location, projectId, query, api}: Props) {
             <Button
               key={value}
               barId={value}
-              size="xsmall"
+              size="xs"
               onClick={() => handleIssuesTypeSelection(value)}
               data-test-id={`filter-${value}`}
             >
@@ -266,7 +266,7 @@ function ProjectIssues({organization, location, projectId, query, api}: Props) {
         <OpenInButtonBar gap={1}>
           <Button
             data-test-id="issues-open"
-            size="xsmall"
+            size="xs"
             to={issueSearch}
             onClick={handleOpenInIssuesClick}
           >
@@ -275,11 +275,11 @@ function ProjectIssues({organization, location, projectId, query, api}: Props) {
           <DiscoverButton
             onClick={handleOpenInDiscoverClick}
             to={getDiscoverUrl()}
-            size="xsmall"
+            size="xs"
           >
             {t('Open in Discover')}
           </DiscoverButton>
-          <StyledPagination pageLinks={pageLinks} onCursor={onCursor} size="xsmall" />
+          <StyledPagination pageLinks={pageLinks} onCursor={onCursor} size="xs" />
         </OpenInButtonBar>
       </ControlsWrapper>
 

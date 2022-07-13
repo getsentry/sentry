@@ -2,6 +2,7 @@ import {mat3, vec2} from 'gl-matrix';
 
 import {
   Bounds,
+  computeConfigViewWithStategy,
   computeHighlightedBounds,
   createProgram,
   createShader,
@@ -221,6 +222,15 @@ describe('Rect', () => {
     });
     it('containsRect', () => {
       expect(new Rect(0, 0, 1, 1).containsRect(new Rect(0.1, 0.1, 0.1, 0.1))).toBe(true);
+    });
+
+    it('overlapsLeft', () => {
+      expect(new Rect(0, 0, 1, 1).leftOverlapsWith(new Rect(-0.5, 0, 1, 1))).toBe(true);
+      expect(new Rect(0, 0, 1, 1).leftOverlapsWith(new Rect(1, 0, 1, 1))).toBe(false);
+    });
+    it('overlapsRight', () => {
+      expect(new Rect(0, 0, 1, 1).rightOverlapsWith(new Rect(0.5, 0, 1, 1))).toBe(true);
+      expect(new Rect(0, 0, 1, 1).rightOverlapsWith(new Rect(1.5, 0, 1, 1))).toBe(false);
     });
     it('overlaps', () => {
       expect(new Rect(0, 0, 1, 1).overlaps(new Rect(-1, -1, 2, 2))).toBe(true);
@@ -482,5 +492,79 @@ describe('computeHighlightedBounds', () => {
   it.each(testTable)(`$name`, ({args, expected}) => {
     const value = computeHighlightedBounds(args.bounds as Bounds, args.trim);
     expect(value).toEqual(expected);
+  });
+});
+
+describe('computeConfigViewWithStategy', () => {
+  it('exact (preserves view height)', () => {
+    const view = new Rect(0, 0, 1, 1);
+    const frame = new Rect(0, 0, 0.5, 0.5);
+
+    expect(
+      computeConfigViewWithStategy('exact', view, frame).equals(new Rect(0, 0, 0.5, 1))
+    ).toBe(true);
+  });
+
+  it('min (when view is too small to fit frame)', () => {
+    const view = new Rect(0, 0, 1, 1);
+    const frame = new Rect(2, 2, 5, 1);
+
+    expect(
+      computeConfigViewWithStategy('min', view, frame).equals(new Rect(2, 2, 5, 1))
+    ).toBe(true);
+  });
+
+  it('min (frame is outside of view on the left)', () => {
+    const view = new Rect(5, 0, 10, 1);
+    const frame = new Rect(1, 0, 1, 1);
+
+    expect(
+      computeConfigViewWithStategy('min', view, frame).equals(new Rect(1, 0, 10, 1))
+    ).toBe(true);
+  });
+
+  it('min (frame overlaps with view on the left)', () => {
+    const view = new Rect(5, 0, 10, 1);
+    const frame = new Rect(4, 0, 2, 1);
+
+    expect(
+      computeConfigViewWithStategy('min', view, frame).equals(new Rect(4, 0, 10, 1))
+    ).toBe(true);
+  });
+
+  it('min (frame overlaps with view on the right)', () => {
+    const view = new Rect(0, 0, 10, 1);
+    const frame = new Rect(9, 0, 5, 1);
+
+    expect(
+      computeConfigViewWithStategy('min', view, frame).equals(new Rect(4, 0, 10, 1))
+    ).toBe(true);
+  });
+
+  it('min (frame is outside of view on the right)', () => {
+    const view = new Rect(0, 0, 10, 1);
+    const frame = new Rect(12, 0, 5, 1);
+
+    expect(
+      computeConfigViewWithStategy('min', view, frame).equals(new Rect(7, 0, 10, 1))
+    ).toBe(true);
+  });
+
+  it('min (frame is above the view)', () => {
+    const view = new Rect(0, 1, 10, 1);
+    const frame = new Rect(0, 0, 10, 1);
+
+    expect(
+      computeConfigViewWithStategy('min', view, frame).equals(new Rect(0, 0, 10, 1))
+    ).toBe(true);
+  });
+
+  it('min (frame is below the view)', () => {
+    const view = new Rect(0, 0, 10, 1);
+    const frame = new Rect(0, 2, 10, 1);
+
+    expect(
+      computeConfigViewWithStategy('min', view, frame).equals(new Rect(0, 2, 10, 1))
+    ).toBe(true);
   });
 });

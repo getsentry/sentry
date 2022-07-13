@@ -156,6 +156,7 @@ def get_group_settings_link(
     environment: str | None,
     rule_details: Sequence[NotificationRuleDetails] | None = None,
     alert_timestamp: int | None = None,
+    referrer: str = "alert_email",
 ) -> str:
     alert_rule_id: int | None = rule_details[0].id if rule_details and rule_details[0].id else None
     return str(
@@ -163,9 +164,9 @@ def get_group_settings_link(
         + (
             ""
             if not alert_rule_id
-            else get_email_link_extra_params(
-                "alert_email", environment, rule_details, alert_timestamp
-            )[alert_rule_id]
+            else get_email_link_extra_params(referrer, environment, rule_details, alert_timestamp)[
+                alert_rule_id
+            ]
         )
     )
 

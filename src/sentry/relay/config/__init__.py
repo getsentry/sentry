@@ -23,6 +23,7 @@ from sentry.relay.config.metric_extraction import get_metric_conditional_tagging
 from sentry.relay.utils import to_camel_case_name
 from sentry.utils import metrics
 from sentry.utils.http import get_origins
+from sentry.utils.options import sample_modulo
 
 #: These features will be listed in the project config
 EXPOSABLE_FEATURES = ["organizations:profiling", "organizations:session-replay"]
@@ -171,13 +172,16 @@ def _get_project_config(project, full_config=True, project_keys=None):
             "projectId": project.id,  # XXX: Unused by Relay, required by Python store
         }
     allow_dynamic_sampling = features.has(
-        "organizations:filters-and-sampling",
+        "organizations:server-side-sampling",
         project.organization,
     )
     if allow_dynamic_sampling:
         dynamic_sampling = project.get_option("sentry:dynamic_sampling")
         if dynamic_sampling is not None:
-            cfg["config"]["dynamicSampling"] = dynamic_sampling
+            # filter out rules that do not have active set to True
+            cfg["config"]["dynamicSampling"] = {
+                "rules": [r for r in dynamic_sampling["rules"] if r.get("active")]
+            }
 
     if not full_config:
         # This is all we need for external Relay processors
@@ -428,8 +432,9 @@ class TransactionMetricsSettings(TypedDict):
 
 
 def _should_extract_transaction_metrics(project: Project) -> bool:
-    return features.has(
-        "organizations:transaction-metrics-extraction", project.organization
+    return (
+        sample_modulo("relay.transaction-metrics-org-sample-rate", project.organization_id)
+        or features.has("organizations:transaction-metrics-extraction", project.organization)
     ) and not killswitches.killswitch_matches_context(
         "relay.drop-transaction-metrics", {"project_id": project.id}
     )

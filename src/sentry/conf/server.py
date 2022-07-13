@@ -281,6 +281,7 @@ MIDDLEWARE = (
     "sentry.middleware.stats.RequestTimingMiddleware",
     "sentry.middleware.access_log.access_log_middleware",
     "sentry.middleware.stats.ResponseCodeMiddleware",
+    "sentry.middleware.subdomain.SubdomainMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -579,6 +580,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.process_buffer",
     "sentry.tasks.relay",
     "sentry.tasks.release_registry",
+    "sentry.tasks.release_summary",
     "sentry.tasks.reports",
     "sentry.tasks.reprocessing",
     "sentry.tasks.reprocessing2",
@@ -720,6 +722,11 @@ CELERYBEAT_SCHEDULE = {
         "task": "sentry.tasks.digests.schedule_digests",
         "schedule": timedelta(seconds=30),
         "options": {"expires": 30},
+    },
+    "schedule-digest-release-summary": {
+        "task": "sentry.tasks.digest.release_summary",
+        "schedule": timedelta(minutes=5),
+        "options": {"expires": 60 * 5},
     },
     "check-monitors": {
         "task": "sentry.tasks.check_monitors",
@@ -961,12 +968,12 @@ SENTRY_FEATURES = {
     "organizations:discover-frontend-use-events-endpoint": True,
     # Enables events endpoint usage on performance frontend
     "organizations:performance-frontend-use-events-endpoint": True,
+    # Enables events endpoint rate limit
+    "organizations:discover-events-rate-limit": False,
     # Enable duplicating alert rules.
     "organizations:duplicate-alert-rule": True,
     # Enable attaching arbitrary files to events.
     "organizations:event-attachments": True,
-    # Enable Filters & Sampling in the project settings
-    "organizations:filters-and-sampling": False,
     # Allow organizations to configure all symbol sources.
     "organizations:symbol-sources": True,
     # Allow organizations to configure custom external symbol sources.
@@ -1068,6 +1075,8 @@ SENTRY_FEATURES = {
     "organizations:dashboards-mep": False,
     # Enable release health widgets in dashboards
     "organizations:dashboards-releases": False,
+    # Enable top level query filters in dashboards
+    "organizations:dashboards-top-level-filter": False,
     # Enables usage of custom measurements in dashboard widgets
     "organizations:dashboard-custom-measurement-widgets": False,
     # Enable widget viewer modal in dashboards
@@ -1105,6 +1114,8 @@ SENTRY_FEATURES = {
     "organizations:performance-span-tree-autoscroll": False,
     # Enable transaction name only search
     "organizations:performance-transaction-name-only-search": False,
+    # Enable performance issue view
+    "organizations:performance-extraneous-spans-poc": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
     # Enable usage of external relays, for use with Relay. See
@@ -2676,3 +2687,9 @@ MAX_REDIS_SNOWFLAKE_RETRY_COUNTER = 5
 
 SNOWFLAKE_VERSION_ID = 1
 SNOWFLAKE_REGION_ID = 0
+
+
+SENTRY_POST_PROCESS_LOCKS_BACKEND_OPTIONS = {
+    "path": "sentry.utils.locking.backends.redis.RedisLockBackend",
+    "options": {"cluster": "default"},
+}

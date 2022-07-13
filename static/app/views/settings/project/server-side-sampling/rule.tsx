@@ -1,20 +1,22 @@
-import {Fragment, useEffect, useState} from 'react';
+import {Fragment} from 'react';
 import {DraggableSyntheticListeners, UseDraggableArguments} from '@dnd-kit/core';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import MenuItemActionLink from 'sentry/components/actions/menuItemActionLink';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Button from 'sentry/components/button';
 import DropdownLink from 'sentry/components/dropdownLink';
 import NewBooleanField from 'sentry/components/forms/booleanField';
 import Tooltip from 'sentry/components/tooltip';
 import {IconDownload, IconEllipsis} from 'sentry/icons';
 import {IconGrabbable} from 'sentry/icons/iconGrabbable';
-import {t} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {LegacyBrowser, SamplingRule, SamplingRuleOperator} from 'sentry/types/sampling';
+import {Project} from 'sentry/types';
+import {SamplingRule, SamplingRuleOperator} from 'sentry/types/sampling';
 
-import {getInnerNameLabel, LEGACY_BROWSER_LIST} from './utils';
+import {getInnerNameLabel, isUniformRule} from './utils';
 
 type Props = {
   dragging: boolean;
@@ -31,16 +33,15 @@ type Props = {
   operator: SamplingRuleOperator;
   rule: SamplingRule;
   sorting: boolean;
+  /**
+   * If not empty, the activate rule toggle will be disabled.
+   */
+  upgradeSdkForProjects: Project['slug'][];
   grabAttributes?: UseDraggableArguments['attributes'];
-};
-
-type State = {
-  isMenuActionsOpen: boolean;
 };
 
 export function Rule({
   dragging,
-  sorting,
   rule,
   noPermission,
   onEditRule,
@@ -50,25 +51,23 @@ export function Rule({
   operator,
   grabAttributes,
   hideGrabButton,
+  upgradeSdkForProjects,
 }: Props) {
-  const [state, setState] = useState<State>({isMenuActionsOpen: false});
-
-  useEffect(() => {
-    if ((dragging || sorting) && state.isMenuActionsOpen) {
-      setState({isMenuActionsOpen: false});
-    }
-  }, [dragging, sorting, state.isMenuActionsOpen]);
+  const isUniform = isUniformRule(rule);
+  const canDelete = !noPermission && !isUniform;
+  const canActivate = true; // TODO(sampling): Enabling this for demo purposes, change this back to `!upgradeSdkForProjects.length;` for LA
+  const canDrag = !isUniform && !noPermission;
 
   return (
     <Fragment>
-      <GrabColumn disabled={rule.bottomPinned || noPermission}>
+      <GrabColumn disabled={!canDrag}>
         {hideGrabButton ? null : (
           <Tooltip
             title={
               noPermission
-                ? t('You do not have permission to reorder rules.')
-                : operator === SamplingRuleOperator.ELSE
-                ? t('Rules without conditions cannot be reordered.')
+                ? t('You do not have permission to reorder rules')
+                : isUniform
+                ? t('Uniform rules cannot be reordered')
                 : undefined
             }
             containerDisplayMode="flex"
@@ -77,6 +76,7 @@ export function Rule({
               {...listeners}
               {...grabAttributes}
               aria-label={dragging ? t('Drop Rule') : t('Drag Rule')}
+              aria-disabled={!canDrag}
             >
               <IconGrabbable />
             </IconGrabbableWrapper>
@@ -103,21 +103,16 @@ export function Rule({
                   <div>
                     {[...condition.value].map((conditionValue, conditionValueIndex) => (
                       <Fragment key={conditionValue}>
-                        <ConditionValue>
-                          {LEGACY_BROWSER_LIST[conditionValue]?.title ?? conditionValue}
-                        </ConditionValue>
+                        <ConditionValue>{conditionValue}</ConditionValue>
                         {conditionValueIndex !==
-                          (condition.value as LegacyBrowser[]).length - 1 && (
+                          (condition.value as string[]).length - 1 && (
                           <ConditionSeparator>{'\u002C'}</ConditionSeparator>
                         )}
                       </Fragment>
                     ))}
                   </div>
                 ) : (
-                  <ConditionValue>
-                    {LEGACY_BROWSER_LIST[String(condition.value)]?.title ??
-                      String(condition.value)}
-                  </ConditionValue>
+                  <ConditionValue>{String(condition.value)}</ConditionValue>
                 )}
               </Fragment>
             ))}
@@ -126,28 +121,41 @@ export function Rule({
         <SampleRate>{`${rule.sampleRate * 100}\u0025`}</SampleRate>
       </RateColumn>
       <ActiveColumn>
-        <ActiveToggle
-          inline={false}
-          hideControlState
-          aria-label={rule.active ? t('Deactivate Rule') : t('Activate Rule')}
-          onClick={onActivate}
-          name="active"
-        />
+        <GuideAnchor
+          target="sampling_rule_toggle"
+          onFinish={onActivate}
+          disabled={!canActivate || !isUniform}
+        >
+          <Tooltip
+            disabled={canActivate}
+            title={
+              !canActivate
+                ? tn(
+                    'To enable the rule, the recommended sdk version have to be updated',
+                    'To enable the rule, the recommended sdk versions have to be updated',
+                    upgradeSdkForProjects.length
+                  )
+                : undefined
+            }
+          >
+            <ActiveToggle
+              inline={false}
+              hideControlState
+              aria-label={rule.active ? t('Deactivate Rule') : t('Activate Rule')}
+              onClick={onActivate}
+              name="active"
+              disabled={!canActivate}
+              value={rule.active}
+            />
+          </Tooltip>
+        </GuideAnchor>
       </ActiveColumn>
       <Column>
         <EllipisDropDownButton
           caret={false}
           customTitle={
-            <Button
-              aria-label={t('Actions')}
-              icon={<IconEllipsis />}
-              size="small"
-              onClick={() => {
-                setState({isMenuActionsOpen: !state.isMenuActionsOpen});
-              }}
-            />
+            <Button aria-label={t('Actions')} icon={<IconEllipsis />} size="sm" />
           }
-          isOpen={state.isMenuActionsOpen}
           anchorRight
         >
           <MenuItemActionLink
@@ -165,7 +173,7 @@ export function Rule({
           >
             <Tooltip
               disabled={!noPermission}
-              title={t('You do not have permission to edit sampling rules.')}
+              title={t('You do not have permission to edit sampling rules')}
               containerDisplayMode="block"
             >
               {t('Edit')}
@@ -176,13 +184,17 @@ export function Rule({
             message={t('Are you sure you wish to delete this sampling rule?')}
             icon={<IconDownload size="xs" />}
             title={t('Delete')}
-            disabled={noPermission}
+            disabled={!canDelete}
             priority="danger"
             shouldConfirm
           >
             <Tooltip
-              disabled={!noPermission}
-              title={t('You do not have permission to delete sampling rules.')}
+              disabled={canDelete}
+              title={
+                isUniform
+                  ? t("You can't delete the uniform rule")
+                  : t('You do not have permission to delete sampling rules')
+              }
               containerDisplayMode="block"
             >
               {t('Delete')}

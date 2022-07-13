@@ -9,7 +9,6 @@ import {FlamegraphFrame} from './flamegraphFrame';
 export class Flamegraph {
   profile: Profile;
   frames: FlamegraphFrame[] = [];
-  roots: FlamegraphFrame[] = [];
 
   profileIndex: number;
 
@@ -18,6 +17,16 @@ export class Flamegraph {
 
   depth = 0;
   configSpace: Rect = new Rect(0, 0, 0, 0);
+  root: FlamegraphFrame = {
+    key: -1,
+    parent: null,
+    frame: CallTreeNode.Root.frame,
+    node: CallTreeNode.Root,
+    depth: -1,
+    start: 0,
+    end: 0,
+    children: [],
+  };
 
   formatter: (value: number) => string;
   timelineFormatter: (value: number) => string;
@@ -51,8 +60,6 @@ export class Flamegraph {
     this.profile = profile;
     this.profileIndex = profileIndex;
 
-    this.roots = [];
-
     // If a custom config space is provided, use it and draw the chart in it
     this.frames = leftHeavy
       ? this.buildLeftHeavyGraph(profile, configSpace ? configSpace.x : 0)
@@ -66,7 +73,9 @@ export class Flamegraph {
     this.configSpace = new Rect(
       0,
       0,
-      this.profile.unit === 'microseconds'
+      this.profile.unit === 'nanoseconds'
+        ? 1e9
+        : this.profile.unit === 'microseconds'
         ? 1e6
         : this.profile.unit === 'milliseconds'
         ? 1e3
@@ -88,6 +97,18 @@ export class Flamegraph {
     const frames: FlamegraphFrame[] = [];
     const stack: FlamegraphFrame[] = [];
 
+    const virtualRoot: FlamegraphFrame = {
+      key: -1,
+      frame: CallTreeNode.Root.frame,
+      node: CallTreeNode.Root,
+      parent: null,
+      children: [],
+      depth: 0,
+      start: 0,
+      end: 0,
+    };
+
+    this.root = virtualRoot;
     let idx = 0;
 
     const openFrame = (node: CallTreeNode, value: number) => {
@@ -106,13 +127,11 @@ export class Flamegraph {
 
       if (parent) {
         parent.children.push(frame);
+      } else {
+        this.root.children.push(frame);
       }
 
       stack.push(frame);
-
-      if (stack.length === 1) {
-        this.roots.push(frame);
-      }
       idx++;
     };
 
@@ -150,7 +169,20 @@ export class Flamegraph {
 
     sortTree(profile.appendOrderTree);
 
+    const virtualRoot: FlamegraphFrame = {
+      key: -1,
+      frame: CallTreeNode.Root.frame,
+      node: CallTreeNode.Root,
+      parent: null,
+      children: [],
+      depth: 0,
+      start: 0,
+      end: 0,
+    };
+
+    this.root = virtualRoot;
     let idx = 0;
+
     const openFrame = (node: CallTreeNode, value: number) => {
       const parent = lastOfArray(stack);
       const frame: FlamegraphFrame = {
@@ -166,13 +198,11 @@ export class Flamegraph {
 
       if (parent) {
         parent.children.push(frame);
+      } else {
+        this.root.children.push(frame);
       }
 
       stack.push(frame);
-
-      if (stack.length === 1) {
-        this.roots.push(frame);
-      }
       idx++;
     };
 

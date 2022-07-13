@@ -101,7 +101,7 @@ class RelatedIssues extends Component<Props> {
           <SectionHeading>{t('Related Issues')}</SectionHeading>
           <Button
             data-test-id="issues-open"
-            size="xsmall"
+            size="xs"
             to={issueSearch}
             onClick={this.handleOpenClick}
           >

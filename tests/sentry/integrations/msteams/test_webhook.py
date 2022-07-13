@@ -2,7 +2,6 @@ from copy import deepcopy
 from unittest import mock
 from urllib.parse import urlencode
 
-import pytest
 import responses
 
 from sentry.models import Identity, IdentityProvider, Integration
@@ -27,7 +26,6 @@ team_id = "19:8d46058cda57449380517cc374727f2a@thread.tacv2"
 kid = "Su-pdZys9LJGhDVgah3UjfPouuc"
 
 
-@pytest.mark.skip(reason="they started breaking")
 class MsTeamsWebhookTest(APITestCase):
     def setUp(self):
         super().setUp()
@@ -212,6 +210,7 @@ class MsTeamsWebhookTest(APITestCase):
         assert resp.status_code == 204
         assert len(responses.calls) == 2
 
+    @responses.activate
     @mock.patch("sentry.utils.jwt.decode")
     @mock.patch("time.time")
     def test_member_removed(self, mock_time, mock_decode):
@@ -228,6 +227,7 @@ class MsTeamsWebhookTest(APITestCase):
         assert resp.status_code == 204
         assert not Integration.objects.filter(id=integration.id)
 
+    @responses.activate
     @mock.patch("sentry.utils.jwt.decode")
     @mock.patch("time.time")
     def test_different_member_removed(self, mock_time, mock_decode):
