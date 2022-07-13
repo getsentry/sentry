@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import space from 'sentry/styles/space';
@@ -9,38 +8,24 @@ import space from 'sentry/styles/space';
  */
 
 type Props = {
-  keyName: React.ReactNode;
-  value: React.ReactNode;
+  children?: React.ReactChild;
 };
 
-export const KeyMetrics = styled('dl')`
-  margin: 0; /* Reset default dl styles */
-
-  display: grid;
-  grid-template-rows: auto auto;
-  grid-auto-columns: 1fr;
-  grid-auto-flow: column;
-  gap: ${space(0.5)} ${space(2)};
-
-  text-align: right;
+export const KeyMetrics = styled('div')`
+  display: flex;
+  gap: ${space(3)};
+  align-items: center;
+  font-size: ${p => p.theme.fontSizeMedium};
 `;
 
-export const KeyMetricData = ({keyName, value}: Props) => {
-  return (
-    <Fragment>
-      <Key>{keyName}</Key>
-      <Value>{value}</Value>
-    </Fragment>
-  );
+export const KeyMetricData = ({children}: Props) => {
+  return <Value>{children}</Value>;
 };
 
-const Key = styled('dt')`
-  color: ${p => p.theme.subText};
-  font-size: 14px;
-  font-weight: bold;
-`;
-
-const Value = styled('dt')`
+const Value = styled('div')`
   color: ${p => p.theme.textColor};
   font-weight: normal;
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
 `;

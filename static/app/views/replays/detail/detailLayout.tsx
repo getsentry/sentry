@@ -5,17 +5,20 @@ import Breadcrumbs from 'sentry/components/breadcrumbs';
 import Duration from 'sentry/components/duration';
 import FeatureBadge from 'sentry/components/featureBadge';
 import {FeatureFeedback} from 'sentry/components/featureFeedback';
-import UserBadge, {StyledName} from 'sentry/components/idBadge/userBadge';
+import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Placeholder from 'sentry/components/placeholder';
 import {KeyMetricData, KeyMetrics} from 'sentry/components/replays/keyMetrics';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import TimeSince from 'sentry/components/timeSince';
+import {PlatformKey} from 'sentry/data/platformCategories';
+import {IconCalendar, IconClock, IconFire} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Crumb} from 'sentry/types/breadcrumbs';
 import {Event} from 'sentry/types/event';
+import {defined} from 'sentry/utils';
 import getUrlPathname from 'sentry/utils/getUrlPathname';
 
 type Props = {
@@ -29,13 +32,22 @@ function DetailLayout({children, orgId}: Props) {
   const event = replay?.getEvent();
   const crumbs = replay?.getRawCrumbs();
 
-  const title = event ? `${event.id} - Replays - ${orgId}` : `Replays - ${orgId}`;
+  const documentTitle = event ? `${event.id} - Replays - ${orgId}` : `Replays - ${orgId}`;
+  const labelTitle =
+    event?.user?.name ||
+    event?.user?.email ||
+    event?.user?.username ||
+    event?.user?.ip_address ||
+    event?.user?.id;
+
+  const urlTag = event?.tags?.find(({key}) => key === 'url');
+  const pathname = getUrlPathname(urlTag?.value ?? '') ?? '';
 
   return (
-    <SentryDocumentTitle title={title}>
+    <SentryDocumentTitle title={documentTitle}>
       <React.Fragment>
-        <Layout.Header>
-          <Layout.HeaderContent>
+        <Header>
+          <HeaderContent>
             <Breadcrumbs
               crumbs={[
                 {
@@ -43,33 +55,36 @@ function DetailLayout({children, orgId}: Props) {
                   label: t('Replays'),
                 },
                 {
-                  label: (
+                  label: labelTitle ? (
                     <React.Fragment>
-                      {t('Replay Details')}
-                      <FeatureBadge type="alpha" />
+                      {labelTitle} <FeatureBadge type="alpha" />
                     </React.Fragment>
+                  ) : (
+                    <HeaderPlaceholder width="500px" height="24px" />
                   ),
                 },
               ]}
             />
-          </Layout.HeaderContent>
+          </HeaderContent>
           <ButtonActionsWrapper>
-            <FeatureFeedback featureName="replay" />
+            <FeatureFeedback featureName="replay" buttonProps={{size: 'sm'}} />
           </ButtonActionsWrapper>
-          <React.Fragment>
-            <Layout.HeaderContent>
-              <EventHeader event={event} />
-            </Layout.HeaderContent>
-            <MetaDataColumn>
-              <EventMetaData event={event} crumbs={crumbs} />
-            </MetaDataColumn>
-          </React.Fragment>
-        </Layout.Header>
+          <SubHeading>{pathname}</SubHeading>
+          <MetaDataColumn>
+            <EventMetaData event={event} crumbs={crumbs} />
+          </MetaDataColumn>
+        </Header>
         {children}
       </React.Fragment>
     </SentryDocumentTitle>
   );
 }
+
+const Header = styled(Layout.Header)`
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+    padding-bottom: ${space(1.5)};
+  }
+`;
 
 const HeaderPlaceholder = styled(function HeaderPlaceholder(
   props: React.ComponentProps<typeof Placeholder>
@@ -79,32 +94,21 @@ const HeaderPlaceholder = styled(function HeaderPlaceholder(
   background-color: ${p => p.theme.background};
 `;
 
-function EventHeader({event}: {event: Event | undefined}) {
-  if (!event) {
-    return <HeaderPlaceholder width="500px" height="48px" />;
-  }
+const HeaderContent = styled(Layout.HeaderContent)`
+  margin-bottom: ${space(1)};
+`;
 
-  const urlTag = event.tags.find(({key}) => key === 'url');
-  const pathname = getUrlPathname(urlTag?.value ?? '') ?? '';
-
-  return (
-    <BigNameUserBadge
-      avatarSize={32}
-      user={{
-        username: event.user?.username ?? '',
-        id: event.user?.id ?? '',
-        ip_address: event.user?.ip_address ?? '',
-        name: event.user?.name ?? '',
-        email: event.user?.email ?? '',
-      }}
-      // this is the subheading for the avatar, so displayEmail in this case is a misnomer
-      displayEmail={pathname}
-    />
-  );
-}
+const SubHeading = styled('div')`
+  font-size: ${p => p.theme.fontSizeMedium};
+  line-height: ${p => p.theme.text.lineHeightBody};
+  color: ${p => p.theme.gray300};
+  align-self: center;
+  ${p => p.theme.overflowEllipsis};
+`;
 
 const MetaDataColumn = styled(Layout.HeaderActions)`
   width: 325px;
+  padding-left: ${space(3)};
 `;
 
 function EventMetaData({
@@ -120,25 +124,48 @@ function EventMetaData({
 
   return (
     <KeyMetrics>
-      <KeyMetricData
-        keyName={t('Timestamp')}
-        value={event ? <TimeSince date={event.dateReceived} /> : <HeaderPlaceholder />}
+      <ProjectBadge
+        project={{
+          slug: event?.projectSlug || '',
+          id: event?.projectID,
+          platform: event?.platform as PlatformKey,
+        }}
+        avatarSize={16}
       />
-      <KeyMetricData
-        keyName={t('Duration')}
-        value={
-          duration !== undefined ? (
+      <KeyMetricData>
+        {event ? (
+          <React.Fragment>
+            <IconCalendar color="gray300" />
+            <TimeSince date={event.dateReceived} shorten />
+          </React.Fragment>
+        ) : (
+          <HeaderPlaceholder />
+        )}
+      </KeyMetricData>
+      <KeyMetricData>
+        {duration !== undefined ? (
+          <React.Fragment>
+            <IconClock color="gray300" />
             <Duration
               seconds={Math.floor(msToSec(duration || 0)) || 1}
               abbreviation
               exact
             />
-          ) : (
-            <HeaderPlaceholder />
-          )
-        }
-      />
-      <KeyMetricData keyName={t('Errors')} value={errors ?? <HeaderPlaceholder />} />
+          </React.Fragment>
+        ) : (
+          <HeaderPlaceholder />
+        )}
+      </KeyMetricData>
+      <KeyMetricData>
+        {defined(errors) ? (
+          <React.Fragment>
+            <IconFire color="red300" />
+            {errors}
+          </React.Fragment>
+        ) : (
+          <HeaderPlaceholder />
+        )}
+      </KeyMetricData>
     </KeyMetrics>
   );
 }
@@ -147,20 +174,11 @@ function msToSec(ms: number) {
   return ms / 1000;
 }
 
-const BigNameUserBadge = styled(UserBadge)`
-  align-items: flex-start;
-
-  ${StyledName} {
-    font-size: 26px;
-  }
-`;
-
 // TODO(replay); This could make a lot of sense to put inside HeaderActions by default
 const ButtonActionsWrapper = styled(Layout.HeaderActions)`
   display: grid;
   grid-template-columns: repeat(2, max-content);
   justify-content: flex-end;
-  gap: ${space(1)};
 `;
 
 export default DetailLayout;
