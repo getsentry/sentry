@@ -57,7 +57,6 @@ class JiraClientTest(TestCase):
             body=json.dumps(body),
             status=200,
             content_type="application/json",
-            match_querystring=True,
         )
         res = self.client.get_field_autocomplete("customfield_0123", "abc")
         assert res == body
