@@ -94,9 +94,17 @@ class RelayProjectConfigsEndpoint(Endpoint):
 
         set_tag("relay_use_v3", use_v3)
         set_tag("relay_use_v3_rejected", reason)
-        metrics.incr(
-            "api.endpoints.relay.project_configs.post", tags={"version": version, "reason": reason}
-        )
+        if version == "2":
+            metrics.incr(
+                "api.endpoints.relay.project_configs.post",
+                tags={"version": version, "reason": reason},
+                sample_rate=1.0,
+            )
+        else:
+            metrics.incr(
+                "api.endpoints.relay.project_configs.post",
+                tags={"version": version, "reason": reason},
+            )
 
         return use_v3
 
