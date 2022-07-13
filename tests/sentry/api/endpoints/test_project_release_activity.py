@@ -17,7 +17,6 @@ class ReleaseActivityTest(APITestCase):
         )
         not_found = self.client.get("/api/0/bad_endpoint")
         assert response.status_code == not_found.status_code == 404
-        assert str(response.content) == str(not_found.content)
 
     def test_simple(self):
         with self.feature("organizations:active-release-monitor-alpha"):

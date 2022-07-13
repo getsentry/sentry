@@ -9,15 +9,14 @@ class ReleaseActivity(Model):
     __include_in_export__ = False
 
     class Type:
-        unknown = 0
-        created = 1
-        deployed = 2
-        finished = 3
-        issue = 4
+        created = 0
+        deployed = 1
+        finished = 2
+        issue = 3
 
     release = FlexibleForeignKey("sentry.Release", db_index=True)
     type = BoundedPositiveIntegerField(
-        default=Type.unknown,
+        null=False,
         choices=(
             (Type.created, "Created"),
             (Type.deployed, "Deployed"),

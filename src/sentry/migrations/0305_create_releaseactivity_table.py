@@ -42,7 +42,7 @@ class Migration(CheckedMigration):
                         primary_key=True, serialize=False
                     ),
                 ),
-                ("type", sentry.db.models.fields.bounded.BoundedPositiveIntegerField(default=0)),
+                ("type", sentry.db.models.fields.bounded.BoundedPositiveIntegerField()),
                 ("data", django.contrib.postgres.fields.jsonb.JSONField(default=dict)),
                 ("date_added", models.DateTimeField(default=django.utils.timezone.now)),
                 (
