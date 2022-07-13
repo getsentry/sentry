@@ -1,7 +1,5 @@
 from uuid import uuid4
 
-import pytest
-
 from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryProject
 from sentry.incidents.models import AlertRule, AlertRuleStatus
 from sentry.models import (
@@ -31,7 +29,6 @@ from sentry.testutils import TransactionTestCase
 
 
 class DeleteOrganizationTest(TransactionTestCase):
-    @pytest.mark.xfail(reason="org deletions are temporarily paused")
     def test_simple(self):
         org = self.create_organization(name="test")
         org2 = self.create_organization(name="test2")
@@ -113,7 +110,6 @@ class DeleteOrganizationTest(TransactionTestCase):
             id__in=[widget_1_data.id, widget_2_data_1.id, widget_2_data_2.id]
         ).exists()
 
-    @pytest.mark.xfail(reason="org deletions are temporarily paused")
     def test_no_delete_visible(self):
         org = self.create_organization(name="test")
         release = Release.objects.create(version="a" * 32, organization_id=org.id)
@@ -129,7 +125,6 @@ class DeleteOrganizationTest(TransactionTestCase):
         assert Release.objects.filter(id=release.id).exists()
         assert not ScheduledDeletion.objects.filter(id=deletion.id).exists()
 
-    @pytest.mark.xfail(reason="org deletions are temporarily paused")
     def test_large_child_relation_deletion(self):
         org = self.create_organization(name="test")
         self.create_team(organization=org, name="test1")
@@ -158,7 +153,6 @@ class DeleteOrganizationTest(TransactionTestCase):
         assert not Commit.objects.filter(organization_id=org.id).exists()
         assert not CommitAuthor.objects.filter(organization_id=org.id).exists()
 
-    @pytest.mark.xfail(reason="org deletions are temporarily paused")
     def test_group_first_release(self):
         org = self.create_organization(name="test")
         project = self.create_project(organization=org)
@@ -178,7 +172,6 @@ class DeleteOrganizationTest(TransactionTestCase):
         assert not Group.objects.filter(id=group.id).exists()
         assert not Organization.objects.filter(id=org.id).exists()
 
-    @pytest.mark.xfail(reason="org deletions are temporarily paused")
     def test_orphan_commits(self):
         # We have had a few orgs get into a state where they have commits
         # but no repositories. Ensure that we can proceed.
@@ -206,7 +199,6 @@ class DeleteOrganizationTest(TransactionTestCase):
         assert not Commit.objects.filter(id=commit.id).exists()
         assert not CommitAuthor.objects.filter(id=author.id).exists()
 
-    @pytest.mark.xfail(reason="org deletions are temporarily paused")
     def test_alert_rule(self):
         org = self.create_organization(name="test", owner=self.user)
         self.create_team(organization=org, name="test1")
@@ -217,6 +209,7 @@ class DeleteOrganizationTest(TransactionTestCase):
         )
         alert_rule = AlertRule.objects.create(
             organization=org,
+            type=AlertRule.Type.ERROR.value,
             name="rule with environment",
             threshold_period=1,
             snuba_query=snuba_query,
@@ -236,7 +229,6 @@ class DeleteOrganizationTest(TransactionTestCase):
         assert not AlertRule.objects.filter(id=alert_rule.id).exists()
         assert not SnubaQuery.objects.filter(id=snuba_query.id).exists()
 
-    @pytest.mark.xfail(reason="org deletions are temporarily paused")
     def test_discover_query_cleanup(self):
         org = self.create_organization(name="test", owner=self.user)
         self.create_team(organization=org, name="test1")
@@ -262,7 +254,6 @@ class DeleteOrganizationTest(TransactionTestCase):
         assert not DiscoverSavedQuery.objects.filter(id=query.id).exists()
         assert not DiscoverSavedQueryProject.objects.filter(id=query_project.id).exists()
 
-    @pytest.mark.xfail(reason="org deletions are temporarily paused")
     def test_delete_org_simple(self):
         name_filter = {"name": "test_delete_org_simple"}
         org = self.create_organization(**name_filter)
@@ -279,7 +270,6 @@ class DeleteOrganizationTest(TransactionTestCase):
 
         assert Organization.objects.filter(**name_filter).count() == 0
 
-    @pytest.mark.xfail(reason="org deletions are temporarily paused")
     def test_delete_org_after_project_transfer(self):
         from_org = self.create_organization(name="from_org")
         from_user = self.create_user()

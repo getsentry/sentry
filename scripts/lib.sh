@@ -91,7 +91,7 @@ sudo-askpass() {
 }
 
 upgrade-pip() {
-    pip install --upgrade "pip==21.1.2" "wheel==0.36.2"
+    pip install --upgrade 'pip==21.2' 'wheel==0.36.2'
 }
 
 install-py-dev() {
@@ -134,7 +134,7 @@ setup-git() {
         exit 1
     )
     if ! require pre-commit; then
-        pip install -r requirements-dev.txt
+        pip install -r requirements-dev-only-frozen.txt
     fi
     pre-commit install --install-hooks
     echo ""

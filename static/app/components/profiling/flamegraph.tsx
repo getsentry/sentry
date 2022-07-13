@@ -1,6 +1,7 @@
 import {
   Fragment,
   ReactElement,
+  useCallback,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -15,6 +16,7 @@ import {FlamegraphToolbar} from 'sentry/components/profiling/flamegraphToolbar';
 import {FlamegraphViewSelectMenu} from 'sentry/components/profiling/flamegraphViewSelectMenu';
 import {FlamegraphZoomView} from 'sentry/components/profiling/flamegraphZoomView';
 import {FlamegraphZoomViewMinimap} from 'sentry/components/profiling/flamegraphZoomViewMinimap';
+import {FrameStack} from 'sentry/components/profiling/FrameStack/frameStack';
 import {
   ProfileDragDropImport,
   ProfileDragDropImportProps,
@@ -28,9 +30,15 @@ import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegrap
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {FlamegraphView} from 'sentry/utils/profiling/flamegraphView';
-import {Rect, watchForResize} from 'sentry/utils/profiling/gl/utils';
+import {
+  computeConfigViewWithStategy,
+  formatColorForFrame,
+  Rect,
+  watchForResize,
+} from 'sentry/utils/profiling/gl/utils';
 import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import {Profile} from 'sentry/utils/profiling/profile/profile';
+import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
 import {useDevicePixelRatio} from 'sentry/utils/useDevicePixelRatio';
 import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
 
@@ -41,19 +49,20 @@ function getTransactionConfigSpace(profiles: Profile[]): Rect {
   const endedAt = Math.max(...profiles.map(p => p.endedAt));
   return new Rect(startedAt, 0, endedAt - startedAt, 0);
 }
+
+const noopFormatDuration = () => '';
 interface FlamegraphProps {
   onImport: ProfileDragDropImportProps['onImport'];
   profiles: ProfileGroup;
 }
 
 function Flamegraph(props: FlamegraphProps): ReactElement {
+  const canvasBounds = useRef<Rect>(Rect.Empty());
   const devicePixelRatio = useDevicePixelRatio();
 
   const flamegraphTheme = useFlamegraphTheme();
   const [{sorting, view, xAxis}, dispatch] = useFlamegraphPreferences();
-  const [{threadId}, dispatchThreadId] = useFlamegraphProfiles();
-
-  const canvasBounds = useRef<Rect>(Rect.Empty());
+  const [{threadId, selectedRoot}, dispatchThreadId] = useFlamegraphProfiles();
 
   const [flamegraphCanvasRef, setFlamegraphCanvasRef] =
     useState<HTMLCanvasElement | null>(null);
@@ -66,7 +75,6 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
     useState<HTMLCanvasElement | null>(null);
 
   const canvasPoolManager = useMemo(() => new CanvasPoolManager(), []);
-
   const scheduler = useMemo(() => new CanvasScheduler(), []);
 
   const flamegraph = useMemo(() => {
@@ -162,29 +170,27 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
       canvasPoolManager.draw();
     };
 
-    const onZoomIntoFrame = (frame: FlamegraphFrame) => {
-      flamegraphView.setConfigView(
-        new Rect(
-          frame.start,
-          frame.depth,
-          frame.end - frame.start,
-          flamegraphView.configView.height
-        )
+    const onZoomIntoFrame = (frame: FlamegraphFrame, strategy: 'min' | 'exact') => {
+      const newConfigView = computeConfigViewWithStategy(
+        strategy,
+        flamegraphView.configView,
+        new Rect(frame.start, frame.depth, frame.end - frame.start, 1)
       );
 
+      flamegraphView.setConfigView(newConfigView);
       canvasPoolManager.draw();
     };
 
-    scheduler.on('setConfigView', onConfigViewChange);
-    scheduler.on('transformConfigView', onTransformConfigView);
-    scheduler.on('resetZoom', onResetZoom);
-    scheduler.on('zoomIntoFrame', onZoomIntoFrame);
+    scheduler.on('set config view', onConfigViewChange);
+    scheduler.on('transform config view', onTransformConfigView);
+    scheduler.on('reset zoom', onResetZoom);
+    scheduler.on('zoom at frame', onZoomIntoFrame);
 
     return () => {
-      scheduler.off('setConfigView', onConfigViewChange);
-      scheduler.off('transformConfigView', onTransformConfigView);
-      scheduler.off('resetZoom', onResetZoom);
-      scheduler.off('zoomIntoFrame', onZoomIntoFrame);
+      scheduler.off('set config view', onConfigViewChange);
+      scheduler.off('transform config view', onTransformConfigView);
+      scheduler.off('reset zoom', onResetZoom);
+      scheduler.off('zoom at frame', onZoomIntoFrame);
     };
   }, [canvasPoolManager, flamegraphCanvas, flamegraphView, scheduler]);
 
@@ -243,6 +249,42 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
     flamegraphView,
   ]);
 
+  const flamegraphRenderer = useMemo(() => {
+    if (!flamegraphCanvasRef) {
+      return null;
+    }
+
+    return new FlamegraphRenderer(flamegraphCanvasRef, flamegraph, flamegraphTheme, {
+      draw_border: true,
+    });
+  }, [flamegraph, flamegraphCanvasRef, flamegraphTheme]);
+
+  const getFrameColor = useCallback(
+    (frame: FlamegraphFrame) => {
+      if (!flamegraphRenderer) {
+        return '';
+      }
+      return formatColorForFrame(frame, flamegraphRenderer);
+    },
+    [flamegraphRenderer]
+  );
+
+  // referenceNode is passed down to the frameStack and is used to determine
+  // the weights of each frame. In other words, in case there is no user selected root, then all
+  // of the frame weights and timing are relative to the entire profile. If there is a user selected
+  // root however, all weights are relative to that sub tree.
+  const referenceNode = useMemo(
+    () => (selectedRoot ? selectedRoot : flamegraph.root),
+    [selectedRoot, flamegraph.root]
+  );
+
+  // In case a user selected root is present, we will display that root + it's entire sub tree.
+  // If no root is selected, we will display the entire sub tree down from the root. We start at
+  // root.children because flamegraph.root is a virtual node that we do not want to show in the table.
+  const rootNodes = useMemo(() => {
+    return selectedRoot ? [selectedRoot] : flamegraph.root.children;
+  }, [selectedRoot, flamegraph.root]);
+
   return (
     <Fragment>
       <FlamegraphToolbar>
@@ -271,7 +313,6 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
       </FlamegraphToolbar>
 
       <ProfilingFlamechartLayout
-        layoutType="minimap_top"
         minimap={
           <FlamegraphZoomViewMinimap
             canvasPoolManager={canvasPoolManager}
@@ -287,6 +328,7 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
         flamechart={
           <ProfileDragDropImport onImport={props.onImport}>
             <FlamegraphZoomView
+              flamegraphRenderer={flamegraphRenderer}
               canvasBounds={canvasBounds.current}
               canvasPoolManager={canvasPoolManager}
               flamegraph={flamegraph}
@@ -298,6 +340,15 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
               setFlamegraphOverlayCanvasRef={setFlamegraphOverlayCanvasRef}
             />
           </ProfileDragDropImport>
+        }
+        frameStack={
+          <FrameStack
+            referenceNode={referenceNode}
+            rootNodes={rootNodes}
+            getFrameColor={getFrameColor}
+            formatDuration={flamegraph ? flamegraph.formatter : noopFormatDuration}
+            canvasPoolManager={canvasPoolManager}
+          />
         }
       />
     </Fragment>

@@ -6,11 +6,13 @@ from snuba_sdk import AliasedExpression, Column, Function
 
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
+from sentry.models import Project
 from sentry.search.events import constants, fields
 from sentry.search.events.builder import MetricsQueryBuilder
 from sentry.search.events.datasets import field_aliases, filter_aliases
 from sentry.search.events.datasets.base import DatasetConfig
 from sentry.search.events.types import SelectType, WhereType
+from sentry.snuba.metrics.datasource import get_custom_measurements
 
 
 class MetricsDatasetConfig(DatasetConfig):
@@ -40,6 +42,18 @@ class MetricsDatasetConfig(DatasetConfig):
 
     def resolve_metric(self, value: str) -> int:
         metric_id = self.resolve_value(constants.METRICS_MAP.get(value, value))
+        if metric_id is None:
+            # Maybe this is a custom measurment?
+            if self.builder._custom_measurement_cache is None:
+                self.builder._custom_measurement_cache = get_custom_measurements(
+                    Project.objects.filter(id__in=self.builder.params["project_id"]),
+                    start=self.builder.start,
+                    end=self.builder.end,
+                )
+            for measurement in self.builder._custom_measurement_cache:
+                if measurement["name"] == value and measurement["metric_id"] is not None:
+                    metric_id = measurement["metric_id"]
+        # If its still None its not a custom measurement
         if metric_id is None:
             raise IncompatibleMetricsQuery(f"Metric: {value} could not be resolved")
         self.builder.metric_ids.add(metric_id)
@@ -550,10 +564,11 @@ class MetricsDatasetConfig(DatasetConfig):
         _: Mapping[str, Union[str, Column, SelectType, int, float]],
         alias: Optional[str] = None,
     ) -> SelectType:
-        metric_true = self.resolve_value(constants.METRIC_TRUE_TAG_VALUE)
+        metric_satisfied = self.resolve_value(constants.METRIC_SATISFIED_TAG_VALUE)
+        metric_tolerated = self.resolve_value(constants.METRIC_TOLERATED_TAG_VALUE)
 
         # Nothing is satisfied or tolerated, the score must be 0
-        if metric_true is None:
+        if metric_satisfied is None and metric_tolerated is None:
             return Function(
                 "toUInt64",
                 [0],
@@ -561,10 +576,10 @@ class MetricsDatasetConfig(DatasetConfig):
             )
 
         satisfied = Function(
-            "equals", [self.builder.column(constants.METRIC_SATISFIED_TAG_KEY), metric_true]
+            "equals", [self.builder.column(constants.METRIC_SATISFACTION_TAG_KEY), metric_satisfied]
         )
         tolerable = Function(
-            "equals", [self.builder.column(constants.METRIC_TOLERATED_TAG_KEY), metric_true]
+            "equals", [self.builder.column(constants.METRIC_SATISFACTION_TAG_KEY), metric_tolerated]
         )
         metric_condition = Function(
             "equals", [Column("metric_id"), self.resolve_metric("transaction.duration")]
@@ -583,7 +598,7 @@ class MetricsDatasetConfig(DatasetConfig):
                         ),
                     ],
                 ),
-                Function("countIf", [metric_condition]),
+                Function("countIf", [Column("value"), metric_condition]),
             ],
             alias,
         )
@@ -615,10 +630,10 @@ class MetricsDatasetConfig(DatasetConfig):
         args: Mapping[str, Union[str, Column, SelectType, int, float]],
         alias: Optional[str] = None,
     ) -> SelectType:
-        metric_true = self.resolve_value(constants.METRIC_TRUE_TAG_VALUE)
+        metric_frustrated = self.resolve_value(constants.METRIC_FRUSTRATED_TAG_VALUE)
 
         # Nobody is miserable, we can return 0
-        if metric_true is None:
+        if metric_frustrated is None:
             return Function(
                 "toUInt64",
                 [0],
@@ -641,7 +656,10 @@ class MetricsDatasetConfig(DatasetConfig):
                         ),
                         Function(
                             "equals",
-                            [self.builder.column(constants.METRIC_MISERABLE_TAG_KEY), metric_true],
+                            [
+                                self.builder.column(constants.METRIC_SATISFACTION_TAG_KEY),
+                                metric_frustrated,
+                            ],
                         ),
                     ],
                 ),

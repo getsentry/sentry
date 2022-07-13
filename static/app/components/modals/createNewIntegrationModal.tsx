@@ -101,12 +101,12 @@ function CreateNewIntegrationModal({
         />
       </Body>
       <Footer>
-        <Button size="small" onClick={() => closeModal()} style={{marginRight: space(1)}}>
+        <Button size="sm" onClick={() => closeModal()} style={{marginRight: space(1)}}>
           {t('Cancel')}
         </Button>
         <Button
           priority="primary"
-          size="small"
+          size="sm"
           to={`/settings/${organization.slug}/developer-settings/${
             option === 'public' ? 'new-public' : 'new-internal'
           }/`}

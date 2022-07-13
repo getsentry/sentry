@@ -129,7 +129,7 @@ class ClippedBox extends PureComponent<Props, State> {
       <Button
         onClick={this.reveal}
         priority="primary"
-        size="xsmall"
+        size="xs"
         aria-label={btnText ?? t('Show More')}
       >
         {btnText}
