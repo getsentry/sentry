@@ -1,6 +1,7 @@
 from unittest import mock
 
 import responses
+from responses.matchers import query_string_matcher
 
 from sentry.integrations.jira.client import JiraCloud
 from sentry.models import Integration
@@ -37,11 +38,11 @@ class JiraClientTest(TestCase):
         body = {"results": [{"value": "ISSUE-1", "displayName": "My Issue (ISSUE-1)"}]}
         responses.add(
             method=responses.GET,
-            url="https://example.atlassian.net/rest/api/2/jql/autocompletedata/suggestions?fieldName=my_field&fieldValue=abc&jwt=my-jwt-token",
+            url="https://example.atlassian.net/rest/api/2/jql/autocompletedata/suggestions",
+            match=[query_string_matcher("fieldName=my_field&fieldValue=abc&jwt=my-jwt-token")],
             body=json.dumps(body),
             status=200,
             content_type="application/json",
-            match_querystring=True,
         )
         res = self.client.get_field_autocomplete("my_field", "abc")
         assert res == body
@@ -51,7 +52,8 @@ class JiraClientTest(TestCase):
         body = {"results": [{"value": "ISSUE-1", "displayName": "My Issue (ISSUE-1)"}]}
         responses.add(
             method=responses.GET,
-            url="https://example.atlassian.net/rest/api/2/jql/autocompletedata/suggestions?fieldName=cf[0123]&fieldValue=abc&jwt=my-jwt-token",
+            url="https://example.atlassian.net/rest/api/2/jql/autocompletedata/suggestions",
+            match=[query_string_matcher("fieldName=cf[0123]&fieldValue=abc&jwt=my-jwt-token")],
             body=json.dumps(body),
             status=200,
             content_type="application/json",
