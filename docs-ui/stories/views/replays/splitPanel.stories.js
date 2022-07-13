@@ -42,14 +42,20 @@ export const TopBottomSplit = () => {
   );
 };
 
-export const LeftRightFluidContents = () => {
+export const LeftRightFluidContents = props => {
   return (
     <ManualResize>
-      <SplitPanel left={<FliudPanelDemo />} right={<FliudPanelDemo panel />} />
+      <SplitPanel left={<FliudPanelDemo />} right={<FliudPanelDemo panel />} {...props} />
     </ManualResize>
   );
 };
 
+LeftRightFluidContents.args = {
+  minPx: 0,
+  maxPx: Number.MAX_SAFE_INTEGER,
+  minPct: 0,
+  maxPct: 100,
+};
 export const TopBottomFluidContents = () => {
   return (
     <ManualResize>

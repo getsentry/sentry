@@ -1,25 +1,22 @@
+import styled from '@emotion/styled';
+
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import ReplayTimeline from 'sentry/components/replays/breadcrumbs/replayTimeline';
 import ReplayView from 'sentry/components/replays/replayView';
+import space from 'sentry/styles/space';
 import useFullscreen from 'sentry/utils/replays/hooks/useFullscreen';
 import Breadcrumbs from 'sentry/views/replays/detail/breadcrumbs';
 import FocusArea from 'sentry/views/replays/detail/focusArea';
 import FocusTabs from 'sentry/views/replays/detail/focusTabs';
+import SplitPanel from 'sentry/views/replays/detail/layout/splitPanel';
 
 import AsideTabsV2 from './asideTabs_v2';
-import Container from './container';
 import {
   BreadcrumbSection,
-  ContentSection,
-  PageRow,
-  SIDEBAR_MIN_WIDTH,
-  SidebarSection,
   TimelineSection,
-  TOPBAR_MIN_HEIGHT,
   TopbarSection,
   VideoSection,
 } from './pageSections';
-import ResizePanel from './resizePanel';
 
 type Layout =
   /**
@@ -102,26 +99,32 @@ function ReplayLayout({
   ) : null;
 
   const content = (
-    <ContentSection>
-      <ErrorBoundary mini>
-        <FocusTabs />
-        <FocusArea />
-      </ErrorBoundary>
-    </ContentSection>
+    <ErrorBoundary mini>
+      <FocusTabs />
+      <FocusArea />
+    </ErrorBoundary>
   );
 
   if (layout === 'sidebar') {
+    const sidebar = (
+      <ErrorBoundary mini>
+        <AsideTabsV2 showCrumbs={showCrumbs} showVideo={showVideo} />
+      </ErrorBoundary>
+    );
     return (
       <Container>
         {timeline}
-        <PageRow>
-          {content}
-          <ResizePanel direction="w" minWidth={SIDEBAR_MIN_WIDTH}>
-            <SidebarSection>
-              <AsideTabsV2 showCrumbs={showCrumbs} showVideo={showVideo} />
-            </SidebarSection>
-          </ResizePanel>
-        </PageRow>
+        <SplitPanel
+          left={{
+            content,
+            min: {px: 300},
+          }}
+          right={{
+            content: sidebar,
+            default: '325px',
+            min: {px: 325},
+          }}
+        />
       </Container>
     );
   }
@@ -146,19 +149,34 @@ function ReplayLayout({
   return (
     <Container>
       {timeline}
-      <ResizePanel
-        direction="s"
-        minHeight={TOPBAR_MIN_HEIGHT}
-        modifierClass="overlapDown"
-      >
-        <TopbarSection>
-          {video}
-          {crumbs}
-        </TopbarSection>
-      </ResizePanel>
-      {content}
+      <SplitPanel
+        top={{
+          content: (
+            <TopbarSection>
+              {video}
+              {crumbs}
+            </TopbarSection>
+          ),
+          default: '325px',
+          min: {px: 325},
+        }}
+        bottom={{
+          content,
+          min: {px: 300},
+        }}
+      />
     </Container>
   );
 }
+
+const Container = styled('div')`
+  width: 100%;
+  height: 100%;
+  max-height: 100%;
+  display: flex;
+  flex-flow: nowrap column;
+  overflow: hidden;
+  padding: ${space(2)};
+`;
 
 export default ReplayLayout;

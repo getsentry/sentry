@@ -1,5 +1,4 @@
-import React from 'react';
-import styled from '@emotion/styled';
+import {Fragment} from 'react';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import NavTabs from 'sentry/components/navTabs';
@@ -11,11 +10,10 @@ import useFullscreen from 'sentry/utils/replays/hooks/useFullscreen';
 import useUrlParams from 'sentry/utils/replays/hooks/useUrlParams';
 import ReplayReader from 'sentry/utils/replays/replayReader';
 import Breadcrumbs from 'sentry/views/replays/detail/breadcrumbs';
-
-import TagPanel from '../tagPanel';
+import SplitPanel from 'sentry/views/replays/detail/layout/splitPanel';
+import TagPanel from 'sentry/views/replays/detail/tagPanel';
 
 import {BreadcrumbSection, VideoSection} from './pageSections';
-import ResizePanel from './resizePanel';
 
 type Props = {
   showCrumbs?: boolean;
@@ -39,36 +37,44 @@ function AsideTabsV2({showCrumbs = true, showVideo = true}: Props) {
       return <TagPanel replay={loadedReplay} />;
     }
 
-    return (
-      <React.Fragment>
-        {showVideo ? (
-          <ResizePanel direction="s" style={{height: '325px'}}>
-            <Container>
-              <VideoSection ref={fullscreenRef}>
-                <ErrorBoundary mini>
-                  <ReplayView
-                    toggleFullscreen={toggleFullscreen}
-                    isFullscreen={isFullscreen}
-                  />
-                </ErrorBoundary>
-              </VideoSection>
-            </Container>
-          </ResizePanel>
-        ) : null}
+    const video = showVideo && (
+      <VideoSection ref={fullscreenRef}>
+        <ErrorBoundary mini>
+          <ReplayView toggleFullscreen={toggleFullscreen} isFullscreen={isFullscreen} />
+        </ErrorBoundary>
+      </VideoSection>
+    );
 
-        {showCrumbs ? (
-          <BreadcrumbSection>
-            <ErrorBoundary mini>
-              <Breadcrumbs />
-            </ErrorBoundary>
-          </BreadcrumbSection>
-        ) : null}
-      </React.Fragment>
+    const crumbs = showCrumbs && (
+      <BreadcrumbSection>
+        <ErrorBoundary mini>
+          <Breadcrumbs />
+        </ErrorBoundary>
+      </BreadcrumbSection>
+    );
+
+    if (showVideo && showCrumbs) {
+      return (
+        <SplitPanel
+          top={{
+            content: video,
+            default: '325px',
+            min: 325,
+          }}
+          bottom={crumbs}
+        />
+      );
+    }
+    return (
+      <Fragment>
+        {video}
+        {crumbs}
+      </Fragment>
     );
   };
 
   return (
-    <React.Fragment>
+    <Fragment>
       <NavTabs underlined>
         {Object.entries(TABS).map(([tab, label]) => {
           return (
@@ -79,14 +85,8 @@ function AsideTabsV2({showCrumbs = true, showVideo = true}: Props) {
         })}
       </NavTabs>
       {replay ? renderTabContent(active, replay) : <Placeholder height="100%" />}
-    </React.Fragment>
+    </Fragment>
   );
 }
-
-const Container = styled('div')`
-  height: 100%;
-  /* TODO(replays): calc max height so the user can't resize infinitely but always showing both elements */
-  max-height: 50vh;
-`;
 
 export default AsideTabsV2;
