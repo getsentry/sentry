@@ -9,9 +9,7 @@ from sentry.exceptions import (
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.utils import resolve, resolve_tag_key
-from sentry.snuba.dataset import EntityKey
 from sentry.snuba.entity_subscription import (
-    ENTITY_TIME_COLUMNS,
     EventsEntitySubscription,
     MetricsCountersEntitySubscription,
     MetricsSetsEntitySubscription,
@@ -86,8 +84,6 @@ class EntitySubscriptionTestCase(TestCase):
         assert entity_subscription.get_entity_extra_params() == {
             "organization": self.organization.id
         }
-        assert entity_subscription.entity_key == EntityKey.Sessions
-        assert entity_subscription.time_col == ENTITY_TIME_COLUMNS[EntityKey.Sessions]
         assert entity_subscription.dataset == QueryDatasets.SESSIONS
         snql_query = entity_subscription.build_query_builder(
             "", [self.project.id], None
@@ -148,8 +144,6 @@ class EntitySubscriptionTestCase(TestCase):
             "organization": self.organization.id,
             "granularity": 10,
         }
-        assert entity_subscription.entity_key == EntityKey.MetricsSets
-        assert entity_subscription.time_col == ENTITY_TIME_COLUMNS[EntityKey.MetricsSets]
         assert entity_subscription.dataset == QueryDatasets.METRICS
         session_status = resolve_tag_key(org_id, "session.status")
         session_status_crashed = resolve(org_id, "crashed")
@@ -202,8 +196,6 @@ class EntitySubscriptionTestCase(TestCase):
             "organization": self.organization.id,
             "granularity": 10,
         }
-        assert entity_subscription.entity_key == EntityKey.MetricsCounters
-        assert entity_subscription.time_col == ENTITY_TIME_COLUMNS[EntityKey.MetricsCounters]
         assert entity_subscription.dataset == QueryDatasets.METRICS
         session_status = resolve_tag_key(org_id, "session.status")
         session_status_crashed = resolve(org_id, "crashed")
@@ -260,8 +252,6 @@ class EntitySubscriptionTestCase(TestCase):
         assert isinstance(entity_subscription, TransactionsEntitySubscription)
         assert entity_subscription.aggregate == aggregate
         assert entity_subscription.get_entity_extra_params() == {}
-        assert entity_subscription.entity_key == EntityKey.Transactions
-        assert entity_subscription.time_col == ENTITY_TIME_COLUMNS[EntityKey.Transactions]
         assert entity_subscription.dataset == QueryDatasets.TRANSACTIONS
         snql_query = entity_subscription.build_query_builder(
             "", [self.project.id], None
@@ -283,8 +273,6 @@ class EntitySubscriptionTestCase(TestCase):
         assert isinstance(entity_subscription, EventsEntitySubscription)
         assert entity_subscription.aggregate == aggregate
         assert entity_subscription.get_entity_extra_params() == {}
-        assert entity_subscription.entity_key == EntityKey.Events
-        assert entity_subscription.time_col == ENTITY_TIME_COLUMNS[EntityKey.Events]
         assert entity_subscription.dataset == QueryDatasets.EVENTS
 
         snql_query = entity_subscription.build_query_builder(
