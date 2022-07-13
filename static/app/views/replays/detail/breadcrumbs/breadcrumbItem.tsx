@@ -120,6 +120,7 @@ const CrumbItem = styled(PanelItem)<CrumbItemProps>`
   ${p => p.isHovered && `background-color: ${p.theme.surface100};`}
   border-radius: 4px;
 
+  /* Draw a vertical line behind the breadcrumb icon. The line connects each row together, but is truncated for the first and last items */
   &::after {
     content: '';
     position: absolute;
@@ -129,7 +130,6 @@ const CrumbItem = styled(PanelItem)<CrumbItemProps>`
     height: 100%;
   }
 
-  /* Draw a vertical line behind the breadcrumb icon. The line connects each row together, but is truncated for the first and last items */
   &:first-of-type::after {
     top: 8px;
     bottom: 0;
