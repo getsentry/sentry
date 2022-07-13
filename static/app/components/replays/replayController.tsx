@@ -20,6 +20,7 @@ import {
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
+import {SelectValue} from 'sentry/types';
 import {BreadcrumbType} from 'sentry/types/breadcrumbs';
 import {getNextBreadcrumb} from 'sentry/utils/replays/getBreadcrumb';
 import useFullscreen from 'sentry/utils/replays/hooks/useFullscreen';
@@ -119,12 +120,10 @@ function ReplayCurrentTime() {
 
 function ReplayOptionsMenu({speedOptions}: {speedOptions: number[]}) {
   const {setSpeed, speed, isSkippingInactive, toggleSkipInactive} = useReplayContext();
-  const SKIP_OPTION_VALUE = 99999;
+  const SKIP_OPTION_VALUE = 'skip';
 
   return (
-    <CompositeSelect
-      closeOnSelect
-      isDismissable
+    <CompositeSelect<SelectValue<string | number>>
       placement="bottom"
       trigger={({props, ref}) => (
         <Button
@@ -150,10 +149,10 @@ function ReplayOptionsMenu({speedOptions}: {speedOptions: number[]}) {
         {
           multiple: true,
           defaultValue: isSkippingInactive ? SKIP_OPTION_VALUE : undefined,
-          label: t(''),
+          label: '',
           value: 'fast_forward',
-          onChange: value => {
-            toggleSkipInactive(Array.isArray(value) && value.length > 0);
+          onChange: (value: typeof SKIP_OPTION_VALUE[]) => {
+            toggleSkipInactive(value.length > 0);
           },
           options: [
             {
