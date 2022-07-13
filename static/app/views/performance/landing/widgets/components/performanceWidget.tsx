@@ -120,29 +120,31 @@ function _DataDisplay<T extends WidgetDataConstraint>(
         isErrored={isErrored}
         hasData={hasData}
         errorComponent={<DefaultErrorComponent height={totalHeight} />}
-        dataComponents={Visualizations.map((Visualization, index) => (
-          <ContentContainer
-            key={index}
-            noPadding={Visualization.noPadding}
-            bottomPadding={Visualization.bottomPadding}
-            data-test-id="widget-state-has-data"
-            onClick={() =>
-              trackDataComponentClicks(props.chartSetting, props.organization)
-            }
-          >
-            {getDynamicText({
-              value: (
-                <Visualization.component
-                  grid={defaultGrid}
-                  queryFields={Visualization.fields}
-                  widgetData={props.widgetData}
-                  height={chartHeight}
-                />
-              ),
-              fixed: <Placeholder height={`${chartHeight}px`} />,
-            })}
-          </ContentContainer>
-        ))}
+        dataComponents={Visualizations.filter(v => v.enabled?.(props.widgetData)).map(
+          (Visualization, index) => (
+            <ContentContainer
+              key={index}
+              noPadding={Visualization.noPadding}
+              bottomPadding={Visualization.bottomPadding}
+              data-test-id="widget-state-has-data"
+              onClick={() =>
+                trackDataComponentClicks(props.chartSetting, props.organization)
+              }
+            >
+              {getDynamicText({
+                value: (
+                  <Visualization.component
+                    grid={defaultGrid}
+                    queryFields={Visualization.fields}
+                    widgetData={props.widgetData}
+                    height={chartHeight}
+                  />
+                ),
+                fixed: <Placeholder height={`${chartHeight}px`} />,
+              })}
+            </ContentContainer>
+          )
+        )}
         loadingComponent={<PerformanceWidgetPlaceholder height={`${totalHeight}px`} />}
         emptyComponent={
           EmptyComponent ? (

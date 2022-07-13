@@ -94,6 +94,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
   const [selectedListIndex, setSelectListIndex] = useState<number>(0);
   const field = props.fields[0];
   const pageError = usePageError();
+  const isVitalDetailView = props.chartDefinition.isVitalDetailView;
 
   const {fieldsList, vitalFields, sortField} = transformFieldsWithStops({
     field,
@@ -104,6 +105,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
   const Queries = {
     list: useMemo<QueryDefinition<DataType, WidgetDataResult>>(
       () => ({
+        enabled: () => !isVitalDetailView,
         fields: sortField,
         component: provided => {
           const _eventView = provided.eventView.clone();
@@ -143,15 +145,17 @@ export function VitalWidget(props: PerformanceWidgetProps) {
     chart: useMemo<QueryDefinition<DataType, WidgetDataResult>>(
       () => ({
         enabled: widgetData => {
-          return !!widgetData?.list?.data?.length;
+          return isVitalDetailView || !!widgetData?.list?.data?.length;
         },
         fields: fieldsList,
         component: provided => {
           const _eventView = provided.eventView.clone();
 
-          _eventView.additionalConditions.setFilterValues('transaction', [
-            provided.widgetData.list.data[selectedListIndex]?.transaction as string,
-          ]);
+          if (!isVitalDetailView) {
+            _eventView.additionalConditions.setFilterValues('transaction', [
+              provided.widgetData.list.data[selectedListIndex]?.transaction as string,
+            ]);
+          }
 
           return (
             <EventsRequest
@@ -268,6 +272,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
           height: props.chartHeight,
         },
         {
+          enabled: () => !isVitalDetailView,
           component: provided => (
             <SelectableList
               selectedIndex={selectedListIndex}
