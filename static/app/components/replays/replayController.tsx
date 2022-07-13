@@ -16,6 +16,9 @@ import {
   IconPrevious,
   IconRefresh,
   IconResize,
+  IconRewind10,
+  IconExpand,
+  IconContract,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -55,7 +58,7 @@ function ReplayPlayPauseBar({isCompact}: {isCompact: boolean}) {
         <Button
           size="xs"
           title={t('Rewind 10s')}
-          icon={<IconRefresh size="sm" />}
+          icon={<IconRewind10 size="sm" />}
           onClick={() => setCurrentTime(currentTime - 10 * SECOND)}
           aria-label={t('Rewind 10 seconds')}
         />
@@ -66,7 +69,7 @@ function ReplayPlayPauseBar({isCompact}: {isCompact: boolean}) {
           title={t('Restart Replay')}
           icon={<IconPrevious size="sm" />}
           onClick={restart}
-          aria-label={t('Restart the Replay')}
+          aria-label={t('Restart Replay')}
         />
       ) : (
         <Button
@@ -188,9 +191,8 @@ const ReplayControls = ({
         size="xs"
         title={isFullscreen ? t('Exit full screen') : t('Enter full screen')}
         aria-label={isFullscreen ? t('Exit full screen') : t('Enter full screen')}
-        icon={<IconResize size="sm" />}
+        icon={isFullscreen ? <IconContract size="sm" /> : <IconExpand size="sm" />}
         onClick={toggleFullscreen}
-        priority={isFullscreen ? 'primary' : undefined}
       />
     </ButtonGrid>
   );
