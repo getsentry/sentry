@@ -65,7 +65,7 @@ REQUIRED_ACTION_PARAM = {
 }
 
 
-def create_text_block(text: str, **kwargs: str) -> TextBlock:
+def create_text_block(text: str, **kwargs: str | bool) -> TextBlock:
     return {
         "type": "TextBlock",
         "text": text,

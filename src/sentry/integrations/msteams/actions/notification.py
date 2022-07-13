@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from sentry.integrations.msteams.actions.form import MsTeamsNotifyServiceForm
-from sentry.integrations.msteams.card_builder import build_group_card
+from sentry.integrations.msteams.card_builder.issues import MSTeamsIssueMessageBuilder
 from sentry.integrations.msteams.client import MsTeamsClient
 from sentry.integrations.msteams.utils import get_channel_id
 from sentry.models import Integration
@@ -37,7 +37,7 @@ class MsTeamsNotifyServiceAction(IntegrationEventAction):
 
         def send_notification(event, futures):
             rules = [f.rule for f in futures]
-            card = build_group_card(event.group, event, rules, integration)
+            card = MSTeamsIssueMessageBuilder(event.group, event, rules, integration).build()
 
             client = MsTeamsClient(integration)
             client.send_card(channel, card)

@@ -10,6 +10,7 @@ from sentry.utils.http import absolute_uri
 from ..utils import ACTION_TYPE
 
 ME = "ME"
+URL_FORMAT_STR = "[{text}]({url})"
 
 # TODO: Covert these types to a class hierarchy.
 # This is not ideal, but better than no typing. These types should be
@@ -23,9 +24,11 @@ ColumnBlock = Mapping[str, Union[str, Sequence[ItemBlock]]]
 ColumnSetBlock = Mapping[str, Union[str, Sequence[ColumnBlock]]]
 
 Block = Union[TextBlock, ImageBlock, ColumnSetBlock]
+ContainerBlock = Mapping[str, Union[str, Block]]
 
 # Maps to Any because Actions can have an arbitrarily nested data field.
 Action = Mapping[str, Any]
+ActionSet = [Mapping[str, Union[str, Sequence[Action]]]]
 
 AdaptiveCard = Mapping[str, Union[str, Sequence[Block], Sequence[Action]]]
 

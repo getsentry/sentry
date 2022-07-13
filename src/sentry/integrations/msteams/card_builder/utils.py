@@ -62,3 +62,38 @@ class InstallationMessages:
     )
     INSTALLATION_CONFIRMATION_BUTTON = "Add Alert Rules"
     ALERT_RULE_URL = "organizations/{organization_slug}/alerts/rules/"
+
+
+class IssueConstants:
+    DATE_FORMAT = "{{{{DATE({date}, SHORT)}}}} at {{{{TIME({date})}}}}"
+
+    ASSIGNEE_NOTE = "**Assigned to {assignee}**"
+
+    RESOLVE = "Resolve"
+    RESOLVE_INPUT_ID = "resolveInput"
+    RESOLVE_INPUT_CHOICES = [
+        ("Immediately", "resolved"),
+        ("In the current release", "resolved:inCurrentRelease"),
+        ("In the next release", "resolved:inNextRelease"),
+    ]
+
+    UNRESOLVE = "Unresolve"
+
+    IGNORE = "Ignore"
+    IGNORE_INPUT_ID = "ignoreInput"
+    IGNORE_INPUT_CHOICES = [
+        ("Ignore indefinitely", -1),
+        ("1 time", 1),
+        ("10 times", 10),
+        ("100 times", 100),
+        ("1,000 times", 1000),
+        ("10,000 times", 10000),
+    ]
+
+    STOP_IGNORING = "Stop Ignoring"
+
+    ASSIGN = "Assign"
+    ASSIGN_INPUT_ID = "assignInput"
+
+    UNASSIGN = "Unassign"
+    ME = "ME"
