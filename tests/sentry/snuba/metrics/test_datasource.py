@@ -1,5 +1,6 @@
 import time
 from datetime import timedelta
+from unittest import mock
 
 from django.utils.datastructures import MultiValueDict
 
@@ -167,3 +168,21 @@ class GetCustomMeasurementsTest(MetricsEnhancedPerformanceTestCase):
                 "metric_id": indexer.resolve(self.organization.id, something_custom_metric),
             }
         ]
+
+    @mock.patch("sentry.snuba.metrics.datasource.parse_mri")
+    def test_broken_custom_metric(self, mock):
+        # Store valid metric
+        self.store_metric(
+            1,
+            metric="measurements.something_custom",
+            internal_metric="d:transactions/measurements.something_custom@millisecond",
+            entity="metrics_distributions",
+            timestamp=self.day_ago + timedelta(hours=1, minutes=0),
+        )
+
+        # mock mri failing to parse the metric
+        mock.return_value = None
+        result = get_custom_measurements(
+            projects=[self.project], organization=self.organization, start=self.day_ago
+        )
+        assert result == []
