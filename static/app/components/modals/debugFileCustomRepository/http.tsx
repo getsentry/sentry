@@ -196,7 +196,7 @@ function Http({Header, Body, Footer, onSubmit, ...props}: Props) {
             <ClearPasswordButton
               onClick={handleClearPassword}
               icon={<IconClose size="14px" />}
-              size="xsmall"
+              size="xs"
               title={t('Clear password')}
               aria-label={t('Clear password')}
               borderless

@@ -22,6 +22,7 @@ import {projectStatsToPredictedSeries} from '../utils/projectStatsToPredictedSer
 import {projectStatsToSampleRates} from '../utils/projectStatsToSampleRates';
 import {projectStatsToSeries} from '../utils/projectStatsToSeries';
 import useProjectStats from '../utils/useProjectStats';
+import {useRecommendedSdkUpgrades} from '../utils/useRecommendedSdkUpgrades';
 
 import {RecommendedStepsModal, RecommendedStepsModalProps} from './recommendedStepsModal';
 import {UniformRateChart} from './uniformRateChart';
@@ -36,10 +37,10 @@ enum Step {
   RECOMMENDED_STEPS = 'recommended_steps',
 }
 
-type Props = Omit<RecommendedStepsModalProps, 'onSubmit'> & {
+type Props = Omit<RecommendedStepsModalProps, 'onSubmit' | 'recommendedSdkUpgrades'> & {
   onSubmit: UniformModalsSubmit;
+  project: Project;
   rules: SamplingRule[];
-  project?: Project;
   projectStats?: SeriesApi;
 };
 
@@ -49,7 +50,6 @@ function UniformRateModal({
   Footer,
   closeModal,
   organization,
-  recommendedSdkUpgrades,
   projectStats,
   project,
   uniformRule,
@@ -59,9 +59,13 @@ function UniformRateModal({
 }: Props) {
   const {projectStats: projectStats30d, loading: loading30d} = useProjectStats({
     orgSlug: organization.slug,
-    projectId: project?.id,
+    projectId: project.id,
     interval: '1d',
     statsPeriod: '30d',
+  });
+
+  const {recommendedSdkUpgrades} = useRecommendedSdkUpgrades({
+    orgSlug: organization.slug,
   });
 
   const loading = loading30d || !projectStats;

@@ -26,6 +26,8 @@ import {SelectedFrameRenderer} from 'sentry/utils/profiling/renderers/selectedFr
 import {TextRenderer} from 'sentry/utils/profiling/renderers/textRenderer';
 import usePrevious from 'sentry/utils/usePrevious';
 
+import {FlamegraphFrame} from '../../utils/profiling/flamegraphFrame';
+
 import {BoundTooltip} from './boundTooltip';
 import {FlamegraphOptionsContextMenu} from './flamegraphOptionsContextMenu';
 
@@ -152,7 +154,7 @@ function FlamegraphZoomView({
 
           // If previous position is empty, reset the view to it's max
           if (previousPosition?.isEmpty()) {
-            canvasPoolManager.dispatch('resetZoom', []);
+            canvasPoolManager.dispatch('reset zoom', []);
           } else if (
             previousPosition &&
             !previousPosition?.equals(flamegraphView.configView)
@@ -161,7 +163,7 @@ function FlamegraphZoomView({
             // because the height may have changed due to window resizing and
             // calling it with the old height may result in the flamegraph
             // being drawn into a very small or very large area.
-            canvasPoolManager.dispatch('setConfigView', [
+            canvasPoolManager.dispatch('set config view', [
               previousPosition.withHeight(flamegraphView.configView.height),
             ]);
           }
@@ -175,7 +177,7 @@ function FlamegraphZoomView({
             // because the height may have changed due to window resizing and
             // calling it with the old height may result in the flamegraph
             // being drawn into a very small or very large area.
-            canvasPoolManager.dispatch('setConfigView', [
+            canvasPoolManager.dispatch('set config view', [
               nextPosition.withHeight(flamegraphView.configView.height),
             ]);
           }
@@ -247,13 +249,7 @@ function FlamegraphZoomView({
   ]);
 
   useEffect(() => {
-    if (
-      !flamegraphCanvas ||
-      !flamegraphView ||
-      !textRenderer ||
-      !gridRenderer ||
-      !selectedFrameRenderer
-    ) {
+    if (!flamegraphCanvas || !flamegraphView || !textRenderer || !gridRenderer) {
       return undefined;
     }
 
@@ -264,41 +260,6 @@ function FlamegraphZoomView({
         textRenderer.canvas.width,
         textRenderer.canvas.height
       );
-    };
-
-    const drawSelectedFrameBorder = () => {
-      if (flamegraphState.profiles.selectedNode) {
-        selectedFrameRenderer.draw(
-          new Rect(
-            flamegraphState.profiles.selectedNode.start,
-            flamegraphState.profiles.selectedNode.depth,
-            flamegraphState.profiles.selectedNode.end -
-              flamegraphState.profiles.selectedNode.start,
-            1
-          ),
-          {
-            BORDER_COLOR: flamegraphTheme.COLORS.SELECTED_FRAME_BORDER_COLOR,
-            BORDER_WIDTH: flamegraphTheme.SIZES.FRAME_BORDER_WIDTH,
-          },
-          flamegraphView.fromConfigView(flamegraphCanvas.physicalSpace)
-        );
-      }
-
-      if (hoveredNode && flamegraphState.profiles.selectedNode !== hoveredNode) {
-        selectedFrameRenderer.draw(
-          new Rect(
-            hoveredNode.start,
-            hoveredNode.depth,
-            hoveredNode.end - hoveredNode.start,
-            1
-          ),
-          {
-            BORDER_COLOR: flamegraphTheme.COLORS.HOVERED_FRAME_BORDER_COLOR,
-            BORDER_WIDTH: flamegraphTheme.SIZES.HOVERED_FRAME_BORDER_WIDTH,
-          },
-          flamegraphView.fromConfigView(flamegraphCanvas.physicalSpace)
-        );
-      }
     };
 
     const drawText = () => {
@@ -329,7 +290,6 @@ function FlamegraphZoomView({
     };
 
     scheduler.registerBeforeFrameCallback(clearOverlayCanvas);
-    scheduler.registerBeforeFrameCallback(drawSelectedFrameBorder);
     scheduler.registerAfterFrameCallback(drawText);
     scheduler.registerAfterFrameCallback(drawGrid);
     scheduler.registerAfterFrameCallback(drawInternalSampleTicks);
@@ -338,7 +298,6 @@ function FlamegraphZoomView({
 
     return () => {
       scheduler.unregisterBeforeFrameCallback(clearOverlayCanvas);
-      scheduler.unregisterBeforeFrameCallback(drawSelectedFrameBorder);
       scheduler.unregisterAfterFrameCallback(drawText);
       scheduler.unregisterAfterFrameCallback(drawGrid);
       scheduler.unregisterAfterFrameCallback(drawInternalSampleTicks);
@@ -351,11 +310,100 @@ function FlamegraphZoomView({
     flamegraphTheme,
     textRenderer,
     gridRenderer,
+    selectedFrameRenderer,
     sampleTickRenderer,
-    flamegraphState.profiles.selectedNode,
+    canvasPoolManager,
+    flamegraphSearch,
+  ]);
+
+  useEffect(() => {
+    if (!flamegraphCanvas || !flamegraphView || !selectedFrameRenderer) {
+      return undefined;
+    }
+
+    const state: {selectedNode: FlamegraphFrame | null} = {
+      selectedNode: null,
+    };
+
+    const onNodeHighlight = (
+      node: FlamegraphFrame | null,
+      mode: 'hover' | 'selected'
+    ) => {
+      if (mode === 'selected') {
+        state.selectedNode = node;
+      }
+      scheduler.draw();
+    };
+
+    const drawSelectedFrameBorder = () => {
+      if (state.selectedNode) {
+        selectedFrameRenderer.draw(
+          new Rect(
+            state.selectedNode.start,
+            state.selectedNode.depth,
+            state.selectedNode.end - state.selectedNode.start,
+            1
+          ),
+          {
+            BORDER_COLOR: flamegraphTheme.COLORS.SELECTED_FRAME_BORDER_COLOR,
+            BORDER_WIDTH: flamegraphTheme.SIZES.FRAME_BORDER_WIDTH,
+          },
+          flamegraphView.fromConfigView(flamegraphCanvas.physicalSpace)
+        );
+      }
+    };
+
+    scheduler.on('highlight frame', onNodeHighlight);
+    scheduler.registerAfterFrameCallback(drawSelectedFrameBorder);
+
+    return () => {
+      scheduler.off('highlight frame', onNodeHighlight);
+      scheduler.unregisterAfterFrameCallback(drawSelectedFrameBorder);
+    };
+  }, [
+    flamegraphView,
+    flamegraphCanvas,
+    scheduler,
+    selectedFrameRenderer,
+    flamegraphTheme,
+  ]);
+
+  useEffect(() => {
+    if (!flamegraphCanvas || !flamegraphView || !selectedFrameRenderer) {
+      return undefined;
+    }
+
+    const drawHoveredFrameBorder = () => {
+      if (hoveredNode) {
+        selectedFrameRenderer.draw(
+          new Rect(
+            hoveredNode.start,
+            hoveredNode.depth,
+            hoveredNode.end - hoveredNode.start,
+            1
+          ),
+          {
+            BORDER_COLOR: flamegraphTheme.COLORS.HOVERED_FRAME_BORDER_COLOR,
+            BORDER_WIDTH: flamegraphTheme.SIZES.HOVERED_FRAME_BORDER_WIDTH,
+          },
+          flamegraphView.fromConfigView(flamegraphCanvas.physicalSpace)
+        );
+      }
+    };
+
+    scheduler.registerAfterFrameCallback(drawHoveredFrameBorder);
+    scheduler.draw();
+
+    return () => {
+      scheduler.unregisterAfterFrameCallback(drawHoveredFrameBorder);
+    };
+  }, [
+    flamegraphView,
+    flamegraphCanvas,
+    scheduler,
     hoveredNode,
     selectedFrameRenderer,
-    flamegraphSearch,
+    flamegraphTheme,
   ]);
 
   useEffect(() => {
@@ -371,12 +419,12 @@ function FlamegraphZoomView({
       setConfigSpaceCursor(null);
     };
 
-    scheduler.on('resetZoom', onResetZoom);
-    scheduler.on('zoomIntoFrame', onZoomIntoFrame);
+    scheduler.on('reset zoom', onResetZoom);
+    scheduler.on('zoom at frame', onZoomIntoFrame);
 
     return () => {
-      scheduler.off('resetZoom', onResetZoom);
-      scheduler.off('zoomIntoFrame', onZoomIntoFrame);
+      scheduler.off('reset zoom', onResetZoom);
+      scheduler.off('zoom at frame', onZoomIntoFrame);
     };
   }, [
     flamegraphCanvas,
@@ -423,13 +471,15 @@ function FlamegraphZoomView({
       if (lastInteraction === 'click') {
         if (
           hoveredNode &&
-          flamegraphState.profiles.selectedNode &&
-          hoveredNode === flamegraphState.profiles.selectedNode
+          flamegraphState.profiles.selectedRoot &&
+          hoveredNode === flamegraphState.profiles.selectedRoot
         ) {
-          canvasPoolManager.dispatch('zoomIntoFrame', [hoveredNode]);
+          // If double click is fired on a node, then zoom into it
+          canvasPoolManager.dispatch('zoom at frame', [hoveredNode, 'exact']);
         }
-        canvasPoolManager.dispatch('selectedNode', [hoveredNode]);
-        dispatchFlamegraphState({type: 'set selected node', payload: hoveredNode});
+
+        canvasPoolManager.dispatch('highlight frame', [hoveredNode, 'selected']);
+        dispatchFlamegraphState({type: 'set selected root', payload: hoveredNode});
       }
 
       setLastInteraction(null);
@@ -437,7 +487,7 @@ function FlamegraphZoomView({
     },
     [
       configSpaceCursor,
-      flamegraphState.profiles.selectedNode,
+      flamegraphState.profiles.selectedRoot,
       dispatchFlamegraphState,
       hoveredNode,
       canvasPoolManager,
@@ -490,7 +540,7 @@ function FlamegraphZoomView({
         0,
       ]);
 
-      canvasPoolManager.dispatch('transformConfigView', [
+      canvasPoolManager.dispatch('transform config view', [
         mat3.fromTranslation(mat3.create(), configDelta),
       ]);
 
@@ -557,7 +607,7 @@ function FlamegraphZoomView({
       const scaled = mat3.scale(mat3.create(), translated, vec2.fromValues(scale, 1));
       const translatedBack = mat3.translate(mat3.create(), scaled, invertedConfigCenter);
 
-      canvasPoolManager.dispatch('transformConfigView', [translatedBack]);
+      canvasPoolManager.dispatch('transform config view', [translatedBack]);
     },
     [flamegraphCanvas, flamegraphView, canvasPoolManager]
   );
@@ -588,7 +638,7 @@ function FlamegraphZoomView({
       ]);
 
       const translate = mat3.fromTranslation(mat3.create(), configDelta);
-      canvasPoolManager.dispatch('transformConfigView', [translate]);
+      canvasPoolManager.dispatch('transform config view', [translate]);
     },
     [flamegraphCanvas, flamegraphView, canvasPoolManager]
   );

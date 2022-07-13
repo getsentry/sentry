@@ -80,8 +80,10 @@ function EnvironmentSelector({
 
   // Update selected envs value on change
   useEffect(() => {
-    setSelectedEnvs(value);
-    lastSelectedEnvs.current = selectedEnvs;
+    setSelectedEnvs(previousSelectedEnvs => {
+      lastSelectedEnvs.current = previousSelectedEnvs;
+      return value;
+    });
   }, [value]);
 
   // We keep a separate list of selected environments to use for sorting. This
@@ -252,7 +254,7 @@ function EnvironmentSelector({
           virtualizedHeight={theme.headerSelectorRowHeight}
           emptyHidesInput
           inputActions={
-            showPin ? <StyledPinButton size="xsmall" filter="environments" /> : undefined
+            showPin ? <StyledPinButton size="xs" filter="environments" /> : undefined
           }
           menuFooter={({actions}) =>
             hasChanges ? (
