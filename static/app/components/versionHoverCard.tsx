@@ -5,7 +5,7 @@ import {Client} from 'sentry/api';
 import AvatarList from 'sentry/components/avatar/avatarList';
 import Button from 'sentry/components/button';
 import Clipboard from 'sentry/components/clipboard';
-import {Hovercard} from 'sentry/components/hovercard';
+import {Divider, Hovercard} from 'sentry/components/hovercard';
 import LastCommit from 'sentry/components/lastCommit';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -111,7 +111,7 @@ class VersionHoverCard extends Component<Props, State> {
         </HeaderWrapper>
       ),
       body: (
-        <Body>
+        <div>
           <div className="row">
             <div className="col-xs-4">
               <h6>{t('New Issues')}</h6>
@@ -149,7 +149,7 @@ class VersionHoverCard extends Component<Props, State> {
               })}
             </div>
           )}
-        </Body>
+        </div>
       ),
     };
   }
@@ -193,15 +193,6 @@ class VersionHoverCard extends Component<Props, State> {
 
 export {VersionHoverCard};
 export default withApi(withRelease(withRepositories(VersionHoverCard)));
-
-const Body = styled('div')`
-  h6 {
-    color: ${p => p.theme.subText};
-    font-size: ${p => p.theme.fontSizeExtraSmall};
-    margin-bottom: ${space(1)};
-    text-transform: uppercase;
-  }
-`;
 
 const ConnectRepo = styled('div')`
   padding: ${space(2)};
@@ -248,30 +239,6 @@ const CountSince = styled('div')`
 
 const StyledLastCommit = styled(LastCommit)`
   margin-top: ${space(2)};
-`;
-
-const Divider = styled('div')`
-  position: relative;
-  margin-top: ${space(2)};
-  margin-bottom: ${space(1)};
-
-  &:before {
-    display: block;
-    position: absolute;
-    content: '';
-    height: 1px;
-    top: 50%;
-    left: ${space(2)};
-    right: ${space(2)};
-    background: ${p => p.theme.innerBorder};
-    z-index: -1;
-  }
-
-  h6 {
-    display: inline;
-    padding-right: ${space(1)};
-    background: ${p => p.theme.background};
-  }
 `;
 
 const DeployWrap = styled('div')`
