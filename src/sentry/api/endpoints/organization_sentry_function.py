@@ -4,6 +4,7 @@ from django.template.defaultfilters import slugify
 from rest_framework import serializers
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.bases import OrganizationEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
@@ -20,6 +21,9 @@ class OrganizationSentryFunctionEndpoint(OrganizationEndpoint):
     # Creating a new sentry function
 
     def post(self, request, organization):
+        if not features.has("organizations:sentry-functions", organization, actor=request.user):
+            return Response("organizations:sentry-functions flag set to false", status=404)
+
         serializer = SentryFunctionSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
