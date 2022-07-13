@@ -29,6 +29,7 @@ import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {
   Entry,
+  EntrySpanTree,
   EntryType,
   Event,
   ExceptionValue,
@@ -105,6 +106,21 @@ const EventEntries = memo(
       checkProGuardError();
       recordIssueError();
       fetchAttachments();
+
+      const spanTreeEntry: EntrySpanTree = {
+        data: {
+          focusedSpanIds: [
+            'a0d7fc2b27c2fa51',
+            '8f2cd5989c010bae',
+            '81dc9624b6c80dde',
+            'a0c4deca2d610e8b',
+          ],
+        },
+        type: EntryType.SPANTREE,
+      };
+
+      event?.entries.push(spanTreeEntry as any);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     function recordIssueError() {

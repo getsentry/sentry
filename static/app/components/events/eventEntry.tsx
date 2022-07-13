@@ -17,6 +17,7 @@ import {Group, Organization, Project, SharedViewOrganization} from 'sentry/types
 import {Entry, EntryType, Event, EventTransaction} from 'sentry/types/event';
 
 import {PerformanceIssueSection} from './interfaces/performance';
+import {EmbeddedSpanTree} from './interfaces/spans/embeddedSpanTree';
 import {FocusedSpanIDMap} from './interfaces/spans/types';
 
 type Props = Pick<React.ComponentProps<typeof Breadcrumbs>, 'route' | 'router'> & {
@@ -192,10 +193,13 @@ function EventEntry({
       _focusedSpanIds.forEach(spanId => (focusedSpanIds[spanId] = new Set()));
 
       return (
-        <Spans
-          event={event as EventTransaction}
+        // TODO: We need projectSlug and transactionID to be determined dynamically
+        <EmbeddedSpanTree
+          event={event}
           organization={organization as Organization}
+          projectSlug="javascript"
           focusedSpanIds={focusedSpanIds}
+          transactionID="f8cbff973aa643248c8605ffc8572c5c"
         />
       );
     case EntryType.PERFORMANCE:

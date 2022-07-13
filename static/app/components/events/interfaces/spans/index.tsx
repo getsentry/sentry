@@ -21,14 +21,13 @@ import * as AnchorLinkManager from './anchorLinkManager';
 import Filter from './filter';
 import TraceErrorList from './traceErrorList';
 import TraceView from './traceView';
-import {FocusedSpanIDMap, ParsedTraceType} from './types';
+import {ParsedTraceType} from './types';
 import {getCumulativeAlertLevelFromErrors, parseTrace, scrollToSpan} from './utils';
 import WaterfallModel from './waterfallModel';
 
 type Props = {
   event: EventTransaction;
   organization: Organization;
-  focusedSpanIds?: FocusedSpanIDMap;
 } & WithRouterProps;
 
 type State = {
@@ -39,7 +38,7 @@ type State = {
 class SpansInterface extends PureComponent<Props, State> {
   state: State = {
     parsedTrace: parseTrace(this.props.event),
-    waterfallModel: new WaterfallModel(this.props.event, this.props.focusedSpanIds),
+    waterfallModel: new WaterfallModel(this.props.event),
   };
 
   static getDerivedStateFromProps(props: Readonly<Props>, state: State): State {
@@ -50,7 +49,7 @@ class SpansInterface extends PureComponent<Props, State> {
     return {
       ...state,
       parsedTrace: parseTrace(props.event),
-      waterfallModel: new WaterfallModel(props.event, props.focusedSpanIds),
+      waterfallModel: new WaterfallModel(props.event),
     };
   }
 
