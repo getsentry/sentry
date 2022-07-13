@@ -186,6 +186,7 @@ class TestMetricCorrelation(TestCase):
             5,
         ]
 
+        # used scipy.stats.pearsonr() to calculate the results below
         group1_group2_pearsonr_result = (-0.3652702353193248, 0.04716194093601093)
         group1_group3_pearsonr_result = (-0.07067218051579457, 0.7105599952548641)
         group1_group4_pearsonr_result = (-0.11589514295691093, 0.541946834089711)
