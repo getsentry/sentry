@@ -2,20 +2,49 @@
 # Based on https://github.com/getsentry/getsentry/blob/89ff1453be755ddef31f2b99de09bd03badeb25e/getsentry/migrations/0141_migrate_sessions_subs_to_metrics.py
 
 import logging
+import re
 
 from django.db import migrations
 
 from sentry.new_migrations.migrations import CheckedMigration
 from sentry.snuba.dataset import EntityKey
-from sentry.snuba.entity_subscription import map_aggregate_to_entity_key
 from sentry.snuba.models import QueryDatasets
 from sentry.snuba.tasks import _create_in_snuba, _delete_from_snuba
 from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
+
+CRASH_RATE_ALERT_AGGREGATE_RE = (
+    r"^percentage\([ ]*(sessions_crashed|users_crashed)[ ]*\,[ ]*(sessions|users)[ ]*\)"
+)
 
 
 def create_subscription_in_snuba(subscription):
     subscription.subscription_id = _create_in_snuba(subscription)
     subscription.save()
+
+
+def map_aggregate_to_entity_key(dataset: QueryDatasets, aggregate: str) -> EntityKey:
+    if dataset == QueryDatasets.EVENTS:
+        entity_key = EntityKey.Events
+    elif dataset == QueryDatasets.TRANSACTIONS:
+        entity_key = EntityKey.Transactions
+    elif dataset in [QueryDatasets.METRICS, QueryDatasets.SESSIONS]:
+        match = re.match(CRASH_RATE_ALERT_AGGREGATE_RE, aggregate)
+        if not match:
+            raise Exception(
+                f"Only crash free percentage queries are supported for subscriptions"
+                f"over the {dataset.value} dataset"
+            )
+        if dataset == QueryDatasets.METRICS:
+            count_col_matched = match.group(2)
+            if count_col_matched == "sessions":
+                entity_key = EntityKey.MetricsCounters
+            else:
+                entity_key = EntityKey.MetricsSets
+        else:
+            entity_key = EntityKey.Sessions
+    else:
+        raise Exception(f"{dataset} dataset does not have an entity key mapped to it")
+    return entity_key
 
 
 def delete_subscription_from_snuba(subscription, query_dataset: QueryDatasets):

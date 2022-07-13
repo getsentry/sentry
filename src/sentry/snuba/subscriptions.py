@@ -11,6 +11,8 @@ from sentry.snuba.tasks import (
 
 logger = logging.getLogger(__name__)
 
+# Temporary mapping of `QueryDatasets` to `SnubaQuery.Type`. In the future, `Performance` will be
+# able to be run on `METRICS` as well.
 query_datasets_to_type = {
     QueryDatasets.EVENTS: SnubaQuery.Type.ERROR,
     QueryDatasets.TRANSACTIONS: SnubaQuery.Type.PERFORMANCE,
@@ -84,6 +86,7 @@ def update_snuba_query(
 
     new_event_types = set(event_types) - current_event_types
     removed_event_types = current_event_types - set(event_types)
+    old_query_type = SnubaQuery.Type(snuba_query.type)
     old_dataset = QueryDatasets(snuba_query.dataset)
     with transaction.atomic():
         query_subscriptions = list(snuba_query.subscriptions.all())
@@ -108,7 +111,7 @@ def update_snuba_query(
                 snuba_query=snuba_query, type__in=[et.value for et in removed_event_types]
             ).delete()
 
-        bulk_update_snuba_subscriptions(query_subscriptions, old_dataset)
+        bulk_update_snuba_subscriptions(query_subscriptions, old_query_type, old_dataset)
 
 
 def bulk_create_snuba_subscriptions(projects, subscription_type, snuba_query):
@@ -151,7 +154,7 @@ def create_snuba_subscription(project, subscription_type, snuba_query):
     return subscription
 
 
-def bulk_update_snuba_subscriptions(subscriptions, old_dataset):
+def bulk_update_snuba_subscriptions(subscriptions, old_query_type, old_dataset):
     """
     Updates a list of query subscriptions.
 
@@ -162,11 +165,13 @@ def bulk_update_snuba_subscriptions(subscriptions, old_dataset):
     updated_subscriptions = []
     # TODO: Batch this up properly once we care about multi-project rules.
     for subscription in subscriptions:
-        updated_subscriptions.append(update_snuba_subscription(subscription, old_dataset))
+        updated_subscriptions.append(
+            update_snuba_subscription(subscription, old_query_type, old_dataset)
+        )
     return subscriptions
 
 
-def update_snuba_subscription(subscription, old_dataset):
+def update_snuba_subscription(subscription, old_query_type, old_dataset):
     """
     Updates a subscription to a snuba query.
 
@@ -180,7 +185,11 @@ def update_snuba_subscription(subscription, old_dataset):
         subscription.update(status=QuerySubscription.Status.UPDATING.value)
 
         update_subscription_in_snuba.apply_async(
-            kwargs={"query_subscription_id": subscription.id, "old_dataset": old_dataset.value},
+            kwargs={
+                "query_subscription_id": subscription.id,
+                "old_query_type": old_query_type.value,
+                "old_dataset": old_dataset.value,
+            },
             countdown=5,
         )
 

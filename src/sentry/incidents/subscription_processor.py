@@ -34,9 +34,10 @@ from sentry.snuba.entity_subscription import (
     ENTITY_TIME_COLUMNS,
     BaseMetricsEntitySubscription,
     get_entity_key_from_query_builder,
+    get_entity_subscription_from_snuba_query,
 )
 from sentry.snuba.models import QueryDatasets
-from sentry.snuba.tasks import build_query_builder, get_entity_subscription_for_dataset
+from sentry.snuba.tasks import build_query_builder
 from sentry.utils import metrics, redis
 from sentry.utils.dates import to_datetime, to_timestamp
 
@@ -172,14 +173,9 @@ class SubscriptionProcessor:
         snuba_query = self.subscription.snuba_query
         start = end - timedelta(seconds=snuba_query.time_window)
 
-        entity_subscription = get_entity_subscription_for_dataset(
-            dataset=QueryDatasets(snuba_query.dataset),
-            aggregate=snuba_query.aggregate,
-            time_window=snuba_query.time_window,
-            extra_fields={
-                "org_id": self.subscription.project.organization,
-                "event_types": snuba_query.event_types,
-            },
+        entity_subscription = get_entity_subscription_from_snuba_query(
+            snuba_query,
+            self.subscription.project.organization_id,
         )
         try:
             project_ids = [self.subscription.project_id]

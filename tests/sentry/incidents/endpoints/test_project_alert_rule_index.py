@@ -766,8 +766,7 @@ class AlertRuleCreateEndpointTestCrashRateAlert(APITestCase):
             )
         assert (
             resp.data["nonFieldErrors"][0]
-            == f"Only crash free percentage queries are supported for subscriptions"
-            f"over the {self.valid_alert_rule['dataset']} dataset"
+            == "Only crash free percentage queries are supported for crash rate alerts"
         )
 
     @patch(
