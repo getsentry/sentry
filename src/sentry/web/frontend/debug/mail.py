@@ -96,6 +96,8 @@ def make_group_generator(random, project):
     for id in itertools.count(1):
         first_seen = epoch + random.randint(0, 60 * 60 * 24 * 30)
         last_seen = random.randint(first_seen, first_seen + (60 * 60 * 24 * 30))
+        times_seen = random.randint(0, 100 * 1000)
+        users_seen = random.randint(0, 100 * 1000)
 
         culprit = make_culprit(random)
         level = random.choice(list(LOG_LEVELS.keys()))
@@ -110,12 +112,15 @@ def make_group_generator(random, project):
             message=message,
             first_seen=to_datetime(first_seen),
             last_seen=to_datetime(last_seen),
+            times_seen=times_seen,
             status=random.choice((GroupStatus.UNRESOLVED, GroupStatus.RESOLVED)),
             data={"type": "default", "metadata": {"title": message}},
         )
 
         if random.random() < 0.8:
             group.data = make_group_metadata(random, group)
+
+        group.users_seen = users_seen
 
         yield group
 
@@ -381,7 +386,6 @@ def release_alert(request):
         html_template="sentry/emails/release_alert.html",
         text_template="sentry/emails/release_alert.txt",
         context={
-            "rule": rule,
             "rules": get_rules([rule], org, project),
             "group": group,
             "event": event,
@@ -397,6 +401,7 @@ def release_alert(request):
             },
             "last_release_link": f"http://testserver/organizations/{org.slug}/releases/13.9.2/?project={project.id}",
             "environment": "production",
+            "regression": False,
         },
     ).render(request)
 

@@ -222,9 +222,11 @@ class ActiveReleaseAlertNotification(AlertRuleNotification):
         environment = self.event.get_tag("environment")
         enhanced_privacy = self.organization.flags.enhanced_privacy
         rule_details = get_rules(self.rules, self.organization, self.project)
+        group = self.group
+        group.users_seen = self.group.count_users_seen()
         context = {
             "project_label": self.project.get_full_name(),
-            "group": self.group,
+            "group": group,
             "event": self.event,
             "link": get_group_settings_link(
                 self.group, environment, rule_details, referrer="alert_email_release"
@@ -235,16 +237,23 @@ class ActiveReleaseAlertNotification(AlertRuleNotification):
             "last_release": self.last_release,
             "last_release_link": self.release_url(self.last_release),
             "last_release_slack_link": self.slack_release_url(self.last_release),
-            "commits": self.get_release_commits(self.last_release)[:15],
             "environment": environment,
             "slack_link": get_integration_link(self.organization, "slack"),
             "has_alert_integration": has_alert_integration(self.project),
+            "regression": False,
         }
 
         # if the organization has enabled enhanced privacy controls we don't send
         # data which may show PII or source code
         if not enhanced_privacy:
-            context.update({"tags": self.event.tags, "interfaces": get_interface_list(self.event)})
+            context.update(
+                {
+                    "tags": self.event.tags,
+                    "interfaces": get_interface_list(self.event),
+                    "contexts": self.event.data["contexts"].items(),
+                    "event_user": self.event.data["user"],
+                }
+            )
 
         return context
 
