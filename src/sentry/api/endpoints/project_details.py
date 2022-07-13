@@ -348,6 +348,10 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
         raise serializers.ValidationError("Invalid platform")
 
 
+class UniformDynamicSamplingRuleException(Exception):
+    ...
+
+
 class RelaxedProjectPermission(ProjectPermission):
     scope_map = {
         "GET": ["project:read", "project:write", "project:admin"],
@@ -610,7 +614,10 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         if "dynamicSampling" in result:
             raw_dynamic_sampling = result["dynamicSampling"]
-            fixed_rules = self._fix_rule_ids(project, raw_dynamic_sampling)
+            try:
+                fixed_rules = self._fix_rule_ids(project, raw_dynamic_sampling)
+            except UniformDynamicSamplingRuleException as e:
+                return Response({"detail": str(e)}, status=400)
             project.update_option("sentry:dynamic_sampling", fixed_rules)
 
         # TODO(dcramer): rewrite options to use standard API config
@@ -771,6 +778,35 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         return Response(status=204)
 
+    @staticmethod
+    def _is_uniform_sampling_rule(rule):
+        # Currently UI sends top level condition op as always 'and' so asserting this here to
+        # guarantee that it will always have an `inner` key
+        assert rule["condition"]["op"] == "and"
+        return len(rule["condition"]["inner"]) == 0 and rule["type"] == "trace"
+
+    def validate_uniform_sampling_rule(self, rules):
+        # Guards against deletion of uniform sampling rule i.e. sending a payload with no rules
+        if len(rules) == 0:
+            raise UniformDynamicSamplingRuleException(
+                "Payload must contain a uniform dynamic sampling rule"
+            )
+
+        uniform_rule = rules[-1]
+        # Guards against placing uniform sampling rule not in last position or adding multiple
+        # uniform sampling rules
+        for i in range(0, len(rules) - 2):
+            if self._is_uniform_sampling_rule(rules[i]):
+                raise UniformDynamicSamplingRuleException(
+                    "Uniform rule must be in the last position only"
+                )
+
+        # Ensures last rule in rules is always a uniform sampling rule
+        if not self._is_uniform_sampling_rule(uniform_rule):
+            raise UniformDynamicSamplingRuleException(
+                "Last rule is reserved for uniform rule which must have no conditions"
+            )
+
     def _fix_rule_ids(self, project, raw_dynamic_sampling):
         """
         Fixes rule ids in sampling configuration
@@ -797,6 +833,9 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         if raw_dynamic_sampling is not None:
             rules = raw_dynamic_sampling.get("rules", [])
+
+            self.validate_uniform_sampling_rule(rules)
+
             for rule in rules:
                 rid = rule.get("id", 0)
                 original_rule = original_rules_dict.get(rid)
