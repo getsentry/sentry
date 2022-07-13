@@ -140,7 +140,7 @@ function ReplayOptionsMenu({speedOptions}: {speedOptions: number[]}) {
         {
           defaultValue: speed,
           label: t('Playback Speed'),
-          value: t('playback_speed'),
+          value: 'playback_speed',
           onChange: setSpeed,
           options: speedOptions.map(option => ({
             label: `${option}x`,
@@ -151,7 +151,7 @@ function ReplayOptionsMenu({speedOptions}: {speedOptions: number[]}) {
           multiple: true,
           defaultValue: isSkippingInactive ? SKIP_OPTION_VALUE : undefined,
           label: t(''),
-          value: t('fast_forward'),
+          value: 'fast_forward',
           onChange: value => {
             toggleSkipInactive(Array.isArray(value) && value.length > 0);
           },
