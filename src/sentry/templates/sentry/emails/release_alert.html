@@ -134,21 +134,23 @@
           </li>
         {% endif %}
 
-        {% for context_key, context in contexts %}
-          {% if context_key == 'browser' or context_key == 'client_os' or context_key == 'os' %}
-            <li>
-              <table>
-                <tr>
-                  <th rowspan="2">{% letter_platform_svg context_key context_key 32 %}</th>
-                  <td><strong>{{ context.name }}</strong></td>
-                </tr>
-                <tr>
-                  <td>Version: {{ context.version }}</td>
-                </tr>
-              </table>
-            </li>
-          {% endif %}
-        {% endfor %}
+        {% if contexts %}
+          {% for context_key, context in contexts %}
+            {% if context_key == 'browser' or context_key == 'client_os' or context_key == 'os' %}
+              <li>
+                <table>
+                  <tr>
+                    <th rowspan="2">{% letter_platform_svg context_key context_key 32 %}</th>
+                    <td><strong>{{ context.name }}</strong></td>
+                  </tr>
+                  <tr>
+                    <td>Version: {{ context.version }}</td>
+                  </tr>
+                </table>
+              </li>
+            {% endif %}
+          {% endfor %}
+        {% endif %}
         </ul>
 
         <ul class="new-tag-list">
