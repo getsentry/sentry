@@ -840,8 +840,10 @@ def histogram_query(
         # We want the specified max_value to be exclusive, and the queried max_value
         # to be inclusive. So we adjust the specified max_value using the multiplier.
         max_value -= 0.1 / multiplier
+
+    span_fields = ["db"]
     min_value, max_value = find_histogram_min_max(
-        fields,
+        span_fields,
         min_value,
         max_value,
         user_query,
@@ -867,12 +869,16 @@ def histogram_query(
 
         field_names = [histogram_function(field) for field in fields]
     histogram_params = find_histogram_params(num_buckets, min_value, max_value, multiplier)
+    # returns f'spans_count_histogram("db", {histogram_params.bucket_size:d}, {histogram_params.start_offset:d}, {histogram_params.multiplier:d})'
     histogram_column = get_histogram_column(fields, key_column, histogram_params, array_column)
     if min_value is None or max_value is None:
         return normalize_histogram_results(
             fields, key_column, histogram_params, {"data": []}, array_column
         )
 
+    histogram_rows = None
+    key_column = None
+    field_names = []
     builder = HistogramQueryBuilder(
         num_buckets,
         histogram_column,
@@ -884,8 +890,8 @@ def histogram_query(
         # Arguments for QueryBuilder
         Dataset.Discover,
         params,
-        query=user_query,
-        selected_columns=fields,
+        user_query,
+        selected_columns=[""],
         orderby=order_by,
         limitby=limit_by,
     )
@@ -921,8 +927,9 @@ def get_histogram_column(fields, key_column, histogram_params, array_column):
     :param HistogramParams histogram_params: The histogram parameters used.
     :param str array_column: Array column prefix
     """
-    field = fields[0] if key_column is None else f"{array_column}_value"
-    return f"histogram({field}, {histogram_params.bucket_size:d}, {histogram_params.start_offset:d}, {histogram_params.multiplier:d})"
+    # field = fields[0] if key_column is None else f"{array_column}_value"
+    # return f"histogram({field}, {histogram_params.bucket_size:d}, {histogram_params.start_offset:d}, {histogram_params.multiplier:d})"
+    return f'spans_count_histogram("db", {histogram_params.bucket_size:d}, {histogram_params.start_offset:d}, {histogram_params.multiplier:d})'
 
 
 def find_histogram_params(num_buckets, min_value, max_value, multiplier):
@@ -1089,23 +1096,30 @@ def find_histogram_min_max(
     min_columns = []
     max_columns = []
     quartiles = []
+
     for field in fields:
         if min_value is None:
-            min_columns.append(f"min({field})")
+            # min_columns.append(f"min({field})")
+            min_columns.append(f'fn_span_count("{field}", min)')
         if max_value is None:
-            max_columns.append(f"max({field})")
+            # max_columns.append(f"max({field})")
+            min_columns.append(f'fn_span_count("{field}", max)')
         if data_filter == "exclude_outliers":
-            quartiles.append(f"percentile({field}, 0.25)")
-            quartiles.append(f"percentile({field}, 0.75)")
+            # quartiles.append(f"percentile({field}, 0.25)")
+            # quartiles.append(f"percentile({field}, 0.75)")
+            quartiles.append(f'fn_span_count("{field}", quantile(0.25))')
+            quartiles.append(f'fn_span_count("{field}", quantile(0.75))')
 
     if query_fn is None:
         query_fn = query
+
     results = query_fn(
         selected_columns=min_columns + max_columns + quartiles,
         query=user_query,
         params=params,
         limit=1,
         referrer="api.organization-events-histogram-min-max",
+        functions_acl=["fn_span_count"],
     )
 
     data = results.get("data")
@@ -1137,8 +1151,8 @@ def find_histogram_min_max(
         fences = []
         if data_filter == "exclude_outliers":
             for field in fields:
-                q1_alias = get_function_alias(f"percentile({field}, 0.25)")
-                q3_alias = get_function_alias(f"percentile({field}, 0.75)")
+                q1_alias = get_function_alias(f'fn_span_count("{field}", quantile(0.25))')
+                q3_alias = get_function_alias(f'fn_span_count("{field}", quantile(0.75))')
 
                 first_quartile = row[q1_alias]
                 third_quartile = row[q3_alias]
