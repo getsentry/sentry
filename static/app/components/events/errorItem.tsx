@@ -41,7 +41,7 @@ export function ErrorItem({error}: ErrorItemProps) {
   const [expanded, setExpanded] = useState(false);
 
   const cleanedData = useMemo(() => {
-    const data = error.data ?? {};
+    const data = {...(error.data ?? {})};
     // The name is rendered as path in front of the message
     if (typeof data.name === 'string') {
       delete data.name;
