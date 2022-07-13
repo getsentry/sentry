@@ -15,16 +15,12 @@ type Condition = React.ComponentProps<typeof Conditions>['conditions'][0];
 
 export function getMatchFieldPlaceholder(category: SamplingInnerName | string) {
   switch (category) {
-    case SamplingInnerName.TRACE_USER_ID:
-      return t('ex. 4711 (Multiline)');
     case SamplingInnerName.TRACE_USER_SEGMENT:
       return t('ex. paid, common (Multiline)');
     case SamplingInnerName.TRACE_ENVIRONMENT:
       return t('ex. prod, dev');
     case SamplingInnerName.TRACE_RELEASE:
       return t('ex. 1*, [I3].[0-9].*');
-    case SamplingInnerName.TRACE_TRANSACTION:
-      return t('ex. page-load');
     default:
       return undefined;
   }
@@ -36,25 +32,11 @@ export function getNewCondition(condition: Condition): SamplingConditionLogicalI
     .filter(match => !!match.trim())
     .map(match => match.trim());
 
-  if (
-    condition.category === SamplingInnerName.TRACE_RELEASE ||
-    condition.category === SamplingInnerName.TRACE_TRANSACTION
-  ) {
+  if (condition.category === SamplingInnerName.TRACE_RELEASE) {
     return {
       op: SamplingInnerOperator.GLOB_MATCH,
       name: condition.category,
       value: newValue,
-    };
-  }
-
-  if (condition.category === SamplingInnerName.TRACE_USER_ID) {
-    return {
-      op: SamplingInnerOperator.EQUAL,
-      name: condition.category,
-      value: newValue,
-      options: {
-        ignoreCase: false,
-      },
     };
   }
 
@@ -63,7 +45,6 @@ export function getNewCondition(condition: Condition): SamplingConditionLogicalI
     // TODO(sampling): remove the cast
     name: condition.category as
       | SamplingInnerName.TRACE_ENVIRONMENT
-      | SamplingInnerName.TRACE_USER_ID
       | SamplingInnerName.TRACE_USER_SEGMENT,
     value: newValue,
     options: {
@@ -124,8 +105,6 @@ export function getTagKey(condition: Condition) {
       return 'release';
     case SamplingInnerName.TRACE_ENVIRONMENT:
       return 'environment';
-    case SamplingInnerName.TRACE_TRANSACTION:
-      return 'transaction';
     default:
       return undefined;
   }
