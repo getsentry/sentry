@@ -813,7 +813,10 @@ class ProjectUpdateTest(APITestCase):
                 dynamicSampling=_dyn_sampling_data(multiple_uniform_rules=True),
             )
             assert response.status_code == 400
-            assert response.json()["detail"] == "Uniform rule must be in the last position only"
+            assert (
+                response.json()["dynamicSampling"]["non_field_errors"][0] == "Uniform rule "
+                "must be in the last position only"
+            )
 
     def test_dynamic_sampling_rules_single_uniform_rule_in_last_position(self):
         """
@@ -827,7 +830,7 @@ class ProjectUpdateTest(APITestCase):
             )
             assert response.status_code == 400
             assert (
-                response.json()["detail"]
+                response.json()["dynamicSampling"]["non_field_errors"][0]
                 == "Last rule is reserved for uniform rule which must have no conditions"
             )
 
@@ -841,7 +844,8 @@ class ProjectUpdateTest(APITestCase):
             )
             assert response.status_code == 400
             assert (
-                response.json()["detail"] == "Payload must contain a uniform dynamic sampling rule"
+                response.json()["dynamicSampling"]["non_field_errors"][0]
+                == "Payload must contain a uniform dynamic sampling rule"
             )
 
     def test_cap_secondary_grouping_expiry(self):
@@ -1283,7 +1287,17 @@ def test_rule_config_serializer():
                         {"op": "glob", "name": "field1", "value": ["val"]},
                     ],
                 },
-            }
+            },
+            {
+                "sampleRate": 0.7,
+                "type": "trace",
+                "active": False,
+                "id": 2,
+                "condition": {
+                    "op": "and",
+                    "inner": [],
+                },
+            },
         ],
         "next_id": 22,
     }
