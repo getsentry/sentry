@@ -9,6 +9,7 @@ from sentry.models.releaseactivity import ReleaseActivity
 
 
 class ProjectReleaseActivityEndpoint(ProjectEndpoint, ReleaseAnalyticsMixin):
+    private = True
     permission_classes = (ProjectReleasePermission,)
 
     def get(self, request: Request, project, version) -> Response:
