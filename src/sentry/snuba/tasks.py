@@ -194,7 +194,7 @@ def _create_in_snuba(subscription: QuerySubscription) -> str:
 
     response = _snuba_pool.urlopen(
         "POST",
-        f"/{snuba_query.dataset}/{entity_subscription.entity_key.value}/subscriptions",
+        f"/{snuba_query.dataset}/{snql_query.query.match.name}/subscriptions",
         body=json.dumps(body),
     )
     if response.status != 202:
