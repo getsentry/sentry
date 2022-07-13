@@ -18,7 +18,7 @@ from sentry.snuba import discover
 from sentry.utils.snuba import SnubaTSResult
 
 
-def resolve_tags(results: Any, query_definition: MetricsQueryBuilder):
+def resolve_tags(results: Any, query_definition: MetricsQueryBuilder) -> Any:
     """Go through the results of a metrics query and reverse resolve its tags"""
     tags: List[str] = []
     cached_resolves: Dict[int, str] = {}

@@ -7,6 +7,7 @@ from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import InvalidParams
+from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.snuba.metrics import (
     QueryDefinition,
     get_metrics,
@@ -20,6 +21,19 @@ from sentry.snuba.sessions_v2 import InvalidField
 from sentry.utils.cursors import Cursor, CursorResult
 
 
+def get_use_case_id(use_case: str) -> UseCaseKey:
+    """
+    Get use_case from str and validate it against UseCaseKey enum type
+    if use_case parameter has wrong value just raise an ParseError.
+    """
+    try:
+        return UseCaseKey.from_str(use_case)
+    except ValueError:
+        raise ParseError(
+            detail=f"Invalid useCase parameter. Please use one of: {', '.join(use_case.value for use_case in UseCaseKey)}"
+        )
+
+
 class OrganizationMetricsEndpoint(OrganizationEndpoint):
     """Get metric name, available operations and the metric unit"""
 
@@ -28,7 +42,9 @@ class OrganizationMetricsEndpoint(OrganizationEndpoint):
             return Response(status=404)
 
         projects = self.get_projects(request, organization)
-        metrics = get_metrics(projects, use_case_id=self.get_use_case_id(request))
+        metrics = get_metrics(
+            projects, use_case_id=get_use_case_id(request.GET.get("useCase", "release-health"))
+        )
         # TODO: replace this with a serializer so that if the structure of MetricMeta changes the response of this
         # endpoint does not
         for metric in metrics:
@@ -46,7 +62,9 @@ class OrganizationMetricDetailsEndpoint(OrganizationEndpoint):
         projects = self.get_projects(request, organization)
         try:
             metric = get_single_metric_info(
-                projects, metric_name, use_case_id=self.get_use_case_id(request)
+                projects,
+                metric_name,
+                use_case_id=get_use_case_id(request.GET.get("useCase", "release-health")),
             )
         except InvalidParams as e:
             raise ResourceDoesNotExist(e)
@@ -75,7 +93,11 @@ class OrganizationMetricsTagsEndpoint(OrganizationEndpoint):
         metric_names = request.GET.getlist("metric") or None
         projects = self.get_projects(request, organization)
         try:
-            tags = get_tags(projects, metric_names, use_case_id=self.get_use_case_id(request))
+            tags = get_tags(
+                projects,
+                metric_names,
+                use_case_id=get_use_case_id(request.GET.get("useCase", "release-health")),
+            )
         except (InvalidParams, DerivedMetricParseException) as exc:
             raise (ParseError(detail=str(exc)))
 
@@ -95,7 +117,10 @@ class OrganizationMetricsTagDetailsEndpoint(OrganizationEndpoint):
         projects = self.get_projects(request, organization)
         try:
             tag_values = get_tag_values(
-                projects, tag_name, metric_names, use_case_id=self.get_use_case_id(request)
+                projects,
+                tag_name,
+                metric_names,
+                use_case_id=get_use_case_id(request.GET.get("useCase", "release-health")),
             )
         except (InvalidParams, DerivedMetricParseException) as exc:
             msg = str(exc)
@@ -132,7 +157,9 @@ class OrganizationMetricsDataEndpoint(OrganizationEndpoint):
                     projects, request.GET, paginator_kwargs={"limit": limit, "offset": offset}
                 )
                 data = get_series(
-                    projects, query.to_metrics_query(), use_case_id=self.get_use_case_id(request)
+                    projects,
+                    query.to_metrics_query(),
+                    use_case_id=get_use_case_id(request.GET.get("useCase", "release-health")),
                 )
                 data["query"] = query.query
             except (

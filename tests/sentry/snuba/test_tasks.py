@@ -758,11 +758,7 @@ class BuildSnqlQueryTest(TestCase):
             Condition(
                 Column(name="metric_id"),
                 Op.EQ,
-                resolve(
-                    UseCaseKey.RELEASE_HEALTH,
-                    self.organization.id,
-                    SessionMRI.SESSION.value,
-                ),
+                resolve(UseCaseKey.RELEASE_HEALTH, self.organization.id, SessionMRI.SESSION.value),
             ),
             Condition(
                 Column(

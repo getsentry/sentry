@@ -1728,15 +1728,15 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         self.session_error_metric = rh_indexer_record(org_id, SessionMRI.ERROR.value)
         self.session_status_tag = rh_indexer_record(org_id, "session.status")
         self.release_tag = rh_indexer_record(self.organization.id, "release")
-        self.tx_metric = rh_indexer_record(org_id, TransactionMRI.DURATION.value)
-        self.tx_status = rh_indexer_record(org_id, TransactionTagsKey.TRANSACTION_STATUS.value)
-        self.transaction_lcp_metric = rh_indexer_record(
+        self.tx_metric = perf_indexer_record(org_id, TransactionMRI.DURATION.value)
+        self.tx_status = perf_indexer_record(org_id, TransactionTagsKey.TRANSACTION_STATUS.value)
+        self.transaction_lcp_metric = perf_indexer_record(
             self.organization.id, TransactionMRI.MEASUREMENTS_LCP.value
         )
-        self.tx_satisfaction = rh_indexer_record(
+        self.tx_satisfaction = perf_indexer_record(
             self.organization.id, TransactionTagsKey.TRANSACTION_SATISFACTION.value
         )
-        self.tx_user_metric = rh_indexer_record(self.organization.id, TransactionMRI.USER.value)
+        self.tx_user_metric = perf_indexer_record(self.organization.id, TransactionMRI.USER.value)
 
     @patch("sentry.snuba.metrics.fields.base.DERIVED_METRICS", MOCKED_DERIVED_METRICS)
     @patch("sentry.snuba.metrics.fields.base.get_public_name_from_mri")
@@ -2019,7 +2019,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "metric_id": self.session_metric,
                     "timestamp": (user_ts // 60 - 4) * 60,
                     "tags": {
-                        self.session_status_tag: perf_indexer_record(
+                        self.session_status_tag: rh_indexer_record(
                             self.organization.id, "abnormal"
                         ),
                         self.release_tag: rh_indexer_record(self.organization.id, "foo"),
@@ -2034,7 +2034,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "metric_id": self.session_metric,
                     "timestamp": (user_ts // 60 - 2) * 60,
                     "tags": {
-                        self.session_status_tag: perf_indexer_record(
+                        self.session_status_tag: rh_indexer_record(
                             self.organization.id, "abnormal"
                         ),
                         self.release_tag: rh_indexer_record(self.organization.id, "bar"),
@@ -2709,7 +2709,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "metric_id": self.tx_metric,
                     "timestamp": user_ts,
                     "tags": {
-                        self.tx_status: rh_indexer_record(
+                        self.tx_status: perf_indexer_record(
                             self.organization.id, TransactionStatusTagValue.OK.value
                         ),
                     },
@@ -2723,7 +2723,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "metric_id": self.tx_metric,
                     "timestamp": user_ts,
                     "tags": {
-                        self.tx_status: rh_indexer_record(
+                        self.tx_status: perf_indexer_record(
                             self.organization.id, TransactionStatusTagValue.CANCELLED.value
                         ),
                     },
@@ -2737,7 +2737,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "metric_id": self.tx_metric,
                     "timestamp": user_ts,
                     "tags": {
-                        self.tx_status: rh_indexer_record(
+                        self.tx_status: perf_indexer_record(
                             self.organization.id, TransactionStatusTagValue.UNKNOWN.value
                         ),
                     },
@@ -2751,7 +2751,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "metric_id": self.tx_metric,
                     "timestamp": user_ts,
                     "tags": {
-                        self.tx_status: rh_indexer_record(
+                        self.tx_status: perf_indexer_record(
                             self.organization.id, TransactionStatusTagValue.ABORTED.value
                         ),
                     },
@@ -2840,7 +2840,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "metric_id": self.tx_metric,
                     "timestamp": user_ts,
                     "tags": {
-                        self.tx_satisfaction: rh_indexer_record(
+                        self.tx_satisfaction: perf_indexer_record(
                             self.organization.id, TransactionSatisfactionTagValue.SATISFIED.value
                         ),
                     },
@@ -2854,7 +2854,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "metric_id": self.tx_metric,
                     "timestamp": user_ts,
                     "tags": {
-                        self.tx_satisfaction: rh_indexer_record(
+                        self.tx_satisfaction: perf_indexer_record(
                             self.organization.id, TransactionSatisfactionTagValue.TOLERATED.value
                         ),
                     },
@@ -2868,7 +2868,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "metric_id": self.tx_metric,
                     "timestamp": user_ts,
                     "tags": {
-                        self.tx_satisfaction: rh_indexer_record(
+                        self.tx_satisfaction: perf_indexer_record(
                             self.organization.id, TransactionSatisfactionTagValue.TOLERATED.value
                         ),
                     },
@@ -2900,7 +2900,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "metric_id": self.tx_user_metric,
                     "timestamp": user_ts,
                     "tags": {
-                        self.tx_satisfaction: rh_indexer_record(
+                        self.tx_satisfaction: perf_indexer_record(
                             self.organization.id, TransactionSatisfactionTagValue.FRUSTRATED.value
                         ),
                     },
@@ -2914,7 +2914,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "metric_id": self.tx_user_metric,
                     "timestamp": user_ts,
                     "tags": {
-                        self.tx_satisfaction: rh_indexer_record(
+                        self.tx_satisfaction: perf_indexer_record(
                             self.organization.id, TransactionSatisfactionTagValue.SATISFIED.value
                         ),
                     },
@@ -2946,7 +2946,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "metric_id": self.tx_user_metric,
                     "timestamp": user_ts,
                     "tags": {
-                        self.tx_satisfaction: rh_indexer_record(
+                        self.tx_satisfaction: perf_indexer_record(
                             self.organization.id, TransactionSatisfactionTagValue.FRUSTRATED.value
                         ),
                     },
@@ -2960,7 +2960,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "metric_id": self.tx_user_metric,
                     "timestamp": user_ts,
                     "tags": {
-                        self.tx_satisfaction: rh_indexer_record(
+                        self.tx_satisfaction: perf_indexer_record(
                             self.organization.id, TransactionSatisfactionTagValue.SATISFIED.value
                         ),
                     },
@@ -3028,9 +3028,9 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
     def test_histogram(self):
         # Record some strings
         org_id = self.organization.id
-        tag1 = rh_indexer_record(org_id, "tag1")
-        value1 = rh_indexer_record(org_id, "value1")
-        value2 = rh_indexer_record(org_id, "value2")
+        tag1 = perf_indexer_record(org_id, "tag1")
+        value1 = perf_indexer_record(org_id, "value1")
+        value2 = perf_indexer_record(org_id, "value2")
 
         self._send_buckets(
             [
@@ -3075,9 +3075,9 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
     def test_histogram_zooming(self):
         # Record some strings
         org_id = self.organization.id
-        tag1 = rh_indexer_record(org_id, "tag1")
-        value1 = rh_indexer_record(org_id, "value1")
-        value2 = rh_indexer_record(org_id, "value2")
+        tag1 = perf_indexer_record(org_id, "tag1")
+        value1 = perf_indexer_record(org_id, "value1")
+        value2 = perf_indexer_record(org_id, "value2")
 
         self._send_buckets(
             [

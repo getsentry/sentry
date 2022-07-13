@@ -25,7 +25,6 @@ from sentry.models import (
     ProjectStatus,
     ReleaseProject,
 )
-from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.utils import auth
 from sentry.utils.hashlib import hash_values
 from sentry.utils.numbers import format_grouped_length
@@ -397,19 +396,6 @@ class OrganizationEndpoint(Endpoint):
 
         kwargs["organization"] = organization
         return (args, kwargs)
-
-    def get_use_case_id(self, request: Request):
-        """
-        Extracts useCase from request and validate it agains UseCaseKey enum type
-        if request param is omitted fallback to UseCaseKey.RELEASE_HEALTH
-        if request param has wrong value just raise an ParseError.
-        """
-        try:
-            return UseCaseKey.from_str(request.GET.get("useCase", "release-health"))
-        except ValueError:
-            raise ParseError(
-                detail=f"Invalid useCase parameter. Please use one of: {', '.join(use_case.value for use_case in UseCaseKey)}"
-            )
 
 
 class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):

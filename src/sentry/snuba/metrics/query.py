@@ -140,7 +140,13 @@ class MetricsQuery(MetricsQueryValidationRunner):
             metric_mri = get_mri(f.field.metric_name)
             # Construct a metrics expression
             metric_field_obj = metric_object_factory(f.field.op, metric_mri)
-            entity = metric_field_obj.get_entity(self.project_ids, UseCaseKey.RELEASE_HEALTH)
+
+            # Find correct use_case_id based on metric_name
+            use_case_id = UseCaseKey.RELEASE_HEALTH
+            if f.field.metric_name == "transactions":
+                use_case_id = UseCaseKey.PERFORMANCE
+
+            entity = metric_field_obj.get_entity(self.project_ids, use_case_id)
 
             if isinstance(entity, Mapping):
                 metric_entities.update(entity.keys())

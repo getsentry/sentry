@@ -36,7 +36,7 @@ import os.path
 import time
 from contextlib import contextmanager
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 from unittest import mock
 from unittest.mock import patch
 from urllib.parse import urlencode
@@ -122,7 +122,7 @@ from sentry.utils.pytest.selenium import Browser
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.snuba import _snuba_pool
 
-from ..snuba.metrics.naming_layer.mri import SessionMRI
+from ..snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI
 from . import assert_status_code
 from .factories import Factories
 from .fixtures import Fixtures
@@ -141,6 +141,8 @@ DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, li
 
 DETECT_TESTCASE_MISUSE = os.environ.get("SENTRY_DETECT_TESTCASE_MISUSE") == "1"
 SILENCE_MIXED_TESTCASE_MISUSE = os.environ.get("SENTRY_SILENCE_MIXED_TESTCASE_MISUSE") == "1"
+
+SessionOrTransactionMRI = Union[SessionMRI, TransactionMRI]
 
 
 class BaseTestCase(Fixtures, Exam):
@@ -1125,24 +1127,30 @@ class SessionMetricsTestCase(SnubaTestCase):
             self.store_session(session)
 
     @classmethod
-    def _push_metric(cls, session, type, key: SessionMRI, tags, value):
+    def _push_metric(
+        cls,
+        session,
+        type,
+        key: SessionOrTransactionMRI,
+        tags,
+        value,
+        use_case_id: UseCaseKey = UseCaseKey.PERFORMANCE,
+    ):
         org_id = session["org_id"]
 
-        def metric_id(key: SessionMRI):
-            res = indexer.record(
-                use_case_id=UseCaseKey.PERFORMANCE, org_id=org_id, string=key.value
-            )
+        def metric_id(key: SessionOrTransactionMRI):
+            res = indexer.record(use_case_id=use_case_id, org_id=org_id, string=key.value)
             assert res is not None, key
             return res
 
         def tag_key(name):
-            res = indexer.record(use_case_id=UseCaseKey.PERFORMANCE, org_id=org_id, string=name)
+            res = indexer.record(use_case_id=use_case_id, org_id=org_id, string=name)
             assert res is not None, name
 
             return res
 
         def tag_value(name):
-            res = indexer.record(use_case_id=UseCaseKey.PERFORMANCE, org_id=org_id, string=name)
+            res = indexer.record(use_case_id=use_case_id, org_id=org_id, string=name)
             assert res is not None, name
             return res
 
@@ -1189,56 +1197,15 @@ class SessionMetricsTestCase(SnubaTestCase):
 
 class SessionMetricsReleaseHealthTestCase(SessionMetricsTestCase):
     @classmethod
-    def _push_metric(cls, session, type, key: SessionMRI, tags, value):
-        org_id = session["org_id"]
-
-        def metric_id(key: SessionMRI):
-            res = indexer.record(
-                use_case_id=UseCaseKey.RELEASE_HEALTH, org_id=org_id, string=key.value
-            )
-            assert res is not None, key
-            return res
-
-        def tag_key(name):
-            res = indexer.record(use_case_id=UseCaseKey.RELEASE_HEALTH, org_id=org_id, string=name)
-            assert res is not None, name
-
-            return res
-
-        def tag_value(name):
-            res = indexer.record(use_case_id=UseCaseKey.RELEASE_HEALTH, org_id=org_id, string=name)
-            assert res is not None, name
-            return res
-
-        base_tags = {
-            tag_key(tag): tag_value(session[tag])
-            for tag in (
-                "release",
-                "environment",
-            )
-            if session[tag] is not None
-        }
-
-        extra_tags = {tag_key(k): tag_value(v) for k, v in tags.items()}
-
-        if type == "set":
-            # Relay uses a different hashing algorithm, but that's ok
-            value = [int.from_bytes(hashlib.md5(value.encode()).digest()[:8], "big")]
-        elif type == "distribution":
-            value = [value]
-
-        msg = {
-            "org_id": session["org_id"],
-            "project_id": session["project_id"],
-            "metric_id": metric_id(key),
-            "timestamp": session["started"],
-            "tags": {**base_tags, **extra_tags},
-            "type": {"counter": "c", "set": "s", "distribution": "d"}[type],
-            "value": value,
-            "retention_days": 90,
-        }
-
-        cls._send_buckets([msg], entity=f"metrics_{type}s")
+    def _push_metric(
+        cls,
+        session,
+        type,
+        key: SessionOrTransactionMRI,
+        tags,
+        value,
+    ):
+        super()._push_metric(session, type, key, tags, value, use_case_id=UseCaseKey.RELEASE_HEALTH)
 
 
 class MetricsEnhancedPerformanceTestCase(SessionMetricsTestCase, TestCase):
