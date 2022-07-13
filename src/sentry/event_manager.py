@@ -73,6 +73,7 @@ from sentry.models import (
     ReleaseEnvironment,
     ReleaseProject,
     ReleaseProjectEnvironment,
+    Repository,
     UserReport,
     get_crashreport_key,
 )
@@ -694,13 +695,14 @@ def _is_commit_sha(version: str):
     return re.match(r"[0-9a-f]{40}", version) is not None
 
 
-def _associate_commits_with_release(release: Release):
+def _associate_commits_with_release(release: Release, project: Project):
     previous_release = release.previous_release
+    repo = Repository.objects.get(organization_id=project.organization.id, provider="github")
     fetch_commits.apply_async(
         kwargs={
             "release_id": release.id,
             "user_id": None,
-            "repository": [],
+            "repository": [{"repository": repo.name, "commit": release.version}],
             "prev_release_id": previous_release.id if previous_release is not None else None,
         }
     )
@@ -730,7 +732,7 @@ def _get_or_create_release_many(jobs, projects):
         )
 
         if _is_commit_sha(release.version):
-            _associate_commits_with_release(release)
+            _associate_commits_with_release(release, projects[project_id])
 
         for job in jobs_to_update:
             # Don't allow a conflicting 'release' tag
