@@ -115,6 +115,11 @@ type Props = {
   inputProps?: {style: React.CSSProperties};
 
   /**
+   * Used to control the input value (optional)
+   */
+  inputValue?: string;
+
+  /**
    * Used to control dropdown state (optional)
    */
   isOpen?: boolean;
@@ -154,6 +159,11 @@ type Props = {
    * Callback for when dropdown menu closes
    */
   onClose?: () => void;
+
+  /**
+   * Callback for when the input value changes
+   */
+  onInputValueChange?: (value: string) => void;
 
   /**
    * Callback for when dropdown menu opens
