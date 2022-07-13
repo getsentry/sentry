@@ -41,7 +41,7 @@ describe('Server-side Sampling - Recommended Steps Modal', function () {
         ]}
         onReadDocs={jest.fn()}
         onSubmit={jest.fn()}
-        clientSampleRate={50}
+        clientSampleRate={0.5}
       />
     ));
 
