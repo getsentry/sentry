@@ -68,10 +68,10 @@ def strip_stacktrace_container(container):
     return container
 
 
-def insta_snapshot_stacktrace_data(self, event, **kwargs):
+def insta_snapshot_stacktrace_data(insta_snapshot, event, **kwargs):
     # limit amount of data going into a snapshot so that they don't break all
     # the time due to unrelated changes.
-    self.insta_snapshot(
+    insta_snapshot(
         {
             "stacktrace": strip_stacktrace(event.get("stacktrace")),
             "exception": {

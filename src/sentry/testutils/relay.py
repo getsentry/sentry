@@ -48,7 +48,7 @@ class RelayStoreHelper:
         return True
 
     def post_and_retrieve_event(self, data):
-        url = self.get_relay_store_url(self.project.id)
+        url = self.get_relay_store_url(self.relay_project.id)
         responses.add_passthru(url)
         resp = requests.post(
             url,
@@ -61,24 +61,28 @@ class RelayStoreHelper:
         event_id = resp_body["id"]
 
         event = self.wait_for_ingest_consumer(
-            lambda: eventstore.get_event_by_id(self.project.id, event_id)
+            lambda: eventstore.get_event_by_id(self.relay_project.id, event_id)
         )
         # check that we found it in Snuba
         assert event is not None
         return event
 
     def post_and_retrieve_security_report(self, data):
-        url = self.get_relay_security_url(self.project.id, self.projectkey.public_key)
+        url = self.get_relay_security_url(self.relay_project.id, self.relay_projectkey.public_key)
         responses.add_passthru(url)
 
         event_ids = {
             event.event_id
-            for event in eventstore.get_events(eventstore.Filter(project_ids=[self.project.id]))
+            for event in eventstore.get_events(
+                eventstore.Filter(project_ids=[self.relay_project.id])
+            )
         }
 
         def has_new_event():
             # Hack: security report endpoint does not return event ID
-            for event in eventstore.get_events(eventstore.Filter(project_ids=[self.project.id])):
+            for event in eventstore.get_events(
+                eventstore.Filter(project_ids=[self.relay_project.id])
+            ):
                 if event.event_id not in event_ids:
                     return event
 
@@ -98,7 +102,7 @@ class RelayStoreHelper:
             return None
 
     def post_and_retrieve_attachment(self, event_id, files):
-        url = self.get_relay_attachments_url(self.project.id, event_id)
+        url = self.get_relay_attachments_url(self.relay_project.id, event_id)
         responses.add_passthru(url)
 
         resp = requests.post(url, files=files, headers={"x-sentry-auth": self.auth_header})
@@ -107,7 +111,7 @@ class RelayStoreHelper:
 
         exists = self.wait_for_ingest_consumer(
             lambda: EventAttachment.objects.filter(
-                project_id=self.project.id, event_id=event_id
+                project_id=self.relay_project.id, event_id=event_id
             ).exists()
             or None  # must return None to continue waiting
         )
@@ -115,7 +119,7 @@ class RelayStoreHelper:
         assert exists
 
     def post_and_retrieve_minidump(self, files, data):
-        url = self.get_relay_minidump_url(self.project.id, self.projectkey.public_key)
+        url = self.get_relay_minidump_url(self.relay_project.id, self.relay_projectkey.public_key)
         responses.add_passthru(url)
 
         resp = requests.post(
@@ -128,14 +132,14 @@ class RelayStoreHelper:
         event_id = resp.text.strip().replace("-", "")
 
         event = self.wait_for_ingest_consumer(
-            lambda: eventstore.get_event_by_id(self.project.id, event_id)
+            lambda: eventstore.get_event_by_id(self.relay_project.id, event_id)
         )
         # check that we found it in Snuba
         assert event is not None
         return event
 
     def post_and_retrieve_unreal(self, payload):
-        url = self.get_relay_unreal_url(self.project.id, self.projectkey.public_key)
+        url = self.get_relay_unreal_url(self.relay_project.id, self.relay_projectkey.public_key)
         responses.add_passthru(url)
 
         resp = requests.post(
@@ -147,7 +151,7 @@ class RelayStoreHelper:
         event_id = resp.text.strip().replace("-", "")
 
         event = self.wait_for_ingest_consumer(
-            lambda: eventstore.get_event_by_id(self.project.id, event_id)
+            lambda: eventstore.get_event_by_id(self.relay_project.id, event_id)
         )
         # check that we found it in Snuba
         assert event is not None
@@ -164,9 +168,17 @@ class RelayStoreHelper:
         get_relay_security_url,
         get_relay_attachments_url,
         wait_for_ingest_consumer,
+        default_projectkey,
+        default_project,
     ):
+        self.relay_projectkey = default_projectkey
+        self.relay_project = default_project
+
         self.auth_header = get_auth_header(
-            "TEST_USER_AGENT/0.0.0", self.projectkey.public_key, self.projectkey.secret_key, "7"
+            "TEST_USER_AGENT/0.0.0",
+            self.relay_projectkey.public_key,
+            self.relay_projectkey.secret_key,
+            "7",
         )
 
         self.settings = settings

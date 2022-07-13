@@ -174,7 +174,7 @@ def burst_task_runner():
 
 
 @pytest.fixture(scope="function")
-def session():
+def session(factories):
     return factories.create_session()
 
 
@@ -420,3 +420,24 @@ def reset_snuba(call_snuba):
         response.status_code == 200
         for response in ThreadPoolExecutor(4).map(call_snuba, init_endpoints)
     )
+
+
+@pytest.fixture
+def save_cookie(client):
+    from sentry.testutils.helpers.login import save_cookie
+
+    return lambda *args, **kwargs: save_cookie(client, *args, **kwargs)
+
+
+@pytest.fixture
+def save_session(session, save_cookie):
+    from sentry.testutils.helpers.login import save_session
+
+    return lambda: save_session(session, save_cookie)
+
+
+@pytest.fixture
+def login_as(session, save_cookie, save_session):
+    from sentry.testutils.helpers.login import login_as
+
+    return lambda *args, **kwargs: login_as(session, save_cookie, save_session, *args, **kwargs)

@@ -45,13 +45,9 @@ import pytest
 import requests
 from click.testing import CliRunner
 from django.conf import settings
-from django.contrib.auth import login
-from django.contrib.auth.models import AnonymousUser
-from django.core import signing
 from django.core.cache import cache
 from django.db import DEFAULT_DB_ALIAS, connection, connections
 from django.db.migrations.executor import MigrationExecutor
-from django.http import HttpRequest
 from django.test import TestCase, TransactionTestCase, override_settings
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
@@ -67,13 +63,6 @@ from sentry import auth, eventstore
 from sentry.auth.authenticators import TotpInterface
 from sentry.auth.providers.dummy import DummyProvider
 from sentry.auth.providers.saml2.activedirectory.apps import ACTIVE_DIRECTORY_PROVIDER_NAME
-from sentry.auth.superuser import COOKIE_DOMAIN as SU_COOKIE_DOMAIN
-from sentry.auth.superuser import COOKIE_NAME as SU_COOKIE_NAME
-from sentry.auth.superuser import COOKIE_PATH as SU_COOKIE_PATH
-from sentry.auth.superuser import COOKIE_SALT as SU_COOKIE_SALT
-from sentry.auth.superuser import COOKIE_SECURE as SU_COOKIE_SECURE
-from sentry.auth.superuser import ORG_ID as SU_ORG_ID
-from sentry.auth.superuser import Superuser
 from sentry.eventstream.snuba import SnubaEventStream
 from sentry.mail import mail_adapter
 from sentry.models import AuthProvider as AuthProviderModel
@@ -116,9 +105,7 @@ from sentry.testutils.helpers.datetime import iso_format
 from sentry.testutils.helpers.slack import install_slack
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
-from sentry.utils.auth import SsoSession
 from sentry.utils.pytest.selenium import Browser
-from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.snuba import _snuba_pool
 
 from ..snuba.metrics.naming_layer.mri import SessionMRI
@@ -185,93 +172,24 @@ class BaseTestCase(Fixtures, Exam):
         return AuthProvider(name, cls)
 
     def save_session(self):
-        self.session.save()
-        self.save_cookie(
-            name=settings.SESSION_COOKIE_NAME,
-            value=self.session.session_key,
-            max_age=None,
-            path="/",
-            domain=settings.SESSION_COOKIE_DOMAIN,
-            secure=settings.SESSION_COOKIE_SECURE or None,
-            expires=None,
-        )
+        from sentry.testutils.helpers.login import save_session
 
-    def save_cookie(self, name, value, **params):
-        self.client.cookies[name] = value
-        self.client.cookies[name].update({k.replace("_", "-"): v for k, v in params.items()})
+        save_session(self.session, self.save_cookie)
 
-    def make_request(self, user=None, auth=None, method=None, is_superuser=False):
-        request = HttpRequest()
-        if method:
-            request.method = method
-        request.META["REMOTE_ADDR"] = "127.0.0.1"
-        request.META["SERVER_NAME"] = "testserver"
-        request.META["SERVER_PORT"] = 80
+    def save_cookie(self, *args, **kwargs):
+        from sentry.testutils.helpers.login import save_cookie
 
-        # order matters here, session -> user -> other things
-        request.session = self.session
-        request.auth = auth
-        request.user = user or AnonymousUser()
-        # must happen after request.user/request.session is populated
-        request.superuser = Superuser(request)
-        if is_superuser:
-            # XXX: this is gross, but its a one off and apis change only once in a great while
-            request.superuser.set_logged_in(user)
-        request.is_superuser = lambda: request.superuser.is_active
-        request.successful_authenticator = None
-        return request
+        save_cookie(self.client, *args, **kwargs)
 
-    # TODO(dcramer): ideally superuser_sso would be False by default, but that would require
-    # a lot of tests changing
-    @TimedRetryPolicy.wrap(timeout=5)
-    def login_as(
-        self, user, organization_id=None, organization_ids=None, superuser=False, superuser_sso=True
-    ):
-        user.backend = settings.AUTHENTICATION_BACKENDS[0]
+    def make_request(self, *args, **kwargs):
+        from sentry.testutils.helpers.login import make_request
 
-        request = self.make_request()
-        login(request, user)
-        request.user = user
+        return make_request(self.session, *args, **kwargs)
 
-        if organization_ids is None:
-            organization_ids = set()
-        else:
-            organization_ids = set(organization_ids)
-        if superuser and superuser_sso is not False:
-            if SU_ORG_ID:
-                organization_ids.add(SU_ORG_ID)
-        if organization_id:
-            organization_ids.add(organization_id)
+    def login_as(self, *args, **kwargs):
+        from sentry.testutils.helpers.login import login_as
 
-        # TODO(dcramer): ideally this would get abstracted
-        if organization_ids:
-            for o in organization_ids:
-                sso_session = SsoSession.create(o)
-                self.session[sso_session.session_key] = sso_session.to_dict()
-
-        # logging in implicitly binds superuser, but for test cases we
-        # want that action to be explicit to avoid accidentally testing
-        # superuser-only code
-        if not superuser:
-            # XXX(dcramer): we're calling the internal method to avoid logging
-            request.superuser._set_logged_out()
-        elif request.user.is_superuser and superuser:
-            request.superuser.set_logged_in(request.user)
-            # XXX(dcramer): awful hack to ensure future attempts to instantiate
-            # the Superuser object are successful
-            self.save_cookie(
-                name=SU_COOKIE_NAME,
-                value=signing.get_cookie_signer(salt=SU_COOKIE_NAME + SU_COOKIE_SALT).sign(
-                    request.superuser.token
-                ),
-                max_age=None,
-                path=SU_COOKIE_PATH,
-                domain=SU_COOKIE_DOMAIN,
-                secure=SU_COOKIE_SECURE or None,
-                expires=None,
-            )
-        # Save the session values.
-        self.save_session()
+        return login_as(self.session, self.save_cookie, self.save_session, *args, **kwargs)
 
     def load_fixture(self, filepath):
         with open(get_fixture_path(filepath), "rb") as fp:
