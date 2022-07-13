@@ -2692,4 +2692,4 @@ SENTRY_POST_PROCESS_LOCKS_BACKEND_OPTIONS = {
 }
 
 # maximum number of projects allowed to query snuba with for the organization_vitals_overview endpoint
-ORGANIZATION_VITALS_OVERVIEW_PROJECT_LIMIT = 25
+ORGANIZATION_VITALS_OVERVIEW_PROJECT_LIMIT = 300
