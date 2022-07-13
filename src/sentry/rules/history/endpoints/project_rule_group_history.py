@@ -4,13 +4,14 @@ from datetime import datetime
 from typing import Any, Mapping, MutableMapping, Sequence, TypedDict
 
 from drf_spectacular.utils import OpenApiExample, extend_schema
+from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases.rule import RuleEndpoint
 from sentry.api.serializers import Serializer, serialize
 from sentry.api.serializers.models.group import BaseGroupSerializerResponse
-from sentry.api.utils import get_date_range_from_params
+from sentry.api.utils import InvalidParams, get_date_range_from_params
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOTFOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.parameters import GLOBAL_PARAMS, ISSUE_ALERT_PARAMS
 from sentry.models import Project, Rule
@@ -67,7 +68,10 @@ class ProjectRuleGroupHistoryIndexEndpoint(RuleEndpoint):
     def get(self, request: Request, project: Project, rule: Rule) -> Response:
         per_page = self.get_per_page(request)
         cursor = self.get_cursor_from_request(request)
-        start, end = get_date_range_from_params(request.GET)
+        try:
+            start, end = get_date_range_from_params(request.GET)
+        except InvalidParams:
+            raise ParseError(detail="Invalid start and end dates")
 
         results = fetch_rule_groups_paginated(rule, start, end, cursor, per_page)
 
