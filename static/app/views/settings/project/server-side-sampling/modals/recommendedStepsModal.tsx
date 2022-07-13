@@ -104,15 +104,6 @@ export function RecommendedStepsModal({
     });
   }
 
-  function handleCancel() {
-    trackAdvancedAnalyticsEvent('sampling.settings.modal.recommended.next.steps_cancel', {
-      organization: organization.slug,
-      project_id: projectId,
-    });
-
-    closeModal();
-  }
-
   function handleGoBack() {
     if (!onGoBack) {
       return;
@@ -234,7 +225,7 @@ export function RecommendedStepsModal({
                 <Button onClick={handleGoBack}>{t('Back')}</Button>
               </Fragment>
             )}
-            {!onGoBack && <Button onClick={handleCancel}>{t('Cancel')}</Button>}
+            {!onGoBack && <Button onClick={closeModal}>{t('Cancel')}</Button>}
             <Button
               priority="primary"
               onClick={handleDone}

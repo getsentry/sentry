@@ -36,6 +36,12 @@ export type SamplingEventParameters = {
   'sampling.settings.modal.uniform.rate_read_docs': {
     project_id: string;
   };
+  'sampling.settings.modal.uniform.rate_switch_current': {
+    project_id: string;
+  };
+  'sampling.settings.modal.uniform.rate_switch_recommended': {
+    project_id: string;
+  };
   'sampling.settings.rule.specific_activate': Rule;
   'sampling.settings.rule.specific_create': Rule;
   'sampling.settings.rule.specific_deactivate': Rule;
@@ -89,6 +95,10 @@ export const samplingEventMap: Record<SamplingAnalyticsKey, string> = {
   'sampling.settings.modal.uniform.rate_done': 'Create uniform rule at uniform rate step',
   'sampling.settings.modal.uniform.rate_next': 'Go to recommended next steps step',
   'sampling.settings.modal.uniform.rate_read_docs': 'Read docs at uniform rate step',
+  'sampling.settings.modal.uniform.rate_switch_current':
+    'Switch to current uniform rate step',
+  'sampling.settings.modal.uniform.rate_switch_recommended':
+    'Switch to recommended next steps step',
   'sampling.settings.modal.specific.rule.condition_add': 'Add Sampling Condition',
   'sampling.settings.rule.specific_create': 'Create Specific Sampling Rule',
   'sampling.settings.rule.specific_delete': 'Delete Specific Sampling Rule',
