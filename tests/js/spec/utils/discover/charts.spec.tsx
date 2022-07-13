@@ -7,7 +7,7 @@ import {MINUTE, SECOND} from 'sentry/utils/formatters';
 
 describe('tooltipFormatter()', function () {
   it('formats values', function () {
-    const cases = [
+    const cases: [string, number, string][] = [
       // function, input, expected
       ['count()', 0.1, '0.1'],
       ['avg(thing)', 0.125126, '0.125'],
