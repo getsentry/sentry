@@ -283,7 +283,7 @@ export function ServerSideSampling({project}: Props) {
     trackAdvancedAnalyticsEvent('sampling.settings.rule.specific_delete', {
       organization,
       project_id: project.id,
-      sampling_rate: rule.sampleRate * 100,
+      sampling_rate: rule.sampleRate,
       conditions,
       conditions_stringified: conditions.sort().join(', '),
     });
@@ -328,7 +328,7 @@ export function ServerSideSampling({project}: Props) {
         op: SamplingConditionOperator.AND,
         inner: [],
       },
-      sampleRate: sampleRate / 100,
+      sampleRate,
     };
 
     trackAdvancedAnalyticsEvent(
@@ -348,8 +348,8 @@ export function ServerSideSampling({project}: Props) {
       {
         organization: organization.slug,
         project_id: project.id,
-        sampling_rate: newRule.sampleRate * 100,
-        old_sampling_rate: rule ? rule.sampleRate * 100 : null,
+        sampling_rate: newRule.sampleRate,
+        old_sampling_rate: rule ? rule.sampleRate : null,
       }
     );
 
