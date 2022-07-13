@@ -3,7 +3,7 @@ import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 import capitalize from 'lodash/capitalize';
 
-import {Hovercard} from 'sentry/components/hovercard';
+import {Body, Hovercard} from 'sentry/components/hovercard';
 import {IconAdd, IconClose} from 'sentry/icons';
 import space from 'sentry/styles/space';
 import {callIfFunction} from 'sentry/utils/callIfFunction';
@@ -91,7 +91,7 @@ class IssueSyncListElement extends Component<Props> {
       <IssueSyncListElementContainer>
         <ClassNames>
           {({css}) => (
-            <Hovercard
+            <StyledHovercard
               containerClassName={css`
                 display: flex;
                 align-items: center;
@@ -103,11 +103,12 @@ class IssueSyncListElement extends Component<Props> {
               `}
               header={this.props.hoverCardHeader}
               body={this.props.hoverCardBody}
+              bodyClassName="issue-list-body"
               forceVisible={this.props.showHoverCard}
             >
               {this.getIcon()}
               {this.getLink()}
-            </Hovercard>
+            </StyledHovercard>
           )}
         </ClassNames>
         {(this.props.onClose || this.props.onOpen) && (
@@ -146,6 +147,13 @@ export const IntegrationLink = styled('a')`
   &,
   &:hover {
     border-bottom: 1px solid ${p => p.theme.blue300};
+  }
+`;
+
+const StyledHovercard = styled(Hovercard)`
+  ${Body} {
+    max-height: 300px;
+    overflow-y: auto;
   }
 `;
 
