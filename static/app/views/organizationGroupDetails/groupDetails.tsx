@@ -206,7 +206,10 @@ class GroupDetails extends Component<Props, State> {
       );
 
       // add extra perf issue specific entries like span tree and duration and span count charts
-      if (organization.features.includes('performance-extraneous-spans-poc')) {
+      if (
+        organization.features.includes('performance-extraneous-spans-poc') &&
+        event.contexts.performance_issue
+      ) {
         const updatedEvent = this.addPerformanceSpecificEntries(event);
         // TODO (udameli): fix typing here
         event = updatedEvent as Event;
@@ -658,8 +661,6 @@ class GroupDetails extends Component<Props, State> {
     const {project, group} = this.state;
     const {organization} = this.props;
     const isSampleError = group?.tags.some(tag => tag.key === 'sample_event');
-
-    console.log('group', group)
 
     return (
       <Fragment>
