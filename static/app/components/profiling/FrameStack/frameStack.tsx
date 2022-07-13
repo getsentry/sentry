@@ -1,4 +1,4 @@
-import {memo, useCallback, useMemo, useState} from 'react';
+import {memo, MouseEventHandler, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
@@ -8,10 +8,9 @@ import space from 'sentry/styles/space';
 import {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
 import {filterFlamegraphTree} from 'sentry/utils/profiling/filterFlamegraphTree';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
+import {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphPreferences';
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/useFlamegraphPreferences';
-import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
-import {useVerticallyResizableDrawer} from 'sentry/utils/profiling/hooks/useResizableDrawer';
 import {invertCallTree} from 'sentry/utils/profiling/profile/utils';
 
 import {FrameStackTable} from './frameStackTable';
@@ -22,10 +21,10 @@ interface FrameStackProps {
   getFrameColor: (frame: FlamegraphFrame) => string;
   referenceNode: FlamegraphFrame;
   rootNodes: FlamegraphFrame[];
+  onResize?: MouseEventHandler<HTMLElement>;
 }
 
 const FrameStack = memo(function FrameStack(props: FrameStackProps) {
-  const theme = useFlamegraphTheme();
   const [flamegraphPreferences, dispatchFlamegraphPreferences] =
     useFlamegraphPreferences();
 
@@ -92,18 +91,8 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
     dispatchFlamegraphPreferences({type: 'set layout', payload: 'table_right'});
   }, [dispatchFlamegraphPreferences]);
 
-  const {height, onMouseDown} = useVerticallyResizableDrawer({
-    initialHeight: (theme.SIZES.FLAMEGRAPH_DEPTH_OFFSET + 2) * theme.SIZES.BAR_HEIGHT,
-    minHeight: 30,
-  });
-
   return (
-    <FrameDrawer
-      style={{
-        // If the table is not at the bottom, the height should not be managed
-        height: flamegraphPreferences.layout === 'table_bottom' ? height : undefined,
-      }}
-    >
+    <FrameDrawer layout={flamegraphPreferences.layout}>
       <FrameTabs>
         <li className={tab === 'bottom up' ? 'active' : undefined}>
           <Button
@@ -174,7 +163,7 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
               flamegraphPreferences.layout === 'table_bottom' ? 'ns-resize' : undefined,
           }}
           onMouseDown={
-            flamegraphPreferences.layout === 'table_bottom' ? onMouseDown : undefined
+            flamegraphPreferences.layout === 'table_bottom' ? props.onResize : undefined
           }
         />
         <li>
@@ -213,9 +202,41 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
         tree={maybeFilteredOrInvertedTree ?? []}
         canvasPoolManager={props.canvasPoolManager}
       />
+      {flamegraphPreferences.layout === 'table_left' ||
+      flamegraphPreferences.layout === 'table_right' ? (
+        <ResizableVerticalDrawer>
+          {/* The border should be 1px, but we want the actual handler to be wider
+          to improve the user experience and not have users have to click on the exact pixel */}
+          <InvisibleHandler
+            onMouseDown={
+              flamegraphPreferences.layout === 'table_left' ||
+              flamegraphPreferences.layout === 'table_right'
+                ? props.onResize
+                : undefined
+            }
+          />
+        </ResizableVerticalDrawer>
+      ) : null}
     </FrameDrawer>
   );
 });
+
+const ResizableVerticalDrawer = styled('div')`
+  width: 1px;
+  grid-area: drawer;
+  background-color: ${p => p.theme.border};
+  position: relative;
+`;
+
+const InvisibleHandler = styled('div')`
+  opacity: 0;
+  width: 8px;
+  position: absolute;
+  inset: 0;
+  cursor: ew-resize;
+  transform: translateX(-50%);
+  background-color: transparent;
+`;
 
 const FrameDrawerLabel = styled('label')`
   display: flex;
@@ -230,13 +251,32 @@ const FrameDrawerLabel = styled('label')`
   }
 `;
 
-const FrameDrawer = styled('div')`
-  display: flex;
-  flex-shrink: 0;
-  flex-direction: column;
-  height: 100%;
+// Linter produces a false positive for the grid layout. I did not manage to find out
+// how to "fix it" or why it is not working, I imagine it could be due to the ternary?
+const FrameDrawer = styled('div')<{layout: FlamegraphPreferences['layout']}>`
+  display: grid;
+  grid-template-rows: auto 1fr;
+  grid-template-columns: ${({layout}) =>
+    layout === 'table_left' ? '1fr auto' : layout === 'table_right' ? 'auto 1fr' : '1fr'};
+  /* false positive for grid layout */
+  /* stylelint-disable */
+  grid-template-areas: ${({layout}) =>
+    layout === 'table_bottom'
+      ? `
+    'tabs'
+    'table'
+    'drawer'
+    `
+      : layout === 'table_left'
+      ? `
+      'tabs drawer'
+      'table drawer'
+      `
+      : `
+      'drawer tabs'
+      'drawer table'
+      `};
 `;
-
 const Separator = styled('li')`
   width: 1px;
   height: 66%;
@@ -253,6 +293,7 @@ const FrameTabs = styled('ul')`
   border-top: 1px solid ${prop => prop.theme.border};
   background-color: ${props => props.theme.surface400};
   user-select: none;
+  grid-area: tabs;
 
   > li {
     font-size: ${p => p.theme.fontSizeSmall};

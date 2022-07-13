@@ -174,7 +174,7 @@ const DEFAULT_FLAMEGRAPH_STATE: FlamegraphState = {
     sorting: 'call order',
     view: 'top down',
     xAxis: 'standalone',
-    layout: 'table_bottom',
+    layout: 'table_left',
   },
   search: {
     index: null,
