@@ -96,7 +96,7 @@ def make_group_generator(random, project):
     for id in itertools.count(1):
         first_seen = epoch + random.randint(0, 60 * 60 * 24 * 30)
         last_seen = random.randint(first_seen, first_seen + (60 * 60 * 24 * 30))
-        times_seen = random.randint(0, 100 * 1000)
+        times_seen = 98765
 
         culprit = make_culprit(random)
         level = random.choice(list(LOG_LEVELS.keys()))
