@@ -60,6 +60,9 @@ from sentry.incidents.endpoints.project_alert_rule_index import (
 from sentry.incidents.endpoints.project_alert_rule_task_details import (
     ProjectAlertRuleTaskDetailsEndpoint,
 )
+from sentry.replays.endpoints.organization_replay_index import OrganizationReplayIndexEndpoint
+from sentry.replays.endpoints.project_replay_details import ProjectReplayDetailsEndpoint
+from sentry.replays.endpoints.project_replay_recordings import ProjectReplayRecordingsEndpoint
 from sentry.rules.history.endpoints.project_rule_group_history import (
     ProjectRuleGroupHistoryIndexEndpoint,
 )
@@ -1547,6 +1550,11 @@ urlpatterns = [
                     name="sentry-api-0-organization-relay-usage",
                 ),
                 url(
+                    r"^(?P<organization_slug>[^\/]+)/replays/$",
+                    OrganizationReplayIndexEndpoint.as_view(),
+                    name="sentry-api-0-organization-replay-index",
+                ),
+                url(
                     r"^(?P<organization_slug>[^\/]+)/request-project-creation/$",
                     OrganizationRequestProjectCreation.as_view(),
                     name="sentry-api-0-organization-request-project-creation",
@@ -2020,6 +2028,16 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/rules/$",
                     ProjectRulesEndpoint.as_view(),
                     name="sentry-api-0-project-rules",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^/]+)/(?P<project_slug>[^\/]+)/replays/(?P<replay_id>[\w-]+)/$",
+                    ProjectReplayDetailsEndpoint.as_view(),
+                    name="sentry-api-0-project-replay-details",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^/]+)/(?P<project_slug>[^\/]+)/replays/(?P<replay_id>[\w-]+)/recordings/$",
+                    ProjectReplayRecordingsEndpoint.as_view(),
+                    name="sentry-api-0-project-replay-recordings",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/rules/configuration/$",
