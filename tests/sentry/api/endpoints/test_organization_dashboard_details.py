@@ -181,8 +181,8 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
         dashboard.projects.set([Project.objects.create(organization=self.organization)])
 
         response = self.do_request("get", self.url(dashboard.id))
-        assert response.data["start"] == start
-        assert response.data["end"] == end
+        assert iso_format(response.data["start"]) == start
+        assert iso_format(response.data["end"]) == end
 
     def test_response_truncates_with_retention(self):
         start = iso_format(datetime.now() - timedelta(days=3))

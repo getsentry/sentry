@@ -144,7 +144,7 @@ class DashboardDetailsSerializer(Serializer):
         return result
 
     def serialize(self, obj, attrs, user, **kwargs):
-        page_filter_keys = ["environment", "range", "start", "end"]
+        page_filter_keys = ["environment", "range"]
         dashboard_filter_keys = ["releases"]
         data = {
             "id": str(obj.id),
@@ -171,5 +171,6 @@ class DashboardDetailsSerializer(Serializer):
                 data["expired"], data["start"] = outside_retention_with_modified_start(
                     start, end, obj.organization
                 )
+                data["end"] = end
 
         return data

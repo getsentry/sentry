@@ -306,9 +306,9 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
     validate_id = validate_id
 
     def validate_projects(self, projects):
-        from sentry.api.validators import validate_projects
+        from sentry.api.validators import validate_project_ids
 
-        return validate_projects(projects, self.context["projects"])
+        return validate_project_ids(projects, {project.id for project in self.context["projects"]})
 
     def validate(self, data):
         start = data.get("start")
