@@ -46,6 +46,7 @@ class OrganizationTest(TestCase):
         # Only slugify on new instances of Organization
         org.slug = "---downtown_canada---"
         org.save()
+        org.refresh_from_db()
         assert org.slug == "---downtown_canada---"
 
         org = Organization.objects.create(name="---foo_bar---")
