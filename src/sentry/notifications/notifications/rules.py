@@ -223,10 +223,10 @@ class ActiveReleaseAlertNotification(AlertRuleNotification):
         enhanced_privacy = self.organization.flags.enhanced_privacy
         rule_details = get_rules(self.rules, self.organization, self.project)
         group = self.group
-        group.users_seen = self.group.count_users_seen()
         context = {
             "project_label": self.project.get_full_name(),
             "group": group,
+            "users_seen": self.group.count_users_seen(),
             "event": self.event,
             "link": get_group_settings_link(
                 self.group, environment, rule_details, referrer="alert_email_release"

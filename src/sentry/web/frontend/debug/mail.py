@@ -97,7 +97,6 @@ def make_group_generator(random, project):
         first_seen = epoch + random.randint(0, 60 * 60 * 24 * 30)
         last_seen = random.randint(first_seen, first_seen + (60 * 60 * 24 * 30))
         times_seen = random.randint(0, 100 * 1000)
-        users_seen = random.randint(0, 100 * 1000)
 
         culprit = make_culprit(random)
         level = random.choice(list(LOG_LEVELS.keys()))
@@ -119,8 +118,6 @@ def make_group_generator(random, project):
 
         if random.random() < 0.8:
             group.data = make_group_metadata(random, group)
-
-        group.users_seen = users_seen
 
         yield group
 
@@ -362,6 +359,8 @@ def release_alert(request):
     # Prevent CI screenshot from constantly changing
     event.data["timestamp"] = 1504656000.0  # datetime(2017, 9, 6, 0, 0)
     event_type = get_event_type(event.data)
+    # In non-debug context users_seen we get users_seen from group.count_users_seen()
+    users_seen = random.randint(0, 100 * 1000)
 
     group.message = event.search_message
     group.data = {"type": event_type.key, "metadata": event_type.get_metadata(data)}
@@ -395,6 +394,7 @@ def release_alert(request):
             "interfaces": interfaces,
             "tags": event.tags,
             "contexts": event.data["contexts"].items(),
+            "users_seen": users_seen,
             "project": project,
             "last_release": {
                 "version": "13.9.2",
