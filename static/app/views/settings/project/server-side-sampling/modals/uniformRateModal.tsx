@@ -20,7 +20,12 @@ import {formatPercentage} from 'sentry/utils/formatters';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import {SamplingSDKAlert} from '../samplingSDKAlert';
-import {isValidSampleRate, SERVER_SIDE_SAMPLING_DOC_LINK} from '../utils';
+import {
+  isValidSampleRate,
+  percentageToRate,
+  rateToPercentage,
+  SERVER_SIDE_SAMPLING_DOC_LINK,
+} from '../utils';
 import {projectStatsToPredictedSeries} from '../utils/projectStatsToPredictedSeries';
 import {projectStatsToSampleRates} from '../utils/projectStatsToSampleRates';
 import {projectStatsToSeries} from '../utils/projectStatsToSeries';
@@ -100,20 +105,28 @@ function UniformRateModal({
   const {trueSampleRate, maxSafeSampleRate} = projectStatsToSampleRates(projectStats);
 
   const currentClientSampling =
-    defined(trueSampleRate) && !isNaN(trueSampleRate) ? trueSampleRate * 100 : undefined;
+    defined(trueSampleRate) && !isNaN(trueSampleRate) ? trueSampleRate : undefined;
   const currentServerSampling =
     defined(uniformSampleRate) && !isNaN(uniformSampleRate)
-      ? uniformSampleRate * 100
+      ? uniformSampleRate
       : undefined;
   const recommendedClientSampling =
     defined(maxSafeSampleRate) && !isNaN(maxSafeSampleRate)
-      ? maxSafeSampleRate * 100
+      ? maxSafeSampleRate
       : undefined;
   const recommendedServerSampling = currentClientSampling;
 
   const [selectedStrategy, setSelectedStrategy] = useState<Strategy>(Strategy.CURRENT);
-  const [client, setClient] = useState(recommendedClientSampling);
-  const [server, setServer] = useState(recommendedServerSampling);
+  const [clientInput, setClientInput] = useState(
+    rateToPercentage(recommendedClientSampling)
+  );
+  const [serverInput, setServerInput] = useState(
+    rateToPercentage(recommendedServerSampling)
+  );
+  // ^^^ We use clientInput and serverInput variables just for the text fields, everywhere else we should use client and server variables vvv
+
+  const client = percentageToRate(clientInput);
+  const server = percentageToRate(serverInput);
 
   const [saving, setSaving] = useState(false);
 
@@ -121,8 +134,8 @@ function UniformRateModal({
     client !== currentClientSampling || recommendedSdkUpgrades.length > 0;
 
   useEffect(() => {
-    setClient(recommendedClientSampling);
-    setServer(recommendedServerSampling);
+    setClientInput(rateToPercentage(recommendedClientSampling));
+    setServerInput(rateToPercentage(recommendedServerSampling));
   }, [recommendedClientSampling, recommendedServerSampling]);
 
   useEffect(() => {
@@ -233,11 +246,7 @@ function UniformRateModal({
               series={
                 selectedStrategy === Strategy.CURRENT
                   ? projectStatsToSeries(projectStats30d)
-                  : projectStatsToPredictedSeries(
-                      projectStats30d,
-                      client ? Math.max(Math.min(client / 100, 1), 0) : undefined, // clamping between 0-1
-                      server ? Math.max(Math.min(server / 100, 1), 0) : undefined
-                    )
+                  : projectStatsToPredictedSeries(projectStats30d, client, server)
               }
               isLoading={loading30d}
             />
@@ -263,12 +272,12 @@ function UniformRateModal({
                 </Label>
                 <RightAligned>
                   {defined(currentClientSampling)
-                    ? formatPercentage(currentClientSampling / 100)
+                    ? formatPercentage(currentClientSampling)
                     : 'N/A'}
                 </RightAligned>
                 <RightAligned>
                   {defined(currentServerSampling)
-                    ? formatPercentage(currentServerSampling / 100)
+                    ? formatPercentage(currentServerSampling)
                     : 'N/A'}
                 </RightAligned>
                 <div />
@@ -288,9 +297,9 @@ function UniformRateModal({
                   <StyledNumberField
                     name="recommended-client-sampling"
                     placeholder="%"
-                    value={client}
+                    value={clientInput}
                     onChange={value => {
-                      setClient(value);
+                      setClientInput(value);
                     }}
                     onFocus={() => setSelectedStrategy(Strategy.RECOMMENDED)}
                     stacked
@@ -302,9 +311,9 @@ function UniformRateModal({
                   <StyledNumberField
                     name="recommended-server-sampling"
                     placeholder="%"
-                    value={server}
+                    value={serverInput}
                     onChange={value => {
-                      setServer(value);
+                      setServerInput(value);
                     }}
                     onFocus={() => setSelectedStrategy(Strategy.RECOMMENDED)}
                     stacked
@@ -318,8 +327,8 @@ function UniformRateModal({
                       icon={<IconRefresh size="sm" />}
                       aria-label={t('Reset to recommended values')}
                       onClick={() => {
-                        setClient(recommendedClientSampling);
-                        setServer(recommendedServerSampling);
+                        setClientInput(rateToPercentage(recommendedClientSampling));
+                        setServerInput(rateToPercentage(recommendedServerSampling));
                       }}
                       borderless
                       size="zero"

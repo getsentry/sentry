@@ -15,6 +15,7 @@ import {t, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Project} from 'sentry/types';
 import {SamplingRule, SamplingRuleOperator} from 'sentry/types/sampling';
+import {formatPercentage} from 'sentry/utils/formatters';
 
 import {getInnerNameLabel, isUniformRule} from './utils';
 
@@ -118,7 +119,7 @@ export function Rule({
             ))}
       </ConditionColumn>
       <RateColumn>
-        <SampleRate>{`${rule.sampleRate * 100}\u0025`}</SampleRate>
+        <SampleRate>{formatPercentage(rule.sampleRate)}</SampleRate>
       </RateColumn>
       <ActiveColumn>
         <GuideAnchor

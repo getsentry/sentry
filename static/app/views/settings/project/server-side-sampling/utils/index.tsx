@@ -1,3 +1,5 @@
+import round from 'lodash/round';
+
 import {t} from 'sentry/locale';
 import {SamplingInnerName, SamplingRule, SamplingRuleType} from 'sentry/types/sampling';
 import {defined} from 'sentry/utils';
@@ -35,4 +37,20 @@ export function isValidSampleRate(sampleRate: number | undefined) {
   }
 
   return !isNaN(sampleRate) && sampleRate <= 100 && sampleRate >= 0;
+}
+
+export function rateToPercentage(rate: number | undefined, decimalPlaces: number = 2) {
+  if (!defined(rate)) {
+    return rate;
+  }
+
+  return round(rate * 100, decimalPlaces);
+}
+
+export function percentageToRate(rate: number | undefined, decimalPlaces: number = 4) {
+  if (!defined(rate)) {
+    return rate;
+  }
+
+  return round(rate / 100, decimalPlaces);
 }

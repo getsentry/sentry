@@ -71,9 +71,7 @@ export function RecommendedStepsModal({
     disable: !!clientSampleRate,
   });
   const {maxSafeSampleRate} = projectStatsToSampleRates(projectStats);
-  const suggestedClientSampleRate = clientSampleRate
-    ? clientSampleRate / 100
-    : maxSafeSampleRate;
+  const suggestedClientSampleRate = clientSampleRate ?? maxSafeSampleRate;
 
   const isValid =
     isValidSampleRate(clientSampleRate) && isValidSampleRate(serverSampleRate);
