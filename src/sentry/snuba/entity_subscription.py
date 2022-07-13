@@ -550,7 +550,9 @@ def get_entity_key_from_query_builder(query_builder: QueryBuilder) -> EntityKey:
     return EntityKey(query_builder.get_snql_query().query.match.name)
 
 
-def get_entity_subscription_from_snuba_query(snuba_query, organization_id):
+def get_entity_subscription_from_snuba_query(
+    snuba_query: SnubaQuery, organization_id: int
+) -> EntitySubscription:
     query_dataset = QueryDatasets(snuba_query.dataset)
     return get_entity_subscription(
         SnubaQuery.Type(snuba_query.type),
@@ -564,7 +566,9 @@ def get_entity_subscription_from_snuba_query(snuba_query, organization_id):
     )
 
 
-def get_entity_key_from_snuba_query(snuba_query, organization_id, project_id):
+def get_entity_key_from_snuba_query(
+    snuba_query: SnubaQuery, organization_id: int, project_id: int
+) -> EntityKey:
     entity_subscription = get_entity_subscription_from_snuba_query(
         snuba_query,
         organization_id,
