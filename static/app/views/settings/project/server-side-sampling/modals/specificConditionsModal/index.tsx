@@ -30,7 +30,7 @@ import useApi from 'sentry/utils/useApi';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
-import {isUniformRule} from '../../utils';
+import {isUniformRule, percentageToRate, rateToPercentage} from '../../utils';
 
 import {Condition, Conditions} from './conditions';
 import {
@@ -47,7 +47,7 @@ type State = {
   errors: {
     sampleRate?: string;
   };
-  sampleRate: number | null;
+  samplePercentage: number | null;
 };
 
 type Props = ModalRenderProps & {
@@ -84,7 +84,7 @@ export function SpecificConditionsModal({
 
       return d;
     });
-  }, [data.sampleRate]);
+  }, [data.samplePercentage]);
 
   function getInitialState(): State {
     if (rule) {
@@ -104,19 +104,19 @@ export function SpecificConditionsModal({
           }
           return {category: name};
         }),
-        sampleRate: sampleRate * 100,
+        samplePercentage: rateToPercentage(sampleRate) ?? null,
         errors: {},
       };
     }
 
     return {
       conditions: [],
-      sampleRate: null,
+      samplePercentage: null,
       errors: {},
     };
   }
 
-  const {errors, conditions, sampleRate} = data;
+  const {errors, conditions, samplePercentage} = data;
 
   function convertRequestErrorResponse(error: ReturnType<typeof getErrorMessage>) {
     if (typeof error === 'string') {
@@ -134,9 +134,10 @@ export function SpecificConditionsModal({
   }
 
   async function handleSubmit() {
-    if (!defined(sampleRate)) {
+    if (!defined(samplePercentage)) {
       return;
     }
+    const sampleRate = percentageToRate(samplePercentage)!;
 
     const newRule: SamplingRule = {
       // All new/updated rules must have id equal to 0
@@ -147,7 +148,7 @@ export function SpecificConditionsModal({
         op: SamplingConditionOperator.AND,
         inner: !conditions.length ? [] : conditions.map(getNewCondition),
       },
-      sampleRate: sampleRate / 100,
+      sampleRate,
     };
 
     const newRules = rule
@@ -204,7 +205,7 @@ export function SpecificConditionsModal({
           .map(({name}) => name)
           .sort()
           .join(', '),
-        old_sampling_rate: rule.sampleRate * 100,
+        old_sampling_rate: rule.sampleRate,
       });
       return;
     }
@@ -278,7 +279,7 @@ export function SpecificConditionsModal({
   });
 
   const submitDisabled =
-    !defined(sampleRate) ||
+    !defined(samplePercentage) ||
     !conditions.length ||
     conditions.some(condition => !condition.match);
 
@@ -348,7 +349,7 @@ export function SpecificConditionsModal({
             label={`${t('Sample Rate')} \u0025`}
             name="sampleRate"
             onChange={value => {
-              setData({...data, sampleRate: !!value ? Number(value) : null});
+              setData({...data, samplePercentage: !!value ? Number(value) : null});
             }}
             onKeyDown={(_value: string, e: KeyboardEvent) => {
               if (e.key === 'Enter') {
@@ -356,7 +357,7 @@ export function SpecificConditionsModal({
               }
             }}
             placeholder={'\u0025'}
-            value={sampleRate}
+            value={samplePercentage}
             inline={false}
             hideControlState={!errors.sampleRate}
             error={errors.sampleRate}
