@@ -26,7 +26,6 @@ from sentry.models import (
 )
 from sentry.pipeline import NestedPipelineView
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
-from sentry.utils.compat import map
 from sentry.utils.http import absolute_uri
 
 from .client import VercelClient
@@ -152,16 +151,14 @@ class VercelIntegration(IntegrationInstallation):
         ]
 
         proj_fields = ["id", "platform", "name", "slug"]
-        sentry_projects = map(
-            lambda proj: {key: proj[key] for key in proj_fields},
-            (
-                Project.objects.filter(
-                    organization_id=self.organization_id, status=ObjectStatus.VISIBLE
-                )
-                .order_by("slug")
-                .values(*proj_fields)
-            ),
-        )
+        sentry_projects = [
+            {key: proj[key] for key in proj_fields}
+            for proj in Project.objects.filter(
+                organization_id=self.organization_id, status=ObjectStatus.VISIBLE
+            )
+            .order_by("slug")
+            .values(*proj_fields)
+        ]
 
         fields = [
             {
