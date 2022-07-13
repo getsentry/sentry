@@ -9,7 +9,6 @@ from rest_framework.response import Response
 
 from sentry import features
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
-from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.deprecation import deprecated
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import InvalidParams
@@ -64,7 +63,7 @@ def rate_limit_events(request: Request, organization_slug=None, *args, **kwargs)
     try:
         organization = Organization.objects.get_from_cache(slug=organization_slug)
     except Organization.DoesNotExist:
-        raise ResourceDoesNotExist
+        return DEFAULT_RATE_LIMIT_CONFIG
     # Check for feature flag to enforce rate limit otherwise use default rate limit
     if features.has("organizations:discover-events-rate-limit", organization, actor=request.user):
         return {
