@@ -381,6 +381,9 @@ def release_alert(request):
             "body": text_body,
         }
 
+    contexts = event.data["contexts"].items() if "contexts" in event.data else None
+    event_user = event.data["event_user"] if "event_user" in event.data else None
+
     return MailPreview(
         html_template="sentry/emails/release_alert.html",
         text_template="sentry/emails/release_alert.txt",
@@ -388,12 +391,12 @@ def release_alert(request):
             "rules": get_rules([rule], org, project),
             "group": group,
             "event": event,
-            "event_user": event.data["user"],
+            "event_user": event_user,
             "timezone": pytz.timezone("Europe/Vienna"),
             "link": get_group_settings_link(group, None, get_rules([rule], org, project), 1337),
             "interfaces": interfaces,
             "tags": event.tags,
-            "contexts": event.data["contexts"].items(),
+            "contexts": contexts,
             "users_seen": users_seen,
             "project": project,
             "last_release": {

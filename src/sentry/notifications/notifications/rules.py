@@ -246,12 +246,16 @@ class ActiveReleaseAlertNotification(AlertRuleNotification):
         # if the organization has enabled enhanced privacy controls we don't send
         # data which may show PII or source code
         if not enhanced_privacy:
+            contexts = (
+                self.event.data["contexts"].items() if "contexts" in self.event.data else None
+            )
+            event_user = self.event.data["event_user"] if "event_user" in self.event.data else None
             context.update(
                 {
                     "tags": self.event.tags,
                     "interfaces": get_interface_list(self.event),
-                    "contexts": self.event.data["contexts"].items(),
-                    "event_user": self.event.data["user"],
+                    "contexts": contexts,
+                    "event_user": event_user,
                 }
             )
 
