@@ -10,15 +10,13 @@ import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {formatTime, relativeTimeInMs} from 'sentry/components/replays/utils';
 import {
   IconArrow,
+  IconContract,
+  IconExpand,
   IconNext,
   IconPause,
   IconPlay,
   IconPrevious,
-  IconRefresh,
-  IconResize,
   IconRewind10,
-  IconExpand,
-  IconContract,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
