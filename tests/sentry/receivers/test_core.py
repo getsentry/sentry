@@ -1,5 +1,6 @@
 from django.apps import apps
 from django.conf import settings
+from django.test.utils import override_settings
 
 from sentry.models import Organization, Project, ProjectKey, Team, User
 from sentry.receivers.core import DEFAULT_SENTRY_PROJECT_ID, create_default_projects
@@ -7,6 +8,7 @@ from sentry.testutils import TestCase
 
 
 class CreateDefaultProjectsTest(TestCase):
+    @override_settings(SENTRY_PROJECT=1)
     def test_simple(self):
         user, _ = User.objects.get_or_create(is_superuser=True, defaults={"username": "test"})
         Organization.objects.all().delete()
@@ -29,6 +31,7 @@ class CreateDefaultProjectsTest(TestCase):
         # ensure that we don't hit an error here
         create_default_projects(config)
 
+    @override_settings(SENTRY_PROJECT=1)
     def test_without_user(self):
         User.objects.filter(is_superuser=True).delete()
         Team.objects.filter(slug="sentry").delete()
