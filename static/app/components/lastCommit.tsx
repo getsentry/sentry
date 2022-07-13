@@ -74,7 +74,7 @@ const InnerWrap = styled('div')`
 
 const Message = styled('div')`
   ${p => p.theme.overflowEllipsis}
-  min-width:0;
+  margin-bottom: ${space(0.5)};
 `;
 
 const Meta = styled('div')`
