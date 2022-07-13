@@ -75,6 +75,7 @@ from sentry.search.events.types import (
 )
 from sentry.sentry_metrics import indexer
 from sentry.snuba.metrics.fields import histogram as metrics_histogram
+from sentry.snuba.metrics.utils import MetricMeta
 from sentry.utils.dates import outside_retention_with_modified_start, to_timestamp
 from sentry.utils.snuba import (
     DATASETS,
@@ -1595,6 +1596,7 @@ class MetricsQueryBuilder(QueryBuilder):
         self.metric_ids: Set[int] = set()
         self.allow_metric_aggregates = allow_metric_aggregates
         self._indexer_cache: Dict[str, Optional[int]] = {}
+        self._custom_measurement_cache: Optional[List[MetricMeta]] = None
         # Don't do any of the actions that would impact performance in anyway
         # Skips all indexer checks, and won't interact with clickhouse
         self.dry_run = dry_run
@@ -1889,7 +1891,8 @@ class MetricsQueryBuilder(QueryBuilder):
                 )
 
         return Request(
-            dataset=self.dataset.value,
+            # TODO: Actually introduce this as a dataset
+            dataset="generic_metrics" if self.dataset is Dataset.Metrics else self.dataset.value,
             app_id="default",
             query=Query(
                 match=primary_framework.entity,
@@ -2084,7 +2087,10 @@ class MetricsQueryBuilder(QueryBuilder):
                     granularity=self.granularity,
                 )
                 request = Request(
-                    dataset=self.dataset.value,
+                    # TODO: Actually introduce this as a dataset
+                    dataset="generic_metrics"
+                    if self.dataset is Dataset.Metrics
+                    else self.dataset.value,
                     app_id="default",
                     query=query,
                     flags=Flags(turbo=self.turbo),
@@ -2277,7 +2283,9 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
             if len(query_details.functions) > 0:
                 queries.append(
                     Request(
-                        dataset=self.dataset.value,
+                        dataset="generic_metrics"
+                        if self.dataset is Dataset.Metrics
+                        else self.dataset.value,
                         app_id="default",
                         query=Query(
                             match=query_details.entity,

@@ -9,10 +9,13 @@ import {PanelTable} from 'sentry/components/panels';
 import Radio from 'sentry/components/radio';
 import {IconRefresh} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import ModalStore from 'sentry/stores/modalStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import space from 'sentry/styles/space';
 import {Project, SeriesApi} from 'sentry/types';
 import {SamplingRule, UniformModalsSubmit} from 'sentry/types/sampling';
 import {defined} from 'sentry/utils';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {formatPercentage} from 'sentry/utils/formatters';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
@@ -37,7 +40,10 @@ enum Step {
   RECOMMENDED_STEPS = 'recommended_steps',
 }
 
-type Props = Omit<RecommendedStepsModalProps, 'onSubmit' | 'recommendedSdkUpgrades'> & {
+type Props = Omit<
+  RecommendedStepsModalProps,
+  'onSubmit' | 'recommendedSdkUpgrades' | 'projectId' | 'recommendedSampleRate'
+> & {
   onSubmit: UniformModalsSubmit;
   project: Project;
   rules: SamplingRule[];
@@ -55,8 +61,11 @@ function UniformRateModal({
   uniformRule,
   rules,
   onSubmit,
+  onReadDocs,
   ...props
 }: Props) {
+  const modalStore = useLegacyStore(ModalStore);
+
   const {projectStats: projectStats30d, loading: loading30d} = useProjectStats({
     orgSlug: organization.slug,
     projectId: project.id,
@@ -71,6 +80,20 @@ function UniformRateModal({
   const loading = loading30d || !projectStats;
 
   const [activeStep, setActiveStep] = useState<Step>(Step.SET_UNIFORM_SAMPLE_RATE);
+
+  useEffect(() => {
+    if (modalStore.renderer === null) {
+      trackAdvancedAnalyticsEvent(
+        activeStep === Step.RECOMMENDED_STEPS
+          ? 'sampling.settings.modal.recommended.next.steps_cancel'
+          : 'sampling.settings.modal.uniform.rate_cancel',
+        {
+          organization: organization.slug,
+          project_id: project.id,
+        }
+      );
+    }
+  }, [activeStep, modalStore.renderer, organization.slug, project.id]);
 
   const uniformSampleRate = uniformRule?.sampleRate;
 
@@ -102,6 +125,18 @@ function UniformRateModal({
     setServer(recommendedServerSampling);
   }, [recommendedClientSampling, recommendedServerSampling]);
 
+  useEffect(() => {
+    trackAdvancedAnalyticsEvent(
+      selectedStrategy === Strategy.RECOMMENDED
+        ? 'sampling.settings.modal.uniform.rate_switch_recommended'
+        : 'sampling.settings.modal.uniform.rate_switch_current',
+      {
+        organization: organization.slug,
+        project_id: project.id,
+      }
+    );
+  }, [selectedStrategy, organization.slug, project.id]);
+
   const isEdited =
     client !== recommendedClientSampling || server !== recommendedServerSampling;
 
@@ -115,23 +150,39 @@ function UniformRateModal({
     }
 
     if (shouldHaveNextStep) {
+      trackAdvancedAnalyticsEvent('sampling.settings.modal.uniform.rate_next', {
+        organization: organization.slug,
+        project_id: project.id,
+      });
+
       setActiveStep(Step.RECOMMENDED_STEPS);
       return;
     }
 
     setSaving(true);
 
-    onSubmit(
-      server!,
-      uniformRule,
-      () => {
+    onSubmit({
+      recommendedSampleRate: !isEdited,
+      uniformRateModalOrigin: true,
+      sampleRate: server!,
+      rule: uniformRule,
+      onSuccess: () => {
         setSaving(false);
         closeModal();
       },
-      () => {
+      onError: () => {
         setSaving(false);
-      }
-    );
+      },
+    });
+  }
+
+  function handleReadDocs() {
+    trackAdvancedAnalyticsEvent('sampling.settings.modal.uniform.rate_read_docs', {
+      organization: organization.slug,
+      project_id: project.id,
+    });
+
+    onReadDocs();
   }
 
   if (activeStep === Step.RECOMMENDED_STEPS) {
@@ -146,9 +197,12 @@ function UniformRateModal({
         recommendedSdkUpgrades={recommendedSdkUpgrades}
         onGoBack={() => setActiveStep(Step.SET_UNIFORM_SAMPLE_RATE)}
         onSubmit={onSubmit}
+        onReadDocs={onReadDocs}
         clientSampleRate={client}
         serverSampleRate={server}
         uniformRule={uniformRule}
+        projectId={project.id}
+        recommendedSampleRate={!isEdited}
       />
     );
   }
@@ -277,17 +331,18 @@ function UniformRateModal({
 
             <SamplingSDKAlert
               organization={organization}
-              project={project}
+              projectId={project.id}
               rules={rules}
               recommendedSdkUpgrades={recommendedSdkUpgrades}
               showLinkToTheModal={false}
+              onReadDocs={onReadDocs}
             />
           </Fragment>
         )}
       </Body>
       <Footer>
         <FooterActions>
-          <Button href={SERVER_SIDE_SAMPLING_DOC_LINK} external>
+          <Button href={SERVER_SIDE_SAMPLING_DOC_LINK} onClick={handleReadDocs} external>
             {t('Read Docs')}
           </Button>
 
