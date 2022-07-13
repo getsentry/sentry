@@ -94,6 +94,8 @@ class MsTeamsIntegrationProvider(IntegrationProvider):
                 "access_token": token_data["access_token"],
                 "expires_at": token_data["expires_at"],
                 "service_url": service_url,
+                # TODO: Determine if installation type is 'team' or 'tenant'
+                "installation_type": "team",
             },
             # TODO: Use user id for external_id in user_identity
             "user_identity": {"type": "msteams", "external_id": team_id, "scopes": [], "data": {}},

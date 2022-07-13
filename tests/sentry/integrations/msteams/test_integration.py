@@ -68,6 +68,7 @@ class MsTeamsIntegrationTest(IntegrationTestCase):
                 "access_token": "my_token",
                 "service_url": "https://smba.trafficmanager.net/amer/",
                 "expires_at": self.start_time + 86399 - 60 * 5,
+                "installation_type": "team",
             }
             assert OrganizationIntegration.objects.get(
                 integration=integration, organization=self.organization
