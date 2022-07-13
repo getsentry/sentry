@@ -23,7 +23,7 @@ function CrumbPlaceholder({number}: {number: number}) {
   return (
     <Fragment>
       {[...Array(number)].map((_, i) => (
-        <PlaceholderMargin key={i} height="40px" />
+        <PlaceholderMargin key={i} height="53px" />
       ))}
     </Fragment>
   );
@@ -153,8 +153,9 @@ const PanelBody = styled(BasePanelBody)`
 `;
 
 const PlaceholderMargin = styled(Placeholder)`
-  margin: ${space(1)} ${space(1.5)};
+  margin: ${space(1)} 0;
   width: auto;
+  border-radius: 4px;
 `;
 
 export default Breadcrumbs;

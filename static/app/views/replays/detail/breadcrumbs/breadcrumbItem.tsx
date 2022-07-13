@@ -79,6 +79,7 @@ const CrumbDetails = styled('div')`
 const TitleContainer = styled('div')`
   display: flex;
   justify-content: space-between;
+  gap: ${space(1)};
 `;
 
 const Title = styled('span')`
@@ -126,17 +127,17 @@ const CrumbItem = styled(PanelItem)<CrumbItemProps>`
     width: 1px;
     background: ${p => p.theme.gray200};
     height: 100%;
-    z-index: 1;
   }
 
+  /* Draw a vertical line behind the breadcrumb icon. The line connects each row together, but is truncated for the first and last items */
   &:first-of-type::after {
+    top: 8px;
     bottom: 0;
-    height: 50%;
   }
 
   &:last-of-type::after {
     top: 0;
-    height: 50%;
+    height: 8px;
   }
 `;
 
@@ -154,7 +155,7 @@ const IconWrapper = styled('div')<Required<Pick<SVGIconProps, 'color'>>>`
   background: ${p => p.theme[p.color] ?? p.color};
   box-shadow: ${p => p.theme.dropShadowLightest};
   position: relative;
-  z-index: 2;
+  z-index: ${p => p.theme.zIndex.initial};
 `;
 
 const MemoizedBreadcrumbItem = memo(BreadcrumbItem);
