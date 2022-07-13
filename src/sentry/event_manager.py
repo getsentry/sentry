@@ -589,16 +589,17 @@ class EventManager:
 
         # Check if the project is configured for auto upgrading and we need to upgrade
         # to the latest grouping config.
-        if auto_upgrade_grouping and project.get_option("sentry:grouping_auto_update"):
+        if (
+            auto_upgrade_grouping
+            and settings.SENTRY_GROUPING_AUTO_UPDATE_ENABLED
+            and project.get_option("sentry:grouping_auto_update")
+        ):
             _auto_update_grouping(project)
 
         return job["event"]
 
 
 def _auto_update_grouping(project):
-    if not settings.SENTRY_GROUPING_AUTO_UPDATE_ENABLED:
-        return
-
     old_grouping = project.get_option("sentry:grouping_config")
     new_grouping = DEFAULT_GROUPING_CONFIG
 
