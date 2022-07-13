@@ -11,6 +11,7 @@ export type FlamegraphAxisOptions = ['standalone', 'transaction'];
 
 export interface FlamegraphPreferences {
   colorCoding: FlamegraphColorCodings[number];
+  layout: 'table_right' | 'table_bottom' | 'table_left';
   sorting: FlamegraphSorting[number];
   view: FlamegraphViewOptions[number];
   xAxis: FlamegraphAxisOptions[number];
@@ -20,6 +21,7 @@ type FlamegraphPreferencesAction =
   | {payload: FlamegraphPreferences['colorCoding']; type: 'set color coding'}
   | {payload: FlamegraphPreferences['sorting']; type: 'set sorting'}
   | {payload: FlamegraphPreferences['view']; type: 'set view'}
+  | {payload: FlamegraphPreferences['layout']; type: 'set layout'}
   | {
       payload: FlamegraphPreferences['xAxis'];
       type: 'set xAxis';
@@ -30,6 +32,12 @@ export function flamegraphPreferencesReducer(
   action: FlamegraphPreferencesAction
 ): FlamegraphPreferences {
   switch (action.type) {
+    case 'set layout': {
+      return {
+        ...state,
+        layout: action.payload,
+      };
+    }
     case 'set color coding': {
       return {
         ...state,

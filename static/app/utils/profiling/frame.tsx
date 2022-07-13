@@ -52,6 +52,6 @@ export class Frame extends WeightedNode {
   }
 
   isRoot(): boolean {
-    return Frame.Root === this;
+    return this.name === Frame.Root.name;
   }
 }

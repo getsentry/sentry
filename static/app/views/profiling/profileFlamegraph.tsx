@@ -52,34 +52,32 @@ function ProfileFlamegraph(): React.ReactElement {
   }, []);
 
   return (
-    <Fragment>
-      <SentryDocumentTitle
-        title={t('Profiling \u2014 Flamegraph')}
-        orgSlug={organization.slug}
-      >
-        <FlamegraphStateProvider initialState={initialFlamegraphPreferencesState}>
-          <FlamegraphThemeProvider>
-            <FlamegraphStateQueryParamSync />
-            <FlamegraphContainer>
-              {profileGroup.type === 'errored' ? (
-                <Alert type="error" showIcon>
-                  {profileGroup.error}
-                </Alert>
-              ) : profileGroup.type === 'loading' ? (
-                <Fragment>
-                  <Flamegraph onImport={onImport} profiles={LoadingGroup} />
-                  <LoadingIndicatorContainer>
-                    <LoadingIndicator />
-                  </LoadingIndicatorContainer>
-                </Fragment>
-              ) : profileGroup.type === 'resolved' ? (
-                <Flamegraph onImport={onImport} profiles={profileGroup.data} />
-              ) : null}
-            </FlamegraphContainer>
-          </FlamegraphThemeProvider>
-        </FlamegraphStateProvider>
-      </SentryDocumentTitle>
-    </Fragment>
+    <SentryDocumentTitle
+      title={t('Profiling \u2014 Flamegraph')}
+      orgSlug={organization.slug}
+    >
+      <FlamegraphStateProvider initialState={initialFlamegraphPreferencesState}>
+        <FlamegraphThemeProvider>
+          <FlamegraphStateQueryParamSync />
+          <FlamegraphContainer>
+            {profileGroup.type === 'errored' ? (
+              <Alert type="error" showIcon>
+                {profileGroup.error}
+              </Alert>
+            ) : profileGroup.type === 'loading' ? (
+              <Fragment>
+                <Flamegraph onImport={onImport} profiles={LoadingGroup} />
+                <LoadingIndicatorContainer>
+                  <LoadingIndicator />
+                </LoadingIndicatorContainer>
+              </Fragment>
+            ) : profileGroup.type === 'resolved' ? (
+              <Flamegraph onImport={onImport} profiles={profileGroup.data} />
+            ) : null}
+          </FlamegraphContainer>
+        </FlamegraphThemeProvider>
+      </FlamegraphStateProvider>
+    </SentryDocumentTitle>
   );
 }
 

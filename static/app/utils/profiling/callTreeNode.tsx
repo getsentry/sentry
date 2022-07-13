@@ -45,7 +45,7 @@ export class CallTreeNode extends WeightedNode {
   }
 
   isRoot(): boolean {
-    return Frame.Root === this.frame;
+    return Frame.Root.name === this.frame.name;
   }
 
   static readonly Root = new CallTreeNode(Frame.Root, null);
