@@ -13,7 +13,6 @@ from sentry.models import (
     GroupLink,
     GroupStatus,
     GroupSubscription,
-    Organization,
     Project,
     PullRequest,
     Release,
@@ -227,8 +226,7 @@ def resolved_in_pull_request(instance, created, **kwargs):
 
 def save_release_activity(instance: Release, created: bool, **kwargs):
     if created:
-        org = Organization.objects.filter(id=instance.organization.id).first()
-        if org and features.has("organizations:active-release-monitor-alpha", org):
+        if features.has("organizations:active-release-monitor-alpha", instance.organization):
             ReleaseActivity.objects.create(
                 type=ReleaseActivity.Type.created, release=instance, date_added=instance.date_added
             )
