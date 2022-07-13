@@ -6,5 +6,5 @@ To resolve this, rebase against latest master and regenerate your migration. Thi
 will then be regenerated, and you should be able to merge without conflicts.
 
 nodestore: 0002_nodestore_no_dictfield
-sentry: 0301_mep_move_type_to_snuba_query
+sentry: 0302_mep_backfill_and_not_null_snuba_query_type
 social_auth: 0001_initial

@@ -46,7 +46,7 @@ class Migration(CheckedMigration):
     atomic = False
 
     dependencies = [
-        ("sentry", "0300_mep_move_type_to_snuba_query"),
+        ("sentry", "0301_mep_move_type_to_snuba_query"),
     ]
 
     operations = [
