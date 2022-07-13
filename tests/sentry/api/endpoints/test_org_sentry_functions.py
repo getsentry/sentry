@@ -6,10 +6,8 @@ class OrganizationSentryFunctions(APITestCase):
     endpoint = "sentry-api-0-organization-sentry-functions"
 
     def setUp(self):
-        organization = self.create_organization(owner=self.user, name="RowdyTiger")
-        project = self.create_project(name="foo", organization=organization, teams=[])
-        self.create_repo(project=project, name="getsentry/sentry")
-
+        super().setUp()
+        self.create_organization(owner=self.user, name="RowdyTiger")
         self.login_as(user=self.user)
 
     def test_post(self):
