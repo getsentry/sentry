@@ -18,7 +18,6 @@ from sentry.similarity.features import (
 from sentry.similarity.featuresv2 import GroupingBasedFeatureSet
 from sentry.similarity.signatures import MinHashSignatureBuilder
 from sentry.utils import redis
-from sentry.utils.compat import map
 from sentry.utils.datastructures import BidirectionalMapping
 from sentry.utils.iterators import shingle
 
@@ -26,7 +25,7 @@ logger = logging.getLogger(__name__)
 
 
 def text_shingle(n, value):
-    return map("".join, shingle(n, value))
+    return ["".join(part) for part in shingle(n, value)]
 
 
 class FrameEncodingError(ValueError):
