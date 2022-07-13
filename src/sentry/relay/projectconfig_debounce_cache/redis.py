@@ -8,6 +8,7 @@ REDIS_CACHE_TIMEOUT = 3600  # 1 hr
 class RedisProjectConfigDebounceCache(ProjectConfigDebounceCache):
     def __init__(self, **options):
         self._key_prefix = options.pop("key_prefix", "relayconfig-debounce")
+        self._debounce_ttl = options.pop("debounce_ttl", REDIS_CACHE_TIMEOUT)
         self.is_redis_cluster, self.cluster, options = get_dynamic_cluster_from_options(
             "SENTRY_RELAY_PROJECTCONFIG_DEBOUNCE_CACHE_OPTIONS", options
         )
@@ -56,7 +57,7 @@ class RedisProjectConfigDebounceCache(ProjectConfigDebounceCache):
     def debounce(self, *, public_key, project_id, organization_id):
         key = self._get_redis_key(public_key, project_id, organization_id)
         client = self._get_redis_client(key)
-        client.setex(key, REDIS_CACHE_TIMEOUT, 1)
+        client.setex(key, self._debounce_ttl, 1)
         metrics.incr("relay.projectconfig_debounce_cache.debounce")
 
     def mark_task_done(self, *, public_key, project_id, organization_id):
