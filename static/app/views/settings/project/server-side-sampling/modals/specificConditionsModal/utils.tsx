@@ -134,9 +134,7 @@ export function getTagKey(condition: Condition) {
 export const distributedTracesConditions = [
   SamplingInnerName.TRACE_RELEASE,
   SamplingInnerName.TRACE_ENVIRONMENT,
-  SamplingInnerName.TRACE_USER_ID,
   SamplingInnerName.TRACE_USER_SEGMENT,
-  SamplingInnerName.TRACE_TRANSACTION,
 ];
 
 export function generateConditionCategoriesOptions(
