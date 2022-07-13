@@ -1,5 +1,6 @@
 import React, {useCallback, useEffect, useState} from 'react';
 
+import {DataSection} from 'sentry/components/events/styles';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Event, EventTransaction, Organization} from 'sentry/types';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
@@ -48,7 +49,7 @@ export function EmbeddedSpanTree(props: Props) {
   }, [fetchEventTransaction]);
 
   return (
-    <React.Fragment>
+    <DataSection>
       {eventTransaction ? (
         <TraceView
           organization={organization}
@@ -60,6 +61,6 @@ export function EmbeddedSpanTree(props: Props) {
         // TODO: Put a proper error component here instead
         <p>Error: {status}</p>
       )}
-    </React.Fragment>
+    </DataSection>
   );
 }

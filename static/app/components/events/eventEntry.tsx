@@ -187,7 +187,7 @@ function EventEntry({
         return null;
       }
 
-      const {focusedSpanIds: _focusedSpanIds} = entry.data;
+      const {focusedSpanIds: _focusedSpanIds, transactionID} = entry.data;
 
       const focusedSpanIds: FocusedSpanIDMap = {};
       _focusedSpanIds.forEach(spanId => (focusedSpanIds[spanId] = new Set()));
@@ -197,9 +197,9 @@ function EventEntry({
         <EmbeddedSpanTree
           event={event}
           organization={organization as Organization}
-          projectSlug="javascript"
+          projectSlug="internal"
           focusedSpanIds={focusedSpanIds}
-          transactionID="f8cbff973aa643248c8605ffc8572c5c"
+          transactionID={transactionID}
         />
       );
     case EntryType.PERFORMANCE:
