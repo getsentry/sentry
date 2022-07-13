@@ -138,7 +138,7 @@ class MailAdapterActiveReleaseTest(BaseMailAdapterTest):
         assert activity[0].data["provider"] == EXTERNAL_PROVIDERS[ExternalProviders.EMAIL]
         assert activity[0].data["issue_id"]
         assert activity[0].data["issue_error_count"]
-        assert activity[0].data["issue_affected_users"]
+        assert activity[0].data["issue_affected_users"] == 0
 
 
 class MailAdapterGetSendableUsersTest(BaseMailAdapterTest):
