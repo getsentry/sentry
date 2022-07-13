@@ -105,6 +105,7 @@ SAMPLED_TASKS = {
     "sentry.tasks.relay.invalidate_project_config": settings.SENTRY_RELAY_TASK_APM_SAMPLING,
     "sentry.tasks.reports.prepare_organization_report": 0.1,
     "sentry.tasks.reports.deliver_organization_user_report": 0.01,
+    "sentry.tasks.process_buffer.process_incr": 0.01,
 }
 
 if settings.ADDITIONAL_SAMPLED_TASKS:

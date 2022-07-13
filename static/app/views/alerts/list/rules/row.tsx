@@ -398,7 +398,7 @@ function RuleListRow({
               triggerProps={{
                 'aria-label': t('Show more'),
                 'data-test-id': 'alert-row-actions',
-                size: 'xsmall',
+                size: 'xs',
                 icon: <IconEllipsis size="xs" />,
                 showChevron: false,
               }}

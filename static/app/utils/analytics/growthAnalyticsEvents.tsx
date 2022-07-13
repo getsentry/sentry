@@ -46,6 +46,10 @@ type SampleEvent = {
   source: string;
 };
 
+type VitalsAlert = {
+  vital: string;
+};
+
 // define the event key to payload mappings
 export type GrowthEventParameters = {
   'growth.clicked_enter_sandbox': {
@@ -63,6 +67,12 @@ export type GrowthEventParameters = {
   'growth.demo_modal_clicked_continue': {};
   'growth.demo_modal_clicked_signup': {};
   'growth.issue_open_in_discover_btn_clicked': {};
+  'growth.metric_alert_preset_sidebar_clicked': {
+    preset: string;
+  };
+  'growth.metric_alert_preset_use_template': {
+    preset: string;
+  };
   'growth.onboarding_clicked_instrument_app': {source?: string};
   'growth.onboarding_clicked_project_in_sidebar': {platform: string};
   'growth.onboarding_clicked_setup_platform_later': PlatformParam & {
@@ -119,6 +129,9 @@ export type GrowthEventParameters = {
   'sdk_updates.clicked': {};
   'sdk_updates.seen': {};
   'sdk_updates.snoozed': {};
+  'vitals_alert.clicked_docs': VitalsAlert;
+  'vitals_alert.clicked_see_vitals': VitalsAlert;
+  'vitals_alert.dismissed': VitalsAlert;
 };
 
 type GrowthAnalyticsKey = keyof GrowthEventParameters;
@@ -142,6 +155,9 @@ export const growthEventMap: Record<GrowthAnalyticsKey, string | null> = {
   'growth.select_platform': 'Growth: Onboarding Choose Platform',
   'growth.platformpicker_category': 'Growth: Onboarding Platform Category',
   'growth.platformpicker_search': 'Growth: Onboarding Platform Search',
+  'growth.metric_alert_preset_use_template': 'Growth: Metric Alert Preset Use Template',
+  'growth.metric_alert_preset_sidebar_clicked':
+    'Growth: Metric Alert Preset Sidebar Clicked',
   'growth.onboarding_start_onboarding': 'Growth: Onboarding Start Onboarding',
   'growth.onboarding_clicked_skip': 'Growth: Onboarding Clicked Skip',
   'growth.onboarding_take_to_error': 'Growth: Onboarding Take to Error',
@@ -177,4 +193,7 @@ export const growthEventMap: Record<GrowthAnalyticsKey, string | null> = {
   'sample_event.button_viewed': null, // high-volume event
   'sample_event.created': 'Sample Event Created',
   'sample_event.failed': 'Sample Event Failed',
+  'vitals_alert.clicked_see_vitals': 'Vitals Alert: Clicked See Vitals',
+  'vitals_alert.dismissed': 'Vitals Alert: Dismissed',
+  'vitals_alert.clicked_docs': 'Vitals Alert: Clicked Docs',
 };

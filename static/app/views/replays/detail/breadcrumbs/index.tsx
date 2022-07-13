@@ -17,6 +17,8 @@ import {useCurrentItemScroller} from 'sentry/utils/replays/hooks/useCurrentItemS
 
 import BreadcrumbItem from './breadcrumbItem';
 
+const TAB_HEADER_HEIGHT = 28;
+
 function CrumbPlaceholder({number}: {number: number}) {
   return (
     <Fragment>
@@ -145,7 +147,7 @@ const PanelHeader = styled(BasePanelHeader)`
 
 const PanelBody = styled(BasePanelBody)`
   overflow-y: auto;
-  max-height: calc(100% - 34px);
+  max-height: calc(100% - ${TAB_HEADER_HEIGHT}px);
 `;
 
 const PlaceholderMargin = styled(Placeholder)`

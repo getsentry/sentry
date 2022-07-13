@@ -9,14 +9,18 @@ from rest_framework.response import Response
 
 from sentry import features
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
+from sentry.api.bases.organization import resolve_org_slug_region
 from sentry.api.helpers.deprecation import deprecated
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import InvalidParams
 from sentry.apidocs import constants as api_constants
 from sentry.apidocs.parameters import GLOBAL_PARAMS, VISIBILITY_PARAMS
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.models.organization import Organization
+from sentry.ratelimits.config import RateLimitConfig
 from sentry.search.events.fields import is_function
 from sentry.snuba import discover, metrics_enhanced_performance
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 logger = logging.getLogger(__name__)
 
@@ -51,9 +55,62 @@ ALLOWED_EVENTS_GEO_REFERRERS = {
 
 API_TOKEN_REFERRER = "api.auth-token.events"
 
+RATE_LIMIT = 25
+RATE_LIMIT_WINDOW = 1
+CONCURRENT_RATE_LIMIT = 25
+
+DEFAULT_RATE_LIMIT = 50
+DEFAULT_RATE_LIMIT_WINDOW = 1
+DEFAULT_CONCURRENT_RATE_LIMIT = 50
+
+DEFAULT_EVENTS_RATE_LIMIT_CONFIG = {
+    "GET": {
+        RateLimitCategory.IP: RateLimit(
+            DEFAULT_RATE_LIMIT, DEFAULT_RATE_LIMIT_WINDOW, DEFAULT_CONCURRENT_RATE_LIMIT
+        ),
+        RateLimitCategory.USER: RateLimit(
+            DEFAULT_RATE_LIMIT, DEFAULT_RATE_LIMIT_WINDOW, DEFAULT_CONCURRENT_RATE_LIMIT
+        ),
+        RateLimitCategory.ORGANIZATION: RateLimit(
+            DEFAULT_RATE_LIMIT, DEFAULT_RATE_LIMIT_WINDOW, DEFAULT_CONCURRENT_RATE_LIMIT
+        ),
+    }
+}
+
+
+def rate_limit_events(request: Request, organization_slug=None, *args, **kwargs) -> RateLimitConfig:
+    organization_slug, _ = resolve_org_slug_region(
+        request=request, organization_slug=organization_slug
+    )
+    try:
+        organization = Organization.objects.get_from_cache(slug=organization_slug)
+    except Organization.DoesNotExist:
+        return DEFAULT_EVENTS_RATE_LIMIT_CONFIG
+    # Check for feature flag to enforce rate limit otherwise use default rate limit
+    if features.has("organizations:discover-events-rate-limit", organization, actor=request.user):
+        return {
+            "GET": {
+                RateLimitCategory.IP: RateLimit(
+                    RATE_LIMIT, RATE_LIMIT_WINDOW, CONCURRENT_RATE_LIMIT
+                ),
+                RateLimitCategory.USER: RateLimit(
+                    RATE_LIMIT, RATE_LIMIT_WINDOW, CONCURRENT_RATE_LIMIT
+                ),
+                RateLimitCategory.ORGANIZATION: RateLimit(
+                    RATE_LIMIT, RATE_LIMIT_WINDOW, CONCURRENT_RATE_LIMIT
+                ),
+            }
+        }
+    return DEFAULT_EVENTS_RATE_LIMIT_CONFIG
+
 
 class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
     """Deprecated in favour of OrganizationEventsEndpoint"""
+
+    enforce_rate_limit = True
+
+    def rate_limits(*args, **kwargs) -> RateLimitConfig:
+        return rate_limit_events(*args, **kwargs)
 
     @deprecated(
         datetime.fromisoformat("2022-07-21T00:00:00+00:00:00"),
@@ -139,6 +196,11 @@ class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
 @extend_schema(tags=["Discover"])
 class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
     public = {"GET"}
+
+    enforce_rate_limit = True
+
+    def rate_limits(*args, **kwargs) -> RateLimitConfig:
+        return rate_limit_events(*args, **kwargs)
 
     @extend_schema(
         operation_id="Query Discover Events in Table Format",

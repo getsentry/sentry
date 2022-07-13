@@ -219,6 +219,9 @@ from .endpoints.organization_dashboard_widget_details import (
 )
 from .endpoints.organization_dashboards import OrganizationDashboardsEndpoint
 from .endpoints.organization_details import OrganizationDetailsEndpoint
+from .endpoints.organization_dynamic_sampling_sdk_versions import (
+    OrganizationDynamicSamplingSDKVersionsEndpoint,
+)
 from .endpoints.organization_environments import OrganizationEnvironmentsEndpoint
 from .endpoints.organization_event_details import OrganizationEventDetailsEndpoint
 from .endpoints.organization_eventid import EventIdLookupEndpoint
@@ -278,12 +281,12 @@ from .endpoints.organization_member import (
     OrganizationMemberDetailsEndpoint,
     OrganizationMemberIndexEndpoint,
 )
+from .endpoints.organization_member.team_details import OrganizationMemberTeamDetailsEndpoint
 from .endpoints.organization_member_issues_assigned import OrganizationMemberIssuesAssignedEndpoint
 from .endpoints.organization_member_issues_bookmarked import (
     OrganizationMemberIssuesBookmarkedEndpoint,
 )
 from .endpoints.organization_member_issues_viewed import OrganizationMemberIssuesViewedEndpoint
-from .endpoints.organization_member_team_details import OrganizationMemberTeamDetailsEndpoint
 from .endpoints.organization_member_unreleased_commits import (
     OrganizationMemberUnreleasedCommitsEndpoint,
 )
@@ -347,6 +350,7 @@ from .endpoints.organization_user_issues_search import OrganizationUserIssuesSea
 from .endpoints.organization_user_reports import OrganizationUserReportsEndpoint
 from .endpoints.organization_user_teams import OrganizationUserTeamsEndpoint
 from .endpoints.organization_users import OrganizationUsersEndpoint
+from .endpoints.organization_vitals_overview import OrganizationVitalsOverviewEndpoint
 from .endpoints.project_agnostic_rule_conditions import ProjectAgnosticRuleConditionsEndpoint
 from .endpoints.project_app_store_connect_credentials import (
     AppStoreConnectAppsEndpoint,
@@ -360,6 +364,7 @@ from .endpoints.project_create_sample import ProjectCreateSampleEndpoint
 from .endpoints.project_create_sample_transaction import ProjectCreateSampleTransactionEndpoint
 from .endpoints.project_details import ProjectDetailsEndpoint
 from .endpoints.project_docs_platform import ProjectDocsPlatformEndpoint
+from .endpoints.project_dynamic_sampling import ProjectDynamicSamplingDistributionEndpoint
 from .endpoints.project_environment_details import ProjectEnvironmentDetailsEndpoint
 from .endpoints.project_environments import ProjectEnvironmentsEndpoint
 from .endpoints.project_event_details import EventJsonEndpoint, ProjectEventDetailsEndpoint
@@ -829,6 +834,8 @@ urlpatterns = [
             ]
         ),
     ),
+    # Organizations - region aware
+    url(r"", include("sentry.api.region_organization_urls")),
     # Organizations
     url(
         r"^organizations/",
@@ -1530,6 +1537,11 @@ urlpatterns = [
                     OrganizationTransactionAnomalyDetectionEndpoint.as_view(),
                     name="sentry-api-0-organization-transaction-anomaly-detection",
                 ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/dynamic-sampling/sdk-versions/$",
+                    OrganizationDynamicSamplingSDKVersionsEndpoint.as_view(),
+                    name="sentry-api-0-organization-dynamic-sampling-sdk-versions",
+                ),
                 # relay usage
                 url(
                     r"^(?P<organization_slug>[^\/]+)/relay_usage/$",
@@ -1629,6 +1641,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^/]+)/client-state/(?P<category>[^\/]+)/$",
                     ClientStateEndpoint.as_view(),
                     name="sentry-api-0-organization-client-state",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^/]+)/vitals-overview/$",
+                    OrganizationVitalsOverviewEndpoint.as_view(),
+                    name="sentry-api-0-organization-vitals-overview",
                 ),
             ]
         ),
@@ -2222,6 +2239,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/profiling/transactions/(?P<transaction_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
                     ProjectProfilingTransactionIDProfileIDEndpoint.as_view(),
                     name="sentry-api-0-project-profiling-transactions",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/dynamic-sampling/distribution/$",
+                    ProjectDynamicSamplingDistributionEndpoint.as_view(),
+                    name="sentry-api-0-project-dynamic-sampling-distribution",
                 ),
             ]
         ),

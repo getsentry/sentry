@@ -166,8 +166,21 @@ class AllTeamsRow extends Component<Props, State> {
     );
   };
 
+  getTeamRoleName = () => {
+    const {organization, team} = this.props;
+    if (!organization.features.includes('team-roles') || !team.teamRole) {
+      return null;
+    }
+
+    const {teamRoleList} = organization;
+    const roleName = teamRoleList.find(r => r.id === team.teamRole)?.name;
+
+    return roleName;
+  };
+
   render() {
     const {team, urlPrefix, openMembership} = this.props;
+
     const display = (
       <IdBadge
         team={team}
@@ -182,25 +195,28 @@ class AllTeamsRow extends Component<Props, State> {
 
     return (
       <TeamPanelItem>
-        <TeamNameWrapper>
+        <div>
           {canViewTeam ? (
-            <TeamLink to={`${urlPrefix}teams/${team.slug}/`}>{display}</TeamLink>
+            <TeamLink data-test-id="team-link" to={`${urlPrefix}teams/${team.slug}/`}>
+              {display}
+            </TeamLink>
           ) : (
             display
           )}
-        </TeamNameWrapper>
-        <Spacer>
+        </div>
+        <div>{this.getTeamRoleName()}</div>
+        <div>
           {this.state.loading ? (
-            <Button size="small" disabled>
+            <Button size="sm" disabled>
               ...
             </Button>
           ) : team.isMember ? (
-            <Button size="small" onClick={this.handleLeaveTeam}>
+            <Button size="sm" onClick={this.handleLeaveTeam}>
               {t('Leave Team')}
             </Button>
           ) : team.isPending ? (
             <Button
-              size="small"
+              size="sm"
               disabled
               title={t(
                 'Your request to join this team is being reviewed by organization owners'
@@ -209,15 +225,15 @@ class AllTeamsRow extends Component<Props, State> {
               {t('Request Pending')}
             </Button>
           ) : openMembership ? (
-            <Button size="small" onClick={this.handleJoinTeam}>
+            <Button size="sm" onClick={this.handleJoinTeam}>
               {t('Join Team')}
             </Button>
           ) : (
-            <Button size="small" onClick={this.handleRequestAccess}>
+            <Button size="sm" onClick={this.handleRequestAccess}>
               {t('Request Access')}
             </Button>
           )}
-        </Spacer>
+        </div>
       </TeamPanelItem>
     );
   }
@@ -239,14 +255,12 @@ export {AllTeamsRow};
 export default withApi(AllTeamsRow);
 
 const TeamPanelItem = styled(PanelItem)`
-  padding: 0;
+  display: grid;
+  grid-template-columns: minmax(150px, 4fr) minmax(90px, 1fr) min-content;
+  gap: ${space(2)};
   align-items: center;
-`;
 
-const Spacer = styled('div')`
-  padding: ${space(2)};
-`;
-
-const TeamNameWrapper = styled(Spacer)`
-  flex: 1;
+  > div:last-child {
+    margin-left: auto;
+  }
 `;

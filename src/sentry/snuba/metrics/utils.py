@@ -121,7 +121,7 @@ OPERATIONS_TO_ENTITY = {
     op: entity for entity, operations in AVAILABLE_OPERATIONS.items() for op in operations
 }
 
-# ToDo add guages/summaries
+# ToDo add gauges/summaries
 METRIC_TYPE_TO_ENTITY: Mapping[MetricType, EntityKey] = {
     "counter": EntityKey.MetricsCounters,
     "set": EntityKey.MetricsSets,
@@ -145,6 +145,7 @@ class MetricMeta(TypedDict):
     type: MetricType
     operations: Collection[MetricOperationType]
     unit: Optional[MetricUnit]
+    metric_id: Optional[int]
 
 
 class MetricMetaWithTagKeys(MetricMeta):

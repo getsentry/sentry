@@ -1,15 +1,24 @@
-import styled from '@emotion/styled';
-
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import ReplayTimeline from 'sentry/components/replays/breadcrumbs/replayTimeline';
 import ReplayView from 'sentry/components/replays/replayView';
-import space from 'sentry/styles/space';
 import useFullscreen from 'sentry/utils/replays/hooks/useFullscreen';
 import Breadcrumbs from 'sentry/views/replays/detail/breadcrumbs';
 import FocusArea from 'sentry/views/replays/detail/focusArea';
 import FocusTabs from 'sentry/views/replays/detail/focusTabs';
 
+import AsideTabsV2 from './asideTabs_v2';
 import Container from './container';
+import {
+  BreadcrumbSection,
+  ContentSection,
+  PageRow,
+  SIDEBAR_MIN_WIDTH,
+  SidebarSection,
+  TimelineSection,
+  TOPBAR_MIN_HEIGHT,
+  TopbarSection,
+  VideoSection,
+} from './pageSections';
 import ResizePanel from './resizePanel';
 
 type Layout =
@@ -38,10 +47,20 @@ type Layout =
    *│                    │
    *└────────────────────┘
    */
-  | 'topbar';
-
-const SIDEBAR_MIN_WIDTH = 325;
-const TOPBAR_MIN_HEIGHT = 325;
+  | 'topbar'
+  /**
+   * ### Sidebar Left
+   * ┌───────────────────┐
+   * │ Timeline          │
+   * ├────────┬──────────┤
+   * │ Video  > Details  │
+   * │        >          │
+   * │^^^^^^^ >          |
+   * │ Crumbs >          │
+   * │        >          │
+   * └────────┴──────────┘
+   */
+  | 'sidebar_left';
 
 type Props = {
   layout?: Layout;
@@ -99,10 +118,25 @@ function ReplayLayout({
           {content}
           <ResizePanel direction="w" minWidth={SIDEBAR_MIN_WIDTH}>
             <SidebarSection>
-              {video ? <ResizePanel direction="s">{video}</ResizePanel> : null}
-              {crumbs}
+              <AsideTabsV2 showCrumbs={showCrumbs} showVideo={showVideo} />
             </SidebarSection>
           </ResizePanel>
+        </PageRow>
+      </Container>
+    );
+  }
+
+  if (layout === 'sidebar_left') {
+    return (
+      <Container>
+        {timeline}
+        <PageRow>
+          <ResizePanel direction="e" minWidth={SIDEBAR_MIN_WIDTH}>
+            <SidebarSection>
+              <AsideTabsV2 showCrumbs={showCrumbs} showVideo={showVideo} />
+            </SidebarSection>
+          </ResizePanel>
+          {content}
         </PageRow>
       </Container>
     );
@@ -126,48 +160,5 @@ function ReplayLayout({
     </Container>
   );
 }
-
-const PageColumn = styled('section')`
-  display: flex;
-  flex-grow: 1;
-  flex-wrap: nowrap;
-  flex-direction: column;
-`;
-
-const PageRow = styled(PageColumn)`
-  flex-direction: row;
-`;
-
-const TimelineSection = styled(PageColumn)`
-  flex-grow: 0;
-`;
-
-const ContentSection = styled(PageColumn)`
-  flex-grow: 3; /* Higher growth than SidebarSection or TopVideoSection */
-
-  height: 100%;
-  min-height: 300px;
-  width: 100%;
-`;
-
-const VideoSection = styled(PageColumn)`
-  flex-grow: 2;
-`;
-
-const BreadcrumbSection = styled(PageColumn)``;
-
-const SidebarSection = styled(PageColumn)`
-  min-width: ${SIDEBAR_MIN_WIDTH}px;
-`;
-
-const TopbarSection = styled(PageRow)`
-  height: ${TOPBAR_MIN_HEIGHT}px;
-  min-height: ${TOPBAR_MIN_HEIGHT}px;
-
-  ${BreadcrumbSection} {
-    max-width: ${SIDEBAR_MIN_WIDTH}px;
-    margin-left: ${space(2)};
-  }
-`;
 
 export default ReplayLayout;
