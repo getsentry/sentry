@@ -78,7 +78,8 @@ def allow_cors_options(func):
         response["Access-Control-Allow-Methods"] = allow
         response["Access-Control-Allow-Headers"] = (
             "X-Sentry-Auth, X-Requested-With, Origin, Accept, "
-            "Content-Type, Authentication, Authorization, Content-Encoding"
+            "Content-Type, Authentication, Authorization, Content-Encoding, "
+            "sentry-trace, baggage"
         )
         response["Access-Control-Expose-Headers"] = "X-Sentry-Error, Retry-After"
 
