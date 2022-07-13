@@ -783,6 +783,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         # Currently UI sends top level condition op as always 'and' so asserting this here to
         # guarantee that it will always have an `inner` key
         assert rule["condition"]["op"] == "and"
+        # Matching the uniform sampling rule check on UI
         return len(rule["condition"]["inner"]) == 0 and rule["type"] == "trace"
 
     def validate_uniform_sampling_rule(self, rules):
