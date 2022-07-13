@@ -298,7 +298,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
     widgets = DashboardWidgetSerializer(many=True, required=False)
     projects = ListField(child=serializers.IntegerField(), required=False, default=[])
     environment = ListField(child=serializers.CharField(), required=False, allow_null=True)
-    range = serializers.CharField(required=False, allow_null=True)
+    period = serializers.CharField(required=False, allow_null=True)
     start = serializers.DateTimeField(required=False, allow_null=True)
     end = serializers.DateTimeField(required=False, allow_null=True)
     filters = serializers.DictField(required=False)
@@ -320,7 +320,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
         return data
 
     def update_dashboard_filters(self, instance, validated_data):
-        page_filter_keys = ["environment", "range", "start", "end"]
+        page_filter_keys = ["environment", "period", "start", "end"]
         dashboard_filter_keys = ["releases"]
 
         if "projects" in validated_data:

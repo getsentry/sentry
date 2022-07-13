@@ -150,10 +150,10 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
         assert response.data["projects"] == []
         assert response.data["environment"] == filters["environment"]
         assert response.data["filters"] == {}
-        assert "range" not in response.data
+        assert "period" not in response.data
 
     def test_dashboard_filters_are_returned_in_response(self):
-        filters = {"environment": ["alpha"], "range": "24hr", "releases": ["test-release"]}
+        filters = {"environment": ["alpha"], "period": "24hr", "releases": ["test-release"]}
         dashboard = Dashboard.objects.create(
             title="Dashboard With Filters",
             created_by=self.user,
@@ -165,7 +165,7 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
         response = self.do_request("get", self.url(dashboard.id))
         assert response.data["projects"] == list(dashboard.projects.values_list("id", flat=True))
         assert response.data["environment"] == filters["environment"]
-        assert response.data["range"] == filters["range"]
+        assert response.data["period"] == filters["period"]
         assert response.data["filters"]["releases"] == filters["releases"]
 
     def test_start_and_end_filters_are_returned_in_response(self):
@@ -1357,7 +1357,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             "title": "First dashboard",
             "projects": [project1.id, project2.id],
             "environment": ["alpha"],
-            "range": "7d",
+            "period": "7d",
             "filters": {"releases": ["v1"]},
         }
 
@@ -1365,7 +1365,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert response.status_code == 200, response.data
         assert response.data["projects"] == [project1.id, project2.id]
         assert response.data["environment"] == ["alpha"]
-        assert response.data["range"] == "7d"
+        assert response.data["period"] == "7d"
         assert response.data["filters"]["releases"] == ["v1"]
 
     def test_update_dashboard_with_invalid_project_filter(self):

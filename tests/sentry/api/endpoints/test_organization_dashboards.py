@@ -488,14 +488,14 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
                 "title": "Dashboard from Post",
                 "projects": [project1.id, project2.id],
                 "environment": ["alpha"],
-                "range": "7d",
+                "period": "7d",
                 "filters": {"releases": ["v1"]},
             },
         )
         assert response.status_code == 201
         assert response.data["projects"] == [project1.id, project2.id]
         assert response.data["environment"] == ["alpha"]
-        assert response.data["range"] == "7d"
+        assert response.data["period"] == "7d"
         assert response.data["filters"]["releases"] == ["v1"]
 
     def test_post_with_start_and_end_filter(self):
