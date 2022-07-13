@@ -155,7 +155,7 @@ const PanelBody = styled(BasePanelBody)`
 const PlaceholderMargin = styled(Placeholder)`
   margin: ${space(1)} 0;
   width: auto;
-  border-radius: 4px;
+  border-radius: ${p => p.theme.borderRadius};
 `;
 
 export default Breadcrumbs;

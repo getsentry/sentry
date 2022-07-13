@@ -118,7 +118,7 @@ const CrumbItem = styled(PanelItem)<CrumbItemProps>`
   position: relative;
   ${p => p.isSelected && `background-color: ${p.theme.purple100};`}
   ${p => p.isHovered && `background-color: ${p.theme.surface100};`}
-  border-radius: 4px;
+  border-radius: ${p => p.theme.borderRadius};
 
   /* Draw a vertical line behind the breadcrumb icon. The line connects each row together, but is truncated for the first and last items */
   &::after {
@@ -131,13 +131,13 @@ const CrumbItem = styled(PanelItem)<CrumbItemProps>`
   }
 
   &:first-of-type::after {
-    top: 8px;
+    top: ${space(1)};
     bottom: 0;
   }
 
   &:last-of-type::after {
     top: 0;
-    height: 8px;
+    height: ${space(1)};
   }
 `;
 
