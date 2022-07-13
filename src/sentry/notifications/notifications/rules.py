@@ -174,9 +174,7 @@ class AlertRuleNotification(ProjectNotification):
                         type=ReleaseActivity.Type.issue,
                         data={
                             "provider": EXTERNAL_PROVIDERS[provider],
-                            "issue_id": self.group.id,
-                            "issue_error_count": self.group.times_seen,
-                            "issue_affected_users": self.group.count_users_seen(),
+                            "group_id": self.group.id,
                         },
                         release=last_release,
                     )

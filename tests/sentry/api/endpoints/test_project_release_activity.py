@@ -2,6 +2,7 @@ from datetime import timedelta
 
 from django.utils import timezone
 
+from sentry.api.serializers import serialize
 from sentry.models import Release, ReleaseActivity
 from sentry.testutils import APITestCase
 
@@ -38,7 +39,7 @@ class ReleaseActivityTest(APITestCase):
 
             ReleaseActivity.objects.create(
                 type=ReleaseActivity.Type.issue,
-                data={"issue_id": self.group.id},
+                data={"group_id": self.group.id},
                 release=release,
                 date_added=now - timedelta(minutes=33),
             )
@@ -55,6 +56,7 @@ class ReleaseActivityTest(APITestCase):
             assert len(response.data) == 4
             assert response.data[0]["type"] == ReleaseActivity.Type.finished
             assert response.data[1]["type"] == ReleaseActivity.Type.issue
-            assert response.data[1]["data"]["issue_id"] == self.group.id
+            assert not response.data[1]["data"].get("group_id")
+            assert response.data[1]["data"]["group"] == serialize(self.group)
             assert response.data[2]["type"] == ReleaseActivity.Type.deployed
             assert response.data[3]["type"] == ReleaseActivity.Type.created
