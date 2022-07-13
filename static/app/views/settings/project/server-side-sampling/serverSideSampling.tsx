@@ -28,7 +28,9 @@ import {
   SamplingRule,
   SamplingRuleOperator,
   SamplingRuleType,
+  UniformModalsSubmit,
 } from 'sentry/types/sampling';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -71,6 +73,13 @@ export function ServerSideSampling({project}: Props) {
   const [rules, setRules] = useState<SamplingRule[]>(currentRules ?? []);
 
   useEffect(() => {
+    trackAdvancedAnalyticsEvent('sampling.settings.view', {
+      organization: organization.slug,
+      project_id: project.id,
+    });
+  }, [project.id, organization.slug]);
+
+  useEffect(() => {
     if (!isEqual(previousRules, currentRules)) {
       setRules(currentRules ?? []);
     }
@@ -108,16 +117,16 @@ export function ServerSideSampling({project}: Props) {
     orgSlug: organization.slug,
   });
 
-  async function handleActivateToggle(ruleId: SamplingRule['id']) {
-    const newRules = rules.map(rule => {
-      if (rule.id === ruleId) {
+  async function handleActivateToggle(rule: SamplingRule) {
+    const newRules = rules.map(r => {
+      if (r.id === rule.id) {
         return {
-          ...rule,
+          ...r,
           id: 0,
-          active: !rule.active,
+          active: !r.active,
         };
       }
-      return rule;
+      return r;
     });
 
     addLoadingMessage();
@@ -136,9 +145,43 @@ export function ServerSideSampling({project}: Props) {
       handleXhrErrorResponse(message)(error);
       addErrorMessage(message);
     }
+
+    if (isUniformRule(rule)) {
+      trackAdvancedAnalyticsEvent(
+        rule.active
+          ? 'sampling.settings.rule.uniform_deactivate'
+          : 'sampling.settings.rule.uniform_activate',
+        {
+          organization: organization.slug,
+          project_id: project.id,
+          sampling_rate: rule.sampleRate,
+        }
+      );
+    } else {
+      const analyticsConditions = rule.condition.inner.map(condition => condition.name);
+      const analyticsConditionsStringified = analyticsConditions.sort().join(', ');
+
+      trackAdvancedAnalyticsEvent(
+        rule.active
+          ? 'sampling.settings.rule.specific_deactivate'
+          : 'sampling.settings.rule.specific_activate',
+        {
+          organization: organization.slug,
+          project_id: project.id,
+          sampling_rate: rule.sampleRate,
+          conditions: analyticsConditions,
+          conditions_stringified: analyticsConditionsStringified,
+        }
+      );
+    }
   }
 
   function handleGetStarted() {
+    trackAdvancedAnalyticsEvent('sampling.settings.view_get_started', {
+      organization: organization.slug,
+      project_id: project.id,
+    });
+
     openModal(
       modalProps => (
         <UniformRateModal
@@ -148,6 +191,7 @@ export function ServerSideSampling({project}: Props) {
           projectStats={projectStats}
           rules={rules}
           onSubmit={saveUniformRule}
+          onReadDocs={handleReadDocs}
         />
       ),
       {
@@ -212,6 +256,7 @@ export function ServerSideSampling({project}: Props) {
             uniformRule={rule}
             rules={rules}
             onSubmit={saveUniformRule}
+            onReadDocs={handleReadDocs}
           />
         ),
         {
@@ -233,6 +278,16 @@ export function ServerSideSampling({project}: Props) {
   }
 
   async function handleDeleteRule(rule: SamplingRule) {
+    const conditions = rule.condition.inner.map(({name}) => name);
+
+    trackAdvancedAnalyticsEvent('sampling.settings.rule.specific_delete', {
+      organization,
+      project_id: project.id,
+      sampling_rate: rule.sampleRate * 100,
+      conditions,
+      conditions_stringified: conditions.sort().join(', '),
+    });
+
     try {
       const result = await api.requestPromise(
         `/projects/${organization.slug}/${project.slug}/`,
@@ -250,12 +305,20 @@ export function ServerSideSampling({project}: Props) {
     }
   }
 
-  async function saveUniformRule(
-    sampleRate: number,
-    rule?: SamplingRule,
-    onSuccess?: () => void,
-    onError?: () => void
-  ) {
+  function handleReadDocs() {
+    trackAdvancedAnalyticsEvent('sampling.settings.view_read_docs', {
+      organization: organization.slug,
+      project_id: project.id,
+    });
+  }
+
+  async function saveUniformRule({
+    sampleRate,
+    uniformRateModalOrigin,
+    onError,
+    onSuccess,
+    rule,
+  }: Parameters<UniformModalsSubmit>[0]) {
     const newRule: SamplingRule = {
       // All new/updated rules must have id equal to 0
       id: 0,
@@ -267,6 +330,28 @@ export function ServerSideSampling({project}: Props) {
       },
       sampleRate: sampleRate / 100,
     };
+
+    trackAdvancedAnalyticsEvent(
+      uniformRateModalOrigin
+        ? 'sampling.settings.modal.uniform.rate_done'
+        : 'sampling.settings.modal.recommended.next.steps_done',
+      {
+        organization: organization.slug,
+        project_id: project.id,
+      }
+    );
+
+    trackAdvancedAnalyticsEvent(
+      rule
+        ? 'sampling.settings.rule.uniform_update'
+        : 'sampling.settings.rule.uniform_create',
+      {
+        organization: organization.slug,
+        project_id: project.id,
+        sampling_rate: newRule.sampleRate * 100,
+        old_sampling_rate: rule ? rule.sampleRate * 100 : null,
+      }
+    );
 
     const newRules = rule
       ? rules.map(existingRule => (existingRule.id === rule.id ? newRule : existingRule))
@@ -321,9 +406,10 @@ export function ServerSideSampling({project}: Props) {
         {!!rules.length && (
           <SamplingSDKAlert
             organization={organization}
-            project={project}
+            projectId={project.id}
             rules={rules}
             recommendedSdkUpgrades={recommendedSdkUpgrades}
+            onReadDocs={handleReadDocs}
           />
         )}
         <RulesPanel>
@@ -338,7 +424,11 @@ export function ServerSideSampling({project}: Props) {
             </RulesPanelLayout>
           </RulesPanelHeader>
           {!rules.length && (
-            <Promo onGetStarted={handleGetStarted} hasAccess={hasAccess} />
+            <Promo
+              onGetStarted={handleGetStarted}
+              onReadDocs={handleReadDocs}
+              hasAccess={hasAccess}
+            />
           )}
           {!!rules.length && (
             <Fragment>
@@ -397,7 +487,7 @@ export function ServerSideSampling({project}: Props) {
                         rule={currentRule}
                         onEditRule={() => handleEditRule(currentRule)}
                         onDeleteRule={() => handleDeleteRule(currentRule)}
-                        onActivate={() => handleActivateToggle(currentRule.id)}
+                        onActivate={() => handleActivateToggle(currentRule)}
                         noPermission={!hasAccess}
                         upgradeSdkForProjects={recommendedSdkUpgrades.map(
                           recommendedSdkUpgrade => recommendedSdkUpgrade.project.slug
@@ -413,7 +503,11 @@ export function ServerSideSampling({project}: Props) {
               />
               <RulesPanelFooter>
                 <ButtonBar gap={1}>
-                  <Button href={SERVER_SIDE_SAMPLING_DOC_LINK} external>
+                  <Button
+                    href={SERVER_SIDE_SAMPLING_DOC_LINK}
+                    onClick={handleReadDocs}
+                    external
+                  >
                     {t('Read Docs')}
                   </Button>
                   <GuideAnchor

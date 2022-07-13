@@ -13,6 +13,7 @@ type ModalStoreState = {
 interface ModalStoreDefinition extends StoreDefinition {
   closeModal(): void;
   get(): ModalStoreState;
+  getState(): ModalStoreState;
   init(): void;
   openModal(renderer: Renderer, options: ModalOptions): void;
   reset(): void;
@@ -26,6 +27,10 @@ const storeConfig: ModalStoreDefinition = {
   },
 
   get() {
+    return this.state;
+  },
+
+  getState() {
     return this.state;
   },
 
