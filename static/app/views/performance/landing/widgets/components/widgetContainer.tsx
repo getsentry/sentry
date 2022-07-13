@@ -2,7 +2,7 @@ import {useEffect, useState} from 'react';
 import pick from 'lodash/pick';
 
 import DropdownButtonV2 from 'sentry/components/dropdownButtonV2';
-import CompactSelect from 'sentry/components/forms/compactSelect';
+import CompositeSelect from 'sentry/components/forms/compositeSelect';
 import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
@@ -148,7 +148,9 @@ export const WidgetContainerActions = ({
   setChartSetting: (setting: PerformanceWidgetSetting) => void;
 }) => {
   const organization = useOrganization();
-  const menuOptions: React.ComponentProps<typeof CompactSelect>['options'] = [];
+  const menuOptions: React.ComponentProps<
+    typeof CompositeSelect
+  >['sections'][number]['options'] = [];
 
   const settingsMap = WIDGET_DEFINITIONS({organization});
   for (const setting of allowedCharts) {
@@ -174,11 +176,18 @@ export const WidgetContainerActions = ({
   }
 
   return (
-    <CompactSelect
-      onChange={opt => setChartSetting(opt.value)}
-      options={menuOptions}
+    <CompositeSelect
+      sections={[
+        {
+          label: t('Display'),
+          options: menuOptions,
+          value: chartSetting,
+          onChange: opt => {
+            setChartSetting(opt);
+          },
+        },
+      ]}
       isOptionDisabled={opt => opt.disabled}
-      value={chartSetting}
       trigger={trigger}
       placement="bottom right"
     />
