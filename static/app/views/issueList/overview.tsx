@@ -151,6 +151,7 @@ type StatEndpointParams = Omit<EndpointParams, 'cursor' | 'page'> & {
 class IssueListOverview extends Component<Props, State> {
   state: State = this.getInitialState();
 
+  // change to frontend
   getInitialState() {
     const realtimeActiveCookie = Cookies.get('realtimeActive');
     const realtimeActive =
