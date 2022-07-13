@@ -11,6 +11,13 @@ from sentry.snuba.tasks import (
 
 logger = logging.getLogger(__name__)
 
+query_datasets_to_type = {
+    QueryDatasets.EVENTS: SnubaQuery.Type.ERROR,
+    QueryDatasets.TRANSACTIONS: SnubaQuery.Type.PERFORMANCE,
+    QueryDatasets.SESSIONS: SnubaQuery.Type.CRASH_RATE,
+    QueryDatasets.METRICS: SnubaQuery.Type.CRASH_RATE,
+}
+
 
 def create_snuba_query(
     dataset, query, aggregate, time_window, resolution, environment, event_types=None
@@ -30,6 +37,7 @@ def create_snuba_query(
     :return: A list of QuerySubscriptions
     """
     snuba_query = SnubaQuery.objects.create(
+        type=query_datasets_to_type[dataset].value,
         dataset=dataset.value,
         query=query,
         aggregate=aggregate,
@@ -81,6 +89,7 @@ def update_snuba_query(
         query_subscriptions = list(snuba_query.subscriptions.all())
         snuba_query.update(
             dataset=dataset.value,
+            type=query_datasets_to_type[dataset].value,
             query=query,
             aggregate=aggregate,
             time_window=int(time_window.total_seconds()),
