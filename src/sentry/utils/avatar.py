@@ -71,7 +71,7 @@ def get_letter_avatar(
     size: Optional[int] = None,
     use_svg: Optional[bool] = True,
     initials: Optional[str] = None,
-    rounded: Optional[str] = False,
+    rounded: Optional[bool] = False,
 ) -> str:
     display_name = (display_name or "").strip() or "?"
     names = display_name.split(" ")
