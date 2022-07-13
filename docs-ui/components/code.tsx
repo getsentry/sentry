@@ -1,7 +1,7 @@
 // eslint-disable-next-line simple-import-sort/imports
 import 'prismjs/themes/prism.css';
 
-import {createRef, RefObject, useEffect, useRef, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import copy from 'copy-text-to-clipboard';
@@ -42,7 +42,7 @@ type Props = {
 
 const Code = ({children, className, label}: Props) => {
   const theme = useTheme();
-  const codeRef: RefObject<HTMLElement> = createRef();
+  const codeRef = useRef<HTMLElement | null>(null);
   const copyTimeoutRef = useRef<number | undefined>(undefined);
 
   const [copied, setCopied] = useState(false);
