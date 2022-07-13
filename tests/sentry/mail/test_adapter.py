@@ -28,6 +28,7 @@ from sentry.models import (
     ProjectOption,
     ProjectOwnership,
     Release,
+    ReleaseActivity,
     Repository,
     Rule,
     User,
@@ -48,7 +49,7 @@ from sentry.plugins.base import Notification
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.types.activity import ActivityType
-from sentry.types.integrations import ExternalProviders
+from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.types.rules import RuleFuture
 from sentry.utils.email import MessageBuilder, get_email_addresses
 from sentry_plugins.opsgenie.plugin import OpsGeniePlugin
@@ -104,7 +105,9 @@ class MailAdapterActiveReleaseTest(BaseMailAdapterTest):
         event.data["tags"] = (("sentry:release", newRelease.version),)
 
         mail.outbox = []
-        with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
+        with self.options({"system.url-prefix": "http://example.com"}), self.tasks(), self.feature(
+            "organizations:active-release-monitor-alpha"
+        ):
             self.adapter.notify(Notification(event=event), ActionTargetType.RELEASE_MEMBERS, None)
 
         assert len(mail.outbox) == 1
@@ -128,6 +131,14 @@ class MailAdapterActiveReleaseTest(BaseMailAdapterTest):
                 recipient_username="foo",
             )
         ]
+
+        activity = list(ReleaseActivity.objects.filter(release_id=newRelease.id))
+        assert len(activity) == 1
+        assert activity[0].type == ReleaseActivity.Type.issue
+        assert activity[0].data["provider"] == EXTERNAL_PROVIDERS[ExternalProviders.EMAIL]
+        assert activity[0].data["issue_id"] == 1
+        assert activity[0].data["issue_error_count"] == 1
+        assert activity[0].data["issue_affected_users"] == 0
 
 
 class MailAdapterGetSendableUsersTest(BaseMailAdapterTest):

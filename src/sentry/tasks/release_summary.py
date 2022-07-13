@@ -2,7 +2,8 @@ from datetime import timedelta
 
 from django.utils import timezone
 
-from sentry.models import Activity, Release, ReleaseCommit
+from sentry import features
+from sentry.models import Activity, Release, ReleaseActivity, ReleaseCommit
 from sentry.notifications.notifications.activity.release_summary import (
     ReleaseSummaryActivityNotification,
 )
@@ -55,3 +56,9 @@ def prepare_release_summary():
 
         release_summary = ReleaseSummaryActivityNotification(activity)
         release_summary.send()
+        if features.has("organizations:active-release-monitor-alpha", release.organization):
+            ReleaseActivity.objects.create(
+                type=ReleaseActivity.Type.finished,
+                release=release,
+                date_added=now,
+            )

@@ -6,9 +6,9 @@ from urllib.parse import quote
 
 import pytz
 
-from sentry import analytics
+from sentry import analytics, features
 from sentry.db.models import Model
-from sentry.models import Release, ReleaseCommit, Team, User, UserOption
+from sentry.models import Release, ReleaseActivity, ReleaseCommit, Team, User, UserOption
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.types import ActionTargetType, NotificationSettingTypes
 from sentry.notifications.utils import (
@@ -165,6 +165,20 @@ class AlertRuleNotification(ProjectNotification):
                         release_version=release_version,
                         recipient_email=participant.email,
                         recipient_username=participant.username,
+                    )
+                if (
+                    features.has("organizations:active-release-monitor-alpha", self.organization)
+                    and last_release
+                ):
+                    ReleaseActivity.objects.create(
+                        type=ReleaseActivity.Type.issue,
+                        data={
+                            "provider": EXTERNAL_PROVIDERS[provider],
+                            "issue_id": self.group.id,
+                            "issue_error_count": self.group.times_seen,
+                            "issue_affected_users": self.group.count_users_seen(),
+                        },
+                        release=last_release,
                     )
             notify(provider, self, participants, shared_context)
 

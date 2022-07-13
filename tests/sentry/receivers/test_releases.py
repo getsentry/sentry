@@ -18,6 +18,7 @@ from sentry.models import (
     GroupSubscription,
     OrganizationMember,
     Release,
+    ReleaseActivity,
     ReleaseProject,
     Repository,
     UserEmail,
@@ -239,3 +240,40 @@ class ProjectHasReleasesReceiverTest(TestCase):
             filters={"release_id": -1, "project_id": -2},
             sender=ReleaseProject,
         )
+
+
+class SaveReleaseActivityReceiverTest(TestCase):
+    def test_simple(self):
+        with self.feature("organizations:active-release-monitor-alpha"):
+            release = self.create_release(self.project, self.user)
+
+            activity = list(ReleaseActivity.objects.filter(release_id=release.id))
+
+            assert len(activity) == 1
+            assert activity[0].date_added == release.date_added
+            assert activity[0].type == ReleaseActivity.Type.created
+            assert activity[0].release_id == release.id
+
+    def test_update_release_should_not_create_activity(self):
+        with self.feature("organizations:active-release-monitor-alpha"):
+            assert ReleaseActivity.objects.all().count() == 0
+
+            release = self.create_release(self.project, self.user)
+            assert ReleaseActivity.objects.all().count() == 1
+
+            release.update(version="1")
+            assert Release.objects.get(id=release.id).version == "1"
+
+            release.version = "2"
+            release.save()
+            assert Release.objects.get(id=release.id).version == "2"
+
+            release.version = "3"
+            release.save()
+            assert Release.objects.get(id=release.id).version == "3"
+
+            assert ReleaseActivity.objects.all().count() == 1
+
+    def test_flag_off(self):
+        self.create_release(self.project, self.user)
+        assert ReleaseActivity.objects.all().count() == 0

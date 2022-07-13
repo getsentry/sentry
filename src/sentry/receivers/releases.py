@@ -3,7 +3,7 @@ from django.db.models import F
 from django.db.models.signals import post_save
 from django.utils import timezone
 
-from sentry import analytics
+from sentry import analytics, features
 from sentry.models import (
     Activity,
     Commit,
@@ -13,9 +13,11 @@ from sentry.models import (
     GroupLink,
     GroupStatus,
     GroupSubscription,
+    Organization,
     Project,
     PullRequest,
     Release,
+    ReleaseActivity,
     ReleaseProject,
     Repository,
     UserOption,
@@ -223,8 +225,21 @@ def resolved_in_pull_request(instance, created, **kwargs):
                 )
 
 
+def save_release_activity(instance: Release, created: bool, **kwargs):
+    if created:
+        org = Organization.objects.filter(id=instance.organization.id).first()
+        if org and features.has("organizations:active-release-monitor-alpha", org):
+            ReleaseActivity.objects.create(
+                type=ReleaseActivity.Type.created, release=instance, date_added=instance.date_added
+            )
+
+
 post_save.connect(
     resolve_group_resolutions, sender=Release, dispatch_uid="resolve_group_resolutions", weak=False
+)
+
+post_save.connect(
+    save_release_activity, sender=Release, dispatch_uid="save_release_activity", weak=False
 )
 
 post_save.connect(resolved_in_commit, sender=Commit, dispatch_uid="resolved_in_commit", weak=False)
