@@ -625,6 +625,11 @@ export const icons: IconData[] = [
     keywords: ['open'],
   },
   {
+    id: 'contract',
+    groups: ['action'],
+    keywords: ['close'],
+  },
+  {
     id: 'asana',
     groups: ['logo'],
     keywords: [''],
@@ -662,7 +667,12 @@ export const icons: IconData[] = [
   {
     id: 'panel',
     groups: ['navigation'],
-    keywords: ['sidebar', 'footer'],
+    keywords: ['sidebar', 'footer', 'header'],
     additionalProps: ['direction'],
+  },
+  {
+    id: 'rewind10',
+    groups: ['action'],
+    keywords: ['rewind'],
   },
 ];
