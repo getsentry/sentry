@@ -1,5 +1,3 @@
-import type {RouteComponentProps} from 'react-router';
-
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import {PanelAlert} from 'sentry/components/panels';
@@ -8,10 +6,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 import {ReleaseActivityList} from './releaseActivity';
 
-interface ReleaseDetailsActivityProps
-  extends RouteComponentProps<{orgId: string; release: string}, {}> {}
-
-function ReleaseDetailsActivity(props: ReleaseDetailsActivityProps) {
+function ReleaseDetailsActivity() {
   const organization = useOrganization();
 
   return (
@@ -22,11 +17,11 @@ function ReleaseDetailsActivity(props: ReleaseDetailsActivityProps) {
         <FeatureDisabled
           alert={PanelAlert}
           features={['organizations:active-release-monitor-alpha']}
-          featureName={t('Release Details Activity')}
+          featureName={t('Active Release Details')}
         />
       )}
     >
-      <ReleaseActivityList {...props} />
+      <ReleaseActivityList />
     </Feature>
   );
 }

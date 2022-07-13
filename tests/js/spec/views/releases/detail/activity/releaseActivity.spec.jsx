@@ -1,46 +1,42 @@
-import {createMemoryHistory} from 'react-router';
-
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import GroupStore from 'sentry/stores/groupStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {ReleaseContext} from 'sentry/views/releases/detail';
-import {ReleaseActivityList} from 'sentry/views/releases/detail/activity/releaseActivity';
+import ReleaseDetailsActivity from 'sentry/views/releases/detail/activity';
 import {ReleaseActivityType} from 'sentry/views/releases/detail/activity/types';
 import {RouteContext} from 'sentry/views/routeContext';
 
-const activities = [
-  {
-    type: ReleaseActivityType.CREATED,
-    dateAdded: new Date().toISOString(),
-    data: {},
-  },
-  {
-    type: ReleaseActivityType.DEPLOYED,
-    dateAdded: new Date().toISOString(),
-    data: {environment: 'production'},
-  },
-  {
-    type: ReleaseActivityType.ISSUE,
-    dateAdded: new Date().toISOString(),
-    data: {group: TestStubs.Group()},
-  },
-];
-
 describe('ReleaseActivity', () => {
-  const {organization, project, router} = initializeOrg({
+  const {organization, project, router, routerContext} = initializeOrg({
     organization: {
       features: ['active-release-monitor-alpha'],
     },
   });
   const release = TestStubs.Release({version: '1.0.0'});
+  const group = TestStubs.Group();
+  const activities = [
+    {
+      type: ReleaseActivityType.CREATED,
+      dateAdded: new Date().toISOString(),
+      data: {},
+    },
+    {
+      type: ReleaseActivityType.DEPLOYED,
+      dateAdded: new Date().toISOString(),
+      data: {environment: 'production'},
+    },
+    {
+      type: ReleaseActivityType.ISSUE,
+      dateAdded: new Date().toISOString(),
+      data: {group},
+    },
+  ];
 
   beforeEach(() => {
     GroupStore.init();
     act(() => ProjectsStore.loadInitialData(organization.projects));
-    const memoryHistory = createMemoryHistory();
-    memoryHistory.push('/');
   });
 
   afterEach(() => {
@@ -65,16 +61,15 @@ describe('ReleaseActivity', () => {
             routes: [],
           }}
         >
-          <ReleaseActivityList />
+          <ReleaseDetailsActivity />
         </RouteContext.Provider>
       </ReleaseContext.Provider>,
-      {organization}
+      {organization, context: routerContext}
     );
 
-    // await tick();
-    expect(
-      await screen.findByText('Deployed to production', undefined, {timeout: 3000})
-    ).toBeInTheDocument();
-    screen.debug();
+    expect(await screen.findByText('Release Created')).toBeInTheDocument();
+    expect(screen.getByText('Deployed to production')).toBeInTheDocument();
+    expect(screen.getByText(group.culprit)).toBeInTheDocument();
+    expect(screen.getByText('Waiting for issues in this release...')).toBeInTheDocument();
   });
 });
