@@ -109,7 +109,7 @@ class DynamicSamplingSerializer(serializers.Serializer):
     def validate_uniform_sampling_rule(self, rules):
         # Guards against deletion of uniform sampling rule i.e. sending a payload with no rules
         if len(rules) == 0:
-            raise UniformDynamicSamplingRuleException(
+            raise serializers.ValidationError(
                 "Payload must contain a uniform dynamic sampling rule"
             )
 
@@ -118,13 +118,11 @@ class DynamicSamplingSerializer(serializers.Serializer):
         # uniform sampling rules
         for rule in rules[:-1]:
             if self._is_uniform_sampling_rule(rule):
-                raise UniformDynamicSamplingRuleException(
-                    "Uniform rule must be in the last position only"
-                )
+                raise serializers.ValidationError("Uniform rule must be in the last position only")
 
         # Ensures last rule in rules is always a uniform sampling rule
         if not self._is_uniform_sampling_rule(uniform_rule):
-            raise UniformDynamicSamplingRuleException(
+            raise serializers.ValidationError(
                 "Last rule is reserved for uniform rule which must have no conditions"
             )
 
@@ -142,8 +140,6 @@ class DynamicSamplingSerializer(serializers.Serializer):
         except ValueError as err:
             reason = err.args[0] if len(err.args) > 0 else "invalid configuration"
             raise serializers.ValidationError(reason)
-        except UniformDynamicSamplingRuleException as e:
-            raise serializers.ValidationError(str(e))
 
         return data
 
@@ -381,10 +377,6 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
         if Project.is_valid_platform(value):
             return value
         raise serializers.ValidationError("Invalid platform")
-
-
-class UniformDynamicSamplingRuleException(Exception):
-    ...
 
 
 class RelaxedProjectPermission(ProjectPermission):
@@ -651,10 +643,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         if "dynamicSampling" in result:
             raw_dynamic_sampling = result["dynamicSampling"]
-            try:
-                fixed_rules = self._fix_rule_ids(project, raw_dynamic_sampling)
-            except UniformDynamicSamplingRuleException as e:
-                return Response({"detail": str(e)}, status=400)
+            fixed_rules = self._fix_rule_ids(project, raw_dynamic_sampling)
             project.update_option("sentry:dynamic_sampling", fixed_rules)
 
         # TODO(dcramer): rewrite options to use standard API config
