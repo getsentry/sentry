@@ -2,7 +2,6 @@ import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react
 import styled from '@emotion/styled';
 import {mat3, vec2} from 'gl-matrix';
 
-import {FrameStack} from 'sentry/components/profiling/FrameStack/frameStack';
 import space from 'sentry/styles/space';
 import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
 import {CanvasPoolManager, CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
@@ -42,6 +41,7 @@ interface FlamegraphZoomViewProps {
   flamegraphCanvas: FlamegraphCanvas | null;
   flamegraphCanvasRef: HTMLCanvasElement | null;
   flamegraphOverlayCanvasRef: HTMLCanvasElement | null;
+  flamegraphRenderer: FlamegraphRenderer | null;
   flamegraphView: FlamegraphView | null;
   setFlamegraphCanvasRef: React.Dispatch<React.SetStateAction<HTMLCanvasElement | null>>;
   setFlamegraphOverlayCanvasRef: React.Dispatch<
@@ -52,6 +52,7 @@ interface FlamegraphZoomViewProps {
 function FlamegraphZoomView({
   canvasPoolManager,
   canvasBounds,
+  flamegraphRenderer,
   flamegraph,
   flamegraphCanvas,
   flamegraphCanvasRef,
@@ -75,16 +76,6 @@ function FlamegraphZoomView({
   const [flamegraphState, dispatchFlamegraphState] = useFlamegraphState();
   const [startPanVector, setStartPanVector] = useState<vec2 | null>(null);
   const [configSpaceCursor, setConfigSpaceCursor] = useState<vec2 | null>(null);
-
-  const flamegraphRenderer = useMemo(() => {
-    if (!flamegraphCanvasRef) {
-      return null;
-    }
-
-    return new FlamegraphRenderer(flamegraphCanvasRef, flamegraph, flamegraphTheme, {
-      draw_border: true,
-    });
-  }, [flamegraph, flamegraphCanvasRef, flamegraphTheme]);
 
   const textRenderer: TextRenderer | null = useMemo(() => {
     if (!flamegraphOverlayCanvasRef) {
@@ -154,7 +145,7 @@ function FlamegraphZoomView({
 
           // If previous position is empty, reset the view to it's max
           if (previousPosition?.isEmpty()) {
-            canvasPoolManager.dispatch('resetZoom', []);
+            canvasPoolManager.dispatch('reset zoom', []);
           } else if (
             previousPosition &&
             !previousPosition?.equals(flamegraphView.configView)
@@ -163,7 +154,7 @@ function FlamegraphZoomView({
             // because the height may have changed due to window resizing and
             // calling it with the old height may result in the flamegraph
             // being drawn into a very small or very large area.
-            canvasPoolManager.dispatch('setConfigView', [
+            canvasPoolManager.dispatch('set config view', [
               previousPosition.withHeight(flamegraphView.configView.height),
             ]);
           }
@@ -177,7 +168,7 @@ function FlamegraphZoomView({
             // because the height may have changed due to window resizing and
             // calling it with the old height may result in the flamegraph
             // being drawn into a very small or very large area.
-            canvasPoolManager.dispatch('setConfigView', [
+            canvasPoolManager.dispatch('set config view', [
               nextPosition.withHeight(flamegraphView.configView.height),
             ]);
           }
@@ -353,11 +344,11 @@ function FlamegraphZoomView({
       }
     };
 
-    scheduler.on('highlightFrame', onNodeHighlight);
+    scheduler.on('highlight frame', onNodeHighlight);
     scheduler.registerAfterFrameCallback(drawSelectedFrameBorder);
 
     return () => {
-      scheduler.off('highlightFrame', onNodeHighlight);
+      scheduler.off('highlight frame', onNodeHighlight);
       scheduler.unregisterAfterFrameCallback(drawSelectedFrameBorder);
     };
   }, [
@@ -419,12 +410,12 @@ function FlamegraphZoomView({
       setConfigSpaceCursor(null);
     };
 
-    scheduler.on('resetZoom', onResetZoom);
-    scheduler.on('zoomIntoFrame', onZoomIntoFrame);
+    scheduler.on('reset zoom', onResetZoom);
+    scheduler.on('zoom at frame', onZoomIntoFrame);
 
     return () => {
-      scheduler.off('resetZoom', onResetZoom);
-      scheduler.off('zoomIntoFrame', onZoomIntoFrame);
+      scheduler.off('reset zoom', onResetZoom);
+      scheduler.off('zoom at frame', onZoomIntoFrame);
     };
   }, [
     flamegraphCanvas,
@@ -475,10 +466,10 @@ function FlamegraphZoomView({
           hoveredNode === flamegraphState.profiles.selectedRoot
         ) {
           // If double click is fired on a node, then zoom into it
-          canvasPoolManager.dispatch('zoomIntoFrame', [hoveredNode, 'exact']);
+          canvasPoolManager.dispatch('zoom at frame', [hoveredNode, 'exact']);
         }
 
-        canvasPoolManager.dispatch('highlightFrame', [hoveredNode, 'selected']);
+        canvasPoolManager.dispatch('highlight frame', [hoveredNode, 'selected']);
         dispatchFlamegraphState({type: 'set selected root', payload: hoveredNode});
       }
 
@@ -540,7 +531,7 @@ function FlamegraphZoomView({
         0,
       ]);
 
-      canvasPoolManager.dispatch('transformConfigView', [
+      canvasPoolManager.dispatch('transform config view', [
         mat3.fromTranslation(mat3.create(), configDelta),
       ]);
 
@@ -607,7 +598,7 @@ function FlamegraphZoomView({
       const scaled = mat3.scale(mat3.create(), translated, vec2.fromValues(scale, 1));
       const translatedBack = mat3.translate(mat3.create(), scaled, invertedConfigCenter);
 
-      canvasPoolManager.dispatch('transformConfigView', [translatedBack]);
+      canvasPoolManager.dispatch('transform config view', [translatedBack]);
     },
     [flamegraphCanvas, flamegraphView, canvasPoolManager]
   );
@@ -638,7 +629,7 @@ function FlamegraphZoomView({
       ]);
 
       const translate = mat3.fromTranslation(mat3.create(), configDelta);
-      canvasPoolManager.dispatch('transformConfigView', [translate]);
+      canvasPoolManager.dispatch('transform config view', [translate]);
     },
     [flamegraphCanvas, flamegraphView, canvasPoolManager]
   );
@@ -730,12 +721,6 @@ function FlamegraphZoomView({
           </BoundTooltip>
         ) : null}
       </CanvasContainer>
-      {flamegraphRenderer ? (
-        <FrameStack
-          canvasPoolManager={canvasPoolManager}
-          flamegraphRenderer={flamegraphRenderer}
-        />
-      ) : null}
     </Fragment>
   );
 }
