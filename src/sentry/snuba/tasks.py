@@ -116,7 +116,10 @@ def update_subscription_in_snuba(
         )
         old_entity_key = get_entity_key_from_query_builder(
             old_entity_subscription.build_query_builder(
-                subscription.snuba_query.query, [subscription.project_id], None
+                subscription.snuba_query.query,
+                [subscription.project_id],
+                None,
+                {"organization_id": subscription.project.organization_id},
             ),
         )
         _delete_from_snuba(
