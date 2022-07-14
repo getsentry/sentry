@@ -34,7 +34,7 @@ export default function MultipleCheckboxField<T extends Key>(props: Props<T>) {
               props.onClick?.(option.value);
             }}
           />
-          {option.title}
+          <CheckboxText>{option.title}</CheckboxText>
         </CheckboxWrapper>
       ))}
     </div>
@@ -46,7 +46,8 @@ const CheckboxWrapper = styled('div')`
   display: flex;
   flex-direction: row;
   align-items: center;
-  ${CheckboxFancy} {
-    margin-right: ${space(1)};
-  }
+`;
+
+const CheckboxText = styled('span')`
+  margin-left: ${space(1)};
 `;
