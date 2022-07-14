@@ -30,6 +30,70 @@ function sortFrameResults(
     );
 }
 
+function findBestMatchFromFuseMatches(
+  matches: ReadonlyArray<Fuse.FuseResultMatch>
+): Fuse.RangeTuple | null {
+  let bestMatch: Fuse.RangeTuple | null = null;
+  let bestMatchLength = 0;
+  let bestMatchStart = 0;
+
+  for (let i = 0; i < matches.length; i++) {
+    const match = matches[i];
+
+    for (let j = 0; j < match.indices.length; j++) {
+      const index = match.indices[j];
+      const matchLength = index[1] - index[0];
+
+      if (matchLength < 0) {
+        // Fuse sometimes returns negative indices - we will just skip them for now.
+        continue;
+      }
+
+      // We only override the match if the match is longer than the current best match
+      // or if the matches are the same length, but the start is earlier in the string
+      if (
+        matchLength > bestMatchLength ||
+        (matchLength === bestMatchLength && index[0] > bestMatchStart)
+      ) {
+        // Offset end by 1 else we are always trailing by 1 character.
+        bestMatch = [index[0], index[1] + 1];
+        bestMatchLength = matchLength;
+        bestMatchStart = index[0];
+      }
+    }
+  }
+
+  return bestMatch;
+}
+
+function findBestMatchFromRegexpMatchArray(
+  matches: RegExpMatchArray[]
+): Fuse.RangeTuple | null {
+  let bestMatch: Fuse.RangeTuple | null = null;
+  let bestMatchLength = 0;
+  let bestMatchStart = 0;
+
+  for (let i = 0; i < matches.length; i++) {
+    const index = matches[i].index;
+    if (index === undefined) {
+      continue;
+    }
+
+    // We only override the match if the match is longer than the current best match
+    // or if the matches are the same length, but the start is earlier in the string
+    if (
+      matches[i].length > bestMatchLength ||
+      (matches[i].length === bestMatchLength && index[0] > bestMatchStart)
+    ) {
+      bestMatch = [index, index + matches[i].length];
+      bestMatchLength = matches[i].length;
+      bestMatchStart = index;
+    }
+  }
+
+  return bestMatch;
+}
+
 const memoizedSortFrameResults = memoizeByReference(sortFrameResults);
 
 function frameSearch(
@@ -54,20 +118,15 @@ function frameSearch(
 
         const re = new RegExp(lookup, flags ?? 'g');
         const reMatches = Array.from(frame.frame.name.trim().matchAll(re));
-        if (reMatches.length > 0) {
+
+        const match = findBestMatchFromRegexpMatchArray(reMatches);
+
+        if (match) {
           const frameId = getFlamegraphFrameSearchId(frame);
           results.set(frameId, {
             frame,
-            matchIndices: reMatches.reduce((acc, match) => {
-              if (typeof match.index === 'undefined') {
-                return acc;
-              }
-
-              acc.push([match.index, match.index + match[0].length]);
-
-              return acc;
-            }, [] as Fuse.RangeTuple[]),
-          });
+            match,
+          };
           matches += 1;
         }
       }
@@ -92,13 +151,11 @@ function frameSearch(
     const fuseFrameResult = fuseResults[i];
     const frame = fuseFrameResult.item;
     const frameId = getFlamegraphFrameSearchId(frame);
+    const match = findBestMatchFromFuseMatches(fuseFrameResult.matches ?? []);
 
     results.set(frameId, {
       frame,
-      // matches will be defined when using 'includeMatches' in FuseOptions
-      matchIndices: fuseFrameResult.matches!.reduce<Fuse.RangeTuple[]>((acc, val) => {
-        return acc.concat(val.indices);
-      }, []),
+      match,
     });
   }
 
@@ -151,6 +208,7 @@ function FlamegraphSearch({
       keys: ['frame.name'],
       threshold: 0.3,
       includeMatches: true,
+      ignoreLocation: true,
     });
   }, [allFrames]);
 
