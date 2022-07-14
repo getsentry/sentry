@@ -1,3 +1,4 @@
+import re
 import time
 
 import pytest
@@ -5,6 +6,8 @@ import pytest
 from sentry.integrations.msteams.card_builder.base import MSTeamsMessageBuilder
 from sentry.integrations.msteams.card_builder.block import (
     ActionType,
+    TextSize,
+    TextWeight,
     create_action_block,
     create_column_block,
     create_column_set_block,
@@ -84,7 +87,10 @@ class MSTeamsMessageBuilderTest(TestCase):
         )
         self.group1 = self.event1.group
 
-        self.rules = [Rule.objects.create(label="rule1", project=self.project1)]
+        self.rules = [
+            Rule.objects.create(label="rule1", project=self.project1),
+            Rule.objects.create(label="rule2", project=self.project1),
+        ]
 
     def test_simple(self):
         card = MSTeamsMessageBuilder().build(
@@ -227,16 +233,76 @@ class MSTeamsMessageBuilderTest(TestCase):
         assert "test-url" == unlink_identity_card["actions"][0]["url"]
 
     def test_issue_message_builder(self):
+        self.event1.data["metadata"].update({"value": "some error"})
+        self.event1.data["type"] = "error"
+
         issue_card = MSTeamsIssueMessageBuilder(
             group=self.group1, event=self.event1, rules=self.rules, integration=self.integration
         ).build()
 
         body = issue_card["body"]
-        assert 3 == len(body)
+        assert 4 == len(body)
 
         title = body[0]
         assert "oh no" in title["text"]
+        assert TextSize.LARGE == title["size"]
+        assert TextWeight.BOLDER == title["weight"]
 
+        description = body[1]
+        assert "some error" == description["text"]
+        assert TextWeight.BOLDER == description["weight"]
+
+        footer = body[2]
+        assert "ColumnSet" == footer["type"]
+        assert 3 == len(footer["columns"])
+
+        logo = footer["columns"][0]["items"][0]
+        assert "20px" == logo["height"]
+
+        issue_id_and_rule = footer["columns"][1]["items"][0]
+        assert self.group1.qualified_short_id in issue_id_and_rule["text"]
+        assert "rule1" in issue_id_and_rule["text"]
+        assert "+1 other" in issue_id_and_rule["text"]
+
+        date = footer["columns"][2]["items"][0]
+        assert re.match(
+            r"\{\{DATE\([0-9T+:\-]+, SHORT\)\}\} at \{\{TIME\([0-9T+:\-]+\)\}\}", date["text"]
+        )
+
+        actions_container = body[3]
+        assert "Container" == actions_container["type"]
+
+        action_set = actions_container["items"][0]
+        assert "ActionSet" == action_set["type"]
+
+        actions = action_set["actions"]
+        for action in actions:
+            assert ActionType.SHOW_CARD == action["type"]
+            card_body = action["card"]["body"]
+            assert 2 == len(card_body)
+            assert "TextBlock" == card_body[0]["type"]
+            assert "Input.ChoiceSet" == card_body[1]["type"]
+
+        resolve_action, ignore_action, assign_action = actions
+        assert "Ignore" == ignore_action["title"]
+        assert "Resolve" == resolve_action["title"]
+        assert "Assign" == assign_action["title"]
+
+        # Check if card is serializable to json
         card_json = json.dumps(issue_card)
+        assert card_json[0] == "{" and card_json[-1] == "}"
 
-        assert card_json[0] == "{"
+    def test_issue_without_description(self):
+        pass
+
+    def test_issue_with_only_one_rule(self):
+        pass
+
+    def test_ignored_issue_message(self):
+        pass
+
+    def test_resolved_issue_message(self):
+        pass
+
+    def test_assigned_issue_message(self):
+        pass

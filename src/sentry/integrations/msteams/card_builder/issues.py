@@ -43,7 +43,7 @@ from .utils import IssueConstants
 # The syntax is `{{DATE(<some_date>, SHORT)}}` or `{{TIME(<some_date>)}}`
 # https://docs.microsoft.com/en-us/adaptive-cards/authoring-cards/text-features
 # Since `{` and `}` are special characters in format strings, we need to use
-# double `{{` and `}}` to get the actual character in. Hence the `{{{{` and `}}}}`!
+# double `{{` and `}}` to get the actual character in. Hence the `{{{{` and `}}}}`.
 
 
 def build_input_choice_card(
