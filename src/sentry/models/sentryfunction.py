@@ -3,7 +3,6 @@ from django.db import models
 from sentry.db.models import BaseManager, DefaultFieldsModel, FlexibleForeignKey
 
 
-# TODO: remove
 class SentryFunctionManager(BaseManager):
     def get_alertable_sentry_functions(self, organization_id):
         # TODO: check events
