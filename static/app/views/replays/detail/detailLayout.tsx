@@ -8,7 +8,6 @@ import {FeatureFeedback} from 'sentry/components/featureFeedback';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Placeholder from 'sentry/components/placeholder';
-import {KeyMetricData, KeyMetrics} from 'sentry/components/replays/keyMetrics';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import TimeSince from 'sentry/components/timeSince';
@@ -169,6 +168,21 @@ function EventMetaData({
     </KeyMetrics>
   );
 }
+
+const KeyMetrics = styled('div')`
+  display: flex;
+  gap: ${space(3)};
+  align-items: center;
+  font-size: ${p => p.theme.fontSizeMedium};
+`;
+
+const KeyMetricData = styled('div')`
+  color: ${p => p.theme.textColor};
+  font-weight: normal;
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+`;
 
 function msToSec(ms: number) {
   return ms / 1000;
