@@ -516,6 +516,7 @@ EntitySubscription = Union[
     MetricsCountersEntitySubscription,
     MetricsSetsEntitySubscription,
     PerformanceTransactionsEntitySubscription,
+    PerformanceMetricsEntitySubscription,
     SessionsEntitySubscription,
 ]
 
