@@ -1,12 +1,13 @@
 import {Fragment} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 
 import AsyncComponent from 'sentry/components/asyncComponent';
-import {MultipleCheckboxField} from 'sentry/components/deprecatedforms';
 import Input from 'sentry/components/forms/controls/input';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
+import MultipleCheckboxField from 'sentry/components/forms/MultipleCheckboxField';
 import SelectControl from 'sentry/components/forms/selectControl';
 import PageHeading from 'sentry/components/pageHeading';
 import {t} from 'sentry/locale';
@@ -54,7 +55,7 @@ type State = AsyncComponent['state'] & {
   interval: string;
   intervalChoices: [string, string][] | undefined;
   metric: MetricValues;
-  metricAlertPresets: string[];
+  metricAlertPresets: Set<string>;
 
   threshold: string;
 };
@@ -117,7 +118,7 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
       metric: MetricValues.ERRORS,
       interval: '',
       threshold: '',
-      metricAlertPresets: [],
+      metricAlertPresets: new Set(),
     };
   }
 
@@ -231,7 +232,7 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
       actions: [{id: NOTIFY_EVENT_ACTION}],
       actionMatch: 'all',
       frequency: 5,
-      metricAlertPresets: this.state.metricAlertPresets,
+      metricAlertPresets: Array.from(this.state.metricAlertPresets),
     };
   }
 
@@ -311,16 +312,26 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
           />
           {showMetricAlertSelections && (
             <Fragment>
-              <Subheading>Performance Alerts</Subheading>
-              <StyledMultipleCheckboxField
-                hideLabelDivider
-                name="fieldName"
-                choices={PRESET_AGGREGATES.map(agg => [agg.id, agg.description])}
-                onChange={selectedPresets =>
+              <Subheading>{t('Performance Alerts')}</Subheading>
+              <MultipleCheckboxField
+                size="24px"
+                choices={PRESET_AGGREGATES.map(agg => ({
+                  title: agg.description,
+                  value: agg.id,
+                  checked: this.state.metricAlertPresets.has(agg.id),
+                }))}
+                css={CheckboxFieldStyles}
+                onClick={selectedItem => {
+                  const next = new Set(this.state.metricAlertPresets);
+                  if (next.has(selectedItem)) {
+                    next.delete(selectedItem);
+                  } else {
+                    next.add(selectedItem);
+                  }
                   this.setStateAndUpdateParents({
-                    metricAlertPresets: selectedPresets as unknown as string[],
-                  })
-                }
+                    metricAlertPresets: next,
+                  });
+                }}
               />
             </Fragment>
           )}
@@ -332,10 +343,8 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
 
 export default withOrganization(IssueAlertOptions);
 
-const StyledMultipleCheckboxField = styled(MultipleCheckboxField)`
-  label.checkbox {
-    font-weight: 100;
-  }
+const CheckboxFieldStyles = css`
+  margin-top: ${space(1)};
 `;
 
 const Content = styled('div')`
