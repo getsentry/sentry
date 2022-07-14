@@ -1,35 +1,39 @@
 from __future__ import annotations
 
+from typing import Set
+
+from django.db.models import DateTimeField
+
 from sentry.models import CommitFileChange, GroupRelease, ReleaseCommit
 
 
-def is_issue_commit_correlated(resolved_issue_id: int, candidate_issue_id: int) -> bool:
-    # test whether the resolved_issue commit data is related to the suspect issue commit data
-    # check set intersection between set of files touched by one issue with set of files touched by another issue
-    # check line changes to make it more accurate
+def is_issue_commit_correlated(
+    resolved_issue_id: int, candidate_issue_id: int, start: DateTimeField, end: DateTimeField
+) -> bool:
 
-    resolved_issue_files = {filename for filename in (get_files_changed(resolved_issue_id))}
-    candidate_suspect_resolution_files = {
-        filename for filename in (get_files_changed(candidate_issue_id))
-    }
+    resolved_issue_files = get_files_changed(resolved_issue_id, start, end)
+    candidate_suspect_resolution_files = get_files_changed(candidate_issue_id, start, end)
+
+    if len(resolved_issue_files) == 0 or len(candidate_suspect_resolution_files) == 0:
+        return False
 
     return not resolved_issue_files.isdisjoint(candidate_suspect_resolution_files)
 
 
-def get_files_changed(issue_id: int):
-    # get release associated with the issue
-    release = (
-        GroupRelease.objects.filter(group_id=issue_id)
-        .values_list("release_id")
-        .order_by("-last_seen")
-        .first()
-    )
+def get_files_changed(issue_id: int, start: DateTimeField, end: DateTimeField) -> Set:
+    releases = GroupRelease.objects.filter(
+        group_id=issue_id, first_seen__gte=start, first_seen__lte=end
+    ).values_list("release_id")
 
-    # get all files changed in the latest release
-    files_changed_in_release = CommitFileChange.objects.filter(
-        commit_id__in=ReleaseCommit.objects.filter(release=release).values_list(
-            "commit_id", flat=True
+    if releases:
+        files_changed_in_release = set(
+            CommitFileChange.objects.filter(
+                commit_id__in=ReleaseCommit.objects.filter(release__in=releases).values_list(
+                    "commit_id", flat=True
+                )
+            ).values_list("filename", flat=True)
         )
-    ).values_list("filename", flat=True)
+    else:
+        return set()
 
     return files_changed_in_release
