@@ -1,5 +1,6 @@
 import time
 from datetime import datetime, timedelta
+from warnings import warn
 
 from django.utils import timezone
 
@@ -11,7 +12,14 @@ def iso_format(date):
 
 
 def before_now(**kwargs):
-    date = datetime.utcnow() - timedelta(**kwargs)
+    delta = timedelta(**kwargs)
+    if delta == timedelta(seconds=1):
+        warn(
+            "Using an event 1 second in the past may result in flakey tests. Please use a timestamp further in the past like 10 seconds.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+    date = datetime.utcnow() - delta
     return date - timedelta(microseconds=date.microsecond % 1000)
 
 
