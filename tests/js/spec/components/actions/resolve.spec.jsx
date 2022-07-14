@@ -1,19 +1,30 @@
-import {Fragment} from 'react';
+import selectEvent from 'react-select-event';
 
-import {selectDropdownMenuItem} from 'sentry-test/dropdownMenu';
-import {mountWithTheme} from 'sentry-test/enzyme';
-import {selectByValue} from 'sentry-test/select-new';
+import {
+  act,
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+} from 'sentry-test/reactTestingLibrary';
 
 import ResolveActions from 'sentry/components/actions/resolve';
-import GlobalModal from 'sentry/components/globalModal';
+import ModalStore from 'sentry/stores/modalStore';
 
 describe('ResolveActions', function () {
-  describe('disabled', function () {
-    let component, button;
-    const spy = jest.fn();
+  const spy = jest.fn();
+  beforeEach(() => {
+    ModalStore.reset();
+  });
+  afterEach(() => {
+    spy.mockClear();
+    MockApiClient.clearMockResponses();
+    ModalStore.teardown();
+  });
 
-    beforeEach(function () {
-      component = mountWithTheme(
+  describe('disabled', function () {
+    it('does not call onUpdate when clicked', function () {
+      render(
         <ResolveActions
           onUpdate={spy}
           disabled
@@ -22,25 +33,16 @@ describe('ResolveActions', function () {
           projectSlug="proj-1"
         />
       );
-      button = component.find('ResolveButton button').first();
-    });
-
-    it('has disabled prop', function () {
-      expect(button.props().disabled).toBe(true);
-    });
-
-    it('does not call onUpdate when clicked', function () {
-      button.simulate('click');
+      const button = screen.getByRole('button', {name: 'Resolve'});
+      expect(button).toBeDisabled();
+      userEvent.click(button);
       expect(spy).not.toHaveBeenCalled();
     });
   });
 
   describe('disableDropdown', function () {
-    let component, button;
-    const spy = jest.fn();
-
-    beforeEach(function () {
-      component = mountWithTheme(
+    it('main button calls onUpdate when clicked and dropdown menu disabled', function () {
+      render(
         <ResolveActions
           onUpdate={spy}
           disableDropdown
@@ -49,30 +51,20 @@ describe('ResolveActions', function () {
           projectSlug="proj-1"
         />
       );
-    });
 
-    it('main button is enabled', function () {
-      button = component.find('ResolveButton button');
-      expect(button.prop('disabled')).toBeFalsy();
-    });
-
-    it('main button calls onUpdate when clicked', function () {
-      button = component.find('ResolveButton button');
-      button.simulate('click');
+      const button = screen.getByRole('button', {name: 'Resolve'});
+      expect(button).toBeEnabled();
+      userEvent.click(button);
       expect(spy).toHaveBeenCalled();
-    });
 
-    it('dropdown menu is disabled', function () {
-      button = component.find('DropdownTrigger');
-      expect(button.props().disabled).toBe(true);
+      // Dropdown menu is disabled
+      expect(screen.getByRole('button', {name: 'More resolve options'})).toBeDisabled();
     });
   });
 
   describe('resolved', function () {
-    let component;
-    const spy = jest.fn();
-    beforeEach(function () {
-      component = mountWithTheme(
+    it('calls onUpdate with unresolved status when clicked', function () {
+      render(
         <ResolveActions
           onUpdate={spy}
           disabled
@@ -82,24 +74,19 @@ describe('ResolveActions', function () {
           isResolved
         />
       );
-    });
 
-    it('displays resolved view', function () {
-      const button = component.find('button[aria-label="Unresolve"]').first();
-      expect(button).toHaveLength(1);
-      expect(button.text()).toBe('');
-    });
+      const button = screen.getByRole('button', {name: 'Unresolve'});
+      expect(button).toBeInTheDocument();
+      expect(button).toHaveTextContent('');
 
-    it('calls onUpdate with unresolved status when clicked', function () {
-      component.find('button[aria-label="Unresolve"]').last().simulate('click');
+      userEvent.click(button);
       expect(spy).toHaveBeenCalledWith({status: 'unresolved'});
     });
   });
 
   describe('auto resolved', function () {
     it('cannot be unresolved manually', function () {
-      const spy = jest.fn();
-      const component = mountWithTheme(
+      render(
         <ResolveActions
           onUpdate={spy}
           disabled
@@ -111,16 +98,14 @@ describe('ResolveActions', function () {
         />
       );
 
-      component.find('button[aria-label="Unresolve"]').simulate('click');
+      userEvent.click(screen.getByRole('button', {name: 'Unresolve'}));
       expect(spy).not.toHaveBeenCalled();
     });
   });
 
   describe('without confirmation', function () {
-    let component;
-    const spy = jest.fn();
-    beforeEach(function () {
-      component = mountWithTheme(
+    it('calls spy with resolved status when clicked', function () {
+      render(
         <ResolveActions
           onUpdate={spy}
           hasRelease={false}
@@ -128,55 +113,34 @@ describe('ResolveActions', function () {
           projectSlug="proj-1"
         />
       );
-    });
-
-    it('renders', function () {
-      expect(component).toSnapshot();
-    });
-
-    it('calls spy with resolved status when clicked', function () {
-      const button = component.find('ResolveButton button');
-      button.simulate('click');
+      userEvent.click(screen.getByRole('button', {name: 'Resolve'}));
       expect(spy).toHaveBeenCalledTimes(1);
       expect(spy).toHaveBeenCalledWith({status: 'resolved'});
     });
   });
 
   describe('with confirmation step', function () {
-    let component, button;
-    const spy = jest.fn();
-
-    beforeEach(function () {
-      component = mountWithTheme(
-        <Fragment>
-          <GlobalModal />
-          <ResolveActions
-            onUpdate={spy}
-            hasRelease={false}
-            orgSlug="org-1"
-            projectSlug="proj-1"
-            shouldConfirm
-            confirmMessage="Are you sure???"
-          />
-        </Fragment>
+    it('displays confirmation modal with message provided', function () {
+      render(
+        <ResolveActions
+          onUpdate={spy}
+          hasRelease={false}
+          orgSlug="org-1"
+          projectSlug="proj-1"
+          shouldConfirm
+          confirmMessage="Are you sure???"
+        />
       );
-    });
+      renderGlobalModal();
 
-    it('renders', function () {
-      expect(component).toSnapshot();
-    });
+      const button = screen.getByRole('button', {name: 'Resolve'});
+      userEvent.click(button);
 
-    it('displays confirmation modal with message provided', async function () {
-      button = component.find('ResolveButton button').first();
-      button.simulate('click');
-
-      await tick();
-      component.update();
-
-      const modal = component.find('Modal');
-      expect(modal.text()).toContain('Are you sure???');
+      const confirmButton = screen.getByTestId('confirm-button');
+      expect(confirmButton).toBeInTheDocument();
       expect(spy).not.toHaveBeenCalled();
-      modal.find('button[aria-label="Resolve"]').simulate('click');
+
+      userEvent.click(confirmButton);
 
       expect(spy).toHaveBeenCalled();
     });
@@ -188,36 +152,24 @@ describe('ResolveActions', function () {
       url: '/projects/org-slug/project-slug/releases/',
       body: [TestStubs.Release()],
     });
-    const wrapper = mountWithTheme(
-      <Fragment>
-        <GlobalModal />
-        <ResolveActions
-          hasRelease
-          orgSlug="org-slug"
-          projectSlug="project-slug"
-          onUpdate={onUpdate}
-        />
-      </Fragment>
+    render(
+      <ResolveActions
+        hasRelease
+        orgSlug="org-slug"
+        projectSlug="project-slug"
+        onUpdate={onUpdate}
+      />
     );
+    renderGlobalModal();
 
-    await selectDropdownMenuItem({
-      wrapper,
-      itemKey: 'another-release',
-      triggerSelector: 'DropdownTrigger',
-    });
+    userEvent.click(screen.getByLabelText('More resolve options'));
+    act(() => userEvent.click(screen.getByText('Another existing release…')));
 
-    expect(wrapper.find('CustomResolutionModal Select').prop('options')).toEqual([
-      expect.objectContaining({
-        value: 'sentry-android-shop@1.2.0',
-        label: expect.anything(),
-      }),
-    ]);
+    selectEvent.openMenu(screen.getByText('e.g. 1.0.4'));
+    expect(await screen.findByText('1.2.0')).toBeInTheDocument();
+    userEvent.click(screen.getByText('1.2.0'));
 
-    selectByValue(wrapper, 'sentry-android-shop@1.2.0', {
-      selector: 'SelectAsyncControl[name="version"]',
-    });
-
-    wrapper.find('CustomResolutionModal form').simulate('submit');
+    userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
     expect(onUpdate).toHaveBeenCalledWith({
       status: 'resolved',
       statusDetails: {
