@@ -73,6 +73,7 @@ function Chart({
   definedAxisTicks,
   chartColors,
   isLineChart,
+  useShortDate,
 }: Props) {
   const theme = useTheme();
 
@@ -225,6 +226,7 @@ function Chart({
               xAxis={xAxis}
               yAxis={areaChartProps.yAxes[0]}
               tooltip={areaChartProps.tooltip}
+              useShortDate
             />
           );
         }

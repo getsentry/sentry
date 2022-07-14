@@ -5,6 +5,7 @@ import {Group, Organization} from 'sentry/types';
 import {useLocation} from 'sentry/utils/useLocation';
 
 import {DurationChart} from './durationChart';
+import {SpanCountChart} from './spanCountChart';
 // import {SpanCountChart} from './spanCountChart';
 
 interface Props {
@@ -24,7 +25,7 @@ function BasePerformanceIssueSection({issue, event, organization}: Props) {
         location={location}
         organization={organization}
       />
-      <DurationChart
+      <SpanCountChart
         issue={issue}
         event={event}
         location={location}

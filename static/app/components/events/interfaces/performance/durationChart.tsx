@@ -16,7 +16,8 @@ interface Props {
 }
 
 export function DurationChart({issue, event, organization}: Props) {
-  const transactionName = event.culprit;
+  // const transactionName = event.culprit;
+  const transactionName = '/api/0/organizations/{organization_slug}/events/';
   const allEventsQuery = `event.type:transaction transaction:${transactionName}`;
   const affectedEventsQuery = `${allEventsQuery} has_performance_issue:True`;
   const api = useApi();
@@ -74,6 +75,7 @@ export function DurationChart({issue, event, organization}: Props) {
 function Content({allEvents, affectedEvents, start, end}) {
   return (
     <Chart
+      useShortDate
       router={{}}
       loading={false}
       statsPeriod=""
