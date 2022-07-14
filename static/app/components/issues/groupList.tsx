@@ -1,4 +1,5 @@
 import {Component, Fragment} from 'react';
+// eslint-disable-next-line no-restricted-imports
 import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';

@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+// eslint-disable-next-line no-restricted-imports
 import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import {useTheme} from '@emotion/react';
 import {Location, Query} from 'history';

@@ -1,5 +1,6 @@
 import React, {Component} from 'react';
 import LazyLoad from 'react-lazyload';
+// eslint-disable-next-line no-restricted-imports
 import {withRouter, WithRouterProps} from 'react-router';
 import {useSortable} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';

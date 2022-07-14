@@ -1,4 +1,5 @@
 import {Component, Fragment} from 'react';
+// eslint-disable-next-line no-restricted-imports
 import {withRouter, WithRouterProps} from 'react-router';
 import * as Sentry from '@sentry/react';
 import scrollToElement from 'scroll-to-element';

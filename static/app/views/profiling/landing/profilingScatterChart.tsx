@@ -1,4 +1,5 @@
 import {useCallback, useMemo} from 'react';
+// eslint-disable-next-line no-restricted-imports
 import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import {useTheme} from '@emotion/react';
 import type {TooltipComponentFormatterCallback} from 'echarts';

@@ -1,5 +1,6 @@
 import * as React from 'react';
 import {findDOMNode, render} from 'react-dom';
+// eslint-disable-next-line no-restricted-imports
 import * as ReactRouter from 'react-router';
 import * as Sentry from '@sentry/react';
 import moment from 'moment';

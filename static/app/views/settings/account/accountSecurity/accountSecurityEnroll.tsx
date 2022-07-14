@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+// eslint-disable-next-line no-restricted-imports
 import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import {QRCodeCanvas} from 'qrcode.react';

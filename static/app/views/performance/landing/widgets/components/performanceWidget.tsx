@@ -1,4 +1,5 @@
 import {Fragment, useCallback, useRef, useState} from 'react';
+// eslint-disable-next-line no-restricted-imports
 import {withRouter} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -42,6 +43,7 @@ export function GenericPerformanceWidget<T extends WidgetDataConstraint>(
       widgetDataRef.current = newWidgetData;
       setWidgetData({[props.chartSetting]: newWidgetData});
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [allWidgetData, setWidgetData]
   );
   const removeWidgetDataForKey = useCallback(
@@ -52,6 +54,7 @@ export function GenericPerformanceWidget<T extends WidgetDataConstraint>(
       widgetDataRef.current = newWidgetData;
       setWidgetData({[props.chartSetting]: newWidgetData});
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [allWidgetData, setWidgetData]
   );
   const widgetProps = {widgetData, setWidgetDataForKey, removeWidgetDataForKey};
