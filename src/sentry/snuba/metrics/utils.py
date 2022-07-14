@@ -122,6 +122,9 @@ OP_REGEX = generate_operation_regex()
 AVAILABLE_OPERATIONS = {
     type_: sorted(mapping.keys()) for type_, mapping in OP_TO_SNUBA_FUNCTION.items()
 }
+AVAILABLE_GENERIC_OPERATIONS = {
+    type_: sorted(mapping.keys()) for type_, mapping in GENERIC_OP_TO_SNUBA_FUNCTION.items()
+}
 OPERATIONS_TO_ENTITY = {
     op: entity for entity, operations in AVAILABLE_OPERATIONS.items() for op in operations
 }
