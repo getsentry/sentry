@@ -58,7 +58,7 @@ function SaveAsDropdown({
           <FocusScope contain restoreFocus autoFocus>
             <PositionWrapper zIndex={theme.zIndex.dropdown} {...overlayProps}>
               <StyledOverlay arrowProps={arrowProps} animated>
-                <ButtonSaveInput
+                <SaveAsInput
                   type="text"
                   name="query_name"
                   placeholder={t('Display name')}
@@ -66,14 +66,13 @@ function SaveAsDropdown({
                   onChange={onChangeInput}
                   disabled={disabled}
                 />
-                <Button
+                <SaveAsButton
                   onClick={modifiedHandleCreateQuery}
                   priority="primary"
                   disabled={disabled || !queryName}
-                  style={{width: '100%'}}
                 >
                   {t('Save for Org')}
-                </Button>
+                </SaveAsButton>
               </StyledOverlay>
             </PositionWrapper>
           </FocusScope>
@@ -439,7 +438,11 @@ const StyledOverlay = styled(Overlay)`
   padding: ${space(1)};
 `;
 
-const ButtonSaveInput = styled(InputControl)`
+const SaveAsButton = styled(Button)`
+  width: 100%;
+`;
+
+const SaveAsInput = styled(InputControl)`
   height: 40px;
   margin-bottom: ${space(1)};
 `;
