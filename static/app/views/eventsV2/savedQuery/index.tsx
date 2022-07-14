@@ -278,11 +278,6 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
 
   renderButtonSaveAs(disabled: boolean) {
     const {queryName} = this.state;
-    /**
-     * For a great UX, we should focus on `ButtonSaveInput` when `ButtonSave`
-     * is clicked. However, `DropdownControl` wraps them in a FunctionComponent
-     * which breaks `React.createRef`.
-     */
     return (
       <SaveAsDropdown
         queryName={queryName}
