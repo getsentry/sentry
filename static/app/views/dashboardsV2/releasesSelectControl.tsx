@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import Badge from 'sentry/components/badge';
@@ -10,15 +10,16 @@ import {Release} from 'sentry/types';
 import {useReleases} from 'sentry/utils/releases/releasesProvider';
 
 type Props = {
+  className?: string;
   isDisabled?: boolean;
 };
 
-function ReleasesSelectControl({isDisabled}: Props) {
+function ReleasesSelectControl({className, isDisabled}: Props) {
   const {releases, loading} = useReleases();
   const [selectedReleases, setSelectedReleases] = useState<Release[]>([]);
 
   const triggerLabel = selectedReleases.length ? (
-    <TextOverflow>{selectedReleases[0]}</TextOverflow>
+    <TextOverflow>{selectedReleases[0]} </TextOverflow>
   ) : (
     t('All Releases')
   );
@@ -31,6 +32,7 @@ function ReleasesSelectControl({isDisabled}: Props) {
       isDisabled={isDisabled}
       isLoading={loading}
       menuTitle={t('Filter Releases')}
+      className={className}
       options={
         releases.length
           ? releases.map(release => {
@@ -44,12 +46,12 @@ function ReleasesSelectControl({isDisabled}: Props) {
       onChange={opts => setSelectedReleases(opts.map(opt => opt.value))}
       value={selectedReleases}
       triggerLabel={
-        <Fragment>
-          {triggerLabel}
+        <ButtonLabelWrapper>
+          {triggerLabel}{' '}
           {selectedReleases.length > 1 && (
             <StyledBadge text={`+${selectedReleases.length - 1}`} />
           )}
-        </Fragment>
+        </ButtonLabelWrapper>
       }
       triggerProps={{icon: <IconReleases />}}
     />
@@ -60,4 +62,11 @@ export default ReleasesSelectControl;
 
 const StyledBadge = styled(Badge)`
   flex-shrink: 0;
+`;
+
+const ButtonLabelWrapper = styled('span')`
+  width: 100%;
+  text-align: left;
+  display: inline-grid;
+  grid-auto-flow: column;
 `;

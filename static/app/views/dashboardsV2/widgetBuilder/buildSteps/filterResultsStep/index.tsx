@@ -116,7 +116,7 @@ export function FilterResultsStep({
         </StyledPageFilterBar>
         <FilterButtons>
           <ReleasesProvider organization={organization} selection={selection}>
-            <ReleasesSelectControl isDisabled />
+            <StyledReleasesSelectControl isDisabled className="widget-release-select" />
           </ReleasesProvider>
         </FilterButtons>
       </Feature>
@@ -191,8 +191,18 @@ const StyledPageFilterBar = styled(PageFilterBar)`
 `;
 
 const FilterButtons = styled(ButtonBar)`
+  grid-template-columns: 1fr;
+
   margin-bottom: ${space(1)};
+  margin-right: ${space(2)};
+
   justify-content: space-between;
+`;
+
+const StyledReleasesSelectControl = styled(ReleasesSelectControl)`
+  button {
+    width: 100%;
+  }
 `;
 
 const SearchConditionsWrapper = styled('div')`
