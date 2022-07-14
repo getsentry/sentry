@@ -17,3 +17,5 @@ export const SENTRY_CUSTOMERS: Record<VitalsKey, number> = {
   appStartCold: 2260,
   appStartWarm: 1900,
 };
+
+export const MIN_VITAL_COUNT_FOR_DISPLAY = 100;

@@ -3,11 +3,10 @@ import {VitalsKey, VitalsResult} from './types';
 
 export function getRelativeDiff(value: number, benchmark: number) {
   // get the difference and divide it by our benchmark
-  benchmark = benchmark / 2.5;
   return (value - benchmark) / benchmark;
 }
 
-export function getWorstVital(data: VitalsResult) {
+export function getWorstVital(data: VitalsResult): VitalsKey | null {
   let worstField: VitalsKey | null = null;
   let worstDecrease = 0;
   let field: VitalsKey;

@@ -16,7 +16,11 @@ import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAna
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import {INDUSTRY_STANDARDS, SENTRY_CUSTOMERS} from './constants';
+import {
+  INDUSTRY_STANDARDS,
+  MIN_VITAL_COUNT_FOR_DISPLAY,
+  SENTRY_CUSTOMERS,
+} from './constants';
 import {VitalsKey, VitalsResult} from './types';
 import {getCountParameterName, getRelativeDiff, getWorstVital} from './utils';
 
@@ -71,30 +75,34 @@ export default function VitalsAlertCTA({data, dismissAlert}: Props) {
   // persist to dismiss alert
   const api = useApi({persistInFlight: true});
   const vital = getWorstVital(data);
-  if (!vital) {
-    return null;
-  }
-  const ourValue = data[vital];
-  if (!ourValue) {
-    return null;
-  }
+  const ourValue = vital ? data[vital] : 0;
+  const sentryDiff = vital ? getRelativeDiff(ourValue, SENTRY_CUSTOMERS[vital]) : 0;
+  const industryDiff = vital ? getRelativeDiff(ourValue, INDUSTRY_STANDARDS[vital]) : 0;
+
   const hasGlobalViews = organization.features.includes('global-views');
   // find the project that has the most events of the same type
-  const bestProjectData = maxBy(data.projectData, item => {
-    const parameterName = getCountParameterName(vital);
-    return item[parameterName];
-  });
+  const bestProjectData = vital
+    ? maxBy(data.projectData, item => {
+        const parameterName = getCountParameterName(vital);
+        return item[parameterName];
+      })
+    : null;
 
-  // if no global views and no matching project, can't show alert
-  if (!hasGlobalViews && !bestProjectData) {
-    return null;
-  }
+  const showVitalsAlert = () => {
+    // check if we have the vital and the count is at least at the min
+    if (!vital || ourValue < MIN_VITAL_COUNT_FOR_DISPLAY) {
+      return false;
+    }
+    // if worst vital is better than Sentry users, we shouldn't show this alert
+    if (sentryDiff < 0) {
+      return false;
+    }
+    // must have either global views enabled or we can pick a specific project
+    return hasGlobalViews || bestProjectData;
+  };
 
-  const sentryDiff = getRelativeDiff(ourValue, SENTRY_CUSTOMERS[vital]);
-  const industryDiff = getRelativeDiff(ourValue, INDUSTRY_STANDARDS[vital]);
-
-  // if worst vital is better than Sentry users, we shouldn't show this alert
-  if (sentryDiff < 0) {
+  // TODO: log experiment
+  if (!vital || !showVitalsAlert()) {
     return null;
   }
 
@@ -127,7 +135,7 @@ export default function VitalsAlertCTA({data, dismissAlert}: Props) {
       statsPeriod: '7d',
       referrer: `vitals-alert-${vital.toLowerCase()}`,
     };
-    // specify a specific project if we can
+    // specify a specific project if we have to and we can
     if (!hasGlobalViews && bestProjectData) {
       baseParams.project = bestProjectData.projectId;
     }
