@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import GlobalModal from 'sentry/components/globalModal';
 import FeatureTourModal from 'sentry/components/modals/featureTourModal';
@@ -23,7 +23,7 @@ describe('FeatureTourModal', function () {
   let onAdvance, onCloseModal;
 
   const createWrapper = (props = {}) =>
-    mountWithTheme(
+    render(
       <Fragment>
         <GlobalModal />
         <FeatureTourModal
@@ -41,10 +41,8 @@ describe('FeatureTourModal', function () {
       </Fragment>
     );
 
-  const showModal = async wrapper => {
-    wrapper.find('[data-test-id="reveal"]').simulate('click');
-    await tick();
-    wrapper.update();
+  const showModal = () => {
+    userEvent.click(screen.getByTestId('reveal'));
   };
 
   beforeEach(function () {
@@ -52,92 +50,89 @@ describe('FeatureTourModal', function () {
     onCloseModal = jest.fn();
   });
 
-  it('shows the modal on click', async function () {
-    const wrapper = createWrapper();
+  it('shows the modal on click', function () {
+    createWrapper();
 
     // No modal showing
-    expect(wrapper.find('GlobalModal').props().visible).toEqual(false);
-    await showModal(wrapper);
+    expect(screen.queryByTestId('feature-tour')).not.toBeInTheDocument();
+    showModal();
 
     // Modal is now showing
-    expect(wrapper.find('GlobalModal').props().visible).toEqual(true);
+    expect(screen.getByTestId('feature-tour')).toBeInTheDocument();
   });
 
-  it('advances on click', async function () {
-    const wrapper = createWrapper();
+  it('advances on click', function () {
+    createWrapper();
 
-    await showModal(wrapper);
+    showModal();
 
     // Should start on the first step.
-    expect(wrapper.find('TourHeader h4').text()).toEqual(steps[0].title);
+    expect(screen.getByRole('heading')).toHaveTextContent(steps[0].title);
 
     // Advance to the next step.
-    wrapper.find('Button[data-test-id="next-step"]').simulate('click');
+    userEvent.click(screen.getByRole('button', {name: 'Next'}));
 
     // Should move to next step.
-    expect(wrapper.find('TourHeader h4').text()).toEqual(steps[1].title);
+    expect(screen.getByRole('heading')).toHaveTextContent(steps[1].title);
     expect(onAdvance).toHaveBeenCalled();
   });
 
-  it('shows step content', async function () {
-    const wrapper = createWrapper();
+  it('shows step content', function () {
+    createWrapper();
 
-    await showModal(wrapper);
+    showModal();
 
     // Should show title, image and actions
-    expect(wrapper.find('TourHeader h4').text()).toEqual(steps[0].title);
-    expect(wrapper.find('TourContent em[data-test-id="step-image"]')).toHaveLength(1);
-    expect(wrapper.find('TourContent a[data-test-id="step-action"]')).toHaveLength(1);
-    expect(wrapper.find('StepCounter').text()).toEqual('1 of 2');
+    expect(screen.getByRole('heading')).toHaveTextContent(steps[0].title);
+    expect(screen.getByTestId('step-image')).toBeInTheDocument();
+    expect(screen.getByTestId('step-action')).toBeInTheDocument();
+    expect(screen.getByText('1 of 2')).toBeInTheDocument();
   });
 
-  it('last step shows done', async function () {
-    const wrapper = createWrapper();
+  it('last step shows done', function () {
+    createWrapper();
 
-    await showModal(wrapper);
+    showModal();
 
     // Advance to the the last step.
-    wrapper.find('Button[data-test-id="next-step"]').simulate('click');
+    userEvent.click(screen.getByRole('button', {name: 'Next'}));
 
     // Click the done
-    wrapper.find('Button[data-test-id="complete-tour"]').simulate('click');
+    userEvent.click(screen.getByRole('button', {name: 'Complete tour'}));
 
     // Wait for the ModalStore action to propagate.
-    await tick();
     expect(onAdvance).toHaveBeenCalledTimes(1);
     expect(onCloseModal).toHaveBeenCalledTimes(1);
   });
 
-  it('last step shows doneText and uses doneUrl', async function () {
+  it('last step shows doneText and uses doneUrl', function () {
     const props = {doneText: 'Finished', doneUrl: 'http://example.org'};
-    const wrapper = createWrapper(props);
+    createWrapper(props);
 
-    await showModal(wrapper);
+    showModal();
 
     // Advance to the the last step.
-    wrapper.find('Button[data-test-id="next-step"]').simulate('click');
+    userEvent.click(screen.getByRole('button', {name: 'Next'}));
 
     // Ensure button looks right
-    const button = wrapper.find('Button[data-test-id="complete-tour"]');
-    expect(button.text()).toEqual(props.doneText);
-    expect(button.props().href).toEqual(props.doneUrl);
+    const button = screen.getByRole('button', {name: 'Complete tour'});
+    expect(button).toHaveTextContent(props.doneText);
+    expect(button).toHaveAttribute('href', props.doneUrl);
 
     // Click the done
-    button.simulate('click');
+    userEvent.click(button);
     // Wait for the ModalStore action to propagate.
-    await tick();
     expect(onCloseModal).toHaveBeenCalledTimes(1);
   });
 
-  it('close button dismisses modal', async function () {
-    const wrapper = createWrapper();
+  it('close button dismisses modal', function () {
+    createWrapper();
 
-    await showModal(wrapper);
+    showModal();
 
-    wrapper.find('CloseButton').simulate('click');
+    userEvent.click(screen.getByRole('button', {name: 'Close tour'}));
 
     // Wait for the ModalStore action to propagate.
-    await tick();
     expect(onCloseModal).toHaveBeenCalled();
   });
 });
