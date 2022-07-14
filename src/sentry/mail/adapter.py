@@ -63,7 +63,8 @@ class MailAdapter:
         project = event.group.project
         extra["project_id"] = project.id
 
-        if digests.enabled(project):
+        # XXX(workflow): remove the extra condition after digests.enabled(project) when wf2.0 experiment is over
+        if digests.enabled(project) and target_type != ActionTargetType.RELEASE_MEMBERS:
 
             def get_digest_option(key):
                 return ProjectOption.objects.get_value(project, get_digest_option_key("mail", key))
