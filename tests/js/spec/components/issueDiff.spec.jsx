@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {IssueDiff} from 'sentry/components/issueDiff';
 
@@ -43,7 +43,7 @@ describe('IssueDiff', function () {
   });
 
   it('is loading when initially rendering', function () {
-    const wrapper = mountWithTheme(
+    const wrapper = render(
       <IssueDiff
         api={api}
         baseIssueId="base"
@@ -52,13 +52,12 @@ describe('IssueDiff', function () {
         project={project}
       />
     );
-    expect(wrapper.find('SplitDiff')).toHaveLength(0);
-    expect(wrapper).toSnapshot();
+    expect(screen.queryByTestId('split-diff')).not.toBeInTheDocument();
+    expect(wrapper.container).toSnapshot();
   });
 
   it('can dynamically import SplitDiff', async function () {
-    // Need `mount` because of componentDidMount in <IssueDiff>
-    const wrapper = mountWithTheme(
+    const wrapper = render(
       <IssueDiff
         api={api}
         baseIssueId="base"
@@ -68,11 +67,8 @@ describe('IssueDiff', function () {
       />
     );
 
-    await tick();
-    wrapper.update();
-
-    expect(wrapper.find('SplitDiff')).toHaveLength(1);
-    expect(wrapper).toSnapshot();
+    expect(await screen.findByTestId('split-diff')).toBeInTheDocument();
+    expect(wrapper.container).toSnapshot();
   });
 
   it('can diff message', async function () {
@@ -90,8 +86,7 @@ describe('IssueDiff', function () {
       },
     });
 
-    // Need `mount` because of componentDidMount in <IssueDiff>
-    const wrapper = mountWithTheme(
+    const wrapper = render(
       <IssueDiff
         api={api}
         baseIssueId="base"
@@ -101,10 +96,7 @@ describe('IssueDiff', function () {
       />
     );
 
-    await tick();
-    wrapper.update();
-
-    expect(wrapper.find('SplitDiff')).toHaveLength(1);
-    expect(wrapper).toSnapshot();
+    expect(await screen.findByTestId('split-diff')).toBeInTheDocument();
+    expect(wrapper.container).toSnapshot();
   });
 });

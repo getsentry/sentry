@@ -28,7 +28,7 @@ const SplitDiff = ({className, type = 'lines', base, target}: Props) => {
   );
 
   return (
-    <SplitTable className={className}>
+    <SplitTable className={className} data-test-id="split-diff">
       <SplitBody>
         {results.map((line, j) => {
           const highlightAdded = line.find(result => result.added);
