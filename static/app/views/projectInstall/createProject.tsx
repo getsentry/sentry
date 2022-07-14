@@ -17,8 +17,8 @@ import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {inputStyles} from 'sentry/styles/input';
 import space from 'sentry/styles/space';
-import {Organization, Project, Team} from 'sentry/types';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import {Organization, Team} from 'sentry/types';
+import {logExperiment} from 'sentry/utils/analytics';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import getPlatformName from 'sentry/utils/getPlatformName';
 import slugify from 'sentry/utils/slugify';
@@ -31,15 +31,6 @@ import {PRESET_AGGREGATES} from '../alerts/rules/metric/presets';
 
 const getCategoryName = (category?: string) =>
   categoryList.find(({id}) => id === category)?.id;
-
-type RuleEventData = {
-  eventKey: string;
-  eventName: string;
-  organization_id: string;
-  project_id: string;
-  rule_type: string;
-  custom_rule_id?: string;
-};
 
 type Props = WithRouterProps & {
   api: any;
@@ -89,6 +80,10 @@ class CreateProject extends Component<Props, State> {
 
   componentDidMount() {
     trackAdvancedAnalyticsEvent('project_creation_page.viewed', {
+      organization: this.props.organization,
+    });
+    logExperiment({
+      key: 'MetricAlertOnProjectCreationExperiment',
       organization: this.props.organization,
     });
   }
@@ -208,9 +203,8 @@ class CreateProject extends Component<Props, State> {
         },
       });
 
-      let ruleId: string | undefined;
       if (shouldCreateCustomRule) {
-        const ruleData = await api.requestPromise(
+        await api.requestPromise(
           `/projects/${organization.slug}/${projectData.slug}/rules/`,
           {
             method: 'POST',
@@ -223,7 +217,6 @@ class CreateProject extends Component<Props, State> {
             },
           }
         );
-        ruleId = ruleData.id;
       }
       if (
         !!organization.experiments.MetricAlertOnProjectCreationExperiment &&
@@ -269,12 +262,15 @@ class CreateProject extends Component<Props, State> {
           }),
         ]);
       }
-      this.trackIssueAlertOptionSelectedEvent(
-        projectData,
-        defaultRules,
-        shouldCreateCustomRule,
-        ruleId
-      );
+      trackAdvancedAnalyticsEvent('project_creation_page.created', {
+        organization,
+        metric_alerts: (metricAlertPresets || []).join(','),
+        issue_alert: defaultRules
+          ? 'Default'
+          : shouldCreateCustomRule
+          ? 'Custom'
+          : 'No Rule',
+      });
 
       ProjectActions.createSuccess(projectData);
       const platformKey = platform || 'other';
@@ -299,33 +295,6 @@ class CreateProject extends Component<Props, State> {
       }
     }
   };
-
-  trackIssueAlertOptionSelectedEvent(
-    projectData: Project,
-    isDefaultRules: boolean | undefined,
-    shouldCreateCustomRule: boolean | undefined,
-    ruleId: string | undefined
-  ) {
-    const {organization} = this.props;
-
-    let data: RuleEventData = {
-      eventKey: 'new_project.alert_rule_selected',
-      eventName: 'New Project Alert Rule Selected',
-      organization_id: organization.id,
-      project_id: projectData.id,
-      rule_type: isDefaultRules
-        ? 'Default'
-        : shouldCreateCustomRule
-        ? 'Custom'
-        : 'No Rule',
-    };
-
-    if (ruleId !== undefined) {
-      data = {...data, custom_rule_id: ruleId};
-    }
-
-    trackAnalyticsEvent(data);
-  }
 
   setPlatform = (platformId: PlatformName | null) =>
     this.setState(({projectName, platform}: State) => ({
