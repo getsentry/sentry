@@ -29,6 +29,55 @@ const SEARCH_SPECIAL_CHARS_REGEXP = new RegExp(
   'g'
 );
 
+const getFunctionTags = (fields: Readonly<Field[]>) =>
+  Object.fromEntries(
+    fields
+      .filter(
+        item => !Object.keys(FIELD_TAGS).includes(item.field) && !isEquation(item.field)
+      )
+      .map(item => [
+        item.field,
+        {key: item.field, name: item.field, kind: FieldValueKind.FUNCTION},
+      ])
+  );
+
+const getFieldTags = () =>
+  Object.fromEntries(
+    Object.keys(FIELD_TAGS).map(key => [
+      key,
+      {
+        ...FIELD_TAGS[key],
+        kind: FieldValueKind.FIELD,
+      },
+    ])
+  );
+
+const getMeasurementTags = (
+  measurements: Parameters<
+    React.ComponentProps<typeof Measurements>['children']
+  >[0]['measurements']
+) =>
+  Object.fromEntries(
+    Object.keys(measurements).map(key => [
+      key,
+      {
+        ...measurements[key],
+        kind: FieldValueKind.MEASUREMENT,
+      },
+    ])
+  );
+
+const getSemverTags = () =>
+  Object.fromEntries(
+    Object.keys(SEMVER_TAGS).map(key => [
+      key,
+      {
+        ...SEMVER_TAGS[key],
+        kind: FieldValueKind.FIELD,
+      },
+    ])
+  );
+
 export type SearchBarProps = Omit<React.ComponentProps<typeof SmartSearchBar>, 'tags'> & {
   organization: Organization;
   tags: TagCollection;
@@ -104,55 +153,16 @@ function SearchBar(props: SearchBarProps) {
       React.ComponentProps<typeof Measurements>['children']
     >[0]['measurements']
   ) => {
-    const functionTags = fields
-      ? Object.fromEntries(
-          fields
-            .filter(
-              item =>
-                !Object.keys(FIELD_TAGS).includes(item.field) && !isEquation(item.field)
-            )
-            .map(item => [
-              item.field,
-              {key: item.field, name: item.field, kind: FieldValueKind.FUNCTION},
-            ])
-        )
-      : {};
+    const functionTags = getFunctionTags(fields ?? []);
+    const fieldTags = getFieldTags();
+    const measurementsWithKind = getMeasurementTags(measurements);
+    const semverTags = getSemverTags();
 
-    const fieldTags = Object.fromEntries(
-      Object.keys(FIELD_TAGS).map(key => [
-        key,
-        {
-          ...FIELD_TAGS[key],
-          kind: FieldValueKind.FIELD,
-        },
-      ])
-    );
+    const orgHasPerformanceView = organization.features.includes('performance-view');
 
-    const measurementsWithKind = Object.fromEntries(
-      Object.keys(measurements).map(key => [
-        key,
-        {
-          ...measurements[key],
-          kind: FieldValueKind.MEASUREMENT,
-        },
-      ])
-    );
-
-    const combinedTags: Record<string, Tag> = organization.features.includes(
-      'performance-view'
-    )
+    const combinedTags: Record<string, Tag> = orgHasPerformanceView
       ? Object.assign({}, measurementsWithKind, fieldTags, functionTags)
       : omit(fieldTags, TRACING_FIELDS);
-
-    const semverTags = Object.fromEntries(
-      Object.keys(SEMVER_TAGS).map(key => [
-        key,
-        {
-          ...SEMVER_TAGS[key],
-          kind: FieldValueKind.FIELD,
-        },
-      ])
-    );
 
     const tagsWithKind = Object.fromEntries(
       Object.keys(tags).map(key => [
