@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render} from 'sentry-test/reactTestingLibrary';
 
 import EventDataSection from 'sentry/components/events/eventDataSection';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
@@ -29,7 +29,7 @@ describe('EventDataSection', function () {
     culprit: undefined,
   };
   it('renders formatted', function () {
-    const component = mountWithTheme(
+    const wrapper = render(
       <EventDataSection
         group={groupData}
         event={eventData}
@@ -39,11 +39,11 @@ describe('EventDataSection', function () {
       />
     );
 
-    expect(component).toSnapshot();
+    expect(wrapper.container).toSnapshot();
   });
 
   it('renders raw', function () {
-    const component = mountWithTheme(
+    const wrapper = render(
       <EventDataSection
         group={groupData}
         event={eventData}
@@ -52,7 +52,7 @@ describe('EventDataSection', function () {
         raw
       />
     );
-    expect(component).toSnapshot();
+    expect(wrapper.container).toSnapshot();
   });
 });
 
@@ -70,18 +70,16 @@ describe('KeyValueList', function () {
   }));
 
   it('renders formatted', function () {
-    const component = mountWithTheme(
+    const wrapper = render(
       <KeyValueList data={extraDataArray} isContextData raw={false} />
     );
 
-    expect(component).toSnapshot();
+    expect(wrapper.container).toSnapshot();
   });
 
   it('renders raw', function () {
-    const component = mountWithTheme(
-      <KeyValueList data={extraDataArray} isContextData raw />
-    );
+    const wrapper = render(<KeyValueList data={extraDataArray} isContextData raw />);
 
-    expect(component).toSnapshot();
+    expect(wrapper.container).toSnapshot();
   });
 });
