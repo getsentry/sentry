@@ -32,7 +32,7 @@ from sentry.incidents.tasks import handle_trigger_action
 from sentry.models import Project
 from sentry.snuba.entity_subscription import (
     ENTITY_TIME_COLUMNS,
-    BaseMetricsEntitySubscription,
+    BaseCrashRateMetricsEntitySubscription,
     get_entity_key_from_query_builder,
     get_entity_subscription_from_snuba_query,
 )
@@ -267,7 +267,7 @@ class SubscriptionProcessor:
         to v2, we can remove v1 and replace this function with current v2.
         """
         rows = subscription_update["values"]["data"]
-        if BaseMetricsEntitySubscription.is_crash_rate_format_v2(rows):
+        if BaseCrashRateMetricsEntitySubscription.is_crash_rate_format_v2(rows):
             version = "v2"
             result = self._get_crash_rate_alert_metrics_aggregation_value_v2(subscription_update)
         else:
@@ -307,7 +307,7 @@ class SubscriptionProcessor:
         (
             total_session_count,
             crash_count,
-        ) = BaseMetricsEntitySubscription.translate_sessions_tag_keys_and_values(
+        ) = BaseCrashRateMetricsEntitySubscription.translate_sessions_tag_keys_and_values(
             data=subscription_update["values"]["data"],
             org_id=self.subscription.project.organization.id,
         )
