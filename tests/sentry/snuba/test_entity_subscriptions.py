@@ -9,18 +9,16 @@ from sentry.exceptions import (
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.utils import resolve, resolve_tag_key
-from sentry.snuba.dataset import EntityKey
 from sentry.snuba.entity_subscription import (
-    ENTITY_TIME_COLUMNS,
     EventsEntitySubscription,
     MetricsCountersEntitySubscription,
     MetricsSetsEntitySubscription,
+    PerformanceTransactionsEntitySubscription,
     SessionsEntitySubscription,
-    TransactionsEntitySubscription,
-    get_entity_subscription_for_dataset,
+    get_entity_subscription,
 )
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
-from sentry.snuba.models import QueryDatasets
+from sentry.snuba.models import QueryDatasets, SnubaQuery
 from sentry.testutils import TestCase
 
 
@@ -41,7 +39,8 @@ class EntitySubscriptionTestCase(TestCase):
     def test_get_entity_subscriptions_for_sessions_dataset_non_supported_aggregate(self) -> None:
         aggregate = "count(sessions)"
         with pytest.raises(UnsupportedQuerySubscription):
-            get_entity_subscription_for_dataset(
+            get_entity_subscription(
+                query_type=SnubaQuery.Type.CRASH_RATE,
                 dataset=QueryDatasets.SESSIONS,
                 aggregate=aggregate,
                 time_window=3600,
@@ -51,19 +50,24 @@ class EntitySubscriptionTestCase(TestCase):
     def test_get_entity_subscriptions_for_sessions_dataset_missing_organization(self) -> None:
         aggregate = "percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate"
         with pytest.raises(InvalidQuerySubscription):
-            get_entity_subscription_for_dataset(
-                dataset=QueryDatasets.SESSIONS, aggregate=aggregate, time_window=3600
+            get_entity_subscription(
+                query_type=SnubaQuery.Type.CRASH_RATE,
+                dataset=QueryDatasets.SESSIONS,
+                aggregate=aggregate,
+                time_window=3600,
             )
 
     def test_build_query_builder_invalid_fields_raise_error(self) -> None:
         entities = [
-            get_entity_subscription_for_dataset(
+            get_entity_subscription(
+                query_type=SnubaQuery.Type.CRASH_RATE,
                 dataset=QueryDatasets.SESSIONS,
                 aggregate="percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate",
                 time_window=3600,
                 extra_fields={"org_id": self.organization.id},
             ),
-            get_entity_subscription_for_dataset(
+            get_entity_subscription(
+                query_type=SnubaQuery.Type.ERROR,
                 dataset=QueryDatasets.EVENTS,
                 aggregate="count_unique(user)",
                 time_window=3600,
@@ -75,7 +79,8 @@ class EntitySubscriptionTestCase(TestCase):
 
     def test_get_entity_subscriptions_for_sessions_dataset(self) -> None:
         aggregate = "percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate"
-        entity_subscription = get_entity_subscription_for_dataset(
+        entity_subscription = get_entity_subscription(
+            query_type=SnubaQuery.Type.CRASH_RATE,
             dataset=QueryDatasets.SESSIONS,
             aggregate=aggregate,
             time_window=3600,
@@ -86,8 +91,6 @@ class EntitySubscriptionTestCase(TestCase):
         assert entity_subscription.get_entity_extra_params() == {
             "organization": self.organization.id
         }
-        assert entity_subscription.entity_key == EntityKey.Sessions
-        assert entity_subscription.time_col == ENTITY_TIME_COLUMNS[EntityKey.Sessions]
         assert entity_subscription.dataset == QueryDatasets.SESSIONS
         snql_query = entity_subscription.build_query_builder(
             "", [self.project.id], None
@@ -118,7 +121,8 @@ class EntitySubscriptionTestCase(TestCase):
     def test_get_entity_subscription_for_metrics_dataset_non_supported_aggregate(self) -> None:
         aggregate = "count(sessions)"
         with pytest.raises(UnsupportedQuerySubscription):
-            get_entity_subscription_for_dataset(
+            get_entity_subscription(
+                query_type=SnubaQuery.Type.CRASH_RATE,
                 dataset=QueryDatasets.METRICS,
                 aggregate=aggregate,
                 time_window=3600,
@@ -128,15 +132,19 @@ class EntitySubscriptionTestCase(TestCase):
     def test_get_entity_subscription_for_metrics_dataset_missing_organization(self) -> None:
         aggregate = "percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate"
         with pytest.raises(InvalidQuerySubscription):
-            get_entity_subscription_for_dataset(
-                dataset=QueryDatasets.METRICS, aggregate=aggregate, time_window=3600
+            get_entity_subscription(
+                query_type=SnubaQuery.Type.CRASH_RATE,
+                dataset=QueryDatasets.METRICS,
+                aggregate=aggregate,
+                time_window=3600,
             )
 
     def test_get_entity_subscription_for_metrics_dataset_for_users(self) -> None:
         org_id = self.organization.id
 
         aggregate = "percentage(users_crashed, users) AS _crash_rate_alert_aggregate"
-        entity_subscription = get_entity_subscription_for_dataset(
+        entity_subscription = get_entity_subscription(
+            query_type=SnubaQuery.Type.CRASH_RATE,
             dataset=QueryDatasets.METRICS,
             aggregate=aggregate,
             time_window=3600,
@@ -148,8 +156,6 @@ class EntitySubscriptionTestCase(TestCase):
             "organization": self.organization.id,
             "granularity": 10,
         }
-        assert entity_subscription.entity_key == EntityKey.MetricsSets
-        assert entity_subscription.time_col == ENTITY_TIME_COLUMNS[EntityKey.MetricsSets]
         assert entity_subscription.dataset == QueryDatasets.METRICS
         session_status = resolve_tag_key(org_id, "session.status")
         session_status_crashed = resolve(org_id, "crashed")
@@ -190,7 +196,8 @@ class EntitySubscriptionTestCase(TestCase):
     def test_get_entity_subscription_for_metrics_dataset_for_sessions(self) -> None:
         org_id = self.organization.id
         aggregate = "percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate"
-        entity_subscription = get_entity_subscription_for_dataset(
+        entity_subscription = get_entity_subscription(
+            query_type=SnubaQuery.Type.CRASH_RATE,
             dataset=QueryDatasets.METRICS,
             aggregate=aggregate,
             time_window=3600,
@@ -202,8 +209,6 @@ class EntitySubscriptionTestCase(TestCase):
             "organization": self.organization.id,
             "granularity": 10,
         }
-        assert entity_subscription.entity_key == EntityKey.MetricsCounters
-        assert entity_subscription.time_col == ENTITY_TIME_COLUMNS[EntityKey.MetricsCounters]
         assert entity_subscription.dataset == QueryDatasets.METRICS
         session_status = resolve_tag_key(org_id, "session.status")
         session_status_crashed = resolve(org_id, "crashed")
@@ -254,14 +259,15 @@ class EntitySubscriptionTestCase(TestCase):
 
     def test_get_entity_subscription_for_transactions_dataset(self) -> None:
         aggregate = "percentile(transaction.duration,.95)"
-        entity_subscription = get_entity_subscription_for_dataset(
-            dataset=QueryDatasets.TRANSACTIONS, aggregate=aggregate, time_window=3600
+        entity_subscription = get_entity_subscription(
+            query_type=SnubaQuery.Type.PERFORMANCE,
+            dataset=QueryDatasets.TRANSACTIONS,
+            aggregate=aggregate,
+            time_window=3600,
         )
-        assert isinstance(entity_subscription, TransactionsEntitySubscription)
+        assert isinstance(entity_subscription, PerformanceTransactionsEntitySubscription)
         assert entity_subscription.aggregate == aggregate
         assert entity_subscription.get_entity_extra_params() == {}
-        assert entity_subscription.entity_key == EntityKey.Transactions
-        assert entity_subscription.time_col == ENTITY_TIME_COLUMNS[EntityKey.Transactions]
         assert entity_subscription.dataset == QueryDatasets.TRANSACTIONS
         snql_query = entity_subscription.build_query_builder(
             "", [self.project.id], None
@@ -277,14 +283,15 @@ class EntitySubscriptionTestCase(TestCase):
 
     def test_get_entity_subscription_for_events_dataset(self) -> None:
         aggregate = "count_unique(user)"
-        entity_subscription = get_entity_subscription_for_dataset(
-            dataset=QueryDatasets.EVENTS, aggregate=aggregate, time_window=3600
+        entity_subscription = get_entity_subscription(
+            query_type=SnubaQuery.Type.ERROR,
+            dataset=QueryDatasets.EVENTS,
+            aggregate=aggregate,
+            time_window=3600,
         )
         assert isinstance(entity_subscription, EventsEntitySubscription)
         assert entity_subscription.aggregate == aggregate
         assert entity_subscription.get_entity_extra_params() == {}
-        assert entity_subscription.entity_key == EntityKey.Events
-        assert entity_subscription.time_col == ENTITY_TIME_COLUMNS[EntityKey.Events]
         assert entity_subscription.dataset == QueryDatasets.EVENTS
 
         snql_query = entity_subscription.build_query_builder(

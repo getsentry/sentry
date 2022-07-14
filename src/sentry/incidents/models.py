@@ -363,7 +363,7 @@ class AlertRule(Model):
     )
     name = models.TextField()
     # Possible values are in the the `Type` enum
-    type = models.SmallIntegerField()
+    type = models.SmallIntegerField(null=True)
     status = models.SmallIntegerField(default=AlertRuleStatus.PENDING.value)
     # Determines whether we include all current and future projects from this
     # organization in this rule.

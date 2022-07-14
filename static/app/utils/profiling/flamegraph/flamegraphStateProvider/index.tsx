@@ -11,8 +11,8 @@ import {
   UndoableReducerAction,
   useUndoableReducer,
 } from 'sentry/utils/useUndoableReducer';
+import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
 
-import {useProfileGroup} from '../../../../views/profiling/profileGroupProvider';
 import {useFlamegraphStateValue} from '../useFlamegraphState';
 
 import {
@@ -164,7 +164,7 @@ interface FlamegraphStateProviderProps {
 const DEFAULT_FLAMEGRAPH_STATE: FlamegraphState = {
   profiles: {
     threadId: null,
-    selectedNode: null,
+    selectedRoot: null,
   },
   position: {
     view: Rect.Empty(),
@@ -174,6 +174,7 @@ const DEFAULT_FLAMEGRAPH_STATE: FlamegraphState = {
     sorting: 'call order',
     view: 'top down',
     xAxis: 'standalone',
+    layout: 'table_bottom',
   },
   search: {
     index: null,
@@ -188,7 +189,7 @@ export function FlamegraphStateProvider(
   const [profileGroup] = useProfileGroup();
   const reducer = useUndoableReducer(combinedReducers, {
     profiles: {
-      selectedNode: null,
+      selectedRoot: null,
       threadId:
         props.initialState?.profiles?.threadId ??
         DEFAULT_FLAMEGRAPH_STATE.profiles.threadId,
@@ -198,6 +199,9 @@ export function FlamegraphStateProvider(
         DEFAULT_FLAMEGRAPH_STATE.position.view) as Rect,
     },
     preferences: {
+      layout:
+        props.initialState?.preferences?.layout ??
+        DEFAULT_FLAMEGRAPH_STATE.preferences.layout,
       colorCoding:
         props.initialState?.preferences?.colorCoding ??
         DEFAULT_FLAMEGRAPH_STATE.preferences.colorCoding,
