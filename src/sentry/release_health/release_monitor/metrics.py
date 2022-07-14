@@ -162,10 +162,10 @@ class MetricReleaseMonitorBackend(BaseReleaseMonitorBackend):
                         env_name = indexer.reverse_resolve(row[env_key])
                         release_name = indexer.reverse_resolve(row[release_key])
                         row_totals = totals[row["project_id"]].setdefault(
-                            env_name, {"total_sessions": 0, "releases": defaultdict(int)}
+                            env_name, {"total_sessions": 0, "releases": defaultdict(int)}  # type: ignore
                         )
                         row_totals["total_sessions"] += row["sessions"]
-                        row_totals["releases"][release_name] += row["sessions"]
+                        row_totals["releases"][release_name] += row["sessions"]  # type: ignore
 
                 if not more_results:
                     break
