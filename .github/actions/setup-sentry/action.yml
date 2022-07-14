@@ -67,6 +67,7 @@ runs:
         fi
 
         echo "PIP_DISABLE_PIP_VERSION_CHECK=on" >> $GITHUB_ENV
+        echo "PY_COLORS=1" >> "$GITHUB_ENV"
         echo "SENTRY_SKIP_BACKEND_VALIDATION=1" >> $GITHUB_ENV
 
         ### node configuration ###
