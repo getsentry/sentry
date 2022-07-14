@@ -14,13 +14,14 @@ import {
   trimTextCenter,
 } from '../gl/utils';
 
-class TextRenderer {
-  textCache: Record<string, TextMetrics> = {};
+const TEST_STRING = 'Who knows if this changed, font-display: swap wont tell me';
 
+class TextRenderer {
   canvas: HTMLCanvasElement;
-  context: CanvasRenderingContext2D;
   theme: FlamegraphTheme;
   flamegraph: Flamegraph;
+  context: CanvasRenderingContext2D;
+  textCache: Record<string, TextMetrics>;
 
   constructor(canvas: HTMLCanvasElement, flamegraph: Flamegraph, theme: FlamegraphTheme) {
     this.canvas = canvas;
@@ -28,6 +29,7 @@ class TextRenderer {
     this.flamegraph = flamegraph;
 
     this.context = getContext(canvas, '2d');
+    this.textCache = {};
     resizeCanvasToDisplaySize(canvas);
   }
 
@@ -40,8 +42,6 @@ class TextRenderer {
   }
 
   maybeInvalidateCache(): void {
-    const TEST_STRING = 'Who knows if this changed, font-display: swap wont tell me';
-
     if (this.textCache[TEST_STRING] === undefined) {
       this.measureAndCacheText(TEST_STRING);
       return;
@@ -73,12 +73,21 @@ class TextRenderer {
       (this.theme.SIZES.BAR_HEIGHT - this.theme.SIZES.BAR_FONT_SIZE / 2) *
       window.devicePixelRatio;
 
+    const HIGHLIGHT_BACKGROUND_COLOR = `rgb(${this.theme.COLORS.HIGHLIGHTED_LABEL_COLOR.join(
+      ', '
+    )})`;
+
+    const TOP_BOUNDARY = configView.top - 1;
+    const BOTTOM_BOUNDARY = configView.bottom + 1;
+    const HAS_SEARCH_RESULTS = flamegraphSearchResults !== null;
+
     // We start by iterating over root frames, so we draw the call stacks top-down.
     // This allows us to do a couple optimizations that improve our best case performance.
     // 1. We can skip drawing the entire tree if the root frame is not visible
     // 2. We can skip drawing and
     const frames: FlamegraphFrame[] = [...this.flamegraph.root.children];
-    while (frames.length) {
+
+    while (frames.length > 0) {
       const frame = frames.pop()!;
 
       // Check if our rect overlaps with the current viewport and skip it
@@ -95,6 +104,33 @@ class TextRenderer {
       const frameWidth =
         (pinnedEnd - pinnedStart) * configViewToPhysicalSpace[0] +
         configViewToPhysicalSpace[3];
+
+      // Since the text is not exactly aligned to the left/right bounds of the frame, we need to subtract the padding
+      // from the total width, so that we can truncate the center of the text accurately.
+      const paddedRectangleWidth = frameWidth - SIDE_PADDING;
+
+      // Since children of a frame cannot be wider than the frame itself, we can exit early and discard the entire subtree
+      if (paddedRectangleWidth <= minWidth) {
+        continue;
+      }
+
+      if (frame.depth > BOTTOM_BOUNDARY) {
+        continue;
+      }
+
+      for (let i = 0; i < frame.children.length; i++) {
+        frames.push(frame.children[i]);
+      }
+
+      // If a frame is lower than the top, we can skip drawing its text, however
+      // we can only do so after we have pushed it's children into the queue or else
+      // those children will never be drawn and the entire sub-tree will be skipped.
+      if (frame.depth < TOP_BOUNDARY) {
+        continue;
+      }
+
+      // Transform frame to physical space coordinates. This does the same operation as
+      // Rect.transformRect, but without allocating a new Rect object.
       const frameHeight =
         (pinnedEnd - pinnedStart) * configViewToPhysicalSpace[1] +
         configViewToPhysicalSpace[4];
@@ -107,31 +143,13 @@ class TextRenderer {
         frame.depth * configViewToPhysicalSpace[4] +
         configViewToPhysicalSpace[7];
 
-      const frameInPhysicalSpace = [
-        frameX + (frameWidth < 0 ? frameWidth : 0),
-        frameY + (frameHeight < 0 ? frameHeight : 0),
-        frameWidth,
-        frameHeight,
-      ];
-
-      // Since the text is not exactly aligned to the left/right bounds of the frame, we need to subtract the padding
-      // from the total width, so that we can truncate the center of the text accurately.
-      const paddedRectangleWidth = frameInPhysicalSpace[2] - SIDE_PADDING;
-
-      // Since children of a frame cannot be wider than the frame itself, we can exit early and discard the entire subtree
-      if (paddedRectangleWidth <= minWidth) {
-        continue;
-      }
-
       // We want to draw the text in the vertical center of the frame, so we substract half the height of the text
-      const y = frameInPhysicalSpace[1] + BASELINE_OFFSET;
-
+      const y = frameY + BASELINE_OFFSET;
       // Offset x by 1x the padding
-      const x = frameInPhysicalSpace[0] + HALF_SIDE_PADDING;
+      const x = frameX + (frameWidth < 0 ? frameWidth : 0) + HALF_SIDE_PADDING;
 
-      const frameName = frame.frame.name;
       const trim = trimTextCenter(
-        frameName,
+        frame.frame.name,
         findRangeBinarySearch(
           {low: 0, high: paddedRectangleWidth},
           n => this.measureAndCacheText(frame.frame.name.substring(0, n)).width,
@@ -139,43 +157,35 @@ class TextRenderer {
         )[0]
       );
 
-      const {text: trimText} = trim;
-
-      if (flamegraphSearchResults) {
+      if (HAS_SEARCH_RESULTS) {
         const frameId = getFlamegraphFrameSearchId(frame);
-        const frameSearchResult = flamegraphSearchResults[frameId];
+        const frameResults = flamegraphSearchResults[frameId];
 
-        if (frameSearchResult && frameSearchResult.matchIndices.length > 0) {
-          const highlightFillStyle = `rgb(${this.theme.COLORS.HIGHLIGHTED_LABEL_COLOR.join(
-            ', '
-          )})`;
-          this.context.fillStyle = highlightFillStyle;
+        if (frameResults) {
+          this.context.fillStyle = HIGHLIGHT_BACKGROUND_COLOR;
 
-          for (const matchIndices of frameSearchResult.matchIndices) {
-            const highlightedBounds = computeHighlightedBounds(matchIndices, trim);
-            if (!highlightedBounds) {
-              continue;
-            }
-            const [startIndex, endIndex] = highlightedBounds;
+          for (let i = 0; i < frameResults.matchIndices.length; i++) {
+            const highlightedBounds = computeHighlightedBounds(
+              frameResults.matchIndices[i],
+              trim
+            );
 
-            const frontMatter = trimText.slice(0, startIndex);
-            const highlightOffsetX = this.measureAndCacheText(frontMatter).width;
-            const rectX = x + highlightOffsetX;
-            const rectY = frameInPhysicalSpace[1] + fontSize / 2;
+            const frontMatter = trim.text.slice(0, highlightedBounds[0]);
             const highlightWidth = this.measureAndCacheText(
-              trimText.substring(startIndex, endIndex)
+              trim.text.substring(highlightedBounds[0], highlightedBounds[1])
             ).width;
-            this.context.fillRect(rectX, rectY, highlightWidth, fontSize);
+
+            this.context.fillRect(
+              x + this.measureAndCacheText(frontMatter).width,
+              frameY + (frameHeight < 0 ? frameHeight : 0) + fontSize / 2,
+              highlightWidth,
+              fontSize
+            );
           }
         }
       }
-
       this.context.fillStyle = this.theme.COLORS.LABEL_FONT_COLOR;
-      this.context.fillText(trimText, x, y);
-
-      for (let i = 0; i < frame.children.length; i++) {
-        frames.push(frame.children[i]);
-      }
+      this.context.fillText(trim.text, x, y);
     }
   }
 }

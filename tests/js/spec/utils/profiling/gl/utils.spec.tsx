@@ -1,7 +1,7 @@
+import Fuse from 'fuse.js';
 import {mat3, vec2} from 'gl-matrix';
 
 import {
-  Bounds,
   computeConfigViewWithStategy,
   computeHighlightedBounds,
   createProgram,
@@ -490,7 +490,7 @@ describe('computeHighlightedBounds', () => {
   ];
 
   it.each(testTable)(`$name`, ({args, expected}) => {
-    const value = computeHighlightedBounds(args.bounds as Bounds, args.trim);
+    const value = computeHighlightedBounds(args.bounds as Fuse.RangeTuple, args.trim);
     expect(value).toEqual(expected);
   });
 });

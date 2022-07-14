@@ -91,13 +91,13 @@ function frameSearch(
     const fuseFrameResult = fuseResults[i];
     const frame = fuseFrameResult.item;
     const frameId = getFlamegraphFrameSearchId(frame);
+
     results[frameId] = {
       frame,
       // matches will be defined when using 'includeMatches' in FuseOptions
-      matchIndices: fuseFrameResult.matches!.reduce((acc, val) => {
-        acc.push(...val.indices);
-        return acc;
-      }, [] as Fuse.RangeTuple[]),
+      matchIndices: fuseFrameResult.matches!.reduce<Fuse.RangeTuple[]>((acc, val) => {
+        return acc.concat(val.indices);
+      }, []),
     };
   }
 
