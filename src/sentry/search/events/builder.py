@@ -1586,6 +1586,9 @@ class MetricsQueryBuilder(QueryBuilder):
     def __init__(
         self,
         *args: Any,
+        # Datasets are currently a bit confusing; Dataset.Metrics is actually release health/sessions
+        # Dataset.PerformanceMetrics is MEP. TODO: rename Dataset.Metrics to Dataset.ReleaseMetrics or similar
+        dataset: Optional[Dataset] = None,
         allow_metric_aggregates: Optional[bool] = False,
         dry_run: Optional[bool] = False,
         **kwargs: Any,
@@ -1600,19 +1603,20 @@ class MetricsQueryBuilder(QueryBuilder):
         # Don't do any of the actions that would impact performance in anyway
         # Skips all indexer checks, and won't interact with clickhouse
         self.dry_run = dry_run
+        assert dataset is None or dataset in [Dataset.PerformanceMetrics, Dataset.Metrics]
         super().__init__(
-            # Dataset is always Metrics
-            Dataset.PerformanceMetrics,
+            Dataset.Metrics if dataset is None else dataset,
             *args,
             **kwargs,
         )
-        # Hack while granularity isn't being handled by snuba
-        granularity = {
-            60: 1,
-            3600: 2,
-            86400: 3,
-        }[self.granularity.granularity]
-        self.where.append(Condition(Column("granularity"), Op.EQ, granularity))
+        if dataset is Dataset.PerformanceMetrics:
+            # Hack while granularity isn't being handled by snuba
+            granularity = {
+                60: 1,
+                3600: 2,
+                86400: 3,
+            }[self.granularity.granularity]
+            self.where.append(Condition(Column("granularity"), Op.EQ, granularity))
         if "organization_id" in self.params:
             self.organization_id = self.params["organization_id"]
         else:
@@ -1919,24 +1923,25 @@ class MetricsQueryBuilder(QueryBuilder):
         )
 
     def _create_query_framework(self) -> Tuple[str, Dict[str, QueryFramework]]:
+        prefix = "generic_" if self.dataset is Dataset.PerformanceMetrics else ""
         query_framework: Dict[str, QueryFramework] = {
             "distribution": QueryFramework(
                 orderby=[],
                 having=[],
                 functions=self.distributions,
-                entity=Entity("generic_metrics_distributions", sample=self.sample_rate),
+                entity=Entity(f"{prefix}metrics_distributions", sample=self.sample_rate),
             ),
             "counter": QueryFramework(
                 orderby=[],
                 having=[],
                 functions=self.counters,
-                entity=Entity("generic_metrics_counters", sample=self.sample_rate),
+                entity=Entity(f"{prefix}metrics_counters", sample=self.sample_rate),
             ),
             "set": QueryFramework(
                 orderby=[],
                 having=[],
                 functions=self.sets,
-                entity=Entity("generic_metrics_sets", sample=self.sample_rate),
+                entity=Entity(f"{prefix}metrics_sets", sample=self.sample_rate),
             ),
         }
         primary = None
@@ -2207,6 +2212,7 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
         self,
         params: ParamsType,
         interval: int,
+        dataset: Optional[Dataset] = None,
         query: Optional[str] = None,
         selected_columns: Optional[List[str]] = None,
         allow_metric_aggregates: Optional[bool] = False,
@@ -2216,6 +2222,7 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
         super().__init__(
             params=params,
             query=query,
+            dataset=dataset,
             selected_columns=selected_columns,
             allow_metric_aggregates=allow_metric_aggregates,
             auto_fields=False,
@@ -2226,17 +2233,18 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
             for granularity in METRICS_GRANULARITIES:
                 if granularity < interval:
                     self.granularity = Granularity(granularity)
-                    # Hack until snuba can handle granularities
-                    for condition in self.where:
-                        if condition.lhs == Column("granularity"):
-                            self.where.remove(condition)
-                            break
-                    granularity = {
-                        60: 1,
-                        3600: 2,
-                        86400: 3,
-                    }[self.granularity.granularity]
-                    self.where.append(Condition(Column("granularity"), Op.EQ, granularity))
+                    if dataset is Dataset.PerformanceMetrics:
+                        # Hack until snuba can handle granularities
+                        for condition in self.where:
+                            if condition.lhs == Column("granularity"):
+                                self.where.remove(condition)
+                                break
+                        granularity = {
+                            60: 1,
+                            3600: 2,
+                            86400: 3,
+                        }[self.granularity.granularity]
+                        self.where.append(Condition(Column("granularity"), Op.EQ, granularity))
                     break
 
         self.time_column = self.resolve_time_column(interval)
