@@ -36,7 +36,7 @@ function useOverlay({
   shouldCloseOnBlur = false,
   isKeyboardDismissDisabled,
   shouldCloseOnInteractOutside,
-}: UseOverlayProps) {
+}: UseOverlayProps = {}) {
   // Callback refs for react-popper
   const [triggerElement, setTriggerElement] = useState<HTMLButtonElement | null>(null);
   const [overlayElement, setOverlayElement] = useState<HTMLDivElement | null>(null);
