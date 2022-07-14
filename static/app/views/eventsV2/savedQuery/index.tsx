@@ -45,16 +45,16 @@ function SaveAsDropdown({
   onChangeInput,
   modifiedHandleCreateQuery,
 }: SaveAsDropdownProps) {
-  const {isOpen, triggerProps, overlayProps, arrowProps} = useOverlay({});
+  const {isOpen, triggerProps, overlayProps, arrowProps} = useOverlay();
   const theme = useTheme();
 
   return (
     <div>
       <Button
-        icon={<IconStar />}
-        disabled={disabled}
-        aria-label={t('Save as')}
         {...triggerProps}
+        icon={<IconStar />}
+        aria-label={t('Save as')}
+        disabled={disabled}
       >
         {`${t('Save as')}\u2026`}
       </Button>
