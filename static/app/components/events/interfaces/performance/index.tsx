@@ -1,6 +1,5 @@
 import styled from '@emotion/styled';
 
-import EventDataSection from 'sentry/components/events/eventDataSection';
 import space from 'sentry/styles/space';
 import {Group, Organization} from 'sentry/types';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -69,6 +68,10 @@ export const Wrapper = styled('div')`
     padding: ${space(0.75)} 0;
     margin-bottom: 0;
     text-transform: uppercase;
+  }
+
+  div:first-child {
+    margin-right: ${space(3)};
   }
 `;
 

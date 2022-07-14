@@ -8,7 +8,7 @@ import {DateString, Group, Organization} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
 import Chart from 'sentry/views/performance/charts/chart';
 
-import {allEventsData} from './fakeData';
+import {affectedEvents, allEventsData} from './fakeData';
 
 interface Props {
   event: any;
@@ -28,9 +28,11 @@ export function DurationChart({issue, event, organization}: Props) {
 
   // const diff = moment(now).diff(issue.firstSeen);
   // const start = moment(issue.firstSeen).subtract(diff).format();
-  const start = '2022-07-08T04:00:00';
-  const end = '2022-07-12T12:00:59';
-  const interval = getInterval({start, end});
+  const start = new Date('2022-07-09T07:14:35').toString();
+  const end = new Date('2022-07-12T12:57:44').toString();
+  const end1 = new Date('2022-07-12T12:57:40');
+  const interval = '30m';
+  const issueStart = new Date('2022-07-11T13:41:21').toString();
 
   return (
     <EventsRequest
@@ -52,7 +54,7 @@ export function DurationChart({issue, event, organization}: Props) {
           api={api1}
           project={[1]}
           environment={[]}
-          start={issue.firstSeen}
+          start={issueStart}
           end={end}
           query={affectedEventsQuery}
           organization={organization}
@@ -62,12 +64,12 @@ export function DurationChart({issue, event, organization}: Props) {
           referrer="api.performance.performance-issue-poc.affected-events"
           currentSeriesNames={['Affected Events']}
         >
-          {({timeseriesData: affectedEvents}) => (
+          {({timeseriesData: data}) => (
             <Content
               start={start}
               end={now}
               allEvents={allEvents}
-              affectedEvents={affectedEvents}
+              affectedEvents={data}
             />
           )}
         </EventsRequest>
@@ -76,13 +78,10 @@ export function DurationChart({issue, event, organization}: Props) {
   );
 }
 
-function Content({allEvents, affectedEvents, start, end}) {
-  console.log(allEvents);
-  console.log('pooop', allEventsData);
+function Content({allEvents, affectedEvents: _affectedEvents, start, end}) {
   return (
     <Chart
       grid={{left: '0', right: '0', top: '0', bottom: '0px'}}
-      useShortDate
       router={{}}
       loading={false}
       statsPeriod=""

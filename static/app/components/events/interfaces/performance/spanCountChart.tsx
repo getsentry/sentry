@@ -108,7 +108,7 @@ export function SpanCountChart({issue, event, location, organization}: any) {
           <BarChart
             grid={{left: '0', right: '0', top: '0', bottom: '0'}}
             xAxis={xAxis}
-            yAxis={{type: 'value', show: false}}
+            yAxis={{type: 'value', show: false, axisLabel: {formatter: e => ''}}}
             series={[series, fakeSeries(series)]}
             tooltip={tooltip}
             colors={colors}

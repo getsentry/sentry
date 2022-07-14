@@ -209,7 +209,11 @@ function Chart({
               series={series}
               previousPeriod={previousData}
               xAxis={xAxis}
-              yAxis={{...areaChartProps.yAxes[0], show: false}}
+              yAxis={{
+                ...areaChartProps.yAxes[0],
+                show: false,
+                axisLabel: {formatter: e => ''},
+              }}
               tooltip={areaChartProps.tooltip}
               useShortDate
             />
