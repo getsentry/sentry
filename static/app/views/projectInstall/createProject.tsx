@@ -18,7 +18,7 @@ import {t} from 'sentry/locale';
 import {inputStyles} from 'sentry/styles/input';
 import space from 'sentry/styles/space';
 import {Organization, Team} from 'sentry/types';
-import {logExperiment} from 'sentry/utils/analytics';
+import {logExperiment, trackAnalyticsEvent} from 'sentry/utils/analytics';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import getPlatformName from 'sentry/utils/getPlatformName';
 import slugify from 'sentry/utils/slugify';

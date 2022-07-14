@@ -1121,6 +1121,8 @@ SENTRY_FEATURES = {
     # Enable usage of external relays, for use with Relay. See
     # https://github.com/getsentry/relay.
     "organizations:relay": True,
+    # Enable Sentry Functions
+    "organizations:sentry-functions": False,
     # Enable experimental session replay features
     "organizations:session-replay": False,
     # Enable Session Stats down to a minute resolution
