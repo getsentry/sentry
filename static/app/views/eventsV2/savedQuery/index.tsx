@@ -52,7 +52,7 @@ function SaveAsDropdown({
     <div>
       <Button
         icon={<IconStar />}
-        aria-disabled={disabled}
+        disabled={disabled}
         aria-label={t('Save as')}
         {...triggerProps}
       >
