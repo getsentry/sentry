@@ -8,6 +8,7 @@ import pytz
 
 from sentry import analytics
 from sentry.db.models import Model
+from sentry.eventstore.models import Event
 from sentry.models import Release, ReleaseCommit, Team, User, UserOption
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.notifications.notifications.base import ProjectNotification
@@ -171,8 +172,8 @@ class AlertRuleNotification(ProjectNotification):
         }
 
     def record_active_release_notification_sent(
-        self, participant: Team | User, event, provider: str, release_version: str
-    ):
+        self, participant: Team | User, event: Event, provider: str, release_version: str
+    ) -> None:
         suspect_committer_ids = [
             go.owner_id()
             for go in GroupOwner.objects.filter(
