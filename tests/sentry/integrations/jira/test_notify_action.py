@@ -33,7 +33,6 @@ class JiraCreateTicketActionTest(RuleTestCase):
             "https://example.atlassian.net/rest/api/2/project",
             body=StubService.get_stub_json("jira", "project_list_response.json"),
             content_type="application/json",
-            match_querystring=False,
         )
 
         responses.add(
@@ -41,7 +40,6 @@ class JiraCreateTicketActionTest(RuleTestCase):
             "https://example.atlassian.net/rest/api/2/issue/createmeta",
             body=StubService.get_stub_json("jira", "createmeta_response.json"),
             content_type="json",
-            match_querystring=False,
         )
         jira_rule = self.get_rule(
             data={
@@ -76,7 +74,6 @@ class JiraCreateTicketActionTest(RuleTestCase):
             "https://example.atlassian.net/rest/api/2/issue/APP-123",
             body=StubService.get_stub_json("jira", "get_issue_response.json"),
             content_type="application/json",
-            match_querystring=False,
         )
 
         results = list(jira_rule.after(event=event, state=self.get_state()))

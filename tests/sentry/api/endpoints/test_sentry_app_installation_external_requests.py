@@ -1,6 +1,7 @@
 import responses
 from django.urls import reverse
 from django.utils.http import urlencode
+from responses.matchers import query_string_matcher
 
 from sentry.testutils import APITestCase
 from sentry.utils import json
@@ -30,11 +31,15 @@ class SentryAppInstallationExternalRequestsEndpointTest(APITestCase):
         options = [{"label": "Project Name", "value": "1234"}]
         responses.add(
             method=responses.GET,
-            url=f"https://example.com/get-projects?projectSlug={self.project.slug}&installationId={self.install.uuid}&query=proj",
+            url="https://example.com/get-projects",
+            match=[
+                query_string_matcher(
+                    f"projectSlug={self.project.slug}&installationId={self.install.uuid}&query=proj"
+                )
+            ],
             json=options,
             status=200,
             content_type="application/json",
-            match_querystring=True,
         )
         url = self.url + f"?projectId={self.project.id}&uri=/get-projects&query=proj"
         response = self.client.get(url, format="json")
@@ -45,27 +50,31 @@ class SentryAppInstallationExternalRequestsEndpointTest(APITestCase):
     def test_makes_external_request_with_dependent_data(self):
         self.login_as(user=self.user)
         options = [{"label": "Project Name", "value": "1234"}]
-        query = {
-            "projectSlug": self.project.slug,
-            "installationId": self.install.uuid,
-            "query": "proj",
-            "dependentData": json.dumps({"org_id": "A"}),
-        }
+        qs = urlencode(
+            {
+                "projectSlug": self.project.slug,
+                "installationId": self.install.uuid,
+                "query": "proj",
+                "dependentData": json.dumps({"org_id": "A"}),
+            }
+        )
         responses.add(
             method=responses.GET,
-            url="https://example.com/get-projects?%s" % urlencode(query),
+            url="https://example.com/get-projects",
+            match=[query_string_matcher(qs)],
             json=options,
             status=200,
             content_type="application/json",
-            match_querystring=True,
         )
-        query = {
-            "projectId": self.project.id,
-            "uri": "/get-projects",
-            "query": "proj",
-            "dependentData": json.dumps({"org_id": "A"}),
-        }
-        url = f"{self.url}?{urlencode(query)}"
+        qs = urlencode(
+            {
+                "projectId": self.project.id,
+                "uri": "/get-projects",
+                "query": "proj",
+                "dependentData": json.dumps({"org_id": "A"}),
+            }
+        )
+        url = f"{self.url}?{qs}"
         response = self.client.get(url, format="json")
         assert response.status_code == 200
         assert response.data == {"choices": [["1234", "Project Name"]]}

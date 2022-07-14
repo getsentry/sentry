@@ -12,7 +12,7 @@ from unittest import mock
 
 import pytest
 import requests
-import responses as responses_mod  # type: ignore
+import responses as responses_mod
 
 from sentry.lang.native.appconnect import NoDsymUrl
 from sentry.utils import json

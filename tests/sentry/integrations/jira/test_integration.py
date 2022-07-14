@@ -421,7 +421,6 @@ class JiraIntegrationTest(APITestCase):
             responses.GET,
             "https://example.atlassian.net/rest/api/2/project",
             content_type="json",
-            match_querystring=False,
             body="{}",
         )
         with pytest.raises(IntegrationError):
@@ -439,7 +438,6 @@ class JiraIntegrationTest(APITestCase):
             responses.GET,
             "https://example.atlassian.net/rest/api/2/project",
             content_type="json",
-            match_querystring=False,
             body="""[
                 {"id": "10000", "key": "SAMP"}
             ]""",
@@ -449,7 +447,6 @@ class JiraIntegrationTest(APITestCase):
             responses.GET,
             "https://example.atlassian.net/rest/api/2/issue/createmeta",
             content_type="json",
-            match_querystring=False,
             status=401,
             body="",
         )
@@ -500,14 +497,12 @@ class JiraIntegrationTest(APITestCase):
             "https://example.atlassian.net/rest/api/2/issue/createmeta",
             body=StubService.get_stub_json("jira", "createmeta_response.json"),
             content_type="json",
-            match_querystring=False,
         )
         responses.add(
             responses.GET,
             "https://example.atlassian.net/rest/api/2/issue/APP-123",
             body=StubService.get_stub_json("jira", "get_issue_response.json"),
             content_type="json",
-            match_querystring=False,
         )
 
         def responder(request):
@@ -524,7 +519,6 @@ class JiraIntegrationTest(APITestCase):
             responses.POST,
             "https://example.atlassian.net/rest/api/2/issue",
             callback=responder,
-            match_querystring=False,
         )
 
         result = installation.create_issue(
@@ -582,9 +576,8 @@ class JiraIntegrationTest(APITestCase):
             responses.GET,
             "https://example.atlassian.net/rest/api/2/user/assignable/search",
             json=[{"accountId": "deadbeef123", "emailAddress": "Bob@example.com"}],
-            match_querystring=False,
         )
-        responses.add(responses.PUT, assign_issue_url, json={}, match_querystring=False)
+        responses.add(responses.PUT, assign_issue_url, json={})
         installation.sync_assignee_outbound(external_issue, self.user)
 
         assert len(responses.calls) == 2
@@ -607,7 +600,6 @@ class JiraIntegrationTest(APITestCase):
             responses.GET,
             "https://example.atlassian.net/rest/api/2/user/assignable/search",
             json=[{"accountId": "deadbeef123", "displayName": "Dead Beef"}],
-            match_querystring=False,
         )
         installation.sync_assignee_outbound(external_issue, self.user)
 
@@ -628,16 +620,14 @@ class JiraIntegrationTest(APITestCase):
             responses.GET,
             "https://example.atlassian.net/rest/api/2/user/assignable/search",
             json=[{"accountId": "deadbeef123", "displayName": "Dead Beef", "emailAddress": ""}],
-            match_querystring=False,
         )
 
         responses.add(
             responses.GET,
             "https://example.atlassian.net/rest/api/3/user/email",
             json={"accountId": "deadbeef123", "email": "bob@example.com"},
-            match_querystring=False,
         )
-        responses.add(responses.PUT, assign_issue_url, json={}, match_querystring=False)
+        responses.add(responses.PUT, assign_issue_url, json={})
 
         installation.sync_assignee_outbound(external_issue, self.user)
 

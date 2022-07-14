@@ -80,7 +80,6 @@ class GitLabPluginTest(PluginTestCase):
             responses.GET,
             "https://gitlab.com/api/v4/projects/getsentry%2Fsentry/issues/1",
             body='{"iid": 1, "id": "10", "title": "Hello world"}',
-            match_querystring=True,
         )
         responses.add(
             responses.POST,

@@ -4,6 +4,7 @@ import pytest
 import responses
 from django.test import RequestFactory
 from exam import fixture
+from responses.matchers import query_string_matcher
 
 from fixtures.vsts import (
     GET_PROJECTS_RESPONSE,
@@ -230,14 +231,13 @@ class VstsIssueSyncTest(VstsIssueBase):
                 ]
             },
             headers={"X-MS-ContinuationToken": "continuation-token"},
-            match_querystring=True,
         )
         responses.add(
             responses.GET,
-            "https://fabrikam-fiber-inc.vssps.visualstudio.com/_apis/graph/users?continuationToken=continuation-token",
+            "https://fabrikam-fiber-inc.vssps.visualstudio.com/_apis/graph/users",
+            match=[query_string_matcher("continuationToken=continuation-token")],
             body=GET_USERS_RESPONSE,
             content_type="application/json",
-            match_querystring=True,
         )
 
         user = self.create_user("ftotten@vscsi.us")

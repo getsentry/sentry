@@ -49,7 +49,6 @@ class JiraWebhooksTest(APITestCase):
             responses.GET,
             "https://example.atlassian.net/rest/api/3/user/email",
             json={"accountId": "deadbeef123", "email": self.user.email},
-            match_querystring=False,
         )
 
         with patch(
@@ -69,7 +68,6 @@ class JiraWebhooksTest(APITestCase):
             responses.GET,
             "https://example.atlassian.net/rest/api/3/user/email",
             status=500,
-            match_querystring=False,
         )
 
         with patch(

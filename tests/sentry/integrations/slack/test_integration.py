@@ -1,6 +1,7 @@
 from urllib.parse import parse_qs, urlencode, urlparse
 
 import responses
+from responses.matchers import query_string_matcher
 
 from sentry import audit_log
 from sentry.integrations.slack import SlackIntegration, SlackIntegrationProvider
@@ -57,8 +58,8 @@ class SlackIntegrationTest(IntegrationTestCase):
 
         responses.add(
             method=responses.GET,
-            url=f"https://slack.com/api/users.list?limit={SLACK_GET_USERS_PAGE_SIZE}",
-            match_querystring=True,
+            url="https://slack.com/api/users.list",
+            match=[query_string_matcher(f"limit={SLACK_GET_USERS_PAGE_SIZE}")],
             json={
                 "ok": True,
                 "members": [
@@ -224,8 +225,8 @@ class SlackIntegrationPostInstallTest(APITestCase):
 
         responses.add(
             method=responses.GET,
-            url=f"https://slack.com/api/users.list?limit={SLACK_GET_USERS_PAGE_SIZE}",
-            match_querystring=True,
+            url="https://slack.com/api/users.list",
+            match=[query_string_matcher(f"limit={SLACK_GET_USERS_PAGE_SIZE}")],
             json={
                 "ok": True,
                 "members": [
