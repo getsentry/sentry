@@ -107,7 +107,7 @@ jobs:
     needs: files-changed
     name: acceptance
     runs-on: ubuntu-20.04
-    timeout-minutes: 20
+    timeout-minutes: 25
     strategy:
       # This helps not having to run multiple jobs because one fails, thus, reducing resource usage
       # and reducing the risk that one of many runs would turn red again (read: intermittent tests)
@@ -157,7 +157,6 @@ jobs:
         id: setup
         with:
           python-version: ${{ matrix.python-version }}
-          pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
           snuba: true
           pg-version: ${{ matrix.pg-version }}
 
@@ -213,7 +212,6 @@ jobs:
         id: setup
         with:
           python-version: ${{ matrix.python-version }}
-          pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
           chartcuterie: true
 
       - name: yarn cache

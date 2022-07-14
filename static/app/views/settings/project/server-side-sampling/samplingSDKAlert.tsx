@@ -6,25 +6,29 @@ import Button from 'sentry/components/button';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import {Organization} from 'sentry/types';
 import {RecommendedSdkUpgrade, SamplingRule} from 'sentry/types/sampling';
 
-import {RecommendedStepsModal} from './modals/recommendedStepsModal';
+import {
+  RecommendedStepsModal,
+  RecommendedStepsModalProps,
+} from './modals/recommendedStepsModal';
 import {isUniformRule} from './utils';
 
-type Props = {
+type Props = Pick<RecommendedStepsModalProps, 'projectId' | 'onReadDocs'> & {
   organization: Organization;
   recommendedSdkUpgrades: RecommendedSdkUpgrade[];
   rules: SamplingRule[];
-  project?: Project;
+
   showLinkToTheModal?: boolean;
 };
 
 export function SamplingSDKAlert({
   organization,
-  project,
+  projectId,
   recommendedSdkUpgrades,
   rules,
+  onReadDocs,
   showLinkToTheModal = true,
 }: Props) {
   if (recommendedSdkUpgrades.length === 0) {
@@ -35,8 +39,9 @@ export function SamplingSDKAlert({
     openModal(modalProps => (
       <RecommendedStepsModal
         {...modalProps}
+        onReadDocs={onReadDocs}
         organization={organization}
-        project={project}
+        projectId={projectId}
         recommendedSdkUpgrades={recommendedSdkUpgrades}
       />
     ));
