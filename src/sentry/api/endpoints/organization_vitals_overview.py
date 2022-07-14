@@ -1,6 +1,8 @@
 from datetime import timedelta
+from typing import Sequence
 
 from django.conf import settings
+from django.core.cache import cache
 from django.http import Http404
 from django.utils import timezone
 from rest_framework.request import Request
@@ -53,6 +55,51 @@ NO_RESULT_RESPONSE = {
 }
 
 
+# one day cache
+CACHE_TTL = 24 * 60 * 60
+
+
+def get_vital_data_for_org_no_cache(organization: Organization, projects: Sequence[Project]):
+    project_ids = list(map(lambda x: x.id, projects))
+
+    def get_discover_result(columns, referrer):
+        result = discover.query(
+            query="transaction.duration:<15m transaction.op:pageload event.type:transaction",
+            selected_columns=columns,
+            limit=settings.ORGANIZATION_VITALS_OVERVIEW_PROJECT_LIMIT,
+            params={
+                "start": timezone.now() - timedelta(days=7),
+                "end": timezone.now(),
+                "organization_id": organization.id,
+                "project_id": list(project_ids),
+            },
+            referrer=referrer,
+        )
+        return result["data"]
+
+    org_data = get_discover_result(BASIC_COLUMNS, "api.organization-vitals")
+    # no data at all for any vital
+    if not org_data:
+        return (None, None)
+
+    # get counts by project
+    project_data = get_discover_result(
+        ["project_id"] + BASIC_COLUMNS, "api.organization-vitals-per-project"
+    )
+    return (org_data, project_data)
+
+
+def get_vital_data_for_org(organization: Organization, projects: Sequence[Project]):
+    # cache is unique to an org
+    cache_key = f"organization-vitals-overview:{organization.id}"
+    cache_value = cache.get(cache_key)
+    # cache miss, lookup and store value
+    if cache_value is None:
+        cache_value = get_vital_data_for_org_no_cache(organization, projects)
+        cache.set(cache_key, cache_value, CACHE_TTL)
+    return cache_value
+
+
 class OrganizationVitalsOverviewEndpoint(OrganizationEventsEndpointBase):
     private = True
 
@@ -73,37 +120,18 @@ class OrganizationVitalsOverviewEndpoint(OrganizationEventsEndpointBase):
         if len(projects) >= settings.ORGANIZATION_VITALS_OVERVIEW_PROJECT_LIMIT:
             return self.respond(NO_RESULT_RESPONSE)
 
-        project_ids = list(map(lambda x: x.id, projects))
-
-        def get_discover_result(columns, referrer):
-            result = discover.query(
-                query="transaction.duration:<15m transaction.op:pageload event.type:transaction",
-                selected_columns=columns,
-                limit=settings.ORGANIZATION_VITALS_OVERVIEW_PROJECT_LIMIT,
-                params={
-                    "start": timezone.now() - timedelta(days=7),
-                    "end": timezone.now(),
-                    "organization_id": organization.id,
-                    "project_id": list(project_ids),
-                },
-                referrer=referrer,
-            )
-            return result["data"]
-
         with self.handle_query_errors():
-            org_data = get_discover_result(BASIC_COLUMNS, "api.organization-vitals")
+            # find data we might have cahced
+            org_data, project_data = get_vital_data_for_org(organization, projects)
             # no data at all for any vital
             if not org_data:
                 return self.respond(NO_RESULT_RESPONSE)
+
+            # take data and transform output
             output = {}
             # only a single result
             for key, val in org_data[0].items():
                 output[NAME_MAPPING[key]] = val
-
-            # get counts by project
-            project_data = get_discover_result(
-                ["project_id"] + BASIC_COLUMNS, "api.organization-vitals-per-project"
-            )
 
             # check access for project level data
             access_by_project = get_access_by_project(projects, request.user)
