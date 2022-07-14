@@ -94,7 +94,10 @@ class Deploy(Model):
                 activity.send_notification()
                 deploy.update(notified=True)
                 # XXX(workflow): delete this after WF 2.0 experiment over
-                org = Organization.objects.filter(id=deploy.organization_id).first()
+                try:
+                    org = Organization.objects.get_from_cache(id=deploy.organization_id)
+                except Organization.DoesNotExist:
+                    org = None
                 if org and features.has("organizations:active-release-monitor-alpha", org):
                     ReleaseActivity.objects.create(
                         type=ReleaseActivity.Type.deployed,
