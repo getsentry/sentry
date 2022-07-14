@@ -33,7 +33,12 @@ function mockMeasurementsMeta() {
 
 describe('useCustomMeasurements', function () {
   it('provides customMeasurements from the custom measurements context', async function () {
-    const {organization} = initializeOrg();
+    const {organization} = initializeOrg({
+      organization: {features: ['dashboard-custom-measurement-widgets']},
+      project: undefined,
+      projects: [],
+      router: {},
+    });
     const measurementsMetaMock = mockMeasurementsMeta();
     render(
       <CustomMeasurementsProvider organization={organization}>

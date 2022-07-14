@@ -57,34 +57,37 @@ export function CustomMeasurementsProvider({
   useEffect(() => {
     let shouldCancelRequest = false;
 
-    fetchCustomMeasurements(api, organization, selection)
-      .then(response => {
-        if (shouldCancelRequest) {
-          return;
-        }
+    if (organization.features.includes('dashboard-custom-measurement-widgets')) {
+      fetchCustomMeasurements(api, organization, selection)
+        .then(response => {
+          if (shouldCancelRequest) {
+            return;
+          }
 
-        const newCustomMeasurements = Object.keys(
-          response
-        ).reduce<CustomMeasurementCollection>((acc, customMeasurement) => {
-          acc[customMeasurement] = {
-            key: customMeasurement,
-            name: customMeasurement,
-            functions: response[customMeasurement].functions,
-          };
-          return acc;
-        }, {});
+          const newCustomMeasurements = Object.keys(
+            response
+          ).reduce<CustomMeasurementCollection>((acc, customMeasurement) => {
+            acc[customMeasurement] = {
+              key: customMeasurement,
+              name: customMeasurement,
+              functions: response[customMeasurement].functions,
+            };
+            return acc;
+          }, {});
 
-        setState({customMeasurements: newCustomMeasurements});
-      })
-      .catch(e => {
-        if (shouldCancelRequest) {
-          return;
-        }
+          setState({customMeasurements: newCustomMeasurements});
+        })
+        .catch(e => {
+          if (shouldCancelRequest) {
+            return;
+          }
 
-        const errorResponse = e?.responseJSON ?? t('Unable to fetch custom measurements');
-        addErrorMessage(errorResponse);
-        handleXhrErrorResponse(errorResponse)(e);
-      });
+          const errorResponse =
+            e?.responseJSON ?? t('Unable to fetch custom measurements');
+          addErrorMessage(errorResponse);
+          handleXhrErrorResponse(errorResponse)(e);
+        });
+    }
 
     return () => {
       shouldCancelRequest = true;
