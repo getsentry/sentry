@@ -136,8 +136,8 @@ class MailAdapterActiveReleaseTest(BaseMailAdapterTest):
                 release_version="2",
                 recipient_email="test@example.com",
                 recipient_username="foo",
-                suspect_committer_ids=["user:1"],
-                code_owner_ids=[1],
+                suspect_committer_ids=[f"user:{new_user.id}"],
+                code_owner_ids=[new_user.id],
                 team_ids=[self.team.id],
             )
         ]
