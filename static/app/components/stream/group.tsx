@@ -366,6 +366,7 @@ class StreamGroup extends Component<Props, State> {
     return (
       <Wrapper
         data-test-id="group"
+        data-test-reviewed={reviewed}
         onClick={displayReprocessingLayout ? undefined : this.toggleSelect}
         reviewed={reviewed}
         unresolved={data.status === 'unresolved'}
