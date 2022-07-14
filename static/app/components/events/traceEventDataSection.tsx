@@ -1,4 +1,4 @@
-import {createContext, Fragment, useState} from 'react';
+import {AnchorHTMLAttributes, createContext, Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
@@ -56,7 +56,6 @@ type Props = {
   stackType: STACK_TYPE;
   title: React.ReactNode;
   type: string;
-  showPermalink?: boolean;
   wrapTitle?: boolean;
 };
 
@@ -67,7 +66,6 @@ export const TraceEventDataSectionContext = createContext<ChildProps | undefined
 export function TraceEventDataSection({
   type,
   title,
-  showPermalink,
   wrapTitle,
   stackTraceNotFound,
   fullStackTrace,
@@ -188,18 +186,7 @@ export function TraceEventDataSection({
       type={type}
       title={
         <Header>
-          <Title>
-            {showPermalink ? (
-              <div>
-                <Permalink href={'#' + type} className="permalink">
-                  <StyledIconAnchor />
-                  {title}
-                </Permalink>
-              </div>
-            ) : (
-              title
-            )}
-          </Title>
+          <Title>{title}</Title>
           {!stackTraceNotFound && (
             <Fragment>
               {!state.display.includes('raw-stack-trace') && (
@@ -277,6 +264,21 @@ export function TraceEventDataSection({
   );
 }
 
+interface PermalinkTitleProps
+  extends React.DetailedHTMLProps<
+    AnchorHTMLAttributes<HTMLAnchorElement>,
+    HTMLAnchorElement
+  > {}
+
+export function PermalinkTitle(props: PermalinkTitleProps) {
+  return (
+    <Permalink href={'#' + props.type} className="permalink" {...props}>
+      <StyledIconAnchor />
+      {t('Stack Trace')}
+    </Permalink>
+  );
+}
+
 const StyledIconAnchor = styled(IconAnchor)`
   display: none;
   position: absolute;
@@ -287,7 +289,8 @@ const StyledIconAnchor = styled(IconAnchor)`
 const Permalink = styled('a')`
   display: inline-flex;
   justify-content: flex-start;
-  :hover ${StyledIconAnchor} {
+
+  &:hover ${StyledIconAnchor} {
     display: block;
     color: ${p => p.theme.gray300};
   }
