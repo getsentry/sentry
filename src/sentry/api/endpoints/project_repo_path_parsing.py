@@ -7,7 +7,6 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.integrations import IntegrationFeatures
 from sentry.models import Integration, Repository
-from sentry.utils.compat import map
 
 
 def find_roots(stack_path, source_path):
@@ -43,10 +42,9 @@ class PathMappingSerializer(CamelSnakeSerializer):
 
     @property
     def providers(self):
-        providers = filter(
-            lambda x: x.has_feature(IntegrationFeatures.STACKTRACE_LINK), list(integrations.all())
-        )
-        return map(lambda x: x.key, providers)
+        return [
+            x.key for x in integrations.all() if x.has_feature(IntegrationFeatures.STACKTRACE_LINK)
+        ]
 
     @property
     def org_id(self):
