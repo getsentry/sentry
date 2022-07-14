@@ -18,7 +18,7 @@ import {t} from 'sentry/locale';
 import {inputStyles} from 'sentry/styles/input';
 import space from 'sentry/styles/space';
 import {Organization, Team} from 'sentry/types';
-import {logExperiment, trackAnalyticsEvent} from 'sentry/utils/analytics';
+import {logExperiment} from 'sentry/utils/analytics';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import getPlatformName from 'sentry/utils/getPlatformName';
 import slugify from 'sentry/utils/slugify';
@@ -73,11 +73,6 @@ class CreateProject extends Component<Props, State> {
     };
   }
 
-  get defaultCategory() {
-    const {query} = this.props.location;
-    return getCategoryName(query.category);
-  }
-
   componentDidMount() {
     trackAdvancedAnalyticsEvent('project_creation_page.viewed', {
       organization: this.props.organization,
@@ -86,6 +81,11 @@ class CreateProject extends Component<Props, State> {
       key: 'MetricAlertOnProjectCreationExperiment',
       organization: this.props.organization,
     });
+  }
+
+  get defaultCategory() {
+    const {query} = this.props.location;
+    return getCategoryName(query.category);
   }
 
   renderProjectForm() {
