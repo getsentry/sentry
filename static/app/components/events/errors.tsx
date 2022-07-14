@@ -6,7 +6,7 @@ import uniqWith from 'lodash/uniqWith';
 
 import {Client} from 'sentry/api';
 import Alert from 'sentry/components/alert';
-import ErrorItem from 'sentry/components/events/errorItem';
+import {ErrorItem, ErrorItemProps} from 'sentry/components/events/errorItem';
 import List from 'sentry/components/list';
 import {JavascriptProcessingErrors} from 'sentry/constants/eventErrors';
 import {t, tn} from 'sentry/locale';
@@ -18,7 +18,7 @@ import {DataSection} from './styles';
 
 const MAX_ERRORS = 100;
 
-export type Error = ErrorItem['props']['error'];
+export type Error = ErrorItemProps['error'];
 
 type Props = {
   api: Client;
