@@ -48,6 +48,7 @@ type Props = WithRouterProps & {
   }) => React.ReactElement;
   customLoadingIndicator?: React.ReactNode;
   detached?: boolean;
+  disabled?: boolean;
   forceEnvironment?: string;
   /**
    * Show the pin button in the dropdown's header actions
@@ -71,6 +72,7 @@ function EnvironmentSelector({
   customDropdownButton,
   customLoadingIndicator,
   detached,
+  disabled,
   forceEnvironment,
   router,
   showPin,
@@ -238,6 +240,7 @@ function EnvironmentSelector({
           closeOnSelect
           blendCorner={false}
           detached={detached}
+          disabled={disabled}
           searchPlaceholder={t('Filter environments')}
           onSelect={handleQuickSelect}
           onClose={handleMenuClose}

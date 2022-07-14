@@ -9,7 +9,11 @@ import {t} from 'sentry/locale';
 import {Release} from 'sentry/types';
 import {useReleases} from 'sentry/utils/releases/releasesProvider';
 
-function ReleasesSelectControl() {
+type Props = {
+  isDisabled?: boolean;
+};
+
+function ReleasesSelectControl({isDisabled}: Props) {
   const {releases, loading} = useReleases();
   const [selectedReleases, setSelectedReleases] = useState<Release[]>([]);
 
@@ -24,6 +28,7 @@ function ReleasesSelectControl() {
       multiple
       isClearable
       isSearchable
+      isDisabled={isDisabled}
       isLoading={loading}
       menuTitle={t('Filter Releases')}
       options={

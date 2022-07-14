@@ -30,7 +30,7 @@ type Props = Omit<
     resetParamsOnChange?: string[];
   };
 
-function DatePageFilter({router, resetParamsOnChange, ...props}: Props) {
+function DatePageFilter({router, resetParamsOnChange, disabled, ...props}: Props) {
   const {selection, desyncedFilters} = usePageFilters();
   const organization = useOrganization();
   const {start, end, period, utc} = selection.datetime;
@@ -69,6 +69,7 @@ function DatePageFilter({router, resetParamsOnChange, ...props}: Props) {
     return (
       <PageFilterDropdownButton
         detached
+        disabled={disabled}
         hideBottomBorder={false}
         isOpen={isOpen}
         highlighted={desyncedFilters.has('datetime')}
@@ -94,6 +95,7 @@ function DatePageFilter({router, resetParamsOnChange, ...props}: Props) {
       utc={utc}
       onUpdate={handleUpdate}
       customDropdownButton={customDropdownButton}
+      disabled={disabled}
       showPin
       detached
       {...props}

@@ -131,6 +131,11 @@ type Props = WithRouterProps & {
   detached?: boolean;
 
   /**
+   * Disable the dropdown
+   */
+  disabled?: boolean;
+
+  /**
    * Small info icon with tooltip hint text
    */
   hint?: string;
@@ -398,6 +403,7 @@ class TimeRangeSelector extends PureComponent<Props, State> {
       maxPickableDays,
       customDropdownButton,
       detached,
+      disabled,
       alignDropdown,
       showPin,
     } = this.props;
@@ -438,6 +444,7 @@ class TimeRangeSelector extends PureComponent<Props, State> {
                 blendCorner={false}
                 maxHeight={400}
                 detached={detached}
+                disabled={disabled}
                 items={items}
                 searchPlaceholder={t('Filter time range')}
                 rootClassName={css`
