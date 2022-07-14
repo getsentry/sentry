@@ -40,11 +40,11 @@ function Content({
 
   const children = values.map((exc, excIdx) => (
     <div key={excIdx} className="exception">
-      <ExceptionTitle type={exc.type} exceptionModule={exc?.module} />
+      {/* <ExceptionTitle type={exc.type} exceptionModule={exc?.module} />
       <Annotated object={exc} objectKey="value" required>
         {value => <StyledPre className="exc-message">{value}</StyledPre>}
       </Annotated>
-      {exc.mechanism && <Mechanism data={exc.mechanism} />}
+      {exc.mechanism && <Mechanism data={exc.mechanism} />} */}
       <StackTrace
         data={
           type === STACK_TYPE.ORIGINAL

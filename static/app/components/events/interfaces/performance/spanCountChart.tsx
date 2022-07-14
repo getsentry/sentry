@@ -1,5 +1,4 @@
 import {useState} from 'react';
-import maxBy from 'lodash/maxBy';
 
 import {BarChart} from 'sentry/components/charts/barChart';
 import BarChartZoom from 'sentry/components/charts/barChartZoom';
@@ -49,7 +48,6 @@ export function SpanCountChart({issue, event, location, organization}: any) {
     };
 
     const colors = [theme.charts.previousPeriod, '#444674'];
-    console.log(colors);
     // Use a custom tooltip formatter as we need to replace
     // the tooltip content entirely when zooming is no longer available.
     const tooltip = {
@@ -108,13 +106,14 @@ export function SpanCountChart({issue, event, location, organization}: any) {
       >
         {zoomRenderProps => (
           <BarChart
-            grid={{left: '10px', right: '10px', top: '40px', bottom: '0px'}}
+            grid={{left: '0', right: '0', top: '0', bottom: '0'}}
             xAxis={xAxis}
-            yAxis={{type: 'value'}}
+            yAxis={{type: 'value', show: false}}
             series={[series, fakeSeries(series)]}
             tooltip={tooltip}
             colors={colors}
             onMouseOver={handleMouseOver}
+            height={200}
             {...zoomRenderProps}
           />
         )}

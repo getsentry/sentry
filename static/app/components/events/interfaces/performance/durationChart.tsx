@@ -8,6 +8,8 @@ import {DateString, Group, Organization} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
 import Chart from 'sentry/views/performance/charts/chart';
 
+import {allEventsData} from './fakeData';
+
 interface Props {
   event: any;
   issue: Group;
@@ -24,9 +26,11 @@ export function DurationChart({issue, event, organization}: Props) {
   const api1 = useApi();
   const [now] = useState<DateString>(new Date());
 
-  const diff = moment(now).diff(issue.firstSeen);
-  const start = moment(issue.firstSeen).subtract(diff).format();
-  const interval = getInterval({start, end: now});
+  // const diff = moment(now).diff(issue.firstSeen);
+  // const start = moment(issue.firstSeen).subtract(diff).format();
+  const start = '2022-07-08T04:00:00';
+  const end = '2022-07-12T12:00:59';
+  const interval = getInterval({start, end});
 
   return (
     <EventsRequest
@@ -34,7 +38,7 @@ export function DurationChart({issue, event, organization}: Props) {
       project={[1]}
       environment={[]}
       start={start}
-      end={now}
+      end={end}
       query={allEventsQuery}
       organization={organization}
       yAxis={['p75(transaction.duration)']}
@@ -49,7 +53,7 @@ export function DurationChart({issue, event, organization}: Props) {
           project={[1]}
           environment={[]}
           start={issue.firstSeen}
-          end={now}
+          end={end}
           query={affectedEventsQuery}
           organization={organization}
           yAxis={['p75(transaction.duration)']}
@@ -73,8 +77,11 @@ export function DurationChart({issue, event, organization}: Props) {
 }
 
 function Content({allEvents, affectedEvents, start, end}) {
+  console.log(allEvents);
+  console.log('pooop', allEventsData);
   return (
     <Chart
+      grid={{left: '0', right: '0', top: '0', bottom: '0px'}}
       useShortDate
       router={{}}
       loading={false}
@@ -82,9 +89,11 @@ function Content({allEvents, affectedEvents, start, end}) {
       utc
       isLineChart
       data={affectedEvents}
-      previousData={allEvents}
+      previousData={allEventsData}
       start={start}
       end={end}
+      disableMultiAxis
+      height={200}
     />
   );
 }

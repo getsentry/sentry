@@ -45,6 +45,8 @@ function EventEntry({
     'native-stack-trace-v2'
   );
 
+  group = {...group, firstSeen: '2022-07-11T13:15:11'};
+
   const groupingCurrentLevel = group?.metadata?.current_level;
 
   switch (entry.type) {

@@ -73,7 +73,6 @@ function Chart({
   definedAxisTicks,
   chartColors,
   isLineChart,
-  useShortDate,
 }: Props) {
   const theme = useTheme();
 
@@ -150,22 +149,7 @@ function Chart({
     seriesOptions: {
       showSymbol: false,
     },
-    grid: disableMultiAxis
-      ? grid
-      : [
-          {
-            top: '8px',
-            left: '24px',
-            right: '52%',
-            bottom: '16px',
-          },
-          {
-            top: '8px',
-            left: '52%',
-            right: '24px',
-            bottom: '16px',
-          },
-        ],
+    grid,
     axisPointer,
     xAxes,
     yAxes,
@@ -219,12 +203,13 @@ function Chart({
         if (isLineChart) {
           return (
             <LineChart
+              grid={{left: '0', right: '0', top: '0', bottom: '0'}}
               height={height}
               {...zoomRenderProps}
               series={series}
               previousPeriod={previousData}
               xAxis={xAxis}
-              yAxis={areaChartProps.yAxes[0]}
+              yAxis={{...areaChartProps.yAxes[0], show: false}}
               tooltip={areaChartProps.tooltip}
               useShortDate
             />

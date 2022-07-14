@@ -181,7 +181,7 @@ class GroupDetails extends Component<Props, State> {
 
     const updatedEvent = {
       ...event,
-      entries: [performanceEntry, spanTreeEntry, ...event.entries],
+      entries: [performanceEntry, event.entries[0], spanTreeEntry, event.entries[1]],
     };
     return updatedEvent;
   }
@@ -385,7 +385,10 @@ class GroupDetails extends Component<Props, State> {
         return;
       }
 
-      this.setState({group: updatedGroup, loadingGroup: false});
+      this.setState({
+        group: {...updatedGroup, firstSeen: '2022-07-11T13:15:11'},
+        loadingGroup: false,
+      });
     } catch (error) {
       this.handleRequestError(error);
     }

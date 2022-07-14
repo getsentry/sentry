@@ -50,7 +50,7 @@ const GroupReleaseStats = ({
   const releaseTrackingUrl = `/settings/${organization.slug}/projects/${project.slug}/release-tracking/`;
 
   return (
-    <div>
+    <div style={{display: 'none'}}>
       {!group || !allEnvironments ? (
         <Placeholder height="288px" />
       ) : (
