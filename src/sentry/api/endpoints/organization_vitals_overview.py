@@ -121,7 +121,7 @@ class OrganizationVitalsOverviewEndpoint(OrganizationEventsEndpointBase):
             return self.respond(NO_RESULT_RESPONSE)
 
         with self.handle_query_errors():
-            # find data we might have cahced
+            # find data we might have cached
             org_data, project_data = get_vital_data_for_org(organization, projects)
             # no data at all for any vital
             if not org_data:
