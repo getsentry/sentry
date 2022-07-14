@@ -1,6 +1,9 @@
-import {Dispatch, ReactNode, useReducer} from 'react';
+import {Dispatch, ReactNode, useCallback, useReducer} from 'react';
+import {browserHistory} from 'react-router';
 
 import localStorage from 'sentry/utils/localStorage';
+import {decodeScalar} from 'sentry/utils/queryString';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import {createDefinedContext} from './utils';
@@ -43,6 +46,8 @@ export enum MEPState {
   transactionsOnly = 'transactionsOnly',
 }
 
+const METRIC_SETTING_PARAM = 'metricSetting';
+
 const storageKey = 'performance.metrics-enhanced-setting';
 export class MEPSetting {
   static get(): MEPState | null {
@@ -70,14 +75,37 @@ export const MEPSettingProvider = ({
   _hasMEPState?: MEPState;
 }) => {
   const organization = useOrganization();
+  const location = useLocation();
+
+  const allowedStates = [MEPState.auto, MEPState.metricsOnly, MEPState.transactionsOnly];
+  const _metricSettingFromParam = decodeScalar(location.query[METRIC_SETTING_PARAM]);
+
+  const metricSettingFromParam =
+    allowedStates.find(s => s === _metricSettingFromParam) ?? MEPState.auto;
+
   const canUseMEP = organization.features.includes('performance-use-metrics');
 
   const isControlledMEP = typeof _hasMEPState !== 'undefined';
 
-  const [_metricSettingState, setMetricSettingState] = useReducer(
+  const [_metricSettingState, _setMetricSettingState] = useReducer(
     (_: MEPState, next: MEPState) => next,
-    MEPState.auto
+    metricSettingFromParam
   );
+
+  const setMetricSettingState = useCallback(
+    (settingState: MEPState) => {
+      browserHistory.replace({
+        ...location,
+        query: {
+          ...location.query,
+          [METRIC_SETTING_PARAM]: settingState,
+        },
+      });
+      _setMetricSettingState(settingState);
+    },
+    [location, _setMetricSettingState]
+  );
+
   const [autoSampleState, setAutoSampleState] = useReducer(
     (_: AutoSampleState, next: AutoSampleState) => next,
     AutoSampleState.unset

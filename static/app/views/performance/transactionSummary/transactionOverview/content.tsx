@@ -274,10 +274,16 @@ function SummaryContent({
     handleOpenAllEventsClick: handleAllEventsViewClick,
   };
 
+  const FilterActionsContainer =
+    organization.features.includes('performance-use-metrics') &&
+    !organization.features.includes('performance-transaction-name-only-search')
+      ? FilterActionsWithMEP
+      : FilterActions;
+
   return (
     <Fragment>
       <Layout.Main>
-        <FilterActions>
+        <FilterActionsContainer>
           <Filter
             organization={organization}
             currentFilter={spanOperationBreakdownFilter}
@@ -297,7 +303,7 @@ function SummaryContent({
             maxQueryLength={MAX_QUERY_LENGTH}
           />
           <MetricsEventsDropdown />
-        </FilterActions>
+        </FilterActionsContainer>
         <TransactionSummaryCharts
           organization={organization}
           location={location}
@@ -490,6 +496,20 @@ const FilterActions = styled('div')`
 
   @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
     grid-template-columns: auto auto 1fr;
+  }
+`;
+
+const FilterActionsWithMEP = styled('div')`
+  display: grid;
+  gap: ${space(2)};
+  margin-bottom: ${space(2)};
+
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    grid-template-columns: repeat(2, min-content);
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
+    grid-template-columns: auto auto 1fr auto;
   }
 `;
 
