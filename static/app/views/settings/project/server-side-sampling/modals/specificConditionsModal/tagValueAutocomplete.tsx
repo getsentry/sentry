@@ -20,7 +20,6 @@ export interface TagValueAutocompleteProps {
   category:
     | SamplingInnerName.TRACE_ENVIRONMENT
     | SamplingInnerName.TRACE_RELEASE
-    | SamplingInnerName.TRACE_TRANSACTION
     | string;
   onChange: (value: string) => void;
   orgSlug: Organization['slug'];
@@ -46,8 +45,6 @@ function TagValueAutocomplete({
         return t('Search or add a release');
       case SamplingInnerName.TRACE_ENVIRONMENT:
         return t('Search or add an environment');
-      case SamplingInnerName.TRACE_TRANSACTION:
-        return t('Search or add a transaction');
       default:
         return undefined;
     }
@@ -113,7 +110,11 @@ function TagValueAutocomplete({
         // https://github.com/getsentry/relay/blob/d8223d8d03ed4764063855eb3480f22684163d92/relay-general/src/store/normalize.rs#L230-L236
         // In addition to that, it cannot contain a line-feed (newline) character
         // https://github.com/getsentry/relay/blob/d8223d8d03ed4764063855eb3480f22684163d92/relay-general/src/protocol/tags.rs#L8
-        return !/\\n/.test(newOption) && newOption.length <= 200;
+        return (
+          !/\\n/.test(newOption) &&
+          newOption.trim().length > 0 &&
+          newOption.trim().length <= 200
+        );
       }}
       placeholder={getMatchFieldPlaceholder(category)}
       inline={false}

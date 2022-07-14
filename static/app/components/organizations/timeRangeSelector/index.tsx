@@ -169,6 +169,7 @@ type Props = WithRouterProps & {
 type State = {
   hasChanges: boolean;
   hasDateRangeErrors: boolean;
+  inputValue: string;
   isOpen: boolean;
   relative: string | null;
   end?: Date;
@@ -194,6 +195,7 @@ class TimeRangeSelector extends PureComponent<Props, State> {
       // if utc is not null and not undefined, then use value of `props.utc` (it can be false)
       // otherwise if no value is supplied, the default should be the user's timezone preference
       utc: defined(props.utc) ? props.utc : getUserTimezone() === 'UTC',
+      inputValue: '',
       isOpen: false,
       hasChanges: false,
       hasDateRangeErrors: false,
@@ -237,7 +239,7 @@ class TimeRangeSelector extends PureComponent<Props, State> {
       // Only call update if we close when absolute date is selected
       this.handleUpdate({relative, start, end, utc});
     } else {
-      this.setState({isOpen: false});
+      this.setState({isOpen: false, inputValue: ''});
     }
   };
 
@@ -247,6 +249,7 @@ class TimeRangeSelector extends PureComponent<Props, State> {
     this.setState(
       {
         isOpen: false,
+        inputValue: '',
         hasChanges: false,
       },
       () => {
@@ -394,6 +397,10 @@ class TimeRangeSelector extends PureComponent<Props, State> {
     import('../timeRangeSelector/dateRange/index');
   };
 
+  onInputValueChange = inputValue => {
+    this.setState({inputValue});
+  };
+
   render() {
     const {
       defaultPeriod,
@@ -440,6 +447,8 @@ class TimeRangeSelector extends PureComponent<Props, State> {
                 allowActorToggle
                 alignMenu={alignDropdown ?? (isAbsoluteSelected ? 'right' : 'left')}
                 isOpen={this.state.isOpen}
+                inputValue={this.state.inputValue}
+                onInputValueChange={this.onInputValueChange}
                 onOpen={this.handleOpen}
                 onClose={this.handleCloseMenu}
                 hideInput={!shouldShowRelative}

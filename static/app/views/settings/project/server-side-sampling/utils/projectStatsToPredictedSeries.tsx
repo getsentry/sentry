@@ -15,12 +15,15 @@ import {quantityField} from '.';
 
 export function projectStatsToPredictedSeries(
   projectStats?: SeriesApi,
-  clientRate?: number,
-  serverRate?: number
+  client?: number,
+  server?: number
 ): Series[] {
-  if (!projectStats || !defined(clientRate) || !defined(serverRate)) {
+  if (!projectStats || !defined(client) || !defined(server)) {
     return [];
   }
+
+  const clientRate = Math.max(Math.min(client, 1), 0);
+  let serverRate = Math.max(Math.min(server, 1), 0);
 
   const commonSeriesConfig = {
     barMinHeight: 1,

@@ -9,67 +9,6 @@ import withOrganization from 'sentry/utils/withOrganization';
 
 import AuditLogList from './auditLogList';
 
-// Please keep this list sorted
-const EVENT_TYPES = [
-  'member.invite',
-  'member.add',
-  'member.accept-invite',
-  'member.remove',
-  'member.edit',
-  'member.join-team',
-  'member.leave-team',
-  'member.pending',
-  'team.create',
-  'team.edit',
-  'team.remove',
-  'project.create',
-  'project.edit',
-  'project.remove',
-  'project.set-public',
-  'project.set-private',
-  'project.request-transfer',
-  'project.accept-transfer',
-  'org.create',
-  'org.edit',
-  'org.remove',
-  'org.restore',
-  'tagkey.remove',
-  'projectkey.create',
-  'projectkey.edit',
-  'projectkey.remove',
-  'projectkey.enable',
-  'projectkey.disable',
-  'sso.enable',
-  'sso.disable',
-  'sso.edit',
-  'sso-identity.link',
-  'api-key.create',
-  'api-key.edit',
-  'api-key.remove',
-  'alertrule.create',
-  'alertrule.edit',
-  'alertrule.remove',
-  'rule.create',
-  'rule.edit',
-  'rule.remove',
-  'servicehook.create',
-  'servicehook.edit',
-  'servicehook.remove',
-  'servicehook.enable',
-  'servicehook.disable',
-  'integration.add',
-  'integration.edit',
-  'integration.remove',
-  'ondemand.edit',
-  'trial.started',
-  'plan.changed',
-  'plan.cancelled',
-  'sentry-app.add',
-  'sentry-app.remove',
-  'sentry-app.install',
-  'sentry-app.uninstall',
-];
-
 type Props = {
   organization: Organization;
 };
@@ -77,6 +16,7 @@ type Props = {
 type State = {
   entryList: AuditLog[] | null;
   entryListPageLinks: string | null;
+  eventTypes: string[] | null;
   isLoading: boolean;
   currentCursor?: string;
   eventType?: string;
@@ -86,6 +26,7 @@ function OrganizationAuditLog({organization}: Props) {
   const [state, setState] = useState<State>({
     entryList: [],
     entryListPageLinks: null,
+    eventTypes: [],
     isLoading: true,
   });
 
@@ -100,7 +41,7 @@ function OrganizationAuditLog({organization}: Props) {
 
   const fetchAuditLogData = useCallback(async () => {
     try {
-      const payload = {cursor: state.currentCursor, event: state.eventType};
+      const payload = {cursor: state.currentCursor, event: state.eventType, version: '2'};
       if (!payload.cursor) {
         delete payload.cursor;
       }
@@ -117,7 +58,8 @@ function OrganizationAuditLog({organization}: Props) {
       );
       setState(prevState => ({
         ...prevState,
-        entryList: data,
+        entryList: data.rows,
+        eventTypes: data.options.sort(),
         isLoading: false,
         entryListPageLinks: response?.getResponseHeader('Link') ?? null,
       }));
@@ -150,7 +92,7 @@ function OrganizationAuditLog({organization}: Props) {
         entries={state.entryList}
         pageLinks={state.entryListPageLinks}
         eventType={state.eventType}
-        eventTypes={EVENT_TYPES}
+        eventTypes={state.eventTypes}
         onEventSelect={handleEventSelect}
         isLoading={state.isLoading}
         onCursor={handleCursor}
