@@ -16,6 +16,8 @@ class OrganizationSentryFunctions(APITestCase):
         with Feature("organizations:sentry-functions"):
             response = self.get_success_response(self.organization.slug, **data)
             assert response.status_code == 201
+            assert response.data["name"] == "foo"
+            assert response.data["author"] == "bar"
 
     def test_post_feature_false(self):
         data = {"name": "foo", "author": "bar"}
