@@ -478,7 +478,13 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
 
             spans: NodeSpans = nodestore_event.data.get("spans", [])
             # Need to include the transaction as a span as well
-            spans.append({"span_id": snuba_event["trace.span"]})
+            #
+            # Important that we left pad the span id with 0s because
+            # the span id is stored as an UInt64 and converted into
+            # a hex string when quering. However, the conversion does
+            # not ensure that the final span id is 16 chars long since
+            # it's a naive base 10 to base 16 conversion.
+            spans.append({"span_id": snuba_event["trace.span"].rjust(16, "0")})
 
             for span in spans:
                 if span["span_id"] in error_map:
@@ -598,8 +604,15 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                 previous_event.nodestore_event = nodestore_event
 
                 spans: NodeSpans = nodestore_event.data.get("spans", [])
+
                 # Need to include the transaction as a span as well
-                spans.append({"span_id": previous_event.event["trace.span"]})
+                #
+                # Important that we left pad the span id with 0s because
+                # the span id is stored as an UInt64 and converted into
+                # a hex string when quering. However, the conversion does
+                # not ensure that the final span id is 16 chars long since
+                # it's a naive base 10 to base 16 conversion.
+                spans.append({"span_id": previous_event.event["trace.span"].rjust(16, "0")})
 
                 for child in spans:
                     if child["span_id"] in error_map:
