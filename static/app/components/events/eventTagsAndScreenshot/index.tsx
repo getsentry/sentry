@@ -58,7 +58,7 @@ function EventTagsAndScreenshots({
         />
       )}
       {showScreenshot && showTags && <Divider />}
-      {showTags && (
+      {/* {showTags && (
         <Tags
           organization={organization}
           event={event}
@@ -66,7 +66,7 @@ function EventTagsAndScreenshots({
           hasContext={hasContext}
           location={location}
         />
-      )}
+      )} */}
     </Wrapper>
   );
 }
