@@ -99,6 +99,11 @@ OP_TO_SNUBA_FUNCTION = {
     },
     "metrics_sets": {"count_unique": "uniqIf"},
 }
+OP_TO_SNUBA_FUNCTION["generic_metrics_distributions"] = OP_TO_SNUBA_FUNCTION[
+    "metrics_distributions"
+]
+OP_TO_SNUBA_FUNCTION["generic_metrics_counters"] = OP_TO_SNUBA_FUNCTION["metrics_counters"]
+OP_TO_SNUBA_FUNCTION["generic_metrics_sets"] = OP_TO_SNUBA_FUNCTION["metrics_sets"]
 
 
 def generate_operation_regex():
@@ -126,6 +131,9 @@ METRIC_TYPE_TO_ENTITY: Mapping[MetricType, EntityKey] = {
     "counter": EntityKey.MetricsCounters,
     "set": EntityKey.MetricsSets,
     "distribution": EntityKey.MetricsDistributions,
+    "generic_counter": EntityKey.GenericMetricsCounters,
+    "generic_set": EntityKey.GenericMetricsSets,
+    "generic_distribution": EntityKey.GenericMetricsDistributions,
 }
 
 FIELD_ALIAS_MAPPINGS = {"project": "project_id"}
@@ -189,7 +197,7 @@ UNALLOWED_TAGS = {"session.status"}
 DATASET_COLUMNS = {"project_id", "metric_id"}
 
 # Custom measurements are always extracted as a distribution
-CUSTOM_MEASUREMENT_DATASETS = {"distribution"}
+CUSTOM_MEASUREMENT_DATASETS = {"generic_distribution"}
 
 
 def combine_dictionary_of_list_values(main_dict, other_dict):
