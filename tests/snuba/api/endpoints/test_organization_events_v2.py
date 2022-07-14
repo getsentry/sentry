@@ -493,9 +493,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert response.data["detail"] == "Invalid Team ID: nan"
 
     def test_comparison_operators_on_numeric_field(self):
-        event = self.store_event(
-            {"timestamp": iso_format(before_now(minutes=10))}, project_id=self.project.id
-        )
+        event = self.store_event({"timestamp": self.ten_mins_ago}, project_id=self.project.id)
 
         query = {"field": ["issue"], "query": f"issue.id:>{event.group.id - 1}"}
         response = self.do_request(query)
@@ -509,9 +507,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert len(response.data["data"]) == 0
 
     def test_negation_on_numeric_field_excludes_issue(self):
-        event = self.store_event(
-            {"timestamp": iso_format(before_now(minutes=10))}, project_id=self.project.id
-        )
+        event = self.store_event({"timestamp": self.ten_mins_ago}, project_id=self.project.id)
 
         query = {"field": ["issue"], "query": f"issue.id:{event.group.id}"}
         response = self.do_request(query)
@@ -525,9 +521,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert len(response.data["data"]) == 0
 
     def test_negation_on_numeric_in_filter_excludes_issue(self):
-        event = self.store_event(
-            {"timestamp": iso_format(before_now(minutes=10))}, project_id=self.project.id
-        )
+        event = self.store_event({"timestamp": self.ten_mins_ago}, project_id=self.project.id)
 
         query = {"field": ["issue"], "query": f"issue.id:[{event.group.id}]"}
         response = self.do_request(query)
@@ -556,9 +550,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert len(response.data["data"]) == 0
 
     def test_has_issue(self):
-        event = self.store_event(
-            {"timestamp": iso_format(before_now(minutes=10))}, project_id=self.project.id
-        )
+        event = self.store_event({"timestamp": self.ten_mins_ago}, project_id=self.project.id)
 
         self.store_event(self.transaction_data, project_id=self.project.id)
 
@@ -615,9 +607,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
 
     @pytest.mark.skip("Cannot look up group_id of transaction events")
     def test_unknown_issue(self):
-        event = self.store_event(
-            {"timestamp": iso_format(before_now(minutes=10))}, project_id=self.project.id
-        )
+        event = self.store_event({"timestamp": self.ten_mins_ago}, project_id=self.project.id)
 
         self.store_event(self.transaction_data, project_id=self.project.id)
 
@@ -693,8 +683,6 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert "project.id" not in response.data["data"][0]
 
     def test_error_handled_condition(self):
-        self.login_as(user=self.user)
-        project = self.create_project()
         prototype = load_data("android-ndk")
         events = (
             ("a" * 32, "not handled", False),
@@ -707,7 +695,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             prototype["exception"]["values"][0]["value"] = event[1]
             prototype["exception"]["values"][0]["mechanism"]["handled"] = event[2]
             prototype["timestamp"] = self.ten_mins_ago
-            self.store_event(data=prototype, project_id=project.id)
+            self.store_event(data=prototype, project_id=self.project.id)
 
         with self.feature("organizations:discover-basic"):
             query = {
@@ -733,8 +721,6 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             assert [1] == response.data["data"][1]["error.handled"]
 
     def test_error_unhandled_condition(self):
-        self.login_as(user=self.user)
-        project = self.create_project()
         prototype = load_data("android-ndk")
         events = (
             ("a" * 32, "not handled", False),
@@ -747,7 +733,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             prototype["exception"]["values"][0]["value"] = event[1]
             prototype["exception"]["values"][0]["mechanism"]["handled"] = event[2]
             prototype["timestamp"] = self.ten_mins_ago
-            self.store_event(data=prototype, project_id=project.id)
+            self.store_event(data=prototype, project_id=self.project.id)
 
         with self.feature("organizations:discover-basic"):
             query = {
@@ -1578,7 +1564,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             name, threshold_config, misery = record
             assert data[i]["transaction"] == name
             assert data[i]["project_threshold_config"] == threshold_config
-            assert data[i]["user_misery"] == pytest.approx(misery, 1e-3)
+            assert data[i]["user_misery"] == pytest.approx(misery, rel=1e-3)
 
         query["query"] = "event.type:transaction user_misery():>0.050"
 
@@ -2688,7 +2674,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
     )
     def test_has_message(self):
         event = self.store_event(
-            {"timestamp": iso_format(before_now(minutes=1)), "message": "a"},
+            {"timestamp": self.ten_mins_ago, "message": "a"},
             project_id=self.project.id,
         )
 
@@ -2922,7 +2908,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         data = response.data["data"]
         assert len(data) == 1
-        assert iso_format(before_now(minutes=10))[:-5] in data[0]["last_seen"]
+        assert self.ten_mins_ago[:-5] in data[0]["last_seen"]
         assert data[0]["latest_event"] == event.event_id
 
         query = {
@@ -3562,7 +3548,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         event_data["contexts"]["trace"] = transaction_data["contexts"]["trace"]
         event_data["type"] = "transaction"
         event_data["transaction"] = "/failure_rate/1"
-        event_data["timestamp"] = iso_format(before_now(minutes=10))
+        event_data["timestamp"] = self.ten_mins_ago
         event_data["start_timestamp"] = iso_format(before_now(minutes=10, seconds=5))
         event_data["user"]["geo"] = {"country_code": "US", "region": "CA", "city": "San Francisco"}
         self.store_event(event_data, project_id=self.project.id)
@@ -3611,7 +3597,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         event_data["contexts"]["trace"] = transaction_data["contexts"]["trace"]
         event_data["type"] = "transaction"
         event_data["transaction"] = "/failure_rate/1"
-        event_data["timestamp"] = iso_format(before_now(minutes=10))
+        event_data["timestamp"] = self.ten_mins_ago
         event_data["start_timestamp"] = iso_format(before_now(minutes=10, seconds=5))
         event_data["user"]["geo"] = {"country_code": "US", "region": "CA", "city": "San Francisco"}
         event_data["request"] = transaction_data["request"]
@@ -3739,8 +3725,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 )
 
     def test_percentile_function_meta_types(self):
-        project = self.create_project()
-        self.store_event(self.transaction_data, project_id=project.id)
+        self.store_event(self.transaction_data, project_id=self.project.id)
 
         query = {
             "field": [
@@ -4452,9 +4437,8 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert len(response.data["data"]) == 0
 
     def test_filters_with_escaped_asterisk(self):
-        data = self.transaction_data.copy()
-        data["transaction"] = r"/:a*/:b-:c(\d\.\e+)"
-        self.store_event(data, project_id=self.project.id)
+        self.transaction_data["transaction"] = r"/:a*/:b-:c(\d\.\e+)"
+        self.store_event(self.transaction_data, project_id=self.project.id)
 
         query = {
             "field": ["transaction", "transaction.duration"],
@@ -4467,9 +4451,8 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert len(response.data["data"]) == 1
 
     def test_filters_with_back_slashes(self):
-        data = self.transaction_data.copy()
-        data["transaction"] = r"a\b\c@d"
-        self.store_event(data, project_id=self.project.id)
+        self.transaction_data["transaction"] = r"a\b\c@d"
+        self.store_event(self.transaction_data, project_id=self.project.id)
 
         query = {
             "field": ["transaction", "transaction.duration"],
@@ -4481,14 +4464,13 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert len(response.data["data"]) == 1
 
     def test_mobile_measurements(self):
-        data = self.transaction_data.copy()
-        data["measurements"]["frames_total"] = {"value": 100}
-        data["measurements"]["frames_slow"] = {"value": 10}
-        data["measurements"]["frames_frozen"] = {"value": 5}
-        data["measurements"]["stall_count"] = {"value": 2}
-        data["measurements"]["stall_total_time"] = {"value": 12}
-        data["measurements"]["stall_longest_time"] = {"value": 7}
-        self.store_event(data, project_id=self.project.id)
+        self.transaction_data["measurements"]["frames_total"] = {"value": 100}
+        self.transaction_data["measurements"]["frames_slow"] = {"value": 10}
+        self.transaction_data["measurements"]["frames_frozen"] = {"value": 5}
+        self.transaction_data["measurements"]["stall_count"] = {"value": 2}
+        self.transaction_data["measurements"]["stall_total_time"] = {"value": 12}
+        self.transaction_data["measurements"]["stall_longest_time"] = {"value": 7}
+        self.store_event(self.transaction_data, project_id=self.project.id)
 
         query = {
             "field": [
@@ -4559,10 +4541,9 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert meta["percentile_measurements_stall_percentage_0_5"] == "percentage"
 
     def test_project_auto_fields(self):
-        project = self.create_project()
         self.store_event(
             data={"event_id": "a" * 32, "environment": "staging", "timestamp": self.ten_mins_ago},
-            project_id=project.id,
+            project_id=self.project.id,
         )
 
         query = {"field": ["environment"]}
@@ -4570,22 +4551,11 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 1
         assert response.data["data"][0]["environment"] == "staging"
-        assert response.data["data"][0]["project.name"] == project.slug
+        assert response.data["data"][0]["project.name"] == self.project.slug
 
     def test_timestamp_different_from_params(self):
         fifteen_days_ago = iso_format(before_now(days=15))
         fifteen_days_later = iso_format(before_now(days=-15))
-
-        self.store_event(
-            data={
-                "event_id": "a" * 32,
-                "timestamp": iso_format(before_now(minutes=5)),
-                "fingerprint": ["1123581321"],
-                "user": {"email": "foo@example.com"},
-                "tags": {"language": "C++"},
-            },
-            project_id=self.project.id,
-        )
 
         for query_text in [
             f"timestamp:<{fifteen_days_ago}",
@@ -4597,6 +4567,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 "field": ["count()"],
                 "query": query_text,
                 "statsPeriod": "14d",
+                "project": self.project.id,
             }
             response = self.do_request(query)
 
@@ -5809,9 +5780,9 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
 
     def setUp(self):
         super().setUp()
-        self.min_ago = iso_format(before_now(minutes=1))
-        self.two_min_ago = iso_format(before_now(minutes=2))
-        self.transaction_data = load_data("transaction", timestamp=before_now(minutes=1))
+        self.ten_mins_ago = iso_format(before_now(minutes=10))
+        self.eleven_mins_ago = iso_format(before_now(minutes=11))
+        self.transaction_data = load_data("transaction", timestamp=before_now(minutes=10))
         self.features = {}
 
     def client_get(self, *args, **kwargs):
@@ -5838,16 +5809,15 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert len(response.data) == 0
 
     def test_api_key_request(self):
-        project = self.create_project()
         self.store_event(
-            data={"event_id": "a" * 32, "environment": "staging", "timestamp": self.min_ago},
-            project_id=project.id,
+            data={"event_id": "a" * 32, "environment": "staging", "timestamp": self.ten_mins_ago},
+            project_id=self.project.id,
         )
 
         # Project ID cannot be inferred when using an org API key, so that must
         # be passed in the parameters
         api_key = ApiKey.objects.create(organization=self.organization, scope_list=["org:read"])
-        query = {"field": ["project.name", "environment"], "project": [project.id]}
+        query = {"field": ["project.name", "environment"], "project": [self.project.id]}
 
         url = self.reverse_url()
         response = self.client_get(
@@ -5859,11 +5829,11 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 1
-        assert response.data["data"][0]["project.name"] == project.slug
+        assert response.data["data"][0]["project.name"] == self.project.slug
 
     def test_performance_view_feature(self):
         self.store_event(
-            data={"event_id": "a" * 32, "timestamp": self.min_ago, "fingerprint": ["group1"]},
+            data={"event_id": "a" * 32, "timestamp": self.ten_mins_ago, "fingerprint": ["group1"]},
             project_id=self.project.id,
         )
 
@@ -5878,26 +5848,13 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         project = self.create_project(organization=self.organization, teams=[team])
         project2 = self.create_project(organization=self.organization, teams=[team])
 
-        self.store_event(
-            data={"event_id": "a" * 32, "timestamp": self.min_ago, "fingerprint": ["group1"]},
-            project_id=project.id,
-        )
-        self.store_event(
-            data={"event_id": "b" * 32, "timestamp": self.min_ago, "fingerprint": ["group2"]},
-            project_id=project2.id,
-        )
-
         query = {"field": ["id", "project.id"], "project": [project.id, project2.id]}
         response = self.do_request(query)
         assert response.status_code == 400
         assert "events from multiple projects" in response.data["detail"]
 
     def test_invalid_search_terms(self):
-        project = self.create_project()
-        self.store_event(
-            data={"event_id": "a" * 32, "message": "how to make fast", "timestamp": self.min_ago},
-            project_id=project.id,
-        )
+        self.create_project()
 
         query = {"field": ["id"], "query": "hi \n there"}
         response = self.do_request(query)
@@ -5908,11 +5865,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         )
 
     def test_invalid_trace_span(self):
-        project = self.create_project()
-        self.store_event(
-            data={"event_id": "a" * 32, "message": "how to make fast", "timestamp": self.min_ago},
-            project_id=project.id,
-        )
+        self.create_project()
 
         query = {"field": ["id"], "query": "trace.span:invalid"}
         response = self.do_request(query)
@@ -5946,12 +5899,11 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         )
 
     def test_has_trace_context(self):
-        project = self.create_project()
         self.store_event(
             data={
                 "event_id": "a" * 32,
                 "message": "how to make fast",
-                "timestamp": self.min_ago,
+                "timestamp": self.ten_mins_ago,
                 "contexts": {
                     "trace": {
                         "span_id": "a" * 16,
@@ -5959,7 +5911,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
                     },
                 },
             },
-            project_id=project.id,
+            project_id=self.project.id,
         )
 
         query = {"field": ["id", "trace.parent_span"], "query": "has:trace.span"}
@@ -5974,12 +5926,11 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert len(response.data["data"]) == 0
 
     def test_not_has_trace_context(self):
-        project = self.create_project()
         self.store_event(
             data={
                 "event_id": "a" * 32,
                 "message": "how to make fast",
-                "timestamp": self.min_ago,
+                "timestamp": self.ten_mins_ago,
                 "contexts": {
                     "trace": {
                         "span_id": "a" * 16,
@@ -5987,7 +5938,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
                     },
                 },
             },
-            project_id=project.id,
+            project_id=self.project.id,
         )
 
         query = {"field": ["id", "trace.parent_span"], "query": "!has:trace.span"}
@@ -6003,13 +5954,9 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
 
     @mock.patch("sentry.search.events.builder.raw_snql_query")
     def test_handling_snuba_errors(self, mock_snql_query):
+        self.create_project()
+
         mock_snql_query.side_effect = RateLimitExceeded("test")
-
-        project = self.create_project()
-
-        self.store_event(
-            data={"event_id": "a" * 32, "message": "how to make fast"}, project_id=project.id
-        )
 
         query = {"field": ["id", "timestamp"], "orderby": ["-timestamp", "-id"]}
         response = self.do_request(query)
@@ -6045,24 +5992,23 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert response.data["detail"] == "Invalid date range. Please try a more recent date range."
 
     def test_raw_data(self):
-        project = self.create_project()
         self.store_event(
             data={
                 "event_id": "a" * 32,
                 "environment": "staging",
-                "timestamp": self.two_min_ago,
+                "timestamp": self.eleven_mins_ago,
                 "user": {"ip_address": "127.0.0.1", "email": "foo@example.com"},
             },
-            project_id=project.id,
+            project_id=self.project.id,
         )
         self.store_event(
             data={
                 "event_id": "b" * 32,
                 "environment": "staging",
-                "timestamp": self.min_ago,
+                "timestamp": self.ten_mins_ago,
                 "user": {"ip_address": "127.0.0.1", "email": "foo@example.com"},
             },
-            project_id=project.id,
+            project_id=self.project.id,
         )
 
         query = {
@@ -6074,7 +6020,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         data = response.data["data"]
         assert len(data) == 2
         assert data[0]["id"] == "b" * 32
-        assert data[0]["project.id"] == project.id
+        assert data[0]["project.id"] == self.project.id
         assert data[0]["user.email"] == "foo@example.com"
         assert "project.name" not in data[0], "project.id does not auto select name"
         assert "project" not in data[0]
@@ -6087,59 +6033,56 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert field_meta["timestamp"] == "date"
 
     def test_project_name(self):
-        project = self.create_project()
         self.store_event(
-            data={"event_id": "a" * 32, "environment": "staging", "timestamp": self.min_ago},
-            project_id=project.id,
+            data={"event_id": "a" * 32, "environment": "staging", "timestamp": self.ten_mins_ago},
+            project_id=self.project.id,
         )
 
         query = {"field": ["project.name", "environment"]}
         response = self.do_request(query)
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 1
-        assert response.data["data"][0]["project.name"] == project.slug
+        assert response.data["data"][0]["project.name"] == self.project.slug
         assert "project.id" not in response.data["data"][0]
         assert response.data["data"][0]["environment"] == "staging"
 
     def test_project_without_name(self):
-        project = self.create_project()
         self.store_event(
-            data={"event_id": "a" * 32, "environment": "staging", "timestamp": self.min_ago},
-            project_id=project.id,
+            data={"event_id": "a" * 32, "environment": "staging", "timestamp": self.ten_mins_ago},
+            project_id=self.project.id,
         )
 
         query = {"field": ["project", "environment"]}
         response = self.do_request(query)
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 1
-        assert response.data["data"][0]["project"] == project.slug
+        assert response.data["data"][0]["project"] == self.project.slug
         assert response.data["meta"]["fields"]["project"] == "string"
         assert "project.id" not in response.data["data"][0]
         assert response.data["data"][0]["environment"] == "staging"
 
     def test_project_in_query(self):
-        project = self.create_project()
         self.store_event(
-            data={"event_id": "a" * 32, "environment": "staging", "timestamp": self.min_ago},
-            project_id=project.id,
+            data={"event_id": "a" * 32, "environment": "staging", "timestamp": self.ten_mins_ago},
+            project_id=self.project.id,
         )
 
         query = {
             "field": ["project", "count()"],
-            "query": 'project:"%s"' % project.slug,
+            "query": f'project:"{self.project.slug}"',
             "statsPeriod": "14d",
         }
         response = self.do_request(query)
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 1
-        assert response.data["data"][0]["project"] == project.slug
+        assert response.data["data"][0]["project"] == self.project.slug
         assert "project.id" not in response.data["data"][0]
 
     def test_project_in_query_not_in_header(self):
         project = self.create_project()
         other_project = self.create_project()
         self.store_event(
-            data={"event_id": "a" * 32, "environment": "staging", "timestamp": self.min_ago},
+            data={"event_id": "a" * 32, "environment": "staging", "timestamp": self.ten_mins_ago},
             project_id=project.id,
         )
 
@@ -6157,11 +6100,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         )
 
     def test_project_in_query_does_not_exist(self):
-        project = self.create_project()
-        self.store_event(
-            data={"event_id": "a" * 32, "environment": "staging", "timestamp": self.min_ago},
-            project_id=project.id,
-        )
+        self.create_project()
 
         query = {"field": ["project", "count()"], "query": "project:morty", "statsPeriod": "14d"}
         response = self.do_request(query)
@@ -6179,11 +6118,11 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         project2 = self.create_project(organization=self.organization, teams=[team])
 
         self.store_event(
-            data={"event_id": "a" * 32, "timestamp": self.min_ago, "fingerprint": ["group1"]},
+            data={"event_id": "a" * 32, "timestamp": self.ten_mins_ago, "fingerprint": ["group1"]},
             project_id=project.id,
         )
         self.store_event(
-            data={"event_id": "b" * 32, "timestamp": self.min_ago, "fingerprint": ["group2"]},
+            data={"event_id": "b" * 32, "timestamp": self.ten_mins_ago, "fingerprint": ["group2"]},
             project_id=project2.id,
         )
 
@@ -6203,11 +6142,11 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         project2 = self.create_project(organization=self.organization, teams=[team])
 
         self.store_event(
-            data={"event_id": "a" * 32, "timestamp": self.min_ago, "fingerprint": ["group1"]},
+            data={"event_id": "a" * 32, "timestamp": self.ten_mins_ago, "fingerprint": ["group1"]},
             project_id=project.id,
         )
         self.store_event(
-            data={"event_id": "b" * 32, "timestamp": self.min_ago, "fingerprint": ["group2"]},
+            data={"event_id": "b" * 32, "timestamp": self.ten_mins_ago, "fingerprint": ["group2"]},
             project_id=project2.id,
         )
 
@@ -6222,61 +6161,57 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert response.data["data"] == [{"id": "a" * 32, "project.id": project.id}]
 
     def test_project_condition_used_for_automatic_filters(self):
-        project = self.create_project()
         self.store_event(
-            data={"event_id": "a" * 32, "environment": "staging", "timestamp": self.min_ago},
-            project_id=project.id,
+            data={"event_id": "a" * 32, "environment": "staging", "timestamp": self.ten_mins_ago},
+            project_id=self.project.id,
         )
 
         query = {
             "field": ["project", "count()"],
-            "query": 'project:"%s"' % project.slug,
+            "query": f'project:"{self.project.slug}"',
             "statsPeriod": "14d",
         }
         response = self.do_request(query)
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 1
-        assert response.data["data"][0]["project"] == project.slug
+        assert response.data["data"][0]["project"] == self.project.slug
         assert "project.id" not in response.data["data"][0]
 
     def test_auto_insert_project_name_when_event_id_present(self):
-        project = self.create_project()
         self.store_event(
-            data={"event_id": "a" * 32, "environment": "staging", "timestamp": self.min_ago},
-            project_id=project.id,
+            data={"event_id": "a" * 32, "environment": "staging", "timestamp": self.ten_mins_ago},
+            project_id=self.project.id,
         )
         query = {"field": ["id"], "statsPeriod": "1h"}
         response = self.do_request(query)
         assert response.status_code == 200, response.content
-        assert response.data["data"] == [{"project.name": project.slug, "id": "a" * 32}]
+        assert response.data["data"] == [{"project.name": self.project.slug, "id": "a" * 32}]
 
     def test_auto_insert_project_name_when_event_id_present_with_aggregate(self):
-        project = self.create_project()
         self.store_event(
-            data={"event_id": "a" * 32, "environment": "staging", "timestamp": self.min_ago},
-            project_id=project.id,
+            data={"event_id": "a" * 32, "environment": "staging", "timestamp": self.ten_mins_ago},
+            project_id=self.project.id,
         )
         query = {"field": ["id", "count()"], "statsPeriod": "1h"}
         response = self.do_request(query)
         assert response.status_code == 200, response.content
         assert response.data["data"] == [
-            {"project.name": project.slug, "id": "a" * 32, "count()": 1}
+            {"project.name": self.project.slug, "id": "a" * 32, "count()": 1}
         ]
 
     def test_event_id_with_in_search(self):
-        project = self.create_project()
         self.store_event(
-            data={"event_id": "a" * 32, "environment": "staging1", "timestamp": self.min_ago},
-            project_id=project.id,
+            data={"event_id": "a" * 32, "environment": "staging1", "timestamp": self.ten_mins_ago},
+            project_id=self.project.id,
         )
         self.store_event(
-            data={"event_id": "b" * 32, "environment": "staging2", "timestamp": self.min_ago},
-            project_id=project.id,
+            data={"event_id": "b" * 32, "environment": "staging2", "timestamp": self.ten_mins_ago},
+            project_id=self.project.id,
         )
         # Should not show up
         self.store_event(
-            data={"event_id": "c" * 32, "environment": "staging3", "timestamp": self.min_ago},
-            project_id=project.id,
+            data={"event_id": "c" * 32, "environment": "staging3", "timestamp": self.ten_mins_ago},
+            project_id=self.project.id,
         )
         query = {
             "field": ["id", "environment"],
@@ -6291,15 +6226,13 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert response.data["data"][1]["id"] == "b" * 32
 
     def test_user_search(self):
-        project = self.create_project()
-        data = load_data("transaction", timestamp=before_now(minutes=1))
-        data["user"] = {
+        self.transaction_data["user"] = {
             "email": "foo@example.com",
             "id": "123",
             "ip_address": "127.0.0.1",
             "username": "foo",
         }
-        self.store_event(data, project_id=project.id)
+        self.store_event(self.transaction_data, project_id=self.project.id)
         fields = {
             "email": "user.email",
             "id": "user.id",
@@ -6307,7 +6240,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
             "username": "user.username",
         }
         features = {"organizations:discover-basic": True, "organizations:global-views": True}
-        for key, value in data["user"].items():
+        for key, value in self.transaction_data["user"].items():
             field = fields[key]
             query = {
                 "field": ["project", "user"],
@@ -6317,22 +6250,22 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
             response = self.do_request(query, features=features)
             assert response.status_code == 200, response.content
             assert len(response.data["data"]) == 1
-            assert response.data["data"][0]["project"] == project.slug
+            assert response.data["data"][0]["project"] == self.project.slug
             assert response.data["data"][0]["user"] == "id:123"
 
     def test_has_user(self):
-        project = self.create_project()
-        data = load_data("transaction", timestamp=before_now(minutes=1))
-        self.store_event(data, project_id=project.id)
+        self.store_event(self.transaction_data, project_id=self.project.id)
 
         features = {"organizations:discover-basic": True, "organizations:global-views": True}
-        for value in data["user"].values():
+        for value in self.transaction_data["user"].values():
             query = {"field": ["project", "user"], "query": "has:user", "statsPeriod": "14d"}
             response = self.do_request(query, features=features)
 
             assert response.status_code == 200, response.content
             assert len(response.data["data"]) == 1
-            assert response.data["data"][0]["user"] == "ip:{}".format(data["user"]["ip_address"])
+            assert response.data["data"][0]["user"] == "ip:{}".format(
+                self.transaction_data["user"]["ip_address"]
+            )
 
     def test_team_param_no_access(self):
         org = self.create_organization(
@@ -6349,7 +6282,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         project.add_team(team)
 
         self.store_event(
-            data={"event_id": "a" * 32, "timestamp": self.min_ago, "fingerprint": ["group1"]},
+            data={"event_id": "a" * 32, "timestamp": self.ten_mins_ago, "fingerprint": ["group1"]},
             project_id=project.id,
         )
 
@@ -6367,9 +6300,8 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert response.data["detail"] == "Invalid Team ID: nan"
 
     def test_comparison_operators_on_numeric_field(self):
-        project = self.create_project()
         event = self.store_event(
-            {"timestamp": iso_format(before_now(minutes=1))}, project_id=project.id
+            {"timestamp": iso_format(before_now(minutes=1))}, project_id=self.project.id
         )
 
         query = {"field": ["issue"], "query": f"issue.id:>{event.group.id - 1}"}
@@ -6384,10 +6316,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert len(response.data["data"]) == 0
 
     def test_negation_on_numeric_field_excludes_issue(self):
-        project = self.create_project()
-        event = self.store_event(
-            {"timestamp": iso_format(before_now(minutes=1))}, project_id=project.id
-        )
+        event = self.store_event({"timestamp": self.ten_mins_ago}, project_id=self.project.id)
 
         query = {"field": ["issue"], "query": f"issue.id:{event.group.id}"}
         response = self.do_request(query)
@@ -6401,10 +6330,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert len(response.data["data"]) == 0
 
     def test_negation_on_numeric_in_filter_excludes_issue(self):
-        project = self.create_project()
-        event = self.store_event(
-            {"timestamp": iso_format(before_now(minutes=1))}, project_id=project.id
-        )
+        event = self.store_event({"timestamp": self.ten_mins_ago}, project_id=self.project.id)
 
         query = {"field": ["issue"], "query": f"issue.id:[{event.group.id}]"}
         response = self.do_request(query)
@@ -6418,9 +6344,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert len(response.data["data"]) == 0
 
     def test_negation_on_duration_filter_excludes_transaction(self):
-        project = self.create_project()
-        data = load_data("transaction", timestamp=before_now(minutes=1))
-        event = self.store_event(data, project_id=project.id)
+        event = self.store_event(self.transaction_data, project_id=self.project.id)
         duration = int(event.data.get("timestamp") - event.data.get("start_timestamp")) * 1000
 
         query = {"field": ["transaction"], "query": f"transaction.duration:{duration}"}
@@ -6435,13 +6359,9 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert len(response.data["data"]) == 0
 
     def test_has_issue(self):
-        project = self.create_project()
-        event = self.store_event(
-            {"timestamp": iso_format(before_now(minutes=1))}, project_id=project.id
-        )
+        event = self.store_event({"timestamp": self.ten_mins_ago}, project_id=self.project.id)
 
-        data = load_data("transaction", timestamp=before_now(minutes=1))
-        self.store_event(data, project_id=project.id)
+        self.store_event(self.transaction_data, project_id=self.project.id)
 
         features = {"organizations:discover-basic": True, "organizations:global-views": True}
 
@@ -6496,13 +6416,9 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
 
     @pytest.mark.skip("Cannot look up group_id of transaction events")
     def test_unknown_issue(self):
-        project = self.create_project()
-        event = self.store_event(
-            {"timestamp": iso_format(before_now(minutes=1))}, project_id=project.id
-        )
+        event = self.store_event({"timestamp": self.ten_mins_ago}, project_id=self.project.id)
 
-        data = load_data("transaction", timestamp=before_now(minutes=1))
-        self.store_event(data, project_id=project.id)
+        self.store_event(self.transaction_data, project_id=self.project.id)
 
         features = {"organizations:discover-basic": True, "organizations:global-views": True}
         query = {"field": ["project", "issue"], "query": "issue:unknown", "statsPeriod": "14d"}
@@ -6520,22 +6436,21 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert response.data["data"][0]["issue"] == event.group.qualified_short_id
 
     def test_negative_user_search(self):
-        project = self.create_project()
         user_data = {"email": "foo@example.com", "id": "123", "username": "foo"}
 
         # Load an event with data that shouldn't match
-        data = load_data("transaction", timestamp=before_now(minutes=1))
+        data = self.transaction_data.copy()
         data["transaction"] = "/transactions/nomatch"
         event_user = user_data.copy()
         event_user["id"] = "undefined"
         data["user"] = event_user
-        self.store_event(data, project_id=project.id)
+        self.store_event(data, project_id=self.project.id)
 
         # Load a matching event
-        data = load_data("transaction", timestamp=before_now(minutes=1))
+        data = self.transaction_data.copy()
         data["transaction"] = "/transactions/matching"
         data["user"] = user_data
-        self.store_event(data, project_id=project.id)
+        self.store_event(data, project_id=self.project.id)
 
         features = {"organizations:discover-basic": True, "organizations:global-views": True}
         query = {
@@ -6555,11 +6470,11 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         project1 = self.create_project()
         project2 = self.create_project()
         self.store_event(
-            data={"event_id": "a" * 32, "environment": "staging", "timestamp": self.min_ago},
+            data={"event_id": "a" * 32, "environment": "staging", "timestamp": self.ten_mins_ago},
             project_id=project1.id,
         )
         self.store_event(
-            data={"event_id": "b" * 32, "environment": "staging", "timestamp": self.min_ago},
+            data={"event_id": "b" * 32, "environment": "staging", "timestamp": self.ten_mins_ago},
             project_id=project2.id,
         )
 
@@ -6577,8 +6492,6 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert "project.id" not in response.data["data"][0]
 
     def test_error_handled_condition(self):
-        self.login_as(user=self.user)
-        project = self.create_project()
         prototype = load_data("android-ndk")
         events = (
             ("a" * 32, "not handled", False),
@@ -6590,8 +6503,8 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
             prototype["message"] = event[1]
             prototype["exception"]["values"][0]["value"] = event[1]
             prototype["exception"]["values"][0]["mechanism"]["handled"] = event[2]
-            prototype["timestamp"] = self.two_min_ago
-            self.store_event(data=prototype, project_id=project.id)
+            prototype["timestamp"] = self.ten_mins_ago
+            self.store_event(data=prototype, project_id=self.project.id)
 
         with self.feature("organizations:discover-basic"):
             query = {
@@ -6617,8 +6530,6 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
             assert [1] == response.data["data"][1]["error.handled"]
 
     def test_error_unhandled_condition(self):
-        self.login_as(user=self.user)
-        project = self.create_project()
         prototype = load_data("android-ndk")
         events = (
             ("a" * 32, "not handled", False),
@@ -6630,8 +6541,8 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
             prototype["message"] = event[1]
             prototype["exception"]["values"][0]["value"] = event[1]
             prototype["exception"]["values"][0]["mechanism"]["handled"] = event[2]
-            prototype["timestamp"] = self.two_min_ago
-            self.store_event(data=prototype, project_id=project.id)
+            prototype["timestamp"] = self.ten_mins_ago
+            self.store_event(data=prototype, project_id=self.project.id)
 
         with self.feature("organizations:discover-basic"):
             query = {
@@ -6660,18 +6571,21 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
             assert 0 == response.data["data"][1]["error.unhandled"]
 
     def test_implicit_groupby(self):
-        project = self.create_project()
         self.store_event(
-            data={"event_id": "a" * 32, "timestamp": self.two_min_ago, "fingerprint": ["group_1"]},
-            project_id=project.id,
+            data={
+                "event_id": "a" * 32,
+                "timestamp": self.eleven_mins_ago,
+                "fingerprint": ["group_1"],
+            },
+            project_id=self.project.id,
         )
         event1 = self.store_event(
-            data={"event_id": "b" * 32, "timestamp": self.min_ago, "fingerprint": ["group_1"]},
-            project_id=project.id,
+            data={"event_id": "b" * 32, "timestamp": self.ten_mins_ago, "fingerprint": ["group_1"]},
+            project_id=self.project.id,
         )
         event2 = self.store_event(
-            data={"event_id": "c" * 32, "timestamp": self.min_ago, "fingerprint": ["group_2"]},
-            project_id=project.id,
+            data={"event_id": "c" * 32, "timestamp": self.ten_mins_ago, "fingerprint": ["group_2"]},
+            project_id=self.project.id,
         )
 
         query = {"field": ["count(id)", "project.id", "issue.id"], "orderby": "issue.id"}
@@ -6680,21 +6594,29 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 2
         data = response.data["data"]
-        assert data[0] == {"project.id": project.id, "issue.id": event1.group_id, "count(id)": 2}
-        assert data[1] == {"project.id": project.id, "issue.id": event2.group_id, "count(id)": 1}
+        assert data[0] == {
+            "project.id": self.project.id,
+            "issue.id": event1.group_id,
+            "count(id)": 2,
+        }
+        assert data[1] == {
+            "project.id": self.project.id,
+            "issue.id": event2.group_id,
+            "count(id)": 1,
+        }
         meta = response.data["meta"]["fields"]
         assert meta["count(id)"] == "integer"
 
     def test_orderby(self):
-        project = self.create_project()
         self.store_event(
-            data={"event_id": "a" * 32, "timestamp": self.two_min_ago}, project_id=project.id
+            data={"event_id": "a" * 32, "timestamp": self.eleven_mins_ago},
+            project_id=self.project.id,
         )
         self.store_event(
-            data={"event_id": "b" * 32, "timestamp": self.min_ago}, project_id=project.id
+            data={"event_id": "b" * 32, "timestamp": self.ten_mins_ago}, project_id=self.project.id
         )
         self.store_event(
-            data={"event_id": "c" * 32, "timestamp": self.min_ago}, project_id=project.id
+            data={"event_id": "c" * 32, "timestamp": self.ten_mins_ago}, project_id=self.project.id
         )
         query = {"field": ["id", "timestamp"], "orderby": ["-timestamp", "-id"]}
         response = self.do_request(query)
@@ -6706,18 +6628,17 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert data[2]["id"] == "a" * 32
 
     def test_sort_title(self):
-        project = self.create_project()
         self.store_event(
-            data={"event_id": "a" * 32, "message": "zlast", "timestamp": self.two_min_ago},
-            project_id=project.id,
+            data={"event_id": "a" * 32, "message": "zlast", "timestamp": self.eleven_mins_ago},
+            project_id=self.project.id,
         )
         self.store_event(
-            data={"event_id": "b" * 32, "message": "second", "timestamp": self.min_ago},
-            project_id=project.id,
+            data={"event_id": "b" * 32, "message": "second", "timestamp": self.ten_mins_ago},
+            project_id=self.project.id,
         )
         self.store_event(
-            data={"event_id": "c" * 32, "message": "first", "timestamp": self.min_ago},
-            project_id=project.id,
+            data={"event_id": "c" * 32, "message": "first", "timestamp": self.ten_mins_ago},
+            project_id=self.project.id,
         )
         query = {"field": ["id", "title"], "sort": "title"}
         response = self.do_request(query)
@@ -6729,20 +6650,17 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert data[2]["id"] == "a" * 32
 
     def test_sort_invalid(self):
-        project = self.create_project()
-        self.store_event(
-            data={"event_id": "a" * 32, "timestamp": self.two_min_ago}, project_id=project.id
-        )
+        self.create_project()
+
         query = {"field": ["id"], "sort": "garbage"}
         response = self.do_request(query)
         assert response.status_code == 400
         assert "sort by" in response.data["detail"]
 
     def test_latest_release_alias(self):
-        project = self.create_project()
         event1 = self.store_event(
-            data={"event_id": "a" * 32, "timestamp": self.two_min_ago, "release": "0.8"},
-            project_id=project.id,
+            data={"event_id": "a" * 32, "timestamp": self.eleven_mins_ago, "release": "0.8"},
+            project_id=self.project.id,
         )
         query = {"field": ["issue.id", "release"], "query": "release:latest"}
         response = self.do_request(query)
@@ -6753,8 +6671,8 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert data[0]["release"] == "0.8"
 
         event2 = self.store_event(
-            data={"event_id": "a" * 32, "timestamp": self.min_ago, "release": "0.9"},
-            project_id=project.id,
+            data={"event_id": "a" * 32, "timestamp": self.ten_mins_ago, "release": "0.9"},
+            project_id=self.project.id,
         )
 
         query = {"field": ["issue.id", "release"], "query": "release:latest"}
@@ -6771,27 +6689,27 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         release_3 = self.create_release(version="test@1.2.5")
 
         release_1_e_1 = self.store_event(
-            data={"release": release_1.version, "timestamp": self.min_ago},
+            data={"release": release_1.version, "timestamp": self.ten_mins_ago},
             project_id=self.project.id,
         ).event_id
         release_1_e_2 = self.store_event(
-            data={"release": release_1.version, "timestamp": self.min_ago},
+            data={"release": release_1.version, "timestamp": self.ten_mins_ago},
             project_id=self.project.id,
         ).event_id
         release_2_e_1 = self.store_event(
-            data={"release": release_2.version, "timestamp": self.min_ago},
+            data={"release": release_2.version, "timestamp": self.ten_mins_ago},
             project_id=self.project.id,
         ).event_id
         release_2_e_2 = self.store_event(
-            data={"release": release_2.version, "timestamp": self.min_ago},
+            data={"release": release_2.version, "timestamp": self.ten_mins_ago},
             project_id=self.project.id,
         ).event_id
         release_3_e_1 = self.store_event(
-            data={"release": release_3.version, "timestamp": self.min_ago},
+            data={"release": release_3.version, "timestamp": self.ten_mins_ago},
             project_id=self.project.id,
         ).event_id
         release_3_e_2 = self.store_event(
-            data={"release": release_3.version, "timestamp": self.min_ago},
+            data={"release": release_3.version, "timestamp": self.ten_mins_ago},
             project_id=self.project.id,
         ).event_id
 
@@ -6860,7 +6778,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         adopted_release_e_1 = self.store_event(
             data={
                 "release": adopted_release.version,
-                "timestamp": self.min_ago,
+                "timestamp": self.ten_mins_ago,
                 "environment": self.environment.name,
             },
             project_id=self.project.id,
@@ -6868,7 +6786,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         adopted_release_e_2 = self.store_event(
             data={
                 "release": adopted_release.version,
-                "timestamp": self.min_ago,
+                "timestamp": self.ten_mins_ago,
                 "environment": self.environment.name,
             },
             project_id=self.project.id,
@@ -6876,7 +6794,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         replaced_release_e_1 = self.store_event(
             data={
                 "release": replaced_release.version,
-                "timestamp": self.min_ago,
+                "timestamp": self.ten_mins_ago,
                 "environment": self.environment.name,
             },
             project_id=self.project.id,
@@ -6884,7 +6802,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         replaced_release_e_2 = self.store_event(
             data={
                 "release": replaced_release.version,
-                "timestamp": self.min_ago,
+                "timestamp": self.ten_mins_ago,
                 "environment": self.environment.name,
             },
             project_id=self.project.id,
@@ -6935,15 +6853,15 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         release_2 = self.create_release(version="test2@1.2.4")
 
         release_1_e_1 = self.store_event(
-            data={"release": release_1.version, "timestamp": self.min_ago},
+            data={"release": release_1.version, "timestamp": self.ten_mins_ago},
             project_id=self.project.id,
         ).event_id
         release_1_e_2 = self.store_event(
-            data={"release": release_1.version, "timestamp": self.min_ago},
+            data={"release": release_1.version, "timestamp": self.ten_mins_ago},
             project_id=self.project.id,
         ).event_id
         release_2_e_1 = self.store_event(
-            data={"release": release_2.version, "timestamp": self.min_ago},
+            data={"release": release_2.version, "timestamp": self.ten_mins_ago},
             project_id=self.project.id,
         ).event_id
 
@@ -6967,15 +6885,15 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         release_2 = self.create_release(version="test2@1.2.4+124")
 
         release_1_e_1 = self.store_event(
-            data={"release": release_1.version, "timestamp": self.min_ago},
+            data={"release": release_1.version, "timestamp": self.ten_mins_ago},
             project_id=self.project.id,
         ).event_id
         release_1_e_2 = self.store_event(
-            data={"release": release_1.version, "timestamp": self.min_ago},
+            data={"release": release_1.version, "timestamp": self.ten_mins_ago},
             project_id=self.project.id,
         ).event_id
         release_2_e_1 = self.store_event(
-            data={"release": release_2.version, "timestamp": self.min_ago},
+            data={"release": release_2.version, "timestamp": self.ten_mins_ago},
             project_id=self.project.id,
         ).event_id
 
@@ -7002,33 +6920,32 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         }
 
     def test_aliased_fields(self):
-        project = self.create_project()
         event1 = self.store_event(
             data={
                 "event_id": "a" * 32,
-                "timestamp": self.min_ago,
+                "timestamp": self.ten_mins_ago,
                 "fingerprint": ["group_1"],
                 "user": {"email": "foo@example.com"},
             },
-            project_id=project.id,
+            project_id=self.project.id,
         )
         event2 = self.store_event(
             data={
                 "event_id": "b" * 32,
-                "timestamp": self.min_ago,
+                "timestamp": self.ten_mins_ago,
                 "fingerprint": ["group_2"],
                 "user": {"email": "foo@example.com"},
             },
-            project_id=project.id,
+            project_id=self.project.id,
         )
         self.store_event(
             data={
                 "event_id": "c" * 32,
-                "timestamp": self.min_ago,
+                "timestamp": self.ten_mins_ago,
                 "fingerprint": ["group_2"],
                 "user": {"email": "bar@example.com"},
             },
-            project_id=project.id,
+            project_id=self.project.id,
         )
 
         query = {"field": ["issue.id", "count(id)", "count_unique(user)"], "orderby": "issue.id"}
@@ -7047,33 +6964,32 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert data[1]["count_unique(user)"] == 2
 
     def test_aggregate_field_with_dotted_param(self):
-        project = self.create_project()
         event1 = self.store_event(
             data={
                 "event_id": "a" * 32,
-                "timestamp": self.min_ago,
+                "timestamp": self.ten_mins_ago,
                 "fingerprint": ["group_1"],
                 "user": {"id": "123", "email": "foo@example.com"},
             },
-            project_id=project.id,
+            project_id=self.project.id,
         )
         event2 = self.store_event(
             data={
                 "event_id": "b" * 32,
-                "timestamp": self.min_ago,
+                "timestamp": self.ten_mins_ago,
                 "fingerprint": ["group_2"],
                 "user": {"id": "123", "email": "foo@example.com"},
             },
-            project_id=project.id,
+            project_id=self.project.id,
         )
         self.store_event(
             data={
                 "event_id": "c" * 32,
-                "timestamp": self.min_ago,
+                "timestamp": self.ten_mins_ago,
                 "fingerprint": ["group_2"],
                 "user": {"id": "456", "email": "bar@example.com"},
             },
-            project_id=project.id,
+            project_id=self.project.id,
         )
         query = {
             "field": ["issue.id", "issue_title", "count(id)", "count_unique(user.email)"],
@@ -7094,22 +7010,20 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert data[1]["count_unique(user.email)"] == 2
 
     def test_failure_rate_alias_field(self):
-        project = self.create_project()
-
-        data = load_data("transaction", timestamp=before_now(minutes=1))
+        data = self.transaction_data.copy()
         data["transaction"] = "/failure_rate/success"
-        self.store_event(data, project_id=project.id)
+        self.store_event(data, project_id=self.project.id)
 
-        data = load_data("transaction", timestamp=before_now(minutes=1))
+        data = self.transaction_data.copy()
         data["transaction"] = "/failure_rate/unknown"
         data["contexts"]["trace"]["status"] = "unknown_error"
-        self.store_event(data, project_id=project.id)
+        self.store_event(data, project_id=self.project.id)
 
         for i in range(6):
-            data = load_data("transaction", timestamp=before_now(minutes=1))
+            data = self.transaction_data.copy()
             data["transaction"] = f"/failure_rate/{i}"
             data["contexts"]["trace"]["status"] = "unauthenticated"
-            self.store_event(data, project_id=project.id)
+            self.store_event(data, project_id=self.project.id)
 
         query = {"field": ["failure_rate()"], "query": "event.type:transaction"}
         response = self.do_request(query)
@@ -7120,8 +7034,6 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert data[0]["failure_rate()"] == 0.75
 
     def test_count_miserable_alias_field(self):
-        project = self.create_project()
-
         events = [
             ("one", 300),
             ("one", 300),
@@ -7133,13 +7045,13 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         for idx, event in enumerate(events):
             data = load_data(
                 "transaction",
-                timestamp=before_now(minutes=(1 + idx)),
-                start_timestamp=before_now(minutes=(1 + idx), milliseconds=event[1]),
+                timestamp=before_now(minutes=(10 + idx)),
+                start_timestamp=before_now(minutes=(10 + idx), milliseconds=event[1]),
             )
             data["event_id"] = f"{idx}" * 32
             data["transaction"] = f"/count_miserable/horribilis/{idx}"
             data["user"] = {"email": f"{event[0]}@example.com"}
-            self.store_event(data, project_id=project.id)
+            self.store_event(data, project_id=self.project.id)
         query = {"field": ["count_miserable(user, 300)"], "query": "event.type:transaction"}
         response = self.do_request(query)
 
@@ -7173,25 +7085,6 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
 
         ProjectTransactionThreshold.objects.bulk_create(project_transaction_thresholds)
 
-        events = [
-            ("one", 400),
-            ("one", 400),
-            ("two", 3000),
-            ("two", 3000),
-            ("three", 300),
-            ("three", 3000),
-        ]
-        for idx, event in enumerate(events):
-            data = load_data(
-                "transaction",
-                timestamp=before_now(minutes=(1 + idx)),
-                start_timestamp=before_now(minutes=(1 + idx), milliseconds=event[1]),
-            )
-            data["event_id"] = f"{idx}" * 32
-            data["transaction"] = f"/count_miserable/horribilis/{event[0]}"
-            data["user"] = {"email": f"{idx}@example.com"}
-            self.store_event(data, project_id=project_ids[0])
-
         query = {
             "field": [
                 "transaction",
@@ -7216,11 +7109,9 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         )
 
     def test_count_miserable_new_alias_field(self):
-        project = self.create_project()
-
         ProjectTransactionThreshold.objects.create(
-            project=project,
-            organization=project.organization,
+            project=self.project,
+            organization=self.project.organization,
             threshold=400,
             metric=TransactionMetric.DURATION.value,
         )
@@ -7236,13 +7127,13 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         for idx, event in enumerate(events):
             data = load_data(
                 "transaction",
-                timestamp=before_now(minutes=(1 + idx)),
-                start_timestamp=before_now(minutes=(1 + idx), milliseconds=event[1]),
+                timestamp=before_now(minutes=(10 + idx)),
+                start_timestamp=before_now(minutes=(10 + idx), milliseconds=event[1]),
             )
             data["event_id"] = f"{idx}" * 32
             data["transaction"] = f"/count_miserable/horribilis/{event[0]}"
             data["user"] = {"email": f"{idx}@example.com"}
-            self.store_event(data, project_id=project.id)
+            self.store_event(data, project_id=self.project.id)
 
         query = {
             "field": [
@@ -7250,7 +7141,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
                 "count_miserable(user)",
             ],
             "query": "event.type:transaction",
-            "project": [project.id],
+            "project": [self.project.id],
             "sort": "count_miserable_user",
         }
 
@@ -7278,8 +7169,6 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert abs(data[1]["count_miserable(user)"]) == 2
 
     def test_user_misery_alias_field(self):
-        project = self.create_project()
-
         events = [
             ("one", 300),
             ("one", 300),
@@ -7291,13 +7180,13 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         for idx, event in enumerate(events):
             data = load_data(
                 "transaction",
-                timestamp=before_now(minutes=(1 + idx)),
-                start_timestamp=before_now(minutes=(1 + idx), milliseconds=event[1]),
+                timestamp=before_now(minutes=(10 + idx)),
+                start_timestamp=before_now(minutes=(10 + idx), milliseconds=event[1]),
             )
             data["event_id"] = f"{idx}" * 32
             data["transaction"] = f"/user_misery/{idx}"
             data["user"] = {"email": f"{event[0]}@example.com"}
-            self.store_event(data, project_id=project.id)
+            self.store_event(data, project_id=self.project.id)
         query = {"field": ["user_misery(300)"], "query": "event.type:transaction"}
         response = self.do_request(query)
 
@@ -7307,11 +7196,9 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert abs(data[0]["user_misery(300)"] - 0.0653) < 0.0001
 
     def test_apdex_new_alias_field(self):
-        project = self.create_project()
-
         ProjectTransactionThreshold.objects.create(
-            project=project,
-            organization=project.organization,
+            project=self.project,
+            organization=self.project.organization,
             threshold=400,
             metric=TransactionMetric.DURATION.value,
         )
@@ -7327,13 +7214,13 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         for idx, event in enumerate(events):
             data = load_data(
                 "transaction",
-                timestamp=before_now(minutes=(1 + idx)),
-                start_timestamp=before_now(minutes=(1 + idx), milliseconds=event[1]),
+                timestamp=before_now(minutes=(10 + idx)),
+                start_timestamp=before_now(minutes=(10 + idx), milliseconds=event[1]),
             )
             data["event_id"] = f"{idx}" * 32
             data["transaction"] = f"/apdex/new/{event[0]}"
             data["user"] = {"email": f"{idx}@example.com"}
-            self.store_event(data, project_id=project.id)
+            self.store_event(data, project_id=self.project.id)
 
         query = {
             "field": [
@@ -7341,7 +7228,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
                 "apdex()",
             ],
             "query": "event.type:transaction",
-            "project": [project.id],
+            "project": [self.project.id],
             "sort": "-apdex",
         }
 
@@ -7368,11 +7255,9 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert data[0]["apdex()"] == 1.0
 
     def test_user_misery_alias_field_with_project_threshold(self):
-        project = self.create_project()
-
         ProjectTransactionThreshold.objects.create(
-            project=project,
-            organization=project.organization,
+            project=self.project,
+            organization=self.project.organization,
             threshold=400,
             metric=TransactionMetric.DURATION.value,
         )
@@ -7388,13 +7273,13 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         for idx, event in enumerate(events):
             data = load_data(
                 "transaction",
-                timestamp=before_now(minutes=(1 + idx)),
-                start_timestamp=before_now(minutes=(1 + idx), milliseconds=event[1]),
+                timestamp=before_now(minutes=(10 + idx)),
+                start_timestamp=before_now(minutes=(10 + idx), milliseconds=event[1]),
             )
             data["event_id"] = f"{idx}" * 32
             data["transaction"] = f"/count_miserable/horribilis/{event[0]}"
             data["user"] = {"email": f"{idx}@example.com"}
-            self.store_event(data, project_id=project.id)
+            self.store_event(data, project_id=self.project.id)
 
         query = {
             "field": [
@@ -7403,7 +7288,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
             ],
             "orderby": "user_misery()",
             "query": "event.type:transaction",
-            "project": [project.id],
+            "project": [self.project.id],
         }
 
         response = self.do_request(query)
@@ -7411,9 +7296,9 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 3
         data = response.data["data"]
-        assert abs(data[0]["user_misery()"] - 0.04916) < 0.0001
-        assert abs(data[1]["user_misery()"] - 0.05751) < 0.0001
-        assert abs(data[2]["user_misery()"] - 0.06586) < 0.0001
+        assert data[0]["user_misery()"] == pytest.approx(0.04916, rel=1e-3)
+        assert data[1]["user_misery()"] == pytest.approx(0.05751, rel=1e-3)
+        assert data[2]["user_misery()"] == pytest.approx(0.06586, rel=1e-3)
 
         query["query"] = "event.type:transaction user_misery():>0.050"
 
@@ -7424,12 +7309,10 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 2
         data = response.data["data"]
-        assert abs(data[0]["user_misery()"] - 0.05751) < 0.0001
-        assert abs(data[1]["user_misery()"] - 0.06586) < 0.0001
+        assert data[0]["user_misery()"] == pytest.approx(0.05751, rel=1e-3)
+        assert data[1]["user_misery()"] == pytest.approx(0.06586, rel=1e-3)
 
     def test_user_misery_alias_field_with_transaction_threshold(self):
-        project = self.create_project()
-
         events = [
             ("one", 300),
             ("two", 300),
@@ -7441,19 +7324,19 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         for idx, event in enumerate(events):
             data = load_data(
                 "transaction",
-                timestamp=before_now(minutes=(1 + idx)),
-                start_timestamp=before_now(minutes=(1 + idx), milliseconds=event[1]),
+                timestamp=before_now(minutes=(10 + idx)),
+                start_timestamp=before_now(minutes=(10 + idx), milliseconds=event[1]),
             )
             data["event_id"] = f"{idx}" * 32
             data["transaction"] = f"/count_miserable/horribilis/{idx}"
             data["user"] = {"email": f"{event[0]}@example.com"}
-            self.store_event(data, project_id=project.id)
+            self.store_event(data, project_id=self.project.id)
 
             if idx % 2:
                 ProjectTransactionThresholdOverride.objects.create(
                     transaction=f"/count_miserable/horribilis/{idx}",
-                    project=project,
-                    organization=project.organization,
+                    project=self.project,
+                    organization=self.project.organization,
                     threshold=100 * idx,
                     metric=TransactionMetric.DURATION.value,
                 )
@@ -7465,7 +7348,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
             ],
             "query": "event.type:transaction",
             "orderby": "transaction",
-            "project": [project.id],
+            "project": [self.project.id],
         }
 
         response = self.do_request(
@@ -7489,7 +7372,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
             name, threshold_config, misery = record
             assert data[i]["transaction"] == name
             assert data[i]["project_threshold_config"] == threshold_config
-            assert abs(data[i]["user_misery()"] - misery) < 0.0001
+            assert data[i]["user_misery()"] == pytest.approx(misery, rel=1e-3)
 
         query["query"] = "event.type:transaction user_misery():>0.050"
 
@@ -7500,9 +7383,9 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 3
         data = response.data["data"]
-        assert abs(data[0]["user_misery()"] - 0.058) < 0.0001
-        assert abs(data[1]["user_misery()"] - 0.058) < 0.0001
-        assert abs(data[2]["user_misery()"] - 0.058) < 0.0001
+        assert data[0]["user_misery()"] == pytest.approx(0.058, rel=1e-3)
+        assert data[1]["user_misery()"] == pytest.approx(0.058, rel=1e-3)
+        assert data[2]["user_misery()"] == pytest.approx(0.058, rel=1e-3)
 
     def test_user_misery_alias_field_with_transaction_threshold_and_project_threshold(self):
         project = self.create_project()
@@ -7525,8 +7408,8 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         for idx, event in enumerate(events):
             data = load_data(
                 "transaction",
-                timestamp=before_now(minutes=(1 + idx)),
-                start_timestamp=before_now(minutes=(1 + idx), milliseconds=event[1]),
+                timestamp=before_now(minutes=(10 + idx)),
+                start_timestamp=before_now(minutes=(10 + idx), milliseconds=event[1]),
             )
             data["event_id"] = f"{idx}" * 32
             data["transaction"] = f"/count_miserable/horribilis/{idx}"
@@ -7593,7 +7476,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
             name, threshold_config, misery = record
             assert data[i]["transaction"] == name
             assert data[i]["project_threshold_config"] == threshold_config
-            assert abs(data[i]["user_misery()"] - misery) < 0.0001
+            assert data[i]["user_misery()"] == pytest.approx(misery, rel=1e-3)
 
         query["query"] = "event.type:transaction user_misery():>0.050"
 
@@ -7609,50 +7492,49 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert len(response.data["data"]) == 4
 
     def test_aggregation(self):
-        project = self.create_project()
         self.store_event(
             data={
                 "event_id": "a" * 32,
-                "timestamp": self.min_ago,
+                "timestamp": self.ten_mins_ago,
                 "fingerprint": ["group_1"],
                 "user": {"email": "foo@example.com"},
                 "environment": "prod",
                 "tags": {"sub_customer.is-Enterprise-42": "1"},
             },
-            project_id=project.id,
+            project_id=self.project.id,
         )
         self.store_event(
             data={
                 "event_id": "b" * 32,
-                "timestamp": self.min_ago,
+                "timestamp": self.ten_mins_ago,
                 "fingerprint": ["group_2"],
                 "user": {"email": "foo@example.com"},
                 "environment": "staging",
                 "tags": {"sub_customer.is-Enterprise-42": "1"},
             },
-            project_id=project.id,
+            project_id=self.project.id,
         )
         self.store_event(
             data={
                 "event_id": "c" * 32,
-                "timestamp": self.min_ago,
+                "timestamp": self.ten_mins_ago,
                 "fingerprint": ["group_2"],
                 "user": {"email": "foo@example.com"},
                 "environment": "prod",
                 "tags": {"sub_customer.is-Enterprise-42": "0"},
             },
-            project_id=project.id,
+            project_id=self.project.id,
         )
         self.store_event(
             data={
                 "event_id": "d" * 32,
-                "timestamp": self.min_ago,
+                "timestamp": self.ten_mins_ago,
                 "fingerprint": ["group_2"],
                 "user": {"email": "foo@example.com"},
                 "environment": "prod",
                 "tags": {"sub_customer.is-Enterprise-42": "1"},
             },
-            project_id=project.id,
+            project_id=self.project.id,
         )
 
         query = {
@@ -7668,51 +7550,50 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert data[1]["count(sub_customer.is-Enterprise-42)"] == 3
 
     def test_aggregation_comparison(self):
-        project = self.create_project()
         self.store_event(
             data={
                 "event_id": "a" * 32,
-                "timestamp": self.min_ago,
+                "timestamp": self.ten_mins_ago,
                 "fingerprint": ["group_1"],
                 "user": {"email": "foo@example.com"},
             },
-            project_id=project.id,
+            project_id=self.project.id,
         )
         event = self.store_event(
             data={
                 "event_id": "b" * 32,
-                "timestamp": self.min_ago,
+                "timestamp": self.ten_mins_ago,
                 "fingerprint": ["group_2"],
                 "user": {"email": "foo@example.com"},
             },
-            project_id=project.id,
+            project_id=self.project.id,
         )
         self.store_event(
             data={
                 "event_id": "c" * 32,
-                "timestamp": self.min_ago,
+                "timestamp": self.ten_mins_ago,
                 "fingerprint": ["group_2"],
                 "user": {"email": "bar@example.com"},
             },
-            project_id=project.id,
+            project_id=self.project.id,
         )
         self.store_event(
             data={
                 "event_id": "d" * 32,
-                "timestamp": self.min_ago,
+                "timestamp": self.ten_mins_ago,
                 "fingerprint": ["group_3"],
                 "user": {"email": "bar@example.com"},
             },
-            project_id=project.id,
+            project_id=self.project.id,
         )
         self.store_event(
             data={
                 "event_id": "e" * 32,
-                "timestamp": self.min_ago,
+                "timestamp": self.ten_mins_ago,
                 "fingerprint": ["group_3"],
                 "user": {"email": "bar@example.com"},
             },
-            project_id=project.id,
+            project_id=self.project.id,
         )
 
         query = {
@@ -7730,22 +7611,21 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert data[0]["count_unique(user)"] == 2
 
     def test_aggregation_alias_comparison(self):
-        project = self.create_project()
         data = load_data(
             "transaction",
-            timestamp=before_now(minutes=1),
-            start_timestamp=before_now(minutes=1, seconds=5),
+            timestamp=before_now(minutes=10),
+            start_timestamp=before_now(minutes=10, seconds=5),
         )
         data["transaction"] = "/aggregates/1"
-        self.store_event(data, project_id=project.id)
+        self.store_event(data, project_id=self.project.id)
 
         data = load_data(
             "transaction",
-            timestamp=before_now(minutes=1),
-            start_timestamp=before_now(minutes=1, seconds=3),
+            timestamp=before_now(minutes=10),
+            start_timestamp=before_now(minutes=10, seconds=3),
         )
         data["transaction"] = "/aggregates/2"
-        event = self.store_event(data, project_id=project.id)
+        event = self.store_event(data, project_id=self.project.id)
 
         query = {
             "field": ["transaction", "p95()"],
@@ -7761,22 +7641,21 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert data[0]["p95()"] == 3000
 
     def test_auto_aggregations(self):
-        project = self.create_project()
         data = load_data(
             "transaction",
-            timestamp=before_now(minutes=1),
-            start_timestamp=before_now(minutes=1, seconds=5),
+            timestamp=before_now(minutes=10),
+            start_timestamp=before_now(minutes=10, seconds=5),
         )
         data["transaction"] = "/aggregates/1"
-        self.store_event(data, project_id=project.id)
+        self.store_event(data, project_id=self.project.id)
 
         data = load_data(
             "transaction",
-            timestamp=before_now(minutes=1),
-            start_timestamp=before_now(minutes=1, seconds=3),
+            timestamp=before_now(minutes=10),
+            start_timestamp=before_now(minutes=10, seconds=3),
         )
         data["transaction"] = "/aggregates/2"
-        event = self.store_event(data, project_id=project.id)
+        event = self.store_event(data, project_id=self.project.id)
 
         query = {
             "field": ["transaction", "p75()"],
@@ -7800,46 +7679,45 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 400, response.content
 
     def test_aggregation_comparison_with_conditions(self):
-        project = self.create_project()
         self.store_event(
             data={
                 "event_id": "a" * 32,
-                "timestamp": self.min_ago,
+                "timestamp": self.ten_mins_ago,
                 "fingerprint": ["group_1"],
                 "user": {"email": "foo@example.com"},
                 "environment": "prod",
             },
-            project_id=project.id,
+            project_id=self.project.id,
         )
         self.store_event(
             data={
                 "event_id": "b" * 32,
-                "timestamp": self.min_ago,
+                "timestamp": self.ten_mins_ago,
                 "fingerprint": ["group_2"],
                 "user": {"email": "foo@example.com"},
                 "environment": "staging",
             },
-            project_id=project.id,
+            project_id=self.project.id,
         )
         event = self.store_event(
             data={
                 "event_id": "c" * 32,
-                "timestamp": self.min_ago,
+                "timestamp": self.ten_mins_ago,
                 "fingerprint": ["group_2"],
                 "user": {"email": "foo@example.com"},
                 "environment": "prod",
             },
-            project_id=project.id,
+            project_id=self.project.id,
         )
         self.store_event(
             data={
                 "event_id": "d" * 32,
-                "timestamp": self.min_ago,
+                "timestamp": self.ten_mins_ago,
                 "fingerprint": ["group_2"],
                 "user": {"email": "foo@example.com"},
                 "environment": "prod",
             },
-            project_id=project.id,
+            project_id=self.project.id,
         )
 
         query = {
@@ -7857,46 +7735,45 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert data[0]["count(id)"] == 2
 
     def test_aggregation_date_comparison_with_conditions(self):
-        project = self.create_project()
         event = self.store_event(
             data={
                 "event_id": "a" * 32,
-                "timestamp": self.min_ago,
+                "timestamp": self.ten_mins_ago,
                 "fingerprint": ["group_1"],
                 "user": {"email": "foo@example.com"},
                 "environment": "prod",
             },
-            project_id=project.id,
+            project_id=self.project.id,
         )
         self.store_event(
             data={
                 "event_id": "b" * 32,
-                "timestamp": self.min_ago,
+                "timestamp": self.ten_mins_ago,
                 "fingerprint": ["group_2"],
                 "user": {"email": "foo@example.com"},
                 "environment": "staging",
             },
-            project_id=project.id,
+            project_id=self.project.id,
         )
         self.store_event(
             data={
                 "event_id": "c" * 32,
-                "timestamp": self.min_ago,
+                "timestamp": self.ten_mins_ago,
                 "fingerprint": ["group_2"],
                 "user": {"email": "foo@example.com"},
                 "environment": "prod",
             },
-            project_id=project.id,
+            project_id=self.project.id,
         )
         self.store_event(
             data={
                 "event_id": "d" * 32,
-                "timestamp": self.min_ago,
+                "timestamp": self.ten_mins_ago,
                 "fingerprint": ["group_2"],
                 "user": {"email": "foo@example.com"},
                 "environment": "prod",
             },
-            project_id=project.id,
+            project_id=self.project.id,
         )
         query = {
             "field": ["issue.id", "max(timestamp)"],
@@ -7912,22 +7789,21 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert data[0]["issue.id"] == event.group_id
 
     def test_percentile_function(self):
-        project = self.create_project()
         data = load_data(
             "transaction",
-            timestamp=before_now(minutes=1),
-            start_timestamp=before_now(minutes=1, seconds=5),
+            timestamp=before_now(minutes=10),
+            start_timestamp=before_now(minutes=10, seconds=5),
         )
         data["transaction"] = "/aggregates/1"
-        event1 = self.store_event(data, project_id=project.id)
+        event1 = self.store_event(data, project_id=self.project.id)
 
         data = load_data(
             "transaction",
-            timestamp=before_now(minutes=1),
-            start_timestamp=before_now(minutes=1, seconds=3),
+            timestamp=before_now(minutes=10),
+            start_timestamp=before_now(minutes=10, seconds=3),
         )
         data["transaction"] = "/aggregates/2"
-        event2 = self.store_event(data, project_id=project.id)
+        event2 = self.store_event(data, project_id=self.project.id)
 
         query = {
             "field": ["transaction", "percentile(transaction.duration, 0.95)"],
@@ -7945,22 +7821,21 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert data[1]["percentile(transaction.duration, 0.95)"] == 3000
 
     def test_percentile_function_as_condition(self):
-        project = self.create_project()
         data = load_data(
             "transaction",
-            timestamp=before_now(minutes=1),
-            start_timestamp=before_now(minutes=1, seconds=5),
+            timestamp=before_now(minutes=10),
+            start_timestamp=before_now(minutes=10, seconds=5),
         )
         data["transaction"] = "/aggregates/1"
-        event1 = self.store_event(data, project_id=project.id)
+        event1 = self.store_event(data, project_id=self.project.id)
 
         data = load_data(
             "transaction",
-            timestamp=before_now(minutes=1),
-            start_timestamp=before_now(minutes=1, seconds=3),
+            timestamp=before_now(minutes=10),
+            start_timestamp=before_now(minutes=10, seconds=3),
         )
         data["transaction"] = "/aggregates/2"
-        self.store_event(data, project_id=project.id)
+        self.store_event(data, project_id=self.project.id)
 
         query = {
             "field": ["transaction", "percentile(transaction.duration, 0.95)"],
@@ -7976,29 +7851,28 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert data[0]["percentile(transaction.duration, 0.95)"] == 5000
 
     def test_epm_function(self):
-        project = self.create_project()
-
         data = load_data(
             "transaction",
-            timestamp=before_now(minutes=1),
-            start_timestamp=before_now(minutes=1, seconds=5),
+            timestamp=before_now(minutes=10),
+            start_timestamp=before_now(minutes=10, seconds=5),
         )
         data["transaction"] = "/aggregates/1"
-        event1 = self.store_event(data, project_id=project.id)
+        event1 = self.store_event(data, project_id=self.project.id)
 
         data = load_data(
             "transaction",
-            timestamp=before_now(minutes=1),
-            start_timestamp=before_now(minutes=1, seconds=3),
+            timestamp=before_now(minutes=10),
+            start_timestamp=before_now(minutes=10, seconds=3),
         )
         data["transaction"] = "/aggregates/2"
-        event2 = self.store_event(data, project_id=project.id)
+        event2 = self.store_event(data, project_id=self.project.id)
 
         query = {
             "field": ["transaction", "epm()"],
             "query": "event.type:transaction",
             "orderby": ["transaction"],
-            "statsPeriod": "2m",
+            "start": iso_format(before_now(minutes=11)),
+            "end": iso_format(before_now(minutes=9)),
         }
         response = self.do_request(query)
 
@@ -8011,10 +7885,13 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert data[1]["epm()"] == 0.5
 
     def test_nonexistent_fields(self):
-        project = self.create_project()
         self.store_event(
-            data={"event_id": "a" * 32, "message": "how to make fast", "timestamp": self.min_ago},
-            project_id=project.id,
+            data={
+                "event_id": "a" * 32,
+                "message": "how to make fast",
+                "timestamp": self.ten_mins_ago,
+            },
+            project_id=self.project.id,
         )
 
         query = {"field": ["issue_world.id"]}
@@ -8023,10 +7900,13 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert response.data["data"][0]["issue_world.id"] == ""
 
     def test_no_requested_fields_or_grouping(self):
-        project = self.create_project()
         self.store_event(
-            data={"event_id": "a" * 32, "message": "how to make fast", "timestamp": self.min_ago},
-            project_id=project.id,
+            data={
+                "event_id": "a" * 32,
+                "message": "how to make fast",
+                "timestamp": self.ten_mins_ago,
+            },
+            project_id=self.project.id,
         )
 
         query = {"query": "test"}
@@ -8035,15 +7915,14 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert response.data["detail"] == "No columns selected"
 
     def test_condition_on_aggregate_misses(self):
-        project = self.create_project()
         self.store_event(
             data={
                 "event_id": "c" * 32,
-                "timestamp": self.min_ago,
+                "timestamp": self.ten_mins_ago,
                 "fingerprint": ["group_2"],
                 "user": {"email": "bar@example.com"},
             },
-            project_id=project.id,
+            project_id=self.project.id,
         )
 
         query = {"field": ["issue.id"], "query": "event_count:>0", "orderby": "issue.id"}
@@ -8053,18 +7932,17 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert len(response.data["data"]) == 0
 
     def test_next_prev_link_headers(self):
-        project = self.create_project()
         events = [("a", "group_1"), ("b", "group_2"), ("c", "group_2"), ("d", "group_2")]
         for e in events:
             self.store_event(
                 data={
                     "event_id": e[0] * 32,
-                    "timestamp": self.min_ago,
+                    "timestamp": self.ten_mins_ago,
                     "fingerprint": [e[1]],
                     "user": {"email": "foo@example.com"},
                     "tags": {"language": "C++"},
                 },
-                project_id=project.id,
+                project_id=self.project.id,
             )
 
         query = {
@@ -8089,22 +7967,20 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert data[1]["count(id)"] == 1
 
     def test_empty_count_query(self):
-        project = self.create_project()
-
         event = self.store_event(
             data={
                 "event_id": "a" * 32,
-                "timestamp": iso_format(before_now(minutes=5)),
+                "timestamp": self.ten_mins_ago,
                 "fingerprint": ["1123581321"],
                 "user": {"email": "foo@example.com"},
                 "tags": {"language": "C++"},
             },
-            project_id=project.id,
+            project_id=self.project.id,
         )
 
         query = {
             "field": ["count()"],
-            "query": "issue.id:%d timestamp:>%s" % (event.group_id, self.min_ago),
+            "query": f"issue.id:{event.group_id} timestamp:>{self.ten_mins_ago}",
             "statsPeriod": "14d",
         }
         response = self.do_request(query)
@@ -8115,10 +7991,9 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert data[0]["count()"] == 0
 
     def test_stack_wildcard_condition(self):
-        project = self.create_project()
         data = load_data("javascript")
-        data["timestamp"] = self.min_ago
-        self.store_event(data=data, project_id=project.id)
+        data["timestamp"] = self.ten_mins_ago
+        self.store_event(data=data, project_id=self.project.id)
 
         query = {"field": ["stack.filename", "message"], "query": "stack.filename:*.js"}
         response = self.do_request(query)
@@ -8127,10 +8002,9 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert response.data["meta"]["fields"]["message"] == "string"
 
     def test_email_wildcard_condition(self):
-        project = self.create_project()
         data = load_data("javascript")
-        data["timestamp"] = self.min_ago
-        self.store_event(data=data, project_id=project.id)
+        data["timestamp"] = self.ten_mins_ago
+        self.store_event(data=data, project_id=self.project.id)
 
         query = {"field": ["stack.filename", "message"], "query": "user.email:*@example.org"}
         response = self.do_request(query)
@@ -8142,7 +8016,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         release = self.create_release(version="test@1.2.3+123")
 
         self.store_event(
-            data={"release": release.version, "timestamp": self.min_ago},
+            data={"release": release.version, "timestamp": self.ten_mins_ago},
             project_id=self.project.id,
         )
 
@@ -8153,13 +8027,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert response.data["data"][0]["release"] == release.version
 
     def test_transaction_event_type(self):
-        project = self.create_project()
-        data = load_data(
-            "transaction",
-            timestamp=before_now(minutes=1),
-            start_timestamp=before_now(minutes=1, seconds=5),
-        )
-        self.store_event(data=data, project_id=project.id)
+        self.store_event(data=self.transaction_data, project_id=self.project.id)
 
         query = {
             "field": ["transaction", "transaction.duration", "transaction.status"],
@@ -8173,20 +8041,17 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert response.data["data"][0]["transaction.status"] == "ok"
 
     def test_trace_columns(self):
-        project = self.create_project()
-        data = load_data(
-            "transaction",
-            timestamp=before_now(minutes=1),
-            start_timestamp=before_now(minutes=1, seconds=5),
-        )
-        self.store_event(data=data, project_id=project.id)
+        self.store_event(data=self.transaction_data, project_id=self.project.id)
 
         query = {"field": ["trace"], "query": "event.type:transaction"}
         response = self.do_request(query)
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 1
         assert response.data["meta"]["fields"]["trace"] == "string"
-        assert response.data["data"][0]["trace"] == data["contexts"]["trace"]["trace_id"]
+        assert (
+            response.data["data"][0]["trace"]
+            == self.transaction_data["contexts"]["trace"]["trace_id"]
+        )
 
     def test_issue_in_columns(self):
         project1 = self.create_project()
@@ -8196,7 +8061,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
                 "event_id": "a" * 32,
                 "transaction": "/example",
                 "message": "how to make fast",
-                "timestamp": self.two_min_ago,
+                "timestamp": self.ten_mins_ago,
                 "fingerprint": ["group_1"],
             },
             project_id=project1.id,
@@ -8206,7 +8071,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
                 "event_id": "b" * 32,
                 "transaction": "/example",
                 "message": "how to make fast",
-                "timestamp": self.two_min_ago,
+                "timestamp": self.ten_mins_ago,
                 "fingerprint": ["group_1"],
             },
             project_id=project2.id,
@@ -8233,7 +8098,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
                 "event_id": "a" * 32,
                 "transaction": "/example",
                 "message": "how to make fast",
-                "timestamp": self.two_min_ago,
+                "timestamp": self.ten_mins_ago,
                 "fingerprint": ["group_1"],
             },
             project_id=project1.id,
@@ -8243,7 +8108,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
                 "event_id": "b" * 32,
                 "transaction": "/example",
                 "message": "how to make fast",
-                "timestamp": self.two_min_ago,
+                "timestamp": self.ten_mins_ago,
                 "fingerprint": ["group_1"],
             },
             project_id=project2.id,
@@ -8278,7 +8143,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
                 "event_id": "a" * 32,
                 "transaction": "/example",
                 "message": "how to make fast",
-                "timestamp": self.two_min_ago,
+                "timestamp": self.ten_mins_ago,
                 "fingerprint": ["group_1"],
             },
             project_id=project1.id,
@@ -8288,7 +8153,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
                 "event_id": "b" * 32,
                 "transaction": "/example",
                 "message": "go really fast plz",
-                "timestamp": self.two_min_ago,
+                "timestamp": self.ten_mins_ago,
                 "fingerprint": ["group_2"],
             },
             project_id=project2.id,
@@ -8307,16 +8172,15 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert data[0]["issue.id"] == event2.group_id
 
     def test_search_for_nonexistent_issue(self):
-        project1 = self.create_project()
         self.store_event(
             data={
                 "event_id": "a" * 32,
                 "transaction": "/example",
                 "message": "how to make fast",
-                "timestamp": self.two_min_ago,
+                "timestamp": self.ten_mins_ago,
                 "fingerprint": ["group_1"],
             },
-            project_id=project1.id,
+            project_id=self.project.id,
         )
 
         features = {"organizations:discover-basic": True, "organizations:global-views": True}
@@ -8328,16 +8192,15 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert data[0]["count()"] == 0
 
     def test_issue_alias_inside_aggregate(self):
-        project1 = self.create_project()
         self.store_event(
             data={
                 "event_id": "a" * 32,
                 "transaction": "/example",
                 "message": "how to make fast",
-                "timestamp": self.two_min_ago,
+                "timestamp": self.ten_mins_ago,
                 "fingerprint": ["group_1"],
             },
-            project_id=project1.id,
+            project_id=self.project.id,
         )
 
         self.store_event(
@@ -8345,10 +8208,10 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
                 "event_id": "b" * 32,
                 "transaction": "/example",
                 "message": "how to make fast",
-                "timestamp": self.two_min_ago,
+                "timestamp": self.ten_mins_ago,
                 "fingerprint": ["group_2"],
             },
-            project_id=project1.id,
+            project_id=self.project.id,
         )
 
         features = {"organizations:discover-basic": True, "organizations:global-views": True}
@@ -8373,7 +8236,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
                 "event_id": "a" * 32,
                 "transaction": "/example",
                 "message": "how to make fast",
-                "timestamp": self.two_min_ago,
+                "timestamp": self.ten_mins_ago,
                 "fingerprint": ["group_1"],
             },
             project_id=project1.id,
@@ -8383,7 +8246,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
                 "event_id": "b" * 32,
                 "transaction": "/example",
                 "message": "how to make fast",
-                "timestamp": self.two_min_ago,
+                "timestamp": self.ten_mins_ago,
                 "fingerprint": ["group_2"],
             },
             project_id=project2.id,
@@ -8416,7 +8279,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
                 "event_id": "a" * 32,
                 "transaction": "/example",
                 "message": "how to make fast",
-                "timestamp": self.two_min_ago,
+                "timestamp": self.ten_mins_ago,
                 "user": {"email": "cathy@example.com"},
             },
             project_id=project1.id,
@@ -8426,7 +8289,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
                 "event_id": "b" * 32,
                 "transaction": "/example",
                 "message": "how to make fast",
-                "timestamp": self.two_min_ago,
+                "timestamp": self.ten_mins_ago,
                 "user": {"username": "catherine"},
             },
             project_id=project2.id,
@@ -8446,18 +8309,15 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert result == {"catherine", "cathy@example.com"}
 
     def test_user_display_with_aggregates(self):
-        self.login_as(user=self.user)
-
-        project1 = self.create_project()
         self.store_event(
             data={
                 "event_id": "a" * 32,
                 "transaction": "/example",
                 "message": "how to make fast",
-                "timestamp": self.two_min_ago,
+                "timestamp": self.ten_mins_ago,
                 "user": {"email": "cathy@example.com"},
             },
-            project_id=project1.id,
+            project_id=self.project.id,
         )
 
         features = {"organizations:discover-basic": True, "organizations:global-views": True}
@@ -8487,7 +8347,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
                 "event_id": "a" * 32,
                 "transaction": "/example",
                 "message": "how to make fast",
-                "timestamp": self.two_min_ago,
+                "timestamp": self.ten_mins_ago,
                 "user": {"email": "cathy@example.com"},
             },
             project_id=project1.id,
@@ -8497,7 +8357,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
                 "event_id": "b" * 32,
                 "transaction": "/example",
                 "message": "how to make fast",
-                "timestamp": self.two_min_ago,
+                "timestamp": self.ten_mins_ago,
                 "user": {"username": "catherine"},
             },
             project_id=project2.id,
@@ -8526,7 +8386,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
                 "event_id": "a" * 32,
                 "transaction": "/example",
                 "message": "how to make fast",
-                "timestamp": self.two_min_ago,
+                "timestamp": self.ten_mins_ago,
                 "user": {"email": "cathy@example.com"},
             },
             project_id=project1.id,
@@ -8536,7 +8396,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
                 "event_id": "b" * 32,
                 "transaction": "/example",
                 "message": "how to make fast",
-                "timestamp": self.two_min_ago,
+                "timestamp": self.ten_mins_ago,
                 "user": {"username": "catherine"},
             },
             project_id=project2.id,
@@ -8559,7 +8419,6 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
 
     def test_any_field_alias(self):
         day_ago = before_now(days=1).replace(hour=10, minute=11, second=12, microsecond=13)
-        project1 = self.create_project()
         self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -8568,7 +8427,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
                 "timestamp": iso_format(day_ago),
                 "user": {"email": "cathy@example.com"},
             },
-            project_id=project1.id,
+            project_id=self.project.id,
         )
 
         features = {"organizations:discover-basic": True, "organizations:global-views": True}
@@ -8593,17 +8452,17 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert result == {iso_format(day_ago.replace(minute=0, second=0, microsecond=0))}
 
     def test_field_aliases_in_conflicting_functions(self):
-        day_ago = before_now(days=1).replace(hour=10, minute=11, second=12, microsecond=13)
-        project1 = self.create_project()
         self.store_event(
             data={
                 "event_id": "a" * 32,
                 "transaction": "/example",
                 "message": "how to make fast",
-                "timestamp": iso_format(day_ago),
+                "timestamp": iso_format(
+                    before_now(days=1).replace(hour=10, minute=11, second=12, microsecond=13)
+                ),
                 "user": {"email": "cathy@example.com"},
             },
-            project_id=project1.id,
+            project_id=self.project.id,
         )
 
         features = {"organizations:discover-basic": True, "organizations:global-views": True}
@@ -8629,9 +8488,8 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
          """
     )
     def test_has_message(self):
-        project = self.create_project()
         event = self.store_event(
-            {"timestamp": iso_format(before_now(minutes=1)), "message": "a"}, project_id=project.id
+            {"timestamp": self.ten_mins_ago, "message": "a"}, project_id=self.project.id
         )
 
         features = {"organizations:discover-basic": True, "organizations:global-views": True}
@@ -8649,10 +8507,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert len(response.data["data"]) == 0
 
     def test_has_transaction_status(self):
-        project = self.create_project()
-        data = load_data("transaction", timestamp=before_now(minutes=1))
-        data["transaction"] = "/transactionstatus/1"
-        self.store_event(data, project_id=project.id)
+        self.store_event(self.transaction_data, project_id=self.project.id)
 
         features = {"organizations:discover-basic": True, "organizations:global-views": True}
         query = {
@@ -8668,10 +8523,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert data[0]["count(id)"] == 1
 
     def test_not_has_transaction_status(self):
-        project = self.create_project()
-        data = load_data("transaction", timestamp=before_now(minutes=1))
-        data["transaction"] = "/transactionstatus/1"
-        self.store_event(data, project_id=project.id)
+        self.store_event(self.transaction_data, project_id=self.project.id)
 
         features = {"organizations:discover-basic": True, "organizations:global-views": True}
         query = {
@@ -8687,17 +8539,16 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert data[0]["count(id)"] == 0
 
     def test_tag_that_looks_like_aggregation(self):
-        project = self.create_project()
         data = {
             "message": "Failure state",
-            "timestamp": self.two_min_ago,
+            "timestamp": self.ten_mins_ago,
             "tags": {"count_diff": 99},
         }
-        self.store_event(data, project_id=project.id)
+        self.store_event(data, project_id=self.project.id)
         query = {
             "field": ["message", "count_diff", "count()"],
             "query": "",
-            "project": [project.id],
+            "project": [self.project.id],
             "statsPeriod": "24h",
         }
         response = self.do_request(query)
@@ -8713,18 +8564,17 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert 1 == data["count()"]
 
     def test_aggregate_negation(self):
-        project = self.create_project()
         data = load_data(
             "transaction",
-            timestamp=before_now(minutes=1),
-            start_timestamp=before_now(minutes=1, seconds=5),
+            timestamp=before_now(minutes=10),
+            start_timestamp=before_now(minutes=10, seconds=5),
         )
-        self.store_event(data, project_id=project.id)
+        self.store_event(data, project_id=self.project.id)
 
         features = {"organizations:discover-basic": True, "organizations:global-views": True}
         query = {
-            "field": ["event.type", "p99()"],
-            "query": "event.type:transaction p99():5s",
+            "field": ["event.type", "count()"],
+            "query": "event.type:transaction count():1",
             "statsPeriod": "24h",
         }
         response = self.do_request(query, features=features)
@@ -8733,8 +8583,8 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert len(data) == 1
 
         query = {
-            "field": ["event.type", "p99()"],
-            "query": "event.type:transaction !p99():5s",
+            "field": ["event.type", "count()"],
+            "query": "event.type:transaction !count():1",
             "statsPeriod": "24h",
         }
         response = self.do_request(query, features=features)
@@ -8743,23 +8593,22 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert len(data) == 0
 
     def test_all_aggregates_in_columns(self):
-        project = self.create_project()
         data = load_data(
             "transaction",
-            timestamp=before_now(minutes=2),
-            start_timestamp=before_now(minutes=2, seconds=5),
+            timestamp=before_now(minutes=11),
+            start_timestamp=before_now(minutes=11, seconds=5),
         )
         data["transaction"] = "/failure_rate/1"
-        self.store_event(data, project_id=project.id)
+        self.store_event(data, project_id=self.project.id)
 
         data = load_data(
             "transaction",
-            timestamp=before_now(minutes=1),
-            start_timestamp=before_now(minutes=1, seconds=5),
+            timestamp=before_now(minutes=10),
+            start_timestamp=before_now(minutes=10, seconds=5),
         )
         data["transaction"] = "/failure_rate/1"
         data["contexts"]["trace"]["status"] = "unauthenticated"
-        event = self.store_event(data, project_id=project.id)
+        event = self.store_event(data, project_id=self.project.id)
 
         features = {"organizations:discover-basic": True, "organizations:global-views": True}
         query = {
@@ -8828,7 +8677,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
                 "user_misery()",
             ],
             "query": "event.type:transaction",
-            "project": [project.id],
+            "project": [self.project.id],
         }
         response = self.do_request(query, features=features)
         assert response.status_code == 200, response.content
@@ -8873,7 +8722,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         data = response.data["data"]
         assert len(data) == 1
-        assert iso_format(before_now(minutes=1))[:-5] in data[0]["last_seen()"]
+        assert self.ten_mins_ago[:-5] in data[0]["last_seen()"]
         assert data[0]["latest_event()"] == event.event_id
 
         query = {
@@ -8911,15 +8760,9 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
 
     @requires_not_arm64
     def test_null_user_misery_returns_zero(self):
-        project = self.create_project()
-        data = load_data(
-            "transaction",
-            timestamp=before_now(minutes=2),
-            start_timestamp=before_now(minutes=2, seconds=5),
-        )
-        data["user"] = None
-        data["transaction"] = "/no_users/1"
-        self.store_event(data, project_id=project.id)
+        self.transaction_data["user"] = None
+        self.transaction_data["transaction"] = "/no_users/1"
+        self.store_event(self.transaction_data, project_id=self.project.id)
         features = {"organizations:discover-basic": True, "organizations:global-views": True}
 
         query = {
@@ -8936,15 +8779,9 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
 
     @requires_not_arm64
     def test_null_user_misery_new_returns_zero(self):
-        project = self.create_project()
-        data = load_data(
-            "transaction",
-            timestamp=before_now(minutes=2),
-            start_timestamp=before_now(minutes=2, seconds=5),
-        )
-        data["user"] = None
-        data["transaction"] = "/no_users/1"
-        self.store_event(data, project_id=project.id)
+        self.transaction_data["user"] = None
+        self.transaction_data["transaction"] = "/no_users/1"
+        self.store_event(self.transaction_data, project_id=self.project.id)
         features = {
             "organizations:discover-basic": True,
         }
@@ -8962,23 +8799,22 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert data[0]["user_misery()"] == 0
 
     def test_all_aggregates_in_query(self):
-        project = self.create_project()
         data = load_data(
             "transaction",
-            timestamp=before_now(minutes=2),
-            start_timestamp=before_now(minutes=2, seconds=5),
+            timestamp=before_now(minutes=11),
+            start_timestamp=before_now(minutes=11, seconds=5),
         )
         data["transaction"] = "/failure_rate/1"
-        self.store_event(data, project_id=project.id)
+        self.store_event(data, project_id=self.project.id)
 
         data = load_data(
             "transaction",
-            timestamp=before_now(minutes=1),
-            start_timestamp=before_now(minutes=1, seconds=5),
+            timestamp=before_now(minutes=10),
+            start_timestamp=before_now(minutes=10, seconds=5),
         )
         data["transaction"] = "/failure_rate/2"
         data["contexts"]["trace"]["status"] = "unauthenticated"
-        self.store_event(data, project_id=project.id)
+        self.store_event(data, project_id=self.project.id)
 
         features = {"organizations:discover-basic": True, "organizations:global-views": True}
         query = {
@@ -9093,23 +8929,22 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert data[0]["apdex(400)"] == 0
 
     def test_functions_in_orderby(self):
-        project = self.create_project()
         data = load_data(
             "transaction",
-            timestamp=before_now(minutes=2),
-            start_timestamp=before_now(minutes=2, seconds=5),
+            timestamp=before_now(minutes=11),
+            start_timestamp=before_now(minutes=11, seconds=5),
         )
         data["transaction"] = "/failure_rate/1"
-        self.store_event(data, project_id=project.id)
+        self.store_event(data, project_id=self.project.id)
 
         data = load_data(
             "transaction",
-            timestamp=before_now(minutes=1),
-            start_timestamp=before_now(minutes=1, seconds=5),
+            timestamp=before_now(minutes=10),
+            start_timestamp=before_now(minutes=10, seconds=5),
         )
         data["transaction"] = "/failure_rate/2"
         data["contexts"]["trace"]["status"] = "unauthenticated"
-        event = self.store_event(data, project_id=project.id)
+        event = self.store_event(data, project_id=self.project.id)
 
         features = {"organizations:discover-basic": True, "organizations:global-views": True}
         query = {
@@ -9179,14 +9014,17 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert data[0]["min(transaction.duration)"] == 5000
 
     def test_issue_alias_in_aggregate(self):
-        project = self.create_project()
         self.store_event(
-            data={"event_id": "a" * 32, "timestamp": self.two_min_ago, "fingerprint": ["group_1"]},
-            project_id=project.id,
+            data={
+                "event_id": "a" * 32,
+                "timestamp": self.eleven_mins_ago,
+                "fingerprint": ["group_1"],
+            },
+            project_id=self.project.id,
         )
         self.store_event(
-            data={"event_id": "b" * 32, "timestamp": self.min_ago, "fingerprint": ["group_2"]},
-            project_id=project.id,
+            data={"event_id": "b" * 32, "timestamp": self.ten_mins_ago, "fingerprint": ["group_2"]},
+            project_id=self.project.id,
         )
 
         query = {"field": ["event.type", "count_unique(issue)"], "query": "count_unique(issue):>1"}
@@ -9199,14 +9037,17 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert data[0]["count_unique(issue)"] == 2
 
     def test_deleted_issue_in_results(self):
-        project = self.create_project()
         event1 = self.store_event(
-            data={"event_id": "a" * 32, "timestamp": self.two_min_ago, "fingerprint": ["group_1"]},
-            project_id=project.id,
+            data={
+                "event_id": "a" * 32,
+                "timestamp": self.eleven_mins_ago,
+                "fingerprint": ["group_1"],
+            },
+            project_id=self.project.id,
         )
         event2 = self.store_event(
-            data={"event_id": "b" * 32, "timestamp": self.min_ago, "fingerprint": ["group_2"]},
-            project_id=project.id,
+            data={"event_id": "b" * 32, "timestamp": self.ten_mins_ago, "fingerprint": ["group_2"]},
+            project_id=self.project.id,
         )
         event2.group.delete()
 
@@ -9221,10 +9062,9 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert data[1]["issue"] == "unknown"
 
     def test_last_seen_negative_duration(self):
-        project = self.create_project()
         self.store_event(
-            data={"event_id": "f" * 32, "timestamp": self.two_min_ago, "fingerprint": ["group_1"]},
-            project_id=project.id,
+            data={"event_id": "f" * 32, "timestamp": self.ten_mins_ago, "fingerprint": ["group_1"]},
+            project_id=self.project.id,
         )
 
         features = {"organizations:discover-basic": True, "organizations:global-views": True}
@@ -9237,10 +9077,9 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert data[0]["id"] == "f" * 32
 
     def test_last_seen_aggregate_condition(self):
-        project = self.create_project()
         self.store_event(
-            data={"event_id": "f" * 32, "timestamp": self.two_min_ago, "fingerprint": ["group_1"]},
-            project_id=project.id,
+            data={"event_id": "f" * 32, "timestamp": self.ten_mins_ago, "fingerprint": ["group_1"]},
+            project_id=self.project.id,
         )
 
         query = {
@@ -9256,15 +9095,14 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert data[0]["id"] == "f" * 32
 
     def test_conditional_filter(self):
-        project = self.create_project()
         for v in ["a", "b"]:
             self.store_event(
                 data={
                     "event_id": v * 32,
-                    "timestamp": self.two_min_ago,
+                    "timestamp": self.ten_mins_ago,
                     "fingerprint": ["group_1"],
                 },
-                project_id=project.id,
+                project_id=self.project.id,
             )
 
         query = {
@@ -9282,46 +9120,45 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert data[1]["id"] == "b" * 32
 
     def test_aggregation_comparison_with_conditional_filter(self):
-        project = self.create_project()
         self.store_event(
             data={
                 "event_id": "a" * 32,
-                "timestamp": self.min_ago,
+                "timestamp": self.ten_mins_ago,
                 "fingerprint": ["group_1"],
                 "user": {"email": "foo@example.com"},
                 "environment": "prod",
             },
-            project_id=project.id,
+            project_id=self.project.id,
         )
         self.store_event(
             data={
                 "event_id": "b" * 32,
-                "timestamp": self.min_ago,
+                "timestamp": self.ten_mins_ago,
                 "fingerprint": ["group_2"],
                 "user": {"email": "foo@example.com"},
                 "environment": "staging",
             },
-            project_id=project.id,
+            project_id=self.project.id,
         )
         event = self.store_event(
             data={
                 "event_id": "c" * 32,
-                "timestamp": self.min_ago,
+                "timestamp": self.ten_mins_ago,
                 "fingerprint": ["group_2"],
                 "user": {"email": "foo@example.com"},
                 "environment": "prod",
             },
-            project_id=project.id,
+            project_id=self.project.id,
         )
         self.store_event(
             data={
                 "event_id": "d" * 32,
-                "timestamp": self.min_ago,
+                "timestamp": self.ten_mins_ago,
                 "fingerprint": ["group_2"],
                 "user": {"email": "foo@example.com"},
                 "environment": "canary",
             },
-            project_id=project.id,
+            project_id=self.project.id,
         )
 
         query = {
@@ -9366,7 +9203,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         event_1 = self.store_event(
             data={
                 "event_id": "a" * 32,
-                "timestamp": self.min_ago,
+                "timestamp": self.ten_mins_ago,
                 "fingerprint": ["group_1"],
                 "message": "group1",
                 "user": {"email": "hello@example.com"},
@@ -9380,7 +9217,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         event_2 = self.store_event(
             data={
                 "event_id": "b" * 32,
-                "timestamp": self.min_ago,
+                "timestamp": self.ten_mins_ago,
                 "fingerprint": ["group_2"],
                 "message": "group2",
                 "user": {"email": "bar@example.com"},
@@ -9395,7 +9232,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         event_3 = self.store_event(
             data={
                 "event_id": "c" * 32,
-                "timestamp": self.min_ago,
+                "timestamp": self.ten_mins_ago,
                 "fingerprint": ["group_3"],
                 "message": "group3",
                 "user": {"email": "foo@example.com"},
@@ -9438,55 +9275,41 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         self.run_test_in_query("release:[1.0,1.2]", [event_1, event_2], [event_3])
 
     def test_in_query_events_stack(self):
-        project_1 = self.create_project()
         test_js = self.store_event(
             load_data(
                 "javascript",
-                timestamp=before_now(minutes=1),
-                start_timestamp=before_now(minutes=1, seconds=5),
+                timestamp=before_now(minutes=10),
+                start_timestamp=before_now(minutes=10, seconds=5),
             ),
-            project_id=project_1.id,
+            project_id=self.project.id,
         )
         test_java = self.store_event(
             load_data(
                 "java",
-                timestamp=before_now(minutes=1),
-                start_timestamp=before_now(minutes=1, seconds=5),
+                timestamp=before_now(minutes=10),
+                start_timestamp=before_now(minutes=10, seconds=5),
             ),
-            project_id=project_1.id,
+            project_id=self.project.id,
         )
         self.run_test_in_query(
             "stack.filename:[../../sentry/scripts/views.js]", [test_js], [test_java]
         )
 
     def test_in_query_transactions(self):
-        project = self.create_project()
-        data = load_data(
-            "transaction",
-            timestamp=before_now(minutes=1),
-            start_timestamp=before_now(minutes=1, seconds=5),
-        )
+        data = self.transaction_data.copy()
         data["event_id"] = "a" * 32
         data["contexts"]["trace"]["status"] = "ok"
-        transaction_1 = self.store_event(data, project_id=project.id)
+        transaction_1 = self.store_event(data, project_id=self.project.id)
 
-        data = load_data(
-            "transaction",
-            timestamp=before_now(minutes=1),
-            start_timestamp=before_now(minutes=1, seconds=5),
-        )
+        data = self.transaction_data.copy()
         data["event_id"] = "b" * 32
         data["contexts"]["trace"]["status"] = "aborted"
-        transaction_2 = self.store_event(data, project_id=project.id)
+        transaction_2 = self.store_event(data, project_id=self.project.id)
 
-        data = load_data(
-            "transaction",
-            timestamp=before_now(minutes=1),
-            start_timestamp=before_now(minutes=1, seconds=5),
-        )
+        data = self.transaction_data.copy()
         data["event_id"] = "c" * 32
         data["contexts"]["trace"]["status"] = "already_exists"
-        transaction_3 = self.store_event(data, project_id=project.id)
+        transaction_3 = self.store_event(data, project_id=self.project.id)
 
         self.run_test_in_query(
             "transaction.status:[aborted, already_exists]",
@@ -9499,15 +9322,14 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         # The problem: The && causes the parser to treat that term not as a bad
         # function call but a valid raw search with parens in it. It's not trivial
         # to change the parser to recognize "bad function values" and surface them.
-        project = self.create_project()
         for v in ["a", "b"]:
             self.store_event(
                 data={
                     "event_id": v * 32,
-                    "timestamp": self.two_min_ago,
+                    "timestamp": self.ten_mins_ago,
                     "fingerprint": ["group_1"],
                 },
-                project_id=project.id,
+                project_id=self.project.id,
             )
 
         features = {"organizations:discover-basic": True, "organizations:global-views": True}
@@ -9534,19 +9356,18 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert len(data) == 0
 
     def test_context_fields_between_datasets(self):
-        project = self.create_project()
         event_data = load_data("android")
         transaction_data = load_data("transaction")
         event_data["spans"] = transaction_data["spans"]
         event_data["contexts"]["trace"] = transaction_data["contexts"]["trace"]
         event_data["type"] = "transaction"
         event_data["transaction"] = "/failure_rate/1"
-        event_data["timestamp"] = iso_format(before_now(minutes=1))
-        event_data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
+        event_data["timestamp"] = iso_format(before_now(minutes=10))
+        event_data["start_timestamp"] = iso_format(before_now(minutes=10, seconds=5))
         event_data["user"]["geo"] = {"country_code": "US", "region": "CA", "city": "San Francisco"}
-        self.store_event(event_data, project_id=project.id)
+        self.store_event(event_data, project_id=self.project.id)
         event_data["type"] = "error"
-        self.store_event(event_data, project_id=project.id)
+        self.store_event(event_data, project_id=self.project.id)
 
         fields = [
             "os.build",
@@ -9584,20 +9405,19 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
                 assert results[0][field] == expected, field + str(datum)
 
     def test_http_fields_between_datasets(self):
-        project = self.create_project()
         event_data = load_data("android")
         transaction_data = load_data("transaction")
         event_data["spans"] = transaction_data["spans"]
         event_data["contexts"]["trace"] = transaction_data["contexts"]["trace"]
         event_data["type"] = "transaction"
         event_data["transaction"] = "/failure_rate/1"
-        event_data["timestamp"] = iso_format(before_now(minutes=1))
-        event_data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
+        event_data["timestamp"] = iso_format(before_now(minutes=10))
+        event_data["start_timestamp"] = iso_format(before_now(minutes=10, seconds=5))
         event_data["user"]["geo"] = {"country_code": "US", "region": "CA", "city": "San Francisco"}
         event_data["request"] = transaction_data["request"]
-        self.store_event(event_data, project_id=project.id)
+        self.store_event(event_data, project_id=self.project.id)
         event_data["type"] = "error"
-        self.store_event(event_data, project_id=project.id)
+        self.store_event(event_data, project_id=self.project.id)
 
         fields = ["http.method", "http.referer", "http.url"]
         expected = ["GET", "fixtures.transaction", "http://countries:8010/country_by_code/"]
@@ -9619,22 +9439,20 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
                 assert results[0][field] == exp, field + str(datum)
 
     def test_failure_count_alias_field(self):
-        project = self.create_project()
-
-        data = load_data("transaction", timestamp=before_now(minutes=1))
+        data = self.transaction_data.copy()
         data["transaction"] = "/failure_count/success"
-        self.store_event(data, project_id=project.id)
+        self.store_event(data, project_id=self.project.id)
 
-        data = load_data("transaction", timestamp=before_now(minutes=1))
+        data = self.transaction_data.copy()
         data["transaction"] = "/failure_count/unknown"
         data["contexts"]["trace"]["status"] = "unknown_error"
-        self.store_event(data, project_id=project.id)
+        self.store_event(data, project_id=self.project.id)
 
         for i in range(6):
-            data = load_data("transaction", timestamp=before_now(minutes=1))
+            data = self.transaction_data.copy()
             data["transaction"] = f"/failure_count/{i}"
             data["contexts"]["trace"]["status"] = "unauthenticated"
-            self.store_event(data, project_id=project.id)
+            self.store_event(data, project_id=self.project.id)
 
         query = {"field": ["count()", "failure_count()"], "query": "event.type:transaction"}
         response = self.do_request(query)
@@ -9673,13 +9491,11 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
     @mock.patch("sentry.snuba.discover.query")
     def test_valid_referrer(self, mock):
         mock.return_value = {}
-        project = self.create_project()
-        data = load_data("transaction", timestamp=before_now(hours=1))
-        self.store_event(data=data, project_id=project.id)
 
         query = {
             "field": ["user"],
             "referrer": "api.performance.transaction-summary",
+            "project": [self.project.id],
         }
         self.do_request(query)
         _, kwargs = mock.call_args
@@ -9688,13 +9504,11 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
     @mock.patch("sentry.snuba.discover.query")
     def test_invalid_referrer(self, mock):
         mock.return_value = {}
-        project = self.create_project()
-        data = load_data("transaction", timestamp=before_now(hours=1))
-        self.store_event(data=data, project_id=project.id)
 
         query = {
             "field": ["user"],
             "referrer": "api.performance.invalid",
+            "project": [self.project.id],
         }
         self.do_request(query)
         _, kwargs = mock.call_args
@@ -9703,12 +9517,10 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
     @mock.patch("sentry.snuba.discover.query")
     def test_empty_referrer(self, mock):
         mock.return_value = {}
-        project = self.create_project()
-        data = load_data("transaction", timestamp=before_now(hours=1))
-        self.store_event(data=data, project_id=project.id)
 
         query = {
             "field": ["user"],
+            "project": [self.project.id],
         }
         self.do_request(query)
         _, kwargs = mock.call_args
@@ -9721,11 +9533,10 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         # be passed in the parameters
         api_key = ApiKey.objects.create(organization=self.organization, scope_list=["org:read"])
 
-        project = self.create_project()
-        data = load_data("transaction", timestamp=before_now(hours=1))
-        self.store_event(data=data, project_id=project.id)
-
-        query = {"field": ["project.name", "environment"], "project": [project.id]}
+        query = {
+            "field": ["project.name", "environment"],
+            "project": [self.project.id],
+        }
 
         features = {"organizations:discover-basic": True}
         features.update(self.features)
@@ -9756,13 +9567,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
                 )
 
     def test_percentile_function_meta_types(self):
-        project = self.create_project()
-        data = load_data(
-            "transaction",
-            timestamp=before_now(minutes=1),
-            start_timestamp=before_now(minutes=1, seconds=5),
-        )
-        self.store_event(data, project_id=project.id)
+        self.store_event(self.transaction_data, project_id=self.project.id)
 
         query = {
             "field": [
@@ -10308,7 +10113,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
 
     def test_no_pagination_param(self):
         self.store_event(
-            data={"event_id": "a" * 32, "timestamp": self.min_ago, "fingerprint": ["group1"]},
+            data={"event_id": "a" * 32, "timestamp": self.ten_mins_ago, "fingerprint": ["group1"]},
             project_id=self.project.id,
         )
 
@@ -10326,7 +10131,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert response.data["data"][0]["apdex(300)"] == 0
 
     def test_equation_simple(self):
-        event_data = load_data("transaction", timestamp=before_now(minutes=1))
+        event_data = load_data("transaction", timestamp=before_now(minutes=10))
         event_data["breakdowns"]["span_ops"]["ops.http"]["value"] = 1500
         self.store_event(data=event_data, project_id=self.project.id)
 
@@ -10350,12 +10155,12 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert response.data["meta"]["fields"]["equation|spans.http / 3"] == "number"
 
     def test_equation_sort(self):
-        event_data = load_data("transaction", timestamp=before_now(minutes=1))
-        event_data["breakdowns"]["span_ops"]["ops.http"]["value"] = 1500
+        event_data = self.transaction_data.copy()
+        event_data["breakdowns"] = {"span_ops": {"ops.http": {"value": 1500}}}
         self.store_event(data=event_data, project_id=self.project.id)
 
-        event_data2 = load_data("transaction", timestamp=before_now(minutes=1))
-        event_data2["breakdowns"]["span_ops"]["ops.http"]["value"] = 2000
+        event_data2 = self.transaction_data.copy()
+        event_data2["breakdowns"] = {"span_ops": {"ops.http": {"value": 2000}}}
         self.store_event(data=event_data2, project_id=self.project.id)
 
         query = {
@@ -10417,8 +10222,8 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         for i in range(5):
             data = load_data(
                 "transaction",
-                timestamp=before_now(minutes=(1 + i)),
-                start_timestamp=before_now(minutes=(1 + i), milliseconds=100 if i < 3 else 200),
+                timestamp=before_now(minutes=(10 + i)),
+                start_timestamp=before_now(minutes=(10 + i), milliseconds=100 if i < 3 else 200),
             )
             data["tags"] = {
                 "sub_customer.is-Enterprise-42": "yes" if i == 0 else "no",
@@ -10450,11 +10255,10 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert response.data["data"][0][f"count_if(unicode-phrase, equals, {unicode_phrase1})"] == 1
 
     def test_count_if_measurements_cls(self):
-        data = load_data("transaction", timestamp=before_now(minutes=1))
-        data["measurements"]["cls"] = {"value": 0.5}
+        data = self.transaction_data.copy()
+        data["measurements"] = {"cls": {"value": 0.5}}
         self.store_event(data, project_id=self.project.id)
-        data = load_data("transaction", timestamp=before_now(minutes=1))
-        data["measurements"]["cls"] = {"value": 0.1}
+        data["measurements"] = {"cls": {"value": 0.1}}
         self.store_event(data, project_id=self.project.id)
 
         query = {
@@ -10475,8 +10279,8 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         for i in range(5):
             data = load_data(
                 "transaction",
-                timestamp=before_now(minutes=(1 + i)),
-                start_timestamp=before_now(minutes=(1 + i), milliseconds=100 if i < 3 else 200),
+                timestamp=before_now(minutes=(10 + i)),
+                start_timestamp=before_now(minutes=(10 + i), milliseconds=100 if i < 3 else 200),
             )
             data["tags"] = {"sub_customer.is-Enterprise-42": "yes" if i == 0 else "no"}
             self.store_event(data, project_id=self.project.id)
@@ -10506,9 +10310,8 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert len(response.data["data"]) == 0
 
     def test_filters_with_escaped_asterisk(self):
-        data = load_data("transaction", timestamp=before_now(minutes=1))
-        data["transaction"] = r"/:a*/:b-:c(\d\.\e+)"
-        self.store_event(data, project_id=self.project.id)
+        self.transaction_data["transaction"] = r"/:a*/:b-:c(\d\.\e+)"
+        self.store_event(self.transaction_data, project_id=self.project.id)
 
         query = {
             "field": ["transaction", "transaction.duration"],
@@ -10521,9 +10324,8 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert len(response.data["data"]) == 1
 
     def test_filters_with_back_slashes(self):
-        data = load_data("transaction", timestamp=before_now(minutes=1))
-        data["transaction"] = r"a\b\c@d"
-        self.store_event(data, project_id=self.project.id)
+        self.transaction_data["transaction"] = r"a\b\c@d"
+        self.store_event(self.transaction_data, project_id=self.project.id)
 
         query = {
             "field": ["transaction", "transaction.duration"],
@@ -10535,14 +10337,13 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert len(response.data["data"]) == 1
 
     def test_mobile_measurements(self):
-        data = load_data("transaction", timestamp=before_now(minutes=1))
-        data["measurements"]["frames_total"] = {"value": 100}
-        data["measurements"]["frames_slow"] = {"value": 10}
-        data["measurements"]["frames_frozen"] = {"value": 5}
-        data["measurements"]["stall_count"] = {"value": 2}
-        data["measurements"]["stall_total_time"] = {"value": 12}
-        data["measurements"]["stall_longest_time"] = {"value": 7}
-        self.store_event(data, project_id=self.project.id)
+        self.transaction_data["measurements"]["frames_total"] = {"value": 100}
+        self.transaction_data["measurements"]["frames_slow"] = {"value": 10}
+        self.transaction_data["measurements"]["frames_frozen"] = {"value": 5}
+        self.transaction_data["measurements"]["stall_count"] = {"value": 2}
+        self.transaction_data["measurements"]["stall_total_time"] = {"value": 12}
+        self.transaction_data["measurements"]["stall_longest_time"] = {"value": 7}
+        self.store_event(self.transaction_data, project_id=self.project.id)
 
         query = {
             "field": [
@@ -10613,10 +10414,9 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert meta["percentile(measurements.stall_percentage,0.5)"] == "percentage"
 
     def test_project_auto_fields(self):
-        project = self.create_project()
         self.store_event(
-            data={"event_id": "a" * 32, "environment": "staging", "timestamp": self.min_ago},
-            project_id=project.id,
+            data={"event_id": "a" * 32, "environment": "staging", "timestamp": self.ten_mins_ago},
+            project_id=self.project.id,
         )
 
         query = {"field": ["environment"]}
@@ -10624,23 +10424,11 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 1
         assert response.data["data"][0]["environment"] == "staging"
-        assert response.data["data"][0]["project.name"] == project.slug
+        assert response.data["data"][0]["project.name"] == self.project.slug
 
     def test_timestamp_different_from_params(self):
-        project = self.create_project()
         fifteen_days_ago = iso_format(before_now(days=15))
         fifteen_days_later = iso_format(before_now(days=-15))
-
-        self.store_event(
-            data={
-                "event_id": "a" * 32,
-                "timestamp": iso_format(before_now(minutes=5)),
-                "fingerprint": ["1123581321"],
-                "user": {"email": "foo@example.com"},
-                "tags": {"language": "C++"},
-            },
-            project_id=project.id,
-        )
 
         for query_text in [
             f"timestamp:<{fifteen_days_ago}",
@@ -10652,6 +10440,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
                 "field": ["count()"],
                 "query": query_text,
                 "statsPeriod": "14d",
+                "project": self.project.id,
             }
             response = self.do_request(query)
 
