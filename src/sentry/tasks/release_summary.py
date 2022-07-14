@@ -10,6 +10,7 @@ from sentry.notifications.notifications.activity.release_summary import (
 from sentry.notifications.utils.participants import _get_release_committers
 from sentry.tasks.base import instrumented_task
 from sentry.types.activity import ActivityType
+from sentry.types.releaseactivity import ReleaseActivityType
 
 
 @instrumented_task(name="sentry.tasks.digest.release_summary")
@@ -58,7 +59,7 @@ def prepare_release_summary():
         release_summary.send()
         if features.has("organizations:active-release-monitor-alpha", release.organization):
             ReleaseActivity.objects.create(
-                type=ReleaseActivity.Type.finished,
+                type=ReleaseActivityType.FINISHED.value,
                 release=release,
                 date_added=now,
             )

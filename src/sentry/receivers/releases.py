@@ -31,6 +31,7 @@ from sentry.notifications.types import GroupSubscriptionReason
 from sentry.signals import buffer_incr_complete, issue_resolved
 from sentry.tasks.clear_expired_resolutions import clear_expired_resolutions
 from sentry.types.activity import ActivityType
+from sentry.types.releaseactivity import ReleaseActivityType
 
 
 def resolve_group_resolutions(instance, created, **kwargs):
@@ -228,7 +229,9 @@ def save_release_activity(instance: Release, created: bool, **kwargs):
     if created:
         if features.has("organizations:active-release-monitor-alpha", instance.organization):
             ReleaseActivity.objects.create(
-                type=ReleaseActivity.Type.created, release=instance, date_added=instance.date_added
+                type=ReleaseActivityType.CREATED.value,
+                release=instance,
+                date_added=instance.date_added,
             )
 
 

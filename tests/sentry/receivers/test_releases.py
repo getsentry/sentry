@@ -28,6 +28,7 @@ from sentry.models import (
 from sentry.signals import buffer_incr_complete
 from sentry.testutils import TestCase
 from sentry.types.activity import ActivityType
+from sentry.types.releaseactivity import ReleaseActivityType
 
 
 class ResolveGroupResolutionsTest(TestCase):
@@ -251,7 +252,7 @@ class SaveReleaseActivityReceiverTest(TestCase):
 
             assert len(activity) == 1
             assert activity[0].date_added == release.date_added
-            assert activity[0].type == ReleaseActivity.Type.created
+            assert activity[0].type == ReleaseActivityType.CREATED.value
             assert activity[0].release_id == release.id
 
     def test_update_release_should_not_create_activity(self):

@@ -3,27 +3,14 @@ from django.db import models
 from django.utils import timezone
 
 from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Model
+from sentry.types.releaseactivity import CHOICES
 
 
 class ReleaseActivity(Model):
     __include_in_export__ = False
 
-    class Type:
-        created = 0
-        deployed = 1
-        finished = 2
-        issue = 3
-
     release = FlexibleForeignKey("sentry.Release", db_index=True)
-    type = BoundedPositiveIntegerField(
-        null=False,
-        choices=(
-            (Type.created, "Created"),
-            (Type.deployed, "Deployed"),
-            (Type.finished, "Finished"),
-            (Type.issue, "Issue"),
-        ),
-    )
+    type = BoundedPositiveIntegerField(null=False, choices=CHOICES)
     data = JSONField(default=dict)
     date_added = models.DateTimeField(default=timezone.now)
 

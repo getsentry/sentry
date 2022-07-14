@@ -11,6 +11,7 @@ from sentry import features
 from sentry.app import locks
 from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Model
 from sentry.types.activity import ActivityType
+from sentry.types.releaseactivity import ReleaseActivityType
 from sentry.utils.retries import TimedRetryPolicy
 
 
@@ -100,6 +101,7 @@ class Deploy(Model):
                     org = None
                 if org and features.has("organizations:active-release-monitor-alpha", org):
                     ReleaseActivity.objects.create(
-                        type=ReleaseActivity.Type.deployed,
+                        type=ReleaseActivityType.DEPLOYED.value,
                         release=release,
+                        data={"environment": str(environment.name)},
                     )

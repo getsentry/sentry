@@ -23,6 +23,7 @@ from sentry.notifications.utils import (
 from sentry.notifications.utils.participants import get_send_to
 from sentry.plugins.base.structs import Notification
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
+from sentry.types.releaseactivity import ReleaseActivityType
 from sentry.utils import metrics
 from sentry.utils.http import absolute_uri, urlencode
 
@@ -171,7 +172,7 @@ class AlertRuleNotification(ProjectNotification):
                     and last_release
                 ):
                     ReleaseActivity.objects.create(
-                        type=ReleaseActivity.Type.issue,
+                        type=ReleaseActivityType.ISSUE.value,
                         data={
                             "provider": EXTERNAL_PROVIDERS[provider],
                             "group_id": self.group.id,
