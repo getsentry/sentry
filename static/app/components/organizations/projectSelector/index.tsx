@@ -374,7 +374,7 @@ function ProjectSelector({
             <InputActions>
               {showPin && (
                 <GuideAnchor target="new_page_filter_pin" position="bottom">
-                  <PageFilterPinButton size="xsmall" filter="projects" />
+                  <PageFilterPinButton size="xs" filter="projects" />
                 </GuideAnchor>
               )}
             </InputActions>

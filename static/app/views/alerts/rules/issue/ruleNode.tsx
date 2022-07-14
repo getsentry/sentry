@@ -368,7 +368,7 @@ function RuleNode({
           trailingItems={
             <Button
               href="https://docs.sentry.io/product/integrations/notification-incidents/slack/#rate-limiting-error"
-              size="xsmall"
+              size="xs"
             >
               {t('Learn More')}
             </Button>
@@ -468,7 +468,7 @@ function RuleNode({
           {renderRow()}
           {ticketRule && node && (
             <Button
-              size="small"
+              size="sm"
               icon={<IconSettings size="xs" />}
               type="button"
               onClick={() =>
@@ -491,7 +491,7 @@ function RuleNode({
           )}
           {sentryAppRule && node && (
             <Button
-              size="small"
+              size="sm"
               icon={<IconSettings size="xs" />}
               type="button"
               disabled={Boolean(data.disabled) || disabled}
@@ -520,7 +520,7 @@ function RuleNode({
           aria-label={t('Delete Node')}
           onClick={handleDelete}
           type="button"
-          size="small"
+          size="sm"
           icon={<IconDelete />}
         />
       </RuleRow>

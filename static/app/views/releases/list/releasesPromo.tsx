@@ -198,20 +198,23 @@ const ReleasesPromo = ({organization, project}: Props) => {
   return renderComponent(
     <Panel>
       <Container>
-        <p>
-          {t(
-            'Configuring releases associates new issues with the right version of your code and ensures the right team members are notified of these issues.'
-          )}
-        </p>
         <StyledPageHeader>
-          <h3>{t('Configure Releases with the CLI')}</h3>
+          <h3>{t('Set up Releases')}</h3>
 
-          <Button priority="primary" size="small" href={releasesSetupUrl} external>
+          <Button priority="default" size="sm" href={releasesSetupUrl} external>
             {t('Full Documentation')}
           </Button>
         </StyledPageHeader>
+
         <p>
-          Add the following commands to your CI config when you deploy your application.
+          {t(
+            'Find which release caused an issue, apply source maps, and get notified about your deploys.'
+          )}
+        </p>
+        <p>
+          {t(
+            'Add the following commands to your CI config when you deploy your application.'
+          )}
         </p>
 
         <CodeBlock>

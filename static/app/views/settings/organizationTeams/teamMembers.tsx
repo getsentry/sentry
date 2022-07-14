@@ -258,7 +258,7 @@ class TeamMembers extends Component<Props, State> {
         onClose={() => this.debouncedFetchMembersRequest('')}
       >
         {({isOpen}) => (
-          <DropdownButton isOpen={isOpen} size="xsmall" data-test-id="add-member">
+          <DropdownButton isOpen={isOpen} size="xs" data-test-id="add-member">
             {t('Add Member')}
           </DropdownButton>
         )}
@@ -269,7 +269,7 @@ class TeamMembers extends Component<Props, State> {
   removeButton(member: Member) {
     return (
       <Button
-        size="small"
+        size="sm"
         icon={<IconSubtract size="xs" isCircled />}
         onClick={() => this.removeMember(member)}
         aria-label={t('Remove')}

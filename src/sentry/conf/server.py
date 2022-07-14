@@ -523,6 +523,9 @@ CELERY_ALWAYS_EAGER = False
 # this works.
 CELERY_COMPLAIN_ABOUT_BAD_USE_OF_PICKLE = False
 
+# Complain about bad use of pickle in PickledObjectField
+PICKLED_OBJECT_FIELD_COMPLAIN_ABOUT_BAD_USE_OF_PICKLE = False
+
 # We use the old task protocol because during benchmarking we noticed that it's faster
 # than the new protocol. If we ever need to bump this it should be fine, there were no
 # compatibility issues, just need to run benchmarks and do some tests to make sure
@@ -577,6 +580,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.process_buffer",
     "sentry.tasks.relay",
     "sentry.tasks.release_registry",
+    "sentry.tasks.release_summary",
     "sentry.tasks.reports",
     "sentry.tasks.reprocessing",
     "sentry.tasks.reprocessing2",
@@ -718,6 +722,11 @@ CELERYBEAT_SCHEDULE = {
         "task": "sentry.tasks.digests.schedule_digests",
         "schedule": timedelta(seconds=30),
         "options": {"expires": 30},
+    },
+    "schedule-digest-release-summary": {
+        "task": "sentry.tasks.digest.release_summary",
+        "schedule": timedelta(minutes=5),
+        "options": {"expires": 60 * 5},
     },
     "check-monitors": {
         "task": "sentry.tasks.check_monitors",
@@ -965,8 +974,6 @@ SENTRY_FEATURES = {
     "organizations:duplicate-alert-rule": True,
     # Enable attaching arbitrary files to events.
     "organizations:event-attachments": True,
-    # Enable Filters & Sampling in the project settings
-    "organizations:filters-and-sampling": False,
     # Allow organizations to configure all symbol sources.
     "organizations:symbol-sources": True,
     # Allow organizations to configure custom external symbol sources.
@@ -1155,8 +1162,6 @@ SENTRY_FEATURES = {
     "projects:discard-groups": False,
     # DEPRECATED: pending removal
     "projects:dsym": False,
-    # Enable selection of members, teams or code owners as email targets for issue alerts.
-    "projects:issue-alerts-targeting": True,
     # Enable functionality for attaching  minidumps to events and displaying
     # then in the group UI.
     "projects:minidump": True,
@@ -2686,3 +2691,6 @@ SENTRY_POST_PROCESS_LOCKS_BACKEND_OPTIONS = {
     "path": "sentry.utils.locking.backends.redis.RedisLockBackend",
     "options": {"cluster": "default"},
 }
+
+# maximum number of projects allowed to query snuba with for the organization_vitals_overview endpoint
+ORGANIZATION_VITALS_OVERVIEW_PROJECT_LIMIT = 300

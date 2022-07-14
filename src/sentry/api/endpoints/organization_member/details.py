@@ -35,7 +35,7 @@ from sentry.models import (
 from sentry.roles import organization_roles, team_roles
 from sentry.utils import metrics
 
-from . import get_allowed_roles
+from . import get_allowed_org_roles
 
 ERR_NO_AUTH = "You cannot remove this member with an unauthenticated API request."
 ERR_INSUFFICIENT_ROLE = "You cannot remove a member who has more access than you."
@@ -120,7 +120,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
 
         Will return a pending invite as long as it's already approved.
         """
-        allowed_roles = get_allowed_roles(request, organization, member)
+        allowed_roles = get_allowed_org_roles(request, organization, member)
         return Response(
             serialize(
                 member,
@@ -160,7 +160,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         except AuthProvider.DoesNotExist:
             auth_provider = None
 
-        allowed_roles = get_allowed_roles(request, organization)
+        allowed_roles = get_allowed_org_roles(request, organization)
         result = serializer.validated_data
 
         # XXX(dcramer): if/when this expands beyond reinvite we need to check
@@ -217,7 +217,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
 
         assigned_role = result.get("role")
         if assigned_role:
-            allowed_roles = get_allowed_roles(request, organization)
+            allowed_roles = get_allowed_org_roles(request, organization)
             allowed_role_ids = {r.id for r in allowed_roles}
 
             # A user cannot promote others above themselves
