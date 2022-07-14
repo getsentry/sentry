@@ -1,7 +1,7 @@
 import {MouseEvent} from 'react';
 import styled from '@emotion/styled';
 
-import NavTabs from 'sentry/components/replays/navTabs';
+import NavTabs from 'sentry/components/navTabs';
 import useActiveReplayTab, {
   ReplayTabs,
 } from 'sentry/utils/replays/hooks/useActiveReplayTab';
