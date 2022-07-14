@@ -125,7 +125,6 @@ function ReplayOptionsMenu({speedOptions}: {speedOptions: number[]}) {
 
   return (
     <CompositeSelect<SelectValue<string | number>>
-      placement="bottom"
       trigger={({props, ref}) => (
         <Button
           ref={ref}
@@ -174,7 +173,6 @@ const ReplayControls = ({
   const barRef = useRef<HTMLDivElement>(null);
   const [compactLevel, setCompactLevel] = useState(0);
   const {isFullscreen} = useFullscreen();
-  const {isSkippingInactive, toggleSkipInactive} = useReplayContext();
 
   const updateCompactLevel = useCallback(() => {
     const {width} = barRef.current?.getBoundingClientRect() ?? {width: 500};
@@ -195,16 +193,6 @@ const ReplayControls = ({
     <ButtonGrid ref={barRef}>
       <ReplayPlayPauseBar isCompact={compactLevel > 0} />
       <ReplayCurrentTime />
-
-      {/* TODO(replay): Need a better icon for the FastForward toggle */}
-      <Button
-        size="xs"
-        title={t('Fast-forward idle moments')}
-        aria-label={t('Fast-forward idle moments')}
-        icon={<IconArrow size="sm" direction="right" />}
-        priority={isSkippingInactive ? 'primary' : undefined}
-        onClick={() => toggleSkipInactive(!isSkippingInactive)}
-      />
 
       <ReplayOptionsMenu speedOptions={speedOptions} />
 
