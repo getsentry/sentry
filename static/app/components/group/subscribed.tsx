@@ -8,13 +8,13 @@ import {Group} from 'sentry/types';
 import SidebarSection from './sidebarSection';
 
 type Props = {
-  participants: Group['participants'];
+  subscribed: Group['participants'];
 };
 
-const GroupParticipants = ({participants}: Props) => (
-  <SidebarSection title={tn('%s Subscribed', '%s Subscribed', participants.length)}>
+const GroupSubscribed = ({subscribed}: Props) => (
+  <SidebarSection title={tn('%s Subscribed', '%s Subscribed', subscribed.length)}>
     <Faces>
-      {participants.map(user => (
+      {subscribed.map(user => (
         <Face key={user.username}>
           <UserAvatar size={28} user={user} hasTooltip />
         </Face>
@@ -23,7 +23,7 @@ const GroupParticipants = ({participants}: Props) => (
   </SidebarSection>
 );
 
-export default GroupParticipants;
+export default GroupSubscribed;
 
 const Faces = styled('div')`
   display: flex;

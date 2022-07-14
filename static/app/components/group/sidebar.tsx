@@ -9,8 +9,8 @@ import {Client} from 'sentry/api';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import ExternalIssueList from 'sentry/components/group/externalIssuesList';
-import GroupParticipants from 'sentry/components/group/participants';
 import GroupReleaseStats from 'sentry/components/group/releaseStats';
+import GroupSubscribed from 'sentry/components/group/subscribed';
 import SuggestedOwners from 'sentry/components/group/suggestedOwners/suggestedOwners';
 import GroupTagDistributionMeter from 'sentry/components/group/tagDistributionMeter';
 import LoadingError from 'sentry/components/loadingError';
@@ -41,7 +41,7 @@ type Props = {
 
 type State = {
   environments: Environment[];
-  participants: Group['participants'];
+  subscribed: Group['participants'];
   allEnvironmentsGroupData?: Group;
   currentRelease?: CurrentRelease;
   error?: boolean;
@@ -50,7 +50,7 @@ type State = {
 
 class BaseGroupSidebar extends Component<Props, State> {
   state: State = {
-    participants: [],
+    subscribed: [],
     environments: this.props.environments,
   };
 
@@ -102,12 +102,12 @@ class BaseGroupSidebar extends Component<Props, State> {
     const {group, api} = this.props;
 
     try {
-      const participants = await api.requestPromise(`/issues/${group.id}/participants/`);
+      const subscribed = await api.requestPromise(`/issues/${group.id}/participants/`);
       this.setState({
-        participants,
+        subscribed,
         error: false,
       });
-      return participants;
+      return subscribed;
     } catch {
       this.setState({
         error: true,
@@ -163,17 +163,17 @@ class BaseGroupSidebar extends Component<Props, State> {
   }
 
   renderParticipantData() {
-    const {error, participants = []} = this.state;
+    const {error, subscribed = []} = this.state;
 
     if (error) {
       return (
         <LoadingError
-          message={t('There was an error while trying to load participants.')}
+          message={t('There was an error while trying to load subscribers.')}
         />
       );
     }
 
-    return participants.length !== 0 && <GroupParticipants participants={participants} />;
+    return subscribed.length !== 0 && <GroupSubscribed subscribed={subscribed} />;
   }
 
   render() {
