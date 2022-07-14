@@ -245,6 +245,10 @@ export function VitalWidget(props: PerformanceWidgetProps & VitalDetailWidgetPro
       }}
       EmptyComponent={WidgetEmptyStateWarning}
       HeaderActions={provided => {
+        if (props.isVitalDetailView) {
+          return null;
+        }
+
         const vital = settingToVital[props.chartSetting];
         const target = vitalDetailRouteWithQuery({
           orgSlug: organization.slug,
@@ -255,16 +259,14 @@ export function VitalWidget(props: PerformanceWidgetProps & VitalDetailWidgetPro
 
         return (
           <Fragment>
-            <div>
-              <Button
-                onClick={handleViewAllClick}
-                to={target}
-                size="sm"
-                data-test-id="view-all-button"
-              >
-                {t('View All')}
-              </Button>
-            </div>
+            <Button
+              onClick={handleViewAllClick}
+              to={target}
+              size="sm"
+              data-test-id="view-all-button"
+            >
+              {t('View All')}
+            </Button>
             <ContainerActions {...provided.widgetData.chart} />
           </Fragment>
         );
