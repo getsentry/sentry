@@ -18,9 +18,9 @@ type Props = {
   replay: ReplayReader | null;
 };
 
-function renderTabContent(key: string, loadedReplay: ReplayReader) {
+function renderTabContent(key: string) {
   if (key === 'tags') {
-    return <TagPanel replay={loadedReplay} />;
+    return <TagPanel />;
   }
 
   return <Breadcrumbs />;
@@ -41,7 +41,7 @@ function AsideTabs({replay}: Props) {
           );
         })}
       </NavTabs>
-      {replay ? renderTabContent(active, replay) : <Placeholder height="100%" />}
+      {replay ? renderTabContent(active) : <Placeholder height="100%" />}
     </Container>
   );
 }
