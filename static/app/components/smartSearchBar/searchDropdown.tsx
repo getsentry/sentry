@@ -15,6 +15,8 @@ import Tag from '../tag';
 
 import {ItemType, SearchGroup, SearchItem, Shortcut} from './types';
 
+const getDropdownItemKey = (item: SearchItem) => item.value || item.desc || item.title;
+
 type Props = {
   items: SearchGroup[];
   loading: boolean;
@@ -32,200 +34,17 @@ class SearchDropdown extends PureComponent<Props> {
     onClick: function () {},
   };
 
-  renderItemTitle = (item: SearchItem, isChild?: boolean) => {
-    if (!item.title) {
-      return null;
-    }
-
-    const fullWord = item.title;
-
-    const words =
-      item.kind !== FieldValueKind.FUNCTION ? fullWord.split('.') : [fullWord];
-    const [firstWord, ...restWords] = words;
-    const isFirstWordHidden = isChild;
-
-    const combinedRestWords = restWords.length > 0 ? restWords.join('.') : null;
-
-    const searchSubstring = this.props.searchSubstring;
-
-    if (searchSubstring) {
-      const idx =
-        restWords.length === 0
-          ? fullWord.toLowerCase().indexOf(searchSubstring.split('.')[0])
-          : fullWord.toLowerCase().indexOf(searchSubstring);
-
-      // Below is the logic to make the current query bold inside the result.
-      if (idx !== -1) {
-        let renderedRest: React.ReactNode;
-        if (combinedRestWords) {
-          const remainingSubstr =
-            searchSubstring.indexOf(firstWord) === -1
-              ? searchSubstring
-              : searchSubstring.slice(firstWord.length + 1);
-          const descIdx = combinedRestWords.indexOf(remainingSubstr);
-
-          if (descIdx > -1) {
-            renderedRest = (
-              <RestOfWords
-                isFirstWordHidden={isFirstWordHidden}
-                hasSplit={words.length > 1}
-              >
-                .{combinedRestWords.slice(0, descIdx)}
-                <strong>
-                  {combinedRestWords.slice(descIdx, descIdx + remainingSubstr.length)}
-                </strong>
-                {combinedRestWords.slice(descIdx + remainingSubstr.length)}
-              </RestOfWords>
-            );
-          } else {
-            renderedRest = (
-              <RestOfWords
-                isFirstWordHidden={isFirstWordHidden}
-                hasSplit={words.length > 1}
-              >
-                .{combinedRestWords}
-              </RestOfWords>
-            );
-          }
-        }
-
-        return (
-          <SearchItemTitleWrapper>
-            {!isFirstWordHidden && (
-              <FirstWordWrapper>
-                {firstWord.slice(0, idx)}
-                <strong>{firstWord.slice(idx, idx + searchSubstring.length)}</strong>
-                {firstWord.slice(idx + searchSubstring.length)}
-              </FirstWordWrapper>
-            )}
-            {renderedRest}
-          </SearchItemTitleWrapper>
-        );
-      }
-    }
-
-    return (
-      <SearchItemTitleWrapper>
-        {!isFirstWordHidden && <FirstWordWrapper>{firstWord}</FirstWordWrapper>}
-        {combinedRestWords && (
-          <RestOfWords isFirstWordHidden={isFirstWordHidden} hasSplit={words.length > 1}>
-            .{combinedRestWords}
-          </RestOfWords>
-        )}
-      </SearchItemTitleWrapper>
-    );
-  };
-
-  renderHeaderItem = (item: SearchGroup) => (
-    <SearchDropdownGroup key={item.title}>
-      <SearchDropdownGroupTitle>
-        {item.icon}
-        {item.title && item.title}
-        {item.desc && <span>{item.desc}</span>}
-      </SearchDropdownGroupTitle>
-    </SearchDropdownGroup>
-  );
-
-  renderQueryItem = (item: SearchItem) => {
-    if (!item.value) {
-      return null;
-    }
-
-    const parsedQuery = parseSearch(item.value);
-
-    if (!parsedQuery) {
-      return null;
-    }
-
-    return (
-      <QueryItemWrapper>
-        <HighlightQuery parsedQuery={parsedQuery} />
-      </QueryItemWrapper>
-    );
-  };
-
-  renderItem = (item: SearchItem, isChild?: boolean) => {
-    const isDisabled = item.value === null;
-
-    let children: React.ReactNode;
-    if (item.type === ItemType.RECENT_SEARCH) {
-      children = this.renderQueryItem(item);
-    } else if (item.type === ItemType.INVALID_TAG) {
-      children = (
-        <Invalid>
-          {tct("The field [field] isn't supported here. ", {
-            field: <strong>{item.desc}</strong>,
-          })}
-          {tct('[highlight:See all searchable properties in the docs.]', {
-            highlight: <Highlight />,
-          })}
-        </Invalid>
-      );
-    } else {
-      children = (
-        <Fragment>
-          {this.renderItemTitle(item, isChild)}
-          {item.desc && <Value hasDocs={!!item.documentation}>{item.desc}</Value>}
-          <Documentation>{item.documentation}</Documentation>
-          <TagWrapper>{item.kind && !isChild && this.renderKind(item.kind)}</TagWrapper>
-        </Fragment>
-      );
-    }
-
-    return (
-      <Fragment key={item.value || item.desc || item.title}>
-        <SearchListItem
-          className={`${isChild ? 'group-child' : ''} ${item.active ? 'active' : ''}`}
-          data-test-id="search-autocomplete-item"
-          onClick={
-            !isDisabled
-              ? item.callback ?? this.props.onClick.bind(this, item.value, item)
-              : undefined
-          }
-          ref={element => item.active && element?.scrollIntoView?.({block: 'nearest'})}
-          isGrouped={isChild}
-          isDisabled={isDisabled}
-        >
-          {children}
-        </SearchListItem>
-        {!isChild && item.children?.map(child => this.renderItem(child, true))}
-      </Fragment>
-    );
-  };
-
-  renderKind(kind: FieldValueKind) {
-    let text, tagType;
-    switch (kind) {
-      case FieldValueKind.FUNCTION:
-        text = 'f(x)';
-        tagType = 'success';
-        break;
-      case FieldValueKind.MEASUREMENT:
-        text = 'field';
-        tagType = 'highlight';
-        break;
-      case FieldValueKind.BREAKDOWN:
-        text = 'field';
-        tagType = 'highlight';
-        break;
-      case FieldValueKind.TAG:
-        text = kind;
-        tagType = 'warning';
-        break;
-      case FieldValueKind.NUMERIC_METRICS:
-        text = 'f(x)';
-        tagType = 'success';
-        break;
-      case FieldValueKind.FIELD:
-      default:
-        text = kind;
-    }
-    return <Tag type={tagType}>{text}</Tag>;
-  }
-
   render() {
-    const {className, loading, items, runShortcut, visibleShortcuts, maxMenuHeight} =
-      this.props;
+    const {
+      className,
+      loading,
+      items,
+      runShortcut,
+      visibleShortcuts,
+      maxMenuHeight,
+      searchSubstring,
+      onClick,
+    } = this.props;
     return (
       <StyledSearchDropdown className={className}>
         {loading ? (
@@ -240,8 +59,16 @@ class SearchDropdown extends PureComponent<Props> {
               // Hide header if `item.children` is defined, an array, and is empty
               return (
                 <Fragment key={item.title}>
-                  {item.type === 'header' && this.renderHeaderItem(item)}
-                  {item.children && item.children.map(child => this.renderItem(child))}
+                  {item.type === 'header' && <HeaderItem group={item} />}
+                  {item.children &&
+                    item.children.map(child => (
+                      <DropdownItem
+                        key={getDropdownItemKey(child)}
+                        item={child}
+                        searchSubstring={searchSubstring}
+                        onClick={onClick}
+                      />
+                    ))}
                   {isEmpty && <Info>{t('No items found')}</Info>}
                 </Fragment>
               );
@@ -280,6 +107,242 @@ class SearchDropdown extends PureComponent<Props> {
 }
 
 export default SearchDropdown;
+
+type HeaderItemProps = {
+  group: SearchGroup;
+};
+
+const HeaderItem = ({group}: HeaderItemProps) => {
+  return (
+    <SearchDropdownGroup key={group.title}>
+      <SearchDropdownGroupTitle>
+        {group.icon}
+        {group.title && group.title}
+        {group.desc && <span>{group.desc}</span>}
+      </SearchDropdownGroupTitle>
+    </SearchDropdownGroup>
+  );
+};
+
+type HighlightedRestOfWordsProps = {
+  combinedRestWords: string;
+  firstWord: string;
+  searchSubstring: string;
+  hasSplit?: boolean;
+  isFirstWordHidden?: boolean;
+};
+
+const HighlightedRestOfWords = ({
+  combinedRestWords,
+  searchSubstring,
+  firstWord,
+  isFirstWordHidden,
+  hasSplit,
+}: HighlightedRestOfWordsProps) => {
+  const remainingSubstr =
+    searchSubstring.indexOf(firstWord) === -1
+      ? searchSubstring
+      : searchSubstring.slice(firstWord.length + 1);
+  const descIdx = combinedRestWords.indexOf(remainingSubstr);
+
+  if (descIdx > -1) {
+    return (
+      <RestOfWordsContainer isFirstWordHidden={isFirstWordHidden} hasSplit={hasSplit}>
+        .{combinedRestWords.slice(0, descIdx)}
+        <strong>
+          {combinedRestWords.slice(descIdx, descIdx + remainingSubstr.length)}
+        </strong>
+        {combinedRestWords.slice(descIdx + remainingSubstr.length)}
+      </RestOfWordsContainer>
+    );
+  }
+  return (
+    <RestOfWordsContainer isFirstWordHidden={isFirstWordHidden} hasSplit={hasSplit}>
+      .{combinedRestWords}
+    </RestOfWordsContainer>
+  );
+};
+
+type ItemTitleProps = {
+  item: SearchItem;
+  searchSubstring: string;
+
+  isChild?: boolean;
+};
+
+const ItemTitle = ({item, searchSubstring, isChild}: ItemTitleProps) => {
+  if (!item.title) {
+    return null;
+  }
+
+  const fullWord = item.title;
+
+  const words = item.kind !== FieldValueKind.FUNCTION ? fullWord.split('.') : [fullWord];
+  const [firstWord, ...restWords] = words;
+  const isFirstWordHidden = isChild;
+
+  const combinedRestWords = restWords.length > 0 ? restWords.join('.') : null;
+
+  if (searchSubstring) {
+    const idx =
+      restWords.length === 0
+        ? fullWord.toLowerCase().indexOf(searchSubstring.split('.')[0])
+        : fullWord.toLowerCase().indexOf(searchSubstring);
+
+    // Below is the logic to make the current query bold inside the result.
+    if (idx !== -1) {
+      return (
+        <SearchItemTitleWrapper>
+          {!isFirstWordHidden && (
+            <FirstWordWrapper>
+              {firstWord.slice(0, idx)}
+              <strong>{firstWord.slice(idx, idx + searchSubstring.length)}</strong>
+              {firstWord.slice(idx + searchSubstring.length)}
+            </FirstWordWrapper>
+          )}
+          {combinedRestWords && (
+            <HighlightedRestOfWords
+              firstWord={firstWord}
+              isFirstWordHidden={isFirstWordHidden}
+              searchSubstring={searchSubstring}
+              combinedRestWords={combinedRestWords}
+              hasSplit={words.length > 1}
+            />
+          )}
+        </SearchItemTitleWrapper>
+      );
+    }
+  }
+
+  return (
+    <SearchItemTitleWrapper>
+      {!isFirstWordHidden && <FirstWordWrapper>{firstWord}</FirstWordWrapper>}
+      {combinedRestWords && (
+        <RestOfWordsContainer
+          isFirstWordHidden={isFirstWordHidden}
+          hasSplit={words.length > 1}
+        >
+          .{combinedRestWords}
+        </RestOfWordsContainer>
+      )}
+    </SearchItemTitleWrapper>
+  );
+};
+
+type KindTagProps = {kind: FieldValueKind};
+
+const KindTag = ({kind}: KindTagProps) => {
+  let text, tagType;
+  switch (kind) {
+    case FieldValueKind.FUNCTION:
+      text = 'f(x)';
+      tagType = 'success';
+      break;
+    case FieldValueKind.MEASUREMENT:
+      text = 'field';
+      tagType = 'highlight';
+      break;
+    case FieldValueKind.BREAKDOWN:
+      text = 'field';
+      tagType = 'highlight';
+      break;
+    case FieldValueKind.TAG:
+      text = kind;
+      tagType = 'warning';
+      break;
+    case FieldValueKind.NUMERIC_METRICS:
+      text = 'f(x)';
+      tagType = 'success';
+      break;
+    case FieldValueKind.FIELD:
+    default:
+      text = kind;
+  }
+  return <Tag type={tagType}>{text}</Tag>;
+};
+
+type DropdownItemProps = {
+  item: SearchItem;
+  onClick: (value: string, item: SearchItem) => void;
+  searchSubstring: string;
+  isChild?: boolean;
+};
+
+const DropdownItem = ({item, isChild, searchSubstring, onClick}: DropdownItemProps) => {
+  const isDisabled = item.value === null;
+
+  let children: React.ReactNode;
+  if (item.type === ItemType.RECENT_SEARCH) {
+    children = <QueryItem item={item} />;
+  } else if (item.type === ItemType.INVALID_TAG) {
+    children = (
+      <Invalid>
+        {tct("The field [field] isn't supported here. ", {
+          field: <strong>{item.desc}</strong>,
+        })}
+        {tct('[highlight:See all searchable properties in the docs.]', {
+          highlight: <Highlight />,
+        })}
+      </Invalid>
+    );
+  } else {
+    children = (
+      <Fragment>
+        <ItemTitle item={item} isChild={isChild} searchSubstring={searchSubstring} />
+        {item.desc && <Value hasDocs={!!item.documentation}>{item.desc}</Value>}
+        <Documentation>{item.documentation}</Documentation>
+        <TagWrapper>{item.kind && !isChild && <KindTag kind={item.kind} />}</TagWrapper>
+      </Fragment>
+    );
+  }
+
+  return (
+    <Fragment>
+      <SearchListItem
+        className={`${isChild ? 'group-child' : ''} ${item.active ? 'active' : ''}`}
+        data-test-id="search-autocomplete-item"
+        onClick={
+          !isDisabled ? item.callback ?? onClick.bind(this, item.value, item) : undefined
+        }
+        ref={element => item.active && element?.scrollIntoView?.({block: 'nearest'})}
+        isGrouped={isChild}
+        isDisabled={isDisabled}
+      >
+        {children}
+      </SearchListItem>
+      {!isChild &&
+        item.children?.map(child => (
+          <DropdownItem
+            key={getDropdownItemKey(child)}
+            item={child}
+            onClick={onClick}
+            searchSubstring={searchSubstring}
+            isChild
+          />
+        ))}
+    </Fragment>
+  );
+};
+
+type QueryItemProps = {item: SearchItem};
+
+const QueryItem = ({item}: QueryItemProps) => {
+  if (!item.value) {
+    return null;
+  }
+
+  const parsedQuery = parseSearch(item.value);
+
+  if (!parsedQuery) {
+    return null;
+  }
+
+  return (
+    <QueryItemWrapper>
+      <HighlightQuery parsedQuery={parsedQuery} />
+    </QueryItemWrapper>
+  );
+};
 
 const StyledSearchDropdown = styled('div')`
   /* Container has a border that we need to account for */
@@ -400,7 +463,10 @@ const SearchItemTitleWrapper = styled('div')`
   ${p => p.theme.overflowEllipsis};
 `;
 
-const RestOfWords = styled('span')<{hasSplit?: boolean; isFirstWordHidden?: boolean}>`
+const RestOfWordsContainer = styled('span')<{
+  hasSplit?: boolean;
+  isFirstWordHidden?: boolean;
+}>`
   color: ${p => (p.hasSplit ? p.theme.blue400 : p.theme.textColor)};
   margin-left: ${p => (p.isFirstWordHidden ? space(1) : '0px')};
 `;
