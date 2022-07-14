@@ -1,6 +1,8 @@
+import {useRef} from 'react';
 import {RouteComponentProps} from 'react-router';
 
 import {addLoadingMessage} from 'sentry/actionCreators/indicator';
+import Feature from 'sentry/components/acl/feature';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import FormModel from 'sentry/components/forms/model';
@@ -27,36 +29,35 @@ const formFields: Field[] = [
     label: 'Author',
     help: 'The company or person who built and maintains this Sentry Function.',
   },
+  // TODO: Add overview field in database and in backend endpoint
+  // {
+  //   name: 'overview',
+  //   type: 'string',
+  //   placeholder: 'e.g. This Sentry Function does something useful',
+  //   label: 'Overview',
+  //   help: 'A short description of your Sentry Function.',
+  // },
 ];
 
-class SentryFunctionFormModel extends FormModel {
-  getTransformedData(): {} {
-    const data = super.getTransformedData() as Record<string, any>;
-    const {...output} = data;
-    return output;
-  }
-}
-const handlePreSubmit = () => {
-  addLoadingMessage(t('Saving changes..'));
-};
-
-export default function sentryFunctionDetails(props: Props) {
-  const form = new SentryFunctionFormModel();
+export default function SentryFunctionDetails(props: Props) {
+  const form = useRef(new FormModel());
   const {orgId, functionSlug} = props.params;
   const method = functionSlug ? 'PUT' : 'POST';
   const endpoint = `/organizations/${orgId}/functions/`;
   return (
     <div>
-      <h1>Sentry Function Details</h1>
-      <h2>{props.params.orgId}</h2>
-      <Form
-        apiMethod={method}
-        apiEndpoint={endpoint}
-        model={form}
-        onPreSubmit={handlePreSubmit}
-      >
-        <JsonForm forms={[{title: 'Sentry Function Details', fields: formFields}]} />
-      </Form>
+      <Feature features={['organizations:sentry-functions']}>
+        <h1>Sentry Function Details</h1>
+        <h2>{props.params.orgId}</h2>
+        <Form
+          apiMethod={method}
+          apiEndpoint={endpoint}
+          model={form.current}
+          onPreSubmit={() => addLoadingMessage(t('Saving changes..'))}
+        >
+          <JsonForm forms={[{title: 'Sentry Function Details', fields: formFields}]} />
+        </Form>
+      </Feature>
     </div>
   );
 }
