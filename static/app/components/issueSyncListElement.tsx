@@ -86,7 +86,7 @@ class IssueSyncListElement extends Component<Props> {
       return this.props.externalIssueKey;
     }
 
-    return `Link ${this.getPrettyName()} Issue`;
+    return `${this.getPrettyName()} Issue`;
   }
 
   render() {
