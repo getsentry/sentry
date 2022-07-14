@@ -3,9 +3,9 @@ import * as Sentry from '@sentry/react';
 
 type CallbackArgs = {height: number; left: number; top: number; width: number};
 
-type Opts = {
+type Opts<T extends Element> = {
   onPositionChange: (args: undefined | CallbackArgs) => void;
-} & DOMAttributes<HTMLDivElement>;
+} & DOMAttributes<T>;
 
 class AbortError extends Error {}
 
@@ -38,12 +38,18 @@ function getBoundingRect(
   });
 }
 
-function useMouseTracking({onPositionChange, ...rest}: Opts) {
-  const elem = useRef<HTMLDivElement>(null);
+function useMouseTracking<T extends Element>({
+  onPositionChange,
+  onMouseEnter,
+  onMouseMove,
+  onMouseLeave,
+  ...rest
+}: Opts<T>) {
+  const elem = useRef<T>(null);
   const controller = useRef<AbortController>(new AbortController());
 
   const handlePositionChange = useCallback(
-    async (e: MouseEvent<HTMLDivElement, MouseEvent>) => {
+    async (e: MouseEvent<T>) => {
       if (!elem.current) {
         onPositionChange(undefined);
         return;
@@ -71,7 +77,7 @@ function useMouseTracking({onPositionChange, ...rest}: Opts) {
     [onPositionChange, controller]
   );
 
-  const onMouseLeave = useCallback(() => {
+  const handleOnMouseLeave = useCallback(() => {
     if (controller.current) {
       controller.current.abort();
       controller.current = new AbortController();
@@ -83,17 +89,17 @@ function useMouseTracking({onPositionChange, ...rest}: Opts) {
   return {
     ref: elem,
     ...rest,
-    onMouseEnter: e => {
+    onMouseEnter: (e: MouseEvent<T>) => {
       handlePositionChange(e);
-      rest.onMouseEnter?.(e);
+      onMouseEnter?.(e);
     },
-    onMouseMove: e => {
+    onMouseMove: (e: MouseEvent<T>) => {
       handlePositionChange(e);
-      rest.onMouseMove?.(e);
+      onMouseMove?.(e);
     },
-    onMouseLeave: e => {
-      onMouseLeave();
-      rest.onMouseLeave?.(e);
+    onMouseLeave: (e: MouseEvent<T>) => {
+      handleOnMouseLeave();
+      onMouseLeave?.(e);
     },
   };
 }

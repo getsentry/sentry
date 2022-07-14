@@ -29,7 +29,9 @@ function ScrubberMouseTracking({children}: Props) {
     [duration, setCurrentHoverTime]
   );
 
-  const mouseTrackingProps = useMouseTracking({onPositionChange: handlePositionChange});
+  const mouseTrackingProps = useMouseTracking<HTMLDivElement>({
+    onPositionChange: handlePositionChange,
+  });
 
   return <div {...mouseTrackingProps}>{children}</div>;
 }
