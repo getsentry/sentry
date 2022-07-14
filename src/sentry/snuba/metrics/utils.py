@@ -99,11 +99,11 @@ OP_TO_SNUBA_FUNCTION = {
     },
     "metrics_sets": {"count_unique": "uniqIf"},
 }
-OP_TO_SNUBA_FUNCTION["generic_metrics_distributions"] = OP_TO_SNUBA_FUNCTION[
-    "metrics_distributions"
-]
-OP_TO_SNUBA_FUNCTION["generic_metrics_counters"] = OP_TO_SNUBA_FUNCTION["metrics_counters"]
-OP_TO_SNUBA_FUNCTION["generic_metrics_sets"] = OP_TO_SNUBA_FUNCTION["metrics_sets"]
+GENERIC_OP_TO_SNUBA_FUNCTION = {
+    "generic_metrics_counters": OP_TO_SNUBA_FUNCTION["metrics_counters"],
+    "generic_metrics_distributions": OP_TO_SNUBA_FUNCTION["metrics_distributions"],
+    "generic_metrics_sets": OP_TO_SNUBA_FUNCTION["metrics_sets"],
+}
 
 
 def generate_operation_regex():

@@ -1605,6 +1605,8 @@ class MetricsQueryBuilder(QueryBuilder):
         self.dry_run = dry_run
         assert dataset is None or dataset in [Dataset.PerformanceMetrics, Dataset.Metrics]
         super().__init__(
+            # TODO: defaulting to Metrics for now so I don't have to update incidents tests. Should be
+            # PerformanceMetrics
             Dataset.Metrics if dataset is None else dataset,
             *args,
             **kwargs,
