@@ -54,14 +54,22 @@ type Props =
       top: Side;
     };
 
-function getSplitDefault(props: Props) {
-  const getDefaultVal = (side: Side) =>
-    side && typeof side === 'object' && 'default' in side ? side.default : undefined;
+const getValFromSide = (side: Side, field: string) =>
+  side && typeof side === 'object' && field in side ? side[field] : undefined;
 
+function getSplitDefault(props: Props) {
   if ('left' in props) {
-    return getDefaultVal(props.left) || getDefaultVal(props.right) || '50%';
+    return (
+      getValFromSide(props.left, 'default') ||
+      getValFromSide(props.right, 'default') ||
+      '50%'
+    );
   }
-  return getDefaultVal(props.top) || getDefaultVal(props.bottom) || '50%';
+  return (
+    getValFromSide(props.top, 'default') ||
+    getValFromSide(props.bottom, 'default') ||
+    '50%'
+  );
 }
 
 function getMinMax(side: Side): {
@@ -148,42 +156,41 @@ function SplitPanel(props: Props) {
     const {left: a, right: b} = props;
 
     return (
-      <Canvas orientation="columns" size={sizePct} {...mouseTrackingProps}>
-        <Panel>{a}</Panel>
+      <SplitPanelContainer orientation="columns" size={sizePct} {...mouseTrackingProps}>
+        <Panel>{getValFromSide(a, 'content') || a}</Panel>
         <Divider
           slideDirection="leftright"
           mousedown={mousedown}
           onMouseDown={handleMouseDown}
         />
-        <Panel>{b}</Panel>
-      </Canvas>
+        <Panel>{getValFromSide(b, 'content') || b}</Panel>
+      </SplitPanelContainer>
     );
   }
   const {top: a, bottom: b} = props;
   return (
-    <Canvas orientation="rows" size={sizePct} {...mouseTrackingProps}>
-      <Panel>{a}</Panel>
+    <SplitPanelContainer orientation="rows" size={sizePct} {...mouseTrackingProps}>
+      <Panel>{getValFromSide(a, 'content') || a}</Panel>
       <Divider
         slideDirection="updown"
         onMouseDown={() => setMousedown(true)}
         onMouseUp={() => setMousedown(false)}
         mousedown={mousedown}
       />
-      <Panel>{b}</Panel>
-    </Canvas>
+      <Panel>{getValFromSide(b, 'content') || b}</Panel>
+    </SplitPanelContainer>
   );
 }
 
-const Canvas = styled('div')<{
+const SplitPanelContainer = styled('div')<{
   orientation: 'rows' | 'columns';
   size: CSSValue;
 }>`
-  width: 100%;
   max-width: 100%;
-  height: 100%;
   max-height: 100%;
-  display: grid;
 
+  display: grid;
+  overflow: auto;
   grid-template-${p => p.orientation}: ${p => p.size} auto 1fr;
 `;
 
@@ -198,8 +205,8 @@ const Divider = styled((props: DOMAttributes<HTMLDivElement>) => (
 ))<{mousedown: boolean; slideDirection: 'leftright' | 'updown'}>`
   display: grid;
   place-items: center;
-  height: 100%;
-  width: 100%;
+  max-height: 100%;
+  max-width: 100%;
 
   ${p => (p.mousedown ? 'user-select: none;' : '')}
 

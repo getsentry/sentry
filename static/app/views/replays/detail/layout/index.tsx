@@ -8,15 +8,12 @@ import useFullscreen from 'sentry/utils/replays/hooks/useFullscreen';
 import Breadcrumbs from 'sentry/views/replays/detail/breadcrumbs';
 import FocusArea from 'sentry/views/replays/detail/focusArea';
 import FocusTabs from 'sentry/views/replays/detail/focusTabs';
+import FluidPanel from 'sentry/views/replays/detail/layout/fluidPanel';
 import SplitPanel from 'sentry/views/replays/detail/layout/splitPanel';
+import SideTabs from 'sentry/views/replays/detail/sideTabs';
 
-import AsideTabsV2 from './asideTabs_v2';
-import {
-  BreadcrumbSection,
-  TimelineSection,
-  TopbarSection,
-  VideoSection,
-} from './pageSections';
+import {TimelineSection, TopbarSection, VideoSection} from './pageSections';
+import Sidebar from './sidebar';
 
 type Layout =
   /**
@@ -91,32 +88,32 @@ function ReplayLayout({
   ) : null;
 
   const crumbs = showCrumbs ? (
-    <BreadcrumbSection>
-      <ErrorBoundary mini>
-        <Breadcrumbs />
-      </ErrorBoundary>
-    </BreadcrumbSection>
+    <ErrorBoundary mini>
+      <Breadcrumbs />
+    </ErrorBoundary>
   ) : null;
 
   const content = (
     <ErrorBoundary mini>
-      <FocusTabs />
-      <FocusArea />
+      <FluidPanel title={<FocusTabs />}>
+        <FocusArea />
+      </FluidPanel>
     </ErrorBoundary>
   );
 
   if (layout === 'sidebar') {
     const sidebar = (
-      <ErrorBoundary mini>
-        <AsideTabsV2 showCrumbs={showCrumbs} showVideo={showVideo} />
-      </ErrorBoundary>
+      <FluidPanel title={<SideTabs />} scroll={false}>
+        <Sidebar showCrumbs={showCrumbs} showVideo={showVideo} />
+      </FluidPanel>
     );
     return (
-      <Container>
+      <BodyContent>
         {timeline}
         <SplitPanel
           left={{
             content,
+            default: '60%',
             min: {px: 300},
           }}
           right={{
@@ -125,7 +122,7 @@ function ReplayLayout({
             min: {px: 325},
           }}
         />
-      </Container>
+      </BodyContent>
     );
   }
 
@@ -147,7 +144,7 @@ function ReplayLayout({
 
   // layout === 'topbar' or default
   return (
-    <Container>
+    <BodyContent>
       {timeline}
       <SplitPanel
         top={{
@@ -165,18 +162,24 @@ function ReplayLayout({
           min: {px: 300},
         }}
       />
-    </Container>
+    </BodyContent>
   );
 }
 
-const Container = styled('div')`
+const BodyContent = styled('main')`
+  background: ${p => p.theme.background};
   width: 100%;
   height: 100%;
-  max-height: 100%;
-  display: flex;
-  flex-flow: nowrap column;
+  display: grid;
+  grid-template-rows: auto 1fr;
   overflow: hidden;
   padding: ${space(2)};
 `;
+
+// const SideTabs = styled('div')`
+//   display: grid;
+//   grid-template-rows: auto 1fr;
+//   max-height: 100%;
+// `;
 
 export default ReplayLayout;

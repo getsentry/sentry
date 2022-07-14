@@ -18,18 +18,22 @@ type Props = {
 function Page({children, event, orgId, eventSlug}: Props) {
   const title = event ? `${event.id} - Replays - ${orgId}` : `Replays - ${orgId}`;
 
+  const header = (
+    <Layout.Header>
+      <Layout.HeaderContent>
+        <DetailsPageBreadcrumbs orgId={orgId} event={event} eventSlug={eventSlug} />
+      </Layout.HeaderContent>
+      <ButtonActionsWrapper>
+        <FeatureFeedback featureName="replay" buttonProps={{size: 'sm'}} />
+      </ButtonActionsWrapper>
+    </Layout.Header>
+  );
+
   return (
     <SentryDocumentTitle title={title}>
       <FullViewport>
-        <Layout.Header>
-          <Layout.HeaderContent>
-            <DetailsPageBreadcrumbs orgId={orgId} event={event} eventSlug={eventSlug} />
-          </Layout.HeaderContent>
-          <ButtonActionsWrapper>
-            <FeatureFeedback featureName="replay" buttonProps={{size: 'sm'}} />
-          </ButtonActionsWrapper>
-        </Layout.Header>
-        <FullViewportContent>{children}</FullViewportContent>
+        {header}
+        {children}
       </FullViewport>
     </SentryDocumentTitle>
   );
@@ -47,9 +51,8 @@ const FullViewport = styled('div')`
   height: 100vh;
   width: 100%;
 
-  display: flex;
-  flex-flow: nowrap column;
-  flex-direction: column;
+  display: grid;
+  grid-template-rows: auto 1fr;
   overflow: hidden;
 
   /*
@@ -60,11 +63,11 @@ const FullViewport = styled('div')`
   ~ footer {
     display: none;
   }
-`;
 
-const FullViewportContent = styled('section')`
-  flex-grow: 1;
-  background: ${p => p.theme.background};
+  /*
+  TODO: Set \`body { overflow: hidden; }\` so that the body doesn't wiggle
+  when you try to scroll something that is non-scrollable.
+  */
 `;
 
 export default Page;

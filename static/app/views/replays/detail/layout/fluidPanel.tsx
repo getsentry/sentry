@@ -6,15 +6,17 @@ import {Panel, PanelBody, PanelFooter, PanelHeader} from 'sentry/components/pane
 type Props = {
   children: ReactNode;
   bottom?: ReactNode;
+  className?: string;
   panel?: boolean;
+  scroll?: boolean;
   title?: ReactNode;
 };
 
-function FluidPanel({children, bottom, panel, title}: Props) {
+function FluidPanel({className, children, bottom, title, panel, scroll = true}: Props) {
   const wrappedContent = panel ? (
-    <OverflowPanelBody>{children}</OverflowPanelBody>
+    <OverflowPanelBody scroll={scroll}>{children}</OverflowPanelBody>
   ) : (
-    <OverflowBody>{children}</OverflowBody>
+    <OverflowBody scroll={scroll}>{children}</OverflowBody>
   );
 
   const wrappedHeader = title ? (
@@ -35,40 +37,41 @@ function FluidPanel({children, bottom, panel, title}: Props) {
 
   if (panel) {
     return (
-      <PanelCanvas>
+      <FluidPanelContainer className={className}>
         {wrappedHeader}
         {wrappedContent}
         {wrappedFooter}
-      </PanelCanvas>
+      </FluidPanelContainer>
     );
   }
   return (
-    <Canvas>
+    <FluidContainer className={className}>
       {wrappedHeader}
       {wrappedContent}
       {wrappedFooter}
-    </Canvas>
+    </FluidContainer>
   );
 }
 
-const Canvas = styled('div')`
+const FluidContainer = styled('section')`
   display: grid;
   grid-template-rows: auto 1fr auto;
-  height: 100%;
+  max-height: 100%;
 `;
 
-const PanelCanvas = styled(Panel)`
+const FluidPanelContainer = styled(Panel)`
   display: grid;
   grid-template-rows: auto 1fr auto;
-  height: 100%;
+  max-height: 100%;
 `;
 
-const OverflowBody = styled('div')`
-  overflow: auto;
+const OverflowBody = styled('div')<{scroll: boolean}>`
+  max-height: 100%;
+  overflow: ${p => (p.scroll ? 'auto;' : 'hidden')};
 `;
 
-const OverflowPanelBody = styled(PanelBody)`
-  overflow: auto;
+const OverflowPanelBody = styled(PanelBody)<{scroll: boolean}>`
+  overflow: ${p => (p.scroll ? 'auto;' : 'hidden')};
 `;
 
 export default FluidPanel;
