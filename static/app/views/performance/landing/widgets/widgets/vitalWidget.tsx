@@ -4,6 +4,8 @@ import pick from 'lodash/pick';
 
 import Button from 'sentry/components/button';
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
+import OptionSelector from 'sentry/components/charts/optionSelector';
+import {InlineContainer} from 'sentry/components/charts/styles';
 import {getInterval} from 'sentry/components/charts/utils';
 import Truncate from 'sentry/components/truncate';
 import {t} from 'sentry/locale';
@@ -32,7 +34,12 @@ import SelectableList, {
 } from '../components/selectableList';
 import {transformDiscoverToList} from '../transforms/transformDiscoverToList';
 import {transformEventsRequestToVitals} from '../transforms/transformEventsToVitals';
-import {PerformanceWidgetProps, QueryDefinition, WidgetDataResult} from '../types';
+import {
+  GenericPerformanceFooter,
+  PerformanceWidgetProps,
+  QueryDefinition,
+  WidgetDataResult,
+} from '../types';
 import {eventsRequestQueryProps, getMEPQueryParams} from '../utils';
 import {ChartDefinition, PerformanceWidgetSetting} from '../widgetDefinitions';
 
@@ -85,7 +92,12 @@ export function transformFieldsWithStops(props: {
   };
 }
 
-export function VitalWidget(props: PerformanceWidgetProps) {
+type VitalDetailWidgetProps = {
+  Footer?: GenericPerformanceFooter<DataType>;
+  isVitalDetailView?: boolean;
+};
+
+export function VitalWidget(props: PerformanceWidgetProps & VitalDetailWidgetProps) {
   const mepSetting = useMEPSettingContext();
   const {ContainerActions, eventView, organization, location} = props;
   const useEvents = organization.features.includes(
@@ -335,6 +347,33 @@ export function VitalWidget(props: PerformanceWidgetProps) {
           noPadding: true,
         },
       ]}
+      Footer={
+        isVitalDetailView
+          ? () => {
+              enum DisplayModes {
+                WORST_VITALS = 'Worst Vitals',
+                DURATION_P75 = 'Duration P75',
+              }
+
+              function generateDisplayOptions() {
+                return [
+                  {value: DisplayModes.WORST_VITALS, label: t(DisplayModes.WORST_VITALS)},
+                  {value: DisplayModes.DURATION_P75, label: t(DisplayModes.DURATION_P75)},
+                ];
+              }
+              return (
+                <InlineContainer data-test-id="display-toggle">
+                  <OptionSelector
+                    title={t('Display')}
+                    selected={DisplayModes.WORST_VITALS}
+                    options={generateDisplayOptions()}
+                    onChange={() => {}}
+                  />
+                </InlineContainer>
+              );
+            }
+          : null
+      }
     />
   );
 }

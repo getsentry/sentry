@@ -260,10 +260,10 @@ function VitalDetailContent(props: Props) {
           ContainerActions={() => null}
           eventView={eventView}
           organization={organization}
-          title="Duration p75"
+          title={WIDGET_DEFINITIONS({organization})[chartSetting].title}
           titleTooltip="LCP is .."
+          isVitalDetailView
         />
-
         <StyledVitalInfo>
           <VitalInfo
             orgSlug={orgSlug}

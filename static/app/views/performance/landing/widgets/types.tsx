@@ -118,6 +118,10 @@ type Subtitle<T> = React.FC<{
   widgetData: T;
 }>;
 
+export type GenericPerformanceFooter<T> = React.FC<{
+  widgetData: T;
+}>;
+
 export type GenericPerformanceWidgetProps<T extends WidgetDataConstraint> = {
   Queries: Queries<T>;
   Visualizations: Visualizations<T>;
@@ -138,6 +142,7 @@ export type GenericPerformanceWidgetProps<T extends WidgetDataConstraint> = {
   titleTooltip: string;
   EmptyComponent?: React.FC<{height?: number}>;
 
+  Footer?: Footer<T>;
   HeaderActions?: HeaderActions<T>;
   // Components
   Subtitle?: Subtitle<T>;

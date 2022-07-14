@@ -24,6 +24,7 @@ import {PerformanceWidgetSetting} from '../widgetDefinitions';
 
 import {DataStateSwitch} from './dataStateSwitch';
 import {QueryHandler} from './queryHandler';
+import {WidgetFooter} from './widgetFooter';
 import {WidgetHeader} from './widgetHeader';
 
 // Generic performance widget for type T, where T defines all the data contained in the widget.
@@ -42,7 +43,7 @@ export function GenericPerformanceWidget<T extends WidgetDataConstraint>(
       widgetDataRef.current = newWidgetData;
       setWidgetData({[props.chartSetting]: newWidgetData});
     },
-    [allWidgetData, setWidgetData]
+    [setWidgetData, props.chartSetting]
   );
   const removeWidgetDataForKey = useCallback(
     (dataKey: string) => {
@@ -52,7 +53,7 @@ export function GenericPerformanceWidget<T extends WidgetDataConstraint>(
       widgetDataRef.current = newWidgetData;
       setWidgetData({[props.chartSetting]: newWidgetData});
     },
-    [allWidgetData, setWidgetData]
+    [setWidgetData, props.chartSetting]
   );
   const widgetProps = {widgetData, setWidgetDataForKey, removeWidgetDataForKey};
 
@@ -93,6 +94,8 @@ function trackDataComponentClicks(
   });
 }
 
+// const isVisualizationEnabled = (v: Visualization<T>) =>
+
 function _DataDisplay<T extends WidgetDataConstraint>(
   props: GenericPerformanceWidgetProps<T> & WidgetDataProps<T> & {totalHeight: number}
 ) {
@@ -102,13 +105,16 @@ function _DataDisplay<T extends WidgetDataConstraint>(
     containerType,
   });
 
-  const numberKeys = Object.keys(props.Queries).length;
-  const missingDataKeys = Object.values(props.widgetData).length !== numberKeys;
+  const numEnabledQueries = Object.values(props.Queries).filter(q =>
+    q.enabled ? q.enabled(props.widgetData) : true
+  ).length;
+
+  const isMissingDataKeys = Object.values(props.widgetData).length !== numEnabledQueries;
   const hasData =
-    !missingDataKeys && Object.values(props.widgetData).every(d => !d || d.hasData);
+    !isMissingDataKeys && Object.values(props.widgetData).every(d => !d || d.hasData);
   const isLoading = Object.values(props.widgetData).some(d => !d || d.isLoading);
   const isErrored =
-    !missingDataKeys && Object.values(props.widgetData).some(d => d && d.isErrored);
+    !isMissingDataKeys && Object.values(props.widgetData).some(d => d && d.isErrored);
 
   return (
     <Container data-test-id="performance-widget-container">
@@ -120,31 +126,31 @@ function _DataDisplay<T extends WidgetDataConstraint>(
         isErrored={isErrored}
         hasData={hasData}
         errorComponent={<DefaultErrorComponent height={totalHeight} />}
-        dataComponents={Visualizations.filter(v => v.enabled?.(props.widgetData)).map(
-          (Visualization, index) => (
-            <ContentContainer
-              key={index}
-              noPadding={Visualization.noPadding}
-              bottomPadding={Visualization.bottomPadding}
-              data-test-id="widget-state-has-data"
-              onClick={() =>
-                trackDataComponentClicks(props.chartSetting, props.organization)
-              }
-            >
-              {getDynamicText({
-                value: (
-                  <Visualization.component
-                    grid={defaultGrid}
-                    queryFields={Visualization.fields}
-                    widgetData={props.widgetData}
-                    height={chartHeight}
-                  />
-                ),
-                fixed: <Placeholder height={`${chartHeight}px`} />,
-              })}
-            </ContentContainer>
-          )
-        )}
+        dataComponents={Visualizations.filter(v =>
+          v.enabled ? v.enabled(props.widgetData) : true
+        ).map((Visualization, index) => (
+          <ContentContainer
+            key={index}
+            noPadding={Visualization.noPadding}
+            bottomPadding={Visualization.bottomPadding}
+            data-test-id="widget-state-has-data"
+            onClick={() =>
+              trackDataComponentClicks(props.chartSetting, props.organization)
+            }
+          >
+            {getDynamicText({
+              value: (
+                <Visualization.component
+                  grid={defaultGrid}
+                  queryFields={Visualization.fields}
+                  widgetData={props.widgetData}
+                  height={chartHeight}
+                />
+              ),
+              fixed: <Placeholder height={`${chartHeight}px`} />,
+            })}
+          </ContentContainer>
+        ))}
         loadingComponent={<PerformanceWidgetPlaceholder height={`${totalHeight}px`} />}
         emptyComponent={
           EmptyComponent ? (
@@ -154,6 +160,13 @@ function _DataDisplay<T extends WidgetDataConstraint>(
           )
         }
       />
+      {props.Footer && (
+        <FooterContainer>
+          <ContentContainer>
+            <WidgetFooter<T> {...props} />
+          </ContentContainer>
+        </FooterContainer>
+      )}
     </Container>
   );
 }
@@ -179,6 +192,10 @@ const ContentContainer = styled('div')<{bottomPadding?: boolean; noPadding?: boo
   padding-left: ${p => (p.noPadding ? space(0) : space(2))};
   padding-right: ${p => (p.noPadding ? space(0) : space(2))};
   padding-bottom: ${p => (p.bottomPadding ? space(1) : space(0))};
+`;
+
+const FooterContainer = styled('div')`
+  border-top: 1px solid ${p => p.theme.border};
 `;
 
 const PerformanceWidgetPlaceholder = styled(Placeholder)`
