@@ -10,7 +10,7 @@ pytest-django>=4.4.0
 pytest-rerunfailures>=9.1.1
 pytest-sentry>=0.1.9
 pytest-xdist
-responses>=0.10.12
+responses>=0.21.0
 msgpack-types>=0.2.0
 
 # pre-commit dependencies

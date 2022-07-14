@@ -107,7 +107,6 @@ class GitlabSearchTest(GitLabTestCase):
             responses.GET,
             "https://example.gitlab.com/api/v4/groups/1/projects",
             callback=request_callback,
-            match_querystring=False,
         )
         resp = self.client.get(self.url, data={"field": "project", "query": "GetSentry"})
 
