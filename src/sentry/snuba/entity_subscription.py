@@ -304,6 +304,10 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
     def get_snql_extra_conditions(self) -> List[Condition]:
         raise NotImplementedError
 
+    @abstractmethod
+    def get_granularity(self) -> int:
+        pass
+
     def get_entity_extra_params(self) -> Mapping[str, Any]:
         return {
             "organization": self.org_id,
