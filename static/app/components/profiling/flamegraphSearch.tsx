@@ -35,7 +35,7 @@ function findBestMatchFromFuseMatches(
 ): Fuse.RangeTuple | null {
   let bestMatch: Fuse.RangeTuple | null = null;
   let bestMatchLength = 0;
-  let bestMatchStart = 0;
+  let bestMatchStart = -1;
 
   for (let i = 0; i < matches.length; i++) {
     const match = matches[i];
@@ -71,7 +71,7 @@ function findBestMatchFromRegexpMatchArray(
 ): Fuse.RangeTuple | null {
   let bestMatch: Fuse.RangeTuple | null = null;
   let bestMatchLength = 0;
-  let bestMatchStart = 0;
+  let bestMatchStart = -1;
 
   for (let i = 0; i < matches.length; i++) {
     const index = matches[i].index;
@@ -208,6 +208,7 @@ function FlamegraphSearch({
       keys: ['frame.name'],
       threshold: 0.3,
       includeMatches: true,
+      findAllMatches: true,
       ignoreLocation: true,
     });
   }, [allFrames]);
