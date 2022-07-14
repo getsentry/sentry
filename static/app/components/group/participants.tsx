@@ -12,7 +12,7 @@ type Props = {
 };
 
 const GroupParticipants = ({participants}: Props) => (
-  <SidebarSection title={tn('%s Participant', '%s Participants', participants.length)}>
+  <SidebarSection title={tn('%s Subscribed', '%s Subscribed', participants.length)}>
     <Faces>
       {participants.map(user => (
         <Face key={user.username}>
