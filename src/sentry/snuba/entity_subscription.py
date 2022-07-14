@@ -573,5 +573,10 @@ def get_entity_key_from_snuba_query(
         snuba_query,
         organization_id,
     )
-    query_builder = entity_subscription.build_query_builder(snuba_query.query, [project_id], None)
+    query_builder = entity_subscription.build_query_builder(
+        snuba_query.query,
+        [project_id],
+        None,
+        {"organization_id": organization_id},
+    )
     return get_entity_key_from_query_builder(query_builder)
