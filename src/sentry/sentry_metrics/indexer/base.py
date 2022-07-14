@@ -34,6 +34,13 @@ KR = TypeVar("KR", bound="KeyResult")
 
 
 @dataclass(frozen=True)
+class Metadata:
+    id: Optional[int]
+    fetch_type: FetchType
+    fetch_type_ext: Optional[FetchTypeExt]
+
+
+@dataclass(frozen=True)
 class KeyResult:
     org_id: int
     string: str
@@ -91,9 +98,7 @@ class KeyCollection:
 class KeyResults:
     def __init__(self) -> None:
         self.results: MutableMapping[int, MutableMapping[str, Optional[int]]] = defaultdict(dict)
-        self.meta: MutableMapping[
-            str, Tuple[Optional[int], FetchType, Optional[FetchTypeExt]]
-        ] = dict()
+        self.meta: MutableMapping[str, Metadata] = dict()
 
     def add_key_result(
         self,
@@ -103,7 +108,9 @@ class KeyResults:
     ) -> None:
         self.results[key_result.org_id].update({key_result.string: key_result.id})
         if fetch_type:
-            self.meta[key_result.string] = (key_result.id, fetch_type, fetch_type_ext)
+            self.meta[key_result.string] = Metadata(
+                id=key_result.id, fetch_type=fetch_type, fetch_type_ext=fetch_type_ext
+            )
 
     def add_key_results(
         self,
@@ -114,7 +121,9 @@ class KeyResults:
         for key_result in key_results:
             self.results[key_result.org_id].update({key_result.string: key_result.id})
             if fetch_type:
-                self.meta[key_result.string] = (key_result.id, fetch_type, fetch_type_ext)
+                self.meta[key_result.string] = Metadata(
+                    id=key_result.id, fetch_type=fetch_type, fetch_type_ext=fetch_type_ext
+                )
 
     def get_mapped_results(self) -> Mapping[int, Mapping[str, Optional[int]]]:
         """
@@ -159,7 +168,7 @@ class KeyResults:
 
     def get_fetch_metadata(
         self,
-    ) -> Mapping[str, Tuple[Optional[int], FetchType, Optional[FetchTypeExt]]]:
+    ) -> Mapping[str, Metadata]:
         return self.meta
 
     def merge(self, other: "KeyResults") -> "KeyResults":

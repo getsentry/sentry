@@ -1,7 +1,13 @@
-from typing import Mapping, Set, Tuple
+from typing import Mapping, Set
 
 from sentry.sentry_metrics.configuration import UseCaseKey
-from sentry.sentry_metrics.indexer.base import FetchTypeExt, KeyCollection, KeyResult, KeyResults
+from sentry.sentry_metrics.indexer.base import (
+    FetchTypeExt,
+    KeyCollection,
+    KeyResult,
+    KeyResults,
+    Metadata,
+)
 from sentry.sentry_metrics.indexer.cache import indexer_cache
 from sentry.sentry_metrics.indexer.models import MetricsKeyIndexer, StringIndexer
 from sentry.sentry_metrics.indexer.postgres import PGStringIndexer
@@ -17,9 +23,9 @@ from sentry.utils.cache import cache
 
 
 def assert_fetch_type_for_tag_string_set(
-    meta: Mapping[str, Tuple[int, FetchType]], fetch_type: FetchType, str_set: Set[str]
+    meta: Mapping[str, Metadata], fetch_type: FetchType, str_set: Set[str]
 ):
-    assert all([meta[string][1] == fetch_type for string in str_set])
+    assert all([meta[string].fetch_type == fetch_type for string in str_set])
 
 
 class PostgresIndexerTest(TestCase):
@@ -292,10 +298,10 @@ class PostgresIndexerV2Test(TestCase):
         assert "g" not in rate_limited_strings
 
         for string in rate_limited_strings:
-            assert results.get_fetch_metadata()[string] == (
-                None,
-                FetchType.RATE_LIMITED,
-                FetchTypeExt(is_global=False),
+            assert results.get_fetch_metadata()[string] == Metadata(
+                id=None,
+                fetch_type=FetchType.RATE_LIMITED,
+                fetch_type_ext=FetchTypeExt(is_global=False),
             )
 
         org_strings = {1: rate_limited_strings}
