@@ -122,6 +122,7 @@ DATASETS = {
     Dataset.Discover: DISCOVER_COLUMN_MAP,
     Dataset.Sessions: SESSIONS_SNUBA_MAP,
     Dataset.Metrics: METRICS_COLUMN_MAP,
+    Dataset.PerformanceMetrics: METRICS_COLUMN_MAP,
 }
 
 # Store the internal field names to save work later on.

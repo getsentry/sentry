@@ -9,7 +9,9 @@ class Dataset(Enum):
     Outcomes = "outcomes"
     OutcomesRaw = "outcomes_raw"
     Sessions = "sessions"
+    # Actually Release Health
     Metrics = "metrics"
+    PerformanceMetrics = "generic_metrics"
 
 
 @unique
@@ -21,3 +23,6 @@ class EntityKey(Enum):
     MetricsCounters = "metrics_counters"
     OrgMetricsCounters = "org_metrics_counters"
     MetricsDistributions = "metrics_distributions"
+    GenericMetricsDistributions = "generic_metrics_distributions"
+    GenericMetricsSets = "generic_metrics_sets"
+    GenericMetricsCounters = "generic_metrics_counters"
