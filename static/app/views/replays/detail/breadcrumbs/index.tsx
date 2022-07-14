@@ -101,22 +101,28 @@ function Breadcrumbs({}: Props) {
     [setCurrentTime, startTimestamp]
   );
 
+  const content = isLoaded ? (
+    <div>
+      {crumbs.map(crumb => (
+        <BreadcrumbItem
+          key={crumb.id}
+          crumb={crumb}
+          startTimestamp={startTimestamp}
+          isHovered={closestUserAction?.id === crumb.id}
+          isSelected={currentUserAction?.id === crumb.id}
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+          onClick={handleClick}
+        />
+      ))}
+    </div>
+  ) : (
+    <CrumbPlaceholder number={4} />
+  );
+
   return (
     <FluidPanel panel data-ref={crumbListContainerRef} title={t('Breadcrumbs')}>
-      {!isLoaded && <CrumbPlaceholder number={4} />}
-      {isLoaded &&
-        crumbs.map(crumb => (
-          <BreadcrumbItem
-            key={crumb.id}
-            crumb={crumb}
-            startTimestamp={startTimestamp}
-            isHovered={closestUserAction?.id === crumb.id}
-            isSelected={currentUserAction?.id === crumb.id}
-            onMouseEnter={handleMouseEnter}
-            onMouseLeave={handleMouseLeave}
-            onClick={handleClick}
-          />
-        ))}
+      {content}
     </FluidPanel>
   );
 }

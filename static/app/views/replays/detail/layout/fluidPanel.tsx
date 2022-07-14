@@ -1,15 +1,15 @@
-import {ReactNode} from 'react';
+import {ReactChild} from 'react';
 import styled from '@emotion/styled';
 
 import {Panel, PanelBody, PanelFooter, PanelHeader} from 'sentry/components/panels';
 
 type Props = {
-  children: ReactNode;
-  bottom?: ReactNode;
+  children: ReactChild;
+  bottom?: ReactChild;
   className?: string;
   panel?: boolean;
   scroll?: boolean;
-  title?: ReactNode;
+  title?: ReactChild;
 };
 
 function FluidPanel({className, children, bottom, title, panel, scroll = true}: Props) {
@@ -19,19 +19,13 @@ function FluidPanel({className, children, bottom, title, panel, scroll = true}: 
     <OverflowBody scroll={scroll}>{children}</OverflowBody>
   );
 
-  const wrappedHeader = title ? (
-    panel ? (
-      <PanelHeader>{title}</PanelHeader>
-    ) : (
-      <div>{title}</div>
-    )
-  ) : null;
+  const wrappedHeader = title ? panel ? <PanelHeader>{title}</PanelHeader> : title : null;
 
   const wrappedFooter = bottom ? (
     panel ? (
       <PanelFooter>{bottom}</PanelFooter>
     ) : (
-      <div>{bottom}</div>
+      bottom
     )
   ) : null;
 
@@ -46,9 +40,9 @@ function FluidPanel({className, children, bottom, title, panel, scroll = true}: 
   }
   return (
     <FluidContainer className={className}>
-      {wrappedHeader}
+      {title}
       {wrappedContent}
-      {wrappedFooter}
+      {bottom}
     </FluidContainer>
   );
 }
@@ -63,6 +57,8 @@ const FluidPanelContainer = styled(Panel)`
   display: grid;
   grid-template-rows: auto 1fr auto;
   max-height: 100%;
+
+  margin-bottom: 0;
 `;
 
 const OverflowBody = styled('div')<{scroll: boolean}>`

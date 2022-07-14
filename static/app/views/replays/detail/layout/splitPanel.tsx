@@ -198,11 +198,18 @@ const Panel = styled('div')`
   overflow: hidden;
 `;
 
-const Divider = styled((props: DOMAttributes<HTMLDivElement>) => (
-  <div {...props}>
-    <IconGrabbable size="sm" />
-  </div>
-))<{mousedown: boolean; slideDirection: 'leftright' | 'updown'}>`
+type DividerProps = {mousedown: boolean; slideDirection: 'leftright' | 'updown'};
+const Divider = styled(
+  ({
+    mousedown: _a,
+    slideDirection: _b,
+    ...props
+  }: DividerProps & DOMAttributes<HTMLDivElement>) => (
+    <div {...props}>
+      <IconGrabbable size="sm" />
+    </div>
+  )
+)<DividerProps>`
   display: grid;
   place-items: center;
   max-height: 100%;

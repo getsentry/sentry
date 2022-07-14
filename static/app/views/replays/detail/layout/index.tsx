@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -5,19 +6,18 @@ import ReplayTimeline from 'sentry/components/replays/breadcrumbs/replayTimeline
 import ReplayView from 'sentry/components/replays/replayView';
 import space from 'sentry/styles/space';
 import useFullscreen from 'sentry/utils/replays/hooks/useFullscreen';
+import useUrlParams from 'sentry/utils/replays/hooks/useUrlParams';
 import Breadcrumbs from 'sentry/views/replays/detail/breadcrumbs';
 import FocusArea from 'sentry/views/replays/detail/focusArea';
 import FocusTabs from 'sentry/views/replays/detail/focusTabs';
 import FluidPanel from 'sentry/views/replays/detail/layout/fluidPanel';
 import SplitPanel from 'sentry/views/replays/detail/layout/splitPanel';
 import SideTabs from 'sentry/views/replays/detail/sideTabs';
-
-import {TimelineSection, TopbarSection, VideoSection} from './pageSections';
-import Sidebar from './sidebar';
+import TagPanel from 'sentry/views/replays/detail/tagPanel';
 
 type Layout =
   /**
-   * ### Sidebar
+   * ### Sidebar Right
    * ┌───────────────────┐
    * │ Timeline          │
    * ├──────────┬────────┤
@@ -28,20 +28,7 @@ type Layout =
    * │          >        │
    * └──────────┴────────┘
    */
-  | 'sidebar'
-  /**
-   * ### Topbar
-   *┌────────────────────┐
-   *│ Timeline           │
-   *├───────────┬────────┤
-   *│ Video     │ Crumbs │
-   *│           │        │
-   *├^^^^^^^^^^^^^^^^^^^^┤
-   *│ Details            │
-   *│                    │
-   *└────────────────────┘
-   */
-  | 'topbar'
+  | 'sidebar_right'
   /**
    * ### Sidebar Left
    * ┌───────────────────┐
@@ -54,7 +41,20 @@ type Layout =
    * │        >          │
    * └────────┴──────────┘
    */
-  | 'sidebar_left';
+  | 'sidebar_left'
+  /**
+   * ### Topbar
+   *┌────────────────────┐
+   *│ Timeline           │
+   *├───────────┬────────┤
+   *│ Video     │ Crumbs │
+   *│           │        │
+   *├^^^^^^^^^^^^^^^^^^^^┤
+   *│ Details            │
+   *│                    │
+   *└────────────────────┘
+   */
+  | 'topbar';
 
 type Props = {
   layout?: Layout;
@@ -72,11 +72,9 @@ function ReplayLayout({
   const {ref: fullscreenRef, isFullscreen, toggle: toggleFullscreen} = useFullscreen();
 
   const timeline = showTimeline ? (
-    <TimelineSection>
-      <ErrorBoundary mini>
-        <ReplayTimeline />
-      </ErrorBoundary>
-    </TimelineSection>
+    <ErrorBoundary mini>
+      <ReplayTimeline />
+    </ErrorBoundary>
   ) : null;
 
   const video = showVideo ? (
@@ -101,12 +99,7 @@ function ReplayLayout({
     </ErrorBoundary>
   );
 
-  if (layout === 'sidebar') {
-    const sidebar = (
-      <FluidPanel title={<SideTabs />} scroll={false}>
-        <Sidebar showCrumbs={showCrumbs} showVideo={showVideo} />
-      </FluidPanel>
-    );
+  if (layout === 'sidebar_right') {
     return (
       <BodyContent>
         {timeline}
@@ -117,7 +110,7 @@ function ReplayLayout({
             min: {px: 300},
           }}
           right={{
-            content: sidebar,
+            content: <SidebarContent video={video} crumbs={crumbs} />,
             default: '325px',
             min: {px: 325},
           }}
@@ -128,17 +121,21 @@ function ReplayLayout({
 
   if (layout === 'sidebar_left') {
     return (
-      <Container>
+      <BodyContent>
         {timeline}
-        <PageRow>
-          <ResizePanel direction="e" minWidth={SIDEBAR_MIN_WIDTH}>
-            <SidebarSection>
-              <AsideTabsV2 showCrumbs={showCrumbs} showVideo={showVideo} />
-            </SidebarSection>
-          </ResizePanel>
-          {content}
-        </PageRow>
-      </Container>
+        <SplitPanel
+          left={{
+            content: <SidebarContent video={video} crumbs={crumbs} />,
+            default: '325px',
+            min: {px: 325},
+          }}
+          right={{
+            content,
+            default: '60%',
+            min: {px: 300},
+          }}
+        />
+      </BodyContent>
     );
   }
 
@@ -149,20 +146,52 @@ function ReplayLayout({
       <SplitPanel
         top={{
           content: (
-            <TopbarSection>
+            <Topbar>
               {video}
               {crumbs}
-            </TopbarSection>
+            </Topbar>
           ),
           default: '325px',
-          min: {px: 325},
+          min: {px: 225},
         }}
         bottom={{
           content,
-          min: {px: 300},
+          min: {px: 200},
         }}
       />
     </BodyContent>
+  );
+}
+
+function SidebarContent({video, crumbs}) {
+  const {getParamValue} = useUrlParams('t_side', 'video');
+  if (getParamValue() === 'tags') {
+    return (
+      <Fragment>
+        <SideTabs />
+        <TagPanel />
+      </Fragment>
+    );
+  }
+  if (video && crumbs) {
+    return (
+      <FluidPanel title={<SideTabs />} scroll={false}>
+        <SplitPanel
+          top={{
+            content: video,
+            default: '325px',
+            min: 325,
+          }}
+          bottom={crumbs}
+        />
+      </FluidPanel>
+    );
+  }
+  return (
+    <Fragment>
+      {video}
+      {crumbs}
+    </Fragment>
   );
 }
 
@@ -176,10 +205,21 @@ const BodyContent = styled('main')`
   padding: ${space(2)};
 `;
 
-// const SideTabs = styled('div')`
-//   display: grid;
-//   grid-template-rows: auto 1fr;
-//   max-height: 100%;
-// `;
+const Topbar = styled('div')`
+  height: 100%;
+  display: flex;
+  flex-grow: 1;
+  flex-wrap: nowrap;
+  flex-direction: row;
+  gap: ${space(3)};
+`;
+
+export const VideoSection = styled('section')`
+  height: 100%;
+  display: flex;
+  flex-grow: 1;
+  flex-wrap: nowrap;
+  flex-direction: column;
+`;
 
 export default ReplayLayout;

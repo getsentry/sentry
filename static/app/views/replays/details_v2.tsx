@@ -11,7 +11,7 @@ import {useRouteContext} from 'sentry/utils/useRouteContext';
 import Layout from 'sentry/views/replays/detail/layout';
 import Page from 'sentry/views/replays/detail/page';
 
-const LAYOUT_NAMES = ['topbar', 'sidebar', 'sidebar_left'];
+const LAYOUT_NAMES = ['topbar', 'sidebar_right', 'sidebar_left'];
 
 function ReplayDetails() {
   const {
