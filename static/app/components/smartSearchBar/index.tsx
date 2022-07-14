@@ -1165,6 +1165,7 @@ class SmartSearchBar extends Component<Props, State> {
   };
 
   showDefaultSearches = async () => {
+    const {query} = this.state;
     const [defaultSearchItems, defaultRecentItems] = this.props.defaultSearchItems!;
 
     // Always clear searchTerm on showing default state.
