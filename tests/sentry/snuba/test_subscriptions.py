@@ -1,6 +1,6 @@
 from datetime import timedelta
 
-from sentry.snuba.models import QueryDatasets, QuerySubscription, SnubaQueryEventType
+from sentry.snuba.models import QueryDatasets, QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.subscriptions import (
     bulk_delete_snuba_subscriptions,
     create_snuba_query,
@@ -258,6 +258,7 @@ class UpdateSnubaSubscriptionTest(TestCase):
                 None,
             )
             subscription = create_snuba_subscription(self.project, "something", snuba_query)
+        old_type = SnubaQuery.Type(snuba_query.type)
 
         dataset = QueryDatasets.TRANSACTIONS
         query = "level:warning"
@@ -267,6 +268,7 @@ class UpdateSnubaSubscriptionTest(TestCase):
         subscription = QuerySubscription.objects.get(id=subscription.id)
         subscription_id = subscription.subscription_id
         snuba_query.update(
+            type=SnubaQuery.Type.PERFORMANCE.value,
             dataset=dataset.value,
             query=query,
             time_window=int(time_window.total_seconds()),
@@ -275,7 +277,7 @@ class UpdateSnubaSubscriptionTest(TestCase):
             aggregate=aggregate,
         )
         assert subscription_id is not None
-        update_snuba_subscription(subscription, old_dataset)
+        update_snuba_subscription(subscription, old_type, old_dataset)
         assert subscription.status == QuerySubscription.Status.UPDATING.value
         assert subscription.subscription_id == subscription_id
         assert subscription.snuba_query.dataset == dataset.value
@@ -296,6 +298,7 @@ class UpdateSnubaSubscriptionTest(TestCase):
                 None,
             )
             subscription = create_snuba_subscription(self.project, "something", snuba_query)
+            old_type = SnubaQuery.Type(snuba_query.type)
 
             dataset = QueryDatasets.TRANSACTIONS
             query = "level:warning"
@@ -306,6 +309,7 @@ class UpdateSnubaSubscriptionTest(TestCase):
             subscription_id = subscription.subscription_id
             assert subscription_id is not None
             snuba_query.update(
+                type=SnubaQuery.Type.PERFORMANCE.value,
                 dataset=dataset.value,
                 query=query,
                 time_window=int(time_window.total_seconds()),
@@ -313,7 +317,7 @@ class UpdateSnubaSubscriptionTest(TestCase):
                 environment=self.environment,
                 aggregate=aggregate,
             )
-            update_snuba_subscription(subscription, old_dataset)
+            update_snuba_subscription(subscription, old_type, old_dataset)
             subscription = QuerySubscription.objects.get(id=subscription.id)
             assert subscription.status == QuerySubscription.Status.ACTIVE.value
             assert subscription.subscription_id is not None

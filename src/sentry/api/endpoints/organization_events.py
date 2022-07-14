@@ -10,7 +10,6 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.bases.organization import resolve_org_slug_region
-from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.deprecation import deprecated
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import InvalidParams
@@ -18,7 +17,7 @@ from sentry.apidocs import constants as api_constants
 from sentry.apidocs.parameters import GLOBAL_PARAMS, VISIBILITY_PARAMS
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
-from sentry.ratelimits.config import DEFAULT_RATE_LIMIT_CONFIG, RateLimitConfig
+from sentry.ratelimits.config import RateLimitConfig
 from sentry.search.events.fields import is_function
 from sentry.snuba import discover, metrics_enhanced_performance
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -60,6 +59,24 @@ RATE_LIMIT = 25
 RATE_LIMIT_WINDOW = 1
 CONCURRENT_RATE_LIMIT = 25
 
+DEFAULT_RATE_LIMIT = 50
+DEFAULT_RATE_LIMIT_WINDOW = 1
+DEFAULT_CONCURRENT_RATE_LIMIT = 50
+
+DEFAULT_EVENTS_RATE_LIMIT_CONFIG = {
+    "GET": {
+        RateLimitCategory.IP: RateLimit(
+            DEFAULT_RATE_LIMIT, DEFAULT_RATE_LIMIT_WINDOW, DEFAULT_CONCURRENT_RATE_LIMIT
+        ),
+        RateLimitCategory.USER: RateLimit(
+            DEFAULT_RATE_LIMIT, DEFAULT_RATE_LIMIT_WINDOW, DEFAULT_CONCURRENT_RATE_LIMIT
+        ),
+        RateLimitCategory.ORGANIZATION: RateLimit(
+            DEFAULT_RATE_LIMIT, DEFAULT_RATE_LIMIT_WINDOW, DEFAULT_CONCURRENT_RATE_LIMIT
+        ),
+    }
+}
+
 
 def rate_limit_events(request: Request, organization_slug=None, *args, **kwargs) -> RateLimitConfig:
     organization_slug, _ = resolve_org_slug_region(
@@ -68,7 +85,7 @@ def rate_limit_events(request: Request, organization_slug=None, *args, **kwargs)
     try:
         organization = Organization.objects.get_from_cache(slug=organization_slug)
     except Organization.DoesNotExist:
-        raise ResourceDoesNotExist
+        return DEFAULT_EVENTS_RATE_LIMIT_CONFIG
     # Check for feature flag to enforce rate limit otherwise use default rate limit
     if features.has("organizations:discover-events-rate-limit", organization, actor=request.user):
         return {
@@ -84,7 +101,7 @@ def rate_limit_events(request: Request, organization_slug=None, *args, **kwargs)
                 ),
             }
         }
-    return DEFAULT_RATE_LIMIT_CONFIG
+    return DEFAULT_EVENTS_RATE_LIMIT_CONFIG
 
 
 class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):

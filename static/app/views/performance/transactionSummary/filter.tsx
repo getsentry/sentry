@@ -19,6 +19,7 @@ export enum SpanOperationBreakdownFilter {
   Db = 'db',
   Browser = 'browser',
   Resource = 'resource',
+  Ui = 'ui',
 }
 
 export const SPAN_OPERATION_BREAKDOWN_FILTER_TO_FIELD: Partial<
@@ -28,6 +29,7 @@ export const SPAN_OPERATION_BREAKDOWN_FILTER_TO_FIELD: Partial<
   [SpanOperationBreakdownFilter.Db]: 'spans.db',
   [SpanOperationBreakdownFilter.Browser]: 'spans.browser',
   [SpanOperationBreakdownFilter.Resource]: 'spans.resource',
+  [SpanOperationBreakdownFilter.Ui]: 'spans.ui',
 };
 
 const OPTIONS: SpanOperationBreakdownFilter[] = [
@@ -35,6 +37,7 @@ const OPTIONS: SpanOperationBreakdownFilter[] = [
   SpanOperationBreakdownFilter.Db,
   SpanOperationBreakdownFilter.Browser,
   SpanOperationBreakdownFilter.Resource,
+  SpanOperationBreakdownFilter.Ui,
 ];
 
 export const spanOperationBreakdownSingleColumns = OPTIONS.map(o => `spans.${o}`);

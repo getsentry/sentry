@@ -5,7 +5,6 @@ from typing import Any, Mapping, Sequence, Union
 from sentry.integrations.metric_alerts import incident_attachment_info
 from sentry.models import Group, GroupStatus, Project, Team, User
 from sentry.utils.assets import get_asset_url
-from sentry.utils.compat import map
 from sentry.utils.http import absolute_uri
 
 from ..utils import ACTION_TYPE
@@ -32,14 +31,13 @@ AdaptiveCard = Mapping[str, Union[str, Sequence[Block], Sequence[Action]]]
 
 
 def generate_action_payload(action_type, event, rules, integration):
-    rule_ids = map(lambda x: x.id, rules)
     # we need nested data or else Teams won't handle the payload correctly
     return {
         "payload": {
             "actionType": action_type,
             "groupId": event.group.id,
             "eventId": event.event_id,
-            "rules": rule_ids,
+            "rules": [rule.id for rule in rules],
             "integrationId": integration.id,
         }
     }
