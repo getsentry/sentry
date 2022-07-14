@@ -125,6 +125,7 @@ function ReplayOptionsMenu({speedOptions}: {speedOptions: number[]}) {
 
   return (
     <CompositeSelect<SelectValue<string | number>>
+      placement="bottom"
       trigger={({props, ref}) => (
         <Button
           ref={ref}
