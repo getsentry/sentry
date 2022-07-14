@@ -378,13 +378,9 @@ class AutoComplete<T extends Item> extends Component<Props<T>, State<T>> {
   openMenu = (...args: Array<any>) => {
     const {onOpen, disabled} = this.props;
 
-    if (disabled) {
-      return;
-    }
-
     onOpen?.(...args);
 
-    if (this.isControlled) {
+    if (disabled || this.isControlled) {
       return;
     }
 
