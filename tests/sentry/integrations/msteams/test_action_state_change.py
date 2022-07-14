@@ -4,7 +4,7 @@ from unittest.mock import patch
 import responses
 from django.http import HttpResponse
 
-from sentry.integrations.msteams.card_builder import build_linking_card
+from sentry.integrations.msteams.card_builder.identity import build_linking_card
 from sentry.integrations.msteams.link_identity import build_linking_url
 from sentry.integrations.msteams.utils import ACTION_TYPE
 from sentry.models import (
