@@ -203,8 +203,9 @@ class CreateProject extends Component<Props, State> {
         },
       });
 
+      let ruleId: string | undefined;
       if (shouldCreateCustomRule) {
-        await api.requestPromise(
+        const ruleData = await api.requestPromise(
           `/projects/${organization.slug}/${projectData.slug}/rules/`,
           {
             method: 'POST',
@@ -217,6 +218,7 @@ class CreateProject extends Component<Props, State> {
             },
           }
         );
+        ruleId = ruleData.id;
       }
       if (
         !!organization.experiments.MetricAlertOnProjectCreationExperiment &&
@@ -270,6 +272,8 @@ class CreateProject extends Component<Props, State> {
           : shouldCreateCustomRule
           ? 'Custom'
           : 'No Rule',
+        project_id: projectData.id,
+        rule_id: ruleId || '',
       });
 
       ProjectActions.createSuccess(projectData);

@@ -53,8 +53,10 @@ export type TeamInsightsEventParameters = {
     wizard_v3: string;
   };
   'project_creation_page.created': {
-    issue_alert: string;
+    issue_alert: 'Default' | 'Custom' | 'No Rule';
     metric_alerts: string;
+    project_id: string;
+    rule_id: string;
   };
   'project_creation_page.viewed': {};
   'team_insights.viewed': {};
