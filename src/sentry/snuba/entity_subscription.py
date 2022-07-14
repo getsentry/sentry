@@ -367,7 +367,7 @@ class PerformanceMetricsEntitySubscription(BaseMetricsEntitySubscription):
         # Time windows > 24h -> Granularity 1 day
         if self.time_window <= 3600:
             return 60
-        elif 4 * 3600 < self.time_window <= 24 * 3600:
+        elif 3600 < self.time_window <= 24 * 3600:
             return 3600
         else:
             return 24 * 3600
