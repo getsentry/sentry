@@ -3,6 +3,7 @@ import {VitalsKey, VitalsResult} from './types';
 
 export function getRelativeDiff(value: number, benchmark: number) {
   // get the difference and divide it by our benchmark
+  benchmark = benchmark / 2.5;
   return (value - benchmark) / benchmark;
 }
 
@@ -25,4 +26,19 @@ export function getWorstVital(data: VitalsResult) {
     return worstField;
   }
   return null;
+}
+
+export function getCountParameterName(vital: VitalsKey) {
+  switch (vital) {
+    case 'FCP':
+      return 'fcpCount';
+    case 'LCP':
+      return 'lcpCount';
+    case 'appStartCold':
+      return 'appColdStartCount';
+    case 'appStartWarm':
+      return 'appWarmStartCount';
+    default:
+      throw new Error(`Unexpected vital ${vital}`);
+  }
 }

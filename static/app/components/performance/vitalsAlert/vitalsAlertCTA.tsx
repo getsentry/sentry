@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import maxBy from 'lodash/maxBy';
 
 import {promptsUpdate} from 'sentry/actionCreators/prompts';
 import {
@@ -17,7 +18,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 import {INDUSTRY_STANDARDS, SENTRY_CUSTOMERS} from './constants';
 import {VitalsKey, VitalsResult} from './types';
-import {getRelativeDiff, getWorstVital} from './utils';
+import {getCountParameterName, getRelativeDiff, getWorstVital} from './utils';
 
 interface Props {
   data: VitalsResult;
@@ -77,6 +78,18 @@ export default function VitalsAlertCTA({data, dismissAlert}: Props) {
   if (!ourValue) {
     return null;
   }
+  const hasGlobalViews = organization.features.includes('global-views');
+  // find the project that has the most events of the same type
+  const bestProjectData = maxBy(data.projectData, item => {
+    const parameterName = getCountParameterName(vital);
+    return item[parameterName];
+  });
+
+  // if no global views and no matching project, can't show alert
+  if (!hasGlobalViews && !bestProjectData) {
+    return null;
+  }
+
   const sentryDiff = getRelativeDiff(ourValue, SENTRY_CUSTOMERS[vital]);
   const industryDiff = getRelativeDiff(ourValue, INDUSTRY_STANDARDS[vital]);
 
@@ -109,12 +122,16 @@ export default function VitalsAlertCTA({data, dismissAlert}: Props) {
   };
 
   const getVitalsURL = () => {
-    // TODO: add logic for project selection
     const performanceRoot = `/organizations/${organization.slug}/performance`;
-    const baseParams = {
+    const baseParams: Record<string, string> = {
       statsPeriod: '7d',
       referrer: `vitals-alert-${vital.toLowerCase()}`,
     };
+    // specify a specific project if we can
+    if (!hasGlobalViews && bestProjectData) {
+      baseParams.project = bestProjectData.projectId;
+    }
+
     // we can land on a specific web vital
     if (vitalsType === 'web') {
       const searchParams = new URLSearchParams({
