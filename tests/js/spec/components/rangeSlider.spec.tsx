@@ -1,51 +1,46 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {fireEvent, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import RangeSlider from 'sentry/components/forms/controls/rangeSlider';
 
 describe('RangeSlider', function () {
   it('changes value / has right label', function () {
-    const wrapper = mountWithTheme(
-      <RangeSlider name="test" value={5} min={0} max={10} onChange={() => {}} />
-    );
-    expect(wrapper.find('SliderLabel').text()).toBe('5');
-    wrapper.find('Slider').simulate('input', {target: {value: 7}});
-    expect(wrapper.find('SliderLabel').text()).toBe('7');
+    render(<RangeSlider name="test" value={5} min={0} max={10} onChange={() => {}} />);
+    expect(screen.getByRole('slider', {name: '5'})).toBeInTheDocument();
+    fireEvent.change(screen.getByRole('slider'), {target: {value: '7'}});
+    expect(screen.getByRole('slider', {name: '7'})).toBeInTheDocument();
   });
 
   it('can use formatLabel', function () {
-    const wrapper = mountWithTheme(
+    render(
       <RangeSlider
         name="test"
         value={5}
         min={0}
         max={10}
         formatLabel={value => (
-          <div className="test">{value === 7 ? 'SEVEN!' : Number(value) + 1}</div>
+          <div data-test-id="test">{value === 7 ? 'SEVEN!' : Number(value) + 1}</div>
         )}
         onChange={() => {}}
       />
     );
+    expect(screen.getByTestId('test')).toHaveTextContent('6');
 
-    const testElement = wrapper.find('.test');
-    expect(testElement).toHaveLength(1);
-    expect(testElement.text()).toBe('6');
-    wrapper.find('Slider').simulate('input', {target: {value: 7}});
-    expect(wrapper.find('.test').text()).toBe('SEVEN!');
+    fireEvent.change(screen.getByRole('slider'), {target: {value: '7'}});
+    expect(screen.getByTestId('test')).toHaveTextContent('SEVEN!');
   });
 
   it('calls onChange', function () {
     const onChange = jest.fn();
-    const wrapper = mountWithTheme(
-      <RangeSlider name="test" value={5} min={0} max={10} onChange={onChange} />
-    );
+    render(<RangeSlider name="test" value={5} min={0} max={10} onChange={onChange} />);
     expect(onChange).not.toHaveBeenCalled();
-    wrapper.find('Slider').simulate('input', {target: {value: 7}});
+    fireEvent.change(screen.getByRole('slider'), {target: {value: '7'}});
     expect(onChange).toHaveBeenCalledWith(7, expect.anything());
+    expect(onChange).toHaveBeenCalledTimes(1);
   });
 
   it('can provide a list of allowedValues', function () {
     const onChange = jest.fn();
-    const wrapper = mountWithTheme(
+    render(
       <RangeSlider
         name="test"
         value={1000}
@@ -57,10 +52,10 @@ describe('RangeSlider', function () {
     );
 
     // With `allowedValues` sliderValue will be the index to value in `allowedValues`
-    expect(wrapper.find('SliderLabel').text()).toBe('1000');
+    expect(screen.getByRole('slider', {name: '1000'})).toBeInTheDocument();
 
-    wrapper.find('Slider').simulate('input', {target: {value: 0}});
-    expect(wrapper.find('SliderLabel').text()).toBe('0');
+    fireEvent.change(screen.getByRole('slider'), {target: {value: '0'}});
+    expect(screen.getByRole('slider', {name: '0'})).toBeInTheDocument();
 
     // onChange will callback with a value from `allowedValues`
     expect(onChange).toHaveBeenCalledWith(0, expect.anything());
@@ -68,7 +63,7 @@ describe('RangeSlider', function () {
 
   it('handles invalid values', function () {
     const onChange = jest.fn();
-    const wrapper = mountWithTheme(
+    render(
       <RangeSlider
         name="test"
         value={1000}
@@ -79,10 +74,10 @@ describe('RangeSlider', function () {
       />
     );
 
-    wrapper.find('Slider').simulate('input', {target: {value: -1}});
-    expect(wrapper.find('SliderLabel').text()).toBe('Invalid value');
+    fireEvent.change(screen.getByRole('slider'), {target: {value: '-2'}});
+    expect(screen.getByRole('slider', {name: '0'})).toBeInTheDocument();
 
     // onChange will callback with a value from `allowedValues`
-    expect(onChange).toHaveBeenCalledWith(undefined, expect.anything());
+    expect(onChange).toHaveBeenCalledWith(0, expect.anything());
   });
 });

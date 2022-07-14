@@ -187,6 +187,7 @@ function RangeSlider({
           max={max}
           step={step}
           disabled={disabled}
+          onChange={handleInput}
           onInput={handleInput}
           onMouseUp={handleBlur}
           onKeyUp={handleBlur}
