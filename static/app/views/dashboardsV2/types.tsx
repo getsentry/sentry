@@ -76,6 +76,10 @@ export type DashboardListItem = {
   dateCreated?: string;
 };
 
+enum DashboardFilter {
+  RELEASE = 'release',
+}
+
 /**
  * Saved dashboard with widgets
  */
@@ -85,6 +89,7 @@ export type DashboardDetails = {
   title: string;
   widgets: Widget[];
   createdBy?: User;
+  filters?: Record<DashboardFilter, string[]>;
 };
 
 export enum DashboardState {
