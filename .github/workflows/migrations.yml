@@ -58,7 +58,6 @@ jobs:
         id: setup
         with:
           python-version: ${{ matrix.python-version }}
-          pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
           pg-version: ${{ matrix.pg-version }}
 
       - name: Apply migrations

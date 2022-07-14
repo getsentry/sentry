@@ -5,7 +5,6 @@ from typing import Any, Mapping, Sequence, Union
 from sentry.integrations.metric_alerts import incident_attachment_info
 
 ME = "ME"
-URL_FORMAT_STR = "[{text}]({url})"
 
 # TODO: Covert these types to a class hierarchy.
 # This is not ideal, but better than no typing. These types should be
@@ -19,11 +18,11 @@ ColumnBlock = Mapping[str, Union[str, Sequence[ItemBlock]]]
 ColumnSetBlock = Mapping[str, Union[str, Sequence[ColumnBlock]]]
 
 Block = Union[TextBlock, ImageBlock, ColumnSetBlock]
-ContainerBlock = Mapping[str, Union[str, Block]]
+ContainerBlock = Any
 
 # Maps to Any because Actions can have an arbitrarily nested data field.
 Action = Mapping[str, Any]
-ActionSet = [Mapping[str, Union[str, Sequence[Action]]]]
+ActionSet = Any
 
 AdaptiveCard = Mapping[str, Union[str, Sequence[Block], Sequence[Action]]]
 

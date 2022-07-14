@@ -9,6 +9,7 @@ from sentry.api.endpoints.organization_profiling_profiles import (
     OrganizationProfilingProfilesEndpoint,
     OrganizationProfilingTransactionsEndpoint,
 )
+from sentry.api.endpoints.organization_sentry_function import OrganizationSentryFunctionEndpoint
 from sentry.api.endpoints.project_grouping_configs import ProjectGroupingConfigsEndpoint
 from sentry.api.endpoints.project_transaction_threshold_override import (
     ProjectTransactionThresholdOverrideEndpoint,
@@ -1547,6 +1548,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/relay_usage/$",
                     OrganizationRelayUsage.as_view(),
                     name="sentry-api-0-organization-relay-usage",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/functions/$",
+                    OrganizationSentryFunctionEndpoint.as_view(),
+                    name="sentry-api-0-organization-sentry-functions",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/request-project-creation/$",

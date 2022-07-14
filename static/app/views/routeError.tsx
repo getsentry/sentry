@@ -1,4 +1,5 @@
 import {useEffect} from 'react';
+// eslint-disable-next-line no-restricted-imports
 import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
@@ -80,6 +81,7 @@ function RouteError({error, disableLogSentry, disableReport, project, routes}: P
     return function cleanup() {
       window.clearTimeout(reportDialogTimeout);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [error, disableLogSentry]);
 
   // Remove the report dialog on unmount
