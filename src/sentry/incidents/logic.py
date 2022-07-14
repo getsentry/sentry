@@ -37,7 +37,12 @@ from sentry.models import Integration, PagerDutyService, Project, SentryApp
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.fields import resolve_field
 from sentry.shared_integrations.exceptions import DuplicateDisplayNameError
-from sentry.snuba.entity_subscription import EntitySubscription, get_entity_subscription_for_dataset
+from sentry.snuba.entity_subscription import (
+    ENTITY_TIME_COLUMNS,
+    EntitySubscription,
+    get_entity_key_from_query_builder,
+    get_entity_subscription_from_snuba_query,
+)
 from sentry.snuba.models import QueryDatasets
 from sentry.snuba.subscriptions import (
     bulk_create_snuba_subscriptions,
@@ -309,7 +314,7 @@ def build_incident_query_builder(
     for i, column in enumerate(query_builder.columns):
         if column.alias == CRASH_RATE_ALERT_AGGREGATE_ALIAS:
             query_builder.columns[i] = replace(column, alias="count")
-    time_col = entity_subscription.time_col
+    time_col = ENTITY_TIME_COLUMNS[get_entity_key_from_query_builder(query_builder)]
     query_builder.add_conditions(
         [
             Condition(Column(time_col), Op.GTE, start),
@@ -366,11 +371,9 @@ def get_incident_aggregates(
     Calculates aggregate stats across the life of an incident, or the provided range.
     """
     snuba_query = incident.alert_rule.snuba_query
-    entity_subscription = get_entity_subscription_for_dataset(
-        dataset=QueryDatasets(snuba_query.dataset),
-        aggregate=snuba_query.aggregate,
-        time_window=snuba_query.time_window,
-        extra_fields={"org_id": incident.organization.id, "event_types": snuba_query.event_types},
+    entity_subscription = get_entity_subscription_from_snuba_query(
+        snuba_query,
+        incident.organization_id,
     )
     query_builder = build_incident_query_builder(
         incident, entity_subscription, start, end, windowed_stats
@@ -382,7 +385,7 @@ def get_incident_aggregates(
             "incidents.get_incident_aggregates.snql.query.error",
             tags={
                 "dataset": snuba_query.dataset,
-                "entity": entity_subscription.entity_key.value,
+                "entity": get_entity_key_from_query_builder(query_builder).value,
             },
         )
         raise

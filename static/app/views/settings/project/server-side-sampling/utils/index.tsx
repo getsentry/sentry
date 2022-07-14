@@ -1,3 +1,5 @@
+import round from 'lodash/round';
+
 import {t} from 'sentry/locale';
 import {SamplingInnerName, SamplingRule, SamplingRuleType} from 'sentry/types/sampling';
 import {defined} from 'sentry/utils';
@@ -12,12 +14,8 @@ export function getInnerNameLabel(name: SamplingInnerName | string) {
       return t('Environment');
     case SamplingInnerName.TRACE_RELEASE:
       return t('Release');
-    case SamplingInnerName.TRACE_USER_ID:
-      return t('User Id');
     case SamplingInnerName.TRACE_USER_SEGMENT:
       return t('User Segment');
-    case SamplingInnerName.TRACE_TRANSACTION:
-      return t('Transaction');
     default:
       return '';
   }
@@ -39,4 +37,20 @@ export function isValidSampleRate(sampleRate: number | undefined) {
   }
 
   return !isNaN(sampleRate) && sampleRate <= 100 && sampleRate >= 0;
+}
+
+export function rateToPercentage(rate: number | undefined, decimalPlaces: number = 2) {
+  if (!defined(rate)) {
+    return rate;
+  }
+
+  return round(rate * 100, decimalPlaces);
+}
+
+export function percentageToRate(rate: number | undefined, decimalPlaces: number = 4) {
+  if (!defined(rate)) {
+    return rate;
+  }
+
+  return round(rate / 100, decimalPlaces);
 }
