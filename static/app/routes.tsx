@@ -14,7 +14,6 @@ import {EXPERIMENTAL_SPA} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
 import {HookName} from 'sentry/types/hooks';
-import {SamplingRuleType} from 'sentry/types/sampling';
 import errorHandler from 'sentry/utils/errorHandler';
 import App from 'sentry/views/app';
 import AuthLayout from 'sentry/views/auth/layout';
@@ -462,14 +461,6 @@ function buildRoutes() {
       >
         <IndexRedirect to="data-filters/" />
         <Route path=":filterType/" />
-      </Route>
-      <Route
-        path="sampling/"
-        name={t('Sampling')}
-        component={make(() => import('sentry/views/settings/project/sampling'))}
-      >
-        <IndexRedirect to={`${SamplingRuleType.TRACE}/`} />
-        <Route path=":ruleType/" />
       </Route>
       <Route
         path="server-side-sampling/"
@@ -1683,6 +1674,10 @@ function buildRoutes() {
       component={make(() => import('sentry/views/profiling'))}
     >
       <IndexRoute component={make(() => import('sentry/views/profiling/content'))} />
+      <Route
+        path="onboarding/"
+        component={make(() => import('sentry/views/profiling/onboarding'))}
+      />
       <Route
         path="summary/:projectId/"
         component={make(() => import('sentry/views/profiling/profileSummary'))}

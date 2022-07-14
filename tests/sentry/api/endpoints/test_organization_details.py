@@ -57,6 +57,8 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
     def test_simple(self):
         response = self.get_success_response(self.organization.slug)
 
+        assert response.data["slug"] == self.organization.slug
+        assert response.data["organizationUrl"] == f"http://{self.organization.slug}.us.testserver"
         assert response.data["onboardingTasks"] == []
         assert response.data["id"] == str(self.organization.id)
         assert response.data["role"] == "owner"

@@ -27,17 +27,9 @@ inputs:
     description: 'Is bigtable required?'
     required: false
     default: 'false'
-  cache-files-hash:
-    description: 'A single hash for a set of files. Used for caching.'
-    required: false
-    default: ${{ hashFiles('requirements-*.txt') }}
   python-version:
     description: 'python version to install'
     required: false
-  pip-cache-version:
-    description: 'pip cache version in order to bust cache'
-    required: false
-    default: '1630355466247'
   pg-version:
     description: 'PostgreSQL version to use'
     default: '9.6'
@@ -47,15 +39,6 @@ outputs:
   yarn-cache-dir:
     description: 'Path to yarn cache'
     value: ${{ steps.config.outputs.yarn-cache-dir }}
-  pip-cache-dir:
-    description: 'Path to pip cache'
-    value: ${{ steps.setup-python.outputs.pip-cache-dir }}
-  pip-version:
-    description: 'pip version'
-    value: ${{ steps.setup-python.outputs.pip-version }}
-  python-version:
-    description: 'python version'
-    value: ${{ steps.setup-python.outputs.python-version }}
   acceptance-dir:
     description: 'Path to acceptance visual snapshot artifacts'
     value: ${{ steps.config.outputs.acceptance-dir }}
@@ -84,7 +67,7 @@ runs:
         fi
 
         echo "PIP_DISABLE_PIP_VERSION_CHECK=on" >> $GITHUB_ENV
-        echo "SENTRY_LIGHT_BUILD=1" >> $GITHUB_ENV
+        echo "PY_COLORS=1" >> "$GITHUB_ENV"
         echo "SENTRY_SKIP_BACKEND_VALIDATION=1" >> $GITHUB_ENV
 
         ### node configuration ###
@@ -117,13 +100,11 @@ runs:
         [ "$GITHUB_REF" = "refs/heads/master" ] && echo "PYTEST_SENTRY_ALWAYS_REPORT=1" >> $GITHUB_ENV || true
 
     - name: Setup python
-      id: setup-python
-      uses: ./.github/actions/setup-python
+      uses: actions/setup-python@v4
       with:
         python-version: ${{ inputs.python-version }}
-        cache-files-hash: ${{ inputs.cache-files-hash }}
-        pip-cache-version: ${{ inputs.pip-cache-version }}
-        workdir: ${{ inputs.workdir }}
+        cache: pip
+        cache-dependency-path: requirements-dev-frozen.txt
 
     - name: Install system dependencies
       shell: bash
@@ -153,7 +134,10 @@ runs:
       run: |
         cd "$WORKDIR"
         python setup.py install_egg_info
-        pip install -U -e ".[dev]"
+        # We need to install editable otherwise things like check migration will fail.
+        pip install -r requirements-dev-frozen.txt & \
+        SENTRY_LIGHT_BUILD=1 pip install --no-deps -e . & \
+        wait
         cd -
 
     - name: Start devservices

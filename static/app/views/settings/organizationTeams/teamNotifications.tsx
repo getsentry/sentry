@@ -150,7 +150,7 @@ class TeamNotificationSettings extends AsyncView<Props, State> {
               message={t('Are you sure you want to remove this Slack team link?')}
             >
               <Button
-                size="small"
+                size="sm"
                 icon={<IconDelete size="md" />}
                 aria-label={t('delete')}
                 disabled={!hasAccess}

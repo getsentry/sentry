@@ -1,4 +1,5 @@
 import {Fragment, useMemo, useRef, useState} from 'react';
+// eslint-disable-next-line no-restricted-imports
 import {withRouter, WithRouterProps} from 'react-router';
 import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -374,7 +375,7 @@ function ProjectSelector({
             <InputActions>
               {showPin && (
                 <GuideAnchor target="new_page_filter_pin" position="bottom">
-                  <PageFilterPinButton size="xsmall" filter="projects" />
+                  <PageFilterPinButton size="xs" filter="projects" />
                 </GuideAnchor>
               )}
             </InputActions>

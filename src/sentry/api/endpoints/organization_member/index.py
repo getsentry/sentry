@@ -20,7 +20,7 @@ from sentry.signals import member_invited
 from sentry.utils import metrics
 from sentry.utils.retries import TimedRetryPolicy
 
-from . import get_allowed_roles, save_team_assignments
+from . import get_allowed_org_roles, save_team_assignments
 
 ERR_RATE_LIMITED = "You are being rate limited for too many invitations."
 
@@ -193,7 +193,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
                 {"organization": "Your organization is not allowed to invite members"}, status=403
             )
 
-        allowed_roles = get_allowed_roles(request, organization)
+        allowed_roles = get_allowed_org_roles(request, organization)
 
         serializer = OrganizationMemberSerializer(
             data=request.data,

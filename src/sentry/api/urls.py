@@ -9,6 +9,7 @@ from sentry.api.endpoints.organization_profiling_profiles import (
     OrganizationProfilingProfilesEndpoint,
     OrganizationProfilingTransactionsEndpoint,
 )
+from sentry.api.endpoints.organization_sentry_function import OrganizationSentryFunctionEndpoint
 from sentry.api.endpoints.project_grouping_configs import ProjectGroupingConfigsEndpoint
 from sentry.api.endpoints.project_transaction_threshold_override import (
     ProjectTransactionThresholdOverrideEndpoint,
@@ -284,12 +285,12 @@ from .endpoints.organization_member import (
     OrganizationMemberDetailsEndpoint,
     OrganizationMemberIndexEndpoint,
 )
+from .endpoints.organization_member.team_details import OrganizationMemberTeamDetailsEndpoint
 from .endpoints.organization_member_issues_assigned import OrganizationMemberIssuesAssignedEndpoint
 from .endpoints.organization_member_issues_bookmarked import (
     OrganizationMemberIssuesBookmarkedEndpoint,
 )
 from .endpoints.organization_member_issues_viewed import OrganizationMemberIssuesViewedEndpoint
-from .endpoints.organization_member_team_details import OrganizationMemberTeamDetailsEndpoint
 from .endpoints.organization_member_unreleased_commits import (
     OrganizationMemberUnreleasedCommitsEndpoint,
 )
@@ -837,6 +838,8 @@ urlpatterns = [
             ]
         ),
     ),
+    # Organizations - region aware
+    url(r"", include("sentry.api.region_organization_urls")),
     # Organizations
     url(
         r"^organizations/",
@@ -1553,6 +1556,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/replays/$",
                     OrganizationReplayIndexEndpoint.as_view(),
                     name="sentry-api-0-organization-replay-index",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/functions/$",
+                    OrganizationSentryFunctionEndpoint.as_view(),
+                    name="sentry-api-0-organization-sentry-functions",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/request-project-creation/$",

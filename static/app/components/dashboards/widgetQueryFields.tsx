@@ -304,12 +304,12 @@ function WidgetQueryFields({
       })}
       {!hideAddYAxisButton && (
         <Actions>
-          <Button size="small" icon={<IconAdd isCircled />} onClick={handleAdd}>
+          <Button size="sm" icon={<IconAdd isCircled />} onClick={handleAdd}>
             {t('Add Overlay')}
           </Button>
           {!isReleaseWidget && (
             <Button
-              size="small"
+              size="sm"
               aria-label={t('Add an Equation')}
               onClick={handleAddEquation}
               icon={<IconAdd isCircled />}

@@ -25,8 +25,13 @@ from sentry.incidents.logic import (
 )
 from sentry.incidents.models import AlertRule, AlertRuleThresholdType, AlertRuleTrigger
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.entity_subscription import get_entity_subscription_for_dataset
+from sentry.snuba.entity_subscription import (
+    ENTITY_TIME_COLUMNS,
+    get_entity_key_from_query_builder,
+    get_entity_subscription,
+)
 from sentry.snuba.models import QueryDatasets, QuerySubscription, SnubaQueryEventType
+from sentry.snuba.subscriptions import query_datasets_to_type
 from sentry.snuba.tasks import build_query_builder
 
 from . import CRASH_RATE_ALERTS_ALLOWED_TIME_WINDOWS, DATASET_VALID_EVENT_TYPES, UNSUPPORTED_QUERIES
@@ -210,6 +215,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
     def _validate_query(self, data):
         data.setdefault("dataset", QueryDatasets.EVENTS)
         dataset = QueryDatasets(data["dataset"])
+        query_type = query_datasets_to_type[dataset]
         projects = data.get("projects")
         if not projects:
             # We just need a valid project id from the org so that we can verify
@@ -217,8 +223,12 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
             # matter which.
             projects = list(self.context["organization"].project_set.all()[:1])
 
+        # TODO: Need to change this to fetch an entity subscription for an alert_type + dataset.
+        # Loop through all options for a alert rule, and throw an error only if we run out of
+        # options to try.
         try:
-            entity_subscription = get_entity_subscription_for_dataset(
+            entity_subscription = get_entity_subscription(
+                query_type,
                 dataset=dataset,
                 aggregate=data["aggregate"],
                 time_window=int(timedelta(minutes=data["time_window"]).total_seconds()),
@@ -259,7 +269,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
         dataset = Dataset(data["dataset"].value)
         self._validate_time_window(dataset, data.get("time_window"))
 
-        time_col = entity_subscription.time_col
+        time_col = ENTITY_TIME_COLUMNS[get_entity_key_from_query_builder(query_builder)]
         query_builder.add_conditions(
             [
                 Condition(Column(time_col), Op.GTE, start),

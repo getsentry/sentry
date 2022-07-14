@@ -9,7 +9,6 @@ from sentry import options
 from sentry.models import Project, ProjectKey
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.tasks.release_registry import LAYER_INDEX_CACHE_KEY
-from sentry.utils.compat import map
 
 SUPPORTED_RUNTIMES = [
     "nodejs18.x",
@@ -145,7 +144,7 @@ def _get_arn_from_layer(layer):
 
 def get_function_layer_arns(function):
     layers = function.get("Layers", [])
-    return map(_get_arn_from_layer, layers)
+    return [_get_arn_from_layer(layer) for layer in layers]
 
 
 def get_latest_layer_for_function(function):

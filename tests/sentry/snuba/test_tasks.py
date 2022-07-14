@@ -9,16 +9,18 @@ from django.utils import timezone
 from exam import patcher
 from snuba_sdk import And, Column, Condition, Entity, Function, Op, Or, Query
 
+from sentry.search.events.constants import METRICS_MAP
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.utils import resolve, resolve_many_weak, resolve_tag_key, resolve_weak
 from sentry.snuba.entity_subscription import (
     apply_dataset_query_conditions,
-    get_entity_subscription_for_dataset,
-    map_aggregate_to_entity_key,
+    get_entity_key_from_query_builder,
+    get_entity_subscription,
 )
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.models import QueryDatasets, QuerySubscription, SnubaQuery, SnubaQueryEventType
+from sentry.snuba.subscriptions import query_datasets_to_type
 from sentry.snuba.tasks import (
     SUBSCRIPTION_STATUS_MAX_AGE,
     build_query_builder,
@@ -66,7 +68,6 @@ class BaseSnubaTaskTest(metaclass=abc.ABCMeta):
             status = self.expected_status
         if dataset is None:
             dataset = QueryDatasets.EVENTS
-        dataset = dataset.value
         if aggregate is None:
             aggregate = "count_unique(tags[sentry:user])"
         if query is None:
@@ -76,7 +77,8 @@ class BaseSnubaTaskTest(metaclass=abc.ABCMeta):
         resolution = 60
 
         snuba_query = SnubaQuery.objects.create(
-            dataset=dataset,
+            type=query_datasets_to_type[dataset].value,
+            dataset=dataset.value,
             aggregate=aggregate,
             query=query,
             time_window=time_window,
@@ -236,124 +238,186 @@ class DeleteSubscriptionFromSnubaTest(BaseSnubaTaskTest, TestCase):
 
 class BuildSnqlQueryTest(TestCase):
     aggregate_mappings = {
-        QueryDatasets.EVENTS: {
-            "count_unique(user)": lambda org_id: [
-                Function(
-                    function="uniq",
-                    parameters=[Column(name="tags[sentry:user]")],
-                    alias="count_unique_user",
-                )
-            ]
+        SnubaQuery.Type.ERROR: {
+            QueryDatasets.EVENTS: {
+                "count_unique(user)": lambda org_id: [
+                    Function(
+                        function="uniq",
+                        parameters=[Column(name="tags[sentry:user]")],
+                        alias="count_unique_user",
+                    )
+                ]
+            },
         },
-        QueryDatasets.TRANSACTIONS: {
-            "count_unique(user)": lambda org_id: [
-                Function(
-                    function="uniq",
-                    parameters=[Column(name="user")],
-                    alias="count_unique_user",
-                )
-            ],
-            "percentile(transaction.duration,.95)": lambda org_id: [
-                Function(
-                    "quantile(0.95)",
-                    parameters=[Column(name="duration")],
-                    alias="percentile_transaction_duration__95",
-                )
-            ],
-            "p95()": lambda org_id: [
-                Function("quantile(0.95)", parameters=[Column(name="duration")], alias="p95")
-            ],
+        SnubaQuery.Type.PERFORMANCE: {
+            QueryDatasets.TRANSACTIONS: {
+                "count_unique(user)": lambda org_id, **kwargs: [
+                    Function(
+                        function="uniq",
+                        parameters=[Column(name="user")],
+                        alias="count_unique_user",
+                    )
+                ],
+                "percentile(transaction.duration,.95)": lambda org_id, **kwargs: [
+                    Function(
+                        "quantile(0.95)",
+                        parameters=[Column(name="duration")],
+                        alias="percentile_transaction_duration__95",
+                    )
+                ],
+                "p95()": lambda org_id, **kwargs: [
+                    Function("quantile(0.95)", parameters=[Column(name="duration")], alias="p95")
+                ],
+            },
+            QueryDatasets.METRICS: {
+                "count_unique(user)": lambda org_id, metric_id, **kwargs: [
+                    Function(
+                        function="uniqIf",
+                        parameters=[
+                            Column(name="value"),
+                            Function(
+                                function="equals",
+                                parameters=[Column(name="metric_id"), metric_id],
+                            ),
+                        ],
+                        alias="count_unique_user",
+                    )
+                ],
+                "percentile(transaction.duration,.95)": lambda org_id, metric_id, **kwargs: [
+                    Function(
+                        "arrayElement",
+                        parameters=[
+                            Function(
+                                "quantilesIf(0.95)",
+                                parameters=[
+                                    Column("value"),
+                                    Function(
+                                        "equals",
+                                        parameters=[Column("metric_id"), metric_id],
+                                    ),
+                                ],
+                            ),
+                            1,
+                        ],
+                        alias="percentile_transaction_duration__95",
+                    )
+                ],
+                "p95()": lambda org_id, metric_id, **kwargs: [
+                    Function(
+                        "arrayElement",
+                        parameters=[
+                            Function(
+                                "quantilesIf(0.95)",
+                                parameters=[
+                                    Column(name="value"),
+                                    Function(
+                                        "equals", parameters=[Column(name="metric_id"), metric_id]
+                                    ),
+                                ],
+                            ),
+                            1,
+                        ],
+                        alias="p95",
+                    )
+                ],
+            },
         },
-        QueryDatasets.SESSIONS: {
-            "percentage(sessions_crashed, sessions) as _crash_rate_alert_aggregate": lambda org_id: [
-                Function(
-                    function="if",
-                    parameters=[
-                        Function(function="greater", parameters=[Column(name="sessions"), 0]),
-                        Function(
-                            function="divide",
-                            parameters=[Column(name="sessions_crashed"), Column(name="sessions")],
-                        ),
-                        None,
-                    ],
-                    alias="_crash_rate_alert_aggregate",
-                )
-            ],
-            "percentage(users_crashed, users) as _crash_rate_alert_aggregate": lambda org_id: [
-                Function(
-                    function="if",
-                    parameters=[
-                        Function(function="greater", parameters=[Column(name="users"), 0]),
-                        Function(
-                            function="divide",
-                            parameters=[Column(name="users_crashed"), Column(name="users")],
-                        ),
-                        None,
-                    ],
-                    alias="_crash_rate_alert_aggregate",
-                )
-            ],
+        SnubaQuery.Type.CRASH_RATE: {
+            QueryDatasets.SESSIONS: {
+                "percentage(sessions_crashed, sessions) as _crash_rate_alert_aggregate": lambda org_id, **kwargs: [
+                    Function(
+                        function="if",
+                        parameters=[
+                            Function(function="greater", parameters=[Column(name="sessions"), 0]),
+                            Function(
+                                function="divide",
+                                parameters=[
+                                    Column(name="sessions_crashed"),
+                                    Column(name="sessions"),
+                                ],
+                            ),
+                            None,
+                        ],
+                        alias="_crash_rate_alert_aggregate",
+                    )
+                ],
+                "percentage(users_crashed, users) as _crash_rate_alert_aggregate": lambda org_id, **kwargs: [
+                    Function(
+                        function="if",
+                        parameters=[
+                            Function(function="greater", parameters=[Column(name="users"), 0]),
+                            Function(
+                                function="divide",
+                                parameters=[Column(name="users_crashed"), Column(name="users")],
+                            ),
+                            None,
+                        ],
+                        alias="_crash_rate_alert_aggregate",
+                    )
+                ],
+            },
+            QueryDatasets.METRICS: {
+                "percentage(sessions_crashed, sessions) as _crash_rate_alert_aggregate": lambda org_id, **kwargs: [
+                    Function(
+                        function="sumIf",
+                        parameters=[
+                            Column(name="value"),
+                            Function(
+                                function="equals",
+                                parameters=[
+                                    Column(name=resolve_tag_key(org_id, "session.status")),
+                                    resolve(org_id, "init"),
+                                ],
+                            ),
+                        ],
+                        alias="count",
+                    ),
+                    Function(
+                        function="sumIf",
+                        parameters=[
+                            Column(name="value"),
+                            Function(
+                                function="equals",
+                                parameters=[
+                                    Column(name=resolve_tag_key(org_id, "session.status")),
+                                    resolve(org_id, "crashed"),
+                                ],
+                            ),
+                        ],
+                        alias="crashed",
+                    ),
+                ],
+                "percentage(users_crashed, users) AS _crash_rate_alert_aggregate": lambda org_id, **kwargs: [
+                    Function(
+                        function="uniq",
+                        parameters=[
+                            Column(name="value"),
+                        ],
+                        alias="count",
+                    ),
+                    Function(
+                        function="uniqIf",
+                        parameters=[
+                            Column(name="value"),
+                            Function(
+                                function="equals",
+                                parameters=[
+                                    Column(name=resolve_tag_key(org_id, "session.status")),
+                                    resolve(org_id, "crashed"),
+                                ],
+                            ),
+                        ],
+                        alias="crashed",
+                    ),
+                ],
+            },
         },
-        QueryDatasets.METRICS: {
-            "percentage(sessions_crashed, sessions) as _crash_rate_alert_aggregate": lambda org_id: [
-                Function(
-                    function="sumIf",
-                    parameters=[
-                        Column(name="value"),
-                        Function(
-                            function="equals",
-                            parameters=[
-                                Column(name=resolve_tag_key(org_id, "session.status")),
-                                resolve(org_id, "init"),
-                            ],
-                        ),
-                    ],
-                    alias="count",
-                ),
-                Function(
-                    function="sumIf",
-                    parameters=[
-                        Column(name="value"),
-                        Function(
-                            function="equals",
-                            parameters=[
-                                Column(name=resolve_tag_key(org_id, "session.status")),
-                                resolve(org_id, "crashed"),
-                            ],
-                        ),
-                    ],
-                    alias="crashed",
-                ),
-            ],
-            "percentage(users_crashed, users) AS _crash_rate_alert_aggregate": lambda org_id: [
-                Function(
-                    function="uniq",
-                    parameters=[
-                        Column(name="value"),
-                    ],
-                    alias="count",
-                ),
-                Function(
-                    function="uniqIf",
-                    parameters=[
-                        Column(name="value"),
-                        Function(
-                            function="equals",
-                            parameters=[
-                                Column(name=resolve_tag_key(org_id, "session.status")),
-                                resolve(org_id, "crashed"),
-                            ],
-                        ),
-                    ],
-                    alias="crashed",
-                ),
-            ],
-        },
-        "count()": lambda org_id: [Function("count", parameters=[], alias="count")],
+        "count()": lambda org_id, **kwargs: [Function("count", parameters=[], alias="count")],
     }
 
     def run_test(
         self,
+        query_type,
         dataset,
         aggregate,
         query,
@@ -361,15 +425,18 @@ class BuildSnqlQueryTest(TestCase):
         entity_extra_fields=None,
         environment=None,
         granularity=None,
+        aggregate_kwargs=None,
     ):
+        aggregate_kwargs = aggregate_kwargs if aggregate_kwargs else {}
         time_window = 3600
-        entity_subscription = get_entity_subscription_for_dataset(
+        entity_subscription = get_entity_subscription(
+            query_type=query_type,
             dataset=dataset,
             aggregate=aggregate,
             time_window=time_window,
             extra_fields=entity_extra_fields,
         )
-        snql_query = build_query_builder(
+        query_builder = build_query_builder(
             entity_subscription,
             query,
             (self.project.id,),
@@ -378,8 +445,9 @@ class BuildSnqlQueryTest(TestCase):
                 "organization_id": self.organization.id,
                 "project_id": [self.project.id],
             },
-        ).get_snql_query()
-        select = self.string_aggregate_to_snql(dataset, aggregate)
+        )
+        snql_query = query_builder.get_snql_query()
+        select = self.string_aggregate_to_snql(query_type, dataset, aggregate, aggregate_kwargs)
         if dataset == QueryDatasets.SESSIONS:
             col_name = "sessions" if "sessions" in aggregate else "users"
             select.insert(
@@ -391,7 +459,7 @@ class BuildSnqlQueryTest(TestCase):
         # Select order seems to be unstable, so just arbitrarily sort by name, alias so that it's consistent
         snql_query.query.select.sort(key=lambda q: (q.function, q.alias))
         expected_query = Query(
-            match=Entity(map_aggregate_to_entity_key(dataset, aggregate).value),
+            match=Entity(get_entity_key_from_query_builder(query_builder).value),
             select=select,
             where=expected_conditions,
             groupby=[],
@@ -402,16 +470,18 @@ class BuildSnqlQueryTest(TestCase):
             expected_query = expected_query.set_granularity(granularity)
         assert snql_query.query == expected_query
 
-    def string_aggregate_to_snql(self, dataset, aggregate):
-        aggregate_builder_func = self.aggregate_mappings[dataset].get(
-            aggregate, self.aggregate_mappings.get(aggregate, lambda org_id: [])
+    def string_aggregate_to_snql(self, query_type, dataset, aggregate, aggregate_kwargs):
+        aggregate_builder_func = self.aggregate_mappings[query_type][dataset].get(
+            aggregate, self.aggregate_mappings.get(aggregate, lambda org_id, **kwargs: [])
         )
         return sorted(
-            aggregate_builder_func(self.organization.id), key=lambda val: (val.function, val.alias)
+            aggregate_builder_func(self.organization.id, **aggregate_kwargs),
+            key=lambda val: (val.function, val.alias),
         )
 
     def test_simple_events(self):
         self.run_test(
+            SnubaQuery.Type.ERROR,
             QueryDatasets.EVENTS,
             "count_unique(user)",
             "",
@@ -421,14 +491,32 @@ class BuildSnqlQueryTest(TestCase):
             ],
         )
 
-    def test_simple_transactions(self):
+    def test_simple_performance_transactions(self):
         self.run_test(
+            SnubaQuery.Type.PERFORMANCE,
             QueryDatasets.TRANSACTIONS,
             "count_unique(user)",
             "",
             [
                 Condition(Column(name="project_id"), Op.IN, (self.project.id,)),
             ],
+        )
+
+    def test_simple_performance_metrics(self):
+        metric_id = resolve(self.organization.id, METRICS_MAP["user"])
+        self.run_test(
+            SnubaQuery.Type.PERFORMANCE,
+            QueryDatasets.METRICS,
+            "count_unique(user)",
+            "",
+            [
+                Condition(Column("project_id"), Op.IN, (self.project.id,)),
+                Condition(Column("org_id"), Op.EQ, self.organization.id),
+                Condition(Column("metric_id"), Op.IN, [metric_id]),
+            ],
+            entity_extra_fields={"org_id": self.organization.id},
+            aggregate_kwargs={"metric_id": metric_id},
+            granularity=10,
         )
 
     def test_aliased_query_events(self):
@@ -450,20 +538,53 @@ class BuildSnqlQueryTest(TestCase):
             Condition(Column(name="project_id"), Op.IN, (self.project.id,)),
         ]
         self.run_test(
-            QueryDatasets.EVENTS, "count_unique(user)", "release:latest", expected_conditions
+            SnubaQuery.Type.ERROR,
+            QueryDatasets.EVENTS,
+            "count_unique(user)",
+            "release:latest",
+            expected_conditions,
         )
 
-    def test_aliased_query_transactions(self):
+    def test_aliased_query_performance_transactions(self):
         self.create_release(self.project, version="something")
         expected_conditions = [
             Condition(Column("release"), Op.IN, ["something"]),
             Condition(Column("project_id"), Op.IN, (self.project.id,)),
         ]
         self.run_test(
+            SnubaQuery.Type.PERFORMANCE,
             QueryDatasets.TRANSACTIONS,
             "percentile(transaction.duration,.95)",
             "release:latest",
             expected_conditions,
+        )
+
+    def test_aliased_query_performance_metrics(self):
+        version = "something"
+        self.create_release(self.project, version=version)
+        metric_id = resolve(self.organization.id, METRICS_MAP["transaction.duration"])
+        _indexer_record(self.organization.id, "release")
+        _indexer_record(self.organization.id, version)
+        expected_conditions = [
+            Condition(
+                Column(resolve_tag_key(self.organization.id, "release")),
+                Op.EQ,
+                resolve(self.organization.id, version),
+            ),
+            Condition(Column("project_id"), Op.IN, (self.project.id,)),
+            Condition(Column("org_id"), Op.EQ, self.organization.id),
+            Condition(Column("metric_id"), Op.IN, [metric_id]),
+        ]
+
+        self.run_test(
+            SnubaQuery.Type.PERFORMANCE,
+            QueryDatasets.METRICS,
+            "percentile(transaction.duration,.95)",
+            f"release:{version}",
+            expected_conditions,
+            entity_extra_fields={"org_id": self.organization.id},
+            aggregate_kwargs={"metric_id": metric_id},
+            granularity=10,
         )
 
     def test_user_query(self):
@@ -484,19 +605,55 @@ class BuildSnqlQueryTest(TestCase):
             Condition(Column(name="project_id"), Op.IN, (self.project.id,)),
         ]
         self.run_test(
-            QueryDatasets.EVENTS, "count()", "user:anengineer@work.io", expected_conditions
+            SnubaQuery.Type.ERROR,
+            QueryDatasets.EVENTS,
+            "count()",
+            "user:anengineer@work.io",
+            expected_conditions,
         )
 
-    def test_user_query_transactions(self):
+    def test_user_query_performance_transactions(self):
         expected_conditions = [
             Condition(Column("user"), Op.EQ, "anengineer@work.io"),
             Condition(Column("project_id"), Op.IN, (self.project.id,)),
         ]
         self.run_test(
+            SnubaQuery.Type.PERFORMANCE,
             QueryDatasets.TRANSACTIONS,
             "p95()",
             "user:anengineer@work.io",
             expected_conditions,
+        )
+
+    def test_tag_query_performance_metrics(self):
+        # Note: We don't support user queries on the performance metrics dataset, so using a
+        # different tag here.
+        metric_id = resolve(self.organization.id, METRICS_MAP["transaction.duration"])
+        tag_key = "some_tag"
+        tag_value = "some_value"
+        _indexer_record(self.organization.id, tag_key)
+        _indexer_record(self.organization.id, tag_value)
+
+        expected_conditions = [
+            Condition(
+                Column(resolve_tag_key(self.organization.id, tag_key)),
+                Op.EQ,
+                resolve(self.organization.id, tag_value),
+            ),
+            Condition(Column("project_id"), Op.IN, (self.project.id,)),
+            Condition(Column("org_id"), Op.EQ, self.organization.id),
+            Condition(Column("metric_id"), Op.IN, [metric_id]),
+        ]
+
+        self.run_test(
+            SnubaQuery.Type.PERFORMANCE,
+            QueryDatasets.METRICS,
+            "p95()",
+            f"{tag_key}:{tag_value}",
+            expected_conditions,
+            entity_extra_fields={"org_id": self.organization.id},
+            aggregate_kwargs={"metric_id": metric_id},
+            granularity=10,
         )
 
     def test_boolean_query(self):
@@ -528,6 +685,7 @@ class BuildSnqlQueryTest(TestCase):
             Condition(Column(name="project_id"), Op.IN, (self.project.id,)),
         ]
         self.run_test(
+            SnubaQuery.Type.ERROR,
             QueryDatasets.EVENTS,
             "count_unique(user)",
             "release:latest OR release:123",
@@ -568,6 +726,7 @@ class BuildSnqlQueryTest(TestCase):
             Condition(Column(name="project_id"), Op.IN, (self.project.id,)),
         ]
         self.run_test(
+            SnubaQuery.Type.ERROR,
             QueryDatasets.EVENTS,
             "count_unique(user)",
             "release:latest OR release:123",
@@ -595,6 +754,7 @@ class BuildSnqlQueryTest(TestCase):
             Condition(Column(name="project_id"), Op.IN, (self.project.id,)),
         ]
         self.run_test(
+            SnubaQuery.Type.ERROR,
             QueryDatasets.EVENTS,
             "count_unique(user)",
             f"issue.id:[{self.group.id}, 2]",
@@ -608,6 +768,7 @@ class BuildSnqlQueryTest(TestCase):
         ]
 
         self.run_test(
+            SnubaQuery.Type.CRASH_RATE,
             QueryDatasets.SESSIONS,
             "percentage(sessions_crashed, sessions) as _crash_rate_alert_aggregate",
             "",
@@ -621,6 +782,7 @@ class BuildSnqlQueryTest(TestCase):
             Condition(Column(name="org_id"), Op.EQ, self.organization.id),
         ]
         self.run_test(
+            SnubaQuery.Type.CRASH_RATE,
             QueryDatasets.SESSIONS,
             "percentage(users_crashed, users) as _crash_rate_alert_aggregate",
             "",
@@ -637,6 +799,7 @@ class BuildSnqlQueryTest(TestCase):
             Condition(Column(name="org_id"), Op.EQ, self.organization.id),
         ]
         self.run_test(
+            SnubaQuery.Type.CRASH_RATE,
             QueryDatasets.SESSIONS,
             "percentage(sessions_crashed, sessions) as _crash_rate_alert_aggregate",
             "release:ahmed@12.2",
@@ -654,6 +817,7 @@ class BuildSnqlQueryTest(TestCase):
             Condition(Column(name="org_id"), Op.EQ, self.organization.id),
         ]
         self.run_test(
+            SnubaQuery.Type.CRASH_RATE,
             QueryDatasets.SESSIONS,
             "percentage(users_crashed, users) as _crash_rate_alert_aggregate",
             "release:ahmed@12.2",
@@ -681,6 +845,7 @@ class BuildSnqlQueryTest(TestCase):
             ),
         ]
         self.run_test(
+            SnubaQuery.Type.CRASH_RATE,
             QueryDatasets.METRICS,
             "percentage(sessions_crashed, sessions) as _crash_rate_alert_aggregate",
             "",
@@ -704,6 +869,7 @@ class BuildSnqlQueryTest(TestCase):
             ),
         ]
         self.run_test(
+            SnubaQuery.Type.CRASH_RATE,
             QueryDatasets.METRICS,
             "percentage(users_crashed, users) AS _crash_rate_alert_aggregate",
             "",
@@ -752,6 +918,7 @@ class BuildSnqlQueryTest(TestCase):
             ),
         ]
         self.run_test(
+            SnubaQuery.Type.CRASH_RATE,
             QueryDatasets.METRICS,
             "percentage(sessions_crashed, sessions) as _crash_rate_alert_aggregate",
             "release:ahmed@12.2",
@@ -796,6 +963,7 @@ class BuildSnqlQueryTest(TestCase):
             ),
         ]
         self.run_test(
+            SnubaQuery.Type.CRASH_RATE,
             QueryDatasets.METRICS,
             "percentage(users_crashed, users) AS _crash_rate_alert_aggregate",
             "release:ahmed@12.2",
@@ -922,6 +1090,7 @@ class SubscriptionCheckerTest(TestCase):
         resolution = 60
 
         snuba_query = SnubaQuery.objects.create(
+            type=SnubaQuery.Type.ERROR.value,
             dataset=dataset,
             aggregate=aggregate,
             query=query,
