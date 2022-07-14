@@ -66,7 +66,10 @@ type Props = {
   /**
    * Function to filter the options that are used as parameters for function/aggregate.
    */
-  filterAggregateParameters?: (option: FieldValueOption) => boolean;
+  filterAggregateParameters?: (
+    option: FieldValueOption,
+    fieldValue?: QueryFieldValue
+  ) => boolean;
   /**
    * Filter the options in the primary selector. Useful if you only want to
    * show a subset of selectable items.
@@ -420,6 +423,7 @@ class QueryField extends Component<Props> {
       filterAggregateParameters,
       hideParameterSelector,
       skipParameterPlaceholder,
+      fieldValue,
     } = this.props;
 
     const inputs = parameters.map((descriptor: ParameterDescription, index: number) => {
@@ -428,7 +432,9 @@ class QueryField extends Component<Props> {
           return null;
         }
         const aggregateParameters = filterAggregateParameters
-          ? descriptor.options.filter(filterAggregateParameters)
+          ? descriptor.options.filter(option =>
+              filterAggregateParameters(option, fieldValue)
+            )
           : descriptor.options;
 
         aggregateParameters.forEach(opt => {

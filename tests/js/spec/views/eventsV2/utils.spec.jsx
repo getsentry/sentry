@@ -792,7 +792,9 @@ describe('generateFieldOptions', function () {
     expect(
       generateFieldOptions({
         organization: initializeOrg().organization,
-        customMeasurementKeys: ['measurements.custom.measurement'],
+        customMeasurements: [
+          {functions: ['p99'], key: 'measurements.custom.measurement'},
+        ],
       })['measurement:measurements.custom.measurement']
     ).toEqual({
       label: 'measurements.custom.measurement',
@@ -800,6 +802,7 @@ describe('generateFieldOptions', function () {
         kind: 'custom_measurement',
         meta: {
           dataType: 'number',
+          functions: ['p99'],
           name: 'measurements.custom.measurement',
         },
       },

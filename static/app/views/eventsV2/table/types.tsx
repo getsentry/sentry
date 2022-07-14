@@ -61,6 +61,7 @@ export type FieldValueColumns =
       kind: FieldValueKind.CUSTOM_MEASUREMENT;
       meta: {
         dataType: ColumnType;
+        functions: string[];
         name: string;
       };
     }
