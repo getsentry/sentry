@@ -1,6 +1,6 @@
 import logging
 import time
-from typing import Mapping
+from typing import Callable, Mapping
 
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.exceptions import AuthenticationFailed, NotAuthenticated
@@ -16,7 +16,7 @@ from sentry.utils.audit import create_audit_entry
 from sentry.utils.signing import sign
 from sentry.web.decorators import transaction_start
 
-from .card_builder import build_group_card
+from .card_builder import AdaptiveCard, build_group_card
 from .card_builder.help import (
     build_help_command_card,
     build_mentioned_card,
@@ -28,7 +28,7 @@ from .card_builder.identity import (
     build_linking_card,
     build_unlink_identity_card,
 )
-from .card_builder.installation import build_welcome_card
+from .card_builder.installation import build_personal_installation_message, build_welcome_card
 from .client import CLOCK_SKEW, MsTeamsClient, MsTeamsJwtClient
 from .link_identity import build_linking_url
 from .unlink_identity import build_unlinking_url
@@ -178,7 +178,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
             "installation_type": "tenant",
         }
 
-        return self.handle_member_add(data, params)
+        return self.handle_member_add(data, params, build_personal_installation_message)
 
     def handle_team_member_added(self, request: Request):
         data = request.data
@@ -192,9 +192,14 @@ class MsTeamsWebhookEndpoint(Endpoint):
             "installation_type": "team",
         }
 
-        return self.handle_member_add(data, params)
+        return self.handle_member_add(data, params, build_welcome_card)
 
-    def handle_member_add(self, data: Mapping[str, str], params: Mapping[str, str]) -> Response:
+    def handle_member_add(
+        self,
+        data: Mapping[str, str],
+        params: Mapping[str, str],
+        build_installation_card: Callable[[str], AdaptiveCard],
+    ) -> Response:
         # only care if our bot is the new member added
         matches = list(filter(lambda x: x["id"] == data["recipient"]["id"], data["membersAdded"]))
         if not matches:
@@ -215,7 +220,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
         # send welcome message to the team
         client = get_preinstall_client(data["serviceUrl"])
         conversation_id = data["conversation_id"]
-        card = build_welcome_card(signed_params)
+        card = build_installation_card(signed_params)
         client.send_card(conversation_id, card)
 
         return self.respond(status=201)
