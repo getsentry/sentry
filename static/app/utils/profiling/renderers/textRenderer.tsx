@@ -164,24 +164,19 @@ class TextRenderer {
         if (frameResults) {
           this.context.fillStyle = HIGHLIGHT_BACKGROUND_COLOR;
 
-          for (let i = 0; i < frameResults.matchIndices.length; i++) {
-            const highlightedBounds = computeHighlightedBounds(
-              frameResults.matchIndices[i],
-              trim
-            );
+          const highlightedBounds = computeHighlightedBounds(frameResults.match, trim);
 
-            const frontMatter = trim.text.slice(0, highlightedBounds[0]);
-            const highlightWidth = this.measureAndCacheText(
-              trim.text.substring(highlightedBounds[0], highlightedBounds[1])
-            ).width;
+          const frontMatter = trim.text.slice(0, highlightedBounds[0]);
+          const highlightWidth = this.measureAndCacheText(
+            trim.text.substring(highlightedBounds[0], highlightedBounds[1])
+          ).width;
 
-            this.context.fillRect(
-              x + this.measureAndCacheText(frontMatter).width,
-              frameY + (frameHeight < 0 ? frameHeight : 0) + fontSize / 2,
-              highlightWidth,
-              fontSize
-            );
-          }
+          this.context.fillRect(
+            x + this.measureAndCacheText(frontMatter).width,
+            frameY + (frameHeight < 0 ? frameHeight : 0) + fontSize / 2,
+            highlightWidth,
+            fontSize
+          );
         }
       }
       this.context.fillStyle = this.theme.COLORS.LABEL_FONT_COLOR;

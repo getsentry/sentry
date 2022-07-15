@@ -4,7 +4,7 @@ import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 
 export type FlamegraphSearchResult = {
   frame: FlamegraphFrame;
-  matchIndices: Fuse.RangeTuple[];
+  match: Fuse.RangeTuple;
 };
 
 export type FlamegraphSearch = {
