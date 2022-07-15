@@ -80,6 +80,9 @@ function BasePlayerRoot({className}: Props) {
 // Center the viewEl inside the windowEl.
 // This is useful when the window is inside a container that has large fixed
 // dimensions, like when in fullscreen mode.
+// If the container has a dimensions that can grow/shrink then it could be
+// important to also set `overflow: hidden` on the container, so that the
+// SizingWindow can calculate size as things shrink.
 const SizingWindow = styled('div')`
   width: 100%;
   height: 100%;
@@ -88,6 +91,7 @@ const SizingWindow = styled('div')`
   justify-content: center;
   align-items: center;
   position: relative;
+  overflow: hidden;
 
   background-color: ${p => p.theme.backgroundSecondary};
   background-image: repeating-linear-gradient(

@@ -47,6 +47,15 @@ const PanelHeader = styled(_PanelHeader)<{noBorder?: boolean}>`
   display: block;
   padding: 0;
   ${p => (p.noBorder ? 'border-bottom: none;' : '')}
+
+  /*
+  This style ensures that this PanelHeader grows and shrinks based on it's
+  parent, not the content inside.
+
+  The content inside will be set to height: 100% and then there's some code in
+  there to measure the size in pixels. If this was normal overflow then measured
+  size would never shrink.
+  */
   overflow: hidden;
 `;
 
