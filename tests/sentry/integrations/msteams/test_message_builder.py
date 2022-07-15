@@ -118,9 +118,19 @@ class MSTeamsMessageBuilderTest(TestCase):
         assert url.startswith("http")
 
     def test_personal_installation_message(self):
-        personal_installation_card = build_personal_installation_message()
+        signed_params = "signed_params"
+        personal_installation_card = build_personal_installation_message(signed_params)
 
-        assert 2 == len(personal_installation_card["body"])
+        body = personal_installation_card["body"]
+
+        assert 3 == len(body)
+        assert 1 == len(personal_installation_card["actions"])
+
+        assert "Personal Installation of Sentry" in body[0]["columns"][1]["items"][0]["text"]
+
+        url = personal_installation_card["actions"][0]["url"]
+        assert "signed_params" in url
+        assert url.startswith("http")
 
     def test_team_installation_message(self):
         signed_params = "signed_params"
