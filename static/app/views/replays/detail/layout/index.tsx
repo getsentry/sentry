@@ -56,6 +56,12 @@ type Layout =
    */
   | 'topbar';
 
+const MIN_VIDEO_WIDTH = {px: 325};
+const MIN_CONTENT_WIDTH = {px: 325};
+const MIN_VIDEO_HEIGHT = {px: 200};
+const MIN_CONTENT_HEIGHT = {px: 200};
+const MIN_CRUMBS_HEIGHT = {px: 200};
+
 type Props = {
   layout?: Layout;
   showCrumbs?: boolean;
@@ -107,12 +113,12 @@ function ReplayLayout({
           left={{
             content,
             default: '60%',
-            min: {px: 325},
+            min: MIN_CONTENT_WIDTH,
           }}
           right={{
             content: <SidebarContent video={video} crumbs={crumbs} />,
             default: '325px',
-            min: {px: 325},
+            min: MIN_VIDEO_WIDTH,
           }}
         />
       </BodyContent>
@@ -127,12 +133,12 @@ function ReplayLayout({
           left={{
             content: <SidebarContent video={video} crumbs={crumbs} />,
             default: '325px',
-            min: {px: 325},
+            min: MIN_VIDEO_WIDTH,
           }}
           right={{
             content,
             default: '60%',
-            min: {px: 325},
+            min: MIN_CONTENT_WIDTH,
           }}
         />
       </BodyContent>
@@ -146,17 +152,23 @@ function ReplayLayout({
       <SplitPanel
         top={{
           content: (
-            <Topbar>
-              {video}
-              {crumbs}
-            </Topbar>
+            <SplitPanel
+              left={{
+                content: video,
+                min: MIN_VIDEO_WIDTH,
+              }}
+              right={{
+                content: crumbs,
+                default: '30%',
+              }}
+            />
           ),
           default: '325px',
-          min: {px: 225},
+          min: MIN_VIDEO_HEIGHT,
         }}
         bottom={{
           content,
-          min: {px: 200},
+          min: MIN_CONTENT_HEIGHT,
         }}
       />
     </BodyContent>
@@ -179,11 +191,11 @@ function SidebarContent({video, crumbs}) {
           top={{
             content: video,
             default: '55%',
-            min: {px: 200},
+            min: MIN_VIDEO_HEIGHT,
           }}
           bottom={{
             content: crumbs,
-            min: {px: 200},
+            min: MIN_CRUMBS_HEIGHT,
           }}
         />
       </FluidPanel>
@@ -205,15 +217,6 @@ const BodyContent = styled('main')`
   grid-template-rows: auto 1fr;
   overflow: hidden;
   padding: ${space(2)};
-`;
-
-const Topbar = styled('div')`
-  height: 100%;
-  display: flex;
-  flex-grow: 1;
-  flex-wrap: nowrap;
-  flex-direction: row;
-  gap: ${space(3)};
 `;
 
 export const VideoSection = styled('section')`
