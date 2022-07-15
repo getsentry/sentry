@@ -1348,7 +1348,6 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                 {"name": "p100_measurements_lcp", "type": "Float64"},
             ],
         )
-        assert False
 
     def test_run_query_multiple_tables(self):
         self.store_metric(
