@@ -98,23 +98,23 @@ const IntegrationRow = (props: Props) => {
   return (
     <PanelRow noPadding data-test-id={slug}>
       <FlexContainer>
-        {customIcon ?? <PluginIcon size={36} pluginId={slug} />}
-        <Container>
+        {customIcon ?? <IntegrationIcon size={36} pluginId={slug} />}
+        <TitleContainer>
           <IntegrationName to={baseUrl}>{displayName}</IntegrationName>
           <IntegrationDetails>
             {renderStatus()}
             {renderDetails()}
           </IntegrationDetails>
-        </Container>
-        <InternalContainer>
+        </TitleContainer>
+        <TagsContainer>
           {categories?.map(category => (
             <CategoryTag
               key={category}
-              category={startCase(category)}
+              category={category === 'api' ? 'API' : startCase(category)}
               priority={category === publishStatus}
             />
           ))}
-        </InternalContainer>
+        </TagsContainer>
       </FlexContainer>
       {alertText && (
         <AlertContainer>
@@ -159,19 +159,26 @@ const PanelRow = styled(PanelItem)`
   flex-direction: column;
 `;
 
+const IntegrationIcon = styled(PluginIcon)`
+  min-width: ${p => p.size}px;
+`;
+
 const FlexContainer = styled('div')`
   display: flex;
   align-items: center;
   padding: ${space(2)};
 `;
 
-const InternalContainer = styled(FlexContainer)`
-  padding: 0 ${space(2)};
-`;
-
-const Container = styled('div')`
+const TitleContainer = styled('div')`
   flex: 1;
   padding: 0 16px;
+  white-space: nowrap;
+`;
+
+const TagsContainer = styled('div')`
+  flex: 3;
+  text-align: right;
+  padding: 0 ${space(2)};
 `;
 
 const IntegrationName = styled(Link)`
@@ -190,7 +197,6 @@ const StyledLink = styled(Link)`
     content: '|';
     color: ${p => p.theme.gray200};
     margin-right: ${space(0.75)};
-    font-weight: normal;
   }
 `;
 
@@ -228,13 +234,12 @@ const CategoryTag = styled(
     theme?: any;
   }) => <div {...p}>{category}</div>
 )`
-  display: flex;
-  flex-direction: row;
+  display: inline-block;
   padding: 1px 10px;
   background: ${p => (p.priority ? p.theme.purple200 : p.theme.gray100)};
   border-radius: 20px;
   font-size: ${space(1.5)};
-  margin-right: ${space(1)};
+  margin: ${space(0.25)} ${space(0.5)};
   line-height: ${space(3)};
   text-align: center;
   color: ${p => (p.priority ? p.theme.white : p.theme.gray500)};
