@@ -2,6 +2,7 @@ import {browserHistory} from 'react-router';
 import {Location} from 'history';
 import isNumber from 'lodash/isNumber';
 import isString from 'lodash/isString';
+import maxBy from 'lodash/maxBy';
 import set from 'lodash/set';
 import moment from 'moment';
 
@@ -13,8 +14,10 @@ import {Organization} from 'sentry/types';
 import {EntryType, EventTransaction} from 'sentry/types/event';
 import {assert} from 'sentry/types/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {TraceError} from 'sentry/utils/performance/quickTrace/types';
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import {getPerformanceTransaction} from 'sentry/utils/performanceForSentry';
+import {Theme} from 'sentry/utils/theme';
 
 import {MERGE_LABELS_THRESHOLD_PERCENT} from './constants';
 import {
@@ -852,3 +855,37 @@ export function isSpanIdFocused(spanId: string, focusedSpanIds: FocusedSpanIDMap
     Object.values(focusedSpanIds).some(relatedSpans => relatedSpans.has(spanId))
   );
 }
+
+export function getCumulativeAlertLevelFromErrors(
+  errors?: Pick<TraceError, 'level'>[]
+): keyof Theme['alert'] | undefined {
+  const highestErrorLevel = maxBy(
+    errors || [],
+    error => ERROR_LEVEL_WEIGHTS[error.level]
+  )?.level;
+
+  if (!highestErrorLevel) {
+    return undefined;
+  }
+  return ERROR_LEVEL_TO_ALERT_TYPE[highestErrorLevel];
+}
+
+// Maps the six known error levels to one of three Alert component types
+const ERROR_LEVEL_TO_ALERT_TYPE: Record<TraceError['level'], keyof Theme['alert']> = {
+  fatal: 'error',
+  error: 'error',
+  default: 'error',
+  warning: 'warning',
+  sample: 'info',
+  info: 'info',
+};
+
+// Allows sorting errors according to their level of severity
+const ERROR_LEVEL_WEIGHTS: Record<TraceError['level'], number> = {
+  fatal: 5,
+  error: 4,
+  default: 4,
+  warning: 3,
+  sample: 2,
+  info: 1,
+};

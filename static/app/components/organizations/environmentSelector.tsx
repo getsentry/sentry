@@ -1,4 +1,5 @@
 import {Fragment, useEffect, useRef, useState} from 'react';
+// eslint-disable-next-line no-restricted-imports
 import {withRouter, WithRouterProps} from 'react-router';
 import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -80,8 +81,10 @@ function EnvironmentSelector({
 
   // Update selected envs value on change
   useEffect(() => {
-    setSelectedEnvs(value);
-    lastSelectedEnvs.current = selectedEnvs;
+    setSelectedEnvs(previousSelectedEnvs => {
+      lastSelectedEnvs.current = previousSelectedEnvs;
+      return value;
+    });
   }, [value]);
 
   // We keep a separate list of selected environments to use for sorting. This

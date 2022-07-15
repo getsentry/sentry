@@ -93,3 +93,16 @@ class ProjectRuleGroupHistoryIndexEndpointTest(APITestCase):
             self.user,
             RuleGroupHistorySerializer(),
         )
+
+    def test_invalid_dates(self):
+        rule = Rule.objects.create(project=self.project)
+
+        self.login_as(self.user)
+        resp = self.get_response(
+            self.organization.slug,
+            self.project.slug,
+            rule.id,
+            start=iso_format(before_now(days=0)),
+            end=iso_format(before_now(days=6)),
+        )
+        assert resp.status_code == 400
