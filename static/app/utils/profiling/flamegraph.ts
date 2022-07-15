@@ -99,6 +99,7 @@ export class Flamegraph {
     );
 
     this.root.node.addToTotalWeight(weight);
+    this.root.end = this.root.start + weight;
     this.root.frame.addToTotalWeight(weight);
   }
 

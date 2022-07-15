@@ -57,10 +57,7 @@ export class FlamegraphRenderer2d {
     return null;
   }
 
-  draw(
-    configViewToPhysicalSpace: mat3,
-    _searchResults: FlamegraphSearch['results'] = null
-  ) {
+  draw(configViewToPhysicalSpace: mat3, _searchResults: FlamegraphSearch['results']) {
     if (!this.canvas) {
       throw new Error('No canvas to draw on');
     }
