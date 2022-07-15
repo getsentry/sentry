@@ -15,6 +15,8 @@ import {
 
 import {fragment, vertex} from './shaders';
 
+const GL_VERTICES = 6;
+
 class FlamegraphRenderer {
   canvas: HTMLCanvasElement | null;
   flamegraph: Flamegraph;
@@ -398,6 +400,7 @@ class FlamegraphRenderer {
       throw new Error('Uninitialized WebGL context');
     }
 
+    // Clear the viewport
     this.gl.clearColor(0, 0, 0, 0);
     this.gl.clear(this.gl.COLOR_BUFFER_BIT);
 
@@ -422,6 +425,9 @@ class FlamegraphRenderer {
     // Check if we should draw border
     this.gl.uniform1i(this.uniforms.u_draw_border, this.options.draw_border ? 1 : 0);
 
+    // By default, a frame is not marked as searched
+    this.gl.uniform1i(this.uniforms.u_is_search_result, 0);
+
     // Tell webgl to convert clip space to px
     this.gl.viewport(0, 0, this.gl.canvas.width, this.gl.canvas.height);
 
@@ -429,35 +435,26 @@ class FlamegraphRenderer {
     const physicalToConfig = mat3.invert(mat3.create(), configViewToPhysicalSpace);
     const configSpacePixel = physicalSpacePixel.transformRect(physicalToConfig);
 
+    // Set border width
     this.gl.uniform2f(
       this.uniforms.u_border_width,
       configSpacePixel.width,
       configSpacePixel.height
     );
-
-    const VERTICES = 6;
-
     const length = this.frames.length;
-    let frame: FlamegraphFrame | null;
 
     // This is an optimization to avoid setting uniform1i for each draw call when user is not searching
     if (searchResults) {
       for (let i = 0; i < length; i++) {
-        frame = this.frames[i];
-        const vertexOffset = i * VERTICES;
-        const frameId = getFlamegraphFrameSearchId(frame);
         this.gl.uniform1i(
           this.uniforms.u_is_search_result,
-          searchResults[frameId] ? 1 : 0
+          searchResults[getFlamegraphFrameSearchId(this.frames[i])] ? 1 : 0
         );
-        this.gl.drawArrays(this.gl.TRIANGLES, vertexOffset, VERTICES);
+        this.gl.drawArrays(this.gl.TRIANGLES, i * GL_VERTICES, GL_VERTICES);
       }
     } else {
-      this.gl.uniform1i(this.uniforms.u_is_search_result, 0);
       for (let i = 0; i < length; i++) {
-        const vertexOffset = i * VERTICES;
-
-        this.gl.drawArrays(this.gl.TRIANGLES, vertexOffset, VERTICES);
+        this.gl.drawArrays(this.gl.TRIANGLES, i * GL_VERTICES, GL_VERTICES);
       }
     }
   }
