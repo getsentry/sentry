@@ -106,7 +106,6 @@ const SubHeading = styled('div')`
 `;
 
 const MetaDataColumn = styled(Layout.HeaderActions)`
-  width: 325px;
   padding-left: ${space(3)};
   align-self: end;
 `;
@@ -171,16 +170,19 @@ function EventMetaData({
 }
 
 const KeyMetrics = styled('div')`
-  display: flex;
+  display: grid;
   gap: ${space(3)};
+  grid-template-columns: repeat(4, max-content);
   align-items: center;
+  justify-content: end;
   font-size: ${p => p.theme.fontSizeMedium};
 `;
 
 const KeyMetricData = styled('div')`
   color: ${p => p.theme.textColor};
   font-weight: normal;
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(2, max-content);
   align-items: center;
   gap: ${space(1)};
 `;
