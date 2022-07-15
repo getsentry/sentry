@@ -1,5 +1,4 @@
 import autoCompleteFilter from 'sentry/components/dropdownAutoComplete/autoCompleteFilter';
-import {ItemsAfterFilter} from 'sentry/components/dropdownAutoComplete/types';
 import {t, tn} from 'sentry/locale';
 
 import TimeRangeItemLabel from './timeRangeItemLabel';
@@ -102,9 +101,7 @@ const timeRangeAutoCompleteFilter: typeof autoCompleteFilter = function (
   }
 
   // Otherwise, do a normal filter search
-  return items
-    ?.filter(item => item.searchKey?.toLowerCase().includes(filterValue.toLowerCase()))
-    .map((item, index) => ({...item, index})) as ItemsAfterFilter;
+  return autoCompleteFilter(items, filterValue);
 };
 
 export default timeRangeAutoCompleteFilter;
