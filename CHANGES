@@ -1,3 +1,35 @@
+22.7.0
+------
+
+### Various fixes & improvements
+
+- ref(replays): Refactor MouseTracking component into a react hook (#36710) by @ryan953
+- feat(release-activity): backend support for tracking release activity (#36608) by @barkbarkimashark
+- feat(grouping): Add support for automatic grouping updates (#36358) by @mitsuhiko
+- feat(replays): add session replays endpoints, proxy logic (#36631) by @JoshFerge
+- fix(dashboards): Open in Discover missing in Default Dashboard (#36728) by @narsaynorath
+- chore(deps): Upgrade @sentry/* JS SDKs from 7.6.0 to 7.7.0 (#36727) by @AbhiPrasad
+- fix(mep): Remove the granularity hacks (#36724) by @wmak
+- chore(deps): Bump eslint-config-sentry 1.94 -> 1.95 (#36693) by @NisanthanNanthakumar
+- fix(test) Allow the connection name to be defined by migration tests (#36712) by @markstory
+- fix(perf) Disabled performance settings if denied access (#36675) by @DominikB2014
+- fix: Remove potentially unnecessary pip installs (#36649) by @untitaker
+- fix: Fix unbound variable if DEVENV_NO_REPORT=1 (#36650) by @untitaker
+- test(issue-details): Fix issue details create comment test (#36715) by @Zylphrex
+- ref(tags): Refactor the Tags table so the rows are independant of the styled title (#36711) by @ryan953
+- fix(ci): include workdir to cache-dependency-path in setup-sentry (#36718) by @joshuarli
+- bug(replays): Remove the custom replays navTabs, use core nav which supports with dark-mode (#36709) by @ryan953
+- feat(replays): Cleanup unneeded tabs from the Replay Details page (#36706) by @ryan953
+- feat(alert): Create metric alerts on project creation (#36582) by @Neo-Zhixing
+- fix(devserver): Start both string indexers when metrics are enabled (#36682) by @untitaker
+- feat(profiling): Ingest profile call trees (#36268) by @Zylphrex
+- ref: replace legacy compat.map with list comprehensions (api) (#36694) by @asottile-sentry
+- feat(integrations): Endpoint for SentryFunctions creation page (#36557) by @vpandiarajan20
+- tests(mep): Add missing tests for entity subscription helper functions (#36689) by @wedamija
+- feat(mep): Add `PerformanceMetricsEntitySubscription` for use with MEP alerts (#36653) by @wedamija
+
+_Plus 760 more_
+
 22.6.0
 ------
 
