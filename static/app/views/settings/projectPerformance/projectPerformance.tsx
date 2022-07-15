@@ -137,12 +137,12 @@ class ProjectPerformance extends AsyncView<Props, State> {
   renderBody() {
     const {organization, project} = this.props;
     const endpoint = `/projects/${organization.slug}/${project.slug}/transaction-threshold/configure/`;
-    const requiredScope: Scope[] = ['project:write'];
+    const requiredScopes: Scope[] = ['project:write'];
 
     return (
       <Fragment>
         <SettingsPageHeader title={t('Performance')} />
-        <PermissionAlert access={requiredScope} />
+        <PermissionAlert access={requiredScopes} />
         <Form
           saveOnBlur
           allowUndo
