@@ -23,6 +23,7 @@ interface Props {
   queries: WidgetQuery[];
   selection: PageFilters;
   widgetType: WidgetType;
+  dashboardFilters?: Record<DashboardFilter, string[]>;
   projectIds?: number[] | readonly number[];
   queryErrors?: Record<string, any>[];
 }

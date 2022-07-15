@@ -13,7 +13,7 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters, SelectValue} from 'sentry/types';
 import usePrevious from 'sentry/utils/usePrevious';
-import {DisplayType, Widget} from 'sentry/views/dashboardsV2/types';
+import {DashboardFilter, DisplayType, Widget} from 'sentry/views/dashboardsV2/types';
 
 import WidgetCard, {WidgetCardPanel} from '../../widgetCard';
 import {displayTypes} from '../utils';
@@ -26,6 +26,7 @@ interface Props {
   organization: Organization;
   pageFilters: PageFilters;
   widget: Widget;
+  dashboardFilters?: Record<DashboardFilter, string[]>;
   error?: string;
   noDashboardsMEPProvider?: boolean;
 }
@@ -38,6 +39,7 @@ export function VisualizationStep({
   onChange,
   widget,
   noDashboardsMEPProvider,
+  dashboardFilters,
 }: Props) {
   const [debouncedWidget, setDebouncedWidget] = useState(widget);
 
@@ -102,6 +104,7 @@ export function VisualizationStep({
           organization={organization}
           selection={pageFilters}
           widget={debouncedWidget}
+          dashboardFilters={dashboardFilters}
           isEditing={false}
           widgetLimitReached={false}
           renderErrorMessage={errorMessage =>
