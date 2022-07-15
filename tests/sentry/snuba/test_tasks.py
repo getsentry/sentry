@@ -516,7 +516,7 @@ class BuildSnqlQueryTest(TestCase):
             ],
             entity_extra_fields={"org_id": self.organization.id},
             aggregate_kwargs={"metric_id": metric_id},
-            granularity=10,
+            granularity=60,
         )
 
     def test_aliased_query_events(self):
@@ -584,7 +584,7 @@ class BuildSnqlQueryTest(TestCase):
             expected_conditions,
             entity_extra_fields={"org_id": self.organization.id},
             aggregate_kwargs={"metric_id": metric_id},
-            granularity=10,
+            granularity=60,
         )
 
     def test_user_query(self):
@@ -653,7 +653,7 @@ class BuildSnqlQueryTest(TestCase):
             expected_conditions,
             entity_extra_fields={"org_id": self.organization.id},
             aggregate_kwargs={"metric_id": metric_id},
-            granularity=10,
+            granularity=60,
         )
 
     def test_boolean_query(self):
