@@ -1,5 +1,3 @@
-import selectEvent from 'react-select-event';
-
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {ReleasesContext} from 'sentry/utils/releases/releasesProvider';
@@ -32,14 +30,13 @@ function renderReleasesSelect() {
 }
 
 describe('Dashboards > ReleasesSelectControl', function () {
-  it('updates menu title with selection', async function () {
+  it('updates menu title with selection', function () {
     renderReleasesSelect();
 
     expect(screen.getByText('All Releases')).toBeInTheDocument();
-    await selectEvent.select(
-      screen.getByText('All Releases'),
-      'sentry-android-shop@1.2.0'
-    );
+
+    userEvent.click(screen.getByText('All Releases'));
+    userEvent.click(screen.getByText('sentry-android-shop@1.2.0'));
 
     userEvent.click(document.body);
 

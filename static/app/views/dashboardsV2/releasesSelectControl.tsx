@@ -26,8 +26,8 @@ function ReleasesSelectControl({
   const {releases, loading} = useReleases();
   const [activeReleases, setActiveReleases] = useState<string[]>(selectedReleases);
 
-  const triggerLabel = selectedReleases.length ? (
-    <TextOverflow>{selectedReleases[0]} </TextOverflow>
+  const triggerLabel = activeReleases.length ? (
+    <TextOverflow>{activeReleases[0]} </TextOverflow>
   ) : (
     t('All Releases')
   );
@@ -59,8 +59,8 @@ function ReleasesSelectControl({
       triggerLabel={
         <ButtonLabelWrapper>
           {triggerLabel}{' '}
-          {selectedReleases.length > 1 && (
-            <StyledBadge text={`+${selectedReleases.length - 1}`} />
+          {activeReleases.length > 1 && (
+            <StyledBadge text={`+${activeReleases.length - 1}`} />
           )}
         </ButtonLabelWrapper>
       }
