@@ -26,7 +26,7 @@ function renderReleasesSelect() {
         loading: false,
       }}
     >
-      <ReleasesSelectControl />
+      <ReleasesSelectControl selectedReleases={[]} />
     </ReleasesContext.Provider>
   );
 }

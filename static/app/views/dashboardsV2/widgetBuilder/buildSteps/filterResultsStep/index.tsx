@@ -119,7 +119,7 @@ export function FilterResultsStep({
         <FilterButtons>
           <ReleasesProvider organization={organization} selection={selection}>
             <StyledReleasesSelectControl
-              dashboardFilters={dashboardFilters}
+              selectedReleases={dashboardFilters?.release ?? []}
               isDisabled
               className="widget-release-select"
             />
