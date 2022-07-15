@@ -208,6 +208,6 @@ const suite = (name: string, textRenderer: TextRenderer, flamegraph: Flamegraph)
   );
 };
 
-// suite('typescript', makeTextRenderer(tsFlamegraph), tsFlamegraph);
+suite('typescript', makeTextRenderer(tsFlamegraph), tsFlamegraph);
 suite('android', makeTextRenderer(androidFlamegraph), androidFlamegraph);
-// suite('ios', makeTextRenderer(iosFlamegraph), iosFlamegraph);
+suite('ios', makeTextRenderer(iosFlamegraph), iosFlamegraph);
