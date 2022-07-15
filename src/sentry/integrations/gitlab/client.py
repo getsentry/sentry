@@ -258,6 +258,13 @@ class GitLabApiClient(ApiClient):
         path = GitLabApiClientPath.commits.format(project=project_id)
         return self.get(path, params={"until": end_date})
 
+    def get_commit(self, project_id, sha):
+        """
+        Get the details of a commit
+        See https://docs.gitlab.com/ee/api/commits.html#get-a-single-commit
+        """
+        return self.get(GitLabApiClientPath.commit.format(project=project_id, sha=sha))
+
     def compare_commits(self, project_id, start_sha, end_sha):
         """Compare commits between two SHAs
 
