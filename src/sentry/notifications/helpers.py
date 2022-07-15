@@ -256,7 +256,11 @@ def get_scope_type(type: NotificationSettingTypes) -> NotificationScopeType:
     ]:
         return NotificationScopeType.ORGANIZATION
 
-    if type in [NotificationSettingTypes.WORKFLOW, NotificationSettingTypes.ISSUE_ALERTS]:
+    if type in [
+        NotificationSettingTypes.WORKFLOW,
+        NotificationSettingTypes.ISSUE_ALERTS,
+        NotificationSettingTypes.ACTIVE_RELEASE,
+    ]:
         return NotificationScopeType.PROJECT
 
     raise Exception(
