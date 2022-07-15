@@ -179,7 +179,8 @@ class GroupActivityNotification(ActivityNotification, abc.ABC):
     def get_title_link(self, recipient: Team | User) -> str | None:
         from sentry.integrations.notifications import build_title_link
 
-        return build_title_link(self.group, None, False, True, self)
+        # TODO: Generalize to other providers, only Slack is used for now.
+        return build_title_link(self.group, None, False, True, self, ExternalProviders.SLACK)
 
     def build_attachment_title(self, recipient: Team | User) -> str:
         from sentry.integrations.notifications import build_attachment_title
