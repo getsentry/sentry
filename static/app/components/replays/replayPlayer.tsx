@@ -10,10 +10,9 @@ import FastForwardBadge from './player/fastForwardBadge';
 
 interface Props {
   className?: string;
-  height?: number;
 }
 
-function BasePlayerRoot({className, height = Infinity}: Props) {
+function BasePlayerRoot({className}: Props) {
   const {
     initRoot,
     dimensions: videoDimensions,
@@ -55,11 +54,9 @@ function BasePlayerRoot({className, height = Infinity}: Props) {
   // Update the scale of the view whenever dimensions have changed.
   useEffect(() => {
     if (viewEl.current) {
-      const windowHeight = height === Infinity ? windowDimensions.height : height;
-
       const scale = Math.min(
         windowDimensions.width / videoDimensions.width,
-        windowHeight / videoDimensions.height,
+        windowDimensions.height / videoDimensions.height,
         1
       );
       if (scale) {
@@ -69,14 +66,10 @@ function BasePlayerRoot({className, height = Infinity}: Props) {
         viewEl.current.style.height = `${videoDimensions.height * scale}px`;
       }
     }
-  }, [windowDimensions, videoDimensions, height]);
+  }, [windowDimensions, videoDimensions]);
+
   return (
-    <SizingWindow
-      ref={windowEl}
-      className="sr-block"
-      minHeight={height}
-      isLoaded={videoDimensions.height !== 0}
-    >
+    <SizingWindow ref={windowEl} className="sr-block">
       <div ref={viewEl} className={className} />
       {fastForwardSpeed ? <PositionedFastForward speed={fastForwardSpeed} /> : null}
       {isBuffering ? <PositionedBuffering /> : null}
@@ -87,15 +80,9 @@ function BasePlayerRoot({className, height = Infinity}: Props) {
 // Center the viewEl inside the windowEl.
 // This is useful when the window is inside a container that has large fixed
 // dimensions, like when in fullscreen mode.
-const SizingWindow = styled('div')<{isLoaded: boolean; minHeight: number}>`
+const SizingWindow = styled('div')`
   width: 100%;
   height: 100%;
-  ${p =>
-    p.isLoaded
-      ? ''
-      : p.minHeight !== Infinity
-      ? `min-height: ${p.minHeight}px !important;`
-      : ''}
 
   display: flex;
   justify-content: center;
