@@ -20,7 +20,7 @@ export function ReleaseActivityList() {
     endpoints: [
       [
         'activities',
-        `/organizations/${params.orgId}/${project.slug}/releases/${params.release}/activity/`,
+        `/projects/${params.orgId}/${project.slug}/releases/${params.release}/activity/`,
       ],
     ],
   });

@@ -47,7 +47,7 @@ describe('ReleaseActivity', () => {
 
   it('renders active release activity', async () => {
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/${project.slug}/releases/${release.version}/activity/`,
+      url: `/projects/${organization.slug}/${project.slug}/releases/${release.version}/activity/`,
       body: activities,
     });
 
