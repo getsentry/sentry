@@ -94,20 +94,21 @@ const HeaderPlaceholder = styled(function HeaderPlaceholder(
 `;
 
 const HeaderContent = styled(Layout.HeaderContent)`
-  margin-bottom: ${space(1)};
+  margin-bottom: 0;
 `;
 
 const SubHeading = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
   line-height: ${p => p.theme.text.lineHeightBody};
   color: ${p => p.theme.gray300};
-  align-self: center;
+  align-self: end;
   ${p => p.theme.overflowEllipsis};
 `;
 
 const MetaDataColumn = styled(Layout.HeaderActions)`
   width: 325px;
   padding-left: ${space(3)};
+  align-self: end;
 `;
 
 function EventMetaData({
