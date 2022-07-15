@@ -137,7 +137,7 @@ class ProjectPerformance extends AsyncView<Props, State> {
   renderBody() {
     const {organization, project} = this.props;
     const endpoint = `/projects/${organization.slug}/${project.slug}/transaction-threshold/configure/`;
-    const editAccessLevel: Scope[] = ['member:write'];
+    const editAccessLevel: Scope[] = ['project:write'];
 
     return (
       <Fragment>
