@@ -103,9 +103,7 @@ const timeRangeAutoCompleteFilter: typeof autoCompleteFilter = function (
 
   // Otherwise, do a normal filter search
   return items
-    ?.filter(
-      item => item.searchKey?.toLowerCase()?.includes(filterValue.toLowerCase()) ?? false
-    )
+    ?.filter(item => item.searchKey?.toLowerCase().includes(filterValue.toLowerCase()))
     .map((item, index) => ({...item, index})) as ItemsAfterFilter;
 };
 
