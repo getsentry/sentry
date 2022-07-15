@@ -1121,6 +1121,8 @@ SENTRY_FEATURES = {
     # Enable usage of external relays, for use with Relay. See
     # https://github.com/getsentry/relay.
     "organizations:relay": True,
+    # Enable Sentry Functions
+    "organizations:sentry-functions": False,
     # Enable experimental session replay features
     "organizations:session-replay": False,
     # Enable Session Stats down to a minute resolution
@@ -2691,3 +2693,6 @@ SENTRY_POST_PROCESS_LOCKS_BACKEND_OPTIONS = {
     "path": "sentry.utils.locking.backends.redis.RedisLockBackend",
     "options": {"cluster": "default"},
 }
+
+# maximum number of projects allowed to query snuba with for the organization_vitals_overview endpoint
+ORGANIZATION_VITALS_OVERVIEW_PROJECT_LIMIT = 300
