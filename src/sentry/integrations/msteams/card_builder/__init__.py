@@ -18,10 +18,12 @@ ItemBlock = Union[str, TextBlock, ImageBlock]
 ColumnBlock = Mapping[str, Union[str, Sequence[ItemBlock]]]
 ColumnSetBlock = Mapping[str, Union[str, Sequence[ColumnBlock]]]
 
-Block = Union[TextBlock, ImageBlock, ColumnSetBlock]
-ContainerBlock = Mapping[str, Union[str, Sequence[Block]]]
+# NOTE: Instead of Any, it should have been block, but mypy does not support cyclic definition.
+ContainerBlock = Mapping[str, Any]
 
-InputChoiceSetBlock = Mapping[str, Union[str, Sequence[Mapping[str, str]]]]
+Block = Union[TextBlock, ImageBlock, ColumnSetBlock, ContainerBlock]
+
+InputChoiceSetBlock = Mapping[str, Union[str, Sequence[Mapping[str, Any]]]]
 
 # Maps to Any because Actions can have an arbitrarily nested data field.
 Action = Mapping[str, Any]

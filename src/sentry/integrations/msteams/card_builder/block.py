@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Any, Sequence, cast
+from typing import Any, Sequence, Tuple, cast
 
 from sentry.integrations.msteams.card_builder import (
     Action,
@@ -91,7 +91,7 @@ def create_image_block(url: str, **kwargs: str) -> ImageBlock:
     }
 
 
-def create_column_block(item: ItemBlock, **kwargs: str) -> ColumnBlock:
+def create_column_block(item: ItemBlock, **kwargs: Any) -> ColumnBlock:
     kwargs["width"] = kwargs.get("width", ColumnWidth.AUTO)
 
     if isinstance(item, str):
@@ -118,7 +118,7 @@ def create_column_set_block(*columns: ItemBlock | ColumnBlock) -> ColumnSetBlock
     }
 
 
-def create_action_block(action_type: ActionType, title: str, **kwargs: str) -> Action:
+def create_action_block(action_type: ActionType, title: str, **kwargs: Any) -> Action:
     param = REQUIRED_ACTION_PARAM[action_type]
 
     return {
@@ -128,7 +128,7 @@ def create_action_block(action_type: ActionType, title: str, **kwargs: str) -> A
     }
 
 
-def create_action_set_block(*actions: Sequence[Action]) -> ActionSet:
+def create_action_set_block(*actions: Action) -> ActionSet:
     return {"type": "ActionSet", "actions": list(actions)}
 
 
@@ -137,15 +137,18 @@ def create_container_block(*items: Block) -> ContainerBlock:
 
 
 def create_input_choice_set_block(
-    id: str, choices: Sequence[str, Any], default_choice: Any
+    id: str, choices: Sequence[Tuple[str, Any]], default_choice: Any
 ) -> InputChoiceSetBlock:
-    input_choice_set_block = {
+    default_choice_arg = {"value": default_choice} if default_choice else {}
+
+    return {
         "type": "Input.ChoiceSet",
         "id": id,
         "choices": [{"title": title, "value": value} for title, value in choices],
+        **default_choice_arg,
     }
 
-    if default_choice:
-        input_choice_set_block["value"] = default_choice
+    # if default_choice:
+    #     input_choice_set_block.update({"value": default_choice})
 
-    return input_choice_set_block
+    # return input_choice_set_block

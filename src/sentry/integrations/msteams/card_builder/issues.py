@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Sequence
+from typing import Any, List, Sequence, Tuple
 
 from sentry.integrations.msteams.card_builder import (
     ME,
     URL_FORMAT_STR,
     Action,
     AdaptiveCard,
+    Block,
     ColumnSetBlock,
     ContainerBlock,
     TextBlock,
@@ -45,9 +46,9 @@ def build_input_choice_card(
     title: str,
     data: Any,
     input_id: str,
-    choices: Sequence[str, Any],
+    choices: Sequence[Tuple[str, Any]],
     default_choice: Any = None,
-):
+) -> AdaptiveCard:
     return MSTeamsMessageBuilder().build(
         title=create_text_block(title, weight=TextWeight.BOLDER),
         text=create_input_choice_set_block(
@@ -64,18 +65,21 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
         self.rules = rules
         self.integration = integration
 
-    def get_timestamp(self) -> datetime:
-        ts = self.group.last_seen
-        return max(ts, self.event.datetime) if self.event else ts
+    def get_timestamp(self) -> str:
+        ts: datetime = self.group.last_seen
 
-    def create_date_block(self) -> TextBlock:
-        date = self.get_timestamp()
+        date = max(ts, self.event.datetime) if self.event else ts
 
         # Adaptive cards is strict about the isoformat.
-        date = date.replace(microsecond=0).isoformat()
+        date_str: str = date.replace(microsecond=0).isoformat()
+
+        return date_str
+
+    def create_date_block(self) -> TextBlock:
+        date_str = self.get_timestamp()
 
         return create_text_block(
-            IssueConstants.DATE_FORMAT.format(date=date),
+            IssueConstants.DATE_FORMAT.format(date=date_str),
             size=TextSize.SMALL,
             weight=TextWeight.LIGHTER,
             horizontalAlignment="Center",
@@ -106,6 +110,9 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
                 size=TextSize.SMALL,
             )
 
+        # Explicit return to satisfy mypy
+        return None
+
     def generate_action_payload(self, action_type: ACTION_TYPE) -> Any:
         # we need nested data or else Teams won't handle the payload correctly
         return {
@@ -118,7 +125,7 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
             }
         }
 
-    def get_teams_choices(self) -> Sequence[str, str]:
+    def get_teams_choices(self) -> Sequence[Tuple[str, str]]:
         teams = self.group.project.teams.all().order_by("slug")
         return [("Me", ME)] + [
             (team["text"], team["value"]) for team in format_actor_options(teams)
@@ -131,7 +138,7 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
         action_title: str,
         reverse_action: ACTION_TYPE,
         reverse_action_title: str,
-        **card_kwargs: str,
+        **card_kwargs: Any,
     ) -> Action:
         if toggled:
             data = self.generate_action_payload(reverse_action)
@@ -188,7 +195,7 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
             )
         )
 
-    def build(
+    def build_card(
         self,
     ) -> AdaptiveCard:
         """
@@ -201,7 +208,7 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
             3c. The date and time of the event.
         4. Details of the assignee if the issue is assigned to an actor. (Optional)
         5. A set of three actions, resolve, ignore and assign which can
-            futher create dropdowns for selecting options.
+            futher reveal cards with dropdowns for selecting options.
         """
         title_text = build_attachment_title(self.group or self.event)
         title_link = build_title_link(
@@ -213,7 +220,8 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
             provider=ExternalProviders.MSTEAMS,
         )
 
-        fields = []
+        # Explicit typing to satisfy mypy.
+        fields: List[Block] = []
 
         description_text = build_attachment_text(self.group, self.event)
         if description_text:
