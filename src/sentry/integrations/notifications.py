@@ -35,7 +35,7 @@ def build_title_link(
     link_to_event: bool,
     issue_details: bool,
     notification: BaseNotification | None,
-    provider: ExternalProviders,
+    provider: ExternalProviders | None = None,
 ) -> str:
     if event and link_to_event:
         url = group.get_absolute_url(
