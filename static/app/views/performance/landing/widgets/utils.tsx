@@ -1,4 +1,5 @@
 import {objectIsEmpty} from 'sentry/utils';
+import {WebVital} from 'sentry/utils/discover/fields';
 import localStorage from 'sentry/utils/localStorage';
 import {MetricsEnhancedSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 
@@ -110,4 +111,11 @@ export const _setChartSetting = (
   localObject[key] = setting;
 
   setWidgetStorageObject(localObject);
+};
+
+export const VITAL_TO_SETTING: Record<string, PerformanceWidgetSetting> = {
+  [WebVital.LCP]: PerformanceWidgetSetting.WORST_LCP_VITALS,
+  [WebVital.FCP]: PerformanceWidgetSetting.WORST_FCP_VITALS,
+  [WebVital.FID]: PerformanceWidgetSetting.WORST_FID_VITALS,
+  [WebVital.CLS]: PerformanceWidgetSetting.WORST_CLS_VITALS,
 };

@@ -1,4 +1,5 @@
 import {Fragment, useMemo, useState} from 'react';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
@@ -378,13 +379,24 @@ export function VitalWidget(props: PerformanceWidgetProps & VitalDetailWidgetPro
                   {value: DisplayModes.DURATION_P75, label: t(DisplayModes.DURATION_P75)},
                 ];
               }
+
+              function handleDisplayChange(value: string) {
+                browserHistory.push({
+                  pathname: location.pathname,
+                  query: {
+                    ...location.query,
+                    display: value,
+                  },
+                });
+              }
+
               return (
                 <InlineContainer data-test-id="display-toggle">
                   <OptionSelector
                     title={t('Display')}
                     selected={DisplayModes.WORST_VITALS}
                     options={generateDisplayOptions()}
-                    onChange={() => {}}
+                    onChange={handleDisplayChange}
                   />
                 </InlineContainer>
               );

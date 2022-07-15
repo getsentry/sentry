@@ -36,10 +36,8 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withProjects from 'sentry/utils/withProjects';
 
 import Breadcrumb from '../breadcrumb';
-import {
-  PerformanceWidgetSetting,
-  WIDGET_DEFINITIONS,
-} from '../landing/widgets/widgetDefinitions';
+import {VITAL_TO_SETTING} from '../landing/widgets/utils';
+import {WIDGET_DEFINITIONS} from '../landing/widgets/widgetDefinitions';
 import {VitalWidget} from '../landing/widgets/widgets/vitalWidget';
 import {getTransactionSearchQuery} from '../utils';
 
@@ -203,7 +201,7 @@ function VitalDetailContent(props: Props) {
     const filterString = getTransactionSearchQuery(location);
     const summaryConditions = getSummaryConditions(filterString);
 
-    const chartSetting = PerformanceWidgetSetting.WORST_LCP_VITALS;
+    const chartSetting = VITAL_TO_SETTING[vital];
     const chartDefinition = WIDGET_DEFINITIONS({organization})[chartSetting];
     chartDefinition.isVitalDetailView = true;
 
