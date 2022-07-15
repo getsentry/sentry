@@ -142,7 +142,7 @@ export type GenericPerformanceWidgetProps<T extends WidgetDataConstraint> = {
   titleTooltip: string;
   EmptyComponent?: React.FC<{height?: number}>;
 
-  Footer?: Footer<T>;
+  Footer?: GenericPerformanceFooter<T> | null;
   HeaderActions?: HeaderActions<T>;
   // Components
   Subtitle?: Subtitle<T>;

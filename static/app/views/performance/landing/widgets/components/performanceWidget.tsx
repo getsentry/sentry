@@ -195,6 +195,7 @@ const ContentContainer = styled('div')<{bottomPadding?: boolean; noPadding?: boo
 `;
 
 const FooterContainer = styled('div')`
+  margin-left: auto;
   border-top: 1px solid ${p => p.theme.border};
 `;
 

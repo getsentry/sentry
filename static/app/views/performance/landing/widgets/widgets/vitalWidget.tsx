@@ -19,8 +19,12 @@ import {VitalData} from 'sentry/utils/performance/vitals/vitalsCardsDiscoverQuer
 import {decodeList} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withApi from 'sentry/utils/withApi';
-import {vitalDetailRouteWithQuery} from 'sentry/views/performance/vitalDetail/utils';
+import {
+  vitalDetailRouteWithQuery,
+  VitalState,
+} from 'sentry/views/performance/vitalDetail/utils';
 import {_VitalChart} from 'sentry/views/performance/vitalDetail/vitalChart';
+import VitalPercents from 'sentry/views/performance/vitalDetail/vitalPercents';
 
 import {excludeTransaction} from '../../utils';
 import {VitalBar} from '../../vitalsCards';
@@ -246,7 +250,18 @@ export function VitalWidget(props: PerformanceWidgetProps & VitalDetailWidgetPro
       EmptyComponent={WidgetEmptyStateWarning}
       HeaderActions={provided => {
         if (props.isVitalDetailView) {
-          return null;
+          const vital = settingToVital[props.chartSetting];
+
+          return (
+            <VitalPercents
+              vital={vital}
+              percents={[
+                {vitalState: VitalState.GOOD, percent: 1},
+                {vitalState: VitalState.MEH, percent: 1},
+                {vitalState: VitalState.POOR, percent: 1},
+              ]}
+            />
+          );
         }
 
         const vital = settingToVital[props.chartSetting];

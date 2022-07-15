@@ -509,7 +509,7 @@ type Percent = {
   vitalState: VitalState;
 };
 
-function getPercentsFromCounts({poor, meh, good, total}) {
+export function getPercentsFromCounts({poor, meh, good, total}) {
   const poorPercent = poor / total;
   const mehPercent = meh / total;
   const goodPercent = good / total;
