@@ -1836,9 +1836,12 @@ class MetricsQueryBuilder(QueryBuilder):
     def resolve_metric_index(self, value: str) -> Optional[int]:
         """Layer on top of the metric indexer so we'll only hit it at most once per value"""
         if value not in self._indexer_cache:
-            result = indexer.resolve(
-                self.organization_id, value, use_case_id=UseCaseKey.PERFORMANCE
-            )
+            use_case_id = UseCaseKey.PERFORMANCE
+            # we need this condition because we can resolve different
+            # transaction and metrics separatetly
+            # if Dataset.Transactions.value in value:
+            # use_case_id = UseCaseKey.PERFORMANCE
+            result = indexer.resolve(self.organization_id, value, use_case_id=use_case_id)
             self._indexer_cache[value] = result
 
         return self._indexer_cache[value]

@@ -1204,8 +1204,9 @@ class SessionMetricsReleaseHealthTestCase(SessionMetricsTestCase):
         key: SessionOrTransactionMRI,
         tags,
         value,
+        use_case_id: UseCaseKey = UseCaseKey.RELEASE_HEALTH,
     ):
-        super()._push_metric(session, type, key, tags, value, use_case_id=UseCaseKey.RELEASE_HEALTH)
+        super()._push_metric(session, type, key, tags, value, use_case_id)
 
 
 class MetricsEnhancedPerformanceTestCase(SessionMetricsTestCase, TestCase):

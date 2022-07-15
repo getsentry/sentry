@@ -143,7 +143,7 @@ class MetricsQuery(MetricsQueryValidationRunner):
 
             # Find correct use_case_id based on metric_name
             use_case_id = UseCaseKey.RELEASE_HEALTH
-            if f.field.metric_name == "transactions":
+            if f.field.metric_name.startswith("transaction"):
                 use_case_id = UseCaseKey.PERFORMANCE
 
             entity = metric_field_obj.get_entity(self.project_ids, use_case_id)

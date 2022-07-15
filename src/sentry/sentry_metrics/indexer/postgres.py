@@ -72,6 +72,8 @@ class PGStringIndexer(Service):
         result = self.bulk_record({org_id: {string}})
         return result[string]
 
+    # TODO: @andriisoldatenko
+    # move use_case_id to 1st parameter and remove default value
     def resolve(
         self, org_id: int, string: str, use_case_id: UseCaseKey = UseCaseKey.RELEASE_HEALTH
     ) -> Optional[int]:
@@ -86,6 +88,8 @@ class PGStringIndexer(Service):
 
         return id
 
+    # TODO: @andriisoldatenko
+    # move use_case_id to 1st parameter and remove default value
     def reverse_resolve(
         self, id: int, use_case_id: UseCaseKey = UseCaseKey.RELEASE_HEALTH
     ) -> Optional[str]:

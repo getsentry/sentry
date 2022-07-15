@@ -354,9 +354,9 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
         if environment:
             extra_conditions.append(
                 Condition(
-                    Column(resolve_tag_key(self.org_id, "environment")),
+                    Column(resolve_tag_key(UseCaseKey.RELEASE_HEALTH, self.org_id, "environment")),
                     Op.EQ,
-                    resolve_weak(self.org_id, environment.name),
+                    resolve_weak(UseCaseKey.RELEASE_HEALTH, self.org_id, environment.name),
                 )
             )
         qb.add_conditions(extra_conditions)
@@ -384,7 +384,9 @@ class BaseCrashRateMetricsEntitySubscription(BaseMetricsEntitySubscription):
         self, aggregate: str, time_window: int, extra_fields: Optional[_EntitySpecificParams] = None
     ):
         super().__init__(aggregate, time_window, extra_fields)
-        self.session_status = resolve_tag_key(self.org_id, "session.status")
+        self.session_status = resolve_tag_key(
+            UseCaseKey.RELEASE_HEALTH, self.org_id, "session.status"
+        )
 
     @staticmethod
     def translate_sessions_tag_keys_and_values(
@@ -477,46 +479,14 @@ class BaseCrashRateMetricsEntitySubscription(BaseMetricsEntitySubscription):
         aggregated_results = [{col_name: crash_free_rate}]
         return aggregated_results
 
-    def build_query_builder(
-        self,
-        query: str,
-        project_ids: Sequence[int],
-        environment: Optional[Environment],
-        params: Optional[MutableMapping[str, Any]] = None,
-    ) -> QueryBuilder:
-        from sentry.search.events.builder import AlertMetricsQueryBuilder
-
-        if params is None:
-            params = {}
-
-        params["project_id"] = project_ids
-        qb = AlertMetricsQueryBuilder(
-            query=query,
-            selected_columns=self.get_snql_aggregations(),
-            params=params,
-            offset=None,
-            skip_time_conditions=True,
-            granularity=self.get_granularity(),
-        )
-        extra_conditions = [
+    def get_snql_extra_conditions(self) -> List[Condition]:
+        return [
             Condition(
                 Column("metric_id"),
                 Op.EQ,
                 resolve(UseCaseKey.RELEASE_HEALTH, self.org_id, self.metric_key.value),
-            ),
-            *self.get_snql_extra_conditions(),
-        ]
-        if environment:
-            extra_conditions.append(
-                Condition(
-                    Column(resolve_tag_key(UseCaseKey.RELEASE_HEALTH, self.org_id, "environment")),
-                    Op.EQ,
-                    resolve_weak(UseCaseKey.RELEASE_HEALTH, self.org_id, environment.name),
-                )
             )
-        qb.add_conditions(extra_conditions)
-
-        return qb
+        ]
 
 
 class MetricsCountersEntitySubscription(BaseCrashRateMetricsEntitySubscription):
