@@ -163,7 +163,7 @@ class ProjectPerformance extends AsyncView<Props, State> {
             this.setState({threshold: resp});
           }}
         >
-          <Access access={requiredScope}>
+          <Access access={requiredScopes}>
             {({hasAccess}) => (
               <JsonForm
                 title={t('General')}
