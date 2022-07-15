@@ -107,7 +107,9 @@ describe('Events > SearchBar', function () {
     expect(wrapper.find('SearchDropdown FirstWordWrapper').first().text()).toEqual(
       'release'
     );
-    expect(wrapper.find('SearchDropdown RestOfWords').first().text()).toEqual('.build');
+    expect(wrapper.find('SearchDropdown RestOfWordsContainer').first().text()).toEqual(
+      '.build'
+    );
   });
 
   it('autocomplete has suggestions correctly', async function () {
