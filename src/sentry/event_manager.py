@@ -73,11 +73,11 @@ from sentry.models import (
     ReleaseEnvironment,
     ReleaseProject,
     ReleaseProjectEnvironment,
-    Repository,
     UserReport,
     get_crashreport_key,
 )
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
+from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.plugins.base import plugins
 from sentry.projectoptions.defaults import BETA_GROUPING_CONFIG, DEFAULT_GROUPING_CONFIG
 from sentry.reprocessing2 import is_reprocessed_event, save_unprocessed_event
@@ -697,15 +697,23 @@ def _is_commit_sha(version: str):
 
 def _associate_commits_with_release(release: Release, project: Project):
     previous_release = release.previous_release
-    repo = Repository.objects.get(organization_id=project.organization.id, provider="github")
-    fetch_commits.apply_async(
-        kwargs={
-            "release_id": release.id,
-            "user_id": None,
-            "repository": [{"repository": repo.name, "commit": release.version}],
-            "prev_release_id": previous_release.id if previous_release is not None else None,
-        }
+    possible_repos = (
+        RepositoryProjectPathConfig.objects.select_related("repository")
+        .filter(project=project)
+        .all()
     )
+    if possible_repos:
+        # If it does exist, kick off a task to look if the commit exists in the repository
+
+        # If it does exist, fetch the commits for that repo
+        fetch_commits.apply_async(
+            kwargs={
+                "release_id": release.id,
+                "user_id": None,
+                "refs": [{"repository": possible_repos.repository.name, "commit": release.version}],
+                "prev_release_id": previous_release.id if previous_release is not None else None,
+            }
+        )
 
 
 @metrics.wraps("save_event.get_or_create_release_many")
