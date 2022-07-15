@@ -6,8 +6,6 @@ import process from 'process';
 
 import type {Config} from '@jest/types';
 
-import babelConfig from './babel.config';
-
 const {
   CI,
   JEST_TESTS,
@@ -144,7 +142,7 @@ if (
 const ESM_NODE_MODULES = ['copy-text-to-clipboard'];
 
 const config: Config.InitialOptions = {
-  verbose: false,
+  verbose: true,
   collectCoverageFrom: [
     'tests/js/spec/**/*.{js,jsx,tsx}',
     'static/app/**/*.{js,jsx,ts,tsx}',
@@ -182,8 +180,7 @@ const config: Config.InitialOptions = {
     '<rootDir>/node_modules/reflux',
   ],
   transform: {
-    '^.+\\.jsx?$': ['babel-jest', babelConfig as any],
-    '^.+\\.tsx?$': ['babel-jest', babelConfig as any],
+    '^.+\\.(t|j)sx?$': '<rootDir>/tests/js/swcTransform.js',
     '^.+\\.pegjs?$': '<rootDir>/tests/js/jest-pegjs-transform.js',
   },
   transformIgnorePatterns: [`/node_modules/(?!${ESM_NODE_MODULES.join('|')})`],

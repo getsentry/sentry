@@ -177,6 +177,7 @@
     "@storybook/router": "6.5.9",
     "@storybook/theming": "6.5.9",
     "@swc/core": "^1.2.215",
+    "@swc/jest": "^0.2.21",
     "@types/node": "^18.0.0",
     "@visual-snapshot/jest": "6.0.2",
     "assert": "^2.0.0",
