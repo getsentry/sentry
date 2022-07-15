@@ -166,7 +166,7 @@ class BitbucketServer(ApiClient):
             params={"merges": "exclude", "limit": limit},
         )["values"]
 
-    def get_commit_details(self, project, repo, sha):
+    def get_commit(self, project, repo, sha):
         return self.get(
             BitbucketServerAPIPath.repository_commit_details.format(
                 project=project, repo=repo, commit=sha

@@ -29,11 +29,6 @@ class GitHubClientMixin(AuthApiClient):
         # Max: 250 Commits
         return self.get(f"/repos/{repo}/pulls/{num}/commits")
 
-    def get_commit_details(self, repo, sha):
-        # return api request that retrieves details on one commit in the repo
-        # see https://docs.github.com/en/rest/commits/commits#get-a-commit
-        return self.get(f"/repos/{repo}/commits/{sha}")
-
 
 class GitHubClient(GitHubClientMixin, AuthApiClient):
     def __init__(self, url=None, auth=None):

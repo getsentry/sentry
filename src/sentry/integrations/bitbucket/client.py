@@ -120,7 +120,7 @@ class BitbucketApiClient(ApiClient):
         data = self.get(BitbucketAPIPath.repository_commits.format(repo=repo, revision=end_sha))
         return self.zip_commit_data(repo, data["values"])
 
-    def get_commit_details(self, repo, sha):
+    def get_commit(self, repo, sha):
         # return api request that fetches the commit details
         # see https://developer.atlassian.com/cloud/bitbucket/rest/api-group-commits/#api-repositories-workspace-repo-slug-commit-commit-get
         return self.get(f"/2.0/repositories/{repo}/commits/{sha}")
