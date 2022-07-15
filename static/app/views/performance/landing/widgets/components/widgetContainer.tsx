@@ -1,5 +1,7 @@
 import {useEffect, useState} from 'react';
+import omit from 'lodash/omit';
 import pick from 'lodash/pick';
+import * as qs from 'query-string';
 
 import DropdownButtonV2 from 'sentry/components/dropdownButtonV2';
 import CompositeSelect from 'sentry/components/forms/compositeSelect';
@@ -8,6 +10,8 @@ import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
+import {Field} from 'sentry/utils/discover/fields';
+import {DisplayModes} from 'sentry/utils/discover/types';
 import {usePerformanceDisplayType} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 import useOrganization from 'sentry/utils/useOrganization';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -97,6 +101,17 @@ const _WidgetContainer = (props: Props) => {
   }, [rest.defaultChartSetting]);
 
   const chartDefinition = WIDGET_DEFINITIONS({organization})[chartSetting];
+
+  // Construct an EventView that matches this widget's definition. The
+  // `eventView` from the props is the _landing page_ EventView, which is different
+  const widgetEventView = props.eventView.clone();
+  widgetEventView.name = chartDefinition.title;
+  widgetEventView.yAxis = chartDefinition.fields[0]; // All current widgets only have one field
+  widgetEventView.display = DisplayModes.PREVIOUS;
+  widgetEventView.fields = ['transaction', 'project', ...chartDefinition.fields].map(
+    fieldName => ({field: fieldName} as Field)
+  );
+
   const widgetProps = {
     ...chartDefinition,
     chartSetting,
@@ -104,6 +119,7 @@ const _WidgetContainer = (props: Props) => {
     ContainerActions: containerProps => (
       <WidgetContainerActions
         {...containerProps}
+        eventView={widgetEventView}
         allowedCharts={props.allowedCharts}
         chartSetting={chartSetting}
         setChartSetting={setChartSetting}
@@ -138,12 +154,14 @@ const _WidgetContainer = (props: Props) => {
 
 export const WidgetContainerActions = ({
   chartSetting,
+  eventView,
   setChartSetting,
   allowedCharts,
   rowChartSettings,
 }: {
   allowedCharts: PerformanceWidgetSetting[];
   chartSetting: PerformanceWidgetSetting;
+  eventView: EventView;
   rowChartSettings: PerformanceWidgetSetting[];
   setChartSetting: (setting: PerformanceWidgetSetting) => void;
 }) => {
@@ -162,6 +180,8 @@ export const WidgetContainerActions = ({
     });
   }
 
+  const chartDefinition = WIDGET_DEFINITIONS({organization})[chartSetting];
+
   function trigger({props, ref}) {
     return (
       <DropdownButtonV2
@@ -175,23 +195,53 @@ export const WidgetContainerActions = ({
     );
   }
 
+  function handleWidgetActionChange(value) {
+    if (value === 'open_in_discover') {
+      window.location.href =
+        window.location.origin + getEventViewDiscoverPath(organization, eventView);
+    }
+  }
+
   return (
     <CompositeSelect
-      sections={[
-        {
-          label: t('Display'),
-          options: menuOptions,
-          value: chartSetting,
-          onChange: opt => {
-            setChartSetting(opt);
+      sections={
+        [
+          {
+            label: t('Display'),
+            options: menuOptions,
+            value: chartSetting,
+            onChange: setChartSetting,
           },
-        },
-      ]}
+          chartDefinition.allowsOpenInDiscover
+            ? {
+                label: t('Other'),
+                options: [{label: t('Open in Discover'), value: 'open_in_discover'}],
+                value: '',
+                onChange: handleWidgetActionChange,
+              }
+            : null,
+        ].filter(Boolean) as React.ComponentProps<typeof CompositeSelect>['sections']
+      }
       isOptionDisabled={opt => opt.disabled}
       trigger={trigger}
       placement="bottom right"
     />
   );
+};
+
+const getEventViewDiscoverPath = (
+  organization: Organization,
+  eventView: EventView
+): string => {
+  const discoverUrlTarget = eventView.getResultsViewUrlTarget(organization.slug);
+
+  // The landing page EventView has some additional conditions, but
+  // `EventView#getResultsViewUrlTarget` omits those! Get them manually
+  discoverUrlTarget.query.query = eventView.getQueryWithAdditionalConditions();
+
+  return `${discoverUrlTarget.pathname}?${qs.stringify(
+    omit(discoverUrlTarget.query, ['widths']) // Column widths are not useful in this case
+  )}`;
 };
 
 const WidgetContainer = withOrganization(_WidgetContainer);

@@ -13,6 +13,7 @@ export interface ChartDefinition {
   title: string;
   titleTooltip: string; // The first field in the list will be treated as the primary field in most widgets (except for special casing).
 
+  allowsOpenInDiscover?: boolean;
   chartColor?: string; // Optional. Will default to colors depending on placement in list or colors from the chart itself.
 
   vitalStops?: {
@@ -195,6 +196,7 @@ export const WIDGET_DEFINITIONS: ({
     fields: [`user_misery()`],
     dataType: GenericPerformanceWidgetDataType.area,
     chartColor: WIDGET_PALETTE[0],
+    allowsOpenInDiscover: true,
   },
   [PerformanceWidgetSetting.COLD_STARTUP_AREA]: {
     title: t('Cold Startup Time'),
