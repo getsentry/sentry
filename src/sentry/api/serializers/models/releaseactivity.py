@@ -16,7 +16,7 @@ class ReleaseActivityResponse(TypedDict):
 
 
 @register(ReleaseActivity)
-class ReleaseActivitySerializer(Serializer):
+class ReleaseActivitySerializer(Serializer):  # type: ignore
     def get_attrs(
         self, item_list: Sequence[ReleaseActivity], user: Any, **kwargs: Any
     ) -> MutableMapping[ReleaseActivity, Any]:
