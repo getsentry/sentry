@@ -118,7 +118,6 @@ describe('IssueWidgetQueriesForm', function () {
 
   it('fetches tag values when when focused on a lhs tag condition', async function () {
     const {tagsMock} = renderComponent(organization, routerContext);
-    //
     userEvent.type(screen.getAllByText('assigned:')[1], 'event.type:');
     await tick();
     expect(tagsMock).toHaveBeenCalled();
