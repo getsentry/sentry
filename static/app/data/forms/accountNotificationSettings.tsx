@@ -1,4 +1,4 @@
-import {Field, JsonFormObject} from 'sentry/components/forms/type';
+import {Field} from 'sentry/components/forms/type';
 import {t} from 'sentry/locale';
 
 // TODO: cleanup unused fields and exports
@@ -15,6 +15,16 @@ export const fields: {[key: string]: Field} = {
     help: t(
       'Enable this to receive notifications for Alerts sent to your teams. You will always receive alerts configured to be sent directly to you.'
     ),
+  },
+  activeReleaseNotifications: {
+    name: 'activeRelease',
+    type: 'boolean',
+    label: t('Get a notification when an issue happens shortly after your release.'),
+    choices: [
+      [0, t('On')],
+      [2, t('Off')],
+    ],
+    help: '',
   },
   workflowNotifications: {
     name: 'workflowNotifications',
@@ -59,37 +69,3 @@ export const fields: {[key: string]: Field} = {
     help: t("You'll receive notifications about any changes that happen afterwards."),
   },
 };
-
-const formGroups: JsonFormObject[] = [
-  {
-    title: t('Alerts'),
-    fields: [fields.subscribeByDefault],
-  },
-
-  {
-    title: t('Workflow Notifications'),
-    fields: [fields.workflowNotifications],
-  },
-
-  {
-    title: t('Email Routing'),
-    fields: [],
-  },
-
-  {
-    title: t('Weekly Reports'),
-    fields: [],
-  },
-
-  {
-    title: t('Deploy Notifications'),
-    fields: [fields.deployNotifications],
-  },
-
-  {
-    title: t('My Activity'),
-    fields: [fields.personalActivityNotifications, fields.selfAssignOnResolve],
-  },
-];
-
-export default formGroups;
