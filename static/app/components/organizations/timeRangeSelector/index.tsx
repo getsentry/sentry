@@ -1,4 +1,5 @@
 import {PureComponent} from 'react';
+// eslint-disable-next-line no-restricted-imports
 import {withRouter, WithRouterProps} from 'react-router';
 import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -129,6 +130,11 @@ type Props = WithRouterProps & {
    * Whether the menu should be detached from the actor
    */
   detached?: boolean;
+
+  /**
+   * Disable the dropdown
+   */
+  disabled?: boolean;
 
   /**
    * Small info icon with tooltip hint text
@@ -384,6 +390,9 @@ class TimeRangeSelector extends PureComponent<Props, State> {
   };
 
   handleOpen = () => {
+    if (this.props.disabled) {
+      return;
+    }
     this.setState({isOpen: true});
     // Start loading react-date-picker
     import('../timeRangeSelector/dateRange/index');
@@ -405,6 +414,7 @@ class TimeRangeSelector extends PureComponent<Props, State> {
       maxPickableDays,
       customDropdownButton,
       detached,
+      disabled,
       alignDropdown,
       showPin,
     } = this.props;
@@ -447,6 +457,7 @@ class TimeRangeSelector extends PureComponent<Props, State> {
                 blendCorner={false}
                 maxHeight={400}
                 detached={detached}
+                disabled={disabled}
                 items={items}
                 searchPlaceholder={t('Filter time range')}
                 rootClassName={css`
