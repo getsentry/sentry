@@ -150,7 +150,9 @@ function SplitPanel(props: Props) {
     [mousedown, props] // xeslint-disable-line react-hooks/exhaustive-deps
   );
 
-  const mouseTrackingProps = useMouseTracking({onPositionChange: handlePositionChange});
+  const mouseTrackingProps = useMouseTracking<HTMLDivElement>({
+    onPositionChange: handlePositionChange,
+  });
 
   if ('left' in props) {
     const {left: a, right: b} = props;
