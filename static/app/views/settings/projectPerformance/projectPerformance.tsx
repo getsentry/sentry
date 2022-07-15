@@ -137,12 +137,12 @@ class ProjectPerformance extends AsyncView<Props, State> {
   renderBody() {
     const {organization, project} = this.props;
     const endpoint = `/projects/${organization.slug}/${project.slug}/transaction-threshold/configure/`;
-    const editAccessLevel: Scope[] = ['project:write'];
+    const requiredScope: Scope[] = ['project:write'];
 
     return (
       <Fragment>
         <SettingsPageHeader title={t('Performance')} />
-        <PermissionAlert access={editAccessLevel} />
+        <PermissionAlert access={requiredScope} />
         <Form
           saveOnBlur
           allowUndo
@@ -163,7 +163,7 @@ class ProjectPerformance extends AsyncView<Props, State> {
             this.setState({threshold: resp});
           }}
         >
-          <Access access={editAccessLevel}>
+          <Access access={requiredScope}>
             {({hasAccess}) => (
               <JsonForm
                 title={t('General')}
