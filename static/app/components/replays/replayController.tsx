@@ -9,7 +9,6 @@ import CompositeSelect from 'sentry/components/forms/compositeSelect';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {formatTime, relativeTimeInMs} from 'sentry/components/replays/utils';
 import {
-  IconArrow,
   IconContract,
   IconExpand,
   IconNext,
