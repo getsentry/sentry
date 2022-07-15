@@ -28,7 +28,7 @@ import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 
 import {DRAG_HANDLE_CLASS} from '../dashboard';
-import {DisplayType, Widget, WidgetType} from '../types';
+import {DashboardFilter, DisplayType, Widget, WidgetType} from '../types';
 import {isCustomMeasurementWidget} from '../utils';
 import {DEFAULT_RESULTS_LIMIT} from '../widgetBuilder/utils';
 
@@ -48,6 +48,7 @@ type Props = WithRouterProps & {
   selection: PageFilters;
   widget: Widget;
   widgetLimitReached: boolean;
+  dashboardFilters?: Record<DashboardFilter, string[]>;
   draggableProps?: DraggableProps;
   hideToolbar?: boolean;
   index?: string;
@@ -213,6 +214,7 @@ class WidgetCard extends Component<Props, State> {
       noLazyLoad,
       showStoredAlert,
       noDashboardsMEPProvider,
+      dashboardFilters,
     } = this.props;
 
     const {start, period} = selection.datetime;
@@ -279,6 +281,7 @@ class WidgetCard extends Component<Props, State> {
                   tableItemLimit={tableItemLimit}
                   windowWidth={windowWidth}
                   onDataFetched={this.setData}
+                  dashboardFilters={dashboardFilters}
                 />
               ) : (
                 <LazyLoad once resize height={200}>
@@ -292,6 +295,7 @@ class WidgetCard extends Component<Props, State> {
                     tableItemLimit={tableItemLimit}
                     windowWidth={windowWidth}
                     onDataFetched={this.setData}
+                    dashboardFilters={dashboardFilters}
                   />
                 </LazyLoad>
               )}

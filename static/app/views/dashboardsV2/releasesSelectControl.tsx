@@ -6,12 +6,18 @@ import CompactSelect from 'sentry/components/forms/compactSelect';
 import TextOverflow from 'sentry/components/textOverflow';
 import {IconReleases} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {Release} from 'sentry/types';
 import {useReleases} from 'sentry/utils/releases/releasesProvider';
 
-function ReleasesSelectControl() {
+import {DashboardFilter} from './types';
+
+type Props = {
+  handleChangeFilter: (activeFilters: Record<DashboardFilter, string[]>) => void;
+  selectedReleases: string[];
+};
+
+function ReleasesSelectControl({handleChangeFilter, selectedReleases}: Props) {
   const {releases, loading} = useReleases();
-  const [selectedReleases, setSelectedReleases] = useState<Release[]>([]);
+  const [activeReleases, setActiveReleases] = useState<string[]>(selectedReleases);
 
   const triggerLabel = selectedReleases.length ? (
     <TextOverflow>{selectedReleases[0]}</TextOverflow>
@@ -36,8 +42,11 @@ function ReleasesSelectControl() {
             })
           : []
       }
-      onChange={opts => setSelectedReleases(opts.map(opt => opt.value))}
-      value={selectedReleases}
+      onChange={opts => setActiveReleases(opts.map(opt => opt.value))}
+      onClose={() => {
+        handleChangeFilter({[DashboardFilter.RELEASE]: activeReleases});
+      }}
+      value={activeReleases}
       triggerLabel={
         <Fragment>
           {triggerLabel}

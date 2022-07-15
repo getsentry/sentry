@@ -7,7 +7,7 @@ import theme from 'sentry/utils/theme';
 import withOrganization from 'sentry/utils/withOrganization';
 import WidgetCard from 'sentry/views/dashboardsV2/widgetCard';
 
-import {Widget} from './types';
+import {DashboardFilter, Widget} from './types';
 import DnDKitWidgetWrapper from './widgetWrapper';
 
 const TABLE_ITEM_LIMIT = 20;
@@ -22,6 +22,7 @@ type Props = {
   organization: Organization;
   widget: Widget;
   widgetLimitReached: boolean;
+  dashboardFilters?: Record<DashboardFilter, string[]>;
   isMobile?: boolean;
   isPreview?: boolean;
   windowWidth?: number;
@@ -41,6 +42,7 @@ function SortableWidget(props: Props) {
     isMobile,
     windowWidth,
     index,
+    dashboardFilters,
   } = props;
 
   const {
@@ -81,6 +83,7 @@ function SortableWidget(props: Props) {
     isPreview,
     showWidgetViewerButton: organization.features.includes('widget-viewer-modal'),
     index,
+    dashboardFilters,
   };
 
   if (organization.features.includes('dashboard-grid-layout')) {

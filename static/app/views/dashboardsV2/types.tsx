@@ -76,7 +76,7 @@ export type DashboardListItem = {
   dateCreated?: string;
 };
 
-enum DashboardFilter {
+export enum DashboardFilter {
   RELEASE = 'release',
 }
 

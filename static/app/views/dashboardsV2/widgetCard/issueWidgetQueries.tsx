@@ -6,7 +6,7 @@ import {Group, Organization, PageFilters} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
 
 import {IssuesConfig} from '../datasetConfig/issues';
-import {Widget} from '../types';
+import {DashboardFilter, Widget} from '../types';
 
 import GenericWidgetQueries, {
   GenericWidgetQueriesChildrenProps,
@@ -20,6 +20,7 @@ type Props = {
   selection: PageFilters;
   widget: Widget;
   cursor?: string;
+  dashboardFilters?: Record<DashboardFilter, string[]>;
   limit?: number;
   onDataFetched?: (results: OnDataFetchedProps) => void;
 };
@@ -32,6 +33,7 @@ function IssueWidgetQueries({
   widget,
   cursor,
   limit,
+  dashboardFilters,
   onDataFetched,
 }: Props) {
   const [memberListStoreLoaded, setMemberListStoreLoaded] = useState(false);
@@ -60,6 +62,7 @@ function IssueWidgetQueries({
         widget={widget}
         cursor={cursor}
         limit={limit}
+        dashboardFilters={dashboardFilters}
         onDataFetched={onDataFetched}
         afterFetchTableData={afterFetchTableData}
       >
