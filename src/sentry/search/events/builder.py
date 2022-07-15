@@ -232,7 +232,7 @@ class QueryBuilder:
             self.config = DiscoverDatasetConfig(self)
         elif self.dataset == Dataset.Sessions:
             self.config = SessionsDatasetConfig(self)
-        elif self.dataset == Dataset.Metrics:
+        elif self.dataset in [Dataset.Metrics, Dataset.PerformanceMetrics]:
             self.config = MetricsDatasetConfig(self)
         else:
             raise NotImplementedError(f"Data Set configuration not found for {self.dataset}.")
@@ -1586,6 +1586,9 @@ class MetricsQueryBuilder(QueryBuilder):
     def __init__(
         self,
         *args: Any,
+        # Datasets are currently a bit confusing; Dataset.Metrics is actually release health/sessions
+        # Dataset.PerformanceMetrics is MEP. TODO: rename Dataset.Metrics to Dataset.ReleaseMetrics or similar
+        dataset: Optional[Dataset] = None,
         allow_metric_aggregates: Optional[bool] = False,
         dry_run: Optional[bool] = False,
         **kwargs: Any,
@@ -1600,9 +1603,11 @@ class MetricsQueryBuilder(QueryBuilder):
         # Don't do any of the actions that would impact performance in anyway
         # Skips all indexer checks, and won't interact with clickhouse
         self.dry_run = dry_run
+        assert dataset is None or dataset in [Dataset.PerformanceMetrics, Dataset.Metrics]
         super().__init__(
-            # Dataset is always Metrics
-            Dataset.Metrics,
+            # TODO: defaulting to Metrics for now so I don't have to update incidents tests. Should be
+            # PerformanceMetrics
+            Dataset.Metrics if dataset is None else dataset,
             *args,
             **kwargs,
         )
@@ -1651,8 +1656,8 @@ class MetricsQueryBuilder(QueryBuilder):
             tag_match = TAG_KEY_RE.search(col)
             col = tag_match.group("tag") if tag_match else col
 
-        if col in DATASETS[Dataset.Metrics]:
-            return str(DATASETS[Dataset.Metrics][col])
+        if col in DATASETS[self.dataset]:
+            return str(DATASETS[self.dataset][col])
         tag_id = self.resolve_metric_index(col)
         if tag_id is None:
             raise InvalidSearchQuery(f"Unknown field: {col}")
@@ -1752,8 +1757,6 @@ class MetricsQueryBuilder(QueryBuilder):
         ):
             self.start = self.start.replace(minute=0, second=0, microsecond=0)
             granularity = 3600
-        # We're going from one random minute to another, we could use the 10s bucket, but no reason for that precision
-        # here
         else:
             granularity = 60
         return Granularity(granularity)
@@ -1891,8 +1894,7 @@ class MetricsQueryBuilder(QueryBuilder):
                 )
 
         return Request(
-            # TODO: Actually introduce this as a dataset
-            dataset="generic_metrics" if self.dataset is Dataset.Metrics else self.dataset.value,
+            dataset=self.dataset.value,
             app_id="default",
             query=Query(
                 match=primary_framework.entity,
@@ -1915,24 +1917,25 @@ class MetricsQueryBuilder(QueryBuilder):
         )
 
     def _create_query_framework(self) -> Tuple[str, Dict[str, QueryFramework]]:
+        prefix = "generic_" if self.dataset is Dataset.PerformanceMetrics else ""
         query_framework: Dict[str, QueryFramework] = {
             "distribution": QueryFramework(
                 orderby=[],
                 having=[],
                 functions=self.distributions,
-                entity=Entity("metrics_distributions", sample=self.sample_rate),
+                entity=Entity(f"{prefix}metrics_distributions", sample=self.sample_rate),
             ),
             "counter": QueryFramework(
                 orderby=[],
                 having=[],
                 functions=self.counters,
-                entity=Entity("metrics_counters", sample=self.sample_rate),
+                entity=Entity(f"{prefix}metrics_counters", sample=self.sample_rate),
             ),
             "set": QueryFramework(
                 orderby=[],
                 having=[],
                 functions=self.sets,
-                entity=Entity("metrics_sets", sample=self.sample_rate),
+                entity=Entity(f"{prefix}metrics_sets", sample=self.sample_rate),
             ),
         }
         primary = None
@@ -2087,10 +2090,7 @@ class MetricsQueryBuilder(QueryBuilder):
                     granularity=self.granularity,
                 )
                 request = Request(
-                    # TODO: Actually introduce this as a dataset
-                    dataset="generic_metrics"
-                    if self.dataset is Dataset.Metrics
-                    else self.dataset.value,
+                    dataset=self.dataset.value,
                     app_id="default",
                     query=query,
                     flags=Flags(turbo=self.turbo),
@@ -2206,6 +2206,7 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
         self,
         params: ParamsType,
         interval: int,
+        dataset: Optional[Dataset] = None,
         query: Optional[str] = None,
         selected_columns: Optional[List[str]] = None,
         allow_metric_aggregates: Optional[bool] = False,
@@ -2215,6 +2216,7 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
         super().__init__(
             params=params,
             query=query,
+            dataset=dataset,
             selected_columns=selected_columns,
             allow_metric_aggregates=allow_metric_aggregates,
             auto_fields=False,
@@ -2283,9 +2285,7 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
             if len(query_details.functions) > 0:
                 queries.append(
                     Request(
-                        dataset="generic_metrics"
-                        if self.dataset is Dataset.Metrics
-                        else self.dataset.value,
+                        dataset=self.dataset.value,
                         app_id="default",
                         query=Query(
                             match=query_details.entity,
