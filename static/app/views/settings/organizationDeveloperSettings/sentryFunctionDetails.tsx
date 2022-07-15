@@ -47,7 +47,7 @@ export default function SentryFunctionDetails(props: Props) {
   return (
     <div>
       <Feature features={['organizations:sentry-functions']}>
-        <h1>Sentry Function Details</h1>
+        <h1>t(Sentry Function Details)</h1>
         <h2>{props.params.orgId}</h2>
         <Form
           apiMethod={method}
@@ -55,7 +55,7 @@ export default function SentryFunctionDetails(props: Props) {
           model={form.current}
           onPreSubmit={() => addLoadingMessage(t('Saving changes..'))}
         >
-          <JsonForm forms={[{title: 'Sentry Function Details', fields: formFields}]} />
+          <JsonForm forms={[{title: t('Sentry Function Details'), fields: formFields}]} />
         </Form>
       </Feature>
     </div>
