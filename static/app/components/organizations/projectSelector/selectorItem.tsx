@@ -134,8 +134,4 @@ const ActionBookmark = styled(BookmarkStar)`
   ${p => !p.project.isBookmarked && 'opacity: 0.33'};
 `;
 
-const ProjectFilterRow = styled(PageFilterRow)`
-  :hover ${ActionButton}, :hover ${ActionBookmark} {
-    opacity: 1;
-  }
-`;
+const ProjectFilterRow = styled(PageFilterRow)``;

@@ -42,9 +42,4 @@ export const SidebarSection = styled(PageColumn)`
 export const TopbarSection = styled(PageRow)`
   height: ${TOPBAR_MIN_HEIGHT}px;
   min-height: ${TOPBAR_MIN_HEIGHT}px;
-
-  ${BreadcrumbSection} {
-    max-width: ${SIDEBAR_MIN_WIDTH}px;
-    margin-left: ${space(2)};
-  }
 `;

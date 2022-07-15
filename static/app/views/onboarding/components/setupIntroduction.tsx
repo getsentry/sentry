@@ -34,8 +34,4 @@ const TitleContainer = styled('div')`
   gap: ${space(2)};
   align-items: center;
   justify-items: end;
-
-  ${StepHeading} {
-    margin-bottom: 0;
-  }
 `;

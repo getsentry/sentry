@@ -472,11 +472,6 @@ const ActionsRow = styled(FlexCenter)`
 const AssigneeWrapper = styled('div')`
   display: flex;
   justify-content: flex-end;
-
-  /* manually align menu underneath dropdown caret */
-  ${DropdownBubble} {
-    right: -14px;
-  }
 `;
 
 const DropdownButton = styled('div')`

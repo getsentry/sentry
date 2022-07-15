@@ -128,9 +128,6 @@ const StyledPanelTable = styled(PanelTable)`
   border-bottom: 0;
 
   margin: 0;
-  ${/* sc-selector */ PanelTableHeader} {
-    height: min-content;
-  }
 `;
 
 type HeadCellProps = {

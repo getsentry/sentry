@@ -165,23 +165,15 @@ const alertStyles = ({
       margin: ${space(0.5)} 0 0;
     }
 
-    ${IconWrapper}, ${ExpandIconWrap} {
-      color: ${alertColors.iconColor};
-    }
-
     ${hovered &&
     `
       border-color: ${alertColors.borderHover};
-      ${IconWrapper}, ${IconChevron} {
-        color: ${alertColors.iconHoverColor};
-      }
+
     `}
 
     ${showExpand &&
     `cursor: pointer;
-      ${TrailingItems} {
-       cursor: auto;
-      }
+
     `}
 
     ${system &&

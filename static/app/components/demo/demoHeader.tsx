@@ -142,12 +142,6 @@ const GetStarted = styled(BaseButton)`
     display: none;
   }
   @media (max-width: 650px) {
-    ${GetStartedTextLong} {
-      display: none;
-    }
-    ${GetStartedTextShort} {
-      display: inline;
-    }
   }
 `;
 

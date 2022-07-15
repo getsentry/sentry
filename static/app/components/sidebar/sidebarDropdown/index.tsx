@@ -239,15 +239,6 @@ const SidebarDropdownActor = styled('button')`
   padding: 0;
   background: none;
   width: 100%;
-
-  &:hover {
-    ${OrgOrUserName} {
-      text-shadow: 0 0 6px rgba(255, 255, 255, 0.1);
-    }
-    ${UserNameOrEmail} {
-      color: ${p => p.theme.white};
-    }
-  }
 `;
 
 const StyledAvatar = styled(Avatar)<{collapsed: boolean}>`

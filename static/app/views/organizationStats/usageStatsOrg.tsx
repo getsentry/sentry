@@ -495,10 +495,6 @@ const FooterDate = styled('div')`
   flex-direction: row;
   align-items: center;
 
-  > ${SectionHeading} {
-    margin-right: ${space(1.5)};
-  }
-
   > span:last-child {
     font-weight: 400;
     font-size: ${p => p.theme.fontSizeMedium};

@@ -31,11 +31,6 @@ export default function SetupIntroduction({stepHeaderText, platform}: Props) {
 const TitleContainer = styled('div')`
   display: flex;
   gap: ${space(2)};
-
-  ${StepHeading} {
-    margin-bottom: 0;
-    min-width: 0;
-  }
 `;
 
 const IconWrapper = styled(motion.div)`

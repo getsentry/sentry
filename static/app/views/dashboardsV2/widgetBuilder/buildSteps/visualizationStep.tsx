@@ -122,20 +122,4 @@ export function VisualizationStep({
 
 const VisualizationWrapper = styled('div')<{displayType: DisplayType}>`
   padding-right: ${space(2)};
-  ${WidgetCardPanel} {
-    height: initial;
-  }
-  ${p =>
-    p.displayType === DisplayType.TABLE &&
-    css`
-      overflow: hidden;
-      ${TableCell} {
-        /* 24px ActorContainer height + 16px top and bottom padding + 1px border = 41px */
-        height: 41px;
-      }
-      ${WidgetCardPanel} {
-        /* total size of a table, if it would display 5 rows of content */
-        height: 301px;
-      }
-    `};
 `;

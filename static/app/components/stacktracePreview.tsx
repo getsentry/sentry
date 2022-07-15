@@ -251,15 +251,6 @@ const StacktraceHovercard = styled(Hovercard)<{state: 'loading' | 'empty' | 'don
     return '700px';
   }};
 
-  ${Body} {
-    padding: 0;
-    max-height: 300px;
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    border-bottom-left-radius: ${p => p.theme.borderRadius};
-    border-bottom-right-radius: ${p => p.theme.borderRadius};
-  }
-
   .traceback {
     margin-bottom: 0;
     border: 0;

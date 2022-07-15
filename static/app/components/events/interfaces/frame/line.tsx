@@ -476,19 +476,4 @@ const ToggleContextButton = styled(Button)`
   }
 `;
 
-const StyledLi = styled('li')`
-  ${PackageStatusIcon} {
-    flex-shrink: 0;
-  }
-  :hover {
-    ${PackageStatusIcon} {
-      visibility: visible;
-    }
-    ${AddressToggleIcon} {
-      visibility: visible;
-    }
-    ${FunctionNameToggleIcon} {
-      visibility: visible;
-    }
-  }
-`;
+const StyledLi = styled('li')``;

@@ -39,11 +39,6 @@ const menuItemStyles = (
     color: ${p.theme.textColor};
     outline: none;
   }
-
-  ${SidebarOrgSummary} {
-    padding-left: 0;
-    padding-right: 0;
-  }
 `;
 
 const MenuItemLabel = styled('span')<{hasMenu?: boolean}>`

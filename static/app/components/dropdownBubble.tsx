@@ -89,10 +89,6 @@ const DropdownBubble = styled('div')<Params>`
   /* This is needed to be able to cover e.g. pagination buttons, but also be
    * below dropdown actor button's zindex */
   z-index: ${p => p.theme.zIndex.dropdownAutocomplete.menu};
-
-  ${/* sc-selector */ SettingsHeader} & {
-    z-index: ${p => p.theme.zIndex.dropdownAutocomplete.menu + 2};
-  }
 `;
 
 export default DropdownBubble;

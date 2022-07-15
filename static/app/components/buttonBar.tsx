@@ -67,20 +67,11 @@ const MergedStyles = () => css`
     &:first-child:not(:last-child) {
       border-top-right-radius: 0;
       border-bottom-right-radius: 0;
-
-      & > .dropdown-actor > ${StyledButton} {
-        border-top-right-radius: 0;
-        border-bottom-right-radius: 0;
-      }
     }
 
     /* Middle buttons are square */
     &:not(:last-child):not(:first-child) {
       border-radius: 0;
-
-      & > .dropdown-actor > ${StyledButton} {
-        border-radius: 0;
-      }
     }
 
     /* Middle buttons only need one border so we don't get a double line */
@@ -109,12 +100,6 @@ const MergedStyles = () => css`
       border-top-left-radius: 0;
       border-bottom-left-radius: 0;
       margin-left: -1px;
-
-      & > .dropdown-actor > ${StyledButton} {
-        border-top-left-radius: 0;
-        border-bottom-left-radius: 0;
-        margin-left: -1px;
-      }
     }
   }
 `;

@@ -599,9 +599,6 @@ const AssigneeWrapper = styled('div')`
   justify-content: flex-end;
 
   /* manually align menu underneath dropdown caret */
-  ${DropdownBubble} {
-    right: -14px;
-  }
 `;
 
 const StyledIconUser = styled(IconUser)`

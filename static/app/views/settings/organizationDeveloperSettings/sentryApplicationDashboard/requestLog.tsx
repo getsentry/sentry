@@ -318,10 +318,6 @@ const RequestLogFilters = styled('div')`
   display: flex;
   align-items: center;
   padding-bottom: ${space(1)};
-
-  > :first-child ${StyledButton} {
-    border-radius: ${p => p.theme.borderRadiusLeft};
-  }
 `;
 
 const ErrorsOnlyCheckbox = styled('div')`

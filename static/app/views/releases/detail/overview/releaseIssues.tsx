@@ -433,9 +433,6 @@ const ControlsWrapper = styled('div')`
   justify-content: space-between;
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     display: block;
-    ${ButtonGrid} {
-      overflow: auto;
-    }
   }
 `;
 
@@ -445,20 +442,6 @@ const OpenInButtonBar = styled(ButtonBar)`
 
 const StyledButtonBar = styled(ButtonBar)`
   grid-template-columns: repeat(4, 1fr);
-  ${ButtonLabel} {
-    white-space: nowrap;
-    gap: ${space(0.5)};
-    span:last-child {
-      color: ${p => p.theme.buttonCount};
-    }
-  }
-  .active {
-    ${ButtonLabel} {
-      span:last-child {
-        color: ${p => p.theme.buttonCountActive};
-      }
-    }
-  }
 `;
 
 const StyledPagination = styled(Pagination)`

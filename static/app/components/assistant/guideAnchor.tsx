@@ -314,11 +314,4 @@ const StepCount = styled('div')`
   text-transform: uppercase;
 `;
 
-const StyledHovercard = styled(Hovercard)`
-  ${HovercardBody} {
-    background-color: ${theme.purple300};
-    margin: -1px;
-    border-radius: ${theme.borderRadius};
-    width: 300px;
-  }
-`;
+const StyledHovercard = styled(Hovercard)``;

@@ -26,11 +26,6 @@ const HeaderItemPosition = styled('div')<Props>`
   height: 100%;
 
   ${getMediaQueryForSpacer}
-
-  ${AutoCompleteRoot}, ${TimeRangeRoot} {
-    flex: 1;
-    min-width: 0;
-  }
 `;
 
 export default HeaderItemPosition;

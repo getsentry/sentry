@@ -116,10 +116,6 @@ const StickyMain = styled(Layout.Main)`
   background: ${p => p.theme.background};
 `;
 
-const StyledLayoutMain = styled(Layout.Main)`
-  ${HeaderContainer} {
-    position: relative;
-  }
-`;
+const StyledLayoutMain = styled(Layout.Main)``;
 
 export default ReplayDetails;

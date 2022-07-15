@@ -153,10 +153,6 @@ const StyledPill = styled('li')<{type?: PillType}>`
   }
 
   ${getPillStyle};
-
-  ${PillValue} {
-    ${getPillValueStyle};
-  }
 `;
 
 export default Pill;

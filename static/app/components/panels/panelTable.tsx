@@ -153,11 +153,6 @@ const Wrapper = styled(Panel, {
     }
   }
 
-  > ${/* sc-selector */ TableEmptyStateWarning}, > ${/* sc-selector */ LoadingWrapper} {
-    border: none;
-    grid-column: auto / span ${p => p.columns};
-  }
-
   /* safari needs an overflow value or the contents will spill out */
   overflow: auto;
 `;

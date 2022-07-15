@@ -46,15 +46,6 @@ export const BannerContainer = styled('div')<BannerProps>`
   background: ${p => getColors(p).background};
   border-top: 1px solid ${p => getColors(p).border};
   border-bottom: 1px solid ${p => getColors(p).border};
-
-  /* Muted box & processing errors are in different parts of the DOM */
-  &
-    + ${/* sc-selector */ DataSection}:first-child,
-    &
-    + div
-    > ${/* sc-selector */ DataSection}:first-child {
-    border-top: 0;
-  }
 `;
 
 export const BannerSummary = styled('p')`

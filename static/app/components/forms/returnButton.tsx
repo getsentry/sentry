@@ -25,12 +25,6 @@ const ClickTargetStyled = styled('div')`
   align-items: center;
   justify-content: center;
   cursor: pointer;
-
-  &:hover ${SubmitButton} {
-    background: ${p => p.theme.background};
-    box-shadow: ${p => p.theme.dropShadowLight};
-    border: 1px solid ${p => p.theme.border};
-  }
 `;
 
 const ReturnButton = props => (

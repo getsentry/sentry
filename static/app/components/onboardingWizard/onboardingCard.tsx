@@ -157,12 +157,6 @@ const OnboardingTaskProjectListItem = styled(Link)`
   border-radius: 0;
   padding: 0 ${space(3)};
   color: ${p => p.theme.textColor};
-
-  :not(:last-child) {
-    ${OnboardingTaskProjectListItemInner} {
-      border-bottom: 1px solid ${p => p.theme.innerBorder};
-    }
-  }
 `;
 
 const PulsingIndicator = styled('div')`

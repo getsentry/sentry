@@ -165,25 +165,10 @@ const Controls = styled('div')<{expanded: boolean}>`
   background-color: ${p => p.theme.backgroundSecondary};
   padding: ${space(0.5)} ${space(1)};
   ${p => p.expanded && `border-bottom: 1px solid ${p.theme.innerBorder}`};
-
-  ${MergedGroup} {
-    &:first-child & {
-      border-top: none;
-    }
-    &:last-child & {
-      border-top: none;
-      border-bottom: 1px solid ${p => p.theme.innerBorder};
-    }
-  }
 `;
 
 const FingerprintLabel = styled('label')`
   font-family: ${p => p.theme.text.familyMono};
-
-  ${/* sc-selector */ Controls} & {
-    font-weight: 400;
-    margin: 0;
-  }
 `;
 
 const Collapse = styled('span')`

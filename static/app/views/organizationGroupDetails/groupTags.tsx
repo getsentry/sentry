@@ -197,9 +197,6 @@ const TagBarGlobalSelectionLink = styled(GlobalSelectionLink)`
   &:hover {
     color: ${p => p.theme.textColor};
     text-decoration: underline;
-    ${TagBarBackground} {
-      background: ${p => p.theme.tagBarHover};
-    }
   }
 `;
 

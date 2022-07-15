@@ -1232,12 +1232,6 @@ const Main = styled(Layout.Main)`
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
     padding: ${space(4)};
   }
-
-  @media (max-width: calc(${p => p.theme.breakpoints.large} + ${space(4)})) {
-    ${ListItem} {
-      width: calc(100% - ${space(4)});
-    }
-  }
 `;
 
 const Side = styled(Layout.Side)`

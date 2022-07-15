@@ -143,23 +143,6 @@ const PendingSeenIndicator = styled('div')`
 
 const hoverCss = (p: {theme: Theme}) => css`
   background: rgba(255, 255, 255, 0.05);
-
-  ${RingBackground} {
-    stroke: rgba(255, 255, 255, 0.3);
-  }
-  ${RingBar} {
-    stroke: ${p.theme.green200};
-  }
-  ${RingText} {
-    color: ${p.theme.white};
-  }
-
-  ${Heading} {
-    color: ${p.theme.white};
-  }
-  ${Remaining} {
-    color: ${p.theme.white};
-  }
 `;
 
 const Container = styled('div')<{isActive: boolean}>`

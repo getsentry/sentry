@@ -194,19 +194,4 @@ const StyleListItem = styled(ListItem)`
   :first-child {
     border-top: none;
   }
-
-  ${PackageStatusIcon} {
-    flex-shrink: 0;
-  }
-  :hover {
-    ${PackageStatusIcon} {
-      visibility: visible;
-    }
-    ${AddressToggleIcon} {
-      visibility: visible;
-    }
-    ${FunctionNameToggleIcon} {
-      visibility: visible;
-    }
-  }
 `;

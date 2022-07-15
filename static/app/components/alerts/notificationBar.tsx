@@ -17,7 +17,4 @@ export const NotificationBar = styled('div')`
   padding: ${space(1.5)};
   font-size: 14px;
   line-height: normal;
-  ${StyledNotificationBarIconInfo} {
-    color: ${p => p.theme.alert.info.iconColor};
-  }
 `;

@@ -389,16 +389,7 @@ const StyledPagination = styled(Pagination)`
   margin-top: 0;
 `;
 
-const Content = styled('div')<{isReloading: boolean}>`
-  ${p =>
-    p.isReloading &&
-    `
-      ${StyledPanelTable}, ${StyledPagination} {
-        opacity: 0.5;
-        pointer-events: none;
-      }
-    `}
-`;
+const Content = styled('div')<{isReloading: boolean}>``;
 
 const SliderWrapper = styled('div')`
   display: grid;
@@ -420,24 +411,6 @@ const SliderWrapper = styled('div')`
 `;
 
 const StyledRangeSlider = styled(RangeSlider)`
-  ${Slider} {
-    background: transparent;
-    margin-top: 0;
-    margin-bottom: 0;
-
-    ::-ms-thumb {
-      box-shadow: 0 0 0 3px ${p => p.theme.backgroundSecondary};
-    }
-
-    ::-moz-range-thumb {
-      box-shadow: 0 0 0 3px ${p => p.theme.backgroundSecondary};
-    }
-
-    ::-webkit-slider-thumb {
-      box-shadow: 0 0 0 3px ${p => p.theme.backgroundSecondary};
-    }
-  }
-
   position: absolute;
   bottom: 0;
   left: ${space(1.5)};

@@ -171,9 +171,6 @@ const Content = styled('div')`
    * PageContent is not normally used in settings but <PermissionDenied /> uses it under the hood.
    * This prevents double padding.
    */
-  ${PageContent} {
-    padding: 0;
-  }
 `;
 
 export default SettingsLayout;

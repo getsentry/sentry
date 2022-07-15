@@ -162,13 +162,6 @@ const StyledTimeSince = styled(TimeSince)`
 
 const StyledHovercard = styled(Hovercard)`
   width: 250px;
-  ${Header} {
-    font-weight: normal;
-    border-bottom: 1px solid ${p => p.theme.innerBorder};
-  }
-  ${Body} {
-    padding: ${space(1.5)};
-  }
 `;
 
 export default SeenInfo;

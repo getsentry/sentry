@@ -682,10 +682,6 @@ const Ghost = styled('div')`
   cursor: grabbing;
   padding-right: ${space(2)};
 
-  & > ${RowContainer} {
-    padding-bottom: 0;
-  }
-
   & svg {
     cursor: grabbing;
   }

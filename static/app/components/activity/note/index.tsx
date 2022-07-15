@@ -163,9 +163,6 @@ const ActivityItemNote = styled(ActivityItem)`
 
 const ActivityItemWithEditing = styled(ActivityItemNote)`
   &:hover {
-    ${EditorTools} {
-      display: inline-block;
-    }
   }
 `;
 

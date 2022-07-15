@@ -287,10 +287,6 @@ const StyledIconAnchor = styled(IconAnchor)`
 const Permalink = styled('a')`
   display: inline-flex;
   justify-content: flex-start;
-  :hover ${StyledIconAnchor} {
-    display: block;
-    color: ${p => p.theme.gray300};
-  }
 `;
 
 const FullStackTraceToggler = styled(BooleanField)`

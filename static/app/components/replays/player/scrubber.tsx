@@ -109,20 +109,6 @@ const Wrapper = styled('div')`
 
 export const TimelineScubber = styled(Scrubber)`
   height: 100%;
-
-  ${Meter} {
-    background: transparent;
-  }
-
-  ${PlaybackTimeValue} {
-    opacity: 0.2;
-  }
-
-  ${RangeWrapper},
-  ${Range},
-  ${SliderAndInputWrapper} {
-    height: 100%;
-  }
 `;
 
 export const PlayerScrubber = styled(Scrubber)`
@@ -132,14 +118,6 @@ export const PlayerScrubber = styled(Scrubber)`
     margin-block: -${space(0.25)};
     height: ${space(1)};
   }
-
-  ${RangeWrapper} {
-    height: ${space(0.5)};
-  }
-  :hover ${RangeWrapper} {
-    height: ${space(0.75)};
-  }
-
   ${PlaybackTimeValue}:after {
     content: '';
     display: block;

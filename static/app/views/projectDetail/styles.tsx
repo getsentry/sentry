@@ -6,10 +6,6 @@ import space from 'sentry/styles/space';
 
 export const SidebarSection = styled('section')`
   margin-bottom: ${space(2)};
-
-  ${SectionHeading} {
-    line-height: 1;
-  }
 `;
 
 export const SectionHeadingWrapper = styled('div')`

@@ -48,9 +48,6 @@ const PanelBody = styled(BasePanelBody)`
   padding: ${space(1.5)};
   overflow-y: auto;
   max-height: calc(100% - ${TAB_HEADER_HEIGHT}px);
-  ${SectionHeading} {
-    display: none;
-  }
 `;
 
 export default TagPanel;

@@ -43,7 +43,4 @@ export default Tags;
 
 const StyledDataSection = styled(DataSection)`
   overflow: hidden;
-  ${SectionContents} {
-    overflow: hidden;
-  }
 `;

@@ -77,14 +77,6 @@ const Container = styled('div')<{isChecked: boolean}>`
   font-size: ${p => p.theme.fontSizeMedium};
   font-weight: 400;
   padding-left: ${space(0.5)};
-
-  ${MultiselectCheckbox} {
-    opacity: ${p => (p.isChecked ? 1 : 0.33)};
-  }
-
-  &:hover ${MultiselectCheckbox} {
-    opacity: 1;
-  }
 `;
 
 const Label = styled('div')<{multi: boolean}>`

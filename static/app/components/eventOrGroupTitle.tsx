@@ -107,11 +107,5 @@ const Wrapper = styled('span')<{hasGroupingTreeUI: boolean}>`
       grid-template-columns: auto max-content 1fr max-content;
       align-items: flex-end;
       line-height: 100%;
-
-      ${Subtitle} {
-        ${p.theme.overflowEllipsis};
-        display: inline-block;
-        height: 100%;
-      }
     `}
 `;

@@ -54,8 +54,4 @@ const Title = styled('h3')`
   height: 14px;
 `;
 
-const StyledEventDataSection = styled(EventDataSection)`
-  ${SectionContents} {
-    flex: 1;
-  }
-`;
+const StyledEventDataSection = styled(EventDataSection)``;

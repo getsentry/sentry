@@ -339,52 +339,10 @@ const FooterWrapper = styled('div')`
 
 const ScoreCardWrapper = styled('div')`
   margin: ${space(2)} 0 0 ${space(2)};
-  ${ScorePanel} {
-    min-height: auto;
-  }
-  ${Title} {
-    color: ${p => p.theme.gray300};
-  }
-  ${ScoreWrapper} {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-  ${Score} {
-    font-size: 28px;
-  }
-  ${Trend} {
-    margin-left: 0;
-    margin-top: ${space(0.5)};
-  }
 `;
 
 const DeploysWrapper = styled('div')`
   margin-top: ${space(2)};
-  ${GetStarted} {
-    display: block;
-    height: 100%;
-  }
-  ${TextOverflow} {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    grid-column-gap: ${space(1)};
-    div {
-      white-space: nowrap;
-      text-overflow: ellipsis;
-      overflow: hidden;
-    }
-    a {
-      display: grid;
-    }
-  }
-  ${DeployRows} {
-    grid-template-columns: 2fr auto;
-    margin-right: ${space(2)};
-    height: auto;
-    svg {
-      display: none;
-    }
-  }
 `;
 
 const ReleaseTitle = styled('span')`

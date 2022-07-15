@@ -50,10 +50,6 @@ export const EventNode = styled(Tag)<{shouldOffset?: boolean}>`
     display: flex;
     color: ${p => nodeColors(p.theme)[p.type || 'white'].color};
   }
-  & ${/* sc-selector */ Background} {
-    background-color: ${p => nodeColors(p.theme)[p.type || 'white'].background};
-    border: 1px solid ${p => nodeColors(p.theme)[p.type || 'white'].border};
-  }
 
   /*
    * When the EventNode is contains an icon, we need to offset the

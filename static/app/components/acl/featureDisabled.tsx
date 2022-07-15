@@ -150,12 +150,6 @@ const ToggleButton = styled(Button)`
   &:hover {
     color: ${p => p.theme.activeHover};
   }
-
-  ${ButtonLabel} {
-    display: grid;
-    grid-auto-flow: column;
-    gap: ${space(1)};
-  }
 `;
 
 const CopyButton = styled(Button)`

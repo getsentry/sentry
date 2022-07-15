@@ -164,30 +164,4 @@ const Wrapper = styled('div')<WrapperProps>`
   justify-content: ${p => (p.direction === 'right' ? 'flex-end' : 'flex-start')};
   ${p =>
     p.consistentWidth && `width: ${p.size + (p.max - 1) * getOverlapWidth(p.size)}px;`};
-
-  ${PlatformIcons} {
-    ${p =>
-      p.showCounter
-        ? css`
-            z-index: 1;
-            flex-direction: row-reverse;
-            > * :not(:first-child) {
-              margin-right: ${p.size * -1 + getOverlapWidth(p.size)}px;
-            }
-          `
-        : css`
-            > * :not(:first-child) {
-              margin-left: ${p.size * -1 + getOverlapWidth(p.size)}px;
-            }
-          `}
-  }
-
-  ${InnerWrapper} {
-    padding-right: ${p => p.size / 2 + 1}px;
-  }
-
-  ${Counter} {
-    height: ${p => p.size}px;
-    min-width: ${p => p.size}px;
-  }
 `;

@@ -392,15 +392,6 @@ const StyledHovercard = styled(Hovercard)`
   font-weight: normal;
   width: inherit;
   line-height: 0;
-  ${Header} {
-    font-weight: strong;
-    font-size: ${p => p.theme.fontSizeSmall};
-    color: ${p => p.theme.subText};
-  }
-  ${Body} {
-    font-weight: normal;
-    font-size: ${p => p.theme.fontSizeSmall};
-  }
 `;
 const HeaderContainer = styled('div')`
   width: 100%;

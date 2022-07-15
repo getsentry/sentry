@@ -163,63 +163,6 @@ const ChartTableRow = styled('label')<{
   > * {
     padding: ${space(1)} ${space(2)};
   }
-
-  ${p =>
-    p.isActive &&
-    !p.isLoading &&
-    css`
-      ${Cell}, ${NumericCell}, ${DescriptionCell}, ${TitleWrapper}, ${ExpanderCell} {
-        background-color: ${p.theme.bodyBackground};
-      }
-    `}
-
-  &:hover {
-    cursor: pointer;
-    ${/* sc-selector */ Cell}, ${/* sc-selector */ NumericCell}, ${
-      /* sc-selector */ DescriptionCell
-    },${/* sc-selector */ ExpanderCell}, ${/* sc-selector */ TitleWrapper} {
-      ${p => !p.isLoading && `background-color: ${p.theme.bodyBackground}`}
-    }
-  }
-
-  ${p =>
-    (p.role === 'default' || (p.role === 'parent' && !p.expanded)) &&
-    css`
-      &:not(:last-child) {
-        ${Cell}, ${NumericCell}, ${DescriptionCell}, ${ExpanderCell} {
-          border-bottom: 1px solid ${p.theme.border};
-        }
-      }
-    `}
-
-  ${p =>
-    p.role === 'children' &&
-    css`
-      ${DescriptionCell} {
-        padding-left: 44px;
-        position: relative;
-        &:before {
-          content: '';
-          width: 15px;
-          height: 36px;
-          position: absolute;
-          top: -17px;
-          left: 24px;
-          border-bottom: 1px solid ${p.theme.border};
-          border-left: 1px solid ${p.theme.border};
-        }
-      }
-    `}
-
-    ${p =>
-    p.role === 'children' &&
-    css`
-      ${Cell}, ${NumericCell}, ${DescriptionCell}, ${ExpanderCell} {
-        padding-bottom: ${space(0.75)};
-        padding-top: ${space(0.75)};
-        border-bottom: 0;
-      }
-    `}
 `;
 
 const ToggleButton = styled(Button)`

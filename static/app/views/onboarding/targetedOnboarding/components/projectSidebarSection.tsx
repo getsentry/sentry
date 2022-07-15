@@ -93,20 +93,6 @@ const ProjectWrapper = styled('div')<{disabled: boolean; isActive: boolean}>`
   cursor: pointer;
   border-radius: 4px;
   user-select: none;
-  ${p =>
-    p.disabled &&
-    `
-    cursor: not-allowed;
-    ${StyledPlatformIcon} {
-      filter: grayscale(1);
-    }
-    ${SubHeader} {
-      color: ${p.theme.gray400};
-    }
-    ${NameWrapper} {
-      text-decoration-line: line-through;
-    }
-  `}
 `;
 
 const indicatorAnimation: Variants = {

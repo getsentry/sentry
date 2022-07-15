@@ -100,12 +100,4 @@ const Wrapper = styled('div')<{contentHeight?: string; isCollapsed?: boolean}>`
   background: ${p => p.theme.backgroundSecondary};
   ${p => !p.contentHeight && `padding: ${space(1)} ${space(2)}`};
   ${p => !p.isCollapsed && ` border-bottom: 1px solid ${p.theme.border}`};
-  ${p =>
-    !p.isCollapsed &&
-    p.contentHeight &&
-    `
-      ${Content} {
-        height: ${p.contentHeight};
-      }
-    `}
 `;

@@ -125,10 +125,6 @@ const PermalinkAnchor = styled(Anchor)`
   height: 100%;
   padding-left: ${space(0.5)};
   transform: translateX(-${space(3)});
-
-  :hover ${StyledIconAnchor}, :focus ${StyledIconAnchor} {
-    opacity: 1;
-  }
 `;
 
 const SectionHeader = styled('div')<{isCentered?: boolean}>`

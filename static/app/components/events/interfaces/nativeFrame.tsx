@@ -453,12 +453,6 @@ const GridRow = styled('div')<{expandable: boolean; expanded: boolean; inApp: bo
     !p.inApp &&
     css`
       color: ${p.theme.subText};
-      ${FunctionName} {
-        color: ${p.theme.subText};
-      }
-      ${FunctionNameCell} {
-        color: ${p.theme.subText};
-      }
     `};
 
   display: grid;

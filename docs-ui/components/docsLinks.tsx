@@ -93,10 +93,6 @@ const ImgWrap = styled('div')`
   border-radius: ${p => p.theme.borderRadius};
   overflow: hidden;
   transition: 0.2s ease-out;
-
-  ${/* sc-selector */ LinkWrap}:hover & {
-    border: solid 1px ${p => p.theme.border};
-  }
 `;
 
 const Img = styled('img')`
@@ -125,10 +121,6 @@ const IconWrap = styled('div')`
   display: flex;
   align-items: center;
   transition: 0.2s ease-out;
-
-  ${/* sc-selector */ LinkWrap}:hover & {
-    transform: translateX(${space(0.5)});
-  }
 `;
 
 const Desc = styled('p')`

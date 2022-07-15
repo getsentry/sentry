@@ -311,20 +311,6 @@ const ControlsWrapper = styled('div')`
 
 const StyledButtonBar = styled(ButtonBar)`
   grid-template-columns: repeat(4, 1fr);
-  ${ButtonLabel} {
-    white-space: nowrap;
-    gap: ${space(0.5)};
-    span:last-child {
-      color: ${p => p.theme.buttonCount};
-    }
-  }
-  .active {
-    ${ButtonLabel} {
-      span:last-child {
-        color: ${p => p.theme.buttonCountActive};
-      }
-    }
-  }
 `;
 
 const OpenInButtonBar = styled(ButtonBar)`
