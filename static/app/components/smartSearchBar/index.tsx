@@ -1,5 +1,6 @@
 import {Component, createRef} from 'react';
 import TextareaAutosize from 'react-autosize-textarea';
+// eslint-disable-next-line no-restricted-imports
 import {withRouter, WithRouterProps} from 'react-router';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
