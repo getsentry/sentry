@@ -1050,6 +1050,10 @@ function buildRoutes() {
           component={make(() => import('sentry/views/releases/detail/overview'))}
         />
         <Route
+          path="activity/"
+          component={make(() => import('sentry/views/releases/detail/activity'))}
+        />
+        <Route
           path="commits/"
           component={make(
             () => import('sentry/views/releases/detail/commitsAndFiles/commits')
