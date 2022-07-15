@@ -421,35 +421,41 @@ export const getTagItemsFromKeys = (
 };
 
 /**
- * Sets an item as active within a search group array.
- * Comparison using the value of the item, assuming each item has a unique value.
+ * Sets an item as active within a search group array and returns new search groups without mutating.
+ * the item is compared via value, so this function assumes that each value is unique.
  */
-export const setSearchGroupItemActive = (
+export const getSearchGroupWithItemMarkedActive = (
   searchGroups: SearchGroup[],
   currentItem: SearchItem,
   active: boolean
 ) => {
-  searchGroups.find(group => {
-    return group.children?.find(item => {
+  return searchGroups.map(group => ({
+    ...group,
+    children: group.children?.map(item => {
       if (item.value === currentItem.value) {
-        item.active = active;
-
-        return true;
+        return {
+          ...item,
+          active,
+        };
       }
 
       if (item.children && item.children.length > 0) {
-        return item.children.find(child => {
-          if (child.value === currentItem.value) {
-            child.active = active;
+        return {
+          ...item,
+          children: item.children.map(child => {
+            if (child.value === currentItem.value) {
+              return {
+                ...child,
+                active,
+              };
+            }
 
-            return true;
-          }
-
-          return false;
-        });
+            return child;
+          }),
+        };
       }
 
-      return false;
-    });
-  });
+      return item;
+    }),
+  }));
 };

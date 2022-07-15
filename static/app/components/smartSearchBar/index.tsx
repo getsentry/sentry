@@ -52,10 +52,10 @@ import {
   addSpace,
   createSearchGroups,
   generateOperatorEntryMap,
+  getSearchGroupWithItemMarkedActive,
   getTagItemsFromKeys,
   getValidOps,
   removeSpace,
-  setSearchGroupItemActive,
   shortcuts,
 } from './utils';
 
@@ -679,7 +679,7 @@ class SmartSearchBar extends Component<Props, State> {
       evt.preventDefault();
 
       const {flatSearchItems, activeSearchItem} = this.state;
-      const searchGroups = [...this.state.searchGroups];
+      let searchGroups = [...this.state.searchGroups];
 
       const currIndex = isSelectingDropdownItems ? activeSearchItem : 0;
       const totalItems = flatSearchItems.length;
@@ -694,11 +694,11 @@ class SmartSearchBar extends Component<Props, State> {
 
       // Clear previous selection
       const prevItem = flatSearchItems[currIndex];
-      setSearchGroupItemActive(searchGroups, prevItem, false);
+      searchGroups = getSearchGroupWithItemMarkedActive(searchGroups, prevItem, false);
 
       // Set new selection
       const activeItem = flatSearchItems[nextActiveSearchItem];
-      setSearchGroupItemActive(searchGroups, activeItem, true);
+      searchGroups = getSearchGroupWithItemMarkedActive(searchGroups, activeItem, true);
 
       this.setState({searchGroups, activeSearchItem: nextActiveSearchItem});
     }
@@ -777,17 +777,22 @@ class SmartSearchBar extends Component<Props, State> {
       return;
     }
 
-    const {searchGroups, flatSearchItems, activeSearchItem} = this.state;
+    const {flatSearchItems, activeSearchItem} = this.state;
     const isSelectingDropdownItems = this.state.activeSearchItem > -1;
 
+    let searchGroups = [...this.state.searchGroups];
     if (isSelectingDropdownItems) {
-      setSearchGroupItemActive(searchGroups, flatSearchItems[activeSearchItem], false);
+      searchGroups = getSearchGroupWithItemMarkedActive(
+        searchGroups,
+        flatSearchItems[activeSearchItem],
+        false
+      );
     }
 
     this.setState({
       activeSearchItem: -1,
       showDropdown: false,
-      searchGroups: [...this.state.searchGroups],
+      searchGroups,
     });
   };
 
