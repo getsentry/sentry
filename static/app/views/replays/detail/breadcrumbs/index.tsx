@@ -127,7 +127,7 @@ function Breadcrumbs({}: Props) {
   return (
     <Panel>
       <FluidPanel
-        data-ref={crumbListContainerRef}
+        bodyRef={crumbListContainerRef}
         title={<PanelHeader>{t('Breadcrumbs')}</PanelHeader>}
       >
         {content}
