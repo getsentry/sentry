@@ -12,6 +12,7 @@ team_id = "19:8d46058cda57449380517cc374727f2a@thread.tacv2"
 user_id = (
     "29:1XJKJMvc5GBtc2JwZq0oj8tHZmzrQgFmB39ATiQWA85gQtHieVkKilBZ9XHoq9j7Zaqt7CZ-NJWi7me2kHTL3Bw"
 )
+tenant_id = "50cccd00-7c9c-4b32-8cda-58a084f9334a"
 
 
 class MsTeamsIntegrationTest(IntegrationTestCase):
@@ -27,6 +28,7 @@ class MsTeamsIntegrationTest(IntegrationTestCase):
             "user_id": user_id,
             "conversation_id": team_id,
             "installation_type": "team",
+            "tenant_id": tenant_id,
         }
 
     def assert_setup_flow(self):
@@ -75,6 +77,7 @@ class MsTeamsIntegrationTest(IntegrationTestCase):
                 "service_url": "https://smba.trafficmanager.net/amer/",
                 "expires_at": self.start_time + 86399 - 60 * 5,
                 "installation_type": "team",
+                "tenant_id": tenant_id,
             }
             assert OrganizationIntegration.objects.get(
                 integration=integration, organization=self.organization

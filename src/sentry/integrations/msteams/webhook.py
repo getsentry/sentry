@@ -169,14 +169,12 @@ class MsTeamsWebhookEndpoint(Endpoint):
     def handle_personal_member_add(self, request: Request):
         data = request.data
         data["conversation_id"] = data["conversation"]["id"]
+        tenant_id = data["conversation"]["tenantId"]
 
         # need to keep track of the service url since we won't get it later
         params = {
-            "external_id": data["conversation"]["tenantId"],
-            "external_name": data["conversation"]["tenantId"],
-            "service_url": data["serviceUrl"],
-            "user_id": data["from"]["id"],
-            "conversation_id": data["conversation_id"],
+            "external_id": tenant_id,
+            "external_name": tenant_id,
             "installation_type": "tenant",
         }
 
@@ -191,9 +189,6 @@ class MsTeamsWebhookEndpoint(Endpoint):
         params = {
             "external_id": team["id"],
             "external_name": team["name"],
-            "service_url": data["serviceUrl"],
-            "user_id": data["from"]["id"],
-            "conversation_id": data["conversation_id"],
             "installation_type": "team",
         }
 
@@ -204,6 +199,15 @@ class MsTeamsWebhookEndpoint(Endpoint):
         matches = list(filter(lambda x: x["id"] == data["recipient"]["id"], data["membersAdded"]))
         if not matches:
             return self.respond(status=204)
+
+        params.update(
+            {
+                "service_url": data["serviceUrl"],
+                "user_id": data["from"]["id"],
+                "conversation_id": data["conversation_id"],
+                "tenant_id": data["channelData"]["tenant"]["id"],
+            }
+        )
 
         # sign the params so this can't be forged
         signed_params = sign(**params)
