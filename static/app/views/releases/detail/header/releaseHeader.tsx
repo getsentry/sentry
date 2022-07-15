@@ -6,6 +6,7 @@ import pick from 'lodash/pick';
 import Badge from 'sentry/components/badge';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import Clipboard from 'sentry/components/clipboard';
+import FeatureBadge from 'sentry/components/featureBadge';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -49,7 +50,18 @@ const ReleaseHeader = ({
 
   const tabs = [
     {title: t('Overview'), to: ''},
-    ...(hasActiveRelease ? [{title: t('Activity'), to: 'activity/'}] : []),
+    ...(hasActiveRelease
+      ? [
+          {
+            title: (
+              <Fragment>
+                {t('Activity')} <FeatureBadge type="alpha" noTooltip />
+              </Fragment>
+            ),
+            to: 'activity/',
+          },
+        ]
+      : []),
     {
       title: (
         <Fragment>
