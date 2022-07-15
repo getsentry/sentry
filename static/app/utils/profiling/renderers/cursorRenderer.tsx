@@ -1,7 +1,7 @@
 import {mat3, vec2} from 'gl-matrix';
 
 import {FlamegraphTheme} from '../flamegraph/flamegraphTheme';
-import {getContext, Rect, resizeCanvasToDisplaySize} from '../gl/utils';
+import {getContext, Rect} from '../gl/utils';
 
 class CursorRenderer {
   canvas: HTMLCanvasElement;
@@ -13,8 +13,6 @@ class CursorRenderer {
     this.canvas = canvas;
     this.theme = theme;
     this.context = getContext(canvas, '2d');
-
-    resizeCanvasToDisplaySize(canvas);
   }
 
   draw(
