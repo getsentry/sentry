@@ -1,15 +1,50 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboardsV2/types';
+import {
+  DashboardFilter,
+  DisplayType,
+  Widget,
+  WidgetType,
+} from 'sentry/views/dashboardsV2/types';
 import IssueWidgetQueries from 'sentry/views/dashboardsV2/widgetCard/issueWidgetQueries';
 
 describe('IssueWidgetQueries', function () {
+  const widget: Widget = {
+    id: '1',
+    title: 'Issues Widget',
+    displayType: DisplayType.TABLE,
+    interval: '5m',
+    queries: [
+      {
+        name: '',
+        fields: ['issue', 'assignee', 'title', 'culprit', 'status'],
+        columns: ['issue', 'assignee', 'title', 'culprit', 'status'],
+        aggregates: [],
+        conditions: 'assigned_or_suggested:#visibility timesSeen:>100',
+        orderby: '',
+      },
+    ],
+    widgetType: WidgetType.ISSUE,
+  };
+
+  const selection = {
+    projects: [1],
+    environments: ['prod'],
+    datetime: {
+      period: '14d',
+      start: null,
+      end: null,
+      utc: false,
+    },
+  };
+
+  const {organization} = initializeOrg({
+    router: {orgId: 'orgId'},
+  } as Parameters<typeof initializeOrg>[0]);
+  const api = new MockApiClient();
+
   it('does an issue query and passes correct tableResults to child component', async function () {
-    const {organization} = initializeOrg({
-      router: {orgId: 'orgId'},
-    } as Parameters<typeof initializeOrg>[0]);
-    const api = new MockApiClient();
     const mockFunction = jest.fn(() => {
       return <div />;
     });
@@ -39,23 +74,6 @@ describe('IssueWidgetQueries', function () {
         },
       ],
     });
-    const widget: Widget = {
-      id: '1',
-      title: 'Issues Widget',
-      displayType: DisplayType.TABLE,
-      interval: '5m',
-      queries: [
-        {
-          name: '',
-          fields: ['issue', 'assignee', 'title', 'culprit', 'status'],
-          columns: ['issue', 'assignee', 'title', 'culprit', 'status'],
-          aggregates: [],
-          conditions: 'assigned_or_suggested:#visibility timesSeen:>100',
-          orderby: '',
-        },
-      ],
-      widgetType: WidgetType.ISSUE,
-    };
 
     render(
       <IssueWidgetQueries
@@ -96,6 +114,35 @@ describe('IssueWidgetQueries', function () {
             ],
           }),
         ],
+      })
+    );
+  });
+
+  it('appends dashboard filters to request', async function () {
+    const mock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/',
+      body: [],
+    });
+    render(
+      <IssueWidgetQueries
+        api={api}
+        organization={organization}
+        widget={widget}
+        selection={selection}
+        dashboardFilters={{[DashboardFilter.RELEASE]: ['abc@1.2.0', 'abc@1.3.0']}}
+      >
+        {() => <div data-test-id="child" />}
+      </IssueWidgetQueries>
+    );
+
+    await screen.findByTestId('child');
+    expect(mock).toHaveBeenCalledWith(
+      '/organizations/org-slug/issues/',
+      expect.objectContaining({
+        data: expect.objectContaining({
+          query:
+            'assigned_or_suggested:#visibility timesSeen:>100 release:[abc@1.2.0,abc@1.3.0] ',
+        }),
       })
     );
   });

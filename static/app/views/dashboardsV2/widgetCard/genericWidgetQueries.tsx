@@ -295,28 +295,10 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
       api,
       organization,
       selection,
-      dashboardFilters,
       afterFetchSeriesData,
       onDataFetched,
     } = this.props;
     const widget = this.applyDashboardFilters(cloneDeep(originalWidget));
-
-    let dashboardFilterConditions = '';
-    if (dashboardFilters) {
-      for (const [key, activeFilters] of Object.entries(dashboardFilters)) {
-        if (activeFilters.length === 1) {
-          dashboardFilterConditions += `${key}:${activeFilters[0]} `;
-        } else if (activeFilters.length > 1) {
-          dashboardFilterConditions += `${key}:[${activeFilters.join(',')}] `;
-        }
-      }
-    }
-
-    widget.queries.forEach(query => {
-      query.conditions =
-        query.conditions +
-        (dashboardFilterConditions === '' ? '' : ` ${dashboardFilterConditions}`);
-    });
 
     const responses = await Promise.all(
       widget.queries.map((_query, index) => {
