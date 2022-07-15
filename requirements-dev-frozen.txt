@@ -36,6 +36,7 @@ docker-pycreds==0.4.0
 drf-spectacular==0.22.1
 email-reply-parser==0.5.12
 exam==0.10.6
+execnet==1.9.0
 fido2==0.9.2
 filelock==3.7.0
 flake8==4.0.1
@@ -113,11 +114,13 @@ pyopenssl==22.0.0
 pyparsing==3.0.9
 pyrsistent==0.18.1
 pysocks==1.7.1
-pytest==6.1.0
+pytest==6.1.2
 pytest-cov==3.0.0
 pytest-django==4.4.0
+pytest-forked==1.4.0
 pytest-rerunfailures==9.1.1
 pytest-sentry==0.1.9
+pytest-xdist==2.4.0
 python-dateutil==2.8.1
 python-memcached==1.59
 python-rapidjson==1.4
@@ -132,7 +135,7 @@ redis==3.4.1
 redis-py-cluster==2.1.0
 requests==2.25.1
 requests-oauthlib==1.2.0
-responses==0.10.12
+responses==0.21.0
 rfc3339-validator==0.1.2
 rfc3986-validator==0.1.1
 rsa==4.8

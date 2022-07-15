@@ -131,7 +131,7 @@ class GetCustomMeasurementsTest(MetricsEnhancedPerformanceTestCase):
         assert result == [
             {
                 "name": "measurements.something_custom",
-                "type": "distribution",
+                "type": "generic_distribution",
                 "operations": [
                     "avg",
                     "count",
@@ -153,7 +153,7 @@ class GetCustomMeasurementsTest(MetricsEnhancedPerformanceTestCase):
 
     def test_metric_outside_query_daterange(self):
         something_custom_metric = "d:transactions/measurements.something_custom@millisecond"
-        something_else_metric = ("d:transactions/measurements.something_else@byte",)
+        something_else_metric = "d:transactions/measurements.something_else@byte"
         self.store_metric(
             1,
             metric="measurements.something_custom",
@@ -179,7 +179,7 @@ class GetCustomMeasurementsTest(MetricsEnhancedPerformanceTestCase):
         assert result == [
             {
                 "name": "measurements.something_custom",
-                "type": "distribution",
+                "type": "generic_distribution",
                 "operations": [
                     "avg",
                     "count",

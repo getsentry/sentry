@@ -1,4 +1,5 @@
 import {Fragment, useMemo} from 'react';
+// eslint-disable-next-line no-restricted-imports
 import {withRouter} from 'react-router';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
@@ -65,6 +66,7 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
       ),
       transform: transformEventsRequestToArea,
     }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [props.chartSetting, mepSetting.memoizationKey]
   );
 
