@@ -90,6 +90,7 @@ PREBUILT_DASHBOARDS = {
                     "title": "Number of Errors",
                     "displayType": "big_number",
                     "interval": "5m",
+                    "widgetType": "discover",
                     "queries": [
                         {
                             "name": "",
@@ -105,6 +106,7 @@ PREBUILT_DASHBOARDS = {
                     "title": "Number of Issues",
                     "displayType": "big_number",
                     "interval": "5m",
+                    "widgetType": "discover",
                     "queries": [
                         {
                             "name": "",
@@ -120,6 +122,7 @@ PREBUILT_DASHBOARDS = {
                     "title": "Events",
                     "displayType": "line",
                     "interval": "5m",
+                    "widgetType": "discover",
                     "queries": [
                         {
                             "name": "Events",
@@ -135,6 +138,7 @@ PREBUILT_DASHBOARDS = {
                     "title": "Affected Users",
                     "displayType": "line",
                     "interval": "5m",
+                    "widgetType": "discover",
                     "queries": [
                         {
                             "name": "Known Users",
@@ -158,6 +162,7 @@ PREBUILT_DASHBOARDS = {
                     "title": "Handled vs. Unhandled",
                     "displayType": "line",
                     "interval": "5m",
+                    "widgetType": "discover",
                     "queries": [
                         {
                             "name": "Handled",
@@ -181,6 +186,7 @@ PREBUILT_DASHBOARDS = {
                     "title": "Errors by Country",
                     "displayType": "world_map",
                     "interval": "5m",
+                    "widgetType": "discover",
                     "queries": [
                         {
                             "name": "Error counts",
@@ -196,6 +202,7 @@ PREBUILT_DASHBOARDS = {
                     "title": "Errors by Browser",
                     "displayType": "table",
                     "interval": "5m",
+                    "widgetType": "discover",
                     "queries": [
                         {
                             "name": "",
@@ -211,6 +218,7 @@ PREBUILT_DASHBOARDS = {
                     "title": "High Throughput Transactions",
                     "displayType": "table",
                     "interval": "5m",
+                    "widgetType": "discover",
                     "queries": [
                         {
                             "name": "",
@@ -226,6 +234,7 @@ PREBUILT_DASHBOARDS = {
                     "title": "Overall User Misery",
                     "displayType": "big_number",
                     "interval": "5m",
+                    "widgetType": "discover",
                     "queries": [
                         {
                             "name": "",
@@ -241,6 +250,7 @@ PREBUILT_DASHBOARDS = {
                     "title": "High Throughput Transactions",
                     "displayType": "top_n",
                     "interval": "5m",
+                    "widgetType": "discover",
                     "queries": [
                         {
                             "name": "",
@@ -272,6 +282,7 @@ PREBUILT_DASHBOARDS = {
                     "title": "Transactions Ordered by Misery",
                     "displayType": "table",
                     "interval": "5m",
+                    "widgetType": "discover",
                     "queries": [
                         {
                             "name": "",

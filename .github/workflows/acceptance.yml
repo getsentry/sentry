@@ -157,7 +157,6 @@ jobs:
         id: setup
         with:
           python-version: ${{ matrix.python-version }}
-          pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
           snuba: true
           pg-version: ${{ matrix.pg-version }}
 
@@ -213,7 +212,6 @@ jobs:
         id: setup
         with:
           python-version: ${{ matrix.python-version }}
-          pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
           chartcuterie: true
 
       - name: yarn cache
