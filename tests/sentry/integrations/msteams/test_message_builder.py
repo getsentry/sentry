@@ -41,6 +41,8 @@ from sentry.models import (
     OrganizationIntegration,
     Rule,
 )
+from sentry.models.group import GroupStatus
+from sentry.models.groupassignee import GroupAssignee
 from sentry.testutils import TestCase
 from sentry.utils import json
 
@@ -284,8 +286,8 @@ class MSTeamsMessageBuilderTest(TestCase):
             assert "Input.ChoiceSet" == card_body[1]["type"]
 
         resolve_action, ignore_action, assign_action = actions
-        assert "Ignore" == ignore_action["title"]
         assert "Resolve" == resolve_action["title"]
+        assert "Ignore" == ignore_action["title"]
         assert "Assign" == assign_action["title"]
 
         # Check if card is serializable to json
@@ -293,16 +295,66 @@ class MSTeamsMessageBuilderTest(TestCase):
         assert card_json[0] == "{" and card_json[-1] == "}"
 
     def test_issue_without_description(self):
-        pass
+        issue_card = MSTeamsIssueMessageBuilder(
+            group=self.group1, event=self.event1, rules=self.rules, integration=self.integration
+        ).build()
+
+        assert 3 == len(issue_card["body"])
 
     def test_issue_with_only_one_rule(self):
-        pass
+        one_rule = self.rules[:1]
+        issue_card = MSTeamsIssueMessageBuilder(
+            group=self.group1, event=self.event1, rules=one_rule, integration=self.integration
+        ).build()
 
-    def test_ignored_issue_message(self):
-        pass
+        issue_id_and_rule = issue_card["body"][1]["columns"][1]["items"][0]
+
+        assert "rule1" in issue_id_and_rule["text"]
+        assert "+1 other" not in issue_id_and_rule["text"]
 
     def test_resolved_issue_message(self):
-        pass
+        self.group1.status = GroupStatus.RESOLVED
+        self.group1.save()
+
+        issue_card = MSTeamsIssueMessageBuilder(
+            group=self.group1, event=self.event1, rules=self.rules, integration=self.integration
+        ).build()
+
+        action_set = issue_card["body"][2]["items"][0]
+
+        resolve_action = action_set["actions"][0]
+        assert ActionType.SUBMIT == resolve_action["type"]
+        assert "Unresolve" == resolve_action["title"]
+
+    def test_ignored_issue_message(self):
+        self.group1.status = GroupStatus.IGNORED
+
+        issue_card = MSTeamsIssueMessageBuilder(
+            group=self.group1, event=self.event1, rules=self.rules, integration=self.integration
+        ).build()
+
+        action_set = issue_card["body"][2]["items"][0]
+
+        ignore_action = action_set["actions"][1]
+        assert ActionType.SUBMIT == ignore_action["type"]
+        assert "Stop Ignoring" == ignore_action["title"]
 
     def test_assigned_issue_message(self):
-        pass
+        GroupAssignee.objects.assign(self.group1, self.user)
+
+        issue_card = MSTeamsIssueMessageBuilder(
+            group=self.group1, event=self.event1, rules=self.rules, integration=self.integration
+        ).build()
+
+        body = issue_card["body"]
+        assert 4 == len(body)
+
+        assignee_note = body[2]
+        user_name = self.user.get_display_name()
+        assert f"**Assigned to {user_name}**" == assignee_note["text"]
+
+        action_set = body[3]["items"][0]
+
+        assign_action = action_set["actions"][2]
+        assert ActionType.SUBMIT == assign_action["type"]
+        assert "Unassign" == assign_action["title"]
