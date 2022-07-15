@@ -7,7 +7,7 @@ import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
-import {FlamegraphSearchResult} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphSearch';
+import type {FlamegraphSearch as FlamegraphSearchResults} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphSearch';
 import {useFlamegraphSearch} from 'sentry/utils/profiling/flamegraph/useFlamegraphSearch';
 import {
   FlamegraphFrame,
@@ -16,12 +16,12 @@ import {
 import {memoizeByReference} from 'sentry/utils/profiling/profile/utils';
 import {isRegExpString, parseRegExp} from 'sentry/utils/profiling/validators/regExp';
 
-type FrameSearchResults = Record<string, FlamegraphSearchResult>;
-
-function sortFrameResults(frames: FrameSearchResults | null): Array<FlamegraphFrame> {
+function sortFrameResults(
+  frames: FlamegraphSearchResults['results']
+): Array<FlamegraphFrame> {
   // If frames have the same start times, move frames with lower stack depth first.
   // This results in top down and left to right iteration
-  return Object.values(frames ?? {})
+  return [...frames.values()]
     .map(f => f.frame)
     .sort((a, b) =>
       a.start === b.start
@@ -36,8 +36,9 @@ function frameSearch(
   query: string,
   frames: ReadonlyArray<FlamegraphFrame>,
   index: Fuse<FlamegraphFrame>
-): FrameSearchResults | null {
-  const results: FrameSearchResults = {};
+): FlamegraphSearchResults['results'] {
+  const results: FlamegraphSearchResults['results'] = new Map();
+
   if (isRegExpString(query)) {
     const [_, lookup, flags] = parseRegExp(query) ?? [];
 
@@ -55,7 +56,7 @@ function frameSearch(
         const reMatches = Array.from(frame.frame.name.trim().matchAll(re));
         if (reMatches.length > 0) {
           const frameId = getFlamegraphFrameSearchId(frame);
-          results[frameId] = {
+          results.set(frameId, {
             frame,
             matchIndices: reMatches.reduce((acc, match) => {
               if (typeof match.index === 'undefined') {
@@ -66,7 +67,7 @@ function frameSearch(
 
               return acc;
             }, [] as Fuse.RangeTuple[]),
-          };
+          });
           matches += 1;
         }
       }
@@ -75,7 +76,7 @@ function frameSearch(
     }
 
     if (matches <= 0) {
-      return null;
+      return results;
     }
 
     return results;
@@ -84,21 +85,21 @@ function frameSearch(
   const fuseResults = index.search(query);
 
   if (fuseResults.length <= 0) {
-    return null;
+    return results;
   }
 
   for (let i = 0; i < fuseResults.length; i++) {
     const fuseFrameResult = fuseResults[i];
     const frame = fuseFrameResult.item;
     const frameId = getFlamegraphFrameSearchId(frame);
-    results[frameId] = {
+
+    results.set(frameId, {
       frame,
       // matches will be defined when using 'includeMatches' in FuseOptions
-      matchIndices: fuseFrameResult.matches!.reduce((acc, val) => {
-        acc.push(...val.indices);
-        return acc;
-      }, [] as Fuse.RangeTuple[]),
-    };
+      matchIndices: fuseFrameResult.matches!.reduce<Fuse.RangeTuple[]>((acc, val) => {
+        return acc.concat(val.indices);
+      }, []),
+    });
   }
 
   return results;
