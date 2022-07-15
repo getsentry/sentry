@@ -3563,6 +3563,38 @@ describe('WidgetBuilder', function () {
         screen.getByText('You have inputs that are incompatible with');
         expect(screen.getByText('Add Widget').closest('button')).toBeDisabled();
       });
+
+      it('only displays custom measurements in supported functions', async function () {
+        measurementsMetaMock = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/measurements-meta/',
+          method: 'GET',
+          body: {
+            'measurements.custom.measurement': {functions: ['p99']},
+            'measurements.another.custom.measurement': {functions: ['p95']},
+          },
+        });
+
+        renderTestComponent({
+          query: {source: DashboardWidgetSource.DISCOVERV2},
+          dashboard: testDashboard,
+          orgFeatures: [...defaultOrgFeatures, 'discover-frontend-use-events-endpoint'],
+        });
+
+        expect(await screen.findAllByText('Custom Widget')).toHaveLength(2);
+
+        await selectEvent.select(screen.getAllByText('count()')[1], ['p99(…)']);
+        userEvent.click(screen.getByText('transaction.duration'));
+        screen.getByText('measurements.custom.measurement');
+        expect(
+          screen.queryByText('measurements.another.custom.measurement')
+        ).not.toBeInTheDocument();
+        await selectEvent.select(screen.getAllByText('p99(…)')[0], ['p95(…)']);
+        userEvent.click(screen.getByText('transaction.duration'));
+        screen.getByText('measurements.another.custom.measurement');
+        expect(
+          screen.queryByText('measurements.custom.measurement')
+        ).not.toBeInTheDocument();
+      });
     });
   });
 });
