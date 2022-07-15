@@ -2663,6 +2663,9 @@ ANOMALY_DETECTION_TIMEOUT = 30
 # This is the URL to the profiling service
 SENTRY_PROFILING_SERVICE_URL = "http://localhost:8085"
 
+SENTRY_REPLAYS_SERVICE_URL = "http://localhost:8090"
+
+
 SENTRY_ISSUE_ALERT_HISTORY = "sentry.rules.history.backends.postgres.PostgresRuleHistoryBackend"
 SENTRY_ISSUE_ALERT_HISTORY_OPTIONS = {}
 
