@@ -207,14 +207,7 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
         <ResizableVerticalDrawer>
           {/* The border should be 1px, but we want the actual handler to be wider
           to improve the user experience and not have users have to click on the exact pixel */}
-          <InvisibleHandler
-            onMouseDown={
-              flamegraphPreferences.layout === 'table_left' ||
-              flamegraphPreferences.layout === 'table_right'
-                ? props.onResize
-                : undefined
-            }
-          />
+          <InvisibleHandler onMouseDown={props.onResize} />
         </ResizableVerticalDrawer>
       ) : null}
     </FrameDrawer>
@@ -230,7 +223,7 @@ const ResizableVerticalDrawer = styled('div')`
 
 const InvisibleHandler = styled('div')`
   opacity: 0;
-  width: 8px;
+  width: ${space(1)};
   position: absolute;
   inset: 0;
   cursor: ew-resize;
