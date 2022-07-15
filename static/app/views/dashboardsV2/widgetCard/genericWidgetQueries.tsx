@@ -195,11 +195,11 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
 
     let dashboardFilterConditions = '';
     if (dashboardFilters) {
-      for (const [key, appliedFilter] of Object.entries(dashboardFilters)) {
-        if (appliedFilter.length === 1) {
-          dashboardFilterConditions += `${key}:${appliedFilter[0]} `;
-        } else if (appliedFilter.length > 1) {
-          dashboardFilterConditions += `${key}:[${appliedFilter.join(',')}] `;
+      for (const [key, activeFilters] of Object.entries(dashboardFilters)) {
+        if (activeFilters.length === 1) {
+          dashboardFilterConditions += `${key}:${activeFilters[0]} `;
+        } else if (activeFilters.length > 1) {
+          dashboardFilterConditions += `${key}:[${activeFilters.join(',')}] `;
         }
       }
     }
@@ -303,11 +303,11 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
 
     let dashboardFilterConditions = '';
     if (dashboardFilters) {
-      for (const [key, appliedFilter] of Object.entries(dashboardFilters)) {
-        if (appliedFilter.length === 1) {
-          dashboardFilterConditions += `${key}:${appliedFilter[0]} `;
-        } else if (appliedFilter.length > 1) {
-          dashboardFilterConditions += `${key}:[${appliedFilter.join(',')}] `;
+      for (const [key, activeFilters] of Object.entries(dashboardFilters)) {
+        if (activeFilters.length === 1) {
+          dashboardFilterConditions += `${key}:${activeFilters[0]} `;
+        } else if (activeFilters.length > 1) {
+          dashboardFilterConditions += `${key}:[${activeFilters.join(',')}] `;
         }
       }
     }

@@ -11,9 +11,9 @@ import {useReleases} from 'sentry/utils/releases/releasesProvider';
 import {DashboardFilter} from './types';
 
 type Props = {
-  handleChangeFilter: (activeFilters: Record<DashboardFilter, string[]>) => void;
   selectedReleases: string[];
   className?: string;
+  handleChangeFilter?: (activeFilters: Record<DashboardFilter, string[]>) => void;
   isDisabled?: boolean;
 };
 
@@ -53,7 +53,7 @@ function ReleasesSelectControl({
       }
       onChange={opts => setActiveReleases(opts.map(opt => opt.value))}
       onClose={() => {
-        handleChangeFilter({[DashboardFilter.RELEASE]: activeReleases});
+        handleChangeFilter?.({[DashboardFilter.RELEASE]: activeReleases});
       }}
       value={activeReleases}
       triggerLabel={

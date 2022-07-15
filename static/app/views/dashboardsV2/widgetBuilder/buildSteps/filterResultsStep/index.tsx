@@ -17,7 +17,7 @@ import {Organization, PageFilters} from 'sentry/types';
 import {ReleasesProvider} from 'sentry/utils/releases/releasesProvider';
 import {getDatasetConfig} from 'sentry/views/dashboardsV2/datasetConfig/base';
 import ReleasesSelectControl from 'sentry/views/dashboardsV2/releasesSelectControl';
-import {WidgetQuery, WidgetType} from 'sentry/views/dashboardsV2/types';
+import {DashboardFilter, WidgetQuery, WidgetType} from 'sentry/views/dashboardsV2/types';
 
 import {BuildStep} from '../buildStep';
 
@@ -38,6 +38,7 @@ interface Props {
 
 export function FilterResultsStep({
   canAddSearchConditions,
+  dashboardFilters,
   queries,
   onQueryRemove,
   onAddSearchConditions,
@@ -117,7 +118,11 @@ export function FilterResultsStep({
         </StyledPageFilterBar>
         <FilterButtons>
           <ReleasesProvider organization={organization} selection={selection}>
-            <StyledReleasesSelectControl isDisabled className="widget-release-select" />
+            <StyledReleasesSelectControl
+              dashboardFilters={dashboardFilters}
+              isDisabled
+              className="widget-release-select"
+            />
           </ReleasesProvider>
         </FilterButtons>
       </Feature>
