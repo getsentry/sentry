@@ -19,11 +19,13 @@ ColumnBlock = Mapping[str, Union[str, Sequence[ItemBlock]]]
 ColumnSetBlock = Mapping[str, Union[str, Sequence[ColumnBlock]]]
 
 Block = Union[TextBlock, ImageBlock, ColumnSetBlock]
-ContainerBlock = Any
+ContainerBlock = Mapping[str, Union[str, Sequence[Block]]]
+
+InputChoiceSetBlock = Mapping[str, Union[str, Sequence[Mapping[str, str]]]]
 
 # Maps to Any because Actions can have an arbitrarily nested data field.
 Action = Mapping[str, Any]
-ActionSet = Any
+ActionSet = Mapping[str, Union[str, Sequence[Action]]]
 
 AdaptiveCard = Mapping[str, Union[str, Sequence[Block], Sequence[Action]]]
 

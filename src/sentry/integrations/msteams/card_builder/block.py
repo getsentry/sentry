@@ -11,6 +11,7 @@ from sentry.integrations.msteams.card_builder import (
     ColumnSetBlock,
     ContainerBlock,
     ImageBlock,
+    InputChoiceSetBlock,
     ItemBlock,
     TextBlock,
 )
@@ -135,7 +136,9 @@ def create_container_block(*items: Block) -> ContainerBlock:
     return {"type": "Container", "items": list(items)}
 
 
-def create_input_choice_set_block(id: str, choices: Sequence[str, Any], default_choice: Any) -> Any:
+def create_input_choice_set_block(
+    id: str, choices: Sequence[str, Any], default_choice: Any
+) -> InputChoiceSetBlock:
     input_choice_set_block = {
         "type": "Input.ChoiceSet",
         "id": id,
