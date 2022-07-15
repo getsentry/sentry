@@ -15,7 +15,7 @@ class OrganizationReplayIndexEndpoint(OrganizationEndpoint):
             return Response(status=404)
 
         try:
-            filter_params = self.get_filter_params(request, organization, date_filter_optional=True)
+            filter_params = self.get_filter_params(request, organization)
         except NoProjects:
             return Response([])
 

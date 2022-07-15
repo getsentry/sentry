@@ -9,6 +9,9 @@ from urllib3.response import HTTPResponse
 from sentry.net.http import connection_from_url
 from sentry.utils import metrics
 
+# XXX(jferg): the following code is copied over from the profiles proxy utils code.
+# this will be removed in a future PR, please do not copy this without reason.
+
 
 class RetrySkipTimeout(urllib3.Retry):
     """
