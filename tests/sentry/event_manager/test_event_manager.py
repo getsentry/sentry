@@ -6,6 +6,7 @@ from unittest import mock
 
 import pytest
 from django.core.cache import cache
+from django.test.utils import override_settings
 from django.utils import timezone
 
 from sentry import nodestore
@@ -36,6 +37,7 @@ from sentry.models import (
     GroupTombstone,
     Integration,
     OrganizationIntegration,
+    Project,
     PullRequest,
     PullRequestCommit,
     Release,
@@ -43,6 +45,7 @@ from sentry.models import (
     ReleaseProjectEnvironment,
     UserReport,
 )
+from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG, LEGACY_GROUPING_CONFIG
 from sentry.spans.grouping.utils import hash_values
 from sentry.testutils import TestCase, assert_mock_called_once_with_partial
 from sentry.types.activity import ActivityType
@@ -2042,6 +2045,25 @@ class EventManagerTest(TestCase):
         assert mechanism is not None
         assert mechanism.synthetic is True
         assert event.title == "foo"
+
+    def test_auto_update_grouping(self):
+        with override_settings(SENTRY_GROUPING_AUTO_UPDATE_ENABLED=True):
+            # start out with legacy grouping, this should update us
+            self.project.update_option("sentry:grouping_config", LEGACY_GROUPING_CONFIG)
+
+            manager = EventManager(
+                make_event(
+                    message="foo",
+                    event_id="c" * 32,
+                ),
+                project=self.project,
+            )
+            manager.normalize()
+            manager.save(self.project.id, auto_upgrade_grouping=True)
+
+            # This should have moved us back to the default grouping
+            project = Project.objects.get(id=self.project.id)
+            assert project.get_option("sentry:grouping_config") == DEFAULT_GROUPING_CONFIG
 
 
 class ReleaseIssueTest(TestCase):
