@@ -126,7 +126,7 @@ function frameSearch(
           results.set(frameId, {
             frame,
             match,
-          };
+          });
           matches += 1;
         }
       }
@@ -153,10 +153,12 @@ function frameSearch(
     const frameId = getFlamegraphFrameSearchId(frame);
     const match = findBestMatchFromFuseMatches(fuseFrameResult.matches ?? []);
 
-    results.set(frameId, {
-      frame,
-      match,
-    });
+    if (match) {
+      results.set(frameId, {
+        frame,
+        match,
+      });
+    }
   }
 
   return results;
