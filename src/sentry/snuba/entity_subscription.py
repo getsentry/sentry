@@ -44,9 +44,9 @@ if TYPE_CHECKING:
 # TODO: If we want to support security events here we'll need a way to
 # differentiate within the dataset. For now we can just assume all subscriptions
 # created within this dataset are just for errors.
-DATASET_CONDITIONS: Mapping[QueryDatasets, str] = {
-    QueryDatasets.EVENTS: "event.type:error",
-    QueryDatasets.TRANSACTIONS: "event.type:transaction",
+QUERY_TYPE_CONDITIONS: Mapping[SnubaQuery.Type, str] = {
+    SnubaQuery.Type.ERROR: "event.type:error",
+    SnubaQuery.Type.PERFORMANCE: "event.type:transaction",
 }
 ENTITY_TIME_COLUMNS: Mapping[EntityKey, str] = {
     EntityKey.Events: "timestamp",
@@ -70,7 +70,7 @@ ALERT_BLOCKED_FIELDS = {
 
 
 def apply_dataset_query_conditions(
-    dataset: QueryDatasets,
+    query_type: SnubaQuery.Type,
     query: str,
     event_types: Optional[List[SnubaQueryEventType]],
     discover: bool = False,
@@ -87,15 +87,15 @@ def apply_dataset_query_conditions(
     differentiate between errors and transactions, but the TRANSACTIONS dataset doesn't
     need it specified, and `event.type` ends up becoming a tag search.
     """
-    if not discover and dataset == QueryDatasets.TRANSACTIONS:
+    if not discover and query_type == SnubaQuery.Type.PERFORMANCE:
         return query
 
     if event_types:
         event_type_conditions = " OR ".join(
             f"event.type:{event_type.name.lower()}" for event_type in event_types
         )
-    elif dataset in DATASET_CONDITIONS:
-        event_type_conditions = DATASET_CONDITIONS[dataset]
+    elif query_type in QUERY_TYPE_CONDITIONS:
+        event_type_conditions = QUERY_TYPE_CONDITIONS[query_type]
     else:
         return query
 
@@ -112,6 +112,7 @@ class _EntitySpecificParams(TypedDict, total=False):
 
 @dataclass
 class _EntitySubscription:
+    query_type: SnubaQuery.Type
     dataset: QueryDatasets
 
 
@@ -176,7 +177,7 @@ class BaseEventsAndTransactionEntitySubscription(BaseEntitySubscription, ABC):
 
         params["project_id"] = project_ids
 
-        query = apply_dataset_query_conditions(QueryDatasets(self.dataset), query, self.event_types)
+        query = apply_dataset_query_conditions(self.query_type, query, self.event_types)
         if environment:
             params["environment"] = environment.name
 
@@ -201,14 +202,17 @@ class BaseEventsAndTransactionEntitySubscription(BaseEntitySubscription, ABC):
 
 
 class EventsEntitySubscription(BaseEventsAndTransactionEntitySubscription):
+    query_type = SnubaQuery.Type.ERROR
     dataset = QueryDatasets.EVENTS
 
 
 class PerformanceTransactionsEntitySubscription(BaseEventsAndTransactionEntitySubscription):
+    query_type = SnubaQuery.Type.PERFORMANCE
     dataset = QueryDatasets.TRANSACTIONS
 
 
 class SessionsEntitySubscription(BaseEntitySubscription):
+    query_type = SnubaQuery.Type.CRASH_RATE
     dataset = QueryDatasets.SESSIONS
 
     def __init__(
@@ -326,6 +330,8 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
         if params is None:
             params = {}
 
+        query = apply_dataset_query_conditions(self.query_type, query, None)
+
         params["project_id"] = project_ids
         qb = AlertMetricsQueryBuilder(
             dataset=Dataset(self.dataset.value),
@@ -351,6 +357,7 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
 
 
 class PerformanceMetricsEntitySubscription(BaseMetricsEntitySubscription):
+    query_type = SnubaQuery.Type.PERFORMANCE
     dataset = QueryDatasets.PERFORMANCE_METRICS
 
     def get_snql_aggregations(self) -> List[str]:
@@ -378,6 +385,7 @@ class PerformanceMetricsEntitySubscription(BaseMetricsEntitySubscription):
 
 
 class BaseCrashRateMetricsEntitySubscription(BaseMetricsEntitySubscription):
+    query_type = SnubaQuery.Type.CRASH_RATE
     dataset = QueryDatasets.METRICS
     metric_key: SessionMRI
 

@@ -89,7 +89,7 @@ from sentry.models import (
 from sentry.models.integrations.integration_feature import Feature, IntegrationTypes
 from sentry.models.releasefile import update_artifact_index
 from sentry.signals import project_created
-from sentry.snuba.models import QueryDatasets
+from sentry.snuba.models import QueryDatasets, SnubaQuery
 from sentry.types.activity import ActivityType
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json, loremipsum
@@ -1042,6 +1042,7 @@ class Factories:
         environment=None,
         excluded_projects=None,
         date_added=None,
+        query_type=SnubaQuery.Type.ERROR,
         dataset=QueryDatasets.EVENTS,
         threshold_type=AlertRuleThresholdType.ABOVE,
         resolve_threshold=None,
@@ -1063,6 +1064,7 @@ class Factories:
             threshold_period,
             owner=owner,
             resolve_threshold=resolve_threshold,
+            query_type=query_type,
             dataset=dataset,
             environment=environment,
             include_all_projects=include_all_projects,

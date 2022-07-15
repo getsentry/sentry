@@ -22,11 +22,12 @@ query_datasets_to_type = {
 
 
 def create_snuba_query(
-    dataset, query, aggregate, time_window, resolution, environment, event_types=None
+    query_type, dataset, query, aggregate, time_window, resolution, environment, event_types=None
 ):
     """
     Creates a SnubaQuery.
 
+    :param query_type: The SnubaQuery.Type of this query
     :param dataset: The snuba dataset to query and aggregate over
     :param query: An event search query that we can parse and convert into a
     set of Snuba conditions
@@ -39,7 +40,7 @@ def create_snuba_query(
     :return: A list of QuerySubscriptions
     """
     snuba_query = SnubaQuery.objects.create(
-        type=query_datasets_to_type[dataset].value,
+        type=query_type.value,
         dataset=dataset.value,
         query=query,
         aggregate=aggregate,
@@ -63,12 +64,21 @@ def create_snuba_query(
 
 
 def update_snuba_query(
-    snuba_query, dataset, query, aggregate, time_window, resolution, environment, event_types
+    snuba_query,
+    query_type,
+    dataset,
+    query,
+    aggregate,
+    time_window,
+    resolution,
+    environment,
+    event_types,
 ):
     """
     Updates a SnubaQuery. Triggers updates to any related QuerySubscriptions.
 
     :param snuba_query: The `SnubaQuery` to update.
+    :param query_type: The SnubaQuery.Type of this query
     :param dataset: The snuba dataset to query and aggregate over
     :param query: An event search query that we can parse and convert into a
     set of Snuba conditions
@@ -91,8 +101,8 @@ def update_snuba_query(
     with transaction.atomic():
         query_subscriptions = list(snuba_query.subscriptions.all())
         snuba_query.update(
+            type=query_type.value,
             dataset=dataset.value,
-            type=query_datasets_to_type[dataset].value,
             query=query,
             aggregate=aggregate,
             time_window=int(time_window.total_seconds()),
