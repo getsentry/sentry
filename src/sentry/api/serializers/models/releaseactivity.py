@@ -19,7 +19,7 @@ class ReleaseActivityResponse(TypedDict):
 class ReleaseActivitySerializer(Serializer):
     def get_attrs(
         self, item_list: Sequence[ReleaseActivity], user: Any, **kwargs: Any
-    ) -> MutableMapping[Any, Any]:
+    ) -> MutableMapping[ReleaseActivity, Any]:
         groups = list(
             Group.objects.filter(
                 id__in=[
@@ -40,7 +40,7 @@ class ReleaseActivitySerializer(Serializer):
         return {activity: _expand_group(activity.data) for activity in item_list}
 
     def serialize(
-        self, obj: Any, attrs: Mapping[Any, Any], user: Any, **kwargs: Any
+        self, obj: Any, attrs: Mapping[str, JSONData], user: Any, **kwargs: Any
     ) -> ReleaseActivityResponse:
         return {
             "id": obj.id,
