@@ -27,21 +27,21 @@ describe('ReleaseIssues', function () {
     });
 
     MockApiClient.addMockResponse({
-      url: `/organizations/${props.organization.slug}/issues-count/?end=2020-03-24T02%3A04%3A59Z&query=first-release%3A%221.0.0%22&query=release%3A%221.0.0%22&query=error.handled%3A0%20release%3A%221.0.0%22&query=regressed_in_release%3A%221.0.0%22&start=2020-03-23T01%3A02%3A00Z`,
+      url: `/organizations/${props.organization.slug}/issues-count/?end=2020-03-24T02%3A04%3A59Z&query=first-release%3A%221.0.0%22%20is%3Aunresolved&query=release%3A%221.0.0%22%20is%3Aunresolved&query=error.handled%3A0%20release%3A%221.0.0%22%20is%3Aunresolved&query=regressed_in_release%3A%221.0.0%22&start=2020-03-23T01%3A02%3A00Z`,
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/${props.organization.slug}/issues-count/?query=first-release%3A%221.0.0%22&query=release%3A%221.0.0%22&query=error.handled%3A0%20release%3A%221.0.0%22&query=regressed_in_release%3A%221.0.0%22&statsPeriod=24h`,
+      url: `/organizations/${props.organization.slug}/issues-count/?query=first-release%3A%221.0.0%22%20is%3Aunresolved&query=release%3A%221.0.0%22%20is%3Aunresolved&query=error.handled%3A0%20release%3A%221.0.0%22%20is%3Aunresolved&query=regressed_in_release%3A%221.0.0%22&statsPeriod=24h`,
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${props.organization.slug}/releases/1.0.0/resolved/`,
     });
 
     newIssuesEndpoint = MockApiClient.addMockResponse({
-      url: `/organizations/${props.organization.slug}/issues/?end=2020-03-24T02%3A04%3A59Z&groupStatsPeriod=auto&limit=10&query=first-release%3A1.0.0&sort=freq&start=2020-03-23T01%3A02%3A00Z`,
+      url: `/organizations/${props.organization.slug}/issues/?end=2020-03-24T02%3A04%3A59Z&groupStatsPeriod=auto&limit=10&query=first-release%3A1.0.0%20is%3Aunresolved&sort=freq&start=2020-03-23T01%3A02%3A00Z`,
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/${props.organization.slug}/issues/?groupStatsPeriod=auto&limit=10&query=first-release%3A1.0.0&sort=freq&statsPeriod=24h`,
+      url: `/organizations/${props.organization.slug}/issues/?groupStatsPeriod=auto&limit=10&query=first-release%3A1.0.0%20is%3Aunresolved&sort=freq&statsPeriod=24h`,
       body: [],
     });
     resolvedIssuesEndpoint = MockApiClient.addMockResponse({
@@ -49,15 +49,15 @@ describe('ReleaseIssues', function () {
       body: [],
     });
     unhandledIssuesEndpoint = MockApiClient.addMockResponse({
-      url: `/organizations/${props.organization.slug}/issues/?end=2020-03-24T02%3A04%3A59Z&groupStatsPeriod=auto&limit=10&query=release%3A1.0.0%20error.handled%3A0&sort=freq&start=2020-03-23T01%3A02%3A00Z`,
+      url: `/organizations/${props.organization.slug}/issues/?end=2020-03-24T02%3A04%3A59Z&groupStatsPeriod=auto&limit=10&query=release%3A1.0.0%20error.handled%3A0%20is%3Aunresolved&sort=freq&start=2020-03-23T01%3A02%3A00Z`,
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/${props.organization.slug}/issues/?groupStatsPeriod=auto&limit=10&query=release%3A1.0.0%20error.handled%3A0&sort=freq&statsPeriod=24h`,
+      url: `/organizations/${props.organization.slug}/issues/?groupStatsPeriod=auto&limit=10&query=release%3A1.0.0%20error.handled%3A0%20is%3Aunresolved&sort=freq&statsPeriod=24h`,
       body: [],
     });
     allIssuesEndpoint = MockApiClient.addMockResponse({
-      url: `/organizations/${props.organization.slug}/issues/?end=2020-03-24T02%3A04%3A59Z&groupStatsPeriod=auto&limit=10&query=release%3A1.0.0&sort=freq&start=2020-03-23T01%3A02%3A00Z`,
+      url: `/organizations/${props.organization.slug}/issues/?end=2020-03-24T02%3A04%3A59Z&groupStatsPeriod=auto&limit=10&query=release%3A1.0.0%20is%3Aunresolved&sort=freq&start=2020-03-23T01%3A02%3A00Z`,
       body: [],
     });
   });
