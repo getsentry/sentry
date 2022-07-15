@@ -336,7 +336,6 @@ class EntitySubscriptionTestCase(TestCase):
             Condition(Column("project_id"), Op.IN, [self.project.id]),
             Condition(Column("org_id"), Op.EQ, self.organization.id),
             Condition(Column("metric_id"), Op.IN, [metric_id]),
-            Condition(Column("granularity"), Op.EQ, 1),
         ]
 
     def test_get_entity_subscription_for_events_dataset(self) -> None:

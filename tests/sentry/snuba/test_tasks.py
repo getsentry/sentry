@@ -513,7 +513,6 @@ class BuildSnqlQueryTest(TestCase):
                 Condition(Column("project_id"), Op.IN, (self.project.id,)),
                 Condition(Column("org_id"), Op.EQ, self.organization.id),
                 Condition(Column("metric_id"), Op.IN, [metric_id]),
-                Condition(Column("granularity"), Op.EQ, 1),
             ],
             entity_extra_fields={"org_id": self.organization.id},
             aggregate_kwargs={"metric_id": metric_id},
@@ -575,7 +574,6 @@ class BuildSnqlQueryTest(TestCase):
             Condition(Column("project_id"), Op.IN, (self.project.id,)),
             Condition(Column("org_id"), Op.EQ, self.organization.id),
             Condition(Column("metric_id"), Op.IN, [metric_id]),
-            Condition(Column("granularity"), Op.EQ, 1),
         ]
 
         self.run_test(
@@ -645,7 +643,6 @@ class BuildSnqlQueryTest(TestCase):
             Condition(Column("project_id"), Op.IN, (self.project.id,)),
             Condition(Column("org_id"), Op.EQ, self.organization.id),
             Condition(Column("metric_id"), Op.IN, [metric_id]),
-            Condition(Column("granularity"), Op.EQ, 1),
         ]
 
         self.run_test(
