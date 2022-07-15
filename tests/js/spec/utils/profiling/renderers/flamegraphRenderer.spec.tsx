@@ -276,7 +276,10 @@ describe('flamegraphRenderer', () => {
       });
       const renderer = new FlamegraphRenderer(canvas, flamegraph, theme);
 
-      renderer.draw(flamegraphView.fromConfigView(flamegraphCanvas.physicalSpace));
+      renderer.draw(
+        flamegraphView.fromConfigView(flamegraphCanvas.physicalSpace),
+        new Map()
+      );
       expect(context.drawArrays).toHaveBeenCalledTimes(2);
     });
   });

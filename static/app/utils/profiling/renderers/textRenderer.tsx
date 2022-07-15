@@ -56,7 +56,7 @@ class TextRenderer {
   draw(
     configView: Rect,
     configViewToPhysicalSpace: mat3,
-    flamegraphSearchResults: FlamegraphSearch['results'] | null = null
+    flamegraphSearchResults: FlamegraphSearch['results']
   ): void {
     this.maybeInvalidateCache();
 
@@ -79,7 +79,7 @@ class TextRenderer {
 
     const TOP_BOUNDARY = configView.top - 1;
     const BOTTOM_BOUNDARY = configView.bottom + 1;
-    const HAS_SEARCH_RESULTS = flamegraphSearchResults !== null;
+    const HAS_SEARCH_RESULTS = flamegraphSearchResults.size > 0;
 
     // We start by iterating over root frames, so we draw the call stacks top-down.
     // This allows us to do a couple optimizations that improve our best case performance.
@@ -159,7 +159,7 @@ class TextRenderer {
 
       if (HAS_SEARCH_RESULTS) {
         const frameId = getFlamegraphFrameSearchId(frame);
-        const frameResults = flamegraphSearchResults[frameId];
+        const frameResults = flamegraphSearchResults.get(frameId);
 
         if (frameResults) {
           this.context.fillStyle = HIGHLIGHT_BACKGROUND_COLOR;

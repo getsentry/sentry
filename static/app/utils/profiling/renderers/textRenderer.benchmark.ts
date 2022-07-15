@@ -184,13 +184,13 @@ const makeSearchResults = (flamegraph: Flamegraph): FlamegraphSearch => {
 const suite = (name: string, textRenderer: TextRenderer, flamegraph: Flamegraph) => {
   const results = makeSearchResults(flamegraph);
   benchmark(`${name} (full profile)`, () =>
-    makeDrawFullScreen(textRenderer, flamegraph)(null)
+    makeDrawFullScreen(textRenderer, flamegraph)(new Map())
   );
   benchmark(`${name} (center half)`, () =>
-    makeDrawCenterScreen(textRenderer, flamegraph)(null)
+    makeDrawCenterScreen(textRenderer, flamegraph)(new Map())
   );
   benchmark(`${name} (right quarter)`, () =>
-    makeDrawRightSideOfScreen(textRenderer, flamegraph)(null)
+    makeDrawRightSideOfScreen(textRenderer, flamegraph)(new Map())
   );
 
   benchmark(
@@ -208,6 +208,6 @@ const suite = (name: string, textRenderer: TextRenderer, flamegraph: Flamegraph)
   );
 };
 
-suite('typescript', makeTextRenderer(tsFlamegraph), tsFlamegraph);
+// suite('typescript', makeTextRenderer(tsFlamegraph), tsFlamegraph);
 suite('android', makeTextRenderer(androidFlamegraph), androidFlamegraph);
-suite('ios', makeTextRenderer(iosFlamegraph), iosFlamegraph);
+// suite('ios', makeTextRenderer(iosFlamegraph), iosFlamegraph);
