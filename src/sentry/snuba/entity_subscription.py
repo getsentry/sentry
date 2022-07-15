@@ -477,7 +477,6 @@ class BaseCrashRateMetricsEntitySubscription(BaseMetricsEntitySubscription):
         aggregated_results = [{col_name: crash_free_rate}]
         return aggregated_results
 
-
     def build_query_builder(
         self,
         query: str,
