@@ -104,7 +104,7 @@ runs:
       with:
         python-version: ${{ inputs.python-version }}
         cache: pip
-        cache-dependency-path: requirements-dev-frozen.txt
+        cache-dependency-path: ${{ inputs.workdir }}/requirements-dev-frozen.txt
 
     - name: Install system dependencies
       shell: bash
