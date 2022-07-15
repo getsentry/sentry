@@ -38,7 +38,7 @@ type Props = {
   alignMenu?: 'left' | 'right';
   /**
    * Optionally provide a custom implementation for filtering result items
-   * Userful if you want to show items that don't strictly match the input value
+   * Useful if you want to show items that don't strictly match the input value
    */
   autoCompleteFilter?: typeof defaultAutoCompleteFilter;
   /**
