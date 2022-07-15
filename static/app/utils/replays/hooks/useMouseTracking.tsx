@@ -1,16 +1,16 @@
-import React, {useCallback, useRef} from 'react';
+import {DOMAttributes, MouseEvent, useCallback, useRef} from 'react';
 import * as Sentry from '@sentry/react';
 
 type CallbackArgs = {height: number; left: number; top: number; width: number};
-export type Props = {
-  children: React.ReactNode;
-  onMouseMove: (args: undefined | CallbackArgs) => void;
-};
+
+type Opts<T extends Element> = {
+  onPositionChange: (args: undefined | CallbackArgs) => void;
+} & DOMAttributes<T>;
 
 class AbortError extends Error {}
 
 /**
- * Replace `elem.getBoundingClientRect()` which is too laggy for onMouseMove
+ * Replace `elem.getBoundingClientRect()` which is too laggy for onPositionChange
  */
 function getBoundingRect(
   elem: Element,
@@ -38,14 +38,20 @@ function getBoundingRect(
   });
 }
 
-function MouseTracking({onMouseMove, children}: Props) {
-  const elem = useRef<HTMLDivElement>(null);
+function useMouseTracking<T extends Element>({
+  onPositionChange,
+  onMouseEnter,
+  onMouseMove,
+  onMouseLeave,
+  ...rest
+}: Opts<T>) {
+  const elem = useRef<T>(null);
   const controller = useRef<AbortController>(new AbortController());
 
-  const handleMouseMove = useCallback(
-    async (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
+  const handlePositionChange = useCallback(
+    async (e: MouseEvent<T>) => {
       if (!elem.current) {
-        onMouseMove(undefined);
+        onPositionChange(undefined);
         return;
       }
 
@@ -53,7 +59,7 @@ function MouseTracking({onMouseMove, children}: Props) {
         const rect = await getBoundingRect(elem.current, {
           signal: controller.current.signal,
         });
-        onMouseMove({
+        onPositionChange({
           height: rect.height,
           left: Math.min(e.clientX - rect.left, rect.width),
           top: Math.min(e.clientY - rect.top, rect.height),
@@ -68,28 +74,34 @@ function MouseTracking({onMouseMove, children}: Props) {
         Sentry.captureException(err);
       }
     },
-    [onMouseMove, controller]
+    [onPositionChange, controller]
   );
 
-  const onMouseLeave = useCallback(() => {
+  const handleOnMouseLeave = useCallback(() => {
     if (controller.current) {
       controller.current.abort();
       controller.current = new AbortController();
     }
 
-    onMouseMove(undefined);
-  }, [onMouseMove, controller]);
+    onPositionChange(undefined);
+  }, [onPositionChange, controller]);
 
-  return (
-    <div
-      ref={elem}
-      onMouseEnter={handleMouseMove}
-      onMouseMove={handleMouseMove}
-      onMouseLeave={onMouseLeave}
-    >
-      {children}
-    </div>
-  );
+  return {
+    ref: elem,
+    ...rest,
+    onMouseEnter: (e: MouseEvent<T>) => {
+      handlePositionChange(e);
+      onMouseEnter?.(e);
+    },
+    onMouseMove: (e: MouseEvent<T>) => {
+      handlePositionChange(e);
+      onMouseMove?.(e);
+    },
+    onMouseLeave: (e: MouseEvent<T>) => {
+      handleOnMouseLeave();
+      onMouseLeave?.(e);
+    },
+  };
 }
 
-export default MouseTracking;
+export default useMouseTracking;
