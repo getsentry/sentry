@@ -33,8 +33,8 @@ class MSTeamsMessageBuilder(AbstractMessageBuilder):
 
         for item in items:
             if item:
-                # If the given item is string and not a `block`,
-                # then it will be converted to text block.
+                # NOTE: If the given item is string and not a `block`,
+                # then it will be converted to a text block.
                 if isinstance(item, str):
                     item = create_text_block(item)
 

@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import Any, Sequence
 
 from sentry.integrations.msteams.card_builder import (
+    ME,
     URL_FORMAT_STR,
     Action,
     AdaptiveCard,
@@ -38,12 +39,6 @@ from .block import (
     create_text_block,
 )
 from .utils import IssueConstants
-
-# NOTE: DATE and TIME are formatting functions in Adaptive Cards.
-# The syntax is `{{DATE(<some_date>, SHORT)}}` or `{{TIME(<some_date>)}}`
-# https://docs.microsoft.com/en-us/adaptive-cards/authoring-cards/text-features
-# Since `{` and `}` are special characters in format strings, we need to use
-# double `{{` and `}}` to get the actual character in. Hence the `{{{{` and `}}}}`.
 
 
 def build_input_choice_card(
@@ -87,8 +82,6 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
         )
 
     def create_footer_block(self) -> ColumnSetBlock:
-        logo = create_logo_block(height="20px")
-
         project = Project.objects.get_from_cache(id=self.group.project_id)
         footer = create_text_block(
             build_footer(self.group, project, self.rules, URL_FORMAT_STR),
@@ -98,7 +91,7 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
         )
 
         return create_column_set_block(
-            logo,
+            create_logo_block(height="20px"),
             create_column_block(footer, isSubtle=True, spacing="none"),
             self.create_date_block(),
         )
@@ -109,7 +102,8 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
         if assignee:
             assignee_string = format_actor_option(assignee)["text"]
             return create_text_block(
-                IssueConstants.ASSIGNEE_NOTE.format(assignee=assignee_string), size=TextSize.SMALL
+                IssueConstants.ASSIGNEE_NOTE.format(assignee=assignee_string),
+                size=TextSize.SMALL,
             )
 
     def generate_action_payload(self, action_type: ACTION_TYPE) -> Any:
@@ -126,20 +120,20 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
 
     def get_teams_choices(self) -> Sequence[str, str]:
         teams = self.group.project.teams.all().order_by("slug")
-        return [("Me", IssueConstants.ME)] + [
+        return [("Me", ME)] + [
             (team["text"], team["value"]) for team in format_actor_options(teams)
         ]
 
     def create_issue_action_block(
         self,
-        condition: bool,
+        toggled: bool,
         action: ACTION_TYPE,
         action_title: str,
         reverse_action: ACTION_TYPE,
         reverse_action_title: str,
         **card_kwargs: str,
     ) -> Action:
-        if condition:
+        if toggled:
             data = self.generate_action_payload(reverse_action)
             return create_action_block(ActionType.SUBMIT, title=reverse_action_title, data=data)
 
@@ -180,7 +174,7 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
             reverse_action_title=IssueConstants.UNASSIGN,
             input_id=IssueConstants.ASSIGN_INPUT_ID,
             choices=teams_choices,
-            default_choice=IssueConstants.ME,
+            default_choice=ME,
         )
 
     def get_issue_actions(self) -> ContainerBlock:
@@ -197,6 +191,18 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
     def build(
         self,
     ) -> AdaptiveCard:
+        """
+        The issue (group) card has the following components stacked vertically,
+        1. The issue title which links to the issue.
+        2. A description of the issue if it is available. (Optional)
+        3. A footer block, which again has 3 components stacked horizontally,
+            3a. The short id of the group.
+            3b. The alert rule(s) that fired this notification.
+            3c. The date and time of the event.
+        4. Details of the assignee if the issue is assigned to an actor. (Optional)
+        5. A set of three actions, resolve, ignore and assign which can
+            futher create dropdowns for selecting options.
+        """
         title_text = build_attachment_title(self.group or self.event)
         title_link = build_title_link(
             group=self.group,
@@ -212,7 +218,11 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
         description_text = build_attachment_text(self.group, self.event)
         if description_text:
             fields.append(
-                create_text_block(description_text, size=TextSize.MEDIUM, weight=TextWeight.BOLDER)
+                create_text_block(
+                    description_text,
+                    size=TextSize.MEDIUM,
+                    weight=TextWeight.BOLDER,
+                )
             )
 
         fields.append(self.create_footer_block())
