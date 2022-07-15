@@ -1,10 +1,10 @@
 import type {Group} from 'sentry/types';
 
 export enum ReleaseActivityType {
-  CREATED = 'created',
-  DEPLOYED = 'deployed',
-  FINISHED = 'finished',
-  ISSUE = 'issue',
+  CREATED = 'CREATED',
+  DEPLOYED = 'DEPLOYED',
+  FINISHED = 'FINISHED',
+  ISSUE = 'ISSUE',
 }
 
 interface ReleaseActivityBase {
