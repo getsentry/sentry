@@ -12,6 +12,9 @@ class ActiveReleaseNotificationSent(analytics.Event):
         analytics.Attribute("release_version"),
         analytics.Attribute("recipient_email"),
         analytics.Attribute("recipient_username"),
+        analytics.Attribute("suspect_committer_ids"),
+        analytics.Attribute("code_owner_ids"),
+        analytics.Attribute("team_ids"),
     )
 
 

@@ -8,7 +8,9 @@ import pytz
 
 from sentry import analytics, features
 from sentry.db.models import Model
+from sentry.eventstore.models import Event
 from sentry.models import Release, ReleaseActivity, ReleaseCommit, Team, User, UserOption
+from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.types import ActionTargetType, NotificationSettingTypes
 from sentry.notifications.utils import (
@@ -20,7 +22,7 @@ from sentry.notifications.utils import (
     has_alert_integration,
     has_integrations,
 )
-from sentry.notifications.utils.participants import get_send_to
+from sentry.notifications.utils.participants import get_owners, get_send_to
 from sentry.plugins.base.structs import Notification
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.types.releaseactivity import ReleaseActivityType
@@ -156,16 +158,10 @@ class AlertRuleNotification(ProjectNotification):
             if self.target_type == ActionTargetType.RELEASE_MEMBERS:
                 last_release = shared_context.get("last_release", None)
                 release_version = last_release.version if last_release else None
+                event = shared_context.get("event", None)
                 for participant in participants:
-                    analytics.record(
-                        "active_release_notification.sent",
-                        organization_id=self.project.organization_id,
-                        project_id=self.project.id,
-                        group_id=self.group.id,
-                        provider=EXTERNAL_PROVIDERS[provider],
-                        release_version=release_version,
-                        recipient_email=participant.email,
-                        recipient_username=participant.username,
+                    self.record_active_release_notification_sent(
+                        participant, event, provider, release_version
                     )
                 if (
                     features.has("organizations:active-release-monitor-alpha", self.organization)
@@ -187,6 +183,39 @@ class AlertRuleNotification(ProjectNotification):
             "target_identifier": self.target_identifier,
             **super().get_log_params(recipient),
         }
+
+    def record_active_release_notification_sent(
+        self, participant: Team | User, event: Event, provider: str, release_version: str
+    ) -> None:
+        suspect_committer_ids = [
+            go.owner_id()
+            for go in GroupOwner.objects.filter(
+                group_id=self.group.id,
+                project=self.project.id,
+                organization_id=self.project.organization_id,
+                type=GroupOwnerType.SUSPECT_COMMIT.value,
+            )
+        ]
+        code_owner_ids = [o.id for o in get_owners(self.project, event)]
+        team_ids = (
+            [t.id for t in Team.objects.get_for_user(self.organization, participant)]
+            if type(participant) == User
+            else None
+        )
+
+        analytics.record(
+            "active_release_notification.sent",
+            organization_id=self.project.organization_id,
+            project_id=self.project.id,
+            group_id=self.group.id,
+            provider=EXTERNAL_PROVIDERS[provider],
+            release_version=release_version,
+            recipient_email=participant.email,
+            recipient_username=participant.username,
+            suspect_committer_ids=suspect_committer_ids,
+            code_owner_ids=code_owner_ids,
+            team_ids=team_ids,
+        )
 
 
 class CommitData(TypedDict):
