@@ -106,17 +106,12 @@ function getIconForTypeAndTag(type: ItemType, tagName: string) {
   }
 }
 
-export function createSearchGroups(
+const filterSearchItems = (
   searchItems: SearchItem[],
-  recentSearchItems: SearchItem[] | undefined,
-  tagName: string,
-  type: ItemType,
-  maxSearchItems: number | undefined,
-  queryCharsLeft?: number,
-  isDefaultState?: boolean
-) {
-  const activeSearchItem = 0;
-
+  recentSearchItems?: SearchItem[],
+  maxSearchItems?: number,
+  queryCharsLeft?: number
+) => {
   if (maxSearchItems && maxSearchItems > 0) {
     searchItems = searchItems.filter(
       (value: SearchItem, index: number) =>
@@ -157,20 +152,36 @@ export function createSearchGroups(
     }
   }
 
+  return {searchItems, recentSearchItems};
+};
+
+export function createSearchGroups(
+  searchItems: SearchItem[],
+  recentSearchItems: SearchItem[] | undefined,
+  tagName: string,
+  type: ItemType,
+  maxSearchItems?: number,
+  queryCharsLeft?: number,
+  isDefaultState?: boolean
+) {
+  const activeSearchItem = 0;
+  const {searchItems: filteredSearchItems, recentSearchItems: filteredRecentSearchItems} =
+    filterSearchItems(searchItems, recentSearchItems, maxSearchItems, queryCharsLeft);
+
   const searchGroup: SearchGroup = {
     title: getTitleForType(type),
     type: type === ItemType.INVALID_TAG ? type : 'header',
     icon: getIconForTypeAndTag(type, tagName),
-    children: [...searchItems],
+    children: [...filteredSearchItems],
   };
 
   const recentSearchGroup: SearchGroup | undefined =
-    recentSearchItems && recentSearchItems.length > 0
+    filteredRecentSearchItems && filteredRecentSearchItems.length > 0
       ? {
           title: t('Recent Searches'),
           type: 'header',
           icon: <IconClock size="xs" />,
-          children: [...recentSearchItems],
+          children: [...filteredRecentSearchItems],
         }
       : undefined;
 
@@ -180,7 +191,7 @@ export function createSearchGroups(
     };
   }
 
-  const flatSearchItems = searchItems.flatMap(item => {
+  const flatSearchItems = filteredSearchItems.flatMap(item => {
     if (item.children) {
       if (!item.value) {
         return [...item.children];
