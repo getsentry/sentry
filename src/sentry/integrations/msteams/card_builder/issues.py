@@ -143,7 +143,7 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
 
     def get_ignore_action(self, status: GroupStatus) -> Action:
         return self.create_issue_action_block(
-            condition=GroupStatus.IGNORED == status,
+            toggled=GroupStatus.IGNORED == status,
             action=ACTION_TYPE.IGNORE,
             action_title=IssueConstants.IGNORE,
             reverse_action=ACTION_TYPE.UNRESOLVE,
@@ -154,7 +154,7 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
 
     def get_resolve_action(self, status: GroupStatus) -> Action:
         return self.create_issue_action_block(
-            condition=GroupStatus.RESOLVED == status,
+            toggled=GroupStatus.RESOLVED == status,
             action=ACTION_TYPE.RESOLVE,
             action_title=IssueConstants.RESOLVE,
             reverse_action=ACTION_TYPE.UNRESOLVE,
@@ -167,7 +167,7 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
         teams_choices = self.get_teams_choices()
 
         return self.create_issue_action_block(
-            condition=self.group.get_assignee(),
+            toggled=self.group.get_assignee(),
             action=ACTION_TYPE.ASSIGN,
             action_title=IssueConstants.ASSIGN,
             reverse_action=ACTION_TYPE.UNASSIGN,
