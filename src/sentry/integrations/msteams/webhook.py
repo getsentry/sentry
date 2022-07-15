@@ -171,7 +171,6 @@ class MsTeamsWebhookEndpoint(Endpoint):
         data["conversation_id"] = data["conversation"]["id"]
         tenant_id = data["conversation"]["tenantId"]
 
-        # need to keep track of the service url since we won't get it later
         params = {
             "external_id": tenant_id,
             "external_name": tenant_id,
@@ -185,7 +184,6 @@ class MsTeamsWebhookEndpoint(Endpoint):
         team = data["channelData"]["team"]
         data["conversation_id"] = team["id"]
 
-        # need to keep track of the service url since we won't get it later
         params = {
             "external_id": team["id"],
             "external_name": team["name"],
@@ -205,6 +203,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
         if not matches:
             return self.respond(status=204)
 
+        # need to keep track of the service url since we won't get it later
         params.update(
             {
                 "service_url": data["serviceUrl"],
