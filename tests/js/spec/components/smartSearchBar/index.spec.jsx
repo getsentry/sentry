@@ -784,6 +784,77 @@ describe('SmartSearchBar', function () {
 
       expect(searchBar.state.searchGroups).toHaveLength(0);
     });
+
+    it('correctly groups nested keys', async function () {
+      const props = {
+        query: 'nest',
+        organization,
+        location,
+        supportedTags: {
+          nested: {
+            key: 'nested',
+            name: 'nested',
+          },
+          'nested.child': {
+            key: 'nested.child',
+            name: 'nested.child',
+          },
+        },
+      };
+      jest.useRealTimers();
+      const wrapper = mountWithTheme(<SmartSearchBar {...props} />, options);
+      const searchBar = wrapper.instance();
+      // Cursor is at end of line
+      mockCursorPosition(searchBar, 4);
+      searchBar.updateAutoCompleteItems();
+      await tick();
+      wrapper.update();
+
+      expect(searchBar.state.searchGroups).toHaveLength(1);
+      expect(searchBar.state.searchGroups[0].children).toHaveLength(1);
+      expect(searchBar.state.searchGroups[0].children[0].title).toBe('nested');
+      expect(searchBar.state.searchGroups[0].children[0].children).toHaveLength(1);
+      expect(searchBar.state.searchGroups[0].children[0].children[0].title).toBe(
+        'nested.child'
+      );
+    });
+
+    it('correctly groups nested keys without a parent', async function () {
+      const props = {
+        query: 'nest',
+        organization,
+        location,
+        supportedTags: {
+          'nested.child1': {
+            key: 'nested.child1',
+            name: 'nested.child1',
+          },
+          'nested.child2': {
+            key: 'nested.child2',
+            name: 'nested.child2',
+          },
+        },
+      };
+      jest.useRealTimers();
+      const wrapper = mountWithTheme(<SmartSearchBar {...props} />, options);
+      const searchBar = wrapper.instance();
+      // Cursor is at end of line
+      mockCursorPosition(searchBar, 4);
+      searchBar.updateAutoCompleteItems();
+      await tick();
+      wrapper.update();
+
+      expect(searchBar.state.searchGroups).toHaveLength(1);
+      expect(searchBar.state.searchGroups[0].children).toHaveLength(1);
+      expect(searchBar.state.searchGroups[0].children[0].title).toBe('nested');
+      expect(searchBar.state.searchGroups[0].children[0].children).toHaveLength(2);
+      expect(searchBar.state.searchGroups[0].children[0].children[0].title).toBe(
+        'nested.child1'
+      );
+      expect(searchBar.state.searchGroups[0].children[0].children[1].title).toBe(
+        'nested.child2'
+      );
+    });
   });
 
   describe('onAutoComplete()', function () {
