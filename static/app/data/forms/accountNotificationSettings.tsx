@@ -16,16 +16,6 @@ export const fields: {[key: string]: Field} = {
       'Enable this to receive notifications for Alerts sent to your teams. You will always receive alerts configured to be sent directly to you.'
     ),
   },
-  activeReleaseNotifications: {
-    name: 'activeRelease',
-    type: 'boolean',
-    label: t('Get a notification when an issue happens shortly after your release.'),
-    choices: [
-      [0, t('On')],
-      [2, t('Off')],
-    ],
-    help: '',
-  },
   workflowNotifications: {
     name: 'workflowNotifications',
     type: 'radio',
