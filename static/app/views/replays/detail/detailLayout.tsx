@@ -100,7 +100,7 @@ const HeaderContent = styled(Layout.HeaderContent)`
 const SubHeading = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
   line-height: ${p => p.theme.text.lineHeightBody};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   align-self: end;
   ${p => p.theme.overflowEllipsis};
 `;
