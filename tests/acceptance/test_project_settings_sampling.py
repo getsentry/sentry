@@ -1,3 +1,5 @@
+import time
+
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.keys import Keys
 
@@ -86,6 +88,7 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
 
             # Wait for modal to load
             self.browser.wait_until_not('[data-test-id="loading-indicator"]')
+            time.sleep(1)
 
             # Click on the recommended sampling values option
             self.browser.element('[id="sampling-recommended"]').click()
@@ -119,6 +122,7 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
 
             # Wait for modal to load
             self.browser.wait_until_not('[data-test-id="loading-indicator"]')
+            time.sleep(1)
 
             # Enter a custom value for client side sampling
             self.browser.element('[id="recommended-client-sampling"]').clear()
@@ -163,6 +167,9 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
             # Click on activate rule button
             self.browser.element('[aria-label="Activate Rule"]').click()
 
+            # Wait the success message to show up
+            self.browser.wait_until('[data-test-id="toast-success"]')
+
             # Validate the payload
             project_option = ProjectOption.objects.get(
                 key="sentry:dynamic_sampling", project=self.project
@@ -194,6 +201,9 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
             # Click on deactivate rule button
             self.browser.element('[aria-label="Deactivate Rule"]').click()
 
+            # Wait the success message to show up
+            self.browser.wait_until('[data-test-id="toast-success"]')
+
             # Validate the payload
             project_option = ProjectOption.objects.get(
                 key="sentry:dynamic_sampling", project=self.project
@@ -206,6 +216,7 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
 
             assert {
                 **uniform_rule_with_recommended_sampling_values,
+                "active": False,
                 "id": 2,
             } == serializer.validated_data["rules"][0]
 
@@ -365,6 +376,9 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
             action = ActionChains(self.browser.driver)
             action.drag_and_drop(drag_handle_source, dragHandleTarget)
             action.perform()
+
+            # Wait the success message to show up
+            self.browser.wait_until('[data-test-id="toast-success"]')
 
             # After
             rulesAfter = self.browser.elements('[data-test-id="sampling-rule"]')
