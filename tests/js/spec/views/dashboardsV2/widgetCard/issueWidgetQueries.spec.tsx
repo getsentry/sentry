@@ -118,7 +118,7 @@ describe('IssueWidgetQueries', function () {
     );
   });
 
-  it('appends dashboard filters to request', async function () {
+  it('appends dashboard filters to issue request', async function () {
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/',
       body: [],
