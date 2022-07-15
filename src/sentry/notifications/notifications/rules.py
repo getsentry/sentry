@@ -6,10 +6,10 @@ from urllib.parse import quote
 
 import pytz
 
-from sentry import analytics
+from sentry import analytics, features
 from sentry.db.models import Model
 from sentry.eventstore.models import Event
-from sentry.models import Release, ReleaseCommit, Team, User, UserOption
+from sentry.models import Release, ReleaseActivity, ReleaseCommit, Team, User, UserOption
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.types import ActionTargetType, NotificationSettingTypes
@@ -25,6 +25,7 @@ from sentry.notifications.utils import (
 from sentry.notifications.utils.participants import get_owners, get_send_to
 from sentry.plugins.base.structs import Notification
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
+from sentry.types.releaseactivity import ReleaseActivityType
 from sentry.utils import metrics
 from sentry.utils.http import absolute_uri, urlencode
 
@@ -161,6 +162,18 @@ class AlertRuleNotification(ProjectNotification):
                 for participant in participants:
                     self.record_active_release_notification_sent(
                         participant, event, provider, release_version
+                    )
+                if (
+                    features.has("organizations:active-release-monitor-alpha", self.organization)
+                    and last_release
+                ):
+                    ReleaseActivity.objects.create(
+                        type=ReleaseActivityType.ISSUE.value,
+                        data={
+                            "provider": EXTERNAL_PROVIDERS[provider],
+                            "group_id": self.group.id,
+                        },
+                        release=last_release,
                     )
             notify(provider, self, participants, shared_context)
 
