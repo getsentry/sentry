@@ -1,21 +1,20 @@
 import {browserHistory} from 'react-router';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeData} from 'sentry-test/performance/initializePerformanceData';
-import {act} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import ModalStore from 'sentry/stores/modalStore';
 import TeamStore from 'sentry/stores/teamStore';
-import EventView from 'sentry/utils/discover/eventView';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {OrganizationContext} from 'sentry/views/organizationContext';
+import {generatePerformanceEventView} from 'sentry/views/performance/data';
 import {PerformanceLanding} from 'sentry/views/performance/landing';
 import {REACT_NATIVE_COLUMN_TITLES} from 'sentry/views/performance/landing/data';
-import * as utils from 'sentry/views/performance/landing/utils';
 import {LandingDisplayField} from 'sentry/views/performance/landing/utils';
 
 const WrappedComponent = ({data, withStaticFilters = false}) => {
-  const eventView = EventView.fromLocation(data.router.location);
+  const eventView = generatePerformanceEventView(data.router.location, data.projects, {
+    withStaticFilters,
+  });
 
   return (
     <OrganizationContext.Provider value={data.organization}>
@@ -57,6 +56,10 @@ describe('Performance > Landing > Index', function () {
       body: {},
     });
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/projects/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/org-slug/key-transactions-list/`,
       body: [],
@@ -76,10 +79,24 @@ describe('Performance > Landing > Index', function () {
       url: `/organizations/org-slug/events-trends-stats/`,
       body: [],
     });
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/events-histogram/`,
+      body: [],
+    });
     eventsV2Mock = MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/org-slug/eventsv2/`,
-      body: [],
+      body: {
+        meta: {
+          id: 'string',
+        },
+        data: [
+          {
+            id: '1234',
+          },
+        ],
+      },
     });
   });
 
@@ -96,114 +113,80 @@ describe('Performance > Landing > Index', function () {
     }
   });
 
-  it('renders basic UI elements', async function () {
+  it('renders basic UI elements', function () {
     const data = initializeData();
 
-    wrapper = mountWithTheme(<WrappedComponent data={data} />, data.routerContext);
-    await tick();
-    wrapper.update();
+    wrapper = render(<WrappedComponent data={data} />, data.routerContext);
 
-    expect(wrapper.find('div[data-test-id="performance-landing-v3"]').exists()).toBe(
-      true
-    );
+    expect(screen.getByTestId('performance-landing-v3')).toBeInTheDocument();
   });
 
-  it('renders settings button for MEPS', async function () {
-    const data = initializeData({
-      features: ['performance-use-metrics'],
-    });
-
-    const spy = jest.spyOn(ModalStore, 'openModal');
-
-    wrapper = mountWithTheme(<WrappedComponent data={data} />, data.routerContext);
-    await tick();
-    wrapper.update();
-
-    expect(wrapper.find('div[data-test-id="performance-landing-v3"]').exists()).toBe(
-      true
-    );
-    wrapper.find('button[data-test-id="open-meps-settings"]').simulate('click');
-
-    await tick();
-    wrapper.update();
-
-    expect(spy).toHaveBeenCalledTimes(1);
-  });
-
-  it('renders frontend pageload view', async function () {
+  it('renders frontend pageload view', function () {
     const data = initializeData({
       query: {landingDisplay: LandingDisplayField.FRONTEND_PAGELOAD},
     });
 
-    wrapper = mountWithTheme(<WrappedComponent data={data} />, data.routerContext);
-    await tick();
-    wrapper.update();
+    wrapper = render(<WrappedComponent data={data} />, data.routerContext);
 
-    expect(wrapper.find('div[data-test-id="frontend-pageload-view"]').exists()).toBe(
-      true
-    );
+    expect(screen.getByTestId('frontend-pageload-view')).toBeInTheDocument();
+    expect(screen.getByTestId('PerformanceTable')).toBeInTheDocument();
 
-    expect(wrapper.find('Table')).toHaveLength(1);
-
-    const titles = wrapper.find('div[data-test-id="performance-widget-title"]');
+    const titles = screen.getAllByTestId('performance-widget-title');
     expect(titles).toHaveLength(5);
 
-    expect(titles.at(0).text()).toEqual('p75 LCP');
-    expect(titles.at(1).text()).toEqual('LCP Distribution');
-    expect(titles.at(2).text()).toEqual('FCP Distribution');
-    expect(titles.at(3).text()).toEqual('Worst LCP Web Vitals');
-    expect(titles.at(4).text()).toEqual('Worst FCP Web Vitals');
+    expect(titles[0]).toHaveTextContent('p75 LCP');
+    expect(titles[1]).toHaveTextContent('LCP Distribution');
+    expect(titles[2]).toHaveTextContent('FCP Distribution');
+    expect(titles[3]).toHaveTextContent('Worst LCP Web Vitals');
+    expect(titles[4]).toHaveTextContent('Worst FCP Web Vitals');
   });
 
-  it('renders frontend other view', async function () {
+  it('renders frontend other view', function () {
     const data = initializeData({
       query: {landingDisplay: LandingDisplayField.FRONTEND_OTHER},
     });
 
-    wrapper = mountWithTheme(<WrappedComponent data={data} />, data.routerContext);
-    await tick();
-    wrapper.update();
-
-    expect(wrapper.find('Table').exists()).toBe(true);
+    wrapper = render(<WrappedComponent data={data} />, data.routerContext);
+    expect(screen.getByTestId('PerformanceTable')).toBeInTheDocument();
   });
 
-  it('renders backend view', async function () {
+  it('renders backend view', function () {
     const data = initializeData({
       query: {landingDisplay: LandingDisplayField.BACKEND},
     });
 
-    wrapper = mountWithTheme(<WrappedComponent data={data} />, data.routerContext);
-    await tick();
-    wrapper.update();
-
-    expect(wrapper.find('Table').exists()).toBe(true);
+    wrapper = render(<WrappedComponent data={data} />, data.routerContext);
+    expect(screen.getByTestId('PerformanceTable')).toBeInTheDocument();
   });
 
-  it('renders mobile view', async function () {
+  it('renders mobile view', function () {
     const data = initializeData({
       query: {landingDisplay: LandingDisplayField.MOBILE},
     });
 
-    wrapper = mountWithTheme(<WrappedComponent data={data} />, data.routerContext);
-    await tick();
-    wrapper.update();
-
-    expect(wrapper.find('Table').exists()).toBe(true);
+    wrapper = render(<WrappedComponent data={data} />, data.routerContext);
+    expect(screen.getByTestId('PerformanceTable')).toBeInTheDocument();
   });
 
   it('renders react-native table headers in mobile view', async function () {
-    jest.spyOn(utils, 'checkIsReactNative').mockReturnValueOnce(true);
+    const project = TestStubs.Project({platform: 'react-native'});
+    const projects = [project];
     const data = initializeData({
       query: {landingDisplay: LandingDisplayField.MOBILE},
+      selectedProject: project.id,
+      projects,
     });
 
-    wrapper = mountWithTheme(<WrappedComponent data={data} />, data.routerContext);
-    await tick();
-    wrapper.update();
+    wrapper = render(<WrappedComponent data={data} />, data.routerContext);
 
-    const table = wrapper.find('Table');
-    expect(table.exists()).toBe(true);
-    expect(table.props().columnTitles).toEqual(REACT_NATIVE_COLUMN_TITLES);
+    expect(await screen.findByTestId('PerformanceTable')).toBeInTheDocument();
+    expect(screen.getByTestId('grid-editable')).toBeInTheDocument();
+    const columnHeaders = await screen.findAllByTestId('grid-head-cell');
+
+    expect(columnHeaders).toHaveLength(REACT_NATIVE_COLUMN_TITLES.length);
+    for (const [index, title] of columnHeaders.entries()) {
+      expect(title).toHaveTextContent(REACT_NATIVE_COLUMN_TITLES[index]);
+    }
   });
 
   it('renders all transactions view', async function () {
@@ -211,11 +194,9 @@ describe('Performance > Landing > Index', function () {
       query: {landingDisplay: LandingDisplayField.ALL},
     });
 
-    wrapper = mountWithTheme(<WrappedComponent data={data} />, data.routerContext);
-    await tick();
-    wrapper.update();
+    wrapper = render(<WrappedComponent data={data} />, data.routerContext);
 
-    expect(wrapper.find('Table').exists()).toBe(true);
+    expect(await screen.findByTestId('PerformanceTable')).toBeInTheDocument();
 
     expect(eventStatsMock).toHaveBeenCalledTimes(1); // Only one request is made since the query batcher is working.
 
@@ -225,45 +206,37 @@ describe('Performance > Landing > Index', function () {
       expect.objectContaining({
         query: expect.objectContaining({
           environment: [],
-          interval: '1h',
+          interval: '15m',
           partial: '1',
           project: [],
-          query: '',
+          query: 'transaction.duration:<15m event.type:transaction',
           referrer: 'api.performance.generic-widget-chart.user-misery-area',
-          statsPeriod: '28d',
+          statsPeriod: '48h',
           yAxis: ['user_misery()', 'tpm()', 'failure_rate()'],
         }),
       })
     );
 
-    expect(eventsV2Mock).toHaveBeenCalledTimes(1);
+    expect(eventsV2Mock).toHaveBeenCalledTimes(2);
 
-    const titles = wrapper.find('div[data-test-id="performance-widget-title"]');
+    const titles = await screen.findAllByTestId('performance-widget-title');
     expect(titles).toHaveLength(5);
 
-    expect(titles.at(0).text()).toEqual('User Misery');
-    expect(titles.at(1).text()).toEqual('Transactions Per Minute');
-    expect(titles.at(2).text()).toEqual('Failure Rate');
-    expect(titles.at(3).text()).toEqual('Most Related Issues');
-    expect(titles.at(4).text()).toEqual('Most Improved');
+    expect(titles.at(0)).toHaveTextContent('User Misery');
+    expect(titles.at(1)).toHaveTextContent('Transactions Per Minute');
+    expect(titles.at(2)).toHaveTextContent('Failure Rate');
+    expect(titles.at(3)).toHaveTextContent('Most Related Issues');
+    expect(titles.at(4)).toHaveTextContent('Most Improved');
   });
 
-  it('Can switch between landing displays', async function () {
+  it('Can switch between landing displays', function () {
     const data = initializeData({
       query: {landingDisplay: LandingDisplayField.FRONTEND_PAGELOAD, abc: '123'},
     });
 
-    wrapper = mountWithTheme(<WrappedComponent data={data} />, data.routerContext);
-    await tick();
-    wrapper.update();
-
-    expect(wrapper.find('div[data-test-id="frontend-pageload-view"]').exists()).toBe(
-      true
-    );
-
-    wrapper.find('a[data-test-id="landing-tab-all"]').simulate('click');
-    await tick();
-    wrapper.update();
+    wrapper = render(<WrappedComponent data={data} />, data.routerContext);
+    expect(screen.getByTestId('frontend-pageload-view')).toBeInTheDocument();
+    userEvent.click(screen.getByTestId('landing-tab-all'));
 
     expect(browserHistory.push).toHaveBeenNthCalledWith(
       1,
@@ -274,62 +247,50 @@ describe('Performance > Landing > Index', function () {
     );
   });
 
-  it('Updating projects switches performance view', async function () {
+  it('Updating projects switches performance view', function () {
     const data = initializeData({
       query: {landingDisplay: LandingDisplayField.FRONTEND_PAGELOAD},
     });
 
-    wrapper = mountWithTheme(<WrappedComponent data={data} />, data.routerContext);
-    await tick();
-    wrapper.update();
+    wrapper = render(<WrappedComponent data={data} />, data.routerContext);
 
-    expect(wrapper.find('div[data-test-id="frontend-pageload-view"]').exists()).toBe(
-      true
-    );
+    expect(screen.getByTestId('frontend-pageload-view')).toBeInTheDocument();
 
     const updatedData = initializeData({
       projects: [TestStubs.Project({id: 123, platform: 'unknown'})],
-      project: 123 as any,
+      selectedProject: 123,
     });
 
-    wrapper.setProps({
-      data: updatedData,
-    } as any);
-    await tick();
-    wrapper.update();
+    wrapper.rerender(<WrappedComponent data={updatedData} />, data.routerContext);
 
-    expect(wrapper.find('div[data-test-id="all-transactions-view"]').exists()).toBe(true);
+    expect(screen.getByTestId('all-transactions-view')).toBeInTheDocument();
   });
 
-  it('View correctly defaults based on project without url param', async function () {
+  it('View correctly defaults based on project without url param', function () {
     const data = initializeData({
       projects: [TestStubs.Project({id: 99, platform: 'javascript-react'})],
-      project: 99 as any,
+      selectedProject: 99,
     });
 
-    wrapper = mountWithTheme(<WrappedComponent data={data} />, data.routerContext);
-    await tick();
-    wrapper.update();
-
-    expect(wrapper.find('div[data-test-id="frontend-pageload-view"]').exists()).toBe(
-      true
-    );
+    wrapper = render(<WrappedComponent data={data} />, data.routerContext);
+    expect(screen.getByTestId('frontend-pageload-view')).toBeInTheDocument();
   });
 
   describe('with transaction search feature', function () {
-    it('renders the search bar', function () {
+    it('renders the search bar', async function () {
       const data = initializeData({
-        features: ['performance-transaction-name-only-search'],
+        features: [
+          'performance-transaction-name-only-search',
+          'organizations:performance-transaction-name-only-search',
+        ],
       });
 
-      wrapper = mountWithTheme(
+      wrapper = render(
         <WrappedComponent data={data} withStaticFilters />,
         data.routerContext
       );
 
-      expect(wrapper.find('div[data-test-id="transaction-search-bar"]').exists()).toBe(
-        true
-      );
+      expect(await screen.findByTestId('transaction-search-bar')).toBeInTheDocument();
     });
   });
 });
