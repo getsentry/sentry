@@ -50,19 +50,19 @@ function FluidPanel({className, children, bottom, title, panel, scroll = true}: 
 const FluidContainer = styled('section')`
   display: grid;
   grid-template-rows: auto 1fr auto;
-  max-height: 100%;
+  height: 100%;
 `;
 
 const FluidPanelContainer = styled(Panel)`
   display: grid;
   grid-template-rows: auto 1fr auto;
-  max-height: 100%;
+  height: 100%;
 
   margin-bottom: 0;
 `;
 
 const OverflowBody = styled('div')<{scroll: boolean}>`
-  max-height: 100%;
+  height: 100%;
   overflow: ${p => (p.scroll ? 'auto;' : 'hidden')};
 `;
 

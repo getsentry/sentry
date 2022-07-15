@@ -107,7 +107,7 @@ function ReplayLayout({
           left={{
             content,
             default: '60%',
-            min: {px: 300},
+            min: {px: 325},
           }}
           right={{
             content: <SidebarContent video={video} crumbs={crumbs} />,
@@ -132,7 +132,7 @@ function ReplayLayout({
           right={{
             content,
             default: '60%',
-            min: {px: 300},
+            min: {px: 325},
           }}
         />
       </BodyContent>
@@ -179,8 +179,8 @@ function SidebarContent({video, crumbs}) {
         <SplitPanel
           top={{
             content: video,
-            default: '325px',
-            min: 325,
+            default: '55%',
+            min: {px: 200},
           }}
           bottom={crumbs}
         />

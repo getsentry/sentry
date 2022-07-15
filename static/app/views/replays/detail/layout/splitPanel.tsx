@@ -188,8 +188,8 @@ const SplitPanelContainer = styled('div')<{
   orientation: 'rows' | 'columns';
   size: CSSValue;
 }>`
-  max-width: 100%;
-  max-height: 100%;
+  width: 100%;
+  height: 100%;
 
   display: grid;
   overflow: auto;
@@ -214,8 +214,8 @@ const Divider = styled(
 )<DividerProps>`
   display: grid;
   place-items: center;
-  max-height: 100%;
-  max-width: 100%;
+  height: 100%;
+  width: 100%;
 
   ${p => (p.mousedown ? 'user-select: none;' : '')}
 
