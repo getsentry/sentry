@@ -2843,7 +2843,7 @@ describe('WidgetBuilder', function () {
         );
 
         await waitFor(() => {
-          expect(screen.getByText('No items found')).toBeInTheDocument();
+          expect(screen.getByText("isn't supported here.")).toBeInTheDocument();
         });
 
         userEvent.click(screen.getByText('Releases (sessions, crash rates)'));
