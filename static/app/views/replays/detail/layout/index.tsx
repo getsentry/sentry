@@ -182,7 +182,10 @@ function SidebarContent({video, crumbs}) {
             default: '55%',
             min: {px: 200},
           }}
-          bottom={crumbs}
+          bottom={{
+            content: crumbs,
+            min: {px: 200},
+          }}
         />
       </FluidPanel>
     );
