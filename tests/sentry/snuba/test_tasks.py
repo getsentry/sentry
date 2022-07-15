@@ -365,7 +365,11 @@ class BuildSnqlQueryTest(TestCase):
                             Function(
                                 function="equals",
                                 parameters=[
-                                    Column(name=resolve_tag_key(UseCaseKey.RELEASE_HEALTH, org_id, "session.status")),
+                                    Column(
+                                        name=resolve_tag_key(
+                                            UseCaseKey.RELEASE_HEALTH, org_id, "session.status"
+                                        )
+                                    ),
                                     resolve(UseCaseKey.RELEASE_HEALTH, org_id, "init"),
                                 ],
                             ),
@@ -379,7 +383,11 @@ class BuildSnqlQueryTest(TestCase):
                             Function(
                                 function="equals",
                                 parameters=[
-                                    Column(name=resolve_tag_key(UseCaseKey.RELEASE_HEALTH, org_id, "session.status")),
+                                    Column(
+                                        name=resolve_tag_key(
+                                            UseCaseKey.RELEASE_HEALTH, org_id, "session.status"
+                                        )
+                                    ),
                                     resolve(UseCaseKey.RELEASE_HEALTH, org_id, "crashed"),
                                 ],
                             ),
@@ -402,7 +410,11 @@ class BuildSnqlQueryTest(TestCase):
                             Function(
                                 function="equals",
                                 parameters=[
-                                    Column(name=resolve_tag_key(UseCaseKey.RELEASE_HEALTH, org_id, "session.status")),
+                                    Column(
+                                        name=resolve_tag_key(
+                                            UseCaseKey.RELEASE_HEALTH, org_id, "session.status"
+                                        )
+                                    ),
                                     resolve(UseCaseKey.RELEASE_HEALTH, org_id, "crashed"),
                                 ],
                             ),
