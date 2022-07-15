@@ -4,6 +4,7 @@
 .storybook-out/
 .DS_Store
 .venv
+.swc
 *.egg-info
 *.pyc
 *.log

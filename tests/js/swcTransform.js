@@ -144,18 +144,6 @@ module.exports = createTransformer({
       jsx: true,
       tsx: true,
       target: 'es2022',
-      experimental: {
-        plugins: [
-          [
-            'emotion-swc-plugin',
-            {
-              enabled: true,
-              sourceMap: true,
-              autoLabel: 'always',
-            },
-          ],
-        ],
-      },
     },
     transform: {
       // babel legacy decorator support
@@ -164,6 +152,17 @@ module.exports = createTransformer({
         runtime: 'automatic',
         importSource: '@emotion/core',
       },
+    },
+    experimental: {
+      plugins: [
+        [
+          'emotion-swc-plugin',
+          {
+            sourceMap: true,
+            autoLabel: 'always',
+          },
+        ],
+      ],
     },
   },
   module: {
