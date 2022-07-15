@@ -267,8 +267,23 @@ class MSTeamsMessageBuilderTest(TestCase):
         assert "+1 other" in issue_id_and_rule["text"]
 
         date = footer["columns"][2]["items"][0]
-        assert re.match(
-            r"\{\{DATE\([0-9T+:\-]+, SHORT\)\}\} at \{\{TIME\([0-9T+:\-]+\)\}\}", date["text"]
+        assert (
+            re.match(
+                r"""\{\{                # {{
+                DATE\(                  # DATE(
+                    [0-9T+:\-]+,\ SHORT #   2022-07-14T19:30:34, SHORT
+                \)                      # )
+                \}\}                    # }}
+                \                       # whitespace
+                at                      # at
+                \                       # whitespace
+                \{\{                    # {{
+                TIME\([0-9T+:\-]+\)     # TIME(2022-07-14T19:30:34)
+                \}\}                    # }}""",
+                date["text"],
+                re.VERBOSE,
+            )
+            is not None
         )
 
         actions_container = body[3]
