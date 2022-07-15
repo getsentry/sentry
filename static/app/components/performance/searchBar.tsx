@@ -20,11 +20,13 @@ import {ItemType, SearchGroup} from '../smartSearchBar/types';
 type SearchBarProps = {
   eventView: EventView;
   location: Location;
+  onSearch: (query: string) => void;
   organization: Organization;
+  query: string;
 };
 
 function SearchBar(props: SearchBarProps) {
-  const {organization, eventView} = props;
+  const {organization, eventView, onSearch, query: searchQuery} = props;
   const [searchResults, setSearchResults] = useState<SearchGroup[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -32,11 +34,11 @@ function SearchBar(props: SearchBarProps) {
 
   const prepareQuery = (query: string) => {
     const prependedChar = query[0] === '*' ? '' : '*';
-    const appendedhar = query[query.length - 1] === '*' ? '' : '*';
-    return `${prependedChar}${query}${appendedhar}`;
+    const appendedChar = query[query.length - 1] === '*' ? '' : '*';
+    return `${prependedChar}${query}${appendedChar}`;
   };
 
-  const handleSearch = debounce(
+  const getSuggestedTransactions = debounce(
     async query => {
       if (query.length < 3) {
         setSearchResults([]);
@@ -96,6 +98,10 @@ function SearchBar(props: SearchBarProps) {
     {leading: true}
   );
 
+  const handleSearch = (query: string) => {
+    onSearch(query);
+  };
+
   const navigateToTransactionSummary = (name: string) => {
     const lastIndex = name.lastIndexOf(':');
     const transactionName = name.slice(0, lastIndex);
@@ -113,7 +119,12 @@ function SearchBar(props: SearchBarProps) {
 
   return (
     <Container data-test-id="transaction-search-bar">
-      <BaseSearchBar placeholder={t('Search Transactions')} onChange={handleSearch} />
+      <BaseSearchBar
+        placeholder={t('Search Transactions')}
+        onSearch={handleSearch}
+        onChange={getSuggestedTransactions}
+        query={searchQuery}
+      />
       <SearchDropdown
         css={{
           display: searchResults[0]?.children.length ? 'block' : 'none',
