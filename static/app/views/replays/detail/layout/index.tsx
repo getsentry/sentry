@@ -167,15 +167,14 @@ function SidebarContent({video, crumbs}) {
   const {getParamValue} = useUrlParams('t_side', 'video');
   if (getParamValue() === 'tags') {
     return (
-      <Fragment>
-        <SideTabs />
+      <FluidPanel title={<SideTabs />}>
         <TagPanel />
-      </Fragment>
+      </FluidPanel>
     );
   }
   if (video && crumbs) {
     return (
-      <FluidPanel title={<SideTabs />} scroll={false}>
+      <FluidPanel title={<SideTabs />}>
         <SplitPanel
           top={{
             content: video,

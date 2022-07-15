@@ -1,6 +1,10 @@
 import {Fragment, useCallback, useRef} from 'react';
 import styled from '@emotion/styled';
 
+import {
+  Panel as BasePanel,
+  PanelHeader as BasePanelHeader,
+} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {relativeTimeInMs} from 'sentry/components/replays/utils';
@@ -121,33 +125,33 @@ function Breadcrumbs({}: Props) {
   );
 
   return (
-    <FluidPanel panel data-ref={crumbListContainerRef} title={t('Breadcrumbs')}>
-      {content}
-    </FluidPanel>
+    <Panel>
+      <FluidPanel
+        data-ref={crumbListContainerRef}
+        title={<PanelHeader>{t('Breadcrumbs')}</PanelHeader>}
+      >
+        {content}
+      </FluidPanel>
+    </Panel>
   );
 }
 
-// const Panel = styled(BasePanel)`
-//   width: 100%;
-//   height: 100%;
-//   overflow: hidden;
-// `;
+const Panel = styled(BasePanel)`
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  margin-bottom: 0;
+`;
 
-// const PanelHeader = styled(BasePanelHeader)`
-//   background-color: ${p => p.theme.background};
-//   border-bottom: 1px solid ${p => p.theme.innerBorder};
-//   font-size: ${p => p.theme.fontSizeSmall};
-//   color: ${p => p.theme.gray500};
-//   text-transform: capitalize;
-//   padding: ${space(1)} ${space(1.5)} ${space(1)};
-//   font-weight: 600;
-// `;
-
-// const PanelBody = styled(BasePanelBody)`
-//   padding: ${space(0.5)};
-//   overflow-y: auto;
-//   max-height: calc(100% - ${TAB_HEADER_HEIGHT}px);
-// `;
+const PanelHeader = styled(BasePanelHeader)`
+  background-color: ${p => p.theme.background};
+  border-bottom: 1px solid ${p => p.theme.innerBorder};
+  font-size: ${p => p.theme.fontSizeSmall};
+  color: ${p => p.theme.gray500};
+  text-transform: capitalize;
+  padding: ${space(1)} ${space(1.5)} ${space(1)};
+  font-weight: 600;
+`;
 
 const PlaceholderMargin = styled(Placeholder)`
   margin: ${space(1)} 0;
