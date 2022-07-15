@@ -182,10 +182,6 @@ describe('flamegraphRenderer', () => {
         getContext: jest.fn().mockReturnValue(context),
       }) as HTMLCanvasElement;
 
-      // @ts-ignore partial mock, we dont need the actual frame,
-      // only f0 matched a search result
-      const results: FlamegraphSearch['results'] = {f00: 1};
-
       const flamegraph = makeFlamegraph(
         {
           startValue: 0,
@@ -215,6 +211,10 @@ describe('flamegraphRenderer', () => {
         },
         [{name: 'f0'}, {name: 'f1'}]
       );
+
+      const results: FlamegraphSearch['results'] = new Map();
+      // @ts-ignore we just need a partial frame
+      results.set('f00', {});
 
       const flamegraphCanvas = new FlamegraphCanvas(canvas, vec2.fromValues(0, 0));
       const flamegraphView = new FlamegraphView({
