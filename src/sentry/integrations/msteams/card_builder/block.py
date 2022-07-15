@@ -147,8 +147,3 @@ def create_input_choice_set_block(
         "choices": [{"title": title, "value": value} for title, value in choices],
         **default_choice_arg,
     }
-
-    # if default_choice:
-    #     input_choice_set_block.update({"value": default_choice})
-
-    # return input_choice_set_block
