@@ -229,9 +229,9 @@ const ItemTitle = ({item, searchSubstring, isChild}: ItemTitleProps) => {
   );
 };
 
-type KindTagProps = {kind: FieldKind; isDeprecated?: boolean};
+type KindTagProps = {kind: FieldKind; deprecated?: boolean};
 
-const KindTag = ({kind, isDeprecated}: KindTagProps) => {
+const KindTag = ({kind, deprecated}: KindTagProps) => {
   let text, tagType;
   switch (kind) {
     case FieldKind.FUNCTION:
@@ -259,7 +259,7 @@ const KindTag = ({kind, isDeprecated}: KindTagProps) => {
       text = kind;
   }
 
-  if (isDeprecated) {
+  if (deprecated) {
     text = 'deprecated';
     tagType = 'error';
   }
@@ -297,7 +297,11 @@ const DropdownItem = ({item, isChild, searchSubstring, onClick}: DropdownItemPro
         <ItemTitle item={item} isChild={isChild} searchSubstring={searchSubstring} />
         {item.desc && <Value hasDocs={!!item.documentation}>{item.desc}</Value>}
         <Documentation>{item.documentation}</Documentation>
-        <TagWrapper>{item.kind && !isChild && <KindTag kind={item.kind} />}</TagWrapper>
+        <TagWrapper>
+          {item.kind && !isChild && (
+            <KindTag kind={item.kind} deprecated={item.deprecated} />
+          )}
+        </TagWrapper>
       </Fragment>
     );
   }
