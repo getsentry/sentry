@@ -608,7 +608,8 @@ export function resolveUrl(
   const [legacyRoute, customerDomainRoute] = routeRenderMap[routeType];
   const {organizationUrl} = organization;
 
-  const shouldUseLegacyRoute = !organizationUrl;
+  const shouldUseLegacyRoute =
+    !organizationUrl || !organization.features.includes('customer-domains');
   const route = shouldUseLegacyRoute ? legacyRoute : customerDomainRoute;
 
   const renderedRoute = replaceRouterParams(route, {
