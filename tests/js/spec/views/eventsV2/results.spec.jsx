@@ -33,7 +33,12 @@ describe('Results', function () {
   enforceActOnUseLegacyStoreHook();
 
   const eventTitle = 'Oh no something bad';
-  let eventsResultsMock, eventsv2ResultsMock, mockSaved, eventsStatsMock, mockVisit;
+  let eventsResultsMock,
+    eventsv2ResultsMock,
+    mockSaved,
+    eventsStatsMock,
+    mockVisit,
+    eventsResultsMockBody;
 
   const mountWithThemeAndOrg = (component, opts, organization) =>
     mountWithTheme(component, {
@@ -93,7 +98,7 @@ describe('Results', function () {
         },
       ],
     };
-    const eventsResultsMockBody = {
+    eventsResultsMockBody = {
       meta: {
         fields: {
           id: 'string',
@@ -924,6 +929,61 @@ describe('Results', function () {
 
       // Should load events once
       expect(eventsResultsMock).toHaveBeenCalled();
+    });
+
+    it('loads data from customer domain endpoint when moving from an invalid to valid EventView', async function () {
+      const organization = TestStubs.Organization({
+        features: [...features, 'customer-domains'],
+      });
+      const regionEventsResultsMock = MockApiClient.addMockResponse({
+        url: `${organization.organizationUrl}/api/0/events/`,
+        body: eventsResultsMockBody,
+      });
+
+      // Start off with an invalid view (empty is invalid)
+      const initialData = initializeOrg({
+        organization,
+        router: {
+          location: {query: {query: 'tag:value'}},
+        },
+      });
+
+      ProjectsStore.loadInitialData([TestStubs.Project()]);
+
+      const wrapper = mountWithThemeAndOrg(
+        <Results
+          organization={organization}
+          location={initialData.router.location}
+          router={initialData.router}
+        />,
+        initialData.routerContext,
+        organization
+      );
+
+      await tick();
+      wrapper.update();
+
+      // No request as eventview was invalid.
+      expect(regionEventsResultsMock).not.toHaveBeenCalled();
+      expect(eventsResultsMock).not.toHaveBeenCalled();
+
+      // Should redirect and retain the old query value..
+      expect(browserHistory.replace).toHaveBeenCalledWith(
+        expect.objectContaining({
+          pathname: '/organizations/org-slug/discover/results/',
+          query: expect.objectContaining({
+            query: 'tag:value',
+          }),
+        })
+      );
+
+      // Update location simulating a redirect.
+      wrapper.setProps({location: {query: {...generateFields()}}});
+      wrapper.update();
+
+      // Should load events once
+      expect(regionEventsResultsMock).toHaveBeenCalled();
+      expect(eventsResultsMock).not.toHaveBeenCalled();
     });
 
     it('pagination cursor should be cleared when making a search', async function () {
