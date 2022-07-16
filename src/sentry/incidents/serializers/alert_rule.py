@@ -62,7 +62,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
         child=ProjectField(scope="project:read"), required=False
     )
     triggers = serializers.ListField(required=True)
-    query_type = serializers.CharField(required=False)
+    query_type = serializers.IntegerField(required=False)
     dataset = serializers.CharField(required=False)
     event_types = serializers.ListField(child=serializers.CharField(), required=False)
     query = serializers.CharField(required=True, allow_blank=True)
@@ -87,6 +87,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
         fields = [
             "name",
             "owner",
+            "query_type",
             "dataset",
             "query",
             "time_window",
@@ -145,7 +146,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
             return SnubaQuery.Type(query_type)
         except ValueError:
             raise serializers.ValidationError(
-                "Invalid query type, valid values are %s" % [item.value for item in SnubaQuery.Type]
+                f"Invalid query type {query_type}, valid values are {[item.value for item in SnubaQuery.Type]}"
             )
 
     def validate_dataset(self, dataset):
@@ -247,7 +248,9 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
             and dataset == QueryDatasets.PERFORMANCE_METRICS
             and query_type == SnubaQuery.Type.PERFORMANCE
         ):
-            pass
+            raise serializers.ValidationError(
+                "This project does not have access to the `generic_metrics` dataset"
+            )
 
         projects = data.get("projects")
         if not projects:

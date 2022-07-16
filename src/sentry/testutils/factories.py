@@ -23,6 +23,7 @@ from sentry.incidents.logic import (
     create_alert_rule,
     create_alert_rule_trigger,
     create_alert_rule_trigger_action,
+    query_datasets_to_type,
 )
 from sentry.incidents.models import (
     AlertRuleThresholdType,
@@ -89,7 +90,7 @@ from sentry.models import (
 from sentry.models.integrations.integration_feature import Feature, IntegrationTypes
 from sentry.models.releasefile import update_artifact_index
 from sentry.signals import project_created
-from sentry.snuba.models import QueryDatasets, SnubaQuery
+from sentry.snuba.models import QueryDatasets
 from sentry.types.activity import ActivityType
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json, loremipsum
@@ -1042,7 +1043,7 @@ class Factories:
         environment=None,
         excluded_projects=None,
         date_added=None,
-        query_type=SnubaQuery.Type.ERROR,
+        query_type=None,
         dataset=QueryDatasets.EVENTS,
         threshold_type=AlertRuleThresholdType.ABOVE,
         resolve_threshold=None,
@@ -1052,6 +1053,9 @@ class Factories:
     ):
         if not name:
             name = petname.Generate(2, " ", letters=10).title()
+
+        if query_type is None:
+            query_type = query_datasets_to_type[dataset]
 
         alert_rule = create_alert_rule(
             organization,

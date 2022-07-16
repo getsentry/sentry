@@ -31,7 +31,7 @@ QUERY_TYPE_VALID_EVENT_TYPES = {
 QUERY_TYPE_VALID_DATASETS = {
     SnubaQuery.Type.ERROR: {QueryDatasets.EVENTS},
     SnubaQuery.Type.PERFORMANCE: {QueryDatasets.TRANSACTIONS, QueryDatasets.PERFORMANCE_METRICS},
-    SnubaQuery.Type.CRASH_RATE: {QueryDatasets.METRICS},
+    SnubaQuery.Type.CRASH_RATE: {QueryDatasets.METRICS, QueryDatasets.SESSIONS},
 }
 
 # TODO(davidenwang): eventually we should pass some form of these to the event_search parser to raise an error

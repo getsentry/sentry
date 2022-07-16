@@ -884,12 +884,12 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             dataset=QueryDatasets.SESSIONS,
         )
         alert_rule = update_alert_rule(alert_rule, dataset=QueryDatasets.SESSIONS)
-        assert alert_rule.snuba_query.type == SnubaQuery.Type.CRASH_RATE
+        assert alert_rule.snuba_query.type == SnubaQuery.Type.CRASH_RATE.value
         assert alert_rule.snuba_query.dataset == QueryDatasets.SESSIONS.value
 
         with self.feature("organizations:alert-crash-free-metrics"):
             alert_rule = update_alert_rule(alert_rule, dataset=QueryDatasets.SESSIONS)
-        assert alert_rule.snuba_query.type == SnubaQuery.Type.CRASH_RATE
+        assert alert_rule.snuba_query.type == SnubaQuery.Type.CRASH_RATE.value
         assert alert_rule.snuba_query.dataset == QueryDatasets.METRICS.value
 
 
