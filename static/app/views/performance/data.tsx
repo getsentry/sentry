@@ -428,7 +428,7 @@ function generateGenericPerformanceEventView(
   }
   savedQuery.orderby = decodeScalar(query.sort, '-tpm');
 
-  const searchQuery = withStaticFilters ? '' : decodeScalar(query.query, '');
+  const searchQuery = decodeScalar(query.query, '');
   const conditions = new MutableSearch(searchQuery);
 
   // This is not an override condition since we want the duration to appear in the search bar as a default.
@@ -438,13 +438,12 @@ function generateGenericPerformanceEventView(
 
   // If there is a bare text search, we want to treat it as a search
   // on the transaction name.
-  if (conditions.freeText.length > 0 && !withStaticFilters) {
+  if (conditions.freeText.length > 0) {
+    const parsedFreeText = withStaticFilters
+      ? decodeScalar(conditions.freeText, '')
+      : conditions.freeText.join(' ');
     // the query here is a user entered condition, no need to escape it
-    conditions.setFilterValues(
-      'transaction',
-      [`*${conditions.freeText.join(' ')}*`],
-      false
-    );
+    conditions.setFilterValues('transaction', [`*${parsedFreeText}*`], false);
     conditions.freeText = [];
   }
   savedQuery.query = conditions.formatString();
@@ -505,7 +504,7 @@ function generateBackendPerformanceEventView(
   }
   savedQuery.orderby = decodeScalar(query.sort, '-tpm');
 
-  const searchQuery = withStaticFilters ? '' : decodeScalar(query.query, '');
+  const searchQuery = decodeScalar(query.query, '');
   const conditions = new MutableSearch(searchQuery);
 
   // This is not an override condition since we want the duration to appear in the search bar as a default.
@@ -515,13 +514,13 @@ function generateBackendPerformanceEventView(
 
   // If there is a bare text search, we want to treat it as a search
   // on the transaction name.
-  if (conditions.freeText.length > 0 && !withStaticFilters) {
+  if (conditions.freeText.length > 0) {
+    const parsedFreeText = withStaticFilters
+      ? decodeScalar(conditions.freeText, '')
+      : conditions.freeText.join(' ');
+
     // the query here is a user entered condition, no need to escape it
-    conditions.setFilterValues(
-      'transaction',
-      [`*${conditions.freeText.join(' ')}*`],
-      false
-    );
+    conditions.setFilterValues('transaction', [`*${parsedFreeText}*`], false);
     conditions.freeText = [];
   }
   savedQuery.query = conditions.formatString();
@@ -586,7 +585,7 @@ function generateMobilePerformanceEventView(
   }
   savedQuery.orderby = decodeScalar(query.sort, '-tpm');
 
-  const searchQuery = withStaticFilters ? '' : decodeScalar(query.query, '');
+  const searchQuery = decodeScalar(query.query, '');
   const conditions = new MutableSearch(searchQuery);
 
   // This is not an override condition since we want the duration to appear in the search bar as a default.
@@ -596,13 +595,14 @@ function generateMobilePerformanceEventView(
 
   // If there is a bare text search, we want to treat it as a search
   // on the transaction name.
-  if (conditions.freeText.length > 0 && !withStaticFilters) {
+  if (conditions.freeText.length > 0) {
+    const parsedFreeText = withStaticFilters
+      ? // pick first element to search transactions by name
+        decodeScalar(conditions.freeText, '')
+      : conditions.freeText.join(' ');
+
     // the query here is a user entered condition, no need to escape it
-    conditions.setFilterValues(
-      'transaction',
-      [`*${conditions.freeText.join(' ')}*`],
-      false
-    );
+    conditions.setFilterValues('transaction', [`*${parsedFreeText}*`], false);
     conditions.freeText = [];
   }
   savedQuery.query = conditions.formatString();
@@ -653,7 +653,7 @@ function generateFrontendPageloadPerformanceEventView(
   }
   savedQuery.orderby = decodeScalar(query.sort, '-tpm');
 
-  const searchQuery = withStaticFilters ? '' : decodeScalar(query.query, '');
+  const searchQuery = decodeScalar(query.query, '');
   const conditions = new MutableSearch(searchQuery);
 
   // This is not an override condition since we want the duration to appear in the search bar as a default.
@@ -663,13 +663,14 @@ function generateFrontendPageloadPerformanceEventView(
 
   // If there is a bare text search, we want to treat it as a search
   // on the transaction name.
-  if (conditions.freeText.length > 0 && !withStaticFilters) {
+  if (conditions.freeText.length > 0) {
+    const parsedFreeText = withStaticFilters
+      ? // pick first element to search transactions by name
+        decodeScalar(conditions.freeText, '')
+      : conditions.freeText.join(' ');
+
     // the query here is a user entered condition, no need to escape it
-    conditions.setFilterValues(
-      'transaction',
-      [`*${conditions.freeText.join(' ')}*`],
-      false
-    );
+    conditions.setFilterValues('transaction', [`*${parsedFreeText}*`], false);
     conditions.freeText = [];
   }
   savedQuery.query = conditions.formatString();
@@ -721,7 +722,7 @@ function generateFrontendOtherPerformanceEventView(
   }
   savedQuery.orderby = decodeScalar(query.sort, '-tpm');
 
-  const searchQuery = withStaticFilters ? '' : decodeScalar(query.query, '');
+  const searchQuery = decodeScalar(query.query, '');
   const conditions = new MutableSearch(searchQuery);
 
   // This is not an override condition since we want the duration to appear in the search bar as a default.
@@ -732,12 +733,13 @@ function generateFrontendOtherPerformanceEventView(
   // If there is a bare text search, we want to treat it as a search
   // on the transaction name.
   if (conditions.freeText.length > 0 && !withStaticFilters) {
+    const parsedFreeText = withStaticFilters
+      ? // pick first element to search transactions by name
+        decodeScalar(conditions.freeText, '')
+      : conditions.freeText.join(' ');
+
     // the query here is a user entered condition, no need to escape it
-    conditions.setFilterValues(
-      'transaction',
-      [`*${conditions.freeText.join(' ')}*`],
-      false
-    );
+    conditions.setFilterValues('transaction', [`*${parsedFreeText}*`], false);
     conditions.freeText = [];
   }
   savedQuery.query = conditions.formatString();
@@ -755,7 +757,6 @@ export function generatePerformanceEventView(
   {isTrends = false, withStaticFilters = false} = {}
 ) {
   const eventView = generateGenericPerformanceEventView(location, withStaticFilters);
-
   if (isTrends) {
     return eventView;
   }
