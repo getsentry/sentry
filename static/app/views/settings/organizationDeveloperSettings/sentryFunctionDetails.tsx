@@ -1,7 +1,11 @@
 import {useRef} from 'react';
 import {RouteComponentProps} from 'react-router';
 
-import {addLoadingMessage} from 'sentry/actionCreators/indicator';
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  addSuccessMessage,
+} from 'sentry/actionCreators/indicator';
 import Feature from 'sentry/components/acl/feature';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
@@ -44,6 +48,18 @@ export default function SentryFunctionDetails(props: Props) {
   const {orgId, functionSlug} = props.params;
   const method = functionSlug ? 'PUT' : 'POST';
   const endpoint = `/organizations/${orgId}/functions/`;
+  const handleSubmitError = err => {
+    let errorMessage = t('Unknown Error');
+    if (err.status >= 400 && err.status < 500) {
+      errorMessage = err?.responseJSON.detail ?? errorMessage;
+    }
+    addErrorMessage(errorMessage);
+  };
+
+  const handleSubmitSuccess = data => {
+    addSuccessMessage(t('Sentry Function successfully saved.', data.name));
+  };
+
   return (
     <div>
       <Feature features={['organizations:sentry-functions']}>
@@ -54,6 +70,8 @@ export default function SentryFunctionDetails(props: Props) {
           apiEndpoint={endpoint}
           model={form.current}
           onPreSubmit={() => addLoadingMessage(t('Saving changes..'))}
+          onSubmitError={handleSubmitError}
+          onSubmitSuccess={handleSubmitSuccess}
         >
           <JsonForm forms={[{title: t('Sentry Function Details'), fields: formFields}]} />
         </Form>
