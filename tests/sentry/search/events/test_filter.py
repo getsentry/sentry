@@ -636,18 +636,6 @@ class ParseBooleanSearchQueryTest(TestCase):
         ):
             get_filter("(OR a:b) AND c:d")
 
-    def test_empty_parens_in_message_not_boolean_search(self):
-        result = get_filter(
-            "failure_rate():>0.003&& users:>10 event.type:transaction",
-            params={"organization_id": self.organization.id, "project_id": [self.project.id]},
-        )
-        assert result.condition_aggregates == ["failure_rate()"]
-        assert result.having == [["failure_rate", ">", "0.003&&"]]
-        assert result.conditions == [
-            [["ifNull", ["users", "''"]], "=", ">10"],
-            ["event.type", "=", "transaction"],
-        ]
-
     def test_parens_around_message(self):
         result = get_filter(
             "TypeError Anonymous function(app/javascript/utils/transform-object-keys)",
@@ -2448,15 +2436,6 @@ def _project(x):
             [_count(Op.GT, 1)],
         ),
         (
-            "aggregate_like_message_and_columns",
-            "failure_rate():>0.003&& users:>10 event.type:transaction",
-            [
-                _tag("users", ">10"),
-                _cond("type", Op.EQ, "transaction"),
-            ],
-            [Condition(Function("failure_rate", [], "failure_rate"), Op.GT, "0.003&&")],
-        ),
-        (
             "message_with_parens",
             "TypeError Anonymous function(app/javascript/utils/transform-object-keys)",
             [_message("TypeError Anonymous function(app/javascript/utils/transform-object-keys)")],
@@ -2713,3 +2692,37 @@ class SnQLBooleanSearchQueryTest(TestCase):
             )
         ]
         assert having == []
+
+
+@pytest.mark.parametrize(
+    "description,query,expected_message",
+    [
+        (
+            "invalid_aggregate_filter_value",
+            "failure_rate():>0.003&&",
+            "'0.003&&' is not a valid aggregate filter value.",
+        ),
+        (
+            "invalid_aggregate_filter_value_string",
+            "count():hello",
+            "'hello' is not a valid aggregate filter value.",
+        ),
+        (
+            "invalid_aggregate_filter_blank",
+            "failure_rate():",
+            "No value provided to the aggregate filter.",
+        ),
+        (
+            "invalid_aggregate_filter_blank_with_operator",
+            "failure_rate():>",
+            "No value provided to the aggregate filter.",
+        ),
+    ],
+)
+def test_invalid_aggregates(description, query, expected_message):
+    dataset = Dataset.Discover
+    params: ParamsType = {}
+    query_filter = UnresolvedQuery(dataset, params)
+    with pytest.raises(InvalidSearchQuery) as error:
+        where, having = query_filter.resolve_conditions(query, use_aggregate_conditions=True)
+    assert str(error.value) == expected_message, description

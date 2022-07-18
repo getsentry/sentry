@@ -820,7 +820,12 @@ class SearchVisitor(NodeVisitor):
         (negation, search_key, _, operator, search_value) = children
         operator = handle_negation(negation, operator)
 
-        raise InvalidSearchQuery("Aggregate filter is incomplete.")
+        if search_value.raw_value == "":
+            raise InvalidSearchQuery("No value provided to the aggregate filter.")
+
+        raise InvalidSearchQuery(
+            f"'{search_value.raw_value}' is not a valid aggregate filter value."
+        )
 
     def visit_has_filter(self, node, children):
         # the key is has here, which we don't need

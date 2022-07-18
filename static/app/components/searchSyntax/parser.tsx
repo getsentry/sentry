@@ -608,7 +608,9 @@ export class TokenConverter {
     }
 
     if (filter === FilterType.AggregateGeneric) {
-      return {reason: 'Aggregate filter is incomplete.'};
+      return this.checkInvalidAggregateFilter(
+        value as FilterMap['aggregateGeneric']['value']
+      );
     }
 
     return null;
@@ -693,6 +695,17 @@ export class TokenConverter {
     }
 
     return null;
+  };
+
+  /**
+   * Aggregate filters are either incomplete or invalid aggregates, so they will always be invalid.
+   */
+  checkInvalidAggregateFilter = (value: FilterMap['aggregateGeneric']['value']) => {
+    if (value.text === '') {
+      return {reason: 'No value provided to the aggregate filter.'};
+    }
+
+    return {reason: `'${value.text}' is not a valid aggregate filter value.`};
   };
 }
 

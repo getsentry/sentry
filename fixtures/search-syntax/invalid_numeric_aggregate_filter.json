@@ -11,7 +11,7 @@
         "filter": "aggregateGeneric",
         "negated": false,
         "invalid": {
-          "reason": "Aggregate filter is incomplete."
+          "reason": "'3s' is not a valid aggregate filter value."
         },
         "key": {
           "type": "keyAggregate",
