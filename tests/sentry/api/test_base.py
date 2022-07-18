@@ -53,6 +53,13 @@ class EndpointTest(APITestCase):
         assert response.status_code == 200, response.content
 
         assert response["Access-Control-Allow-Origin"] == "http://example.com"
+        assert response["Access-Control-Allow-Headers"] == (
+            "X-Sentry-Auth, X-Requested-With, Origin, Accept, "
+            "Content-Type, Authentication, Authorization, Content-Encoding, "
+            "sentry-trace, baggage"
+        )
+        assert response["Access-Control-Expose-Headers"] == "X-Sentry-Error, Retry-After"
+        assert response["Access-Control-Allow-Methods"] == "GET, HEAD, OPTIONS"
 
     def test_invalid_cors_without_auth(self):
         request = self.make_request(method="GET")
@@ -86,6 +93,13 @@ class EndpointTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert response["Access-Control-Allow-Origin"] == "http://example.com"
+        assert response["Access-Control-Allow-Headers"] == (
+            "X-Sentry-Auth, X-Requested-With, Origin, Accept, "
+            "Content-Type, Authentication, Authorization, Content-Encoding, "
+            "sentry-trace, baggage"
+        )
+        assert response["Access-Control-Expose-Headers"] == "X-Sentry-Error, Retry-After"
+        assert response["Access-Control-Allow-Methods"] == "GET, HEAD, OPTIONS"
 
 
 class PaginateTest(APITestCase):

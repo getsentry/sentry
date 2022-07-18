@@ -19,6 +19,8 @@ type ButtonElement = HTMLButtonElement & HTMLAnchorElement & any;
 
 type TooltipProps = React.ComponentProps<typeof Tooltip>;
 
+type ButtonSize = 'zero' | 'xs' | 'sm' | 'md';
+
 interface BaseButtonProps
   extends Omit<
     React.ButtonHTMLAttributes<ButtonElement>,
@@ -95,7 +97,7 @@ interface BaseButtonProps
   /**
    * The size of the button
    */
-  size?: 'zero' | 'xsmall' | 'small';
+  size?: ButtonSize;
   /**
    * @deprecated Use `external`
    */
@@ -132,7 +134,7 @@ export type ButtonProps = ButtonPropsWithoutAriaLabel | ButtonPropsWithAriaLabel
 type Url = ButtonProps['to'] | ButtonProps['href'];
 
 function BaseButton({
-  size,
+  size = 'md',
   to,
   busy,
   href,
@@ -339,8 +341,8 @@ const getColors = ({
   `;
 };
 
-const getSizeStyles = ({size, translucentBorder, theme}: StyledButtonProps) => {
-  const buttonSize = size === 'small' || size === 'xsmall' ? size : 'default';
+const getSizeStyles = ({size = 'md', translucentBorder, theme}: StyledButtonProps) => {
+  const buttonSize = size === 'zero' ? 'md' : size;
   const formStyles = theme.form[buttonSize];
   const buttonPadding = theme.buttonPadding[buttonSize];
 
@@ -444,7 +446,13 @@ const getIconMargin = ({size, hasChildren}: IconProps) => {
     return '0';
   }
 
-  return size && ['xsmall', 'zero'].includes(size) ? '6px' : '8px';
+  switch (size) {
+    case 'xs':
+    case 'zero':
+      return '6px';
+    default:
+      return '8px';
+  }
 };
 
 const Icon = styled('span')<IconProps & Omit<StyledButtonProps, 'theme'>>`

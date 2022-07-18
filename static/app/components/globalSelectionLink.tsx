@@ -1,3 +1,4 @@
+// eslint-disable-next-line no-restricted-imports
 import {withRouter, WithRouterProps} from 'react-router';
 import {LocationDescriptor} from 'history';
 import * as qs from 'query-string';

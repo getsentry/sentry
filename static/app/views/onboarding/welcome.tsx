@@ -46,14 +46,14 @@ function InnerAction({title, subText, cta, src}: TextWrapperProps) {
   );
 }
 
+const source = 'targeted_onboarding';
 function TargetedOnboardingWelcome({organization, ...props}: StepProps) {
-  const source = 'targeted_onboarding';
   useEffect(() => {
     trackAdvancedAnalyticsEvent('growth.onboarding_start_onboarding', {
       organization,
       source,
     });
-  }, []);
+  }, [organization]);
 
   const onComplete = () => {
     trackAdvancedAnalyticsEvent('growth.onboarding_clicked_instrument_app', {

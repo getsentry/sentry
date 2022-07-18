@@ -320,7 +320,7 @@ export class TagValueTable extends Component<Props, State> {
           location={location}
         />
 
-        <Pagination pageLinks={pageLinks} onCursor={onCursor} size="small" />
+        <Pagination pageLinks={pageLinks} onCursor={onCursor} size="sm" />
       </StyledPanelTable>
     );
   }

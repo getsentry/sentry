@@ -205,10 +205,16 @@ class DeleteOrganizationTest(TransactionTestCase):
 
         env = Environment.objects.create(organization_id=org.id, name="foo")
         snuba_query = SnubaQuery.objects.create(
-            dataset="events", aggregate="count()", time_window=60, resolution=60, environment=env
+            type=SnubaQuery.Type.ERROR.value,
+            dataset="events",
+            aggregate="count()",
+            time_window=60,
+            resolution=60,
+            environment=env,
         )
         alert_rule = AlertRule.objects.create(
             organization=org,
+            type=AlertRule.Type.ERROR.value,
             name="rule with environment",
             threshold_period=1,
             snuba_query=snuba_query,

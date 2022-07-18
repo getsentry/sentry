@@ -1,49 +1,224 @@
-import {Fragment, useState} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {ModalRenderProps} from 'sentry/actionCreators/modal';
-import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {NumberField} from 'sentry/components/forms';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {PanelTable} from 'sentry/components/panels';
 import Radio from 'sentry/components/radio';
 import {IconRefresh} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import ModalStore from 'sentry/stores/modalStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import space from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import {Project, SeriesApi} from 'sentry/types';
+import {SamplingRule, UniformModalsSubmit} from 'sentry/types/sampling';
 import {defined} from 'sentry/utils';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {formatPercentage} from 'sentry/utils/formatters';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
-import {SERVER_SIDE_SAMPLING_DOC_LINK} from '../utils';
+import {SamplingSDKAlert} from '../samplingSDKAlert';
+import {
+  isValidSampleRate,
+  percentageToRate,
+  rateToPercentage,
+  SERVER_SIDE_SAMPLING_DOC_LINK,
+} from '../utils';
+import {projectStatsToPredictedSeries} from '../utils/projectStatsToPredictedSeries';
+import {projectStatsToSampleRates} from '../utils/projectStatsToSampleRates';
+import {projectStatsToSeries} from '../utils/projectStatsToSeries';
+import useProjectStats from '../utils/useProjectStats';
+import {useRecommendedSdkUpgrades} from '../utils/useRecommendedSdkUpgrades';
+
+import {RecommendedStepsModal, RecommendedStepsModalProps} from './recommendedStepsModal';
+import {UniformRateChart} from './uniformRateChart';
 
 enum Strategy {
   CURRENT = 'current',
   RECOMMENDED = 'recommended',
 }
 
-type Props = ModalRenderProps & {
-  organization: Organization;
-  project?: Project;
+enum Step {
+  SET_UNIFORM_SAMPLE_RATE = 'set_uniform_sample_rate',
+  RECOMMENDED_STEPS = 'recommended_steps',
+}
+
+type Props = Omit<
+  RecommendedStepsModalProps,
+  'onSubmit' | 'recommendedSdkUpgrades' | 'projectId' | 'recommendedSampleRate'
+> & {
+  onSubmit: UniformModalsSubmit;
+  project: Project;
+  rules: SamplingRule[];
+  projectStats?: SeriesApi;
 };
 
-function UniformRateModal({Header, Body, Footer, closeModal}: Props) {
-  // TODO(sampling): fetch from API
-  const affectedProjects = ['ProjectA', 'ProjectB', 'ProjectC'];
+function UniformRateModal({
+  Header,
+  Body,
+  Footer,
+  closeModal,
+  organization,
+  projectStats,
+  project,
+  uniformRule,
+  rules,
+  onSubmit,
+  onReadDocs,
+  ...props
+}: Props) {
+  const modalStore = useLegacyStore(ModalStore);
 
-  // TODO(sampling): calculate dynamically
-  const currentClientSampling = 10;
-  const currentServerSampling = undefined;
-  const recommendedClientSampling = 100;
-  const recommendedServerSampling = 10;
+  const {projectStats: projectStats30d, loading: loading30d} = useProjectStats({
+    orgSlug: organization.slug,
+    projectId: project.id,
+    interval: '1d',
+    statsPeriod: '30d',
+  });
+
+  const {recommendedSdkUpgrades} = useRecommendedSdkUpgrades({
+    orgSlug: organization.slug,
+  });
+
+  const loading = loading30d || !projectStats;
+
+  const [activeStep, setActiveStep] = useState<Step>(Step.SET_UNIFORM_SAMPLE_RATE);
+
+  useEffect(() => {
+    if (modalStore.renderer === null) {
+      trackAdvancedAnalyticsEvent(
+        activeStep === Step.RECOMMENDED_STEPS
+          ? 'sampling.settings.modal.recommended.next.steps_cancel'
+          : 'sampling.settings.modal.uniform.rate_cancel',
+        {
+          organization: organization.slug,
+          project_id: project.id,
+        }
+      );
+    }
+  }, [activeStep, modalStore.renderer, organization.slug, project.id]);
+
+  const uniformSampleRate = uniformRule?.sampleRate;
+
+  const {trueSampleRate, maxSafeSampleRate} = projectStatsToSampleRates(projectStats);
+
+  const currentClientSampling =
+    defined(trueSampleRate) && !isNaN(trueSampleRate) ? trueSampleRate : undefined;
+  const currentServerSampling =
+    defined(uniformSampleRate) && !isNaN(uniformSampleRate)
+      ? uniformSampleRate
+      : undefined;
+  const recommendedClientSampling =
+    defined(maxSafeSampleRate) && !isNaN(maxSafeSampleRate)
+      ? maxSafeSampleRate
+      : undefined;
+  const recommendedServerSampling = currentClientSampling;
 
   const [selectedStrategy, setSelectedStrategy] = useState<Strategy>(Strategy.CURRENT);
-  const [client, setClient] = useState(recommendedClientSampling);
-  const [server, setServer] = useState(recommendedServerSampling);
+  const [clientInput, setClientInput] = useState(
+    rateToPercentage(recommendedClientSampling)
+  );
+  const [serverInput, setServerInput] = useState(
+    rateToPercentage(recommendedServerSampling)
+  );
+  // ^^^ We use clientInput and serverInput variables just for the text fields, everywhere else we should use client and server variables vvv
+
+  const client = percentageToRate(clientInput);
+  const server = percentageToRate(serverInput);
+
+  const [saving, setSaving] = useState(false);
+
+  const shouldHaveNextStep =
+    client !== currentClientSampling || recommendedSdkUpgrades.length > 0;
+
+  useEffect(() => {
+    setClientInput(rateToPercentage(recommendedClientSampling));
+    setServerInput(rateToPercentage(recommendedServerSampling));
+  }, [recommendedClientSampling, recommendedServerSampling]);
+
+  useEffect(() => {
+    trackAdvancedAnalyticsEvent(
+      selectedStrategy === Strategy.RECOMMENDED
+        ? 'sampling.settings.modal.uniform.rate_switch_recommended'
+        : 'sampling.settings.modal.uniform.rate_switch_current',
+      {
+        organization: organization.slug,
+        project_id: project.id,
+      }
+    );
+  }, [selectedStrategy, organization.slug, project.id]);
 
   const isEdited =
     client !== recommendedClientSampling || server !== recommendedServerSampling;
+
+  const isValid = isValidSampleRate(client) && isValidSampleRate(server);
+
+  function handlePrimaryButtonClick() {
+    // this can either be "Next" or "Done"
+
+    if (!isValid) {
+      return;
+    }
+
+    if (shouldHaveNextStep) {
+      trackAdvancedAnalyticsEvent('sampling.settings.modal.uniform.rate_next', {
+        organization: organization.slug,
+        project_id: project.id,
+      });
+
+      setActiveStep(Step.RECOMMENDED_STEPS);
+      return;
+    }
+
+    setSaving(true);
+
+    onSubmit({
+      recommendedSampleRate: !isEdited,
+      uniformRateModalOrigin: true,
+      sampleRate: server!,
+      rule: uniformRule,
+      onSuccess: () => {
+        setSaving(false);
+        closeModal();
+      },
+      onError: () => {
+        setSaving(false);
+      },
+    });
+  }
+
+  function handleReadDocs() {
+    trackAdvancedAnalyticsEvent('sampling.settings.modal.uniform.rate_read_docs', {
+      organization: organization.slug,
+      project_id: project.id,
+    });
+
+    onReadDocs();
+  }
+
+  if (activeStep === Step.RECOMMENDED_STEPS) {
+    return (
+      <RecommendedStepsModal
+        {...props}
+        Header={Header}
+        Body={Body}
+        Footer={Footer}
+        closeModal={closeModal}
+        organization={organization}
+        recommendedSdkUpgrades={recommendedSdkUpgrades}
+        onGoBack={() => setActiveStep(Step.SET_UNIFORM_SAMPLE_RATE)}
+        onSubmit={onSubmit}
+        onReadDocs={onReadDocs}
+        clientSampleRate={client}
+        serverSampleRate={server}
+        uniformRule={uniformRule}
+        projectId={project.id}
+        recommendedSampleRate={!isEdited}
+      />
+    );
+  }
 
   return (
     <Fragment>
@@ -63,109 +238,140 @@ function UniformRateModal({Header, Body, Footer, closeModal}: Props) {
           )}
         </TextBlock>
 
-        <StyledPanelTable
-          headers={[
-            t('Sampling Values'),
-            <RightAligned key="client">{t('Client')}</RightAligned>,
-            <RightAligned key="server">{t('Server')}</RightAligned>,
-            '',
-          ]}
-        >
+        {loading ? (
+          <LoadingIndicator />
+        ) : (
           <Fragment>
-            <Label htmlFor="sampling-current">
-              <Radio
-                id="sampling-current"
-                checked={selectedStrategy === Strategy.CURRENT}
-                onChange={() => {
-                  setSelectedStrategy(Strategy.CURRENT);
-                }}
-              />
-              {t('Current')}
-            </Label>
-            <RightAligned>{formatPercentage(currentClientSampling / 100)}</RightAligned>
-            <RightAligned>
-              {defined(currentServerSampling)
-                ? formatPercentage(currentServerSampling / 100)
-                : 'N/A'}
-            </RightAligned>
-            <div />
-          </Fragment>
-          <Fragment>
-            <Label htmlFor="sampling-recommended">
-              <Radio
-                id="sampling-recommended"
-                checked={selectedStrategy === Strategy.RECOMMENDED}
-                onChange={() => {
-                  setSelectedStrategy(Strategy.RECOMMENDED);
-                }}
-              />
-              {isEdited ? t('New') : t('Recommended')}
-            </Label>
-            <RightAligned>
-              <StyledNumberField
-                name="recommended-client-sampling"
-                placeholder="%"
-                value={client}
-                onChange={value => {
-                  setClient(value);
-                }}
-                onFocus={() => setSelectedStrategy(Strategy.RECOMMENDED)}
-                stacked
-                flexibleControlStateSize
-                inline={false}
-              />
-            </RightAligned>
-            <RightAligned>
-              <StyledNumberField
-                name="recommended-server-sampling"
-                placeholder="%"
-                value={server}
-                onChange={value => {
-                  setServer(value);
-                }}
-                onFocus={() => setSelectedStrategy(Strategy.RECOMMENDED)}
-                stacked
-                flexibleControlStateSize
-                inline={false}
-              />
-            </RightAligned>
-            <ResetButton>
-              {isEdited && (
-                <Button
-                  icon={<IconRefresh size="sm" />}
-                  aria-label={t('Reset to recommended values')}
-                  onClick={() => {
-                    setClient(recommendedClientSampling);
-                    setServer(recommendedServerSampling);
-                  }}
-                  borderless
-                  size="zero"
-                />
-              )}
-            </ResetButton>
-          </Fragment>
-        </StyledPanelTable>
+            <UniformRateChart
+              series={
+                selectedStrategy === Strategy.CURRENT
+                  ? projectStatsToSeries(projectStats30d)
+                  : projectStatsToPredictedSeries(projectStats30d, client, server)
+              }
+              isLoading={loading30d}
+            />
 
-        <Alert>
-          {tct(
-            'To ensures that any active server-side sampling rules won’t sharply decrease the amount of accepted transactions, we recommend you update the Sentry SDK versions for [affectedProjects]. More details in [step2: Step 2].',
-            {
-              step2: <strong />,
-              affectedProjects: <strong>{affectedProjects.join(', ')}</strong>,
-            }
-          )}
-        </Alert>
+            <StyledPanelTable
+              headers={[
+                t('Sampling Values'),
+                <RightAligned key="client">{t('Client')}</RightAligned>,
+                <RightAligned key="server">{t('Server')}</RightAligned>,
+                '',
+              ]}
+            >
+              <Fragment>
+                <Label htmlFor="sampling-current">
+                  <Radio
+                    id="sampling-current"
+                    checked={selectedStrategy === Strategy.CURRENT}
+                    onChange={() => {
+                      setSelectedStrategy(Strategy.CURRENT);
+                    }}
+                  />
+                  {t('Current')}
+                </Label>
+                <RightAligned>
+                  {defined(currentClientSampling)
+                    ? formatPercentage(currentClientSampling)
+                    : 'N/A'}
+                </RightAligned>
+                <RightAligned>
+                  {defined(currentServerSampling)
+                    ? formatPercentage(currentServerSampling)
+                    : 'N/A'}
+                </RightAligned>
+                <div />
+              </Fragment>
+              <Fragment>
+                <Label htmlFor="sampling-recommended">
+                  <Radio
+                    id="sampling-recommended"
+                    checked={selectedStrategy === Strategy.RECOMMENDED}
+                    onChange={() => {
+                      setSelectedStrategy(Strategy.RECOMMENDED);
+                    }}
+                  />
+                  {isEdited ? t('New') : t('Recommended')}
+                </Label>
+                <RightAligned>
+                  <StyledNumberField
+                    name="recommended-client-sampling"
+                    placeholder="%"
+                    value={clientInput}
+                    onChange={value => {
+                      setClientInput(value);
+                    }}
+                    onFocus={() => setSelectedStrategy(Strategy.RECOMMENDED)}
+                    stacked
+                    flexibleControlStateSize
+                    inline={false}
+                  />
+                </RightAligned>
+                <RightAligned>
+                  <StyledNumberField
+                    name="recommended-server-sampling"
+                    placeholder="%"
+                    value={serverInput}
+                    onChange={value => {
+                      setServerInput(value);
+                    }}
+                    onFocus={() => setSelectedStrategy(Strategy.RECOMMENDED)}
+                    stacked
+                    flexibleControlStateSize
+                    inline={false}
+                  />
+                </RightAligned>
+                <ResetButton>
+                  {isEdited && (
+                    <Button
+                      icon={<IconRefresh size="sm" />}
+                      aria-label={t('Reset to recommended values')}
+                      onClick={() => {
+                        setClientInput(rateToPercentage(recommendedClientSampling));
+                        setServerInput(rateToPercentage(recommendedServerSampling));
+                      }}
+                      borderless
+                      size="zero"
+                    />
+                  )}
+                </ResetButton>
+              </Fragment>
+            </StyledPanelTable>
+
+            <SamplingSDKAlert
+              organization={organization}
+              projectId={project.id}
+              rules={rules}
+              recommendedSdkUpgrades={recommendedSdkUpgrades}
+              showLinkToTheModal={false}
+              onReadDocs={onReadDocs}
+            />
+          </Fragment>
+        )}
       </Body>
       <Footer>
         <FooterActions>
-          <Button href={SERVER_SIDE_SAMPLING_DOC_LINK} external>
+          <Button href={SERVER_SIDE_SAMPLING_DOC_LINK} onClick={handleReadDocs} external>
             {t('Read Docs')}
           </Button>
 
           <ButtonBar gap={1}>
-            <Stepper>{t('Step 1 of 2')}</Stepper>
+            {shouldHaveNextStep && <Stepper>{t('Step 1 of 2')}</Stepper>}
             <Button onClick={closeModal}>{t('Cancel')}</Button>
-            <Button priority="primary">{t('Next')}</Button>
+            <Button
+              priority="primary"
+              onClick={handlePrimaryButtonClick}
+              disabled={saving || !isValid || selectedStrategy === Strategy.CURRENT}
+              title={
+                selectedStrategy === Strategy.CURRENT
+                  ? t('Current sampling values selected')
+                  : !isValid
+                  ? t('Sample rate is not valid')
+                  : undefined
+              }
+            >
+              {shouldHaveNextStep ? t('Next') : t('Done')}
+            </Button>
           </ButtonBar>
         </FooterActions>
       </Footer>
@@ -174,7 +380,9 @@ function UniformRateModal({Header, Body, Footer, closeModal}: Props) {
 }
 
 const StyledPanelTable = styled(PanelTable)`
-  grid-template-columns: 1fr 100px 100px 35px;
+  grid-template-columns: 1fr 115px 115px 35px;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
 `;
 
 const RightAligned = styled('div')`
@@ -198,7 +406,7 @@ const StyledNumberField = styled(NumberField)`
   width: 100%;
 `;
 
-const FooterActions = styled('div')`
+export const FooterActions = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -206,7 +414,7 @@ const FooterActions = styled('div')`
   gap: ${space(1)};
 `;
 
-const Stepper = styled('span')`
+export const Stepper = styled('span')`
   font-size: ${p => p.theme.fontSizeMedium};
   color: ${p => p.theme.subText};
 `;

@@ -28,14 +28,14 @@ import {getTooltipFormatter, getXAxisDates, getXAxisLabelInterval} from './utils
 type ChartProps = React.ComponentProps<typeof BaseChart>;
 
 const COLOR_ERRORS = Color(commonTheme.dataCategory.errors).lighten(0.25).string();
-const COLOR_TRANSACTIONS = Color(commonTheme.dataCategory.transactions)
+export const COLOR_TRANSACTIONS = Color(commonTheme.dataCategory.transactions)
   .lighten(0.35)
   .string();
 const COLOR_ATTACHMENTS = Color(commonTheme.dataCategory.attachments)
   .lighten(0.65)
   .string();
 
-const COLOR_DROPPED = commonTheme.red300;
+export const COLOR_DROPPED = commonTheme.red300;
 const COLOR_FILTERED = commonTheme.pink100;
 
 export type CategoryOption = {

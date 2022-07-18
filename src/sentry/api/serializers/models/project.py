@@ -732,6 +732,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             "sentry:grouping_enhancements_base",
             "sentry:secondary_grouping_config",
             "sentry:secondary_grouping_expiry",
+            "sentry:grouping_auto_update",
             "sentry:fingerprinting_rules",
             "sentry:relay_pii_config",
             "sentry:dynamic_sampling",
@@ -858,6 +859,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 "secondaryGroupingConfig": get_value_with_default(
                     "sentry:secondary_grouping_config"
                 ),
+                "groupingAutoUpdate": get_value_with_default("sentry:grouping_auto_update"),
                 "fingerprintingRules": get_value_with_default("sentry:fingerprinting_rules"),
                 "organization": attrs["org"],
                 "plugins": serialize(

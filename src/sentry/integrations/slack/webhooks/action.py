@@ -443,7 +443,7 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
             return self.respond_with_text(NO_PERMISSION_MESSAGE)
 
         # validate the org options and check against allowed_roles
-        allowed_roles = member_of_approver.get_allowed_roles_to_invite()
+        allowed_roles = member_of_approver.get_allowed_org_roles_to_invite()
         try:
             member.validate_invitation(identity.user, allowed_roles)
         except UnableToAcceptMemberInvitationException as err:

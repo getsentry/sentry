@@ -22,7 +22,7 @@ function FocusTabs({}: Props) {
               e.preventDefault();
             }}
           >
-            {label}
+            <span>{label}</span>
           </a>
         </Tab>
       ))}

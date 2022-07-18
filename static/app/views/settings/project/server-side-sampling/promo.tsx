@@ -13,9 +13,10 @@ import {SERVER_SIDE_SAMPLING_DOC_LINK} from './utils';
 type Props = {
   hasAccess: boolean;
   onGetStarted: () => void;
+  onReadDocs: () => void;
 };
 
-export function Promo({onGetStarted, hasAccess}: Props) {
+export function Promo({onGetStarted, onReadDocs, hasAccess}: Props) {
   return (
     <StyledEmptyStateWarning withIcon={false}>
       <img src={onboardingServerSideSampling} />
@@ -23,7 +24,7 @@ export function Promo({onGetStarted, hasAccess}: Props) {
         <h3>{t('No sampling rules active yet')}</h3>
         <p>{t('Set up your project for sampling success')}</p>
         <Actions gap={1}>
-          <Button href={SERVER_SIDE_SAMPLING_DOC_LINK} external>
+          <Button href={SERVER_SIDE_SAMPLING_DOC_LINK} onClick={onReadDocs} external>
             {t('Read Docs')}
           </Button>
           <Button
@@ -36,7 +37,7 @@ export function Promo({onGetStarted, hasAccess}: Props) {
                 : t('You do not have permission to set up the sampling rules.')
             }
           >
-            {t('Get Started')}
+            {t('Start Setup')}
           </Button>
         </Actions>
       </Description>
@@ -86,5 +87,9 @@ const Description = styled('div')`
   @media (min-width: ${p => p.theme.breakpoints.large}) {
     padding: ${space(4)};
     justify-content: flex-start;
+  }
+
+  p {
+    font-size: ${p => p.theme.fontSizeLarge};
   }
 `;

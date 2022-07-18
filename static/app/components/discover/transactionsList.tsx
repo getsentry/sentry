@@ -6,8 +6,7 @@ import {Location, LocationDescriptor, Query} from 'history';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Button from 'sentry/components/button';
 import DiscoverButton from 'sentry/components/discoverButton';
-import DropdownButton from 'sentry/components/dropdownButton';
-import DropdownControl, {DropdownItem} from 'sentry/components/dropdownControl';
+import CompactSelect from 'sentry/components/forms/compactSelect';
 import Pagination, {CursorHandler} from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -176,30 +175,12 @@ class _TransactionsList extends Component<Props> {
     return (
       <Fragment>
         <div>
-          <DropdownControl
-            button={({isOpen, getActorProps}) => (
-              <StyledDropdownButton
-                {...getActorProps()}
-                isOpen={isOpen}
-                prefix={t('Filter')}
-                size="xsmall"
-              >
-                {selected.label}
-              </StyledDropdownButton>
-            )}
-          >
-            {options.map(({value, label}) => (
-              <DropdownItem
-                data-test-id={`option-${value}`}
-                key={value}
-                onSelect={handleDropdownChange}
-                eventKey={value}
-                isActive={value === selected.value}
-              >
-                {label}
-              </DropdownItem>
-            ))}
-          </DropdownControl>
+          <CompactSelect
+            triggerProps={{prefix: t('Filter'), size: 'xs'}}
+            value={selected.value}
+            options={options}
+            onChange={opt => handleDropdownChange(opt.value)}
+          />
         </div>
         {!this.isTrend() &&
           (handleOpenAllEventsClick ? (
@@ -213,7 +194,7 @@ class _TransactionsList extends Component<Props> {
                     breakdown,
                   }
                 )}
-                size="xsmall"
+                size="xs"
                 data-test-id="transaction-events-open"
               >
                 {t('View All Events')}
@@ -226,7 +207,7 @@ class _TransactionsList extends Component<Props> {
                 to={this.generateDiscoverEventView().getResultsViewUrlTarget(
                   organization.slug
                 )}
-                size="xsmall"
+                size="xs"
                 data-test-id="discover-open"
               >
                 {t('Open in Discover')}
@@ -263,7 +244,7 @@ class _TransactionsList extends Component<Props> {
           <StyledPagination
             pageLinks={pageLinks}
             onCursor={this.handleCursor}
-            size="xsmall"
+            size="xs"
           />
         </Header>
         <TransactionsTable
@@ -333,7 +314,7 @@ class _TransactionsList extends Component<Props> {
               <StyledPagination
                 pageLinks={pageLinks}
                 onCursor={this.handleCursor}
-                size="small"
+                size="sm"
               />
             </Header>
             <TransactionsTable
@@ -376,10 +357,6 @@ const Header = styled('div')`
   grid-template-columns: 1fr auto auto;
   margin-bottom: ${space(1)};
   align-items: center;
-`;
-
-const StyledDropdownButton = styled(DropdownButton)`
-  min-width: 145px;
 `;
 
 const StyledPagination = styled(Pagination)`

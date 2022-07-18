@@ -24,13 +24,13 @@ describe('OrganizationMemberDetail', function () {
     }),
   ];
   const member = TestStubs.Member({
-    roles: TestStubs.RoleList(),
+    roles: TestStubs.OrgRoleList(),
     dateCreated: new Date(),
     teams: [team.slug],
   });
   const pendingMember = TestStubs.Member({
     id: 2,
-    roles: TestStubs.RoleList(),
+    roles: TestStubs.OrgRoleList(),
     dateCreated: new Date(),
     teams: [team.slug],
     invite_link: 'http://example.com/i/abc123',
@@ -38,7 +38,7 @@ describe('OrganizationMemberDetail', function () {
   });
   const expiredMember = TestStubs.Member({
     id: 3,
-    roles: TestStubs.RoleList(),
+    roles: TestStubs.OrgRoleList(),
     dateCreated: new Date(),
     teams: [team.slug],
     invite_link: 'http://example.com/i/abc123',
@@ -240,7 +240,7 @@ describe('OrganizationMemberDetail', function () {
 
   describe('Reset member 2FA', function () {
     const fields = {
-      roles: TestStubs.RoleList(),
+      roles: TestStubs.OrgRoleList(),
       dateCreated: new Date(),
       teams: [team.slug],
     };

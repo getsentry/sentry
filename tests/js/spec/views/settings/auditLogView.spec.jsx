@@ -1,41 +1,80 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {initializeOrg} from 'sentry-test/initializeOrg';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
 import OrganizationAuditLog from 'sentry/views/settings/organizationAuditLog';
 
-describe('OrganizationAuditLog', function () {
-  const org = TestStubs.Organization();
+describe('OrganizationAuditLog', () => {
+  const {routerContext, org} = initializeOrg({
+    projects: [],
+    router: {
+      location: {query: {version: '2'}},
+      params: {orgId: 'org-slug'},
+    },
+  });
   const ENDPOINT = `/organizations/${org.slug}/audit-logs/`;
 
   beforeEach(function () {
     Client.clearMockResponses();
     Client.addMockResponse({
       url: ENDPOINT,
-      body: TestStubs.AuditLogs(),
+      body: {rows: TestStubs.AuditLogs(), options: TestStubs.AuditLogsApiEventNames()},
     });
   });
 
-  it('renders', async function () {
-    const wrapper = mountWithTheme(
-      <OrganizationAuditLog location={{query: ''}} params={{orgId: org.slug}} />
+  it('renders', async () => {
+    render(
+      <OrganizationAuditLog
+        location={{query: {version: '2'}}}
+        params={{orgId: org.slug}}
+      />,
+      {
+        context: routerContext,
+      }
     );
-    wrapper.setState({loading: false});
-    wrapper.update();
-    await tick();
 
-    wrapper.update();
-    expect(wrapper).toSnapshot();
+    expect(await screen.findByRole('heading')).toHaveTextContent('Audit Log');
+    expect(screen.getByRole('textbox')).toBeInTheDocument();
+    expect(screen.getByText('Member')).toBeInTheDocument();
+    expect(screen.getByText('Action')).toBeInTheDocument();
+    expect(screen.getByText('IP')).toBeInTheDocument();
+    expect(screen.getByText('Time')).toBeInTheDocument();
+    expect(screen.queryByText('No audit entries available')).not.toBeInTheDocument();
+    expect(screen.getByText('edited project ludic-science')).toBeInTheDocument();
   });
 
-  it('displays whether an action was done by a superuser', function () {
-    const wrapper = mountWithTheme(
-      <OrganizationAuditLog location={{query: ''}} params={{orgId: org.slug}} />
+  it('renders empty', async () => {
+    Client.clearMockResponses();
+    Client.addMockResponse({
+      url: ENDPOINT,
+      body: {rows: [], options: TestStubs.AuditLogsApiEventNames()},
+    });
+
+    render(
+      <OrganizationAuditLog
+        location={{query: {version: '2'}}}
+        params={{orgId: org.slug}}
+      />,
+      {
+        context: routerContext,
+      }
     );
-    expect(wrapper.find('div[data-test-id="actor-name"]').at(0).text()).toEqual(
-      expect.stringContaining('(Sentry Staff)')
+
+    expect(await screen.findByText('No audit entries available')).toBeInTheDocument();
+  });
+
+  it('displays whether an action was done by a superuser', async () => {
+    render(
+      <OrganizationAuditLog
+        location={{query: {version: '2'}}}
+        params={{orgId: org.slug}}
+      />,
+      {
+        context: routerContext,
+      }
     );
-    expect(wrapper.find('div[data-test-id="actor-name"]').at(1).text()).toEqual(
-      expect.not.stringContaining('(Sentry Staff)')
-    );
+
+    expect(await screen.findByText('Sentry Staff')).toBeInTheDocument();
+    expect(screen.getAllByText('Foo Bar')).toHaveLength(2);
   });
 });

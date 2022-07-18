@@ -156,7 +156,7 @@ const ReplayPlayerContext = React.createContext<ReplayPlayerContextProps>({
   isBuffering: false,
   isFinished: false,
   isPlaying: false,
-  isSkippingInactive: false,
+  isSkippingInactive: true,
   removeHighlight: () => {},
   replay: null,
   restart: () => {},
@@ -201,11 +201,12 @@ export function Provider({children, replay, initialTimeOffset = 0, value = {}}: 
   const [currentHoverTime, setCurrentHoverTime] = useState<undefined | number>();
   const [isPlaying, setIsPlaying] = useState(false);
   const [finishedAtMS, setFinishedAtMS] = useState<number>(-1);
-  const [isSkippingInactive, setIsSkippingInactive] = useState(false);
+  const [isSkippingInactive, setIsSkippingInactive] = useState(true);
   const [speed, setSpeedState] = useState(1);
   const [fastForwardSpeed, setFFSpeed] = useState(0);
   const [buffer, setBufferTime] = useState({target: -1, previous: -1});
   const playTimer = useRef<number | undefined>(undefined);
+  const unMountedRef = useRef(false);
 
   const isFinished = replayerRef.current?.getCurrentTime() === finishedAtMS;
 
@@ -262,7 +263,7 @@ export function Provider({children, replay, initialTimeOffset = 0, value = {}}: 
       }
 
       if (replayerRef.current) {
-        if (!hasNewEvents) {
+        if (!hasNewEvents && !unMountedRef.current) {
           // Already have a player for these events, the parent node must've re-rendered
           return;
         }
@@ -295,6 +296,7 @@ export function Provider({children, replay, initialTimeOffset = 0, value = {}}: 
         },
         // unpackFn: _ => _,
         plugins: [highlightReplayPlugin],
+        skipInactive: true,
       });
 
       // @ts-expect-error: rrweb types event handlers with `unknown` parameters
@@ -309,8 +311,12 @@ export function Provider({children, replay, initialTimeOffset = 0, value = {}}: 
       // See: https://reactjs.org/docs/hooks-faq.html#is-there-something-like-instance-variables
       // @ts-expect-error
       replayerRef.current = inst;
+
+      if (unMountedRef.current) {
+        unMountedRef.current = false;
+      }
     },
-    [events, theme.purple200, hasNewEvents, setReplayFinished]
+    [events, theme.purple200, setReplayFinished, hasNewEvents]
   );
 
   useEffect(() => {
@@ -424,6 +430,10 @@ export function Provider({children, replay, initialTimeOffset = 0, value = {}}: 
     if (initialTimeOffset && events && replayerRef.current) {
       setCurrentTime(initialTimeOffset * 1000);
     }
+
+    return () => {
+      unMountedRef.current = true;
+    };
   }, [events, replayerRef.current]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const currentPlayerTime = useCurrentTime(getCurrentTime);

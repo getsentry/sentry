@@ -1,3 +1,4 @@
+// eslint-disable-next-line no-restricted-imports
 import {InjectedRouter, withRouter} from 'react-router';
 import {Location} from 'history';
 

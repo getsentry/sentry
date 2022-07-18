@@ -1,0 +1,156 @@
+import {cloneElement, useMemo, useRef} from 'react';
+import styled from '@emotion/styled';
+
+import {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphPreferences';
+import {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
+import {useFlamegraphPreferencesValue} from 'sentry/utils/profiling/flamegraph/useFlamegraphPreferences';
+import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
+import {
+  useResizableDrawer,
+  UseResizableDrawerOptions,
+} from 'sentry/utils/profiling/hooks/useResizableDrawer';
+
+interface ProfilingFlamechartLayoutProps {
+  flamechart: React.ReactElement;
+  frameStack: React.ReactElement;
+  minimap: React.ReactElement;
+}
+
+export function ProfilingFlamechartLayout(props: ProfilingFlamechartLayoutProps) {
+  const flamegraphTheme = useFlamegraphTheme();
+  const {layout} = useFlamegraphPreferencesValue();
+  const frameStackRef = useRef<HTMLDivElement>(null);
+
+  const resizableOptions: UseResizableDrawerOptions = useMemo(() => {
+    const initialDimensions: [number, number] = [
+      // Half the screen minus the ~sidebar width
+      window.innerWidth * 0.5 - 220,
+      (flamegraphTheme.SIZES.FLAMEGRAPH_DEPTH_OFFSET + 2) *
+        flamegraphTheme.SIZES.BAR_HEIGHT,
+    ];
+
+    // 664 is approximately the width where we start to scroll inside
+    // 30 is the min height to where the drawer can still be resized
+    const min: [number, number] = [664, 30];
+
+    const onResize = (newDimensions: [number, number]) => {
+      if (!frameStackRef.current) {
+        return;
+      }
+
+      if (layout === 'table_left' || layout === 'table_right') {
+        frameStackRef.current.style.width = `${newDimensions[0]}px`;
+        frameStackRef.current.style.height = `100%`;
+      } else {
+        frameStackRef.current.style.height = `${newDimensions[1]}px`;
+        frameStackRef.current.style.width = `100%`;
+      }
+    };
+
+    return {
+      initialDimensions,
+      onResize,
+      direction:
+        layout === 'table_left'
+          ? 'horizontal-ltr'
+          : layout === 'table_right'
+          ? 'horizontal-rtl'
+          : 'vertical',
+      min,
+    };
+  }, [
+    flamegraphTheme.SIZES.FLAMEGRAPH_DEPTH_OFFSET,
+    flamegraphTheme.SIZES.BAR_HEIGHT,
+    layout,
+  ]);
+
+  const {onMouseDown} = useResizableDrawer(resizableOptions);
+
+  return (
+    <ProfilingFlamechartLayoutContainer>
+      <ProfilingFlamechartGrid layout={layout}>
+        <MinimapContainer height={flamegraphTheme.SIZES.MINIMAP_HEIGHT}>
+          {props.minimap}
+        </MinimapContainer>
+        <ZoomViewContainer>{props.flamechart}</ZoomViewContainer>
+        <FrameStackContainer ref={frameStackRef} layout={layout}>
+          {cloneElement(props.frameStack, {onResize: onMouseDown})}
+        </FrameStackContainer>
+      </ProfilingFlamechartGrid>
+    </ProfilingFlamechartLayoutContainer>
+  );
+}
+
+const ProfilingFlamechartLayoutContainer = styled('div')`
+  display: flex;
+  flex: 1 1 100%;
+`;
+
+const ProfilingFlamechartGrid = styled('div')<{
+  layout?: FlamegraphPreferences['layout'];
+}>`
+  display: grid;
+  width: 100%;
+  grid-template-rows: ${({layout}) =>
+    layout === 'table_bottom'
+      ? 'auto 1fr'
+      : layout === 'table_right'
+      ? '100px auto'
+      : '100px auto'};
+  grid-template-columns: ${({layout}) =>
+    layout === 'table_bottom'
+      ? '100%'
+      : layout === 'table_left'
+      ? `min-content auto`
+      : `auto min-content`};
+
+  /* false positive for grid layout */
+  /* stylelint-disable */
+  grid-template-areas: ${({layout}) =>
+    layout === 'table_bottom'
+      ? `
+        'minimap'
+        'flamegraph'
+        'frame-stack'
+        `
+      : layout === 'table_right'
+      ? `
+        'minimap    frame-stack'
+        'flamegraph frame-stack'
+      `
+      : layout === 'table_left'
+      ? `
+        'frame-stack minimap'
+        'frame-stack flamegraph'
+    `
+      : ''};
+`;
+
+const MinimapContainer = styled('div')<{
+  height: FlamegraphTheme['SIZES']['MINIMAP_HEIGHT'];
+}>`
+  position: relative;
+  height: ${p => p.height}px;
+  grid-area: minimap;
+`;
+
+const ZoomViewContainer = styled('div')`
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 100%;
+  grid-area: flamegraph;
+`;
+
+const FrameStackContainer = styled('div')<{layout: FlamegraphPreferences['layout']}>`
+  grid-area: frame-stack;
+  position: relative;
+  overflow: auto;
+
+  > div {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+  }
+`;

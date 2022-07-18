@@ -78,33 +78,4 @@ describe('MetricField', function () {
     expect(screen.getByText('measurements.fcp')).toBeInTheDocument();
     expect(screen.getByText('measurements.ttfb.requesttime')).toBeInTheDocument();
   });
-
-  it('maps field value to selected presets', function () {
-    render(
-      <Form initialData={{dataset: Dataset.TRANSACTIONS}} model={model}>
-        <MetricField name="metric" organization={organization} />
-      </Form>
-    );
-    openSelectMenu('(Required)');
-    userEvent.click(screen.getByText('failure_rate()'));
-
-    expect(screen.getByLabelText('Failure rate')).toBeDisabled();
-
-    openSelectMenu('failure_rate()');
-    userEvent.click(screen.getByText('p95(…)'));
-
-    expect(screen.getByLabelText('Latency')).toBeDisabled();
-  });
-
-  it('changes field values when selecting presets', function () {
-    render(
-      <Form initialData={{dataset: Dataset.TRANSACTIONS}} model={model}>
-        <MetricField name="metric" organization={organization} />
-      </Form>
-    );
-
-    userEvent.click(screen.getByText('Failure rate'));
-
-    expect(screen.getByText('failure_rate()')).toBeInTheDocument();
-  });
 });
