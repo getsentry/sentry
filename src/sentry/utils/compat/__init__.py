@@ -1,11 +1,3 @@
-_builtin_map = map
-
-
-def map(a, b, *c):
-    # TODO(joshuarli): Remove all this.
-    return list(_builtin_map(a, b, *c))
-
-
 from binascii import crc32 as _crc32
 
 
