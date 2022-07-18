@@ -25,6 +25,7 @@ import EventSdkUpdates from 'sentry/components/events/sdkUpdates';
 import {DataSection} from 'sentry/components/events/styles';
 import EventUserFeedback from 'sentry/components/events/userFeedback';
 import ExternalLink from 'sentry/components/links/externalLink';
+import Link from 'sentry/components/links/link';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {
@@ -100,6 +101,7 @@ const EventEntries = memo(
     const orgFeatures = organization?.features ?? [];
 
     const hasEventAttachmentsFeature = orgFeatures.includes('event-attachments');
+    const replayId = event?.tags.find(({key}) => key === 'replayId')?.value;
 
     useEffect(() => {
       checkProGuardError();
@@ -442,6 +444,13 @@ const EventEntries = memo(
               </StyledReplayEventDataSection>
             )}
           />
+        )}
+        {replayId && (
+          <EventDataSection type="replay" title={t('Replay')}>
+            <Link to={`/organizations/${orgSlug}/replays/${projectSlug}:${replayId}`}>
+              {replayId}
+            </Link>
+          </EventDataSection>
         )}
       </div>
     );
