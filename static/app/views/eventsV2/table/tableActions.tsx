@@ -65,7 +65,7 @@ function renderBrowserExportButton(canEdit: boolean, props: Props) {
       data-test-id="grid-download-csv"
       icon={<IconDownload size="xs" />}
       title={t(
-        "There aren't that many results, start your export and it'll download immediately"
+        "There aren't that many results, start your export and it'll download immediately."
       )}
     >
       {t('Export All')}
