@@ -190,7 +190,7 @@ function SplitPanel(props: Props) {
         }
       }
     },
-    [mousedown, props, startMouseIdleTimer] // xeslint-disable-line react-hooks/exhaustive-deps
+    [mousedown, props, startMouseIdleTimer]
   );
 
   const mouseTrackingProps = useMouseTracking<HTMLDivElement>({
