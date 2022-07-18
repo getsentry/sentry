@@ -11,3 +11,5 @@ targets:
   exclude:
     - type: projectjson
       path: api-docs/components/schemas
+    - type: setuptools
+      path: src/sentry/templates/sentry/emails
