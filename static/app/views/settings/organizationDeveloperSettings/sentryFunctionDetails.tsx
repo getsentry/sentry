@@ -1,5 +1,4 @@
 import {useRef} from 'react';
-import {RouteComponentProps} from 'react-router';
 import Editor from '@monaco-editor/react';
 
 import {
@@ -8,13 +7,16 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import Feature from 'sentry/components/acl/feature';
+import AsyncComponent from 'sentry/components/asyncComponent';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import FormModel from 'sentry/components/forms/model';
 import {Field} from 'sentry/components/forms/type';
 import {t} from 'sentry/locale';
 
-type Props = RouteComponentProps<{orgId: string; functionSlug?: string}, {}>;
+// type Props = RouteComponentProps<{orgId: string; functionSlug?: string}, {}>;
+// type Props = WrapperProps & {orgId: string; functionSlug?: string};
+type Props = WrapperProps;
 // type State = AsyncView['state'] & {
 //   sentryFunction: SentryFunction | null;
 // };
@@ -43,7 +45,7 @@ const formFields: Field[] = [
   },
 ];
 
-export default function SentryFunctionDetails(props: Props) {
+function SentryFunctionDetails(props: Props) {
   const form = useRef(new FormModel());
   const {orgId, functionSlug} = props.params;
   const method = functionSlug ? 'PUT' : 'POST';
@@ -112,3 +114,17 @@ export default function SentryFunctionDetails(props: Props) {
     </div>
   );
 }
+
+type WrapperState = {} & AsyncComponent['state'];
+
+type WrapperProps = {
+  params: {orgId: string; functionSlug?: string};
+} & AsyncComponent['props'];
+
+class SentryFunctionsWrapper extends AsyncComponent<WrapperProps, WrapperState> {
+  renderBody() {
+    return <SentryFunctionDetails {...this.props} />;
+  }
+}
+
+export default SentryFunctionsWrapper;
