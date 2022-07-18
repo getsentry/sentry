@@ -12,6 +12,7 @@ from sentry.api.utils import InvalidParams
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.snuba.metrics.fields import metric_object_factory
 from sentry.snuba.metrics.fields.base import get_derived_metrics
+from sentry.snuba.metrics.naming_layer.mri import parse_mri
 from sentry.utils.dates import to_timestamp
 
 # TODO: Add __all__ to be consistent with sibling modules
@@ -141,9 +142,10 @@ class MetricsQuery(MetricsQueryValidationRunner):
             # Construct a metrics expression
             metric_field_obj = metric_object_factory(f.field.op, metric_mri)
 
+            parsed_mri = parse_mri(metric_mri)
             # Find correct use_case_id based on metric_name
             use_case_id = UseCaseKey.RELEASE_HEALTH
-            if f.field.metric_name.startswith("transaction"):
+            if parsed_mri is not None and parsed_mri.namespace == "transaction":
                 use_case_id = UseCaseKey.PERFORMANCE
 
             entity = metric_field_obj.get_entity(self.project_ids, use_case_id)
