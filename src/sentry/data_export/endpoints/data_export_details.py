@@ -9,7 +9,6 @@ from sentry.api.serializers import serialize
 from sentry.models import Project
 from sentry.models.organization import Organization
 from sentry.utils import metrics
-from sentry.utils.compat import map
 
 from ..models import ExportedData
 
@@ -32,7 +31,7 @@ class DataExportDetailsEndpoint(OrganizationEndpoint):
             return Response(status=404)
         # Check data export permissions
         if data_export.query_info.get("project"):
-            project_ids = map(int, data_export.query_info.get("project", []))
+            project_ids = [int(project) for project in data_export.query_info.get("project", [])]
             projects = Project.objects.filter(organization=organization, id__in=project_ids)
             if any(p for p in projects if not request.access.has_project_access(p)):
                 raise PermissionDenied(
