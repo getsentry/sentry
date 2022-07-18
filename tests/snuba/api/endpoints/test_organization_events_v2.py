@@ -11800,3 +11800,36 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert data[0]["transaction"] == "foo_transaction"
         assert data[0]["p50(measurements.something_custom)"] == 1
         assert meta["isMetricsData"]
+
+    def test_environment(self):
+        self.create_environment(self.project, name="staging")
+        self.store_metric(
+            1,
+            tags={"transaction": "foo_transaction", "environment": "staging"},
+            timestamp=self.min_ago,
+        )
+
+        query = {
+            "project": [self.project.id],
+            "environment": "staging",
+            "orderby": "p50(transaction.duration)",
+            "field": [
+                "transaction",
+                "environment",
+                "p50(transaction.duration)",
+            ],
+            "statsPeriod": "24h",
+            "dataset": "metricsEnhanced",
+            "per_page": 50,
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        data = response.data["data"]
+        meta = response.data["meta"]
+
+        assert data[0]["transaction"] == "foo_transaction"
+        assert data[0]["environment"] == "staging"
+        assert data[0]["p50(transaction.duration)"] == 1
+        assert meta["isMetricsData"]
