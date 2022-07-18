@@ -93,6 +93,7 @@ class OrgDashboards extends AsyncComponent<Props, State> {
     if (params.dashboardId || stateKey === 'selectedDashboard') {
       if (
         organization.features.includes('dashboards-top-level-filter') &&
+        stateKey === 'selectedDashboard' &&
         hasSavedFilters(data) &&
         isEmpty(location.query)
       ) {
