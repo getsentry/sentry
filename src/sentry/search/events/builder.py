@@ -74,6 +74,7 @@ from sentry.search.events.types import (
     WhereType,
 )
 from sentry.sentry_metrics import indexer
+from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.snuba.metrics.fields import histogram as metrics_histogram
 from sentry.snuba.metrics.utils import MetricMeta
 from sentry.utils.dates import outside_retention_with_modified_start, to_timestamp
@@ -1616,6 +1617,10 @@ class MetricsQueryBuilder(QueryBuilder):
         else:
             raise InvalidSearchQuery("Organization id required to create a metrics query")
 
+    @property
+    def is_performance(self) -> bool:
+        return self.dataset is Dataset.PerformanceMetrics
+
     def resolve_query(
         self,
         query: Optional[str] = None,
@@ -1827,7 +1832,11 @@ class MetricsQueryBuilder(QueryBuilder):
     def resolve_metric_index(self, value: str) -> Optional[int]:
         """Layer on top of the metric indexer so we'll only hit it at most once per value"""
         if value not in self._indexer_cache:
-            result = indexer.resolve(self.organization_id, value)
+            if self.is_performance:
+                use_case_id = UseCaseKey.PERFORMANCE
+            else:
+                use_case_id = UseCaseKey.RELEASE_HEALTH
+            result = indexer.resolve(self.organization_id, value, use_case_id=use_case_id)
             self._indexer_cache[value] = result
 
         return self._indexer_cache[value]

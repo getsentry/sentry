@@ -5283,7 +5283,6 @@ class OrganizationEventsV2MetricsEnhancedPerformanceEndpointTest(
         assert len(response.data["data"]) == 3
         data = response.data["data"]
         meta = response.data["meta"]
-
         assert data[0]["team_key_transaction"] == 0
         assert data[0]["transaction"] == "baz_transaction"
         assert data[1]["team_key_transaction"] == 0
