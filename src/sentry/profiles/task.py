@@ -150,7 +150,15 @@ def _symbolicate(profile: Profile, project: Project) -> None:
                     frame.pop("context_line", None)
                     frame.pop("post_context", None)
 
-                original["frames"] = symbolicated["frames"]
+                # here we exclude the frames related to the profiler itself as we don't care to profile the profiler.
+                if (
+                    profile["platform"] == "rust"
+                    and len(symbolicated["frames"]) >= 2
+                    and symbolicated["frames"][0].get("function", "") == "perf_signal_handler"
+                ):
+                    original["frames"] = symbolicated["frames"][2:]
+                else:
+                    original["frames"] = symbolicated["frames"]
             break
         except RetrySymbolication as e:
             if (
