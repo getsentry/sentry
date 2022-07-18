@@ -21,5 +21,3 @@ INCIDENT_COLOR_MAPPING = {
     "Warning": "warning",
     "Critical": "fatal",
 }
-
-URL_FORMAT_STR = "<{url}|{text}>"

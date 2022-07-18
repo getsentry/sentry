@@ -14,13 +14,15 @@ from sentry.integrations.msteams.card_builder import (
     TextBlock,
 )
 from sentry.integrations.msteams.utils import ACTION_TYPE
-from sentry.integrations.notifications import (
+
+# TODO: Move these to a location common to both msteams and slack.
+from sentry.integrations.slack.message_builder.issues import (
     build_attachment_text,
     build_attachment_title,
     build_footer,
-    build_title_link,
     format_actor_option,
     format_actor_options,
+    get_title_link,
 )
 from sentry.models import Event, Group, GroupStatus, Integration, Project, Rule
 from sentry.types.integrations import ExternalProviders
@@ -211,7 +213,7 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
             futher reveal cards with dropdowns for selecting options.
         """
         title_text = build_attachment_title(self.group or self.event)
-        title_link = build_title_link(
+        title_link = get_title_link(
             group=self.group,
             event=self.event,
             link_to_event=True,
