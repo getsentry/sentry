@@ -197,6 +197,23 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
             )
         )
 
+    def create_issue_title_block(self):
+        title_text = build_attachment_title(self.group or self.event)
+        title_link = get_title_link(
+            group=self.group,
+            event=self.event,
+            link_to_event=True,
+            issue_details=False,
+            notification=None,
+            provider=ExternalProviders.MSTEAMS,
+        )
+
+        return create_text_block(
+            URL_FORMAT_STR.format(text=title_text, url=title_link),
+            size=TextSize.LARGE,
+            weight=TextWeight.BOLDER,
+        )
+
     def build_card(
         self,
     ) -> AdaptiveCard:
@@ -212,16 +229,6 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
         5. A set of three actions, resolve, ignore and assign which can
             futher reveal cards with dropdowns for selecting options.
         """
-        title_text = build_attachment_title(self.group or self.event)
-        title_link = get_title_link(
-            group=self.group,
-            event=self.event,
-            link_to_event=True,
-            issue_details=False,
-            notification=None,
-            provider=ExternalProviders.MSTEAMS,
-        )
-
         # Explicit typing to satisfy mypy.
         fields: List[Block] = []
 
@@ -244,10 +251,6 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
         fields.append(self.get_issue_actions())
 
         return super().build(
-            title=create_text_block(
-                URL_FORMAT_STR.format(text=title_text, url=title_link),
-                size=TextSize.LARGE,
-                weight=TextWeight.BOLDER,
-            ),
+            title=self.create_issue_title_block(),
             fields=fields,
         )
