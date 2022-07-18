@@ -4,13 +4,12 @@ import random
 from collections import namedtuple
 from copy import deepcopy
 from datetime import timedelta
-from typing import Any, Dict, List, Optional, Sequence
+from typing import Any, Dict, List, Optional, Sequence, TypedDict
 
 import sentry_sdk
 from dateutil.parser import parse as parse_datetime
 from snuba_sdk.conditions import Condition, Op
 from snuba_sdk.function import Function
-from typing_extensions import TypedDict
 
 from sentry.discover.arithmetic import categorize_columns
 from sentry.models import Group

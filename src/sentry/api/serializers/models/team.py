@@ -13,10 +13,10 @@ from typing import (
     Optional,
     Sequence,
     Set,
+    TypedDict,
 )
 
 from django.db.models import Count
-from typing_extensions import TypedDict
 
 from sentry import roles
 from sentry.api.serializers import Serializer, register, serialize
@@ -39,11 +39,11 @@ from sentry.utils.query import RangeQuerySetWrapper
 
 if TYPE_CHECKING:
     from sentry.api.serializers import (
-        ExternalActorResponse,
         OrganizationSerializerResponse,
         ProjectSerializerResponse,
         SCIMMeta,
     )
+    from sentry.api.serializers.models.external_actor import ExternalActorResponse
 
 
 def _get_team_memberships(team_list: Sequence[Team], user: User) -> Mapping[int, str | None]:

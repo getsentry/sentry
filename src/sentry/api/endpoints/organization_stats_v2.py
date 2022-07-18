@@ -1,5 +1,5 @@
 from contextlib import contextmanager
-from typing import Any, Dict, List
+from typing import Any, Dict, List, TypedDict
 
 import sentry_sdk
 from drf_spectacular.utils import OpenApiExample, extend_schema
@@ -7,7 +7,6 @@ from rest_framework import serializers
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
-from typing_extensions import TypedDict
 
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.utils import InvalidParams as InvalidParamsApi

@@ -1,11 +1,10 @@
-from typing import Dict, List
+from typing import Dict, List, TypedDict
 
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
 from rest_framework.exceptions import ParseError
 from rest_framework.negotiation import BaseContentNegotiation
 from rest_framework.request import Request
-from typing_extensions import TypedDict
 
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.models import AuthProvider

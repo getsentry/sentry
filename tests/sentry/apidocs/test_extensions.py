@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-from typing import List, Optional, Union
+from typing import List, Literal, Optional, TypedDict, Union
 
 import pytest
 from drf_spectacular.utils import extend_schema_serializer
-from typing_extensions import Literal, TypedDict
 
 from sentry.api.serializers import Serializer
 from sentry.apidocs.extensions import (

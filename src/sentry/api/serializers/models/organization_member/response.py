@@ -1,7 +1,5 @@
 from datetime import datetime
-from typing import List, Optional
-
-from typing_extensions import TypedDict
+from typing import List, Optional, TypedDict
 
 from sentry.api.serializers.models.external_actor import ExternalActorResponse
 from sentry.api.serializers.models.role import RoleSerializerResponse

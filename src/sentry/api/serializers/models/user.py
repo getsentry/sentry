@@ -2,11 +2,21 @@ import itertools
 import warnings
 from collections import defaultdict
 from datetime import datetime
-from typing import Any, Callable, Dict, List, MutableMapping, Optional, Sequence, Union, cast
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    MutableMapping,
+    Optional,
+    Sequence,
+    TypedDict,
+    Union,
+    cast,
+)
 
 from django.conf import settings
 from django.db.models import QuerySet
-from typing_extensions import TypedDict
 
 from sentry import experiments
 from sentry.api.serializers import Serializer, register

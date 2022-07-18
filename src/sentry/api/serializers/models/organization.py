@@ -2,12 +2,11 @@ from __future__ import annotations
 
 from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, List, Optional, Union, cast
+from typing import TYPE_CHECKING, Any, List, Optional, TypedDict, Union, cast
 
 from rest_framework import serializers
 from sentry_relay.auth import PublicKey
 from sentry_relay.exceptions import RelayError
-from typing_extensions import TypedDict
 
 from sentry import features, roles
 from sentry.api.serializers import Serializer, register, serialize
