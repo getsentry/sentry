@@ -103,6 +103,11 @@ export type EChartDataZoomHandler = EChartEventHandler<{
   startValue?: number;
 }>;
 
+export type DataPoint = {
+  name: string;
+  value: number;
+};
+
 export type EChartRestoreHandler = EChartEventHandler<{type: 'restore'}>;
 
 export type EChartFinishedHandler = EChartEventHandler<{}>;
