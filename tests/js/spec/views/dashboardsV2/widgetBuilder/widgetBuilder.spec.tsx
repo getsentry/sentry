@@ -1100,7 +1100,7 @@ describe('WidgetBuilder', function () {
         expect(mockReleases).toHaveBeenCalled();
       });
 
-      expect(await screen.findByRole('button', {name: /all releases/i})).toBeDisabled();
+      expect(screen.getByRole('button', {name: /all releases/i})).toBeDisabled();
     });
 
     it('does not error when query conditions field is blurred', async function () {
