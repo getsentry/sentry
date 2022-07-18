@@ -197,7 +197,7 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
             )
         )
 
-    def create_issue_title_block(self):
+    def create_issue_title_block(self) -> TextBlock:
         title_text = build_attachment_title(self.group or self.event)
         title_link = get_title_link(
             group=self.group,
@@ -213,6 +213,15 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
             size=TextSize.LARGE,
             weight=TextWeight.BOLDER,
         )
+
+    def create_issue_description_block(self) -> TextBlock | None:
+        description_text = build_attachment_text(self.group, self.event)
+        if description_text:
+            return create_text_block(
+                description_text,
+                size=TextSize.MEDIUM,
+                weight=TextWeight.BOLDER,
+            )
 
     def build_card(
         self,
@@ -232,15 +241,7 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
         # Explicit typing to satisfy mypy.
         fields: List[Block] = []
 
-        description_text = build_attachment_text(self.group, self.event)
-        if description_text:
-            fields.append(
-                create_text_block(
-                    description_text,
-                    size=TextSize.MEDIUM,
-                    weight=TextWeight.BOLDER,
-                )
-            )
+        fields.append(self.create_issue_description_block())
 
         fields.append(self.create_footer_block())
 
