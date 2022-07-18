@@ -29,6 +29,19 @@ const defaultOrgFeatures = [
 // Mocking worldMapChart to avoid act warnings
 jest.mock('sentry/components/charts/worldMapChart');
 
+function mockDashboard(dashboard: Partial<DashboardDetails>): DashboardDetails {
+  return {
+    id: '1',
+    title: 'Dashboard',
+    createdBy: undefined,
+    dateCreated: '2020-01-01T00:00:00.000Z',
+    widgets: [],
+    projects: [],
+    filters: {},
+    ...dashboard,
+  };
+}
+
 function renderTestComponent({
   dashboard,
   query,
@@ -70,6 +83,8 @@ function renderTestComponent({
         createdBy: undefined,
         dateCreated: '2020-01-01T00:00:00.000Z',
         widgets: [],
+        projects: [],
+        filters: {},
         ...dashboard,
       }}
       onSave={onSave ?? jest.fn()}
@@ -95,6 +110,8 @@ describe('WidgetBuilder', function () {
     createdBy: undefined,
     dateCreated: '2020-01-01T00:00:00.000Z',
     widgets: [],
+    projects: [],
+    filters: {},
   };
 
   const testDashboard: DashboardDetails = {
@@ -103,6 +120,8 @@ describe('WidgetBuilder', function () {
     createdBy: undefined,
     dateCreated: '2020-01-01T00:00:00.000Z',
     widgets: [],
+    projects: [],
+    filters: {},
   };
 
   let eventsStatsMock: jest.Mock | undefined;
@@ -264,13 +283,7 @@ describe('WidgetBuilder', function () {
         id: '1',
       };
 
-      const dashboard: DashboardDetails = {
-        id: '1',
-        title: 'Dashboard',
-        createdBy: undefined,
-        dateCreated: '2020-01-01T00:00:00.000Z',
-        widgets: [widget],
-      };
+      const dashboard = mockDashboard({widgets: [widget]});
 
       renderTestComponent({
         dashboard,
@@ -303,13 +316,7 @@ describe('WidgetBuilder', function () {
         id: '1',
       };
 
-      const dashboard: DashboardDetails = {
-        id: '1',
-        title: 'Dashboard',
-        createdBy: undefined,
-        dateCreated: '2020-01-01T00:00:00.000Z',
-        widgets: [widget],
-      };
+      const dashboard = mockDashboard({widgets: [widget]});
 
       renderTestComponent({
         dashboard,
@@ -673,13 +680,7 @@ describe('WidgetBuilder', function () {
         ],
       };
 
-      const dashboard: DashboardDetails = {
-        id: '1',
-        title: 'Dashboard',
-        createdBy: undefined,
-        dateCreated: '2020-01-01T00:00:00.000Z',
-        widgets: [widget],
-      };
+      const dashboard = mockDashboard({widgets: [widget]});
 
       renderTestComponent({dashboard, params: {widgetIndex: '0'}});
 
@@ -755,13 +756,7 @@ describe('WidgetBuilder', function () {
         ],
       };
 
-      const dashboard: DashboardDetails = {
-        id: '1',
-        title: 'Dashboard',
-        createdBy: undefined,
-        dateCreated: '2020-01-01T00:00:00.000Z',
-        widgets: [widget],
-      };
+      const dashboard = mockDashboard({widgets: [widget]});
 
       const handleSave = jest.fn();
 
@@ -812,13 +807,7 @@ describe('WidgetBuilder', function () {
         ],
       };
 
-      const dashboard: DashboardDetails = {
-        id: '1',
-        title: 'Dashboard',
-        createdBy: undefined,
-        dateCreated: '2020-01-01T00:00:00.000Z',
-        widgets: [widget],
-      };
+      const dashboard = mockDashboard({widgets: [widget]});
 
       renderTestComponent({dashboard, params: {widgetIndex: '0'}});
 
@@ -855,13 +844,7 @@ describe('WidgetBuilder', function () {
         ],
       };
 
-      const dashboard: DashboardDetails = {
-        id: '1',
-        title: 'Dashboard',
-        createdBy: undefined,
-        dateCreated: '2020-01-01T00:00:00.000Z',
-        widgets: [widget],
-      };
+      const dashboard = mockDashboard({widgets: [widget]});
 
       const handleSave = jest.fn();
 
@@ -1006,13 +989,8 @@ describe('WidgetBuilder', function () {
           },
         ],
       };
-      const dashboard: DashboardDetails = {
-        id: '1',
-        title: 'Dashboard',
-        createdBy: undefined,
-        dateCreated: '2020-01-01T00:00:00.000Z',
-        widgets: [widget],
-      };
+
+      const dashboard = mockDashboard({widgets: [widget]});
 
       renderTestComponent({onSave: handleSave, dashboard, params: {widgetIndex: '0'}});
 
@@ -1046,13 +1024,8 @@ describe('WidgetBuilder', function () {
           },
         ],
       };
-      const dashboard: DashboardDetails = {
-        id: '1',
-        title: 'Dashboard',
-        createdBy: undefined,
-        dateCreated: '2020-01-01T00:00:00.000Z',
-        widgets: [widget],
-      };
+
+      const dashboard = mockDashboard({widgets: [widget]});
 
       const {router} = renderTestComponent({
         dashboard,
@@ -1096,13 +1069,7 @@ describe('WidgetBuilder', function () {
         ],
       };
 
-      const dashboard: DashboardDetails = {
-        id: '1',
-        title: 'Dashboard',
-        createdBy: undefined,
-        dateCreated: '2020-01-01T00:00:00.000Z',
-        widgets: [widget],
-      };
+      const dashboard = mockDashboard({widgets: [widget]});
 
       const handleSave = jest.fn();
 
@@ -1379,13 +1346,7 @@ describe('WidgetBuilder', function () {
           ],
         };
 
-        const dashboard: DashboardDetails = {
-          id: '1',
-          title: 'Dashboard',
-          createdBy: undefined,
-          dateCreated: '2020-01-01T00:00:00.000Z',
-          widgets: [widget],
-        };
+        const dashboard = mockDashboard({widgets: [widget]});
 
         renderTestComponent({
           orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
@@ -1439,13 +1400,7 @@ describe('WidgetBuilder', function () {
           ],
         };
 
-        const dashboard: DashboardDetails = {
-          id: '1',
-          title: 'Dashboard',
-          createdBy: undefined,
-          dateCreated: '2020-01-01T00:00:00.000Z',
-          widgets: [widget],
-        };
+        const dashboard = mockDashboard({widgets: [widget]});
 
         renderTestComponent({
           orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
@@ -1490,13 +1445,7 @@ describe('WidgetBuilder', function () {
           ],
         };
 
-        const dashboard: DashboardDetails = {
-          id: '1',
-          title: 'Dashboard',
-          createdBy: undefined,
-          dateCreated: '2020-01-01T00:00:00.000Z',
-          widgets: [widget],
-        };
+        const dashboard = mockDashboard({widgets: [widget]});
 
         renderTestComponent({
           orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
@@ -1720,13 +1669,7 @@ describe('WidgetBuilder', function () {
           ],
         };
 
-        const dashboard: DashboardDetails = {
-          id: '1',
-          title: 'Dashboard',
-          createdBy: undefined,
-          dateCreated: '2020-01-01T00:00:00.000Z',
-          widgets: [widget],
-        };
+        const dashboard = mockDashboard({widgets: [widget]});
         renderTestComponent({
           orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
           query: {
@@ -1907,13 +1850,7 @@ describe('WidgetBuilder', function () {
             ],
           };
 
-          const dashboard: DashboardDetails = {
-            id: '1',
-            title: 'Dashboard',
-            createdBy: undefined,
-            dateCreated: '2020-01-01T00:00:00.000Z',
-            widgets: [widget],
-          };
+          const dashboard = mockDashboard({widgets: [widget]});
 
           renderTestComponent({
             orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
@@ -1945,13 +1882,7 @@ describe('WidgetBuilder', function () {
           ],
         };
 
-        const dashboard: DashboardDetails = {
-          id: '1',
-          title: 'Dashboard',
-          createdBy: undefined,
-          dateCreated: '2020-01-01T00:00:00.000Z',
-          widgets: [widget],
-        };
+        const dashboard = mockDashboard({widgets: [widget]});
 
         renderTestComponent({
           orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
@@ -2038,13 +1969,7 @@ describe('WidgetBuilder', function () {
           ],
         };
 
-        const dashboard: DashboardDetails = {
-          id: '1',
-          title: 'Dashboard',
-          createdBy: undefined,
-          dateCreated: '2020-01-01T00:00:00.000Z',
-          widgets: [widget],
-        };
+        const dashboard = mockDashboard({widgets: [widget]});
 
         renderTestComponent({
           dashboard,
@@ -2216,13 +2141,7 @@ describe('WidgetBuilder', function () {
         ],
       };
 
-      const dashboard: DashboardDetails = {
-        id: '1',
-        title: 'Dashboard',
-        createdBy: undefined,
-        dateCreated: '2020-01-01T00:00:00.000Z',
-        widgets: [widget],
-      };
+      const dashboard = mockDashboard({widgets: [widget]});
 
       renderTestComponent({
         orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
@@ -2782,13 +2701,7 @@ describe('WidgetBuilder', function () {
           id: '1',
         };
 
-        const dashboard: DashboardDetails = {
-          id: '1',
-          title: 'Dashboard',
-          createdBy: undefined,
-          dateCreated: '2020-01-01T00:00:00.000Z',
-          widgets: [widget],
-        };
+        const dashboard = mockDashboard({widgets: [widget]});
 
         renderTestComponent({
           orgFeatures: releaseHealthFeatureFlags,
@@ -3110,13 +3023,7 @@ describe('WidgetBuilder', function () {
           id: '1',
         };
 
-        const dashboard: DashboardDetails = {
-          id: '1',
-          title: 'Dashboard',
-          createdBy: undefined,
-          dateCreated: '2020-01-01T00:00:00.000Z',
-          widgets: [widget],
-        };
+        const dashboard = mockDashboard({widgets: [widget]});
 
         renderTestComponent({
           dashboard,
@@ -3159,13 +3066,7 @@ describe('WidgetBuilder', function () {
           limit: 1,
         };
 
-        const dashboard: DashboardDetails = {
-          id: '1',
-          title: 'Dashboard',
-          createdBy: undefined,
-          dateCreated: '2020-01-01T00:00:00.000Z',
-          widgets: [widget],
-        };
+        const dashboard = mockDashboard({widgets: [widget]});
 
         renderTestComponent({
           dashboard,
@@ -3208,13 +3109,7 @@ describe('WidgetBuilder', function () {
           limit: 1,
         };
 
-        const dashboard: DashboardDetails = {
-          id: '1',
-          title: 'Dashboard',
-          createdBy: undefined,
-          dateCreated: '2020-01-01T00:00:00.000Z',
-          widgets: [widget],
-        };
+        const dashboard = mockDashboard({widgets: [widget]});
 
         renderTestComponent({
           dashboard,
@@ -3298,13 +3193,7 @@ describe('WidgetBuilder', function () {
           ],
         };
 
-        const dashboard: DashboardDetails = {
-          id: '1',
-          title: 'Dashboard',
-          createdBy: undefined,
-          dateCreated: '2020-01-01T00:00:00.000Z',
-          widgets: [widget],
-        };
+        const dashboard = mockDashboard({widgets: [widget]});
 
         renderTestComponent({
           orgFeatures: [

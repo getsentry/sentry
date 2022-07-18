@@ -81,10 +81,18 @@ export type DashboardListItem = {
  */
 export type DashboardDetails = {
   dateCreated: string;
+  filters: {
+    releases?: string[];
+  };
   id: string;
+  projects: number[];
   title: string;
   widgets: Widget[];
   createdBy?: User;
+  end?: string;
+  environment?: string[];
+  period?: string;
+  start?: string;
 };
 
 export enum DashboardState {
