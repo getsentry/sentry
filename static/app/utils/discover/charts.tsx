@@ -108,7 +108,7 @@ export function axisDuration(value: number, durationUnit?: number): string {
  */
 export function findRangeOfMultiSeries(series: Series[], legend?: LegendComponentOption) {
   let range: {max: number; min: number} | undefined;
-  if (series[1]) {
+  if (series[0]) {
     let minSeries = series[0];
     let maxSeries;
     series.forEach(({seriesName}, idx) => {
@@ -124,6 +124,31 @@ export function findRangeOfMultiSeries(series: Series[], legend?: LegendComponen
     range = {max, min};
   }
   return range;
+}
+
+/**
+ * Given a eCharts series and legend, returns the unit to be used on the yAxis for a duration chart
+ * @param series eCharts series array
+ * @param legend eCharts legend object
+ * @returns
+ */
+export function getDurationUnit(
+  series: Series[],
+  legend?: LegendComponentOption
+): number {
+  let durationUnit = 0;
+  const range = findRangeOfMultiSeries(series, legend);
+  if (range) {
+    const avg = (range.max + range.min) / 2;
+
+    durationUnit = categorizeDuration((range.max - range.min) / 5); // avg of 5 yAxis ticks per chart
+
+    const numOfDigits = (avg / durationUnit).toFixed(0).length;
+    if (numOfDigits > 5) {
+      durationUnit = categorizeDuration(avg);
+    }
+  }
+  return durationUnit;
 }
 
 /**
@@ -147,5 +172,5 @@ export function categorizeDuration(value): number {
   if (value >= SECOND) {
     return SECOND;
   }
-  return 0;
+  return 1;
 }

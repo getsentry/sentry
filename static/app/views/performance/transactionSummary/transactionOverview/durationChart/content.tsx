@@ -13,8 +13,7 @@ import {IconWarning} from 'sentry/icons';
 import {Series} from 'sentry/types/echarts';
 import {
   axisLabelFormatter,
-  categorizeDuration,
-  findRangeOfMultiSeries,
+  getDurationUnit,
   tooltipFormatter,
 } from 'sentry/utils/discover/charts';
 import getDynamicText from 'sentry/utils/getDynamicText';
@@ -79,8 +78,7 @@ function Content({
         .reverse()
     : [];
 
-  const range = findRangeOfMultiSeries(series, legend);
-  const durationUnit = range ? categorizeDuration((range.max - range.min) / 5) : 0;
+  const durationUnit = getDurationUnit(series, legend);
 
   const chartOptions = {
     grid: {
