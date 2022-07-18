@@ -107,6 +107,7 @@ const Cell = styled('div')`
   text-align: right;
   color: ${p => p.theme.subText};
   ${p => p.theme.overflowEllipsis}
+  font-size: ${p => p.theme.fontSizeMedium};
 `;
 
 const NumericCell = styled(Cell)`
