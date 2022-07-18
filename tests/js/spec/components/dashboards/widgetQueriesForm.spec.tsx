@@ -103,7 +103,7 @@ describe('WidgetQueriesForm', function () {
     render(<TestComponent />);
     userEvent.click(screen.getByRole('textbox', {name: 'Search events'}));
     expect(await screen.findByText('Recent Searches')).toBeInTheDocument();
-    userEvent.click(screen.getByText(':transaction'));
+    userEvent.click(screen.getByText('transaction'));
     expect(screen.getByText('event.type:transaction')).toBeInTheDocument();
     expect(onChangeHandler).toHaveBeenCalledTimes(1);
   });
