@@ -140,6 +140,7 @@ export const WIDGET_DEFINITIONS: ({
     fields: ['tpm()'],
     dataType: GenericPerformanceWidgetDataType.area,
     chartColor: WIDGET_PALETTE[1],
+    allowsOpenInDiscover: true,
   },
   [PerformanceWidgetSetting.APDEX_AREA]: {
     title: t('Apdex'),
@@ -147,6 +148,7 @@ export const WIDGET_DEFINITIONS: ({
     fields: ['apdex()'],
     dataType: GenericPerformanceWidgetDataType.area,
     chartColor: WIDGET_PALETTE[4],
+    allowsOpenInDiscover: true,
   },
   [PerformanceWidgetSetting.P50_DURATION_AREA]: {
     title: t('p50 Duration'),
@@ -154,6 +156,7 @@ export const WIDGET_DEFINITIONS: ({
     fields: ['p50(transaction.duration)'],
     dataType: GenericPerformanceWidgetDataType.area,
     chartColor: WIDGET_PALETTE[3],
+    allowsOpenInDiscover: true,
   },
   [PerformanceWidgetSetting.P75_DURATION_AREA]: {
     title: t('p75 Duration'),
@@ -161,6 +164,7 @@ export const WIDGET_DEFINITIONS: ({
     fields: ['p75(transaction.duration)'],
     dataType: GenericPerformanceWidgetDataType.area,
     chartColor: WIDGET_PALETTE[3],
+    allowsOpenInDiscover: true,
   },
   [PerformanceWidgetSetting.P95_DURATION_AREA]: {
     title: t('p95 Duration'),
@@ -168,6 +172,7 @@ export const WIDGET_DEFINITIONS: ({
     fields: ['p95(transaction.duration)'],
     dataType: GenericPerformanceWidgetDataType.area,
     chartColor: WIDGET_PALETTE[3],
+    allowsOpenInDiscover: true,
   },
   [PerformanceWidgetSetting.P99_DURATION_AREA]: {
     title: t('p99 Duration'),
@@ -175,6 +180,7 @@ export const WIDGET_DEFINITIONS: ({
     fields: ['p99(transaction.duration)'],
     dataType: GenericPerformanceWidgetDataType.area,
     chartColor: WIDGET_PALETTE[3],
+    allowsOpenInDiscover: true,
   },
   [PerformanceWidgetSetting.P75_LCP_AREA]: {
     title: t('p75 LCP'),
@@ -182,6 +188,7 @@ export const WIDGET_DEFINITIONS: ({
     fields: ['p75(measurements.lcp)'],
     dataType: GenericPerformanceWidgetDataType.area,
     chartColor: WIDGET_PALETTE[1],
+    allowsOpenInDiscover: true,
   },
   [PerformanceWidgetSetting.FAILURE_RATE_AREA]: {
     title: t('Failure Rate'),
@@ -189,6 +196,7 @@ export const WIDGET_DEFINITIONS: ({
     fields: ['failure_rate()'],
     dataType: GenericPerformanceWidgetDataType.area,
     chartColor: WIDGET_PALETTE[2],
+    allowsOpenInDiscover: true,
   },
   [PerformanceWidgetSetting.USER_MISERY_AREA]: {
     title: t('User Misery'),
@@ -204,6 +212,7 @@ export const WIDGET_DEFINITIONS: ({
     fields: ['p75(measurements.app_start_cold)'],
     dataType: GenericPerformanceWidgetDataType.area,
     chartColor: WIDGET_PALETTE[4],
+    allowsOpenInDiscover: true,
   },
   [PerformanceWidgetSetting.WARM_STARTUP_AREA]: {
     title: t('Warm Startup Time'),
@@ -211,6 +220,7 @@ export const WIDGET_DEFINITIONS: ({
     fields: ['p75(measurements.app_start_warm)'],
     dataType: GenericPerformanceWidgetDataType.area,
     chartColor: WIDGET_PALETTE[3],
+    allowsOpenInDiscover: true,
   },
   [PerformanceWidgetSetting.SLOW_FRAMES_AREA]: {
     title: t('Slow Frames'),
@@ -218,6 +228,7 @@ export const WIDGET_DEFINITIONS: ({
     fields: ['p75(measurements.frames_slow_rate)'],
     dataType: GenericPerformanceWidgetDataType.area,
     chartColor: WIDGET_PALETTE[0],
+    allowsOpenInDiscover: true,
   },
   [PerformanceWidgetSetting.FROZEN_FRAMES_AREA]: {
     title: t('Frozen Frames'),
@@ -225,6 +236,7 @@ export const WIDGET_DEFINITIONS: ({
     fields: ['p75(measurements.frames_frozen_rate)'],
     dataType: GenericPerformanceWidgetDataType.area,
     chartColor: WIDGET_PALETTE[5],
+    allowsOpenInDiscover: true,
   },
   [PerformanceWidgetSetting.MOST_RELATED_ERRORS]: {
     title: t('Most Related Errors'),
