@@ -31,7 +31,7 @@ describe('Server-side Sampling - Recommended Steps Modal', function () {
       <RecommendedStepsModal
         {...modalProps}
         organization={organization}
-        project={project}
+        projectId={project.id}
         recommendedSdkUpgrades={[
           {
             project: mockedProjects[1],
@@ -39,8 +39,9 @@ describe('Server-side Sampling - Recommended Steps Modal', function () {
             latestSDKVersion: mockedSamplingSdkVersions[1].latestSDKVersion,
           },
         ]}
+        onReadDocs={jest.fn()}
         onSubmit={jest.fn()}
-        clientSampleRate={uniformRule.sampleRate}
+        clientSampleRate={0.5}
       />
     ));
 
@@ -115,9 +116,10 @@ describe('Server-side Sampling - Recommended Steps Modal', function () {
       <RecommendedStepsModal
         {...modalProps}
         organization={organization}
-        project={project}
+        projectId={project.id}
         recommendedSdkUpgrades={[]}
         onSubmit={jest.fn()}
+        onReadDocs={jest.fn()}
         clientSampleRate={uniformRule.sampleRate}
       />
     ));
@@ -142,10 +144,11 @@ describe('Server-side Sampling - Recommended Steps Modal', function () {
       <RecommendedStepsModal
         {...modalProps}
         organization={organization}
-        project={project}
+        projectId={project.id}
         recommendedSdkUpgrades={[]}
         onGoBack={onGoBack}
         onSubmit={jest.fn()}
+        onReadDocs={jest.fn()}
         clientSampleRate={uniformRule.sampleRate}
       />
     ));

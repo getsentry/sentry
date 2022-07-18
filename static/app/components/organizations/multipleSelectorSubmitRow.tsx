@@ -12,7 +12,7 @@ type Props = {
 
 const MultipleSelectorSubmitRow = ({onSubmit, disabled = false}: Props) => (
   <SubmitButtonContainer>
-    <SubmitButton disabled={disabled} onClick={onSubmit} size="xsmall" priority="primary">
+    <SubmitButton disabled={disabled} onClick={onSubmit} size="xs" priority="primary">
       {t('Apply')}
     </SubmitButton>
   </SubmitButtonContainer>

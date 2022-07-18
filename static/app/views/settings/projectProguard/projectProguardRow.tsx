@@ -65,7 +65,7 @@ const ProjectProguardRow = ({
                 isHoverable
               >
                 <Button
-                  size="small"
+                  size="sm"
                   icon={<IconDownload size="sm" />}
                   disabled={!hasRole}
                   href={downloadUrl}
@@ -88,7 +88,7 @@ const ProjectProguardRow = ({
                   disabled={!hasAccess}
                 >
                   <Button
-                    size="small"
+                    size="sm"
                     icon={<IconDelete size="sm" />}
                     title={hasAccess ? t('Remove Mapping') : undefined}
                     aria-label={t('Remove Mapping')}

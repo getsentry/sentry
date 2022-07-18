@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
 import AdminQueue from 'sentry/views/admin/adminQueue';
@@ -49,12 +49,8 @@ describe('AdminQueue', function () {
     });
 
     it('renders', function () {
-      const wrapper = mountWithTheme(<AdminQueue params={{}} />, {
-        context: {
-          router: TestStubs.router(),
-        },
-      });
-      expect(wrapper).toSnapshot();
+      const wrapper = render(<AdminQueue params={{}} />);
+      expect(wrapper.container).toSnapshot();
     });
   });
 });

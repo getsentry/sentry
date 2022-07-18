@@ -30,8 +30,6 @@ selenium_driver = "chrome"
 filterwarnings = [
     # Consider all warnings to be errors other than the ignored ones.
     "error",
-    # This is just to prevent pytest from exiting if pytest-xdist isn't installed.
-    "ignore:Unknown config option.*looponfailroots:pytest.PytestConfigWarning",
 
     "ignore::django.utils.deprecation.RemovedInDjango30Warning",
 
@@ -46,6 +44,4 @@ filterwarnings = [
     "ignore:DateTimeField.*naive datetime:RuntimeWarning",
     "ignore:.*sentry.digests.backends.dummy.DummyBackend.*:sentry.utils.warnings.UnsupportedBackend",
 ]
-# This is for people who install pytest-xdist locally,
-# and use the -f/--looponfail feature.
 looponfailroots = ["src", "tests"]

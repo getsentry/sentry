@@ -52,7 +52,7 @@ function ThreadMenuSelector<OptionType extends GeneralSelectValue = GeneralSelec
     <CompactSelect
       triggerProps={{
         icon: <IconList size="xs" />,
-        size: 'xsmall',
+        size: 'xs',
       }}
       options={options}
       value={threadId}

@@ -6,45 +6,47 @@ import Button from 'sentry/components/button';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import {Organization} from 'sentry/types';
 import {RecommendedSdkUpgrade, SamplingRule} from 'sentry/types/sampling';
 
-import {RecommendedStepsModal} from './modals/recommendedStepsModal';
+import {
+  RecommendedStepsModal,
+  RecommendedStepsModalProps,
+} from './modals/recommendedStepsModal';
 import {isUniformRule} from './utils';
 
-type Props = {
+type Props = Pick<RecommendedStepsModalProps, 'projectId' | 'onReadDocs'> & {
   organization: Organization;
   recommendedSdkUpgrades: RecommendedSdkUpgrade[];
   rules: SamplingRule[];
-  project?: Project;
+
   showLinkToTheModal?: boolean;
 };
 
 export function SamplingSDKAlert({
   organization,
-  project,
+  projectId,
   recommendedSdkUpgrades,
   rules,
+  onReadDocs,
   showLinkToTheModal = true,
 }: Props) {
   if (recommendedSdkUpgrades.length === 0) {
     return null;
   }
 
-  function handleOpenRecommendedSteps(uniformRule: SamplingRule) {
+  function handleOpenRecommendedSteps() {
     openModal(modalProps => (
       <RecommendedStepsModal
         {...modalProps}
+        onReadDocs={onReadDocs}
         organization={organization}
-        project={project}
+        projectId={projectId}
         recommendedSdkUpgrades={recommendedSdkUpgrades}
-        clientSampleRate={uniformRule.sampleRate}
-        onSubmit={() => {}}
       />
     ));
   }
 
-  // TODO(sampling): test this after the backend work is finished
   const atLeastOneRuleActive = rules.some(rule => rule.active);
   const uniformRule = rules.find(isUniformRule);
 
@@ -55,11 +57,7 @@ export function SamplingSDKAlert({
       showIcon
       trailingItems={
         showLinkToTheModal && uniformRule ? (
-          <Button
-            onClick={() => handleOpenRecommendedSteps(uniformRule)}
-            priority="link"
-            borderless
-          >
+          <Button onClick={handleOpenRecommendedSteps} priority="link" borderless>
             {atLeastOneRuleActive ? t('Resolve Now') : t('Learn More')}
           </Button>
         ) : undefined

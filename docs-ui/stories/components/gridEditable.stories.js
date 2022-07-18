@@ -74,7 +74,7 @@ class GridParent extends Component {
   render() {
     const {withHeader, title} = this.props;
     const headerButtons = withHeader
-      ? () => <Button size="small">Action Button</Button>
+      ? () => <Button size="sm">Action Button</Button>
       : null;
     return (
       <GridEditable
