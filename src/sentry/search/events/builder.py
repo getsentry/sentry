@@ -1897,13 +1897,10 @@ class MetricsQueryBuilder(QueryBuilder):
         value = search_filter.value.value
         values_set = set(value if isinstance(value, (list, tuple)) else [value])
         # sorted for consistency
-        values = sorted(self.config.resolve_value(f"{value}") for value in values_set)
+        values = sorted(
+            self.config.resolve_value(f"{value}") if value else 0 for value in values_set
+        )
         environment = self.column("environment")
-        # the "no environment" environment is null in snuba
-        if "" in values:
-            values.remove("")
-            operator = Op.IS_NULL if search_filter.operator == "=" else Op.IS_NOT_NULL
-            env_conditions.append(Condition(environment, operator))
         if len(values) == 1:
             operator = Op.EQ if search_filter.operator in EQUALITY_OPERATORS else Op.NEQ
             env_conditions.append(Condition(environment, operator, values.pop()))
