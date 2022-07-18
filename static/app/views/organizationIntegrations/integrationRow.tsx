@@ -98,7 +98,7 @@ const IntegrationRow = (props: Props) => {
   return (
     <PanelRow noPadding data-test-id={slug}>
       <FlexContainer>
-        {customIcon ?? <IntegrationIcon size={36} pluginId={slug} />}
+        {customIcon ?? <PluginIcon size={36} pluginId={slug} />}
         <TitleContainer>
           <IntegrationName to={baseUrl}>{displayName}</IntegrationName>
           <IntegrationDetails>
@@ -157,10 +157,6 @@ const PluginDeprecationAlertWrapper = styled('div')`
 
 const PanelRow = styled(PanelItem)`
   flex-direction: column;
-`;
-
-const IntegrationIcon = styled(PluginIcon)`
-  min-width: ${p => p.size}px;
 `;
 
 const FlexContainer = styled('div')`
