@@ -79,11 +79,8 @@ function Content({
         .reverse()
     : [];
 
-  // Finds the range of yAxis values based on what is selected in the legend
-
   const range = findRangeOfMultiSeries(series, legend);
-
-  const durationUnit = range ? categorizeDuration((range.min + range.max) * 0.5) : 0;
+  const durationUnit = range ? categorizeDuration((range.max - range.min) / 5) : 0;
 
   const chartOptions = {
     grid: {
