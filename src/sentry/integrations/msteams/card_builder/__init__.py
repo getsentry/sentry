@@ -6,6 +6,7 @@ from sentry.integrations.metric_alerts import incident_attachment_info
 from sentry.integrations.slack.message_builder.issues import (
     build_attachment_text,
     build_attachment_title,
+    build_rule_url,
     format_actor_option,
 )
 from sentry.models import GroupStatus, Project
@@ -61,13 +62,6 @@ def build_group_title(group):
         "text": title_text,
         "wrap": True,
     }
-
-
-def build_rule_url(rule, group, project):
-    org_slug = group.organization.slug
-    project_slug = project.slug
-    rule_url = f"/organizations/{org_slug}/alerts/rules/{project_slug}/{rule.id}/details/"
-    return absolute_uri(rule_url)
 
 
 def build_group_footer(group, rules, project, event):
