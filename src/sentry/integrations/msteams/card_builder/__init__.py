@@ -3,7 +3,10 @@ from __future__ import annotations
 from typing import Any, Mapping, Sequence, Union
 
 from sentry.integrations.metric_alerts import incident_attachment_info
-from sentry.integrations.slack.message_builder.issues import format_actor_option
+from sentry.integrations.slack.message_builder.issues import (
+    build_attachment_title,
+    format_actor_option,
+)
 from sentry.models import GroupStatus, Project
 from sentry.utils.assets import get_asset_url
 from sentry.utils.http import absolute_uri
@@ -45,14 +48,7 @@ def generate_action_payload(action_type, event, rules, integration):
 
 
 def build_group_title(group):
-    # TODO: implement with event as well
-    ev_metadata = group.get_event_metadata()
-    ev_type = group.get_event_type()
-
-    if ev_type == "error" and "type" in ev_metadata:
-        text = ev_metadata["type"]
-    else:
-        text = group.title
+    text = build_attachment_title(group)
 
     link = group.get_absolute_url(params={"referrer": "msteams"})
 
