@@ -34,6 +34,7 @@ import getDynamicText from 'sentry/utils/getDynamicText';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 
 import SelectorItems from './selectorItems';
+import timeRangeAutoCompleteFilter from './timeRangeAutoCompleteFilter';
 
 const DateRangeHook = HookOrDefault({
   hookName: 'component:header-date-range',
@@ -446,6 +447,7 @@ class TimeRangeSelector extends PureComponent<Props, State> {
             {({css}) => (
               <StyledDropdownAutoComplete
                 allowActorToggle
+                autoCompleteFilter={timeRangeAutoCompleteFilter}
                 alignMenu={alignDropdown ?? (isAbsoluteSelected ? 'right' : 'left')}
                 isOpen={this.state.isOpen}
                 inputValue={this.state.inputValue}
@@ -459,7 +461,7 @@ class TimeRangeSelector extends PureComponent<Props, State> {
                 detached={detached}
                 disabled={disabled}
                 items={items}
-                searchPlaceholder={t('Filter time range')}
+                searchPlaceholder={t('Provide a time range')}
                 rootClassName={css`
                   position: relative;
                   display: flex;
