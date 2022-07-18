@@ -1,4 +1,5 @@
 import {useEffect, useState} from 'react';
+import {browserHistory} from 'react-router';
 import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 import * as qs from 'query-string';
@@ -197,8 +198,7 @@ export const WidgetContainerActions = ({
 
   function handleWidgetActionChange(value) {
     if (value === 'open_in_discover') {
-      window.location.href =
-        window.location.origin + getEventViewDiscoverPath(organization, eventView);
+      browserHistory.push(getEventViewDiscoverPath(organization, eventView));
     }
   }
 
