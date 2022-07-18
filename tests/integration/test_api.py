@@ -91,7 +91,6 @@ class AuthenticationTest(AuthProviderTestCase):
         self.session[sso_session_expired.session_key] = sso_session_expired.to_dict()
 
         self.save_session()
-        # breakpoint()
         resp = self.client.get(
             f"/api/0/teams/{self.organization.slug}/{self.team.slug}/",
             HTTP_REFERER=f"https://testdomain.com/organizations/{self.organization.slug}/teams",

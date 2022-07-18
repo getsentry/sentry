@@ -235,6 +235,7 @@ class OrganizationMetricDetailsIntegrationTest(OrganizationMetricMetaIntegration
         """
         mocked_derived_metrics.return_value = MOCKED_DERIVED_METRICS_2
         org_id = self.project.organization.id
+        use_key_id = UseCaseKey.RELEASE_HEALTH
         metric_id = _indexer_record(org_id, "metric_foo_doe")
 
         self.store_session(
@@ -254,7 +255,9 @@ class OrganizationMetricDetailsIntegrationTest(OrganizationMetricMetaIntegration
                     "metric_id": metric_id,
                     "timestamp": (time.time() // 60 - 2) * 60,
                     "tags": {
-                        resolve_weak(org_id, "release"): _indexer_record(org_id, "fooww"),
+                        resolve_weak(use_key_id, org_id, "release"): _indexer_record(
+                            org_id, "fooww"
+                        ),
                     },
                     "type": "c",
                     "value": 5,

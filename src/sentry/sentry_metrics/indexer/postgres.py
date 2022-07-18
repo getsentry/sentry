@@ -1,5 +1,6 @@
 from typing import Any, Mapping, MutableMapping, Optional, Sequence, Set
 
+from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.indexer.models import MetricsKeyIndexer
 from sentry.utils import metrics
 from sentry.utils.services import Service
@@ -71,7 +72,11 @@ class PGStringIndexer(Service):
         result = self.bulk_record({org_id: {string}})
         return result[string]
 
-    def resolve(self, org_id: int, string: str) -> Optional[int]:
+    # TODO: @andriisoldatenko
+    # move use_case_id to 1st parameter and remove default value
+    def resolve(
+        self, org_id: int, string: str, use_case_id: UseCaseKey = UseCaseKey.RELEASE_HEALTH
+    ) -> Optional[int]:
         """Lookup the integer ID for a string.
 
         Returns None if the entry cannot be found.
@@ -83,7 +88,11 @@ class PGStringIndexer(Service):
 
         return id
 
-    def reverse_resolve(self, id: int) -> Optional[str]:
+    # TODO: @andriisoldatenko
+    # move use_case_id to 1st parameter and remove default value
+    def reverse_resolve(
+        self, id: int, use_case_id: UseCaseKey = UseCaseKey.RELEASE_HEALTH
+    ) -> Optional[str]:
         """Lookup the stored string for a given integer ID.
 
         Returns None if the entry cannot be found.

@@ -8,7 +8,7 @@ from sentry.models import GroupRelease, Project, ReleaseProjectEnvironment, Repo
 from sentry.release_health.release_monitor.metrics import MetricReleaseMonitorBackend
 from sentry.release_health.release_monitor.sessions import SessionReleaseMonitorBackend
 from sentry.release_health.tasks import monitor_release_adoption, process_projects_with_sessions
-from sentry.testutils import SessionMetricsTestCase, SnubaTestCase, TestCase
+from sentry.testutils import SessionMetricsReleaseHealthTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 
 
@@ -535,5 +535,7 @@ class TestSessionReleaseMonitor(BaseTestReleaseMonitor, TestCase, SnubaTestCase)
     backend_class = SessionReleaseMonitorBackend
 
 
-class TestMetricReleaseMonitor(BaseTestReleaseMonitor, TestCase, SessionMetricsTestCase):
+class TestMetricReleaseMonitor(
+    BaseTestReleaseMonitor, TestCase, SessionMetricsReleaseHealthTestCase
+):
     backend_class = MetricReleaseMonitorBackend

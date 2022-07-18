@@ -168,6 +168,8 @@ class PGStringIndexerV2(StringIndexer):
         result = self.bulk_record(use_case_id=use_case_id, org_strings={org_id: {string}})
         return result[org_id][string]
 
+    # TODO: @andriisoldatenko
+    # move use_case_id to 1st parameter and remove default value
     def resolve(
         self, org_id: int, string: str, use_case_id: UseCaseKey = UseCaseKey.RELEASE_HEALTH
     ) -> Optional[int]:
@@ -193,6 +195,8 @@ class PGStringIndexerV2(StringIndexer):
 
         return id
 
+    # TODO: @andriisoldatenko
+    # move use_case_id to 1st parameter and remove default value
     def reverse_resolve(
         self, id: int, use_case_id: UseCaseKey = UseCaseKey.RELEASE_HEALTH
     ) -> Optional[str]:
@@ -248,6 +252,8 @@ class StaticStringsIndexerDecorator(StringIndexer):
             return SHARED_STRINGS[string]
         return self.indexer.record(use_case_id=use_case_id, org_id=org_id, string=string)
 
+    # TODO: @andriisoldatenko
+    # move use_case_id to 1st parameter and remove default value
     def resolve(
         self, org_id: int, string: str, use_case_id: UseCaseKey = UseCaseKey.RELEASE_HEALTH
     ) -> Optional[int]:
@@ -255,6 +261,8 @@ class StaticStringsIndexerDecorator(StringIndexer):
             return SHARED_STRINGS[string]
         return self.indexer.resolve(use_case_id=use_case_id, org_id=org_id, string=string)
 
+    # TODO: @andriisoldatenko
+    # move use_case_id to 1st parameter and remove default value
     def reverse_resolve(
         self, id: int, use_case_id: UseCaseKey = UseCaseKey.RELEASE_HEALTH
     ) -> Optional[str]:
