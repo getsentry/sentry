@@ -158,16 +158,23 @@ export class SentryAppExternalForm extends Component<Props, State> {
     const savedOption = ((this.props.resetValues || {}).settings || []).find(
       value => value.name === field.name
     );
+
     const currentOptions = (field.choices || []).map(([value, label]) => ({
       value,
       label,
     }));
 
+    if (!savedOption?.value) {
+      return currentOptions;
+    }
+
     const hasSavedOption =
-      savedOption && currentOptions.some(option => option.value === savedOption.value);
+      savedOption?.value &&
+      currentOptions.some(option => option.value === savedOption.value);
 
     // XXX(Ecosystem): Since we don't save the label associated with selections,
     //                 we must use the value as a fallback label.
+
     return hasSavedOption
       ? currentOptions
       : [{value: savedOption?.value, label: savedOption?.value ?? ''}, ...currentOptions];
