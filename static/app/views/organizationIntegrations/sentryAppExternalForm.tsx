@@ -154,6 +154,25 @@ export class SentryAppExternalForm extends Component<Props, State> {
     return defaultValue;
   };
 
+  getDefaultOptions = (field: FieldFromSchema) => {
+    const savedOption = ((this.props.resetValues || {}).settings || []).find(
+      value => value.name === field.name
+    );
+    const currentOptions = (field.choices || []).map(([value, label]) => ({
+      value,
+      label,
+    }));
+
+    const hasSavedOption =
+      savedOption && currentOptions.some(option => option.value === savedOption.value);
+
+    // XXX(Ecosystem): Since we don't save the label associated with selections,
+    //                 we must use the value as a fallback label.
+    return hasSavedOption
+      ? currentOptions
+      : [{value: savedOption?.value, label: savedOption?.value ?? ''}, ...currentOptions];
+  };
+
   debouncedOptionLoad = debounce(
     // debounce is used to prevent making a request for every input change and
     // instead makes the requests every 200ms
@@ -278,10 +297,7 @@ export class SentryAppExternalForm extends Component<Props, State> {
     const isAsync = typeof field.async === 'undefined' ? true : !!field.async; // default to true
     if (fieldToPass.type === 'select') {
       // find the options from state to pass down
-      const defaultOptions = (field.choices || []).map(([value, label]) => ({
-        value,
-        label,
-      }));
+      const defaultOptions = this.getDefaultOptions(field);
       const options = this.state.optionsByField.get(field.name) || defaultOptions;
       const allowClear = !required;
       const defaultValue = this.getDefaultFieldValue(field);
