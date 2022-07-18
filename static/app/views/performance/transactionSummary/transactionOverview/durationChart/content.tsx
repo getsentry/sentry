@@ -14,6 +14,7 @@ import {Series} from 'sentry/types/echarts';
 import {
   axisLabelFormatter,
   categorizeDuration,
+  findRangeOfMultiSeries,
   tooltipFormatter,
 } from 'sentry/utils/discover/charts';
 import getDynamicText from 'sentry/utils/getDynamicText';
@@ -79,22 +80,8 @@ function Content({
     : [];
 
   // Finds the range of yAxis values based on what is selected in the legend
-  let range;
-  if (series[1]) {
-    let minSeries = series[0];
-    let maxSeries;
-    series.forEach(({seriesName}, idx) => {
-      if (legend?.selected?.[seriesName] !== false) {
-        minSeries = series[idx];
-        maxSeries ??= series[idx];
-      }
-    });
-    const max = Math.max(...maxSeries?.data.map(({value}) => value));
-    const min = Math.min(
-      ...minSeries?.data.map(({value}) => value).filter(value => !!value)
-    );
-    range = {max, min};
-  }
+
+  const range = findRangeOfMultiSeries(series, legend);
 
   const durationUnit = range ? categorizeDuration((range.min + range.max) * 0.5) : 0;
 

@@ -1,4 +1,7 @@
+import {LegendComponentOption} from 'echarts';
+
 import {t} from 'sentry/locale';
+import {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {
@@ -93,6 +96,34 @@ export function axisDuration(value: number, durationUnit?: number): string {
       const label = value.toFixed(0);
       return t('%sms', label);
   }
+}
+
+/**
+ * Given an array of series and an eCharts legend object,
+ * finds the range of y values (min and max) based on which series is selected in the legend
+ * Assumes series[0] > series[1] > ...
+ * @param series Array of eCharts series
+ * @param legend eCharts legend object
+ * @returns
+ */
+export function findRangeOfMultiSeries(series: Series[], legend?: LegendComponentOption) {
+  let range: {max: number; min: number} | undefined;
+  if (series[1]) {
+    let minSeries = series[0];
+    let maxSeries;
+    series.forEach(({seriesName}, idx) => {
+      if (legend?.selected?.[seriesName] !== false) {
+        minSeries = series[idx];
+        maxSeries ??= series[idx];
+      }
+    });
+    const max = Math.max(...maxSeries?.data.map(({value}) => value));
+    const min = Math.min(
+      ...minSeries?.data.map(({value}) => value).filter(value => !!value)
+    );
+    range = {max, min};
+  }
+  return range;
 }
 
 /**
