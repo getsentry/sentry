@@ -317,7 +317,9 @@ class EntitySubscriptionTestCase(TestCase):
             },
         ).get_snql_query()
 
-        metric_id = resolve(self.organization.id, METRICS_MAP["transaction.duration"])
+        metric_id = resolve(
+            UseCaseKey.PERFORMANCE, self.organization.id, METRICS_MAP["transaction.duration"]
+        )
 
         assert snql_query.query.select == [
             Function(
