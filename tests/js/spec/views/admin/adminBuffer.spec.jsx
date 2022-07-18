@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import AdminBuffer from 'sentry/views/admin/adminBuffer';
 
@@ -7,14 +7,10 @@ import AdminBuffer from 'sentry/views/admin/adminBuffer';
 describe('AdminBuffer', function () {
   describe('render()', function () {
     it('renders', function () {
-      const wrapper = mountWithTheme(<AdminBuffer params={{}} />, {
-        context: {
-          router: TestStubs.router(),
-        },
-      });
+      const wrapper = render(<AdminBuffer params={{}} />);
 
-      expect(wrapper.find('LoadingIndicator')).toHaveLength(2);
-      expect(wrapper).toSnapshot();
+      expect(screen.getAllByTestId('loading-indicator')).toHaveLength(2);
+      expect(wrapper.container).toSnapshot();
     });
   });
 });

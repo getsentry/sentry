@@ -15,6 +15,7 @@ jobs:
     outputs:
       api_docs: ${{ steps.changes.outputs.api_docs }}
       backend: ${{ steps.changes.outputs.backend }}
+      backend_dependencies: ${{ steps.changes.outputs.backend_dependencies }}
       backend_any_type: ${{ steps.changes.outputs.backend_any_type }}
       migration_lockfile: ${{ steps.changes.outputs.migration_lockfile }}
       plugins: ${{ steps.changes.outputs.plugins }}
@@ -46,7 +47,6 @@ jobs:
         id: setup
         with:
           python-version: ${{ matrix.python-version }}
-          pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
           snuba: true
 
       - name: Run API docs tests
@@ -89,7 +89,6 @@ jobs:
         id: setup
         with:
           python-version: ${{ matrix.python-version }}
-          pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
           snuba: true
           # Right now, we run so few bigtable related tests that the
           # overhead of running bigtable in all backend tests
@@ -124,7 +123,6 @@ jobs:
         id: setup
         with:
           python-version: ${{ matrix.python-version }}
-          pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
           pg-version: ${{ matrix.pg-version }}
 
       - name: Run test
@@ -133,6 +131,21 @@ jobs:
 
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
+
+  requirements:
+    if: needs.files-changed.outputs.backend_dependencies == 'true'
+    needs: files-changed
+    name: requirements check
+    runs-on: ubuntu-20.04
+    timeout-minutes: 3
+    # Assuming Python 3.8 in GHA's ubuntu 20.04. If we run into any issues,
+    # this can just be pinned with setup-python.
+    steps:
+      - uses: actions/checkout@v3
+      - name: check requirements
+        run: |
+          python -m pip install 'pip-tools==6.7.0'
+          python -S -m tools.check_frozen_requirements sentry
 
   lint:
     if: needs.files-changed.outputs.backend == 'true'
@@ -168,14 +181,13 @@ jobs:
           filters: |
             all:
               - added|modified: '**/*.py'
-              - added|modified: 'requirements-dev-only-frozen.txt'
+              - added|modified: 'requirements-*.txt'
 
-      - uses: actions/setup-python@v3
+      - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
-          cache: 'pip'
-          cache-dependency-path: |
-            requirements-dev-only-frozen.txt
+          cache: pip
+          cache-dependency-path: requirements-dev-only-frozen.txt
 
       - uses: actions/cache@v3
         with:
@@ -224,7 +236,6 @@ jobs:
         id: setup
         with:
           python-version: ${{ matrix.python-version }}
-          pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
           pg-version: ${{ matrix.pg-version }}
 
       - name: Migration & lockfile checks
@@ -251,7 +262,6 @@ jobs:
         id: setup
         with:
           python-version: ${{ matrix.python-version }}
-          pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
           snuba: true
 
       - name: Run test
@@ -279,7 +289,6 @@ jobs:
         id: setup
         with:
           python-version: ${{ matrix.python-version }}
-          pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
           snuba: true
           kafka: true
 
@@ -328,7 +337,6 @@ jobs:
         id: setup
         with:
           python-version: ${{ matrix.python-version }}
-          pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
           snuba: true
           kafka: true
 
@@ -360,7 +368,6 @@ jobs:
         id: setup
         with:
           python-version: ${{ matrix.python-version }}
-          pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
           snuba: true
           kafka: true
 
@@ -396,18 +403,18 @@ jobs:
       - uses: actions/checkout@v2
 
       - name: Setup Python ${{ matrix.python-version }}
-        uses: ./.github/actions/setup-python
+        uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: requirements-dev-frozen.txt
 
       # We don't call setup-sentry, because we don't need devservices.
       - name: Setup backend typing
-        env:
-          SENTRY_LIGHT_BUILD: 1
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends libxmlsec1-dev
-          pip install -U -e ".[dev]"
+          pip install -r requirements-dev-frozen.txt
 
       - name: Run backend typing (${{ steps.setup.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
         run: |
@@ -423,6 +430,7 @@ jobs:
         backend-test,
         cli,
         lint,
+        requirements,
         migration,
         plugins,
         relay,
