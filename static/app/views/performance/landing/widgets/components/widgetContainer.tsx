@@ -19,7 +19,11 @@ import withOrganization from 'sentry/utils/withOrganization';
 
 import {GenericPerformanceWidgetDataType} from '../types';
 import {_setChartSetting, getChartSetting} from '../utils';
-import {PerformanceWidgetSetting, WIDGET_DEFINITIONS} from '../widgetDefinitions';
+import {
+  ChartDefinition,
+  PerformanceWidgetSetting,
+  WIDGET_DEFINITIONS,
+} from '../widgetDefinitions';
 import {HistogramWidget} from '../widgets/histogramWidget';
 import {LineChartListWidget} from '../widgets/lineChartListWidget';
 import {SingleFieldAreaWidget} from '../widgets/singleFieldAreaWidget';
@@ -105,13 +109,7 @@ const _WidgetContainer = (props: Props) => {
 
   // Construct an EventView that matches this widget's definition. The
   // `eventView` from the props is the _landing page_ EventView, which is different
-  const widgetEventView = props.eventView.clone();
-  widgetEventView.name = chartDefinition.title;
-  widgetEventView.yAxis = chartDefinition.fields[0]; // All current widgets only have one field
-  widgetEventView.display = DisplayModes.PREVIOUS;
-  widgetEventView.fields = ['transaction', 'project', ...chartDefinition.fields].map(
-    fieldName => ({field: fieldName} as Field)
-  );
+  const widgetEventView = makeEventViewForWidget(props.eventView, chartDefinition);
 
   const widgetProps = {
     ...chartDefinition,
@@ -242,6 +240,26 @@ const getEventViewDiscoverPath = (
   return `${discoverUrlTarget.pathname}?${qs.stringify(
     omit(discoverUrlTarget.query, ['widths']) // Column widths are not useful in this case
   )}`;
+};
+
+/**
+ * Constructs an `EventView` that matches a widget's chart definition.
+ * @param baseEventView Any valid event view. The easiest way to make a new EventView is to clone an existing one, because `EventView#constructor` takes too many abstract arguments
+ * @param chartDefinition
+ */
+const makeEventViewForWidget = (
+  baseEventView: EventView,
+  chartDefinition: ChartDefinition
+): EventView => {
+  const widgetEventView = baseEventView.clone();
+  widgetEventView.name = chartDefinition.title;
+  widgetEventView.yAxis = chartDefinition.fields[0]; // All current widgets only have one field
+  widgetEventView.display = DisplayModes.PREVIOUS;
+  widgetEventView.fields = ['transaction', 'project', ...chartDefinition.fields].map(
+    fieldName => ({field: fieldName} as Field)
+  );
+
+  return widgetEventView;
 };
 
 const WidgetContainer = withOrganization(_WidgetContainer);
