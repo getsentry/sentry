@@ -83,6 +83,7 @@ class MsTeamsIntegrationProvider(IntegrationProvider):
         team_id = data["team_id"]
         team_name = data["team_name"]
         service_url = data["service_url"]
+        tenant_id = data["tenant_id"]
 
         # TODO: add try/except for request errors
         token_data = get_token_data()
@@ -96,6 +97,7 @@ class MsTeamsIntegrationProvider(IntegrationProvider):
                 "service_url": service_url,
                 # TODO: Determine if installation type is 'team' or 'tenant'
                 "installation_type": "team",
+                "tenant_id": tenant_id,
             },
             # TODO: Use user id for external_id in user_identity
             "user_identity": {"type": "msteams", "external_id": team_id, "scopes": [], "data": {}},
