@@ -1,3 +1,4 @@
+import pytest
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.keys import Keys
 
@@ -107,6 +108,7 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
                 == serializer.validated_data["rules"][0]
             )
 
+    @pytest.mark.skip(reason="Flaking pretty consistently")
     def test_add_uniform_rule_with_custom_sampling_values(self):
         with self.feature(FEATURE_NAME):
             self.wait_until_page_loaded()
