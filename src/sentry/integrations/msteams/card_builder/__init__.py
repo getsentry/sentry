@@ -3,7 +3,8 @@ from __future__ import annotations
 from typing import Any, Mapping, Sequence, Union
 
 from sentry.integrations.metric_alerts import incident_attachment_info
-from sentry.models import Group, GroupStatus, Project, Team, User
+from sentry.integrations.slack.message_builder.issues import format_actor_option
+from sentry.models import GroupStatus, Project
 from sentry.utils.assets import get_asset_url
 from sentry.utils.http import absolute_uri
 
@@ -41,18 +42,6 @@ def generate_action_payload(action_type, event, rules, integration):
             "integrationId": integration.id,
         }
     }
-
-
-def get_assignee_string(group: Group) -> str | None:
-    """Get a string representation of the group's assignee."""
-    assignee = group.get_assignee()
-    if isinstance(assignee, User):
-        return assignee.email
-
-    if isinstance(assignee, Team):
-        return f"#{assignee.slug}"
-
-    return None
 
 
 def build_group_title(group):
@@ -241,7 +230,7 @@ def build_group_actions(group, event, rules, integration):
             },
         }
 
-    if get_assignee_string(group):
+    if group.get_assignee():
         assign_action = {
             "type": "Action.Submit",
             "title": "Unassign",
@@ -279,10 +268,15 @@ def build_group_actions(group, event, rules, integration):
 
 
 def build_assignee_note(group):
-    assignee = get_assignee_string(group)
+    assignee = group.get_assignee()
     if not assignee:
         return None
-    return {"type": "TextBlock", "size": "Small", "text": f"**Assigned to {assignee}**"}
+
+    return {
+        "type": "TextBlock",
+        "size": "Small",
+        "text": f"**Assigned to {format_actor_option(assignee)}**",
+    }
 
 
 def build_group_card(group, event, rules, integration):
