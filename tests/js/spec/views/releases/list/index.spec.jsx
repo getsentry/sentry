@@ -561,7 +561,7 @@ describe('ReleasesList', () => {
     fireEvent.submit(smartSearchBar);
 
     const autocompleteItems = await screen.findAllByTestId('search-autocomplete-item');
-    expect(autocompleteItems.at(0)).toHaveTextContent('release:');
+    expect(autocompleteItems.at(0)).toHaveTextContent('release');
 
     userEvent.clear(smartSearchBar);
     fireEvent.change(smartSearchBar, {target: {value: 'release.version:'}});

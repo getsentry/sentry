@@ -9,7 +9,10 @@ import {getUtcDateString} from 'sentry/utils/dates';
 import useApi from 'sentry/utils/useApi';
 import withIssueTags from 'sentry/utils/withIssueTags';
 import {WidgetQuery} from 'sentry/views/dashboardsV2/types';
-import {MAX_MENU_HEIGHT} from 'sentry/views/dashboardsV2/widgetBuilder/utils';
+import {
+  MAX_MENU_HEIGHT,
+  MAX_SEARCH_ITEMS,
+} from 'sentry/views/dashboardsV2/widgetBuilder/utils';
 import IssueListSearchBar from 'sentry/views/issueList/searchBar';
 
 interface Props {
@@ -56,6 +59,7 @@ function IssuesSearchBarContainer({
           placeholder={t('Search for issues, status, assigned, and more')}
           tagValueLoader={tagValueLoader}
           onSidebarToggle={() => undefined}
+          maxSearchItems={MAX_SEARCH_ITEMS}
           savedSearchType={SavedSearchType.ISSUE}
           dropdownClassName={css`
             max-height: ${MAX_MENU_HEIGHT}px;

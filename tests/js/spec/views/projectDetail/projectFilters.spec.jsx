@@ -39,9 +39,9 @@ describe('ProjectDetail > ProjectFilters', () => {
     await tick();
     wrapper.update();
 
-    expect(wrapper.find('[data-test-id="search-autocomplete-item"]').at(0).text()).toBe(
-      'release:'
-    );
+    expect(
+      wrapper.find('[data-test-id="search-autocomplete-item"]').at(0).text()
+    ).toMatch(/^release/);
 
     wrapper.find('SmartSearchBar textarea').simulate('focus');
     wrapper

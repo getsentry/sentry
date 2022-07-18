@@ -2,8 +2,10 @@ import {
   addSpace,
   getLastTermIndex,
   getQueryTerms,
+  getTagItemsFromKeys,
   removeSpace,
 } from 'sentry/components/smartSearchBar/utils';
+import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
 
 describe('addSpace()', function () {
   it('should add a space when there is no trailing space', function () {
@@ -56,5 +58,176 @@ describe('getLastTermIndex()', function () {
 
     query = 'tagname:foo anothertag:bar'; // 'f' (index 9)
     expect(getLastTermIndex(query, 9)).toEqual(11);
+  });
+});
+
+describe('getTagItemsFromKeys()', function () {
+  it('gets items from tags', () => {
+    const supportedTags = {
+      browser: {
+        kind: FieldValueKind.FIELD,
+        key: 'browser',
+        name: 'Browser',
+        predefined: true,
+        desc: '',
+        values: [],
+      },
+      device: {
+        kind: FieldValueKind.FIELD,
+        key: 'device',
+        name: 'Device',
+        predefined: true,
+        desc: '',
+        values: [],
+      },
+      has: {
+        kind: FieldValueKind.TAG,
+        key: 'has',
+        name: 'Has',
+        predefined: true,
+        desc: '',
+        values: [],
+      },
+    };
+    const tagKeys = Object.keys(supportedTags);
+
+    const items = getTagItemsFromKeys(tagKeys, supportedTags);
+
+    expect(items).toMatchObject([
+      {
+        title: 'browser',
+        value: 'browser:',
+        kind: FieldValueKind.FIELD,
+        documentation: '-',
+      },
+      {
+        title: 'device',
+        value: 'device:',
+        kind: FieldValueKind.FIELD,
+        documentation: '-',
+      },
+      {
+        title: 'has',
+        value: 'has:',
+        kind: FieldValueKind.TAG,
+        documentation: '-',
+      },
+    ]);
+  });
+
+  it('groups tags', () => {
+    const supportedTags = {
+      'device.arch': {
+        kind: FieldValueKind.FIELD,
+        key: 'device.arch',
+        name: 'Device Arch',
+        predefined: true,
+        desc: '',
+        values: [],
+      },
+      'device.family': {
+        kind: FieldValueKind.FIELD,
+        key: 'device.family',
+        name: 'Device Family',
+        predefined: true,
+        desc: '',
+        values: [],
+      },
+      has: {
+        kind: FieldValueKind.TAG,
+        key: 'has',
+        name: 'Has',
+        predefined: true,
+        desc: '',
+        values: [],
+      },
+    };
+    const tagKeys = Object.keys(supportedTags);
+
+    const items = getTagItemsFromKeys(tagKeys, supportedTags);
+
+    expect(items).toMatchObject([
+      {
+        title: 'device',
+        value: null,
+        kind: FieldValueKind.FIELD,
+        documentation: '-',
+        children: [
+          {
+            title: 'device.arch',
+            value: 'device.arch:',
+            kind: FieldValueKind.FIELD,
+            documentation: '-',
+          },
+          {
+            title: 'device.family',
+            value: 'device.family:',
+            kind: FieldValueKind.FIELD,
+            documentation: '-',
+          },
+        ],
+      },
+      {
+        title: 'has',
+        value: 'has:',
+        kind: FieldValueKind.TAG,
+        documentation: '-',
+      },
+    ]);
+  });
+
+  it('groups tags with single word parent', () => {
+    const supportedTags = {
+      device: {
+        kind: FieldValueKind.FIELD,
+        key: 'device',
+        name: 'Device',
+        predefined: true,
+        desc: '',
+        values: [],
+      },
+      'device.family': {
+        kind: FieldValueKind.FIELD,
+        key: 'device.family',
+        name: 'Device Family',
+        predefined: true,
+        desc: '',
+        values: [],
+      },
+      has: {
+        kind: FieldValueKind.TAG,
+        key: 'has',
+        name: 'Has',
+        predefined: true,
+        desc: '',
+        values: [],
+      },
+    };
+    const tagKeys = Object.keys(supportedTags);
+
+    const items = getTagItemsFromKeys(tagKeys, supportedTags);
+
+    expect(items).toMatchObject([
+      {
+        title: 'device',
+        value: 'device:',
+        kind: FieldValueKind.FIELD,
+        documentation: '-',
+        children: [
+          {
+            title: 'device.family',
+            value: 'device.family:',
+            kind: FieldValueKind.FIELD,
+            documentation: '-',
+          },
+        ],
+      },
+      {
+        title: 'has',
+        value: 'has:',
+        kind: FieldValueKind.TAG,
+        documentation: '-',
+      },
+    ]);
   });
 });
