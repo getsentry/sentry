@@ -1832,7 +1832,6 @@ class MetricsQueryBuilder(QueryBuilder):
     def resolve_metric_index(self, value: str) -> Optional[int]:
         """Layer on top of the metric indexer so we'll only hit it at most once per value"""
         if value not in self._indexer_cache:
-            # breakpoint()
             if self.is_performance:
                 use_case_id = UseCaseKey.PERFORMANCE
             else:
