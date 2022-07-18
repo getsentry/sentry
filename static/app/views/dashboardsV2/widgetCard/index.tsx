@@ -29,7 +29,7 @@ import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 
 import {DRAG_HANDLE_CLASS} from '../dashboard';
-import {DashboardFilter, DisplayType, Widget, WidgetType} from '../types';
+import {DashboardFilters, DisplayType, Widget, WidgetType} from '../types';
 import {isCustomMeasurementWidget} from '../utils';
 import {DEFAULT_RESULTS_LIMIT} from '../widgetBuilder/utils';
 
@@ -49,7 +49,7 @@ type Props = WithRouterProps & {
   selection: PageFilters;
   widget: Widget;
   widgetLimitReached: boolean;
-  dashboardFilters?: Record<DashboardFilter, string[]>;
+  dashboardFilters?: DashboardFilters;
   draggableProps?: DraggableProps;
   hideToolbar?: boolean;
   index?: string;

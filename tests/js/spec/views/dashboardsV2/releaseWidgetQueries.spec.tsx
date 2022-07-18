@@ -2,7 +2,11 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
-import {DashboardFilter, DisplayType, WidgetType} from 'sentry/views/dashboardsV2/types';
+import {
+  DashboardFilterKeys,
+  DisplayType,
+  WidgetType,
+} from 'sentry/views/dashboardsV2/types';
 import ReleaseWidgetQueries from 'sentry/views/dashboardsV2/widgetCard/releaseWidgetQueries';
 
 describe('Dashboards > ReleaseWidgetQueries', function () {
@@ -234,7 +238,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
         widget={singleQueryWidget}
         organization={organization}
         selection={selection}
-        dashboardFilters={{[DashboardFilter.RELEASE]: ['abc@1.3.0']}}
+        dashboardFilters={{[DashboardFilterKeys.RELEASE]: ['abc@1.3.0']}}
       >
         {() => <div data-test-id="child" />}
       </ReleaseWidgetQueries>

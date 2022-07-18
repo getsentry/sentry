@@ -60,7 +60,7 @@ import ReleasesSelectControl from './releasesSelectControl';
 import DashboardTitle from './title';
 import {
   DashboardDetails,
-  DashboardFilter,
+  DashboardFilters,
   DashboardListItem,
   DashboardState,
   DashboardWidgetSource,
@@ -385,7 +385,7 @@ class DashboardDetail extends Component<Props, State> {
     });
   };
 
-  handleChangeFilter = (activeFilters: Record<DashboardFilter, string[]>) => {
+  handleChangeFilter = (activeFilters: DashboardFilters) => {
     const {dashboard} = this.props;
     const {modifiedDashboard} = this.state;
     const newModifiedDashboard = modifiedDashboard || dashboard;

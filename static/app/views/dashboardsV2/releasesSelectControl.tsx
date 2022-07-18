@@ -8,12 +8,12 @@ import {IconReleases} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useReleases} from 'sentry/utils/releases/releasesProvider';
 
-import {DashboardFilter} from './types';
+import {DashboardFilterKeys, DashboardFilters} from './types';
 
 type Props = {
   selectedReleases: string[];
   className?: string;
-  handleChangeFilter?: (activeFilters: Record<DashboardFilter, string[]>) => void;
+  handleChangeFilter?: (activeFilters: DashboardFilters) => void;
   isDisabled?: boolean;
 };
 
@@ -53,7 +53,7 @@ function ReleasesSelectControl({
       }
       onChange={opts => setActiveReleases(opts.map(opt => opt.value))}
       onClose={() => {
-        handleChangeFilter?.({[DashboardFilter.RELEASE]: activeReleases});
+        handleChangeFilter?.({[DashboardFilterKeys.RELEASE]: activeReleases});
       }}
       value={activeReleases}
       triggerLabel={
@@ -78,6 +78,7 @@ const StyledBadge = styled(Badge)`
 const ButtonLabelWrapper = styled('span')`
   width: 100%;
   text-align: left;
-  display: inline-grid;
-  grid-auto-flow: column;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 `;

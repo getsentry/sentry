@@ -940,6 +940,8 @@ CRISPY_TEMPLATE_PACK = "bootstrap3"
 SENTRY_FEATURES = {
     # Enables user registration.
     "auth:register": True,
+    # Workflow 2.0 Alpha Functionality for sentry users only
+    "organizations:active-release-monitor-alpha": False,
     # Workflow 2.0 Experimental ReleaseMembers who opt-in to get notified as a release committer
     "organizations:active-release-notification-opt-in": False,
     # Enable advanced search features, like negation and wildcard matching.
@@ -962,6 +964,8 @@ SENTRY_FEATURES = {
     # Enable creating organizations within sentry (if SENTRY_SINGLE_ORGANIZATION
     # is not enabled).
     "organizations:create": True,
+    # Enable usage of customer domains on the frontend
+    "organizations:customer-domains": False,
     # Enable the 'discover' interface.
     "organizations:discover": False,
     # Enables events endpoint usage on discover and dashboards frontend
@@ -1142,7 +1146,7 @@ SENTRY_FEATURES = {
     # Enable SAML2 based SSO functionality. getsentry/sentry-auth-saml2 plugin
     # must be installed to use this functionality.
     "organizations:sso-saml2": True,
-    # Enable new server-side sampling UI in the project settings
+    # Enable the server-side sampling feature (frontend, backend, relay)
     "organizations:server-side-sampling": False,
     # Enable the new images loaded design and features
     "organizations:images-loaded-v2": True,
@@ -2531,6 +2535,12 @@ SENTRY_SIMILARITY_GROUPING_CONFIGURATIONS_TO_INDEX = {
     "similarity:2020-07-23": "a",
 }
 
+# If this is turned on, then sentry will perform automatic grouping updates.
+SENTRY_GROUPING_AUTO_UPDATE_ENABLED = False
+
+# How long is the migration phase for grouping updates?
+SENTRY_GROUPING_UPDATE_MIGRATION_PHASE = 30 * 24 * 3600  # 30 days
+
 SENTRY_USE_UWSGI = True
 
 # When copying attachments for to-be-reprocessed events into processing store,
@@ -2662,6 +2672,9 @@ ANOMALY_DETECTION_TIMEOUT = 30
 
 # This is the URL to the profiling service
 SENTRY_PROFILING_SERVICE_URL = "http://localhost:8085"
+
+SENTRY_REPLAYS_SERVICE_URL = "http://localhost:8090"
+
 
 SENTRY_ISSUE_ALERT_HISTORY = "sentry.rules.history.backends.postgres.PostgresRuleHistoryBackend"
 SENTRY_ISSUE_ALERT_HISTORY_OPTIONS = {}

@@ -194,6 +194,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
             "team_id": team["id"],
             "team_name": team["name"],
             "service_url": data["serviceUrl"],
+            "tenant_id": channel_data["tenant"]["id"],
         }
 
         # sign the params so this can't be forged

@@ -6,7 +6,7 @@ import {Group, Organization, PageFilters} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
 
 import {IssuesConfig} from '../datasetConfig/issues';
-import {DashboardFilter, Widget} from '../types';
+import {DashboardFilters, Widget} from '../types';
 
 import GenericWidgetQueries, {
   GenericWidgetQueriesChildrenProps,
@@ -20,7 +20,7 @@ type Props = {
   selection: PageFilters;
   widget: Widget;
   cursor?: string;
-  dashboardFilters?: Record<DashboardFilter, string[]>;
+  dashboardFilters?: DashboardFilters;
   limit?: number;
   onDataFetched?: (results: OnDataFetchedProps) => void;
 };

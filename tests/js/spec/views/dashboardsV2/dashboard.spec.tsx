@@ -13,6 +13,8 @@ describe('Dashboards > Dashboard', () => {
     id: '1',
     title: 'Test Dashboard',
     widgets: [],
+    projects: [],
+    filters: {},
   };
   const newWidget = {
     title: 'Test Query',

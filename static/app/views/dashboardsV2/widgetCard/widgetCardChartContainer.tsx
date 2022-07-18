@@ -12,7 +12,7 @@ import {Organization, PageFilters} from 'sentry/types';
 import {EChartEventHandler, Series} from 'sentry/types/echarts';
 import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 
-import {DashboardFilter, Widget, WidgetType} from '../types';
+import {DashboardFilters, Widget, WidgetType} from '../types';
 
 import WidgetCardChart, {AugmentedEChartDataZoomHandler} from './chart';
 import {IssueWidgetCard} from './issueWidgetCard';
@@ -26,7 +26,7 @@ type Props = WithRouterProps & {
   selection: PageFilters;
   widget: Widget;
   chartZoomOptions?: DataZoomComponentOption;
-  dashboardFilters?: Record<DashboardFilter, string[]>;
+  dashboardFilters?: DashboardFilters;
   expandNumbers?: boolean;
   isMobile?: boolean;
   legendOptions?: LegendComponentOption;

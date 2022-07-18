@@ -7,7 +7,7 @@ import theme from 'sentry/utils/theme';
 import withOrganization from 'sentry/utils/withOrganization';
 import WidgetCard from 'sentry/views/dashboardsV2/widgetCard';
 
-import {DashboardFilter, Widget} from './types';
+import {DashboardFilters, Widget} from './types';
 import DnDKitWidgetWrapper from './widgetWrapper';
 
 const TABLE_ITEM_LIMIT = 20;
@@ -22,7 +22,7 @@ type Props = {
   organization: Organization;
   widget: Widget;
   widgetLimitReached: boolean;
-  dashboardFilters?: Record<DashboardFilter, string[]>;
+  dashboardFilters?: DashboardFilters;
   isMobile?: boolean;
   isPreview?: boolean;
   windowWidth?: number;

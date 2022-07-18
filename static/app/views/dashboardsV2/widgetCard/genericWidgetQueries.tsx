@@ -11,7 +11,7 @@ import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 
 import {DatasetConfig} from '../datasetConfig/base';
 import {
-  DashboardFilter,
+  DashboardFilters,
   DEFAULT_TABLE_LIMIT,
   DisplayType,
   Widget,
@@ -67,7 +67,7 @@ export type GenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
     prevProps: GenericWidgetQueriesProps<SeriesResponse, TableResponse>,
     nextProps: GenericWidgetQueriesProps<SeriesResponse, TableResponse>
   ) => boolean;
-  dashboardFilters?: Record<DashboardFilter, string[]>;
+  dashboardFilters?: DashboardFilters;
   limit?: number;
   loading?: boolean;
   onDataFetched?: ({

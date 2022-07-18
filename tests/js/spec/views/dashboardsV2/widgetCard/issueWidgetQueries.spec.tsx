@@ -2,7 +2,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {
-  DashboardFilter,
+  DashboardFilterKeys,
   DisplayType,
   Widget,
   WidgetType,
@@ -129,7 +129,7 @@ describe('IssueWidgetQueries', function () {
         organization={organization}
         widget={widget}
         selection={selection}
-        dashboardFilters={{[DashboardFilter.RELEASE]: ['abc@1.2.0', 'abc@1.3.0']}}
+        dashboardFilters={{[DashboardFilterKeys.RELEASE]: ['abc@1.2.0', 'abc@1.3.0']}}
       >
         {() => <div data-test-id="child" />}
       </IssueWidgetQueries>

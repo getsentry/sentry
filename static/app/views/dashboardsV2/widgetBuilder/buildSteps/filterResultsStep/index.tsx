@@ -17,7 +17,7 @@ import {Organization, PageFilters} from 'sentry/types';
 import {ReleasesProvider} from 'sentry/utils/releases/releasesProvider';
 import {getDatasetConfig} from 'sentry/views/dashboardsV2/datasetConfig/base';
 import ReleasesSelectControl from 'sentry/views/dashboardsV2/releasesSelectControl';
-import {DashboardFilter, WidgetQuery, WidgetType} from 'sentry/views/dashboardsV2/types';
+import {DashboardFilters, WidgetQuery, WidgetType} from 'sentry/views/dashboardsV2/types';
 
 import {BuildStep} from '../buildStep';
 
@@ -31,7 +31,7 @@ interface Props {
   queries: WidgetQuery[];
   selection: PageFilters;
   widgetType: WidgetType;
-  dashboardFilters?: Record<DashboardFilter, string[]>;
+  dashboardFilters?: DashboardFilters;
   projectIds?: number[] | readonly number[];
   queryErrors?: Record<string, any>[];
 }

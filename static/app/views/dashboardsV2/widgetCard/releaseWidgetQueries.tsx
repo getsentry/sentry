@@ -22,7 +22,7 @@ import {TOP_N} from 'sentry/utils/discover/types';
 
 import {ReleasesConfig} from '../datasetConfig/releases';
 import {
-  DashboardFilter,
+  DashboardFilters,
   DEFAULT_TABLE_LIMIT,
   DisplayType,
   Widget,
@@ -47,7 +47,7 @@ type Props = {
   selection: PageFilters;
   widget: Widget;
   cursor?: string;
-  dashboardFilters?: Record<DashboardFilter, string[]>;
+  dashboardFilters?: DashboardFilters;
   limit?: number;
   onDataFetched?: (results: {
     tableResults?: TableDataWithTitle[];

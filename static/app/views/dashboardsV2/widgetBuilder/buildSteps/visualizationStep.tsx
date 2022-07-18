@@ -13,7 +13,7 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters, SelectValue} from 'sentry/types';
 import usePrevious from 'sentry/utils/usePrevious';
-import {DashboardFilter, DisplayType, Widget} from 'sentry/views/dashboardsV2/types';
+import {DashboardFilters, DisplayType, Widget} from 'sentry/views/dashboardsV2/types';
 
 import WidgetCard, {WidgetCardPanel} from '../../widgetCard';
 import {displayTypes} from '../utils';
@@ -26,7 +26,7 @@ interface Props {
   organization: Organization;
   pageFilters: PageFilters;
   widget: Widget;
-  dashboardFilters?: Record<DashboardFilter, string[]>;
+  dashboardFilters?: DashboardFilters;
   error?: string;
   noDashboardsMEPProvider?: boolean;
 }
