@@ -24,7 +24,7 @@ from sentry.integrations.msteams.card_builder.identity import (
 from sentry.integrations.msteams.card_builder.installation import (
     build_personal_installation_message,
     build_team_installation_confirmation_message,
-    build_welcome_card,
+    build_team_installation_message,
 )
 from sentry.models import Organization
 from sentry.testutils import TestCase
@@ -134,9 +134,13 @@ class MSTeamsMessageBuilderTest(TestCase):
 
     def test_team_installation_message(self):
         signed_params = "signed_params"
-        team_installation_card = build_welcome_card(signed_params)
+        team_installation_card = build_team_installation_message(signed_params)
 
         assert 3 == len(team_installation_card["body"])
+        assert (
+            "Welcome to Sentry"
+            in team_installation_card["body"][0]["columns"][1]["items"][0]["text"]
+        )
         assert 1 == len(team_installation_card["actions"])
         assert "Complete Setup" in team_installation_card["actions"][0]["title"]
 

@@ -48,7 +48,7 @@ def build_installation_card(signed_params: str, title: str, description: str, in
     )
 
 
-def build_welcome_card(signed_params: str) -> AdaptiveCard:
+def build_team_installation_message(signed_params: str) -> AdaptiveCard:
     return build_installation_card(
         signed_params=signed_params,
         title=InstallationMessages.TEAM_INSTALLTION_TITLE,
@@ -82,7 +82,7 @@ def build_team_installation_confirmation_message(organization: Organization) -> 
     )
 
     return build_installation_confirmation_message(
-        title=InstallationMessages.TEAM_INSTALLATION_CONFIRMATION_TITLE,
+        title=InstallationMessages.TEAM_INSTALLATION_CONFIRMATION_TITLE.format(organization.name),
         text=InstallationMessages.TEAM_INSTALLATION_CONFIRMATION_INSTRUCTION,
         button_title=InstallationMessages.TEAM_INSTALLATION_CONFIRMATION_BUTTON,
         url=alert_rule_url,

@@ -28,7 +28,10 @@ from .card_builder.identity import (
     build_linking_card,
     build_unlink_identity_card,
 )
-from .card_builder.installation import build_personal_installation_message, build_welcome_card
+from .card_builder.installation import (
+    build_personal_installation_message,
+    build_team_installation_message,
+)
 from .client import CLOCK_SKEW, MsTeamsClient, MsTeamsJwtClient
 from .link_identity import build_linking_url
 from .unlink_identity import build_unlinking_url
@@ -190,7 +193,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
             "installation_type": "team",
         }
 
-        return self.handle_member_add(data, params, build_welcome_card)
+        return self.handle_member_add(data, params, build_team_installation_message)
 
     def handle_member_add(
         self,
