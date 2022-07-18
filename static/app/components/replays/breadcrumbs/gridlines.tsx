@@ -58,4 +58,5 @@ export function MinorGridlines({duration, minWidth = 20, width}: Props) {
 
 const Label = styled('small')`
   font-variant-numeric: tabular-nums;
+  font-size: ${p => p.theme.fontSizeSmall};
 `;

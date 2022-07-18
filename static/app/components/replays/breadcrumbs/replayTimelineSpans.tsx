@@ -57,6 +57,7 @@ function ReplayTimelineEvents({className, duration, spans, startTimestamp}: Prop
             }
             skipWrapper
             disableForVisualTest
+            position="bottom"
           >
             <Span startPct={startPct} widthPct={widthPct} />
           </Tooltip>
@@ -72,20 +73,21 @@ const Spans = styled('ul')`
   margin: 0;
   padding: 0;
 
-  height: ${space(3)};
+  height: ${space(1.5)};
   position: relative;
   pointer-events: none;
 `;
-// TODO(replay): sync colors like #865189 with chartPalette so there is consistency
+// TODO(replay): sync colors like #444674 with chartPalette so there is consistency
 const Span = styled('li')<{startPct: number; widthPct: number}>`
   display: block;
   position: absolute;
-  top: 0;
+  top: -3px;
   left: ${p => p.startPct * 100}%;
   min-width: 1px;
   width: ${p => p.widthPct * 100}%;
   height: 100%;
-  background: #865189; /* plucked from static/app/constants/chartPalette.tsx */
+  background: #444674; /* plucked from static/app/constants/chartPalette.tsx */
+  border-radius: 2px;
   pointer-events: auto;
 `;
 
