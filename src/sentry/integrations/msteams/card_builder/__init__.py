@@ -4,6 +4,7 @@ from typing import Any, Mapping, Sequence, Union
 
 from sentry.integrations.metric_alerts import incident_attachment_info
 from sentry.integrations.slack.message_builder.issues import (
+    build_attachment_text,
     build_attachment_title,
     format_actor_option,
 )
@@ -60,23 +61,6 @@ def build_group_title(group):
         "text": title_text,
         "wrap": True,
     }
-
-
-def build_group_descr(group):
-    # TODO: implement with event as well
-    ev_type = group.get_event_type()
-    if ev_type == "error":
-        ev_metadata = group.get_event_metadata()
-        text = ev_metadata.get("value") or ev_metadata.get("function")
-        return {
-            "type": "TextBlock",
-            "size": "Medium",
-            "weight": "Bolder",
-            "text": text,
-            "wrap": True,
-        }
-    else:
-        return None
 
 
 def build_rule_url(rule, group, project):
@@ -281,7 +265,7 @@ def build_group_card(group, event, rules, integration):
     title = build_group_title(group)
     body = [title]
 
-    desc = build_group_descr(group)
+    desc = build_attachment_text(group)
     if desc:
         body.append(desc)
 
