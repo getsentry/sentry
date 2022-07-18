@@ -14,7 +14,10 @@ from sentry.integrations import (
 )
 from sentry.pipeline import PipelineView
 
-from .card_builder.installation import build_installation_confirmation_message
+from .card_builder.installation import (
+    build_personal_installation_confirmation_message,
+    build_team_installation_confirmation_message,
+)
 from .client import MsTeamsClient, get_token_data
 
 logger = logging.getLogger("sentry.integrations.msteams")
@@ -111,7 +114,11 @@ class MsTeamsIntegrationProvider(IntegrationProvider):
 
     def post_install(self, integration, organization, extra=None):
         client = MsTeamsClient(integration)
-        card = build_installation_confirmation_message(organization)
+        card = (
+            build_team_installation_confirmation_message(organization)
+            if "team" == integration.metadata["installation_type"]
+            else build_personal_installation_confirmation_message()
+        )
         conversation_id = extra["conversation_id"]
         client.send_card(conversation_id, card)
 

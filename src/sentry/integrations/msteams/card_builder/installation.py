@@ -66,22 +66,35 @@ def build_personal_installation_message(signed_params: str) -> AdaptiveCard:
     )
 
 
-def build_installation_confirmation_message(organization: Organization) -> AdaptiveCard:
+def build_installation_confirmation_message(
+    title: str, text: str, button_title: str, url: str
+) -> AdaptiveCard:
+    return MSTeamsMessageBuilder().build(
+        title=create_title_block(title),
+        text=text,
+        actions=[create_action_block(ActionType.OPEN_URL, title=button_title, url=url)],
+    )
+
+
+def build_team_installation_confirmation_message(organization: Organization) -> AdaptiveCard:
     alert_rule_url = absolute_uri(
         InstallationMessages.ALERT_RULE_URL.format(organization_slug=organization.slug)
     )
-    return MSTeamsMessageBuilder().build(
-        title=create_title_block(
-            InstallationMessages.INSTALLATION_CONFIRMATION_TITLE.format(
-                organization_name=organization.name
-            )
-        ),
-        text=InstallationMessages.INSTALLATION_CONFIRMATION_INSTRUCTION,
-        actions=[
-            create_action_block(
-                ActionType.OPEN_URL,
-                title=InstallationMessages.INSTALLATION_CONFIRMATION_BUTTON,
-                url=alert_rule_url,
-            )
-        ],
+
+    return build_installation_confirmation_message(
+        title=InstallationMessages.TEAM_INSTALLATION_CONFIRMATION_TITLE,
+        text=InstallationMessages.TEAM_INSTALLATION_CONFIRMATION_INSTRUCTION,
+        button_title=InstallationMessages.TEAM_INSTALLATION_CONFIRMATION_BUTTON,
+        url=alert_rule_url,
+    )
+
+
+def build_personal_installation_confirmation_message() -> AdaptiveCard:
+    notification_settings_url = absolute_uri(InstallationMessages.NOTIFICATION_SETTINGS_URL)
+
+    return build_installation_confirmation_message(
+        title=InstallationMessages.PERSONAL_INSTALLATION_CONFIRMATION_TITLE,
+        text=InstallationMessages.PERSONAL_INSTALLATION_CONFIRMATION_INSTRUCTION,
+        button_title=InstallationMessages.PERSONAL_INSTALLATION_CONFIRMATION_BUTTON,
+        url=notification_settings_url,
     )

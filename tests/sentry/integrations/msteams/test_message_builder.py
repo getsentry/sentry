@@ -22,8 +22,8 @@ from sentry.integrations.msteams.card_builder.identity import (
     build_unlinked_card,
 )
 from sentry.integrations.msteams.card_builder.installation import (
-    build_installation_confirmation_message,
     build_personal_installation_message,
+    build_team_installation_confirmation_message,
     build_welcome_card,
 )
 from sentry.models import Organization
@@ -107,7 +107,7 @@ class MSTeamsMessageBuilderTest(TestCase):
 
     def test_insallation_confirmation_message(self):
         organization = Organization(name="test-org", slug="test-org")
-        confirmation_card = build_installation_confirmation_message(organization)
+        confirmation_card = build_team_installation_confirmation_message(organization)
 
         assert 2 == len(confirmation_card["body"])
         assert 1 == len(confirmation_card["actions"])

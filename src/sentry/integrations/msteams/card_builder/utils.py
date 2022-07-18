@@ -61,9 +61,16 @@ class InstallationMessages:
         ' Sentry again, select "Add to a team" from the "Add" button\'s list arrow.'
     )
 
-    INSTALLATION_CONFIRMATION_TITLE = "Installation for {organization_name} is successful"
-    INSTALLATION_CONFIRMATION_INSTRUCTION = (
+    TEAM_INSTALLATION_CONFIRMATION_TITLE = "Installation for {organization_name} is successful"
+    TEAM_INSTALLATION_CONFIRMATION_INSTRUCTION = (
         "Now that setup is complete, you can continue by configuring alerts."
     )
-    INSTALLATION_CONFIRMATION_BUTTON = "Add Alert Rules"
+    TEAM_INSTALLATION_CONFIRMATION_BUTTON = "Add Alert Rules"
     ALERT_RULE_URL = "organizations/{organization_slug}/alerts/rules/"
+
+    PERSONAL_INSTALLATION_CONFIRMATION_TITLE = "Personal installation successful"
+    PERSONAL_INSTALLATION_CONFIRMATION_INSTRUCTION = (
+        "Now that setup is complete, you can configure and fine tune your notification settings."
+    )
+    PERSONAL_INSTALLATION_CONFIRMATION_BUTTON = "Notification Settings"
+    NOTIFICATION_SETTINGS_URL = "/settings/account/notifications/"
