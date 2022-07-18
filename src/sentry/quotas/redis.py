@@ -1,11 +1,9 @@
-import functools
 from time import time
 
 import sentry_sdk
 
 from sentry.constants import DataCategory
 from sentry.quotas.base import NotRateLimited, Quota, QuotaConfig, QuotaScope, RateLimited
-from sentry.utils.compat import map
 from sentry.utils.redis import (
     get_dynamic_cluster_from_options,
     load_script,
@@ -135,13 +133,11 @@ class RedisQuota(Quota):
             return int(result.value or 0) - int(refund_result.value or 0)
 
         if self.is_redis_cluster:
-            results = map(functools.partial(get_usage_for_quota, self.cluster), quotas)
+            results = [get_usage_for_quota(self.cluster, quota) for quota in quotas]
         else:
             with self.cluster.fanout() as client:
-                results = map(
-                    functools.partial(get_usage_for_quota, client.target_key(str(organization_id))),
-                    quotas,
-                )
+                target = client.target_key(str(organization_id))
+                results = [get_usage_for_quota(target, quota) for quota in quotas]
 
         return [get_value_for_result(*r) for r in results]
 
