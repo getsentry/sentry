@@ -77,6 +77,7 @@ from sentry.models import (
 )
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.plugins.base import plugins
+from sentry.projectoptions.defaults import BETA_GROUPING_CONFIG, DEFAULT_GROUPING_CONFIG
 from sentry.reprocessing2 import is_reprocessed_event, save_unprocessed_event
 from sentry.signals import first_event_received, first_transaction_received, issue_unresolved
 from sentry.tasks.integrations import kick_off_status_syncs
@@ -308,6 +309,7 @@ class EventManager:
         start_time=None,
         cache_key=None,
         skip_send_first_transaction=False,
+        auto_upgrade_grouping=False,
     ):
         """
         After normalizing and processing an event, save adjacent models such as
@@ -585,7 +587,31 @@ class EventManager:
 
         self._data = job["event"].data.data
 
+        # Check if the project is configured for auto upgrading and we need to upgrade
+        # to the latest grouping config.
+        if (
+            auto_upgrade_grouping
+            and settings.SENTRY_GROUPING_AUTO_UPDATE_ENABLED
+            and project.get_option("sentry:grouping_auto_update")
+        ):
+            _auto_update_grouping(project)
+
         return job["event"]
+
+
+def _auto_update_grouping(project):
+    old_grouping = project.get_option("sentry:grouping_config")
+    new_grouping = DEFAULT_GROUPING_CONFIG
+
+    # update to latest grouping config but not if a user is already on
+    # beta.
+    if old_grouping != new_grouping and old_grouping != BETA_GROUPING_CONFIG:
+        project.update_option("sentry:secondary_grouping_config", old_grouping)
+        project.update_option(
+            "sentry:secondary_grouping_expiry",
+            int(time.time()) + settings.SENTRY_GROUPING_UPDATE_MIGRATION_PHASE,
+        )
+        project.update_option("sentry:grouping_config", new_grouping)
 
 
 @metrics.wraps("event_manager.background_grouping")

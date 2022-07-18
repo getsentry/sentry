@@ -1583,6 +1583,10 @@ class TestMigrations(TransactionTestCase):
     def migrate_to(self):
         raise NotImplementedError(f"implement for {type(self).__module__}.{type(self).__name__}")
 
+    @property
+    def connection(self):
+        return "default"
+
     def setUp(self):
         super().setUp()
         self.setup_initial_state()
@@ -1590,6 +1594,7 @@ class TestMigrations(TransactionTestCase):
         self.migrate_from = [(self.app, self.migrate_from)]
         self.migrate_to = [(self.app, self.migrate_to)]
 
+        connection = connections[self.connection]
         executor = MigrationExecutor(connection)
         matching_migrations = [m for m in executor.loader.applied_migrations if m[0] == self.app]
         if not matching_migrations:

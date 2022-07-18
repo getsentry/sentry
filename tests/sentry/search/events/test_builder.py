@@ -776,8 +776,6 @@ class MetricBuilderBaseTest(MetricsEnhancedPerformanceTestCase):
             Condition(Column("timestamp"), Op.LT, self.end),
             Condition(Column("project_id"), Op.IN, self.projects),
             Condition(Column("org_id"), Op.EQ, self.organization.id),
-            # Hack cause snuba isn't handling granularity right now
-            Condition(Column("granularity"), Op.EQ, 2),
         ]
 
         for string in self.METRIC_STRINGS:
@@ -2272,8 +2270,6 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         snql_query = query.get_snql_query()
         assert len(snql_query) == 1
         query = snql_query[0].query
-        del self.default_conditions[-1]
-        self.default_conditions.append(Condition(Column("granularity"), Op.EQ, 1))
         self.assertCountEqual(
             query.where,
             [
@@ -2293,8 +2289,6 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             query="",
             selected_columns=[],
         )
-        del self.default_conditions[-1]
-        self.default_conditions.append(Condition(Column("granularity"), Op.EQ, 1))
         self.assertCountEqual(query.where, self.default_conditions)
 
     def test_granularity(self):
@@ -2368,8 +2362,6 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             UseCaseKey.PERFORMANCE,
         )
         transaction = Column(f"tags[{transaction_index}]")
-        del self.default_conditions[-1]
-        self.default_conditions.append(Condition(Column("granularity"), Op.EQ, 1))
         self.assertCountEqual(
             query.where,
             [
@@ -2413,8 +2405,6 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             query=f"project:{self.project.slug}",
             selected_columns=["p95(transaction.duration)"],
         )
-        del self.default_conditions[-1]
-        self.default_conditions.append(Condition(Column("granularity"), Op.EQ, 1))
         self.assertCountEqual(
             query.where,
             [

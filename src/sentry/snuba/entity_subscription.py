@@ -284,8 +284,6 @@ class SessionsEntitySubscription(BaseEntitySubscription):
 
 
 class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
-    dataset = QueryDatasets.METRICS
-
     def __init__(
         self, aggregate: str, time_window: int, extra_fields: Optional[_EntitySpecificParams] = None
     ):
@@ -307,21 +305,9 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
     def get_snql_extra_conditions(self) -> List[Condition]:
         raise NotImplementedError
 
+    @abstractmethod
     def get_granularity(self) -> int:
-        # Both time_window and granularity are in seconds
-        # Time windows <= 1h -> Granularity 10s
-        # Time windows > 1h & <= 4h -> Granularity 60s
-        # Time windows > 4h and <= 24h -> Granularity 1 hour
-        # Time windows > 24h -> Granularity 1 day
-        if self.time_window <= 3600:
-            granularity = 10
-        elif self.time_window <= 4 * 3600:
-            granularity = 60
-        elif 4 * 3600 < self.time_window <= 24 * 3600:
-            granularity = 3600
-        else:
-            granularity = 24 * 3600
-        return granularity
+        pass
 
     def get_entity_extra_params(self) -> Mapping[str, Any]:
         return {
@@ -343,6 +329,7 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
 
         params["project_id"] = project_ids
         qb = AlertMetricsQueryBuilder(
+            dataset=Dataset(self.dataset.value),
             query=query,
             selected_columns=self.get_snql_aggregations(),
             params=params,
@@ -365,6 +352,8 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
 
 
 class PerformanceMetricsEntitySubscription(BaseMetricsEntitySubscription):
+    dataset = QueryDatasets.PERFORMANCE_METRICS
+
     def get_snql_aggregations(self) -> List[str]:
         return [self.aggregate]
 
@@ -376,8 +365,21 @@ class PerformanceMetricsEntitySubscription(BaseMetricsEntitySubscription):
     ) -> List[Dict[str, Any]]:
         return data
 
+    def get_granularity(self) -> int:
+        # Both time_window and granularity are in seconds
+        # Time windows <= 1h -> Granularity 60s
+        # Time windows > 1h and <= 24h -> Granularity 1 hour
+        # Time windows > 24h -> Granularity 1 day
+        if self.time_window <= 3600:
+            return 60
+        elif 3600 < self.time_window <= 24 * 3600:
+            return 3600
+        else:
+            return 24 * 3600
+
 
 class BaseCrashRateMetricsEntitySubscription(BaseMetricsEntitySubscription):
+    dataset = QueryDatasets.METRICS
     metric_key: SessionMRI
 
     def __init__(
@@ -387,6 +389,22 @@ class BaseCrashRateMetricsEntitySubscription(BaseMetricsEntitySubscription):
         self.session_status = resolve_tag_key(
             UseCaseKey.RELEASE_HEALTH, self.org_id, "session.status"
         )
+
+    def get_granularity(self) -> int:
+        # Both time_window and granularity are in seconds
+        # Time windows <= 1h -> Granularity 10s
+        # Time windows > 1h & <= 4h -> Granularity 60s
+        # Time windows > 4h and <= 24h -> Granularity 1 hour
+        # Time windows > 24h -> Granularity 1 day
+        if self.time_window <= 3600:
+            granularity = 10
+        elif self.time_window <= 4 * 3600:
+            granularity = 60
+        elif 4 * 3600 < self.time_window <= 24 * 3600:
+            granularity = 3600
+        else:
+            granularity = 24 * 3600
+        return granularity
 
     @staticmethod
     def translate_sessions_tag_keys_and_values(

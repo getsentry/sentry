@@ -1612,14 +1612,6 @@ class MetricsQueryBuilder(QueryBuilder):
             *args,
             **kwargs,
         )
-        if dataset is Dataset.PerformanceMetrics:
-            # Hack while granularity isn't being handled by snuba
-            granularity = {
-                60: 1,
-                3600: 2,
-                86400: 3,
-            }[self.granularity.granularity]
-            self.where.append(Condition(Column("granularity"), Op.EQ, granularity))
         if "organization_id" in self.params:
             self.organization_id = self.params["organization_id"]
         else:
@@ -2237,18 +2229,6 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
             for granularity in METRICS_GRANULARITIES:
                 if granularity < interval:
                     self.granularity = Granularity(granularity)
-                    if dataset is Dataset.PerformanceMetrics:
-                        # Hack until snuba can handle granularities
-                        for condition in self.where:
-                            if condition.lhs == Column("granularity"):
-                                self.where.remove(condition)
-                                break
-                        granularity = {
-                            60: 1,
-                            3600: 2,
-                            86400: 3,
-                        }[self.granularity.granularity]
-                        self.where.append(Condition(Column("granularity"), Op.EQ, granularity))
                     break
 
         self.time_column = self.resolve_time_column(interval)
