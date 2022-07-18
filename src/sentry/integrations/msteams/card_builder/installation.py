@@ -82,7 +82,9 @@ def build_team_installation_confirmation_message(organization: Organization) -> 
     )
 
     return build_installation_confirmation_message(
-        title=InstallationMessages.TEAM_INSTALLATION_CONFIRMATION_TITLE.format(organization.name),
+        title=InstallationMessages.TEAM_INSTALLATION_CONFIRMATION_TITLE.format(
+            organization_name=organization.name
+        ),
         text=InstallationMessages.TEAM_INSTALLATION_CONFIRMATION_INSTRUCTION,
         button_title=InstallationMessages.TEAM_INSTALLATION_CONFIRMATION_BUTTON,
         url=alert_rule_url,
