@@ -1617,6 +1617,10 @@ class MetricsQueryBuilder(QueryBuilder):
         else:
             raise InvalidSearchQuery("Organization id required to create a metrics query")
 
+    @property
+    def is_performance(self) -> bool:
+        return self.dataset is Dataset.PerformanceMetrics
+
     def resolve_query(
         self,
         query: Optional[str] = None,
@@ -1828,7 +1832,11 @@ class MetricsQueryBuilder(QueryBuilder):
     def resolve_metric_index(self, value: str) -> Optional[int]:
         """Layer on top of the metric indexer so we'll only hit it at most once per value"""
         if value not in self._indexer_cache:
-            use_case_id = UseCaseKey.PERFORMANCE
+            # breakpoint()
+            if self.is_performance:
+                use_case_id = UseCaseKey.PERFORMANCE
+            else:
+                use_case_id = UseCaseKey.RELEASE_HEALTH
             result = indexer.resolve(self.organization_id, value, use_case_id=use_case_id)
             self._indexer_cache[value] = result
 
