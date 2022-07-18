@@ -2756,7 +2756,7 @@ describe('WidgetBuilder', function () {
         );
 
         await waitFor(() => {
-          expect(screen.getByText('No items found')).toBeInTheDocument();
+          expect(screen.getByText("isn't supported here.")).toBeInTheDocument();
         });
 
         userEvent.click(screen.getByText('Releases (sessions, crash rates)'));
@@ -2765,9 +2765,9 @@ describe('WidgetBuilder', function () {
             'Search for release version, session status, and more'
           )
         );
-        expect(await screen.findByText('environment:')).toBeInTheDocument();
-        expect(screen.getByText('project:')).toBeInTheDocument();
-        expect(screen.getByText('release:')).toBeInTheDocument();
+        expect(await screen.findByText('environment')).toBeInTheDocument();
+        expect(screen.getByText('project')).toBeInTheDocument();
+        expect(screen.getByText('release')).toBeInTheDocument();
       });
 
       it('adds a function when the only column chosen in a table is a tag', async function () {
