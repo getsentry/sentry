@@ -299,9 +299,9 @@ class EntitySubscriptionTestCase(TestCase):
         assert entity_subscription.aggregate == aggregate
         assert entity_subscription.get_entity_extra_params() == {
             "organization": self.organization.id,
-            "granularity": 10,
+            "granularity": 60,
         }
-        assert entity_subscription.dataset == QueryDatasets.METRICS
+        assert entity_subscription.dataset == QueryDatasets.PERFORMANCE_METRICS
         snql_query = entity_subscription.build_query_builder(
             "",
             [self.project.id],
@@ -439,14 +439,14 @@ class GetEntityKeyFromSnubaQueryTest(TestCase):
                 "",
             ),
             (
-                EntityKey.MetricsDistributions,
+                EntityKey.GenericMetricsDistributions,
                 SnubaQuery.Type.PERFORMANCE,
                 QueryDatasets.METRICS,
                 "count()",
                 "",
             ),
             (
-                EntityKey.MetricsSets,
+                EntityKey.GenericMetricsSets,
                 SnubaQuery.Type.PERFORMANCE,
                 QueryDatasets.METRICS,
                 "count_unique(user)",
