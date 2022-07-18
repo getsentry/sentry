@@ -78,7 +78,7 @@ class CreateSnubaQueryTest(TestCase):
         assert set(snuba_query.event_types) == {SnubaQueryEventType.EventType.DEFAULT}
 
     def test_event_types_metrics(self):
-        query_type = SnubaQuery.Type.ERROR
+        query_type = SnubaQuery.Type.CRASH_RATE
         dataset = QueryDatasets.METRICS
         query = ""
         aggregate = "percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate"

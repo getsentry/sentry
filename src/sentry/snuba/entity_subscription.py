@@ -52,6 +52,9 @@ ENTITY_TIME_COLUMNS: Mapping[EntityKey, str] = {
     EntityKey.Events: "timestamp",
     EntityKey.Sessions: "started",
     EntityKey.Transactions: "finish_ts",
+    EntityKey.GenericMetricsCounters: "timestamp",
+    EntityKey.GenericMetricsDistributions: "timestamp",
+    EntityKey.GenericMetricsSets: "timestamp",
     EntityKey.MetricsCounters: "timestamp",
     EntityKey.MetricsSets: "timestamp",
 }
@@ -565,7 +568,7 @@ def get_entity_subscription(
     if query_type == SnubaQuery.Type.PERFORMANCE:
         if dataset == QueryDatasets.TRANSACTIONS:
             entity_subscription_cls = PerformanceTransactionsEntitySubscription
-        elif dataset == QueryDatasets.METRICS:
+        elif dataset in (QueryDatasets.METRICS, QueryDatasets.PERFORMANCE_METRICS):
             entity_subscription_cls = PerformanceMetricsEntitySubscription
     if query_type == SnubaQuery.Type.CRASH_RATE:
         entity_key = determine_crash_rate_alert_entity(aggregate)

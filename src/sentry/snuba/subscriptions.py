@@ -11,15 +11,6 @@ from sentry.snuba.tasks import (
 
 logger = logging.getLogger(__name__)
 
-# Temporary mapping of `QueryDatasets` to `SnubaQuery.Type`. In the future, `Performance` will be
-# able to be run on `METRICS` as well.
-query_datasets_to_type = {
-    QueryDatasets.EVENTS: SnubaQuery.Type.ERROR,
-    QueryDatasets.TRANSACTIONS: SnubaQuery.Type.PERFORMANCE,
-    QueryDatasets.SESSIONS: SnubaQuery.Type.CRASH_RATE,
-    QueryDatasets.METRICS: SnubaQuery.Type.CRASH_RATE,
-}
-
 
 def create_snuba_query(
     query_type, dataset, query, aggregate, time_window, resolution, environment, event_types=None

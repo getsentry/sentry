@@ -20,6 +20,7 @@ from sentry.incidents.logic import (
     check_aggregate_column_support,
     create_alert_rule,
     delete_alert_rule_trigger,
+    query_datasets_to_type,
     translate_aggregate_field,
     update_alert_rule,
 )
@@ -31,7 +32,6 @@ from sentry.snuba.entity_subscription import (
     get_entity_subscription,
 )
 from sentry.snuba.models import QueryDatasets, QuerySubscription, SnubaQuery, SnubaQueryEventType
-from sentry.snuba.subscriptions import query_datasets_to_type
 from sentry.snuba.tasks import build_query_builder
 
 from ... import features
