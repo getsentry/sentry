@@ -1048,6 +1048,7 @@ const DescriptionCell = styled(Cell)`
 `;
 
 const Change = styled('div')<{color?: Color}>`
+  font-size: ${p => p.theme.fontSizeMedium};
   ${p => p.color && `color: ${p.theme[p.color]}`}
 `;
 

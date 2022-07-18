@@ -79,10 +79,6 @@ export const HeaderValue = styled('div')`
   top: 40px;
   z-index: 1;
   font-size: ${p => p.theme.headerFontSize};
-
-  div {
-    font-size: ${p => p.theme.fontSizeMedium};
-  }
 `;
 
 export const ChartContainer = styled('div')`
