@@ -2246,6 +2246,7 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
         allow_metric_aggregates: Optional[bool] = False,
         functions_acl: Optional[List[str]] = None,
         dry_run: Optional[bool] = False,
+        limit: Optional[int] = 10000,
     ):
         super().__init__(
             params=params,
@@ -2264,6 +2265,7 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
                     break
 
         self.time_column = self.resolve_time_column(interval)
+        self.limit = None if limit is None else Limit(limit)
 
         # This is a timeseries, the groupby will always be time
         self.groupby = [self.time_column]
