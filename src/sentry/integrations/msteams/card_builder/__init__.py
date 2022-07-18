@@ -6,7 +6,7 @@ from sentry.integrations.metric_alerts import incident_attachment_info
 from sentry.integrations.slack.message_builder.issues import (
     build_attachment_text,
     build_attachment_title,
-    build_rule_url,
+    build_footer,
     format_actor_option,
 )
 from sentry.models import GroupStatus, Project
@@ -16,6 +16,7 @@ from sentry.utils.http import absolute_uri
 from ..utils import ACTION_TYPE
 
 ME = "ME"
+URL_FORMAT = "[{text}]({url})"
 
 # TODO: Covert these types to a class hierarchy.
 # This is not ideal, but better than no typing. These types should be
@@ -78,12 +79,7 @@ def build_group_footer(group, rules, project, event):
         "width": "auto",
     }
 
-    text = f"{group.qualified_short_id}"
-    if rules:
-        rule_url = build_rule_url(rules[0], group, project)
-        text += f" via [{rules[0].label}]({rule_url})"
-        if len(rules) > 1:
-            text += f" (+{len(rules) - 1} other)"
+    text = build_footer(group, project, rules, URL_FORMAT)
 
     text_column = {
         "type": "Column",
