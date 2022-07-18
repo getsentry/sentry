@@ -278,57 +278,6 @@ def build_group_actions(group, event, rules, integration):
     }
 
 
-def build_group_resolve_card(group, event, rules, integration):
-    return [
-        {
-            "type": "TextBlock",
-            "size": "Large",
-            "text": "Resolve",
-            "weight": "Bolder",
-            "id": "resolveTitle",
-            "isVisible": False,
-        }
-    ]
-
-
-def build_group_ignore_card(group, event, rules, integration):
-    return [
-        {
-            "type": "TextBlock",
-            "size": "Large",
-            "text": "Ignore until this happens again...",
-            "weight": "Bolder",
-            "id": "ignoreTitle",
-            "isVisible": False,
-        }
-    ]
-
-
-def build_group_assign_card(group, event, rules, integration):
-    return [
-        {
-            "type": "TextBlock",
-            "size": "Large",
-            "text": "Assign to...",
-            "weight": "Bolder",
-            "id": "assignTitle",
-            "isVisible": False,
-        }
-    ]
-
-
-def build_group_action_cards(group, event, rules, integration):
-    status = group.get_status()
-    action_cards = []
-    if status != GroupStatus.RESOLVED:
-        action_cards += build_group_resolve_card(group, event, rules, integration)
-    if status != GroupStatus.IGNORED:
-        action_cards += build_group_ignore_card(group, event, rules, integration)
-    action_cards += build_group_assign_card(group, event, rules, integration)
-
-    return {"type": "ColumnSet", "columns": [{"type": "Column", "items": action_cards}]}
-
-
 def build_assignee_note(group):
     assignee = get_assignee_string(group)
     if not assignee:
