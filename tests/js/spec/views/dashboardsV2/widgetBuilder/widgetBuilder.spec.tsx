@@ -1036,6 +1036,8 @@ describe('WidgetBuilder', function () {
       await screen.findByText('Update Widget');
       await screen.findByText('90D');
 
+      expect(screen.getByTestId('page-filter-timerange-selector')).toBeEnabled();
+
       userEvent.click(screen.getByText('Update Widget'));
 
       await waitFor(() => {
@@ -1048,6 +1050,30 @@ describe('WidgetBuilder', function () {
           })
         );
       });
+    });
+
+    it('renders page filters in the filter step', async () => {
+      const mockReleases = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/releases/',
+        body: [TestStubs.Release()],
+      });
+
+      renderTestComponent({
+        params: {orgId: 'org-slug'},
+        query: {statsPeriod: '90d'},
+        orgFeatures: [...defaultOrgFeatures, 'dashboards-top-level-filter'],
+      });
+
+      await screen.findByText('90D');
+      expect(screen.getByTestId('page-filter-timerange-selector')).toBeDisabled();
+      expect(screen.getByTestId('page-filter-environment-selector')).toBeDisabled();
+      expect(screen.getByTestId('page-filter-project-selector-loading')).toBeDisabled();
+
+      await waitFor(() => {
+        expect(mockReleases).toHaveBeenCalled();
+      });
+
+      expect(screen.getByRole('button', {name: /all releases/i})).toBeDisabled();
     });
 
     it('does not error when query conditions field is blurred', async function () {

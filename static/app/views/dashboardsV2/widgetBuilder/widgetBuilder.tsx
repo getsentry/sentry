@@ -1047,11 +1047,13 @@ function WidgetBuilder({
               <Body>
                 <MainWrapper>
                   <Main>
-                    <StyledPageFilterBar condensed>
-                      <ProjectPageFilter />
-                      <EnvironmentPageFilter />
-                      <DatePageFilter alignDropdown="left" />
-                    </StyledPageFilterBar>
+                    {!!!organization.features.includes('dashboards-top-level-filter') && (
+                      <StyledPageFilterBar condensed>
+                        <ProjectPageFilter />
+                        <EnvironmentPageFilter />
+                        <DatePageFilter alignDropdown="left" />
+                      </StyledPageFilterBar>
+                    )}
                     <BuildSteps symbol="colored-numeric">
                       <VisualizationStep
                         widget={currentWidget}
