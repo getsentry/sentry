@@ -6,7 +6,6 @@ from enum import Enum
 from django.conf import settings
 from django.utils import timezone
 
-from sentry.utils.compat import map
 from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.services import Service
 
@@ -265,7 +264,7 @@ class BaseTSDB(Service):
                 end,
                 rollup=rollup,
             )
-            rollups[rollup] = map(to_datetime, series)
+            rollups[rollup] = [to_datetime(item) for item in series]
         return rollups
 
     def make_series(self, default, start, end=None, rollup=None):
