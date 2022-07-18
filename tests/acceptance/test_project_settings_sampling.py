@@ -1,5 +1,3 @@
-import time
-
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.keys import Keys
 
@@ -86,10 +84,6 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
             # Open uniform rate modal
             self.browser.element('[aria-label="Start Setup"]').click()
 
-            # Wait for modal to load
-            self.browser.wait_until_not('[data-test-id="loading-indicator"]')
-            time.sleep(1)
-
             # Click on the recommended sampling values option
             self.browser.element('[id="sampling-recommended"]').click()
 
@@ -119,10 +113,6 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
 
             # Open uniform rate modal
             self.browser.element('[aria-label="Start Setup"]').click()
-
-            # Wait for modal to load
-            self.browser.wait_until_not('[data-test-id="loading-indicator"]')
-            time.sleep(1)
 
             # Enter a custom value for client side sampling
             self.browser.element('[id="recommended-client-sampling"]').clear()
