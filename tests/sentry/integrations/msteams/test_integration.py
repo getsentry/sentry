@@ -27,11 +27,21 @@ class MsTeamsIntegrationTest(IntegrationTestCase):
             "external_name": "my_team",
             "user_id": user_id,
             "conversation_id": team_id,
-            "installation_type": "team",
             "tenant_id": tenant_id,
         }
 
-    def assert_setup_flow(self):
+    def assert_team_installation_post_install(self):
+        integration_url = f"organizations/{self.organization.slug}/alerts/rules/"
+        assert integration_url in responses.calls[1].request.body.decode("utf-8")
+        assert self.organization.name in responses.calls[1].request.body.decode("utf-8")
+
+    def assert_personal_installation_post_install(self):
+        integration_url = "/settings/account/notifications"
+        request_body = responses.calls[1].request.body.decode("utf-8")
+        assert "Personal installation successful" in request_body
+        assert integration_url in request_body
+
+    def assert_setup_flow(self, installation_type: str):
         responses.reset()
 
         responses.add(
@@ -49,6 +59,8 @@ class MsTeamsIntegrationTest(IntegrationTestCase):
                 "https://login.microsoftonline.com/botframework.com/oauth2/v2.0/token",
                 json=access_json,
             )
+
+            self.pipeline_state.update({"installation_type": installation_type})
 
             params = {"signed_params": sign(**self.pipeline_state)}
 
@@ -76,17 +88,22 @@ class MsTeamsIntegrationTest(IntegrationTestCase):
                 "access_token": "my_token",
                 "service_url": "https://smba.trafficmanager.net/amer/",
                 "expires_at": self.start_time + 86399 - 60 * 5,
-                "installation_type": "team",
+                "installation_type": installation_type,
                 "tenant_id": tenant_id,
             }
             assert OrganizationIntegration.objects.get(
                 integration=integration, organization=self.organization
             )
 
-            integration_url = f"organizations/{self.organization.slug}/alerts/rules/"
-            assert integration_url in responses.calls[1].request.body.decode("utf-8")
-            assert self.organization.name in responses.calls[1].request.body.decode("utf-8")
+            if "team" == installation_type:
+                self.assert_team_installation_post_install()
+            else:
+                self.assert_personal_installation_post_install()
 
     @responses.activate
-    def test_installation(self):
-        self.assert_setup_flow()
+    def test_team_installation(self):
+        self.assert_setup_flow(installation_type="team")
+
+    @responses.activate
+    def test_personal_installation(self):
+        self.assert_setup_flow(installation_type="tenant")
