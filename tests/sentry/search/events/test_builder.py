@@ -719,7 +719,9 @@ def _metric_percentile_definition(
                         "equals",
                         [
                             Column("metric_id"),
-                            indexer.resolve(org_id, constants.METRICS_MAP[field]),
+                            indexer.resolve(
+                                org_id, constants.METRICS_MAP[field], UseCaseKey.PERFORMANCE
+                            ),
                         ],
                     ),
                 ],
@@ -735,7 +737,10 @@ def _metric_conditions(org_id, metrics) -> List[Condition]:
         Condition(
             Column("metric_id"),
             Op.IN,
-            sorted(indexer.resolve(org_id, constants.METRICS_MAP[metric]) for metric in metrics),
+            sorted(
+                indexer.resolve(org_id, constants.METRICS_MAP[metric], UseCaseKey.PERFORMANCE)
+                for metric in metrics
+            ),
         )
     ]
 
@@ -771,17 +776,15 @@ class MetricBuilderBaseTest(MetricsEnhancedPerformanceTestCase):
             Condition(Column("timestamp"), Op.LT, self.end),
             Condition(Column("project_id"), Op.IN, self.projects),
             Condition(Column("org_id"), Op.EQ, self.organization.id),
-            # Hack cause snuba isn't handling granularity right now
-            Condition(Column("granularity"), Op.EQ, 2),
         ]
 
         for string in self.METRIC_STRINGS:
             indexer.record(
-                use_case_id=UseCaseKey.RELEASE_HEALTH, org_id=self.organization.id, string=string
+                use_case_id=UseCaseKey.PERFORMANCE, org_id=self.organization.id, string=string
             )
 
         indexer.record(
-            use_case_id=UseCaseKey.RELEASE_HEALTH, org_id=self.organization.id, string="transaction"
+            use_case_id=UseCaseKey.PERFORMANCE, org_id=self.organization.id, string="transaction"
         )
 
     def setup_orderby_data(self):
@@ -833,11 +836,15 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             query.columns,
             [
                 AliasedExpression(
-                    Column(f"tags[{indexer.resolve(self.organization.id, 'transaction')}]"),
+                    Column(
+                        f"tags[{indexer.resolve(self.organization.id, 'transaction', UseCaseKey.PERFORMANCE)}]"
+                    ),
                     "tags[transaction]",
                 ),
                 AliasedExpression(
-                    Column(f"tags[{indexer.resolve(self.organization.id, 'transaction')}]"),
+                    Column(
+                        f"tags[{indexer.resolve(self.organization.id, 'transaction', UseCaseKey.PERFORMANCE)}]"
+                    ),
                     "transaction",
                 ),
             ],
@@ -933,6 +940,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                                         indexer.resolve(
                                             self.organization.id,
                                             constants.METRICS_MAP["transaction.duration"],
+                                            UseCaseKey.PERFORMANCE,
                                         ),
                                     ],
                                 ),
@@ -1003,6 +1011,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                                 indexer.resolve(
                                     self.organization.id,
                                     constants.METRICS_MAP["transaction.duration"],
+                                    UseCaseKey.PERFORMANCE,
                                 ),
                             ],
                         ),
@@ -1026,7 +1035,9 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                 *_metric_conditions(self.organization.id, ["transaction.duration"]),
             ],
         )
-        transaction_index = indexer.resolve(self.organization.id, "transaction")
+        transaction_index = indexer.resolve(
+            self.organization.id, "transaction", UseCaseKey.PERFORMANCE
+        )
         transaction = AliasedExpression(
             Column(f"tags[{transaction_index}]"),
             "transaction",
@@ -1059,8 +1070,12 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             dataset=Dataset.PerformanceMetrics,
             selected_columns=["transaction", "project", "p95(transaction.duration)"],
         )
-        transaction_index = indexer.resolve(self.organization.id, "transaction")
-        transaction_name = indexer.resolve(self.organization.id, "foo_transaction")
+        transaction_index = indexer.resolve(
+            self.organization.id, "transaction", UseCaseKey.PERFORMANCE
+        )
+        transaction_name = indexer.resolve(
+            self.organization.id, "foo_transaction", UseCaseKey.PERFORMANCE
+        )
         transaction = Column(f"tags[{transaction_index}]")
         self.assertCountEqual(
             query.where,
@@ -1078,9 +1093,21 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             dataset=Dataset.PerformanceMetrics,
             selected_columns=["transaction", "project", "p95(transaction.duration)"],
         )
-        transaction_index = indexer.resolve(self.organization.id, "transaction")
-        transaction_name1 = indexer.resolve(self.organization.id, "foo_transaction")
-        transaction_name2 = indexer.resolve(self.organization.id, "bar_transaction")
+        transaction_index = indexer.resolve(
+            self.organization.id,
+            "transaction",
+            UseCaseKey.PERFORMANCE,
+        )
+        transaction_name1 = indexer.resolve(
+            self.organization.id,
+            "foo_transaction",
+            UseCaseKey.PERFORMANCE,
+        )
+        transaction_name2 = indexer.resolve(
+            self.organization.id,
+            "bar_transaction",
+            UseCaseKey.PERFORMANCE,
+        )
         transaction = Column(f"tags[{transaction_index}]")
         self.assertCountEqual(
             query.where,
@@ -1338,7 +1365,11 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         result = query.run_query("test_query")
         assert len(result["data"]) == 1
         assert result["data"][0] == {
-            "transaction": indexer.resolve(self.organization.id, "foo_transaction"),
+            "transaction": indexer.resolve(
+                self.organization.id,
+                "foo_transaction",
+                UseCaseKey.PERFORMANCE,
+            ),
             "p95_transaction_duration": 100,
             "p100_measurements_lcp": 1000,
         }
@@ -1376,7 +1407,11 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         result = query.run_query("test_query")
         assert len(result["data"]) == 1
         assert result["data"][0] == {
-            "transaction": indexer.resolve(self.organization.id, "foo_transaction"),
+            "transaction": indexer.resolve(
+                self.organization.id,
+                "foo_transaction",
+                UseCaseKey.PERFORMANCE,
+            ),
             "p95_transaction_duration": 100,
             "count_unique_user": 1,
         }
@@ -1406,13 +1441,21 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         result = query.run_query("test_query")
         assert len(result["data"]) == 2
         assert result["data"][0] == {
-            "transaction": indexer.resolve(self.organization.id, "foo_transaction"),
+            "transaction": indexer.resolve(
+                self.organization.id,
+                "foo_transaction",
+                UseCaseKey.PERFORMANCE,
+            ),
             "project": self.project.slug,
             "p95_transaction_duration": 100,
             "count_unique_user": 1,
         }
         assert result["data"][1] == {
-            "transaction": indexer.resolve(self.organization.id, "bar_transaction"),
+            "transaction": indexer.resolve(
+                self.organization.id,
+                "bar_transaction",
+                UseCaseKey.PERFORMANCE,
+            ),
             "project": self.project.slug,
             "p95_transaction_duration": 50,
             "count_unique_user": 2,
@@ -1444,13 +1487,21 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         result = query.run_query("test_query")
         assert len(result["data"]) == 2
         assert result["data"][0] == {
-            "transaction": indexer.resolve(self.organization.id, "bar_transaction"),
+            "transaction": indexer.resolve(
+                self.organization.id,
+                "bar_transaction",
+                UseCaseKey.PERFORMANCE,
+            ),
             "project": self.project.slug,
             "p95_transaction_duration": 50,
             "count_unique_user": 2,
         }
         assert result["data"][1] == {
-            "transaction": indexer.resolve(self.organization.id, "foo_transaction"),
+            "transaction": indexer.resolve(
+                self.organization.id,
+                "foo_transaction",
+                UseCaseKey.PERFORMANCE,
+            ),
             "project": self.project.slug,
             "p95_transaction_duration": 100,
             "count_unique_user": 1,
@@ -1490,12 +1541,20 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         result = query.run_query("test_query")
         assert len(result["data"]) == 2
         assert result["data"][0] == {
-            "transaction": indexer.resolve(self.organization.id, "foo_transaction"),
+            "transaction": indexer.resolve(
+                self.organization.id,
+                "foo_transaction",
+                UseCaseKey.PERFORMANCE,
+            ),
             "project": project_1.slug,
             "p95_transaction_duration": 100,
         }
         assert result["data"][1] == {
-            "transaction": indexer.resolve(self.organization.id, "foo_transaction"),
+            "transaction": indexer.resolve(
+                self.organization.id,
+                "foo_transaction",
+                UseCaseKey.PERFORMANCE,
+            ),
             "project": project_2.slug,
             "p95_transaction_duration": 100,
         }
@@ -1513,12 +1572,20 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         result = query.run_query("test_query")
         assert len(result["data"]) == 2
         assert result["data"][0] == {
-            "transaction": indexer.resolve(self.organization.id, "foo_transaction"),
+            "transaction": indexer.resolve(
+                self.organization.id,
+                "foo_transaction",
+                UseCaseKey.PERFORMANCE,
+            ),
             "project": project_2.slug,
             "p95_transaction_duration": 100,
         }
         assert result["data"][1] == {
-            "transaction": indexer.resolve(self.organization.id, "foo_transaction"),
+            "transaction": indexer.resolve(
+                self.organization.id,
+                "foo_transaction",
+                UseCaseKey.PERFORMANCE,
+            ),
             "project": project_1.slug,
             "p95_transaction_duration": 100,
         }
@@ -1699,19 +1766,31 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         result = query.run_query("test_query")
         assert len(result["data"]) == 3
         assert result["data"][0] == {
-            "transaction": indexer.resolve(self.organization.id, "bar_transaction"),
+            "transaction": indexer.resolve(
+                self.organization.id,
+                "bar_transaction",
+                UseCaseKey.PERFORMANCE,
+            ),
             "project": self.project.slug,
             "p95_transaction_duration": 50,
             "count_unique_user": 2,
         }
         assert result["data"][1] == {
-            "transaction": indexer.resolve(self.organization.id, "foo_transaction"),
+            "transaction": indexer.resolve(
+                self.organization.id,
+                "foo_transaction",
+                UseCaseKey.PERFORMANCE,
+            ),
             "project": self.project.slug,
             "p95_transaction_duration": 100,
             "count_unique_user": 1,
         }
         assert result["data"][2] == {
-            "transaction": indexer.resolve(self.organization.id, "baz_transaction"),
+            "transaction": indexer.resolve(
+                self.organization.id,
+                "baz_transaction",
+                UseCaseKey.PERFORMANCE,
+            ),
             "project": self.project.slug,
             "p95_transaction_duration": 200,
             "count_unique_user": 0,
@@ -1749,18 +1828,30 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         result = query.run_query("test_query")
         assert len(result["data"]) == 3
         assert result["data"][0] == {
-            "transaction": indexer.resolve(self.organization.id, "baz_transaction"),
+            "transaction": indexer.resolve(
+                self.organization.id,
+                "baz_transaction",
+                UseCaseKey.PERFORMANCE,
+            ),
             "project": self.project.slug,
             "p95_transaction_duration": 200,
         }
         assert result["data"][1] == {
-            "transaction": indexer.resolve(self.organization.id, "foo_transaction"),
+            "transaction": indexer.resolve(
+                self.organization.id,
+                "foo_transaction",
+                UseCaseKey.PERFORMANCE,
+            ),
             "project": self.project.slug,
             "p95_transaction_duration": 100,
             "count_unique_user": 1,
         }
         assert result["data"][2] == {
-            "transaction": indexer.resolve(self.organization.id, "bar_transaction"),
+            "transaction": indexer.resolve(
+                self.organization.id,
+                "bar_transaction",
+                UseCaseKey.PERFORMANCE,
+            ),
             "project": self.project.slug,
             "p95_transaction_duration": 50,
             "count_unique_user": 2,
@@ -1857,7 +1948,11 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         result = query.run_query("test_query")
         assert len(result["data"]) == 1
         assert result["data"][0] == {
-            "transaction": indexer.resolve(self.organization.id, "baz_transaction"),
+            "transaction": indexer.resolve(
+                self.organization.id,
+                "baz_transaction",
+                UseCaseKey.PERFORMANCE,
+            ),
             "project": self.project.slug,
             "p95_transaction_duration": 200,
             "count_unique_user": 2,
@@ -1907,7 +2002,11 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         result = query.run_query("test_query")
         assert len(result["data"]) == 1
         assert result["data"][0] == {
-            "transaction": indexer.resolve(self.organization.id, "baz_transaction"),
+            "transaction": indexer.resolve(
+                self.organization.id,
+                "baz_transaction",
+                UseCaseKey.PERFORMANCE,
+            ),
             "project": self.project.slug,
             "p95_transaction_duration": 200,
             "count_unique_user": 1,
@@ -2075,11 +2174,19 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         self.assertCountEqual(
             mock_indexer.mock_calls,
             [
-                mock.call(self.organization.id, "transaction"),
-                mock.call(self.organization.id, "foo_transaction"),
-                mock.call(self.organization.id, constants.METRICS_MAP["measurements.lcp"]),
-                mock.call(self.organization.id, "measurement_rating"),
-                mock.call(self.organization.id, "good"),
+                mock.call(self.organization.id, "transaction", use_case_id=UseCaseKey.PERFORMANCE),
+                mock.call(
+                    self.organization.id, "foo_transaction", use_case_id=UseCaseKey.PERFORMANCE
+                ),
+                mock.call(
+                    self.organization.id,
+                    constants.METRICS_MAP["measurements.lcp"],
+                    use_case_id=UseCaseKey.PERFORMANCE,
+                ),
+                mock.call(
+                    self.organization.id, "measurement_rating", use_case_id=UseCaseKey.PERFORMANCE
+                ),
+                mock.call(self.organization.id, "good", use_case_id=UseCaseKey.PERFORMANCE),
             ],
         )
 
@@ -2144,7 +2251,9 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             snql_query.groupby,
             [
                 project,
-                Column(f"tags[{indexer.resolve(self.organization.id, 'transaction')}]"),
+                Column(
+                    f"tags[{indexer.resolve(self.organization.id, 'transaction', UseCaseKey.PERFORMANCE,)}]"
+                ),
             ],
         )
 
@@ -2161,8 +2270,6 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         snql_query = query.get_snql_query()
         assert len(snql_query) == 1
         query = snql_query[0].query
-        del self.default_conditions[-1]
-        self.default_conditions.append(Condition(Column("granularity"), Op.EQ, 1))
         self.assertCountEqual(
             query.where,
             [
@@ -2182,8 +2289,6 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             query="",
             selected_columns=[],
         )
-        del self.default_conditions[-1]
-        self.default_conditions.append(Condition(Column("granularity"), Op.EQ, 1))
         self.assertCountEqual(query.where, self.default_conditions)
 
     def test_granularity(self):
@@ -2241,12 +2346,22 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             query="transaction:[foo_transaction, bar_transaction]",
             selected_columns=["p95(transaction.duration)"],
         )
-        transaction_index = indexer.resolve(self.organization.id, "transaction")
-        transaction_name1 = indexer.resolve(self.organization.id, "foo_transaction")
-        transaction_name2 = indexer.resolve(self.organization.id, "bar_transaction")
+        transaction_index = indexer.resolve(
+            self.organization.id,
+            "transaction",
+            UseCaseKey.PERFORMANCE,
+        )
+        transaction_name1 = indexer.resolve(
+            self.organization.id,
+            "foo_transaction",
+            UseCaseKey.PERFORMANCE,
+        )
+        transaction_name2 = indexer.resolve(
+            self.organization.id,
+            "bar_transaction",
+            UseCaseKey.PERFORMANCE,
+        )
         transaction = Column(f"tags[{transaction_index}]")
-        del self.default_conditions[-1]
-        self.default_conditions.append(Condition(Column("granularity"), Op.EQ, 1))
         self.assertCountEqual(
             query.where,
             [
@@ -2290,8 +2405,6 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             query=f"project:{self.project.slug}",
             selected_columns=["p95(transaction.duration)"],
         )
-        del self.default_conditions[-1]
-        self.default_conditions.append(Condition(Column("granularity"), Op.EQ, 1))
         self.assertCountEqual(
             query.where,
             [
