@@ -10,6 +10,7 @@ type LineStyle = 'dotted' | 'solid' | 'none';
 const Line = styled(Timeline.Col)<{lineStyle: LineStyle}>`
   border-right: 1px ${p => p.lineStyle} ${p => p.theme.gray100};
   text-align: right;
+  line-height: 14px;
 `;
 
 function Gridlines({

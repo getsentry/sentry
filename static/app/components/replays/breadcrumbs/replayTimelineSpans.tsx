@@ -74,6 +74,7 @@ const Spans = styled('ul')`
   padding: 0;
 
   height: ${space(1.5)};
+  margin-bottom: ${space(0.5)};
   position: relative;
   pointer-events: none;
 `;
@@ -81,7 +82,6 @@ const Spans = styled('ul')`
 const Span = styled('li')<{startPct: number; widthPct: number}>`
   display: block;
   position: absolute;
-  top: -3px;
   left: ${p => p.startPct * 100}%;
   min-width: 1px;
   width: ${p => p.widthPct * 100}%;

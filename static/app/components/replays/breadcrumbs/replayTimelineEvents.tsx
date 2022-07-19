@@ -34,17 +34,15 @@ function ReplayTimelineEvents({
   const eventsByCol = getCrumbsByColumn(startTimestamp, duration, crumbs, totalColumns);
 
   return (
-    <EventColumns className={className} totalColumns={totalColumns} remainder={0}>
+    <Timeline.Columns className={className} totalColumns={totalColumns} remainder={0}>
       {Array.from(eventsByCol.entries()).map(([column, breadcrumbs]) => (
         <EventColumn key={column} column={column}>
           <Event crumbs={breadcrumbs} startTimestamp={startTimestamp} />
         </EventColumn>
       ))}
-    </EventColumns>
+    </Timeline.Columns>
   );
 }
-
-const EventColumns = styled(Timeline.Columns)``;
 
 const EventColumn = styled(Timeline.Col)<{column: number}>`
   grid-column: ${p => Math.floor(p.column)};
@@ -101,12 +99,12 @@ function Event({
   const colors = [...new Set(crumbs.map(crumb => crumb.color))];
 
   // We just need to stack up to 3 times
-  const totalStackNumber = crumbs.length > 3 ? 3 : crumbs.length;
+  const totalStackNumber = Math.min(crumbs.length, 3);
 
   return (
     <IconPosition>
       <IconNodeTooltip title={title} overlayStyle={overlayStyle} isHoverable>
-        {Array.from({...crumbs, length: totalStackNumber}).map((crumb, index) => (
+        {crumbs.slice(0, totalStackNumber).map((crumb, index) => (
           <IconNode
             color={colors[index] || crumb.color}
             key={crumb.id}
@@ -117,6 +115,23 @@ function Event({
     </IconPosition>
   );
 }
+
+const getNodeDimensions = ({
+  stack,
+}: {
+  stack: {
+    index: number;
+    totalStackNumber: number;
+  };
+}) => {
+  const {totalStackNumber, index} = stack;
+  const multiplier = totalStackNumber - index;
+  const size = (multiplier + 1) * 4;
+  return `
+    width: ${size}px;
+    height: ${size}px;
+  `;
+};
 
 const IconNodeTooltip = styled(Tooltip)`
   display: grid;
@@ -141,39 +156,7 @@ const IconNode = styled('div')<{
 }>`
   grid-column: 1;
   grid-row: 1;
-
-  ${({stack}) => {
-    const {totalStackNumber, index} = stack;
-
-    // We take different dimensions depending on how many events there are and in which position the event is
-    if (index === 0) {
-      if (totalStackNumber > 2) {
-        return `
-          width: 16px;
-          height: 16px;
-        `;
-      }
-
-      if (totalStackNumber === 2) {
-        return `
-          width: 12px;
-          height: 12px;
-        `;
-      }
-    }
-
-    if (index === 1 && totalStackNumber > 2) {
-      return `
-        width: 12px;
-        height: 12px;
-      `;
-    }
-
-    return `
-      width: 8px;
-      height: 8px;
-    `;
-  }}
+  ${getNodeDimensions}
   border-radius: 50%;
   color: ${p => p.theme.white};
   background: ${p => p.theme[p.color] ?? p.color};
