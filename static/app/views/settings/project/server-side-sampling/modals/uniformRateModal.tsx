@@ -297,9 +297,9 @@ function UniformRateModal({
                   <StyledNumberField
                     name="recommended-client-sampling"
                     placeholder="%"
-                    value={clientInput}
+                    value={clientInput ?? null}
                     onChange={value => {
-                      setClientInput(value);
+                      setClientInput(value === '' ? undefined : value);
                     }}
                     onFocus={() => setSelectedStrategy(Strategy.RECOMMENDED)}
                     stacked
@@ -311,9 +311,9 @@ function UniformRateModal({
                   <StyledNumberField
                     name="recommended-server-sampling"
                     placeholder="%"
-                    value={serverInput}
+                    value={serverInput ?? null}
                     onChange={value => {
-                      setServerInput(value);
+                      setServerInput(value === '' ? undefined : value);
                     }}
                     onFocus={() => setSelectedStrategy(Strategy.RECOMMENDED)}
                     stacked
