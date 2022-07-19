@@ -9,8 +9,10 @@ from sentry.integrations.msteams.card_builder import (
     Action,
     AdaptiveCard,
     Block,
+    ColumnBlock,
     ColumnSetBlock,
     ContainerBlock,
+    ImageBlock,
     TextBlock,
 )
 from sentry.integrations.msteams.utils import ACTION_TYPE
@@ -87,18 +89,29 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
             horizontalAlignment="Center",
         )
 
-    def create_footer_block(self) -> ColumnSetBlock:
-        project = Project.objects.get_from_cache(id=self.group.project_id)
-        footer = create_text_block(
-            build_footer(self.group, project, self.rules, URL_FORMAT_STR),
+    def create_footer_text_block(self, footer_text: str) -> TextBlock:
+        return create_text_block(
+            footer_text,
             size=TextSize.SMALL,
             weight=TextWeight.LIGHTER,
             wrap=False,
         )
 
+    def create_footer_column_block(self, footer: TextBlock) -> ColumnBlock:
+        return create_column_block(footer, isSubtle=True, spacing="none")
+
+    def create_footer_logo_block(self) -> ImageBlock:
+        return create_logo_block(height="20px")
+
+    def create_footer_block(self) -> ColumnSetBlock:
+        project = Project.objects.get_from_cache(id=self.group.project_id)
+        footer = self.create_footer_text_block(
+            build_footer(self.group, project, self.rules, URL_FORMAT_STR),
+        )
+
         return create_column_set_block(
-            create_logo_block(height="20px"),
-            create_column_block(footer, isSubtle=True, spacing="none"),
+            self.create_footer_logo_block(),
+            self.create_footer_column_block(footer),
             self.create_date_block(),
         )
 
@@ -239,17 +252,12 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
             futher reveal cards with dropdowns for selecting options.
         """
         # Explicit typing to satisfy mypy.
-        fields: List[Block] = []
-
-        fields.append(self.create_issue_description_block())
-
-        fields.append(self.create_footer_block())
-
-        assignee_block = self.create_assignee_block()
-        if assignee_block:
-            fields.append(assignee_block)
-
-        fields.append(self.get_issue_actions())
+        fields: List[Block | None] = [
+            self.create_issue_description_block(),
+            self.create_footer_block(),
+            self.create_assignee_block(),
+            self.get_issue_actions(),
+        ]
 
         return super().build(
             title=self.create_issue_title_block(),
