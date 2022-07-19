@@ -299,7 +299,7 @@ describe('ThreadsV2', function () {
 
         userEvent.click(screen.getByRole('button', {name: 'Options'}));
 
-        expect(screen.getByText('Display')).toBeInTheDocument();
+        expect(await screen.findByText('Display')).toBeInTheDocument();
 
         Object.entries(displayOptions).forEach(([key, value]) => {
           if (key === 'minified') {
@@ -933,7 +933,7 @@ describe('ThreadsV2', function () {
 
         userEvent.click(screen.getByRole('button', {name: 'Options'}));
 
-        expect(screen.getByText('Display')).toBeInTheDocument();
+        expect(await screen.findByText('Display')).toBeInTheDocument();
 
         Object.values(displayOptions).forEach(value => {
           expect(screen.getByText(value)).toBeInTheDocument();
