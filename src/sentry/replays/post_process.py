@@ -1,7 +1,9 @@
 from typing import Any, Dict, List, Optional
 
+REPLAYS_RECORDING_SEQUENCE_KEY = "p:{project_id}:r:{replay_id}:seq:{sequence_id}"
 
-def process_raw_response(response: Dict[str, Any], fields: List[str]) -> Dict[str, Any]:
+
+def process_raw_response(response: List[Dict[str, Any]], fields: List[str]) -> Dict[str, Any]:
     """Process the response further into the expected output."""
     make_tags_object(response)
     add_trace_id_computed_fields(response)  # 2 queries
@@ -11,11 +13,12 @@ def process_raw_response(response: Dict[str, Any], fields: List[str]) -> Dict[st
 
 
 def restrict_response_by_fields(
-    fields: Optional[List[str]], payload: Dict[str, Any]
-) -> Dict[str, Any]:
+    fields: Optional[List[str]],
+    payload: List[Dict[str, Any]],
+) -> List[Dict[str, Any]]:
     """Return only the fields requested by the client."""
     if fields:
-        return {field: payload[field] for field in fields}
+        return [{field: item[field] for field in fields} for item in payload]
     else:
         return payload
 
@@ -26,6 +29,33 @@ def make_tags_object(payload: List[Dict[str, Any]]) -> None:
         keys = item.pop("tags.key")
         values = item.pop("tags.value")
         item["tags"] = dict(zip(keys, values))
+
+
+def make_sequence_urls(payload: List[Dict[str, Any]], project_id: str) -> None:
+    """Append sequence_urls field to response payload."""
+    for item in payload:
+        item["sequence_urls"] = _make_presigned_urls(
+            project_id=project_id,
+            replay_id=item["replay_id"],
+            max_sequence_id=item.pop("max_sequence_id"),
+        )
+
+
+def _make_presigned_urls(
+    project_id: str,
+    replay_id: str,
+    max_sequence_id: int,
+) -> List[str]:
+    """Return a presigned-url containing the replay's recording content."""
+    # TODO!
+    return [
+        REPLAYS_RECORDING_SEQUENCE_KEY.format(
+            project_id=project_id,
+            replay_id=replay_id,
+            sequence_id=max_sequence_id,
+        )
+        for i in range(0, max_sequence_id + 1)
+    ]
 
 
 def add_trace_id_computed_fields(payload: List[Dict[str, Any]]) -> None:
