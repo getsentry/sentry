@@ -144,7 +144,7 @@ export function getDurationUnit(
     durationUnit = categorizeDuration((range.max - range.min) / 5); // avg of 5 yAxis ticks per chart
 
     const numOfDigits = (avg / durationUnit).toFixed(0).length;
-    if (numOfDigits > 5) {
+    if (numOfDigits > 6) {
       durationUnit = categorizeDuration(avg);
     }
   }
