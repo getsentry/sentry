@@ -133,7 +133,7 @@ def resolve_tags(
             isinstance(input_.lhs, Function)
             and input_.lhs.function == "ifNull"
             and isinstance(input_.lhs.parameters[0], Column)
-            and input_.lhs.parameters[0].name == "tags[project]"
+            and input_.lhs.parameters[0].name in ("tags[project]", "tags_raw[project]")
         ):
             # Special condition as when we send a `project:<slug>` query, discover converter
             # converts it into a tags[project]:[<slug>] query, so we want to further process
@@ -321,7 +321,7 @@ def get_date_range(params: Mapping) -> Tuple[datetime, datetime, int]:
 
 
 def parse_tag(use_case_id: UseCaseKey, tag_string: str) -> str:
-    tag_key = int(tag_string.replace("tags[", "").replace("]", ""))
+    tag_key = int(tag_string.replace("tags_raw[", "").replace("tags[", "").replace("]", ""))
     return reverse_resolve(use_case_id, tag_key)
 
 
@@ -343,7 +343,7 @@ def translate_meta_results(
 
         # Column name could be either a mri, ["bucketed_time"] or a tag or a dataset col like
         # "project_id" or "metric_id"
-        is_tag = column_name.startswith("tags[")
+        is_tag = column_name.startswith(("tags[", "tags_raw["))
         is_time_col = column_name in [TS_COL_GROUP]
         is_dataset_col = column_name in DATASET_COLUMNS
 

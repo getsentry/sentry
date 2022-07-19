@@ -1667,7 +1667,12 @@ class MetricsQueryBuilder(QueryBuilder):
         tag_id = self.resolve_metric_index(col)
         if tag_id is None:
             raise InvalidSearchQuery(f"Unknown field: {col}")
-        return f"tags[{tag_id}]"
+        if self.is_performance and options.get(
+            "sentry-metrics.performance.tags-values-are-strings"
+        ):
+            return f"tags_raw[{tag_id}]"
+        else:
+            return f"tags[{tag_id}]"
 
     def column(self, name: str) -> Column:
         """Given an unresolved sentry name and return a snql column.

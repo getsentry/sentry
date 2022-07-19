@@ -69,12 +69,21 @@ def resolve(
 
 def resolve_tag_key(use_case_id: UseCaseKey, org_id: int, string: str) -> str:
     resolved = resolve(use_case_id, org_id, string)
-    return f"tags[{resolved}]"
+    assert use_case_id in (UseCaseKey.PERFORMANCE, UseCaseKey.RELEASE_HEALTH)
+    if use_case_id == UseCaseKey.PERFORMANCE and options.get(
+        "sentry-metrics.performance.tags-values-are-strings"
+    ):
+        return f"tags_raw[{resolved}]"
+    else:
+        return f"tags[{resolved}]"
 
 
 def resolve_tag_value(use_case_id: UseCaseKey, org_id: int, string: str) -> Union[str, int]:
     assert isinstance(string, str)
-    if options.get("sentry-metrics.performance.tags-values-are-strings"):
+    assert use_case_id in (UseCaseKey.PERFORMANCE, UseCaseKey.RELEASE_HEALTH)
+    if use_case_id == UseCaseKey.PERFORMANCE and options.get(
+        "sentry-metrics.performance.tags-values-are-strings"
+    ):
         return string
     return resolve_weak(use_case_id, org_id, string)
 

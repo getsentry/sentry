@@ -58,10 +58,13 @@ def control_metrics_access(monkeypatch, request, set_sentry_option):
 
         def new_build_results(*args, **kwargs):
             query = args[0][0][0].query
+            is_performance_metrics = query.match.name.startswith("generic_metrics")
             is_metrics = "metrics" in query.match.name
 
-            if is_metrics:
+            if is_performance_metrics:
                 _validate_query(query, tag_values_are_strings)
+            elif is_metrics:
+                _validate_query(query, False)
 
             return old_build_results(*args, **kwargs)
 
@@ -70,9 +73,14 @@ def control_metrics_access(monkeypatch, request, set_sentry_option):
         old_create_snql_in_snuba = tasks._create_snql_in_snuba
 
         def new_create_snql_in_snuba(subscription, snuba_query, snql_query, entity_subscription):
-            is_metrics = "metrics" in snql_query.query.match.name
-            if is_metrics:
-                _validate_query(snql_query.query, tag_values_are_strings)
+            query = snql_query.query
+            is_performance_metrics = query.match.name.startswith("generic_metrics")
+            is_metrics = "metrics" in query.match.name
+
+            if is_performance_metrics:
+                _validate_query(query, tag_values_are_strings)
+            elif is_metrics:
+                _validate_query(query, False)
 
             return old_create_snql_in_snuba(
                 subscription, snuba_query, snql_query, entity_subscription
@@ -103,12 +111,15 @@ def control_metrics_access(monkeypatch, request, set_sentry_option):
 
 def _validate_query(query, tag_values_are_strings):
     def _walk(node):
-        if dataclasses.is_dataclass(node):
+        if isinstance(node, (tuple, list)):
+            for subnode in node:
+                _walk(subnode)
+        elif dataclasses.is_dataclass(node):
             if tag_values_are_strings and getattr(node, "subscriptable", None) == "tags":
                 raise ValueError(
                     "this node refers to tags[], even though tag values are strings in this test mode"
                 )
-            if not tag_values_are_strings and getattr(node, "subscriptable", None) == "raw_tags":
+            if not tag_values_are_strings and getattr(node, "subscriptable", None) == "tags_raw":
                 raise ValueError(
                     "this node refers to tags_raw[], even though tag values are not strings in this test mode"
                 )
