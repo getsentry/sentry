@@ -1,4 +1,4 @@
-import {LegacyRef, ReactChild} from 'react';
+import {CSSProperties, LegacyRef, ReactChild} from 'react';
 import styled from '@emotion/styled';
 
 type Props = {
@@ -6,14 +6,24 @@ type Props = {
   bodyRef?: LegacyRef<HTMLDivElement> | undefined;
   bottom?: ReactChild;
   className?: string;
+  overflowBodyStyles?: CSSProperties;
   title?: ReactChild;
 };
 
-function FluidPanel({className, children, bottom, title, bodyRef}: Props) {
+function FluidPanel({
+  className,
+  children,
+  bottom,
+  title,
+  bodyRef,
+  overflowBodyStyles,
+}: Props) {
   return (
     <FluidContainer className={className}>
       {title}
-      <OverflowBody ref={bodyRef}>{children}</OverflowBody>
+      <OverflowBody style={overflowBodyStyles} ref={bodyRef}>
+        {children}
+      </OverflowBody>
       {bottom}
     </FluidContainer>
   );

@@ -129,6 +129,9 @@ function Breadcrumbs({}: Props) {
       <FluidPanel
         bodyRef={crumbListContainerRef}
         title={<PanelHeader>{t('Breadcrumbs')}</PanelHeader>}
+        overflowBodyStyles={{
+          padding: space(0.5),
+        }}
       >
         {content}
       </FluidPanel>
