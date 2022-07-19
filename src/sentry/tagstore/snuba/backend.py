@@ -293,7 +293,7 @@ class SnubaTagStorage(TagStorage):
         results = set()
 
         for key, data in result.items():
-            # Ignore key (skip interation) if it's in denylist
+            # Ignore key (skip interaction) if it's in denylist
             if denylist is not None and key in denylist:
                 continue
 
@@ -1033,7 +1033,7 @@ class SnubaTagStorage(TagStorage):
             is_user_alias = include_transactions and key == USER_DISPLAY_ALIAS
             if is_user_alias:
                 # user.alias is a pseudo column in discover. It is computed by coalescing
-                # together multiple user attributes. Here we get the coalese function used,
+                # together multiple user attributes. Here we get the coalesce function used,
                 # and resolve it to the corresponding snuba query
                 resolver = snuba.resolve_column(dataset)
                 snuba_name = FIELD_ALIASES[USER_DISPLAY_ALIAS].get_field()
