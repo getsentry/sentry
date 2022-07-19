@@ -1,4 +1,5 @@
 import {PureComponent} from 'react';
+// eslint-disable-next-line no-restricted-imports
 import {withRouter, WithRouterProps} from 'react-router';
 import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -33,6 +34,7 @@ import getDynamicText from 'sentry/utils/getDynamicText';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 
 import SelectorItems from './selectorItems';
+import timeRangeAutoCompleteFilter from './timeRangeAutoCompleteFilter';
 
 const DateRangeHook = HookOrDefault({
   hookName: 'component:header-date-range',
@@ -131,6 +133,11 @@ type Props = WithRouterProps & {
   detached?: boolean;
 
   /**
+   * Disable the dropdown
+   */
+  disabled?: boolean;
+
+  /**
    * Small info icon with tooltip hint text
    */
   hint?: string;
@@ -164,6 +171,7 @@ type Props = WithRouterProps & {
 type State = {
   hasChanges: boolean;
   hasDateRangeErrors: boolean;
+  inputValue: string;
   isOpen: boolean;
   relative: string | null;
   end?: Date;
@@ -189,6 +197,7 @@ class TimeRangeSelector extends PureComponent<Props, State> {
       // if utc is not null and not undefined, then use value of `props.utc` (it can be false)
       // otherwise if no value is supplied, the default should be the user's timezone preference
       utc: defined(props.utc) ? props.utc : getUserTimezone() === 'UTC',
+      inputValue: '',
       isOpen: false,
       hasChanges: false,
       hasDateRangeErrors: false,
@@ -232,7 +241,7 @@ class TimeRangeSelector extends PureComponent<Props, State> {
       // Only call update if we close when absolute date is selected
       this.handleUpdate({relative, start, end, utc});
     } else {
-      this.setState({isOpen: false});
+      this.setState({isOpen: false, inputValue: ''});
     }
   };
 
@@ -242,6 +251,7 @@ class TimeRangeSelector extends PureComponent<Props, State> {
     this.setState(
       {
         isOpen: false,
+        inputValue: '',
         hasChanges: false,
       },
       () => {
@@ -381,9 +391,16 @@ class TimeRangeSelector extends PureComponent<Props, State> {
   };
 
   handleOpen = () => {
+    if (this.props.disabled) {
+      return;
+    }
     this.setState({isOpen: true});
     // Start loading react-date-picker
     import('../timeRangeSelector/dateRange/index');
+  };
+
+  onInputValueChange = inputValue => {
+    this.setState({inputValue});
   };
 
   render() {
@@ -398,6 +415,7 @@ class TimeRangeSelector extends PureComponent<Props, State> {
       maxPickableDays,
       customDropdownButton,
       detached,
+      disabled,
       alignDropdown,
       showPin,
     } = this.props;
@@ -429,8 +447,11 @@ class TimeRangeSelector extends PureComponent<Props, State> {
             {({css}) => (
               <StyledDropdownAutoComplete
                 allowActorToggle
+                autoCompleteFilter={timeRangeAutoCompleteFilter}
                 alignMenu={alignDropdown ?? (isAbsoluteSelected ? 'right' : 'left')}
                 isOpen={this.state.isOpen}
+                inputValue={this.state.inputValue}
+                onInputValueChange={this.onInputValueChange}
                 onOpen={this.handleOpen}
                 onClose={this.handleCloseMenu}
                 hideInput={!shouldShowRelative}
@@ -438,8 +459,9 @@ class TimeRangeSelector extends PureComponent<Props, State> {
                 blendCorner={false}
                 maxHeight={400}
                 detached={detached}
+                disabled={disabled}
                 items={items}
-                searchPlaceholder={t('Filter time range')}
+                searchPlaceholder={t('Provide a time range')}
                 rootClassName={css`
                   position: relative;
                   display: flex;

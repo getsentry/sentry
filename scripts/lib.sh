@@ -91,7 +91,8 @@ sudo-askpass() {
 }
 
 upgrade-pip() {
-    pip install --upgrade 'pip==21.2' 'wheel==0.36.2'
+    grep -E '^(pip|setuptools|wheel)==' requirements-dev-frozen.txt |
+        xargs pip install --upgrade
 }
 
 install-py-dev() {

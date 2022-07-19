@@ -74,6 +74,7 @@ from sentry.search.events.types import (
     WhereType,
 )
 from sentry.sentry_metrics import indexer
+from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.snuba.metrics.fields import histogram as metrics_histogram
 from sentry.snuba.metrics.utils import MetricMeta
 from sentry.utils.dates import outside_retention_with_modified_start, to_timestamp
@@ -232,7 +233,7 @@ class QueryBuilder:
             self.config = DiscoverDatasetConfig(self)
         elif self.dataset == Dataset.Sessions:
             self.config = SessionsDatasetConfig(self)
-        elif self.dataset == Dataset.Metrics:
+        elif self.dataset in [Dataset.Metrics, Dataset.PerformanceMetrics]:
             self.config = MetricsDatasetConfig(self)
         else:
             raise NotImplementedError(f"Data Set configuration not found for {self.dataset}.")
@@ -1586,6 +1587,9 @@ class MetricsQueryBuilder(QueryBuilder):
     def __init__(
         self,
         *args: Any,
+        # Datasets are currently a bit confusing; Dataset.Metrics is actually release health/sessions
+        # Dataset.PerformanceMetrics is MEP. TODO: rename Dataset.Metrics to Dataset.ReleaseMetrics or similar
+        dataset: Optional[Dataset] = None,
         allow_metric_aggregates: Optional[bool] = False,
         dry_run: Optional[bool] = False,
         **kwargs: Any,
@@ -1600,9 +1604,11 @@ class MetricsQueryBuilder(QueryBuilder):
         # Don't do any of the actions that would impact performance in anyway
         # Skips all indexer checks, and won't interact with clickhouse
         self.dry_run = dry_run
+        assert dataset is None or dataset in [Dataset.PerformanceMetrics, Dataset.Metrics]
         super().__init__(
-            # Dataset is always Metrics
-            Dataset.Metrics,
+            # TODO: defaulting to Metrics for now so I don't have to update incidents tests. Should be
+            # PerformanceMetrics
+            Dataset.Metrics if dataset is None else dataset,
             *args,
             **kwargs,
         )
@@ -1610,6 +1616,10 @@ class MetricsQueryBuilder(QueryBuilder):
             self.organization_id = self.params["organization_id"]
         else:
             raise InvalidSearchQuery("Organization id required to create a metrics query")
+
+    @property
+    def is_performance(self) -> bool:
+        return self.dataset is Dataset.PerformanceMetrics
 
     def resolve_query(
         self,
@@ -1651,8 +1661,8 @@ class MetricsQueryBuilder(QueryBuilder):
             tag_match = TAG_KEY_RE.search(col)
             col = tag_match.group("tag") if tag_match else col
 
-        if col in DATASETS[Dataset.Metrics]:
-            return str(DATASETS[Dataset.Metrics][col])
+        if col in DATASETS[self.dataset]:
+            return str(DATASETS[self.dataset][col])
         tag_id = self.resolve_metric_index(col)
         if tag_id is None:
             raise InvalidSearchQuery(f"Unknown field: {col}")
@@ -1752,8 +1762,6 @@ class MetricsQueryBuilder(QueryBuilder):
         ):
             self.start = self.start.replace(minute=0, second=0, microsecond=0)
             granularity = 3600
-        # We're going from one random minute to another, we could use the 10s bucket, but no reason for that precision
-        # here
         else:
             granularity = 60
         return Granularity(granularity)
@@ -1824,7 +1832,11 @@ class MetricsQueryBuilder(QueryBuilder):
     def resolve_metric_index(self, value: str) -> Optional[int]:
         """Layer on top of the metric indexer so we'll only hit it at most once per value"""
         if value not in self._indexer_cache:
-            result = indexer.resolve(self.organization_id, value)
+            if self.is_performance:
+                use_case_id = UseCaseKey.PERFORMANCE
+            else:
+                use_case_id = UseCaseKey.RELEASE_HEALTH
+            result = indexer.resolve(self.organization_id, value, use_case_id=use_case_id)
             self._indexer_cache[value] = result
 
         return self._indexer_cache[value]
@@ -1875,6 +1887,31 @@ class MetricsQueryBuilder(QueryBuilder):
 
         return Condition(lhs, Op(search_filter.operator), value)
 
+    def _environment_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+        """All of this is copied from the parent class except for the addition of `resolve_value`
+
+        Going to live with the duplicated code since this will go away anyways once we move to the metric layer
+        """
+        # conditions added to env_conditions can be OR'ed
+        env_conditions = []
+        value = search_filter.value.value
+        values_set = set(value if isinstance(value, (list, tuple)) else [value])
+        # sorted for consistency
+        values = sorted(
+            self.config.resolve_value(f"{value}") if value else 0 for value in values_set
+        )
+        environment = self.column("environment")
+        if len(values) == 1:
+            operator = Op.EQ if search_filter.operator in EQUALITY_OPERATORS else Op.NEQ
+            env_conditions.append(Condition(environment, operator, values.pop()))
+        elif values:
+            operator = Op.IN if search_filter.operator in EQUALITY_OPERATORS else Op.NOT_IN
+            env_conditions.append(Condition(environment, operator, values))
+        if len(env_conditions) > 1:
+            return Or(conditions=env_conditions)
+        else:
+            return env_conditions[0]
+
     def get_snql_query(self) -> Request:
         self.validate_having_clause()
         self.validate_orderby_clause()
@@ -1891,8 +1928,7 @@ class MetricsQueryBuilder(QueryBuilder):
                 )
 
         return Request(
-            # TODO: Actually introduce this as a dataset
-            dataset="generic_metrics" if self.dataset is Dataset.Metrics else self.dataset.value,
+            dataset=self.dataset.value,
             app_id="default",
             query=Query(
                 match=primary_framework.entity,
@@ -1915,24 +1951,25 @@ class MetricsQueryBuilder(QueryBuilder):
         )
 
     def _create_query_framework(self) -> Tuple[str, Dict[str, QueryFramework]]:
+        prefix = "generic_" if self.dataset is Dataset.PerformanceMetrics else ""
         query_framework: Dict[str, QueryFramework] = {
             "distribution": QueryFramework(
                 orderby=[],
                 having=[],
                 functions=self.distributions,
-                entity=Entity("metrics_distributions", sample=self.sample_rate),
+                entity=Entity(f"{prefix}metrics_distributions", sample=self.sample_rate),
             ),
             "counter": QueryFramework(
                 orderby=[],
                 having=[],
                 functions=self.counters,
-                entity=Entity("metrics_counters", sample=self.sample_rate),
+                entity=Entity(f"{prefix}metrics_counters", sample=self.sample_rate),
             ),
             "set": QueryFramework(
                 orderby=[],
                 having=[],
                 functions=self.sets,
-                entity=Entity("metrics_sets", sample=self.sample_rate),
+                entity=Entity(f"{prefix}metrics_sets", sample=self.sample_rate),
             ),
         }
         primary = None
@@ -2087,10 +2124,7 @@ class MetricsQueryBuilder(QueryBuilder):
                     granularity=self.granularity,
                 )
                 request = Request(
-                    # TODO: Actually introduce this as a dataset
-                    dataset="generic_metrics"
-                    if self.dataset is Dataset.Metrics
-                    else self.dataset.value,
+                    dataset=self.dataset.value,
                     app_id="default",
                     query=query,
                     flags=Flags(turbo=self.turbo),
@@ -2206,15 +2240,18 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
         self,
         params: ParamsType,
         interval: int,
+        dataset: Optional[Dataset] = None,
         query: Optional[str] = None,
         selected_columns: Optional[List[str]] = None,
         allow_metric_aggregates: Optional[bool] = False,
         functions_acl: Optional[List[str]] = None,
         dry_run: Optional[bool] = False,
+        limit: Optional[int] = 10000,
     ):
         super().__init__(
             params=params,
             query=query,
+            dataset=dataset,
             selected_columns=selected_columns,
             allow_metric_aggregates=allow_metric_aggregates,
             auto_fields=False,
@@ -2228,6 +2265,7 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
                     break
 
         self.time_column = self.resolve_time_column(interval)
+        self.limit = None if limit is None else Limit(limit)
 
         # This is a timeseries, the groupby will always be time
         self.groupby = [self.time_column]
@@ -2283,9 +2321,7 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
             if len(query_details.functions) > 0:
                 queries.append(
                     Request(
-                        dataset="generic_metrics"
-                        if self.dataset is Dataset.Metrics
-                        else self.dataset.value,
+                        dataset=self.dataset.value,
                         app_id="default",
                         query=Query(
                             match=query_details.entity,
