@@ -5,10 +5,7 @@ import {Location} from 'history';
 import Feature from 'sentry/components/acl/feature';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import ButtonBar from 'sentry/components/buttonBar';
-import {
-  CreateAlertFromViewButton,
-  CreateAlertFromViewButtonProps,
-} from 'sentry/components/createAlertButton';
+import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
 import FeatureBadge from 'sentry/components/featureBadge';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -68,9 +65,6 @@ const TAB_ANALYTICS: Partial<Record<Tab, AnalyticInfo>> = {
 type Props = {
   currentTab: Tab;
   eventView: EventView;
-  handleIncompatibleQuery: React.ComponentProps<
-    typeof CreateAlertFromViewButton
-  >['onIncompatibleQuery'];
   hasWebVitals: 'maybe' | 'yes' | 'no';
   location: Location;
   organization: Organization;
@@ -81,18 +75,6 @@ type Props = {
 };
 
 class TransactionHeader extends Component<Props> {
-  trackAlertClick(errors?: Record<string, boolean>) {
-    const {organization} = this.props;
-    trackAnalyticsEvent({
-      eventKey: 'performance_views.summary.create_alert_clicked',
-      eventName: 'Performance Views: Create alert clicked',
-      organization_id: organization.id,
-      status: errors ? 'error' : 'success',
-      errors,
-      url: window.location.href,
-    });
-  }
-
   trackTabClick = (tab: Tab) => () => {
     const analyticKeys = TAB_ANALYTICS[tab];
     if (!analyticKeys) {
@@ -108,14 +90,12 @@ class TransactionHeader extends Component<Props> {
     });
   };
 
-  handleIncompatibleQuery: CreateAlertFromViewButtonProps['onIncompatibleQuery'] =
-    errors => {
-      this.trackAlertClick(errors);
-      this.props.handleIncompatibleQuery?.(errors);
-    };
-
   handleCreateAlertSuccess = () => {
-    this.trackAlertClick();
+    trackAnalyticsEvent({
+      eventKey: 'performance_views.summary.create_alert_clicked',
+      eventName: 'Performance Views: Create alert clicked',
+      organization_id: this.props.organization.id,
+    });
   };
 
   renderCreateAlertButton() {
@@ -126,8 +106,7 @@ class TransactionHeader extends Component<Props> {
         eventView={eventView}
         organization={organization}
         projects={projects}
-        onIncompatibleQuery={this.handleIncompatibleQuery}
-        onSuccess={this.handleCreateAlertSuccess}
+        onClick={this.handleCreateAlertSuccess}
         referrer="performance"
         useAlertWizardV3={organization.features.includes('alert-wizard-v3')}
         alertType="trans_duration"

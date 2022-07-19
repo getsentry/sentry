@@ -11,10 +11,7 @@ import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Banner from 'sentry/components/banner';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import {
-  CreateAlertFromViewButton,
-  CreateAlertFromViewButtonProps,
-} from 'sentry/components/createAlertButton';
+import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
 import DropdownControl from 'sentry/components/dropdownControl';
 import InputControl from 'sentry/components/forms/controls/input';
 import {Hovercard} from 'sentry/components/hovercard';
@@ -47,7 +44,6 @@ type Props = DefaultProps & {
    * passed down only because it is needed for navigation.
    */
   location: Location;
-  onIncompatibleAlertQuery: CreateAlertFromViewButtonProps['onIncompatibleQuery'];
   organization: Organization;
   projects: Project[];
   router: InjectedRouter;
@@ -321,7 +317,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
   }
 
   renderButtonCreateAlert() {
-    const {eventView, organization, projects, onIncompatibleAlertQuery} = this.props;
+    const {eventView, organization, projects} = this.props;
 
     return (
       <GuideAnchor target="create_alert_from_discover">
@@ -329,11 +325,11 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
           eventView={eventView}
           organization={organization}
           projects={projects}
-          onIncompatibleQuery={onIncompatibleAlertQuery}
-          onSuccess={this.handleCreateAlertSuccess}
+          onClick={this.handleCreateAlertSuccess}
           referrer="discover"
           aria-label={t('Create Alert')}
           data-test-id="discover2-create-from-discover"
+          useAlertWizardV3={organization.features.includes('alert-wizard-v3')}
         />
       </GuideAnchor>
     );

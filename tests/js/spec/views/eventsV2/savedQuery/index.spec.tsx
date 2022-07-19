@@ -41,7 +41,6 @@ function mount(
       disabled={disabled}
       updateCallback={() => {}}
       yAxis={yAxis}
-      onIncompatibleAlertQuery={() => undefined}
       router={router}
       savedQueryLoading={false}
     />
@@ -65,7 +64,6 @@ function generateWrappedComponent(
       disabled={disabled}
       updateCallback={() => {}}
       yAxis={yAxis}
-      onIncompatibleAlertQuery={() => undefined}
       router={router}
       savedQueryLoading={false}
     />

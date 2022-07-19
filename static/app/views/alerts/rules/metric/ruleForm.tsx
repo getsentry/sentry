@@ -27,8 +27,10 @@ import {Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {logExperiment, metric} from 'sentry/utils/analytics';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import type EventView from 'sentry/utils/discover/eventView';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import withProjects from 'sentry/utils/withProjects';
+import {IncompatibleAlertQuery} from 'sentry/views/alerts/rules/metric/incompatibleAlertQuery';
 import RuleNameOwnerForm from 'sentry/views/alerts/rules/metric/ruleNameOwnerForm';
 import ThresholdTypeForm from 'sentry/views/alerts/rules/metric/thresholdTypeForm';
 import Triggers from 'sentry/views/alerts/rules/metric/triggers';
@@ -78,6 +80,7 @@ type Props = {
   rule: MetricRule;
   userTeamIds: string[];
   disableProjectSelector?: boolean;
+  eventView?: EventView;
   isCustomMetric?: boolean;
   isDuplicateRule?: boolean;
   ruleId?: string;
@@ -723,8 +726,15 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
   }
 
   renderBody() {
-    const {organization, ruleId, rule, onSubmitSuccess, router, disableProjectSelector} =
-      this.props;
+    const {
+      organization,
+      ruleId,
+      rule,
+      onSubmitSuccess,
+      router,
+      disableProjectSelector,
+      eventView,
+    } = this.props;
     const {
       name,
       query,
@@ -859,6 +869,12 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
                 </Side>
               )}
               <Main fullWidth={!showPresetSidebar}>
+                {eventView && (
+                  <IncompatibleAlertQuery
+                    orgSlug={organization.slug}
+                    eventView={eventView}
+                  />
+                )}
                 <Form
                   model={this.form}
                   apiMethod={ruleId ? 'PUT' : 'POST'}

@@ -20,7 +20,7 @@ function renderComponent(organization, eventView) {
       eventView={eventView}
       projects={[TestStubs.Project()]}
       onIncompatibleQuery={onIncompatibleQueryMock}
-      onSuccess={onSuccessMock}
+      onClick={onSuccessMock}
     />,
     {context}
   );

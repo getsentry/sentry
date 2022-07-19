@@ -5,7 +5,6 @@ import {Location} from 'history';
 
 import {fetchSavedQuery} from 'sentry/actionCreators/discoverSavedQueries';
 import {Client} from 'sentry/api';
-import type {CreateAlertFromViewButtonProps} from 'sentry/components/createAlertButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
@@ -23,7 +22,6 @@ type Props = {
   errorCode: number;
   eventView: EventView;
   location: Location;
-  onIncompatibleAlertQuery: CreateAlertFromViewButtonProps['onIncompatibleQuery'];
   organization: Organization;
   router: InjectedRouter;
   yAxis: string[];
@@ -87,15 +85,7 @@ class ResultsHeader extends Component<Props, State> {
   }
 
   render() {
-    const {
-      organization,
-      location,
-      errorCode,
-      eventView,
-      onIncompatibleAlertQuery,
-      yAxis,
-      router,
-    } = this.props;
+    const {organization, location, errorCode, eventView, yAxis, router} = this.props;
     const {savedQuery, loading} = this.state;
 
     return (
@@ -122,7 +112,6 @@ class ResultsHeader extends Component<Props, State> {
             savedQueryLoading={loading}
             disabled={errorCode >= 400 && errorCode < 500}
             updateCallback={() => this.fetchData()}
-            onIncompatibleAlertQuery={onIncompatibleAlertQuery}
             yAxis={yAxis}
             router={router}
           />

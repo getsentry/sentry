@@ -24,20 +24,11 @@ import {
   DEFAULT_WIZARD_TEMPLATE,
 } from 'sentry/views/alerts/wizard/options';
 
-import {
-  checkMetricAlertCompatiablity,
-  IncompatibleQueryProperties,
-} from './incompatibleAlertQuery';
-
 export type CreateAlertFromViewButtonProps = ButtonProps & {
   /**
    * Discover query used to create the alert
    */
   eventView: EventView;
-  /**
-   * Called when the current eventView does not meet the requirements of alert rules
-   */
-  onIncompatibleQuery: (errors: IncompatibleQueryProperties) => void;
   organization: Organization;
   projects: Project[];
   alertType?: AlertType;
@@ -45,7 +36,7 @@ export type CreateAlertFromViewButtonProps = ButtonProps & {
   /**
    * Called when the user is redirected to the alert builder
    */
-  onSuccess?: () => void;
+  onClick?: () => void;
   referrer?: string;
   useAlertWizardV3?: boolean;
 };
@@ -59,8 +50,7 @@ function CreateAlertFromViewButton({
   eventView,
   organization,
   referrer,
-  onIncompatibleQuery,
-  onSuccess,
+  onClick,
   useAlertWizardV3,
   alertType,
   ...buttonProps
@@ -73,41 +63,31 @@ function CreateAlertFromViewButton({
       ''
     );
   }
-  const errors = checkMetricAlertCompatiablity(eventView);
-  const hasErrors = Object.values(errors).some(x => x);
 
   const alertTemplate = alertType
     ? AlertWizardRuleTemplates[alertType]
     : DEFAULT_WIZARD_TEMPLATE;
 
-  const to = hasErrors
-    ? undefined
-    : {
-        pathname: useAlertWizardV3
-          ? `/organizations/${organization.slug}/alerts/new/metric/`
-          : `/organizations/${organization.slug}/alerts/${project?.slug}/new/`,
-        query: {
-          ...queryParams,
-          createFromDiscover: true,
-          referrer,
-          ...(useAlertWizardV3
-            ? {
-                ...alertTemplate,
-                project: project?.slug,
-                aggregate: queryParams.yAxis ?? alertTemplate.aggregate,
-              }
-            : {}),
-        },
-      };
+  const to = {
+    pathname: useAlertWizardV3
+      ? `/organizations/${organization.slug}/alerts/new/metric/`
+      : `/organizations/${organization.slug}/alerts/${project?.slug}/new/`,
+    query: {
+      ...queryParams,
+      createFromDiscover: true,
+      referrer,
+      ...(useAlertWizardV3
+        ? {
+            ...alertTemplate,
+            project: project?.slug,
+            aggregate: queryParams.yAxis ?? alertTemplate.aggregate,
+          }
+        : {}),
+    },
+  };
 
-  const handleClick = (event: React.MouseEvent) => {
-    if (hasErrors) {
-      event.preventDefault();
-      onIncompatibleQuery(errors);
-      return;
-    }
-
-    onSuccess?.();
+  const handleClick = () => {
+    onClick?.();
   };
 
   return (

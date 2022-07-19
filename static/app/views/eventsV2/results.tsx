@@ -17,10 +17,6 @@ import Confirm from 'sentry/components/confirm';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import SearchBar from 'sentry/components/events/searchBar';
-import {
-  IncompatibleAlertQuery,
-  IncompatibleQueryProperties,
-} from 'sentry/components/incompatibleAlertQuery';
 import * as Layout from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
@@ -68,7 +64,6 @@ type Props = {
 
 type State = {
   confirmedQuery: boolean;
-  displayIncompatibleAlertNotice: boolean;
   error: string;
   errorCode: number;
   eventView: EventView;
@@ -120,7 +115,6 @@ class Results extends Component<Props, State> {
     showTags: readShowTagsState(),
     needConfirmation: false,
     confirmedQuery: false,
-    displayIncompatibleAlertNotice: false,
   };
 
   componentDidMount() {
@@ -442,27 +436,6 @@ class Results extends Component<Props, State> {
     return url;
   };
 
-  handleIncompatibleQuery = (errors: IncompatibleQueryProperties) => {
-    const {organization} = this.props;
-    const {eventView} = this.state;
-
-    trackAnalyticsEvent({
-      eventKey: 'discover_v2.create_alert_clicked',
-      eventName: 'Discoverv2: Create alert clicked',
-      status: 'error',
-      query: eventView.query,
-      errors,
-      organization_id: organization.id,
-      url: window.location.href,
-    });
-
-    this.setState({displayIncompatibleAlertNotice: true});
-  };
-
-  handleCloseIncompatibleQuery = () => {
-    this.setState({displayIncompatibleAlertNotice: false});
-  };
-
   renderError(error: string) {
     if (!error) {
       return null;
@@ -499,7 +472,6 @@ class Results extends Component<Props, State> {
       errorCode,
       totalValues,
       showTags,
-      displayIncompatibleAlertNotice,
       confirmedQuery,
       savedQuery,
     } = this.state;
@@ -519,20 +491,10 @@ class Results extends Component<Props, State> {
               organization={organization}
               location={location}
               eventView={eventView}
-              onIncompatibleAlertQuery={this.handleIncompatibleQuery}
               yAxis={yAxisArray}
               router={router}
             />
             <Layout.Body>
-              {displayIncompatibleAlertNotice && (
-                <Top fullWidth>
-                  <IncompatibleAlertQuery
-                    orgSlug={organization.slug}
-                    eventView={eventView}
-                    onClose={this.handleCloseIncompatibleQuery}
-                  />
-                </Top>
-              )}
               <Top fullWidth>
                 {this.renderMetricsFallbackBanner()}
                 {this.renderError(error)}

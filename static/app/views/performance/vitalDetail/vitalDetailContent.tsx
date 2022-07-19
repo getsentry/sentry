@@ -15,7 +15,6 @@ import DropdownMenuControlV2 from 'sentry/components/dropdownMenuControlV2';
 import {MenuItemProps} from 'sentry/components/dropdownMenuItemV2';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import SearchBar from 'sentry/components/events/searchBar';
-import {IncompatibleAlertQuery} from 'sentry/components/incompatibleAlertQuery';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
@@ -70,8 +69,6 @@ function getSummaryConditions(query: string) {
 }
 
 function VitalDetailContent(props: Props) {
-  const [displayIncompatibleAlertNotice, setDisplayIncompatibleAlertNotice] =
-    useState(false);
   const [error, setError] = useState<string | undefined>(undefined);
 
   function handleSearch(query: string) {
@@ -91,10 +88,6 @@ function VitalDetailContent(props: Props) {
     });
   }
 
-  function handleIncompatibleQuery() {
-    setDisplayIncompatibleAlertNotice(true);
-  }
-
   function renderCreateAlertButton() {
     const {eventView, organization, projects, vitalName} = props;
 
@@ -103,8 +96,6 @@ function VitalDetailContent(props: Props) {
         eventView={eventView}
         organization={organization}
         projects={projects}
-        onIncompatibleQuery={handleIncompatibleQuery}
-        onSuccess={() => {}}
         useAlertWizardV3={organization.features.includes('alert-wizard-v3')}
         aria-label={t('Create Alert')}
         alertType={vitalAlertTypes[vitalName]}
@@ -264,7 +255,7 @@ function VitalDetailContent(props: Props) {
     );
   }
 
-  const {location, organization, vitalName, eventView} = props;
+  const {location, organization, vitalName} = props;
 
   const vital = vitalName || WebVital.LCP;
 
@@ -286,15 +277,6 @@ function VitalDetailContent(props: Props) {
       </Layout.Header>
       <Layout.Body>
         {renderError()}
-        {displayIncompatibleAlertNotice && (
-          <Layout.Main fullWidth>
-            <IncompatibleAlertQuery
-              eventView={eventView}
-              orgSlug={organization.slug}
-              onClose={() => setDisplayIncompatibleAlertNotice(false)}
-            />
-          </Layout.Main>
-        )}
         <Layout.Main fullWidth>
           <StyledDescription>{vitalDescription[vitalName]}</StyledDescription>
           <SupportedBrowsers>

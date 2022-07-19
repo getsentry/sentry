@@ -5,7 +5,6 @@ import {Location} from 'history';
 
 import Feature from 'sentry/components/acl/feature';
 import Alert from 'sentry/components/alert';
-import {IncompatibleAlertQuery} from 'sentry/components/incompatibleAlertQuery';
 import * as Layout from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
@@ -68,19 +67,12 @@ function PageLayout(props: Props) {
     TransactionThresholdMetric | undefined
   >();
 
-  const [displayIncompatibleAlertNotice, setDisplayIncompatibleAlertNotice] =
-    useState(false);
-
   if (!defined(projectId) || !defined(transactionName)) {
     redirectToPerformanceHomepage(organization, location);
     return null;
   }
 
   const project = projects.find(p => p.id === projectId);
-
-  const handleIncompatibleQuery = () => {
-    setDisplayIncompatibleAlertNotice(true);
-  };
 
   const eventView = generateEventView({location, transactionName});
 
@@ -112,7 +104,6 @@ function PageLayout(props: Props) {
                   transactionName={transactionName}
                   currentTab={tab}
                   hasWebVitals={tab === Tab.WebVitals ? 'yes' : 'maybe'}
-                  handleIncompatibleQuery={handleIncompatibleQuery}
                   onChangeThreshold={(threshold, metric) => {
                     setTransactionThreshold(threshold);
                     setTransactionThresholdMetric(metric);
@@ -123,15 +114,6 @@ function PageLayout(props: Props) {
                     <StyledAlert type="error" showIcon>
                       {error}
                     </StyledAlert>
-                  )}
-                  {displayIncompatibleAlertNotice && (
-                    <Layout.Main fullWidth>
-                      <IncompatibleAlertQuery
-                        eventView={eventView}
-                        orgSlug={organization.slug}
-                        onClose={() => setDisplayIncompatibleAlertNotice(false)}
-                      />
-                    </Layout.Main>
                   )}
                   <ChildComponent
                     location={location}

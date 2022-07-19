@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import Alert from 'sentry/components/alert';
@@ -22,7 +22,7 @@ import {getQueryDatasource} from 'sentry/views/alerts/utils';
  * Discover query supports more features than alert rules
  * To create an alert rule from a discover query, some parameters need to be adjusted
  */
-export type IncompatibleQueryProperties = {
+type IncompatibleQueryProperties = {
   /**
    * Must have zero or one environments
    */
@@ -100,10 +100,6 @@ export function checkMetricAlertCompatiablity(
 
 interface IncompatibleAlertQueryProps {
   eventView: EventView;
-  /**
-   * Dismiss alert
-   */
-  onClose: () => void;
   orgSlug: string;
 }
 
@@ -111,27 +107,12 @@ interface IncompatibleAlertQueryProps {
  * Displays messages to the user on what needs to change in their query
  */
 export function IncompatibleAlertQuery(props: IncompatibleAlertQueryProps) {
+  const [isOpen, setIsOpen] = useState(true);
   const incompatibleQuery = checkMetricAlertCompatiablity(props.eventView);
   const totalErrors = Object.values(incompatibleQuery).filter(val => val).length;
 
-  if (!totalErrors) {
-    return (
-      <StyledAlert
-        type="info"
-        showIcon
-        trailingItems={
-          <Button
-            icon={<IconClose size="sm" />}
-            aria-label={t('Close')}
-            size="zero"
-            onClick={props.onClose}
-            borderless
-          />
-        }
-      >
-        {t('Click "Create Alert" again to build an alert on this query')}
-      </StyledAlert>
-    );
+  if (!totalErrors || !isOpen) {
+    return null;
   }
 
   const eventTypeError = props.eventView.clone();
@@ -181,76 +162,41 @@ export function IncompatibleAlertQuery(props: IncompatibleAlertQueryProps) {
 
   return (
     <StyledAlert
-      type="warning"
+      type="info"
       showIcon
       trailingItems={
         <Button
           icon={<IconClose size="sm" />}
           aria-label={t('Close')}
           size="zero"
-          onClick={props.onClose}
+          onClick={() => setIsOpen(false)}
           borderless
         />
       }
     >
-      {totalErrors === 1 && (
-        <Fragment>
-          {incompatibleQuery.hasProjectError &&
-            t('An alert can use data from only one Project. Select one and try again.')}
-          {incompatibleQuery.hasEnvironmentError &&
-            t(
-              'An alert supports data from a single Environment or All Environments. Pick one try again.'
-            )}
-          {incompatibleQuery.hasEventTypeError &&
-            tct(
-              'An alert needs a filter of [error:event.type:error], [default:event.type:default], [transaction:event.type:transaction], [errorDefault:(event.type:error OR event.type:default)]. Use one of these and try again.',
-              eventTypeLinks
-            )}
-          {incompatibleQuery.hasYAxisError &&
-            tct(
-              'An alert can’t use the metric [yAxis] just yet. Select another metric and try again.',
-              {
-                yAxis: <StyledCode>{props.eventView.getYAxis()}</StyledCode>,
-              }
-            )}
-        </Fragment>
-      )}
-      {totalErrors > 1 && (
-        <Fragment>
-          {t('Yikes! That button didn’t work. Please fix the following problems:')}
-          <StyledUnorderedList>
-            {incompatibleQuery.hasProjectError && <li>{t('Select one Project.')}</li>}
-            {incompatibleQuery.hasEnvironmentError && (
-              <li>{t('Select a single Environment or All Environments.')}</li>
-            )}
-            {incompatibleQuery.hasEventTypeError && (
-              <li>
-                {tct(
-                  'Use the filter [error:event.type:error], [default:event.type:default], [transaction:event.type:transaction], [errorDefault:(event.type:error OR event.type:default)].',
-                  eventTypeLinks
-                )}
-              </li>
-            )}
-            {incompatibleQuery.hasYAxisError && (
-              <li>
-                {tct(
-                  'An alert can’t use the metric [yAxis] just yet. Select another metric and try again.',
-                  {
-                    yAxis: <StyledCode>{props.eventView.getYAxis()}</StyledCode>,
-                  }
-                )}
-              </li>
-            )}
-          </StyledUnorderedList>
-        </Fragment>
-      )}
+      {t('The following problems occurred while creating your alert:')}
+      <StyledUnorderedList>
+        {incompatibleQuery.hasProjectError && <li>{t('No project was selected')}</li>}
+        {incompatibleQuery.hasEnvironmentError && (
+          <li>{t('Too many environments were selected')}</li>
+        )}
+        {incompatibleQuery.hasEventTypeError && (
+          <li>{tct("An event type wasn't selected", eventTypeLinks)}</li>
+        )}
+        {incompatibleQuery.hasYAxisError && (
+          <li>
+            {tct('An alert can’t use the metric [yAxis] just yet.', {
+              yAxis: <StyledCode>{props.eventView.getYAxis()}</StyledCode>,
+            })}
+          </li>
+        )}
+      </StyledUnorderedList>
     </StyledAlert>
   );
 }
 
 const StyledAlert = styled(Alert)`
   color: ${p => p.theme.textColor};
-  margin-bottom: 0;
 `;
 
 const StyledUnorderedList = styled('ul')`

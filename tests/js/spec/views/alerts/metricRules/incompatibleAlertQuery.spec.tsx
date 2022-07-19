@@ -1,19 +1,13 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {IncompatibleAlertQuery} from 'sentry/components/incompatibleAlertQuery';
 import EventView from 'sentry/utils/discover/eventView';
+import {IncompatibleAlertQuery} from 'sentry/views/alerts/rules/metric/incompatibleAlertQuery';
 import {ALL_VIEWS, DEFAULT_EVENT_VIEW} from 'sentry/views/eventsV2/data';
-
-const onCloseMock = jest.fn();
 
 function renderComponent(eventView: EventView) {
   const organization = TestStubs.Organization();
   return render(
-    <IncompatibleAlertQuery
-      orgSlug={organization.slug}
-      eventView={eventView}
-      onClose={onCloseMock}
-    />
+    <IncompatibleAlertQuery orgSlug={organization.slug} eventView={eventView} />
   );
 }
 
@@ -23,9 +17,9 @@ describe('IncompatibleAlertQuery', () => {
       ...DEFAULT_EVENT_VIEW,
       query: 'event.type:error',
     });
-    renderComponent(eventView);
+    const wrapper = renderComponent(eventView);
     userEvent.click(screen.getByRole('button', {name: 'Close'}));
-    expect(onCloseMock).toHaveBeenCalledTimes(1);
+    expect(wrapper.container).toBeEmptyDOMElement();
   });
 
   it('should warn when project is not selected', () => {
