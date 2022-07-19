@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useRef} from 'react';
+import {useCallback, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {
@@ -19,11 +19,11 @@ import BreadcrumbItem from './breadcrumbItem';
 
 function CrumbPlaceholder({number}: {number: number}) {
   return (
-    <Fragment>
+    <BreadcrumbContainer>
       {[...Array(number)].map((_, i) => (
         <PlaceholderMargin key={i} height="53px" />
       ))}
-    </Fragment>
+    </BreadcrumbContainer>
   );
 }
 
@@ -106,7 +106,7 @@ function Breadcrumbs({}: Props) {
   );
 
   const content = isLoaded ? (
-    <div>
+    <BreadcrumbContainer>
       {crumbs.map(crumb => (
         <BreadcrumbItem
           key={crumb.id}
@@ -119,7 +119,7 @@ function Breadcrumbs({}: Props) {
           onClick={handleClick}
         />
       ))}
-    </div>
+    </BreadcrumbContainer>
   ) : (
     <CrumbPlaceholder number={4} />
   );
@@ -129,15 +129,16 @@ function Breadcrumbs({}: Props) {
       <FluidPanel
         bodyRef={crumbListContainerRef}
         title={<PanelHeader>{t('Breadcrumbs')}</PanelHeader>}
-        overflowBodyStyles={{
-          padding: space(0.5),
-        }}
       >
         {content}
       </FluidPanel>
     </Panel>
   );
 }
+
+const BreadcrumbContainer = styled('div')`
+  padding: ${space(0.5)};
+`;
 
 const Panel = styled(BasePanel)`
   width: 100%;
@@ -157,7 +158,7 @@ const PanelHeader = styled(BasePanelHeader)`
 `;
 
 const PlaceholderMargin = styled(Placeholder)`
-  margin: ${space(1)} 0;
+  margin-bottom: ${space(1)};
   width: auto;
   border-radius: ${p => p.theme.borderRadius};
 `;
