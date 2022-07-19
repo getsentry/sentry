@@ -132,7 +132,7 @@ const INITIAL_STATE: State = Object.freeze({
  * must be delegated to the `ReplayReader` class.
  *
  * @param {orgId, eventSlug} Where to find the root replay event
- * @returns An object representing a unified result of the network reqeusts. Either a single `ReplayReader` data object or fetch errors.
+ * @returns An object representing a unified result of the network requests. Either a single `ReplayReader` data object or fetch errors.
  */
 function useReplayData({eventSlug, orgId}: Options): Result {
   const [projectId, eventId] = eventSlug.split(':');

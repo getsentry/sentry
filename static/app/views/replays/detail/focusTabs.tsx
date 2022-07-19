@@ -1,5 +1,4 @@
 import {MouseEvent} from 'react';
-import styled from '@emotion/styled';
 
 import NavTabs from 'sentry/components/navTabs';
 import useActiveReplayTab, {
@@ -14,7 +13,7 @@ function FocusTabs({}: Props) {
   return (
     <NavTabs underlined>
       {Object.entries(ReplayTabs).map(([tab, label]) => (
-        <Tab key={tab} className={activeTab === tab ? 'active' : ''}>
+        <li key={tab} className={activeTab === tab ? 'active' : ''}>
           <a
             href={`#${tab}`}
             onClick={(e: MouseEvent) => {
@@ -24,14 +23,10 @@ function FocusTabs({}: Props) {
           >
             <span>{label}</span>
           </a>
-        </Tab>
+        </li>
       ))}
     </NavTabs>
   );
 }
-
-const Tab = styled('li')`
-  z-index: ${p => p.theme.zIndex.initial + 1};
-`;
 
 export default FocusTabs;

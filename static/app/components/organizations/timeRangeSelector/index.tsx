@@ -5,6 +5,7 @@ import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
+import autoCompleteFilter from 'sentry/components/dropdownAutoComplete/autoCompleteFilter';
 import {Item} from 'sentry/components/dropdownAutoComplete/types';
 import {GetActorPropsFn} from 'sentry/components/dropdownMenu';
 import HookOrDefault from 'sentry/components/hookOrDefault';
@@ -131,6 +132,16 @@ type Props = WithRouterProps & {
    * Whether the menu should be detached from the actor
    */
   detached?: boolean;
+
+  /**
+   * Disable the dropdown
+   */
+  disabled?: boolean;
+
+  /**
+   * Forces the user to select from the set of defined relative options
+   */
+  disallowArbitraryRelativeRanges?: boolean;
 
   /**
    * Small info icon with tooltip hint text
@@ -386,6 +397,9 @@ class TimeRangeSelector extends PureComponent<Props, State> {
   };
 
   handleOpen = () => {
+    if (this.props.disabled) {
+      return;
+    }
     this.setState({isOpen: true});
     // Start loading react-date-picker
     import('../timeRangeSelector/dateRange/index');
@@ -397,6 +411,7 @@ class TimeRangeSelector extends PureComponent<Props, State> {
 
   render() {
     const {
+      disallowArbitraryRelativeRanges,
       defaultPeriod,
       showAbsolute,
       showRelative,
@@ -407,6 +422,7 @@ class TimeRangeSelector extends PureComponent<Props, State> {
       maxPickableDays,
       customDropdownButton,
       detached,
+      disabled,
       alignDropdown,
       showPin,
     } = this.props;
@@ -438,7 +454,11 @@ class TimeRangeSelector extends PureComponent<Props, State> {
             {({css}) => (
               <StyledDropdownAutoComplete
                 allowActorToggle
-                autoCompleteFilter={timeRangeAutoCompleteFilter}
+                autoCompleteFilter={
+                  disallowArbitraryRelativeRanges
+                    ? autoCompleteFilter
+                    : timeRangeAutoCompleteFilter
+                }
                 alignMenu={alignDropdown ?? (isAbsoluteSelected ? 'right' : 'left')}
                 isOpen={this.state.isOpen}
                 inputValue={this.state.inputValue}
@@ -450,6 +470,7 @@ class TimeRangeSelector extends PureComponent<Props, State> {
                 blendCorner={false}
                 maxHeight={400}
                 detached={detached}
+                disabled={disabled}
                 items={items}
                 searchPlaceholder={t('Provide a time range')}
                 rootClassName={css`
