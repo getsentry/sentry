@@ -31,6 +31,7 @@ export type Project = {
   features: string[];
   firstEvent: 'string' | null;
   firstTransactionEvent: boolean;
+  groupingAutoUpdate: boolean;
   groupingConfig: string;
   hasAccess: boolean;
   hasSessions: boolean;
