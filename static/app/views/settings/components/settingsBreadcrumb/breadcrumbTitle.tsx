@@ -1,19 +1,17 @@
-import {useEffect} from 'react';
 import {PlainRoute} from 'react-router';
 
-import SettingsBreadcrumbStore from 'sentry/stores/settingsBreadcrumbStore';
+import {useBreadcrumbTitleEffect} from './context';
 
 type Props = {
   routes: Array<PlainRoute>;
   title: string;
 };
 
+/**
+ * Breadcrumb title sets the breadcrumb label for the provided route match
+ */
 function BreadcrumbTitle(props: Props) {
-  useEffect(
-    () => SettingsBreadcrumbStore.updateRouteMap(props),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    []
-  );
+  useBreadcrumbTitleEffect(props);
 
   return null;
 }

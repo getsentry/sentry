@@ -5,7 +5,6 @@ import cloneDeep from 'lodash/cloneDeep';
 import isEmpty from 'lodash/isEmpty';
 import omit from 'lodash/omit';
 import set from 'lodash/set';
-import trimStart from 'lodash/trimStart';
 
 import {validateWidget} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -30,21 +29,17 @@ import {
   Organization,
   PageFilters,
   SelectValue,
-  SessionField,
   TagCollection,
 } from 'sentry/types';
 import {defined, objectIsEmpty} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {CustomMeasurementsProvider} from 'sentry/utils/customMeasurements/customMeasurementsProvider';
 import {
   explodeField,
   generateFieldAsString,
-  getAggregateAlias,
   getColumnsAndAggregates,
   getColumnsAndAggregatesAsStrings,
-  isEquation,
   QueryFieldValue,
-  stripDerivedMetricsPrefix,
-  stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import useApi from 'sentry/utils/useApi';
@@ -65,10 +60,14 @@ import {
   WidgetQuery,
   WidgetType,
 } from 'sentry/views/dashboardsV2/types';
+import {isCustomMeasurementWidget} from 'sentry/views/dashboardsV2/utils';
 
 import {DEFAULT_STATS_PERIOD} from '../data';
 import {getDatasetConfig} from '../datasetConfig/base';
-import {getNumEquations} from '../utils';
+import {
+  DashboardsMEPConsumer,
+  DashboardsMEPProvider,
+} from '../widgetCard/dashboardsMEPContext';
 
 import {ColumnsStep} from './buildSteps/columnsStep';
 import {DataSetStep} from './buildSteps/dataSetStep';
@@ -97,7 +96,7 @@ const WIDGET_TYPE_TO_DATA_SET = {
   [WidgetType.RELEASE]: DataSet.RELEASES,
 };
 
-const DATA_SET_TO_WIDGET_TYPE = {
+export const DATA_SET_TO_WIDGET_TYPE = {
   [DataSet.EVENTS]: WidgetType.DISCOVER,
   [DataSet.ISSUES]: WidgetType.ISSUE,
   [DataSet.RELEASES]: WidgetType.RELEASE,
@@ -135,6 +134,7 @@ interface State {
   interval: Widget['interval'];
   limit: Widget['limit'];
   loading: boolean;
+  prebuiltWidgetId: null | string;
   queries: Widget['queries'];
   title: string;
   userHasModified: boolean;
@@ -158,10 +158,17 @@ function WidgetBuilder({
   tags,
 }: Props) {
   const {widgetIndex, orgId, dashboardId} = params;
-  const {source, displayType, defaultTitle, defaultTableColumns, limit} = location.query;
+  const {source, displayType, defaultTitle, limit} = location.query;
   const defaultWidgetQuery = getParsedDefaultWidgetQuery(
     location.query.defaultWidgetQuery
   );
+
+  // defaultTableColumns can be a single string if location.query only contains
+  // 1 value for this key. Ensure it is a string[]
+  let {defaultTableColumns}: {defaultTableColumns: string[]} = location.query;
+  if (typeof defaultTableColumns === 'string') {
+    defaultTableColumns = [defaultTableColumns];
+  }
 
   // Feature flag for new widget builder design. This feature is still a work in progress and not yet available internally.
   const widgetBuilderNewDesign = organization.features.includes(
@@ -219,6 +226,7 @@ function WidgetBuilder({
       loading: !!notDashboardsOrigin,
       dashboards: [],
       userHasModified: false,
+      prebuiltWidgetId: null,
       dataSet: DataSet.EVENTS,
     };
 
@@ -229,12 +237,10 @@ function WidgetBuilder({
             ...defaultWidgetQuery,
             orderby:
               defaultWidgetQuery.orderby ||
-              generateOrderOptions({
-                widgetType: WidgetType.DISCOVER,
-                widgetBuilderNewDesign,
-                columns: defaultWidgetQuery.columns,
-                aggregates: defaultWidgetQuery.aggregates,
-              })[0].value,
+              (datasetConfig.getTableSortOptions
+                ? datasetConfig.getTableSortOptions(organization, defaultWidgetQuery)[0]
+                    .value
+                : ''),
           },
         ];
       } else {
@@ -318,6 +324,7 @@ function WidgetBuilder({
           ? WIDGET_TYPE_TO_DATA_SET[widgetFromDashboard.widgetType]
           : DataSet.EVENTS,
         limit: newLimit,
+        prebuiltWidgetId: null,
       });
       setDataSetConfig(getDatasetConfig(widgetFromDashboard.widgetType));
       setWidgetToBeUpdated(widgetFromDashboard);
@@ -556,6 +563,14 @@ function WidgetBuilder({
   }
 
   function handleDataSetChange(newDataSet: string) {
+    trackAdvancedAnalyticsEvent('dashboards_views.widget_builder.change', {
+      from: source,
+      field: 'dataSet',
+      value: newDataSet,
+      widget_type: widgetType,
+      organization,
+      new_widget: !isEditing,
+    });
     setState(prevState => {
       const newState = cloneDeep(prevState);
       newState.queries.splice(0, newState.queries.length);
@@ -611,50 +626,38 @@ function WidgetBuilder({
     });
   }
 
-  function handleYAxisOrColumnFieldChange(
-    newFields: QueryFieldValue[],
-    isColumn = false
-  ) {
-    const fieldStrings = newFields
-      .map(generateFieldAsString)
-      .map(field =>
-        state.dataSet === DataSet.RELEASES ? stripDerivedMetricsPrefix(field) : field
-      );
+  function handleColumnFieldChange(newFields: QueryFieldValue[]) {
+    const fieldStrings = newFields.map(generateFieldAsString);
+    const splitFields = getColumnsAndAggregatesAsStrings(newFields);
+    const newState = cloneDeep(state);
+    let newQuery = cloneDeep(newState.queries[0]);
 
-    const columnsAndAggregates = isColumn
-      ? getColumnsAndAggregatesAsStrings(newFields)
-      : undefined;
+    newQuery.fields = fieldStrings;
+    newQuery.aggregates = splitFields.aggregates;
+    newQuery.columns = splitFields.columns;
+    newQuery.fieldAliases = splitFields.fieldAliases;
 
+    if (datasetConfig.handleColumnFieldChangeOverride) {
+      newQuery = datasetConfig.handleColumnFieldChangeOverride(newQuery);
+    }
+
+    if (datasetConfig.handleOrderByReset) {
+      newQuery = datasetConfig.handleOrderByReset(newQuery, fieldStrings);
+    }
+
+    set(newState, 'queries', [newQuery]);
+    set(newState, 'userHasModified', true);
+    setState(newState);
+  }
+
+  function handleYAxisChange(newFields: QueryFieldValue[]) {
+    const fieldStrings = newFields.map(generateFieldAsString);
     const newState = cloneDeep(state);
 
-    const disableSortBy =
-      widgetType === WidgetType.RELEASE && fieldStrings.includes('session.status');
-
     const newQueries = state.queries.map(query => {
-      const isDescending = query.orderby.startsWith('-');
-      const orderbyPrefix = isDescending ? '-' : '';
-      const rawOrderby = trimStart(query.orderby, '-');
-      const prevAggregateFieldStrings = query.aggregates.map(aggregate =>
-        state.dataSet === DataSet.RELEASES
-          ? stripDerivedMetricsPrefix(aggregate)
-          : aggregate
-      );
-      const newQuery = cloneDeep(query);
+      let newQuery = cloneDeep(query);
 
-      if (disableSortBy) {
-        newQuery.orderby = '';
-      }
-
-      if (isColumn) {
-        newQuery.fields = fieldStrings;
-        newQuery.aggregates = columnsAndAggregates?.aggregates ?? [];
-        if (state.dataSet === DataSet.RELEASES && newQuery.aggregates.length === 0) {
-          // Release Health widgets require an aggregate in tables
-          const defaultReleaseHealthAggregate = `crash_free_rate(${SessionField.SESSION})`;
-          newQuery.aggregates = [defaultReleaseHealthAggregate];
-          newQuery.fields = [...newQuery.fields, defaultReleaseHealthAggregate];
-        }
-      } else if (state.displayType === DisplayType.TOP_N) {
+      if (state.displayType === DisplayType.TOP_N) {
         // Top N queries use n-1 fields for columns and the nth field for y-axis
         newQuery.fields = [
           ...(newQuery.fields?.slice(0, newQuery.fields.length - 1) ?? []),
@@ -669,46 +672,8 @@ function WidgetBuilder({
         newQuery.aggregates = fieldStrings;
       }
 
-      // Prevent overwriting columns when setting y-axis for time series
-      if (!(widgetBuilderNewDesign && isTimeseriesChart) && isColumn) {
-        newQuery.columns = columnsAndAggregates?.columns ?? [];
-      }
-
-      if (!fieldStrings.includes(rawOrderby) && query.orderby !== '') {
-        if (
-          !widgetBuilderNewDesign &&
-          prevAggregateFieldStrings.length === newFields.length &&
-          prevAggregateFieldStrings.includes(rawOrderby)
-        ) {
-          // The aggregate that was used in orderby has changed. Get the new field.
-          let newOrderByValue =
-            fieldStrings[prevAggregateFieldStrings.indexOf(rawOrderby)];
-
-          if (!stripEquationPrefix(newOrderByValue ?? '')) {
-            newOrderByValue = '';
-          }
-
-          newQuery.orderby = `${orderbyPrefix}${newOrderByValue}`;
-        } else {
-          const isFromAggregates = newQuery.aggregates.includes(rawOrderby);
-          const isCustomEquation = isEquation(rawOrderby);
-          const isUsedInGrouping = newQuery.columns.includes(rawOrderby);
-
-          const keepCurrentOrderby =
-            isFromAggregates || isCustomEquation || isUsedInGrouping;
-          const firstAggregateAlias = isEquation(newQuery.aggregates[0] ?? '')
-            ? `equation[${getNumEquations(newQuery.aggregates) - 1}]`
-            : fieldStrings[0];
-
-          newQuery.orderby = widgetBuilderNewDesign
-            ? (keepCurrentOrderby && newQuery.orderby) ||
-              `${orderbyPrefix}${firstAggregateAlias}`
-            : '';
-        }
-      }
-
-      if (widgetBuilderNewDesign) {
-        newQuery.fieldAliases = columnsAndAggregates?.fieldAliases ?? [];
+      if (datasetConfig.handleOrderByReset) {
+        newQuery = datasetConfig.handleOrderByReset(newQuery, fieldStrings);
       }
 
       return newQuery;
@@ -717,22 +682,20 @@ function WidgetBuilder({
     set(newState, 'queries', newQueries);
     set(newState, 'userHasModified', true);
 
-    if (widgetBuilderNewDesign && isTimeseriesChart) {
-      const groupByFields = newState.queries[0].columns.filter(
-        field => !(field === 'equation|')
+    const groupByFields = newState.queries[0].columns.filter(
+      field => !(field === 'equation|')
+    );
+    if (groupByFields.length === 0) {
+      set(newState, 'limit', undefined);
+    } else {
+      set(
+        newState,
+        'limit',
+        Math.min(
+          newState.limit ?? DEFAULT_RESULTS_LIMIT,
+          getResultsLimit(newQueries.length, newQueries[0].aggregates.length)
+        )
       );
-      if (groupByFields.length === 0) {
-        set(newState, 'limit', undefined);
-      } else {
-        set(
-          newState,
-          'limit',
-          Math.min(
-            newState.limit ?? DEFAULT_RESULTS_LIMIT,
-            getResultsLimit(newQueries.length, newQueries[0].aggregates.length)
-          )
-        );
-      }
     }
 
     setState(newState);
@@ -746,13 +709,11 @@ function WidgetBuilder({
     const newQueries = state.queries.map(query => {
       const newQuery = cloneDeep(query);
       newQuery.columns = fieldStrings;
-      const orderby = trimStart(newQuery.orderby, '-');
-      const aggregateAliasFieldStrings = newQuery.aggregates.map(getAggregateAlias);
 
       if (!fieldStrings.length) {
         // The grouping was cleared, so clear the orderby
         newQuery.orderby = '';
-      } else if (widgetBuilderNewDesign && !newQuery.orderby) {
+      } else if (!newQuery.orderby) {
         const orderOptions = generateOrderOptions({
           widgetType: widgetType ?? WidgetType.DISCOVER,
           widgetBuilderNewDesign,
@@ -761,26 +722,12 @@ function WidgetBuilder({
         });
         let orderOption: string;
         // If no orderby options are available because of DISABLED_SORTS
-        if (!!!orderOptions.length && state.dataSet === DataSet.RELEASES) {
+        if (!!!orderOptions.length) {
           newQuery.orderby = '';
         } else {
           orderOption = orderOptions[0].value;
           newQuery.orderby = `-${orderOption}`;
         }
-      } else if (
-        !widgetBuilderNewDesign &&
-        aggregateAliasFieldStrings.length &&
-        !aggregateAliasFieldStrings.includes(orderby) &&
-        !newQuery.columns.includes(orderby) &&
-        !isEquation(orderby)
-      ) {
-        // If the orderby isn't contained in either aggregates or columns, choose the first aggregate
-        const isDescending = newQuery.orderby.startsWith('-');
-        const prefix = orderby && !isDescending ? '' : '-';
-        const firstAggregateAlias = isEquation(aggregateAliasFieldStrings[0])
-          ? `equation[${getNumEquations(aggregateAliasFieldStrings) - 1}]`
-          : aggregateAliasFieldStrings[0];
-        newQuery.orderby = `${prefix}${firstAggregateAlias}`;
       }
       return newQuery;
     });
@@ -1013,8 +960,14 @@ function WidgetBuilder({
     });
   }
 
-  function isFormInvalid() {
-    if (notDashboardsOrigin && !state.selectedDashboard) {
+  function isFormInvalid(isMetricsData?: boolean) {
+    // Block saving if the widget uses custom measurements and is not able to be fulfilled with metrics
+    const incompatibleCustomMeasurementWidget =
+      !isMetricsData && isCustomMeasurementWidget(currentWidget);
+    if (
+      incompatibleCustomMeasurementWidget ||
+      (notDashboardsOrigin && !state.selectedDashboard)
+    ) {
       return true;
     }
 
@@ -1078,146 +1031,159 @@ function WidgetBuilder({
         defaultSelection={{
           datetime: {start: null, end: null, utc: false, period: DEFAULT_STATS_PERIOD},
         }}
-        hideGlobalHeader
       >
-        <PageContentWithoutPadding>
-          <Header
-            orgSlug={orgSlug}
-            title={state.title}
-            dashboardTitle={dashboard.title}
-            goBackLocation={previousLocation}
-            onChangeTitle={newTitle => {
-              handleDisplayTypeOrTitleChange('title', newTitle);
-            }}
-          />
-          <Body>
-            <MainWrapper>
-              <Main>
-                <StyledPageFilterBar condensed>
-                  <ProjectPageFilter />
-                  <EnvironmentPageFilter />
-                  <DatePageFilter alignDropdown="left" />
-                </StyledPageFilterBar>
-                <BuildSteps symbol="colored-numeric">
-                  <VisualizationStep
-                    widget={currentWidget}
-                    organization={organization}
-                    pageFilters={pageFilters}
-                    displayType={state.displayType}
-                    error={state.errors?.displayType}
-                    onChange={newDisplayType => {
-                      handleDisplayTypeOrTitleChange('displayType', newDisplayType);
-                    }}
-                  />
-                  <DataSetStep
-                    dataSet={state.dataSet}
-                    displayType={state.displayType}
-                    onChange={handleDataSetChange}
-                    hasReleaseHealthFeature={hasReleaseHealthFeature}
-                  />
-                  {isTabularChart && (
-                    <ColumnsStep
-                      dataSet={state.dataSet}
-                      queries={state.queries}
-                      displayType={state.displayType}
-                      widgetType={widgetType}
-                      queryErrors={state.errors?.queries}
-                      onQueryChange={handleQueryChange}
-                      onYAxisOrColumnFieldChange={newFields => {
-                        handleYAxisOrColumnFieldChange(newFields, true);
-                      }}
-                      explodedFields={explodedFields}
-                      tags={tags}
-                      organization={organization}
-                    />
-                  )}
-                  {![DisplayType.TABLE].includes(state.displayType) && (
-                    <YAxisStep
-                      dataSet={state.dataSet}
-                      displayType={state.displayType}
-                      widgetType={widgetType}
-                      queryErrors={state.errors?.queries}
-                      onYAxisChange={newFields => {
-                        handleYAxisOrColumnFieldChange(newFields);
-                      }}
-                      aggregates={explodedAggregates}
-                      tags={tags}
-                      organization={organization}
-                    />
-                  )}
-                  <FilterResultsStep
-                    queries={state.queries}
-                    hideLegendAlias={hideLegendAlias}
-                    canAddSearchConditions={canAddSearchConditions}
-                    organization={organization}
-                    queryErrors={state.errors?.queries}
-                    onAddSearchConditions={handleAddSearchConditions}
-                    onQueryChange={handleQueryChange}
-                    onQueryRemove={handleQueryRemove}
-                    selection={pageFilters}
-                    widgetType={widgetType}
-                  />
-                  {widgetBuilderNewDesign && isTimeseriesChart && (
-                    <GroupByStep
-                      columns={columns
-                        .filter(field => !(field === 'equation|'))
-                        .map((field, index) =>
-                          explodeField({field, alias: fieldAliases[index]})
-                        )}
-                      onGroupByChange={handleGroupByChange}
-                      organization={organization}
-                      tags={tags}
-                      dataSet={state.dataSet}
-                    />
-                  )}
-                  {displaySortByStep && (
-                    <SortByStep
-                      limit={state.limit}
-                      displayType={state.displayType}
-                      queries={state.queries}
-                      dataSet={state.dataSet}
-                      widgetBuilderNewDesign={widgetBuilderNewDesign}
-                      error={state.errors?.orderby}
-                      onSortByChange={handleSortByChange}
-                      onLimitChange={handleLimitChange}
-                      organization={organization}
-                      widgetType={widgetType}
-                      tags={tags}
-                    />
-                  )}
-                </BuildSteps>
-              </Main>
-              <Footer
+        <CustomMeasurementsProvider organization={organization} selection={selection}>
+          <DashboardsMEPProvider>
+            <PageContentWithoutPadding>
+              <Header
+                orgSlug={orgSlug}
+                title={state.title}
+                dashboardTitle={dashboard.title}
                 goBackLocation={previousLocation}
-                isEditing={isEditing}
-                onSave={handleSave}
-                onDelete={handleDelete}
-                invalidForm={isFormInvalid()}
-              />
-            </MainWrapper>
-            <Side>
-              <WidgetLibrary
-                organization={organization}
-                widgetBuilderNewDesign={widgetBuilderNewDesign}
-                onWidgetSelect={prebuiltWidget => {
-                  setLatestLibrarySelectionTitle(prebuiltWidget.title);
-                  setDataSetConfig(
-                    getDatasetConfig(prebuiltWidget.widgetType || WidgetType.DISCOVER)
-                  );
-                  setState({
-                    ...state,
-                    ...prebuiltWidget,
-                    dataSet: prebuiltWidget.widgetType
-                      ? WIDGET_TYPE_TO_DATA_SET[prebuiltWidget.widgetType]
-                      : DataSet.EVENTS,
-                    userHasModified: false,
-                  });
+                onChangeTitle={newTitle => {
+                  handleDisplayTypeOrTitleChange('title', newTitle);
                 }}
-                bypassOverwriteModal={!state.userHasModified}
               />
-            </Side>
-          </Body>
-        </PageContentWithoutPadding>
+              <Body>
+                <MainWrapper>
+                  <Main>
+                    {!!!organization.features.includes('dashboards-top-level-filter') && (
+                      <StyledPageFilterBar condensed>
+                        <ProjectPageFilter />
+                        <EnvironmentPageFilter />
+                        <DatePageFilter alignDropdown="left" />
+                      </StyledPageFilterBar>
+                    )}
+                    <BuildSteps symbol="colored-numeric">
+                      <VisualizationStep
+                        widget={currentWidget}
+                        organization={organization}
+                        pageFilters={pageFilters}
+                        displayType={state.displayType}
+                        error={state.errors?.displayType}
+                        onChange={newDisplayType => {
+                          handleDisplayTypeOrTitleChange('displayType', newDisplayType);
+                        }}
+                        noDashboardsMEPProvider
+                      />
+                      <DataSetStep
+                        dataSet={state.dataSet}
+                        displayType={state.displayType}
+                        onChange={handleDataSetChange}
+                        hasReleaseHealthFeature={hasReleaseHealthFeature}
+                      />
+                      {isTabularChart && (
+                        <ColumnsStep
+                          dataSet={state.dataSet}
+                          queries={state.queries}
+                          displayType={state.displayType}
+                          widgetType={widgetType}
+                          queryErrors={state.errors?.queries}
+                          onQueryChange={handleQueryChange}
+                          handleColumnFieldChange={handleColumnFieldChange}
+                          explodedFields={explodedFields}
+                          tags={tags}
+                          organization={organization}
+                        />
+                      )}
+                      {![DisplayType.TABLE].includes(state.displayType) && (
+                        <YAxisStep
+                          dataSet={state.dataSet}
+                          displayType={state.displayType}
+                          widgetType={widgetType}
+                          queryErrors={state.errors?.queries}
+                          onYAxisChange={newFields => {
+                            handleYAxisChange(newFields);
+                          }}
+                          aggregates={explodedAggregates}
+                          tags={tags}
+                          organization={organization}
+                        />
+                      )}
+                      <FilterResultsStep
+                        queries={state.queries}
+                        hideLegendAlias={hideLegendAlias}
+                        canAddSearchConditions={canAddSearchConditions}
+                        organization={organization}
+                        queryErrors={state.errors?.queries}
+                        onAddSearchConditions={handleAddSearchConditions}
+                        onQueryChange={handleQueryChange}
+                        onQueryRemove={handleQueryRemove}
+                        selection={pageFilters}
+                        widgetType={widgetType}
+                      />
+                      {widgetBuilderNewDesign && isTimeseriesChart && (
+                        <GroupByStep
+                          columns={columns
+                            .filter(field => !(field === 'equation|'))
+                            .map((field, index) =>
+                              explodeField({field, alias: fieldAliases[index]})
+                            )}
+                          onGroupByChange={handleGroupByChange}
+                          organization={organization}
+                          tags={tags}
+                          dataSet={state.dataSet}
+                        />
+                      )}
+                      {displaySortByStep && (
+                        <SortByStep
+                          limit={state.limit}
+                          displayType={state.displayType}
+                          queries={state.queries}
+                          dataSet={state.dataSet}
+                          widgetBuilderNewDesign={widgetBuilderNewDesign}
+                          error={state.errors?.orderby}
+                          onSortByChange={handleSortByChange}
+                          onLimitChange={handleLimitChange}
+                          organization={organization}
+                          widgetType={widgetType}
+                          tags={tags}
+                        />
+                      )}
+                    </BuildSteps>
+                  </Main>
+                  <DashboardsMEPConsumer>
+                    {({isMetricsData}) => (
+                      <Footer
+                        goBackLocation={previousLocation}
+                        isEditing={isEditing}
+                        onSave={handleSave}
+                        onDelete={handleDelete}
+                        invalidForm={isFormInvalid(isMetricsData)}
+                      />
+                    )}
+                  </DashboardsMEPConsumer>
+                </MainWrapper>
+                <Side>
+                  <WidgetLibrary
+                    organization={organization}
+                    widgetBuilderNewDesign={widgetBuilderNewDesign}
+                    selectedWidgetId={
+                      state.userHasModified ? null : state.prebuiltWidgetId
+                    }
+                    onWidgetSelect={prebuiltWidget => {
+                      setLatestLibrarySelectionTitle(prebuiltWidget.title);
+                      setDataSetConfig(
+                        getDatasetConfig(prebuiltWidget.widgetType || WidgetType.DISCOVER)
+                      );
+                      const {id, ...prebuiltWidgetProps} = prebuiltWidget;
+                      setState({
+                        ...state,
+                        ...prebuiltWidgetProps,
+                        dataSet: prebuiltWidget.widgetType
+                          ? WIDGET_TYPE_TO_DATA_SET[prebuiltWidget.widgetType]
+                          : DataSet.EVENTS,
+                        userHasModified: false,
+                        prebuiltWidgetId: id || null,
+                      });
+                    }}
+                    bypassOverwriteModal={!state.userHasModified}
+                  />
+                </Side>
+              </Body>
+            </PageContentWithoutPadding>
+          </DashboardsMEPProvider>
+        </CustomMeasurementsProvider>
       </PageFiltersContainer>
     </SentryDocumentTitle>
   );
@@ -1246,11 +1212,11 @@ const Body = styled(Layout.Body)`
 
   grid-template-rows: 1fr;
 
-  @media (min-width: ${p => p.theme.breakpoints[2]}) {
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
     grid-template-columns: minmax(100px, auto) 400px;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints[3]}) {
+  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
     grid-template-columns: 1fr;
   }
 `;
@@ -1265,11 +1231,11 @@ const Main = styled(Layout.Main)`
 
   padding: ${space(4)} ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
     padding: ${space(4)};
   }
 
-  @media (max-width: calc(${p => p.theme.breakpoints[2]} + ${space(4)})) {
+  @media (max-width: calc(${p => p.theme.breakpoints.large} + ${space(4)})) {
     ${ListItem} {
       width: calc(100% - ${space(4)});
     }
@@ -1279,14 +1245,14 @@ const Main = styled(Layout.Main)`
 const Side = styled(Layout.Side)`
   padding: ${space(4)} ${space(2)};
 
-  @media (max-width: ${p => p.theme.breakpoints[2]}) {
+  @media (max-width: ${p => p.theme.breakpoints.large}) {
     border-top: 1px solid ${p => p.theme.gray200};
     grid-row: 2/2;
     grid-column: 1/-1;
     max-width: 100%;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints[2]}) {
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
     border-left: 1px solid ${p => p.theme.gray200};
 
     /* to be consistent with Layout.Body in other verticals */
@@ -1299,7 +1265,7 @@ const MainWrapper = styled('div')`
   display: flex;
   flex-direction: column;
 
-  @media (max-width: ${p => p.theme.breakpoints[2]}) {
+  @media (max-width: ${p => p.theme.breakpoints.large}) {
     grid-column: 1/-1;
   }
 `;

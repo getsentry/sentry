@@ -132,8 +132,8 @@ class List extends Component<Props, State> {
             'No issues with the same trace ID [traceID] were found in the period between [start] and [end]',
             {
               traceID,
-              start: <DateTime date={period.start} timeAndDate />,
-              end: <DateTime date={period.start} timeAndDate />,
+              start: <DateTime date={period.start} />,
+              end: <DateTime date={period.start} />,
             }
           )}
         </EmptyStateWarning>

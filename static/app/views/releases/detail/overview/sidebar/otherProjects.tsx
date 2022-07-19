@@ -41,7 +41,7 @@ function OtherProjects({projects, location, version, organization}: Props) {
           <Row key={project.id}>
             <IdBadge project={project} avatarSize={16} />
             <Button
-              size="xsmall"
+              size="xs"
               to={{
                 pathname: `/organizations/${
                   organization.slug
@@ -70,8 +70,8 @@ const Row = styled('div')`
   margin-bottom: ${space(0.75)};
   font-size: ${p => p.theme.fontSizeMedium};
 
-  @media (min-width: ${p => p.theme.breakpoints[1]}) and (max-width: ${p =>
-      p.theme.breakpoints[2]}) {
+  @media (min-width: ${p => p.theme.breakpoints.medium}) and (max-width: ${p =>
+      p.theme.breakpoints.large}) {
     grid-template-columns: 200px max-content;
   }
 `;

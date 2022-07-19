@@ -81,7 +81,7 @@ function KeyValueList({
 export default KeyValueList;
 
 const TableSubject = styled('td')<{wide?: boolean}>`
-  @media (min-width: ${theme.breakpoints[2]}) {
+  @media (min-width: ${theme.breakpoints.large}) {
     max-width: ${p => (p.wide ? '620px !important' : 'none')};
   }
 `;
@@ -99,7 +99,7 @@ const ValueWithButtonContainer = styled('div')`
     margin: 0 !important;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: 1fr max-content;
   }
 `;

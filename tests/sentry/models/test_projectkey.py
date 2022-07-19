@@ -1,3 +1,5 @@
+import pytest
+
 from sentry.models.projectkey import ProjectKey, ProjectKeyStatus
 from sentry.testutils import TestCase
 
@@ -45,10 +47,10 @@ class ProjectKeyTest(TestCase):
         assert self.model.from_dsn("http://abc@testserver/1") == key
         assert self.model.from_dsn("http://abc@o1.ingest.testserver/1") == key
 
-        with self.assertRaises(self.model.DoesNotExist):
+        with pytest.raises(self.model.DoesNotExist):
             self.model.from_dsn("http://xxx@testserver/1")
 
-        with self.assertRaises(self.model.DoesNotExist):
+        with pytest.raises(self.model.DoesNotExist):
             self.model.from_dsn("abc")
 
     def test_get_default(self):

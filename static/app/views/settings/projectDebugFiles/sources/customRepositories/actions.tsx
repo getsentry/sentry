@@ -94,7 +94,7 @@ function Actions({
         }
         disabled={actionsDisabled}
       >
-        <ActionBtn disabled={actionsDisabled} onClick={onEdit} size="small">
+        <ActionBtn disabled={actionsDisabled} onClick={onEdit} size="sm">
           {t('Configure')}
         </ActionBtn>
       </ButtonTooltip>
@@ -112,12 +112,12 @@ function Actions({
           }
           disabled={actionsDisabled}
         >
-          <ActionBtn size="small" disabled>
+          <ActionBtn size="sm" disabled>
             {t('Delete')}
           </ActionBtn>
         </ButtonTooltip>
       ) : (
-        renderConfirmDelete(<ActionBtn size="small">{t('Delete')}</ActionBtn>)
+        renderConfirmDelete(<ActionBtn size="sm">{t('Delete')}</ActionBtn>)
       )}
       <DropDownWrapper>
         <DropdownLink
@@ -167,7 +167,7 @@ const StyledButtonBar = styled(ButtonBar)`
   grid-auto-flow: row;
   margin-top: ${space(0.5)};
 
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     grid-column: 3/3;
     grid-row: 1/3;
     grid-auto-flow: column;
@@ -176,21 +176,21 @@ const StyledButtonBar = styled(ButtonBar)`
 `;
 
 const ButtonTooltip = styled(Tooltip)`
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     display: none;
   }
 `;
 
 const ActionBtn = styled(Button)`
   width: 100%;
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     display: none;
   }
 `;
 
 const DropDownWrapper = styled('div')`
   display: none;
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     display: block;
   }
 `;

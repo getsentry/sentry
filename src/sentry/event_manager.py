@@ -15,7 +15,6 @@ from django.utils.encoding import force_text
 from pytz import UTC
 
 from sentry import (
-    buffer,
     eventstore,
     eventstream,
     eventtypes,
@@ -67,6 +66,7 @@ from sentry.models import (
     Organization,
     Project,
     ProjectKey,
+    PullRequest,
     Release,
     ReleaseCommit,
     ReleaseEnvironment,
@@ -77,9 +77,11 @@ from sentry.models import (
 )
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.plugins.base import plugins
+from sentry.projectoptions.defaults import BETA_GROUPING_CONFIG, DEFAULT_GROUPING_CONFIG
 from sentry.reprocessing2 import is_reprocessed_event, save_unprocessed_event
 from sentry.signals import first_event_received, first_transaction_received, issue_unresolved
 from sentry.tasks.integrations import kick_off_status_syncs
+from sentry.tasks.process_buffer import buffer_incr
 from sentry.types.activity import ActivityType
 from sentry.utils import json, metrics
 from sentry.utils.cache import cache_key_for_event
@@ -130,7 +132,7 @@ def has_pending_commit_resolution(group):
     """
     Checks that the most recent commit that fixes a group has had a chance to release
     """
-    recent_group_link = (
+    latest_issue_commit_resolution = (
         GroupLink.objects.filter(
             group_id=group.id,
             linked_type=GroupLink.LinkedType.commit,
@@ -139,10 +141,23 @@ def has_pending_commit_resolution(group):
         .order_by("-datetime")
         .first()
     )
-    if recent_group_link is None:
+    if latest_issue_commit_resolution is None:
         return False
 
-    return not ReleaseCommit.objects.filter(commit__id=recent_group_link.linked_id).exists()
+    # commit has been released and is not in pending commit state
+    if ReleaseCommit.objects.filter(commit__id=latest_issue_commit_resolution.linked_id).exists():
+        return False
+    else:
+        # check if this commit is a part of a PR
+        pr_ids = PullRequest.objects.filter(
+            pullrequestcommit__commit=latest_issue_commit_resolution.linked_id
+        ).values_list("id", flat=True)
+        # assume that this commit has been released if any commits in this PR have been released
+        if ReleaseCommit.objects.filter(
+            commit__pullrequestcommit__pull_request__in=pr_ids
+        ).exists():
+            return False
+        return True
 
 
 def get_max_crashreports(model, allow_none=False):
@@ -294,6 +309,7 @@ class EventManager:
         start_time=None,
         cache_key=None,
         skip_send_first_transaction=False,
+        auto_upgrade_grouping=False,
     ):
         """
         After normalizing and processing an event, save adjacent models such as
@@ -507,13 +523,13 @@ class EventManager:
 
         if job["release"]:
             if job["is_new"]:
-                buffer.incr(
+                buffer_incr(
                     ReleaseProject,
                     {"new_groups": 1},
                     {"release_id": job["release"].id, "project_id": project.id},
                 )
             if job["is_new_group_environment"]:
-                buffer.incr(
+                buffer_incr(
                     ReleaseProjectEnvironment,
                     {"new_issues_count": 1},
                     {
@@ -571,7 +587,31 @@ class EventManager:
 
         self._data = job["event"].data.data
 
+        # Check if the project is configured for auto upgrading and we need to upgrade
+        # to the latest grouping config.
+        if (
+            auto_upgrade_grouping
+            and settings.SENTRY_GROUPING_AUTO_UPDATE_ENABLED
+            and project.get_option("sentry:grouping_auto_update")
+        ):
+            _auto_update_grouping(project)
+
         return job["event"]
+
+
+def _auto_update_grouping(project):
+    old_grouping = project.get_option("sentry:grouping_config")
+    new_grouping = DEFAULT_GROUPING_CONFIG
+
+    # update to latest grouping config but not if a user is already on
+    # beta.
+    if old_grouping != new_grouping and old_grouping != BETA_GROUPING_CONFIG:
+        project.update_option("sentry:secondary_grouping_config", old_grouping)
+        project.update_option(
+            "sentry:secondary_grouping_expiry",
+            int(time.time()) + settings.SENTRY_GROUPING_UPDATE_MIGRATION_PHASE,
+        )
+        project.update_option("sentry:grouping_config", new_grouping)
 
 
 @metrics.wraps("event_manager.background_grouping")
@@ -1383,7 +1423,7 @@ def _handle_regression(group, event, release):
 
 def _process_existing_aggregate(group, event, data, release):
     date = max(event.datetime, group.last_seen)
-    extra = {"last_seen": date, "score": ScoreClause(group), "data": data["data"]}
+    extra = {"last_seen": date, "data": data["data"]}
     if event.search_message and event.search_message != group.message:
         extra["message"] = event.search_message
     if group.level != data["level"]:
@@ -1399,7 +1439,7 @@ def _process_existing_aggregate(group, event, data, release):
 
     update_kwargs = {"times_seen": 1}
 
-    buffer.incr(Group, update_kwargs, {"id": group.id}, extra)
+    buffer_incr(Group, update_kwargs, {"id": group.id}, extra)
 
     return is_regression
 

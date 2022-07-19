@@ -73,6 +73,7 @@ type State = {
   showTags: boolean;
   totalValues: null | number;
   savedQuery?: SavedQuery;
+  showMetricsAlert?: boolean;
 };
 const SHOW_TAGS_STORAGE_KEY = 'discover2:show-tags';
 
@@ -121,6 +122,13 @@ class Results extends Component<Props, State> {
 
   componentDidMount() {
     const {organization, selection, location} = this.props;
+    if (location.query.fromMetric) {
+      this.setState({showMetricsAlert: true});
+      browserHistory.replace({
+        ...location,
+        query: {...location.query, fromMetric: undefined},
+      });
+    }
     loadOrganizationTags(this.tagsApi, organization.slug, selection);
     addRoutePerformanceContext(selection);
     this.checkEventView();
@@ -314,10 +322,7 @@ class Results extends Component<Props, State> {
 
     router.push({
       pathname: location.pathname,
-      query: {
-        ...searchQueryParams,
-        userModified: true,
-      },
+      query: searchQueryParams,
     });
   };
 
@@ -471,6 +476,19 @@ class Results extends Component<Props, State> {
     this.setState({error, errorCode});
   };
 
+  renderMetricsFallbackBanner() {
+    if (this.state.showMetricsAlert) {
+      return (
+        <Alert type="info" showIcon>
+          {t(
+            "You've navigated to this page from a performance metric widget generated from processed events. The results here only show sampled events."
+          )}
+        </Alert>
+      );
+    }
+    return null;
+  }
+
   render() {
     const {organization, location, router} = this.props;
     const {
@@ -506,6 +524,7 @@ class Results extends Component<Props, State> {
             <Layout.Body>
               {incompatibleAlertNotice && <Top fullWidth>{incompatibleAlertNotice}</Top>}
               <Top fullWidth>
+                {this.renderMetricsFallbackBanner()}
                 {this.renderError(error)}
                 <StyledPageFilterBar condensed>
                   <ProjectPageFilter />
@@ -642,7 +661,6 @@ function ResultsContainer(props: Props) {
       skipLoadLastUsed={
         props.organization.features.includes('global-views') && !!props.savedQuery
       }
-      hideGlobalHeader
     >
       <SavedQueryAPI {...props} />
     </PageFiltersContainer>

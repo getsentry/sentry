@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+// eslint-disable-next-line no-restricted-imports
 import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import {useTheme} from '@emotion/react';
 import {Location, Query} from 'history';
@@ -11,7 +12,6 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import {OrganizationSummary} from 'sentry/types';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
-import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 
 import {TrendFunctionField} from '../../../trends/types';
@@ -130,7 +130,6 @@ function TrendChart({
         partial
         withoutZerofill={withoutZerofill}
         referrer="api.performance.transaction-summary.trends-chart"
-        userModified={decodeScalar(location.query.userModified)}
       >
         {({errored, loading, reloading, timeseriesData, timeframe: timeFrame}) => (
           <Content

@@ -1,12 +1,11 @@
-import {forwardRef, useCallback, useMemo} from 'react';
+import {forwardRef, useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import {IconSettings, IconUser} from 'sentry/icons';
 import space from 'sentry/styles/space';
+import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
-import {formatColorForFrame} from 'sentry/utils/profiling/gl/utils';
 import {VirtualizedTreeNode} from 'sentry/utils/profiling/hooks/useVirtualizedTree/VirtualizedTreeNode';
-import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
 
 import {FrameCallersTableCell} from './frameStack';
 
@@ -19,7 +18,8 @@ function computeRelativeWeight(base: number, value: number) {
 }
 
 interface FrameStackTableRowProps {
-  flamegraphRenderer: FlamegraphRenderer;
+  formatDuration: Flamegraph['formatter'];
+  frameColor: string;
   node: VirtualizedTreeNode<FlamegraphFrame>;
   onClick: React.MouseEventHandler<HTMLDivElement>;
   onContextMenu: React.MouseEventHandler<HTMLDivElement>;
@@ -38,10 +38,11 @@ export const FrameStackTableRow = forwardRef<HTMLDivElement, FrameStackTableRowP
   (
     {
       node,
-      flamegraphRenderer,
       referenceNode,
       onExpandClick,
       onContextMenu,
+      formatDuration,
+      frameColor,
       tabIndex,
       onKeyDown,
       onClick,
@@ -50,9 +51,7 @@ export const FrameStackTableRow = forwardRef<HTMLDivElement, FrameStackTableRowP
     },
     ref
   ) => {
-    const colorString = useMemo(() => {
-      return formatColorForFrame(node.node, flamegraphRenderer);
-    }, [node, flamegraphRenderer]);
+    const isSelected = tabIndex === 0;
 
     const handleExpanding = useCallback(
       (evt: React.MouseEvent) => {
@@ -68,34 +67,35 @@ export const FrameStackTableRow = forwardRef<HTMLDivElement, FrameStackTableRowP
         style={style}
         onContextMenu={onContextMenu}
         tabIndex={tabIndex}
-        isSelected={tabIndex === 0}
+        isSelected={isSelected}
         onKeyDown={onKeyDown}
         onClick={onClick}
         onMouseEnter={onMouseEnter}
       >
-        <FrameCallersTableCell textAlign="right">
-          {flamegraphRenderer.flamegraph.formatter(node.node.node.selfWeight)}
+        <FrameCallersTableCell isSelected={isSelected} textAlign="right">
+          {formatDuration(node.node.node.selfWeight)}
           <Weight
-            isSelected={tabIndex === 0}
+            isSelected={isSelected}
             weight={computeRelativeWeight(
               referenceNode.node.totalWeight,
               node.node.node.selfWeight
             )}
           />
         </FrameCallersTableCell>
-        <FrameCallersTableCell noPadding textAlign="right">
+        <FrameCallersTableCell isSelected={isSelected} noPadding textAlign="right">
           <FrameWeightTypeContainer>
             <FrameWeightContainer>
-              {flamegraphRenderer.flamegraph.formatter(node.node.node.totalWeight)}
+              {formatDuration(node.node.node.totalWeight)}
               <Weight
-                isSelected={tabIndex === 0}
+                padded
+                isSelected={isSelected}
                 weight={computeRelativeWeight(
                   referenceNode.node.totalWeight,
                   node.node.node.totalWeight
                 )}
               />
             </FrameWeightContainer>
-            <FrameTypeIndicator isSelected={tabIndex === 0}>
+            <FrameTypeIndicator isSelected={isSelected}>
               {node.node.node.frame.is_application ? (
                 <IconUser size="xs" />
               ) : (
@@ -109,7 +109,8 @@ export const FrameStackTableRow = forwardRef<HTMLDivElement, FrameStackTableRowP
           style={{paddingLeft: node.depth * 14 + 8, width: '100%'}}
         >
           <FrameNameContainer>
-            <FrameColorIndicator style={{backgroundColor: colorString}} />
+            {/* @TODO FIX COLOR */}
+            <FrameColorIndicator style={{backgroundColor: frameColor}} />
             <FrameChildrenIndicator
               tabIndex={-1}
               onClick={handleExpanding}
@@ -125,17 +126,20 @@ export const FrameStackTableRow = forwardRef<HTMLDivElement, FrameStackTableRowP
   }
 );
 
-const Weight = styled((props: {isSelected: boolean; weight: number}) => {
-  const {weight, isSelected: _, ...rest} = props;
-  return (
-    <div {...rest}>
-      {weight.toFixed(1)}%
-      <BackgroundWeightBar style={{transform: `scaleX(${weight / 100})`}} />
-    </div>
-  );
-})`
+const Weight = styled(
+  (props: {isSelected: boolean; weight: number; padded?: boolean}) => {
+    const {weight, padded: __, isSelected: _, ...rest} = props;
+    return (
+      <div {...rest}>
+        {weight.toFixed(1)}%
+        <BackgroundWeightBar style={{transform: `scaleX(${weight / 100})`}} />
+      </div>
+    );
+  }
+)`
   display: inline-block;
   min-width: 7ch;
+  padding-right: ${p => (p.padded ? space(0.5) : 0)};
   color: ${p => (p.isSelected ? p.theme.white : p.theme.subText)};
   opacity: ${p => (p.isSelected ? 0.8 : 1)};
 `;
@@ -182,9 +186,17 @@ const FrameCallersRow = styled('div')<{isSelected: boolean}>`
   display: flex;
   width: 100%;
   color: ${p => (p.isSelected ? p.theme.white : 'inherit')};
+  scroll-margin-top: 24px;
 
   &:focus {
     outline: none;
+  }
+
+  &[data-hovered='true']:not([tabindex='0']) {
+    > div:first-child,
+    > div:nth-child(2) {
+      background-color: #edf2fc !important;
+    }
   }
 `;
 

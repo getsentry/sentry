@@ -1,24 +1,28 @@
+from __future__ import annotations
+
 import logging
 from datetime import timedelta
-from typing import Sequence
+from typing import TYPE_CHECKING, Sequence
 
 import sentry_sdk
 from django.utils import timezone
-from snuba_sdk import Request
-from snuba_sdk.legacy import json_to_snql
 
-from sentry.eventstore import Filter
 from sentry.models import Any, Environment, Mapping, Optional
 from sentry.snuba.dataset import EntityKey
 from sentry.snuba.entity_subscription import (
     BaseEntitySubscription,
-    get_entity_subscription_for_dataset,
-    map_aggregate_to_entity_key,
+    get_entity_key_from_query_builder,
+    get_entity_key_from_snuba_query,
+    get_entity_subscription,
+    get_entity_subscription_from_snuba_query,
 )
-from sentry.snuba.models import QueryDatasets, QuerySubscription
+from sentry.snuba.models import QueryDatasets, QuerySubscription, SnubaQuery
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json, metrics
 from sentry.utils.snuba import SnubaError, _snuba_pool
+
+if TYPE_CHECKING:
+    from sentry.search.events.builder import QueryBuilder
 
 logger = logging.getLogger(__name__)
 
@@ -51,8 +55,8 @@ def create_subscription_in_snuba(query_subscription_id, **kwargs):
         # into this state. Just attempt to delete the existing subscription and then
         # create a new one.
         query_dataset = QueryDatasets(subscription.snuba_query.dataset)
-        entity_key: EntityKey = map_aggregate_to_entity_key(
-            query_dataset, subscription.snuba_query.aggregate
+        entity_key = get_entity_key_from_snuba_query(
+            subscription.snuba_query, subscription.project.organization_id, subscription.project_id
         )
         try:
             _delete_from_snuba(
@@ -75,7 +79,9 @@ def create_subscription_in_snuba(query_subscription_id, **kwargs):
     default_retry_delay=5,
     max_retries=5,
 )
-def update_subscription_in_snuba(query_subscription_id, old_dataset=None, **kwargs):
+def update_subscription_in_snuba(
+    query_subscription_id, old_query_type=None, old_dataset=None, **kwargs
+):
     """
     Task to update a corresponding subscription in Snuba from a `QuerySubscription` in
     Sentry. Updating in Snuba means deleting the existing subscription, then creating a
@@ -92,14 +98,34 @@ def update_subscription_in_snuba(query_subscription_id, old_dataset=None, **kwar
         return
 
     if subscription.subscription_id is not None:
-        dataset = old_dataset if old_dataset is not None else subscription.snuba_query.dataset
-        entity_key: EntityKey = map_aggregate_to_entity_key(
-            QueryDatasets(dataset), subscription.snuba_query.aggregate
+        dataset = QueryDatasets(
+            old_dataset if old_dataset is not None else subscription.snuba_query.dataset
+        )
+        query_type = SnubaQuery.Type(
+            old_query_type if old_query_type is not None else subscription.snuba_query.type
+        )
+        old_entity_subscription = get_entity_subscription(
+            query_type,
+            dataset,
+            subscription.snuba_query.aggregate,
+            subscription.snuba_query.time_window,
+            extra_fields={
+                "org_id": subscription.project.organization_id,
+                "event_types": subscription.snuba_query.event_types,
+            },
+        )
+        old_entity_key = get_entity_key_from_query_builder(
+            old_entity_subscription.build_query_builder(
+                subscription.snuba_query.query,
+                [subscription.project_id],
+                None,
+                {"organization_id": subscription.project.organization_id},
+            ),
         )
         _delete_from_snuba(
             QueryDatasets(dataset),
             subscription.subscription_id,
-            entity_key,
+            old_entity_key,
         )
 
     subscription_id = _create_in_snuba(subscription)
@@ -136,8 +162,8 @@ def delete_subscription_from_snuba(query_subscription_id, **kwargs):
 
     if subscription.subscription_id is not None:
         query_dataset = QueryDatasets(subscription.snuba_query.dataset)
-        entity_key: EntityKey = map_aggregate_to_entity_key(
-            query_dataset, subscription.snuba_query.aggregate
+        entity_key = get_entity_key_from_snuba_query(
+            subscription.snuba_query, subscription.project.organization_id, subscription.project_id
         )
         _delete_from_snuba(
             query_dataset,
@@ -151,69 +177,43 @@ def delete_subscription_from_snuba(query_subscription_id, **kwargs):
         subscription.update(subscription_id=None)
 
 
-def build_snuba_filter(
-    entity_subscription: BaseEntitySubscription,
-    query: str,
-    environment: Optional[Environment],
-    params: Optional[Mapping[str, Any]] = None,
-) -> Filter:
-    return entity_subscription.build_snuba_filter(query, environment, params)
-
-
-def build_snql_query(
+def build_query_builder(
     entity_subscription: BaseEntitySubscription,
     query: str,
     project_ids: Sequence[int],
     environment: Optional[Environment],
     params: Optional[Mapping[str, Any]] = None,
-) -> Request:
-    return entity_subscription.build_snql_query(query, project_ids, environment, params)
+) -> QueryBuilder:
+    return entity_subscription.build_query_builder(query, project_ids, environment, params)
 
 
 def _create_in_snuba(subscription: QuerySubscription) -> str:
     snuba_query = subscription.snuba_query
-    entity_subscription = get_entity_subscription_for_dataset(
-        dataset=QueryDatasets(snuba_query.dataset),
-        aggregate=snuba_query.aggregate,
-        time_window=snuba_query.time_window,
-        extra_fields={
-            "org_id": subscription.project.organization_id,
-            "event_types": snuba_query.event_types,
-        },
+    entity_subscription = get_entity_subscription_from_snuba_query(
+        snuba_query,
+        subscription.project.organization_id,
     )
-    snuba_filter = build_snuba_filter(
+    snql_query = build_query_builder(
         entity_subscription,
         snuba_query.query,
+        [subscription.project_id],
         snuba_query.environment,
-    )
-
+        params={
+            "organization_id": subscription.project.organization_id,
+            "project_id": [subscription.project_id],
+        },
+    ).get_snql_query()
     body = {
         "project_id": subscription.project_id,
-        "project": subscription.project_id,  # for SnQL SDK
-        "dataset": snuba_query.dataset,
-        "conditions": snuba_filter.conditions,
-        "aggregations": snuba_filter.aggregations,
+        "query": str(snql_query.query),
         "time_window": snuba_query.time_window,
         "resolution": snuba_query.resolution,
         **entity_subscription.get_entity_extra_params(),
     }
 
-    try:
-        metrics.incr("snuba.snql.subscription.create", tags={"dataset": snuba_query.dataset})
-        snql_query = json_to_snql(body, entity_subscription.entity_key.value)
-        snql_query.validate()
-        body["query"] = str(snql_query.query)
-        body["type"] = "delegate"  # mark this as a combined subscription
-    except Exception as e:
-        logger.warning(
-            "snuba.snql.subscription.parsing.error",
-            extra={"error": str(e), "params": json.dumps(body), "dataset": snuba_query.dataset},
-        )
-        metrics.incr("snuba.snql.subscription.parsing.error", tags={"dataset": snuba_query.dataset})
-
     response = _snuba_pool.urlopen(
         "POST",
-        f"/{snuba_query.dataset}/{entity_subscription.entity_key.value}/subscriptions",
+        f"/{snuba_query.dataset}/{snql_query.query.match.name}/subscriptions",
         body=json.dumps(body),
     )
     if response.status != 202:

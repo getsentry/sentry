@@ -1,6 +1,7 @@
 from datetime import timedelta
 from unittest.mock import Mock, patch
 
+import pytest
 from django.utils import timezone
 
 from sentry.exceptions import HookValidationError
@@ -171,5 +172,5 @@ class HookHandleTest(TestCase):
 
         req = Mock()
         req.POST = {"head_long": "", "url": "http://example.com", "user": user.email}
-        with self.assertRaises(HookValidationError):
+        with pytest.raises(HookValidationError):
             hook.handle(req)

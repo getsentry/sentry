@@ -11,6 +11,7 @@ import logging
 from collections import OrderedDict, defaultdict, deque
 from copy import copy
 from dataclasses import dataclass, replace
+from datetime import datetime
 from operator import itemgetter
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Set, Tuple, Union
 
@@ -18,17 +19,25 @@ from snuba_sdk import Column, Condition, Function, Op, Query, Request
 from snuba_sdk.conditions import ConditionGroup
 
 from sentry.api.utils import InvalidParams
-from sentry.models import Project
+from sentry.models import Organization, Project
 from sentry.sentry_metrics import indexer
+from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.utils import resolve_tag_key, reverse_resolve
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.fields import run_metrics_query
 from sentry.snuba.metrics.fields.base import get_derived_metrics, org_id_from_projects
 from sentry.snuba.metrics.naming_layer.mapping import get_mri, get_public_name_from_mri
+from sentry.snuba.metrics.naming_layer.mri import is_custom_measurement, parse_mri
 from sentry.snuba.metrics.query import Groupable, MetricsQuery
-from sentry.snuba.metrics.query_builder import SnubaQueryBuilder, SnubaResultConverter
+from sentry.snuba.metrics.query_builder import (
+    SnubaQueryBuilder,
+    SnubaResultConverter,
+    translate_meta_results,
+)
 from sentry.snuba.metrics.utils import (
+    AVAILABLE_GENERIC_OPERATIONS,
     AVAILABLE_OPERATIONS,
+    CUSTOM_MEASUREMENT_DATASETS,
     FIELD_ALIAS_MAPPINGS,
     METRIC_TYPE_TO_ENTITY,
     UNALLOWED_TAGS,
@@ -47,7 +56,13 @@ from sentry.utils.snuba import raw_snql_query
 logger = logging.getLogger(__name__)
 
 
-def _get_metrics_for_entity(entity_key: EntityKey, projects, org_id) -> Mapping[str, Any]:
+def _get_metrics_for_entity(
+    entity_key: EntityKey,
+    projects: Sequence[Project],
+    org_id: int,
+    start: Optional[datetime] = None,
+    end: Optional[datetime] = None,
+) -> Mapping[str, Any]:
     return run_metrics_query(
         entity_key=entity_key,
         select=[Column("metric_id")],
@@ -56,12 +71,15 @@ def _get_metrics_for_entity(entity_key: EntityKey, projects, org_id) -> Mapping[
         referrer="snuba.metrics.get_metrics_names_for_entity",
         projects=projects,
         org_id=org_id,
+        start=start,
+        end=end,
     )
 
 
 def get_available_derived_metrics(
     projects: Sequence[Project],
     supported_metric_ids_in_entities: Dict[MetricType, Sequence[int]],
+    use_case_id: UseCaseKey,
 ) -> Set[str]:
     """
     Function that takes as input a dictionary of the available ids in each entity, and in turn
@@ -81,7 +99,7 @@ def get_available_derived_metrics(
 
     for derived_metric_mri, derived_metric_obj in all_derived_metrics.items():
         try:
-            derived_metric_obj_ids = derived_metric_obj.generate_metric_ids(projects)
+            derived_metric_obj_ids = derived_metric_obj.generate_metric_ids(projects, use_case_id)
         except NotSupportedOverCompositeEntityException:
             # If we encounter a derived metric composed of constituents spanning multiple
             # entities then we store it in this set
@@ -100,7 +118,7 @@ def get_available_derived_metrics(
         # then we add that instance of composite metric to the found derived metric.
         composite_derived_metric_obj = all_derived_metrics[composite_derived_metric_mri]
         single_entity_constituents = (
-            composite_derived_metric_obj.naively_generate_singular_entity_constituents()
+            composite_derived_metric_obj.naively_generate_singular_entity_constituents(use_case_id)
         )
         if single_entity_constituents.issubset(found_derived_metrics):
             found_derived_metrics.add(composite_derived_metric_obj.metric_mri)
@@ -109,7 +127,7 @@ def get_available_derived_metrics(
     return found_derived_metrics.intersection(public_derived_metrics)
 
 
-def get_metrics(projects: Sequence[Project]) -> Sequence[MetricMeta]:
+def get_metrics(projects: Sequence[Project], use_case_id: UseCaseKey) -> Sequence[MetricMeta]:
     assert projects
 
     metrics_meta = []
@@ -125,10 +143,13 @@ def get_metrics(projects: Sequence[Project]) -> Sequence[MetricMeta]:
             try:
                 metrics_meta.append(
                     MetricMeta(
-                        name=get_public_name_from_mri(reverse_resolve(row["metric_id"])),
+                        name=get_public_name_from_mri(
+                            reverse_resolve(use_case_id, row["metric_id"])
+                        ),
                         type=metric_type,
                         operations=AVAILABLE_OPERATIONS[METRIC_TYPE_TO_ENTITY[metric_type].value],
                         unit=None,  # snuba does not know the unit
+                        metric_id=row["metric_id"],
                     )
                 )
             except InvalidParams:
@@ -144,7 +165,9 @@ def get_metrics(projects: Sequence[Project]) -> Sequence[MetricMeta]:
     # their constituent metrics. A derived metric should be added to the response list if its
     # metric ids are a subset of the metric ids in one of the entities i.e. Its an instance of
     # SingularEntityDerivedMetric.
-    found_derived_metrics = get_available_derived_metrics(projects, metric_ids_in_entities)
+    found_derived_metrics = get_available_derived_metrics(
+        projects, metric_ids_in_entities, use_case_id
+    )
     public_derived_metrics = get_derived_metrics(exclude_private=True)
 
     for derived_metric_mri in found_derived_metrics:
@@ -155,12 +178,52 @@ def get_metrics(projects: Sequence[Project]) -> Sequence[MetricMeta]:
                 type=derived_metric_obj.result_type,
                 operations=derived_metric_obj.generate_available_operations(),
                 unit=derived_metric_obj.unit,
+                # Derived metrics won't have an id
+                metric_id=None,
             )
         )
     return sorted(metrics_meta, key=itemgetter("name"))
 
 
-def _get_metrics_filter_ids(projects: Sequence[Project], metric_mris: Sequence[str]) -> Set[int]:
+def get_custom_measurements(
+    projects: Sequence[Project],
+    organization: Optional[Organization] = None,
+    start: Optional[datetime] = None,
+    end: Optional[datetime] = None,
+    use_case_id: UseCaseKey = UseCaseKey.PERFORMANCE,
+) -> Sequence[MetricMeta]:
+    assert projects
+
+    metrics_meta = []
+    for metric_type in CUSTOM_MEASUREMENT_DATASETS:
+        for row in _get_metrics_for_entity(
+            entity_key=METRIC_TYPE_TO_ENTITY[metric_type],
+            projects=projects,
+            org_id=projects[0].organization_id if organization is None else organization.id,
+            start=start,
+            end=end,
+        ):
+            mri = reverse_resolve(use_case_id, row["metric_id"])
+            parsed_mri = parse_mri(mri)
+            if parsed_mri is not None and is_custom_measurement(parsed_mri):
+                metrics_meta.append(
+                    MetricMeta(
+                        name=parsed_mri.name,
+                        type=metric_type,
+                        operations=AVAILABLE_GENERIC_OPERATIONS[
+                            METRIC_TYPE_TO_ENTITY[metric_type].value
+                        ],
+                        unit=parsed_mri.unit,
+                        metric_id=row["metric_id"],
+                    )
+                )
+
+    return metrics_meta
+
+
+def _get_metrics_filter_ids(
+    projects: Sequence[Project], metric_mris: Sequence[str], use_case_id: UseCaseKey
+) -> Set[int]:
     """
     Returns a set of metric_ids that map to input metric names and raises an exception if
     metric cannot be resolved in the indexer
@@ -177,14 +240,14 @@ def _get_metrics_filter_ids(projects: Sequence[Project], metric_mris: Sequence[s
     while metric_mris_deque:
         mri = metric_mris_deque.popleft()
         if mri not in all_derived_metrics:
-            metric_ids.add(indexer.resolve(org_id, mri))
+            metric_ids.add(indexer.resolve(org_id, mri, use_case_id))
         else:
             derived_metric_obj = all_derived_metrics[mri]
             try:
-                metric_ids |= derived_metric_obj.generate_metric_ids(projects)
+                metric_ids |= derived_metric_obj.generate_metric_ids(projects, use_case_id)
             except NotSupportedOverCompositeEntityException:
                 single_entity_constituents = (
-                    derived_metric_obj.naively_generate_singular_entity_constituents()
+                    derived_metric_obj.naively_generate_singular_entity_constituents(use_case_id)
                 )
                 metric_mris_deque.extend(single_entity_constituents)
     if None in metric_ids or -1 in metric_ids:
@@ -198,6 +261,7 @@ def _validate_requested_derived_metrics_in_input_metrics(
     projects: Sequence[Project],
     metric_mris: Sequence[str],
     supported_metric_ids_in_entities: Dict[MetricType, Sequence[int]],
+    use_case_id: UseCaseKey,
 ) -> None:
     """
     Function that takes metric_mris list and a mapping of entity to its metric ids, and ensures
@@ -211,7 +275,7 @@ def _validate_requested_derived_metrics_in_input_metrics(
         metric_mri for metric_mri in metric_mris if metric_mri in public_derived_metrics
     }
     found_derived_metrics = get_available_derived_metrics(
-        projects, supported_metric_ids_in_entities
+        projects, supported_metric_ids_in_entities, use_case_id
     )
     if not requested_derived_metrics.issubset(found_derived_metrics):
         raise DerivedMetricParseException(
@@ -226,6 +290,7 @@ def _fetch_tags_or_values_per_ids(
     metric_names: Optional[Sequence[str]],
     referrer: str,
     column: str,
+    use_case_id: UseCaseKey,
 ) -> Tuple[Union[Sequence[Tag], Sequence[TagValue]], Optional[str]]:
     """
     Function that takes as input projects, metric_names, and a column, and based on the column
@@ -248,7 +313,9 @@ def _fetch_tags_or_values_per_ids(
             raise InvalidParams(f"Metric names {metric_names} do not exist")
 
     try:
-        metric_ids = _get_metrics_filter_ids(projects=projects, metric_mris=metric_mris)
+        metric_ids = _get_metrics_filter_ids(
+            projects=projects, metric_mris=metric_mris, use_case_id=use_case_id
+        )
     except MetricDoesNotExistInIndexer:
         raise InvalidParams(
             f"Some or all of the metric names in {metric_names} do not exist in the indexer"
@@ -313,6 +380,7 @@ def _fetch_tags_or_values_per_ids(
             projects,
             metric_mris=metric_mris,
             supported_metric_ids_in_entities=supported_metric_ids_in_entities,
+            use_case_id=use_case_id,
         )
 
         # Only return tags/tag values that occur in all metrics
@@ -323,7 +391,10 @@ def _fetch_tags_or_values_per_ids(
     if column.startswith("tags["):
         tag_id = column.split("tags[")[1].split("]")[0]
         tags_or_values = [
-            {"key": reverse_resolve(int(tag_id)), "value": reverse_resolve(value_id)}
+            {
+                "key": reverse_resolve(use_case_id, int(tag_id)),
+                "value": reverse_resolve(use_case_id, value_id),
+            }
             for value_id in tag_or_value_ids
         ]
         tags_or_values.sort(key=lambda tag: (tag["key"], tag["value"]))
@@ -331,7 +402,7 @@ def _fetch_tags_or_values_per_ids(
         tags_or_values = [
             {"key": reversed_tag}
             for tag_id in tag_or_value_ids
-            if (reversed_tag := reverse_resolve(tag_id)) not in UNALLOWED_TAGS
+            if (reversed_tag := reverse_resolve(use_case_id, tag_id)) not in UNALLOWED_TAGS
         ]
         tags_or_values.sort(key=itemgetter("key"))
 
@@ -341,7 +412,9 @@ def _fetch_tags_or_values_per_ids(
     return tags_or_values, None
 
 
-def get_single_metric_info(projects: Sequence[Project], metric_name: str) -> MetricMetaWithTagKeys:
+def get_single_metric_info(
+    projects: Sequence[Project], metric_name: str, use_case_id: UseCaseKey
+) -> MetricMetaWithTagKeys:
     assert projects
 
     tags, metric_type = _fetch_tags_or_values_per_ids(
@@ -349,6 +422,7 @@ def get_single_metric_info(projects: Sequence[Project], metric_name: str) -> Met
         metric_names=[metric_name],
         column="tags.key",
         referrer="snuba.metrics.meta.get_single_metric",
+        use_case_id=use_case_id,
     )
     entity_key = METRIC_TYPE_TO_ENTITY[metric_type]
 
@@ -374,7 +448,9 @@ def get_single_metric_info(projects: Sequence[Project], metric_name: str) -> Met
     return response_dict
 
 
-def get_tags(projects: Sequence[Project], metric_names: Optional[Sequence[str]]) -> Sequence[Tag]:
+def get_tags(
+    projects: Sequence[Project], metric_names: Optional[Sequence[str]], use_case_id: UseCaseKey
+) -> Sequence[Tag]:
     """Get all metric tags for the given projects and metric_names"""
     assert projects
 
@@ -384,6 +460,7 @@ def get_tags(projects: Sequence[Project], metric_names: Optional[Sequence[str]])
             metric_names=metric_names,
             column="tags.key",
             referrer="snuba.metrics.meta.get_tags",
+            use_case_id=use_case_id,
         )
     except InvalidParams:
         return []
@@ -391,13 +468,16 @@ def get_tags(projects: Sequence[Project], metric_names: Optional[Sequence[str]])
 
 
 def get_tag_values(
-    projects: Sequence[Project], tag_name: str, metric_names: Optional[Sequence[str]]
+    projects: Sequence[Project],
+    tag_name: str,
+    metric_names: Optional[Sequence[str]],
+    use_case_id: UseCaseKey,
 ) -> Sequence[TagValue]:
     """Get all known values for a specific tag"""
     assert projects
 
     org_id = org_id_from_projects(projects)
-    tag_id = indexer.resolve(org_id, tag_name)
+    tag_id = indexer.resolve(org_id, tag_name, use_case_id=use_case_id)
 
     if tag_name in UNALLOWED_TAGS:
         raise InvalidParams(f"Tag name {tag_name} is an unallowed tag")
@@ -411,6 +491,7 @@ def get_tag_values(
             column=f"tags[{tag_id}]",
             metric_names=metric_names,
             referrer="snuba.metrics.meta.get_tag_values",
+            use_case_id=use_case_id,
         )
     except InvalidParams:
         return []
@@ -445,7 +526,7 @@ class GroupLimitFilters:
 
 
 def _get_group_limit_filters(
-    metrics_query: MetricsQuery, results: List[Mapping[str, int]]
+    metrics_query: MetricsQuery, results: List[Mapping[str, int]], use_case_id: UseCaseKey
 ) -> Optional[GroupLimitFilters]:
     if not metrics_query.groupby or not results:
         return None
@@ -454,7 +535,7 @@ def _get_group_limit_filters(
     # will be used to filter down and order the results of the 2nd query.
     # For example, (project_id, transaction) is translated to (project_id, tags[3])
     keys = tuple(
-        resolve_tag_key(metrics_query.org_id, field)
+        resolve_tag_key(use_case_id, metrics_query.org_id, field)
         if field not in FIELD_ALIAS_MAPPINGS.values()
         else field
         for field in metrics_query.groupby
@@ -554,12 +635,18 @@ def _prune_extra_groups(results: dict, filters: GroupLimitFilters) -> None:
             queries[key]["data"] = filtered
 
 
-def get_series(projects: Sequence[Project], metrics_query: MetricsQuery) -> dict:
+def get_series(
+    projects: Sequence[Project],
+    metrics_query: MetricsQuery,
+    use_case_id: UseCaseKey,
+    include_meta: bool = False,
+) -> dict:
     """Get time series for the given query"""
     intervals = list(
         get_intervals(metrics_query.start, metrics_query.end, metrics_query.granularity.granularity)
     )
     results = {}
+    meta = []
     fields_in_entities = {}
 
     if not metrics_query.groupby:
@@ -583,15 +670,16 @@ def get_series(projects: Sequence[Project], metrics_query: MetricsQuery) -> dict
         # performance table.
         original_select = copy(metrics_query.select)
 
-        # The initial query has to contain only one field which is the same as the order by
-        # field
-        assert len(metrics_query.orderby) == 1
-        orderby_field = [
-            field for field in metrics_query.select if field == metrics_query.orderby[0].field
-        ][0]
-        metrics_query = replace(metrics_query, select=[orderby_field])
+        orderby_fields = []
+        for select_field in metrics_query.select:
+            for orderby in metrics_query.orderby:
+                if select_field == orderby.field:
+                    orderby_fields.append(select_field)
+        metrics_query = replace(metrics_query, select=orderby_fields)
 
-        snuba_queries, _ = SnubaQueryBuilder(projects, metrics_query).get_snuba_queries()
+        snuba_queries, _ = SnubaQueryBuilder(
+            projects, metrics_query, use_case_id
+        ).get_snuba_queries()
         if len(snuba_queries) > 1:
             # Currently accepting an order by field that spans multiple entities is not
             # supported, but it might change in the future. Even then, it might be better
@@ -611,26 +699,30 @@ def get_series(projects: Sequence[Project], metrics_query: MetricsQuery) -> dict
             )
             initial_query_results = raw_snql_query(
                 request, use_cache=False, referrer="api.metrics.totals.initial_query"
-            )["data"]
+            )
+            initial_query_results_data = initial_query_results["data"]
+            meta.extend(initial_query_results["meta"])
 
         except StopIteration:
             # This can occur when requesting a list of derived metrics that are not have no data
             # for the passed projects
-            initial_query_results = []
+            initial_query_results_data = []
 
         # If we do not get any results from the first query, then there is no point in making
         # the second query
-        if initial_query_results:
+        if initial_query_results_data:
             # We no longer want the order by in the 2nd query because we already have the order of
             # the group by tags from the first query so we basically remove the order by columns,
             # and reset the query fields to the original fields because in the second query,
             # we want to query for all the metrics in the request api call
             metrics_query = replace(metrics_query, select=original_select, orderby=None)
 
-            query_builder = SnubaQueryBuilder(projects, metrics_query)
+            query_builder = SnubaQueryBuilder(projects, metrics_query, use_case_id)
             snuba_queries, fields_in_entities = query_builder.get_snuba_queries()
 
-            group_limit_filters = _get_group_limit_filters(metrics_query, initial_query_results)
+            group_limit_filters = _get_group_limit_filters(
+                metrics_query, initial_query_results_data, use_case_id
+            )
 
             # This loop has constant time complexity as it will always have a maximum of
             # three queries corresponding to the three available entities:
@@ -646,22 +738,21 @@ def get_series(projects: Sequence[Project], metrics_query: MetricsQuery) -> dict
                     )
                     snuba_result = raw_snql_query(
                         request, use_cache=False, referrer=f"api.metrics.{key}.second_query"
-                    )["data"]
-
+                    )
+                    snuba_result_data = snuba_result["data"]
+                    meta.extend(snuba_result["meta"])
                     # Since we removed the orderBy from all subsequent queries,
                     # we need to sort the results manually. This is required for
                     # the paginator, since it always queries one additional row
                     # and removes it at the end.
                     if group_limit_filters:
-                        snuba_result = _sort_results_by_group_filters(
-                            snuba_result, group_limit_filters
+                        snuba_result_data = _sort_results_by_group_filters(
+                            snuba_result_data, group_limit_filters
                         )
-
-                    results[entity][key] = {"data": snuba_result}
-
+                    results[entity][key] = {"data": snuba_result_data}
     else:
         snuba_queries, fields_in_entities = SnubaQueryBuilder(
-            projects, metrics_query
+            projects, metrics_query, use_case_id
         ).get_snuba_queries()
         group_limit_filters = None
 
@@ -678,11 +769,19 @@ def get_series(projects: Sequence[Project], metrics_query: MetricsQuery) -> dict
                     request,
                     use_cache=False,
                     referrer=f"api.metrics.{key}",
-                )["data"]
+                )
+                snuba_result_data = snuba_result["data"]
+                meta.extend(snuba_result["meta"])
 
                 snuba_limit = snuba_query.limit.limit if snuba_query.limit else None
-                if not group_limit_filters and snuba_limit and len(snuba_result) == snuba_limit:
-                    group_limit_filters = _get_group_limit_filters(metrics_query, snuba_result)
+                if (
+                    not group_limit_filters
+                    and snuba_limit
+                    and len(snuba_result_data) == snuba_limit
+                ):
+                    group_limit_filters = _get_group_limit_filters(
+                        metrics_query, snuba_result_data, use_case_id
+                    )
 
                     # We're now applying a filter that past queries may not have
                     # had. To avoid partial results, remove extra groups that
@@ -690,14 +789,20 @@ def get_series(projects: Sequence[Project], metrics_query: MetricsQuery) -> dict
                     if group_limit_filters:
                         _prune_extra_groups(results, group_limit_filters)
 
-                results[entity][key] = {"data": snuba_result}
+                results[entity][key] = {"data": snuba_result_data}
 
     assert projects
     converter = SnubaResultConverter(
-        projects[0].organization_id, metrics_query, fields_in_entities, intervals, results
+        projects[0].organization_id,
+        metrics_query,
+        fields_in_entities,
+        intervals,
+        results,
+        use_case_id,
     )
 
-    result_groups = converter.translate_results()
+    # Translate applies only on ["data"]
+    result_groups = converter.translate_result_groups()
     # It can occur, when we make queries that are not ordered, that we end up with a number of
     # groups that doesn't meet the limit of the query for each of the entities, and hence they
     # don't go through the pruning logic resulting in a total number of groups that is greater
@@ -705,9 +810,14 @@ def get_series(projects: Sequence[Project], metrics_query: MetricsQuery) -> dict
     if len(result_groups) > metrics_query.limit.limit:
         result_groups = result_groups[0 : metrics_query.limit.limit]
 
+    metrics_query_fields = {str(metric_field) for metric_field in metrics_query.select}
+
     return {
         "start": metrics_query.start,
         "end": metrics_query.end,
         "intervals": intervals,
         "groups": result_groups,
+        "meta": translate_meta_results(meta, metrics_query_fields, use_case_id)
+        if include_meta
+        else [],
     }

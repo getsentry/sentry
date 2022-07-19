@@ -1,17 +1,20 @@
 from datetime import datetime
 
+import pytest
 from freezegun import freeze_time
 
 from sentry.testutils import TestCase
 from sentry.utils.snowflake import (
+    _TTL,
     MAX_AVAILABLE_REGION_SEQUENCES,
     SENTRY_EPOCH_START,
     generate_snowflake_id,
+    get_redis_cluster,
 )
 
 
 class SnowflakeUtilsTest(TestCase):
-    CURRENT_TIME = datetime(2022, 5, 1, 0, 0)
+    CURRENT_TIME = datetime(2022, 7, 21, 6, 0)
 
     @freeze_time(CURRENT_TIME)
     def test_generate_correct_ids(self):
@@ -41,3 +44,16 @@ class SnowflakeUtilsTest(TestCase):
         )
 
         assert snowflake_id == expected_value
+
+    @freeze_time(CURRENT_TIME)
+    def test_out_of_region_sequences(self):
+        cluster = get_redis_cluster("test_redis_key")
+        current_timestamp = int(datetime.now().timestamp() - SENTRY_EPOCH_START)
+        for i in range(int(_TTL.total_seconds())):
+            timestamp = current_timestamp - i
+            cluster.set(str(timestamp), 16)
+
+        with pytest.raises(Exception) as context:
+            generate_snowflake_id("test_redis_key")
+
+        assert str(context.value) == "No available ID"

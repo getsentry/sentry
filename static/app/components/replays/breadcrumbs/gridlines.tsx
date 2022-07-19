@@ -10,6 +10,7 @@ type LineStyle = 'dotted' | 'solid' | 'none';
 const Line = styled(Timeline.Col)<{lineStyle: LineStyle}>`
   border-right: 1px ${p => p.lineStyle} ${p => p.theme.gray100};
   text-align: right;
+  line-height: 14px;
 `;
 
 function Gridlines({
@@ -45,7 +46,7 @@ export function MajorGridlines({duration, minWidth = 50, width}: Props) {
 
   return (
     <Gridlines cols={cols} lineStyle="solid" remaining={remaining}>
-      {i => <small>{formatTime((i + 1) * timespan)}</small>}
+      {i => <Label>{formatTime((i + 1) * timespan)}</Label>}
     </Gridlines>
   );
 }
@@ -55,3 +56,8 @@ export function MinorGridlines({duration, minWidth = 20, width}: Props) {
 
   return <Gridlines cols={cols} lineStyle="dotted" remaining={remaining} />;
 }
+
+const Label = styled('small')`
+  font-variant-numeric: tabular-nums;
+  font-size: ${p => p.theme.fontSizeSmall};
+`;

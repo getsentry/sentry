@@ -366,6 +366,7 @@ class StreamGroup extends Component<Props, State> {
     return (
       <Wrapper
         data-test-id="group"
+        data-test-reviewed={reviewed}
         onClick={displayReprocessingLayout ? undefined : this.toggleSelect}
         reviewed={reviewed}
         unresolved={data.status === 'unresolved'}
@@ -611,7 +612,7 @@ const GroupSummary = styled('div')<{canSelect: boolean}>`
   flex: 1;
   width: 66.66%;
 
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
     width: 50%;
   }
 `;
@@ -719,7 +720,7 @@ const EventUserWrapper = styled('div')`
   width: 60px;
   margin: 0 ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints[3]}) {
+  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
     width: 80px;
   }
 `;
@@ -738,7 +739,7 @@ const StartedColumn = styled('div')`
   ${p => p.theme.overflowEllipsis};
   width: 85px;
 
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     display: block;
     width: 140px;
   }
@@ -751,7 +752,7 @@ const EventsReprocessedColumn = styled('div')`
   ${p => p.theme.overflowEllipsis};
   width: 75px;
 
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     width: 140px;
   }
 `;
@@ -761,7 +762,7 @@ const ProgressColumn = styled('div')`
   align-self: center;
   display: none;
 
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     display: block;
     width: 160px;
   }

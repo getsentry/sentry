@@ -110,7 +110,7 @@ const ContentHeader = styled('div')`
   gap: ${space(4)};
   margin-bottom: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
     grid-template-columns: 1fr repeat(3, max-content);
   }
 `;

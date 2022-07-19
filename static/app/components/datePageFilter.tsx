@@ -1,7 +1,10 @@
+import {Fragment} from 'react';
+// eslint-disable-next-line no-restricted-imports
 import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {updateDateTime} from 'sentry/actionCreators/pageFilters';
+import Datetime from 'sentry/components/dateTime';
 import PageFilterDropdownButton from 'sentry/components/organizations/pageFilters/pageFilterDropdownButton';
 import PageFilterPinIndicator from 'sentry/components/organizations/pageFilters/pageFilterPinIndicator';
 import TimeRangeSelector, {
@@ -28,7 +31,7 @@ type Props = Omit<
     resetParamsOnChange?: string[];
   };
 
-function DatePageFilter({router, resetParamsOnChange, ...props}: Props) {
+function DatePageFilter({router, resetParamsOnChange, disabled, ...props}: Props) {
   const {selection, desyncedFilters} = usePageFilters();
   const organization = useOrganization();
   const {start, end, period, utc} = selection.datetime;
@@ -49,15 +52,17 @@ function DatePageFilter({router, resetParamsOnChange, ...props}: Props) {
       const startTimeFormatted = getFormattedDate(start, 'HH:mm:ss', {local: true});
       const endTimeFormatted = getFormattedDate(end, 'HH:mm:ss', {local: true});
 
-      const shouldShowTimes =
-        startTimeFormatted !== DEFAULT_DAY_START_TIME ||
-        endTimeFormatted !== DEFAULT_DAY_END_TIME;
-      const format = shouldShowTimes ? 'MMM D, h:mma' : 'MMM D';
+      const showDateOnly =
+        startTimeFormatted === DEFAULT_DAY_START_TIME &&
+        endTimeFormatted === DEFAULT_DAY_END_TIME;
 
-      const startString = getFormattedDate(start, format, {local: true});
-      const endString = getFormattedDate(end, format, {local: true});
-
-      label = `${startString} - ${endString}`;
+      label = (
+        <Fragment>
+          <Datetime date={start} dateOnly={showDateOnly} />
+          {' – '}
+          <Datetime date={end} dateOnly={showDateOnly} />
+        </Fragment>
+      );
     } else {
       label = period?.toUpperCase();
     }
@@ -65,6 +70,7 @@ function DatePageFilter({router, resetParamsOnChange, ...props}: Props) {
     return (
       <PageFilterDropdownButton
         detached
+        disabled={disabled}
         hideBottomBorder={false}
         isOpen={isOpen}
         highlighted={desyncedFilters.has('datetime')}
@@ -90,6 +96,7 @@ function DatePageFilter({router, resetParamsOnChange, ...props}: Props) {
       utc={utc}
       onUpdate={handleUpdate}
       customDropdownButton={customDropdownButton}
+      disabled={disabled}
       showPin
       detached
       {...props}

@@ -36,6 +36,11 @@ _OrganizationMemberFlags = TypedDict(
 )
 
 
+class _TeamRole(TypedDict):
+    teamSlug: str
+    role: str
+
+
 class OrganizationMemberResponseOptional(TypedDict, total=False):
     externalUsers: List[ExternalActorResponse]
 
@@ -59,8 +64,9 @@ class OrganizationMemberResponse(OrganizationMemberResponseOptional):
     email: str
     name: str
     user: UserSerializerResponse
-    role: str  # TODO: literal/enum
-    roleName: str  # TODO: literal/enum
+    role: str  # Deprecated: use orgRole
+    roleName: str  # Deprecated
+    orgRole: str
     pending: bool
     expired: str
     flags: _OrganizationMemberFlags
@@ -71,6 +77,7 @@ class OrganizationMemberResponse(OrganizationMemberResponseOptional):
 
 class OrganizationMemberWithTeamsResponse(OrganizationMemberResponse):
     teams: List[str]
+    teamRoles: List[_TeamRole]
 
 
 class OrganizationMemberWithProjectsResponse(OrganizationMemberResponse):
@@ -80,5 +87,6 @@ class OrganizationMemberWithProjectsResponse(OrganizationMemberResponse):
 class OrganizationMemberWithRolesResponse(OrganizationMemberWithTeamsResponse):
     invite_link: Optional[str]
     isOnlyOwner: bool
-    roles: List[RoleSerializerResponse]
-    teamRoles: List[RoleSerializerResponse]
+    roles: List[RoleSerializerResponse]  # Deprecated: use orgRoleList
+    orgRoleList: List[RoleSerializerResponse]
+    teamRoleList: List[RoleSerializerResponse]

@@ -69,8 +69,22 @@ function AddToDashboardModal({
   const [selectedDashboardId, setSelectedDashboardId] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchDashboards(api, organization.slug).then(setDashboards);
-  }, []);
+    // Track mounted state so we dont call setState on unmounted components
+    let unmounted = false;
+
+    fetchDashboards(api, organization.slug).then(response => {
+      // If component has unmounted, dont set state
+      if (unmounted) {
+        return;
+      }
+
+      setDashboards(response);
+    });
+
+    return () => {
+      unmounted = true;
+    };
+  }, [api, organization.slug]);
 
   function handleGoToBuilder() {
     const pathname =
@@ -204,7 +218,7 @@ const SelectControlWrapper = styled('div')`
 `;
 
 const StyledButtonBar = styled(ButtonBar)`
-  @media (max-width: ${props => props.theme.breakpoints[0]}) {
+  @media (max-width: ${props => props.theme.breakpoints.small}) {
     grid-template-rows: repeat(2, 1fr);
     gap: ${space(1.5)};
     width: 100%;

@@ -36,6 +36,8 @@ type State = {
   selectedSentryProjectId: number | null;
 };
 
+const DISABLED_TOOLTIP_TEXT = 'Please link at least one project to continue.';
+
 // Get the icon
 const getIcon = (iconType: string) => {
   switch (iconType) {
@@ -47,7 +49,10 @@ const getIcon = (iconType: string) => {
 };
 
 export class RenderField extends Component<RenderProps, State> {
-  state: State = {selectedSentryProjectId: null, selectedMappedValue: null};
+  state: State = {
+    selectedSentryProjectId: null,
+    selectedMappedValue: null,
+  };
 
   render() {
     const {
@@ -62,6 +67,7 @@ export class RenderField extends Component<RenderProps, State> {
       id: formElementId,
       error,
     } = this.props;
+
     const existingValues: Array<[number, MappedValue]> = incomingValues || [];
     const nextUrlOrArray = safeGetQsParam('next');
     let nextUrl = Array.isArray(nextUrlOrArray) ? nextUrlOrArray[0] : nextUrlOrArray;
@@ -156,7 +162,7 @@ export class RenderField extends Component<RenderProps, State> {
             <Button
               onClick={() => handleDelete(index)}
               icon={<IconDelete color="gray300" />}
-              size="small"
+              size="sm"
               type="button"
               aria-label={t('Delete')}
             />
@@ -259,7 +265,7 @@ export class RenderField extends Component<RenderProps, State> {
             <Button
               type="button"
               disabled={!selectedSentryProjectId || !selectedMappedValue}
-              size="small"
+              size="sm"
               priority="primary"
               onClick={handleAdd}
               icon={<IconAdd />}
@@ -281,10 +287,15 @@ export class RenderField extends Component<RenderProps, State> {
               {nextDescription ?? ''}
               <Button
                 type="button"
-                size="small"
+                size="sm"
                 priority="primary"
-                icon={<IconOpen size="xs" color="white" />}
+                icon={<IconOpen size="xs" />}
+                disabled={!existingValues.length}
                 href={nextUrl}
+                title={DISABLED_TOOLTIP_TEXT}
+                tooltipProps={{
+                  disabled: !!existingValues.length,
+                }}
               >
                 {nextButtonText}
               </Button>

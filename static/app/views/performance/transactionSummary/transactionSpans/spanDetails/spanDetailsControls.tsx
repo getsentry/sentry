@@ -14,6 +14,8 @@ import EventView from 'sentry/utils/discover/eventView';
 import {removeHistogramQueryStrings} from 'sentry/utils/performance/histogram';
 import {decodeScalar} from 'sentry/utils/queryString';
 
+import {SPAN_RELATIVE_PERIODS, SPAN_RETENTION_DAYS} from '../utils';
+
 import {ZoomKeys} from './utils';
 
 interface SpanDetailsControlsProps {
@@ -36,7 +38,6 @@ export default function SpanDetailsControls({
         ...location.query,
         cursor: undefined,
         query: String(searchQuery).trim() || undefined,
-        userModified: true,
       },
     });
   };
@@ -54,7 +55,11 @@ export default function SpanDetailsControls({
     <FilterActions>
       <PageFilterBar condensed>
         <EnvironmentPageFilter />
-        <DatePageFilter alignDropdown="left" />
+        <DatePageFilter
+          alignDropdown="left"
+          relativeOptions={SPAN_RELATIVE_PERIODS}
+          maxPickableDays={SPAN_RETENTION_DAYS}
+        />
       </PageFilterBar>
       <SearchBar
         placeholder={t('Filter Transactions')}
@@ -76,7 +81,7 @@ const FilterActions = styled('div')`
   gap: ${space(2)};
   margin-bottom: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: auto 1fr auto;
   }
 `;

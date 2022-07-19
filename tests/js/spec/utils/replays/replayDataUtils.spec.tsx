@@ -1,5 +1,5 @@
 import {
-  // breadcrumbEntryFactory,
+  breadcrumbFactory,
   // breadcrumbValuesFromEvents,
   // replayTimestamps,
   rrwebEventListFactory,
@@ -7,19 +7,20 @@ import {
   // spanEntryFactory,
 } from 'sentry/utils/replays/replayDataUtils';
 
-describe('rrwebEventListFactory', () => {
-  function createSpan(extra: {op: string; data?: Record<string, any>}) {
+describe('breadcrumbFactory', () => {
+  function createSpan(extra: {
+    op: string;
+    data?: Record<string, any>;
+    description?: string;
+  }) {
     return {
-      // span_id: 'spanid',
       startTimestamp: 1,
       endTimestamp: 2,
-      // trace_id: 'traceid',
       data: {},
       ...extra,
     };
   }
-
-  it('returns a list of replay events for highlights', function () {
+  it('adds LCP as a breadcrumb', () => {
     const rawSpans = [
       createSpan({
         op: 'foo',
@@ -31,33 +32,83 @@ describe('rrwebEventListFactory', () => {
           nodeId: 2,
         },
       }),
-      createSpan({
-        op: 'largest-contentful-paint',
-        data: {
-          nodeId: null,
+    ];
+
+    const results = breadcrumbFactory(0, TestStubs.Event(), [], [], rawSpans);
+
+    expect(results).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "color": "gray300",
+          "data": Object {
+            "action": "replay-init",
+            "label": "Start recording",
+            "url": undefined,
+          },
+          "description": "Default",
+          "id": 0,
+          "level": "info",
+          "message": undefined,
+          "timestamp": "1970-01-01T00:00:00.000Z",
+          "type": "init",
         },
+        Object {
+          "category": "default",
+          "color": "purple300",
+          "data": Object {
+            "action": "largest-contentful-paint",
+            "label": "LCP",
+            "nodeId": 2,
+          },
+          "description": "Debug",
+          "id": 1,
+          "level": "info",
+          "timestamp": "1970-01-01T00:00:01.000Z",
+          "type": "debug",
+        },
+      ]
+    `);
+  });
+
+  it('adds navigation as a breadcrumb', () => {
+    const rawSpans = [
+      createSpan({
+        op: 'foo',
+        data: {},
       }),
       createSpan({
-        op: 'largest-contentful-paint',
-        data: {
-          nodeId: 0,
-        },
-      }),
-      createSpan({
-        op: 'largest-contentful-paint',
-        data: {
-          nodeId: -1,
-        },
-      }),
-      createSpan({
-        op: 'largest-contentful-paint',
-        data: {
-          nodeId: 10,
-        },
+        op: 'navigation.navigate',
+        description: 'http://test.com',
       }),
     ];
 
-    const results = rrwebEventListFactory(0, 0, rawSpans, []);
+    const results = breadcrumbFactory(0, TestStubs.Event(), [], [], rawSpans);
+
+    expect(results).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "action": "navigate",
+          "category": "default",
+          "color": "green300",
+          "data": Object {
+            "label": "Page load",
+            "to": "http://test.com",
+          },
+          "description": "Navigation",
+          "id": 0,
+          "level": "info",
+          "message": "http://test.com",
+          "timestamp": "1970-01-01T00:00:01.000Z",
+          "type": "navigation",
+        },
+      ]
+    `);
+  });
+});
+
+describe('rrwebEventListFactory', () => {
+  it('returns a list of replay events for highlights', function () {
+    const results = rrwebEventListFactory(0, 0, []);
 
     expect(results).toMatchInlineSnapshot(`
       Array [
@@ -68,22 +119,6 @@ describe('rrwebEventListFactory', () => {
           "timestamp": 0,
           "type": 5,
         },
-        Object {
-          "data": Object {
-            "nodeId": 2,
-            "text": "LCP",
-          },
-          "timestamp": 1000,
-          "type": 6,
-        },
-        Object {
-          "data": Object {
-            "nodeId": 10,
-            "text": "LCP",
-          },
-          "timestamp": 1000,
-          "type": 6,
-        },
       ]
     `);
   });
@@ -93,26 +128,13 @@ describe('rrwebEventListFactory', () => {
     const endTimestampMS = 10_000;
 
     expect(
-      rrwebEventListFactory(
-        startTimestampMS,
-        endTimestampMS,
-        [
-          createSpan({
-            op: 'largest-contentful-paint',
-            data: {
-              nodeId: 2,
-            },
-          }),
-        ],
-        [
-          {type: 0, timestamp: 5_000, data: {}},
-          {type: 1, timestamp: 1_000, data: {}},
-          {type: 2, timestamp: 3_000, data: {}},
-        ]
-      )
+      rrwebEventListFactory(startTimestampMS, endTimestampMS, [
+        {type: 0, timestamp: 5_000, data: {}},
+        {type: 1, timestamp: 1_000, data: {}},
+        {type: 2, timestamp: 3_000, data: {}},
+      ])
     ).toEqual([
       {type: 1, timestamp: 0, data: {}},
-      {type: 6, timestamp: 1_000, data: {nodeId: 2, text: 'LCP'}},
       {type: 2, timestamp: 3_000, data: {}},
       {type: 0, timestamp: 5_000, data: {}},
       {type: 5, timestamp: 10_000, data: {tag: 'replay-end'}},

@@ -13,10 +13,10 @@ import Tooltip from 'sentry/components/tooltip';
 import {IconCheckmark, IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Member, MemberRole, Organization} from 'sentry/types';
+import {Member, Organization, OrgRole} from 'sentry/types';
 
 type Props = {
-  allRoles: MemberRole[];
+  allRoles: OrgRole[];
   inviteRequest: Member;
   inviteRequestBusy: {[key: string]: boolean};
   onApprove: (inviteRequest: Member) => void;
@@ -106,7 +106,7 @@ const InviteRequestRow = ({
 
       <ButtonGroup>
         <Button
-          size="small"
+          size="sm"
           busy={inviteRequestBusy[inviteRequest.id]}
           onClick={() => onDeny(inviteRequest)}
           icon={<IconClose />}
@@ -134,7 +134,7 @@ const InviteRequestRow = ({
         >
           <Button
             priority="primary"
-            size="small"
+            size="sm"
             busy={inviteRequestBusy[inviteRequest.id]}
             title={
               canApprove

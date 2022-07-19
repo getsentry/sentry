@@ -1,9 +1,16 @@
-import {FlamegraphFrame} from '../../flamegraphFrame';
+import type Fuse from 'fuse.js';
 
-type FlamegraphSearch = {
+import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
+
+export type FlamegraphSearchResult = {
+  frame: FlamegraphFrame;
+  match: Fuse.RangeTuple;
+};
+
+export type FlamegraphSearch = {
   index: number | null;
   query: string;
-  results: Record<string, FlamegraphFrame> | null;
+  results: Map<string, FlamegraphSearchResult>;
 };
 
 type ClearFlamegraphSearchAction = {
@@ -38,7 +45,7 @@ export function flamegraphSearchReducer(
         ...state,
         query: '',
         index: null,
-        results: null,
+        results: new Map(),
       };
     }
     case 'set results': {

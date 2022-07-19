@@ -100,7 +100,7 @@ function Actions({
               <StyledButtonBar gap={1}>
                 <Tooltip disabled={hasRole} title={noPermissionToDownloadDebugFilesInfo}>
                   <Button
-                    size="xsmall"
+                    size="xs"
                     icon={<IconDownload size="xs" />}
                     href={downloadUrl}
                     disabled={!hasRole}
@@ -118,7 +118,7 @@ function Actions({
                     <Button
                       priority="danger"
                       icon={<IconDelete size="xs" />}
-                      size="xsmall"
+                      size="xs"
                       disabled={!hasAccess}
                       aria-label={t('Delete')}
                     />
@@ -148,7 +148,7 @@ export default Actions;
 const StyledDropdownLink = styled(DropdownLink)`
   display: none;
 
-  @media (min-width: ${props => props.theme.breakpoints[4]}) {
+  @media (min-width: ${props => props.theme.breakpoints.xxlarge}) {
     display: flex;
     align-items: center;
     transition: none;
@@ -156,7 +156,7 @@ const StyledDropdownLink = styled(DropdownLink)`
 `;
 
 const StyledButtonBar = styled(ButtonBar)`
-  @media (min-width: ${props => props.theme.breakpoints[4]}) {
+  @media (min-width: ${props => props.theme.breakpoints.xxlarge}) {
     display: none;
   }
 `;

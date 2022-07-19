@@ -165,7 +165,7 @@ export function GroupBySelector({fieldOptions, columns = [], onChange}: Props) {
         )}
       </StyledField>
       {columns.length < GROUP_BY_LIMIT && (
-        <AddGroupButton size="small" icon={<IconAdd isCircled />} onClick={handleAdd}>
+        <AddGroupButton size="sm" icon={<IconAdd isCircled />} onClick={handleAdd}>
           {t('Add Group')}
         </AddGroupButton>
       )}
@@ -202,7 +202,7 @@ const Ghost = styled('div')`
     cursor: grabbing;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     width: 710px;
   }
 `;

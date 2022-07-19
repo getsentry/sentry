@@ -111,7 +111,7 @@ setup_pyenv() {
   eval "$(pyenv init --path)"
   python_version=$(python -V | sed s/Python\ //g)
   [[ $python_version == "$(cat .python-version)" ]] ||
-    (echo "Wrong Python version: $python_version. Please report in #discuss-dev-tooling" && exit 1)
+    (echo "Wrong Python version: $python_version. Please report in #discuss-dev-infra" && exit 1)
 }
 
 setup_pyenv

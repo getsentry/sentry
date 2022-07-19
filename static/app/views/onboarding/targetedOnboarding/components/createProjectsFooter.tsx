@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {motion} from 'framer-motion';
@@ -18,7 +17,6 @@ import {t, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import isMobile from 'sentry/utils/isMobile';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
 import useTeams from 'sentry/utils/useTeams';
@@ -65,16 +63,11 @@ export default function CreateProjectsFooter({
             })
           )
       );
-      const shouldSendEmail = !persistedOnboardingState.mobileEmailSent;
       const nextState: OnboardingState = {
         platformToProjectIdMap: persistedOnboardingState.platformToProjectIdMap,
         selectedPlatforms: platforms,
         state: 'projects_selected',
-        url: organization.experiments.TargetedOnboardingIntegrationSelectExperiment
-          ? 'select-integrations/'
-          : 'setup-docs/',
-        mobileEmailSent: true,
-        selectedIntegrations: [],
+        url: 'setup-docs/',
       };
       responses.forEach(p => (nextState.platformToProjectIdMap[p.platform] = p.slug));
       setPersistedOnboardingState(nextState);
@@ -86,26 +79,7 @@ export default function CreateProjectsFooter({
         organization,
       });
       clearIndicators();
-      if (
-        isMobile() &&
-        organization.experiments.TargetedOnboardingMobileRedirectExperiment === 'hide'
-      ) {
-        if (shouldSendEmail) {
-          persistedOnboardingState &&
-            (await api.requestPromise(
-              `/organizations/${organization.slug}/onboarding-continuation-email/`,
-              {
-                method: 'POST',
-                data: {
-                  platforms: persistedOnboardingState.selectedPlatforms,
-                },
-              }
-            ));
-        }
-        browserHistory.push(`/onboarding/${organization.slug}/mobile-redirect/`);
-      } else {
-        setTimeout(onComplete);
-      }
+      setTimeout(onComplete);
     } catch (err) {
       addErrorMessage(t('Failed to create projects'));
       Sentry.captureException(err);
@@ -153,7 +127,7 @@ const SelectionWrapper = styled(motion.div)`
   justify-content: center;
   align-items: center;
 
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     display: none;
   }
 `;

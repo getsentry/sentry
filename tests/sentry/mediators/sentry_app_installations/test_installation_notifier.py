@@ -1,6 +1,8 @@
 from collections import namedtuple
 from unittest.mock import patch
 
+import pytest
+
 from sentry.coreapi import APIUnauthorized
 from sentry.mediators.sentry_app_installations import InstallationNotifier
 from sentry.testutils import TestCase
@@ -103,7 +105,7 @@ class TestInstallationNotifier(TestCase):
 
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
     def test_invalid_installation_action(self, safe_urlopen):
-        with self.assertRaises(APIUnauthorized):
+        with pytest.raises(APIUnauthorized):
             InstallationNotifier.run(install=self.install, user=self.user, action="updated")
 
         assert not safe_urlopen.called

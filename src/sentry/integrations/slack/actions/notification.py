@@ -32,7 +32,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                 "type": "choice",
                 "choices": [(i.id, i.name) for i in self.get_integrations()],
             },
-            "channel": {"type": "string", "placeholder": "i.e #critical"},
+            "channel": {"type": "string", "placeholder": "i.e #critical, Jane Schmidt"},
             "channel_id": {"type": "string", "placeholder": "i.e. CA2FRA079 or UA1J9RTE1"},
             "tags": {"type": "string", "placeholder": "i.e environment,user,my_tag"},
         }

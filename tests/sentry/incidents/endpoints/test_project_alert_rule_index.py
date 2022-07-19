@@ -12,6 +12,7 @@ from sentry.api.serializers import serialize
 from sentry.incidents.models import AlertRule, AlertRuleTrigger, AlertRuleTriggerAction
 from sentry.models import AuditLogEntry, Integration
 from sentry.sentry_metrics import indexer
+from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.models import QueryDatasets
@@ -765,8 +766,7 @@ class AlertRuleCreateEndpointTestCrashRateAlert(APITestCase):
             )
         assert (
             resp.data["nonFieldErrors"][0]
-            == f"Only crash free percentage queries are supported for subscriptions"
-            f"over the {self.valid_alert_rule['dataset']} dataset"
+            == "Only crash free percentage queries are supported for crash rate alerts"
         )
 
     @patch(
@@ -830,4 +830,6 @@ class MetricsCrashRateAlertCreationTest(AlertRuleCreateEndpointTestCrashRateAler
             "init",
             "crashed",
         ]:
-            indexer.record(self.organization.id, tag)
+            indexer.record(
+                use_case_id=UseCaseKey.RELEASE_HEALTH, org_id=self.organization.id, string=tag
+            )

@@ -12,6 +12,7 @@ from sentry.models import EventAttachment, File
 from sentry.testutils import RelayStoreHelper, TransactionTestCase
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.task_runner import BurstTaskRunner
+from sentry.utils.safe import get_path
 from tests.symbolicator import insta_snapshot_stacktrace_data
 
 # IMPORTANT:
@@ -27,6 +28,7 @@ class SymbolicatorMinidumpIntegrationTest(RelayStoreHelper, TransactionTestCase)
         new_prefix = live_server.url
 
         with patch("sentry.auth.system.is_internal_ip", return_value=True), self.options(
+            # Do not change to internal-url-prefix, otherwise tests break on docker for mac
             {"system.url-prefix": new_prefix}
         ):
 
@@ -184,3 +186,13 @@ class SymbolicatorMinidumpIntegrationTest(RelayStoreHelper, TransactionTestCase)
             minidump_file = File.objects.get(id=minidump.file_id)
             assert minidump_file.type == "event.minidump"
             assert minidump_file.checksum == "74bb01c850e8d65d3ffbc5bad5cabc4668fce247"
+
+    def test_minidump_threadnames(self):
+        self.project.update_option("sentry:store_crash_reports", STORE_CRASH_REPORTS_ALL)
+
+        with self.feature(self._FEATURES):
+            with open(get_fixture_path("native", "threadnames.dmp"), "rb") as f:
+                event = self.post_and_retrieve_minidump({"upload_file_minidump": f}, {})
+
+        thread_name = get_path(event.data, "threads", "values", 1, "name")
+        assert thread_name == "sentry-http"

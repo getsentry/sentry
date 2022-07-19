@@ -11,6 +11,7 @@ import space from 'sentry/styles/space';
 import {Config, Organization, Project} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 import withConfig from 'sentry/utils/withConfig';
+import {getThresholdUnits} from 'sentry/views/alerts/rules/metric/constants';
 import ThresholdControl from 'sentry/views/alerts/rules/metric/triggers/thresholdControl';
 
 import {isSessionAggregate} from '../../../utils';
@@ -156,26 +157,6 @@ class TriggerFormContainer extends Component<TriggerFormContainerProps> {
     onResolveThresholdChange(trigger.alertThreshold);
   };
 
-  getThresholdUnits(aggregate: string, comparisonType: AlertRuleComparisonType) {
-    // cls is a number not a measurement of time
-    if (aggregate.includes('measurements.cls')) {
-      return '';
-    }
-
-    if (aggregate.includes('duration') || aggregate.includes('measurements')) {
-      return 'ms';
-    }
-
-    if (
-      isSessionAggregate(aggregate) ||
-      comparisonType === AlertRuleComparisonType.CHANGE
-    ) {
-      return '%';
-    }
-
-    return '';
-  }
-
   getCriticalThresholdPlaceholder(
     aggregate: string,
     comparisonType: AlertRuleComparisonType
@@ -246,7 +227,7 @@ class TriggerFormContainer extends Component<TriggerFormContainerProps> {
       actions: [],
     };
 
-    const thresholdUnits = this.getThresholdUnits(aggregate, comparisonType);
+    const thresholdUnits = getThresholdUnits(aggregate, comparisonType);
 
     return (
       <Fragment>

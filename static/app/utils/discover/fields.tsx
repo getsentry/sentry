@@ -130,6 +130,49 @@ const CONDITIONS_ARGUMENTS: SelectValue<string>[] = [
   },
 ];
 
+const WEB_VITALS_QUALITY: SelectValue<string>[] = [
+  {
+    label: 'good',
+    value: 'good',
+  },
+  {
+    label: 'meh',
+    value: 'meh',
+  },
+  {
+    label: 'poor',
+    value: 'poor',
+  },
+  {
+    label: 'any',
+    value: 'any',
+  },
+];
+
+export enum WebVital {
+  FP = 'measurements.fp',
+  FCP = 'measurements.fcp',
+  LCP = 'measurements.lcp',
+  FID = 'measurements.fid',
+  CLS = 'measurements.cls',
+  TTFB = 'measurements.ttfb',
+  RequestTime = 'measurements.ttfb.requesttime',
+}
+
+export enum MobileVital {
+  AppStartCold = 'measurements.app_start_cold',
+  AppStartWarm = 'measurements.app_start_warm',
+  FramesTotal = 'measurements.frames_total',
+  FramesSlow = 'measurements.frames_slow',
+  FramesFrozen = 'measurements.frames_frozen',
+  FramesSlowRate = 'measurements.frames_slow_rate',
+  FramesFrozenRate = 'measurements.frames_frozen_rate',
+  StallCount = 'measurements.stall_count',
+  StallTotalTime = 'measurements.stall_total_time',
+  StallLongestTime = 'measurements.stall_longest_time',
+  StallPercentage = 'measurements.stall_percentage',
+}
+
 // Refer to src/sentry/search/events/fields.py
 // Try to keep functions logically sorted, ie. all the count functions are grouped together
 export const AGGREGATIONS = {
@@ -187,7 +230,7 @@ export const AGGREGATIONS = {
       {
         kind: 'column',
         columnTypes: validateDenyListColumns(
-          ['string', 'duration'],
+          ['string', 'duration', 'number'],
           ['id', 'issue', 'user.display']
         ),
         defaultValue: 'transaction.duration',
@@ -208,6 +251,33 @@ export const AGGREGATIONS = {
       },
     ],
     documentation: t('conditional number of events'),
+    outputType: 'number',
+    isSortable: true,
+    multiPlotType: 'area',
+  },
+  count_web_vitals: {
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: validateAllowedColumns([
+          WebVital.LCP,
+          WebVital.FP,
+          WebVital.FCP,
+          WebVital.FID,
+          WebVital.CLS,
+        ]),
+        defaultValue: WebVital.LCP,
+        required: true,
+      },
+      {
+        kind: 'dropdown',
+        options: WEB_VITALS_QUALITY,
+        dataType: 'string',
+        defaultValue: WEB_VITALS_QUALITY[0].value,
+        required: true,
+      },
+    ],
+    documentation: t('events matching vital thresholds'),
     outputType: 'number',
     isSortable: true,
     multiPlotType: 'area',
@@ -693,30 +763,6 @@ export function formatTagKey(key: string): string {
 // Allows for a less strict field key definition in cases we are returning custom strings as fields
 export type LooseFieldKey = FieldKey | string | '';
 
-export enum WebVital {
-  FP = 'measurements.fp',
-  FCP = 'measurements.fcp',
-  LCP = 'measurements.lcp',
-  FID = 'measurements.fid',
-  CLS = 'measurements.cls',
-  TTFB = 'measurements.ttfb',
-  RequestTime = 'measurements.ttfb.requesttime',
-}
-
-export enum MobileVital {
-  AppStartCold = 'measurements.app_start_cold',
-  AppStartWarm = 'measurements.app_start_warm',
-  FramesTotal = 'measurements.frames_total',
-  FramesSlow = 'measurements.frames_slow',
-  FramesFrozen = 'measurements.frames_frozen',
-  FramesSlowRate = 'measurements.frames_slow_rate',
-  FramesFrozenRate = 'measurements.frames_frozen_rate',
-  StallCount = 'measurements.stall_count',
-  StallTotalTime = 'measurements.stall_total_time',
-  StallLongestTime = 'measurements.stall_longest_time',
-  StallPercentage = 'measurements.stall_percentage',
-}
-
 export type MeasurementType = 'duration' | 'number' | 'integer' | 'percentage';
 
 const MEASUREMENTS: Readonly<Record<WebVital | MobileVital, MeasurementType>> = {
@@ -755,6 +801,7 @@ export const SPAN_OP_BREAKDOWN_FIELDS = [
   'spans.db',
   'spans.browser',
   'spans.resource',
+  'spans.ui',
 ];
 
 // This list contains fields/functions that are available with performance-view feature.
@@ -1284,6 +1331,68 @@ export function aggregateFunctionOutputType(
 
   if (firstArg && isSpanOperationBreakdownField(firstArg)) {
     return 'duration';
+  }
+
+  return null;
+}
+
+export function errorsAndTransactionsAggregateFunctionOutputType(
+  funcName: string,
+  firstArg: string | undefined
+): AggregationOutputType | null {
+  const aggregate = AGGREGATIONS[ALIASES[funcName] || funcName];
+
+  // Attempt to use the function's outputType.
+  if (aggregate?.outputType) {
+    return aggregate.outputType;
+  }
+
+  // If the first argument is undefined and it is not required,
+  // then we attempt to get the default value.
+  if (!firstArg && aggregate?.parameters?.[0]) {
+    if (aggregate.parameters[0].required === false) {
+      firstArg = aggregate.parameters[0].defaultValue;
+    }
+  }
+
+  // If the function is an inherit type it will have a field as
+  // the first parameter and we can use that to get the type.
+  if (firstArg && FIELDS.hasOwnProperty(firstArg)) {
+    return FIELDS[firstArg];
+  }
+
+  if (firstArg && isMeasurement(firstArg)) {
+    return measurementType(firstArg);
+  }
+
+  if (firstArg && isSpanOperationBreakdownField(firstArg)) {
+    return 'duration';
+  }
+
+  return null;
+}
+
+export function sessionsAggregateFunctionOutputType(
+  funcName: string,
+  firstArg: string | undefined
+): AggregationOutputType | null {
+  const aggregate = SESSIONS_OPERATIONS[funcName];
+
+  // Attempt to use the function's outputType.
+  if (aggregate?.outputType) {
+    return aggregate.outputType;
+  }
+
+  // If the first argument is undefined and it is not required,
+  // then we attempt to get the default value.
+  if (!firstArg && aggregate?.parameters?.[0]) {
+    if (aggregate.parameters[0].required === false) {
+      firstArg = aggregate.parameters[0].defaultValue;
+    }
+  }
+
+  if (firstArg && SESSIONS_FIELDS.hasOwnProperty(firstArg)) {
+    return SESSIONS_FIELDS[firstArg].type as AggregationOutputType;
   }
 
   return null;

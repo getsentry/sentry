@@ -75,6 +75,7 @@ type TestStubFixtures = {
   OrganizationEvent: OverridableStub;
   OrganizationIntegrations: OverridableStub;
   Organizations: OverridableStub;
+  Outcomes: SimpleStub;
   PhabricatorCreate: SimpleStub;
   PhabricatorPlugin: SimpleStub;
   PlatformExternalIssue: OverridableStub;
@@ -117,6 +118,7 @@ type TestStubFixtures = {
   ShortIdQueryResult: OverridableStub;
   SourceMapArchive: OverridableStub;
   SourceMapArtifact: OverridableStub;
+  Span: OverridableStub;
   Subscriptions: OverridableStubList;
   TagValues: OverridableStubList;
   Tags: OverridableStubList;
@@ -126,6 +128,7 @@ type TestStubFixtures = {
   TeamIssuesReviewed: SimpleStub;
   TeamResolutionTime: SimpleStub;
   Tombstones: OverridableStubList;
+  TraceError: OverridableStub;
   UpdateSdkAndEnableIntegrationSuggestion: SimpleStub;
   User: OverridableStub;
   UserDetails: OverridableStub;

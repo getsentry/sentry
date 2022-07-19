@@ -560,7 +560,6 @@ describe('Performance > TransactionSummary', function () {
           statsPeriod: '14d',
           query: 'user.email:uhoh*',
           transactionCursor: '1:0:0',
-          userModified: true,
         },
       });
     });
@@ -607,7 +606,7 @@ describe('Performance > TransactionSummary', function () {
         screen.getByRole('button', {name: 'Filter Slow Transactions (p95)'})
       );
 
-      userEvent.click(screen.getByRole('button', {name: 'Slow Transactions (p95)'}));
+      userEvent.click(screen.getAllByText('Slow Transactions (p95)')[1]);
 
       // Check the navigation.
       expect(browserHistory.push).toHaveBeenCalledWith({
@@ -965,7 +964,6 @@ describe('Performance > TransactionSummary', function () {
           statsPeriod: '14d',
           query: 'user.email:uhoh*',
           transactionCursor: '1:0:0',
-          userModified: true,
         },
       });
     });
@@ -1016,7 +1014,7 @@ describe('Performance > TransactionSummary', function () {
         screen.getByRole('button', {name: 'Filter Slow Transactions (p95)'})
       );
 
-      userEvent.click(screen.getByRole('button', {name: 'Slow Transactions (p95)'}));
+      userEvent.click(screen.getAllByText('Slow Transactions (p95)')[1]);
 
       // Check the navigation.
       expect(browserHistory.push).toHaveBeenCalledWith({

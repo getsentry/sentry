@@ -1,4 +1,5 @@
 import {PureComponent} from 'react';
+// eslint-disable-next-line no-restricted-imports
 import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import color from 'color';
@@ -105,8 +106,8 @@ function getRuleChangeSeries(
   }
 
   const seriesData = data[0].data;
-  const seriesStart = moment(seriesData[0].name).valueOf();
-  const ruleChanged = moment(dateModified).valueOf();
+  const seriesStart = new Date(seriesData[0].name).getTime();
+  const ruleChanged = new Date(dateModified).getTime();
 
   if (ruleChanged < seriesStart) {
     return [];
@@ -191,20 +192,14 @@ class MetricChart extends PureComponent<Props, State> {
     warningDuration: number
   ) {
     const {rule, orgId, project, timePeriod, query} = this.props;
-    const transactionFields = ['title', 'count()', 'count_unique(user)'];
-    const errorFields = ['issue', 'title', 'count()', 'count_unique(user)'];
 
-    const ctaOpts = {
+    const {buttonText, ...props} = makeDefaultCta({
       orgSlug: orgId,
       projects: [project],
       rule,
-      eventType: query,
-      start: timePeriod.start,
-      end: timePeriod.end,
-      fields: rule.dataset === 'transactions' ? transactionFields : errorFields,
-    };
-
-    const {buttonText, ...props} = makeDefaultCta(ctaOpts);
+      timePeriod,
+      query,
+    });
 
     const resolvedPercent =
       (100 * Math.max(totalDuration - criticalDuration - warningDuration, 0)) /
@@ -233,7 +228,7 @@ class MetricChart extends PureComponent<Props, State> {
         </StyledInlineContainer>
         {!isSessionAggregate(rule.aggregate) && (
           <Feature features={['discover-basic']}>
-            <Button size="small" {...props}>
+            <Button size="sm" {...props}>
               {buttonText}
             </Button>
           </Feature>

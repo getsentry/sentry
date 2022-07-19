@@ -1,3 +1,4 @@
+// eslint-disable-next-line no-restricted-imports
 import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import {useTheme} from '@emotion/react';
 
@@ -18,7 +19,6 @@ import {Series} from 'sentry/types/echarts';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import {WebVital} from 'sentry/utils/discover/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 
 import {replaceSeriesName, transformEventStatsSmoothed} from '../trends/utils';
@@ -111,7 +111,6 @@ function VitalChart({
               includePrevious={false}
               yAxis={[yAxis]}
               partial
-              userModified={decodeScalar(location.query.userModified)}
             >
               {({timeseriesData: results, errored, loading, reloading}) => {
                 if (errored) {

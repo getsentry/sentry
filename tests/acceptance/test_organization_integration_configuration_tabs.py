@@ -1,3 +1,5 @@
+from selenium.webdriver.common.by import By
+
 from sentry.models import Integration
 from sentry.testutils import AcceptanceTestCase
 
@@ -77,7 +79,7 @@ class OrganizationIntegrationConfigurationTabs(AcceptanceTestCase):
             self.browser.wait_until("[role='dialog']")
 
             # Add Mapping Modal
-            externalName = self.browser.find_element_by_name("externalName")
+            externalName = self.browser.find_element(by=By.NAME, value="externalName")
             externalName.send_keys("@user2")
             self.browser.click("#userId:first-child div")
             self.browser.click('[id="react-select-2-option-1"]')
@@ -112,7 +114,7 @@ class OrganizationIntegrationConfigurationTabs(AcceptanceTestCase):
             self.browser.wait_until("[role='dialog']")
 
             # Add Mapping Modal
-            externalName = self.browser.find_element_by_name("externalName")
+            externalName = self.browser.find_element(by=By.NAME, value="externalName")
             externalName.send_keys("@getsentry/ecosystem")
             self.browser.click("#teamId:first-child div")
             self.browser.click('[id="react-select-2-option-0"]')
@@ -149,7 +151,7 @@ class OrganizationIntegrationConfigurationTabs(AcceptanceTestCase):
             self.browser.click(".nav-tabs li:nth-child(1) a")
             self.browser.wait_until_not('[data-test-id="loading-indicator"]')
 
-            name = self.browser.find_element_by_name("name")
+            name = self.browser.find_element(by=By.NAME, value="name")
             name.clear()
             name.send_keys("New Name")
 

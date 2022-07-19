@@ -116,7 +116,7 @@ class EventGroupingInfo extends AsyncComponent<Props, State> {
           <FeatureFeedback
             featureName="grouping"
             feedbackTypes={groupingFeedbackTypes}
-            buttonProps={{size: 'small'}}
+            buttonProps={{size: 'sm'}}
           />
         </ConfigHeader>
 
@@ -163,7 +163,7 @@ class EventGroupingInfo extends AsyncComponent<Props, State> {
 }
 
 const SummaryGroupedBy = styled('small')`
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     display: block;
     margin: 0 !important;
   }

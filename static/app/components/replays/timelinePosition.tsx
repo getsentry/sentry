@@ -8,7 +8,7 @@ import space from 'sentry/styles/space';
 type Props = {
   color: string;
   currentTime: number;
-  duration: number | undefined;
+  duration: number;
 };
 
 function TimelinePosition({color, currentTime, duration}: Props) {

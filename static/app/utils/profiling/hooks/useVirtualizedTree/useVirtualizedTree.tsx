@@ -138,6 +138,91 @@ function updateGhostRow({
   ref.current.style.transform = `translateY(${rowHeight * tabIndexKey - scrollTop}px)`;
   ref.current.style.opacity = '1';
 }
+function findOptimisticStartIndex<T extends TreeLike>({
+  items,
+  overscroll,
+  rowHeight,
+  scrollTop,
+  viewport,
+}: {
+  items: VirtualizedTreeNode<T>[];
+  overscroll: number;
+  rowHeight: number;
+  scrollTop: number;
+  viewport: {bottom: number; top: number};
+}): number {
+  if (!items.length || viewport.top === 0) {
+    return 0;
+  }
+  return Math.max(Math.floor(scrollTop / rowHeight) - overscroll, 0);
+}
+
+function findVisibleItems<T extends TreeLike>({
+  items,
+  overscroll,
+  rowHeight,
+  scrollHeight,
+  scrollTop,
+}: {
+  items: VirtualizedTreeNode<T>[];
+  overscroll: NonNullable<UseVirtualizedListProps<T>['overscroll']>;
+  rowHeight: UseVirtualizedListProps<T>['rowHeight'];
+  scrollHeight: VirtualizedState<T>['scrollHeight'];
+  scrollTop: VirtualizedState<T>['scrollTop'];
+}) {
+  // This is overscroll height for single direction, when computing the total,
+  // we need to multiply this by 2 because we overscroll in both directions.
+  const OVERSCROLL_HEIGHT = overscroll * rowHeight;
+  const visibleItems: VisibleItem<T>[] = [];
+
+  // Clamp viewport to scrollHeight bounds [0, length * rowHeight] because some browsers may fire
+  // scrollTop with negative values when the user scrolls up past the top of the list (overscroll behavior)
+  const viewport = {
+    top: Math.max(scrollTop - OVERSCROLL_HEIGHT, 0),
+    bottom: Math.min(
+      scrollTop + scrollHeight + OVERSCROLL_HEIGHT,
+      items.length * rowHeight
+    ),
+  };
+
+  // Points to the position inside the visible array
+  let visibleItemIndex = 0;
+  // Points to the currently iterated item
+  let indexPointer = findOptimisticStartIndex({
+    items,
+    viewport,
+    scrollTop,
+    rowHeight,
+    overscroll,
+  });
+
+  // Max number of visible items in our list
+  const MAX_VISIBLE_ITEMS = Math.ceil((scrollHeight + OVERSCROLL_HEIGHT * 2) / rowHeight);
+  const ALL_ITEMS = items.length;
+
+  // While number of visible items is less than max visible items, and we haven't reached the end of the list
+  while (visibleItemIndex < MAX_VISIBLE_ITEMS && indexPointer < ALL_ITEMS) {
+    const elementTop = indexPointer * rowHeight;
+    const elementBottom = elementTop + rowHeight;
+
+    // An element is inside a viewport if the top of the element is below the top of the viewport
+    // and the bottom of the element is above the bottom of the viewport
+    if (elementTop >= viewport.top && elementBottom <= viewport.bottom) {
+      visibleItems[visibleItemIndex] = {
+        key: indexPointer,
+        ref: null,
+        styles: {position: 'absolute', top: elementTop},
+        item: items[indexPointer],
+      };
+
+      visibleItemIndex++;
+    }
+    indexPointer++;
+  }
+
+  return visibleItems;
+}
+
 interface VisibleItem<T> {
   item: VirtualizedTreeNode<T>;
   key: number;
@@ -159,9 +244,9 @@ export interface UseVirtualizedListProps<T extends TreeLike> {
       tabIndexKey: number | null;
     }
   ) => React.ReactNode;
-  roots: T[];
   rowHeight: number;
   scrollContainer: HTMLElement | null;
+  tree: T[];
   overscroll?: number;
   skipFunction?: (node: VirtualizedTreeNode<T>) => boolean;
   sortFunction?: (a: VirtualizedTreeNode<T>, b: VirtualizedTreeNode<T>) => number;
@@ -190,9 +275,11 @@ export function useVirtualizedTree<T extends TreeLike>(
   const clickedGhostRowRef = useRef<HTMLDivElement | null>(null);
   const hoveredGhostRowRef = useRef<HTMLDivElement | null>(null);
 
+  const previousHoveredRow = useRef<number | null>(null);
+
   const [state, dispatch] = useReducer(VirtualizedTreeStateReducer, {
     scrollTop: 0,
-    roots: props.roots,
+    roots: props.tree,
     tabIndexKey: null,
     overscroll: props.overscroll ?? DEFAULT_OVERSCROLL_ITEMS,
     scrollHeight: props.scrollContainer?.getBoundingClientRect()?.height ?? 0,
@@ -201,9 +288,8 @@ export function useVirtualizedTree<T extends TreeLike>(
   // Keep a ref to latest state to avoid re-rendering
   const latestStateRef = useRef<typeof state>(state);
   latestStateRef.current = state;
-
   const [tree, setTree] = useState(() => {
-    const initialTree = VirtualizedTree.fromRoots(props.roots, props.skipFunction);
+    const initialTree = VirtualizedTree.fromRoots(props.tree, props.skipFunction);
 
     if (props.sortFunction) {
       initialTree.sort(props.sortFunction);
@@ -212,11 +298,20 @@ export function useVirtualizedTree<T extends TreeLike>(
     return initialTree;
   });
 
+  const cleanupAllHoveredRows = useCallback(() => {
+    previousHoveredRow.current = null;
+    for (const row of latestItemsRef.current) {
+      if (row.ref && row.ref.dataset.hovered) {
+        delete row.ref.dataset.hovered;
+      }
+    }
+  }, []);
+
   const expandedHistory = useRef<Set<T>>(new Set());
   useEffectAfterFirstRender(() => {
     const expandedNodes = tree.getAllExpandedNodes(expandedHistory.current);
     const newTree = VirtualizedTree.fromRoots(
-      props.roots,
+      props.tree,
       props.skipFunction,
       expandedNodes
     );
@@ -245,62 +340,23 @@ export function useVirtualizedTree<T extends TreeLike>(
     } else {
       hideGhostRow({ref: clickedGhostRowRef});
     }
+
+    cleanupAllHoveredRows();
     hideGhostRow({ref: hoveredGhostRowRef});
 
     dispatch({type: 'set tab index key', payload: tabIndex});
     setTree(newTree);
-  }, [props.roots, props.skipFunction]);
+  }, [props.tree, props.skipFunction, cleanupAllHoveredRows]);
 
-  const {rowHeight, renderRow} = props;
   const items = useMemo(() => {
-    // This is overscroll height for single direction, when computing the total,
-    // we need to multiply this by 2 because we overscroll in both directions.
-    const OVERSCROLL_HEIGHT = state.overscroll * rowHeight;
-
-    const visibleItems: VisibleItem<T>[] = [];
-
-    // Clamp viewport to scrollHeight bounds [0, length * rowHeight] because some browsers may fire
-    // scrollTop with negative values when the user scrolls up past the top of the list (overscroll behavior)
-    const viewport = {
-      top: Math.max(state.scrollTop - OVERSCROLL_HEIGHT, 0),
-      bottom: Math.min(
-        state.scrollTop + state.scrollHeight + OVERSCROLL_HEIGHT,
-        tree.flattened.length * rowHeight
-      ),
-    };
-
-    // Points to the position inside the visible array
-    let visibleItemIndex = 0;
-    // Points to the currently iterated item
-    let indexPointer = 0;
-
-    // Max number of visible items in our list
-    const MAX_VISIBLE_ITEMS = Math.ceil(
-      (state.scrollHeight + OVERSCROLL_HEIGHT * 2) / rowHeight
-    );
-    const ALL_ITEMS = tree.flattened.length;
-
-    // While number of visible items is less than max visible items, and we haven't reached the end of the list
-    while (visibleItemIndex < MAX_VISIBLE_ITEMS && indexPointer < ALL_ITEMS) {
-      const elementTop = indexPointer * rowHeight;
-      const elementBottom = elementTop + rowHeight;
-
-      // An element is inside a viewport if the top of the element is below the top of the viewport
-      // and the bottom of the element is above the bottom of the viewport
-      if (elementTop >= viewport.top && elementBottom <= viewport.bottom) {
-        visibleItems[visibleItemIndex] = {
-          key: indexPointer,
-          ref: null,
-          styles: {position: 'absolute', top: elementTop},
-          item: tree.flattened[indexPointer],
-        };
-
-        visibleItemIndex++;
-      }
-      indexPointer++;
-    }
-    return visibleItems;
-  }, [tree, state.overscroll, state.scrollHeight, state.scrollTop, rowHeight]);
+    return findVisibleItems<T>({
+      items: tree.flattened,
+      scrollHeight: state.scrollHeight,
+      scrollTop: state.scrollTop,
+      overscroll: state.overscroll,
+      rowHeight: props.rowHeight,
+    });
+  }, [tree, state.overscroll, state.scrollHeight, state.scrollTop, props.rowHeight]);
 
   const latestItemsRef = useRef(items);
   latestItemsRef.current = items;
@@ -308,6 +364,8 @@ export function useVirtualizedTree<T extends TreeLike>(
   // On scroll, we update scrollTop position.
   // Keep a rafId reference in the unlikely event where component unmounts before raf is executed.
   const scrollEndTimeoutId = useRef<AnimationTimeoutId | undefined>(undefined);
+  const previousScrollHeight = useRef<number>(0);
+
   useEffect(() => {
     const scrollContainer = props.scrollContainer;
 
@@ -315,7 +373,13 @@ export function useVirtualizedTree<T extends TreeLike>(
       return undefined;
     }
 
-    const handleScroll = evt => {
+    function handleScroll(evt) {
+      const top = Math.max(evt.target.scrollTop, 0);
+
+      if (previousScrollHeight.current === top) {
+        return;
+      }
+
       evt.target.firstChild.style.pointerEvents = 'none';
 
       if (scrollEndTimeoutId.current !== undefined) {
@@ -328,7 +392,7 @@ export function useVirtualizedTree<T extends TreeLike>(
 
       dispatch({
         type: 'set scroll top',
-        payload: Math.max(evt.target.scrollTop, 0),
+        payload: top,
       });
 
       // On scroll, we need to update the selected ghost row and clear the hovered ghost row
@@ -341,10 +405,14 @@ export function useVirtualizedTree<T extends TreeLike>(
           rowHeight: props.rowHeight,
         });
       }
+
+      cleanupAllHoveredRows();
       hideGhostRow({
         ref: hoveredGhostRowRef,
       });
-    };
+
+      previousScrollHeight.current = top;
+    }
 
     scrollContainer.addEventListener('scroll', handleScroll, {
       passive: true,
@@ -353,7 +421,7 @@ export function useVirtualizedTree<T extends TreeLike>(
     return () => {
       scrollContainer.removeEventListener('scroll', handleScroll);
     };
-  }, [props.scrollContainer, props.rowHeight]);
+  }, [props.scrollContainer, props.rowHeight, cleanupAllHoveredRows]);
 
   useEffect(() => {
     const scrollContainer = props.scrollContainer;
@@ -404,7 +472,13 @@ export function useVirtualizedTree<T extends TreeLike>(
         (latestStateRef.current.scrollTop + evt.clientY - rect.top) / props.rowHeight
       );
 
-      // If a node exists at the index, select it
+      cleanupAllHoveredRows();
+      const element = latestItemsRef.current.find(item => item.key === index);
+      if (element?.ref) {
+        element.ref.dataset.hovered = 'true';
+      }
+
+      // If a node exists at the index, select it, else clear whatever is selected
       if (tree.flattened[index] && index !== latestStateRef.current.tabIndexKey) {
         updateGhostRow({
           ref: hoveredGhostRowRef,
@@ -412,6 +486,10 @@ export function useVirtualizedTree<T extends TreeLike>(
           scrollTop: latestStateRef.current.scrollTop,
           rowHeight: props.rowHeight,
           interaction: 'hover',
+        });
+      } else {
+        hideGhostRow({
+          ref: hoveredGhostRowRef,
         });
       }
     };
@@ -423,7 +501,7 @@ export function useVirtualizedTree<T extends TreeLike>(
       scrollContainer.removeEventListener('click', handleClick);
       scrollContainer.removeEventListener('mousemove', handleMouseMove);
     };
-  }, [props.rowHeight, props.scrollContainer, tree.flattened]);
+  }, [props.rowHeight, props.scrollContainer, tree.flattened, cleanupAllHoveredRows]);
 
   // When mouseleave is triggered on the contianer,
   // we need to hide the ghost row to avoid an orphaned row
@@ -434,6 +512,7 @@ export function useVirtualizedTree<T extends TreeLike>(
     }
 
     function onMouseLeave() {
+      cleanupAllHoveredRows();
       hideGhostRow({
         ref: hoveredGhostRowRef,
       });
@@ -445,7 +524,7 @@ export function useVirtualizedTree<T extends TreeLike>(
     return () => {
       container.removeEventListener('mouseleave', onMouseLeave);
     };
-  }, [props.scrollContainer]);
+  }, [cleanupAllHoveredRows, props.scrollContainer]);
 
   // When a node is expanded, the underlying tree is recomputed (the flattened tree is updated)
   // We copy the properties of the old tree by creating a new instance of VirtualizedTree
@@ -542,6 +621,11 @@ export function useVirtualizedTree<T extends TreeLike>(
         return;
       }
 
+      // Cant move anywhere if there are no nodes
+      if (!tree.flattened.length) {
+        return;
+      }
+
       if (event.key === 'Enter') {
         handleExpandTreeNode(tree.flattened[latestStateRef.current.tabIndexKey], {
           expandChildren: true,
@@ -550,6 +634,27 @@ export function useVirtualizedTree<T extends TreeLike>(
 
       if (event.key === 'ArrowDown') {
         event.preventDefault();
+
+        if (event.metaKey || event.ctrlKey) {
+          const index = tree.flattened.length - 1;
+
+          props.scrollContainer!.scrollTo({
+            // We need to offset for the scrollMargin
+            top: index * props.rowHeight + props.rowHeight,
+          });
+          dispatch({type: 'set tab index key', payload: index});
+          updateGhostRow({
+            ref: clickedGhostRowRef,
+            tabIndexKey: index,
+            scrollTop: latestStateRef.current.scrollTop,
+            rowHeight: props.rowHeight,
+            interaction: 'active',
+          });
+          return;
+        }
+
+        // This is fine because we are only searching visible items
+        // and not the entire tree of nodes
         const indexInVisibleItems = items.findIndex(
           i => i.key === latestStateRef.current.tabIndexKey
         );
@@ -577,6 +682,22 @@ export function useVirtualizedTree<T extends TreeLike>(
 
       if (event.key === 'ArrowUp') {
         event.preventDefault();
+
+        if (event.metaKey || event.ctrlKey) {
+          props.scrollContainer!.scrollTo({top: 0});
+          dispatch({type: 'set tab index key', payload: 0});
+          updateGhostRow({
+            ref: clickedGhostRowRef,
+            tabIndexKey: 0,
+            scrollTop: latestStateRef.current.scrollTop,
+            rowHeight: props.rowHeight,
+            interaction: 'active',
+          });
+          return;
+        }
+
+        // This is fine because we are only searching visible items
+        // and not the entire tree of nodes
         const indexInVisibleItems = items.findIndex(
           i => i.key === latestStateRef.current.tabIndexKey
         );
@@ -602,13 +723,19 @@ export function useVirtualizedTree<T extends TreeLike>(
         }
       }
     },
-    [handleExpandTreeNode, items, tree.flattened, props.rowHeight]
+    [handleExpandTreeNode, items, tree.flattened, props.rowHeight, props.scrollContainer]
   );
 
   // When a row is hovered, we update the ghost row
   const handleRowMouseEnter = useCallback(
     (key: number) => {
       return (_evt: React.MouseEvent<HTMLElement>) => {
+        if (previousHoveredRow.current !== key) {
+          cleanupAllHoveredRows();
+
+          (_evt.currentTarget as HTMLElement).dataset.hovered = 'true';
+          previousHoveredRow.current = key;
+        }
         updateGhostRow({
           ref: hoveredGhostRowRef,
           tabIndexKey: key,
@@ -618,7 +745,7 @@ export function useVirtualizedTree<T extends TreeLike>(
         });
       };
     },
-    [state.scrollTop, props.rowHeight]
+    [state.scrollTop, props.rowHeight, cleanupAllHoveredRows]
   );
 
   // Register a resize observer for when the scroll container is resized.
@@ -635,6 +762,7 @@ export function useVirtualizedTree<T extends TreeLike>(
           type: 'set scroll height',
           payload: elements[0]?.contentRect?.height ?? 0,
         });
+        cleanupAllHoveredRows();
         hideGhostRow({
           ref: hoveredGhostRowRef,
         });
@@ -649,7 +777,7 @@ export function useVirtualizedTree<T extends TreeLike>(
       }
       resizeObserver.disconnect();
     };
-  }, [props.scrollContainer]);
+  }, [props.scrollContainer, cleanupAllHoveredRows]);
 
   // Basic required styles for the scroll container
   const scrollContainerStyles: React.CSSProperties = useMemo(() => {
@@ -665,9 +793,10 @@ export function useVirtualizedTree<T extends TreeLike>(
   // scrollbar is sized according to the number of items in the list.
   const containerStyles: React.CSSProperties = useMemo(() => {
     const height = tree.flattened.length * props.rowHeight;
-    return {height, maxHeight: height, overflow: 'hidden'};
+    return {height, maxHeight: height};
   }, [tree.flattened.length, props.rowHeight]);
 
+  const renderRow = props.renderRow;
   const renderedItems: React.ReactNode[] = useMemo(() => {
     const renderered: React.ReactNode[] = [];
 

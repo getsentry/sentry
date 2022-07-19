@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 import {setTag} from '@sentry/react';
 import {Location} from 'history';
@@ -8,6 +8,7 @@ import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import SpanExamplesQuery, {
@@ -19,6 +20,7 @@ import SuspectSpansQuery, {
 import {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import Breadcrumb from 'sentry/views/performance/breadcrumb';
+import {getSelectedProjectPlatforms} from 'sentry/views/performance/utils';
 
 import Tab from '../../tabs';
 import {SpanSortOthers} from '../types';
@@ -43,6 +45,15 @@ export default function SpanDetailsContentWrapper(props: Props) {
   const {location, organization, eventView, project, transactionName, spanSlug} = props;
   const minExclusiveTime = decodeScalar(location.query[ZoomKeys.MIN]);
   const maxExclusiveTime = decodeScalar(location.query[ZoomKeys.MAX]);
+
+  useEffect(() => {
+    if (project) {
+      trackAdvancedAnalyticsEvent('performance_views.span_summary.view', {
+        organization,
+        project_platforms: getSelectedProjectPlatforms(location, [project]),
+      });
+    }
+  }, [organization, project, location]);
 
   return (
     <Fragment>

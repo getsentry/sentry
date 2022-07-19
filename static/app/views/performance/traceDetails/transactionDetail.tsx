@@ -6,6 +6,7 @@ import omit from 'lodash/omit';
 
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
+import Clipboard from 'sentry/components/clipboard';
 import DateTime from 'sentry/components/dateTime';
 import Link from 'sentry/components/links/link';
 import {
@@ -17,10 +18,11 @@ import {
 } from 'sentry/components/performance/waterfall/rowDetails';
 import {generateIssueEventTarget} from 'sentry/components/quickTrace/utils';
 import {PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
-import {IconAnchor} from 'sentry/icons';
+import {IconLink} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
@@ -39,6 +41,16 @@ type Props = {
 };
 
 class TransactionDetail extends Component<Props> {
+  componentDidMount() {
+    const {organization, transaction} = this.props;
+
+    trackAdvancedAnalyticsEvent('performance_views.trace_view.open_transaction_details', {
+      organization,
+      operation: transaction['transaction.op'],
+      transaction: transaction.transaction,
+    });
+  }
+
   renderTransactionErrors() {
     const {organization, transaction} = this.props;
     const {errors} = transaction;
@@ -50,7 +62,6 @@ class TransactionDetail extends Component<Props> {
     return (
       <Alert
         system
-        showIcon
         type="error"
         expand={errors.map(error => (
           <ErrorMessageContent key={error.event_id}>
@@ -91,7 +102,7 @@ class TransactionDetail extends Component<Props> {
     );
 
     return (
-      <StyledButton size="xsmall" to={target}>
+      <StyledButton size="xs" to={target}>
         {t('View Event')}
       </StyledButton>
     );
@@ -108,7 +119,7 @@ class TransactionDetail extends Component<Props> {
     });
 
     return (
-      <StyledButton size="xsmall" to={target}>
+      <StyledButton size="xs" to={target}>
         {t('View Summary')}
       </StyledButton>
     );
@@ -177,7 +188,14 @@ class TransactionDetail extends Component<Props> {
                   onClick={this.scrollBarIntoView(transaction.event_id)}
                 >
                   {t('Event ID')}
-                  <StyledIconAnchor />
+                  <Clipboard
+                    value={`${window.location.href.replace(
+                      window.location.hash,
+                      ''
+                    )}#txn-${transaction.event_id}`}
+                  >
+                    <StyledIconLink />
+                  </Clipboard>
                 </TransactionIdTitle>
               }
               extra={this.renderGoToTransactionButton()}
@@ -251,7 +269,7 @@ const TransactionIdTitle = styled('a')`
   }
 `;
 
-const StyledIconAnchor = styled(IconAnchor)`
+const StyledIconLink = styled(IconLink)`
   display: block;
   color: ${p => p.theme.gray300};
   margin-left: ${space(1)};

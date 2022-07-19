@@ -2,6 +2,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import ThreadsV2 from 'sentry/components/events/interfaces/threadsV2';
+import {displayOptions} from 'sentry/components/events/traceEventDataSection';
 import {EventOrGroupType} from 'sentry/types';
 import {EntryType, Event} from 'sentry/types/event';
 
@@ -211,15 +212,13 @@ describe('ThreadsV2', function () {
         expect(screen.getByRole('heading', {name: 'Stack Trace'})).toBeInTheDocument();
 
         // Actions
-        expect(screen.getByRole('checkbox', {name: 'Raw'})).toBeInTheDocument();
-        expect(screen.getByRole('checkbox', {name: 'Raw'})).not.toBeChecked();
-
         expect(
-          screen.getByRole('button', {name: 'Options 0 Active'})
+          screen.getByRole('checkbox', {name: 'Full stack trace'})
         ).toBeInTheDocument();
         expect(
-          screen.getByRole('button', {name: 'Sort By Recent first'})
-        ).toBeInTheDocument();
+          screen.getByRole('checkbox', {name: 'Full stack trace'})
+        ).not.toBeChecked();
+        expect(screen.getByRole('button', {name: 'Options'})).toBeInTheDocument();
 
         // Stack Trace
         expect(
@@ -233,27 +232,23 @@ describe('ThreadsV2', function () {
         expect(container).toSnapshot();
       });
 
-      it('toggle raw button', function () {
+      it('toggle full stack trace button', function () {
         render(<ThreadsV2 {...props} />, {organization: org});
 
-        expect(screen.getByRole('checkbox', {name: 'Raw'})).not.toBeChecked();
-        userEvent.click(screen.getByRole('checkbox', {name: 'Raw'}));
-        expect(screen.getByRole('checkbox', {name: 'Raw'})).toBeChecked();
+        expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(3);
 
-        // Actions must not be rendered
         expect(
-          screen.queryByRole('button', {name: 'Options 1 Active'})
-        ).not.toBeInTheDocument();
-        expect(
-          screen.queryByRole('button', {name: 'Sort By Recent first'})
-        ).not.toBeInTheDocument();
+          screen.getByRole('checkbox', {name: 'Full stack trace'})
+        ).not.toBeChecked();
 
-        // Raw content is displayed
-        expect(screen.queryByRole('list', {name: 'Stack trace'})).not.toBeInTheDocument();
-        expect(screen.getByTestId('raw-stack-trace')).toBeInTheDocument();
+        userEvent.click(screen.getByRole('checkbox', {name: 'Full stack trace'}));
+
+        expect(screen.getByRole('checkbox', {name: 'Full stack trace'})).toBeChecked();
+
+        expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(4);
       });
 
-      it('toggle sort by', function () {
+      it('toggle sort by display option', function () {
         render(<ThreadsV2 {...props} />, {organization: org});
 
         expect(
@@ -262,81 +257,66 @@ describe('ThreadsV2', function () {
           )
         ).toBeInTheDocument();
 
-        userEvent.click(screen.getByRole('button', {name: 'Sort By Recent first'}));
+        userEvent.click(screen.getByRole('button', {name: 'Options'}));
 
-        expect(screen.queryAllByLabelText('Sort option')).toHaveLength(2);
-        expect(screen.queryAllByLabelText('Sort option')[0]).toHaveTextContent(
-          'Recent first'
-        );
-        expect(screen.queryAllByLabelText('Sort option')[1]).toHaveTextContent(
-          'Recent last'
-        );
+        // Sort by options
+        expect(screen.getByText('Recent first')).toBeInTheDocument();
+        expect(screen.getByText('Recent last')).toBeInTheDocument();
 
-        userEvent.click(screen.getByText('Recent last'));
-
+        // Recent first is checked by default
         expect(
-          screen.getByRole('button', {name: 'Sort By Recent last'})
+          within(screen.getByTestId('recent-first')).getByTestId('icon-check-mark')
         ).toBeInTheDocument();
 
+        // Click on recent last
+        userEvent.click(screen.getByText('Recent last'));
+
+        // Recent last is checked
+        expect(
+          within(screen.getByTestId('recent-last')).getByTestId('icon-check-mark')
+        ).toBeInTheDocument();
+
+        // Last frame is the first on the list
         expect(
           within(screen.getAllByTestId('stack-trace-frame')[0]).getByText(
             'puma (3.12.6) lib/puma/server.rb'
           )
         ).toBeInTheDocument();
 
-        userEvent.click(screen.getByRole('button', {name: 'Sort By Recent last'}));
-
+        // Click on recent first
         userEvent.click(screen.getByText('Recent first'));
 
+        // First frame is the first on the list
         expect(
-          screen.getByRole('button', {name: 'Sort By Recent first'})
+          within(screen.getAllByTestId('stack-trace-frame')[0]).getByText(
+            'sentry/controllers/welcome_controller.rb'
+          )
         ).toBeInTheDocument();
       });
 
-      it('check options', async function () {
+      it('check display options', async function () {
         render(<ThreadsV2 {...props} />, {organization: org});
 
-        expect(
-          screen.getByRole('button', {name: 'Options 0 Active'})
-        ).toBeInTheDocument();
+        userEvent.click(screen.getByRole('button', {name: 'Options'}));
 
-        userEvent.click(screen.getByRole('button', {name: 'Options 0 Active'}));
+        expect(screen.getByText('Display')).toBeInTheDocument();
 
-        expect(screen.queryAllByLabelText('Display option')).toHaveLength(2);
+        Object.entries(displayOptions).forEach(([key, value]) => {
+          if (key === 'minified') {
+            expect(screen.getByText(value)).toBeInTheDocument();
+            return;
+          }
 
-        const displayOption0 = screen.queryAllByLabelText('Display option')[0];
-        expect(displayOption0).toHaveTextContent('Minified');
-        expect(within(displayOption0).getByRole('checkbox')).not.toBeChecked();
-        expect(within(displayOption0).getByRole('checkbox')).toHaveAttribute(
-          'aria-disabled',
-          'true'
-        );
+          expect(screen.queryByText(value)).not.toBeInTheDocument();
+        });
 
-        // hover over the Minified option
-        userEvent.hover(within(displayOption0).getByText('Minified'));
+        // Hover over the Minified option
+        userEvent.hover(screen.getByText(displayOptions.minified));
+
+        // Minified option is disabled
         expect(
           await screen.findByText('Minified version not available')
         ).toBeInTheDocument();
-
-        const displayOption1 = screen.queryAllByLabelText('Display option')[1];
-        expect(displayOption1).toHaveTextContent('Full Stack Trace');
-        expect(within(displayOption1).getByRole('checkbox')).not.toBeChecked();
-        expect(within(displayOption1).getByRole('checkbox')).toHaveAttribute(
-          'aria-disabled',
-          'false'
-        );
-
-        expect(screen.getByTestId('stack-trace-content-v2')).toBeInTheDocument();
-        expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(3);
-
-        // Check Full Stack Trace
-        userEvent.click(screen.queryAllByLabelText('Display option')[1]);
-        expect(
-          within(screen.queryAllByLabelText('Display option')[1]).getByRole('checkbox')
-        ).toBeChecked();
-
-        // Display more frames
-        expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(4);
       });
     });
   });
@@ -866,15 +846,13 @@ describe('ThreadsV2', function () {
         expect(screen.getByTestId('thread-selector')).toBeInTheDocument();
 
         // Actions
-        expect(screen.getByRole('checkbox', {name: 'Raw'})).toBeInTheDocument();
-        expect(screen.getByRole('checkbox', {name: 'Raw'})).not.toBeChecked();
-
         expect(
-          screen.getByRole('button', {name: 'Options 0 Active'})
+          screen.getByRole('checkbox', {name: 'Full stack trace'})
         ).toBeInTheDocument();
         expect(
-          screen.getByRole('button', {name: 'Sort By Recent first'})
-        ).toBeInTheDocument();
+          screen.getByRole('checkbox', {name: 'Full stack trace'})
+        ).not.toBeChecked();
+        expect(screen.getByRole('button', {name: 'Options'})).toBeInTheDocument();
 
         // Stack Trace
         expect(screen.getByRole('heading', {name: 'EXC_BAD_ACCESS'})).toBeInTheDocument();
@@ -890,27 +868,23 @@ describe('ThreadsV2', function () {
         expect(container).toSnapshot();
       });
 
-      it('toggle raw button', function () {
+      it('toggle full stack trace button', function () {
         render(<ThreadsV2 {...props} />, {organization: org});
 
-        expect(screen.getByRole('checkbox', {name: 'Raw'})).not.toBeChecked();
-        userEvent.click(screen.getByRole('checkbox', {name: 'Raw'}));
-        expect(screen.getByRole('checkbox', {name: 'Raw'})).toBeChecked();
+        expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(3);
 
-        // Actions must not be rendered
         expect(
-          screen.queryByRole('button', {name: 'Options 1 Active'})
-        ).not.toBeInTheDocument();
-        expect(
-          screen.queryByRole('button', {name: 'Sort By Recent first'})
-        ).not.toBeInTheDocument();
+          screen.getByRole('checkbox', {name: 'Full stack trace'})
+        ).not.toBeChecked();
 
-        // Raw content is displayed
-        expect(screen.queryByTestId('stack-trace')).not.toBeInTheDocument();
-        expect(screen.getByTestId('raw-stack-trace')).toBeInTheDocument();
+        userEvent.click(screen.getByRole('checkbox', {name: 'Full stack trace'}));
+
+        expect(screen.getByRole('checkbox', {name: 'Full stack trace'})).toBeChecked();
+
+        expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(4);
       });
 
-      it('toggle sort by', function () {
+      it('toggle sort by option', function () {
         render(<ThreadsV2 {...props} />, {organization: org});
 
         expect(
@@ -919,126 +893,114 @@ describe('ThreadsV2', function () {
           )
         ).toBeInTheDocument();
 
-        userEvent.click(screen.getByRole('button', {name: 'Sort By Recent first'}));
+        userEvent.click(screen.getByRole('button', {name: 'Options'}));
 
-        expect(screen.queryAllByLabelText('Sort option')).toHaveLength(2);
-        expect(screen.queryAllByLabelText('Sort option')[0]).toHaveTextContent(
-          'Recent first'
-        );
-        expect(screen.queryAllByLabelText('Sort option')[1]).toHaveTextContent(
-          'Recent last'
-        );
+        // Sort by options
+        expect(screen.getByText('Recent first')).toBeInTheDocument();
+        expect(screen.getByText('Recent last')).toBeInTheDocument();
 
-        userEvent.click(screen.getByText('Recent last'));
-
+        // Recent first is checked by default
         expect(
-          screen.getByRole('button', {name: 'Sort By Recent last'})
+          within(screen.getByTestId('recent-first')).getByTestId('icon-check-mark')
         ).toBeInTheDocument();
 
+        // Click on recent last
+        userEvent.click(screen.getByText('Recent last'));
+
+        // Recent last is checked
+        expect(
+          within(screen.getByTestId('recent-last')).getByTestId('icon-check-mark')
+        ).toBeInTheDocument();
+
+        // Last frame is the first on the list
         expect(
           within(screen.getAllByTestId('stack-trace-frame')[0]).getByText('UIKit')
         ).toBeInTheDocument();
 
-        userEvent.click(screen.getByRole('button', {name: 'Sort By Recent last'}));
-
+        // Click on recent first
         userEvent.click(screen.getByText('Recent first'));
 
+        // First frame is the first on the list
         expect(
-          screen.getByRole('button', {name: 'Sort By Recent first'})
+          within(screen.getAllByTestId('stack-trace-frame')[0]).getByText(
+            '-[SentryClient crash]'
+          )
         ).toBeInTheDocument();
       });
 
-      it('check options', function () {
+      it('check display options', async function () {
         render(<ThreadsV2 {...props} />, {organization: org});
 
+        userEvent.click(screen.getByRole('button', {name: 'Options'}));
+
+        expect(screen.getByText('Display')).toBeInTheDocument();
+
+        Object.values(displayOptions).forEach(value => {
+          expect(screen.getByText(value)).toBeInTheDocument();
+        });
+
+        // Hover over absolute file paths option
+        userEvent.hover(screen.getByText(displayOptions['absolute-file-paths']));
+
+        // Absolute file paths option is disabled
         expect(
-          screen.getByRole('button', {name: 'Options 0 Active'})
+          await screen.findByText('Absolute file paths not available')
         ).toBeInTheDocument();
-        userEvent.click(screen.getByRole('button', {name: 'Options 0 Active'}));
 
-        expect(screen.queryAllByLabelText('Display option')).toHaveLength(5);
+        // Hover over Minified option
+        userEvent.hover(screen.getByText(displayOptions.minified));
 
-        const displayOption0 = screen.queryAllByLabelText('Display option')[0];
-        expect(displayOption0).toHaveTextContent('Unsymbolicated');
-        expect(within(displayOption0).getByRole('checkbox')).not.toBeChecked();
-        expect(within(displayOption0).getByRole('checkbox')).toHaveAttribute(
-          'aria-disabled',
-          'true'
-        );
+        // Minified option is disabled
+        expect(
+          await screen.findByText('Unsymbolicated version not available')
+        ).toBeInTheDocument();
 
-        const displayOption1 = screen.queryAllByLabelText('Display option')[1];
-        expect(displayOption1).toHaveTextContent('Absolute Addresses');
-        expect(within(displayOption1).getByRole('checkbox')).not.toBeChecked();
-        expect(within(displayOption1).getByRole('checkbox')).toHaveAttribute(
-          'aria-disabled',
-          'false'
-        );
-
-        const displayOption2 = screen.queryAllByLabelText('Display option')[2];
-        expect(displayOption2).toHaveTextContent('Absolute File Paths');
-        expect(within(displayOption2).getByRole('checkbox')).not.toBeChecked();
-        expect(within(displayOption2).getByRole('checkbox')).toHaveAttribute(
-          'aria-disabled',
-          'true'
-        );
-
-        const displayOption3 = screen.queryAllByLabelText('Display option')[3];
-        expect(displayOption3).toHaveTextContent('Verbose Function Names');
-        expect(within(displayOption3).getByRole('checkbox')).not.toBeChecked();
-        expect(within(displayOption3).getByRole('checkbox')).toHaveAttribute(
-          'aria-disabled',
-          'false'
-        );
-
-        const displayOption4 = screen.queryAllByLabelText('Display option')[4];
-        expect(displayOption4).toHaveTextContent('Full Stack Trace');
-        expect(within(displayOption4).getByRole('checkbox')).not.toBeChecked();
-        expect(within(displayOption4).getByRole('checkbox')).toHaveAttribute(
-          'aria-disabled',
-          'false'
-        );
-
-        expect(screen.getByTestId('stack-trace')).toBeInTheDocument();
-        expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(3);
-
-        // Check Verbose Function Names
+        // Function name is not verbose
         expect(
           within(screen.getAllByTestId('stack-trace-frame')[1]).getByText(
             'ViewController.causeCrash'
           )
         ).toBeInTheDocument();
 
-        userEvent.click(screen.queryAllByLabelText('Display option')[3]);
-        expect(within(displayOption3).getByRole('checkbox')).toBeChecked();
+        // Click on verbose function name option
+        userEvent.click(screen.getByText(displayOptions['verbose-function-names']));
 
+        // Function name is now verbose
         expect(
           within(screen.getAllByTestId('stack-trace-frame')[1]).getByText(
             'ViewController.causeCrash(Any) -> ()'
           )
         ).toBeInTheDocument();
 
-        // Check Absolute Path Names
+        // Address is not absolute
         expect(
           within(screen.getAllByTestId('stack-trace-frame')[1]).getByText('+0x085ac')
         ).toBeInTheDocument();
 
-        userEvent.click(screen.queryAllByLabelText('Display option')[1]);
-        expect(
-          within(screen.queryAllByLabelText('Display option')[1]).getByRole('checkbox')
-        ).toBeChecked();
+        // Click on absolute file paths option
+        userEvent.click(screen.getByText(displayOptions['absolute-addresses']));
 
+        // Address is now absolute
         expect(
           within(screen.getAllByTestId('stack-trace-frame')[1]).getByText('0x10008c5ac')
         ).toBeInTheDocument();
 
-        // Check Full Stack Trace
-        userEvent.click(screen.queryAllByLabelText('Display option')[4]);
-        expect(
-          within(screen.queryAllByLabelText('Display option')[4]).getByRole('checkbox')
-        ).toBeChecked();
+        // Click on raw stack trace option
+        userEvent.click(screen.getByText(displayOptions['raw-stack-trace']));
 
-        // Display more frames
-        expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(4);
+        // Download button is displayed
+        expect(screen.getByRole('button', {name: 'Download'})).toBeInTheDocument();
+
+        // Full stack trace toggler is not displayed
+        expect(
+          screen.queryByRole('checkbox', {name: 'Full stack trace'})
+        ).not.toBeInTheDocument();
+
+        // Raw content is displayed
+        expect(screen.queryByRole('list', {name: 'Stack trace'})).not.toBeInTheDocument();
+
+        // Raw content and the Raw stack trace option
+        expect(screen.getAllByTestId('raw-stack-trace')).toHaveLength(2);
       });
     });
   });

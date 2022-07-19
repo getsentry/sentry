@@ -295,7 +295,7 @@ const Wrapper = styled('div')`
 `;
 
 const StyledLayoutMain = styled(Layout.Main)`
-  @media (min-width: ${p => p.theme.breakpoints[2]}) {
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
     border-right: 1px solid ${p => p.theme.border};
     padding-right: 0;
   }
@@ -304,7 +304,7 @@ const StyledLayoutMain = styled(Layout.Main)`
 const StyledLayoutSide = styled(Layout.Side)`
   padding: ${space(3)} ${space(2)} ${space(3)};
 
-  @media (min-width: ${p => p.theme.breakpoints[2]}) {
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
     padding-right: ${space(4)};
     padding-left: 0;
   }

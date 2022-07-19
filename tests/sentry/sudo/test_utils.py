@@ -1,3 +1,4 @@
+import pytest
 from django.core.signing import BadSignature
 from django.utils.http import is_safe_url
 
@@ -16,7 +17,7 @@ class GrantSudoPrivilegesTestCase(BaseTestCase):
         self.assertEqual(request._sudo_max_age, max_age)
 
     def test_grant_token_not_logged_in(self):
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             grant_sudo_privileges(self.request)
 
     def test_grant_token_default_max_age(self):

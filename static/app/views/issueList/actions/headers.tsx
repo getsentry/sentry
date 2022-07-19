@@ -106,7 +106,7 @@ const EventsOrUsersLabel = styled(ToolbarHeader)`
   width: 60px;
   margin: 0 ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints[3]}) {
+  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
     width: 80px;
   }
 `;
@@ -125,7 +125,7 @@ const StartedColumn = styled(ToolbarHeader)`
   ${p => p.theme.overflowEllipsis};
   width: 85px;
 
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     width: 140px;
   }
 `;
@@ -135,7 +135,7 @@ const EventsReprocessedColumn = styled(ToolbarHeader)`
   ${p => p.theme.overflowEllipsis};
   width: 75px;
 
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     width: 140px;
   }
 `;
@@ -145,7 +145,7 @@ const ProgressColumn = styled(ToolbarHeader)`
 
   display: none;
 
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     display: block;
     width: 160px;
   }

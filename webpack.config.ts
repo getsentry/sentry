@@ -357,6 +357,7 @@ const appConfig: Configuration = {
               configOverwrite: {
                 compilerOptions: {incremental: true},
               },
+              memoryLimit: 3072,
             },
             devServer: false,
           }),
@@ -540,8 +541,8 @@ if (
 if (IS_UI_DEV_ONLY) {
   // Try and load certificates from mkcert if available. Use $ yarn mkcert-localhost
   const certPath = path.join(__dirname, 'config');
-  const https = !fs.existsSync(path.join(certPath, 'localhost.pem'))
-    ? true
+  const httpsOptions = !fs.existsSync(path.join(certPath, 'localhost.pem'))
+    ? {}
     : {
         key: fs.readFileSync(path.join(certPath, 'localhost-key.pem')),
         cert: fs.readFileSync(path.join(certPath, 'localhost.pem')),
@@ -550,7 +551,10 @@ if (IS_UI_DEV_ONLY) {
   appConfig.devServer = {
     ...appConfig.devServer,
     compress: true,
-    https,
+    server: {
+      type: 'https',
+      options: httpsOptions,
+    },
     static: {
       publicPath: '/_assets/',
     },

@@ -476,14 +476,8 @@ class ReleaseOverview extends AsyncView<Props> {
                                           (
                                           <DateTime
                                             date={releaseBounds.releaseStart}
-                                            timeAndDate
-                                          />{' '}
-                                          -{' '}
-                                          <DateTime
-                                            date={releaseBounds.releaseEnd}
-                                            timeAndDate
-                                          />
-                                          )
+                                          /> -{' '}
+                                          <DateTime date={releaseBounds.releaseEnd} />)
                                         </Fragment>
                                       ),
                                       ...DEFAULT_RELATIVE_PERIODS,

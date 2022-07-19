@@ -138,11 +138,22 @@ class StacktraceLink extends AsyncComponent<Props, State> {
     }
     const commitId = event.release?.lastCommit?.id;
     const platform = event.platform;
+    const sdkName = event.sdk?.name;
     return [
       [
         'match',
         `/projects/${organization.slug}/${project.slug}/stacktrace-link/`,
-        {query: {file: frame.filename, platform, commitId}},
+        {
+          query: {
+            file: frame.filename,
+            platform,
+            commitId,
+            ...(sdkName && {sdkName}),
+            ...(frame.absPath && {absPath: frame.absPath}),
+            ...(frame.module && {module: frame.module}),
+            ...(frame.package && {package: frame.package}),
+          },
+        },
       ],
     ];
   }

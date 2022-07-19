@@ -1,5 +1,6 @@
 import copy
 
+import pytest
 import responses
 
 from fixtures.gitlab import GitLabTestCase
@@ -394,7 +395,7 @@ class GitlabIssuesTest(GitLabTestCase):
         external_issue = ExternalIssue.objects.create(
             organization_id=self.organization.id, integration_id=self.integration.id, key="#"
         )
-        with self.assertRaises(IntegrationError):
+        with pytest.raises(IntegrationError):
             self.installation.after_link_issue(external_issue, data=data)
 
     @responses.activate
@@ -408,5 +409,5 @@ class GitlabIssuesTest(GitLabTestCase):
         external_issue = ExternalIssue.objects.create(
             organization_id=self.organization.id, integration_id=self.integration.id, key="2#321"
         )
-        with self.assertRaises(IntegrationError):
+        with pytest.raises(IntegrationError):
             self.installation.after_link_issue(external_issue, data=data)

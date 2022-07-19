@@ -123,7 +123,7 @@ export const FIELD_FORMATTERS: FieldFormatters = {
       <Container>
         {data[field]
           ? getDynamicText({
-              value: <FieldDateTime date={data[field]} />,
+              value: <FieldDateTime date={data[field]} year seconds timeZone />,
               fixed: 'timestamp',
             })
           : emptyValue}
@@ -437,7 +437,7 @@ const SPECIAL_FIELDS: SpecialFields = {
     renderFunc: data => (
       <Container>
         {getDynamicText({
-          value: <FieldDateTime date={data['timestamp.to_hour']} format="lll z" />,
+          value: <FieldDateTime date={data['timestamp.to_hour']} year timeZone />,
           fixed: 'timestamp.to_hour',
         })}
       </Container>
@@ -448,7 +448,7 @@ const SPECIAL_FIELDS: SpecialFields = {
     renderFunc: data => (
       <Container>
         {getDynamicText({
-          value: <FieldDateTime date={data['timestamp.to_day']} dateOnly utc />,
+          value: <FieldDateTime date={data['timestamp.to_day']} dateOnly year utc />,
           fixed: 'timestamp.to_day',
         })}
       </Container>
@@ -485,27 +485,27 @@ const SPECIAL_FUNCTIONS: SpecialFunctions = {
     let countMiserableUserField: string = '';
 
     let miseryLimit: number | undefined = parseInt(
-      userMiseryField.split('_').pop() || '',
+      userMiseryField.split('(').pop()?.slice(0, -1) || '',
       10
     );
     if (isNaN(miseryLimit)) {
-      countMiserableUserField = 'count_miserable_user';
+      countMiserableUserField = 'count_miserable(user)';
       if (projectThresholdConfig in data) {
         miseryLimit = data[projectThresholdConfig][1];
       } else {
         miseryLimit = undefined;
       }
     } else {
-      countMiserableUserField = `count_miserable_user_${miseryLimit}`;
+      countMiserableUserField = `count_miserable(user,${miseryLimit})`;
     }
 
-    const uniqueUsers = data.count_unique_user;
+    const uniqueUsers = data['count_unique(user)'];
 
     let miserableUsers: number | undefined;
 
     if (countMiserableUserField in data) {
       const countMiserableMiseryLimit = parseInt(
-        countMiserableUserField.split('_').pop() || '',
+        userMiseryField.split('(').pop()?.slice(0, -1) || '',
         10
       );
       miserableUsers =

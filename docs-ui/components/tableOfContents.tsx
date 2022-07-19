@@ -8,7 +8,7 @@ const Container = styled('div')`
   height: 100%;
   width: 16em;
 
-  @media only screen and (max-width: ${p => p.theme.breakpoints[1]}) {
+  @media only screen and (max-width: ${p => p.theme.breakpoints.medium}) {
     display: none;
   }
 `;

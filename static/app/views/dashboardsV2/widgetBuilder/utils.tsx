@@ -4,7 +4,7 @@ import trimStart from 'lodash/trimStart';
 
 import {generateOrderOptions} from 'sentry/components/dashboards/widgetQueriesForm';
 import {t} from 'sentry/locale';
-import {Organization, TagCollection} from 'sentry/types';
+import {OrganizationSummary, TagCollection} from 'sentry/types';
 import {
   aggregateFunctionOutputType,
   aggregateOutputType,
@@ -288,7 +288,7 @@ export function getAmendedFieldOptions({
   tags,
 }: {
   measurements: MeasurementCollection;
-  organization: Organization;
+  organization: OrganizationSummary;
   tags: TagCollection;
 }) {
   return generateFieldOptions({

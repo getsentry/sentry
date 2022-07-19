@@ -32,6 +32,7 @@ class GetOrganizationMemberTest(OrganizationMemberTestBase):
         response = self.get_success_response(self.organization.slug, "me")
 
         assert response.data["role"] == "owner"
+        assert response.data["orgRole"] == "owner"
         assert response.data["user"]["id"] == str(self.user.id)
         assert response.data["email"] == self.user.email
 
@@ -44,6 +45,7 @@ class GetOrganizationMemberTest(OrganizationMemberTestBase):
 
         response = self.get_success_response(self.organization.slug, member.id)
         assert response.data["role"] == "member"
+        assert response.data["orgRole"] == "member"
         assert response.data["id"] == str(member.id)
 
     def test_get_by_garbage(self):
@@ -106,8 +108,9 @@ class GetOrganizationMemberTest(OrganizationMemberTestBase):
 
     def test_lists_organization_roles(self):
         response = self.get_success_response(self.organization.slug, "me")
+        assert response.data["roles"] == response.data["orgRoleList"]
 
-        role_ids = [role["id"] for role in response.data["roles"]]
+        role_ids = [role["id"] for role in response.data["orgRoleList"]]
         assert role_ids == ["member", "admin", "manager", "owner"]
 
     @with_feature("organizations:team-roles")
@@ -116,14 +119,15 @@ class GetOrganizationMemberTest(OrganizationMemberTestBase):
         Note: Admin will be hidden after team-roles EA.
         """
         response = self.get_success_response(self.organization.slug, "me")
+        assert response.data["roles"] == response.data["orgRoleList"]
 
-        role_ids = [role["id"] for role in response.data["roles"]]
+        role_ids = [role["id"] for role in response.data["orgRoleList"]]
         assert role_ids == ["member", "admin", "manager", "owner"]
 
     def test_lists_team_roles(self):
         response = self.get_success_response(self.organization.slug, "me")
 
-        role_ids = [role["id"] for role in response.data["teamRoles"]]
+        role_ids = [role["id"] for role in response.data["teamRoleList"]]
         assert role_ids == ["contributor", "admin"]
 
 

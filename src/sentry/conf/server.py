@@ -281,6 +281,7 @@ MIDDLEWARE = (
     "sentry.middleware.stats.RequestTimingMiddleware",
     "sentry.middleware.access_log.access_log_middleware",
     "sentry.middleware.stats.ResponseCodeMiddleware",
+    "sentry.middleware.subdomain.SubdomainMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -518,6 +519,13 @@ BROKER_TRANSPORT_OPTIONS = {}
 # though it would cause timeouts/recursions in some cases
 CELERY_ALWAYS_EAGER = False
 
+# Complain about bad use of pickle.  See sentry.celery.SentryTask.apply_async for how
+# this works.
+CELERY_COMPLAIN_ABOUT_BAD_USE_OF_PICKLE = False
+
+# Complain about bad use of pickle in PickledObjectField
+PICKLED_OBJECT_FIELD_COMPLAIN_ABOUT_BAD_USE_OF_PICKLE = False
+
 # We use the old task protocol because during benchmarking we noticed that it's faster
 # than the new protocol. If we ever need to bump this it should be fine, there were no
 # compatibility issues, just need to run benchmarks and do some tests to make sure
@@ -572,6 +580,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.process_buffer",
     "sentry.tasks.relay",
     "sentry.tasks.release_registry",
+    "sentry.tasks.release_summary",
     "sentry.tasks.reports",
     "sentry.tasks.reprocessing",
     "sentry.tasks.reprocessing2",
@@ -595,6 +604,7 @@ CELERY_QUEUES = [
     Queue("assemble", routing_key="assemble"),
     Queue("auth", routing_key="auth"),
     Queue("buffers.process_pending", routing_key="buffers.process_pending"),
+    Queue("buffers.incr", routing_key="buffers.incr"),
     Queue("cleanup", routing_key="cleanup"),
     Queue("code_owners", routing_key="code_owners"),
     Queue("commits", routing_key="commits"),
@@ -619,6 +629,7 @@ CELERY_QUEUES = [
     ),
     Queue("events.save_event", routing_key="events.save_event"),
     Queue("events.save_event_transaction", routing_key="events.save_event_transaction"),
+    Queue("events.save_event_attachments", routing_key="events.save_event_attachments"),
     Queue("events.symbolicate_event", routing_key="events.symbolicate_event"),
     Queue(
         "events.symbolicate_event_low_priority", routing_key="events.symbolicate_event_low_priority"
@@ -638,6 +649,7 @@ CELERY_QUEUES = [
     Queue("merge", routing_key="merge"),
     Queue("options", routing_key="options"),
     Queue("relay_config", routing_key="relay_config"),
+    Queue("relay_config_bulk", routing_key="relay_config_bulk"),
     Queue("reports.deliver", routing_key="reports.deliver"),
     Queue("reports.prepare", routing_key="reports.prepare"),
     Queue("search", routing_key="search"),
@@ -710,6 +722,11 @@ CELERYBEAT_SCHEDULE = {
         "task": "sentry.tasks.digests.schedule_digests",
         "schedule": timedelta(seconds=30),
         "options": {"expires": 30},
+    },
+    "schedule-digest-release-summary": {
+        "task": "sentry.tasks.digest.release_summary",
+        "schedule": timedelta(minutes=5),
+        "options": {"expires": 60 * 5},
     },
     "check-monitors": {
         "task": "sentry.tasks.check_monitors",
@@ -923,12 +940,18 @@ CRISPY_TEMPLATE_PACK = "bootstrap3"
 SENTRY_FEATURES = {
     # Enables user registration.
     "auth:register": True,
+    # Workflow 2.0 Alpha Functionality for sentry users only
+    "organizations:active-release-monitor-alpha": False,
+    # Workflow 2.0 Experimental ReleaseMembers who opt-in to get notified as a release committer
+    "organizations:active-release-notification-opt-in": False,
     # Enable advanced search features, like negation and wildcard matching.
     "organizations:advanced-search": True,
     # Use metrics as the dataset for crash free metric alerts
     "organizations:alert-crash-free-metrics": False,
+    # Workflow 2.0 notifications following a release
+    "organizations:alert-release-notification-workflow": False,
     # Alert wizard redesign version 3
-    "organizations:alert-wizard-v3": False,
+    "organizations:alert-wizard-v3": True,
     "organizations:api-keys": False,
     # Enable multiple Apple app-store-connect sources per project.
     "organizations:app-store-connect-multiple": False,
@@ -941,18 +964,20 @@ SENTRY_FEATURES = {
     # Enable creating organizations within sentry (if SENTRY_SINGLE_ORGANIZATION
     # is not enabled).
     "organizations:create": True,
+    # Enable usage of customer domains on the frontend
+    "organizations:customer-domains": False,
     # Enable the 'discover' interface.
     "organizations:discover": False,
     # Enables events endpoint usage on discover and dashboards frontend
-    "organizations:discover-frontend-use-events-endpoint": False,
+    "organizations:discover-frontend-use-events-endpoint": True,
     # Enables events endpoint usage on performance frontend
-    "organizations:performance-frontend-use-events-endpoint": False,
+    "organizations:performance-frontend-use-events-endpoint": True,
+    # Enables events endpoint rate limit
+    "organizations:discover-events-rate-limit": False,
     # Enable duplicating alert rules.
-    "organizations:duplicate-alert-rule": False,
+    "organizations:duplicate-alert-rule": True,
     # Enable attaching arbitrary files to events.
     "organizations:event-attachments": True,
-    # Enable Filters & Sampling in the org settings
-    "organizations:filters-and-sampling": False,
     # Allow organizations to configure all symbol sources.
     "organizations:symbol-sources": True,
     # Allow organizations to configure custom external symbol sources.
@@ -1006,6 +1031,9 @@ SENTRY_FEATURES = {
     # XXX(ja): DO NOT ENABLE UNTIL THIS NOTICE IS GONE. Relay experiences
     # gradual slowdown when this is enabled for too many projects.
     "organizations:metrics-extraction": False,
+    # Allow performance alerts to be created on the metrics dataset. Allows UI to switch between
+    # sampled/unsampled performance data.
+    "organizations:metrics-performance-alerts": False,
     # Enable switch metrics button on Performance, allowing switch to unsampled transaction metrics
     "organizations:metrics-performance-ui": False,
     # True if release-health related queries should be run against both
@@ -1054,6 +1082,10 @@ SENTRY_FEATURES = {
     "organizations:dashboards-mep": False,
     # Enable release health widgets in dashboards
     "organizations:dashboards-releases": False,
+    # Enable top level query filters in dashboards
+    "organizations:dashboards-top-level-filter": False,
+    # Enables usage of custom measurements in dashboard widgets
+    "organizations:dashboard-custom-measurement-widgets": False,
     # Enable widget viewer modal in dashboards
     "organizations:widget-viewer-modal": False,
     # Enable minimap in the widget viewer modal in dashboards
@@ -1089,11 +1121,15 @@ SENTRY_FEATURES = {
     "organizations:performance-span-tree-autoscroll": False,
     # Enable transaction name only search
     "organizations:performance-transaction-name-only-search": False,
+    # Enable performance issue view
+    "organizations:performance-extraneous-spans-poc": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
     # Enable usage of external relays, for use with Relay. See
     # https://github.com/getsentry/relay.
     "organizations:relay": True,
+    # Enable Sentry Functions
+    "organizations:sentry-functions": False,
     # Enable experimental session replay features
     "organizations:session-replay": False,
     # Enable Session Stats down to a minute resolution
@@ -1113,6 +1149,8 @@ SENTRY_FEATURES = {
     # Enable SAML2 based SSO functionality. getsentry/sentry-auth-saml2 plugin
     # must be installed to use this functionality.
     "organizations:sso-saml2": True,
+    # Enable the server-side sampling feature (frontend, backend, relay)
+    "organizations:server-side-sampling": False,
     # Enable the new images loaded design and features
     "organizations:images-loaded-v2": True,
     # Enable the mobile screenshots feature
@@ -1133,8 +1171,6 @@ SENTRY_FEATURES = {
     "projects:discard-groups": False,
     # DEPRECATED: pending removal
     "projects:dsym": False,
-    # Enable selection of members, teams or code owners as email targets for issue alerts.
-    "projects:issue-alerts-targeting": True,
     # Enable functionality for attaching  minidumps to events and displaying
     # then in the group UI.
     "projects:minidump": True,
@@ -1150,6 +1186,8 @@ SENTRY_FEATURES = {
     "projects:servicehooks": False,
     # Use Kafka (instead of Celery) for ingestion pipeline.
     "projects:kafka-ingest": False,
+    # Automatically opt IN users to receiving Slack notifications.
+    "users:notification-slack-automatic": False,
     # Don't add feature defaults down here! Please add them in their associated
     # group sorted alphabetically.
 }
@@ -1157,6 +1195,8 @@ SENTRY_FEATURES = {
 # Default time zone for localization in the UI.
 # http://en.wikipedia.org/wiki/List_of_tz_zones_by_name
 SENTRY_DEFAULT_TIME_ZONE = "UTC"
+
+SENTRY_DEFAULT_LANGUAGE = "en"
 
 # Enable the Sentry Debugger (Beta)
 SENTRY_DEBUGGER = None
@@ -1723,15 +1763,6 @@ SENTRY_DEFAULT_OPTIONS = {}
 # You should not change this setting after your database has been created
 # unless you have altered all schemas first
 SENTRY_USE_BIG_INTS = False
-
-# Encryption schemes available to Sentry. You should *never* remove from this
-# list until the key is no longer used in the database. The first listed
-# implementation is considered the default and will be used to encrypt all
-# values (as well as re-encrypt data when it's re-saved).
-SENTRY_ENCRYPTION_SCHEMES = (
-    # identifier: implementation
-    # ('0', Fernet(b'super secret key probably from Fernet.generate_key()')),
-)
 
 # Delay (in ms) to induce on API responses
 #
@@ -2351,6 +2382,8 @@ KAFKA_INGEST_TRANSACTIONS = "ingest-transactions"
 KAFKA_INGEST_METRICS = "ingest-metrics"
 KAFKA_SNUBA_METRICS = "snuba-metrics"
 KAFKA_PROFILES = "profiles"
+KAFKA_INGEST_PERFORMANCE_METRICS = "ingest-performance-metrics"
+KAFKA_SNUBA_GENERIC_METRICS = "snuba-generic-metrics"
 
 KAFKA_SUBSCRIPTION_RESULT_TOPICS = {
     "events": KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS,
@@ -2383,7 +2416,10 @@ KAFKA_TOPICS = {
     KAFKA_SNUBA_METRICS: {"cluster": "default"},
     # Topic for receiving profiles from Relay
     KAFKA_PROFILES: {"cluster": "default"},
+    KAFKA_INGEST_PERFORMANCE_METRICS: {"cluster": "default"},
+    KAFKA_SNUBA_GENERIC_METRICS: {"cluster": "default"},
 }
+
 
 # If True, consumers will create the topics if they don't exist
 KAFKA_CONSUMER_AUTO_CREATE_TOPICS = True
@@ -2501,6 +2537,12 @@ SENTRY_SIMILARITY2_INDEX_REDIS_CLUSTER = None
 SENTRY_SIMILARITY_GROUPING_CONFIGURATIONS_TO_INDEX = {
     "similarity:2020-07-23": "a",
 }
+
+# If this is turned on, then sentry will perform automatic grouping updates.
+SENTRY_GROUPING_AUTO_UPDATE_ENABLED = False
+
+# How long is the migration phase for grouping updates?
+SENTRY_GROUPING_UPDATE_MIGRATION_PHASE = 30 * 24 * 3600  # 30 days
 
 SENTRY_USE_UWSGI = True
 
@@ -2634,6 +2676,9 @@ ANOMALY_DETECTION_TIMEOUT = 30
 # This is the URL to the profiling service
 SENTRY_PROFILING_SERVICE_URL = "http://localhost:8085"
 
+SENTRY_REPLAYS_SERVICE_URL = "http://localhost:8090"
+
+
 SENTRY_ISSUE_ALERT_HISTORY = "sentry.rules.history.backends.postgres.PostgresRuleHistoryBackend"
 SENTRY_ISSUE_ALERT_HISTORY_OPTIONS = {}
 
@@ -2655,3 +2700,15 @@ MAX_ISSUE_ALERTS_PER_PROJECT = 100
 MAX_QUERY_SUBSCRIPTIONS_PER_ORG = 1000
 
 MAX_REDIS_SNOWFLAKE_RETRY_COUNTER = 5
+
+SNOWFLAKE_VERSION_ID = 1
+SNOWFLAKE_REGION_ID = 0
+
+
+SENTRY_POST_PROCESS_LOCKS_BACKEND_OPTIONS = {
+    "path": "sentry.utils.locking.backends.redis.RedisLockBackend",
+    "options": {"cluster": "default"},
+}
+
+# maximum number of projects allowed to query snuba with for the organization_vitals_overview endpoint
+ORGANIZATION_VITALS_OVERVIEW_PROJECT_LIMIT = 300

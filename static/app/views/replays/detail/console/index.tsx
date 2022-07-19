@@ -24,7 +24,7 @@ const getDistinctLogLevels = (breadcrumbs: BreadcrumbTypeDefault[]) =>
   Array.from(new Set<string>(breadcrumbs.map(breadcrumb => breadcrumb.level)));
 
 function Console({breadcrumbs, startTimestamp = 0}: Props) {
-  const {currentHoverTime} = useReplayContext();
+  const {currentHoverTime, currentTime} = useReplayContext();
   const [searchTerm, setSearchTerm] = useState('');
   const [logLevel, setLogLevel] = useState<BreadcrumbLevelType[]>([]);
   const handleSearch = debounce(query => setSearchTerm(query), 150);
@@ -98,6 +98,10 @@ function Console({breadcrumbs, startTimestamp = 0}: Props) {
                 key={i}
                 isLast={i === breadcrumbs.length - 1}
                 breadcrumb={breadcrumb}
+                hasOccurred={
+                  currentTime >=
+                  relativeTimeInMs(breadcrumb?.timestamp || '', startTimestamp)
+                }
               />
             );
           })}
@@ -115,7 +119,7 @@ const ConsoleFilters = styled('div')`
   grid-template-columns: max-content 1fr;
   margin-bottom: ${space(1)};
 
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     margin-top: ${space(1)};
   }
 `;

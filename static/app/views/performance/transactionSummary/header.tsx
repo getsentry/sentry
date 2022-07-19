@@ -21,6 +21,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import Breadcrumb from 'sentry/views/performance/breadcrumb';
 
 import {getCurrentLandingDisplay, LandingDisplayField} from '../landing/utils';
+import {getSelectedProjectPlatforms} from '../utils';
 
 import {anomaliesRouteWithQuery} from './transactionAnomalies/utils';
 import {eventsRouteWithQuery} from './transactionEvents/utils';
@@ -95,9 +96,12 @@ class TransactionHeader extends Component<Props> {
       return;
     }
 
+    const {location, projects} = this.props;
+
     trackAnalyticsEvent({
       ...analyticKeys,
       organization_id: this.props.organization.id,
+      project_platforms: getSelectedProjectPlatforms(location, projects),
     });
   };
 
@@ -308,7 +312,6 @@ class TransactionHeader extends Component<Props> {
                 onClick={this.trackTabClick(Tab.Spans)}
               >
                 {t('Spans')}
-                <FeatureBadge type="new" noTooltip />
               </ListLink>
             </Feature>
             <Feature

@@ -90,6 +90,7 @@ const PluginIcon = styled('div')<Props>`
   position: relative;
   height: ${p => p.size}px;
   width: ${p => p.size}px;
+  min-width: ${p => p.size}px;
   border-radius: 2px;
   border: 0;
   display: inline-block;

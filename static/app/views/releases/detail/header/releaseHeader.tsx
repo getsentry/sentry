@@ -6,6 +6,7 @@ import pick from 'lodash/pick';
 import Badge from 'sentry/components/badge';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import Clipboard from 'sentry/components/clipboard';
+import FeatureBadge from 'sentry/components/featureBadge';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -45,9 +46,22 @@ const ReleaseHeader = ({
   const releasePath = `/organizations/${organization.slug}/releases/${encodeURIComponent(
     version
   )}/`;
+  const hasActiveRelease = organization.features.includes('active-release-monitor-alpha');
 
   const tabs = [
     {title: t('Overview'), to: ''},
+    ...(hasActiveRelease
+      ? [
+          {
+            title: (
+              <Fragment>
+                {t('Activity')} <FeatureBadge type="alpha" noTooltip />
+              </Fragment>
+            ),
+            to: 'activity/',
+          },
+        ]
+      : []),
     {
       title: (
         <Fragment>
@@ -180,7 +194,7 @@ const StyledNavTabs = styled(NavTabs)`
 `;
 
 const NavTabsBadge = styled(Badge)`
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     display: none;
   }
 `;

@@ -5,6 +5,7 @@ import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
+import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
 import {
@@ -12,7 +13,6 @@ import {
   useVirtualizedTree,
 } from 'sentry/utils/profiling/hooks/useVirtualizedTree/useVirtualizedTree';
 import {VirtualizedTreeNode} from 'sentry/utils/profiling/hooks/useVirtualizedTree/VirtualizedTreeNode';
-import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
 
 import {FrameCallersTableCell} from './frameStack';
 import {FrameStackContextMenu} from './frameStackContextMenu';
@@ -79,17 +79,19 @@ function skipRecursiveNodes(n: VirtualizedTreeNode<FlamegraphFrame>): boolean {
 
 interface FrameStackTableProps {
   canvasPoolManager: CanvasPoolManager;
-  flamegraphRenderer: FlamegraphRenderer;
+  formatDuration: Flamegraph['formatter'];
+  getFrameColor: (frame: FlamegraphFrame) => string;
   recursion: 'collapsed' | null;
   referenceNode: FlamegraphFrame;
-  roots: FlamegraphFrame[];
+  tree: FlamegraphFrame[];
 }
 
 export function FrameStackTable({
-  roots,
-  flamegraphRenderer,
-  canvasPoolManager,
+  tree,
   referenceNode,
+  canvasPoolManager,
+  getFrameColor,
+  formatDuration,
   recursion,
 }: FrameStackTableProps) {
   const [scrollContainerRef, setScrollContainerRef] = useState<HTMLDivElement | null>(
@@ -108,12 +110,12 @@ export function FrameStackTable({
 
   const contextMenu = useContextMenu({container: scrollContainerRef});
 
-  const handleZoomIntoNodeClick = useCallback(() => {
+  const handleZoomIntoFrameClick = useCallback(() => {
     if (!clickedContextMenuNode) {
       return;
     }
 
-    canvasPoolManager.dispatch('zoomIntoFrame', [clickedContextMenuNode.node]);
+    canvasPoolManager.dispatch('zoom at frame', [clickedContextMenuNode.node, 'exact']);
   }, [canvasPoolManager, clickedContextMenuNode]);
 
   const renderRow: UseVirtualizedListProps<FlamegraphFrame>['renderRow'] = useCallback(
@@ -135,8 +137,9 @@ export function FrameStackTable({
           node={r.item}
           style={r.styles}
           referenceNode={referenceNode}
+          frameColor={getFrameColor(r.item.node)}
+          formatDuration={formatDuration}
           tabIndex={tabIndexKey === r.key ? 0 : 1}
-          flamegraphRenderer={flamegraphRenderer}
           onClick={handleRowClick}
           onExpandClick={handleExpandTreeNode}
           onKeyDown={handleRowKeyDown}
@@ -148,7 +151,7 @@ export function FrameStackTable({
         />
       );
     },
-    [contextMenu, flamegraphRenderer, referenceNode]
+    [contextMenu, formatDuration, referenceNode, getFrameColor]
   );
 
   const {
@@ -164,7 +167,7 @@ export function FrameStackTable({
     renderRow,
     scrollContainer: scrollContainerRef,
     rowHeight: 24,
-    roots,
+    tree,
   });
 
   const onSortChange = useCallback(
@@ -211,10 +214,10 @@ export function FrameStackTable({
           </FrameNameCell>
         </FrameCallersTableHeader>
         <FrameStackContextMenu
-          onZoomIntoNodeClick={handleZoomIntoNodeClick}
+          onZoomIntoFrameClick={handleZoomIntoFrameClick}
           contextMenu={contextMenu}
         />
-        <div style={{position: 'relative', height: '100%'}}>
+        <TableItemsContainer>
           <div ref={clickedGhostRowRef} />
           <div ref={hoveredGhostRowRef} />
           <div
@@ -229,26 +232,34 @@ export function FrameStackTable({
               so that borders on columns are shown across the entire table and not just the rows.
               This is useful when number of rows does not fill up the entire table height.
              */}
-              <div
-                style={{
-                  display: 'flex',
-                  width: '100%',
-                  pointerEvents: 'none',
-                  position: 'absolute',
-                  height: '100%',
-                }}
-              >
+              <GhostRowContainer>
                 <FrameCallersTableCell />
                 <FrameCallersTableCell />
-                <FrameCallersTableCell />
-              </div>
+                <FrameCallersTableCell style={{width: '100%'}} />
+              </GhostRowContainer>
             </div>
           </div>
-        </div>
+        </TableItemsContainer>
       </FrameCallersTable>
     </FrameBar>
   );
 }
+
+const TableItemsContainer = styled('div')`
+  position: relative;
+  height: 100%;
+  overflow: hidden;
+  background: ${p => p.theme.white};
+`;
+
+const GhostRowContainer = styled('div')`
+  display: flex;
+  width: 100%;
+  pointer-events: none;
+  position: absolute;
+  height: 100%;
+  z-index: -1;
+`;
 
 const TableHeaderButton = styled('button')`
   display: flex;
@@ -277,6 +288,7 @@ const FrameBar = styled('div')`
   background-color: ${p => p.theme.surface100};
   border-top: 1px solid ${p => p.theme.border};
   flex: 1 1 100%;
+  grid-area: table;
 `;
 
 const FrameCallersTable = styled('div')`
@@ -310,7 +322,7 @@ const FrameCallersTableHeader = styled('div')`
   > div {
     position: relative;
     border-bottom: 1px solid ${p => p.theme.border};
-    background-color: ${p => p.theme.surface400};
+    background-color: ${p => p.theme.background};
     white-space: nowrap;
 
     &:last-child {

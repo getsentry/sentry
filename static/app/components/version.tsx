@@ -1,3 +1,4 @@
+// eslint-disable-next-line no-restricted-imports
 import {withRouter, WithRouterProps} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -129,7 +130,7 @@ const Version = ({
     }
 
     return css`
-      @media (min-width: ${theme.breakpoints[0]}) {
+      @media (min-width: ${theme.breakpoints.small}) {
         max-width: 500px;
       }
     `;

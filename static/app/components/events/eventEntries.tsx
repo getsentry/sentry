@@ -334,7 +334,7 @@ const EventEntries = memo(
         setAttachments(attachments.filter(attachment => attachment.id !== attachmentId));
       } catch (error) {
         Sentry.captureException(error);
-        addErrorMessage('An error occurred while deleteting the attachment');
+        addErrorMessage('An error occurred while deleting the attachment');
       }
     }
 

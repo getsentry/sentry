@@ -2,8 +2,8 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {Client} from 'sentry/api';
 import {SmartSearchBar} from 'sentry/components/smartSearchBar';
-import {QuickActionType} from 'sentry/components/smartSearchBar/types';
-import {quickActions} from 'sentry/components/smartSearchBar/utils';
+import {ShortcutType} from 'sentry/components/smartSearchBar/types';
+import {shortcuts} from 'sentry/components/smartSearchBar/utils';
 import TagStore from 'sentry/stores/tagStore';
 
 describe('SmartSearchBar', function () {
@@ -28,6 +28,11 @@ describe('SmartSearchBar', function () {
       key: 'firstRelease',
       name: 'firstRelease',
     };
+    supportedTags.is = {
+      key: 'is',
+      name: 'is',
+    };
+
     organization = TestStubs.Organization({id: '123'});
 
     location = {
@@ -702,6 +707,154 @@ describe('SmartSearchBar', function () {
         expect(filter.prop('invalid')).toBe(true);
       });
     });
+
+    it('handles autocomplete race conditions when cursor position changed', async function () {
+      const props = {
+        query: 'is:',
+        organization,
+        location,
+        supportedTags,
+      };
+
+      jest.useFakeTimers();
+      const wrapper = mountWithTheme(<SmartSearchBar {...props} />, options);
+      const searchBar = wrapper.instance();
+      // Cursor is on ':'
+      searchBar.generateValueAutocompleteGroup = jest.fn(
+        () =>
+          new Promise(resolve => {
+            setTimeout(() => {
+              resolve({
+                searchItems: [],
+                recentSearchItems: [],
+                tagName: 'test',
+                type: 'value',
+              });
+            }, [300]);
+          })
+      );
+      mockCursorPosition(searchBar, 3);
+      searchBar.updateAutoCompleteItems();
+      jest.advanceTimersByTime(200);
+
+      // Move cursor off of the place the update was called before it's done at 300ms
+      mockCursorPosition(searchBar, 0);
+
+      jest.advanceTimersByTime(101);
+
+      // Get the pending promises to resolve
+      await Promise.resolve();
+      wrapper.update();
+
+      expect(searchBar.state.searchGroups).toHaveLength(0);
+    });
+
+    it('handles race conditions when query changes from default state', async function () {
+      const props = {
+        query: '',
+        organization,
+        location,
+        supportedTags,
+      };
+
+      jest.useFakeTimers();
+      const wrapper = mountWithTheme(<SmartSearchBar {...props} />, options);
+      const searchBar = wrapper.instance();
+      // Cursor is on ':'
+      searchBar.getRecentSearches = jest.fn(
+        () =>
+          new Promise(resolve => {
+            setTimeout(() => {
+              resolve([]);
+            }, [300]);
+          })
+      );
+      mockCursorPosition(searchBar, 0);
+      searchBar.updateAutoCompleteItems();
+      jest.advanceTimersByTime(200);
+
+      // Change query before it's done at 300ms
+      searchBar.updateQuery('is:');
+
+      jest.advanceTimersByTime(101);
+
+      // Get the pending promises to resolve
+      await Promise.resolve();
+      wrapper.update();
+
+      expect(searchBar.state.searchGroups).toHaveLength(0);
+    });
+
+    it('correctly groups nested keys', async function () {
+      const props = {
+        query: 'nest',
+        organization,
+        location,
+        supportedTags: {
+          nested: {
+            key: 'nested',
+            name: 'nested',
+          },
+          'nested.child': {
+            key: 'nested.child',
+            name: 'nested.child',
+          },
+        },
+      };
+      jest.useRealTimers();
+      const wrapper = mountWithTheme(<SmartSearchBar {...props} />, options);
+      const searchBar = wrapper.instance();
+      // Cursor is at end of line
+      mockCursorPosition(searchBar, 4);
+      searchBar.updateAutoCompleteItems();
+      await tick();
+      wrapper.update();
+
+      expect(searchBar.state.searchGroups).toHaveLength(1);
+      expect(searchBar.state.searchGroups[0].children).toHaveLength(1);
+      expect(searchBar.state.searchGroups[0].children[0].title).toBe('nested');
+      expect(searchBar.state.searchGroups[0].children[0].children).toHaveLength(1);
+      expect(searchBar.state.searchGroups[0].children[0].children[0].title).toBe(
+        'nested.child'
+      );
+    });
+
+    it('correctly groups nested keys without a parent', async function () {
+      const props = {
+        query: 'nest',
+        organization,
+        location,
+        supportedTags: {
+          'nested.child1': {
+            key: 'nested.child1',
+            name: 'nested.child1',
+          },
+          'nested.child2': {
+            key: 'nested.child2',
+            name: 'nested.child2',
+          },
+        },
+      };
+      jest.useRealTimers();
+      const wrapper = mountWithTheme(<SmartSearchBar {...props} />, options);
+      const searchBar = wrapper.instance();
+      // Cursor is at end of line
+      mockCursorPosition(searchBar, 4);
+      searchBar.updateAutoCompleteItems();
+      await tick();
+      wrapper.update();
+
+      expect(searchBar.state.searchGroups).toHaveLength(1);
+      expect(searchBar.state.searchGroups[0].children).toHaveLength(1);
+      expect(searchBar.state.searchGroups[0].children[0].title).toBe('nested');
+      expect(searchBar.state.searchGroups[0].children[0].children).toHaveLength(2);
+      expect(searchBar.state.searchGroups[0].children[0].children[0].title).toBe(
+        'nested.child1'
+      );
+      expect(searchBar.state.searchGroups[0].children[0].children[1].title).toBe(
+        'nested.child2'
+      );
+    });
   });
 
   describe('onAutoComplete()', function () {
@@ -892,13 +1045,11 @@ describe('SmartSearchBar', function () {
 
       await tick();
 
-      const deleteAction = quickActions.find(
-        a => a.actionType === QuickActionType.Delete
-      );
+      const deleteAction = shortcuts.find(a => a.shortcutType === ShortcutType.Delete);
 
       expect(deleteAction).toBeDefined();
       if (deleteAction) {
-        searchBar.runQuickAction(deleteAction);
+        searchBar.runShortcut(deleteAction);
 
         await tick();
 
@@ -920,13 +1071,11 @@ describe('SmartSearchBar', function () {
 
       await tick();
 
-      const deleteAction = quickActions.find(
-        a => a.actionType === QuickActionType.Delete
-      );
+      const deleteAction = shortcuts.find(a => a.shortcutType === ShortcutType.Delete);
 
       expect(deleteAction).toBeDefined();
       if (deleteAction) {
-        searchBar.runQuickAction(deleteAction);
+        searchBar.runShortcut(deleteAction);
 
         await tick();
 
@@ -934,7 +1083,7 @@ describe('SmartSearchBar', function () {
       }
     });
 
-    it('negate token', async () => {
+    it('exclude token', async () => {
       const props = {
         query: 'is:unresolved sdk.name:sentry-cocoa has:key',
         organization,
@@ -948,13 +1097,11 @@ describe('SmartSearchBar', function () {
 
       await tick();
 
-      const deleteAction = quickActions.find(
-        a => a.actionType === QuickActionType.Negate
-      );
+      const excludeAction = shortcuts.find(shortcut => shortcut.text === 'Exclude');
 
-      expect(deleteAction).toBeDefined();
-      if (deleteAction) {
-        searchBar.runQuickAction(deleteAction);
+      expect(excludeAction).toBeDefined();
+      if (excludeAction) {
+        searchBar.runShortcut(excludeAction);
 
         await tick();
 
@@ -964,7 +1111,7 @@ describe('SmartSearchBar', function () {
       }
     });
 
-    it('un-negate token', async () => {
+    it('include token', async () => {
       const props = {
         query: 'is:unresolved !sdk.name:sentry-cocoa has:key',
         organization,
@@ -978,13 +1125,11 @@ describe('SmartSearchBar', function () {
 
       await tick();
 
-      const deleteAction = quickActions.find(
-        a => a.actionType === QuickActionType.Negate
-      );
+      const includeAction = shortcuts.find(shortcut => shortcut.text === 'Include');
 
-      expect(deleteAction).toBeDefined();
-      if (deleteAction) {
-        searchBar.runQuickAction(deleteAction);
+      expect(includeAction).toBeDefined();
+      if (includeAction) {
+        searchBar.runShortcut(includeAction);
 
         await tick();
 
@@ -992,6 +1137,51 @@ describe('SmartSearchBar', function () {
           'is:unresolved sdk.name:sentry-cocoa has:key '
         );
       }
+    });
+  });
+
+  describe('Invalid field state', () => {
+    it('Shows invalid field state when invalid field is used', async () => {
+      const props = {
+        query: 'invalid:',
+        organization,
+        location,
+        supportedTags,
+      };
+      const searchBar = mountWithTheme(<SmartSearchBar {...props} />, options);
+      const searchBarInst = searchBar.instance();
+
+      mockCursorPosition(searchBarInst, 8);
+
+      searchBar.find('textarea').simulate('focus');
+
+      searchBarInst.updateAutoCompleteItems();
+
+      await tick();
+
+      expect(searchBarInst.state.searchGroups).toHaveLength(1);
+      expect(searchBarInst.state.searchGroups[0].title).toEqual('Keys');
+      expect(searchBarInst.state.searchGroups[0].type).toEqual('invalid-tag');
+      expect(searchBar.text()).toContain("The field invalid isn't supported here");
+    });
+
+    it('Does not show invalid field state when valid field is used', async () => {
+      const props = {
+        query: 'is:',
+        organization,
+        location,
+        supportedTags,
+      };
+      const searchBar = mountWithTheme(<SmartSearchBar {...props} />, options);
+      const searchBarInst = searchBar.instance();
+
+      mockCursorPosition(searchBarInst, 3);
+
+      searchBarInst.updateAutoCompleteItems();
+
+      await tick();
+
+      expect(searchBar.text()).not.toContain("isn't supported here");
     });
   });
 });

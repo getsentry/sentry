@@ -78,14 +78,14 @@ function EventDataSection({
             <ButtonBar merged active={raw ? 'raw' : 'formatted'}>
               <Button
                 barId="formatted"
-                size="xsmall"
+                size="xs"
                 onClick={() => callIfFunction(toggleRaw, false)}
               >
                 {t('Formatted')}
               </Button>
               <Button
                 barId="raw"
-                size="xsmall"
+                size="xs"
                 onClick={() => callIfFunction(toggleRaw, true)}
               >
                 {t('Raw')}
@@ -171,7 +171,7 @@ const SectionHeader = styled('div')<{isCentered?: boolean}>`
     font-weight: normal;
   }
 
-  @media (min-width: ${props => props.theme.breakpoints[2]}) {
+  @media (min-width: ${props => props.theme.breakpoints.large}) {
     & > small {
       margin-left: ${space(1)};
       display: inline-block;
@@ -182,7 +182,7 @@ const SectionHeader = styled('div')<{isCentered?: boolean}>`
     p.isCentered &&
     css`
       align-items: center;
-      @media (max-width: ${p.theme.breakpoints[0]}) {
+      @media (max-width: ${p.theme.breakpoints.small}) {
         display: block;
       }
     `}

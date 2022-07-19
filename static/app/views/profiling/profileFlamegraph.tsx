@@ -1,4 +1,4 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import Alert from 'sentry/components/alert';
@@ -8,6 +8,7 @@ import {ProfileDragDropImportProps} from 'sentry/components/profiling/profileDra
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {DeepPartial} from 'sentry/types/utils';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {
   decodeFlamegraphStateFromQueryParams,
   FlamegraphState,
@@ -34,6 +35,12 @@ function ProfileFlamegraph(): React.ReactElement {
   const organization = useOrganization();
   const [profileGroup, setProfileGroup] = useProfileGroup();
 
+  useEffect(() => {
+    trackAdvancedAnalyticsEvent('profiling_views.profile_flamegraph', {
+      organization,
+    });
+  }, [organization]);
+
   const onImport: ProfileDragDropImportProps['onImport'] = profiles => {
     setProfileGroup({type: 'resolved', data: profiles});
   };
@@ -45,34 +52,32 @@ function ProfileFlamegraph(): React.ReactElement {
   }, []);
 
   return (
-    <Fragment>
-      <SentryDocumentTitle
-        title={t('Profiling \u2014 Flamegraph')}
-        orgSlug={organization.slug}
-      >
-        <FlamegraphStateProvider initialState={initialFlamegraphPreferencesState}>
-          <FlamegraphThemeProvider>
-            <FlamegraphStateQueryParamSync />
-            <FlamegraphContainer>
-              {profileGroup.type === 'errored' ? (
-                <Alert type="error" showIcon>
-                  {profileGroup.error}
-                </Alert>
-              ) : profileGroup.type === 'loading' ? (
-                <Fragment>
-                  <Flamegraph onImport={onImport} profiles={LoadingGroup} />
-                  <LoadingIndicatorContainer>
-                    <LoadingIndicator />
-                  </LoadingIndicatorContainer>
-                </Fragment>
-              ) : profileGroup.type === 'resolved' ? (
-                <Flamegraph onImport={onImport} profiles={profileGroup.data} />
-              ) : null}
-            </FlamegraphContainer>
-          </FlamegraphThemeProvider>
-        </FlamegraphStateProvider>
-      </SentryDocumentTitle>
-    </Fragment>
+    <SentryDocumentTitle
+      title={t('Profiling \u2014 Flamegraph')}
+      orgSlug={organization.slug}
+    >
+      <FlamegraphStateProvider initialState={initialFlamegraphPreferencesState}>
+        <FlamegraphThemeProvider>
+          <FlamegraphStateQueryParamSync />
+          <FlamegraphContainer>
+            {profileGroup.type === 'errored' ? (
+              <Alert type="error" showIcon>
+                {profileGroup.error}
+              </Alert>
+            ) : profileGroup.type === 'loading' ? (
+              <Fragment>
+                <Flamegraph onImport={onImport} profiles={LoadingGroup} />
+                <LoadingIndicatorContainer>
+                  <LoadingIndicator />
+                </LoadingIndicatorContainer>
+              </Fragment>
+            ) : profileGroup.type === 'resolved' ? (
+              <Flamegraph onImport={onImport} profiles={profileGroup.data} />
+            ) : null}
+          </FlamegraphContainer>
+        </FlamegraphThemeProvider>
+      </FlamegraphStateProvider>
+    </SentryDocumentTitle>
   );
 }
 

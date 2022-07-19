@@ -1,3 +1,5 @@
+import freezegun
+
 from sentry.constants import DataCategory
 from sentry.models import ProjectKey
 from sentry.testutils import APITestCase
@@ -6,6 +8,7 @@ from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.outcomes import Outcome
 
 
+@freezegun.freeze_time("2022-01-01 03:30:00")
 class ProjectKeyStatsTest(OutcomesSnubaTest, SnubaTestCase, APITestCase):
     def setUp(self):
         super().setUp()

@@ -42,8 +42,7 @@ class SegmentPlugin(CorePluginMixin, DataForwardingPlugin):
         ]
 
     def get_rate_limit(self):
-        # number of requests, number of seconds (window)
-        return (50, 1)
+        return (200, 1)
 
     def get_event_props(self, event):
         props = {

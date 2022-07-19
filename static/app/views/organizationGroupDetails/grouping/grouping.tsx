@@ -345,7 +345,7 @@ const Actions = styled('div')`
   align-items: center;
   gap: ${space(3)};
 
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: 1fr max-content;
     gap: ${space(2)};
   }
@@ -380,7 +380,7 @@ const StyledPanelTable = styled(PanelTable)`
     }
   }
 
-  @media (min-width: ${p => p.theme.breakpoints[3]}) {
+  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
     grid-template-columns: 1fr minmax(80px, auto);
   }
 `;

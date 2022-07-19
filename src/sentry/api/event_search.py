@@ -28,7 +28,6 @@ from sentry.search.utils import (
     parse_numeric_value,
     parse_percentage,
 )
-from sentry.utils.compat import filter, map
 from sentry.utils.snuba import (
     Dataset,
     is_duration_measurement,
@@ -251,14 +250,14 @@ def remove_optional_nodes(children):
     def is_not_optional(child):
         return not (isinstance(child, Node) and isinstance(child.expr, Optional))
 
-    return filter(is_not_optional, children)
+    return list(filter(is_not_optional, children))
 
 
 def remove_space(children):
     def is_not_space(text):
         return not (isinstance(text, str) and text == " " * len(text))
 
-    return filter(is_not_space, children)
+    return list(filter(is_not_space, children))
 
 
 def process_list(first, remaining):
@@ -377,7 +376,7 @@ class SearchFilter(NamedTuple):
     value: SearchValue
 
     def __str__(self):
-        return "".join(map(str, (self.key.name, self.operator, self.value.raw_value)))
+        return f"{self.key.name}{self.operator}{self.value.raw_value}"
 
     @property
     def is_negation(self) -> bool:
@@ -404,7 +403,7 @@ class AggregateFilter(NamedTuple):
     value: SearchValue
 
     def __str__(self):
-        return "".join(map(str, (self.key.name, self.operator, self.value.raw_value)))
+        return f"{self.key.name}{self.operator}{self.value.raw_value}"
 
 
 class AggregateKey(NamedTuple):
@@ -450,6 +449,9 @@ class SearchConfig:
     # Allows us to specify an allowlist of keys we will accept for this search.
     # If empty, allow all keys.
     allowed_keys: Set[str] = field(default_factory=set)
+
+    # Allows us to specify a list of keys we will not accept for this search.
+    blocked_keys: Set[str] = field(default_factory=set)
 
     # Which key we should return any free text under
     free_text_key = "message"
@@ -925,8 +927,12 @@ class SearchVisitor(NodeVisitor):
 
     def visit_search_key(self, node, children):
         key = children[0]
-        if self.config.allowed_keys and key not in self.config.allowed_keys:
-            raise InvalidSearchQuery("Invalid key for this search")
+        if (
+            self.config.allowed_keys
+            and key not in self.config.allowed_keys
+            or key in self.config.blocked_keys
+        ):
+            raise InvalidSearchQuery(f"Invalid key for this search: {key}")
         return SearchKey(self.key_mappings_lookup.get(key, key))
 
     def visit_text_key(self, node, children):
@@ -1068,7 +1074,9 @@ default_config = SearchConfig(
 )
 
 
-def parse_search_query(query, config=None, params=None, builder=None) -> Sequence[SearchFilter]:
+def parse_search_query(
+    query, config=None, params=None, builder=None, config_overrides=None
+) -> Sequence[SearchFilter]:
     if config is None:
         config = default_config
 
@@ -1084,4 +1092,7 @@ def parse_search_query(query, config=None, params=None, builder=None) -> Sequenc
                 "This is commonly caused by unmatched parentheses. Enclose any text in double quotes.",
             )
         )
+
+    if config_overrides:
+        config = SearchConfig.create_from(config, **config_overrides)
     return SearchVisitor(config, params=params, builder=builder).visit(tree)

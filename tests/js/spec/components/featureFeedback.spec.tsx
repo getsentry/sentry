@@ -7,7 +7,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import * as indicators from 'sentry/actionCreators/indicator';
-import {FeatureFeedback} from 'sentry/components/featureFeedback';
+import {FeatureFeedback, FeatureFeedbackProps} from 'sentry/components/featureFeedback';
 import GlobalModal from 'sentry/components/globalModal';
 import ModalStore from 'sentry/stores/modalStore';
 import {RouteContext} from 'sentry/views/routeContext';
@@ -15,7 +15,11 @@ import {RouteContext} from 'sentry/views/routeContext';
 describe('FeatureFeedback', function () {
   const {router} = initializeOrg();
 
-  function TestComponent() {
+  function TestComponent({
+    feedbackTypes,
+  }: {
+    feedbackTypes?: FeatureFeedbackProps['feedbackTypes'];
+  }) {
     return (
       <RouteContext.Provider
         value={{
@@ -25,14 +29,7 @@ describe('FeatureFeedback', function () {
           routes: [],
         }}
       >
-        <FeatureFeedback
-          featureName="test"
-          feedbackTypes={[
-            "I don't like this feature",
-            'I like this feature',
-            'Other reason',
-          ]}
-        />
+        <FeatureFeedback featureName="test" feedbackTypes={feedbackTypes} />
         <GlobalModal />
       </RouteContext.Provider>
     );
@@ -100,6 +97,22 @@ describe('FeatureFeedback', function () {
     expect(indicators.addSuccessMessage).toHaveBeenCalledWith(
       'Thanks for taking the time to provide us feedback!'
     );
+  });
+
+  it('renders provided feedbackTypes', async function () {
+    render(
+      <TestComponent
+        feedbackTypes={['Custom feedback type A', 'Custom feedback type B']}
+      />
+    );
+
+    await openModal();
+
+    userEvent.click(screen.getByText('Select type of feedback'));
+
+    // Available feedback types
+    expect(screen.getByText('Custom feedback type A')).toBeInTheDocument();
+    expect(screen.getByText('Custom feedback type B')).toBeInTheDocument();
   });
 
   it('Close modal on click', async function () {

@@ -32,9 +32,15 @@ const feedbackClient = new BrowserClient({
   integrations: defaultIntegrations,
 });
 
+const defaultFeedbackTypes = [
+  t("I don't like this feature"),
+  t('I like this feature'),
+  t('Other reason'),
+];
+
 export interface FeedBackModalProps {
   featureName: string;
-  feedbackTypes: string[];
+  feedbackTypes?: string[];
 }
 
 interface Props extends FeedBackModalProps, ModalRenderProps {}
@@ -46,7 +52,7 @@ export function FeedbackModal({
   Body,
   Footer,
   closeModal,
-  feedbackTypes,
+  feedbackTypes = defaultFeedbackTypes,
   featureName,
 }: Props) {
   const {organization} = useLegacyStore(OrganizationStore);

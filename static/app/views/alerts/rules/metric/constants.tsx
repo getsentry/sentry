@@ -3,6 +3,7 @@ import EventView from 'sentry/utils/discover/eventView';
 import {AggregationKey, LooseFieldKey} from 'sentry/utils/discover/fields';
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import {
+  AlertRuleComparisonType,
   AlertRuleThresholdType,
   AlertRuleTriggerType,
   Dataset,
@@ -211,4 +212,27 @@ export function createRuleFromWizardTemplate(
     aggregate,
     dataset,
   };
+}
+
+export function getThresholdUnits(
+  aggregate: string,
+  comparisonType: AlertRuleComparisonType
+): string {
+  // cls is a number not a measurement of time
+  if (
+    isSessionAggregate(aggregate) ||
+    comparisonType === AlertRuleComparisonType.CHANGE
+  ) {
+    return '%';
+  }
+
+  if (aggregate.includes('measurements.cls')) {
+    return '';
+  }
+
+  if (aggregate.includes('duration') || aggregate.includes('measurements')) {
+    return 'ms';
+  }
+
+  return '';
 }

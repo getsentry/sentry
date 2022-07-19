@@ -4,9 +4,16 @@ import logging
 import tempfile
 from hashlib import sha1
 
+import celery
 import sentry_sdk
+
+# XXX(mdtro): backwards compatible imports for celery 4.4.7, remove after upgrade to 5.2.7
+if celery.version_info >= (5, 2):
+    from celery import current_task
+else:
+    from celery.task import current as current_task
+
 from celery.exceptions import MaxRetriesExceededError
-from celery.task import current
 from django.core.files.base import ContentFile
 from django.db import IntegrityError, router
 from django.utils import timezone
@@ -173,7 +180,7 @@ def assemble_download(
             capture_exception(error)
 
             try:
-                current.retry()
+                current_task.retry()
             except MaxRetriesExceededError:
                 metrics.incr(
                     "dataexport.end",

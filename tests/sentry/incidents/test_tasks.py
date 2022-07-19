@@ -29,8 +29,9 @@ from sentry.incidents.tasks import (
     handle_trigger_action,
     send_subscriber_notifications,
 )
+from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.utils import resolve, resolve_tag_key
-from sentry.snuba.models import QueryDatasets
+from sentry.snuba.models import QueryDatasets, SnubaQuery
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils import TestCase
 from sentry.utils.http import absolute_uri
@@ -51,7 +52,7 @@ class TestSendSubscriberNotifications(BaseIncidentActivityTest, TestCase):
         )
         send_subscriber_notifications(activity.id)
         # User shouldn't receive an email for their own activity
-        self.send_async.assert_not_called()
+        assert self.send_async.call_count == 0
 
         self.send_async.reset_mock()
         non_member_user = self.create_user(email="non_member@test.com")
@@ -73,7 +74,7 @@ class TestSendSubscriberNotifications(BaseIncidentActivityTest, TestCase):
         activity_type = IncidentActivityType.CREATED
         activity = create_incident_activity(self.incident, activity_type)
         send_subscriber_notifications(activity.id)
-        self.send_async.assert_not_called()
+        assert self.send_async.call_count == 0
         self.send_async.reset_mock()
 
 
@@ -204,6 +205,7 @@ class TestHandleSubscriptionMetricsLogger(TestCase):
     @fixture
     def subscription(self):
         snuba_query = create_snuba_query(
+            SnubaQuery.Type.CRASH_RATE,
             QueryDatasets.METRICS,
             "hello",
             "count()",
@@ -217,10 +219,7 @@ class TestHandleSubscriptionMetricsLogger(TestCase):
         timestamp = timezone.now().replace(tzinfo=pytz.utc, microsecond=0)
         data = {
             "count": 100,
-            resolve_tag_key(self.organization.id, "session.status"): resolve(
-                self.organization.id, "healthy"
-            ),
-            "value": 2.0,
+            "crashed": 2.0,
         }
         values = {"data": [data]}
         return {
@@ -244,7 +243,41 @@ class TestHandleSubscriptionMetricsLogger(TestCase):
                         "dataset": self.subscription.snuba_query.dataset,
                         "snuba_subscription_id": self.subscription.subscription_id,
                         "result": subscription_update,
-                        "aggregation_value": None,
+                        "aggregation_value": 98.0,
                     },
                 )
             ]
+
+
+class TestHandleSubscriptionMetricsLoggerV1(TestHandleSubscriptionMetricsLogger):
+    """Repeat TestHandleSubscriptionMetricsLogger with old (v1) subscription updates.
+
+    This entire test class can be removed once all subscriptions have been migrated to v2
+    """
+
+    def build_subscription_update(self):
+        timestamp = timezone.now().replace(tzinfo=pytz.utc, microsecond=0)
+        values = {
+            "data": [
+                {
+                    resolve_tag_key(
+                        UseCaseKey.RELEASE_HEALTH, self.organization.id, "session.status"
+                    ): resolve(UseCaseKey.RELEASE_HEALTH, self.organization.id, "init"),
+                    "value": 100.0,
+                },
+                {
+                    resolve_tag_key(
+                        UseCaseKey.RELEASE_HEALTH, self.organization.id, "session.status"
+                    ): resolve(UseCaseKey.RELEASE_HEALTH, self.organization.id, "crashed"),
+                    "value": 2.0,
+                },
+            ]
+        }
+        return {
+            "subscription_id": self.subscription.subscription_id,
+            "values": values,
+            "timestamp": timestamp,
+            "interval": 1,
+            "partition": 1,
+            "offset": 1,
+        }

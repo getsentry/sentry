@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -104,27 +104,33 @@ const InnerContent = (
   const initialTag = decodedTagFromOptions ?? defaultTag;
 
   const [tagSelected, _changeTagSelected] = useState(initialTag);
+  const lastTag = useRef('');
 
-  const changeTagSelected = (tagKey: string) => {
-    const queryParams = normalizeDateTimeParams({
-      ...(location.query || {}),
-      tagKey,
-      [TAG_PAGE_TABLE_CURSOR]: undefined,
-    });
+  const changeTagSelected = useCallback(
+    (tagKey: string) => {
+      if (lastTag.current !== tagKey) {
+        const queryParams = normalizeDateTimeParams({
+          ...(location.query || {}),
+          tagKey,
+          [TAG_PAGE_TABLE_CURSOR]: undefined,
+        });
 
-    browserHistory.replace({
-      pathname: location.pathname,
-      query: queryParams,
-    });
-    _changeTagSelected(tagKey);
-  };
+        browserHistory.replace({
+          pathname: location.pathname,
+          query: queryParams,
+        });
+        _changeTagSelected(tagKey);
+        lastTag.current = decodeScalar(location.query.tagKey, '');
+      }
+    },
+    [location.query, location.pathname]
+  );
 
   useEffect(() => {
     if (initialTag) {
       changeTagSelected(initialTag);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialTag]);
+  }, [initialTag, changeTagSelected]);
 
   const handleSearch = (query: string) => {
     const queryParams = normalizeDateTimeParams({
@@ -283,14 +289,14 @@ const ReversedLayoutBody = styled('div')`
   background-color: ${p => p.theme.background};
   flex-grow: 1;
 
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
     display: grid;
     grid-template-columns: auto 66%;
     align-content: start;
     gap: ${space(3)};
   }
 
-  @media (min-width: ${p => p.theme.breakpoints[2]}) {
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
     grid-template-columns: 225px minmax(100px, auto);
   }
 `;
@@ -309,7 +315,7 @@ const FilterActions = styled('div')`
   gap: ${space(2)};
   margin-bottom: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: auto 1fr;
   }
 `;

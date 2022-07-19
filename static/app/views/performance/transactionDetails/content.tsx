@@ -31,9 +31,11 @@ import {appendTagCondition, decodeScalar} from 'sentry/utils/queryString';
 import Breadcrumb from 'sentry/views/performance/breadcrumb';
 
 import {transactionSummaryRouteWithQuery} from '../transactionSummary/utils';
+import {getSelectedProjectPlatforms} from '../utils';
 
 import EventMetas from './eventMetas';
 import FinishSetupAlert from './finishSetupAlert';
+import {TransactionToProfileButton} from './transactionToProfileButton';
 
 type Props = Pick<
   RouteComponentProps<{eventSlug: string}, {}>,
@@ -41,6 +43,7 @@ type Props = Pick<
 > & {
   eventSlug: string;
   organization: Organization;
+  projects: Project[];
 };
 
 type State = {
@@ -119,7 +122,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
   }
 
   renderContent(event: Event) {
-    const {organization, location, eventSlug, route, router} = this.props;
+    const {organization, location, eventSlug, route, router, projects} = this.props;
 
     // metrics
     trackAnalyticsEvent({
@@ -127,6 +130,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
       eventName: 'Performance: Opened Event Details',
       event_type: event.type,
       organization_id: parseInt(organization.id, 10),
+      project_platforms: getSelectedProjectPlatforms(location, projects),
     });
 
     const {isSidebarVisible} = this.state;
@@ -136,6 +140,8 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     const eventJsonUrl = `/api/0/projects/${organization.slug}/${this.projectId}/events/${event.eventID}/json/`;
     const traceId = event.contexts?.trace?.trace_id ?? '';
     const {start, end} = getTraceTimeRangeFromEvent(event);
+
+    const hasProfilingFeature = organization.features.includes('profiling');
 
     return (
       <TraceMetaQuery
@@ -172,6 +178,13 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                           {t('JSON')} (<FileSize bytes={event.size} />)
                         </Button>
                       )}
+                      {hasProfilingFeature && (
+                        <TransactionToProfileButton
+                          orgId={organization.slug}
+                          projectId={this.projectId}
+                          transactionId={event.eventID}
+                        />
+                      )}
                     </ButtonBar>
                   </Layout.HeaderActions>
                 </Layout.Header>
@@ -192,7 +205,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                   )}
                   <Layout.Main fullWidth={!isSidebarVisible}>
                     <Projects orgId={organization.slug} slugs={[this.projectId]}>
-                      {({projects}) => (
+                      {({projects: _projects}) => (
                         <SpanEntryContext.Provider
                           value={{
                             getViewChildTransactionTarget: childTransactionProps => {
@@ -209,7 +222,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                             <BorderlessEventEntries
                               organization={organization}
                               event={event}
-                              project={projects[0] as Project}
+                              project={_projects[0] as Project}
                               showExampleCommit={false}
                               showTagSummary={false}
                               location={location}

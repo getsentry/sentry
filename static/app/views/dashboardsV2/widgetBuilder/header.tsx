@@ -2,6 +2,7 @@ import Breadcrumbs from 'sentry/components/breadcrumbs';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import EditableText from 'sentry/components/editableText';
+import {FeatureFeedback} from 'sentry/components/featureFeedback';
 import * as Layout from 'sentry/components/layouts/thirds';
 import type {LinkProps} from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
@@ -52,15 +53,7 @@ export function Header({
 
       <Layout.HeaderActions>
         <ButtonBar gap={1}>
-          <Button
-            external
-            title={t(
-              'How do you like the new widget builder? Submit feedback on GitHub.'
-            )}
-            href="https://github.com/getsentry/sentry/issues/new/choose"
-          >
-            {t('Give Feedback')}
-          </Button>
+          <FeatureFeedback featureName="widget-builder" />
           <Button
             external
             href="https://docs.sentry.io/product/dashboards/custom-dashboards/#widget-builder"

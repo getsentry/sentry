@@ -34,16 +34,13 @@ function RelatedIssues({rule, organization, projects, query, timePeriod}: Props)
       detail === RELATED_ISSUES_BOOLEAN_QUERY_ERROR &&
       !isSessionAggregate(rule.aggregate)
     ) {
-      const ctaOpts = {
+      const {buttonText, to} = makeDefaultCta({
         orgSlug: organization.slug,
         projects,
         rule,
-        eventType: query,
-        start: timePeriod.start,
-        end: timePeriod.end,
-      };
-
-      const {buttonText, to} = makeDefaultCta(ctaOpts);
+        query,
+        timePeriod,
+      });
       return <RelatedIssuesNotAvailable buttonTo={to} buttonText={buttonText} />;
     }
 
@@ -84,7 +81,7 @@ function RelatedIssues({rule, organization, projects, query, timePeriod}: Props)
     <Fragment>
       <ControlsWrapper>
         <StyledSectionHeading>{t('Related Issues')}</StyledSectionHeading>
-        <Button data-test-id="issues-open" size="xsmall" to={issueSearch}>
+        <Button data-test-id="issues-open" size="xs" to={issueSearch}>
           {t('Open in Issues')}
         </Button>
       </ControlsWrapper>

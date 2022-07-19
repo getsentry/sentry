@@ -31,7 +31,20 @@ _DEFAULT_DAEMONS = {
         "--force-offset-reset",
         "latest",
     ],
-    "metrics": ["sentry", "run", "ingest-metrics-consumer-2"],
+    "metrics-rh": [
+        "sentry",
+        "run",
+        "ingest-metrics-consumer-2",
+        "--ingest-profile",
+        "release-health",
+    ],
+    "metrics-perf": [
+        "sentry",
+        "run",
+        "ingest-metrics-consumer-2",
+        "--ingest-profile",
+        "performance",
+    ],
     "profiles": ["sentry", "run", "ingest-profiles"],
 }
 
@@ -226,7 +239,8 @@ and run `sentry devservices up kafka zookeeper`.
             }
         )
 
-    settings.SENTRY_USE_RELAY = ingest
+    if ingest:
+        settings.SENTRY_USE_RELAY = True
 
     os.environ["SENTRY_USE_RELAY"] = "1" if settings.SENTRY_USE_RELAY else ""
 
@@ -263,7 +277,7 @@ and run `sentry devservices up kafka zookeeper`.
                     "`SENTRY_USE_METRICS_DEV` can only be used when "
                     "`SENTRY_EVENTSTREAM=sentry.eventstream.kafka.KafkaEventStream`."
                 )
-            daemons += [_get_daemon("metrics")]
+            daemons += [_get_daemon("metrics-rh"), _get_daemon("metrics-perf")]
 
     if settings.SENTRY_USE_RELAY:
         daemons += [_get_daemon("ingest")]

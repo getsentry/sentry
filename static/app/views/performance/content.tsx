@@ -21,7 +21,11 @@ import withPageFilters from 'sentry/utils/withPageFilters';
 
 import {DEFAULT_STATS_PERIOD, generatePerformanceEventView} from './data';
 import {PerformanceLanding} from './landing';
-import {addRoutePerformanceContext, handleTrendsClick} from './utils';
+import {
+  addRoutePerformanceContext,
+  getSelectedProjectPlatforms,
+  handleTrendsClick,
+} from './utils';
 
 type Props = {
   location: Location;
@@ -85,10 +89,14 @@ function PerformanceContent({selection, location, demoMode}: Props) {
 
   useEffect(() => {
     if (!mounted.current) {
+      const selectedProjects = getSelectedProjectPlatforms(location, projects);
+
       trackAdvancedAnalyticsEvent('performance_views.overview.view', {
         organization,
         show_onboarding: onboardingProject !== undefined,
+        project_platforms: selectedProjects,
       });
+
       loadOrganizationTags(api, organization.slug, selection);
       addRoutePerformanceContext(selection);
       mounted.current = true;
@@ -105,6 +113,8 @@ function PerformanceContent({selection, location, demoMode}: Props) {
     api,
     organization,
     onboardingProject,
+    location,
+    projects,
   ]);
 
   function setError(newError?: string) {
@@ -131,7 +141,6 @@ function PerformanceContent({selection, location, demoMode}: Props) {
         cursor: undefined,
         query: String(searchQuery).trim() || undefined,
         isDefaultQuery: false,
-        userModified: true,
       },
     });
   }
@@ -149,13 +158,18 @@ function PerformanceContent({selection, location, demoMode}: Props) {
                 period: DEFAULT_STATS_PERIOD,
               },
             }}
-            hideGlobalHeader
           >
             <PerformanceLanding
               eventView={eventView}
               setError={setError}
               handleSearch={handleSearch}
-              handleTrendsClick={() => handleTrendsClick({location, organization})}
+              handleTrendsClick={() =>
+                handleTrendsClick({
+                  location,
+                  organization,
+                  projectPlatforms: getSelectedProjectPlatforms(location, projects),
+                })
+              }
               onboardingProject={onboardingProject}
               organization={organization}
               location={location}

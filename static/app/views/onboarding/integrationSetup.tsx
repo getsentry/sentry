@@ -176,12 +176,12 @@ class IntegrationSetup extends Component<Props, State> {
               onAddIntegration={this.handleAddIntegration}
               organization={organization}
               priority="primary"
-              size="small"
+              size="sm"
               analyticsParams={{view: 'onboarding', already_installed: false}}
               modalParams={{projectId: project.id}}
             />
             <Button
-              size="small"
+              size="sm"
               to={{
                 pathname: window.location.pathname,
                 query: {manual: '1'},
@@ -259,7 +259,7 @@ const StyledButtonBar = styled(ButtonBar)`
   margin-top: ${space(3)};
   width: max-content;
 
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     width: auto;
     grid-row-gap: ${space(1)};
     grid-auto-flow: row;

@@ -5,7 +5,6 @@ import {NewQuery} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-import {ReplayError} from 'sentry/views/replays/types';
 
 type OptionalProperties = 'projects' | 'environment' | 'id' | 'name' | 'version';
 interface Params {
@@ -25,19 +24,19 @@ interface Params {
   ignoreCursor?: boolean;
 }
 
-interface State {
-  data: ReplayError[] | undefined;
+interface State<T> {
+  data: T[] | undefined;
   error: Error | undefined;
   isLoading: boolean;
   pageLinks: string | undefined;
 }
 
-const INITIAL_STATE: State = {
+const INITIAL_STATE: Readonly<State<any>> = {
   isLoading: true,
   error: undefined,
   data: undefined,
   pageLinks: undefined,
-} as const;
+};
 
 const FAKE_LOCATION = {
   query: {},
@@ -49,12 +48,12 @@ const FAKE_LOCATION = {
  * Note this does *not* handle URL parameters like the render component `<DiscoverQuery>`.
  * It will need to be handled in a parent.
  */
-export default function useDiscoverQuery({
+export default function useDiscoverQuery<T = unknown>({
   endpoint,
   discoverQuery,
   ignoreCursor,
 }: Params) {
-  const [state, setState] = useState<State>(INITIAL_STATE);
+  const [state, setState] = useState<State<T>>(INITIAL_STATE);
   const api = useApi();
   const organization = useOrganization();
 

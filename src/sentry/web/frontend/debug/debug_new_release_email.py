@@ -8,7 +8,6 @@ from sentry_relay import parse_release
 
 from sentry.models import Commit, CommitAuthor, Deploy, Organization, Project, Release, User
 from sentry.notifications.types import GroupSubscriptionReason
-from sentry.utils.compat import zip
 from sentry.utils.http import absolute_uri
 
 from .mail import MailPreview
@@ -106,7 +105,7 @@ class DebugNewReleaseEmailView(View):
                 "environment": "production",
                 "file_count": 5,
                 "project_count": len(projects),
-                "projects": zip(projects, release_links, [6, 1, 0]),
+                "projects": list(zip(projects, release_links, [6, 1, 0])),
                 "reason": GroupSubscriptionReason.descriptions[GroupSubscriptionReason.committed],
                 "release": release,
                 "repos": repos,

@@ -86,7 +86,7 @@ const Wrapper = styled(DataSection)<{
     }
   }
 
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     display: grid;
     grid-template-columns: ${p =>
       p.showScreenshot && p.showTags ? 'max-content auto 1fr' : '1fr'};
@@ -119,7 +119,7 @@ const Divider = styled('div')`
   width: 100%;
   margin: ${space(3)} 0;
 
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     height: 100%;
     width: 1px;
     margin: 0 ${space(3)};

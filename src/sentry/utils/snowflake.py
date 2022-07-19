@@ -8,7 +8,9 @@ from django.db import IntegrityError
 from sentry.utils import redis
 
 _TTL = timedelta(minutes=5)
-SENTRY_EPOCH_START = datetime(2022, 4, 26, 0, 0).timestamp()
+SENTRY_EPOCH_START = datetime(
+    2022, 7, 21, 0, 0
+).timestamp()  # need to change before snowflake id rollout
 
 
 class SnowflakeIdMixin:
@@ -36,7 +38,6 @@ class SnowflakeBitSegment:
     def validate(self, value):
         if value >> self.length != 0:
             raise Exception(f"{self.name} exceed max bit value of {self.length}")
-        return True
 
 
 BIT_SEGMENT_SCHEMA = (
@@ -67,10 +68,8 @@ def msb_0_ordering(value, width):
 
 def generate_snowflake_id(redis_key: str) -> int:
     segment_values = {
-        VERSION_ID: msb_0_ordering(1, VERSION_ID.length),
-        TIME_DIFFERENCE: 0,
-        REGION_ID: 0,
-        REGION_SEQUENCE: 0,
+        VERSION_ID: msb_0_ordering(settings.SNOWFLAKE_VERSION_ID, VERSION_ID.length),
+        REGION_ID: settings.SNOWFLAKE_REGION_ID,
     }
 
     current_time = datetime.now().timestamp()
@@ -84,8 +83,8 @@ def generate_snowflake_id(redis_key: str) -> int:
     ) = get_sequence_value_from_redis(redis_key, segment_values[TIME_DIFFERENCE])
 
     for segment in BIT_SEGMENT_SCHEMA:
-        if segment.validate(segment_values[segment]):
-            snowflake_id = (snowflake_id << segment.length) | segment_values[segment]
+        segment.validate(segment_values[segment])
+        snowflake_id = (snowflake_id << segment.length) | segment_values[segment]
 
     ID_VALIDATOR.validate(snowflake_id)
 

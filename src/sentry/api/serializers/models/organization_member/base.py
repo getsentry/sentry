@@ -67,8 +67,9 @@ class OrganizationMemberSerializer(Serializer):  # type: ignore
             "email": obj.get_email(),
             "name": obj.user.get_display_name() if obj.user else obj.get_email(),
             "user": attrs["user"],
-            "role": obj.role,
-            "roleName": roles.get(obj.role).name,
+            "role": obj.role,  # Deprecated, use orgRole instead
+            "roleName": roles.get(obj.role).name,  # Deprecated
+            "orgRole": obj.role,
             "pending": obj.is_pending,
             "expired": obj.token_expired,
             "flags": {

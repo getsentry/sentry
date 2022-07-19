@@ -4,8 +4,6 @@ exclude: >
         \.snap$|
         \.map$|
         \.map\.js$|
-        ^tests/sentry/lang/.*/fixtures/|
-        ^fixtures/|
         ^src/sentry/static/sentry/vendor/|
         ^tests/sentry/lang/javascript/example-project/|
         ^src/.*/locale/|
@@ -50,11 +48,10 @@ repos:
       log_file: '.artifacts/flake8.pycodestyle.log'
     - id: lint-requirements
       name: lint-requirements
-      entry: bin/lint-requirements
-      language: python
-      files: requirements-base.txt
+      entry: python -m tools.lint_requirements
+      language: system
+      files: requirements-frozen.txt
       pass_filenames: false
-      additional_dependencies: [packaging==21.3]
     - id: pyright
       name: pyright
       entry: pyright
@@ -65,8 +62,8 @@ repos:
       additional_dependencies: [ "pyright@1.1.186" ]
       args: [ '--project', 'pyrightconfig-commithook.json' ]
 
--   repo: https://github.com/sirosen/check-jsonschema
-    rev: 0.3.0
+-   repo: https://github.com/python-jsonschema/check-jsonschema
+    rev: 0.16.0
     hooks:
     - id: check-github-actions
     - id: check-github-workflows
@@ -80,9 +77,10 @@ repos:
     - id: check-symlinks
     - id: end-of-file-fixer
       exclude_types: [svg]
+      exclude: ^fixtures/
     - id: trailing-whitespace
       exclude_types: [svg]
-      exclude: ^scripts/patches/
+      exclude: ^(fixtures/|scripts/patches/)
     - id: debug-statements
     - id: name-tests-test
       args: [--pytest-test-first]

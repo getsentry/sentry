@@ -90,6 +90,7 @@ def run_deletion(deletion_id, first_pass=True):
         transaction_id=deletion.guid,
         actor_id=deletion.actor_id,
     )
+
     if not task.should_proceed(instance):
         logger.info(
             "object.delete.aborted",

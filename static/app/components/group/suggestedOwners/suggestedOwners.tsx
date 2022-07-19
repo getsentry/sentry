@@ -124,7 +124,7 @@ class SuggestedOwners extends AsyncComponent<Props, State> {
   };
 
   /**
-   * Combine the commiter and ownership data into a single array, merging
+   * Combine the committer and ownership data into a single array, merging
    * users who are both owners based on having commits, and owners matching
    * project ownership rules into one array.
    *
@@ -147,10 +147,10 @@ class SuggestedOwners extends AsyncComponent<Props, State> {
    */
   getOwnerList() {
     const committers = this.props.committers ?? [];
-    const owners = committers.map(commiter => ({
-      actor: {...commiter.author, type: 'user' as Actor['type']},
+    const owners: OwnerList = committers.map(commiter => ({
+      actor: {...commiter.author, type: 'user'},
       commits: commiter.commits,
-    })) as OwnerList;
+    }));
 
     this.state.event_owners.owners.forEach(owner => {
       const normalizedOwner = {
@@ -158,9 +158,10 @@ class SuggestedOwners extends AsyncComponent<Props, State> {
         rules: findMatchedRules(this.state.event_owners.rules || [], owner),
       };
 
-      const existingIdx = owners.findIndex(o =>
-        committers.length === 0 ? o.actor === owner : o.actor.email === owner.email
-      );
+      const existingIdx =
+        committers.length > 0 && owner.email && owner.type === 'user'
+          ? owners.findIndex(o => o.actor.email === owner.email)
+          : -1;
       if (existingIdx > -1) {
         owners[existingIdx] = {...normalizedOwner, ...owners[existingIdx]};
         return;

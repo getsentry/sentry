@@ -1048,7 +1048,7 @@ const DescriptionCell = styled(Cell)`
 `;
 
 const Change = styled('div')<{color?: Color}>`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSizeMedium};
   ${p => p.color && `color: ${p.theme[p.color]}`}
 `;
 
@@ -1062,7 +1062,7 @@ const ChartTable = styled(PanelTable)<{withExpanders: boolean}>`
     border-bottom: 1px solid ${p => p.theme.border};
   }
 
-  @media (max-width: ${p => p.theme.breakpoints[2]}) {
+  @media (max-width: ${p => p.theme.breakpoints.large}) {
     grid-template-columns: repeat(4, minmax(min-content, 1fr)) ${p =>
         p.withExpanders ? '75px' : ''};
   }
@@ -1084,6 +1084,7 @@ const ShowMoreWrapper = styled('div')`
 
 const ShowMoreTitle = styled('div')`
   color: ${p => p.theme.gray300};
+  font-size: ${p => p.theme.fontSizeMedium};
   display: inline-grid;
   grid-template-columns: auto auto;
   gap: 10px;

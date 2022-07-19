@@ -611,7 +611,7 @@ class ColumnEditCollection extends Component<Props, State> {
         <RowContainer showAliasField={showAliasField} singleColumn={singleColumn}>
           <Actions gap={1} showAliasField={showAliasField}>
             <Button
-              size="small"
+              size="sm"
               aria-label={t('Add a Column')}
               onClick={this.handleAddColumn}
               title={title}
@@ -622,7 +622,7 @@ class ColumnEditCollection extends Component<Props, State> {
             </Button>
             {source !== WidgetType.ISSUE && source !== WidgetType.RELEASE && (
               <Button
-                size="small"
+                size="sm"
                 aria-label={t('Add an Equation')}
                 onClick={this.handleAddEquation}
                 title={title}
@@ -662,7 +662,7 @@ const RowContainer = styled('div')<{
       align-items: flex-start;
       grid-template-columns: ${p.singleColumn ? `1fr` : `${space(3)} 1fr 40px`};
 
-      @media (min-width: ${p.theme.breakpoints[0]}) {
+      @media (min-width: ${p.theme.breakpoints.small}) {
         grid-template-columns: ${p.singleColumn
           ? `1fr calc(200px + ${space(1)})`
           : `${space(3)} 1fr calc(200px + ${space(1)}) 40px`};
@@ -719,12 +719,12 @@ const AliasInput = styled(Input)`
 
 const AliasField = styled('div')<{singleColumn: boolean}>`
   margin-top: ${space(1)};
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     margin-top: 0;
     margin-left: ${space(1)};
   }
 
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     grid-row: 2/2;
     grid-column: ${p => (p.singleColumn ? '1/-1' : '2/2')};
   }

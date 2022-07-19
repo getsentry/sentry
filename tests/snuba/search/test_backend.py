@@ -2092,7 +2092,7 @@ class CdcEventsSnubaSearchTest(TestCase, SnubaTestCase):
         self.run_test("is:unresolved", [self.group1, self.group2], None)
 
     def test_invalid(self):
-        with self.assertRaises(InvalidQueryForExecutor):
+        with pytest.raises(InvalidQueryForExecutor):
             self.make_query(search_filter_query="is:unresolved abc:123")
 
     def test_resolved_group(self):
@@ -2137,7 +2137,7 @@ class CdcEventsSnubaSearchTest(TestCase, SnubaTestCase):
             [self.group2, self.group1],
             None,
             sort_by="freq",
-            # Change the date range to bust the cache
+            # Change the date range to bust the
             date_from=self.base_datetime - timedelta(days=29),
         )
 
@@ -2163,7 +2163,7 @@ class CdcEventsSnubaSearchTest(TestCase, SnubaTestCase):
             [group3, self.group2, self.group1],
             None,
             sort_by="new",
-            # Change the date range to bust the cache
+            # Change the date range to bust the
             date_from=self.base_datetime - timedelta(days=29),
         )
 
@@ -2222,7 +2222,7 @@ class CdcEventsSnubaSearchTest(TestCase, SnubaTestCase):
             [self.group2, self.group1, group3],
             None,
             sort_by="user",
-            # Change the date range to bust the cache
+            # Change the date range to bust the
             date_from=self.base_datetime - timedelta(days=29),
         )
 

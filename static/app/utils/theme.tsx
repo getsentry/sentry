@@ -581,7 +581,13 @@ const iconSizes = {
 };
 
 const commonTheme = {
-  breakpoints: ['800px', '992px', '1200px', '1440px', '2560px'],
+  breakpoints: {
+    small: '800px',
+    medium: '992px',
+    large: '1200px',
+    xlarge: '1440px',
+    xxlarge: '2560px',
+  },
 
   ...lightColors,
 
@@ -644,12 +650,6 @@ const commonTheme = {
     // tooltips and hovercards can be inside modals sometimes.
     hovercard: 10002,
     tooltip: 10003,
-
-    // On mobile views org stats dropdowns overlap
-    orgStats: {
-      dataCategory: 2,
-      timeRange: 1,
-    },
 
     // On mobile views issue list dropdowns overlap
     issuesList: {
@@ -725,19 +725,19 @@ const commonTheme = {
    * Should be used to ensure consistent sizing among form elements.
    */
   form: {
-    default: {
+    md: {
       height: 40,
       minHeight: 40,
       fontSize: '0.875rem',
       lineHeight: '1rem',
     },
-    small: {
+    sm: {
       height: 34,
       minHeight: 34,
       fontSize: '0.875rem',
       lineHeight: '1rem',
     },
-    xsmall: {
+    xs: {
       height: 28,
       minHeight: 28,
       fontSize: '0.75rem',
@@ -749,19 +749,19 @@ const commonTheme = {
    * Padding for buttons
    */
   buttonPadding: {
-    default: {
+    md: {
       paddingTop: 10,
       paddingBottom: 10,
       paddingLeft: 16,
       paddingRight: 16,
     },
-    small: {
+    sm: {
       paddingTop: 8,
       paddingBottom: 8,
       paddingLeft: 12,
       paddingRight: 12,
     },
-    xsmall: {
+    xs: {
       paddingTop: 6,
       paddingBottom: 6,
       paddingLeft: 8,

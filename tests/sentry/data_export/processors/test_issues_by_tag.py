@@ -1,3 +1,5 @@
+import pytest
+
 from sentry.data_export.base import ExportError
 from sentry.data_export.processors.issues_by_tag import IssuesByTagProcessor
 from sentry.models import EventUser, Group, Project
@@ -38,14 +40,14 @@ class IssuesByTagProcessorTest(TestCase, SnubaTestCase):
         project = IssuesByTagProcessor.get_project(project_id=self.project.id)
         assert isinstance(project, Project)
         assert project == self.project
-        with self.assertRaises(ExportError):
+        with pytest.raises(ExportError):
             IssuesByTagProcessor.get_project(project_id=-1)
 
     def test_get_group(self):
         group = IssuesByTagProcessor.get_group(group_id=self.group.id, project=self.project)
         assert isinstance(group, Group)
         assert group == self.group
-        with self.assertRaises(ExportError):
+        with pytest.raises(ExportError):
             IssuesByTagProcessor.get_group(group_id=-1, project=self.project)
 
     def test_get_header_fields(self):

@@ -1,7 +1,7 @@
 import {LocationDescriptor} from 'history';
 import pick from 'lodash/pick';
 
-import {Client} from 'sentry/api';
+import {Client, ResponseMeta} from 'sentry/api';
 import {canIncludePreviousPeriod} from 'sentry/components/charts/utils';
 import {
   DateString,
@@ -36,7 +36,6 @@ type Options = {
   start?: DateString;
   team?: Readonly<string | string[]>;
   topEvents?: number;
-  userModified?: string;
   withoutZerofill?: boolean;
   yAxis?: string | string[];
 };
@@ -61,7 +60,7 @@ type Options = {
  * @param {Record<string, string>} options.queryExtras A list of extra query parameters
  * @param {(org: OrganizationSummary) => string} options.generatePathname A function that returns an override for the pathname
  */
-export const doEventsRequest = (
+export const doEventsRequest = <IncludeAllArgsType extends boolean = false>(
   api: Client,
   {
     organization,
@@ -86,9 +85,13 @@ export const doEventsRequest = (
     generatePathname,
     queryExtras,
     excludeOther,
-    userModified,
-  }: Options
-): Promise<EventsStats | MultiSeriesEventsStats> => {
+    includeAllArgs,
+  }: {includeAllArgs?: IncludeAllArgsType} & Options
+): IncludeAllArgsType extends true
+  ? Promise<
+      [EventsStats | MultiSeriesEventsStats, string | undefined, ResponseMeta | undefined]
+    >
+  : Promise<EventsStats | MultiSeriesEventsStats> => {
   const pathname =
     generatePathname?.(organization) ??
     `/organizations/${organization.slug}/events-stats/`;
@@ -110,7 +113,6 @@ export const doEventsRequest = (
       withoutZerofill: withoutZerofill ? '1' : undefined,
       referrer: referrer ? referrer : 'api.organization-event-stats',
       excludeOther: excludeOther ? '1' : undefined,
-      user_modified: pathname.includes('events-stats') ? userModified : undefined,
     }).filter(([, value]) => typeof value !== 'undefined')
   );
 
@@ -120,6 +122,7 @@ export const doEventsRequest = (
   const periodObj = getPeriod({period, start, end}, {shouldDoublePeriod});
 
   const queryObject = {
+    includeAllArgs,
     query: {
       ...urlQuery,
       ...periodObj,
@@ -131,7 +134,7 @@ export const doEventsRequest = (
     return queryBatching.batchRequest(api, pathname, queryObject);
   }
 
-  return api.requestPromise(pathname, queryObject);
+  return api.requestPromise<IncludeAllArgsType>(pathname, queryObject);
 };
 
 export type EventQuery = {

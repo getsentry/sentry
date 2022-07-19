@@ -187,15 +187,22 @@ class Organization(Model, SnowflakeIdMixin):
         return f"{self.name} ({self.slug})"
 
     def save(self, *args, **kwargs):
+        slugify_target = None
         if not self.slug:
-            lock = locks.get("slug:organization", duration=5)
+            slugify_target = self.name
+        elif not self.id:
+            slugify_target = self.slug
+        if slugify_target is not None:
+            lock = locks.get("slug:organization", duration=5, name="organization_slug")
             with TimedRetryPolicy(10)(lock.acquire):
-                slugify_instance(self, self.name, reserved=RESERVED_ORGANIZATION_SLUGS)
+                slugify_target = slugify_target.replace("_", "-").strip("-")
+                slugify_instance(self, slugify_target, reserved=RESERVED_ORGANIZATION_SLUGS)
 
         snowflake_redis_key = "organization_snowflake_key"
         self.save_with_snowflake_id(
             snowflake_redis_key, lambda: super(Organization, self).save(*args, **kwargs)
         )
+        super().save(*args, **kwargs)
 
     def delete(self, **kwargs):
         from sentry.models import NotificationSetting

@@ -1,5 +1,5 @@
-from sentry.shared_integrations.exceptions import ApiError
 from fixtures.integrations import StubService
+from sentry.shared_integrations.exceptions import ApiError
 
 
 class StubJiraApiClient(StubService):

@@ -1,5 +1,6 @@
 from unittest.mock import Mock, patch
 
+import pytest
 from django.http import QueryDict
 
 from sentry.api.helpers.group_index import (
@@ -27,8 +28,8 @@ class ValidateSearchFilterPermissionsTest(TestCase):
     @patch("sentry.analytics.record")
     def test_negative(self, mock_record):
         query = "!has:user"
-        with self.feature({"organizations:advanced-search": False}), self.assertRaisesRegex(
-            ValidationError, ".*negative search.*"
+        with self.feature({"organizations:advanced-search": False}), pytest.raises(
+            ValidationError, match=".*negative search.*"
         ):
             self.run_test(query)
 
@@ -36,8 +37,8 @@ class ValidateSearchFilterPermissionsTest(TestCase):
         self.assert_analytics_recorded(mock_record)
 
         query = "!something:123"
-        with self.feature({"organizations:advanced-search": False}), self.assertRaisesRegex(
-            ValidationError, ".*negative search.*"
+        with self.feature({"organizations:advanced-search": False}), pytest.raises(
+            ValidationError, match=".*negative search.*"
         ):
             self.run_test(query)
 
@@ -47,8 +48,8 @@ class ValidateSearchFilterPermissionsTest(TestCase):
     @patch("sentry.analytics.record")
     def test_wildcard(self, mock_record):
         query = "abc:hello*"
-        with self.feature({"organizations:advanced-search": False}), self.assertRaisesRegex(
-            ValidationError, ".*wildcard search.*"
+        with self.feature({"organizations:advanced-search": False}), pytest.raises(
+            ValidationError, match=".*wildcard search.*"
         ):
             self.run_test(query)
 
@@ -56,8 +57,8 @@ class ValidateSearchFilterPermissionsTest(TestCase):
         self.assert_analytics_recorded(mock_record)
 
         query = "raw * search"
-        with self.feature({"organizations:advanced-search": False}), self.assertRaisesRegex(
-            ValidationError, ".*wildcard search.*"
+        with self.feature({"organizations:advanced-search": False}), pytest.raises(
+            ValidationError, match=".*wildcard search.*"
         ):
             self.run_test(query)
 
