@@ -31,7 +31,7 @@ function ReplayTimeline({}: Props) {
   const {currentHoverTime, currentTime, duration = 0, replay} = useReplayContext();
 
   if (!replay) {
-    return <Placeholder height="86px" bottomGutter={2} />;
+    return <Placeholder height="48px" bottomGutter={2} />;
   }
 
   const {startTimestamp} = replay.getEvent();
@@ -50,7 +50,7 @@ function ReplayTimeline({}: Props) {
               <MinorGridlines duration={duration} width={width} />
               <MajorGridlines duration={duration} width={width} />
               <TimelineScrubber />
-              <UnderTimestamp paddingTop="52px">
+              <UnderTimestamp paddingTop="36px">
                 <ReplayTimelineSpans
                   duration={duration}
                   spans={networkSpans}
@@ -69,7 +69,7 @@ function ReplayTimeline({}: Props) {
                   duration={duration}
                 />
               ) : null}
-              <UnderTimestamp paddingTop="24px">
+              <UnderTimestamp paddingTop="0">
                 <ReplayTimelineEvents
                   crumbs={userCrumbs}
                   duration={duration}
