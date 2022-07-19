@@ -219,8 +219,8 @@ export function PerformanceLanding(props: Props) {
                     organization={organization}
                     features={['organizations:performance-transaction-name-only-search']}
                   >
-                    {({hasFeature}) => {
-                      return hasFeature ? (
+                    {({hasFeature}) =>
+                      hasFeature ? (
                         // TODO replace `handleSearch prop` with transaction name search once
                         // transaction name search becomes the default search bar
                         <TransactionNameSearchBar
@@ -242,8 +242,8 @@ export function PerformanceLanding(props: Props) {
                           onSearch={handleSearch}
                           maxQueryLength={MAX_QUERY_LENGTH}
                         />
-                      );
-                    }}
+                      )
+                    }
                   </Feature>
                   <Feature
                     features={['organizations:performance-transaction-name-only-search']}
