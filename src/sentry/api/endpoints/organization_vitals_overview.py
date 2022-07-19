@@ -9,6 +9,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import experiments
+from sentry.api.base import ONE_DAY
 from sentry.api.bases import OrganizationEventsEndpointBase
 from sentry.api.serializers.models.project import get_access_by_project
 from sentry.models import Organization, Project, ProjectStatus
@@ -55,10 +56,6 @@ NO_RESULT_RESPONSE = {
 }
 
 
-# one day cache
-CACHE_TTL = 24 * 60 * 60
-
-
 def get_vital_data_for_org_no_cache(organization: Organization, projects: Sequence[Project]):
     project_ids = list(map(lambda x: x.id, projects))
 
@@ -96,7 +93,7 @@ def get_vital_data_for_org(organization: Organization, projects: Sequence[Projec
     # cache miss, lookup and store value
     if cache_value is None:
         cache_value = get_vital_data_for_org_no_cache(organization, projects)
-        cache.set(cache_key, cache_value, CACHE_TTL)
+        cache.set(cache_key, cache_value, ONE_DAY)
     return cache_value
 
 
