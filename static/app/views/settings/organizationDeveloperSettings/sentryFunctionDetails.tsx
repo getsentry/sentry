@@ -63,21 +63,15 @@ function SentryFunctionDetails(props: Props) {
     addSuccessMessage(t('Sentry Function successfully saved.', data.name));
   };
 
-  // two ways to update the code
-  // 1. update the code whenever updateCode is called, this requires the handleEditorDidMount
-  //    will likely run only once, before submission
-  // const editorRef = useRef(null);
+  const editorRef = useRef(null);
 
-  // function handleEditorDidMount(editor) {
-  //   editorRef.current = editor;
-  // }
-  // function updateCode() {
-  //   form.current.setValue('code', editorRef.current?.getValue());
-  // }
-
-  // 2. update the code whenever the editor is changed, this requires updateCode2
-  function updateCode2(value, _event) {
-    form.current.setValue('code', value);
+  function handleEditorDidMount(editor) {
+    editorRef.current = editor;
+  }
+  function updateCode() {
+    if (editorRef.current === null) {
+      form.current.setValue('code', editorRef.current?.getValue());
+    }
   }
 
   return (
@@ -90,7 +84,7 @@ function SentryFunctionDetails(props: Props) {
           apiEndpoint={endpoint}
           model={form.current}
           onPreSubmit={() => {
-            // updateCode();
+            updateCode();
             addLoadingMessage(t('Saving changes..'));
           }}
           onSubmitError={handleSubmitError}
@@ -102,8 +96,7 @@ function SentryFunctionDetails(props: Props) {
           height="80vh"
           defaultLanguage="python"
           defaultValue="// some comment"
-          // onMount={handleEditorDidMount}
-          onChange={updateCode2}
+          onMount={handleEditorDidMount}
           options={{
             minimap: {
               enabled: false,
