@@ -7,7 +7,7 @@ import TimeRangeItemLabel from './timeRangeItemLabel';
 type Props = {
   children: (items: Item[]) => React.ReactElement;
   handleSelectRelative: (value: string) => void;
-  relativePeriods?: Record<'string', React.ReactNode>;
+  relativePeriods?: Record<string, React.ReactNode>;
   shouldShowAbsolute?: boolean;
   shouldShowRelative?: boolean;
 };
