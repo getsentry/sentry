@@ -2,11 +2,11 @@ import {VITALS_TYPES} from './constants';
 
 export type VitalsKey = typeof VITALS_TYPES[number];
 
-type MyType = {
+type VitalsTimingResult = {
   [key in VitalsKey]: number;
 };
 
-interface BaseVitalsResult extends MyType {
+interface BaseVitalsResult extends VitalsTimingResult {
   appColdStartCount: number;
   appWarmStartCount: number;
   fcpCount: number;
