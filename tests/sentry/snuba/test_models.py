@@ -1,6 +1,6 @@
 from datetime import timedelta
 
-from sentry.snuba.models import QueryDatasets, SnubaQueryEventType
+from sentry.snuba.models import QueryDatasets, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.subscriptions import create_snuba_query
 from sentry.testutils import TestCase
 
@@ -8,6 +8,7 @@ from sentry.testutils import TestCase
 class SnubaQueryEventTypesTest(TestCase):
     def test(self):
         snuba_query = create_snuba_query(
+            SnubaQuery.Type.ERROR,
             QueryDatasets.EVENTS,
             "release:123",
             "count()",

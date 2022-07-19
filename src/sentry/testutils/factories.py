@@ -23,6 +23,7 @@ from sentry.incidents.logic import (
     create_alert_rule,
     create_alert_rule_trigger,
     create_alert_rule_trigger_action,
+    query_datasets_to_type,
 )
 from sentry.incidents.models import (
     AlertRuleThresholdType,
@@ -1042,6 +1043,7 @@ class Factories:
         environment=None,
         excluded_projects=None,
         date_added=None,
+        query_type=None,
         dataset=QueryDatasets.EVENTS,
         threshold_type=AlertRuleThresholdType.ABOVE,
         resolve_threshold=None,
@@ -1051,6 +1053,9 @@ class Factories:
     ):
         if not name:
             name = petname.Generate(2, " ", letters=10).title()
+
+        if query_type is None:
+            query_type = query_datasets_to_type[dataset]
 
         alert_rule = create_alert_rule(
             organization,
@@ -1063,6 +1068,7 @@ class Factories:
             threshold_period,
             owner=owner,
             resolve_threshold=resolve_threshold,
+            query_type=query_type,
             dataset=dataset,
             environment=environment,
             include_all_projects=include_all_projects,

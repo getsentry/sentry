@@ -106,6 +106,7 @@ default_manager.add(
     "organizations:new-widget-builder-experience-modal-access", OrganizationFeature, True
 )
 default_manager.add("organizations:metrics-extraction", OrganizationFeature)
+default_manager.add("organizations:metrics-performance-alerts", OrganizationFeature, True)
 default_manager.add("organizations:metrics-performance-ui", OrganizationFeature, True)
 default_manager.add("organizations:minute-resolution-sessions", OrganizationFeature)
 default_manager.add("organizations:mobile-screenshots", OrganizationFeature, True)

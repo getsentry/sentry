@@ -20,6 +20,7 @@ from sentry.incidents.logic import (
     check_aggregate_column_support,
     create_alert_rule,
     delete_alert_rule_trigger,
+    query_datasets_to_type,
     translate_aggregate_field,
     update_alert_rule,
 )
@@ -30,11 +31,16 @@ from sentry.snuba.entity_subscription import (
     get_entity_key_from_query_builder,
     get_entity_subscription,
 )
-from sentry.snuba.models import QueryDatasets, QuerySubscription, SnubaQueryEventType
-from sentry.snuba.subscriptions import query_datasets_to_type
+from sentry.snuba.models import QueryDatasets, QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.tasks import build_query_builder
 
-from . import CRASH_RATE_ALERTS_ALLOWED_TIME_WINDOWS, DATASET_VALID_EVENT_TYPES, UNSUPPORTED_QUERIES
+from ... import features
+from . import (
+    CRASH_RATE_ALERTS_ALLOWED_TIME_WINDOWS,
+    QUERY_TYPE_VALID_DATASETS,
+    QUERY_TYPE_VALID_EVENT_TYPES,
+    UNSUPPORTED_QUERIES,
+)
 from .alert_rule_trigger import AlertRuleTriggerSerializer
 
 logger = logging.getLogger(__name__)
@@ -56,6 +62,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
         child=ProjectField(scope="project:read"), required=False
     )
     triggers = serializers.ListField(required=True)
+    query_type = serializers.IntegerField(required=False)
     dataset = serializers.CharField(required=False)
     event_types = serializers.ListField(child=serializers.CharField(), required=False)
     query = serializers.CharField(required=True, allow_blank=True)
@@ -80,6 +87,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
         fields = [
             "name",
             "owner",
+            "query_type",
             "dataset",
             "query",
             "time_window",
@@ -133,6 +141,14 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
             raise serializers.ValidationError(f"Invalid Metric: {e}")
         return translate_aggregate_field(aggregate)
 
+    def validate_query_type(self, query_type):
+        try:
+            return SnubaQuery.Type(query_type)
+        except ValueError:
+            raise serializers.ValidationError(
+                f"Invalid query type {query_type}, valid values are {[item.value for item in SnubaQuery.Type]}"
+            )
+
     def validate_dataset(self, dataset):
         try:
             return QueryDatasets(dataset)
@@ -182,7 +198,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
 
         event_types = data.get("event_types")
 
-        valid_event_types = DATASET_VALID_EVENT_TYPES.get(data["dataset"], set())
+        valid_event_types = QUERY_TYPE_VALID_EVENT_TYPES.get(data["query_type"], set())
         if event_types and set(event_types) - valid_event_types:
             raise serializers.ValidationError(
                 "Invalid event types for this dataset. Valid event types are %s"
@@ -213,9 +229,29 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
         return data
 
     def _validate_query(self, data):
-        data.setdefault("dataset", QueryDatasets.EVENTS)
-        dataset = QueryDatasets(data["dataset"])
-        query_type = query_datasets_to_type[dataset]
+        dataset = data.setdefault("dataset", QueryDatasets.EVENTS)
+        query_type = data.setdefault("query_type", query_datasets_to_type[dataset])
+
+        valid_datasets = QUERY_TYPE_VALID_DATASETS[query_type]
+        if dataset not in valid_datasets:
+            raise serializers.ValidationError(
+                "Invalid dataset for this query type. Valid datasets are %s"
+                % sorted(dataset.name.lower() for dataset in valid_datasets)
+            )
+
+        if (
+            not features.has(
+                "organizations:metrics-performance-alerts",
+                self.context["organization"],
+                actor=self.context.get("user", None),
+            )
+            and dataset == QueryDatasets.PERFORMANCE_METRICS
+            and query_type == SnubaQuery.Type.PERFORMANCE
+        ):
+            raise serializers.ValidationError(
+                "This project does not have access to the `generic_metrics` dataset"
+            )
+
         projects = data.get("projects")
         if not projects:
             # We just need a valid project id from the org so that we can verify
@@ -223,9 +259,6 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
             # matter which.
             projects = list(self.context["organization"].project_set.all()[:1])
 
-        # TODO: Need to change this to fetch an entity subscription for an alert_type + dataset.
-        # Loop through all options for a alert rule, and throw an error only if we run out of
-        # options to try.
         try:
             entity_subscription = get_entity_subscription(
                 query_type,

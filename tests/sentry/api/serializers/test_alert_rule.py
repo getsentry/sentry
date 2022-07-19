@@ -24,6 +24,7 @@ class BaseAlertRuleSerializerTest:
         assert result["id"] == str(alert_rule.id)
         assert result["organizationId"] == str(alert_rule.organization_id)
         assert result["name"] == alert_rule.name
+        assert result["queryType"] == alert_rule.snuba_query.type
         assert result["dataset"] == alert_rule.snuba_query.dataset
         assert result["query"] == alert_rule.snuba_query.query
         assert result["aggregate"] == alert_rule.snuba_query.aggregate

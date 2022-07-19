@@ -12,7 +12,7 @@ from sentry.incidents.models import (
     IncidentSubscription,
 )
 from sentry.snuba.entity_subscription import apply_dataset_query_conditions
-from sentry.snuba.models import QueryDatasets
+from sentry.snuba.models import SnubaQuery
 
 
 @register(Incident)
@@ -125,7 +125,7 @@ class DetailedIncidentSerializer(IncidentSerializer):
 
     def _build_discover_query(self, incident):
         return apply_dataset_query_conditions(
-            QueryDatasets(incident.alert_rule.snuba_query.dataset),
+            SnubaQuery.Type(incident.alert_rule.snuba_query.type),
             incident.alert_rule.snuba_query.query,
             incident.alert_rule.snuba_query.event_types,
             discover=True,

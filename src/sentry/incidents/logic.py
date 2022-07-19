@@ -43,7 +43,7 @@ from sentry.snuba.entity_subscription import (
     get_entity_key_from_query_builder,
     get_entity_subscription_from_snuba_query,
 )
-from sentry.snuba.models import QueryDatasets
+from sentry.snuba.models import QueryDatasets, SnubaQuery
 from sentry.snuba.subscriptions import (
     bulk_create_snuba_subscriptions,
     bulk_delete_snuba_subscriptions,
@@ -422,10 +422,11 @@ DEFAULT_CMP_ALERT_RULE_RESOLUTION = 2
 # Temporary mapping of `QueryDatasets` to `AlertRule.Type`. In the future, `Performance` will be
 # able to be run on `METRICS` as well.
 query_datasets_to_type = {
-    QueryDatasets.EVENTS: AlertRule.Type.ERROR,
-    QueryDatasets.TRANSACTIONS: AlertRule.Type.PERFORMANCE,
-    QueryDatasets.SESSIONS: AlertRule.Type.CRASH_RATE,
-    QueryDatasets.METRICS: AlertRule.Type.CRASH_RATE,
+    QueryDatasets.EVENTS: SnubaQuery.Type.ERROR,
+    QueryDatasets.TRANSACTIONS: SnubaQuery.Type.PERFORMANCE,
+    QueryDatasets.PERFORMANCE_METRICS: SnubaQuery.Type.PERFORMANCE,
+    QueryDatasets.SESSIONS: SnubaQuery.Type.CRASH_RATE,
+    QueryDatasets.METRICS: SnubaQuery.Type.CRASH_RATE,
 }
 
 
@@ -443,6 +444,7 @@ def create_alert_rule(
     environment=None,
     include_all_projects=False,
     excluded_projects=None,
+    query_type: SnubaQuery.Type = SnubaQuery.Type.ERROR,
     dataset=QueryDatasets.EVENTS,
     user=None,
     event_types=None,
@@ -471,6 +473,7 @@ def create_alert_rule(
     from this organization
     :param excluded_projects: List of projects to exclude if we're using
     `include_all_projects`.
+    :param query_type: The SnubaQuery.Type of the query
     :param dataset: The dataset that this query will be executed on
     :param event_types: List of `EventType` that this alert will be related to
     :param comparison_delta: An optional int representing the time delta to use to determine the
@@ -489,6 +492,7 @@ def create_alert_rule(
         dataset = QueryDatasets.METRICS
     with transaction.atomic():
         snuba_query = create_snuba_query(
+            query_type,
             dataset,
             query,
             aggregate,
@@ -504,7 +508,6 @@ def create_alert_rule(
         alert_rule = AlertRule.objects.create(
             organization=organization,
             snuba_query=snuba_query,
-            type=query_datasets_to_type[dataset].value,
             name=name,
             threshold_type=threshold_type.value,
             resolve_threshold=resolve_threshold,
@@ -584,6 +587,7 @@ def snapshot_alert_rule(alert_rule, user=None):
 
 def update_alert_rule(
     alert_rule,
+    query_type=None,
     dataset=None,
     projects=None,
     name=None,
@@ -655,7 +659,8 @@ def update_alert_rule(
 
         if dataset.value != alert_rule.snuba_query.dataset:
             updated_query_fields["dataset"] = dataset
-            updated_fields["type"] = query_datasets_to_type[dataset].value
+    if query_type is not None:
+        updated_query_fields["query_type"] = query_type
     if event_types is not None:
         updated_query_fields["event_types"] = event_types
     if owner is not NOT_SET:
@@ -683,6 +688,7 @@ def update_alert_rule(
 
         if updated_query_fields or environment != alert_rule.snuba_query.environment:
             snuba_query = alert_rule.snuba_query
+            updated_query_fields.setdefault("query_type", SnubaQuery.Type(snuba_query.type))
             updated_query_fields.setdefault("dataset", QueryDatasets(snuba_query.dataset))
             updated_query_fields.setdefault("query", snuba_query.query)
             updated_query_fields.setdefault("aggregate", snuba_query.aggregate)
