@@ -1106,9 +1106,11 @@ class BaseMetricsTestCase(SnubaTestCase):
             mapping_meta[str(res)] = name
             return res
 
+        assert not isinstance(value, list)
+
         if type == "set":
             # Relay uses a different hashing algorithm, but that's ok
-            value = [int.from_bytes(hashlib.md5(value.encode()).digest()[:8], "big")]
+            value = [int.from_bytes(hashlib.md5(str(value).encode()).digest()[:8], "big")]
         elif type == "distribution":
             value = [value]
 
@@ -1121,12 +1123,18 @@ class BaseMetricsTestCase(SnubaTestCase):
             "type": {"counter": "c", "set": "s", "distribution": "d"}[type],
             "value": value,
             "retention_days": 90,
+            "use_case_id": use_case_id.value,
         }
 
         msg["mapping_meta"] = {}
         msg["mapping_meta"][msg["type"]] = mapping_meta
 
-        cls._send_buckets([msg], entity=f"metrics_{type}s")
+        if use_case_id == UseCaseKey.PERFORMANCE:
+            entity = f"generic_metrics_{type}s"
+        else:
+            entity = f"metrics_{type}s"
+
+        cls._send_buckets([msg], entity)
 
     @classmethod
     def _send_buckets(cls, buckets, entity):
@@ -1283,17 +1291,17 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsTestCase, TestCase):
 
         if not isinstance(value, list):
             value = [value]
-
-        self.store_metric(
-            org_id,
-            project,
-            self.TYPE_MAP[entity],
-            internal_metric,
-            tags,
-            metric_timestamp,
-            value,
-            use_case_id=UseCaseKey.PERFORMANCE,
-        )
+        for subvalue in value:
+            self.store_metric(
+                org_id,
+                project,
+                self.TYPE_MAP[entity],
+                internal_metric,
+                tags,
+                metric_timestamp,
+                subvalue,
+                use_case_id=UseCaseKey.PERFORMANCE,
+            )
 
 
 class BaseIncidentsTest(SnubaTestCase):
