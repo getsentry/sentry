@@ -6,6 +6,7 @@ import ButtonBar from 'sentry/components/buttonBar';
 import {NumberField} from 'sentry/components/forms';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {PanelTable} from 'sentry/components/panels';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import Radio from 'sentry/components/radio';
 import {IconRefresh} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -292,6 +293,14 @@ function UniformRateModal({
                     }}
                   />
                   {isEdited ? t('New') : t('Recommended')}
+                  {!isEdited && (
+                    <QuestionTooltip
+                      title={t(
+                        'These are suggested sample rates you can set based on your organization’s overall usage and quota.'
+                      )}
+                      size="sm"
+                    />
+                  )}
                 </Label>
                 <RightAligned>
                   <StyledNumberField
