@@ -3591,10 +3591,6 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         )
 
     def test_messed_up_function_values(self):
-        # TODO (evanh): It would be nice if this surfaced an error to the user.
-        # The problem: The && causes the parser to treat that term not as a bad
-        # function call but a valid raw search with parens in it. It's not trivial
-        # to change the parser to recognize "bad function values" and surface them.
         for v in ["a", "b"]:
             self.store_event(
                 data={
@@ -3624,9 +3620,8 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
             "statsPeriod": "24h",
         }
         response = self.do_request(query, features=features)
-        assert response.status_code == 200, response.content
-        data = response.data["data"]
-        assert len(data) == 0
+        assert response.status_code == 400
+        assert response.data["detail"] == "'0.003&&' is not a valid aggregate filter value."
 
     def test_context_fields_between_datasets(self):
         event_data = load_data("android")
