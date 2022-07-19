@@ -38,7 +38,6 @@ export type CreateAlertFromViewButtonProps = ButtonProps & {
    */
   onClick?: () => void;
   referrer?: string;
-  useAlertWizardV3?: boolean;
 };
 
 /**
@@ -51,7 +50,6 @@ function CreateAlertFromViewButton({
   organization,
   referrer,
   onClick,
-  useAlertWizardV3,
   alertType,
   ...buttonProps
 }: CreateAlertFromViewButtonProps) {
@@ -69,22 +67,16 @@ function CreateAlertFromViewButton({
     : DEFAULT_WIZARD_TEMPLATE;
 
   const to = {
-    pathname: useAlertWizardV3
-      ? `/organizations/${organization.slug}/alerts/new/metric/`
-      : `/organizations/${organization.slug}/alerts/${project?.slug}/new/`,
-    query: {
-      ...queryParams,
-      createFromDiscover: true,
-      referrer,
-      ...(useAlertWizardV3
-        ? {
-            ...alertTemplate,
-            project: project?.slug,
-            aggregate: queryParams.yAxis ?? alertTemplate.aggregate,
-          }
-        : {}),
-    },
-  };
+    pathname: `/organizations/${organization.slug}/alerts/new/metric/`,
+        query: {
+          ...queryParams,
+          createFromDiscover: true,
+          referrer,
+          ...alertTemplate,
+          project: project?.slug,
+          aggregate: queryParams.yAxis ?? alertTemplate.aggregate,
+        },
+      };
 
   const handleClick = () => {
     onClick?.();
@@ -133,16 +125,11 @@ const CreateAlertButton = withRouter(
   }: CreateAlertButtonProps) => {
     const api = useApi();
     const createAlertUrl = (providedProj: string) => {
-      const hasAlertWizardV3 = organization.features.includes('alert-wizard-v3');
-      const alertsBaseUrl = hasAlertWizardV3
-        ? `/organizations/${organization.slug}/alerts`
-        : `/organizations/${organization.slug}/alerts/${providedProj}`;
+      const alertsBaseUrl = `/organizations/${organization.slug}/alerts`;
       const alertsArgs = [
         `${referrer ? `referrer=${referrer}` : ''}`,
         `${
-          hasAlertWizardV3 && providedProj && providedProj !== ':projectId'
-            ? `project=${providedProj}`
-            : ''
+          providedProj && providedProj !== ':projectId' ? `project=${providedProj}` : ''
         }`,
         alertOption ? `alert_option=${alertOption}` : '',
       ].filter(item => item !== '');

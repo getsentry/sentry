@@ -96,7 +96,6 @@ function VitalDetailContent(props: Props) {
         eventView={eventView}
         organization={organization}
         projects={projects}
-        useAlertWizardV3={organization.features.includes('alert-wizard-v3')}
         aria-label={t('Create Alert')}
         alertType={vitalAlertTypes[vitalName]}
         referrer="performance"

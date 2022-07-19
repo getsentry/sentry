@@ -17,8 +17,6 @@ import IdBadge from 'sentry/components/idBadge';
 import ExternalLink from 'sentry/components/links/externalLink';
 import ListItem from 'sentry/components/list/listItem';
 import {Panel, PanelBody} from 'sentry/components/panels';
-import Tooltip from 'sentry/components/tooltip';
-import {IconQuestion} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Environment, Organization, Project, SelectValue} from 'sentry/types';
@@ -32,15 +30,10 @@ import {
   DATA_SOURCE_LABELS,
   DATA_SOURCE_TO_SET_AND_EVENT_TYPES,
 } from 'sentry/views/alerts/utils';
-import {AlertType, getFunctionHelpText} from 'sentry/views/alerts/wizard/options';
+import {AlertType} from 'sentry/views/alerts/wizard/options';
 
 import {isCrashFreeAlert} from './utils/isCrashFreeAlert';
-import {
-  COMPARISON_DELTA_OPTIONS,
-  DEFAULT_AGGREGATE,
-  DEFAULT_TRANSACTION_AGGREGATE,
-} from './constants';
-import MetricField from './metricField';
+import {DEFAULT_AGGREGATE, DEFAULT_TRANSACTION_AGGREGATE} from './constants';
 import {AlertRuleComparisonType, Dataset, Datasource, TimeWindow} from './types';
 
 const TIME_WINDOW_MAP: Record<TimeWindow, string> = {
@@ -61,7 +54,6 @@ type Props = {
   comparisonType: AlertRuleComparisonType;
   dataset: Dataset;
   disabled: boolean;
-  hasAlertWizardV3: boolean;
   onComparisonDeltaChange: (value: number) => void;
   onFilterSearch: (query: string) => void;
   onTimeWindowChange: (value: number) => void;
@@ -137,11 +129,9 @@ class RuleConditionsForm extends PureComponent<Props, State> {
 
     return Object.entries(options).map(([value, label]) => ({
       value: parseInt(value, 10),
-      label: this.props.hasAlertWizardV3
-        ? tct('[timeWindow] interval', {
-            timeWindow: label.slice(-1) === 's' ? label.slice(0, -1) : label,
-          })
-        : label,
+      label: tct('[timeWindow] interval', {
+        timeWindow: label.slice(-1) === 's' ? label.slice(0, -1) : label,
+      }),
     }));
   }
 
@@ -364,85 +354,73 @@ class RuleConditionsForm extends PureComponent<Props, State> {
     );
   }
 
-  renderInterval() {
+  render() {
     const {
       organization,
       disabled,
+      onFilterSearch,
+      allowChangeEventTypes,
+      dataset,
       alertType,
-      hasAlertWizardV3,
       timeWindow,
-      comparisonDelta,
-      comparisonType,
       onTimeWindowChange,
-      onComparisonDeltaChange,
     } = this.props;
+    const {environments} = this.state;
 
-    const {labelText, timeWindowText} = getFunctionHelpText(alertType);
-    const intervalLabelText = hasAlertWizardV3 ? t('Define your metric') : labelText;
+    const environmentOptions: SelectValue<string | null>[] = [
+      {
+        value: null,
+        label: t('All Environments'),
+      },
+      ...(environments?.map(env => ({value: env.name, label: getDisplayName(env)})) ??
+        []),
+    ];
+
+    const transactionTags = [
+      'transaction',
+      'transaction.duration',
+      'transaction.op',
+      'transaction.status',
+    ];
+    const measurementTags = Object.values({...WebVital, ...MobileVital});
+    const eventOmitTags =
+      dataset === 'events' ? [...measurementTags, ...transactionTags] : [];
 
     return (
       <Fragment>
+        <ChartPanel>
+          <StyledPanelBody>{this.props.thresholdChart}</StyledPanelBody>
+        </ChartPanel>
         <StyledListItem>
-          <StyledListTitle>
-            <div>{intervalLabelText}</div>
-            {!hasAlertWizardV3 && (
-              <Tooltip
-                title={t(
-                  'Time window over which the metric is evaluated. Alerts are evaluated every minute regardless of this value.'
-                )}
-              >
-                <IconQuestion size="sm" color="gray200" />
-              </Tooltip>
-            )}
-          </StyledListTitle>
+          <StyledListTitle>{t('Define your metric')}</StyledListTitle>
         </StyledListItem>
         <FormRow>
-          {hasAlertWizardV3 ? (
-            <WizardField
-              name="aggregate"
-              help={null}
-              organization={organization}
-              disabled={disabled}
-              style={{
-                ...this.formElemBaseStyle,
-                flex: 1,
-              }}
-              inline={false}
-              flexibleControlStateSize
-              columnWidth={200}
-              alertType={alertType}
-              required
-            />
-          ) : (
-            <MetricField
-              name="aggregate"
-              help={null}
-              organization={organization}
-              disabled={disabled}
-              style={{
-                ...this.formElemBaseStyle,
-              }}
-              inline={false}
-              flexibleControlStateSize
-              columnWidth={200}
-              alertType={alertType}
-              required
-            />
-          )}
-          {!hasAlertWizardV3 && timeWindowText && (
-            <FormRowText>{timeWindowText}</FormRowText>
-          )}
+          <WizardField
+            name="aggregate"
+            help={null}
+            organization={organization}
+            disabled={disabled}
+            style={{
+              ...this.formElemBaseStyle,
+              flex: 1,
+            }}
+            inline={false}
+            flexibleControlStateSize
+            columnWidth={200}
+            alertType={alertType}
+            required
+          />
           <SelectControl
             name="timeWindow"
             styles={{
               control: (provided: {[x: string]: string | number | boolean}) => ({
                 ...provided,
-                minWidth: hasAlertWizardV3 ? 200 : 130,
+                minWidth: 200,
                 maxWidth: 300,
               }),
               container: (provided: {[x: string]: string | number | boolean}) => ({
                 ...provided,
-                margin: hasAlertWizardV3 ? `${space(0.5)}` : 0,
+                margin: `${space(0.5)}`,
               }),
             }}
             options={this.timeWindowOptions}
@@ -453,38 +431,6 @@ class RuleConditionsForm extends PureComponent<Props, State> {
             inline={false}
             flexibleControlStateSize
           />
-          {!hasAlertWizardV3 && (
-            <Feature
-              features={['organizations:change-alerts']}
-              organization={organization}
-            >
-              {comparisonType === AlertRuleComparisonType.CHANGE && (
-                <ComparisonContainer>
-                  {t(' compared to ')}
-                  <SelectControl
-                    name="comparisonDelta"
-                    styles={{
-                      container: (provided: {
-                        [x: string]: string | number | boolean;
-                      }) => ({
-                        ...provided,
-                        marginLeft: space(1),
-                      }),
-                      control: (provided: {[x: string]: string | number | boolean}) => ({
-                        ...provided,
-                        minWidth: 500,
-                        maxWidth: 1000,
-                      }),
-                    }}
-                    value={comparisonDelta}
-                    onChange={({value}) => onComparisonDeltaChange(value)}
-                    options={COMPARISON_DELTA_OPTIONS}
-                    required={comparisonType === AlertRuleComparisonType.CHANGE}
-                  />
-                </ComparisonContainer>
-              )}
-            </Feature>
-          )}
         </FormRow>
       </Fragment>
     );
@@ -496,7 +442,6 @@ class RuleConditionsForm extends PureComponent<Props, State> {
       disabled,
       onFilterSearch,
       allowChangeEventTypes,
-      hasAlertWizardV3,
       dataset,
       showMEPAlertBanner,
     } = this.props;
@@ -541,13 +486,9 @@ class RuleConditionsForm extends PureComponent<Props, State> {
               </Alert>
             </AlertContainer>
           )}
-        {hasAlertWizardV3 && this.renderInterval()}
         <StyledListItem>{t('Filter events')}</StyledListItem>
-        <FormRow
-          noMargin
-          columns={1 + (allowChangeEventTypes ? 1 : 0) + (hasAlertWizardV3 ? 1 : 0)}
-        >
-          {hasAlertWizardV3 && this.renderProjectSelector()}
+        <FormRow noMargin columns={1 + (allowChangeEventTypes ? 1 : 0) + 1}>
+          {this.renderProjectSelector()}
           <SelectField
             name="environment"
             placeholder={t('All Environments')}
@@ -632,7 +573,6 @@ class RuleConditionsForm extends PureComponent<Props, State> {
             )}
           </FormField>
         </FormRow>
-        {!hasAlertWizardV3 && this.renderInterval()}
       </Fragment>
     );
   }
@@ -686,17 +626,6 @@ const FormRow = styled('div')<{columns?: number; noMargin?: boolean}>`
       display: grid;
       grid-template-columns: repeat(${p.columns}, auto);
     `}
-`;
-
-const FormRowText = styled('div')`
-  margin: ${space(1)};
-`;
-
-const ComparisonContainer = styled('div')`
-  margin-left: ${space(1)};
-  display: flex;
-  flex-direction: row;
-  align-items: center;
 `;
 
 export default withProjects(RuleConditionsForm);
