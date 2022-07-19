@@ -1,7 +1,6 @@
 import isEqual from 'lodash/isEqual';
 
 import {RELEASE_ADOPTION_STAGES} from 'sentry/constants';
-import {t} from 'sentry/locale';
 import {MetricsType, Organization, SelectValue} from 'sentry/types';
 import {assert} from 'sentry/types/utils';
 import {
@@ -10,6 +9,8 @@ import {
 } from 'sentry/views/dashboardsV2/widgetBuilder/releaseWidget/fields';
 
 import {
+  AGGREGATION_FIELDS,
+  AggregationFields,
   DISCOVER_FIELDS,
   FieldKey,
   FIELDS,
@@ -152,17 +153,24 @@ const WEB_VITALS_QUALITY: SelectValue<string>[] = [
   },
 ];
 
+const getDocsAndOutputType = (key: AggregationFields) => {
+  return {
+    documentation: AGGREGATION_FIELDS[key].desc,
+    outputType: AGGREGATION_FIELDS[key].valueType as AggregationOutputType,
+  };
+};
+
 // Refer to src/sentry/search/events/fields.py
 // Try to keep functions logically sorted, ie. all the count functions are grouped together
 export const AGGREGATIONS = {
-  count: {
+  [AggregationFields.Count]: {
+    ...getDocsAndOutputType(AggregationFields.Count),
     parameters: [],
-    documentation: t('number of events'),
-    outputType: 'number',
     isSortable: true,
     multiPlotType: 'area',
   },
-  count_unique: {
+  [AggregationFields.CountUnique]: {
+    ...getDocsAndOutputType(AggregationFields.CountUnique),
     parameters: [
       {
         kind: 'column',
@@ -171,12 +179,11 @@ export const AGGREGATIONS = {
         required: true,
       },
     ],
-    documentation: t('unique number of events'),
-    outputType: 'integer',
     isSortable: true,
     multiPlotType: 'line',
   },
-  count_miserable: {
+  [AggregationFields.CountMiserable]: {
+    ...getDocsAndOutputType(AggregationFields.CountMiserable),
     getFieldOverrides({parameter}: DefaultValueInputs) {
       if (parameter.kind === 'column') {
         return {defaultValue: 'user'};
@@ -199,12 +206,11 @@ export const AGGREGATIONS = {
         required: true,
       },
     ],
-    documentation: t('miserable number of events'),
-    outputType: 'number',
     isSortable: true,
     multiPlotType: 'area',
   },
-  count_if: {
+  [AggregationFields.CountIf]: {
+    ...getDocsAndOutputType(AggregationFields.CountIf),
     parameters: [
       {
         kind: 'column',
@@ -229,12 +235,11 @@ export const AGGREGATIONS = {
         required: true,
       },
     ],
-    documentation: t('conditional number of events'),
-    outputType: 'number',
     isSortable: true,
     multiPlotType: 'area',
   },
-  count_web_vitals: {
+  [AggregationFields.CountWebVitals]: {
+    ...getDocsAndOutputType(AggregationFields.CountWebVitals),
     parameters: [
       {
         kind: 'column',
@@ -256,33 +261,29 @@ export const AGGREGATIONS = {
         required: true,
       },
     ],
-    documentation: t('events matching vital thresholds'),
-    outputType: 'number',
     isSortable: true,
     multiPlotType: 'area',
   },
-  eps: {
+  [AggregationFields.Eps]: {
+    ...getDocsAndOutputType(AggregationFields.Eps),
     parameters: [],
-    documentation: t('events per second'),
-    outputType: 'number',
     isSortable: true,
     multiPlotType: 'area',
   },
-  epm: {
+  [AggregationFields.Epm]: {
+    ...getDocsAndOutputType(AggregationFields.Epm),
     parameters: [],
-    documentation: t('events per minute'),
-    outputType: 'number',
     isSortable: true,
     multiPlotType: 'area',
   },
-  failure_count: {
+  [AggregationFields.FailureCount]: {
+    ...getDocsAndOutputType(AggregationFields.FailureCount),
     parameters: [],
-    documentation: t('number of failed events'),
-    outputType: 'number',
     isSortable: true,
     multiPlotType: 'line',
   },
-  min: {
+  [AggregationFields.Min]: {
+    ...getDocsAndOutputType(AggregationFields.Min),
     parameters: [
       {
         kind: 'column',
@@ -297,12 +298,11 @@ export const AGGREGATIONS = {
         required: true,
       },
     ],
-    documentation: t('minimum'),
-    outputType: null,
     isSortable: true,
     multiPlotType: 'line',
   },
-  max: {
+  [AggregationFields.Max]: {
+    ...getDocsAndOutputType(AggregationFields.Max),
     parameters: [
       {
         kind: 'column',
@@ -317,12 +317,11 @@ export const AGGREGATIONS = {
         required: true,
       },
     ],
-    documentation: t('maximum'),
-    outputType: null,
     isSortable: true,
     multiPlotType: 'line',
   },
-  sum: {
+  [AggregationFields.Sum]: {
+    ...getDocsAndOutputType(AggregationFields.Sum),
     parameters: [
       {
         kind: 'column',
@@ -331,12 +330,11 @@ export const AGGREGATIONS = {
         defaultValue: 'transaction.duration',
       },
     ],
-    documentation: t('total value'),
-    outputType: null,
     isSortable: true,
     multiPlotType: 'area',
   },
-  any: {
+  [AggregationFields.Any]: {
+    ...getDocsAndOutputType(AggregationFields.Any),
     parameters: [
       {
         kind: 'column',
@@ -345,11 +343,10 @@ export const AGGREGATIONS = {
         defaultValue: 'transaction.duration',
       },
     ],
-    documentation: t('pick any value'),
-    outputType: null,
     isSortable: true,
   },
-  p50: {
+  [AggregationFields.P50]: {
+    ...getDocsAndOutputType(AggregationFields.P50),
     parameters: [
       {
         kind: 'column',
@@ -358,12 +355,11 @@ export const AGGREGATIONS = {
         required: false,
       },
     ],
-    documentation: t('median'),
-    outputType: null,
     isSortable: true,
     multiPlotType: 'line',
   },
-  p75: {
+  [AggregationFields.P75]: {
+    ...getDocsAndOutputType(AggregationFields.P75),
     parameters: [
       {
         kind: 'column',
@@ -372,12 +368,11 @@ export const AGGREGATIONS = {
         required: false,
       },
     ],
-    documentation: t('75th percentile'),
-    outputType: null,
     isSortable: true,
     multiPlotType: 'line',
   },
-  p95: {
+  [AggregationFields.P95]: {
+    ...getDocsAndOutputType(AggregationFields.P95),
     parameters: [
       {
         kind: 'column',
@@ -386,13 +381,12 @@ export const AGGREGATIONS = {
         required: false,
       },
     ],
-    documentation: t('95th percentile'),
-    outputType: null,
     type: [],
     isSortable: true,
     multiPlotType: 'line',
   },
-  p99: {
+  [AggregationFields.P99]: {
+    ...getDocsAndOutputType(AggregationFields.P99),
     parameters: [
       {
         kind: 'column',
@@ -401,12 +395,11 @@ export const AGGREGATIONS = {
         required: false,
       },
     ],
-    documentation: t('99th percentile'),
-    outputType: null,
     isSortable: true,
     multiPlotType: 'line',
   },
-  p100: {
+  [AggregationFields.P100]: {
+    ...getDocsAndOutputType(AggregationFields.P100),
     parameters: [
       {
         kind: 'column',
@@ -415,12 +408,11 @@ export const AGGREGATIONS = {
         required: false,
       },
     ],
-    documentation: t('maximum'),
-    outputType: null,
     isSortable: true,
     multiPlotType: 'line',
   },
-  percentile: {
+  [AggregationFields.Percentile]: {
+    ...getDocsAndOutputType(AggregationFields.Percentile),
     parameters: [
       {
         kind: 'column',
@@ -435,12 +427,11 @@ export const AGGREGATIONS = {
         required: true,
       },
     ],
-    documentation: t('arbitrary percentile'),
-    outputType: null,
     isSortable: true,
     multiPlotType: 'line',
   },
-  avg: {
+  [AggregationFields.Avg]: {
+    ...getDocsAndOutputType(AggregationFields.Avg),
     parameters: [
       {
         kind: 'column',
@@ -449,12 +440,11 @@ export const AGGREGATIONS = {
         required: true,
       },
     ],
-    documentation: t('average'),
-    outputType: null,
     isSortable: true,
     multiPlotType: 'line',
   },
-  apdex: {
+  [AggregationFields.Apdex]: {
+    ...getDocsAndOutputType(AggregationFields.Apdex),
     parameters: [
       {
         kind: 'value',
@@ -463,12 +453,11 @@ export const AGGREGATIONS = {
         required: true,
       },
     ],
-    documentation: t('performance score, higher is better'),
-    outputType: 'number',
     isSortable: true,
     multiPlotType: 'line',
   },
-  user_misery: {
+  [AggregationFields.UserMisery]: {
+    ...getDocsAndOutputType(AggregationFields.UserMisery),
     parameters: [
       {
         kind: 'value',
@@ -477,35 +466,31 @@ export const AGGREGATIONS = {
         required: true,
       },
     ],
-    documentation: t('ratio of miserable users'),
-    outputType: 'number',
     isSortable: true,
     multiPlotType: 'line',
   },
-  failure_rate: {
+  [AggregationFields.FailureRate]: {
+    ...getDocsAndOutputType(AggregationFields.FailureRate),
     parameters: [],
-    documentation: t('failure_count()/count()'),
-    outputType: 'percentage',
     isSortable: true,
     multiPlotType: 'line',
   },
-  last_seen: {
+  [AggregationFields.LastSeen]: {
+    ...getDocsAndOutputType(AggregationFields.LastSeen),
     parameters: [],
-    documentation: t('largest timestamp'),
-    outputType: 'date',
     isSortable: true,
   },
 } as const;
 
 // TPM and TPS are aliases that are only used in Performance
 export const ALIASES = {
-  tpm: 'epm',
-  tps: 'eps',
+  tpm: AggregationFields.Epm,
+  tps: AggregationFields.Eps,
 };
 
-assert(AGGREGATIONS as Readonly<{[key in keyof typeof AGGREGATIONS]: Aggregation}>);
+assert(AGGREGATIONS as Readonly<{[key in AggregationFields]: Aggregation}>);
 
-export type AggregationKey = keyof typeof AGGREGATIONS | keyof typeof ALIASES | '';
+export type AggregationKey = `${AggregationFields}` | keyof typeof ALIASES | '';
 
 export type AggregationOutputType = Extract<
   ColumnType,
@@ -618,23 +603,23 @@ export const SPAN_OP_BREAKDOWN_FIELDS = [
 
 // This list contains fields/functions that are available with performance-view feature.
 export const TRACING_FIELDS = [
-  'avg',
-  'sum',
-  'transaction.duration',
-  'transaction.op',
-  'transaction.status',
-  'p50',
-  'p75',
-  'p95',
-  'p99',
-  'p100',
-  'percentile',
-  'failure_rate',
-  'apdex',
-  'count_miserable',
-  'user_misery',
-  'eps',
-  'epm',
+  AggregationFields.Avg,
+  AggregationFields.Sum,
+  FieldKey.TRANSACTION_DURATION,
+  FieldKey.TRANSACTION_OP,
+  FieldKey.TRANSACTION_STATUS,
+  AggregationFields.P50,
+  AggregationFields.P75,
+  AggregationFields.P95,
+  AggregationFields.P99,
+  AggregationFields.P100,
+  AggregationFields.Percentile,
+  AggregationFields.FailureRate,
+  AggregationFields.Apdex,
+  AggregationFields.CountMiserable,
+  AggregationFields.UserMisery,
+  AggregationFields.Eps,
+  AggregationFields.Epm,
   'team_key_transaction',
   ...Object.keys(MEASUREMENT_FIELDS),
   ...SPAN_OP_BREAKDOWN_FIELDS,
