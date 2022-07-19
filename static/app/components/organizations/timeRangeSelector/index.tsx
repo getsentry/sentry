@@ -5,6 +5,7 @@ import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
+import autoCompleteFilter from 'sentry/components/dropdownAutoComplete/autoCompleteFilter';
 import {Item} from 'sentry/components/dropdownAutoComplete/types';
 import {GetActorPropsFn} from 'sentry/components/dropdownMenu';
 import HookOrDefault from 'sentry/components/hookOrDefault';
@@ -13,7 +14,6 @@ import MultipleSelectorSubmitRow from 'sentry/components/organizations/multipleS
 import PageFilterPinButton from 'sentry/components/organizations/pageFilters/pageFilterPinButton';
 import DateRange from 'sentry/components/organizations/timeRangeSelector/dateRange';
 import DateSummary from 'sentry/components/organizations/timeRangeSelector/dateSummary';
-import {getRelativeSummary} from 'sentry/components/organizations/timeRangeSelector/utils';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {IconCalendar} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -34,7 +34,7 @@ import getDynamicText from 'sentry/utils/getDynamicText';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 
 import SelectorItems from './selectorItems';
-import timeRangeAutoCompleteFilter from './timeRangeAutoCompleteFilter';
+import {getRelativeSummary, timeRangeAutoCompleteFilter} from './utils';
 
 const DateRangeHook = HookOrDefault({
   hookName: 'component:header-date-range',
@@ -136,6 +136,11 @@ type Props = WithRouterProps & {
    * Disable the dropdown
    */
   disabled?: boolean;
+
+  /**
+   * Forces the user to select from the set of defined relative options
+   */
+  disallowArbitraryRelativeRanges?: boolean;
 
   /**
    * Small info icon with tooltip hint text
@@ -405,6 +410,7 @@ class TimeRangeSelector extends PureComponent<Props, State> {
 
   render() {
     const {
+      disallowArbitraryRelativeRanges,
       defaultPeriod,
       showAbsolute,
       showRelative,
@@ -447,7 +453,11 @@ class TimeRangeSelector extends PureComponent<Props, State> {
             {({css}) => (
               <StyledDropdownAutoComplete
                 allowActorToggle
-                autoCompleteFilter={timeRangeAutoCompleteFilter}
+                autoCompleteFilter={
+                  disallowArbitraryRelativeRanges
+                    ? autoCompleteFilter
+                    : timeRangeAutoCompleteFilter
+                }
                 alignMenu={alignDropdown ?? (isAbsoluteSelected ? 'right' : 'left')}
                 isOpen={this.state.isOpen}
                 inputValue={this.state.inputValue}

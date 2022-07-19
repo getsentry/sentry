@@ -10,6 +10,7 @@ type LineStyle = 'dotted' | 'solid' | 'none';
 const Line = styled(Timeline.Col)<{lineStyle: LineStyle}>`
   border-right: 1px ${p => p.lineStyle} ${p => p.theme.gray100};
   text-align: right;
+  line-height: 14px;
 `;
 
 function Gridlines({
@@ -58,4 +59,5 @@ export function MinorGridlines({duration, minWidth = 20, width}: Props) {
 
 const Label = styled('small')`
   font-variant-numeric: tabular-nums;
+  font-size: ${p => p.theme.fontSizeSmall};
 `;
