@@ -103,7 +103,7 @@ class OrgDashboards extends AsyncComponent<Props, State> {
             ...location.query,
             project: data.projects,
             environment: data.environment,
-            period: data.period,
+            statsPeriod: data.period,
             start: data.start,
             end: data.end,
           },

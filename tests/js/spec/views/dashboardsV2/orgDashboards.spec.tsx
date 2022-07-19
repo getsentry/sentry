@@ -103,7 +103,7 @@ describe('OrgDashboards', () => {
           query: expect.objectContaining({
             project: [1, 2],
             environment: ['alpha'],
-            period: '7d',
+            statsPeriod: '7d',
           }),
         })
       )
