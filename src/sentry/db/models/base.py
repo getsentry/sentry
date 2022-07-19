@@ -189,8 +189,6 @@ class ModelAvailableOn(ModeLimited):
             raise TypeError("`@ModelAvailableOn ` must decorate a Model class")
         assert isinstance(model_class.objects, BaseManager)
 
-        model_class._meta.__mode_limit = self  # type: ignore
-
         model_class.objects = model_class.objects.create_mode_limited_copy(self, self.read_only)
 
         # On the model (not manager) class itself, find all methods that are tagged
