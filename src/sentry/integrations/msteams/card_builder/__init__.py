@@ -255,10 +255,12 @@ def build_assignee_note(group):
     if not assignee:
         return None
 
+    assignee_text = format_actor_option(assignee)["text"]
+
     return {
         "type": "TextBlock",
         "size": "Small",
-        "text": f"**Assigned to {format_actor_option(assignee)}**",
+        "text": f"**Assigned to {assignee_text}**",
     }
 
 
