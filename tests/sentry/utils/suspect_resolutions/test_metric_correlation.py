@@ -56,6 +56,17 @@ class TestMetricCorrelation(TestCase):
 
         assert not is_issue_error_rate_correlated(group1, group2)
 
+    @mock.patch("sentry.tsdb.get_range")
+    def test_perfect_correlation(self, mock_get_range):
+        group1 = self.create_group(status=GroupStatus.RESOLVED, resolved_at=timezone.now())
+        group2 = self.create_group()
+
+        group1_events = [(t, random.randint(0, 30)) for t in range(START, END, WINDOW)]
+
+        mock_get_range.return_value = {group1.id: group1_events, group2.id: group1_events}
+
+        assert is_issue_error_rate_correlated(group1, group2)
+
     def test_custom_calculation_against_pearsonr(self):
         group1_events = [
             21,
