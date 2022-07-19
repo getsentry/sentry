@@ -41,7 +41,7 @@ describe('TimeRangeSelector', function () {
       />,
       {context: routerContext}
     );
-    expect(screen.getByText('Other')).toBeInTheDocument();
+    expect(screen.getByText('Last 9 days')).toBeInTheDocument();
   });
 
   it('renders when given an invalid relative period', function () {
@@ -50,7 +50,7 @@ describe('TimeRangeSelector', function () {
         organization={organization}
         showAbsolute={false}
         showRelative={false}
-        relative="1w"
+        relative="1y"
       />,
       {context: routerContext}
     );

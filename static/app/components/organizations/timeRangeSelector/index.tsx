@@ -14,7 +14,6 @@ import MultipleSelectorSubmitRow from 'sentry/components/organizations/multipleS
 import PageFilterPinButton from 'sentry/components/organizations/pageFilters/pageFilterPinButton';
 import DateRange from 'sentry/components/organizations/timeRangeSelector/dateRange';
 import DateSummary from 'sentry/components/organizations/timeRangeSelector/dateSummary';
-import {getRelativeSummary} from 'sentry/components/organizations/timeRangeSelector/utils';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {IconCalendar} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -35,7 +34,7 @@ import getDynamicText from 'sentry/utils/getDynamicText';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 
 import SelectorItems from './selectorItems';
-import timeRangeAutoCompleteFilter from './timeRangeAutoCompleteFilter';
+import {getRelativeSummary, timeRangeAutoCompleteFilter} from './utils';
 
 const DateRangeHook = HookOrDefault({
   hookName: 'component:header-date-range',
