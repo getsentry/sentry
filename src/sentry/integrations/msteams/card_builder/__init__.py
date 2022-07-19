@@ -118,9 +118,9 @@ def create_date_block(group: Group, event: Event) -> TextBlock:
     )
 
 
-def build_group_footer(
-    group: Group, rules: Sequence[Rule], project: Project, event: Event
-) -> ColumnSetBlock:
+def build_group_footer(group: Group, rules: Sequence[Rule], event: Event) -> ColumnSetBlock:
+    project = Project.objects.get_from_cache(id=group.project_id)
+
     # TODO: implement with event as well
     image_column = create_footer_logo_block()
 
@@ -273,8 +273,6 @@ def build_assignee_note(group):
 
 
 def build_group_card(group, event, rules, integration):
-    project = Project.objects.get_from_cache(id=group.project_id)
-
     title = build_group_title(group)
     body = [title]
 
@@ -282,7 +280,7 @@ def build_group_card(group, event, rules, integration):
     if desc:
         body.append(desc)
 
-    footer = build_group_footer(group, rules, project, event)
+    footer = build_group_footer(group, rules, event)
     body.append(footer)
 
     assignee_note = build_assignee_note(group)
