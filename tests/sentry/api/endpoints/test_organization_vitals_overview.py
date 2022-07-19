@@ -214,3 +214,57 @@ class OrganizationVitalsOverviewTest(APITestCase):
             "projectData": [],
         }
         assert mock_query.call_count == 0
+
+    @mock.patch("sentry.api.endpoints.organization_vitals_overview.experiments.get", return_value=1)
+    @mock.patch(
+        "sentry.api.endpoints.organization_vitals_overview.discover.query",
+    )
+    def test_with_cache(self, mock_query, mock_experiment_get):
+        mock_query.side_effect = self.mock_discover_query
+        self.get_response(self.organization.slug)
+        # call again to hit the cache
+        response = self.get_response(self.organization.slug)
+        assert response.status_code == 200
+        assert response.data == {
+            "FCP": 1000,
+            "LCP": 2000,
+            "appStartWarm": 3000,
+            "appStartCold": 5000,
+            "fcpCount": 10,
+            "lcpCount": 20,
+            "appWarmStartCount": 30,
+            "appColdStartCount": 40,
+            "projectData": [
+                {
+                    "projectId": self.project.id,
+                    "FCP": 1000,
+                    "LCP": 2000,
+                    "appStartWarm": None,
+                    "appStartCold": None,
+                    "fcpCount": 10,
+                    "lcpCount": 20,
+                    "appWarmStartCount": 0,
+                    "appColdStartCount": 0,
+                },
+                {
+                    "projectId": self.project2.id,
+                    "FCP": None,
+                    "LCP": None,
+                    "appStartWarm": 3000,
+                    "appStartCold": 5000,
+                    "fcpCount": 0,
+                    "lcpCount": 0,
+                    "appWarmStartCount": 30,
+                    "appColdStartCount": 40,
+                },
+            ],
+        }
+        assert mock_query.call_count == 2
+        assert set(mock_query.call_args.kwargs["params"]["project_id"]) == {
+            self.project.id,
+            self.project2.id,
+        }
+        mock_experiment_get.assert_called_with(
+            "VitalsAlertExperiment", self.organization, self.user
+        )
+        assert mock_experiment_get.call_count == 2
