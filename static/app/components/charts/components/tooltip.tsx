@@ -228,7 +228,7 @@ function getFormatter({
 
             for (const subLabel of filteredSubLabels) {
               labelWithSubLabels.push(
-                `<div><span class="tooltip-label tooltip-label-indent">\u00B7 <strong>${
+                `<div><span class="tooltip-label tooltip-label-indent"><strong>${
                   subLabel.label
                 }</strong></span> ${valueFormatter(
                   subLabel.data[s.dataIndex].value
