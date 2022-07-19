@@ -5,6 +5,7 @@ import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
+import autoCompleteFilter from 'sentry/components/dropdownAutoComplete/autoCompleteFilter';
 import {Item} from 'sentry/components/dropdownAutoComplete/types';
 import {GetActorPropsFn} from 'sentry/components/dropdownMenu';
 import HookOrDefault from 'sentry/components/hookOrDefault';
@@ -136,6 +137,11 @@ type Props = WithRouterProps & {
    * Disable the dropdown
    */
   disabled?: boolean;
+
+  /**
+   * Forces the user to select from the set of defined relative options
+   */
+  disallowArbitraryRelativeRanges?: boolean;
 
   /**
    * Small info icon with tooltip hint text
@@ -405,6 +411,7 @@ class TimeRangeSelector extends PureComponent<Props, State> {
 
   render() {
     const {
+      disallowArbitraryRelativeRanges,
       defaultPeriod,
       showAbsolute,
       showRelative,
@@ -447,7 +454,11 @@ class TimeRangeSelector extends PureComponent<Props, State> {
             {({css}) => (
               <StyledDropdownAutoComplete
                 allowActorToggle
-                autoCompleteFilter={timeRangeAutoCompleteFilter}
+                autoCompleteFilter={
+                  disallowArbitraryRelativeRanges
+                    ? autoCompleteFilter
+                    : timeRangeAutoCompleteFilter
+                }
                 alignMenu={alignDropdown ?? (isAbsoluteSelected ? 'right' : 'left')}
                 isOpen={this.state.isOpen}
                 inputValue={this.state.inputValue}

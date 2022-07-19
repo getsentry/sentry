@@ -390,4 +390,19 @@ describe('TimeRangeSelector', function () {
       end: undefined,
     });
   });
+
+  it('cannot select arbitrary relative time ranges with disallowArbitraryRelativeRanges', () => {
+    renderComponent({disallowArbitraryRelativeRanges: true});
+
+    userEvent.click(screen.getByRole('button'));
+
+    const input = screen.getByRole('textbox');
+    userEvent.type(input, '5');
+
+    expect(screen.getByText('No items found')).toBeInTheDocument();
+
+    userEvent.type(input, '{Enter}');
+
+    expect(onChange).not.toHaveBeenCalled();
+  });
 });
