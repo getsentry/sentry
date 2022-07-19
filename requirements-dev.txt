@@ -18,7 +18,7 @@ pre-commit>=2.18.1
 black>=22.3.0
 flake8>=4.0.1
 flake8-bugbear>=22.4.25
-pyupgrade>=2.32.0
+pyupgrade>=2.37.2
 isort>=5.10.1
 
 # For tools/. To be moved into redistributable dev environments.
