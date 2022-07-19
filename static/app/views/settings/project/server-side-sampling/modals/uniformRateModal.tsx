@@ -93,12 +93,12 @@ function UniformRateModal({
           ? 'sampling.settings.modal.recommended.next.steps_cancel'
           : 'sampling.settings.modal.uniform.rate_cancel',
         {
-          organization: organization.slug,
+          organization,
           project_id: project.id,
         }
       );
     }
-  }, [activeStep, modalStore.renderer, organization.slug, project.id]);
+  }, [activeStep, modalStore.renderer, organization, project.id]);
 
   const uniformSampleRate = uniformRule?.sampleRate;
 
@@ -144,11 +144,11 @@ function UniformRateModal({
         ? 'sampling.settings.modal.uniform.rate_switch_recommended'
         : 'sampling.settings.modal.uniform.rate_switch_current',
       {
-        organization: organization.slug,
+        organization,
         project_id: project.id,
       }
     );
-  }, [selectedStrategy, organization.slug, project.id]);
+  }, [selectedStrategy, organization, project.id]);
 
   const isEdited =
     client !== recommendedClientSampling || server !== recommendedServerSampling;
@@ -164,7 +164,7 @@ function UniformRateModal({
 
     if (shouldHaveNextStep) {
       trackAdvancedAnalyticsEvent('sampling.settings.modal.uniform.rate_next', {
-        organization: organization.slug,
+        organization,
         project_id: project.id,
       });
 
@@ -191,7 +191,7 @@ function UniformRateModal({
 
   function handleReadDocs() {
     trackAdvancedAnalyticsEvent('sampling.settings.modal.uniform.rate_read_docs', {
-      organization: organization.slug,
+      organization,
       project_id: project.id,
     });
 
