@@ -19,7 +19,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.project import DetailedProjectSerializer
 from sentry.api.serializers.rest_framework.list import EmptyListField, ListField
 from sentry.api.serializers.rest_framework.origin import OriginField
-from sentry.constants import RESERVED_PROJECT_SLUGS
+from sentry.constants import DS_DENYLIST, RESERVED_PROJECT_SLUGS
 from sentry.datascrubbing import validate_pii_config_update
 from sentry.grouping.enhancer import Enhancements, InvalidEnhancerConfig
 from sentry.grouping.fingerprinting import FingerprintingRules, InvalidFingerprintingConfig
@@ -106,6 +106,14 @@ class DynamicSamplingSerializer(serializers.Serializer):
         # future, we will have to update this to also support single transactions.
         return len(rule["condition"]["inner"]) == 0 and rule["type"] == "trace"
 
+    def validate_custom_rules_tag_names(self, rules):
+        # Ensure that all custom tags are valid name
+        # and are not presented in DS_DENYLIST
+        for rule in rules:
+            for op in rule["condition"]["inner"]:
+                if op["name"] in DS_DENYLIST:
+                    raise serializers.ValidationError(f"{op['name']} is not allowed as tag name")
+
     def validate_uniform_sampling_rule(self, rules):
         # Guards against deletion of uniform sampling rule i.e. sending a payload with no rules
         if len(rules) == 0:
@@ -137,6 +145,7 @@ class DynamicSamplingSerializer(serializers.Serializer):
             config_str = json.dumps(data)
             validate_sampling_configuration(config_str)
             self.validate_uniform_sampling_rule(data.get("rules", []))
+            self.validate_custom_rules_tag_names(data.get("rules", []))
         except ValueError as err:
             reason = err.args[0] if len(err.args) > 0 else "invalid configuration"
             raise serializers.ValidationError(reason)

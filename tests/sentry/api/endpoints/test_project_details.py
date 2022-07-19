@@ -8,7 +8,7 @@ from sentry.api.endpoints.project_details import (
     DynamicSamplingConditionSerializer,
     DynamicSamplingSerializer,
 )
-from sentry.constants import RESERVED_PROJECT_SLUGS
+from sentry.constants import DS_DENYLIST, RESERVED_PROJECT_SLUGS
 from sentry.models import (
     AuditLogEntry,
     DeletedProject,
@@ -848,6 +848,46 @@ class ProjectUpdateTest(APITestCase):
                 == "Payload must contain a uniform dynamic sampling rule"
             )
 
+    def test_dynamic_sampling_rules_custom_tag_names_validation(self):
+        """
+        Tests that ensures you can only have one uniform rule
+        """
+        dynamic_sampling_data = {
+            "rules": [
+                {
+                    "sampleRate": 0.7,
+                    "type": "trace",
+                    "active": True,
+                    "condition": {
+                        "op": "and",
+                        "inner": [
+                            {"op": "eq", "name": "valid_name", "value": ["val"]},
+                            {"op": "glob", "name": "browser", "value": ["val"]},
+                        ],
+                    },
+                    "id": 0,
+                },
+                {
+                    "sampleRate": 0.9,
+                    "type": "trace",
+                    "condition": {
+                        "op": "and",
+                        "inner": [],
+                    },
+                    "id": 0,
+                },
+            ]
+        }
+        with Feature({"organizations:server-side-sampling": True}):
+            response = self.get_response(
+                self.org_slug, self.proj_slug, dynamicSampling=dynamic_sampling_data
+            )
+            assert response.status_code == 400
+            assert (
+                response.json()["dynamicSampling"]["non_field_errors"][0]
+                == "browser is not allowed as tag name"
+            )
+
     def test_cap_secondary_grouping_expiry(self):
         now = time()
 
@@ -1304,3 +1344,39 @@ def test_rule_config_serializer():
     serializer = DynamicSamplingSerializer(data=data)
     assert serializer.is_valid()
     assert data == serializer.validated_data
+
+
+@pytest.mark.parametrize(
+    "field_name",
+    (field_name for field_name in DS_DENYLIST),
+)
+def test_rule_name_not_in_denylist_serializer(field_name):
+    data = {
+        "rules": [
+            {
+                "sampleRate": 0.7,
+                "type": "trace",
+                "active": False,
+                "id": 1,
+                "condition": {
+                    "op": "and",
+                    "inner": [
+                        {"op": "eq", "name": field_name, "value": ["val"]},
+                    ],
+                },
+            },
+            {
+                "sampleRate": 0.9,
+                "type": "trace",
+                "condition": {
+                    "op": "and",
+                    "inner": [],
+                },
+                "id": 0,
+            },
+        ],
+        "next_id": 22,
+    }
+    serializer = DynamicSamplingSerializer(data=data)
+    assert not serializer.is_valid()
+    assert serializer.errors["non_field_errors"][0] == f"{field_name} is not allowed as tag name"
