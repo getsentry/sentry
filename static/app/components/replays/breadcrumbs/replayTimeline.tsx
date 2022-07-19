@@ -10,8 +10,8 @@ import {
 import ReplayTimelineEvents from 'sentry/components/replays/breadcrumbs/replayTimelineEvents';
 import ReplayTimelineSpans from 'sentry/components/replays/breadcrumbs/replayTimelineSpans';
 import Stacked from 'sentry/components/replays/breadcrumbs/stacked';
-import ScrubberMouseTracking from 'sentry/components/replays/player/scrubberMouseTracking';
 import {TimelineScrubber} from 'sentry/components/replays/player/scrubber';
+import ScrubberMouseTracking from 'sentry/components/replays/player/scrubberMouseTracking';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {Resizeable} from 'sentry/components/replays/resizeable';
 import TimelinePosition from 'sentry/components/replays/timelinePosition';
