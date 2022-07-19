@@ -128,7 +128,7 @@ python-u2flib-server==5.0.0
 python-utils==3.3.3
 python3-saml==1.14.0
 pytz==2018.9
-pyupgrade==2.32.0
+pyupgrade==2.37.2
 pyyaml==5.4
 rb==1.9.0
 redis==3.4.1
