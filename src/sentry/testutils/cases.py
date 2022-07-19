@@ -1119,7 +1119,7 @@ class BaseMetricsTestCase(SnubaTestCase):
             "project_id": project_id,
             "metric_id": metric_id(name),
             "timestamp": timestamp,
-            "tags": tags,
+            "tags": {tag_key(key): tag_value(value) for key, value in tags.items()},
             "type": {"counter": "c", "set": "s", "distribution": "d"}[type],
             "value": value,
             "retention_days": 90,

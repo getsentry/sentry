@@ -118,7 +118,7 @@ class GetCustomMeasurementsTest(MetricsEnhancedPerformanceTestCase):
 
     def test_simple(self):
         something_custom_metric = "d:transactions/measurements.something_custom@millisecond"
-        self.store_metric(
+        self.store_transaction_metric(
             1,
             metric="measurements.something_custom",
             internal_metric=something_custom_metric,
@@ -157,7 +157,7 @@ class GetCustomMeasurementsTest(MetricsEnhancedPerformanceTestCase):
     def test_metric_outside_query_daterange(self):
         something_custom_metric = "d:transactions/measurements.something_custom@millisecond"
         something_else_metric = "d:transactions/measurements.something_else@byte"
-        self.store_metric(
+        self.store_transaction_metric(
             1,
             metric="measurements.something_custom",
             internal_metric=something_custom_metric,
@@ -165,7 +165,7 @@ class GetCustomMeasurementsTest(MetricsEnhancedPerformanceTestCase):
             timestamp=self.day_ago + timedelta(hours=1, minutes=0),
         )
         # Shouldn't show up
-        self.store_metric(
+        self.store_transaction_metric(
             1,
             metric="measurements.something_else",
             internal_metric=something_else_metric,
@@ -205,7 +205,7 @@ class GetCustomMeasurementsTest(MetricsEnhancedPerformanceTestCase):
     @mock.patch("sentry.snuba.metrics.datasource.parse_mri")
     def test_broken_custom_metric(self, mock):
         # Store valid metric
-        self.store_metric(
+        self.store_transaction_metric(
             1,
             metric="measurements.something_custom",
             internal_metric="d:transactions/measurements.something_custom@millisecond",
