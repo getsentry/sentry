@@ -422,7 +422,7 @@ class _Table extends Component<Props, State> {
     const prependColumnWidths = ['max-content'];
 
     return (
-      <div data-test-id="PerformanceTable">
+      <div data-test-id="performance-table">
         <MEPConsumer>
           {value => (
             <DiscoverQuery

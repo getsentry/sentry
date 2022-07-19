@@ -129,7 +129,7 @@ describe('Performance > Landing > Index', function () {
     wrapper = render(<WrappedComponent data={data} />, data.routerContext);
 
     expect(screen.getByTestId('frontend-pageload-view')).toBeInTheDocument();
-    expect(screen.getByTestId('PerformanceTable')).toBeInTheDocument();
+    expect(screen.getByTestId('performance-table')).toBeInTheDocument();
 
     const titles = screen.getAllByTestId('performance-widget-title');
     expect(titles).toHaveLength(5);
@@ -147,7 +147,7 @@ describe('Performance > Landing > Index', function () {
     });
 
     wrapper = render(<WrappedComponent data={data} />, data.routerContext);
-    expect(screen.getByTestId('PerformanceTable')).toBeInTheDocument();
+    expect(screen.getByTestId('performance-table')).toBeInTheDocument();
   });
 
   it('renders backend view', function () {
@@ -156,7 +156,7 @@ describe('Performance > Landing > Index', function () {
     });
 
     wrapper = render(<WrappedComponent data={data} />, data.routerContext);
-    expect(screen.getByTestId('PerformanceTable')).toBeInTheDocument();
+    expect(screen.getByTestId('performance-table')).toBeInTheDocument();
   });
 
   it('renders mobile view', function () {
@@ -165,7 +165,7 @@ describe('Performance > Landing > Index', function () {
     });
 
     wrapper = render(<WrappedComponent data={data} />, data.routerContext);
-    expect(screen.getByTestId('PerformanceTable')).toBeInTheDocument();
+    expect(screen.getByTestId('performance-table')).toBeInTheDocument();
   });
 
   it('renders react-native table headers in mobile view', async function () {
@@ -179,7 +179,7 @@ describe('Performance > Landing > Index', function () {
 
     wrapper = render(<WrappedComponent data={data} />, data.routerContext);
 
-    expect(await screen.findByTestId('PerformanceTable')).toBeInTheDocument();
+    expect(await screen.findByTestId('performance-table')).toBeInTheDocument();
     expect(screen.getByTestId('grid-editable')).toBeInTheDocument();
     const columnHeaders = await screen.findAllByTestId('grid-head-cell');
 
@@ -196,7 +196,7 @@ describe('Performance > Landing > Index', function () {
 
     wrapper = render(<WrappedComponent data={data} />, data.routerContext);
 
-    expect(await screen.findByTestId('PerformanceTable')).toBeInTheDocument();
+    expect(await screen.findByTestId('performance-table')).toBeInTheDocument();
 
     expect(eventStatsMock).toHaveBeenCalledTimes(1); // Only one request is made since the query batcher is working.
 
