@@ -6,6 +6,7 @@ import ButtonBar from 'sentry/components/buttonBar';
 import {NumberField} from 'sentry/components/forms';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {PanelTable} from 'sentry/components/panels';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import Radio from 'sentry/components/radio';
 import {IconRefresh} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -93,12 +94,12 @@ function UniformRateModal({
           ? 'sampling.settings.modal.recommended.next.steps_cancel'
           : 'sampling.settings.modal.uniform.rate_cancel',
         {
-          organization: organization.slug,
+          organization,
           project_id: project.id,
         }
       );
     }
-  }, [activeStep, modalStore.renderer, organization.slug, project.id]);
+  }, [activeStep, modalStore.renderer, organization, project.id]);
 
   const uniformSampleRate = uniformRule?.sampleRate;
 
@@ -144,11 +145,11 @@ function UniformRateModal({
         ? 'sampling.settings.modal.uniform.rate_switch_recommended'
         : 'sampling.settings.modal.uniform.rate_switch_current',
       {
-        organization: organization.slug,
+        organization,
         project_id: project.id,
       }
     );
-  }, [selectedStrategy, organization.slug, project.id]);
+  }, [selectedStrategy, organization, project.id]);
 
   const isEdited =
     client !== recommendedClientSampling || server !== recommendedServerSampling;
@@ -164,7 +165,7 @@ function UniformRateModal({
 
     if (shouldHaveNextStep) {
       trackAdvancedAnalyticsEvent('sampling.settings.modal.uniform.rate_next', {
-        organization: organization.slug,
+        organization,
         project_id: project.id,
       });
 
@@ -191,7 +192,7 @@ function UniformRateModal({
 
   function handleReadDocs() {
     trackAdvancedAnalyticsEvent('sampling.settings.modal.uniform.rate_read_docs', {
-      organization: organization.slug,
+      organization,
       project_id: project.id,
     });
 
@@ -292,6 +293,14 @@ function UniformRateModal({
                     }}
                   />
                   {isEdited ? t('New') : t('Recommended')}
+                  {!isEdited && (
+                    <QuestionTooltip
+                      title={t(
+                        'These are suggested sample rates you can set based on your organization’s overall usage and quota.'
+                      )}
+                      size="sm"
+                    />
+                  )}
                 </Label>
                 <RightAligned>
                   <StyledNumberField

@@ -78,7 +78,7 @@ const StyledBadge = styled(Badge)`
 const ButtonLabelWrapper = styled('span')`
   width: 100%;
   text-align: left;
-  display: flex;
-  justify-content: space-between;
   align-items: center;
+  display: inline-grid;
+  grid-template-columns: 1fr auto;
 `;
