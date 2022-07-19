@@ -2,7 +2,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
-import {DashboardFilter} from 'sentry/views/dashboardsV2/types';
+import {DashboardFilterKeys} from 'sentry/views/dashboardsV2/types';
 import {DashboardsMEPContext} from 'sentry/views/dashboardsV2/widgetCard/dashboardsMEPContext';
 import WidgetQueries, {
   flattenMultiSeriesDataWithGrouping,
@@ -120,7 +120,7 @@ describe('Dashboards > WidgetQueries', function () {
         widget={singleQueryWidget}
         organization={initialData.organization}
         selection={selection}
-        dashboardFilters={{[DashboardFilter.RELEASE]: ['abc@1.2.0', 'abc@1.3.0']}}
+        dashboardFilters={{[DashboardFilterKeys.RELEASE]: ['abc@1.2.0', 'abc@1.3.0']}}
       >
         {() => <div data-test-id="child" />}
       </WidgetQueries>
@@ -148,7 +148,7 @@ describe('Dashboards > WidgetQueries', function () {
         widget={tableWidget}
         organization={initialData.organization}
         selection={selection}
-        dashboardFilters={{[DashboardFilter.RELEASE]: ['abc@1.3.0']}}
+        dashboardFilters={{[DashboardFilterKeys.RELEASE]: ['abc@1.3.0']}}
       >
         {() => <div data-test-id="child" />}
       </WidgetQueries>
