@@ -1,21 +1,22 @@
 import styled from '@emotion/styled';
 
-import CompactSelect from 'sentry/components/compactSelect';
+import CompactSelect, {
+  SelectOption,
+  SelectOptionOrSection,
+} from 'sentry/components/compactSelect';
 import DropdownButton from 'sentry/components/dropdownButton';
 import SearchBar from 'sentry/components/searchBar';
 import {t, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
-
-type FilterOption = React.ComponentProps<typeof CompactSelect>['options'][0];
 
 type Props = {
   onChange: (value: string) => void;
   placeholder: string;
   query: string;
   className?: string;
-  filterOptions?: FilterOption[];
-  filterSelections?: FilterOption[];
-  onFilterChange?: (options: FilterOption[]) => void;
+  filterOptions?: SelectOptionOrSection<string>[];
+  filterSelections?: SelectOption<string>[];
+  onFilterChange?: (options: SelectOption<string>[]) => void;
 };
 
 function SearchBarAction({

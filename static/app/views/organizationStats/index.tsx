@@ -417,6 +417,7 @@ const PageGrid = styled('div')`
 `;
 
 const DropdownDataCategory = styled(CompactSelect)`
+  width: auto;
   grid-column: auto / span 1;
 
   button[aria-haspopup='listbox'] {

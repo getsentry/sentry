@@ -76,7 +76,7 @@ describe('EventsV2 > OptionSelector (Multiple)', function () {
     expect(onChangeStub).toHaveBeenCalledWith(['failure_count()']);
     onChangeStub.mockClear();
     userEvent.click(screen.getByTestId('count()'));
-    expect(onChangeStub).toHaveBeenCalledWith(['failure_count()', 'count()']);
+    expect(onChangeStub).toHaveBeenCalledWith(['count()', 'failure_count()']);
     onChangeStub.mockClear();
     userEvent.click(screen.getByTestId('failure_count()'));
     expect(onChangeStub).toHaveBeenCalledWith(['count()']);

@@ -81,7 +81,7 @@ describe('Dashboards > ReleasesSelectControl', function () {
     expect(screen.getByText('All Releases')).toBeInTheDocument();
 
     userEvent.click(screen.getByText('All Releases'));
-    userEvent.type(screen.getByText('Search\u2026'), 'se');
+    userEvent.type(screen.getByPlaceholderText('Search\u2026'), 'se');
 
     await waitFor(() => expect(mockOnSearch).toHaveBeenCalledWith('se'));
   });
@@ -93,7 +93,7 @@ describe('Dashboards > ReleasesSelectControl', function () {
     expect(screen.getByText('All Releases')).toBeInTheDocument();
 
     userEvent.click(screen.getByText('All Releases'));
-    userEvent.type(screen.getByText('Search\u2026'), 'se');
+    userEvent.type(screen.getByPlaceholderText('Search\u2026'), 'se');
 
     await waitFor(() => expect(mockOnSearch).toHaveBeenCalledWith('se'));
 
@@ -134,7 +134,7 @@ describe('Dashboards > ReleasesSelectControl', function () {
     expect(screen.getByText('All Releases')).toBeInTheDocument();
 
     userEvent.click(screen.getByText('All Releases'));
-    userEvent.type(screen.getByText('Search\u2026'), 'latest');
+    userEvent.type(screen.getByPlaceholderText('Search\u2026'), 'latest');
 
     screen.getByText('Latest Release(s)');
   });
