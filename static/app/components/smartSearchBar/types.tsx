@@ -1,4 +1,4 @@
-import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
+import {FieldKind} from 'sentry/utils/fields';
 
 import {Token, TokenResult} from '../searchSyntax/parser';
 
@@ -32,10 +32,11 @@ export type SearchItem = {
    * Child search items, we only support 1 level of nesting though.
    */
   children?: SearchItem[];
+  deprecated?: boolean;
   desc?: string;
   documentation?: React.ReactNode;
   ignoreMaxSearchItems?: boolean;
-  kind?: FieldValueKind;
+  kind?: FieldKind;
   title?: string;
   type?: ItemType;
   /**
