@@ -10,6 +10,7 @@ import {
   getMockData,
   mockedProjects,
   mockedSamplingSdkVersions,
+  recommendedSdkUpgrades,
   uniformRule,
 } from '../utils';
 
@@ -32,13 +33,7 @@ describe('Server-side Sampling - Recommended Steps Modal', function () {
         {...modalProps}
         organization={organization}
         projectId={project.id}
-        recommendedSdkUpgrades={[
-          {
-            project: mockedProjects[1],
-            latestSDKName: mockedSamplingSdkVersions[1].latestSDKName,
-            latestSDKVersion: mockedSamplingSdkVersions[1].latestSDKVersion,
-          },
-        ]}
+        recommendedSdkUpgrades={recommendedSdkUpgrades}
         onReadDocs={jest.fn()}
         onSubmit={jest.fn()}
         clientSampleRate={0.5}
