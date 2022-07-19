@@ -232,7 +232,7 @@ export const FIELDS: Record<string, FieldDefinition> = {
   [FieldKey.EVENT_TIMESTAMP]: {
     desc: 'Date and time of the event',
     kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
+    valueType: FieldValueType.DATE,
   },
   [FieldKey.EVENT_TYPE]: {
     desc: 'Type of event (Errors, transactions, csp and default)',
@@ -435,12 +435,12 @@ export const FIELDS: Record<string, FieldDefinition> = {
   [FieldKey.STACK_STACK_LEVEL]: {
     desc: 'Number of frames per stacktrace',
     kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
+    valueType: FieldValueType.NUMBER,
   },
   [FieldKey.TIMES_SEEN]: {
     desc: 'Total number of events',
     kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
+    valueType: FieldValueType.NUMBER,
   },
   [FieldKey.TIMESTAMP]: {
     desc: 'The time an event finishes',
