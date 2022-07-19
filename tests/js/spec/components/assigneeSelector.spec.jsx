@@ -1,4 +1,11 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {
+  act,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  waitForElementToBeRemoved,
+} from 'sentry-test/reactTestingLibrary';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
@@ -15,18 +22,16 @@ jest.mock('sentry/actionCreators/modal', () => ({
   openInviteMembersModal: jest.fn(),
 }));
 
-describe('AssigneeSelector', function () {
-  let assigneeSelector;
+describe('AssigneeSelector', () => {
   let assignMock;
   let assignGroup2Mock;
-  let openMenu;
   let USER_1, USER_2, USER_3;
   let TEAM_1;
   let PROJECT_1;
   let GROUP_1;
   let GROUP_2;
 
-  beforeEach(function () {
+  beforeEach(() => {
     USER_1 = TestStubs.User({
       id: '1',
       name: 'Jane Bloggs',
@@ -75,9 +80,11 @@ describe('AssigneeSelector', function () {
         },
       ],
     });
+    TeamStore.reset();
+    TeamStore.setTeams([TEAM_1]);
+    GroupStore.reset();
 
     jest.spyOn(MemberListStore, 'getAll').mockImplementation(() => null);
-    jest.spyOn(TeamStore, 'getAll').mockImplementation(() => [TEAM_1]);
     jest.spyOn(ProjectsStore, 'getAll').mockImplementation(() => [PROJECT_1]);
     jest.spyOn(GroupStore, 'get').mockImplementation(() => GROUP_1);
 
@@ -86,7 +93,7 @@ describe('AssigneeSelector', function () {
       url: `/issues/${GROUP_1.id}/`,
       body: {
         ...GROUP_1,
-        assignedTo: USER_1,
+        assignedTo: {...USER_1, type: 'user'},
       },
     });
 
@@ -95,44 +102,50 @@ describe('AssigneeSelector', function () {
       url: `/issues/${GROUP_2.id}/`,
       body: {
         ...GROUP_2,
-        assignedTo: USER_1,
+        assignedTo: {...USER_1, type: 'user'},
       },
     });
 
     MemberListStore.state = [];
     MemberListStore.loaded = false;
-
-    assigneeSelector = mountWithTheme(<AssigneeSelectorComponent id={GROUP_1.id} />);
-
-    openMenu = () => assigneeSelector.find('DropdownButton').simulate('click');
   });
 
-  afterEach(function () {
+  // Doesn't need to always be async, but it was easier to prevent flakes this way
+  const openMenu = async () => {
+    userEvent.click(await screen.findByTestId('assignee-selector'), undefined, {
+      // Skip hover to prevent tooltip from rendering
+      skipHover: true,
+    });
+  };
+
+  afterEach(() => {
     Client.clearMockResponses();
+    MemberListStore.teardown();
+    GroupStore.teardown();
+    ProjectsStore.teardown();
+    TeamStore.teardown();
   });
 
-  describe('render with props', function () {
-    it('renders members from the prop when present', function () {
-      assigneeSelector = mountWithTheme(
-        <AssigneeSelectorComponent id={GROUP_1.id} memberList={[USER_2, USER_3]} />
-      );
+  describe('render with props', () => {
+    it('renders members from the prop when present', async () => {
       MemberListStore.loadInitialData([USER_1]);
-      openMenu();
+      render(<AssigneeSelectorComponent id={GROUP_1.id} memberList={[USER_2, USER_3]} />);
+      await openMenu();
+      expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
 
-      assigneeSelector.update();
-      expect(assigneeSelector.find('LoadingIndicator')).toHaveLength(0);
-      expect(assigneeSelector.find('UserAvatar')).toHaveLength(2);
-      expect(assigneeSelector.find('TeamAvatar')).toHaveLength(1);
-
-      const names = assigneeSelector
-        .find('MenuItemWrapper Label Highlight')
-        .map(el => el.text());
-      expect(names).toEqual([`#${TEAM_1.slug}`, USER_2.name, USER_3.name]);
+      // 3 total items
+      expect(screen.getAllByTestId('assignee-option')).toHaveLength(3);
+      // 1 team
+      expect(screen.getByText(`#${TEAM_1.slug}`)).toBeInTheDocument();
+      // 2 Users
+      expect(screen.getByText(USER_2.name)).toBeInTheDocument();
+      expect(screen.getByText(USER_3.name)).toBeInTheDocument();
     });
   });
 
-  describe('putSessionUserFirst()', function () {
-    it('should place the session user at the top of the member list if present', function () {
+  describe('putSessionUserFirst()', () => {
+    it('should place the session user at the top of the member list if present', () => {
+      render(<AssigneeSelectorComponent id={GROUP_1.id} />);
       jest.spyOn(ConfigStore, 'get').mockImplementation(() => ({
         id: '2',
         name: 'John Smith',
@@ -142,7 +155,8 @@ describe('AssigneeSelector', function () {
       ConfigStore.get.mockRestore();
     });
 
-    it("should return the same member list if the session user isn't present", function () {
+    it("should return the same member list if the session user isn't present", () => {
+      render(<AssigneeSelectorComponent id={GROUP_1.id} />);
       jest.spyOn(ConfigStore, 'get').mockImplementation(() => ({
         id: '555',
         name: 'Here Comes a New Challenger',
@@ -154,45 +168,53 @@ describe('AssigneeSelector', function () {
     });
   });
 
-  it('should initially have loading state', function () {
-    openMenu();
-    expect(assigneeSelector.find('LoadingIndicator')).toHaveLength(1);
+  it('should initially have loading state', async () => {
+    render(<AssigneeSelectorComponent id={GROUP_1.id} />);
+    await openMenu();
+    expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
   });
 
-  it('does not have loading state and shows member list after calling MemberListStore.loadInitialData', function () {
-    openMenu();
-    MemberListStore.loadInitialData([USER_1, USER_2]);
-    assigneeSelector.update();
-    expect(assigneeSelector.instance().assignableTeams()).toHaveLength(1);
+  it('does not have loading state and shows member list after calling MemberListStore.loadInitialData', async () => {
+    render(<AssigneeSelectorComponent id={GROUP_1.id} />);
+    act(() => MemberListStore.loadInitialData([USER_1, USER_2]));
+    await openMenu();
+    expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
 
-    expect(assigneeSelector.find('LoadingIndicator')).toHaveLength(0);
-    expect(assigneeSelector.find('UserAvatar')).toHaveLength(2);
-    expect(assigneeSelector.find('TeamAvatar')).toHaveLength(1);
+    // 3 total items
+    expect(screen.getAllByTestId('assignee-option')).toHaveLength(3);
+    // 1 team
+    expect(screen.getByText(`#${TEAM_1.slug}`)).toBeInTheDocument();
+    // 2 Users including self
+    expect(screen.getByText(`${USER_1.name} (You)`)).toBeInTheDocument();
+    expect(screen.getByText(USER_2.name)).toBeInTheDocument();
   });
 
-  it('does NOT update member list after initial load', function () {
-    openMenu();
-    MemberListStore.loadInitialData([USER_1, USER_2]);
-    assigneeSelector.update();
+  it('does NOT update member list after initial load', async () => {
+    render(<AssigneeSelectorComponent id={GROUP_1.id} />);
+    act(() => MemberListStore.loadInitialData([USER_1, USER_2]));
+    await openMenu();
+    expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
 
-    expect(assigneeSelector.find('UserAvatar')).toHaveLength(2);
-    expect(assigneeSelector.find('LoadingIndicator').exists()).toBe(false);
+    expect(screen.getByText(`${USER_1.name} (You)`)).toBeInTheDocument();
+    expect(screen.getByText(USER_2.name)).toBeInTheDocument();
 
-    MemberListStore.loadInitialData([USER_1, USER_2, USER_3]);
-    assigneeSelector.update();
+    act(() => MemberListStore.loadInitialData([USER_1, USER_2, USER_3]));
 
-    expect(assigneeSelector.find('UserAvatar')).toHaveLength(2);
-    expect(assigneeSelector.find('LoadingIndicator').exists()).toBe(false);
+    expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
+    expect(screen.getByText(`${USER_1.name} (You)`)).toBeInTheDocument();
+    expect(screen.getByText(USER_2.name)).toBeInTheDocument();
+    expect(screen.queryByText(USER_3.name)).not.toBeInTheDocument();
   });
 
-  it('successfully assigns users', async function () {
-    openMenu();
-    MemberListStore.loadInitialData([USER_1, USER_2]);
-    assigneeSelector.update();
-    expect(assigneeSelector.find('LoadingIndicator').exists()).toBe(false);
+  it('successfully assigns users', async () => {
+    render(<AssigneeSelectorComponent id={GROUP_1.id} />);
+    act(() => MemberListStore.loadInitialData([USER_1, USER_2]));
+    await openMenu();
+    expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
 
-    assigneeSelector.find('UserAvatar').first().simulate('click');
+    userEvent.click(screen.getByText(`${USER_1.name} (You)`));
 
+    expect(await screen.findByTestId('loading-indicator')).toBeInTheDocument();
     expect(assignMock).toHaveBeenLastCalledWith(
       '/issues/1337/',
       expect.objectContaining({
@@ -200,159 +222,149 @@ describe('AssigneeSelector', function () {
       })
     );
 
-    assigneeSelector.update();
-    expect(assigneeSelector.find('LoadingIndicator')).toHaveLength(1);
+    await waitForElementToBeRemoved(screen.queryByTestId('loading-indicator'));
 
-    // Flakey with 1 tick
-    await tick();
-    await tick();
-    assigneeSelector.update();
-    expect(assigneeSelector.find('LoadingIndicator')).toHaveLength(0);
-    expect(assigneeSelector.find('ActorAvatar')).toHaveLength(1);
+    expect(await screen.findByTestId('letter_avatar-avatar')).toBeInTheDocument();
+    // USER_1 initials
+    expect(screen.getByTestId('assignee-selector')).toHaveTextContent('JB');
   });
 
-  it('successfully assigns teams', async function () {
-    openMenu();
-    MemberListStore.loadInitialData([USER_1, USER_2]);
-    assigneeSelector.update();
-    expect(assigneeSelector.find('LoadingIndicator').exists()).toBe(false);
+  it('successfully assigns teams', async () => {
+    Client.clearMockResponses();
+    assignMock = Client.addMockResponse({
+      method: 'PUT',
+      url: `/issues/${GROUP_1.id}/`,
+      body: {
+        ...GROUP_1,
+        assignedTo: {...TEAM_1, type: 'team'},
+      },
+    });
+    render(<AssigneeSelectorComponent id={GROUP_1.id} />);
+    act(() => MemberListStore.loadInitialData([USER_1, USER_2]));
+    await openMenu();
+    expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
 
-    assigneeSelector.find('TeamAvatar').first().simulate('click');
+    userEvent.click(screen.getByText(`#${TEAM_1.slug}`));
 
-    assigneeSelector.update();
-    expect(assigneeSelector.find('LoadingIndicator').exists()).toBe(true);
-
-    expect(assignMock).toHaveBeenCalledWith(
-      '/issues/1337/',
-      expect.objectContaining({
-        data: {assignedTo: 'team:3', assignedBy: 'assignee_selector'},
-      })
+    await waitFor(() =>
+      expect(assignMock).toHaveBeenCalledWith(
+        '/issues/1337/',
+        expect.objectContaining({
+          data: {assignedTo: 'team:3', assignedBy: 'assignee_selector'},
+        })
+      )
     );
 
-    // Flakey with 1 tick
-    await tick();
-    await tick();
-    assigneeSelector.update();
-    expect(assigneeSelector.find('LoadingIndicator').exists()).toBe(false);
-    expect(assigneeSelector.find('ActorAvatar')).toHaveLength(1);
+    expect(await screen.findByTestId('letter_avatar-avatar')).toBeInTheDocument();
+    // TEAM_1 initials
+    expect(screen.getByTestId('assignee-selector')).toHaveTextContent('CT');
   });
 
-  it('successfully clears assignment', async function () {
-    openMenu();
-    MemberListStore.loadInitialData([USER_1, USER_2]);
+  it('successfully clears assignment', async () => {
+    render(<AssigneeSelectorComponent id={GROUP_1.id} />);
+    act(() => MemberListStore.loadInitialData([USER_1, USER_2]));
+    await openMenu();
 
     // Assign first item in list, which is TEAM_1
-    assigneeSelector.update();
-    assigneeSelector.find('TeamAvatar').first().simulate('click');
-    assigneeSelector.update();
-    expect(assigneeSelector.find('LoadingIndicator').exists()).toBe(true);
+    userEvent.click(screen.getByText(`#${TEAM_1.slug}`));
 
-    expect(assignMock).toHaveBeenCalledWith(
-      '/issues/1337/',
-      expect.objectContaining({
-        data: {assignedTo: 'team:3', assignedBy: 'assignee_selector'},
-      })
+    await waitFor(() =>
+      expect(assignMock).toHaveBeenCalledWith(
+        '/issues/1337/',
+        expect.objectContaining({
+          data: {assignedTo: 'team:3', assignedBy: 'assignee_selector'},
+        })
+      )
     );
 
-    // Waiting for assignment to finish updating
-    // Flakey with 1 tick
-    await tick();
-    await tick();
-    assigneeSelector.update();
-
-    openMenu();
-    assigneeSelector
-      .find('MenuItemFooterWrapper[data-test-id="clear-assignee"]')
-      .simulate('click');
+    await openMenu();
+    userEvent.click(screen.getByRole('button', {name: 'Clear Assignee'}));
 
     // api was called with empty string, clearing assignment
-    expect(assignMock).toHaveBeenLastCalledWith(
-      '/issues/1337/',
-      expect.objectContaining({
-        data: {assignedTo: '', assignedBy: 'assignee_selector'},
-      })
+    await waitFor(() =>
+      expect(assignMock).toHaveBeenLastCalledWith(
+        '/issues/1337/',
+        expect.objectContaining({
+          data: {assignedTo: '', assignedBy: 'assignee_selector'},
+        })
+      )
     );
   });
 
-  it('shows invite member button', function () {
+  it('shows invite member button', async () => {
+    MemberListStore.loadInitialData([USER_1, USER_2]);
+    render(<AssigneeSelectorComponent id={GROUP_1.id} />);
     jest.spyOn(ConfigStore, 'get').mockImplementation(() => true);
 
-    openMenu();
-    MemberListStore.loadInitialData([USER_1, USER_2]);
-    assigneeSelector.update();
-    expect(assigneeSelector.find('LoadingIndicator').exists()).toBe(false);
-    assigneeSelector
-      .find('InviteMemberLink[data-test-id="invite-member"]')
-      .simulate('click');
+    await openMenu();
+    expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
+
+    userEvent.click(await screen.findByRole('link', {name: 'Invite Member'}));
     expect(openInviteMembersModal).toHaveBeenCalled();
     ConfigStore.get.mockRestore();
   });
 
-  it('filters user by email and selects with keyboard', async function () {
-    openMenu();
-    MemberListStore.loadInitialData([USER_1, USER_2]);
-    assigneeSelector.update();
-    expect(assigneeSelector.find('LoadingIndicator').exists()).toBe(false);
+  it('filters user by email and selects with keyboard', async () => {
+    render(<AssigneeSelectorComponent id={GROUP_2.id} />);
+    act(() => MemberListStore.loadInitialData([USER_1, USER_2]));
+    await openMenu();
+    expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
 
-    assigneeSelector
-      .find('StyledInput')
-      .simulate('change', {target: {value: 'JohnSmith@example.com'}});
+    userEvent.type(screen.getByRole('textbox'), 'JohnSmith@example.com');
 
-    expect(assigneeSelector.find('UserAvatar')).toHaveLength(1);
-    expect(assigneeSelector.find('UserAvatar').prop('user')).toEqual(USER_2);
+    // 1 total item
+    expect(screen.getByTestId('assignee-option')).toBeInTheDocument();
+    expect(screen.getByText(`${USER_2.name}`)).toBeInTheDocument();
 
-    assigneeSelector.find('StyledInput').simulate('keyDown', {key: 'Enter'});
-    assigneeSelector.update();
-    expect(assignMock).toHaveBeenLastCalledWith(
-      '/issues/1337/',
-      expect.objectContaining({
-        data: {assignedTo: 'user:2', assignedBy: 'assignee_selector'},
-      })
+    userEvent.keyboard('{enter}');
+
+    await waitFor(() =>
+      expect(assignGroup2Mock).toHaveBeenLastCalledWith(
+        '/issues/1338/',
+        expect.objectContaining({
+          data: {assignedTo: 'user:2', assignedBy: 'assignee_selector'},
+        })
+      )
     );
-    expect(assigneeSelector.find('LoadingIndicator')).toHaveLength(1);
 
-    await tick();
-    await tick();
-    assigneeSelector.update();
-    expect(assigneeSelector.find('LoadingIndicator')).toHaveLength(0);
-    expect(assigneeSelector.find('ActorAvatar')).toHaveLength(1);
+    expect(await screen.findByTestId('letter_avatar-avatar')).toBeInTheDocument();
+    // USER_2 initials
+    expect(screen.getByTestId('assignee-selector')).toHaveTextContent('JB');
   });
 
-  it('successfully shows suggested assignees', async function () {
+  it('successfully shows suggested assignees', async () => {
     jest.spyOn(GroupStore, 'get').mockImplementation(() => GROUP_2);
     const onAssign = jest.fn();
-    assigneeSelector = mountWithTheme(
-      <AssigneeSelectorComponent id={GROUP_2.id} onAssign={onAssign} />
-    );
-    MemberListStore.loadInitialData([USER_1, USER_2, USER_3]);
+    render(<AssigneeSelectorComponent id={GROUP_2.id} onAssign={onAssign} />);
+    act(() => MemberListStore.loadInitialData([USER_1, USER_2, USER_3]));
 
-    await tick();
-    assigneeSelector.update();
+    expect(screen.getByTestId('suggested-avatar-stack')).toBeInTheDocument();
+    // Hover over avatar
+    userEvent.hover(screen.getByTestId('letter_avatar-avatar'));
+    expect(await screen.findByText('Suggestion:')).toBeInTheDocument();
+    expect(screen.getByText('Jane Bloggs')).toBeInTheDocument();
+    expect(screen.getByText('commit data')).toBeInTheDocument();
 
-    const avatarTooltip = mountWithTheme(assigneeSelector.find('Tooltip').prop('title'));
-    expect(avatarTooltip.text()).toContain('Suggestion: Jane Bloggs');
-    expect(avatarTooltip.text()).toContain('Based on commit data');
+    await openMenu();
+    expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
+    expect(await screen.findByText('Suggested')).toBeInTheDocument();
 
-    openMenu();
-    expect(assigneeSelector.find('LoadingIndicator').exists()).toBe(false);
-    expect(assigneeSelector.find('SuggestedAvatarStack').exists()).toBe(true);
+    const options = screen.getAllByTestId('assignee-option');
+    // Suggested assignee initials
+    expect(options[0]).toHaveTextContent('JB');
+    userEvent.click(options[0]);
 
-    expect(assigneeSelector.find('GroupHeader').first().text()).toEqual('Suggested');
-
-    assigneeSelector.find('UserAvatar').at(1).simulate('click');
-
-    assigneeSelector.update();
-
-    expect(assignGroup2Mock).toHaveBeenCalledWith(
-      '/issues/1338/',
-      expect.objectContaining({
-        data: {assignedTo: 'user:1', assignedBy: 'assignee_selector'},
-      })
+    await waitFor(() =>
+      expect(assignGroup2Mock).toHaveBeenCalledWith(
+        '/issues/1338/',
+        expect.objectContaining({
+          data: {assignedTo: 'user:1', assignedBy: 'assignee_selector'},
+        })
+      )
     );
 
     // Suggested assignees shouldn't show anymore because we assigned to the suggested actor
-    assigneeSelector.update();
-    expect(assigneeSelector.find('SuggestedAvatarStack').exists()).toBe(false);
+    expect(screen.queryByTestId('suggested-avatar-stack')).not.toBeInTheDocument();
     expect(onAssign).toHaveBeenCalledWith(
       'member',
       expect.objectContaining({id: '1'}),
@@ -360,10 +372,11 @@ describe('AssigneeSelector', function () {
     );
   });
 
-  it('renders unassigned', function () {
-    jest.spyOn(GroupStore, 'get').mockImplementation(() => GROUP_2);
-    assigneeSelector = mountWithTheme(<AssigneeSelectorComponent id={GROUP_2.id} />);
-    const avatarTooltip = mountWithTheme(assigneeSelector.find('Tooltip').prop('title'));
-    expect(avatarTooltip.text()).toContain('Unassigned');
+  it('renders unassigned', async () => {
+    jest.spyOn(GroupStore, 'get').mockImplementation(() => GROUP_1);
+    render(<AssigneeSelectorComponent id={GROUP_1.id} />);
+
+    userEvent.hover(screen.getByTestId('unassigned'));
+    expect(await screen.findByText('Unassigned')).toBeInTheDocument();
   });
 });

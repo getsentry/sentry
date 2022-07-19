@@ -513,7 +513,7 @@ class AssigneeSelector extends Component<Props, State> {
           </TooltipWrapper>
         }
       >
-        <StyledIconUser size="20px" color="gray400" />
+        <StyledIconUser data-test-id="unassigned" size="20px" color="gray400" />
       </Tooltip>
     );
 
@@ -540,7 +540,7 @@ class AssigneeSelector extends Component<Props, State> {
               assignedTo ? (
                 <div>
                   <MenuItemFooterWrapper
-                    data-test-id="clear-assignee"
+                    role="button"
                     onClick={this.clearAssignTo}
                     py={0}
                   >
@@ -559,7 +559,7 @@ class AssigneeSelector extends Component<Props, State> {
             emptyHidesInput
           >
             {({getActorProps, isOpen}) => (
-              <DropdownButton {...getActorProps({})}>
+              <DropdownButton data-test-id="assignee-selector" {...getActorProps({})}>
                 {avatarElement}
                 <StyledChevron direction={isOpen ? 'up' : 'down'} size="xs" />
               </DropdownButton>

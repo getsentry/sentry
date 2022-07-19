@@ -21,7 +21,7 @@ const SuggestedAvatarStack = ({owners, tooltip, tooltipOptions, ...props}: Props
   };
   const numAvatars = Math.min(owners.length, MAX_SUGGESTIONS);
   return (
-    <AvatarStack>
+    <AvatarStack data-test-id="suggested-avatar-stack">
       {[...Array(numAvatars - 1)].map((_, i) => (
         <BackgroundAvatar
           {...backgroundAvatarProps}
