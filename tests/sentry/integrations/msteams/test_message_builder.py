@@ -240,7 +240,7 @@ class MSTeamsMessageBuilderTest(TestCase):
 
         issue_card = MSTeamsIssueMessageBuilder(
             group=self.group1, event=self.event1, rules=self.rules, integration=self.integration
-        ).build_card()
+        ).build_issue_card()
 
         body = issue_card["body"]
         assert 4 == len(body)
@@ -312,7 +312,7 @@ class MSTeamsMessageBuilderTest(TestCase):
     def test_issue_without_description(self):
         issue_card = MSTeamsIssueMessageBuilder(
             group=self.group1, event=self.event1, rules=self.rules, integration=self.integration
-        ).build_card()
+        ).build_issue_card()
 
         assert 3 == len(issue_card["body"])
 
@@ -320,7 +320,7 @@ class MSTeamsMessageBuilderTest(TestCase):
         one_rule = self.rules[:1]
         issue_card = MSTeamsIssueMessageBuilder(
             group=self.group1, event=self.event1, rules=one_rule, integration=self.integration
-        ).build_card()
+        ).build_issue_card()
 
         issue_id_and_rule = issue_card["body"][1]["columns"][1]["items"][0]
 
@@ -333,7 +333,7 @@ class MSTeamsMessageBuilderTest(TestCase):
 
         issue_card = MSTeamsIssueMessageBuilder(
             group=self.group1, event=self.event1, rules=self.rules, integration=self.integration
-        ).build_card()
+        ).build_issue_card()
 
         action_set = issue_card["body"][2]["items"][0]
 
@@ -346,7 +346,7 @@ class MSTeamsMessageBuilderTest(TestCase):
 
         issue_card = MSTeamsIssueMessageBuilder(
             group=self.group1, event=self.event1, rules=self.rules, integration=self.integration
-        ).build_card()
+        ).build_issue_card()
 
         action_set = issue_card["body"][2]["items"][0]
 
@@ -359,7 +359,7 @@ class MSTeamsMessageBuilderTest(TestCase):
 
         issue_card = MSTeamsIssueMessageBuilder(
             group=self.group1, event=self.event1, rules=self.rules, integration=self.integration
-        ).build_card()
+        ).build_issue_card()
 
         body = issue_card["body"]
         assert 4 == len(body)

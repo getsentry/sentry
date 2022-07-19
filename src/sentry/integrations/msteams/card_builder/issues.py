@@ -236,7 +236,7 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
                 weight=TextWeight.BOLDER,
             )
 
-    def build_card(
+    def build_issue_card(
         self,
     ) -> AdaptiveCard:
         """

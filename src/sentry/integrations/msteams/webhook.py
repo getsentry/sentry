@@ -400,7 +400,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
 
         # refresh issue and update card
         group.refresh_from_db()
-        card = MSTeamsIssueMessageBuilder(group, event, rules, integration).build_card()
+        card = MSTeamsIssueMessageBuilder(group, event, rules, integration).build_issue_card()
         client.update_card(conversation_id, activity_id, card)
 
         return issue_change_response
