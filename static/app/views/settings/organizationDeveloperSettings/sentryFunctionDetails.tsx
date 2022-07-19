@@ -14,12 +14,7 @@ import FormModel from 'sentry/components/forms/model';
 import {Field} from 'sentry/components/forms/type';
 import {t} from 'sentry/locale';
 
-// type Props = RouteComponentProps<{orgId: string; functionSlug?: string}, {}>;
-// type Props = WrapperProps & {orgId: string; functionSlug?: string};
 type Props = WrapperProps;
-// type State = AsyncView['state'] & {
-//   sentryFunction: SentryFunction | null;
-// };
 const formFields: Field[] = [
   {
     name: 'name',
