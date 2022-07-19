@@ -74,10 +74,10 @@ export function ServerSideSampling({project}: Props) {
 
   useEffect(() => {
     trackAdvancedAnalyticsEvent('sampling.settings.view', {
-      organization: organization.slug,
+      organization,
       project_id: project.id,
     });
-  }, [project.id, organization.slug]);
+  }, [project.id, organization]);
 
   useEffect(() => {
     if (!isEqual(previousRules, currentRules)) {
@@ -152,7 +152,7 @@ export function ServerSideSampling({project}: Props) {
           ? 'sampling.settings.rule.uniform_deactivate'
           : 'sampling.settings.rule.uniform_activate',
         {
-          organization: organization.slug,
+          organization,
           project_id: project.id,
           sampling_rate: rule.sampleRate,
         }
@@ -166,7 +166,7 @@ export function ServerSideSampling({project}: Props) {
           ? 'sampling.settings.rule.specific_deactivate'
           : 'sampling.settings.rule.specific_activate',
         {
-          organization: organization.slug,
+          organization,
           project_id: project.id,
           sampling_rate: rule.sampleRate,
           conditions: analyticsConditions,
@@ -178,7 +178,7 @@ export function ServerSideSampling({project}: Props) {
 
   function handleGetStarted() {
     trackAdvancedAnalyticsEvent('sampling.settings.view_get_started', {
-      organization: organization.slug,
+      organization,
       project_id: project.id,
     });
 
@@ -307,7 +307,7 @@ export function ServerSideSampling({project}: Props) {
 
   function handleReadDocs() {
     trackAdvancedAnalyticsEvent('sampling.settings.view_read_docs', {
-      organization: organization.slug,
+      organization,
       project_id: project.id,
     });
   }
@@ -336,7 +336,7 @@ export function ServerSideSampling({project}: Props) {
         ? 'sampling.settings.modal.uniform.rate_done'
         : 'sampling.settings.modal.recommended.next.steps_done',
       {
-        organization: organization.slug,
+        organization,
         project_id: project.id,
       }
     );
@@ -346,7 +346,7 @@ export function ServerSideSampling({project}: Props) {
         ? 'sampling.settings.rule.uniform_update'
         : 'sampling.settings.rule.uniform_create',
       {
-        organization: organization.slug,
+        organization,
         project_id: project.id,
         sampling_rate: newRule.sampleRate,
         old_sampling_rate: rule ? rule.sampleRate : null,
@@ -551,7 +551,7 @@ const RulesPanelLayout = styled('div')<{isContent?: boolean}>`
   grid-template-columns: 1fr 0.5fr 74px;
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
-    grid-template-columns: 48px 95px 1fr 0.5fr 77px 74px;
+    grid-template-columns: 48px 97px 1fr 0.5fr 77px 74px;
   }
 
   ${p =>

@@ -10,7 +10,7 @@ from django.conf import settings
 from exam import fixture, patcher
 
 from sentry.snuba.dataset import EntityKey
-from sentry.snuba.models import QueryDatasets, QuerySubscription
+from sentry.snuba.models import QueryDatasets, QuerySubscription, SnubaQuery
 from sentry.snuba.query_subscription_consumer import (
     InvalidMessageError,
     InvalidSchemaError,
@@ -104,6 +104,7 @@ class HandleMessageTest(BaseQuerySubscriptionTest, TestCase):
         register_subscriber(registration_key)(mock_callback)
         with self.tasks():
             snuba_query = create_snuba_query(
+                SnubaQuery.Type.ERROR,
                 QueryDatasets.EVENTS,
                 "hello",
                 "count()",

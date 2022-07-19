@@ -107,7 +107,7 @@ const Wrapper = styled('div')`
   }
 `;
 
-export const TimelineScubber = styled(Scrubber)`
+export const TimelineScrubber = styled(Scrubber)`
   height: 100%;
 
   ${Meter} {
