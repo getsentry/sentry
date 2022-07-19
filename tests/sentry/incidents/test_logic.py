@@ -70,7 +70,7 @@ from sentry.models import ActorTuple, Integration, PagerDutyService
 from sentry.shared_integrations.exceptions import ApiRateLimitedError
 from sentry.snuba.models import QueryDatasets, QuerySubscription, SnubaQueryEventType
 from sentry.testutils import BaseIncidentsTest, SnubaTestCase, TestCase
-from sentry.testutils.cases import SessionMetricsTestCase
+from sentry.testutils.cases import BaseMetricsTestCase
 from sentry.utils import json
 
 pytestmark = pytest.mark.sentry_metrics
@@ -297,7 +297,7 @@ class GetCrashRateIncidentAggregatesTest(TestCase, SnubaTestCase):
 
 
 class GetCrashRateMetricsIncidentAggregatesTest(
-    GetCrashRateIncidentAggregatesTest, SessionMetricsTestCase
+    GetCrashRateIncidentAggregatesTest, BaseMetricsTestCase
 ):
     def setUp(self):
         super().setUp()

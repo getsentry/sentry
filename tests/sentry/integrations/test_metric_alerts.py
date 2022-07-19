@@ -8,7 +8,7 @@ from sentry.incidents.models import IncidentStatus, IncidentTrigger
 from sentry.integrations.metric_alerts import incident_attachment_info
 from sentry.snuba.models import QueryDatasets
 from sentry.testutils import BaseIncidentsTest, SnubaTestCase, TestCase
-from sentry.testutils.cases import SessionMetricsTestCase
+from sentry.testutils.cases import BaseMetricsTestCase
 from sentry.utils.dates import to_timestamp
 
 
@@ -232,7 +232,7 @@ class IncidentAttachmentInfoTestForCrashRateAlerts(TestCase, SnubaTestCase):
 
 @freeze_time(MOCK_NOW)
 class IncidentAttachmentInfoTestForMetricsCrashRateAlerts(
-    IncidentAttachmentInfoTestForCrashRateAlerts, SessionMetricsTestCase
+    IncidentAttachmentInfoTestForCrashRateAlerts, BaseMetricsTestCase
 ):
     def create_incident_and_related_objects(self, field="sessions"):
         self.alert_rule = self.create_alert_rule(

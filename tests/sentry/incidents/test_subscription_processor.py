@@ -44,7 +44,7 @@ from sentry.sentry_metrics.indexer.models import MetricsKeyIndexer
 from sentry.sentry_metrics.utils import resolve_tag_key, resolve_tag_value
 from sentry.snuba.models import QueryDatasets, QuerySubscription, SnubaQueryEventType
 from sentry.testutils import SnubaTestCase, TestCase
-from sentry.testutils.cases import SessionMetricsTestCase
+from sentry.testutils.cases import BaseMetricsTestCase
 from sentry.testutils.helpers.datetime import iso_format
 from sentry.utils import json
 from sentry.utils.dates import to_timestamp
@@ -1601,7 +1601,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         )
 
 
-class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, SessionMetricsTestCase):
+class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetricsTestCase):
     entity_subscription_metrics = patcher("sentry.snuba.entity_subscription.metrics")
     format = "v2"  # TODO: remove once subscriptions migrated
 

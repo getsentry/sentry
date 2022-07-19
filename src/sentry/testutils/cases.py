@@ -15,7 +15,7 @@ __all__ = (
     "AcceptanceTestCase",
     "IntegrationTestCase",
     "SnubaTestCase",
-    "SessionMetricsTestCase",
+    "BaseMetricsTestCase",
     "SessionMetricsReleaseHealthTestCase",
     "BaseIncidentsTest",
     "IntegrationRepositoryTestCase",
@@ -1071,99 +1071,40 @@ class SnubaTestCase(BaseTestCase):
         )
 
 
-class SessionMetricsTestCase(SnubaTestCase):
-    """Store metrics instead of sessions"""
-
+class BaseMetricsTestCase(SnubaTestCase):
     snuba_endpoint = "/tests/entities/{entity}/insert"
 
-    def store_session(self, session):
-        """Mimic relays behavior of always emitting a metric for a started session,
-        and emitting an additional one if the session is fatal
-        https://github.com/getsentry/relay/blob/e3c064e213281c36bde5d2b6f3032c6d36e22520/relay-server/src/actors/envelopes.rs#L357
-        """
-        user = session.get("distinct_id")
-
-        # This check is not yet reflected in relay, see https://getsentry.atlassian.net/browse/INGEST-464
-        user_is_nil = user is None or user == "00000000-0000-0000-0000-000000000000"
-
-        # seq=0 is equivalent to relay's session.init, init=True is transformed
-        # to seq=0 in Relay.
-        if session["seq"] == 0:  # init
-            self._push_metric(
-                session, "counter", SessionMRI.SESSION, {"session.status": "init"}, +1
-            )
-
-        status = session["status"]
-
-        # Mark the session as errored, which includes fatal sessions.
-        if session.get("errors", 0) > 0 or status not in ("ok", "exited"):
-            self._push_metric(session, "set", SessionMRI.ERROR, {}, session["session_id"])
-            if not user_is_nil:
-                self._push_metric(
-                    session, "set", SessionMRI.USER, {"session.status": "errored"}, user
-                )
-        elif not user_is_nil:
-            self._push_metric(session, "set", SessionMRI.USER, {}, user)
-
-        if status in ("abnormal", "crashed"):  # fatal
-            self._push_metric(
-                session, "counter", SessionMRI.SESSION, {"session.status": status}, +1
-            )
-            if not user_is_nil:
-                self._push_metric(session, "set", SessionMRI.USER, {"session.status": status}, user)
-
-        if status == "exited":
-            if session["duration"] is not None:
-                self._push_metric(
-                    session,
-                    "distribution",
-                    SessionMRI.RAW_DURATION,
-                    {"session.status": status},
-                    session["duration"],
-                )
-
-    def bulk_store_sessions(self, sessions):
-        for session in sessions:
-            self.store_session(session)
-
     @classmethod
-    def _push_metric(
+    def store_metric(
         cls,
-        session,
-        type,
-        key: SessionOrTransactionMRI,
-        tags,
+        org_id: int,
+        project_id: int,
+        type: str,
+        name: str,
+        tags: Dict[str, str],
+        timestamp: int | float,
         value,
-        use_case_id: UseCaseKey = UseCaseKey.PERFORMANCE,
+        use_case_id: UseCaseKey,
     ):
-        org_id = session["org_id"]
+        mapping_meta = {}
 
-        def metric_id(key: SessionOrTransactionMRI):
-            res = indexer.record(use_case_id=use_case_id, org_id=org_id, string=key.value)
+        def metric_id(key: str):
+            res = indexer.record(use_case_id=use_case_id, org_id=org_id, string=key)
             assert res is not None, key
+            mapping_meta[str(res)] = key
             return res
 
         def tag_key(name):
             res = indexer.record(use_case_id=use_case_id, org_id=org_id, string=name)
             assert res is not None, name
-
+            mapping_meta[str(res)] = name
             return res
 
         def tag_value(name):
             res = indexer.record(use_case_id=use_case_id, org_id=org_id, string=name)
             assert res is not None, name
+            mapping_meta[str(res)] = name
             return res
-
-        base_tags = {
-            tag_key(tag): tag_value(session[tag])
-            for tag in (
-                "release",
-                "environment",
-            )
-            if session[tag] is not None
-        }
-
-        extra_tags = {tag_key(k): tag_value(v) for k, v in tags.items()}
 
         if type == "set":
             # Relay uses a different hashing algorithm, but that's ok
@@ -1172,20 +1113,26 @@ class SessionMetricsTestCase(SnubaTestCase):
             value = [value]
 
         msg = {
-            "org_id": session["org_id"],
-            "project_id": session["project_id"],
-            "metric_id": metric_id(key),
-            "timestamp": session["started"],
-            "tags": {**base_tags, **extra_tags},
+            "org_id": org_id,
+            "project_id": project_id,
+            "metric_id": metric_id(name),
+            "timestamp": timestamp,
+            "tags": tags,
             "type": {"counter": "c", "set": "s", "distribution": "d"}[type],
             "value": value,
             "retention_days": 90,
         }
 
+        msg["mapping_meta"] = {}
+        msg["mapping_meta"][msg["type"]] = mapping_meta
+
         cls._send_buckets([msg], entity=f"metrics_{type}s")
 
     @classmethod
     def _send_buckets(cls, buckets, entity):
+        # XXX(markus): do not use this method in your tests, use store_metric
+        # instead. we need to be able to make changes to the indexer's output
+        # protocol without having to update a million tests
         assert (
             requests.post(
                 settings.SENTRY_SNUBA + cls.snuba_endpoint.format(entity=entity),
@@ -1195,25 +1142,75 @@ class SessionMetricsTestCase(SnubaTestCase):
         )
 
 
-class SessionMetricsReleaseHealthTestCase(SessionMetricsTestCase):
-    @classmethod
-    def _push_metric(
-        cls,
-        session,
-        type,
-        key: SessionOrTransactionMRI,
-        tags,
-        value,
-        use_case_id: UseCaseKey = UseCaseKey.RELEASE_HEALTH,
-    ):
-        super()._push_metric(session, type, key, tags, value, use_case_id)
+class SessionMetricsReleaseHealthTestCase(BaseMetricsTestCase):
+    def store_session(self, session):
+        """Mimic relays behavior of always emitting a metric for a started session,
+        and emitting an additional one if the session is fatal
+        https://github.com/getsentry/relay/blob/e3c064e213281c36bde5d2b6f3032c6d36e22520/relay-server/src/actors/envelopes.rs#L357
+        """
+        user = session.get("distinct_id")
+        org_id = session["org_id"]
+        project_id = session["project_id"]
+        base_tags = {}
+        if session.get("release"):
+            base_tags["release"] = session["release"]
+        if session.get("environment"):
+            base_tags["environment"] = session["environment"]
+
+        # This check is not yet reflected in relay, see https://getsentry.atlassian.net/browse/INGEST-464
+        user_is_nil = user is None or user == "00000000-0000-0000-0000-000000000000"
+
+        def push(type, mri, tags, value):
+            self.store_metric(
+                org_id,
+                project_id,
+                type,
+                mri,
+                {**tags, **base_tags},
+                session["started"],
+                value,
+                use_case_id=UseCaseKey.RELEASE_HEALTH,
+            )
+
+        # seq=0 is equivalent to relay's session.init, init=True is transformed
+        # to seq=0 in Relay.
+        if session["seq"] == 0:  # init
+            push("counter", SessionMRI.SESSION.value, {"session.status": "init"}, +1)
+
+        status = session["status"]
+
+        # Mark the session as errored, which includes fatal sessions.
+        if session.get("errors", 0) > 0 or status not in ("ok", "exited"):
+            push("set", SessionMRI.ERROR, {}, session["session_id"])
+            if not user_is_nil:
+                push("set", SessionMRI.USER.value, {"session.status": "errored"}, user)
+        elif not user_is_nil:
+            push("set", SessionMRI.USER, {}, user)
+
+        if status in ("abnormal", "crashed"):  # fatal
+            push("counter", SessionMRI.SESSION.value, {"session.status": status}, +1)
+            if not user_is_nil:
+                push("set", SessionMRI.USER.value, {"session.status": status}, user)
+
+        if status == "exited":
+            if session["duration"] is not None:
+                push(
+                    "distribution",
+                    SessionMRI.RAW_DURATION.value,
+                    {"session.status": status},
+                    session["duration"],
+                )
+
+    def bulk_store_sessions(self, sessions):
+        for session in sessions:
+            self.store_session(session)
 
 
-class MetricsEnhancedPerformanceTestCase(SessionMetricsTestCase, TestCase):
+class MetricsEnhancedPerformanceTestCase(BaseMetricsTestCase, TestCase):
     TYPE_MAP = {
-        "metrics_distributions": "d",
-        "metrics_sets": "s",
-        "metrics_counters": "c",
+        "metrics_distributions": "distribution",
+        "metrics_sets": "set",
+        "metrics_counters": "counter",
     }
     ENTITY_MAP = {
         "transaction.duration": "metrics_distributions",
@@ -1249,7 +1246,7 @@ class MetricsEnhancedPerformanceTestCase(SessionMetricsTestCase, TestCase):
         org_strings = {self.organization.id: set(strings)}
         indexer.bulk_record(use_case_id=UseCaseKey.PERFORMANCE, org_strings=org_strings)
 
-    def store_metric(
+    def store_transaction_metric(
         self,
         value: List[int] | int,
         metric: str = "transaction.duration",
@@ -1287,22 +1284,15 @@ class MetricsEnhancedPerformanceTestCase(SessionMetricsTestCase, TestCase):
         if not isinstance(value, list):
             value = [value]
 
-        self._send_buckets(
-            [
-                {
-                    "org_id": org_id,
-                    "project_id": project,
-                    "metric_id": indexer.resolve(org_id, internal_metric, use_case_id=use_case_id),
-                    "timestamp": metric_timestamp,
-                    "tags": tags,
-                    "type": self.TYPE_MAP[entity],
-                    "value": value,
-                    "retention_days": 90,
-                    "mapping_meta": {},
-                    "use_case_id": use_case_id,
-                }
-            ],
-            entity=f"generic_{entity}",
+        self.store_metric(
+            org_id,
+            project,
+            self.TYPE_MAP[entity],
+            internal_metric,
+            tags,
+            metric_timestamp,
+            value,
+            use_case_id=UseCaseKey.PERFORMANCE,
         )
 
 
