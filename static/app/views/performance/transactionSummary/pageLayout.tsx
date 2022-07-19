@@ -5,6 +5,7 @@ import {Location} from 'history';
 
 import Feature from 'sentry/components/acl/feature';
 import Alert from 'sentry/components/alert';
+import {IncompatibleAlertQuery} from 'sentry/components/incompatibleAlertQuery';
 import * as Layout from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
@@ -67,8 +68,8 @@ function PageLayout(props: Props) {
     TransactionThresholdMetric | undefined
   >();
 
-  const [incompatibleAlertNotice, setIncompatibleAlertNotice] =
-    useState<React.ReactNode>(null);
+  const [displayIncompatibleAlertNotice, setDisplayIncompatibleAlertNotice] =
+    useState(false);
 
   if (!defined(projectId) || !defined(transactionName)) {
     redirectToPerformanceHomepage(organization, location);
@@ -77,9 +78,8 @@ function PageLayout(props: Props) {
 
   const project = projects.find(p => p.id === projectId);
 
-  const handleIncompatibleQuery = (incompatibleAlertNoticeFn, _errors) => {
-    const notice = incompatibleAlertNoticeFn(() => setIncompatibleAlertNotice(null));
-    setIncompatibleAlertNotice(notice);
+  const handleIncompatibleQuery = () => {
+    setDisplayIncompatibleAlertNotice(true);
   };
 
   const eventView = generateEventView({location, transactionName});
@@ -124,8 +124,14 @@ function PageLayout(props: Props) {
                       {error}
                     </StyledAlert>
                   )}
-                  {incompatibleAlertNotice && (
-                    <Layout.Main fullWidth>{incompatibleAlertNotice}</Layout.Main>
+                  {displayIncompatibleAlertNotice && (
+                    <Layout.Main fullWidth>
+                      <IncompatibleAlertQuery
+                        eventView={eventView}
+                        orgSlug={organization.slug}
+                        onClose={() => setDisplayIncompatibleAlertNotice(false)}
+                      />
+                    </Layout.Main>
                   )}
                   <ChildComponent
                     location={location}

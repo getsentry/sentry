@@ -5,7 +5,10 @@ import {Location} from 'history';
 import Feature from 'sentry/components/acl/feature';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import ButtonBar from 'sentry/components/buttonBar';
-import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
+import {
+  CreateAlertFromViewButton,
+  CreateAlertFromViewButtonProps,
+} from 'sentry/components/createAlertButton';
 import FeatureBadge from 'sentry/components/featureBadge';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -105,12 +108,11 @@ class TransactionHeader extends Component<Props> {
     });
   };
 
-  handleIncompatibleQuery: React.ComponentProps<
-    typeof CreateAlertFromViewButton
-  >['onIncompatibleQuery'] = (incompatibleAlertNoticeFn, errors) => {
-    this.trackAlertClick(errors);
-    this.props.handleIncompatibleQuery?.(incompatibleAlertNoticeFn, errors);
-  };
+  handleIncompatibleQuery: CreateAlertFromViewButtonProps['onIncompatibleQuery'] =
+    errors => {
+      this.trackAlertClick(errors);
+      this.props.handleIncompatibleQuery?.(errors);
+    };
 
   handleCreateAlertSuccess = () => {
     this.trackAlertClick();

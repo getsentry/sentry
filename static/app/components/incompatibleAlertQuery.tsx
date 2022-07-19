@@ -115,7 +115,23 @@ export function IncompatibleAlertQuery(props: IncompatibleAlertQueryProps) {
   const totalErrors = Object.values(incompatibleQuery).filter(val => val).length;
 
   if (!totalErrors) {
-    return null;
+    return (
+      <StyledAlert
+        type="info"
+        showIcon
+        trailingItems={
+          <Button
+            icon={<IconClose size="sm" />}
+            aria-label={t('Close')}
+            size="zero"
+            onClick={props.onClose}
+            borderless
+          />
+        }
+      >
+        {t('Click "Create Alert" again to build an alert on this query')}
+      </StyledAlert>
+    );
   }
 
   const eventTypeError = props.eventView.clone();
