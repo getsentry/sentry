@@ -1,4 +1,4 @@
-import {useRef} from 'react';
+import React, {MutableRefObject, useRef} from 'react';
 import Editor from '@monaco-editor/react';
 
 import {
@@ -12,6 +12,7 @@ import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import FormModel from 'sentry/components/forms/model';
 import {Field} from 'sentry/components/forms/type';
+import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
 
 type Props = WrapperProps;
@@ -58,14 +59,15 @@ function SentryFunctionDetails(props: Props) {
     addSuccessMessage(t('Sentry Function successfully saved.', data.name));
   };
 
-  const editorRef = useRef(null);
+  // TODO: Should type the editor better, don't use any
+  const editorRef: MutableRefObject<null | any> = useRef(null);
 
   function handleEditorDidMount(editor) {
     editorRef.current = editor;
   }
   function updateCode() {
-    if (editorRef.current === null) {
-      form.current.setValue('code', editorRef.current?.getValue());
+    if (editorRef.current) {
+      form.current.setValue('code', editorRef.current.getValue());
     }
   }
 
@@ -86,18 +88,25 @@ function SentryFunctionDetails(props: Props) {
           onSubmitSuccess={handleSubmitSuccess}
         >
           <JsonForm forms={[{title: t('Sentry Function Details'), fields: formFields}]} />
+          <Panel>
+            <PanelHeader>Write your Code Below</PanelHeader>
+            <PanelBody>
+              <Editor
+                height="40vh"
+                theme="light"
+                defaultLanguage="javascript"
+                defaultValue='for (let i = 0; i < cars.length; i++) {text += cars[i] + "<br>";}'
+                onMount={handleEditorDidMount}
+                options={{
+                  minimap: {
+                    enabled: false,
+                  },
+                  scrollBeyondLastLine: false,
+                }}
+              />
+            </PanelBody>
+          </Panel>
         </Form>
-        <Editor
-          height="80vh"
-          defaultLanguage="python"
-          defaultValue="// some comment"
-          onMount={handleEditorDidMount}
-          options={{
-            minimap: {
-              enabled: false,
-            },
-          }}
-        />
       </Feature>
     </div>
   );
