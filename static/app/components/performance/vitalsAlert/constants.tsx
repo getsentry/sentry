@@ -18,4 +18,6 @@ export const SENTRY_CUSTOMERS: Record<VitalsKey, number> = {
   appStartWarm: 1900,
 };
 
+// an organization must have at least this many transactions
+// of the vital we want to show
 export const MIN_VITAL_COUNT_FOR_DISPLAY = 100;
