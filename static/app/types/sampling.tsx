@@ -1,3 +1,5 @@
+import {Project} from './project';
+
 export enum SamplingRuleType {
   /**
    * The rule applies to traces (transaction events considered in the context of a trace)
@@ -63,7 +65,6 @@ export enum SamplingInnerName {
   EVENT_USER_SEGMENT = 'event.user.segment',
   EVENT_LOCALHOST = 'event.is_local_ip',
   EVENT_WEB_CRAWLERS = 'event.web_crawlers',
-  EVENT_BROWSER_EXTENSIONS = 'event.has_bad_browser_extensions',
   EVENT_TRANSACTION = 'event.transaction',
   EVENT_OS_NAME = 'event.contexts.os.name',
   EVENT_OS_VERSION = 'event.contexts.os.version',
@@ -119,10 +120,7 @@ type SamplingConditionLogicalInnerEq = {
 };
 
 type SamplingConditionLogicalInnerEqBoolean = {
-  name:
-    | SamplingInnerName.EVENT_BROWSER_EXTENSIONS
-    | SamplingInnerName.EVENT_LOCALHOST
-    | SamplingInnerName.EVENT_WEB_CRAWLERS;
+  name: SamplingInnerName.EVENT_LOCALHOST | SamplingInnerName.EVENT_WEB_CRAWLERS;
   op: SamplingInnerOperator.EQUAL;
   value: boolean;
 };
@@ -171,9 +169,50 @@ export type SamplingRule = {
    */
   type: SamplingRuleType;
   /**
-   * A rule can be disabled if it doesn't contain a condition (Else case)
+   * Indicates if the rule is enabled for server-side sampling
    */
-  disabled?: boolean;
+  active?: boolean;
 };
 
-export type SamplingRules = Array<SamplingRule>;
+export type SamplingDistribution = {
+  null_sample_rate_percentage: null | number;
+  project_breakdown:
+    | null
+    | {
+        'count()': number;
+        project: string;
+        project_id: number;
+      }[];
+  sample_rate_distributions: null | {
+    avg: null | number;
+    max: null | number;
+    min: null | number;
+    p50: null | number;
+    p90: null | number;
+    p95: null | number;
+    p99: null | number;
+  };
+  sample_size: number;
+};
+
+export type SamplingSdkVersion = {
+  isSendingSampleRate: boolean;
+  latestSDKName: string;
+  latestSDKVersion: string;
+  project: string;
+};
+
+export type RecommendedSdkUpgrade = {
+  latestSDKName: SamplingSdkVersion['latestSDKName'];
+  latestSDKVersion: SamplingSdkVersion['latestSDKVersion'];
+  project: Project;
+};
+
+export type UniformModalsSubmit = (props: {
+  sampleRate: number;
+  uniformRateModalOrigin: boolean;
+  onError?: () => void;
+  onSuccess?: () => void;
+  recommendedSampleRate?: boolean;
+  rule?: SamplingRule;
+}) => void;

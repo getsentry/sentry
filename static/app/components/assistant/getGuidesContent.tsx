@@ -226,6 +226,36 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
         },
       ],
     },
+    {
+      guide: 'activate_sampling_rule',
+      requiredTargets: ['sampling_rule_toggle'],
+      dateThreshold: new Date('2022-07-05'),
+      steps: [
+        {
+          title: t('Activate first rule'),
+          target: 'sampling_rule_toggle',
+          description: t('Rules will propagate within a few minutes.'),
+          nextText: t('Activate Rule'),
+          dismissText: t('Later'),
+          hasNextGuide: true,
+        },
+      ],
+    },
+    {
+      guide: 'create_conditional_rule',
+      requiredTargets: ['add_conditional_rule'],
+      dateThreshold: new Date('2022-07-05'),
+      steps: [
+        {
+          title: t('Create a new rule based on specific conditions'),
+          target: 'add_conditional_rule',
+          description: t(
+            'Target the transactions you want more details on (where your quota actually goes).'
+          ),
+          dismissText: t('Enough already'),
+        },
+      ],
+    },
   ];
 }
 

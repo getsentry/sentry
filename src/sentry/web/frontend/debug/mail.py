@@ -96,6 +96,7 @@ def make_group_generator(random, project):
     for id in itertools.count(1):
         first_seen = epoch + random.randint(0, 60 * 60 * 24 * 30)
         last_seen = random.randint(first_seen, first_seen + (60 * 60 * 24 * 30))
+        times_seen = 98765
 
         culprit = make_culprit(random)
         level = random.choice(list(LOG_LEVELS.keys()))
@@ -110,6 +111,7 @@ def make_group_generator(random, project):
             message=message,
             first_seen=to_datetime(first_seen),
             last_seen=to_datetime(last_seen),
+            times_seen=times_seen,
             status=random.choice((GroupStatus.UNRESOLVED, GroupStatus.RESOLVED)),
             data={"type": "default", "metadata": {"title": message}},
         )
@@ -325,6 +327,84 @@ def alert(request):
                     },
                 }
             ],
+        },
+    ).render(request)
+
+
+@login_required
+def release_alert(request):
+    platform = request.GET.get("platform", "python")
+    org = Organization(id=1, slug="example", name="Example")
+    project = Project(id=1, slug="example", name="Example", organization=org, platform="python")
+
+    random = get_random(request)
+    group = next(make_group_generator(random, project))
+
+    data = dict(load_data(platform))
+    data["message"] = group.message
+    data["event_id"] = "44f1419e73884cd2b45c79918f4b6dc4"
+    data.pop("logentry", None)
+    data["environment"] = "prod"
+    data["tags"] = [
+        ("logger", "javascript"),
+        ("environment", "prod"),
+        ("level", "error"),
+        ("device", "Other"),
+    ]
+
+    event_manager = EventManager(data)
+    event_manager.normalize()
+    data = event_manager.get_data()
+    event = event_manager.save(project.id)
+    # Prevent CI screenshot from constantly changing
+    event.data["timestamp"] = 1504656000.0  # datetime(2017, 9, 6, 0, 0)
+    event_type = get_event_type(event.data)
+    # In non-debug context users_seen we get users_seen from group.count_users_seen()
+    users_seen = random.randint(0, 100 * 1000)
+
+    group.message = event.search_message
+    group.data = {"type": event_type.key, "metadata": event_type.get_metadata(data)}
+
+    rule = Rule(id=1, label="An example rule")
+
+    # XXX: this interface_list code needs to be the same as in
+    #      src/sentry/mail/adapter.py
+    interfaces = {}
+    for interface in event.interfaces.values():
+        body = interface.to_email_html(event)
+        if not body:
+            continue
+        text_body = interface.to_string(event)
+        interfaces[interface.get_title()] = {
+            "label": interface.get_title(),
+            "html": mark_safe(body),
+            "body": text_body,
+        }
+
+    contexts = event.data["contexts"].items() if "contexts" in event.data else None
+    event_user = event.data["event_user"] if "event_user" in event.data else None
+
+    return MailPreview(
+        html_template="sentry/emails/release_alert.html",
+        text_template="sentry/emails/release_alert.txt",
+        context={
+            "rules": get_rules([rule], org, project),
+            "group": group,
+            "event": event,
+            "event_user": event_user,
+            "timezone": pytz.timezone("Europe/Vienna"),
+            "link": get_group_settings_link(group, None, get_rules([rule], org, project), 1337),
+            "interfaces": interfaces,
+            "tags": event.tags,
+            "contexts": contexts,
+            "users_seen": users_seen,
+            "project": project,
+            "last_release": {
+                "version": "13.9.2",
+            },
+            "last_release_link": f"http://testserver/organizations/{org.slug}/releases/13.9.2/?project={project.id}",
+            "environment": "production",
+            "regression": False,
         },
     ).render(request)
 

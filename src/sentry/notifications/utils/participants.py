@@ -243,9 +243,6 @@ def determine_eligible_recipients(
 
 
 def get_release_committers(project: Project, event: Event) -> Sequence[User]:
-    from sentry.api.serializers import Author, get_users_for_commits
-    from sentry.utils.committers import _get_commits
-
     # get_participants_for_release seems to be the method called when deployments happen
     # supposedly, this logic should be fairly, close ...
     # why is get_participants_for_release so much more complex???
@@ -263,14 +260,34 @@ def get_release_committers(project: Project, event: Event) -> Sequence[User]:
     if not last_release:
         return []
 
-    commits: Sequence[Commit] = _get_commits([last_release])
+    return _get_release_committers(last_release)
+
+
+def _get_release_committers(release: Release) -> Sequence[User]:
+    from sentry.api.serializers import Author, get_users_for_commits
+    from sentry.utils.committers import _get_commits
+
+    commits: Sequence[Commit] = _get_commits([release])
     if not commits:
         return []
 
     # commit_author_id : Author
     author_users: Mapping[str, Author] = get_users_for_commits(commits)
+
+    # XXX(gilbert): this is inefficient since this evaluates flagr once per user
+    # it should be ok since this method should only be called for projects within sentry
+    # do not copy this unless you know the risk; you've been warned!
     return list(
-        User.objects.filter(id__in={au["id"] for au in author_users.values() if au.get("id")})
+        filter(
+            lambda u: features.has(
+                "organizations:active-release-notification-opt-in", release.organization, actor=u
+            ),
+            list(
+                User.objects.filter(
+                    id__in={au["id"] for au in author_users.values() if au.get("id")}
+                )
+            ),
+        )
     )
 
 

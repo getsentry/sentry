@@ -7,13 +7,13 @@ from arroyo.backends.kafka import KafkaPayload
 from django.utils import timezone
 
 from sentry.metrics.dummy import DummyMetricsBackend
-from sentry.sentry_metrics.indexer.models import StringIndexer
-from sentry.sentry_metrics.last_seen_updater import (
+from sentry.sentry_metrics.consumers.last_seen_updater import (
     LastSeenUpdaterMessageFilter,
     _last_seen_updater_processing_factory,
     _update_stale_last_seen,
     retrieve_db_read_keys,
 )
+from sentry.sentry_metrics.indexer.models import StringIndexer
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import override_options
 

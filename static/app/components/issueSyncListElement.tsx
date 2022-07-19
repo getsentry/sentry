@@ -5,6 +5,7 @@ import capitalize from 'lodash/capitalize';
 
 import {Hovercard} from 'sentry/components/hovercard';
 import {IconAdd, IconClose} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {callIfFunction} from 'sentry/utils/callIfFunction';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
@@ -104,7 +105,7 @@ class IssueSyncListElement extends Component<Props> {
               header={this.props.hoverCardHeader}
               body={this.props.hoverCardBody}
               bodyClassName="issue-list-body"
-              show={this.props.showHoverCard}
+              forceVisible={this.props.showHoverCard}
             >
               {this.getIcon()}
               {this.getLink()}
@@ -112,7 +113,11 @@ class IssueSyncListElement extends Component<Props> {
           )}
         </ClassNames>
         {(this.props.onClose || this.props.onOpen) && (
-          <StyledIcon onClick={this.handleIconClick}>
+          <StyledIcon
+            role="button"
+            aria-label={this.isLinked() ? t('Close') : t('Add')}
+            onClick={this.handleIconClick}
+          >
             {this.isLinked() ? <IconClose /> : this.props.onOpen ? <IconAdd /> : null}
           </StyledIcon>
         )}

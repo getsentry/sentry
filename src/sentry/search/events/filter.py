@@ -48,7 +48,6 @@ from sentry.search.events.constants import (
 )
 from sentry.search.events.fields import FIELD_ALIASES, FUNCTIONS, resolve_field
 from sentry.search.utils import parse_release
-from sentry.utils.compat import filter
 from sentry.utils.dates import to_timestamp
 from sentry.utils.snuba import FUNCTION_TO_OPERATOR, OPERATOR_TO_FUNCTION, SNUBA_AND, SNUBA_OR
 from sentry.utils.strings import oxfordize_list
@@ -326,8 +325,8 @@ def _release_stage_filter_converter(
     Parses a release stage search and returns a snuba condition to filter to the
     requested releases.
     """
-    # TODO: Filter by project here as well. It's done elsewhere, but could critcally limit versions
-    # for orgs with thousands of projects, each with their own releases (potentailly drowning out ones we care about)
+    # TODO: Filter by project here as well. It's done elsewhere, but could critically limit versions
+    # for orgs with thousands of projects, each with their own releases (potentially drowning out ones we care about)
 
     if not params or "organization_id" not in params:
         raise ValueError("organization_id is a required param")
@@ -823,7 +822,7 @@ def convert_search_boolean_to_snuba_query(terms, params=None):
 
     condition, having = None, None
     if lhs_condition or rhs_condition:
-        args = filter(None, [lhs_condition, rhs_condition])
+        args = list(filter(None, [lhs_condition, rhs_condition]))
         if not args:
             condition = None
         elif len(args) == 1:
@@ -832,7 +831,7 @@ def convert_search_boolean_to_snuba_query(terms, params=None):
             condition = [operator, args]
 
     if lhs_having or rhs_having:
-        args = filter(None, [lhs_having, rhs_having])
+        args = list(filter(None, [lhs_having, rhs_having]))
         if not args:
             having = None
         elif len(args) == 1:

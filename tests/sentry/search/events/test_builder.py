@@ -719,7 +719,9 @@ def _metric_percentile_definition(
                         "equals",
                         [
                             Column("metric_id"),
-                            indexer.resolve(org_id, constants.METRICS_MAP[field]),
+                            indexer.resolve(
+                                org_id, constants.METRICS_MAP[field], UseCaseKey.PERFORMANCE
+                            ),
                         ],
                     ),
                 ],
@@ -735,7 +737,10 @@ def _metric_conditions(org_id, metrics) -> List[Condition]:
         Condition(
             Column("metric_id"),
             Op.IN,
-            sorted(indexer.resolve(org_id, constants.METRICS_MAP[metric]) for metric in metrics),
+            sorted(
+                indexer.resolve(org_id, constants.METRICS_MAP[metric], UseCaseKey.PERFORMANCE)
+                for metric in metrics
+            ),
         )
     ]
 
@@ -753,10 +758,10 @@ class MetricBuilderBaseTest(MetricsEnhancedPerformanceTestCase):
     def setUp(self):
         super().setUp()
         self.start = datetime.datetime.now(tz=timezone.utc).replace(
-            hour=10, minute=15, second=0, microsecond=0
+            hour=10, minute=0, second=0, microsecond=0
         ) - datetime.timedelta(days=18)
         self.end = datetime.datetime.now(tz=timezone.utc).replace(
-            hour=10, minute=15, second=0, microsecond=0
+            hour=10, minute=0, second=0, microsecond=0
         )
         self.projects = [self.project.id]
         self.params = {
@@ -775,11 +780,11 @@ class MetricBuilderBaseTest(MetricsEnhancedPerformanceTestCase):
 
         for string in self.METRIC_STRINGS:
             indexer.record(
-                use_case_id=UseCaseKey.RELEASE_HEALTH, org_id=self.organization.id, string=string
+                use_case_id=UseCaseKey.PERFORMANCE, org_id=self.organization.id, string=string
             )
 
         indexer.record(
-            use_case_id=UseCaseKey.RELEASE_HEALTH, org_id=self.organization.id, string="transaction"
+            use_case_id=UseCaseKey.PERFORMANCE, org_id=self.organization.id, string="transaction"
         )
 
     def setup_orderby_data(self):
@@ -815,24 +820,31 @@ class MetricBuilderBaseTest(MetricsEnhancedPerformanceTestCase):
 
 class MetricQueryBuilderTest(MetricBuilderBaseTest):
     def test_default_conditions(self):
-        query = MetricsQueryBuilder(self.params, "", selected_columns=[])
+        query = MetricsQueryBuilder(
+            self.params, "", dataset=Dataset.PerformanceMetrics, selected_columns=[]
+        )
         self.assertCountEqual(query.where, self.default_conditions)
 
     def test_column_resolution(self):
         query = MetricsQueryBuilder(
             self.params,
             "",
+            dataset=Dataset.PerformanceMetrics,
             selected_columns=["tags[transaction]", "transaction"],
         )
         self.assertCountEqual(
             query.columns,
             [
                 AliasedExpression(
-                    Column(f"tags[{indexer.resolve(self.organization.id, 'transaction')}]"),
+                    Column(
+                        f"tags[{indexer.resolve(self.organization.id, 'transaction', UseCaseKey.PERFORMANCE)}]"
+                    ),
                     "tags[transaction]",
                 ),
                 AliasedExpression(
-                    Column(f"tags[{indexer.resolve(self.organization.id, 'transaction')}]"),
+                    Column(
+                        f"tags[{indexer.resolve(self.organization.id, 'transaction', UseCaseKey.PERFORMANCE)}]"
+                    ),
                     "transaction",
                 ),
             ],
@@ -842,6 +854,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         query = MetricsQueryBuilder(
             self.params,
             "",
+            dataset=Dataset.PerformanceMetrics,
             selected_columns=[
                 "p50(transaction.duration)",
                 "p75(measurements.lcp)",
@@ -882,6 +895,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             MetricsQueryBuilder(
                 self.params,
                 "",
+                dataset=Dataset.PerformanceMetrics,
                 selected_columns=[
                     "percentile(transaction.duration, 0.11)",
                 ],
@@ -892,6 +906,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         query = MetricsQueryBuilder(
             self.params,
             "",
+            dataset=Dataset.PerformanceMetrics,
             selected_columns=[
                 "percentile(transaction.duration, 0.75)",
             ],
@@ -925,6 +940,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                                         indexer.resolve(
                                             self.organization.id,
                                             constants.METRICS_MAP["transaction.duration"],
+                                            UseCaseKey.PERFORMANCE,
                                         ),
                                     ],
                                 ),
@@ -942,6 +958,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         query = MetricsQueryBuilder(
             self.params,
             "",
+            dataset=Dataset.PerformanceMetrics,
             selected_columns=[
                 "p50(transaction.duration)",
                 "p75(transaction.duration)",
@@ -963,6 +980,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         query = MetricsQueryBuilder(
             self.params,
             "",
+            dataset=Dataset.PerformanceMetrics,
             selected_columns=[
                 "p100(transaction.duration)",
             ],
@@ -993,6 +1011,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                                 indexer.resolve(
                                     self.organization.id,
                                     constants.METRICS_MAP["transaction.duration"],
+                                    UseCaseKey.PERFORMANCE,
                                 ),
                             ],
                         ),
@@ -1006,6 +1025,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         query = MetricsQueryBuilder(
             self.params,
             "",
+            dataset=Dataset.PerformanceMetrics,
             selected_columns=["transaction", "project", "p95(transaction.duration)"],
         )
         self.assertCountEqual(
@@ -1015,7 +1035,9 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                 *_metric_conditions(self.organization.id, ["transaction.duration"]),
             ],
         )
-        transaction_index = indexer.resolve(self.organization.id, "transaction")
+        transaction_index = indexer.resolve(
+            self.organization.id, "transaction", UseCaseKey.PERFORMANCE
+        )
         transaction = AliasedExpression(
             Column(f"tags[{transaction_index}]"),
             "transaction",
@@ -1045,10 +1067,15 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         query = MetricsQueryBuilder(
             self.params,
             "transaction:foo_transaction",
+            dataset=Dataset.PerformanceMetrics,
             selected_columns=["transaction", "project", "p95(transaction.duration)"],
         )
-        transaction_index = indexer.resolve(self.organization.id, "transaction")
-        transaction_name = indexer.resolve(self.organization.id, "foo_transaction")
+        transaction_index = indexer.resolve(
+            self.organization.id, "transaction", UseCaseKey.PERFORMANCE
+        )
+        transaction_name = indexer.resolve(
+            self.organization.id, "foo_transaction", UseCaseKey.PERFORMANCE
+        )
         transaction = Column(f"tags[{transaction_index}]")
         self.assertCountEqual(
             query.where,
@@ -1063,11 +1090,24 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         query = MetricsQueryBuilder(
             self.params,
             "transaction:[foo_transaction, bar_transaction]",
+            dataset=Dataset.PerformanceMetrics,
             selected_columns=["transaction", "project", "p95(transaction.duration)"],
         )
-        transaction_index = indexer.resolve(self.organization.id, "transaction")
-        transaction_name1 = indexer.resolve(self.organization.id, "foo_transaction")
-        transaction_name2 = indexer.resolve(self.organization.id, "bar_transaction")
+        transaction_index = indexer.resolve(
+            self.organization.id,
+            "transaction",
+            UseCaseKey.PERFORMANCE,
+        )
+        transaction_name1 = indexer.resolve(
+            self.organization.id,
+            "foo_transaction",
+            UseCaseKey.PERFORMANCE,
+        )
+        transaction_name2 = indexer.resolve(
+            self.organization.id,
+            "bar_transaction",
+            UseCaseKey.PERFORMANCE,
+        )
         transaction = Column(f"tags[{transaction_index}]")
         self.assertCountEqual(
             query.where,
@@ -1086,6 +1126,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             MetricsQueryBuilder(
                 self.params,
                 "transaction:something_else",
+                dataset=Dataset.PerformanceMetrics,
                 selected_columns=["transaction", "project", "p95(transaction.duration)"],
             )
 
@@ -1097,6 +1138,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             MetricsQueryBuilder(
                 self.params,
                 "transaction:[something_else, something_else2]",
+                dataset=Dataset.PerformanceMetrics,
                 selected_columns=["transaction", "project", "p95(transaction.duration)"],
             )
 
@@ -1105,6 +1147,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             MetricsQueryBuilder(
                 self.params,
                 f"project:{self.project.slug}",
+                dataset=Dataset.PerformanceMetrics,
                 selected_columns=["transaction", "count_unique(test)"],
             )
 
@@ -1112,6 +1155,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         query = MetricsQueryBuilder(
             self.params,
             f"project:{self.project.slug}",
+            dataset=Dataset.PerformanceMetrics,
             selected_columns=["transaction", "project", "p95(transaction.duration)"],
         )
         self.assertCountEqual(
@@ -1250,9 +1294,14 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         ), "12h at boundary, but 15 min after the boundary for start"
 
     def test_get_snql_query(self):
-        query = MetricsQueryBuilder(self.params, "", selected_columns=["p90(transaction.duration)"])
+        query = MetricsQueryBuilder(
+            self.params,
+            "",
+            dataset=Dataset.PerformanceMetrics,
+            selected_columns=["p90(transaction.duration)"],
+        )
         snql_request = query.get_snql_query()
-        assert snql_request.dataset == "metrics"
+        assert snql_request.dataset == "generic_metrics"
         snql_query = snql_request.query
         self.assertCountEqual(
             snql_query.select,
@@ -1270,13 +1319,18 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
 
     def test_get_snql_query_errors_with_multiple_dataset(self):
         query = MetricsQueryBuilder(
-            self.params, "", selected_columns=["p90(transaction.duration)", "count_unique(user)"]
+            self.params,
+            "",
+            dataset=Dataset.PerformanceMetrics,
+            selected_columns=["p90(transaction.duration)", "count_unique(user)"],
         )
         with pytest.raises(NotImplementedError):
             query.get_snql_query()
 
     def test_get_snql_query_errors_with_no_functions(self):
-        query = MetricsQueryBuilder(self.params, "", selected_columns=["project"])
+        query = MetricsQueryBuilder(
+            self.params, "", dataset=Dataset.PerformanceMetrics, selected_columns=["project"]
+        )
         with pytest.raises(IncompatibleMetricsQuery):
             query.get_snql_query()
 
@@ -1301,6 +1355,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         query = MetricsQueryBuilder(
             self.params,
             f"project:{self.project.slug}",
+            dataset=Dataset.PerformanceMetrics,
             selected_columns=[
                 "transaction",
                 "p95(transaction.duration)",
@@ -1310,7 +1365,11 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         result = query.run_query("test_query")
         assert len(result["data"]) == 1
         assert result["data"][0] == {
-            "transaction": indexer.resolve(self.organization.id, "foo_transaction"),
+            "transaction": indexer.resolve(
+                self.organization.id,
+                "foo_transaction",
+                UseCaseKey.PERFORMANCE,
+            ),
             "p95_transaction_duration": 100,
             "p100_measurements_lcp": 1000,
         }
@@ -1338,6 +1397,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         query = MetricsQueryBuilder(
             self.params,
             f"project:{self.project.slug}",
+            dataset=Dataset.PerformanceMetrics,
             selected_columns=[
                 "transaction",
                 "p95(transaction.duration)",
@@ -1347,7 +1407,11 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         result = query.run_query("test_query")
         assert len(result["data"]) == 1
         assert result["data"][0] == {
-            "transaction": indexer.resolve(self.organization.id, "foo_transaction"),
+            "transaction": indexer.resolve(
+                self.organization.id,
+                "foo_transaction",
+                UseCaseKey.PERFORMANCE,
+            ),
             "p95_transaction_duration": 100,
             "count_unique_user": 1,
         }
@@ -1365,6 +1429,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         query = MetricsQueryBuilder(
             self.params,
             f"project:{self.project.slug}",
+            dataset=Dataset.PerformanceMetrics,
             selected_columns=[
                 "transaction",
                 "project",
@@ -1376,13 +1441,21 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         result = query.run_query("test_query")
         assert len(result["data"]) == 2
         assert result["data"][0] == {
-            "transaction": indexer.resolve(self.organization.id, "foo_transaction"),
+            "transaction": indexer.resolve(
+                self.organization.id,
+                "foo_transaction",
+                UseCaseKey.PERFORMANCE,
+            ),
             "project": self.project.slug,
             "p95_transaction_duration": 100,
             "count_unique_user": 1,
         }
         assert result["data"][1] == {
-            "transaction": indexer.resolve(self.organization.id, "bar_transaction"),
+            "transaction": indexer.resolve(
+                self.organization.id,
+                "bar_transaction",
+                UseCaseKey.PERFORMANCE,
+            ),
             "project": self.project.slug,
             "p95_transaction_duration": 50,
             "count_unique_user": 2,
@@ -1402,6 +1475,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         query = MetricsQueryBuilder(
             self.params,
             f"project:{self.project.slug}",
+            dataset=Dataset.PerformanceMetrics,
             selected_columns=[
                 "transaction",
                 "project",
@@ -1413,13 +1487,21 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         result = query.run_query("test_query")
         assert len(result["data"]) == 2
         assert result["data"][0] == {
-            "transaction": indexer.resolve(self.organization.id, "bar_transaction"),
+            "transaction": indexer.resolve(
+                self.organization.id,
+                "bar_transaction",
+                UseCaseKey.PERFORMANCE,
+            ),
             "project": self.project.slug,
             "p95_transaction_duration": 50,
             "count_unique_user": 2,
         }
         assert result["data"][1] == {
-            "transaction": indexer.resolve(self.organization.id, "foo_transaction"),
+            "transaction": indexer.resolve(
+                self.organization.id,
+                "foo_transaction",
+                UseCaseKey.PERFORMANCE,
+            ),
             "project": self.project.slug,
             "p95_transaction_duration": 100,
             "count_unique_user": 1,
@@ -1448,6 +1530,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
 
         query = MetricsQueryBuilder(
             self.params,
+            dataset=Dataset.PerformanceMetrics,
             selected_columns=[
                 "transaction",
                 "project",
@@ -1458,18 +1541,27 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         result = query.run_query("test_query")
         assert len(result["data"]) == 2
         assert result["data"][0] == {
-            "transaction": indexer.resolve(self.organization.id, "foo_transaction"),
+            "transaction": indexer.resolve(
+                self.organization.id,
+                "foo_transaction",
+                UseCaseKey.PERFORMANCE,
+            ),
             "project": project_1.slug,
             "p95_transaction_duration": 100,
         }
         assert result["data"][1] == {
-            "transaction": indexer.resolve(self.organization.id, "foo_transaction"),
+            "transaction": indexer.resolve(
+                self.organization.id,
+                "foo_transaction",
+                UseCaseKey.PERFORMANCE,
+            ),
             "project": project_2.slug,
             "p95_transaction_duration": 100,
         }
 
         query = MetricsQueryBuilder(
             self.params,
+            dataset=Dataset.PerformanceMetrics,
             selected_columns=[
                 "transaction",
                 "project",
@@ -1480,12 +1572,20 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         result = query.run_query("test_query")
         assert len(result["data"]) == 2
         assert result["data"][0] == {
-            "transaction": indexer.resolve(self.organization.id, "foo_transaction"),
+            "transaction": indexer.resolve(
+                self.organization.id,
+                "foo_transaction",
+                UseCaseKey.PERFORMANCE,
+            ),
             "project": project_2.slug,
             "p95_transaction_duration": 100,
         }
         assert result["data"][1] == {
-            "transaction": indexer.resolve(self.organization.id, "foo_transaction"),
+            "transaction": indexer.resolve(
+                self.organization.id,
+                "foo_transaction",
+                UseCaseKey.PERFORMANCE,
+            ),
             "project": project_1.slug,
             "p95_transaction_duration": 100,
         }
@@ -1494,6 +1594,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         with pytest.raises(IncompatibleMetricsQuery):
             query = MetricsQueryBuilder(
                 self.params,
+                dataset=Dataset.PerformanceMetrics,
                 selected_columns=[
                     "transaction",
                     "project",
@@ -1511,6 +1612,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         query = MetricsQueryBuilder(
             self.params,
             "",
+            dataset=Dataset.PerformanceMetrics,
             selected_columns=[
                 "eps()",
                 "epm()",
@@ -1540,6 +1642,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         query = MetricsQueryBuilder(
             self.params,
             "",
+            dataset=Dataset.PerformanceMetrics,
             selected_columns=[
                 "count()",
             ],
@@ -1561,6 +1664,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         query = MetricsQueryBuilder(
             self.params,
             "",
+            dataset=Dataset.PerformanceMetrics,
             selected_columns=[
                 "avg(transaction.duration)",
             ],
@@ -1584,6 +1688,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         query = MetricsQueryBuilder(
             self.params,
             "",
+            dataset=Dataset.PerformanceMetrics,
             selected_columns=[
                 "avg(spans.http)",
             ],
@@ -1607,6 +1712,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         query = MetricsQueryBuilder(
             self.params,
             "",
+            dataset=Dataset.PerformanceMetrics,
             selected_columns=[
                 "failure_rate()",
                 "failure_count()",
@@ -1627,6 +1733,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         query = MetricsQueryBuilder(
             self.params,
             "",
+            dataset=Dataset.PerformanceMetrics,
             selected_columns=[
                 "transaction",
                 "count_unique(user)",
@@ -1647,6 +1754,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         query = MetricsQueryBuilder(
             self.params,
             f"project:{self.project.slug}",
+            dataset=Dataset.PerformanceMetrics,
             selected_columns=[
                 "transaction",
                 "project",
@@ -1658,19 +1766,31 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         result = query.run_query("test_query")
         assert len(result["data"]) == 3
         assert result["data"][0] == {
-            "transaction": indexer.resolve(self.organization.id, "bar_transaction"),
+            "transaction": indexer.resolve(
+                self.organization.id,
+                "bar_transaction",
+                UseCaseKey.PERFORMANCE,
+            ),
             "project": self.project.slug,
             "p95_transaction_duration": 50,
             "count_unique_user": 2,
         }
         assert result["data"][1] == {
-            "transaction": indexer.resolve(self.organization.id, "foo_transaction"),
+            "transaction": indexer.resolve(
+                self.organization.id,
+                "foo_transaction",
+                UseCaseKey.PERFORMANCE,
+            ),
             "project": self.project.slug,
             "p95_transaction_duration": 100,
             "count_unique_user": 1,
         }
         assert result["data"][2] == {
-            "transaction": indexer.resolve(self.organization.id, "baz_transaction"),
+            "transaction": indexer.resolve(
+                self.organization.id,
+                "baz_transaction",
+                UseCaseKey.PERFORMANCE,
+            ),
             "project": self.project.slug,
             "p95_transaction_duration": 200,
             "count_unique_user": 0,
@@ -1696,6 +1816,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         query = MetricsQueryBuilder(
             self.params,
             f"project:{self.project.slug}",
+            dataset=Dataset.PerformanceMetrics,
             selected_columns=[
                 "transaction",
                 "project",
@@ -1707,18 +1828,30 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         result = query.run_query("test_query")
         assert len(result["data"]) == 3
         assert result["data"][0] == {
-            "transaction": indexer.resolve(self.organization.id, "baz_transaction"),
+            "transaction": indexer.resolve(
+                self.organization.id,
+                "baz_transaction",
+                UseCaseKey.PERFORMANCE,
+            ),
             "project": self.project.slug,
             "p95_transaction_duration": 200,
         }
         assert result["data"][1] == {
-            "transaction": indexer.resolve(self.organization.id, "foo_transaction"),
+            "transaction": indexer.resolve(
+                self.organization.id,
+                "foo_transaction",
+                UseCaseKey.PERFORMANCE,
+            ),
             "project": self.project.slug,
             "p95_transaction_duration": 100,
             "count_unique_user": 1,
         }
         assert result["data"][2] == {
-            "transaction": indexer.resolve(self.organization.id, "bar_transaction"),
+            "transaction": indexer.resolve(
+                self.organization.id,
+                "bar_transaction",
+                UseCaseKey.PERFORMANCE,
+            ),
             "project": self.project.slug,
             "p95_transaction_duration": 50,
             "count_unique_user": 2,
@@ -1729,6 +1862,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             query = MetricsQueryBuilder(
                 self.params,
                 f"project:{self.project.slug}",
+                dataset=Dataset.PerformanceMetrics,
                 selected_columns=[
                     "transaction",
                     "project",
@@ -1744,6 +1878,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             query = MetricsQueryBuilder(
                 self.params,
                 "p95(transaction.duration):>5s AND count_unique(user):>0",
+                dataset=Dataset.PerformanceMetrics,
                 selected_columns=[
                     "transaction",
                     "project",
@@ -1759,6 +1894,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             query = MetricsQueryBuilder(
                 self.params,
                 "count_unique(user):>0",
+                dataset=Dataset.PerformanceMetrics,
                 selected_columns=[
                     "transaction",
                     "project",
@@ -1799,6 +1935,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             self.params,
             # Filter by count_unique since the default primary is distributions without an orderby
             "count_unique(user):>1",
+            dataset=Dataset.PerformanceMetrics,
             selected_columns=[
                 "transaction",
                 "project",
@@ -1811,7 +1948,11 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         result = query.run_query("test_query")
         assert len(result["data"]) == 1
         assert result["data"][0] == {
-            "transaction": indexer.resolve(self.organization.id, "baz_transaction"),
+            "transaction": indexer.resolve(
+                self.organization.id,
+                "baz_transaction",
+                UseCaseKey.PERFORMANCE,
+            ),
             "project": self.project.slug,
             "p95_transaction_duration": 200,
             "count_unique_user": 2,
@@ -1847,6 +1988,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         query = MetricsQueryBuilder(
             self.params,
             "p95(transaction.duration):>100",
+            dataset=Dataset.PerformanceMetrics,
             selected_columns=[
                 "transaction",
                 "project",
@@ -1860,7 +2002,11 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         result = query.run_query("test_query")
         assert len(result["data"]) == 1
         assert result["data"][0] == {
-            "transaction": indexer.resolve(self.organization.id, "baz_transaction"),
+            "transaction": indexer.resolve(
+                self.organization.id,
+                "baz_transaction",
+                UseCaseKey.PERFORMANCE,
+            ),
             "project": self.project.slug,
             "p95_transaction_duration": 200,
             "count_unique_user": 1,
@@ -1886,12 +2032,14 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                 MetricsQueryBuilder(
                     self.params,
                     "",
+                    dataset=Dataset.PerformanceMetrics,
                     selected_columns=[function],
                 )
 
     def test_orderby_field_alias(self):
         query = MetricsQueryBuilder(
             self.params,
+            dataset=Dataset.PerformanceMetrics,
             selected_columns=[
                 "transaction",
                 "p95()",
@@ -1905,6 +2053,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
 
         query = MetricsQueryBuilder(
             self.params,
+            dataset=Dataset.PerformanceMetrics,
             selected_columns=[
                 "transaction",
                 "p95() as test",
@@ -1921,6 +2070,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             with pytest.raises(IncompatibleMetricsQuery):
                 MetricsQueryBuilder(
                     self.params,
+                    dataset=Dataset.PerformanceMetrics,
                     selected_columns=[
                         "transaction",
                         "p95()",
@@ -1943,6 +2093,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
     def test_no_error_if_aggregates_disallowed_but_no_aggregates_included(self):
         MetricsQueryBuilder(
             self.params,
+            dataset=Dataset.PerformanceMetrics,
             selected_columns=[
                 "transaction",
                 "p95()",
@@ -1955,6 +2106,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
 
         MetricsQueryBuilder(
             self.params,
+            dataset=Dataset.PerformanceMetrics,
             selected_columns=[
                 "transaction",
                 "p95()",
@@ -1969,6 +2121,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         """When there's no data from the primary dataset we shouldn't error out"""
         result = MetricsQueryBuilder(
             self.params,
+            dataset=Dataset.PerformanceMetrics,
             selected_columns=[
                 "p50()",
                 "count_unique(user)",
@@ -1989,6 +2142,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             self.params,
             # Include a tag:value search as well since that resolves differently
             f"project:{self.project.slug} transaction:foo_transaction",
+            dataset=Dataset.PerformanceMetrics,
             selected_columns=[
                 "transaction",
                 "p95(transaction.duration)",
@@ -2007,6 +2161,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         MetricsQueryBuilder(
             self.params,
             f"project:{self.project.slug} transaction:foo_transaction transaction:foo_transaction",
+            dataset=Dataset.PerformanceMetrics,
             selected_columns=[
                 "transaction",
                 "count_web_vitals(measurements.lcp, good)",
@@ -2019,17 +2174,26 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         self.assertCountEqual(
             mock_indexer.mock_calls,
             [
-                mock.call(self.organization.id, "transaction"),
-                mock.call(self.organization.id, "foo_transaction"),
-                mock.call(self.organization.id, constants.METRICS_MAP["measurements.lcp"]),
-                mock.call(self.organization.id, "measurement_rating"),
-                mock.call(self.organization.id, "good"),
+                mock.call(self.organization.id, "transaction", use_case_id=UseCaseKey.PERFORMANCE),
+                mock.call(
+                    self.organization.id, "foo_transaction", use_case_id=UseCaseKey.PERFORMANCE
+                ),
+                mock.call(
+                    self.organization.id,
+                    constants.METRICS_MAP["measurements.lcp"],
+                    use_case_id=UseCaseKey.PERFORMANCE,
+                ),
+                mock.call(
+                    self.organization.id, "measurement_rating", use_case_id=UseCaseKey.PERFORMANCE
+                ),
+                mock.call(self.organization.id, "good", use_case_id=UseCaseKey.PERFORMANCE),
             ],
         )
 
     def test_custom_measurement_allowed(self):
         MetricsQueryBuilder(
             self.params,
+            dataset=Dataset.PerformanceMetrics,
             selected_columns=[
                 "transaction",
                 "avg(measurements.custom.measurement)",
@@ -2056,6 +2220,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         query = MetricsQueryBuilder(
             self.params,
             "",
+            dataset=Dataset.PerformanceMetrics,
             selected_columns=[
                 "p90(transaction.duration)",
                 "project",
@@ -2086,7 +2251,9 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             snql_query.groupby,
             [
                 project,
-                Column(f"tags[{indexer.resolve(self.organization.id, 'transaction')}]"),
+                Column(
+                    f"tags[{indexer.resolve(self.organization.id, 'transaction', UseCaseKey.PERFORMANCE,)}]"
+                ),
             ],
         )
 
@@ -2094,22 +2261,33 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
 class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
     def test_get_query(self):
         query = TimeseriesMetricQueryBuilder(
-            self.params, interval=900, query="", selected_columns=["p50(transaction.duration)"]
+            self.params,
+            dataset=Dataset.PerformanceMetrics,
+            interval=900,
+            query="",
+            selected_columns=["p50(transaction.duration)"],
         )
         snql_query = query.get_snql_query()
         assert len(snql_query) == 1
         query = snql_query[0].query
-        assert query.where == [
-            *self.default_conditions,
-            *_metric_conditions(self.organization.id, ["transaction.duration"]),
-        ]
+        self.assertCountEqual(
+            query.where,
+            [
+                *self.default_conditions,
+                *_metric_conditions(self.organization.id, ["transaction.duration"]),
+            ],
+        )
         assert query.select == [_metric_percentile_definition(self.organization.id, "50")]
-        assert query.match.name == "metrics_distributions"
+        assert query.match.name == "generic_metrics_distributions"
         assert query.granularity.granularity == 60
 
     def test_default_conditions(self):
         query = TimeseriesMetricQueryBuilder(
-            self.params, interval=900, query="", selected_columns=[]
+            self.params,
+            dataset=Dataset.PerformanceMetrics,
+            interval=900,
+            query="",
+            selected_columns=[],
         )
         self.assertCountEqual(query.where, self.default_conditions)
 
@@ -2128,7 +2306,6 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         # If we're doing atleast day and its midnight we should use the daily bucket
         start = datetime.datetime(2015, 5, 18, 0, 0, 0, tzinfo=timezone.utc)
         end = datetime.datetime(2015, 5, 19, 0, 0, 0, tzinfo=timezone.utc)
-        assert get_granularity(start, end, 30) == 10, "A day at midnight, 30s interval"
         assert get_granularity(start, end, 900) == 60, "A day at midnight, 15min interval"
         assert get_granularity(start, end, 3600) == 60, "A day at midnight, 1hr interval"
         assert get_granularity(start, end, 86400) == 3600, "A day at midnight, 1d interval"
@@ -2136,7 +2313,6 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         # If we're on the start of the hour we should use the hour granularity
         start = datetime.datetime(2015, 5, 18, 23, 0, 0, tzinfo=timezone.utc)
         end = datetime.datetime(2015, 5, 20, 1, 0, 0, tzinfo=timezone.utc)
-        assert get_granularity(start, end, 30) == 10, "On the hour, 30s interval"
         assert get_granularity(start, end, 900) == 60, "On the hour, 15min interval"
         assert get_granularity(start, end, 3600) == 60, "On the hour, 1hr interval"
         assert get_granularity(start, end, 86400) == 3600, "On the hour, 1d interval"
@@ -2145,7 +2321,6 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         # granularity
         start = datetime.datetime(2015, 5, 18, 10, 15, 1, tzinfo=timezone.utc)
         end = datetime.datetime(2015, 5, 19, 15, 15, 1, tzinfo=timezone.utc)
-        assert get_granularity(start, end, 30) == 10, "A few hours, but random minute, 30s interval"
         assert (
             get_granularity(start, end, 900) == 60
         ), "A few hours, but random minute, 15min interval"
@@ -2159,7 +2334,6 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         # Less than a minute, no reason to work hard for such a small window, just use a minute
         start = datetime.datetime(2015, 5, 18, 10, 15, 1, tzinfo=timezone.utc)
         end = datetime.datetime(2015, 5, 19, 10, 15, 34, tzinfo=timezone.utc)
-        assert get_granularity(start, end, 30) == 10, "less than a minute, 30s interval"
         assert get_granularity(start, end, 900) == 60, "less than a minute, 15min interval"
         assert get_granularity(start, end, 3600) == 60, "less than a minute, 1hr interval"
         assert get_granularity(start, end, 86400) == 3600, "less than a minute, 1d interval"
@@ -2168,12 +2342,25 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         query = TimeseriesMetricQueryBuilder(
             self.params,
             interval=900,
+            dataset=Dataset.PerformanceMetrics,
             query="transaction:[foo_transaction, bar_transaction]",
             selected_columns=["p95(transaction.duration)"],
         )
-        transaction_index = indexer.resolve(self.organization.id, "transaction")
-        transaction_name1 = indexer.resolve(self.organization.id, "foo_transaction")
-        transaction_name2 = indexer.resolve(self.organization.id, "bar_transaction")
+        transaction_index = indexer.resolve(
+            self.organization.id,
+            "transaction",
+            UseCaseKey.PERFORMANCE,
+        )
+        transaction_name1 = indexer.resolve(
+            self.organization.id,
+            "foo_transaction",
+            UseCaseKey.PERFORMANCE,
+        )
+        transaction_name2 = indexer.resolve(
+            self.organization.id,
+            "bar_transaction",
+            UseCaseKey.PERFORMANCE,
+        )
         transaction = Column(f"tags[{transaction_index}]")
         self.assertCountEqual(
             query.where,
@@ -2191,6 +2378,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         ):
             TimeseriesMetricQueryBuilder(
                 self.params,
+                dataset=Dataset.PerformanceMetrics,
                 interval=900,
                 query="transaction:something_else",
                 selected_columns=["project", "p95(transaction.duration)"],
@@ -2203,6 +2391,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         ):
             TimeseriesMetricQueryBuilder(
                 self.params,
+                dataset=Dataset.PerformanceMetrics,
                 interval=900,
                 query="transaction:[something_else, something_else2]",
                 selected_columns=["p95(transaction.duration)"],
@@ -2211,6 +2400,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
     def test_project_filter(self):
         query = TimeseriesMetricQueryBuilder(
             self.params,
+            dataset=Dataset.PerformanceMetrics,
             interval=900,
             query=f"project:{self.project.slug}",
             selected_columns=["p95(transaction.duration)"],
@@ -2227,6 +2417,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
     def test_meta(self):
         query = TimeseriesMetricQueryBuilder(
             self.params,
+            dataset=Dataset.PerformanceMetrics,
             interval=900,
             selected_columns=["p50(transaction.duration)", "count_unique(user)"],
         )
@@ -2243,6 +2434,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
     def test_with_aggregate_filter(self):
         query = TimeseriesMetricQueryBuilder(
             self.params,
+            dataset=Dataset.PerformanceMetrics,
             interval=900,
             query="p50(transaction.duration):>100",
             selected_columns=["p50(transaction.duration)", "count_unique(user)"],
@@ -2261,6 +2453,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             )
         query = TimeseriesMetricQueryBuilder(
             self.params,
+            dataset=Dataset.PerformanceMetrics,
             interval=900,
             query="",
             selected_columns=["p50(transaction.duration)", "count_unique(user)"],
@@ -2323,6 +2516,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
 
         query = TimeseriesMetricQueryBuilder(
             self.params,
+            dataset=Dataset.PerformanceMetrics,
             interval=3600,
             query="",
             selected_columns=["epm(3600)"],
@@ -2364,6 +2558,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
 
         query = TimeseriesMetricQueryBuilder(
             self.params,
+            dataset=Dataset.PerformanceMetrics,
             interval=3600,
             query="",
             selected_columns=["epm(3600)"],
@@ -2396,6 +2591,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             )
         query = TimeseriesMetricQueryBuilder(
             self.params,
+            dataset=Dataset.PerformanceMetrics,
             interval=900,
             query="transaction:foo_transaction",
             selected_columns=["p50(transaction.duration)"],
@@ -2434,6 +2630,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
                 TimeseriesMetricQueryBuilder(
                     self.params,
                     interval=900,
+                    dataset=Dataset.PerformanceMetrics,
                     query=query,
                     selected_columns=["p50(transaction.duration)"],
                     allow_metric_aggregates=False,
@@ -2451,25 +2648,18 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         TimeseriesMetricQueryBuilder(
             self.params,
             interval=900,
+            dataset=Dataset.PerformanceMetrics,
             selected_columns=["p50(transaction.duration)"],
             query="transaction:foo_transaction",
             allow_metric_aggregates=False,
         )
-
-    def test_invalid_semver_filter(self):
-        with pytest.raises(InvalidSearchQuery):
-            QueryBuilder(
-                Dataset.Discover,
-                self.params,
-                "user.email:foo@example.com release.build:[1.2.1]",
-                ["user.email", "release"],
-            )
 
 
 class HistogramMetricQueryBuilderTest(MetricBuilderBaseTest):
     def test_histogram_columns_set_on_builder(self):
         builder = HistogramMetricQueryBuilder(
             params=self.params,
+            dataset=Dataset.PerformanceMetrics,
             query="",
             selected_columns=[
                 "histogram(transaction.duration)",
@@ -2511,6 +2701,7 @@ class HistogramMetricQueryBuilderTest(MetricBuilderBaseTest):
 
         query = HistogramMetricQueryBuilder(
             params=self.params,
+            dataset=Dataset.PerformanceMetrics,
             query="",
             selected_columns=["histogram(transaction.duration)"],
             histogram_params=HistogramParams(
@@ -2543,6 +2734,7 @@ class HistogramMetricQueryBuilderTest(MetricBuilderBaseTest):
         query = HistogramMetricQueryBuilder(
             params=self.params,
             query="",
+            dataset=Dataset.PerformanceMetrics,
             selected_columns=["histogram(transaction.duration)"],
             histogram_params=HistogramParams(
                 5,

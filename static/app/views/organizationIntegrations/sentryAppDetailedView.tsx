@@ -237,18 +237,20 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
 
   renderTopButton(disabledFromFeatures: boolean, userHasAccess: boolean) {
     const install = this.install;
+    const capitalizedSlug =
+      this.integrationSlug.charAt(0).toUpperCase() + this.integrationSlug.slice(1);
     if (install) {
       return (
         <Confirm
           disabled={!userHasAccess}
           message={tct('Are you sure you want to remove the [slug] installation?', {
-            slug: this.integrationSlug,
+            slug: capitalizedSlug,
           })}
           onConfirm={() => this.handleUninstall(install)} // called when the user confirms the action
           onConfirming={this.recordUninstallClicked} // called when the confirm modal opens
           priority="danger"
         >
-          <StyledUninstallButton size="small" data-test-id="sentry-app-uninstall">
+          <StyledUninstallButton size="sm" data-test-id="sentry-app-uninstall">
             <IconSubtract isCircled style={{marginRight: space(0.75)}} />
             {t('Uninstall')}
           </StyledUninstallButton>
@@ -263,7 +265,7 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
           disabled={disabledFromFeatures}
           onClick={() => this.handleInstall()}
           priority="primary"
-          size="small"
+          size="sm"
           style={{marginLeft: space(1)}}
         >
           {t('Accept & Install')}
@@ -302,7 +304,7 @@ const Title = styled('p')`
 `;
 
 const Indicator = styled(p => <CircleIndicator size={7} {...p} />)`
-  margin-top: 3px;
+  align-self: center;
   color: ${p => p.theme.success};
 `;
 

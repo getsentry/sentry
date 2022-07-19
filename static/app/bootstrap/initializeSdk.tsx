@@ -7,7 +7,17 @@ import {_browserPerformanceTimeOriginMode} from '@sentry/utils';
 
 import {DISABLE_RR_WEB, SENTRY_RELEASE_VERSION, SPA_DSN} from 'sentry/constants';
 import {Config} from 'sentry/types';
-import {LongTaskObserver} from 'sentry/utils/performanceForSentry';
+import {
+  initializeMeasureAssetsTimeout,
+  LongTaskObserver,
+} from 'sentry/utils/performanceForSentry';
+
+const SPA_MODE_ALLOW_URLS = [
+  'localhost',
+  'dev.getsentry.net',
+  'sentry.dev',
+  'webpack-internal://',
+];
 
 /**
  * We accept a routes argument here because importing `static/routes`
@@ -15,7 +25,18 @@ import {LongTaskObserver} from 'sentry/utils/performanceForSentry';
  * having routing instrumentation in order to have a smaller bundle size.
  * (e.g.  `static/views/integrationPipeline`)
  */
-function getSentryIntegrations(hasReplays: boolean = false, routes?: Function) {
+function getSentryIntegrations(
+  sentryConfig: Config['sentryConfig'],
+  hasReplays: boolean = false,
+  routes?: Function
+) {
+  const extraTracingOrigins = SPA_DSN
+    ? SPA_MODE_ALLOW_URLS
+    : [...sentryConfig?.whitelistUrls];
+  const partialTracingOptions: Partial<Integrations.BrowserTracing['options']> = {
+    tracingOrigins: ['localhost', /^\//, ...extraTracingOrigins],
+  };
+
   const integrations = [
     new ExtraErrorData({
       // 6 is arbitrary, seems like a nice number
@@ -35,6 +56,7 @@ function getSentryIntegrations(hasReplays: boolean = false, routes?: Function) {
       _metricOptions: {
         _reportAllChanges: false,
       },
+      ...partialTracingOptions,
     }),
   ];
   if (hasReplays) {
@@ -77,10 +99,8 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
      * deployed separately from backend.
      */
     release: SENTRY_RELEASE_VERSION ?? sentryConfig?.release,
-    allowUrls: SPA_DSN
-      ? ['localhost', 'dev.getsentry.net', 'sentry.dev', 'webpack-internal://']
-      : sentryConfig?.whitelistUrls,
-    integrations: getSentryIntegrations(hasReplays, routes),
+    allowUrls: SPA_DSN ? SPA_MODE_ALLOW_URLS : sentryConfig?.whitelistUrls,
+    integrations: getSentryIntegrations(sentryConfig, hasReplays, routes),
     tracesSampleRate,
     /**
      * There is a bug in Safari, that causes `AbortError` when fetch is aborted, and you are in the middle of reading the response.
@@ -107,4 +127,5 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
   Sentry.setTag('rrweb.active', hasReplays ? 'yes' : 'no');
 
   LongTaskObserver.startPerformanceObserver();
+  initializeMeasureAssetsTimeout();
 }

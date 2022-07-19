@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import {
   Panel as BasePanel,
-  PanelBody as BasePanelBody,
   PanelHeader as BasePanelHeader,
 } from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
@@ -12,9 +11,9 @@ import {relativeTimeInMs} from 'sentry/components/replays/utils';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Crumb} from 'sentry/types/breadcrumbs';
-import {EventTransaction} from 'sentry/types/event';
 import {getPrevBreadcrumb} from 'sentry/utils/replays/getBreadcrumb';
 import {useCurrentItemScroller} from 'sentry/utils/replays/hooks/useCurrentItemScroller';
+import FluidPanel from 'sentry/views/replays/detail/layout/fluidPanel';
 
 import BreadcrumbItem from './breadcrumbItem';
 
@@ -22,33 +21,28 @@ function CrumbPlaceholder({number}: {number: number}) {
   return (
     <Fragment>
       {[...Array(number)].map((_, i) => (
-        <PlaceholderMargin key={i} height="40px" />
+        <PlaceholderMargin key={i} height="53px" />
       ))}
     </Fragment>
   );
 }
 
-type Props = {
-  /**
-   * Raw breadcrumbs, `undefined` means it is still loading
-   */
-  crumbs: Crumb[] | undefined;
-  /**
-   * Root replay event, `undefined` means it is still loading
-   */
-  event: EventTransaction | undefined;
-};
+type Props = {};
 
-function Breadcrumbs({event, crumbs: allCrumbs}: Props) {
+function Breadcrumbs({}: Props) {
   const {
-    setCurrentTime,
-    setCurrentHoverTime,
+    clearAllHighlights,
     currentHoverTime,
     currentTime,
     highlight,
     removeHighlight,
-    clearAllHighlights,
+    replay,
+    setCurrentHoverTime,
+    setCurrentTime,
   } = useReplayContext();
+
+  const event = replay?.getEvent();
+  const allCrumbs = replay?.getRawCrumbs();
 
   const crumbListContainerRef = useRef<HTMLDivElement>(null);
   useCurrentItemScroller(crumbListContainerRef);
@@ -85,7 +79,7 @@ function Breadcrumbs({event, crumbs: allCrumbs}: Props) {
         // XXX: Kind of hacky, but mouseLeave does not fire if you move from a
         // crumb to a tooltip
         clearAllHighlights();
-        highlight({nodeId: item.data.nodeId});
+        highlight({nodeId: item.data.nodeId, annotation: item.data.label});
       }
     },
     [setCurrentHoverTime, startTimestamp, highlight, clearAllHighlights]
@@ -111,63 +105,58 @@ function Breadcrumbs({event, crumbs: allCrumbs}: Props) {
     [setCurrentTime, startTimestamp]
   );
 
+  const content = isLoaded ? (
+    <div>
+      {crumbs.map(crumb => (
+        <BreadcrumbItem
+          key={crumb.id}
+          crumb={crumb}
+          startTimestamp={startTimestamp}
+          isHovered={closestUserAction?.id === crumb.id}
+          isSelected={currentUserAction?.id === crumb.id}
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+          onClick={handleClick}
+        />
+      ))}
+    </div>
+  ) : (
+    <CrumbPlaceholder number={4} />
+  );
+
   return (
     <Panel>
-      <PanelHeader>{t('Breadcrumbs')}</PanelHeader>
-
-      <PanelBody ref={crumbListContainerRef}>
-        {!isLoaded && <CrumbPlaceholder number={4} />}
-        {isLoaded &&
-          crumbs.map(crumb => (
-            <BreadcrumbItem
-              key={crumb.id}
-              crumb={crumb}
-              startTimestamp={startTimestamp}
-              isHovered={closestUserAction?.id === crumb.id}
-              isSelected={currentUserAction?.id === crumb.id}
-              onMouseEnter={handleMouseEnter}
-              onMouseLeave={handleMouseLeave}
-              onClick={handleClick}
-            />
-          ))}
-      </PanelBody>
+      <FluidPanel
+        bodyRef={crumbListContainerRef}
+        title={<PanelHeader>{t('Breadcrumbs')}</PanelHeader>}
+      >
+        {content}
+      </FluidPanel>
     </Panel>
   );
 }
 
-// FYI: Since the Replay Player has dynamic height based
-// on the width of the window,
-// height: 0; will helps us to reset the height
-// min-height: 100%; will helps us to grow at the same height of Player
 const Panel = styled(BasePanel)`
   width: 100%;
-  display: grid;
-  grid-template-rows: auto 1fr;
-  height: 0;
-  min-height: 100%;
-  @media only screen and (max-width: ${p => p.theme.breakpoints.large}) {
-    height: fit-content;
-    max-height: 400px;
-    margin-top: ${space(2)};
-  }
+  height: 100%;
+  overflow: hidden;
+  margin-bottom: 0;
 `;
 
 const PanelHeader = styled(BasePanelHeader)`
   background-color: ${p => p.theme.background};
-  border-bottom: none;
+  border-bottom: 1px solid ${p => p.theme.innerBorder};
   font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.gray500};
   text-transform: capitalize;
-  padding: ${space(1.5)} ${space(2)} ${space(0.5)};
-`;
-
-const PanelBody = styled(BasePanelBody)`
-  overflow-y: auto;
+  padding: ${space(1)} ${space(1.5)} ${space(1)};
+  font-weight: 600;
 `;
 
 const PlaceholderMargin = styled(Placeholder)`
-  margin: ${space(1)} ${space(1.5)};
+  margin: ${space(1)} 0;
   width: auto;
+  border-radius: ${p => p.theme.borderRadius};
 `;
 
 export default Breadcrumbs;

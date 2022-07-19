@@ -149,6 +149,17 @@ describe('Performance > TransactionSummary', function () {
       ],
     });
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {
+        data: [{'count()': 5161}],
+      },
+      match: [
+        (_url, options) => {
+          return options.query?.field?.includes('count()');
+        },
+      ],
+    });
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-has-measurements/',
       body: {measurements: false},
     });

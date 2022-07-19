@@ -16,6 +16,7 @@ __all__ = (
     "IntegrationTestCase",
     "SnubaTestCase",
     "SessionMetricsTestCase",
+    "SessionMetricsReleaseHealthTestCase",
     "BaseIncidentsTest",
     "IntegrationRepositoryTestCase",
     "ReleaseCommitPatchTest",
@@ -35,7 +36,7 @@ import os.path
 import time
 from contextlib import contextmanager
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 from unittest import mock
 from unittest.mock import patch
 from urllib.parse import urlencode
@@ -102,11 +103,10 @@ from sentry.models import (
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.plugins.base import plugins
 from sentry.search.events.constants import (
-    METRIC_FALSE_TAG_VALUE,
-    METRIC_MISERABLE_TAG_KEY,
-    METRIC_SATISFIED_TAG_KEY,
-    METRIC_TOLERATED_TAG_KEY,
-    METRIC_TRUE_TAG_VALUE,
+    METRIC_FRUSTRATED_TAG_VALUE,
+    METRIC_SATISFACTION_TAG_KEY,
+    METRIC_SATISFIED_TAG_VALUE,
+    METRIC_TOLERATED_TAG_VALUE,
     METRICS_MAP,
 )
 from sentry.sentry_metrics import indexer
@@ -122,7 +122,7 @@ from sentry.utils.pytest.selenium import Browser
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.snuba import _snuba_pool
 
-from ..snuba.metrics.naming_layer.mri import SessionMRI
+from ..snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI
 from . import assert_status_code
 from .factories import Factories
 from .fixtures import Fixtures
@@ -141,6 +141,8 @@ DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, li
 
 DETECT_TESTCASE_MISUSE = os.environ.get("SENTRY_DETECT_TESTCASE_MISUSE") == "1"
 SILENCE_MIXED_TESTCASE_MISUSE = os.environ.get("SENTRY_SILENCE_MIXED_TESTCASE_MISUSE") == "1"
+
+SessionOrTransactionMRI = Union[SessionMRI, TransactionMRI]
 
 
 class BaseTestCase(Fixtures, Exam):
@@ -1125,24 +1127,30 @@ class SessionMetricsTestCase(SnubaTestCase):
             self.store_session(session)
 
     @classmethod
-    def _push_metric(cls, session, type, key: SessionMRI, tags, value):
+    def _push_metric(
+        cls,
+        session,
+        type,
+        key: SessionOrTransactionMRI,
+        tags,
+        value,
+        use_case_id: UseCaseKey = UseCaseKey.PERFORMANCE,
+    ):
         org_id = session["org_id"]
 
-        def metric_id(key: SessionMRI):
-            res = indexer.record(
-                use_case_id=UseCaseKey.RELEASE_HEALTH, org_id=org_id, string=key.value
-            )
+        def metric_id(key: SessionOrTransactionMRI):
+            res = indexer.record(use_case_id=use_case_id, org_id=org_id, string=key.value)
             assert res is not None, key
             return res
 
         def tag_key(name):
-            res = indexer.record(use_case_id=UseCaseKey.RELEASE_HEALTH, org_id=org_id, string=name)
+            res = indexer.record(use_case_id=use_case_id, org_id=org_id, string=name)
             assert res is not None, name
 
             return res
 
         def tag_value(name):
-            res = indexer.record(use_case_id=UseCaseKey.RELEASE_HEALTH, org_id=org_id, string=name)
+            res = indexer.record(use_case_id=use_case_id, org_id=org_id, string=name)
             assert res is not None, name
             return res
 
@@ -1187,6 +1195,20 @@ class SessionMetricsTestCase(SnubaTestCase):
         )
 
 
+class SessionMetricsReleaseHealthTestCase(SessionMetricsTestCase):
+    @classmethod
+    def _push_metric(
+        cls,
+        session,
+        type,
+        key: SessionOrTransactionMRI,
+        tags,
+        value,
+        use_case_id: UseCaseKey = UseCaseKey.RELEASE_HEALTH,
+    ):
+        super()._push_metric(session, type, key, tags, value, use_case_id)
+
+
 class MetricsEnhancedPerformanceTestCase(SessionMetricsTestCase, TestCase):
     TYPE_MAP = {
         "metrics_distributions": "d",
@@ -1216,29 +1238,30 @@ class MetricsEnhancedPerformanceTestCase(SessionMetricsTestCase, TestCase):
             "environment",
             "http.status",
             "transaction.status",
-            METRIC_SATISFIED_TAG_KEY,
-            METRIC_TOLERATED_TAG_KEY,
-            METRIC_MISERABLE_TAG_KEY,
-            METRIC_TRUE_TAG_VALUE,
-            METRIC_FALSE_TAG_VALUE,
+            METRIC_TOLERATED_TAG_VALUE,
+            METRIC_SATISFIED_TAG_VALUE,
+            METRIC_FRUSTRATED_TAG_VALUE,
+            METRIC_SATISFACTION_TAG_KEY,
             *self.METRIC_STRINGS,
             *list(SPAN_STATUS_NAME_TO_CODE.keys()),
             *list(METRICS_MAP.values()),
         ]
         org_strings = {self.organization.id: set(strings)}
-        indexer.bulk_record(use_case_id=UseCaseKey.RELEASE_HEALTH, org_strings=org_strings)
+        indexer.bulk_record(use_case_id=UseCaseKey.PERFORMANCE, org_strings=org_strings)
 
     def store_metric(
         self,
         value: List[int] | int,
         metric: str = "transaction.duration",
+        internal_metric: Optional[str] = None,
+        entity: Optional[str] = None,
         tags: Optional[Dict[str, str]] = None,
         timestamp: Optional[datetime] = None,
         project: Optional[id] = None,
-        use_case_id: UseCaseKey = UseCaseKey.RELEASE_HEALTH,
+        use_case_id: UseCaseKey = UseCaseKey.PERFORMANCE,
     ):
-        internal_metric = METRICS_MAP[metric]
-        entity = self.ENTITY_MAP[metric]
+        internal_metric = METRICS_MAP[metric] if internal_metric is None else internal_metric
+        entity = self.ENTITY_MAP[metric] if entity is None else entity
         org_id = self.organization.id
 
         if tags is None:
@@ -1269,15 +1292,17 @@ class MetricsEnhancedPerformanceTestCase(SessionMetricsTestCase, TestCase):
                 {
                     "org_id": org_id,
                     "project_id": project,
-                    "metric_id": indexer.resolve(org_id, internal_metric),
+                    "metric_id": indexer.resolve(org_id, internal_metric, use_case_id=use_case_id),
                     "timestamp": metric_timestamp,
                     "tags": tags,
                     "type": self.TYPE_MAP[entity],
                     "value": value,
                     "retention_days": 90,
+                    "mapping_meta": {},
+                    "use_case_id": use_case_id,
                 }
             ],
-            entity=entity,
+            entity=f"generic_{entity}",
         )
 
 
@@ -1558,11 +1583,18 @@ class TestMigrations(TransactionTestCase):
     def migrate_to(self):
         raise NotImplementedError(f"implement for {type(self).__module__}.{type(self).__name__}")
 
+    @property
+    def connection(self):
+        return "default"
+
     def setUp(self):
         super().setUp()
+        self.setup_initial_state()
+
         self.migrate_from = [(self.app, self.migrate_from)]
         self.migrate_to = [(self.app, self.migrate_to)]
 
+        connection = connections[self.connection]
         executor = MigrationExecutor(connection)
         matching_migrations = [m for m in executor.loader.applied_migrations if m[0] == self.app]
         if not matching_migrations:
@@ -1591,7 +1623,19 @@ class TestMigrations(TransactionTestCase):
         executor.loader.build_graph()  # reload.
         executor.migrate(self.current_migration)
 
+    def setup_initial_state(self):
+        # Add code here that will run before we roll back the database to the `migrate_from`
+        # migration. This can be useful to allow us to use the various `self.create_*` convenience
+        # methods.
+        # Any objects created here will need to be converted over to migration models if any further
+        # database operations are required.
+        pass
+
     def setup_before_migration(self, apps):
+        # Add code here to run after we have rolled the database back to the `migrate_from`
+        # migration. This code must use `apps` to create any database models, and not directly
+        # access Django models.
+        # It's preferable to create models here, when not overly complex to do so.
         pass
 
 
@@ -1709,7 +1753,7 @@ class SlackActivityNotificationTest(ActivityTestCase):
 
 @apply_feature_flag_on_cls("organizations:metrics")
 @pytest.mark.usefixtures("reset_snuba")
-class MetricsAPIBaseTestCase(SessionMetricsTestCase, APITestCase):
+class MetricsAPIBaseTestCase(SessionMetricsReleaseHealthTestCase, APITestCase):
     ...
 
 

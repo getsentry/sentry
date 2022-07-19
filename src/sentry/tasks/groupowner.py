@@ -114,7 +114,9 @@ def _process_suspect_commits(
 def process_suspect_commits(
     event_id, event_platform, event_frames, group_id, project_id, sdk_name=None, **kwargs
 ):
-    lock = locks.get(f"process-suspect-commits:{group_id}", duration=10)
+    lock = locks.get(
+        f"process-suspect-commits:{group_id}", duration=10, name="process_suspect_commits"
+    )
     try:
         with lock.acquire():
             _process_suspect_commits(

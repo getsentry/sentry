@@ -11,9 +11,11 @@ import {
   MultiSeriesEventsStats,
   Organization,
   PageFilters,
+  SelectValue,
   TagCollection,
 } from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
+import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
 import {MetaType} from 'sentry/utils/discover/eventView';
 import {
@@ -21,9 +23,13 @@ import {
   RenderFunctionBaggage,
 } from 'sentry/utils/discover/fieldRenderers';
 import {
+  errorsAndTransactionsAggregateFunctionOutputType,
   isEquation,
   isEquationAlias,
+  isLegalYAxisType,
+  QueryFieldValue,
   SPAN_OP_BREAKDOWN_FIELDS,
+  stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
 import {
   DiscoverQueryRequestParams,
@@ -37,6 +43,8 @@ import {
 } from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
+import {FieldValueOption} from 'sentry/views/eventsV2/table/queryField';
+import {FieldValue, FieldValueKind} from 'sentry/views/eventsV2/table/types';
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
@@ -48,6 +56,7 @@ import {
   getWidgetInterval,
 } from '../utils';
 import {EventsSearchBar} from '../widgetBuilder/buildSteps/filterResultsStep/eventsSearchBar';
+import {CUSTOM_EQUATION_VALUE} from '../widgetBuilder/buildSteps/sortByStep';
 import {
   flattenMultiSeriesDataWithGrouping,
   transformSeries,
@@ -72,9 +81,15 @@ export const ErrorsAndTransactionsConfig: DatasetConfig<
   TableData | EventsTableData
 > = {
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
+  enableEquations: true,
   getCustomFieldRenderer: getCustomEventsFieldRenderer,
   SearchBar: EventsSearchBar,
+  filterSeriesSortOptions,
+  filterYAxisAggregateParams,
+  filterYAxisOptions,
   getTableFieldOptions: getEventsTableFieldOptions,
+  getTimeseriesSortOptions,
+  getTableSortOptions,
   getGroupByFieldOptions: getEventsTableFieldOptions,
   handleOrderByReset,
   supportedDisplayTypes: [
@@ -135,9 +150,93 @@ export const ErrorsAndTransactionsConfig: DatasetConfig<
   },
   transformSeries: transformEventsResponseToSeries,
   transformTable: transformEventsResponseToTable,
+  filterTableOptions,
+  filterAggregateParams,
 };
 
-function getEventsTableFieldOptions(organization: Organization, tags?: TagCollection) {
+function getTableSortOptions(_organization: Organization, widgetQuery: WidgetQuery) {
+  const {columns, aggregates} = widgetQuery;
+  const options: SelectValue<string>[] = [];
+  let equations = 0;
+  [...aggregates, ...columns]
+    .filter(field => !!field)
+    .forEach(field => {
+      let alias;
+      const label = stripEquationPrefix(field);
+      // Equations are referenced via a standard alias following this pattern
+      if (isEquation(field)) {
+        alias = `equation[${equations}]`;
+        equations += 1;
+      }
+
+      options.push({label, value: alias ?? field});
+    });
+
+  return options;
+}
+
+function filterSeriesSortOptions(columns: Set<string>) {
+  return (option: FieldValueOption) => {
+    if (
+      option.value.kind === FieldValueKind.FUNCTION ||
+      option.value.kind === FieldValueKind.EQUATION
+    ) {
+      return true;
+    }
+
+    return (
+      columns.has(option.value.meta.name) ||
+      option.value.meta.name === CUSTOM_EQUATION_VALUE
+    );
+  };
+}
+
+function getTimeseriesSortOptions(
+  organization: Organization,
+  widgetQuery: WidgetQuery,
+  tags?: TagCollection
+) {
+  const options: Record<string, SelectValue<FieldValue>> = {};
+  options[`field:${CUSTOM_EQUATION_VALUE}`] = {
+    label: 'Custom Equation',
+    value: {
+      kind: FieldValueKind.EQUATION,
+      meta: {name: CUSTOM_EQUATION_VALUE},
+    },
+  };
+
+  let equations = 0;
+  [...widgetQuery.aggregates, ...widgetQuery.columns]
+    .filter(field => !!field)
+    .forEach(field => {
+      let alias;
+      const label = stripEquationPrefix(field);
+      // Equations are referenced via a standard alias following this pattern
+      if (isEquation(field)) {
+        alias = `equation[${equations}]`;
+        equations += 1;
+        options[`equation:${alias}`] = {
+          label,
+          value: {
+            kind: FieldValueKind.EQUATION,
+            meta: {
+              name: alias ?? field,
+            },
+          },
+        };
+      }
+    });
+
+  const fieldOptions = getEventsTableFieldOptions(organization, tags);
+
+  return {...options, ...fieldOptions};
+}
+
+function getEventsTableFieldOptions(
+  organization: Organization,
+  tags?: TagCollection,
+  customMeasurements?: CustomMeasurementCollection
+) {
   const measurements = getMeasurements();
 
   return generateFieldOptions({
@@ -145,6 +244,14 @@ function getEventsTableFieldOptions(organization: Organization, tags?: TagCollec
     tagKeys: Object.values(tags ?? {}).map(({key}) => key),
     measurementKeys: Object.values(measurements).map(({key}) => key),
     spanOperationBreakdownKeys: SPAN_OP_BREAKDOWN_FIELDS,
+    customMeasurements: organization.features.includes(
+      'dashboard-custom-measurement-widgets'
+    )
+      ? Object.values(customMeasurements ?? {}).map(({key, functions}) => ({
+          key,
+          functions,
+        }))
+      : undefined,
   });
 }
 
@@ -166,6 +273,64 @@ function transformEventsResponseToTable(
     } as TableData;
   }
   return tableData as TableData;
+}
+
+function filterYAxisAggregateParams(
+  fieldValue: QueryFieldValue,
+  displayType: DisplayType
+) {
+  return (option: FieldValueOption) => {
+    // Only validate function parameters for timeseries widgets and
+    // world map widgets.
+    if (displayType === DisplayType.BIG_NUMBER) {
+      return true;
+    }
+
+    if (fieldValue.kind !== FieldValueKind.FUNCTION) {
+      return true;
+    }
+
+    const functionName = fieldValue.function[0];
+    const primaryOutput = errorsAndTransactionsAggregateFunctionOutputType(
+      functionName as string,
+      option.value.meta.name
+    );
+    if (primaryOutput) {
+      return isLegalYAxisType(primaryOutput);
+    }
+
+    if (
+      option.value.kind === FieldValueKind.FUNCTION ||
+      option.value.kind === FieldValueKind.EQUATION
+    ) {
+      // Functions and equations are not legal options as an aggregate/function parameter.
+      return false;
+    }
+
+    return isLegalYAxisType(option.value.meta.dataType);
+  };
+}
+
+function filterYAxisOptions(displayType: DisplayType) {
+  return (option: FieldValueOption) => {
+    // Only validate function names for timeseries widgets and
+    // world map widgets.
+    if (
+      !(displayType === DisplayType.BIG_NUMBER) &&
+      option.value.kind === FieldValueKind.FUNCTION
+    ) {
+      const primaryOutput = errorsAndTransactionsAggregateFunctionOutputType(
+        option.value.meta.name,
+        undefined
+      );
+      if (primaryOutput) {
+        // If a function returns a specific type, then validate it.
+        return isLegalYAxisType(primaryOutput);
+      }
+    }
+
+    return option.value.kind === FieldValueKind.FUNCTION;
+  };
 }
 
 function transformEventsResponseToSeries(
@@ -339,6 +504,7 @@ function getEventsSeriesRequest(
       partial: true,
       field: [...widgetQuery.columns, ...widgetQuery.aggregates],
       queryExtras: getDashboardsMEPQueryParams(isMEPEnabled),
+      includeAllArgs: true,
     };
     if (widgetQuery.orderby) {
       requestData.orderby = widgetQuery.orderby;
@@ -359,6 +525,7 @@ function getEventsSeriesRequest(
       referrer,
       partial: true,
       queryExtras: getDashboardsMEPQueryParams(isMEPEnabled),
+      includeAllArgs: true,
     };
     if (widgetQuery.columns?.length !== 0) {
       requestData.topEvents = limit ?? TOP_N;
@@ -397,5 +564,23 @@ function getEventsSeriesRequest(
     }
   }
 
-  return doEventsRequest(api, requestData);
+  return doEventsRequest<true>(api, requestData);
+}
+
+// Custom Measurements aren't selectable as columns/yaxis without using an aggregate
+function filterTableOptions(option: FieldValueOption) {
+  return option.value.kind !== FieldValueKind.CUSTOM_MEASUREMENT;
+}
+
+// Checks fieldValue to see what function is being used and only allow supported custom measurements
+function filterAggregateParams(option: FieldValueOption, fieldValue?: QueryFieldValue) {
+  if (
+    option.value.kind === FieldValueKind.CUSTOM_MEASUREMENT &&
+    fieldValue?.kind === 'function' &&
+    fieldValue?.function &&
+    !option.value.meta.functions.includes(fieldValue.function[0])
+  ) {
+    return false;
+  }
+  return true;
 }

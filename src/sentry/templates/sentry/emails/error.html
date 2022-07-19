@@ -159,7 +159,7 @@
         <table class="table commit-table">
         {% for commit in commits %}
           <tr>
-            <td style="padding:0;width:32px;">{% email_avatar commits.author.name commits.author.email 32 %}</td>
+            <td style="padding:0;width:32px;">{% email_avatar commit.author.name commit.author.email 32 %}</td>
             <td>
               <h5 class="truncate">{{ commit.subject }}</h5>
               <div><small>{{ commit.shortId }}&nbsp;&mdash;&nbsp;

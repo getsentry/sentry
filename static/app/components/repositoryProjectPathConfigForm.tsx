@@ -12,7 +12,10 @@ import {
   Repository,
   RepositoryProjectPathConfig,
 } from 'sentry/types';
-import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
+import {
+  sentryNameToOption,
+  trackIntegrationAnalytics,
+} from 'sentry/utils/integrationUtil';
 
 type Props = {
   integration: Integration;
@@ -38,7 +41,8 @@ export default class RepositoryProjectPathConfigForm extends Component<Props> {
   }
 
   get formFields(): Field[] {
-    const {projects, repos} = this.props;
+    const {projects, repos, organization} = this.props;
+    const orgSlug = organization.slug;
     const repoChoices = repos.map(({name, id}) => ({value: id, label: name}));
     return [
       {
@@ -50,11 +54,13 @@ export default class RepositoryProjectPathConfigForm extends Component<Props> {
       },
       {
         name: 'repositoryId',
-        type: 'select',
+        type: 'select_async',
         required: true,
         label: t('Repo'),
         placeholder: t('Choose repo'),
-        options: repoChoices,
+        url: `/organizations/${orgSlug}/repos/`,
+        defaultOptions: repoChoices,
+        onResults: results => results.map(sentryNameToOption),
       },
       {
         name: 'defaultBranch',

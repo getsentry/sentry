@@ -41,6 +41,7 @@ export type TeamInsightsEventParameters = {
       | 'shared'
       | 'discarded'
       | 'open_in_discover'
+      | 'assign'
       | ResolutionStatus;
   };
   'issue_details.event_json_clicked': {group_id: number};
@@ -51,6 +52,13 @@ export type TeamInsightsEventParameters = {
     session_id: string;
     wizard_v3: string;
   };
+  'project_creation_page.created': {
+    issue_alert: 'Default' | 'Custom' | 'No Rule';
+    metric_alerts: string;
+    project_id: string;
+    rule_id: string;
+  };
+  'project_creation_page.viewed': {};
   'team_insights.viewed': {};
 };
 
@@ -74,4 +82,6 @@ export const workflowEventMap: Record<TeamInsightsEventKey, string | null> = {
   'issue_details.viewed': 'Issue Details: Viewed',
   'new_alert_rule.viewed': 'New Alert Rule: Viewed',
   'team_insights.viewed': 'Team Insights: Viewed',
+  'project_creation_page.viewed': 'Project Create: Creation page viewed',
+  'project_creation_page.created': 'Project Create: Project Created',
 };

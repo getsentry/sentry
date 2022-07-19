@@ -1,38 +1,46 @@
+import pytest
+
+from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.indexer.cache import indexer_cache
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
 
 
-def test_cache() -> None:
+@pytest.fixture
+def use_case_id() -> str:
+    return UseCaseKey.RELEASE_HEALTH.value
+
+
+def test_cache(use_case_id: str) -> None:
     cache.clear()
-    assert indexer_cache.get("blah") is None
-    indexer_cache.set("blah", 1)
-    assert indexer_cache.get("blah") == 1
+    assert indexer_cache.get("blah", use_case_id) is None
+    indexer_cache.set("blah", 1, use_case_id)
+    assert indexer_cache.get("blah", use_case_id) == 1
 
-    indexer_cache.delete("blah")
-    assert indexer_cache.get("blah") is None
+    indexer_cache.delete("blah", use_case_id)
+    assert indexer_cache.get("blah", use_case_id) is None
 
 
-def test_cache_many() -> None:
+def test_cache_many(use_case_id: str) -> None:
     cache.clear()
     values = {"hello": 2, "bye": 3}
-    assert indexer_cache.get_many(list(values.keys())) == {"hello": None, "bye": None}
-    indexer_cache.set_many(values)
-    assert indexer_cache.get_many(list(values.keys())) == values
+    assert indexer_cache.get_many(list(values.keys()), use_case_id) == {"hello": None, "bye": None}
+    indexer_cache.set_many(values, use_case_id)
+    assert indexer_cache.get_many(list(values.keys()), use_case_id) == values
 
-    indexer_cache.delete_many(list(values.keys()))
-    assert indexer_cache.get_many(list(values.keys())) == {"hello": None, "bye": None}
-
-
-def test_make_cache_key() -> None:
-    key = indexer_cache.make_cache_key("blah")
-    assert key == f"indexer:org:str:{md5_text('blah').hexdigest()}"
+    indexer_cache.delete_many(list(values.keys()), use_case_id)
+    assert indexer_cache.get_many(list(values.keys()), use_case_id) == {"hello": None, "bye": None}
 
 
-def test_formatted_results() -> None:
+def test_make_cache_key(use_case_id: str) -> None:
+    key = indexer_cache.make_cache_key("blah", "release-health")
+    assert key == f"indexer:org:str:{use_case_id}:{md5_text('blah').hexdigest()}"
+
+
+def test_formatted_results(use_case_id: str) -> None:
     values = {"hello": 2, "bye": 3}
-    results = {indexer_cache.make_cache_key(k): v for k, v in values.items()}
-    assert indexer_cache._format_results(list(values.keys()), results) == values
+    results = {indexer_cache.make_cache_key(k, use_case_id): v for k, v in values.items()}
+    assert indexer_cache._format_results(list(values.keys()), results, use_case_id) == values
 
 
 def test_ttl_jitter() -> None:
@@ -46,3 +54,11 @@ def test_ttl_jitter() -> None:
     assert base_ttl <= ttl_2 <= max_ttl
 
     assert not ttl_1 == ttl_2
+
+
+def test_separate_namespacing() -> None:
+    indexer_cache.set("a", 1, UseCaseKey.RELEASE_HEALTH.value)
+    assert indexer_cache.get("a", UseCaseKey.RELEASE_HEALTH.value) == 1
+    indexer_cache.set("a", 2, UseCaseKey.PERFORMANCE.value)
+    assert indexer_cache.get("a", UseCaseKey.RELEASE_HEALTH.value) == 1
+    assert indexer_cache.get("a", UseCaseKey.PERFORMANCE.value) == 2

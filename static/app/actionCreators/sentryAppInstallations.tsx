@@ -49,9 +49,11 @@ export function uninstallSentryApp(
   const promise = client.requestPromise(`/sentry-app-installations/${install.uuid}/`, {
     method: 'DELETE',
   });
+  const capitalizedAppSlug =
+    install.app.slug.charAt(0).toUpperCase() + install.app.slug.slice(1);
   promise.then(
     () => {
-      addSuccessMessage(t(`${install.app.slug} successfully uninstalled.`));
+      addSuccessMessage(t(`${capitalizedAppSlug} successfully uninstalled.`));
     },
     () => clearIndicators()
   );

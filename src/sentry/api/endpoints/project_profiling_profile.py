@@ -31,6 +31,19 @@ class ProjectProfilingBaseEndpoint(ProjectEndpoint):  # type: ignore
         return params
 
 
+class ProjectProfilingTransactionIDProfileIDEndpoint(ProjectProfilingBaseEndpoint):
+    def get(self, request: Request, project: Project, transaction_id: str) -> StreamingHttpResponse:
+        if not features.has("organizations:profiling", project.organization, actor=request.user):
+            return Response(status=404)
+        kwargs: Dict[str, Any] = {
+            "method": "GET",
+            "path": f"/organizations/{project.organization.id}/projects/{project.id}/transactions/{transaction_id}",
+        }
+        if "Accept-Encoding" in request.headers:
+            kwargs["headers"] = {"Accept-Encoding": request.headers.get("Accept-Encoding")}
+        return proxy_profiling_service(**kwargs)
+
+
 class ProjectProfilingProfileEndpoint(ProjectProfilingBaseEndpoint):
     def get(self, request: Request, project: Project, profile_id: str) -> StreamingHttpResponse:
         if not features.has("organizations:profiling", project.organization, actor=request.user):

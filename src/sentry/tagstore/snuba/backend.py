@@ -558,7 +558,7 @@ class SnubaTagStorage(TagStorage):
 
         for keyobj in keys_with_counts:
             key = keyobj.key
-            values = values_by_key.get(key, [])
+            values = values_by_key.get(key, dict())
             keyobj.top_values = [
                 value_ctor(
                     key=keyobj.key,

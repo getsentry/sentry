@@ -115,7 +115,7 @@ class SearchBar extends PureComponent<SearchBarProps, State> {
                 className="search-clear-form"
                 priority="link"
                 onClick={this.clearSearch}
-                size="xsmall"
+                size="xs"
                 icon={<IconClose />}
                 aria-label={t('Clear')}
               />

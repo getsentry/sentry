@@ -249,7 +249,7 @@ class TeamReleases extends AsyncComponent<Props, State> {
           emptyMessage={t('No releases were setup for this team’s projects')}
           emptyAction={
             <Button
-              size="small"
+              size="sm"
               external
               href="https://docs.sentry.io/product/releases/setup/"
             >

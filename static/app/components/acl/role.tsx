@@ -21,11 +21,11 @@ function checkUserRole(user: User, organization: Organization, role: RoleProps['
     return true;
   }
 
-  if (!Array.isArray(organization.availableRoles)) {
+  if (!Array.isArray(organization.orgRoleList)) {
     return false;
   }
 
-  const roleIds = organization.availableRoles.map(r => r.id);
+  const roleIds = organization.orgRoleList.map(r => r.id);
 
   if (!roleIds.includes(role) || !roleIds.includes(organization.role ?? '')) {
     return false;

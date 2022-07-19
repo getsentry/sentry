@@ -25,7 +25,7 @@ type Props = {
    * Hovercard renders the container
    */
   containerClassName?: string;
-  offset?: string;
+  offset?: number;
   /**
    * Trigger when the guide is completed (all steps have been clicked through)
    */
@@ -150,7 +150,7 @@ class BaseGuideAnchor extends Component<Props, State> {
 
     const dismissButton = (
       <DismissButton
-        size="small"
+        size="sm"
         translucentBorder
         href={href}
         onClick={this.handleDismiss}
@@ -171,7 +171,7 @@ class BaseGuideAnchor extends Component<Props, State> {
             {lastStep ? (
               <Fragment>
                 <StyledButton
-                  size="small"
+                  size="sm"
                   translucentBorder
                   to={to}
                   onClick={this.handleFinish}
@@ -184,7 +184,7 @@ class BaseGuideAnchor extends Component<Props, State> {
             ) : (
               <Fragment>
                 <StyledButton
-                  size="small"
+                  size="sm"
                   translucentBorder
                   onClick={this.handleNextStep}
                   to={to}
@@ -219,9 +219,9 @@ class BaseGuideAnchor extends Component<Props, State> {
 
     return (
       <StyledHovercard
-        show
+        forceVisible
         body={this.getHovercardBody()}
-        tipColor={theme.purple300}
+        tipColor="purple300"
         position={position}
         offset={offset}
         containerClassName={containerClassName}

@@ -28,6 +28,7 @@ const Switch = ({
   id,
   name,
   className,
+  ...props
 }: Props) => (
   <SwitchButton
     ref={forwardedRef}
@@ -43,6 +44,7 @@ const Switch = ({
     isActive={isActive}
     size={size}
     data-test-id="switch"
+    {...props}
   >
     <Toggle
       isDisabled={isDisabled}

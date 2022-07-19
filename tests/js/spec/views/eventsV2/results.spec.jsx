@@ -1641,4 +1641,35 @@ describe('Results', function () {
       expect(projectPageFilter.text()).toEqual('Pinned Project');
     });
   });
+
+  it('renders metric fallback alert', async function () {
+    const organization = TestStubs.Organization({
+      features: ['discover-basic'],
+    });
+
+    const initialData = initializeOrg({
+      organization,
+      router: {
+        location: {query: {fromMetric: true}},
+      },
+    });
+
+    ProjectsStore.loadInitialData([TestStubs.Project()]);
+
+    const wrapper = mountWithThemeAndOrg(
+      <Results
+        organization={organization}
+        location={initialData.router.location}
+        router={initialData.router}
+      />,
+      initialData.routerContext,
+      organization
+    );
+
+    await tick();
+    wrapper.update();
+    expect(wrapper.find('Alert').find('Message').text()).toEqual(
+      "You've navigated to this page from a performance metric widget generated from processed events. The results here only show sampled events."
+    );
+  });
 });

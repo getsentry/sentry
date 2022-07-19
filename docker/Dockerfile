@@ -47,8 +47,8 @@ ENV \
   # grpcio>1.30.0 requires this, see requirements.txt for more detail.
   GRPC_POLL_STRATEGY=epoll1
 
-# Copy and install dependencies first to leverage Docker layer caching.
-COPY /dist/requirements.txt /tmp/dist/requirements.txt
+# Install dependencies first to leverage Docker layer caching.
+COPY /dist/requirements-frozen.txt /tmp/requirements-frozen.txt
 RUN set -x \
   && buildDeps="" \
   # uwsgi
@@ -67,14 +67,14 @@ RUN set -x \
   " \
   && apt-get update \
   && apt-get install -y --no-install-recommends $buildDeps \
-  && pip install -r /tmp/dist/requirements.txt \
+  && pip install -r /tmp/requirements-frozen.txt \
   && mkdir /tmp/uwsgi-dogstatsd \
   && wget -O - https://github.com/eventbrite/uwsgi-dogstatsd/archive/filters-and-tags.tar.gz | \
   tar -xzf - -C /tmp/uwsgi-dogstatsd --strip-components=1 \
   && UWSGI_NEED_PLUGIN="" uwsgi --build-plugin /tmp/uwsgi-dogstatsd \
   && mkdir -p /var/lib/uwsgi \
   && mv dogstatsd_plugin.so /var/lib/uwsgi/ \
-  && rm -rf /tmp/dist /tmp/uwsgi-dogstatsd .uwsgi_plugins_builder \
+  && rm -rf /tmp/requirements-frozen.txt /tmp/uwsgi-dogstatsd .uwsgi_plugins_builder \
   && apt-get purge -y --auto-remove $buildDeps \
   # We install run-time dependencies strictly after
   # build dependencies to prevent accidental collusion.

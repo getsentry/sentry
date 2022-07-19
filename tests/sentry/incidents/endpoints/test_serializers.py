@@ -17,6 +17,7 @@ from sentry.incidents.logic import (
 from sentry.incidents.models import AlertRule, AlertRuleThresholdType, AlertRuleTriggerAction
 from sentry.incidents.serializers import (
     ACTION_TARGET_TYPE_TO_STRING,
+    QUERY_TYPE_VALID_DATASETS,
     STRING_TO_ACTION_TARGET_TYPE,
     STRING_TO_ACTION_TYPE,
     AlertRuleSerializer,
@@ -24,7 +25,7 @@ from sentry.incidents.serializers import (
     AlertRuleTriggerSerializer,
 )
 from sentry.models import ACTOR_TYPES, Environment, Integration
-from sentry.snuba.models import QueryDatasets, SnubaQueryEventType
+from sentry.snuba.models import QueryDatasets, SnubaQuery, SnubaQueryEventType
 from sentry.testutils import TestCase
 from sentry.utils import json
 
@@ -133,6 +134,56 @@ class TestAlertRuleSerializer(TestCase):
             "Invalid dataset, valid values are %s" % [item.value for item in QueryDatasets]
         ]
         self.run_fail_validation_test({"dataset": "events_wrong"}, {"dataset": invalid_values})
+        valid_datasets_for_type = sorted(
+            dataset.name.lower()
+            for dataset in QUERY_TYPE_VALID_DATASETS[SnubaQuery.Type.PERFORMANCE]
+        )
+        self.run_fail_validation_test(
+            {
+                "queryType": SnubaQuery.Type.PERFORMANCE.value,
+                "dataset": QueryDatasets.EVENTS.value,
+            },
+            {
+                "nonFieldErrors": [
+                    f"Invalid dataset for this query type. Valid datasets are {valid_datasets_for_type}"
+                ]
+            },
+        )
+        valid_datasets_for_type = sorted(
+            dataset.name.lower() for dataset in QUERY_TYPE_VALID_DATASETS[SnubaQuery.Type.ERROR]
+        )
+        self.run_fail_validation_test(
+            {
+                "queryType": SnubaQuery.Type.ERROR.value,
+                "dataset": QueryDatasets.METRICS.value,
+            },
+            {
+                "nonFieldErrors": [
+                    f"Invalid dataset for this query type. Valid datasets are {valid_datasets_for_type}"
+                ]
+            },
+        )
+        self.run_fail_validation_test(
+            {
+                "queryType": SnubaQuery.Type.PERFORMANCE.value,
+                "dataset": QueryDatasets.PERFORMANCE_METRICS.value,
+            },
+            {
+                "nonFieldErrors": [
+                    "This project does not have access to the `generic_metrics` dataset"
+                ]
+            },
+        )
+        with self.feature("organizations:metrics-performance-alerts"):
+            base_params = self.valid_params.copy()
+            base_params["queryType"] = SnubaQuery.Type.PERFORMANCE.value
+            base_params["dataset"] = QueryDatasets.PERFORMANCE_METRICS.value
+            base_params["query"] = ""
+            serializer = AlertRuleSerializer(context=self.context, data=base_params)
+            assert serializer.is_valid(), serializer.errors
+            alert_rule = serializer.save()
+            assert alert_rule.snuba_query.type == SnubaQuery.Type.PERFORMANCE.value
+            assert alert_rule.snuba_query.dataset == QueryDatasets.PERFORMANCE_METRICS.value
 
     def test_aggregate(self):
         self.run_fail_validation_test(
@@ -196,14 +247,6 @@ class TestAlertRuleSerializer(TestCase):
         alert_rule = serializer.save()
         assert alert_rule.snuba_query.dataset == QueryDatasets.TRANSACTIONS.value
         assert alert_rule.snuba_query.aggregate == "count()"
-
-    def test_query_project(self):
-        # `project:` works using `QueryBuilder` so this test can go away once we're using it
-        with self.feature({"organizations:metric-alert-snql": False}):
-            self.run_fail_validation_test(
-                {"query": f"project:{self.project.slug}"},
-                {"query": ["Project is an invalid search term"]},
-            )
 
     def test_decimal(self):
         params = self.valid_transaction_params.copy()

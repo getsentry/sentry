@@ -34,33 +34,61 @@ from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 
 
-def _dyn_sampling_data():
-    return {
-        "rules": [
-            {
-                "sampleRate": 0.7,
-                "type": "trace",
-                "condition": {
-                    "op": "and",
-                    "inner": [
-                        {"op": "eq", "name": "field1", "value": ["val"]},
-                        {"op": "glob", "name": "field1", "value": ["val"]},
-                    ],
-                },
-                "id": 0,
+def _dyn_sampling_data(multiple_uniform_rules=False, uniform_rule_last_position=True):
+    rules = [
+        {
+            "sampleRate": 0.7,
+            "type": "trace",
+            "active": True,
+            "condition": {
+                "op": "and",
+                "inner": [
+                    {"op": "eq", "name": "field1", "value": ["val"]},
+                    {"op": "glob", "name": "field1", "value": ["val"]},
+                ],
             },
+            "id": 0,
+        },
+        {
+            "sampleRate": 0.8,
+            "type": "trace",
+            "active": True,
+            "condition": {
+                "op": "and",
+                "inner": [
+                    {"op": "eq", "name": "field1", "value": ["val"]},
+                ],
+            },
+            "id": 0,
+        },
+    ]
+    if uniform_rule_last_position:
+        rules.append(
             {
                 "sampleRate": 0.8,
                 "type": "trace",
+                "active": True,
                 "condition": {
                     "op": "and",
-                    "inner": [
-                        {"op": "eq", "name": "field1", "value": ["val"]},
-                    ],
+                    "inner": [],
                 },
                 "id": 0,
             },
-        ]
+        )
+    if multiple_uniform_rules:
+        new_rule_1 = {
+            "sampleRate": 0.22,
+            "type": "trace",
+            "condition": {
+                "op": "and",
+                "inner": [],
+            },
+            "id": 0,
+        }
+        rules.insert(0, new_rule_1)
+
+    return {
+        "rules": rules,
     }
 
 
@@ -628,7 +656,7 @@ class ProjectUpdateTest(APITestCase):
         """
         Test that we can set sampling rules
         """
-        with Feature({"organizations:filters-and-sampling": True}):
+        with Feature({"organizations:server-side-sampling": True}):
             self.get_success_response(
                 self.org_slug, self.proj_slug, dynamicSampling=_dyn_sampling_data()
             )
@@ -652,7 +680,7 @@ class ProjectUpdateTest(APITestCase):
         Tests that we get the same dynamic sampling rules that previously set
         """
         data = _dyn_sampling_data()
-        with Feature({"organizations:filters-and-sampling": True}):
+        with Feature({"organizations:server-side-sampling": True}):
             self.get_success_response(self.org_slug, self.proj_slug, dynamicSampling=data)
             response = self.get_success_response(self.org_slug, self.proj_slug, method="get")
         saved_config = _remove_ids_from_dynamic_rules(response.data["dynamicSampling"])
@@ -676,7 +704,9 @@ class ProjectUpdateTest(APITestCase):
                     "type": "trace",
                     "condition": {
                         "op": "and",
-                        "inner": [],
+                        "inner": [
+                            {"op": "eq", "name": "field1", "value": ["val"]},
+                        ],
                     },
                     "id": 0,
                 },
@@ -685,7 +715,9 @@ class ProjectUpdateTest(APITestCase):
                     "type": "trace",
                     "condition": {
                         "op": "and",
-                        "inner": [],
+                        "inner": [
+                            {"op": "eq", "name": "field1", "value": ["val"]},
+                        ],
                     },
                     "id": 0,
                 },
@@ -700,7 +732,7 @@ class ProjectUpdateTest(APITestCase):
                 },
             ]
         }
-        with Feature({"organizations:filters-and-sampling": True}):
+        with Feature({"organizations:server-side-sampling": True}):
             self.get_success_response(self.org_slug, self.proj_slug, dynamicSampling=config)
         response = self.get_success_response(self.org_slug, self.proj_slug, method="get")
         saved_config = response.data["dynamicSampling"]
@@ -725,7 +757,9 @@ class ProjectUpdateTest(APITestCase):
             "type": "trace",
             "condition": {
                 "op": "and",
-                "inner": [],
+                "inner": [
+                    {"op": "eq", "name": "field1", "value": ["val"]},
+                ],
             },
             "id": 0,
         }
@@ -743,7 +777,7 @@ class ProjectUpdateTest(APITestCase):
         }
 
         saved_config["rules"].append(new_rule_2)
-        with Feature({"organizations:filters-and-sampling": True}):
+        with Feature({"organizations:server-side-sampling": True}):
             # turn it back from ordered dict to dict (both main obj and rules)
             saved_config = dict(saved_config)
             saved_config["rules"] = [dict(rule) for rule in saved_config["rules"]]
@@ -756,6 +790,63 @@ class ProjectUpdateTest(APITestCase):
         assert new_ids == [4, 5, 2, 6]
         new_next_id = saved_config["next_id"]
         assert new_next_id == 7
+
+    def test_dynamic_sampling_rules_have_active_flag(self):
+        """
+        Tests that the active flag is set for all rules
+        """
+        data = _dyn_sampling_data()
+        with Feature({"organizations:server-side-sampling": True}):
+            self.get_success_response(self.org_slug, self.proj_slug, dynamicSampling=data)
+            response = self.get_success_response(self.org_slug, self.proj_slug, method="get")
+        saved_config = response.data["dynamicSampling"]
+        assert all([rule["active"] for rule in saved_config["rules"]])
+
+    def test_dynamic_sampling_rules_should_contain_single_uniform_rule(self):
+        """
+        Tests that ensures you can only have one uniform rule
+        """
+        with Feature({"organizations:server-side-sampling": True}):
+            response = self.get_response(
+                self.org_slug,
+                self.proj_slug,
+                dynamicSampling=_dyn_sampling_data(multiple_uniform_rules=True),
+            )
+            assert response.status_code == 400
+            assert (
+                response.json()["dynamicSampling"]["non_field_errors"][0] == "Uniform rule "
+                "must be in the last position only"
+            )
+
+    def test_dynamic_sampling_rules_single_uniform_rule_in_last_position(self):
+        """
+        Tests that ensures you can only have one uniform rule, and it is at the last position
+        """
+        with Feature({"organizations:server-side-sampling": True}):
+            response = self.get_response(
+                self.org_slug,
+                self.proj_slug,
+                dynamicSampling=_dyn_sampling_data(uniform_rule_last_position=False),
+            )
+            assert response.status_code == 400
+            assert (
+                response.json()["dynamicSampling"]["non_field_errors"][0]
+                == "Last rule is reserved for uniform rule which must have no conditions"
+            )
+
+    def test_dynamic_sampling_rules_should_contain_uniform_rule(self):
+        """
+        Tests that ensures that payload has a uniform rule i.e. guards against deletion of rule
+        """
+        with Feature({"organizations:server-side-sampling": True}):
+            response = self.get_response(
+                self.org_slug, self.proj_slug, dynamicSampling={"rules": []}
+            )
+            assert response.status_code == 400
+            assert (
+                response.json()["dynamicSampling"]["non_field_errors"][0]
+                == "Payload must contain a uniform dynamic sampling rule"
+            )
 
     def test_cap_secondary_grouping_expiry(self):
         now = time()
@@ -1187,6 +1278,7 @@ def test_rule_config_serializer():
             {
                 "sampleRate": 0.7,
                 "type": "trace",
+                "active": False,
                 "id": 1,
                 "condition": {
                     "op": "and",
@@ -1195,7 +1287,17 @@ def test_rule_config_serializer():
                         {"op": "glob", "name": "field1", "value": ["val"]},
                     ],
                 },
-            }
+            },
+            {
+                "sampleRate": 0.7,
+                "type": "trace",
+                "active": False,
+                "id": 2,
+                "condition": {
+                    "op": "and",
+                    "inner": [],
+                },
+            },
         ],
         "next_id": 22,
     }
