@@ -29,6 +29,19 @@ const defaultOrgFeatures = [
 // Mocking worldMapChart to avoid act warnings
 jest.mock('sentry/components/charts/worldMapChart');
 
+function mockDashboard(dashboard: Partial<DashboardDetails>): DashboardDetails {
+  return {
+    id: '1',
+    title: 'Dashboard',
+    createdBy: undefined,
+    dateCreated: '2020-01-01T00:00:00.000Z',
+    widgets: [],
+    projects: [],
+    filters: {},
+    ...dashboard,
+  };
+}
+
 function renderTestComponent({
   dashboard,
   query,
@@ -70,6 +83,8 @@ function renderTestComponent({
         createdBy: undefined,
         dateCreated: '2020-01-01T00:00:00.000Z',
         widgets: [],
+        projects: [],
+        filters: {},
         ...dashboard,
       }}
       onSave={onSave ?? jest.fn()}
@@ -95,6 +110,8 @@ describe('WidgetBuilder', function () {
     createdBy: undefined,
     dateCreated: '2020-01-01T00:00:00.000Z',
     widgets: [],
+    projects: [],
+    filters: {},
   };
 
   const testDashboard: DashboardDetails = {
@@ -103,6 +120,8 @@ describe('WidgetBuilder', function () {
     createdBy: undefined,
     dateCreated: '2020-01-01T00:00:00.000Z',
     widgets: [],
+    projects: [],
+    filters: {},
   };
 
   let eventsStatsMock: jest.Mock | undefined;
@@ -264,13 +283,7 @@ describe('WidgetBuilder', function () {
         id: '1',
       };
 
-      const dashboard: DashboardDetails = {
-        id: '1',
-        title: 'Dashboard',
-        createdBy: undefined,
-        dateCreated: '2020-01-01T00:00:00.000Z',
-        widgets: [widget],
-      };
+      const dashboard = mockDashboard({widgets: [widget]});
 
       renderTestComponent({
         dashboard,
@@ -303,13 +316,7 @@ describe('WidgetBuilder', function () {
         id: '1',
       };
 
-      const dashboard: DashboardDetails = {
-        id: '1',
-        title: 'Dashboard',
-        createdBy: undefined,
-        dateCreated: '2020-01-01T00:00:00.000Z',
-        widgets: [widget],
-      };
+      const dashboard = mockDashboard({widgets: [widget]});
 
       renderTestComponent({
         dashboard,
@@ -673,13 +680,7 @@ describe('WidgetBuilder', function () {
         ],
       };
 
-      const dashboard: DashboardDetails = {
-        id: '1',
-        title: 'Dashboard',
-        createdBy: undefined,
-        dateCreated: '2020-01-01T00:00:00.000Z',
-        widgets: [widget],
-      };
+      const dashboard = mockDashboard({widgets: [widget]});
 
       renderTestComponent({dashboard, params: {widgetIndex: '0'}});
 
@@ -755,13 +756,7 @@ describe('WidgetBuilder', function () {
         ],
       };
 
-      const dashboard: DashboardDetails = {
-        id: '1',
-        title: 'Dashboard',
-        createdBy: undefined,
-        dateCreated: '2020-01-01T00:00:00.000Z',
-        widgets: [widget],
-      };
+      const dashboard = mockDashboard({widgets: [widget]});
 
       const handleSave = jest.fn();
 
@@ -812,13 +807,7 @@ describe('WidgetBuilder', function () {
         ],
       };
 
-      const dashboard: DashboardDetails = {
-        id: '1',
-        title: 'Dashboard',
-        createdBy: undefined,
-        dateCreated: '2020-01-01T00:00:00.000Z',
-        widgets: [widget],
-      };
+      const dashboard = mockDashboard({widgets: [widget]});
 
       renderTestComponent({dashboard, params: {widgetIndex: '0'}});
 
@@ -855,13 +844,7 @@ describe('WidgetBuilder', function () {
         ],
       };
 
-      const dashboard: DashboardDetails = {
-        id: '1',
-        title: 'Dashboard',
-        createdBy: undefined,
-        dateCreated: '2020-01-01T00:00:00.000Z',
-        widgets: [widget],
-      };
+      const dashboard = mockDashboard({widgets: [widget]});
 
       const handleSave = jest.fn();
 
@@ -1006,13 +989,8 @@ describe('WidgetBuilder', function () {
           },
         ],
       };
-      const dashboard: DashboardDetails = {
-        id: '1',
-        title: 'Dashboard',
-        createdBy: undefined,
-        dateCreated: '2020-01-01T00:00:00.000Z',
-        widgets: [widget],
-      };
+
+      const dashboard = mockDashboard({widgets: [widget]});
 
       renderTestComponent({onSave: handleSave, dashboard, params: {widgetIndex: '0'}});
 
@@ -1046,13 +1024,8 @@ describe('WidgetBuilder', function () {
           },
         ],
       };
-      const dashboard: DashboardDetails = {
-        id: '1',
-        title: 'Dashboard',
-        createdBy: undefined,
-        dateCreated: '2020-01-01T00:00:00.000Z',
-        widgets: [widget],
-      };
+
+      const dashboard = mockDashboard({widgets: [widget]});
 
       const {router} = renderTestComponent({
         dashboard,
@@ -1062,6 +1035,8 @@ describe('WidgetBuilder', function () {
 
       await screen.findByText('Update Widget');
       await screen.findByText('90D');
+
+      expect(screen.getByTestId('page-filter-timerange-selector')).toBeEnabled();
 
       userEvent.click(screen.getByText('Update Widget'));
 
@@ -1075,6 +1050,30 @@ describe('WidgetBuilder', function () {
           })
         );
       });
+    });
+
+    it('renders page filters in the filter step', async () => {
+      const mockReleases = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/releases/',
+        body: [TestStubs.Release()],
+      });
+
+      renderTestComponent({
+        params: {orgId: 'org-slug'},
+        query: {statsPeriod: '90d'},
+        orgFeatures: [...defaultOrgFeatures, 'dashboards-top-level-filter'],
+      });
+
+      await screen.findByText('90D');
+      expect(screen.getByTestId('page-filter-timerange-selector')).toBeDisabled();
+      expect(screen.getByTestId('page-filter-environment-selector')).toBeDisabled();
+      expect(screen.getByTestId('page-filter-project-selector-loading')).toBeDisabled();
+
+      await waitFor(() => {
+        expect(mockReleases).toHaveBeenCalled();
+      });
+
+      expect(screen.getByRole('button', {name: /all releases/i})).toBeDisabled();
     });
 
     it('does not error when query conditions field is blurred', async function () {
@@ -1096,13 +1095,7 @@ describe('WidgetBuilder', function () {
         ],
       };
 
-      const dashboard: DashboardDetails = {
-        id: '1',
-        title: 'Dashboard',
-        createdBy: undefined,
-        dateCreated: '2020-01-01T00:00:00.000Z',
-        widgets: [widget],
-      };
+      const dashboard = mockDashboard({widgets: [widget]});
 
       const handleSave = jest.fn();
 
@@ -1379,13 +1372,7 @@ describe('WidgetBuilder', function () {
           ],
         };
 
-        const dashboard: DashboardDetails = {
-          id: '1',
-          title: 'Dashboard',
-          createdBy: undefined,
-          dateCreated: '2020-01-01T00:00:00.000Z',
-          widgets: [widget],
-        };
+        const dashboard = mockDashboard({widgets: [widget]});
 
         renderTestComponent({
           orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
@@ -1439,13 +1426,7 @@ describe('WidgetBuilder', function () {
           ],
         };
 
-        const dashboard: DashboardDetails = {
-          id: '1',
-          title: 'Dashboard',
-          createdBy: undefined,
-          dateCreated: '2020-01-01T00:00:00.000Z',
-          widgets: [widget],
-        };
+        const dashboard = mockDashboard({widgets: [widget]});
 
         renderTestComponent({
           orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
@@ -1490,13 +1471,7 @@ describe('WidgetBuilder', function () {
           ],
         };
 
-        const dashboard: DashboardDetails = {
-          id: '1',
-          title: 'Dashboard',
-          createdBy: undefined,
-          dateCreated: '2020-01-01T00:00:00.000Z',
-          widgets: [widget],
-        };
+        const dashboard = mockDashboard({widgets: [widget]});
 
         renderTestComponent({
           orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
@@ -1720,13 +1695,7 @@ describe('WidgetBuilder', function () {
           ],
         };
 
-        const dashboard: DashboardDetails = {
-          id: '1',
-          title: 'Dashboard',
-          createdBy: undefined,
-          dateCreated: '2020-01-01T00:00:00.000Z',
-          widgets: [widget],
-        };
+        const dashboard = mockDashboard({widgets: [widget]});
         renderTestComponent({
           orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
           query: {
@@ -1907,13 +1876,7 @@ describe('WidgetBuilder', function () {
             ],
           };
 
-          const dashboard: DashboardDetails = {
-            id: '1',
-            title: 'Dashboard',
-            createdBy: undefined,
-            dateCreated: '2020-01-01T00:00:00.000Z',
-            widgets: [widget],
-          };
+          const dashboard = mockDashboard({widgets: [widget]});
 
           renderTestComponent({
             orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
@@ -1945,13 +1908,7 @@ describe('WidgetBuilder', function () {
           ],
         };
 
-        const dashboard: DashboardDetails = {
-          id: '1',
-          title: 'Dashboard',
-          createdBy: undefined,
-          dateCreated: '2020-01-01T00:00:00.000Z',
-          widgets: [widget],
-        };
+        const dashboard = mockDashboard({widgets: [widget]});
 
         renderTestComponent({
           orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
@@ -2038,13 +1995,7 @@ describe('WidgetBuilder', function () {
           ],
         };
 
-        const dashboard: DashboardDetails = {
-          id: '1',
-          title: 'Dashboard',
-          createdBy: undefined,
-          dateCreated: '2020-01-01T00:00:00.000Z',
-          widgets: [widget],
-        };
+        const dashboard = mockDashboard({widgets: [widget]});
 
         renderTestComponent({
           dashboard,
@@ -2216,13 +2167,7 @@ describe('WidgetBuilder', function () {
         ],
       };
 
-      const dashboard: DashboardDetails = {
-        id: '1',
-        title: 'Dashboard',
-        createdBy: undefined,
-        dateCreated: '2020-01-01T00:00:00.000Z',
-        widgets: [widget],
-      };
+      const dashboard = mockDashboard({widgets: [widget]});
 
       renderTestComponent({
         orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
@@ -2782,13 +2727,7 @@ describe('WidgetBuilder', function () {
           id: '1',
         };
 
-        const dashboard: DashboardDetails = {
-          id: '1',
-          title: 'Dashboard',
-          createdBy: undefined,
-          dateCreated: '2020-01-01T00:00:00.000Z',
-          widgets: [widget],
-        };
+        const dashboard = mockDashboard({widgets: [widget]});
 
         renderTestComponent({
           orgFeatures: releaseHealthFeatureFlags,
@@ -2843,7 +2782,7 @@ describe('WidgetBuilder', function () {
         );
 
         await waitFor(() => {
-          expect(screen.getByText('No items found')).toBeInTheDocument();
+          expect(screen.getByText("isn't supported here.")).toBeInTheDocument();
         });
 
         userEvent.click(screen.getByText('Releases (sessions, crash rates)'));
@@ -2852,9 +2791,9 @@ describe('WidgetBuilder', function () {
             'Search for release version, session status, and more'
           )
         );
-        expect(await screen.findByText('environment:')).toBeInTheDocument();
-        expect(screen.getByText('project:')).toBeInTheDocument();
-        expect(screen.getByText('release:')).toBeInTheDocument();
+        expect(await screen.findByText('environment')).toBeInTheDocument();
+        expect(screen.getByText('project')).toBeInTheDocument();
+        expect(screen.getByText('release')).toBeInTheDocument();
       });
 
       it('adds a function when the only column chosen in a table is a tag', async function () {
@@ -3110,13 +3049,7 @@ describe('WidgetBuilder', function () {
           id: '1',
         };
 
-        const dashboard: DashboardDetails = {
-          id: '1',
-          title: 'Dashboard',
-          createdBy: undefined,
-          dateCreated: '2020-01-01T00:00:00.000Z',
-          widgets: [widget],
-        };
+        const dashboard = mockDashboard({widgets: [widget]});
 
         renderTestComponent({
           dashboard,
@@ -3159,13 +3092,7 @@ describe('WidgetBuilder', function () {
           limit: 1,
         };
 
-        const dashboard: DashboardDetails = {
-          id: '1',
-          title: 'Dashboard',
-          createdBy: undefined,
-          dateCreated: '2020-01-01T00:00:00.000Z',
-          widgets: [widget],
-        };
+        const dashboard = mockDashboard({widgets: [widget]});
 
         renderTestComponent({
           dashboard,
@@ -3208,13 +3135,7 @@ describe('WidgetBuilder', function () {
           limit: 1,
         };
 
-        const dashboard: DashboardDetails = {
-          id: '1',
-          title: 'Dashboard',
-          createdBy: undefined,
-          dateCreated: '2020-01-01T00:00:00.000Z',
-          widgets: [widget],
-        };
+        const dashboard = mockDashboard({widgets: [widget]});
 
         renderTestComponent({
           dashboard,
@@ -3298,13 +3219,7 @@ describe('WidgetBuilder', function () {
           ],
         };
 
-        const dashboard: DashboardDetails = {
-          id: '1',
-          title: 'Dashboard',
-          createdBy: undefined,
-          dateCreated: '2020-01-01T00:00:00.000Z',
-          widgets: [widget],
-        };
+        const dashboard = mockDashboard({widgets: [widget]});
 
         renderTestComponent({
           orgFeatures: [
@@ -3536,6 +3451,38 @@ describe('WidgetBuilder', function () {
 
         screen.getByText('You have inputs that are incompatible with');
         expect(screen.getByText('Add Widget').closest('button')).toBeDisabled();
+      });
+
+      it('only displays custom measurements in supported functions', async function () {
+        measurementsMetaMock = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/measurements-meta/',
+          method: 'GET',
+          body: {
+            'measurements.custom.measurement': {functions: ['p99']},
+            'measurements.another.custom.measurement': {functions: ['p95']},
+          },
+        });
+
+        renderTestComponent({
+          query: {source: DashboardWidgetSource.DISCOVERV2},
+          dashboard: testDashboard,
+          orgFeatures: [...defaultOrgFeatures, 'discover-frontend-use-events-endpoint'],
+        });
+
+        expect(await screen.findAllByText('Custom Widget')).toHaveLength(2);
+
+        await selectEvent.select(screen.getAllByText('count()')[1], ['p99(…)']);
+        userEvent.click(screen.getByText('transaction.duration'));
+        screen.getByText('measurements.custom.measurement');
+        expect(
+          screen.queryByText('measurements.another.custom.measurement')
+        ).not.toBeInTheDocument();
+        await selectEvent.select(screen.getAllByText('p99(…)')[0], ['p95(…)']);
+        userEvent.click(screen.getByText('transaction.duration'));
+        screen.getByText('measurements.another.custom.measurement');
+        expect(
+          screen.queryByText('measurements.custom.measurement')
+        ).not.toBeInTheDocument();
       });
     });
   });

@@ -13,11 +13,12 @@ logger = logging.getLogger(__name__)
 
 
 def create_snuba_query(
-    dataset, query, aggregate, time_window, resolution, environment, event_types=None
+    query_type, dataset, query, aggregate, time_window, resolution, environment, event_types=None
 ):
     """
     Creates a SnubaQuery.
 
+    :param query_type: The SnubaQuery.Type of this query
     :param dataset: The snuba dataset to query and aggregate over
     :param query: An event search query that we can parse and convert into a
     set of Snuba conditions
@@ -30,6 +31,7 @@ def create_snuba_query(
     :return: A list of QuerySubscriptions
     """
     snuba_query = SnubaQuery.objects.create(
+        type=query_type.value,
         dataset=dataset.value,
         query=query,
         aggregate=aggregate,
@@ -53,12 +55,21 @@ def create_snuba_query(
 
 
 def update_snuba_query(
-    snuba_query, dataset, query, aggregate, time_window, resolution, environment, event_types
+    snuba_query,
+    query_type,
+    dataset,
+    query,
+    aggregate,
+    time_window,
+    resolution,
+    environment,
+    event_types,
 ):
     """
     Updates a SnubaQuery. Triggers updates to any related QuerySubscriptions.
 
     :param snuba_query: The `SnubaQuery` to update.
+    :param query_type: The SnubaQuery.Type of this query
     :param dataset: The snuba dataset to query and aggregate over
     :param query: An event search query that we can parse and convert into a
     set of Snuba conditions
@@ -76,10 +87,12 @@ def update_snuba_query(
 
     new_event_types = set(event_types) - current_event_types
     removed_event_types = current_event_types - set(event_types)
+    old_query_type = SnubaQuery.Type(snuba_query.type)
     old_dataset = QueryDatasets(snuba_query.dataset)
     with transaction.atomic():
         query_subscriptions = list(snuba_query.subscriptions.all())
         snuba_query.update(
+            type=query_type.value,
             dataset=dataset.value,
             query=query,
             aggregate=aggregate,
@@ -99,7 +112,7 @@ def update_snuba_query(
                 snuba_query=snuba_query, type__in=[et.value for et in removed_event_types]
             ).delete()
 
-        bulk_update_snuba_subscriptions(query_subscriptions, old_dataset)
+        bulk_update_snuba_subscriptions(query_subscriptions, old_query_type, old_dataset)
 
 
 def bulk_create_snuba_subscriptions(projects, subscription_type, snuba_query):
@@ -142,7 +155,7 @@ def create_snuba_subscription(project, subscription_type, snuba_query):
     return subscription
 
 
-def bulk_update_snuba_subscriptions(subscriptions, old_dataset):
+def bulk_update_snuba_subscriptions(subscriptions, old_query_type, old_dataset):
     """
     Updates a list of query subscriptions.
 
@@ -153,11 +166,13 @@ def bulk_update_snuba_subscriptions(subscriptions, old_dataset):
     updated_subscriptions = []
     # TODO: Batch this up properly once we care about multi-project rules.
     for subscription in subscriptions:
-        updated_subscriptions.append(update_snuba_subscription(subscription, old_dataset))
+        updated_subscriptions.append(
+            update_snuba_subscription(subscription, old_query_type, old_dataset)
+        )
     return subscriptions
 
 
-def update_snuba_subscription(subscription, old_dataset):
+def update_snuba_subscription(subscription, old_query_type, old_dataset):
     """
     Updates a subscription to a snuba query.
 
@@ -171,7 +186,11 @@ def update_snuba_subscription(subscription, old_dataset):
         subscription.update(status=QuerySubscription.Status.UPDATING.value)
 
         update_subscription_in_snuba.apply_async(
-            kwargs={"query_subscription_id": subscription.id, "old_dataset": old_dataset.value},
+            kwargs={
+                "query_subscription_id": subscription.id,
+                "old_query_type": old_query_type.value,
+                "old_dataset": old_dataset.value,
+            },
             countdown=5,
         )
 

@@ -180,7 +180,10 @@ class ReleaseIssues extends Component<Props, State> {
           path: `/organizations/${organization.slug}/issues/`,
           queryParams: {
             ...queryParams,
-            query: new MutableSearch([`${IssuesQuery.ALL}:${version}`]).formatString(),
+            query: new MutableSearch([
+              `${IssuesQuery.ALL}:${version}`,
+              'is:unresolved',
+            ]).formatString(),
           },
         };
       case IssuesType.RESOLVED:
@@ -198,6 +201,7 @@ class ReleaseIssues extends Component<Props, State> {
             query: new MutableSearch([
               `${IssuesQuery.ALL}:${version}`,
               IssuesQuery.UNHANDLED,
+              'is:unresolved',
             ]).formatString(),
           },
         };
@@ -217,7 +221,10 @@ class ReleaseIssues extends Component<Props, State> {
           path: `/organizations/${organization.slug}/issues/`,
           queryParams: {
             ...queryParams,
-            query: new MutableSearch([`${IssuesQuery.NEW}:${version}`]).formatString(),
+            query: new MutableSearch([
+              `${IssuesQuery.NEW}:${version}`,
+              'is:unresolved',
+            ]).formatString(),
           },
         };
     }
@@ -237,12 +244,13 @@ class ReleaseIssues extends Component<Props, State> {
       ]).then(([issueResponse, resolvedResponse]) => {
         this.setState({
           count: {
-            all: issueResponse[`${IssuesQuery.ALL}:"${version}"`] || 0,
-            new: issueResponse[`${IssuesQuery.NEW}:"${version}"`] || 0,
+            all: issueResponse[`${IssuesQuery.ALL}:"${version}" is:unresolved`] || 0,
+            new: issueResponse[`${IssuesQuery.NEW}:"${version}" is:unresolved`] || 0,
             resolved: resolvedResponse.length,
             unhandled:
-              issueResponse[`${IssuesQuery.UNHANDLED} ${IssuesQuery.ALL}:"${version}"`] ||
-              0,
+              issueResponse[
+                `${IssuesQuery.UNHANDLED} ${IssuesQuery.ALL}:"${version}" is:unresolved`
+              ] || 0,
             regressed: issueResponse[`${IssuesQuery.REGRESSED}:"${version}"`] || 0,
           },
         });
@@ -257,9 +265,9 @@ class ReleaseIssues extends Component<Props, State> {
     const issuesCountPath = `/organizations/${organization.slug}/issues-count/`;
 
     const params = [
-      `${IssuesQuery.NEW}:"${version}"`,
-      `${IssuesQuery.ALL}:"${version}"`,
-      `${IssuesQuery.UNHANDLED} ${IssuesQuery.ALL}:"${version}"`,
+      `${IssuesQuery.NEW}:"${version}" is:unresolved`,
+      `${IssuesQuery.ALL}:"${version}" is:unresolved`,
+      `${IssuesQuery.UNHANDLED} ${IssuesQuery.ALL}:"${version}" is:unresolved`,
       `${IssuesQuery.REGRESSED}:"${version}"`,
     ];
     const queryParams = params.map(param => param);

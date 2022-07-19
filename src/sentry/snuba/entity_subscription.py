@@ -23,6 +23,7 @@ from snuba_sdk import Column, Condition, Op
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS, CRASH_RATE_ALERT_SESSION_COUNT_ALIAS
 from sentry.exceptions import InvalidQuerySubscription, UnsupportedQuerySubscription
 from sentry.models import Environment
+from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.utils import (
     MetricIndexNotFound,
     resolve,
@@ -33,7 +34,7 @@ from sentry.sentry_metrics.utils import (
 )
 from sentry.snuba.dataset import EntityKey
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
-from sentry.snuba.models import QueryDatasets, SnubaQueryEventType
+from sentry.snuba.models import QueryDatasets, SnubaQuery, SnubaQueryEventType
 from sentry.utils import metrics
 from sentry.utils.snuba import Dataset
 
@@ -44,14 +45,17 @@ if TYPE_CHECKING:
 # TODO: If we want to support security events here we'll need a way to
 # differentiate within the dataset. For now we can just assume all subscriptions
 # created within this dataset are just for errors.
-DATASET_CONDITIONS: Mapping[QueryDatasets, str] = {
-    QueryDatasets.EVENTS: "event.type:error",
-    QueryDatasets.TRANSACTIONS: "event.type:transaction",
+QUERY_TYPE_CONDITIONS: Mapping[SnubaQuery.Type, str] = {
+    SnubaQuery.Type.ERROR: "event.type:error",
+    SnubaQuery.Type.PERFORMANCE: "event.type:transaction",
 }
 ENTITY_TIME_COLUMNS: Mapping[EntityKey, str] = {
     EntityKey.Events: "timestamp",
     EntityKey.Sessions: "started",
     EntityKey.Transactions: "finish_ts",
+    EntityKey.GenericMetricsCounters: "timestamp",
+    EntityKey.GenericMetricsDistributions: "timestamp",
+    EntityKey.GenericMetricsSets: "timestamp",
     EntityKey.MetricsCounters: "timestamp",
     EntityKey.MetricsSets: "timestamp",
 }
@@ -70,7 +74,7 @@ ALERT_BLOCKED_FIELDS = {
 
 
 def apply_dataset_query_conditions(
-    dataset: QueryDatasets,
+    query_type: SnubaQuery.Type,
     query: str,
     event_types: Optional[List[SnubaQueryEventType]],
     discover: bool = False,
@@ -87,15 +91,15 @@ def apply_dataset_query_conditions(
     differentiate between errors and transactions, but the TRANSACTIONS dataset doesn't
     need it specified, and `event.type` ends up becoming a tag search.
     """
-    if not discover and dataset == QueryDatasets.TRANSACTIONS:
+    if not discover and query_type == SnubaQuery.Type.PERFORMANCE:
         return query
 
     if event_types:
         event_type_conditions = " OR ".join(
             f"event.type:{event_type.name.lower()}" for event_type in event_types
         )
-    elif dataset in DATASET_CONDITIONS:
-        event_type_conditions = DATASET_CONDITIONS[dataset]
+    elif query_type in QUERY_TYPE_CONDITIONS:
+        event_type_conditions = QUERY_TYPE_CONDITIONS[query_type]
     else:
         return query
 
@@ -112,9 +116,8 @@ class _EntitySpecificParams(TypedDict, total=False):
 
 @dataclass
 class _EntitySubscription:
-    entity_key: EntityKey
+    query_type: SnubaQuery.Type
     dataset: QueryDatasets
-    time_col: str
 
 
 class BaseEntitySubscription(ABC, _EntitySubscription):
@@ -128,7 +131,7 @@ class BaseEntitySubscription(ABC, _EntitySubscription):
     def __init__(
         self, aggregate: str, time_window: int, extra_fields: Optional[_EntitySpecificParams] = None
     ):
-        self.time_col = ENTITY_TIME_COLUMNS[self.entity_key]
+        pass
 
     @abstractmethod
     def get_entity_extra_params(self) -> Mapping[str, Any]:
@@ -178,7 +181,7 @@ class BaseEventsAndTransactionEntitySubscription(BaseEntitySubscription, ABC):
 
         params["project_id"] = project_ids
 
-        query = apply_dataset_query_conditions(QueryDatasets(self.dataset), query, self.event_types)
+        query = apply_dataset_query_conditions(self.query_type, query, self.event_types)
         if environment:
             params["environment"] = environment.name
 
@@ -203,18 +206,18 @@ class BaseEventsAndTransactionEntitySubscription(BaseEntitySubscription, ABC):
 
 
 class EventsEntitySubscription(BaseEventsAndTransactionEntitySubscription):
+    query_type = SnubaQuery.Type.ERROR
     dataset = QueryDatasets.EVENTS
-    entity_key = EntityKey.Events
 
 
-class TransactionsEntitySubscription(BaseEventsAndTransactionEntitySubscription):
+class PerformanceTransactionsEntitySubscription(BaseEventsAndTransactionEntitySubscription):
+    query_type = SnubaQuery.Type.PERFORMANCE
     dataset = QueryDatasets.TRANSACTIONS
-    entity_key = EntityKey.Transactions
 
 
 class SessionsEntitySubscription(BaseEntitySubscription):
+    query_type = SnubaQuery.Type.CRASH_RATE
     dataset = QueryDatasets.SESSIONS
-    entity_key = EntityKey.Sessions
 
     def __init__(
         self, aggregate: str, time_window: int, extra_fields: Optional[_EntitySpecificParams] = None
@@ -288,10 +291,6 @@ class SessionsEntitySubscription(BaseEntitySubscription):
 
 
 class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
-    dataset = QueryDatasets.METRICS
-    entity_key: EntityKey
-    metric_key: SessionMRI
-
     def __init__(
         self, aggregate: str, time_window: int, extra_fields: Optional[_EntitySpecificParams] = None
     ):
@@ -303,7 +302,6 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
                 "building snuba filter for a metrics subscription"
             )
         self.org_id = extra_fields["org_id"]
-        self.session_status = resolve_tag_key(self.org_id, "session.status")
         self.time_window = time_window
 
     @abstractmethod
@@ -313,6 +311,95 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
     @abstractmethod
     def get_snql_extra_conditions(self) -> List[Condition]:
         raise NotImplementedError
+
+    @abstractmethod
+    def get_granularity(self) -> int:
+        pass
+
+    def get_entity_extra_params(self) -> Mapping[str, Any]:
+        return {
+            "organization": self.org_id,
+            "granularity": self.get_granularity(),
+        }
+
+    def build_query_builder(
+        self,
+        query: str,
+        project_ids: Sequence[int],
+        environment: Optional[Environment],
+        params: Optional[MutableMapping[str, Any]] = None,
+    ) -> QueryBuilder:
+        from sentry.search.events.builder import AlertMetricsQueryBuilder
+
+        if params is None:
+            params = {}
+
+        query = apply_dataset_query_conditions(self.query_type, query, None)
+
+        params["project_id"] = project_ids
+        qb = AlertMetricsQueryBuilder(
+            dataset=Dataset(self.dataset.value),
+            query=query,
+            selected_columns=self.get_snql_aggregations(),
+            params=params,
+            offset=None,
+            skip_time_conditions=True,
+            granularity=self.get_granularity(),
+        )
+        extra_conditions = self.get_snql_extra_conditions()
+        if environment:
+            extra_conditions.append(
+                Condition(
+                    Column(resolve_tag_key(UseCaseKey.RELEASE_HEALTH, self.org_id, "environment")),
+                    Op.EQ,
+                    resolve_weak(UseCaseKey.RELEASE_HEALTH, self.org_id, environment.name),
+                )
+            )
+        qb.add_conditions(extra_conditions)
+
+        return qb
+
+
+class PerformanceMetricsEntitySubscription(BaseMetricsEntitySubscription):
+    query_type = SnubaQuery.Type.PERFORMANCE
+    dataset = QueryDatasets.PERFORMANCE_METRICS
+
+    def get_snql_aggregations(self) -> List[str]:
+        return [self.aggregate]
+
+    def get_snql_extra_conditions(self) -> List[Condition]:
+        return []
+
+    def aggregate_query_results(
+        self, data: List[Dict[str, Any]], alias: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
+        return data
+
+    def get_granularity(self) -> int:
+        # Both time_window and granularity are in seconds
+        # Time windows <= 1h -> Granularity 60s
+        # Time windows > 1h and <= 24h -> Granularity 1 hour
+        # Time windows > 24h -> Granularity 1 day
+        if self.time_window <= 3600:
+            return 60
+        elif 3600 < self.time_window <= 24 * 3600:
+            return 3600
+        else:
+            return 24 * 3600
+
+
+class BaseCrashRateMetricsEntitySubscription(BaseMetricsEntitySubscription):
+    query_type = SnubaQuery.Type.CRASH_RATE
+    dataset = QueryDatasets.METRICS
+    metric_key: SessionMRI
+
+    def __init__(
+        self, aggregate: str, time_window: int, extra_fields: Optional[_EntitySpecificParams] = None
+    ):
+        super().__init__(aggregate, time_window, extra_fields)
+        self.session_status = resolve_tag_key(
+            UseCaseKey.RELEASE_HEALTH, self.org_id, "session.status"
+        )
 
     def get_granularity(self) -> int:
         # Both time_window and granularity are in seconds
@@ -330,12 +417,6 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
             granularity = 24 * 3600
         return granularity
 
-    def get_entity_extra_params(self) -> Mapping[str, Any]:
-        return {
-            "organization": self.org_id,
-            "granularity": self.get_granularity(),
-        }
-
     @staticmethod
     def translate_sessions_tag_keys_and_values(
         data: List[Dict[str, Any]], org_id: int, alias: Optional[str] = None
@@ -343,9 +424,9 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
         value_col_name = alias if alias else "value"
         try:
             translated_data: Dict[str, Any] = {}
-            session_status = resolve_tag_key(org_id, "session.status")
+            session_status = resolve_tag_key(UseCaseKey.RELEASE_HEALTH, org_id, "session.status")
             for row in data:
-                tag_value = reverse_resolve(row[session_status])
+                tag_value = reverse_resolve(UseCaseKey.RELEASE_HEALTH, row[session_status])
                 translated_data[tag_value] = row[value_col_name]
 
             total_session_count = translated_data.get("init", 0)
@@ -427,46 +508,17 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
         aggregated_results = [{col_name: crash_free_rate}]
         return aggregated_results
 
-    def build_query_builder(
-        self,
-        query: str,
-        project_ids: Sequence[int],
-        environment: Optional[Environment],
-        params: Optional[MutableMapping[str, Any]] = None,
-    ) -> QueryBuilder:
-        from sentry.search.events.builder import AlertMetricsQueryBuilder
-
-        if params is None:
-            params = {}
-
-        params["project_id"] = project_ids
-        qb = AlertMetricsQueryBuilder(
-            query=query,
-            selected_columns=self.get_snql_aggregations(),
-            params=params,
-            offset=None,
-            skip_time_conditions=True,
-            granularity=self.get_granularity(),
-        )
-        extra_conditions = [
-            Condition(Column("metric_id"), Op.EQ, resolve(self.org_id, self.metric_key.value)),
-            *self.get_snql_extra_conditions(),
-        ]
-        if environment:
-            extra_conditions.append(
-                Condition(
-                    Column(resolve_tag_key(self.org_id, "environment")),
-                    Op.EQ,
-                    resolve_weak(self.org_id, environment.name),
-                )
+    def get_snql_extra_conditions(self) -> List[Condition]:
+        return [
+            Condition(
+                Column("metric_id"),
+                Op.EQ,
+                resolve(UseCaseKey.RELEASE_HEALTH, self.org_id, self.metric_key.value),
             )
-        qb.add_conditions(extra_conditions)
-
-        return qb
+        ]
 
 
-class MetricsCountersEntitySubscription(BaseMetricsEntitySubscription):
-    entity_key: EntityKey = EntityKey.MetricsCounters
+class MetricsCountersEntitySubscription(BaseCrashRateMetricsEntitySubscription):
     metric_key: SessionMRI = SessionMRI.SESSION
 
     def get_snql_aggregations(self) -> List[str]:
@@ -476,17 +528,18 @@ class MetricsCountersEntitySubscription(BaseMetricsEntitySubscription):
         ]
 
     def get_snql_extra_conditions(self) -> List[Condition]:
-        return [
+        extra_conditions = super().get_snql_extra_conditions()
+        extra_conditions.append(
             Condition(
                 Column(self.session_status),
                 Op.IN,
-                resolve_many_weak(self.org_id, ["crashed", "init"]),
-            ),
-        ]
+                resolve_many_weak(UseCaseKey.RELEASE_HEALTH, self.org_id, ["crashed", "init"]),
+            )
+        )
+        return extra_conditions
 
 
-class MetricsSetsEntitySubscription(BaseMetricsEntitySubscription):
-    entity_key: EntityKey = EntityKey.MetricsSets
+class MetricsSetsEntitySubscription(BaseCrashRateMetricsEntitySubscription):
     metric_key: SessionMRI = SessionMRI.USER
 
     def get_snql_aggregations(self) -> List[str]:
@@ -495,64 +548,96 @@ class MetricsSetsEntitySubscription(BaseMetricsEntitySubscription):
             "uniqIf(session.status, crashed) as crashed",
         ]
 
-    def get_snql_extra_conditions(self) -> List[Condition]:
-        return []
-
 
 EntitySubscription = Union[
     EventsEntitySubscription,
     MetricsCountersEntitySubscription,
     MetricsSetsEntitySubscription,
-    TransactionsEntitySubscription,
+    PerformanceTransactionsEntitySubscription,
+    PerformanceMetricsEntitySubscription,
     SessionsEntitySubscription,
 ]
-ENTITY_KEY_TO_ENTITY_SUBSCRIPTION: Mapping[EntityKey, Type[EntitySubscription]] = {
-    EntityKey.Events: EventsEntitySubscription,
-    EntityKey.MetricsCounters: MetricsCountersEntitySubscription,
-    EntityKey.MetricsSets: MetricsSetsEntitySubscription,
-    EntityKey.Sessions: SessionsEntitySubscription,
-    EntityKey.Transactions: TransactionsEntitySubscription,
-}
 
 
-def get_entity_subscription_for_dataset(
+def get_entity_subscription(
+    query_type: SnubaQuery.Type,
     dataset: QueryDatasets,
     aggregate: str,
     time_window: int,
     extra_fields: Optional[_EntitySpecificParams] = None,
 ) -> EntitySubscription:
     """
-    Function that routes to the correct instance of `EntitySubscription` based on the dataset,
-    additionally does validation on aggregate for datasets like the sessions dataset and the
-    metrics datasets then returns the instance of `EntitySubscription`
+    Function that routes to the correct instance of `EntitySubscription` based on the query type and
+    dataset, and additionally does validation on aggregate for the sessions and metrics datasets
+    then returns the instance of `EntitySubscription`
     """
-    return ENTITY_KEY_TO_ENTITY_SUBSCRIPTION[map_aggregate_to_entity_key(dataset, aggregate)](
-        aggregate, time_window, extra_fields
+    entity_subscription_cls: Optional[Type[EntitySubscription]] = None
+    if query_type == SnubaQuery.Type.ERROR:
+        entity_subscription_cls = EventsEntitySubscription
+    if query_type == SnubaQuery.Type.PERFORMANCE:
+        if dataset == QueryDatasets.TRANSACTIONS:
+            entity_subscription_cls = PerformanceTransactionsEntitySubscription
+        elif dataset in (QueryDatasets.METRICS, QueryDatasets.PERFORMANCE_METRICS):
+            entity_subscription_cls = PerformanceMetricsEntitySubscription
+    if query_type == SnubaQuery.Type.CRASH_RATE:
+        entity_key = determine_crash_rate_alert_entity(aggregate)
+        if dataset == QueryDatasets.METRICS:
+            if entity_key == EntityKey.MetricsCounters:
+                entity_subscription_cls = MetricsCountersEntitySubscription
+            if entity_key == EntityKey.MetricsSets:
+                entity_subscription_cls = MetricsSetsEntitySubscription
+        else:
+            entity_subscription_cls = SessionsEntitySubscription
+
+    if entity_subscription_cls is None:
+        raise UnsupportedQuerySubscription(
+            f"Couldn't determine entity subscription for query type {query_type} with dataset {dataset}"
+        )
+
+    return entity_subscription_cls(aggregate, time_window, extra_fields)
+
+
+def determine_crash_rate_alert_entity(aggregate: str) -> EntityKey:
+    match = re.match(CRASH_RATE_ALERT_AGGREGATE_RE, aggregate)
+    if not match:
+        raise UnsupportedQuerySubscription(
+            "Only crash free percentage queries are supported for crash rate alerts"
+        )
+    count_col_matched = match.group(2)
+    return EntityKey.MetricsCounters if count_col_matched == "sessions" else EntityKey.MetricsSets
+
+
+def get_entity_key_from_query_builder(query_builder: QueryBuilder) -> EntityKey:
+    return EntityKey(query_builder.get_snql_query().query.match.name)
+
+
+def get_entity_subscription_from_snuba_query(
+    snuba_query: SnubaQuery, organization_id: int
+) -> EntitySubscription:
+    query_dataset = QueryDatasets(snuba_query.dataset)
+    return get_entity_subscription(
+        SnubaQuery.Type(snuba_query.type),
+        query_dataset,
+        snuba_query.aggregate,
+        snuba_query.time_window,
+        extra_fields={
+            "org_id": organization_id,
+            "event_types": snuba_query.event_types,
+        },
     )
 
 
-def map_aggregate_to_entity_key(dataset: QueryDatasets, aggregate: str) -> EntityKey:
-    if dataset == QueryDatasets.EVENTS:
-        entity_key = EntityKey.Events
-    elif dataset == QueryDatasets.TRANSACTIONS:
-        entity_key = EntityKey.Transactions
-    elif dataset in [QueryDatasets.METRICS, QueryDatasets.SESSIONS]:
-        match = re.match(CRASH_RATE_ALERT_AGGREGATE_RE, aggregate)
-        if not match:
-            raise UnsupportedQuerySubscription(
-                f"Only crash free percentage queries are supported for subscriptions"
-                f"over the {dataset.value} dataset"
-            )
-        if dataset == QueryDatasets.METRICS:
-            count_col_matched = match.group(2)
-            if count_col_matched == "sessions":
-                entity_key = EntityKey.MetricsCounters
-            else:
-                entity_key = EntityKey.MetricsSets
-        else:
-            entity_key = EntityKey.Sessions
-    else:
-        raise UnsupportedQuerySubscription(
-            f"{dataset} dataset does not have an entity key mapped to it"
-        )
-    return entity_key
+def get_entity_key_from_snuba_query(
+    snuba_query: SnubaQuery, organization_id: int, project_id: int
+) -> EntityKey:
+    entity_subscription = get_entity_subscription_from_snuba_query(
+        snuba_query,
+        organization_id,
+    )
+    query_builder = entity_subscription.build_query_builder(
+        snuba_query.query,
+        [project_id],
+        None,
+        {"organization_id": organization_id},
+    )
+    return get_entity_key_from_query_builder(query_builder)

@@ -49,7 +49,7 @@ type ReplayPlayerContextProps = {
   dimensions: Dimensions;
 
   /**
-   * Duration of the video, in miliseconds
+   * Duration of the video, in milliseconds
    */
   duration: undefined | number;
 
@@ -156,7 +156,7 @@ const ReplayPlayerContext = React.createContext<ReplayPlayerContextProps>({
   isBuffering: false,
   isFinished: false,
   isPlaying: false,
-  isSkippingInactive: false,
+  isSkippingInactive: true,
   removeHighlight: () => {},
   replay: null,
   restart: () => {},
@@ -201,7 +201,7 @@ export function Provider({children, replay, initialTimeOffset = 0, value = {}}: 
   const [currentHoverTime, setCurrentHoverTime] = useState<undefined | number>();
   const [isPlaying, setIsPlaying] = useState(false);
   const [finishedAtMS, setFinishedAtMS] = useState<number>(-1);
-  const [isSkippingInactive, setIsSkippingInactive] = useState(false);
+  const [isSkippingInactive, setIsSkippingInactive] = useState(true);
   const [speed, setSpeedState] = useState(1);
   const [fastForwardSpeed, setFFSpeed] = useState(0);
   const [buffer, setBufferTime] = useState({target: -1, previous: -1});
@@ -296,6 +296,7 @@ export function Provider({children, replay, initialTimeOffset = 0, value = {}}: 
         },
         // unpackFn: _ => _,
         plugins: [highlightReplayPlugin],
+        skipInactive: true,
       });
 
       // @ts-expect-error: rrweb types event handlers with `unknown` parameters

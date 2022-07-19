@@ -10,6 +10,7 @@ import {
   getMockData,
   mockedProjects,
   mockedSamplingSdkVersions,
+  recommendedSdkUpgrades,
   uniformRule,
 } from '../utils';
 
@@ -31,16 +32,11 @@ describe('Server-side Sampling - Recommended Steps Modal', function () {
       <RecommendedStepsModal
         {...modalProps}
         organization={organization}
-        project={project}
-        recommendedSdkUpgrades={[
-          {
-            project: mockedProjects[1],
-            latestSDKName: mockedSamplingSdkVersions[1].latestSDKName,
-            latestSDKVersion: mockedSamplingSdkVersions[1].latestSDKVersion,
-          },
-        ]}
+        projectId={project.id}
+        recommendedSdkUpgrades={recommendedSdkUpgrades}
+        onReadDocs={jest.fn()}
         onSubmit={jest.fn()}
-        clientSampleRate={50}
+        clientSampleRate={0.5}
       />
     ));
 
@@ -115,9 +111,10 @@ describe('Server-side Sampling - Recommended Steps Modal', function () {
       <RecommendedStepsModal
         {...modalProps}
         organization={organization}
-        project={project}
+        projectId={project.id}
         recommendedSdkUpgrades={[]}
         onSubmit={jest.fn()}
+        onReadDocs={jest.fn()}
         clientSampleRate={uniformRule.sampleRate}
       />
     ));
@@ -142,10 +139,11 @@ describe('Server-side Sampling - Recommended Steps Modal', function () {
       <RecommendedStepsModal
         {...modalProps}
         organization={organization}
-        project={project}
+        projectId={project.id}
         recommendedSdkUpgrades={[]}
         onGoBack={onGoBack}
         onSubmit={jest.fn()}
+        onReadDocs={jest.fn()}
         clientSampleRate={uniformRule.sampleRate}
       />
     ));
