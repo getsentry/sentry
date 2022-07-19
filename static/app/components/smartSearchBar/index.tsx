@@ -928,7 +928,7 @@ class SmartSearchBar extends Component<Props, State> {
    * Returns array of possible key values that substring match `query`
    */
   getTagKeys(query: string): [SearchItem[], ItemType] {
-    const {prepareQuery, supportedTagType, getFieldDoc} = this.props;
+    const {prepareQuery, supportedTagType} = this.props;
 
     const supportedTags = this.props.supportedTags ?? {};
 
@@ -946,7 +946,7 @@ class SmartSearchBar extends Component<Props, State> {
       tagKeys = tagKeys.filter(key => key !== 'environment');
     }
 
-    const tagItems = getTagItemsFromKeys(tagKeys, supportedTags, getFieldDoc);
+    const tagItems = getTagItemsFromKeys(tagKeys, supportedTags);
 
     return [tagItems, supportedTagType ?? ItemType.TAG_KEY];
   }
