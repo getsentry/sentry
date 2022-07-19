@@ -51,6 +51,7 @@ import {projectProcessingIssuesMessages} from 'sentry/views/settings/project/pro
 import findBestThread from './interfaces/threads/threadSelector/findBestThread';
 import getThreadException from './interfaces/threads/threadSelector/getThreadException';
 import EventEntry from './eventEntry';
+import EventReplay from './eventReplay';
 import EventTagsAndScreenshot from './eventTagsAndScreenshot';
 
 const MINIFIED_DATA_JAVA_EVENT_REGEX_MATCH =
@@ -100,6 +101,7 @@ const EventEntries = memo(
     const orgFeatures = organization?.features ?? [];
 
     const hasEventAttachmentsFeature = orgFeatures.includes('event-attachments');
+    const replayId = event?.tags.find(({key}) => key === 'replayId')?.value;
 
     useEffect(() => {
       checkProGuardError();
@@ -431,7 +433,7 @@ const EventEntries = memo(
             showGroupingConfig={orgFeatures.includes('set-grouping-config')}
           />
         )}
-        {!isShare && hasEventAttachmentsFeature && (
+        {!isShare && !replayId && hasEventAttachmentsFeature && (
           <RRWebIntegration
             event={event}
             orgId={orgSlug}
@@ -442,6 +444,9 @@ const EventEntries = memo(
               </StyledReplayEventDataSection>
             )}
           />
+        )}
+        {replayId && (
+          <EventReplay replayId={replayId} orgSlug={orgSlug} projectSlug={projectSlug} />
         )}
       </div>
     );
