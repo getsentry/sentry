@@ -103,7 +103,7 @@ describe('Server-side Sampling - Uniform Rate Modal', function () {
     expect(trackAdvancedAnalyticsEvent).toHaveBeenCalledWith(
       'sampling.settings.modal.uniform.rate_read_docs',
       expect.objectContaining({
-        organization: organization.slug,
+        organization: organization,
         project_id: project.id,
       })
     );
@@ -114,7 +114,7 @@ describe('Server-side Sampling - Uniform Rate Modal', function () {
     expect(trackAdvancedAnalyticsEvent).toHaveBeenCalledWith(
       'sampling.settings.modal.uniform.rate_next',
       expect.objectContaining({
-        organization: organization.slug,
+        organization: organization,
         project_id: project.id,
       })
     );
@@ -149,7 +149,7 @@ describe('Server-side Sampling - Uniform Rate Modal', function () {
     expect(trackAdvancedAnalyticsEvent).toHaveBeenCalledWith(
       'sampling.settings.modal.uniform.rate_switch_current',
       expect.objectContaining({
-        organization: organization.slug,
+        organization: organization,
         project_id: project.id,
       })
     );
@@ -170,7 +170,7 @@ describe('Server-side Sampling - Uniform Rate Modal', function () {
     expect(trackAdvancedAnalyticsEvent).toHaveBeenCalledWith(
       'sampling.settings.modal.uniform.rate_switch_recommended',
       expect.objectContaining({
-        organization: organization.slug,
+        organization: organization,
         project_id: project.id,
       })
     );
@@ -213,11 +213,12 @@ describe('Server-side Sampling - Uniform Rate Modal', function () {
 
     // Cancel
     userEvent.click(await screen.findByRole('button', {name: 'Cancel'}));
+    await waitForElementToBeRemoved(() => screen.queryByLabelText('Cancel'));
 
     expect(trackAdvancedAnalyticsEvent).toHaveBeenCalledWith(
       'sampling.settings.modal.uniform.rate_cancel',
       expect.objectContaining({
-        organization: organization.slug,
+        organization: organization,
         project_id: project.id,
       })
     );
