@@ -259,7 +259,7 @@ function VitalDetailContent(props: Props) {
           eventView={eventView}
           organization={organization}
           title={WIDGET_DEFINITIONS({organization})[chartSetting].title}
-          titleTooltip="LCP is .."
+          titleTooltip={WIDGET_DEFINITIONS({organization})[chartSetting].titleTooltip}
           isVitalDetailView
         />
         <StyledVitalInfo>
