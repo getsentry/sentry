@@ -21,7 +21,7 @@ class OrganizationSentryFunctions(APITestCase):
             assert response.data["code"] == "baz"
             assert response.data["overview"] == "qux"
 
-    def test_post_feature_missing_params(self):
+    def test_post_missing_params(self):
         data = {"name": "foo", "overview": "qux"}
         with Feature("organizations:sentry-functions"):
             response = self.get_error_response(self.organization.slug, **data)
