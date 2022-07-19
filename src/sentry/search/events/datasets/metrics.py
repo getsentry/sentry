@@ -62,7 +62,7 @@ class MetricsDatasetConfig(DatasetConfig):
     def reflective_metric_type(self, index: Optional[int] = 0) -> Callable[[Any, Any], str]:
         """Return the type of the metric, default to duration
 
-        based on fields.reflective_result_type, but in this config since we need the _custom_measurement_cache
+        based on fields.reflective_result_type, but in this config since we need the custom_measurement_map
         """
 
         def result_type_fn(function_arguments: Any, parameter_values: Any) -> str:

@@ -25,6 +25,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         "good",
         "meh",
         "d:transactions/measurements.something_custom@millisecond",
+        "d:transactions/measurements.runtime@hour",
         "d:transactions/measurements.bytes_transfered@byte",
         "d:transactions/measurements.datacenter_memory@pebibyte",
     ]
@@ -1122,6 +1123,86 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert meta["units"]["p99(measurements.bytes_transfered)"] == "byte"
         assert meta["fields"]["max(measurements.datacenter_memory)"] == "size"
         assert meta["units"]["max(measurements.datacenter_memory)"] == "pebibyte"
+
+    def test_custom_measurement_size_filtering(self):
+        self.store_metric(
+            1,
+            metric="measurements.runtime",
+            internal_metric="d:transactions/measurements.runtime@hour",
+            entity="metrics_distributions",
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+        self.store_metric(
+            180,
+            metric="measurements.runtime",
+            internal_metric="d:transactions/measurements.runtime@hour",
+            entity="metrics_distributions",
+            tags={"transaction": "bar_transaction"},
+            timestamp=self.min_ago,
+        )
+
+        query = {
+            "project": [self.project.id],
+            "field": [
+                "transaction",
+                "max(measurements.runtime)",
+            ],
+            "query": "p50(measurements.runtime):>1wk",
+            "statsPeriod": "24h",
+            "dataset": "metricsEnhanced",
+            "per_page": 50,
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        data = response.data["data"]
+        meta = response.data["meta"]
+
+        assert data[0]["transaction"] == "bar_transaction"
+        assert data[0]["max(measurements.runtime)"] == 180
+        assert meta["isMetricsData"]
+
+    def test_custom_measurement_duration_filtering(self):
+        self.store_metric(
+            1,
+            metric="measurements.bytes_transfered",
+            internal_metric="d:transactions/measurements.datacenter_memory@pebibyte",
+            entity="metrics_distributions",
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+        self.store_metric(
+            100,
+            metric="measurements.bytes_transfered",
+            internal_metric="d:transactions/measurements.datacenter_memory@pebibyte",
+            entity="metrics_distributions",
+            tags={"transaction": "bar_transaction"},
+            timestamp=self.min_ago,
+        )
+
+        query = {
+            "project": [self.project.id],
+            "field": [
+                "transaction",
+                "max(measurements.datacenter_memory)",
+            ],
+            "query": "p50(measurements.datacenter_memory):>5pb",
+            "statsPeriod": "24h",
+            "dataset": "metricsEnhanced",
+            "per_page": 50,
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        data = response.data["data"]
+        meta = response.data["meta"]
+
+        assert data[0]["transaction"] == "bar_transaction"
+        assert data[0]["max(measurements.datacenter_memory)"] == 100
+        assert meta["isMetricsData"]
 
     def test_environment_param(self):
         self.create_environment(self.project, name="staging")

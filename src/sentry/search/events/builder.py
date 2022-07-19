@@ -40,12 +40,14 @@ from sentry.models.project import Project
 from sentry.search.events.constants import (
     ARRAY_FIELDS,
     DRY_RUN_COLUMNS,
+    DURATION_UNITS,
     EQUALITY_OPERATORS,
     METRICS_GRANULARITIES,
     METRICS_MAX_LIMIT,
     NO_CONVERSION_FIELDS,
     PROJECT_THRESHOLD_CONFIG_ALIAS,
     QUERY_TIPS,
+    SIZE_UNITS,
     TAG_KEY_RE,
     TIMESTAMP_FIELDS,
     TREND_FUNCTION_TYPE_MAP,
@@ -973,11 +975,14 @@ class QueryBuilder:
         else:
             return [operator(conditions=combined_conditions)]
 
+    def resolve_aggregate_value(self, aggregate_filter: AggregateFilter) -> SearchValue:
+        return aggregate_filter.value
+
     def convert_aggregate_filter_to_condition(
         self, aggregate_filter: AggregateFilter
     ) -> Optional[WhereType]:
         name = aggregate_filter.key.name
-        value = aggregate_filter.value.value
+        value = self.resolve_aggregate_value(aggregate_filter).value
 
         value = (
             int(to_timestamp(value))
@@ -1782,6 +1787,15 @@ class MetricsQueryBuilder(QueryBuilder):
         conditions = super().resolve_params()
         conditions.append(Condition(self.column("organization_id"), Op.EQ, self.organization_id))
         return conditions
+
+    def resolve_aggregate_value(self, aggregate_filter: AggregateFilter) -> SearchValue:
+        unit = self.get_function_result_type(aggregate_filter.key.name)
+        value = aggregate_filter.value.value
+        if unit in SIZE_UNITS:
+            return SearchValue(SIZE_UNITS[unit] * value)
+        elif unit in DURATION_UNITS:
+            return SearchValue(DURATION_UNITS[unit] * value)
+        return aggregate_filter.value
 
     def resolve_having(
         self, parsed_terms: ParsedTerms, use_aggregate_conditions: bool
