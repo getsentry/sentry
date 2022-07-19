@@ -1,5 +1,7 @@
 import {VitalsKey} from './types';
 
+export const VITALS_TYPES = ['FCP', 'LCP', 'appStartCold', 'appStartWarm'] as const;
+
 // these are industry standards determined by Google (https://web.dev/defining-core-web-vitals-thresholds/)
 export const INDUSTRY_STANDARDS: Record<VitalsKey, number> = {
   LCP: 2500,
@@ -15,3 +17,7 @@ export const SENTRY_CUSTOMERS: Record<VitalsKey, number> = {
   appStartCold: 2260,
   appStartWarm: 1900,
 };
+
+// an organization must have at least this many transactions
+// of the vital we want to show
+export const MIN_VITAL_COUNT_FOR_DISPLAY = 100;
