@@ -15,9 +15,8 @@ from sentry.charts.types import ChartSize, ChartType
 from sentry.incidents.logic import translate_aggregate_field
 from sentry.incidents.models import AlertRule, Incident, User
 from sentry.models import ApiKey, Organization
-from sentry.snuba.dataset import Dataset
 from sentry.snuba.entity_subscription import apply_dataset_query_conditions
-from sentry.snuba.models import SnubaQuery
+from sentry.snuba.models import QueryDatasets, SnubaQuery
 
 CRASH_FREE_SESSIONS = "percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate"
 CRASH_FREE_USERS = "percentage(users_crashed, users) AS _crash_rate_alert_aggregate"
@@ -157,8 +156,9 @@ def build_metric_alert_chart(
 ) -> Optional[str]:
     """Builds the dataset required for metric alert chart the same way the frontend would"""
     snuba_query: SnubaQuery = alert_rule.snuba_query
-    dataset = snuba_query.dataset
-    is_crash_free_alert = dataset in {Dataset.Sessions.value, Dataset.Metrics.value}
+    dataset = QueryDatasets(snuba_query.dataset)
+    query_type = SnubaQuery.Type(snuba_query.type)
+    is_crash_free_alert = query_type == SnubaQuery.Type.CRASH_RATE
     style = (
         ChartType.SLACK_METRIC_ALERT_SESSIONS
         if is_crash_free_alert
@@ -218,8 +218,13 @@ def build_metric_alert_chart(
             user,
         )
     else:
-        # TODO: We need to be explicit about the query type and dataset used on this endpoint once
-        # we enabled MEP alerts
+        if (
+            query_type == SnubaQuery.Type.PERFORMANCE
+            and dataset == QueryDatasets.PERFORMANCE_METRICS
+        ):
+            query_params["dataset"] = "metrics"
+        else:
+            query_params["dataset"] = "discover"
         chart_data["timeseriesData"] = fetch_metric_alert_events_timeseries(
             organization,
             aggregate,
@@ -228,8 +233,7 @@ def build_metric_alert_chart(
         )
 
     try:
-        url = generate_chart(style, chart_data, size=size)
-        return cast(str, url)
+        return cast(str, generate_chart(style, chart_data, size=size))
     except RuntimeError as exc:
         logger.error(
             f"Failed to generate chart for metric alert: {exc}",
