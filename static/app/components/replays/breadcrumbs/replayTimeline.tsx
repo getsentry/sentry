@@ -10,7 +10,7 @@ import {
 import ReplayTimelineEvents from 'sentry/components/replays/breadcrumbs/replayTimelineEvents';
 import ReplayTimelineSpans from 'sentry/components/replays/breadcrumbs/replayTimelineSpans';
 import Stacked from 'sentry/components/replays/breadcrumbs/stacked';
-import {TimelineScubber} from 'sentry/components/replays/player/scrubber';
+import {TimelineScrubber} from 'sentry/components/replays/player/scrubber';
 import ScrubberMouseTracking from 'sentry/components/replays/player/scrubberMouseTracking';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {Resizeable} from 'sentry/components/replays/resizeable';
@@ -49,7 +49,7 @@ function ReplayTimeline({}: Props) {
             <Stacked>
               <MinorGridlines duration={duration} width={width} />
               <MajorGridlines duration={duration} width={width} />
-              <TimelineScubber />
+              <TimelineScrubber />
               <UnderTimestamp paddingTop="52px">
                 <ReplayTimelineSpans
                   duration={duration}
