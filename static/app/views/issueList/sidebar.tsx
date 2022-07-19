@@ -7,8 +7,8 @@ import Input from 'sentry/components/forms/controls/input';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {
   joinQuery,
-  parseQuery,
   ParseResult,
+  parseSearch,
   Token,
   TokenResult,
 } from 'sentry/components/searchSyntax/parser';
@@ -66,7 +66,7 @@ class IssueListSidebar extends Component<Props, State> {
 
   onSelectTag = (tag: Tag, value: string | null) => {
     const parsedResult: TokenResult<Token.Filter>[] = (
-      parseQuery(`${tag.key}:${value}`) ?? []
+      parseSearch(`${tag.key}:${value}`) ?? []
     ).filter((p): p is TokenResult<Token.Filter> => p.type === Token.Filter);
     if (parsedResult.length !== 1 || parsedResult[0].type !== Token.Filter) {
       return;

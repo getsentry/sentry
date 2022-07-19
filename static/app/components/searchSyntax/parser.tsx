@@ -809,7 +809,7 @@ const options = {
  * Parse a search query into a ParseResult. Failing to parse the search query
  * will result in null.
  */
-export function parseQuery(query: string): ParseResult | null {
+export function parseSearch(query: string): ParseResult | null {
   try {
     return grammar.parse(query, options);
   } catch (e) {
@@ -821,7 +821,7 @@ export function parseQuery(query: string): ParseResult | null {
 
 /**
  * Join a parsed query array into a string.
- * Should handle null cases to chain easily with parseQuery.
+ * Should handle null cases to chain easily with parseSearch.
  * Option to add a leading space when applicable (e.g. to combine with other strings).
  * Option to add a space between elements (e.g. for when no Token.Spaces present).
  */

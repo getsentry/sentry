@@ -31,7 +31,7 @@ function isParen(token: Token, character: '(' | ')') {
 
 // TODO(epurkhiser): This is legacy from before the existence of
 // searchSyntax/parser. We should absolutely replace the internals of this API
-// with `parseQuery`.
+// with `parseSearch`.
 
 export class MutableSearch {
   tokens: Token[];
