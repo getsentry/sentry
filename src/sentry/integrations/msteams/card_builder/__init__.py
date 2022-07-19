@@ -263,16 +263,13 @@ def build_group_actions(group, event, rules, integration):
 
 def build_assignee_note(group):
     assignee = group.get_assignee()
-    if not assignee:
-        return None
+    if assignee:
+        assignee_text = format_actor_option(assignee)["text"]
 
-    assignee_text = format_actor_option(assignee)["text"]
-
-    return {
-        "type": "TextBlock",
-        "size": "Small",
-        "text": f"**Assigned to {assignee_text}**",
-    }
+        return create_text_block(
+            IssueConstants.ASSIGNEE_NOTE.format(assignee=assignee_text),
+            size=TextSize.SMALL,
+        )
 
 
 def build_group_card(group, event, rules, integration):
