@@ -78,7 +78,7 @@ const Spans = styled('ul')`
   position: relative;
   pointer-events: none;
 `;
-// TODO(replay): sync colors like #444674 with chartPalette so there is consistency
+
 const Span = styled('li')<{startPct: number; widthPct: number}>`
   display: block;
   position: absolute;
@@ -86,7 +86,7 @@ const Span = styled('li')<{startPct: number; widthPct: number}>`
   min-width: 1px;
   width: ${p => p.widthPct * 100}%;
   height: 100%;
-  background: #444674; /* plucked from static/app/constants/chartPalette.tsx */
+  background: ${p => p.theme.charts.colors[0]};
   border-radius: 2px;
   pointer-events: auto;
 `;
