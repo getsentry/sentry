@@ -18,7 +18,7 @@ from sentry.discover.arithmetic import ArithmeticError, is_equation, strip_equat
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.models import Organization, Project, Team
 from sentry.models.group import Group
-from sentry.search.events.constants import SIZE_UNITS, TIMEOUT_ERROR_MESSAGE
+from sentry.search.events.constants import DURATION_UNITS, SIZE_UNITS, TIMEOUT_ERROR_MESSAGE
 from sentry.search.events.fields import get_function_alias
 from sentry.snuba import discover, metrics_enhanced_performance, metrics_performance
 from sentry.utils import snuba
@@ -220,6 +220,9 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             if value in SIZE_UNITS:
                 units[key] = value
                 meta[key] = "size"
+            elif value in DURATION_UNITS:
+                units[key] = value
+                meta[key] = "duration"
             elif value == "duration":
                 units[key] = "millisecond"
             else:
