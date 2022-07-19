@@ -1,18 +1,22 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Sequence, Tuple
 
 # Prevent circular imports for the time being, till functionality is
 # moved out of card_builder/__init__.py where types are defined.
 if TYPE_CHECKING:
     from sentry.integrations.msteams.card_builder import (
         Action,
+        Block,
         ColumnBlock,
         ColumnSetBlock,
+        ContainerBlock,
         ImageBlock,
+        InputChoiceSetBlock,
         ItemBlock,
         TextBlock,
+        ActionSet,
     )
 
 from sentry.utils.assets import get_asset_url
@@ -124,4 +128,25 @@ def create_action_block(action_type: ActionType, title: str, **kwargs: str) -> A
         "type": action_type,
         "title": title,
         param: kwargs[param],
+    }
+
+
+def create_action_set_block(*actions: Action) -> ActionSet:
+    return {"type": "ActionSet", "actions": list(actions)}
+
+
+def create_container_block(*items: Block) -> ContainerBlock:
+    return {"type": "Container", "items": list(items)}
+
+
+def create_input_choice_set_block(
+    id: str, choices: Sequence[Tuple[str, Any]], default_choice: Any
+) -> InputChoiceSetBlock:
+    default_choice_arg = {"value": default_choice} if default_choice else {}
+
+    return {
+        "type": "Input.ChoiceSet",
+        "id": id,
+        "choices": [{"title": title, "value": value} for title, value in choices],
+        **default_choice_arg,
     }

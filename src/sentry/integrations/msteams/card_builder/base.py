@@ -1,8 +1,10 @@
 from __future__ import annotations
 
-from typing import Any, Sequence
+from typing import TYPE_CHECKING, Any, Sequence
 
-from sentry.integrations.msteams.card_builder import Action, AdaptiveCard, Block
+if TYPE_CHECKING:
+    from sentry.integrations.msteams.card_builder import Action, AdaptiveCard, Block
+
 from sentry.integrations.notifications import AbstractMessageBuilder
 
 from .block import create_text_block
