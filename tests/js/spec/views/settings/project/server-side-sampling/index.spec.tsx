@@ -191,7 +191,7 @@ describe('Server-side Sampling', function () {
 
     expect(
       within(recommendedSdkUpgradesAlert).getByText(
-        'To keep a consistent amount of transactions across your applications multiple services, we recommend you update the SDK versions for the following projects:'
+        'To keep a consistent amount of transactions across your applications multiple services, we recommend you update the SDK versions for the following project:'
       )
     ).toBeInTheDocument();
 
