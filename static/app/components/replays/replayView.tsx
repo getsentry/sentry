@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Panel, PanelBody, PanelHeader as _PanelHeader} from 'sentry/components/panels';
@@ -15,32 +16,33 @@ type Props = {
 
 function ReplayView({isFullscreen, toggleFullscreen}: Props) {
   return (
-    <PanelNoMargin isFullscreen={isFullscreen}>
-      <PanelHeader>
-        <ReplayCurrentUrl />
-      </PanelHeader>
-      <PanelHeader disablePadding noBorder>
-        <ReplayPlayer />
-      </PanelHeader>
-      <ScrubberMouseTracking>
-        <PlayerScrubber />
-      </ScrubberMouseTracking>
+    <Fragment>
+      <ReplayCurrentUrl />
+      <PanelNoMargin isFullscreen={isFullscreen}>
+        <PanelHeader disablePadding noBorder>
+          <ReplayPlayer />
+        </PanelHeader>
+        <ScrubberMouseTracking>
+          <PlayerScrubber />
+        </ScrubberMouseTracking>
+      </PanelNoMargin>
       <ReplayControllerWrapper>
         <ReplayController toggleFullscreen={toggleFullscreen} />
       </ReplayControllerWrapper>
-    </PanelNoMargin>
+    </Fragment>
   );
 }
 
 const ReplayControllerWrapper = styled(PanelBody)`
-  padding: ${space(1)};
+  padding-top: ${space(1)};
 `;
 
 const PanelNoMargin = styled(Panel)<{isFullscreen: boolean}>`
+  margin-top: ${space(1)};
   margin-bottom: 0;
   height: 100%;
   display: grid;
-  grid-template-rows: auto 1fr auto;
+  grid-template-rows: 1fr auto;
 `;
 
 const PanelHeader = styled(_PanelHeader)<{noBorder?: boolean}>`

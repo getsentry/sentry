@@ -55,7 +55,7 @@ function ReplayPlayPauseBar({isCompact}: {isCompact: boolean}) {
     <ButtonBar merged>
       {!isCompact && (
         <Button
-          size="xs"
+          size="sm"
           title={t('Rewind 10s')}
           icon={<IconRewind10 size="sm" />}
           onClick={() => setCurrentTime(currentTime - 10 * SECOND)}
@@ -64,7 +64,7 @@ function ReplayPlayPauseBar({isCompact}: {isCompact: boolean}) {
       )}
       {isFinished ? (
         <Button
-          size="xs"
+          size="sm"
           title={t('Restart Replay')}
           icon={<IconPrevious size="sm" />}
           onClick={restart}
@@ -72,7 +72,7 @@ function ReplayPlayPauseBar({isCompact}: {isCompact: boolean}) {
         />
       ) : (
         <Button
-          size="xs"
+          size="sm"
           title={isPlaying ? t('Pause') : t('Play')}
           icon={isPlaying ? <IconPause size="sm" /> : <IconPlay size="sm" />}
           onClick={() => togglePlayPause(!isPlaying)}
@@ -81,7 +81,7 @@ function ReplayPlayPauseBar({isCompact}: {isCompact: boolean}) {
       )}
       {!isCompact && (
         <Button
-          size="xs"
+          size="sm"
           title={t('Next breadcrumb')}
           icon={<IconNext size="sm" />}
           onClick={() => {
@@ -129,7 +129,7 @@ function ReplayOptionsMenu({speedOptions}: {speedOptions: number[]}) {
         <Button
           ref={ref}
           {...props}
-          size="xs"
+          size="sm"
           title={t('Settings')}
           aria-label={t('Settings')}
           icon={<IconSettings size="sm" />}
@@ -197,7 +197,7 @@ const ReplayControls = ({
       <ReplayOptionsMenu speedOptions={speedOptions} />
 
       <Button
-        size="xs"
+        size="sm"
         title={isFullscreen ? t('Exit full screen') : t('Enter full screen')}
         aria-label={isFullscreen ? t('Exit full screen') : t('Enter full screen')}
         icon={isFullscreen ? <IconContract size="sm" /> : <IconExpand size="sm" />}
@@ -210,7 +210,7 @@ const ReplayControls = ({
 const ButtonGrid = styled('div')`
   display: grid;
   grid-column-gap: ${space(1)};
-  grid-template-columns: max-content auto max-content max-content max-content;
+  grid-template-columns: max-content auto max-content max-content;
   align-items: center;
 `;
 
