@@ -1,8 +1,7 @@
 from django.test import override_settings
 from pytest import raises
 
-from sentry.db.models import ModelAvailableOn
-from sentry.db.models.base import Model
+from sentry.db.models.base import Model, ModelAvailableOn
 from sentry.servermode import ServerComponentMode
 from sentry.testutils import TestCase
 
