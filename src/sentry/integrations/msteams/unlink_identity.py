@@ -11,7 +11,7 @@ from sentry.web.decorators import transaction_start
 from sentry.web.frontend.base import BaseView
 from sentry.web.helpers import render_to_response
 
-from .card_builder import build_unlinked_card
+from .card_builder.identity import build_unlinked_card
 from .utils import get_preinstall_client
 
 

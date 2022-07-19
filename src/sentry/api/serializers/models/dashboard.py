@@ -12,6 +12,7 @@ from sentry.models import (
     DashboardWidgetTypes,
 )
 from sentry.utils import json
+from sentry.utils.dates import outside_retention_with_modified_start, parse_timestamp
 
 
 @register(DashboardWidget)
@@ -143,11 +144,33 @@ class DashboardDetailsSerializer(Serializer):
         return result
 
     def serialize(self, obj, attrs, user, **kwargs):
+        page_filter_keys = ["environment", "period"]
+        dashboard_filter_keys = ["release"]
         data = {
             "id": str(obj.id),
             "title": obj.title,
             "dateCreated": obj.date_added,
             "createdBy": serialize(obj.created_by, serializer=UserSerializer()),
             "widgets": attrs["widgets"],
+            "projects": [project.id for project in obj.projects.all()],
+            "filters": {},
         }
+
+        if obj.filters is not None:
+            for key in page_filter_keys:
+                if obj.filters.get(key) is not None:
+                    data[key] = obj.filters[key]
+
+            for key in dashboard_filter_keys:
+                if obj.filters.get(key) is not None:
+                    data["filters"][key] = obj.filters[key]
+
+            start, end = obj.filters.get("start"), obj.filters.get("end")
+            if start and end:
+                start, end = parse_timestamp(start), parse_timestamp(end)
+                data["expired"], data["start"] = outside_retention_with_modified_start(
+                    start, end, obj.organization
+                )
+                data["end"] = end
+
         return data

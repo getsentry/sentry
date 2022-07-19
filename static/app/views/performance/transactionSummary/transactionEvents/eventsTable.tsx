@@ -322,7 +322,10 @@ class EventsTable extends Component<Props, State> {
         >
           {({pageLinks, isLoading, tableData}) => {
             const parsedPageLinks = parseLinkHeader(pageLinks);
-            const currentEvent = parsedPageLinks?.next?.cursor.split(':')[1] ?? 0;
+            let currentEvent = parsedPageLinks?.next?.cursor.split(':')[1] ?? 0;
+            if (!parsedPageLinks?.next?.results) {
+              currentEvent = totalEventCount;
+            }
             const paginationCaption =
               totalEventCount && currentEvent
                 ? tct('Showing [currentEvent] of [totalEventCount] events', {
@@ -346,7 +349,7 @@ class EventsTable extends Component<Props, State> {
                   location={location}
                 />
                 <Pagination
-                  disabled={!paginationCaption}
+                  disabled={isLoading}
                   caption={paginationCaption}
                   pageLinks={pageLinks}
                 />

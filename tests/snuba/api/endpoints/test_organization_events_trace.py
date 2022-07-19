@@ -123,7 +123,10 @@ class OrganizationEventsTraceEndpointBase(APITestCase, SnubaTestCase):
         # Second Generation
         self.gen2_span_ids = [uuid4().hex[:16] for _ in range(3)]
         self.gen2_project = self.create_project(organization=self.organization)
-        self.gen2_span_id = uuid4().hex[:16]
+
+        # Intentially pick a span id that starts with 0s
+        self.gen2_span_id = "0011" * 4
+
         self.gen2_events = [
             self.create_event(
                 trace=self.trace_id,

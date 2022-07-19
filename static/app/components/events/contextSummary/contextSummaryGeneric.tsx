@@ -13,6 +13,7 @@ import Item from './item';
 type Props = {
   data: Data;
   unknownTitle: string;
+  omitUnknownVersion?: boolean;
 };
 
 type Data = {
@@ -20,7 +21,11 @@ type Data = {
   version?: string;
 };
 
-const ContextSummaryGeneric = ({data, unknownTitle}: Props) => {
+const ContextSummaryGeneric = ({
+  data,
+  unknownTitle,
+  omitUnknownVersion = false,
+}: Props) => {
   if (Object.keys(data).length === 0) {
     return <ContextSummaryNoSummary title={unknownTitle} />;
   }
@@ -35,10 +40,12 @@ const ContextSummaryGeneric = ({data, unknownTitle}: Props) => {
   return (
     <Item className={className} icon={<span className="context-item-icon" />}>
       <h3>{renderValue('name')}</h3>
-      <TextOverflow isParagraph>
-        <Subject>{t('Version:')}</Subject>
-        {!data.version ? t('Unknown') : renderValue('version')}
-      </TextOverflow>
+      {(data.version || !omitUnknownVersion) && (
+        <TextOverflow isParagraph>
+          <Subject>{t('Version:')}</Subject>
+          {!data.version ? t('Unknown') : renderValue('version')}
+        </TextOverflow>
+      )}
     </Item>
   );
 };

@@ -37,6 +37,9 @@ register(key="sentry:fingerprinting_rules", default="")
 register(key="sentry:secondary_grouping_expiry", default=0)
 register(key="sentry:secondary_grouping_config", default=None)
 
+# is auto upgrading enabled?
+register(key="sentry:grouping_auto_update", default=True)
+
 # The JavaScript loader version that is the project default.  This option
 # is expected to be never set but the epoch defaults are used if no
 # version is set on a project's DSN.
@@ -74,7 +77,7 @@ register(
         1: {
             "span_ops": {
                 "type": "spanOperations",
-                "matches": ["http", "db", "browser", "resource"],
+                "matches": ["http", "db", "browser", "resource", "ui"],
             }
         },
     },

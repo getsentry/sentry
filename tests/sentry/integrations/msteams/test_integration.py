@@ -9,6 +9,7 @@ from sentry.testutils import IntegrationTestCase
 from sentry.utils.signing import sign
 
 team_id = "19:8d46058cda57449380517cc374727f2a@thread.tacv2"
+tenant_id = "50cccd00-7c9c-4b32-8cda-58a084f9334a"
 
 
 class MsTeamsIntegrationTest(IntegrationTestCase):
@@ -21,6 +22,7 @@ class MsTeamsIntegrationTest(IntegrationTestCase):
             "team_id": team_id,
             "service_url": "https://smba.trafficmanager.net/amer/",
             "team_name": "my_team",
+            "tenant_id": tenant_id,
         }
 
     def assert_setup_flow(self):
@@ -68,6 +70,8 @@ class MsTeamsIntegrationTest(IntegrationTestCase):
                 "access_token": "my_token",
                 "service_url": "https://smba.trafficmanager.net/amer/",
                 "expires_at": self.start_time + 86399 - 60 * 5,
+                "installation_type": "team",
+                "tenant_id": tenant_id,
             }
             assert OrganizationIntegration.objects.get(
                 integration=integration, organization=self.organization

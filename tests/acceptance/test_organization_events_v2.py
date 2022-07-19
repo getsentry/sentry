@@ -438,15 +438,34 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
 
     @patch("django.utils.timezone.now")
     def test_event_detail_view_from_transactions_query_siblings(self, mock_now):
-        # TODO(Ash): Will replace above test after sibling EA.
         mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
 
         event_data = generate_transaction(trace="a" * 32, span="ab" * 8)
 
+        # Arranges sibling spans to be autogrouped in a way that will cover many edgecases
+        last_span = copy.deepcopy(event_data["spans"][-1])
         for i in range(5):
-            clone = copy.deepcopy(event_data["spans"][-1])
+            clone = copy.deepcopy(last_span)
             # If range > 9 this might no longer work because of constraints on span_id (hex 16)
             clone["span_id"] = (str("ac" * 6) + str(i)).ljust(16, "0")
+            event_data["spans"].append(clone)
+
+        combo_breaker_span = copy.deepcopy(last_span)
+        combo_breaker_span["span_id"] = (str("af" * 6)).ljust(16, "0")
+        combo_breaker_span["op"] = "combo.breaker"
+        event_data["spans"].append(combo_breaker_span)
+
+        for i in range(5):
+            clone = copy.deepcopy(last_span)
+            clone["op"] = "django.middleware"
+            clone["span_id"] = (str("de" * 6) + str(i)).ljust(16, "0")
+            event_data["spans"].append(clone)
+
+        for i in range(5):
+            clone = copy.deepcopy(last_span)
+            clone["op"] = "http"
+            clone["description"] = "test"
+            clone["span_id"] = (str("bd" * 6) + str(i)).ljust(16, "0")
             event_data["spans"].append(clone)
 
         self.store_event(data=event_data, project_id=self.project.id, assert_no_errors=True)
@@ -482,11 +501,27 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             # Expand auto-grouped descendant spans
             self.browser.element('[data-test-id="span-row-5"]').click()
 
-            # Expand auto-grouped sibling spans
+            # Expand all autogrouped rows
             self.browser.element('[data-test-id="span-row-9"]').click()
+            self.browser.element('[data-test-id="span-row-18"]').click()
+            self.browser.element('[data-test-id="span-row-23"]').click()
 
             self.browser.snapshot(
                 "events-v2 - transactions event with expanded descendant and sibling auto-grouped spans"
+            )
+
+            # Click to collapse all of these spans back into autogroups, we expect the span tree to look like it did initially
+            first_row = self.browser.element('[data-test-id="span-row-23"]')
+            first_row.find_element(By.CSS_SELECTOR, "a").click()
+
+            second_row = self.browser.element('[data-test-id="span-row-18"]')
+            second_row.find_element(By.CSS_SELECTOR, "a").click()
+
+            third_row = self.browser.element('[data-test-id="span-row-9"]')
+            third_row.find_element(By.CSS_SELECTOR, "a").click()
+
+            self.browser.snapshot(
+                "events-v2 - transactions event after regrouping expanded sibling auto-grouped spans"
             )
 
     @patch("django.utils.timezone.now")
@@ -510,17 +545,10 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.wait_until_loaded()
 
             # Interact with ops filter dropdown
-            self.browser.elements('[data-test-id="filter-button"]')[0].click()
+            self.browser.elements('[aria-haspopup="listbox"]')[0].click()
 
-            # select all ops
-            self.browser.elements(
-                '[data-test-id="op-filter-dropdown"] [data-test-id="checkbox-fancy"]'
-            )[0].click()
-
-            # un-select django.middleware
-            self.browser.elements(
-                '[data-test-id="op-filter-dropdown"] [data-test-id="checkbox-fancy"]'
-            )[1].click()
+            # select django.middleware
+            self.browser.elements('[data-test-id="django.middleware"]')[0].click()
 
             self.browser.snapshot("events-v2 - transactions event detail view - ops filtering")
 

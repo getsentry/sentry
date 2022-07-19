@@ -45,7 +45,6 @@ function ReplayTimelineEvents({
 
 const EventColumns = styled(Timeline.Columns)`
   height: ${space(4)};
-  margin-top: ${space(1)};
 `;
 
 const EventColumn = styled(Timeline.Col)<{column: number}>`

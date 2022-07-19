@@ -1,4 +1,5 @@
 import {Fragment, memo, useEffect, useMemo, useRef, useState} from 'react';
+// eslint-disable-next-line no-restricted-imports
 import {withRouter, WithRouterProps} from 'react-router';
 import {components} from 'react-select';
 import {css} from '@emotion/react';
@@ -35,7 +36,7 @@ import {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getUtcDateString} from 'sentry/utils/dates';
-import {TableDataRow, TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {
   isAggregateField,
@@ -60,6 +61,11 @@ import WidgetCardChart, {
   AugmentedEChartDataZoomHandler,
   SLIDER_HEIGHT,
 } from 'sentry/views/dashboardsV2/widgetCard/chart';
+import {
+  DashboardsMEPProvider,
+  useDashboardsMEPContext,
+} from 'sentry/views/dashboardsV2/widgetCard/dashboardsMEPContext';
+import {GenericWidgetQueriesChildrenProps} from 'sentry/views/dashboardsV2/widgetCard/genericWidgetQueries';
 import IssueWidgetQueries from 'sentry/views/dashboardsV2/widgetCard/issueWidgetQueries';
 import ReleaseWidgetQueries from 'sentry/views/dashboardsV2/widgetCard/releaseWidgetQueries';
 import {WidgetCardChartContainer} from 'sentry/views/dashboardsV2/widgetCard/widgetCardChartContainer';
@@ -77,7 +83,6 @@ import {
 export interface WidgetViewerModalOptions {
   organization: Organization;
   widget: Widget;
-  issuesData?: TableDataRow[];
   onEdit?: () => void;
   pageLinks?: string;
   seriesData?: Series[];
@@ -158,7 +163,6 @@ function WidgetViewerModal(props: Props) {
     params,
     seriesData,
     tableData,
-    issuesData,
     totalIssuesCount,
     pageLinks: defaultPageLinks,
   } = props;
@@ -259,7 +263,7 @@ function WidgetViewerModal(props: Props) {
     : [...columns, ...aggregates];
 
   // Some Discover Widgets (Line, Area, Bar) allow the user to specify an orderby
-  // that is not explicitly selected as an aggregate or column. We need to explictly
+  // that is not explicitly selected as an aggregate or column. We need to explicitly
   // include the orderby in the table widget aggregates and columns otherwise
   // eventsv2 will complain about sorting on an unselected field.
   if (
@@ -439,11 +443,11 @@ function WidgetViewerModal(props: Props) {
     });
   }
 
-  const renderDiscoverTable: WidgetQueries['props']['children'] = ({
+  const renderDiscoverTable = ({
     tableResults,
     loading,
     pageLinks,
-  }) => {
+  }: GenericWidgetQueriesChildrenProps) => {
     const links = parseLinkHeader(pageLinks ?? null);
     const isFirstPage = links.previous?.results === false;
     return (
@@ -504,12 +508,12 @@ function WidgetViewerModal(props: Props) {
     );
   };
 
-  const renderIssuesTable: IssueWidgetQueries['props']['children'] = ({
-    transformedResults,
+  const renderIssuesTable = ({
+    tableResults,
     loading,
     pageLinks,
     totalCount,
-  }) => {
+  }: GenericWidgetQueriesChildrenProps) => {
     if (totalResults === undefined && totalCount) {
       setTotalResults(totalCount);
     }
@@ -518,7 +522,7 @@ function WidgetViewerModal(props: Props) {
       <Fragment>
         <GridEditable
           isLoading={loading}
-          data={transformedResults}
+          data={tableResults?.[0]?.data ?? []}
           columnOrder={columnOrder}
           columnSortBy={columnSortBy}
           grid={{
@@ -690,9 +694,9 @@ function WidgetViewerModal(props: Props) {
   function renderWidgetViewerTable() {
     switch (widget.widgetType) {
       case WidgetType.ISSUE:
-        if (issuesData && chartUnmodified && widget.displayType === DisplayType.TABLE) {
+        if (tableData && chartUnmodified && widget.displayType === DisplayType.TABLE) {
           return renderIssuesTable({
-            transformedResults: issuesData,
+            tableResults: tableData,
             loading: false,
             errorMessage: undefined,
             pageLinks: defaultPageLinks,
@@ -927,78 +931,109 @@ function WidgetViewerModal(props: Props) {
     );
   }
 
+  return (
+    <Fragment>
+      <DashboardsMEPProvider>
+        <Header closeButton>
+          <h3>{widget.title}</h3>
+        </Header>
+        <Body>{renderWidgetViewer()}</Body>
+        <Footer>
+          <ResultsContainer>
+            {renderTotalResults(totalResults, widget.widgetType)}
+            <ButtonBar gap={1}>
+              {onEdit && widget.id && (
+                <Button
+                  type="button"
+                  onClick={() => {
+                    closeModal();
+                    onEdit();
+                    trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.edit', {
+                      organization,
+                      widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+                      display_type: widget.displayType,
+                    });
+                  }}
+                >
+                  {t('Edit Widget')}
+                </Button>
+              )}
+              {widget.widgetType && (
+                <OpenButton
+                  widget={primaryWidget}
+                  organization={organization}
+                  selection={modalTableSelection}
+                  selectedQueryIndex={selectedQueryIndex}
+                />
+              )}
+            </ButtonBar>
+          </ResultsContainer>
+        </Footer>
+      </DashboardsMEPProvider>
+    </Fragment>
+  );
+}
+
+interface OpenButtonProps {
+  organization: Organization;
+  selectedQueryIndex: number;
+  selection: PageFilters;
+  widget: Widget;
+}
+
+function OpenButton({
+  widget,
+  selection,
+  organization,
+  selectedQueryIndex,
+}: OpenButtonProps) {
   let openLabel: string;
   let path: string;
+  const {isMetricsData} = useDashboardsMEPContext();
+
   switch (widget.widgetType) {
     case WidgetType.ISSUE:
       openLabel = t('Open in Issues');
-      path = getWidgetIssueUrl(primaryWidget, modalTableSelection, organization);
+      path = getWidgetIssueUrl(widget, selection, organization);
       break;
     case WidgetType.RELEASE:
       openLabel = t('Open in Releases');
-      path = getWidgetReleasesUrl(primaryWidget, modalTableSelection, organization);
+      path = getWidgetReleasesUrl(widget, selection, organization);
       break;
     case WidgetType.DISCOVER:
     default:
       openLabel = t('Open in Discover');
       path = getWidgetDiscoverUrl(
-        {...primaryWidget, queries: [primaryWidget.queries[selectedQueryIndex]]},
-        modalTableSelection,
-        organization
+        {...widget, queries: [widget.queries[selectedQueryIndex]]},
+        selection,
+        organization,
+        0,
+        isMetricsData
       );
       break;
   }
 
   return (
-    <Fragment>
-      <Header closeButton>
-        <h3>{widget.title}</h3>
-      </Header>
-      <Body>{renderWidgetViewer()}</Body>
-      <Footer>
-        <ResultsContainer>
-          {renderTotalResults(totalResults, widget.widgetType)}
-          <ButtonBar gap={1}>
-            {onEdit && widget.id && (
-              <Button
-                type="button"
-                onClick={() => {
-                  closeModal();
-                  onEdit();
-                  trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.edit', {
-                    organization,
-                    widget_type: widget.widgetType ?? WidgetType.DISCOVER,
-                    display_type: widget.displayType,
-                  });
-                }}
-              >
-                {t('Edit Widget')}
-              </Button>
-            )}
-            {widget.widgetType && (
-              <Button
-                to={path}
-                priority="primary"
-                type="button"
-                disabled={isCustomMeasurementWidget(widget)}
-                onClick={() => {
-                  trackAdvancedAnalyticsEvent(
-                    'dashboards_views.widget_viewer.open_source',
-                    {
-                      organization,
-                      widget_type: widget.widgetType ?? WidgetType.DISCOVER,
-                      display_type: widget.displayType,
-                    }
-                  );
-                }}
-              >
-                {openLabel}
-              </Button>
-            )}
-          </ButtonBar>
-        </ResultsContainer>
-      </Footer>
-    </Fragment>
+    <Button
+      to={path}
+      priority="primary"
+      type="button"
+      disabled={isCustomMeasurementWidget(widget)}
+      title={
+        isCustomMeasurementWidget(widget)
+          ? t('Widgets using custom performance metrics cannot be opened in Discover.')
+          : undefined
+      }
+      onClick={() => {
+        trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.open_source', {
+          organization,
+          widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+          display_type: widget.displayType,
+        });
+      }}
+    >
+      {openLabel}
+    </Button>
   );
 }
 

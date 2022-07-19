@@ -1,6 +1,7 @@
 import {
   ChromeTraceProfile,
-  parseChromeTraceArrayFormat,
+  collapseSamples,
+  parseTypescriptChromeTraceArrayFormat,
   splitEventsByProcessAndTraceId,
 } from 'sentry/utils/profiling/profile/chromeTraceProfile';
 
@@ -32,10 +33,10 @@ describe('splitEventsByProcessAndTraceId', () => {
   });
 });
 
-describe('parseChromeTraceArrayFormat', () => {
-  it('returns chrometrace profile', () => {
+describe('parseTypescriptChromeTraceArrayFormat', () => {
+  it('returns typescript profile', () => {
     expect(
-      parseChromeTraceArrayFormat(
+      parseTypescriptChromeTraceArrayFormat(
         [
           {
             ph: 'M',
@@ -63,7 +64,7 @@ describe('parseChromeTraceArrayFormat', () => {
 
   it('marks process name', () => {
     expect(
-      parseChromeTraceArrayFormat(
+      parseTypescriptChromeTraceArrayFormat(
         [
           {
             ph: 'M',
@@ -91,7 +92,7 @@ describe('parseChromeTraceArrayFormat', () => {
 
   it('marks thread name', () => {
     expect(
-      parseChromeTraceArrayFormat(
+      parseTypescriptChromeTraceArrayFormat(
         [
           {
             ph: 'M',
@@ -118,7 +119,7 @@ describe('parseChromeTraceArrayFormat', () => {
   });
 
   it('imports a simple trace', () => {
-    const trace = parseChromeTraceArrayFormat(
+    const trace = parseTypescriptChromeTraceArrayFormat(
       [
         {
           ph: 'B',
@@ -149,7 +150,7 @@ describe('parseChromeTraceArrayFormat', () => {
   });
 
   it('closes unclosed events', () => {
-    const trace = parseChromeTraceArrayFormat(
+    const trace = parseTypescriptChromeTraceArrayFormat(
       [
         {
           ph: 'B',
@@ -191,7 +192,7 @@ describe('parseChromeTraceArrayFormat', () => {
   });
 
   it('handles out of order E events', () => {
-    const trace = parseChromeTraceArrayFormat(
+    const trace = parseTypescriptChromeTraceArrayFormat(
       [
         {
           ph: 'B',
@@ -247,7 +248,7 @@ describe('parseChromeTraceArrayFormat', () => {
   });
 
   it('handles out of order B events', () => {
-    const trace = parseChromeTraceArrayFormat(
+    const trace = parseTypescriptChromeTraceArrayFormat(
       [
         {
           ph: 'B',
@@ -303,7 +304,7 @@ describe('parseChromeTraceArrayFormat', () => {
   });
 
   it('handles X trace with tdur', () => {
-    const trace = parseChromeTraceArrayFormat(
+    const trace = parseTypescriptChromeTraceArrayFormat(
       [
         {
           ph: 'X',
@@ -323,7 +324,7 @@ describe('parseChromeTraceArrayFormat', () => {
   });
 
   it('handles X trace with dur', () => {
-    const trace = parseChromeTraceArrayFormat(
+    const trace = parseTypescriptChromeTraceArrayFormat(
       [
         {
           ph: 'X',
@@ -340,5 +341,71 @@ describe('parseChromeTraceArrayFormat', () => {
     );
 
     expect(trace.profiles[0].duration).toBe(100);
+  });
+});
+
+describe('collapseSamples', () => {
+  it.each([
+    {
+      samples: [1, 1],
+      timeDeltas: [0, 1],
+      expectedSamples: [1, 1],
+      expectedTimeDeltas: [0, 1],
+    },
+    {
+      samples: [1, 1, 1],
+      timeDeltas: [0, 1, 1],
+      expectedSamples: [1, 1],
+      expectedTimeDeltas: [0, 2],
+    },
+    {
+      samples: [1, 2, 1],
+      timeDeltas: [0, 1, 2],
+      expectedSamples: [1, 2, 1],
+      expectedTimeDeltas: [0, 1, 3],
+    },
+    {
+      samples: [1, 2, 3, 4],
+      timeDeltas: [0, 1, 1, 1],
+      expectedSamples: [1, 2, 3, 4],
+      expectedTimeDeltas: [0, 1, 2, 3],
+    },
+  ])('collapses sample', test => {
+    const result = collapseSamples({
+      startTime: 0,
+      endTime: 100,
+      samples: test.samples,
+      timeDeltas: test.timeDeltas,
+      nodes: [],
+    });
+
+    expect(result.samples).toEqual(test.expectedSamples);
+    expect(result.sampleTimes).toEqual(test.expectedTimeDeltas);
+  });
+
+  it('guards from negative samples', () => {
+    const result = collapseSamples({
+      startTime: 0,
+      endTime: 100,
+      samples: [1, 2, 3],
+      timeDeltas: [1, -1, 1],
+      nodes: [],
+    });
+
+    expect(result.samples).toEqual([1, 2, 3]);
+    expect(result.sampleTimes).toEqual([1, 1, 2]);
+  });
+
+  it('guards from negative samples when they are being collapsed', () => {
+    const result = collapseSamples({
+      startTime: 0,
+      endTime: 100,
+      samples: [1, 1, 1],
+      timeDeltas: [1, -1, 2],
+      nodes: [],
+    });
+
+    expect(result.samples).toEqual([1, 1]);
+    expect(result.sampleTimes).toEqual([1, 3]);
   });
 });

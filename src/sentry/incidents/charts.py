@@ -17,7 +17,7 @@ from sentry.incidents.models import AlertRule, Incident, User
 from sentry.models import ApiKey, Organization
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.entity_subscription import apply_dataset_query_conditions
-from sentry.snuba.models import QueryDatasets, SnubaQuery
+from sentry.snuba.models import SnubaQuery
 
 CRASH_FREE_SESSIONS = "percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate"
 CRASH_FREE_USERS = "percentage(users_crashed, users) AS _crash_rate_alert_aggregate"
@@ -196,7 +196,7 @@ def build_metric_alert_chart(
         snuba_query.query
         if is_crash_free_alert
         else apply_dataset_query_conditions(
-            QueryDatasets(snuba_query.dataset),
+            SnubaQuery.Type(snuba_query.type),
             snuba_query.query,
             snuba_query.event_types,
             discover=True,
@@ -218,6 +218,8 @@ def build_metric_alert_chart(
             user,
         )
     else:
+        # TODO: We need to be explicit about the query type and dataset used on this endpoint once
+        # we enabled MEP alerts
         chart_data["timeseriesData"] = fetch_metric_alert_events_timeseries(
             organization,
             aggregate,

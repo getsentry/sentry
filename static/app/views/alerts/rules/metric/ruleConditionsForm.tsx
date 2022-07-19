@@ -583,6 +583,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                   organization={organization}
                   placeholder={this.searchPlaceholder}
                   onChange={onChange}
+                  query={initialData.query}
                   onKeyDown={e => {
                     /**
                      * Do not allow enter key to submit the alerts form since it is unlikely

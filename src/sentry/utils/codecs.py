@@ -1,6 +1,6 @@
 import zlib
 from abc import ABC, abstractmethod
-from typing import Generic, TypeVar, cast
+from typing import Generic, TypeVar
 
 import zstandard
 
@@ -88,7 +88,7 @@ class ZlibCodec(Codec[bytes, bytes]):
 
 class ZstdCodec(Codec[bytes, bytes]):
     def encode(self, value: bytes) -> bytes:
-        return cast(bytes, zstandard.ZstdCompressor().compress(value))
+        return zstandard.ZstdCompressor().compress(value)
 
     def decode(self, value: bytes) -> bytes:
-        return cast(bytes, zstandard.ZstdDecompressor().decompress(value))
+        return zstandard.ZstdDecompressor().decompress(value)

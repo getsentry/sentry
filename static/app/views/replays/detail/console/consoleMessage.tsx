@@ -40,6 +40,15 @@ function renderString(arg: string | number | boolean | Object) {
 export function MessageFormatter({breadcrumb}: MessageFormatterProps) {
   let logMessage = '';
 
+  if (!breadcrumb.data?.arguments) {
+    // There is a possibility that we don't have arguments as we could be receiving an exception type breadcrumb.
+    // In these cases we just need the message prop.
+
+    // There are cases in which our prop message is an array, we want to force it to become a string
+    logMessage = breadcrumb.message?.toString() || '';
+    return <AnnotatedText meta={getMeta(breadcrumb, 'message')} value={logMessage} />;
+  }
+
   // Browser's console formatter only works on the first arg
   const [message, ...args] = breadcrumb.data?.arguments;
 
@@ -182,7 +191,25 @@ const Common = styled('div')<{
     return 'inherit';
   }};
   ${p => (!p.isLast ? `border-bottom: 1px solid ${p.theme.innerBorder}` : '')};
+
   transition: color 0.5s ease;
+
+  /*
+  Using radius of 3px instead of p.theme.borderRadius (4px) because this is an
+  inner radius to the border, and needs to be smaller to avoid gaps in the turn.
+  */
+  &:nth-child(1) {
+    border-top-left-radius: 3px;
+  }
+  &:nth-child(3) {
+    border-top-right-radius: 3px;
+  }
+  &:nth-last-child(1) {
+    border-bottom-right-radius: 3px;
+  }
+  &:nth-last-child(3) {
+    border-bottom-left-radius: 3px;
+  }
 `;
 
 const ConsoleTimestamp = styled(Common)<{isLast: boolean; level: string}>`
@@ -192,7 +219,24 @@ const ConsoleTimestamp = styled(Common)<{isLast: boolean; level: string}>`
 
 const Icon = styled(Common)<{isActive: boolean}>`
   padding: ${space(0.5)} ${space(1)};
-  border-left: 4px solid ${p => (p.isActive ? p.theme.focus : 'transparent')};
+  position: relative;
+
+  &:after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 1;
+    height: 100%;
+    width: ${space(0.5)};
+    background-color: ${p => (p.isActive ? p.theme.focus : 'transparent')};
+  }
+  &:nth-child(1):after {
+    border-top-left-radius: 3px;
+  }
+  &:nth-last-child(3):after {
+    border-bottom-left-radius: 3px;
+  }
 `;
 const Message = styled(Common)`
   padding: ${space(0.25)} 0;

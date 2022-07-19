@@ -80,27 +80,41 @@ def redis_cache(monkeypatch):
     monkeypatch.setattr("sentry.relay.projectconfig_cache.delete_many", cache.delete_many)
     monkeypatch.setattr("sentry.relay.projectconfig_cache.get", cache.get)
 
+    return cache
+
+
+@pytest.fixture
+def debounce_cache(monkeypatch):
     monkeypatch.setattr(
         "django.conf.settings.SENTRY_RELAY_PROJECTCONFIG_DEBOUNCE_CACHE",
         "sentry.relay.projectconfig_debounce_cache.redis.RedisProjectConfigDebounceCache",
+    )
+
+    cache = RedisProjectConfigDebounceCache()
+    monkeypatch.setattr(
+        "sentry.relay.projectconfig_debounce_cache.mark_task_done", cache.mark_task_done
+    )
+    monkeypatch.setattr("sentry.relay.projectconfig_debounce_cache.debounce", cache.debounce)
+    monkeypatch.setattr(
+        "sentry.relay.projectconfig_debounce_cache.is_debounced", cache.is_debounced
     )
 
     return cache
 
 
 @pytest.fixture
-def debounce_cache(monkeypatch):
+def invalidation_debounce_cache(monkeypatch):
     debounce_cache = RedisProjectConfigDebounceCache()
     monkeypatch.setattr(
-        "sentry.relay.projectconfig_debounce_cache.mark_task_done",
+        "sentry.relay.projectconfig_debounce_cache.invalidation.mark_task_done",
         debounce_cache.mark_task_done,
     )
     monkeypatch.setattr(
-        "sentry.relay.projectconfig_debounce_cache.debounce",
+        "sentry.relay.projectconfig_debounce_cache.invalidation.debounce",
         debounce_cache.debounce,
     )
     monkeypatch.setattr(
-        "sentry.relay.projectconfig_debounce_cache.is_debounced",
+        "sentry.relay.projectconfig_debounce_cache.invalidation.is_debounced",
         debounce_cache.is_debounced,
     )
 
@@ -159,6 +173,10 @@ def test_generate(
 def test_project_update_option(
     default_projectkey, default_project, emulate_transactions, redis_cache
 ):
+    # Put something in the cache, otherwise triggers/the invalidation task won't compute
+    # anything.
+    redis_cache.set_many({default_projectkey.public_key: "dummy"})
+
     # XXX: there should only be one hook triggered, regardless of debouncing
     with emulate_transactions(assert_num_callbacks=4):
         default_project.update_option(
@@ -185,13 +203,18 @@ def test_project_update_option(
 
 
 @pytest.mark.django_db
-def test_project_delete_option(default_project, emulate_transactions, redis_cache):
+def test_project_delete_option(
+    default_projectkey, default_project, emulate_transactions, redis_cache
+):
+    # Put something in the cache, otherwise triggers/the invalidation task won't compute
+    # anything.
+    redis_cache.set_many({default_projectkey.public_key: "dummy"})
+
     # XXX: there should only be one hook triggered, regardless of debouncing
     with emulate_transactions(assert_num_callbacks=3):
         default_project.delete_option("sentry:relay_pii_config")
 
-    for cache_key in _cache_keys_for_project(default_project):
-        assert redis_cache.get(cache_key)["config"]["piiConfig"] == {}
+    assert redis_cache.get(default_projectkey)["config"]["piiConfig"] == {}
 
 
 @pytest.mark.django_db
@@ -266,6 +289,10 @@ def test_projectkeys(default_project, emulate_transactions, redis_cache):
 
 @pytest.mark.django_db(transaction=True)
 def test_db_transaction(default_project, default_projectkey, redis_cache, task_runner):
+    # Put something in the cache, otherwise triggers/the invalidation task won't compute
+    # anything.
+    redis_cache.set_many({default_projectkey.public_key: "dummy"})
+
     with task_runner(), transaction.atomic():
         default_project.update_option(
             "sentry:relay_pii_config", '{"applications": {"$string": ["@creditcard:mask"]}}'
@@ -273,7 +300,7 @@ def test_db_transaction(default_project, default_projectkey, redis_cache, task_r
 
         # Assert that cache entry hasn't been created yet, only after the
         # transaction has committed.
-        assert not redis_cache.get(default_projectkey.public_key)
+        assert redis_cache.get(default_projectkey.public_key) == "dummy"
 
     assert redis_cache.get(default_projectkey.public_key)["config"]["piiConfig"] == {
         "applications": {"$string": ["@creditcard:mask"]}
@@ -297,47 +324,29 @@ def test_db_transaction(default_project, default_projectkey, redis_cache, task_r
 
 
 class TestInvalidationTask:
-    @pytest.fixture
-    def debounce_cache(self, monkeypatch):
-        debounce_cache = RedisProjectConfigDebounceCache()
-        monkeypatch.setattr(
-            "sentry.relay.projectconfig_debounce_cache.invalidation.mark_task_done",
-            debounce_cache.mark_task_done,
-        )
-        monkeypatch.setattr(
-            "sentry.relay.projectconfig_debounce_cache.invalidation.debounce",
-            debounce_cache.debounce,
-        )
-        monkeypatch.setattr(
-            "sentry.relay.projectconfig_debounce_cache.invalidation.is_debounced",
-            debounce_cache.is_debounced,
-        )
-
-        return debounce_cache
-
     @pytest.mark.django_db
     def test_debounce(
         self,
         monkeypatch,
         default_project,
         default_organization,
-        debounce_cache,
+        invalidation_debounce_cache,
     ):
         tasks = []
 
-        def apply_async(args, kwargs):
+        def apply_async(args=None, kwargs=None, countdown=None):
             assert not args
             tasks.append(kwargs)
 
         monkeypatch.setattr("sentry.tasks.relay.invalidate_project_config.apply_async", apply_async)
 
-        debounce_cache.mark_task_done(
+        invalidation_debounce_cache.mark_task_done(
             public_key=None, project_id=default_project.id, organization_id=None
         )
         schedule_invalidate_project_config(project_id=default_project.id, trigger="test")
         schedule_invalidate_project_config(project_id=default_project.id, trigger="test")
 
-        debounce_cache.mark_task_done(
+        invalidation_debounce_cache.mark_task_done(
             public_key=None, project_id=None, organization_id=default_organization.id
         )
         schedule_invalidate_project_config(organization_id=default_organization.id, trigger="test")
@@ -405,3 +414,37 @@ class TestInvalidationTask:
             new_cfg = redis_cache.get(cache_key)
             assert new_cfg is not None
             assert new_cfg != cfg
+
+
+@pytest.mark.django_db
+def test_invalidate_hierarchy(
+    monkeypatch,
+    burst_task_runner,
+    default_project,
+    default_projectkey,
+    redis_cache,
+    debounce_cache,
+    invalidation_debounce_cache,
+):
+    # Put something in the cache, otherwise the invalidation task won't compute anything.
+    redis_cache.set_many({default_projectkey.public_key: "dummy"})
+
+    orig_apply_async = invalidate_project_config.apply_async
+    calls = []
+
+    def proxy(*args, **kwargs):
+        calls.append((args, kwargs))
+        orig_apply_async(*args, **kwargs)
+
+    monkeypatch.setattr(invalidate_project_config, "apply_async", proxy)
+
+    with burst_task_runner() as run:
+        schedule_invalidate_project_config(
+            organization_id=default_project.organization.id, trigger="test"
+        )
+        schedule_invalidate_project_config(project_id=default_project.id, trigger="test")
+        run(max_jobs=10)
+
+    assert len(calls) == 1
+    cache = redis_cache.get(default_projectkey)
+    assert cache["disabled"] is False

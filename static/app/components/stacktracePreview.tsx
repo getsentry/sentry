@@ -1,5 +1,4 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import StackTraceContent from 'sentry/components/events/interfaces/crashContent/stackTrace/content';
@@ -21,7 +20,7 @@ import findBestThread from './events/interfaces/threads/threadSelector/findBestT
 import getThreadStacktrace from './events/interfaces/threads/threadSelector/getThreadStacktrace';
 
 const REQUEST_DELAY = 100;
-const HOVERCARD_DELAY = 400;
+const HOVERCARD_CONTENT_DELAY = 400;
 
 export const STACKTRACE_PREVIEW_TOOLTIP_DELAY = 1000;
 
@@ -111,7 +110,6 @@ type StackTracePreviewProps = {
 };
 
 function StackTracePreview(props: StackTracePreviewProps): React.ReactElement {
-  const theme = useTheme();
   const api = useApi();
 
   const [loadingVisible, setLoadingVisible] = useState<boolean>(false);
@@ -139,9 +137,10 @@ function StackTracePreview(props: StackTracePreviewProps): React.ReactElement {
       return;
     }
 
-    loaderTimeoutRef.current = window.setTimeout(() => {
-      setLoadingVisible(true);
-    }, HOVERCARD_DELAY);
+    loaderTimeoutRef.current = window.setTimeout(
+      () => setLoadingVisible(true),
+      HOVERCARD_CONTENT_DELAY
+    );
 
     try {
       const evt = await api.requestPromise(
@@ -178,18 +177,15 @@ function StackTracePreview(props: StackTracePreviewProps): React.ReactElement {
     delayTimeoutRef.current = undefined;
   }, []);
 
-  // Not sure why we need to stop propagation, maybe to to prevent the hovercard from closing?
-  // If we are doing this often, maybe it should be part of the hovercard component.
-  const handleStackTracePreviewClick = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-  }, []);
+  // Not sure why we need to stop propagation, maybe to prevent the
+  // hovercard from closing? If we are doing this often, maybe it should be
+  // part of the hovercard component.
+  const handleStackTracePreviewClick = useCallback(
+    (e: React.MouseEvent) => void e.stopPropagation(),
+    []
+  );
 
-  const stacktrace = useMemo(() => {
-    if (event) {
-      return getStacktrace(event);
-    }
-    return null;
-  }, [event]);
+  const stacktrace = useMemo(() => (event ? getStacktrace(event) : null), [event]);
 
   return (
     <span
@@ -197,7 +193,7 @@ function StackTracePreview(props: StackTracePreviewProps): React.ReactElement {
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
-      <StyledHovercard
+      <StacktraceHovercard
         body={
           status === 'loading' && !loadingVisible ? null : status === 'loading' ? (
             <NoStackTraceWrapper onClick={handleStackTracePreviewClick}>
@@ -222,6 +218,7 @@ function StackTracePreview(props: StackTracePreviewProps): React.ReactElement {
             </div>
           )
         }
+        displayTimeout={200}
         position="right"
         state={
           status === 'loading' && loadingVisible
@@ -230,18 +227,18 @@ function StackTracePreview(props: StackTracePreviewProps): React.ReactElement {
             ? 'empty'
             : 'done'
         }
-        tipBorderColor={theme.border}
-        tipColor={theme.background}
+        tipBorderColor="border"
+        tipColor="background"
       >
         {props.children}
-      </StyledHovercard>
+      </StacktraceHovercard>
     </span>
   );
 }
 
 export {StackTracePreview};
 
-const StyledHovercard = styled(Hovercard)<{state: 'loading' | 'empty' | 'done'}>`
+const StacktraceHovercard = styled(Hovercard)<{state: 'loading' | 'empty' | 'done'}>`
   /* Lower z-index to match the modals (10000 vs 10002) to allow stackTraceLinkModal be on top of stack trace preview. */
   z-index: ${p => p.theme.zIndex.modal};
   width: ${p => {
@@ -258,6 +255,7 @@ const StyledHovercard = styled(Hovercard)<{state: 'loading' | 'empty' | 'done'}>
     padding: 0;
     max-height: 300px;
     overflow-y: auto;
+    overscroll-behavior: contain;
     border-bottom-left-radius: ${p => p.theme.borderRadius};
     border-bottom-right-radius: ${p => p.theme.borderRadius};
   }

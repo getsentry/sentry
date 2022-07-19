@@ -1,4 +1,5 @@
 import {Fragment, useEffect, useRef} from 'react';
+// eslint-disable-next-line no-restricted-imports
 import {withRouter, WithRouterProps} from 'react-router';
 import isEmpty from 'lodash/isEmpty';
 import isEqual from 'lodash/isEqual';
@@ -91,6 +92,7 @@ function Container({skipLoadLastUsed, children, ...props}: Props) {
     }
 
     doInitialization();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectsLoaded, shouldForceProject, enforceSingleProject]);
 
   const lastQuery = useRef(location.query);
@@ -108,7 +110,7 @@ function Container({skipLoadLastUsed, children, ...props}: Props) {
     const oldSelectionQuery = extractSelectionParameters(lastQuery.current);
     const newSelectionQuery = extractSelectionParameters(location.query);
 
-    // XXX: This re-initalization is only required in new-page-filters
+    // XXX: This re-initialization is only required in new-page-filters
     // land, since we have implicit pinning in the old land which will
     // cause page filters to commonly reset.
     if (isEmpty(newSelectionQuery) && !isEqual(oldSelectionQuery, newSelectionQuery)) {
@@ -151,6 +153,7 @@ function Container({skipLoadLastUsed, children, ...props}: Props) {
     }
 
     lastQuery.current = location.query;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.query]);
 
   // Wait for global selection to be ready before rendering children

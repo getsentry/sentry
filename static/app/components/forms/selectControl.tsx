@@ -151,7 +151,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
   props: WrappedControlProps<OptionType>
 ) {
   const theme = useTheme();
-  const {isCompact, isSearchable, maxMenuWidth} = props;
+  const {isCompact, isSearchable, maxMenuWidth, menuHeight} = props;
 
   // TODO(epurkhiser): The loading indicator should probably also be our loading
   // indicator.
@@ -241,10 +241,14 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
 
       menuList: (provided: React.CSSProperties) => ({
         ...provided,
-        ...(isCompact &&
-          isSearchable && {
+        ...(isCompact && {
+          ...(menuHeight && {
+            maxHeight: menuHeight,
+          }),
+          ...(isSearchable && {
             paddingTop: 0,
           }),
+        }),
       }),
 
       menuPortal: () => ({
@@ -295,6 +299,8 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
       singleValue: (provided: React.CSSProperties) => ({
         ...provided,
         color: theme.formText,
+        display: 'flex',
+        alignItems: 'center',
       }),
       placeholder: (provided: React.CSSProperties) => ({
         ...provided,
@@ -359,7 +365,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
         },
       }),
     }),
-    [theme, maxMenuWidth, indicatorStyles, isSearchable, isCompact]
+    [theme, maxMenuWidth, menuHeight, indicatorStyles, isSearchable, isCompact]
   );
 
   const getFieldLabelStyle = (label?: string) => ({
@@ -367,6 +373,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
       content: `"${label}"`,
       color: theme.gray300,
       fontWeight: 600,
+      marginRight: space(1),
     },
   });
 

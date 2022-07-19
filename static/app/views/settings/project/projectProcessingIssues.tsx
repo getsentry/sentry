@@ -385,7 +385,7 @@ class ProjectProcessingIssues extends Component<Props, State> {
           <Access access={['project:write']}>
             {({hasAccess}) => (
               <Button
-                size="small"
+                size="sm"
                 className="pull-right"
                 disabled={!hasAccess}
                 onClick={() => this.discardEvents()}

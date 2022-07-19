@@ -230,7 +230,7 @@ export const AGGREGATIONS = {
       {
         kind: 'column',
         columnTypes: validateDenyListColumns(
-          ['string', 'duration'],
+          ['string', 'duration', 'number'],
           ['id', 'issue', 'user.display']
         ),
         defaultValue: 'transaction.duration',
@@ -801,6 +801,7 @@ export const SPAN_OP_BREAKDOWN_FIELDS = [
   'spans.db',
   'spans.browser',
   'spans.resource',
+  'spans.ui',
 ];
 
 // This list contains fields/functions that are available with performance-view feature.
@@ -1330,6 +1331,68 @@ export function aggregateFunctionOutputType(
 
   if (firstArg && isSpanOperationBreakdownField(firstArg)) {
     return 'duration';
+  }
+
+  return null;
+}
+
+export function errorsAndTransactionsAggregateFunctionOutputType(
+  funcName: string,
+  firstArg: string | undefined
+): AggregationOutputType | null {
+  const aggregate = AGGREGATIONS[ALIASES[funcName] || funcName];
+
+  // Attempt to use the function's outputType.
+  if (aggregate?.outputType) {
+    return aggregate.outputType;
+  }
+
+  // If the first argument is undefined and it is not required,
+  // then we attempt to get the default value.
+  if (!firstArg && aggregate?.parameters?.[0]) {
+    if (aggregate.parameters[0].required === false) {
+      firstArg = aggregate.parameters[0].defaultValue;
+    }
+  }
+
+  // If the function is an inherit type it will have a field as
+  // the first parameter and we can use that to get the type.
+  if (firstArg && FIELDS.hasOwnProperty(firstArg)) {
+    return FIELDS[firstArg];
+  }
+
+  if (firstArg && isMeasurement(firstArg)) {
+    return measurementType(firstArg);
+  }
+
+  if (firstArg && isSpanOperationBreakdownField(firstArg)) {
+    return 'duration';
+  }
+
+  return null;
+}
+
+export function sessionsAggregateFunctionOutputType(
+  funcName: string,
+  firstArg: string | undefined
+): AggregationOutputType | null {
+  const aggregate = SESSIONS_OPERATIONS[funcName];
+
+  // Attempt to use the function's outputType.
+  if (aggregate?.outputType) {
+    return aggregate.outputType;
+  }
+
+  // If the first argument is undefined and it is not required,
+  // then we attempt to get the default value.
+  if (!firstArg && aggregate?.parameters?.[0]) {
+    if (aggregate.parameters[0].required === false) {
+      firstArg = aggregate.parameters[0].defaultValue;
+    }
+  }
+
+  if (firstArg && SESSIONS_FIELDS.hasOwnProperty(firstArg)) {
+    return SESSIONS_FIELDS[firstArg].type as AggregationOutputType;
   }
 
   return null;
