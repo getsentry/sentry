@@ -2,6 +2,7 @@ import time
 from datetime import timedelta
 from unittest import mock
 
+import pytest
 from django.utils.datastructures import MultiValueDict
 
 from sentry.sentry_metrics import indexer
@@ -11,6 +12,8 @@ from sentry.snuba.metrics.query_builder import QueryDefinition
 from sentry.testutils import SessionMetricsReleaseHealthTestCase, TestCase
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
 from sentry.testutils.helpers.datetime import before_now
+
+pytestmark = pytest.mark.sentry_metrics
 
 
 class DataSourceTestCase(TestCase, SessionMetricsReleaseHealthTestCase):

@@ -21,6 +21,7 @@ STRINGS_THAT_LOOK_LIKE_TAG_VALUES = (
 @pytest.fixture(autouse=True)
 def control_metrics_access(monkeypatch, request, set_sentry_option):
     from sentry.sentry_metrics import indexer
+    from sentry.sentry_metrics.configuration import UseCaseKey
     from sentry.sentry_metrics.indexer.mock import MockIndexer
     from sentry.snuba import tasks
     from sentry.utils import snuba
@@ -45,12 +46,16 @@ def control_metrics_access(monkeypatch, request, set_sentry_option):
         )
         old_resolve = indexer.resolve
 
-        def new_resolve(org_id, string, *args, **kwargs):
-            if tag_values_are_strings and string in STRINGS_THAT_LOOK_LIKE_TAG_VALUES:
+        def new_resolve(org_id, string, use_case_id):
+            if (
+                use_case_id == UseCaseKey.PERFORMANCE
+                and tag_values_are_strings
+                and string in STRINGS_THAT_LOOK_LIKE_TAG_VALUES
+            ):
                 pytest.fail(
                     f"stop right there, thief! you're about to resolve the string {string!r}. that looks like a tag value, but in this test mode, tag values are stored in clickhouse. the indexer might not have the value!"
                 )
-            return old_resolve(org_id, string, *args, **kwargs)
+            return old_resolve(org_id, string, use_case_id)
 
         monkeypatch.setattr(indexer, "resolve", new_resolve)
 
