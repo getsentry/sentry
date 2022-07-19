@@ -233,7 +233,9 @@ class ProjectNotification(BaseNotification, abc.ABC):
     def get_log_params(self, recipient: Team | User) -> Mapping[str, Any]:
         return {"project_id": self.project.id, **super().get_log_params(recipient)}
 
-    def build_notification_footer(self, recipient: Team | User) -> str:
+    def build_notification_footer(
+        self, recipient: Team | User, url_format: str = "<{url}|{text}>"
+    ) -> str:
         # notification footer only used for Slack for now
         settings_url = self.get_settings_url(recipient, ExternalProviders.SLACK)
 
@@ -249,5 +251,6 @@ class ProjectNotification(BaseNotification, abc.ABC):
                 pass
         if environment and getattr(environment, "name", None) != "":
             footer += f" | {environment.name}"
-        footer += f" | <{settings_url}|Notification Settings>"
+
+        footer += f" | {url_format.format(text='Notification Settings', url=settings_url)}"
         return footer

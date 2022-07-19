@@ -61,7 +61,7 @@ def send_notification_as_msteams(
                 ):
                     card = MSTeamsNotificationsMessageBuilder(
                         notification, context, recipient
-                    ).build()
+                    ).build_notification_card()
 
                 for channel, integration in integrations_by_channel.items():
                     client = MsTeamsClient(integration)
