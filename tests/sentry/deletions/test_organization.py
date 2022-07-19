@@ -214,7 +214,6 @@ class DeleteOrganizationTest(TransactionTestCase):
         )
         alert_rule = AlertRule.objects.create(
             organization=org,
-            type=AlertRule.Type.ERROR.value,
             name="rule with environment",
             threshold_period=1,
             snuba_query=snuba_query,

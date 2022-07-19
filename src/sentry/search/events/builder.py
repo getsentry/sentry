@@ -1887,6 +1887,31 @@ class MetricsQueryBuilder(QueryBuilder):
 
         return Condition(lhs, Op(search_filter.operator), value)
 
+    def _environment_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+        """All of this is copied from the parent class except for the addition of `resolve_value`
+
+        Going to live with the duplicated code since this will go away anyways once we move to the metric layer
+        """
+        # conditions added to env_conditions can be OR'ed
+        env_conditions = []
+        value = search_filter.value.value
+        values_set = set(value if isinstance(value, (list, tuple)) else [value])
+        # sorted for consistency
+        values = sorted(
+            self.config.resolve_value(f"{value}") if value else 0 for value in values_set
+        )
+        environment = self.column("environment")
+        if len(values) == 1:
+            operator = Op.EQ if search_filter.operator in EQUALITY_OPERATORS else Op.NEQ
+            env_conditions.append(Condition(environment, operator, values.pop()))
+        elif values:
+            operator = Op.IN if search_filter.operator in EQUALITY_OPERATORS else Op.NOT_IN
+            env_conditions.append(Condition(environment, operator, values))
+        if len(env_conditions) > 1:
+            return Or(conditions=env_conditions)
+        else:
+            return env_conditions[0]
+
     def get_snql_query(self) -> Request:
         self.validate_having_clause()
         self.validate_orderby_clause()
@@ -2221,6 +2246,7 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
         allow_metric_aggregates: Optional[bool] = False,
         functions_acl: Optional[List[str]] = None,
         dry_run: Optional[bool] = False,
+        limit: Optional[int] = 10000,
     ):
         super().__init__(
             params=params,
@@ -2239,6 +2265,7 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
                     break
 
         self.time_column = self.resolve_time_column(interval)
+        self.limit = None if limit is None else Limit(limit)
 
         # This is a timeseries, the groupby will always be time
         self.groupby = [self.time_column]

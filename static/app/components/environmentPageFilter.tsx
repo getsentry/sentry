@@ -20,6 +20,7 @@ type EnvironmentSelectorProps = React.ComponentProps<typeof EnvironmentSelector>
 type Props = {
   router: WithRouterProps['router'];
   alignDropdown?: EnvironmentSelectorProps['alignDropdown'];
+  disabled?: EnvironmentSelectorProps['disabled'];
   /**
    * Max character length for the dropdown title. Default is 20. This number
    * is used to determine how many projects to show, and how much to truncate.
@@ -35,6 +36,7 @@ function EnvironmentPageFilter({
   router,
   resetParamsOnChange = [],
   alignDropdown,
+  disabled,
   maxTitleLength = 20,
 }: Props) {
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
@@ -67,6 +69,7 @@ function EnvironmentPageFilter({
         isOpen={isOpen}
         highlighted={desyncedFilters.has('environments')}
         data-test-id="page-filter-environment-selector"
+        disabled={disabled}
       >
         <DropdownTitle>
           <PageFilterPinIndicator filter="environments">
@@ -107,6 +110,7 @@ function EnvironmentPageFilter({
       customDropdownButton={customDropdownButton}
       customLoadingIndicator={customLoadingIndicator}
       alignDropdown={alignDropdown}
+      disabled={disabled}
       detached
       showPin
     />

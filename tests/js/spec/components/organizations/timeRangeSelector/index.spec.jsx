@@ -80,6 +80,14 @@ describe('TimeRangeSelector', function () {
     expect(screen.queryByTestId('absolute')).not.toBeInTheDocument();
   });
 
+  it('does not open selector menu when disabled', function () {
+    renderComponent({disabled: true});
+    userEvent.click(screen.getByRole('button'));
+
+    // Dropdown not open
+    expect(screen.queryByText(/last hour/i)).not.toBeInTheDocument();
+  });
+
   it('selects absolute item', async function () {
     renderComponent();
 
@@ -381,5 +389,20 @@ describe('TimeRangeSelector', function () {
       start: undefined,
       end: undefined,
     });
+  });
+
+  it('cannot select arbitrary relative time ranges with disallowArbitraryRelativeRanges', () => {
+    renderComponent({disallowArbitraryRelativeRanges: true});
+
+    userEvent.click(screen.getByRole('button'));
+
+    const input = screen.getByRole('textbox');
+    userEvent.type(input, '5');
+
+    expect(screen.getByText('No items found')).toBeInTheDocument();
+
+    userEvent.type(input, '{Enter}');
+
+    expect(onChange).not.toHaveBeenCalled();
   });
 });
