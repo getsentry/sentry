@@ -111,7 +111,7 @@ class DynamicSamplingSerializer(serializers.Serializer):
         # and are not presented in DS_DENYLIST
         for rule in rules:
             for op in rule["condition"]["inner"]:
-                if op["name"] in DS_DENYLIST:
+                if "name" in op and op["name"] in DS_DENYLIST:
                     raise serializers.ValidationError(f"{op['name']} is not allowed as tag name")
 
     def validate_uniform_sampling_rule(self, rules):
