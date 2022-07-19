@@ -1,4 +1,5 @@
 import {t} from 'sentry/locale';
+import {QueryType} from 'sentry/views/alerts/wizard/options';
 import type {SchemaFormConfig} from 'sentry/views/organizationIntegrations/sentryAppExternalForm';
 
 import type {Incident} from '../../types';
@@ -91,6 +92,7 @@ export type UnsavedMetricRule = {
   comparisonDelta?: number | null;
   eventTypes?: EventTypes[];
   owner?: string | null;
+  queryType?: QueryType | null;
 };
 
 export interface SavedMetricRule extends UnsavedMetricRule {

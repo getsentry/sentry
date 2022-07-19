@@ -21,7 +21,28 @@ export type AlertType =
   | 'crash_free_sessions'
   | 'crash_free_users';
 
+export enum QueryType {
+  ERROR = 0,
+  PERFORMANCE = 1,
+  CRASH_RATE = 2,
+}
+
 export type MetricAlertType = Exclude<AlertType, 'issues'>;
+
+export const MetricQueryTypeMap: Record<MetricAlertType, QueryType> = {
+  num_errors: QueryType.ERROR,
+  users_experiencing_errors: QueryType.ERROR,
+  throughput: QueryType.PERFORMANCE,
+  trans_duration: QueryType.PERFORMANCE,
+  apdex: QueryType.PERFORMANCE,
+  failure_rate: QueryType.PERFORMANCE,
+  lcp: QueryType.PERFORMANCE,
+  fid: QueryType.PERFORMANCE,
+  cls: QueryType.PERFORMANCE,
+  custom: QueryType.PERFORMANCE,
+  crash_free_sessions: QueryType.CRASH_RATE,
+  crash_free_users: QueryType.CRASH_RATE,
+};
 
 export const AlertWizardAlertNames: Record<AlertType, string> = {
   issues: t('Issues'),

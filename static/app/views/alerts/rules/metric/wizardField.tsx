@@ -194,16 +194,16 @@ export default function WizardField({
         const dataset: Dataset = model.getValue('dataset');
         const eventTypes = [...(model.getValue('eventTypes') ?? [])];
 
-        const selectedTemplate =
+        const selectedTemplate: AlertType =
           alertType === 'custom'
             ? alertType
-            : findKey(
+            : (findKey(
                 AlertWizardRuleTemplates,
                 template =>
                   matchTemplateAggregate(template, aggregate) &&
                   matchTemplateDataset(template, dataset) &&
                   matchTemplateEventTypes(template, eventTypes, aggregate)
-              ) || 'num_errors';
+              ) as AlertType) || 'num_errors';
 
         const {fieldOptionsConfig, hidePrimarySelector, hideParameterSelector} =
           getFieldOptionConfig({
