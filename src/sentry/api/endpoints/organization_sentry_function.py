@@ -12,10 +12,10 @@ from sentry.models.sentryfunction import SentryFunction
 
 
 class SentryFunctionSerializer(CamelSnakeSerializer):
-    name = serializers.CharField()
+    name = serializers.CharField(required=True)
     author = serializers.CharField(required=False, allow_blank=True, allow_null=True)
-    # code = serializers.CharField()
-    # overview = serializers.CharField()
+    code = serializers.CharField(required=True)
+    overview = serializers.CharField()
 
 
 class OrganizationSentryFunctionEndpoint(OrganizationEndpoint):
