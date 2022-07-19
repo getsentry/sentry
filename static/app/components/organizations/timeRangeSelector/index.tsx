@@ -34,6 +34,7 @@ import getDynamicText from 'sentry/utils/getDynamicText';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 
 import SelectorItems from './selectorItems';
+import timeRangeAutoCompleteFilter from './timeRangeAutoCompleteFilter';
 
 const DateRangeHook = HookOrDefault({
   hookName: 'component:header-date-range',
@@ -130,6 +131,11 @@ type Props = WithRouterProps & {
    * Whether the menu should be detached from the actor
    */
   detached?: boolean;
+
+  /**
+   * Disable the dropdown
+   */
+  disabled?: boolean;
 
   /**
    * Small info icon with tooltip hint text
@@ -385,6 +391,9 @@ class TimeRangeSelector extends PureComponent<Props, State> {
   };
 
   handleOpen = () => {
+    if (this.props.disabled) {
+      return;
+    }
     this.setState({isOpen: true});
     // Start loading react-date-picker
     import('../timeRangeSelector/dateRange/index');
@@ -406,6 +415,7 @@ class TimeRangeSelector extends PureComponent<Props, State> {
       maxPickableDays,
       customDropdownButton,
       detached,
+      disabled,
       alignDropdown,
       showPin,
     } = this.props;
@@ -437,6 +447,7 @@ class TimeRangeSelector extends PureComponent<Props, State> {
             {({css}) => (
               <StyledDropdownAutoComplete
                 allowActorToggle
+                autoCompleteFilter={timeRangeAutoCompleteFilter}
                 alignMenu={alignDropdown ?? (isAbsoluteSelected ? 'right' : 'left')}
                 isOpen={this.state.isOpen}
                 inputValue={this.state.inputValue}
@@ -448,8 +459,9 @@ class TimeRangeSelector extends PureComponent<Props, State> {
                 blendCorner={false}
                 maxHeight={400}
                 detached={detached}
+                disabled={disabled}
                 items={items}
-                searchPlaceholder={t('Filter time range')}
+                searchPlaceholder={t('Provide a time range')}
                 rootClassName={css`
                   position: relative;
                   display: flex;

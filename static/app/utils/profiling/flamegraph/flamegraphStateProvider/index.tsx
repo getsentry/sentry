@@ -178,7 +178,7 @@ const DEFAULT_FLAMEGRAPH_STATE: FlamegraphState = {
   },
   search: {
     index: null,
-    results: null,
+    results: new Map(),
     query: '',
   },
 };

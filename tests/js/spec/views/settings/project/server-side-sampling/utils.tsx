@@ -5,6 +5,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import GlobalModal from 'sentry/components/globalModal';
 import {Organization, Project} from 'sentry/types';
 import {
+  RecommendedSdkUpgrade,
   SamplingConditionOperator,
   SamplingDistribution,
   SamplingInnerOperator,
@@ -89,6 +90,14 @@ export const mockedSamplingSdkVersions: SamplingSdkVersion[] = [
     latestSDKVersion: '1.0.2',
     latestSDKName: 'sentry.python',
     isSendingSampleRate: false,
+  },
+];
+
+export const recommendedSdkUpgrades: RecommendedSdkUpgrade[] = [
+  {
+    project: mockedProjects[1],
+    latestSDKName: mockedSamplingSdkVersions[1].latestSDKName,
+    latestSDKVersion: mockedSamplingSdkVersions[1].latestSDKVersion,
   },
 ];
 
