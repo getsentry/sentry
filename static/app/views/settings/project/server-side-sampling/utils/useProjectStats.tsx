@@ -28,8 +28,6 @@ function useProjectStats({orgSlug, projectId, interval, statsPeriod, disable = f
           },
         });
 
-        console.log({response});
-
         setProjectStats(response);
         setLoading(false);
       } catch (err) {
