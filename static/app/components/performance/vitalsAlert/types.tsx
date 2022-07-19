@@ -2,15 +2,17 @@ import {VITALS_TYPES} from './constants';
 
 export type VitalsKey = typeof VITALS_TYPES[number];
 
-interface BaseVitalsResult {
-  [key: VitalsKey]: number;
+type MyType = {
+  [key in VitalsKey]: number;
+};
+
+interface BaseVitalsResult extends MyType {
   appColdStartCount: number;
   appWarmStartCount: number;
   fcpCount: number;
   lcpCount: number;
 }
 
-// couldn't figure out how to do this with an interface
-export type VitalsResult = BaseVitalsResult & {
+export interface VitalsResult extends BaseVitalsResult {
   projectData: Array<BaseVitalsResult & {projectId: string}>;
-};
+}

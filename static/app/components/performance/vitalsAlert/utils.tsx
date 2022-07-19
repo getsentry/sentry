@@ -9,15 +9,14 @@ export function getRelativeDiff(value: number, benchmark: number) {
 export function getWorstVital(data: VitalsResult): VitalsKey | null {
   let worstField: VitalsKey | null = null;
   let worstDecrease = 0;
-  let field: VitalsKey;
-  for (field in data) {
+  for (const field in data) {
     const value = data[field];
     if (value) {
       const benchmark = SENTRY_CUSTOMERS[field];
       const relativeDiff = getRelativeDiff(value, benchmark);
       if (relativeDiff > worstDecrease) {
         worstDecrease = relativeDiff;
-        worstField = field;
+        worstField = field as VitalsKey;
       }
     }
   }

@@ -1,6 +1,6 @@
 import {VitalsKey} from './types';
 
-export const VITALS_TYPES = ['FCP', 'LCP', 'appStartCold', 'appStartWarm'];
+export const VITALS_TYPES = ['FCP', 'LCP', 'appStartCold', 'appStartWarm'] as const;
 
 // these are industry standards determined by Google (https://web.dev/defining-core-web-vitals-thresholds/)
 export const INDUSTRY_STANDARDS: Record<VitalsKey, number> = {
