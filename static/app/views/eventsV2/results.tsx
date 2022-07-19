@@ -14,10 +14,13 @@ import {Client} from 'sentry/api';
 import Alert from 'sentry/components/alert';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import Confirm from 'sentry/components/confirm';
-import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import SearchBar from 'sentry/components/events/searchBar';
+import {
+  IncompatibleAlertQuery,
+  IncompatibleQueryProperties,
+} from 'sentry/components/incompatibleAlertQuery';
 import * as Layout from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
@@ -65,10 +68,10 @@ type Props = {
 
 type State = {
   confirmedQuery: boolean;
+  displayIncompatibleAlertNotice: boolean;
   error: string;
   errorCode: number;
   eventView: EventView;
-  incompatibleAlertNotice: React.ReactNode;
   needConfirmation: boolean;
   showTags: boolean;
   totalValues: null | number;
@@ -117,7 +120,7 @@ class Results extends Component<Props, State> {
     showTags: readShowTagsState(),
     needConfirmation: false,
     confirmedQuery: false,
-    incompatibleAlertNotice: null,
+    displayIncompatibleAlertNotice: false,
   };
 
   componentDidMount() {
@@ -439,11 +442,10 @@ class Results extends Component<Props, State> {
     return url;
   };
 
-  handleIncompatibleQuery: React.ComponentProps<
-    typeof CreateAlertFromViewButton
-  >['onIncompatibleQuery'] = (incompatibleAlertNoticeFn, errors) => {
+  handleIncompatibleQuery = (errors: IncompatibleQueryProperties) => {
     const {organization} = this.props;
     const {eventView} = this.state;
+
     trackAnalyticsEvent({
       eventKey: 'discover_v2.create_alert_clicked',
       eventName: 'Discoverv2: Create alert clicked',
@@ -454,11 +456,11 @@ class Results extends Component<Props, State> {
       url: window.location.href,
     });
 
-    const incompatibleAlertNotice = incompatibleAlertNoticeFn(() =>
-      this.setState({incompatibleAlertNotice: null})
-    );
+    this.setState({displayIncompatibleAlertNotice: true});
+  };
 
-    this.setState({incompatibleAlertNotice});
+  handleCloseIncompatibleQuery = () => {
+    this.setState({displayIncompatibleAlertNotice: false});
   };
 
   renderError(error: string) {
@@ -497,7 +499,7 @@ class Results extends Component<Props, State> {
       errorCode,
       totalValues,
       showTags,
-      incompatibleAlertNotice,
+      displayIncompatibleAlertNotice,
       confirmedQuery,
       savedQuery,
     } = this.state;
@@ -522,7 +524,15 @@ class Results extends Component<Props, State> {
               router={router}
             />
             <Layout.Body>
-              {incompatibleAlertNotice && <Top fullWidth>{incompatibleAlertNotice}</Top>}
+              {displayIncompatibleAlertNotice && (
+                <Top fullWidth>
+                  <IncompatibleAlertQuery
+                    orgSlug={organization.slug}
+                    eventView={eventView}
+                    onClose={this.handleCloseIncompatibleQuery}
+                  />
+                </Top>
+              )}
               <Top fullWidth>
                 {this.renderMetricsFallbackBanner()}
                 {this.renderError(error)}
@@ -612,6 +622,7 @@ const StyledSearchBar = styled(SearchBar)`
 
 const Top = styled(Layout.Main)`
   flex-grow: 0;
+  margin-bottom: ${space(1)};
 `;
 
 type SavedQueryState = AsyncComponent['state'] & {

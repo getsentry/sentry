@@ -1,4 +1,4 @@
-import {Fragment, ReactNode, useState} from 'react';
+import {Fragment, useState} from 'react';
 import {browserHistory, InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -15,6 +15,7 @@ import DropdownMenuControlV2 from 'sentry/components/dropdownMenuControlV2';
 import {MenuItemProps} from 'sentry/components/dropdownMenuItemV2';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import SearchBar from 'sentry/components/events/searchBar';
+import {IncompatibleAlertQuery} from 'sentry/components/incompatibleAlertQuery';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
@@ -69,7 +70,8 @@ function getSummaryConditions(query: string) {
 }
 
 function VitalDetailContent(props: Props) {
-  const [incompatibleAlertNotice, setIncompatibleAlertNotice] = useState<ReactNode>(null);
+  const [displayIncompatibleAlertNotice, setDisplayIncompatibleAlertNotice] =
+    useState(false);
   const [error, setError] = useState<string | undefined>(undefined);
 
   function handleSearch(query: string) {
@@ -89,11 +91,8 @@ function VitalDetailContent(props: Props) {
     });
   }
 
-  function handleIncompatibleQuery(incompatibleAlertNoticeFn) {
-    const _incompatibleAlertNotice = incompatibleAlertNoticeFn(() =>
-      setIncompatibleAlertNotice(null)
-    );
-    setIncompatibleAlertNotice(_incompatibleAlertNotice);
+  function handleIncompatibleQuery() {
+    setDisplayIncompatibleAlertNotice(true);
   }
 
   function renderCreateAlertButton() {
@@ -265,7 +264,7 @@ function VitalDetailContent(props: Props) {
     );
   }
 
-  const {location, organization, vitalName} = props;
+  const {location, organization, vitalName, eventView} = props;
 
   const vital = vitalName || WebVital.LCP;
 
@@ -287,8 +286,14 @@ function VitalDetailContent(props: Props) {
       </Layout.Header>
       <Layout.Body>
         {renderError()}
-        {incompatibleAlertNotice && (
-          <Layout.Main fullWidth>{incompatibleAlertNotice}</Layout.Main>
+        {displayIncompatibleAlertNotice && (
+          <Layout.Main fullWidth>
+            <IncompatibleAlertQuery
+              eventView={eventView}
+              orgSlug={organization.slug}
+              onClose={() => setDisplayIncompatibleAlertNotice(false)}
+            />
+          </Layout.Main>
         )}
         <Layout.Main fullWidth>
           <StyledDescription>{vitalDescription[vitalName]}</StyledDescription>

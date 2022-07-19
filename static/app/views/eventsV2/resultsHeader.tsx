@@ -5,7 +5,7 @@ import {Location} from 'history';
 
 import {fetchSavedQuery} from 'sentry/actionCreators/discoverSavedQueries';
 import {Client} from 'sentry/api';
-import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
+import type {CreateAlertFromViewButtonProps} from 'sentry/components/createAlertButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
@@ -23,9 +23,7 @@ type Props = {
   errorCode: number;
   eventView: EventView;
   location: Location;
-  onIncompatibleAlertQuery: React.ComponentProps<
-    typeof CreateAlertFromViewButton
-  >['onIncompatibleQuery'];
+  onIncompatibleAlertQuery: CreateAlertFromViewButtonProps['onIncompatibleQuery'];
   organization: Organization;
   router: InjectedRouter;
   yAxis: string[];

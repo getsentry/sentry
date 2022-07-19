@@ -11,7 +11,10 @@ import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Banner from 'sentry/components/banner';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
+import {
+  CreateAlertFromViewButton,
+  CreateAlertFromViewButtonProps,
+} from 'sentry/components/createAlertButton';
 import DropdownControl from 'sentry/components/dropdownControl';
 import InputControl from 'sentry/components/forms/controls/input';
 import {Hovercard} from 'sentry/components/hovercard';
@@ -44,9 +47,7 @@ type Props = DefaultProps & {
    * passed down only because it is needed for navigation.
    */
   location: Location;
-  onIncompatibleAlertQuery: React.ComponentProps<
-    typeof CreateAlertFromViewButton
-  >['onIncompatibleQuery'];
+  onIncompatibleAlertQuery: CreateAlertFromViewButtonProps['onIncompatibleQuery'];
   organization: Organization;
   projects: Project[];
   router: InjectedRouter;
