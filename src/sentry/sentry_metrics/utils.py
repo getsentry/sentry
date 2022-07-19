@@ -2,6 +2,7 @@ from typing import Optional, Sequence
 
 from sentry.api.utils import InvalidParams
 from sentry.sentry_metrics import indexer
+from sentry.sentry_metrics.configuration import UseCaseKey
 
 #: Special integer used to represent a string missing from the indexer
 STRING_NOT_FOUND = -1
@@ -14,9 +15,9 @@ class MetricIndexNotFound(InvalidParams):  # type: ignore
     pass
 
 
-def reverse_resolve(index: int) -> str:
+def reverse_resolve(use_case_id: UseCaseKey, index: int) -> str:
     assert index > 0
-    resolved = indexer.reverse_resolve(index)
+    resolved = indexer.reverse_resolve(index, use_case_id=use_case_id)
     # The indexer should never return None for integers > 0:
     if resolved is None:
         raise MetricIndexNotFound()
@@ -24,7 +25,7 @@ def reverse_resolve(index: int) -> str:
     return resolved  # type: ignore
 
 
-def reverse_resolve_weak(index: int) -> Optional[str]:
+def reverse_resolve_weak(use_case_id: UseCaseKey, index: int) -> Optional[str]:
     """
     Resolve an index value back to a string, special-casing 0 to return None.
 
@@ -35,23 +36,27 @@ def reverse_resolve_weak(index: int) -> Optional[str]:
     if index == TAG_NOT_SET:
         return None
 
-    return reverse_resolve(index)
+    return reverse_resolve(use_case_id, index)
 
 
-def resolve(org_id: int, string: str) -> int:
-    resolved = indexer.resolve(org_id, string)
+def resolve(
+    use_case_id: UseCaseKey,
+    org_id: int,
+    string: str,
+) -> int:
+    resolved = indexer.resolve(org_id, string, use_case_id=use_case_id)
     if resolved is None:
         raise MetricIndexNotFound(f"Unknown string: {string!r}")
 
     return resolved  # type: ignore
 
 
-def resolve_tag_key(org_id: int, string: str) -> str:
-    resolved = resolve(org_id, string)
+def resolve_tag_key(use_case_id: UseCaseKey, org_id: int, string: str) -> str:
+    resolved = resolve(use_case_id, org_id, string)
     return f"tags[{resolved}]"
 
 
-def resolve_weak(org_id: int, string: str) -> int:
+def resolve_weak(use_case_id: UseCaseKey, org_id: int, string: str) -> int:
     """
     A version of `resolve` that returns -1 for missing values.
 
@@ -59,21 +64,23 @@ def resolve_weak(org_id: int, string: str) -> int:
     useful to make the WHERE-clause "impossible" with `WHERE x = -1` instead of
     explicitly handling that exception.
     """
-    resolved = indexer.resolve(org_id, string)
+    resolved = indexer.resolve(org_id, string, use_case_id=use_case_id)
     if resolved is None:
         return STRING_NOT_FOUND
 
     return resolved  # type: ignore
 
 
-def resolve_many_weak(org_id: int, strings: Sequence[str]) -> Sequence[int]:
+def resolve_many_weak(
+    use_case_id: UseCaseKey, org_id: int, strings: Sequence[str]
+) -> Sequence[int]:
     """
     Resolve multiple values at once, omitting missing ones. This is useful in
     the same way as `resolve_weak` is, e.g. `WHERE x in values`.
     """
     rv = []
     for string in strings:
-        resolved = resolve_weak(org_id, string)
+        resolved = resolve_weak(use_case_id, org_id, string)
         if resolved != STRING_NOT_FOUND:
             rv.append(resolved)
 

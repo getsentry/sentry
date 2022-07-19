@@ -133,6 +133,11 @@ type Props = WithRouterProps & {
   detached?: boolean;
 
   /**
+   * Disable the dropdown
+   */
+  disabled?: boolean;
+
+  /**
    * Small info icon with tooltip hint text
    */
   hint?: string;
@@ -386,6 +391,9 @@ class TimeRangeSelector extends PureComponent<Props, State> {
   };
 
   handleOpen = () => {
+    if (this.props.disabled) {
+      return;
+    }
     this.setState({isOpen: true});
     // Start loading react-date-picker
     import('../timeRangeSelector/dateRange/index');
@@ -407,6 +415,7 @@ class TimeRangeSelector extends PureComponent<Props, State> {
       maxPickableDays,
       customDropdownButton,
       detached,
+      disabled,
       alignDropdown,
       showPin,
     } = this.props;
@@ -450,6 +459,7 @@ class TimeRangeSelector extends PureComponent<Props, State> {
                 blendCorner={false}
                 maxHeight={400}
                 detached={detached}
+                disabled={disabled}
                 items={items}
                 searchPlaceholder={t('Provide a time range')}
                 rootClassName={css`

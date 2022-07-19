@@ -1,5 +1,6 @@
 import copy
 import time
+from functools import partial
 from operator import itemgetter
 from unittest.mock import patch
 
@@ -42,8 +43,12 @@ def mocked_mri_resolver(metric_names, mri_func):
     return lambda x: x if x in metric_names else mri_func(x)
 
 
-def _indexer_record(org_id: int, string: str) -> int:
-    return indexer.record(use_case_id=UseCaseKey.RELEASE_HEALTH, org_id=org_id, string=string)
+def indexer_record(use_case_id: UseCaseKey, org_id: int, string: str) -> int:
+    return indexer.record(use_case_id=use_case_id, org_id=org_id, string=string)
+
+
+perf_indexer_record = partial(indexer_record, UseCaseKey.PERFORMANCE)
+rh_indexer_record = partial(indexer_record, UseCaseKey.RELEASE_HEALTH)
 
 
 class OrganizationMetricsPermissionTest(APITestCase):
@@ -219,12 +224,12 @@ class OrganizationMetricsIndexIntegrationTest(OrganizationMetricMetaIntegrationT
     def test_metrics_index_transaction_derived_metrics(self):
         user_ts = time.time()
         org_id = self.organization.id
-        tx_metric = _indexer_record(org_id, TransactionMRI.DURATION.value)
-        tx_status = _indexer_record(org_id, TransactionTagsKey.TRANSACTION_STATUS.value)
-        tx_satisfaction = _indexer_record(
+        tx_metric = perf_indexer_record(org_id, TransactionMRI.DURATION.value)
+        tx_status = perf_indexer_record(org_id, TransactionTagsKey.TRANSACTION_STATUS.value)
+        tx_satisfaction = perf_indexer_record(
             self.organization.id, TransactionTagsKey.TRANSACTION_SATISFACTION.value
         )
-        tx_user_metric = _indexer_record(self.organization.id, TransactionMRI.USER.value)
+        tx_user_metric = perf_indexer_record(self.organization.id, TransactionMRI.USER.value)
 
         self._send_buckets(
             [
@@ -234,7 +239,7 @@ class OrganizationMetricsIndexIntegrationTest(OrganizationMetricMetaIntegrationT
                     "metric_id": tx_user_metric,
                     "timestamp": user_ts,
                     "tags": {
-                        tx_satisfaction: _indexer_record(
+                        tx_satisfaction: perf_indexer_record(
                             self.organization.id, TransactionSatisfactionTagValue.FRUSTRATED.value
                         ),
                     },
@@ -248,10 +253,10 @@ class OrganizationMetricsIndexIntegrationTest(OrganizationMetricMetaIntegrationT
                     "metric_id": tx_user_metric,
                     "timestamp": user_ts,
                     "tags": {
-                        tx_satisfaction: _indexer_record(
+                        tx_satisfaction: perf_indexer_record(
                             self.organization.id, TransactionSatisfactionTagValue.SATISFIED.value
                         ),
-                        tx_status: _indexer_record(
+                        tx_status: perf_indexer_record(
                             self.organization.id, TransactionStatusTagValue.CANCELLED.value
                         ),
                     },
@@ -270,10 +275,10 @@ class OrganizationMetricsIndexIntegrationTest(OrganizationMetricMetaIntegrationT
                     "metric_id": tx_metric,
                     "timestamp": user_ts,
                     "tags": {
-                        tx_satisfaction: _indexer_record(
+                        tx_satisfaction: perf_indexer_record(
                             self.organization.id, TransactionSatisfactionTagValue.TOLERATED.value
                         ),
-                        tx_status: _indexer_record(
+                        tx_status: perf_indexer_record(
                             self.organization.id, TransactionStatusTagValue.OK.value
                         ),
                     },

@@ -808,6 +808,18 @@ function buildRoutes() {
               )
           )}
         />
+        <Route path="sentry-functions/" name={t('Sentry Functions')}>
+          <Route
+            path="new/"
+            name={t('Create Sentry Function')}
+            component={make(
+              () =>
+                import(
+                  'sentry/views/settings/organizationDeveloperSettings/sentryFunctionDetails'
+                )
+            )}
+          />
+        </Route>
       </Route>
     </Route>
   );
@@ -1031,10 +1043,6 @@ function buildRoutes() {
       <Route
         path=":eventSlug/"
         component={make(() => import('sentry/views/replays/details'))}
-      />
-      <Route
-        path=":eventSlug/v2/"
-        component={make(() => import('sentry/views/replays/details_v2'))}
       />
     </Route>
   );

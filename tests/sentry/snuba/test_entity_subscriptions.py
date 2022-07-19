@@ -146,6 +146,7 @@ class EntitySubscriptionTestCase(TestCase):
 
     def test_get_entity_subscription_for_metrics_dataset_for_users(self) -> None:
         org_id = self.organization.id
+        use_case_id = UseCaseKey.RELEASE_HEALTH
 
         aggregate = "percentage(users_crashed, users) AS _crash_rate_alert_aggregate"
         entity_subscription = get_entity_subscription(
@@ -162,8 +163,8 @@ class EntitySubscriptionTestCase(TestCase):
             "granularity": 10,
         }
         assert entity_subscription.dataset == QueryDatasets.METRICS
-        session_status = resolve_tag_key(org_id, "session.status")
-        session_status_crashed = resolve(org_id, "crashed")
+        session_status = resolve_tag_key(use_case_id, org_id, "session.status")
+        session_status_crashed = resolve(use_case_id, org_id, "crashed")
         snql_query = entity_subscription.build_query_builder(
             "", [self.project.id], None, {"organization_id": self.organization.id}
         ).get_snql_query()
@@ -194,12 +195,17 @@ class EntitySubscriptionTestCase(TestCase):
             Condition(
                 Column("metric_id"),
                 Op.EQ,
-                resolve(self.organization.id, entity_subscription.metric_key.value),
+                resolve(
+                    UseCaseKey.RELEASE_HEALTH,
+                    self.organization.id,
+                    entity_subscription.metric_key.value,
+                ),
             ),
         ]
 
     def test_get_entity_subscription_for_metrics_dataset_for_sessions(self) -> None:
         org_id = self.organization.id
+        use_case_id = UseCaseKey.RELEASE_HEALTH
         aggregate = "percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate"
         entity_subscription = get_entity_subscription(
             query_type=SnubaQuery.Type.CRASH_RATE,
@@ -215,9 +221,9 @@ class EntitySubscriptionTestCase(TestCase):
             "granularity": 10,
         }
         assert entity_subscription.dataset == QueryDatasets.METRICS
-        session_status = resolve_tag_key(org_id, "session.status")
-        session_status_crashed = resolve(org_id, "crashed")
-        session_status_init = resolve(org_id, "init")
+        session_status = resolve_tag_key(use_case_id, org_id, "session.status")
+        session_status_crashed = resolve(use_case_id, org_id, "crashed")
+        session_status_init = resolve(use_case_id, org_id, "init")
         snql_query = entity_subscription.build_query_builder(
             "", [self.project.id], None, {"organization_id": self.organization.id}
         ).get_snql_query()
@@ -253,7 +259,7 @@ class EntitySubscriptionTestCase(TestCase):
             Condition(
                 Column("metric_id"),
                 Op.EQ,
-                resolve(self.organization.id, entity_subscription.metric_key.value),
+                resolve(use_case_id, self.organization.id, entity_subscription.metric_key.value),
             ),
             Condition(
                 Column(session_status),
@@ -311,7 +317,9 @@ class EntitySubscriptionTestCase(TestCase):
             },
         ).get_snql_query()
 
-        metric_id = resolve(self.organization.id, METRICS_MAP["transaction.duration"])
+        metric_id = resolve(
+            UseCaseKey.PERFORMANCE, self.organization.id, METRICS_MAP["transaction.duration"]
+        )
 
         assert snql_query.query.select == [
             Function(
@@ -397,7 +405,19 @@ class GetEntitySubscriptionFromSnubaQueryTest(TestCase):
             (
                 PerformanceMetricsEntitySubscription,
                 SnubaQuery.Type.PERFORMANCE,
+                QueryDatasets.PERFORMANCE_METRICS,
+                "count()",
+            ),
+            (
+                PerformanceMetricsEntitySubscription,
+                SnubaQuery.Type.PERFORMANCE,
                 QueryDatasets.METRICS,
+                "count_unique(user)",
+            ),
+            (
+                PerformanceMetricsEntitySubscription,
+                SnubaQuery.Type.PERFORMANCE,
+                QueryDatasets.PERFORMANCE_METRICS,
                 "count_unique(user)",
             ),
             (
@@ -449,6 +469,20 @@ class GetEntityKeyFromSnubaQueryTest(TestCase):
                 EntityKey.GenericMetricsSets,
                 SnubaQuery.Type.PERFORMANCE,
                 QueryDatasets.METRICS,
+                "count_unique(user)",
+                "",
+            ),
+            (
+                EntityKey.GenericMetricsDistributions,
+                SnubaQuery.Type.PERFORMANCE,
+                QueryDatasets.PERFORMANCE_METRICS,
+                "count()",
+                "",
+            ),
+            (
+                EntityKey.GenericMetricsSets,
+                SnubaQuery.Type.PERFORMANCE,
+                QueryDatasets.PERFORMANCE_METRICS,
                 "count_unique(user)",
                 "",
             ),

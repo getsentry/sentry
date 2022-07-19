@@ -551,7 +551,7 @@ const RulesPanelLayout = styled('div')<{isContent?: boolean}>`
   grid-template-columns: 1fr 0.5fr 74px;
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
-    grid-template-columns: 48px 95px 1fr 0.5fr 77px 74px;
+    grid-template-columns: 48px 97px 1fr 0.5fr 77px 74px;
   }
 
   ${p =>
