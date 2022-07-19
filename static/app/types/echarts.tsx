@@ -103,6 +103,8 @@ export type EChartDataZoomHandler = EChartEventHandler<{
   startValue?: number;
 }>;
 
+export type DataPoint = Pick<SeriesDataUnit, 'name' | 'value'>;
+
 export type EChartRestoreHandler = EChartEventHandler<{type: 'restore'}>;
 
 export type EChartFinishedHandler = EChartEventHandler<{}>;
