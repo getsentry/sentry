@@ -25,7 +25,6 @@ class OrganizationSentryFunctionEndpoint(OrganizationEndpoint):
     def post(self, request, organization):
         if not features.has("organizations:sentry-functions", organization, actor=request.user):
             return Response("organizations:sentry-functions flag set to false", status=404)
-        # print(request.data)
         serializer = SentryFunctionSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
