@@ -534,6 +534,7 @@ class ReleasesList extends AsyncView<Props, State> {
               <EnvironmentPageFilter />
               <DatePageFilter
                 alignDropdown="left"
+                disallowArbitraryRelativeRanges
                 hint={t('Changing this date range will recalculate the release metrics.')}
               />
             </ReleasesPageFilterBar>
