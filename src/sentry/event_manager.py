@@ -81,6 +81,7 @@ from sentry.models.integrations.repository_project_path_config import Repository
 from sentry.plugins.base import plugins
 from sentry.projectoptions.defaults import BETA_GROUPING_CONFIG, DEFAULT_GROUPING_CONFIG
 from sentry.reprocessing2 import is_reprocessed_event, save_unprocessed_event
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.signals import first_event_received, first_transaction_received, issue_unresolved
 from sentry.tasks.commits import fetch_commits
 from sentry.tasks.integrations import kick_off_status_syncs
@@ -696,24 +697,46 @@ def _is_commit_sha(version: str):
 
 
 def _associate_commits_with_release(release: Release, project: Project):
-    previous_release = release.previous_release
+    previous_release = release.get_previous_release(project)
     possible_repos = (
-        RepositoryProjectPathConfig.objects.select_related("repository")
+        RepositoryProjectPathConfig.objects.select_related(
+            "repository", "organization_integration", "organization_integration__integration"
+        )
         .filter(project=project)
         .all()
     )
     if possible_repos:
         # If it does exist, kick off a task to look if the commit exists in the repository
+        target_repo = None
+        for repo_proj_path_model in possible_repos:
+            integration_installation = (
+                repo_proj_path_model.organization_integration.integration.get_installation(
+                    organization_id=project.organization.id
+                )
+            )
+            repo_client = integration_installation.get_client()
+            try:
+                repo_client.get_commit(
+                    repo=repo_proj_path_model.repository.name, sha=release.version
+                )
+                target_repo = repo_proj_path_model.repository
+                break
+            except ApiError as exc:
+                if exc.code != 404:
+                    raise
 
-        # If it does exist, fetch the commits for that repo
-        fetch_commits.apply_async(
-            kwargs={
-                "release_id": release.id,
-                "user_id": None,
-                "refs": [{"repository": possible_repos.repository.name, "commit": release.version}],
-                "prev_release_id": previous_release.id if previous_release is not None else None,
-            }
-        )
+        if target_repo is not None:
+            # If it does exist, fetch the commits for that repo
+            fetch_commits.apply_async(
+                kwargs={
+                    "release_id": release.id,
+                    "user_id": None,
+                    "refs": [{"repository": target_repo.name, "commit": release.version}],
+                    "prev_release_id": previous_release.id
+                    if previous_release is not None
+                    else None,
+                }
+            )
 
 
 @metrics.wraps("save_event.get_or_create_release_many")
@@ -739,7 +762,9 @@ def _get_or_create_release_many(jobs, projects):
             date_added=release_date_added[(project_id, version)],
         )
 
-        if _is_commit_sha(release.version):
+        if features.has(
+            "projects:auto-associate-commits-to-release", projects[project_id]
+        ) and _is_commit_sha(release.version):
             _associate_commits_with_release(release, projects[project_id])
 
         for job in jobs_to_update:
