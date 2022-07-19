@@ -1,3 +1,4 @@
+import Fuse from 'fuse.js';
 import {mat3, vec2} from 'gl-matrix';
 
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
@@ -484,11 +485,6 @@ export function findRangeBinarySearch(
   target: number,
   precision = 1
 ): [number, number] {
-  if (target < low || target > high) {
-    throw new Error(
-      `Target has to be in range of low <= target <= high, got ${low} <= ${target} <= ${high}`
-    );
-  }
   // eslint-disable-next-line
   while (true) {
     if (high - low <= precision) {
@@ -536,8 +532,7 @@ export function trimTextCenter(text: string, low: number): TrimTextCenter {
     };
   }
   const prefixLength = Math.floor(low / 2);
-  // Use 1 character less than the low value to account for ellipsis
-  // and favor displaying the prefix
+  // Use 1 character less than the low value to account for ellipsis and favor displaying the prefix
   const postfixLength = low - prefixLength - 1;
 
   const start = prefixLength;
@@ -572,30 +567,20 @@ export function computeClampedConfigView(
   return new Rect(clampedX, clampedY, clampedWidth, clampedHeight);
 }
 
-function isBetween(num: number, low: number, high: number) {
-  return num >= low && num <= high;
-}
-
-export type Bounds = [number, number];
-
 /**
  * computeHighlightedBounds determines if a supplied boundary should be reduced in size
  * or shifted based on the results of a trim operation
  */
 export function computeHighlightedBounds(
-  bounds: Bounds,
+  bounds: Fuse.RangeTuple,
   trim: TrimTextCenter
-): Bounds | null {
-  const [boundStart, boundEnd] = bounds;
-  const {start: trimStart, end: trimEnd, length: trimLength} = trim;
-
-  const isNotTrimmed = trimLength === 0;
-  if (isNotTrimmed) {
+): Fuse.RangeTuple {
+  if (!trim.length) {
     return bounds;
   }
 
-  const isStartBetweenTrim = isBetween(boundStart, trimStart, trimEnd);
-  const isEndBetweenTrim = isBetween(boundEnd, trimStart, trimEnd);
+  const isStartBetweenTrim = bounds[0] >= trim.start && bounds[0] <= trim.end;
+  const isEndBetweenTrim = bounds[1] >= trim.start && bounds[1] <= trim.end;
   const isFullyTruncated = isStartBetweenTrim && isEndBetweenTrim;
 
   // example:
@@ -604,42 +589,42 @@ export function computeHighlightedBounds(
   // "smooth" in "-[UIScrollView _…ScrollDisplayLink:]"
   //                              ^^
   if (isFullyTruncated) {
-    return [trimStart, trimStart + 1];
+    return [trim.start, trim.start + 1];
   }
 
-  if (boundStart < trimStart) {
+  if (bounds[0] < trim.start) {
     // "ScrollView" in '-[UIScrollView _sm…rollDisplayLink:]'
     //                      ^--------^
-    if (boundEnd < trimStart) {
-      return bounds;
+    if (bounds[1] < trim.start) {
+      return [bounds[0], bounds[1]];
     }
 
     // "smoothScroll" in -[UIScrollView _smooth…DisplayLink:]'
     //                                   ^-----^
     if (isEndBetweenTrim) {
-      return [boundStart, trimStart + 1];
+      return [bounds[0], trim.start + 1];
     }
 
     // "smoothScroll" in -[UIScrollView _sm…llDisplayLink:]'
     //                                   ^---^
-    if (boundEnd > trimEnd) {
-      return [boundStart, boundEnd - trimLength + 1];
+    if (bounds[1] > trim.end) {
+      return [bounds[0], bounds[1] - trim.length + 1];
     }
   }
 
   // "smoothScroll" in -[UIScrollView _…scrollDisplayLink:]'
   //                                   ^-----^
-  if (isStartBetweenTrim && boundEnd > trimEnd) {
-    return [trimStart, boundEnd - trimLength + 1];
+  if (isStartBetweenTrim && bounds[1] > trim.end) {
+    return [trim.start, bounds[1] - trim.length + 1];
   }
 
   // "display" in -[UIScrollView _…scrollDisplayLink:]'
   //                                     ^-----^
-  if (boundStart > trimEnd) {
-    return [boundStart - trimLength + 1, boundEnd - trimLength + 1];
+  if (bounds[0] > trim.end) {
+    return [bounds[0] - trim.length + 1, bounds[1] - trim.length + 1];
   }
 
-  return null;
+  throw new Error(`Unhandled case: ${JSON.stringify(bounds)} ${trim}`);
 }
 
 export function computeConfigViewWithStategy(

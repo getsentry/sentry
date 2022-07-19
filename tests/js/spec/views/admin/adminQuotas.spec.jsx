@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
 import AdminQuotas from 'sentry/views/admin/adminQuotas';
@@ -20,12 +20,8 @@ describe('AdminQuotas', function () {
     });
 
     it('renders', function () {
-      const wrapper = mountWithTheme(<AdminQuotas params={{}} />, {
-        context: {
-          router: TestStubs.router(),
-        },
-      });
-      expect(wrapper).toSnapshot();
+      const wrapper = render(<AdminQuotas params={{}} />);
+      expect(wrapper.container).toSnapshot();
     });
   });
 });

@@ -4,27 +4,30 @@ import {openModal} from 'sentry/actionCreators/modal';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import {t} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import {Organization} from 'sentry/types';
 import {RecommendedSdkUpgrade, SamplingRule} from 'sentry/types/sampling';
 
-import {RecommendedStepsModal} from './modals/recommendedStepsModal';
+import {
+  RecommendedStepsModal,
+  RecommendedStepsModalProps,
+} from './modals/recommendedStepsModal';
 import {isUniformRule} from './utils';
 
-type Props = {
+type Props = Pick<RecommendedStepsModalProps, 'projectId' | 'onReadDocs'> & {
   organization: Organization;
   recommendedSdkUpgrades: RecommendedSdkUpgrade[];
   rules: SamplingRule[];
-  project?: Project;
   showLinkToTheModal?: boolean;
 };
 
 export function SamplingSDKAlert({
   organization,
-  project,
+  projectId,
   recommendedSdkUpgrades,
   rules,
+  onReadDocs,
   showLinkToTheModal = true,
 }: Props) {
   if (recommendedSdkUpgrades.length === 0) {
@@ -35,8 +38,9 @@ export function SamplingSDKAlert({
     openModal(modalProps => (
       <RecommendedStepsModal
         {...modalProps}
+        onReadDocs={onReadDocs}
         organization={organization}
-        project={project}
+        projectId={projectId}
         recommendedSdkUpgrades={recommendedSdkUpgrades}
       />
     ));
@@ -62,8 +66,10 @@ export function SamplingSDKAlert({
         ? t(
             'Server-side sampling rules are in effect without the following SDK’s being updated to their latest version.'
           )
-        : t(
-            'To keep a consistent amount of transactions across your applications multiple services, we recommend you update the SDK versions for the following projects:'
+        : tn(
+            'To keep a consistent amount of transactions across your applications multiple services, we recommend you update the SDK versions for the following project:',
+            'To keep a consistent amount of transactions across your applications multiple services, we recommend you update the SDK versions for the following projects:',
+            recommendedSdkUpgrades.length
           )}
       <Projects>
         {recommendedSdkUpgrades.map(recommendedSdkUpgrade => (

@@ -12,7 +12,7 @@ from django.utils.encoding import force_bytes
 from pkg_resources import resource_string
 
 from sentry.tsdb.base import BaseTSDB
-from sentry.utils.compat import crc32, map
+from sentry.utils.compat import crc32
 from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.redis import SentryScript, check_cluster_versions, get_cluster_from_options
 from sentry.utils.versioning import Version
@@ -289,7 +289,7 @@ class RedisTSDB(BaseTSDB):
         self.validate_arguments([model], [environment_id])
 
         rollup, series = self.get_optimal_rollup_series(start, end, rollup)
-        series = map(to_datetime, series)
+        series = [to_datetime(item) for item in series]
 
         results = []
         cluster, _ = self.get_cluster(environment_id)
@@ -523,7 +523,9 @@ class RedisTSDB(BaseTSDB):
             client = cluster.get_local_client(host)
             with client.pipeline(transaction=False) as pipeline:
                 pipeline.execute_command(
-                    "PFMERGE", destination, *itertools.chain.from_iterable(map(expand_key, keys))
+                    "PFMERGE",
+                    destination,
+                    *itertools.chain.from_iterable(expand_key(key) for key in keys),
                 )
                 pipeline.get(destination)
                 pipeline.delete(destination)
@@ -781,7 +783,7 @@ class RedisTSDB(BaseTSDB):
         results = {}
         cluster, _ = self.get_cluster(environment_id)
         for key, responses in cluster.execute_commands(commands).items():
-            results[key] = list(zip(series, map(unpack_response, responses)))
+            results[key] = list(zip(series, (unpack_response(response) for response in responses)))
 
         return results
 
@@ -820,7 +822,7 @@ class RedisTSDB(BaseTSDB):
 
             chunk = results[key] = []
             for timestamp, scores in zip(series, responses[0].value):
-                chunk.append((timestamp, dict(zip(members, map(float, scores)))))
+                chunk.append((timestamp, dict(zip(members, (float(score) for score in scores)))))
 
         return results
 
@@ -859,7 +861,7 @@ class RedisTSDB(BaseTSDB):
                 end=None,
                 rollup=rollup,
             )
-            rollups.append((rollup, map(to_datetime, series)))
+            rollups.append((rollup, [to_datetime(item) for item in series]))
 
         for (cluster, durable), environment_ids in self.get_cluster_groups(environment_ids):
             exports = defaultdict(list)

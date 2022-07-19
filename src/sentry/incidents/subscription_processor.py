@@ -30,9 +30,14 @@ from sentry.incidents.models import (
 )
 from sentry.incidents.tasks import handle_trigger_action
 from sentry.models import Project
-from sentry.snuba.entity_subscription import BaseMetricsEntitySubscription
+from sentry.snuba.entity_subscription import (
+    ENTITY_TIME_COLUMNS,
+    BaseCrashRateMetricsEntitySubscription,
+    get_entity_key_from_query_builder,
+    get_entity_subscription_from_snuba_query,
+)
 from sentry.snuba.models import QueryDatasets
-from sentry.snuba.tasks import build_query_builder, get_entity_subscription_for_dataset
+from sentry.snuba.tasks import build_query_builder
 from sentry.utils import metrics, redis
 from sentry.utils.dates import to_datetime, to_timestamp
 
@@ -168,14 +173,9 @@ class SubscriptionProcessor:
         snuba_query = self.subscription.snuba_query
         start = end - timedelta(seconds=snuba_query.time_window)
 
-        entity_subscription = get_entity_subscription_for_dataset(
-            dataset=QueryDatasets(snuba_query.dataset),
-            aggregate=snuba_query.aggregate,
-            time_window=snuba_query.time_window,
-            extra_fields={
-                "org_id": self.subscription.project.organization,
-                "event_types": snuba_query.event_types,
-            },
+        entity_subscription = get_entity_subscription_from_snuba_query(
+            snuba_query,
+            self.subscription.project.organization_id,
         )
         try:
             project_ids = [self.subscription.project_id]
@@ -191,7 +191,7 @@ class SubscriptionProcessor:
                     "end": end,
                 },
             )
-            time_col = entity_subscription.time_col
+            time_col = ENTITY_TIME_COLUMNS[get_entity_key_from_query_builder(query_builder)]
             query_builder.add_conditions(
                 [
                     Condition(Column(time_col), Op.GTE, start),
@@ -267,7 +267,7 @@ class SubscriptionProcessor:
         to v2, we can remove v1 and replace this function with current v2.
         """
         rows = subscription_update["values"]["data"]
-        if BaseMetricsEntitySubscription.is_crash_rate_format_v2(rows):
+        if BaseCrashRateMetricsEntitySubscription.is_crash_rate_format_v2(rows):
             version = "v2"
             result = self._get_crash_rate_alert_metrics_aggregation_value_v2(subscription_update)
         else:
@@ -307,7 +307,7 @@ class SubscriptionProcessor:
         (
             total_session_count,
             crash_count,
-        ) = BaseMetricsEntitySubscription.translate_sessions_tag_keys_and_values(
+        ) = BaseCrashRateMetricsEntitySubscription.translate_sessions_tag_keys_and_values(
             data=subscription_update["values"]["data"],
             org_id=self.subscription.project.organization.id,
         )

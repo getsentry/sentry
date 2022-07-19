@@ -43,6 +43,8 @@ def _remove_container_if_exists(docker_client, container_name):
             container.remove()
         except Exception:
             pass  # could not remove the container nothing to do about it
+    finally:
+        docker_client.close()
 
 
 @pytest.fixture(scope="session")
@@ -100,6 +102,8 @@ def relay_server_setup(live_server, tmpdir_factory):
     docker_client = get_docker_client()
     container_name = _relay_server_container_name()
     _remove_container_if_exists(docker_client, container_name)
+    docker_client.close()
+
     options = {
         "image": RELAY_TEST_IMAGE,
         "ports": {"%s/tcp" % relay_port: relay_port},
@@ -117,6 +121,7 @@ def relay_server_setup(live_server, tmpdir_factory):
 
     # cleanup
     shutil.rmtree(config_path)
+    docker_client = get_docker_client()
     _remove_container_if_exists(docker_client, container_name)
 
 
