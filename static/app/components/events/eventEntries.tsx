@@ -433,7 +433,7 @@ const EventEntries = memo(
             showGroupingConfig={orgFeatures.includes('set-grouping-config')}
           />
         )}
-        {!isShare && hasEventAttachmentsFeature && (
+        {!isShare && !replayId && hasEventAttachmentsFeature && (
           <RRWebIntegration
             event={event}
             orgId={orgSlug}
