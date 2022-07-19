@@ -1,11 +1,4 @@
-import {
-  act,
-  render,
-  screen,
-  userEvent,
-  waitFor,
-  waitForElementToBeRemoved,
-} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
@@ -214,15 +207,12 @@ describe('AssigneeSelector', () => {
 
     userEvent.click(screen.getByText(`${USER_1.name} (You)`));
 
-    expect(await screen.findByTestId('loading-indicator')).toBeInTheDocument();
     expect(assignMock).toHaveBeenLastCalledWith(
       '/issues/1337/',
       expect.objectContaining({
         data: {assignedTo: 'user:1', assignedBy: 'assignee_selector'},
       })
     );
-
-    await waitForElementToBeRemoved(screen.queryByTestId('loading-indicator'));
 
     expect(await screen.findByTestId('letter_avatar-avatar')).toBeInTheDocument();
     // USER_1 initials
