@@ -215,8 +215,14 @@ def make_instance_default_filter_conditions(
 def _make_default_filter_conditions(stats_period: Optional[str]) -> List[Condition]:
     """Return the default set of conditions to filter by."""
     return [
+        # Required for entity validation timestamp must not be in the
+        # future.
         Condition(Column("timestamp"), Op.LT, datetime.now()),
+        # Bounded minimum to prevent us from blowing up clickhouse.
         Condition(Column("timestamp"), Op.GTE, _make_start_period(stats_period)),
+        # Feature request: replays must have a duration greater than 5
+        # seconds.  Anything less than is useless.
+        Condition(Column("duration"), Op.GTE, 5),
     ]
 
 
