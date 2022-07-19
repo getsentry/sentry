@@ -334,7 +334,6 @@ function CompactSelect<OptionType extends GeneralSelectValue = GeneralSelectValu
             value={valueProp ?? internalValue}
             multiple={multiple}
             onChange={onValueChange}
-            onClose={onClose}
             menuTitle={menuTitle}
             placeholder={placeholder}
             isSearchable={isSearchable}
