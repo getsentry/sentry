@@ -65,6 +65,19 @@ def build_group_title(group):
     }
 
 
+def build_group_descr(group):
+    # TODO: implement with event as well
+    text = build_attachment_text(group)
+    if text:
+        return {
+            "type": "TextBlock",
+            "size": "Medium",
+            "weight": "Bolder",
+            "text": text,
+            "wrap": True,
+        }
+
+
 def build_group_footer(group, rules, project, event):
     # TODO: implement with event as well
     image_column = {
@@ -255,7 +268,7 @@ def build_group_card(group, event, rules, integration):
     title = build_group_title(group)
     body = [title]
 
-    desc = build_attachment_text(group)
+    desc = build_group_descr(group)
     if desc:
         body.append(desc)
 
