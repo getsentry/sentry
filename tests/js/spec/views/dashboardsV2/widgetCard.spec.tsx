@@ -62,7 +62,7 @@ describe('Dashboards > WidgetCard', function () {
   beforeEach(function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
-      body: [],
+      body: {meta: {isMetricsData: false}},
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-geo/',
@@ -112,6 +112,7 @@ describe('Dashboards > WidgetCard', function () {
     expect(screen.getByText('Open in Discover')).toBeInTheDocument();
     userEvent.click(screen.getByText('Open in Discover'));
     expect(spy).toHaveBeenCalledWith({
+      isMetricsData: false,
       organization,
       widget: multipleQueryWidget,
     });
