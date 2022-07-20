@@ -19,5 +19,13 @@ class OrganizationReplayIndexTest(APITestCase):
     def test_no_projects(self):
         with self.feature(REPLAYS_FEATURES):
             response = self.client.get(self.url)
-        assert response.status_code == 200
-        assert response.data == []
+            assert response.status_code == 200
+            assert response.data == []
+
+    def test_get_replays(self):
+        self.create_project(teams=[self.team])
+
+        with self.feature(REPLAYS_FEATURES):
+            response = self.client.get(self.url)
+            assert response.status_code == 200
+            assert response.data == []
