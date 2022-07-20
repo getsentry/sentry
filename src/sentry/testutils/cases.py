@@ -1089,18 +1089,21 @@ class BaseMetricsTestCase(SnubaTestCase):
         mapping_meta = {}
 
         def metric_id(key: str):
+            assert isinstance(key, str)
             res = indexer.record(use_case_id=use_case_id, org_id=org_id, string=key)
             assert res is not None, key
             mapping_meta[str(res)] = key
             return res
 
         def tag_key(name):
+            assert isinstance(name, str)
             res = indexer.record(use_case_id=use_case_id, org_id=org_id, string=name)
             assert res is not None, name
             mapping_meta[str(res)] = name
             return res
 
         def tag_value(name):
+            assert isinstance(name, str)
             res = indexer.record(use_case_id=use_case_id, org_id=org_id, string=name)
             assert res is not None, name
             mapping_meta[str(res)] = name
@@ -1271,15 +1274,6 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsTestCase, TestCase):
 
         if tags is None:
             tags = {}
-        else:
-            tags = {
-                indexer.record(
-                    use_case_id=use_case_id, org_id=self.organization.id, string=key
-                ): indexer.record(
-                    use_case_id=use_case_id, org_id=self.organization.id, string=value
-                )
-                for key, value in tags.items()
-            }
 
         if timestamp is None:
             metric_timestamp = self.DEFAULT_METRIC_TIMESTAMP.timestamp()
