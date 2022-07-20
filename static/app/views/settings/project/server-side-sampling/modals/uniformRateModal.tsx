@@ -1,6 +1,7 @@
 import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
+import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {NumberField} from 'sentry/components/forms';
@@ -28,6 +29,7 @@ import {
   rateToPercentage,
   SERVER_SIDE_SAMPLING_DOC_LINK,
 } from '../utils';
+import {hasFirstBucketsEmpty} from '../utils/hasFirstBucketsEmpty';
 import {projectStatsToPredictedSeries} from '../utils/projectStatsToPredictedSeries';
 import {projectStatsToSampleRates} from '../utils/projectStatsToSampleRates';
 import {projectStatsToSeries} from '../utils/projectStatsToSeries';
@@ -36,6 +38,8 @@ import {useRecommendedSdkUpgrades} from '../utils/useRecommendedSdkUpgrades';
 
 import {RecommendedStepsModal, RecommendedStepsModalProps} from './recommendedStepsModal';
 import {UniformRateChart} from './uniformRateChart';
+
+const CONSERVATIVE_SAMPLE_RATE = 0.1;
 
 enum Strategy {
   CURRENT = 'current',
@@ -88,6 +92,11 @@ function UniformRateModal({
 
   const [activeStep, setActiveStep] = useState<Step>(Step.SET_UNIFORM_SAMPLE_RATE);
 
+  const shouldUseConservativeSampleRate =
+    recommendedSdkUpgrades.length === 0 &&
+    hasFirstBucketsEmpty(projectStats30d, 27) &&
+    hasFirstBucketsEmpty(projectStats, 3);
+
   useEffect(() => {
     if (modalStore.renderer === null) {
       trackAdvancedAnalyticsEvent(
@@ -116,7 +125,9 @@ function UniformRateModal({
     defined(maxSafeSampleRate) && !isNaN(maxSafeSampleRate)
       ? maxSafeSampleRate
       : undefined;
-  const recommendedServerSampling = currentClientSampling;
+  const recommendedServerSampling = shouldUseConservativeSampleRate
+    ? CONSERVATIVE_SAMPLE_RATE
+    : currentClientSampling;
 
   const [selectedStrategy, setSelectedStrategy] = useState<Strategy>(Strategy.CURRENT);
   const [clientInput, setClientInput] = useState(
@@ -353,6 +364,14 @@ function UniformRateModal({
               showLinkToTheModal={false}
               onReadDocs={onReadDocs}
             />
+
+            {shouldUseConservativeSampleRate && (
+              <Alert type="info" showIcon>
+                {t(
+                  "For accurate suggestions, we need at least 48hrs to ingest transactions. Meanwhile, here's a conservative server-side sampling rate which can be changed later on."
+                )}
+              </Alert>
+            )}
           </Fragment>
         )}
       </Body>
