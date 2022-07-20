@@ -767,6 +767,49 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     );
   }
 
+  renderEnvironmentSelect(disabled: boolean) {
+    const {environments, rule,} = this.state;
+
+    const environmentOptions = [
+      {
+        value: ALL_ENVIRONMENTS_KEY,
+        label: t('All Environments'),
+      },
+      ...(environments?.map(env => ({value: env.name, label: getDisplayName(env)})) ??
+        []),
+    ];
+
+    const environment =
+      !rule || !rule.environment ? ALL_ENVIRONMENTS_KEY : rule.environment;
+
+    return (
+      <FormField
+        name="environment"
+        inline={false}
+        style={{padding: 0, border: 'none'}}
+        flexibleControlStateSize
+        className={this.hasError('environment') ? ' error' : ''}
+        required
+        disabled={disabled}
+      >
+        {({onChange, onBlur}) => (
+          <SelectControl
+            clearable={false}
+            disabled={disabled}
+            value={environment}
+            options={environmentOptions}
+            onChange={({value}) => {
+              this.handleEnvironmentChange(value)
+              onChange(value, {});
+              onBlur(value, {});
+            }}
+          />
+        )}
+      </FormField>
+    );
+  }
+
+
   renderProjectSelect(disabled: boolean) {
     const {project: _selectedProject, projects, organization} = this.props;
     const hasOpenMembership = organization.features.includes('open-membership');
@@ -903,17 +946,8 @@ class IssueRuleEditor extends AsyncView<Props, State> {
 
   renderBody() {
     const {organization} = this.props;
-    const {environments, project, rule, detailedError, loading} = this.state;
+    const {project, rule, detailedError, loading} = this.state;
     const {actions, filters, conditions, frequency} = rule || {};
-
-    const environmentOptions = [
-      {
-        value: ALL_ENVIRONMENTS_KEY,
-        label: t('All Environments'),
-      },
-      ...(environments?.map(env => ({value: env.name, label: getDisplayName(env)})) ??
-        []),
-    ];
 
     const environment =
       !rule || !rule.environment ? ALL_ENVIRONMENTS_KEY : rule.environment;
@@ -963,42 +997,13 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                   <StyledListItem>{t('Add alert settings')}</StyledListItem>
                   {this.hasAlertWizardV3 ? (
                     <SettingsContainer>
-                      <StyledSelectField
-                        hasAlertWizardV3={this.hasAlertWizardV3}
-                        className={classNames({
-                          error: this.hasError('environment'),
-                        })}
-                        placeholder={t('Select an Environment')}
-                        clearable={false}
-                        name="environment"
-                        value={environment}
-                        options={environmentOptions}
-                        onChange={val => this.handleEnvironmentChange(val)}
-                        disabled={disabled}
-                        flexibleControlStateSize
-                      />
+                      {this.renderEnvironmentSelect(disabled)}
                       {this.renderProjectSelect(disabled)}
                     </SettingsContainer>
                   ) : (
                     <Panel>
                       <PanelBody>
-                        <SelectField
-                          className={classNames({
-                            error: this.hasError('environment'),
-                          })}
-                          label={t('Environment')}
-                          help={t(
-                            'Choose an environment for these conditions to apply to'
-                          )}
-                          placeholder={t('Select an Environment')}
-                          clearable={false}
-                          name="environment"
-                          value={environment}
-                          options={environmentOptions}
-                          onChange={val => this.handleEnvironmentChange(val)}
-                          disabled={disabled}
-                        />
-
+                        {this.renderEnvironmentSelect(disabled)}
                         {this.renderTeamSelect(disabled)}
                         {this.renderRuleName(disabled)}
                       </PanelBody>
@@ -1350,22 +1355,6 @@ const StyledField = styled(Field)<{extraMargin?: boolean; hasAlertWizardV3?: boo
     }
 
     margin-bottom: ${p.extraMargin ? '60px' : space(1)};
-  `}
-`;
-
-const StyledSelectField = styled(SelectField)<{hasAlertWizardV3?: boolean}>`
-  ${p =>
-    p.hasAlertWizardV3 &&
-    `
-    border-bottom: none;
-    padding: 0;
-
-    & > div {
-      padding: 0;
-      width: 100%;
-    }
-
-    margin-bottom: ${space(1)};
   `}
 `;
 
