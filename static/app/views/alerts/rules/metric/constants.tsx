@@ -1,6 +1,6 @@
 import {t} from 'sentry/locale';
 import EventView from 'sentry/utils/discover/eventView';
-import {AggregationKey, LooseFieldKey} from 'sentry/utils/discover/fields';
+import {LooseFieldKey, ValidAggregationKey} from 'sentry/utils/discover/fields';
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import {
   AlertRuleComparisonType,
@@ -41,7 +41,7 @@ export const DATASOURCE_EVENT_TYPE_FILTERS = {
 } as const;
 
 export type OptionConfig = {
-  aggregations: AggregationKey[];
+  aggregations: ValidAggregationKey[];
   fields: LooseFieldKey[];
   measurementKeys?: string[];
 };
@@ -54,7 +54,7 @@ export const errorFieldConfig: OptionConfig = {
   fields: ['user'],
 };
 
-const commonAggregations: AggregationKey[] = [
+const commonAggregations: ValidAggregationKey[] = [
   'avg',
   'percentile',
   'p50',
@@ -64,7 +64,7 @@ const commonAggregations: AggregationKey[] = [
   'p100',
 ];
 
-const allAggregations: AggregationKey[] = [
+const allAggregations: ValidAggregationKey[] = [
   ...commonAggregations,
   'failure_rate',
   'apdex',

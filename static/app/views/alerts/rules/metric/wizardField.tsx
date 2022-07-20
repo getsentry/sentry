@@ -8,10 +8,10 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {
-  AggregationKey,
   AggregationRefinement,
   explodeFieldString,
   generateFieldAsString,
+  ValidAggregationKey,
 } from 'sentry/utils/discover/fields';
 import {
   Dataset,
@@ -31,7 +31,7 @@ import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 import {getFieldOptionConfig} from './metricField';
 
 type WizardAggregateFunctionValue = {
-  function: [AggregationKey, string, AggregationRefinement, AggregationRefinement];
+  function: [ValidAggregationKey, string, AggregationRefinement, AggregationRefinement];
   kind: 'function';
   alias?: string;
 };
