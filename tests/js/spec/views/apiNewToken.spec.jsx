@@ -1,16 +1,18 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render} from 'sentry-test/reactTestingLibrary';
 
 import ApiNewToken from 'sentry/views/settings/account/apiNewToken';
 
 describe('ApiNewToken', function () {
   describe('render()', function () {
     it('renders', function () {
-      const wrapper = mountWithTheme(<ApiNewToken params={{}} />, {
+      const wrapper = render(<ApiNewToken params={{}} />, {
         context: {
-          router: TestStubs.router(),
+          context: {
+            router: TestStubs.router(),
+          },
         },
       });
-      expect(wrapper).toSnapshot();
+      expect(wrapper.container).toSnapshot();
     });
   });
 });
