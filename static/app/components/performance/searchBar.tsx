@@ -13,7 +13,6 @@ import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
-import {IconOpen} from 'sentry/icons';
 
 import SearchDropdown from '../smartSearchBar/searchDropdown';
 import {ItemType, SearchGroup} from '../smartSearchBar/types';
@@ -30,6 +29,7 @@ function SearchBar(props: SearchBarProps) {
   const {organization, eventView, onSearch, query: searchQuery} = props;
   const [searchResults, setSearchResults] = useState<SearchGroup[]>([]);
   const [loading, setLoading] = useState(false);
+  const [searchString, setSearchString] = useState(searchQuery);
 
   const api = useApi();
 
@@ -45,7 +45,7 @@ function SearchBar(props: SearchBarProps) {
         setSearchResults([]);
         return;
       }
-
+      setSearchString(query);
       const projectIdStrings = (eventView.project as Readonly<number>[])?.map(String);
       try {
         setLoading(true);
@@ -130,7 +130,7 @@ function SearchBar(props: SearchBarProps) {
         placeholder={t('Search Transactions')}
         onSearch={handleSearch}
         onChange={getSuggestedTransactions}
-        query={searchQuery}
+        query={searchString}
       />
       <SearchDropdown
         css={{
@@ -138,6 +138,7 @@ function SearchBar(props: SearchBarProps) {
           maxHeight: '300px',
           overflowY: 'auto',
         }}
+        searchSubstring={searchString}
         loading={loading}
         items={searchResults}
         onClick={handleSearch}

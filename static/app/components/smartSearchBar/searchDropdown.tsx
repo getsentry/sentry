@@ -25,6 +25,7 @@ type Props = {
   searchSubstring: string;
   className?: string;
   maxMenuHeight?: number;
+  onIconClick?: (value: string) => void;
   runShortcut?: (shortcut: Shortcut) => void;
   visibleShortcuts?: Shortcut[];
 };
@@ -186,6 +187,8 @@ const ItemTitle = ({item, searchSubstring, isChild}: ItemTitleProps) => {
 
   const combinedRestWords = restWords.length > 0 ? restWords.join('.') : null;
 
+  const hasSingleField = item.type === ItemType.LINK;
+
   if (searchSubstring) {
     const idx =
       restWords.length === 0
@@ -195,7 +198,7 @@ const ItemTitle = ({item, searchSubstring, isChild}: ItemTitleProps) => {
     // Below is the logic to make the current query bold inside the result.
     if (idx !== -1) {
       return (
-        <SearchItemTitleWrapper>
+        <SearchItemTitleWrapper hasSingleField={hasSingleField}>
           {!isFirstWordHidden && (
             <FirstWordWrapper>
               {firstWord.slice(0, idx)}
@@ -299,12 +302,15 @@ const DropdownItem = ({
     children = (
       <Fragment>
         <ItemTitle item={item} isChild={isChild} searchSubstring={searchSubstring} />
-        <IconOpen
-          onClick={e => {
-            e.stopPropagation();
-            onIconClick(item.value);
-          }}
-        />
+        {onIconClick && (
+          <IconOpen
+            onClick={e => {
+              // stop propagation so the item-level onClick doesn't get called
+              e.stopPropagation();
+              onIconClick(item.value);
+            }}
+          />
+        )}
       </Fragment>
     );
   } else {
@@ -470,11 +476,11 @@ const SearchListItem = styled(ListItem)<{isDisabled?: boolean; isGrouped?: boole
   width: 100%;
 `;
 
-const SearchItemTitleWrapper = styled('div')`
+const SearchItemTitleWrapper = styled('div')<{hasSingleField?: boolean}>`
   display: flex;
   flex-grow: 1;
   flex-shrink: 0;
-  max-width: 75%;
+  max-width: ${p => (p.hasSingleField ? '75%' : 'min(280px, 50%)')};
 
   color: ${p => p.theme.textColor};
   font-weight: normal;
