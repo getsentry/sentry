@@ -4,7 +4,6 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
 import {
   DashboardDetails,
   DashboardListItem,
@@ -52,11 +51,9 @@ export function createDashboard(
         widgets: widgets.map(widget => omit(widget, ['tempId'])),
         duplicate,
         // Ensure projects and environment are sent as arrays, or undefined in the request
-        projects: Array.isArray(projects) || !defined(projects) ? projects : [projects],
-        environment:
-          Array.isArray(environment) || !defined(environment)
-            ? environment
-            : [environment],
+        // location.query will return a string if there's only one value
+        projects: typeof projects === 'string' ? [projects] : projects,
+        environment: typeof environment === 'string' ? [environment] : environment,
         period,
         start,
         end,
