@@ -1,5 +1,6 @@
 import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
+import isEqual from 'lodash/isEqual';
 
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
@@ -70,11 +71,12 @@ function UniformRateModal({
   projectStats,
   project,
   uniformRule,
-  rules,
   onSubmit,
   onReadDocs,
   ...props
 }: Props) {
+  const [rules, setRules] = useState(props.rules);
+
   const modalStore = useLegacyStore(ModalStore);
 
   const {projectStats: projectStats30d, loading: loading30d} = useProjectStats({
@@ -98,7 +100,9 @@ function UniformRateModal({
     hasFirstBucketsEmpty(projectStats, 3);
 
   useEffect(() => {
-    if (modalStore.renderer === null) {
+    // updated or created rules will always have a new id,
+    // therefore the isEqual will always work in this case
+    if (modalStore.renderer === null && isEqual(rules, props.rules)) {
       trackAdvancedAnalyticsEvent(
         activeStep === Step.RECOMMENDED_STEPS
           ? 'sampling.settings.modal.recommended.next.steps_cancel'
@@ -109,7 +113,7 @@ function UniformRateModal({
         }
       );
     }
-  }, [activeStep, modalStore.renderer, organization, project.id]);
+  }, [activeStep, modalStore.renderer, organization, project.id, rules, props.rules]);
 
   const uniformSampleRate = uniformRule?.sampleRate;
 
@@ -192,8 +196,9 @@ function UniformRateModal({
       uniformRateModalOrigin: true,
       sampleRate: server!,
       rule: uniformRule,
-      onSuccess: () => {
+      onSuccess: newRules => {
         setSaving(false);
+        setRules(newRules);
         closeModal();
       },
       onError: () => {
@@ -229,6 +234,7 @@ function UniformRateModal({
         uniformRule={uniformRule}
         projectId={project.id}
         recommendedSampleRate={!isEdited}
+        onSetRules={setRules}
       />
     );
   }

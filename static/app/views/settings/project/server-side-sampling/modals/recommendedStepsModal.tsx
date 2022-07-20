@@ -39,6 +39,7 @@ export type RecommendedStepsModalProps = ModalRenderProps & {
   recommendedSdkUpgrades: RecommendedSdkUpgrade[];
   clientSampleRate?: number;
   onGoBack?: () => void;
+  onSetRules?: (newRules: SamplingRule[]) => void;
   onSubmit?: UniformModalsSubmit;
   recommendedSampleRate?: boolean;
   serverSampleRate?: number;
@@ -60,6 +61,7 @@ export function RecommendedStepsModal({
   uniformRule,
   projectId,
   recommendedSampleRate,
+  onSetRules,
 }: RecommendedStepsModalProps) {
   const [saving, setSaving] = useState(false);
   const {projectStats} = useProjectStats({
@@ -91,8 +93,9 @@ export function RecommendedStepsModal({
       uniformRateModalOrigin: false,
       sampleRate: serverSampleRate!,
       rule: uniformRule,
-      onSuccess: () => {
+      onSuccess: newRules => {
         setSaving(false);
+        onSetRules?.(newRules);
         closeModal();
       },
       onError: () => {
