@@ -69,7 +69,7 @@ function SearchBar(props: SearchBarProps) {
         }>(api, url, {
           field: ['transaction', 'project_id', 'count()'],
           project: projectIdStrings,
-          sort: '-transaction',
+          sort: '-count()',
           query: conditions.formatString(),
           statsPeriod: eventView.statsPeriod,
         });
@@ -84,9 +84,13 @@ function SearchBar(props: SearchBarProps) {
             });
             return searchGroup;
           },
-          {title: '', children: [], icon: null, type: ItemType.DEFAULT}
+          {
+            title: 'All Transactions',
+            children: [],
+            icon: null,
+            type: 'header',
+          }
         );
-
         setSearchResults([parsedResults]);
       } catch (_) {
         throw new Error('Unable to fetch event field values');
