@@ -50,7 +50,7 @@ describe('Server-side Sampling - Sampling SDK Alert', function () {
 
     expect(
       screen.getByText(
-        'To keep a consistent amount of transactions across your applications multiple services, we recommend you update the SDK versions for the following project:'
+        'To ensure you are properly monitoring the performance of all your other services, we require you update to the latest version of the following SDK(s):'
       )
     ).toBeInTheDocument();
 
@@ -66,7 +66,9 @@ describe('Server-side Sampling - Sampling SDK Alert', function () {
 
     // Recommended steps modal is rendered
     expect(
-      screen.getByRole('heading', {name: 'Update the following SDK versions'})
+      screen.getByRole('heading', {
+        name: 'Update your SDK(s) before defining sample rules',
+      })
     ).toBeInTheDocument();
   });
 

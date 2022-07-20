@@ -40,11 +40,13 @@ describe('Server-side Sampling - Recommended Steps Modal', function () {
       />
     ));
 
-    expect(screen.getByText('Recommended next steps\u2026')).toBeInTheDocument();
+    expect(screen.getByText('Next steps')).toBeInTheDocument();
 
     // First recommended step
     expect(
-      screen.getByRole('heading', {name: 'Update the following SDK versions'})
+      screen.getByRole('heading', {
+        name: 'Update your SDK(s) before defining sample rules',
+      })
     ).toBeInTheDocument();
 
     expect(
@@ -120,7 +122,9 @@ describe('Server-side Sampling - Recommended Steps Modal', function () {
     ));
 
     expect(
-      screen.queryByRole('heading', {name: 'Update the following SDK versions'})
+      screen.queryByRole('heading', {
+        name: 'Update your SDK(s) before defining sample rules',
+      })
     ).not.toBeInTheDocument();
 
     expect(

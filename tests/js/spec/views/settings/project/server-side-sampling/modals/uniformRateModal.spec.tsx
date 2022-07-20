@@ -45,7 +45,7 @@ describe('Server-side Sampling - Uniform Rate Modal', function () {
     // Header
     expect(
       await screen.findByRole('heading', {
-        name: 'Set a uniform sample rate for Transactions',
+        name: 'Define a global sample rate',
       })
     ).toBeInTheDocument();
 

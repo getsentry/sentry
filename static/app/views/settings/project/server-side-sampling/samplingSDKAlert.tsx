@@ -4,7 +4,7 @@ import {openModal} from 'sentry/actionCreators/modal';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import {t, tn} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {RecommendedSdkUpgrade, SamplingRule} from 'sentry/types/sampling';
@@ -66,10 +66,8 @@ export function SamplingSDKAlert({
         ? t(
             'Server-side sampling rules are in effect without the following SDK’s being updated to their latest version.'
           )
-        : tn(
-            'To keep a consistent amount of transactions across your applications multiple services, we recommend you update the SDK versions for the following project:',
-            'To keep a consistent amount of transactions across your applications multiple services, we recommend you update the SDK versions for the following projects:',
-            recommendedSdkUpgrades.length
+        : t(
+            'To ensure you are properly monitoring the performance of all your other services, we require you update to the latest version of the following SDK(s):'
           )}
       <Projects>
         {recommendedSdkUpgrades.map(recommendedSdkUpgrade => (
