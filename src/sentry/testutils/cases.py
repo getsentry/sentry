@@ -1074,6 +1074,68 @@ class SnubaTestCase(BaseTestCase):
 class BaseMetricsTestCase(SnubaTestCase):
     snuba_endpoint = "/tests/entities/{entity}/insert"
 
+    def store_session(self, session):
+        """Mimic relays behavior of always emitting a metric for a started session,
+        and emitting an additional one if the session is fatal
+        https://github.com/getsentry/relay/blob/e3c064e213281c36bde5d2b6f3032c6d36e22520/relay-server/src/actors/envelopes.rs#L357
+        """
+        user = session.get("distinct_id")
+        org_id = session["org_id"]
+        project_id = session["project_id"]
+        base_tags = {}
+        if session.get("release") is not None:
+            base_tags["release"] = session["release"]
+        if session.get("environment") is not None:
+            base_tags["environment"] = session["environment"]
+
+        # This check is not yet reflected in relay, see https://getsentry.atlassian.net/browse/INGEST-464
+        user_is_nil = user is None or user == "00000000-0000-0000-0000-000000000000"
+
+        def push(type, mri: str, tags, value):
+            self.store_metric(
+                org_id,
+                project_id,
+                type,
+                mri,
+                {**tags, **base_tags},
+                session["started"],
+                value,
+                use_case_id=UseCaseKey.RELEASE_HEALTH,
+            )
+
+        # seq=0 is equivalent to relay's session.init, init=True is transformed
+        # to seq=0 in Relay.
+        if session["seq"] == 0:  # init
+            push("counter", SessionMRI.SESSION.value, {"session.status": "init"}, +1)
+
+        status = session["status"]
+
+        # Mark the session as errored, which includes fatal sessions.
+        if session.get("errors", 0) > 0 or status not in ("ok", "exited"):
+            push("set", SessionMRI.ERROR.value, {}, session["session_id"])
+            if not user_is_nil:
+                push("set", SessionMRI.USER.value, {"session.status": "errored"}, user)
+        elif not user_is_nil:
+            push("set", SessionMRI.USER.value, {}, user)
+
+        if status in ("abnormal", "crashed"):  # fatal
+            push("counter", SessionMRI.SESSION.value, {"session.status": status}, +1)
+            if not user_is_nil:
+                push("set", SessionMRI.USER.value, {"session.status": status}, user)
+
+        if status == "exited":
+            if session["duration"] is not None:
+                push(
+                    "distribution",
+                    SessionMRI.RAW_DURATION.value,
+                    {"session.status": status},
+                    session["duration"],
+                )
+
+    def bulk_store_sessions(self, sessions):
+        for session in sessions:
+            self.store_session(session)
+
     @classmethod
     def store_metric(
         cls,
@@ -1151,68 +1213,6 @@ class BaseMetricsTestCase(SnubaTestCase):
             ).status_code
             == 200
         )
-
-    def store_session(self, session):
-        """Mimic relays behavior of always emitting a metric for a started session,
-        and emitting an additional one if the session is fatal
-        https://github.com/getsentry/relay/blob/e3c064e213281c36bde5d2b6f3032c6d36e22520/relay-server/src/actors/envelopes.rs#L357
-        """
-        user = session.get("distinct_id")
-        org_id = session["org_id"]
-        project_id = session["project_id"]
-        base_tags = {}
-        if session.get("release") is not None:
-            base_tags["release"] = session["release"]
-        if session.get("environment") is not None:
-            base_tags["environment"] = session["environment"]
-
-        # This check is not yet reflected in relay, see https://getsentry.atlassian.net/browse/INGEST-464
-        user_is_nil = user is None or user == "00000000-0000-0000-0000-000000000000"
-
-        def push(type, mri: str, tags, value):
-            self.store_metric(
-                org_id,
-                project_id,
-                type,
-                mri,
-                {**tags, **base_tags},
-                session["started"],
-                value,
-                use_case_id=UseCaseKey.RELEASE_HEALTH,
-            )
-
-        # seq=0 is equivalent to relay's session.init, init=True is transformed
-        # to seq=0 in Relay.
-        if session["seq"] == 0:  # init
-            push("counter", SessionMRI.SESSION.value, {"session.status": "init"}, +1)
-
-        status = session["status"]
-
-        # Mark the session as errored, which includes fatal sessions.
-        if session.get("errors", 0) > 0 or status not in ("ok", "exited"):
-            push("set", SessionMRI.ERROR.value, {}, session["session_id"])
-            if not user_is_nil:
-                push("set", SessionMRI.USER.value, {"session.status": "errored"}, user)
-        elif not user_is_nil:
-            push("set", SessionMRI.USER.value, {}, user)
-
-        if status in ("abnormal", "crashed"):  # fatal
-            push("counter", SessionMRI.SESSION.value, {"session.status": status}, +1)
-            if not user_is_nil:
-                push("set", SessionMRI.USER.value, {"session.status": status}, user)
-
-        if status == "exited":
-            if session["duration"] is not None:
-                push(
-                    "distribution",
-                    SessionMRI.RAW_DURATION.value,
-                    {"session.status": status},
-                    session["duration"],
-                )
-
-    def bulk_store_sessions(self, sessions):
-        for session in sessions:
-            self.store_session(session)
 
 
 class MetricsEnhancedPerformanceTestCase(BaseMetricsTestCase, TestCase):
