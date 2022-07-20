@@ -67,7 +67,7 @@ describe('Server-side Sampling - Sampling SDK Alert', function () {
     // Recommended steps modal is rendered
     expect(
       screen.getByRole('heading', {
-        name: 'Update your SDK(s) before defining sample rules',
+        name: 'Update the following SDK versions',
       })
     ).toBeInTheDocument();
   });

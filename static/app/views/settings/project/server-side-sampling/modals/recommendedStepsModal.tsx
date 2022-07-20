@@ -135,7 +135,7 @@ export function RecommendedStepsModal({
         <List symbol="colored-numeric">
           {!!recommendedSdkUpgrades.length && (
             <ListItem>
-              <h5>{t('Update your SDK(s) before defining sample rules')}</h5>
+              <h5>{t('Update the following SDK versions')}</h5>
               <TextBlock>
                 {t(
                   'To ensure you are properly monitoring the performance of all your other services, we require you update to the latest version of the following SDK(s):'
