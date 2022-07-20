@@ -193,10 +193,10 @@ class SimilarStackTrace extends Component<Props, State> {
             <Title>{t('Issues with a similar stack trace')}</Title>
             {hasV2 && (
               <ButtonBar merged active={v2 ? 'new' : 'old'}>
-                <Button barId="old" size="small" onClick={this.toggleSimilarityVersion}>
+                <Button barId="old" size="sm" onClick={this.toggleSimilarityVersion}>
                   {t('Old Algorithm')}
                 </Button>
-                <Button barId="new" size="small" onClick={this.toggleSimilarityVersion}>
+                <Button barId="new" size="sm" onClick={this.toggleSimilarityVersion}>
                   {t('New Algorithm')}
                 </Button>
               </ButtonBar>

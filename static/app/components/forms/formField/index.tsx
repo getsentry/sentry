@@ -196,7 +196,7 @@ class FormField extends Component<FormFieldProps> {
   /**
    * Attempts to autofocus input field if field's name is in url hash.
    *
-   * The ref must be forwared for this to work.
+   * The ref must be forwarded for this to work.
    */
   handleInputMount = (node: HTMLElement | null) => {
     if (node && !this.input) {
@@ -408,12 +408,12 @@ class FormField extends Component<FormFieldProps> {
                     type={saveMessageAlertType}
                     trailingItems={
                       <Fragment>
-                        <Button onClick={this.handleCancelField} size="xsmall">
+                        <Button onClick={this.handleCancelField} size="xs">
                           {t('Cancel')}
                         </Button>
                         <Button
                           priority="primary"
-                          size="xsmall"
+                          size="xs"
                           onClick={this.handleSaveField}
                         >
                           {t('Save')}

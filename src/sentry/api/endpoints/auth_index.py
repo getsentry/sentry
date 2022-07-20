@@ -110,7 +110,9 @@ class AuthIndexEndpoint(Endpoint):
         authenticated = None
 
         def _require_password_or_u2f_check():
-            if not is_self_hosted() and VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON:
+            if (
+                not is_self_hosted() and VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON
+            ) or DISABLE_SSO_CHECK_SU_FORM_FOR_LOCAL_DEV:
                 # Don't need to check password as its only for self-hosted users or if superuser form is turned off
                 return False
             if request.user.has_usable_password():
@@ -208,7 +210,7 @@ class AuthIndexEndpoint(Endpoint):
             return Response(status=status.HTTP_401_UNAUTHORIZED)
         validator = AuthVerifyValidator(data=request.data)
 
-        if not request.user.is_superuser:
+        if not (request.user.is_superuser and request.data.get("isSuperuserModal")):
             if not validator.is_valid():
                 return self.respond(validator.errors, status=status.HTTP_400_BAD_REQUEST)
 

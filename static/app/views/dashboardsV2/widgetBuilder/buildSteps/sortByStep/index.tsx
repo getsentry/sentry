@@ -4,6 +4,7 @@ import trimStart from 'lodash/trimStart';
 
 import Field from 'sentry/components/forms/field';
 import SelectControl from 'sentry/components/forms/selectControl';
+import Tooltip from 'sentry/components/tooltip';
 import {t, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, SelectValue, TagCollection} from 'sentry/types';
@@ -86,46 +87,54 @@ export function SortByStep({
           : t("Choose one of the y-axis you've created to sort by.")
       }
     >
-      <Field inline={false} error={error} flexibleControlStateSize stacked>
-        {[DisplayType.AREA, DisplayType.BAR, DisplayType.LINE].includes(displayType) &&
-          limit && (
-            <ResultsLimitSelector
-              name="resultsLimit"
-              menuPlacement="auto"
-              options={[...Array(maxLimit).keys()].map(resultLimit => {
-                const value = resultLimit + 1;
-                return {
-                  label: tn('Limit to %s result', 'Limit to %s results', value),
-                  value,
-                };
-              })}
-              value={limit}
-              onChange={(option: SelectValue<number>) => {
-                onLimitChange(option.value);
-              }}
-            />
-          )}
-        <SortBySelectors
-          displayType={displayType}
-          widgetType={widgetType}
-          hasGroupBy={isTimeseriesChart && !!queries[0].columns.length}
-          disableSortReason={disableSortReason}
-          disableSort={disableSort}
-          disableSortDirection={disableSortDirection}
-          widgetQuery={queries[0]}
-          values={{
-            sortDirection:
-              orderBy[0] === '-' ? SortDirection.HIGH_TO_LOW : SortDirection.LOW_TO_HIGH,
-            sortBy: strippedOrderBy,
-          }}
-          onChange={({sortDirection, sortBy}) => {
-            const newOrderBy =
-              sortDirection === SortDirection.HIGH_TO_LOW ? `-${sortBy}` : sortBy;
-            onSortByChange(newOrderBy);
-          }}
-          tags={tags}
-        />
-      </Field>
+      <Tooltip
+        title={disableSortReason}
+        disabled={!(disableSortDirection && disableSort)}
+      >
+        <Field inline={false} error={error} flexibleControlStateSize stacked>
+          {[DisplayType.AREA, DisplayType.BAR, DisplayType.LINE].includes(displayType) &&
+            limit && (
+              <ResultsLimitSelector
+                disabled={disableSortDirection && disableSort}
+                name="resultsLimit"
+                menuPlacement="auto"
+                options={[...Array(maxLimit).keys()].map(resultLimit => {
+                  const value = resultLimit + 1;
+                  return {
+                    label: tn('Limit to %s result', 'Limit to %s results', value),
+                    value,
+                  };
+                })}
+                value={limit}
+                onChange={(option: SelectValue<number>) => {
+                  onLimitChange(option.value);
+                }}
+              />
+            )}
+          <SortBySelectors
+            displayType={displayType}
+            widgetType={widgetType}
+            hasGroupBy={isTimeseriesChart && !!queries[0].columns.length}
+            disableSortReason={disableSortReason}
+            disableSort={disableSort}
+            disableSortDirection={disableSortDirection}
+            widgetQuery={queries[0]}
+            values={{
+              sortDirection:
+                orderBy[0] === '-'
+                  ? SortDirection.HIGH_TO_LOW
+                  : SortDirection.LOW_TO_HIGH,
+              sortBy: strippedOrderBy,
+            }}
+            onChange={({sortDirection, sortBy}) => {
+              const newOrderBy =
+                sortDirection === SortDirection.HIGH_TO_LOW ? `-${sortBy}` : sortBy;
+              onSortByChange(newOrderBy);
+            }}
+            tags={tags}
+          />
+        </Field>
+      </Tooltip>
     </BuildStep>
   );
 }

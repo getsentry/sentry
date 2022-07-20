@@ -91,7 +91,8 @@ sudo-askpass() {
 }
 
 upgrade-pip() {
-    pip install --upgrade "pip==21.1.2" "wheel==0.36.2"
+    grep -E '^(pip|setuptools|wheel)==' requirements-dev-frozen.txt |
+        xargs pip install --upgrade
 }
 
 install-py-dev() {
@@ -116,13 +117,6 @@ install-py-dev() {
     # Webpacked assets are only necessary for devserver (which does it lazily anyways)
     # and acceptance tests, which webpack automatically if run.
     SENTRY_LIGHT_BUILD=1 pip install -e '.[dev]'
-    patch-selenium
-}
-
-patch-selenium() {
-    # XXX: getsentry repo calls this!
-    # This hack is until we can upgrade to a newer version of Selenium
-    python -S -m tools.patch_selenium
 }
 
 setup-git-config() {
@@ -141,7 +135,7 @@ setup-git() {
         exit 1
     )
     if ! require pre-commit; then
-        pip install -r requirements-dev.txt
+        pip install -r requirements-dev-only-frozen.txt
     fi
     pre-commit install --install-hooks
     echo ""
@@ -205,6 +199,8 @@ create-user() {
 build-platform-assets() {
     echo "--> Building platform assets"
     echo "from sentry.utils.integrationdocs import sync_docs; sync_docs(quiet=True)" | sentry exec
+    # make sure this didn't silently do nothing
+    test -f src/sentry/integration-docs/android.json
 }
 
 bootstrap() {

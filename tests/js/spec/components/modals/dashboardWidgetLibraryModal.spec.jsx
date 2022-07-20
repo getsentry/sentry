@@ -122,7 +122,7 @@ describe('Modals -> DashboardWidgetLibraryModal', function () {
       }),
       expect.objectContaining({
         displayType: 'top_n',
-        id: undefined,
+        id: 'high-throughput-transactions',
         interval: '5m',
         description: 'Top 5 transactions with the largest volume.',
         queries: [

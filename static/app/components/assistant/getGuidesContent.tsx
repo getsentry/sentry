@@ -226,6 +226,38 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
         },
       ],
     },
+    {
+      guide: 'activate_sampling_rule',
+      requiredTargets: ['sampling_rule_toggle'],
+      dateThreshold: new Date('2022-07-05'),
+      steps: [
+        {
+          title: t('Activate your first rule'),
+          target: 'sampling_rule_toggle',
+          description: t(
+            'Start keeping what you need and dropping what you don’t - get up and running in minutes.'
+          ),
+          nextText: t('Activate Rule'),
+          dismissText: t('Later'),
+          hasNextGuide: true,
+        },
+      ],
+    },
+    {
+      guide: 'create_conditional_rule',
+      requiredTargets: ['add_conditional_rule'],
+      dateThreshold: new Date('2022-07-05'),
+      steps: [
+        {
+          title: t('Create a new sample rule'),
+          target: 'add_conditional_rule',
+          description: t(
+            'Define sample rules to retain the transactions you care about most such as the highest converting pages, critical API endpoints, or latency issues from your latest release. '
+          ),
+          dismissText: t('Enough already'),
+        },
+      ],
+    },
   ];
 }
 

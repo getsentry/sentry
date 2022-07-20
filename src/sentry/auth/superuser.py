@@ -63,6 +63,10 @@ UNSET = object()
 
 ENABLE_SU_UPON_LOGIN_FOR_LOCAL_DEV = getattr(settings, "ENABLE_SU_UPON_LOGIN_FOR_LOCAL_DEV", False)
 
+DISABLE_SSO_CHECK_SU_FORM_FOR_LOCAL_DEV = getattr(
+    settings, "DISABLE_SSO_CHECK_SU_FORM_FOR_LOCAL_DEV", False
+)
+
 
 def is_active_superuser(request):
     if is_system_auth(getattr(request, "auth", None)):
@@ -85,7 +89,7 @@ class SuperuserAccessFormInvalidJson(SentryAPIException):
 class EmptySuperuserAccessForm(SentryAPIException):
     status_code = status.HTTP_400_BAD_REQUEST
     code = "empty-superuser-access-form"
-    message = "The request contains an empty superuser acccess form data"
+    message = "The request contains an empty superuser access form data"
 
 
 class Superuser:
@@ -146,7 +150,8 @@ class Superuser:
         # if we've bound superuser to an organization they must
         # have completed SSO to gain status
         if self.org_id and not has_completed_sso(self.request, self.org_id):
-            return False, "incomplete-sso"
+            if not DISABLE_SSO_CHECK_SU_FORM_FOR_LOCAL_DEV:
+                return False, "incomplete-sso"
         # if there's no IPs configured, we allow assume its the same as *
         if not allowed_ips:
             return True, None

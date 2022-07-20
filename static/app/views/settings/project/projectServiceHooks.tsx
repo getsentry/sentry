@@ -152,7 +152,7 @@ class ProjectServiceHooks extends AsyncView<Props, State> {
               <Button
                 data-test-id="new-service-hook"
                 to={`/settings/${orgId}/projects/${projectId}/hooks/new/`}
-                size="small"
+                size="sm"
                 priority="primary"
                 icon={<IconAdd size="xs" isCircled />}
               >

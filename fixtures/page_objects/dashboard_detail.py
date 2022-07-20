@@ -34,26 +34,26 @@ class DashboardDetailPage(BasePage):
         self.wait_until_loaded()
 
     def enter_edit_state(self):
-        self.browser.wait_until_clickable('[data-test-id="dashboard-edit"]')
         button = self.browser.element('[data-test-id="dashboard-edit"]')
+        self.browser.wait_until_clickable('[data-test-id="dashboard-edit"]')
         button.click()
         self.wait_until_loaded()
 
     def click_dashboard_add_widget_button(self):
-        self.browser.wait_until_clickable('[data-test-id="widget-add"]')
         button = self.browser.element('[data-test-id="widget-add"]')
-        button.click()
+        # HACK: Use JavaScript to execute click to avoid click intercepted issues
+        self.browser.driver.execute_script("arguments[0].click()", button)
         self.wait_until_loaded()
 
     def click_dashboard_header_add_widget_button(self):
-        self.browser.wait_until_clickable('[data-test-id="add-widget-library"]')
         button = self.browser.element('[data-test-id="add-widget-library"]')
+        self.browser.wait_until_clickable('[data-test-id="add-widget-library"]')
         button.click()
         self.wait_until_loaded()
 
     def click_cancel_button(self):
-        self.browser.wait_until_clickable('[data-test-id="dashboard-cancel"]')
         button = self.browser.element('[data-test-id="dashboard-cancel"]')
+        self.browser.wait_until_clickable('[data-test-id="dashboard-cancel"]')
         button.click()
         self.wait_until_loaded()
 
@@ -66,7 +66,7 @@ class DashboardDetailPage(BasePage):
         self.wait_until_loaded()
 
     def save_dashboard(self):
-        self.browser.wait_until_clickable('[data-test-id="dashboard-commit"]')
         button = self.browser.element('[data-test-id="dashboard-commit"]')
+        self.browser.wait_until_clickable('[data-test-id="dashboard-commit"]')
         button.click()
         self.wait_until_loaded()

@@ -54,7 +54,7 @@ function OrganizationApiKeysList({
   const action = (
     <Button
       priority="primary"
-      size="small"
+      size="sm"
       icon={<IconAdd size="xs" isCircled />}
       busy={busy}
       disabled={busy}

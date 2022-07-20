@@ -1,16 +1,19 @@
 import time
 from datetime import timedelta
+from unittest import mock
 
 from django.utils.datastructures import MultiValueDict
 
+from sentry.sentry_metrics import indexer
+from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.snuba.metrics.datasource import get_custom_measurements, get_series
 from sentry.snuba.metrics.query_builder import QueryDefinition
-from sentry.testutils import SessionMetricsTestCase, TestCase
+from sentry.testutils import SessionMetricsReleaseHealthTestCase, TestCase
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
 from sentry.testutils.helpers.datetime import before_now
 
 
-class DataSourceTestCase(TestCase, SessionMetricsTestCase):
+class DataSourceTestCase(TestCase, SessionMetricsReleaseHealthTestCase):
     def test_valid_filter_include_meta(self):
         self.create_release(version="foo", project=self.project)
         self.store_session(
@@ -23,7 +26,7 @@ class DataSourceTestCase(TestCase, SessionMetricsTestCase):
             {
                 "query": [
                     "release:staging"
-                ],  # weird release but we need a string exising in mock indexer
+                ],  # weird release but we need a string existing in mock indexer
                 "groupBy": ["environment", "release"],
                 "field": [
                     "sum(sentry.sessions.session)",
@@ -31,7 +34,12 @@ class DataSourceTestCase(TestCase, SessionMetricsTestCase):
             }
         )
         query = QueryDefinition([self.project], query_params)
-        data = get_series([self.project], query.to_metrics_query(), include_meta=True)
+        data = get_series(
+            [self.project],
+            query.to_metrics_query(),
+            include_meta=True,
+            use_case_id=UseCaseKey.RELEASE_HEALTH,
+        )
         assert data["meta"] == sorted(
             [
                 {"name": "environment", "type": "string"},
@@ -55,7 +63,12 @@ class DataSourceTestCase(TestCase, SessionMetricsTestCase):
             }
         )
         query = QueryDefinition([self.project], query_params)
-        data = get_series([self.project], query.to_metrics_query(), include_meta=True)
+        data = get_series(
+            [self.project],
+            query.to_metrics_query(),
+            include_meta=True,
+            use_case_id=UseCaseKey.RELEASE_HEALTH,
+        )
         assert data["meta"] == sorted(
             [
                 {"name": "bucketed_time", "type": "DateTime('Universal')"},
@@ -79,13 +92,21 @@ class DataSourceTestCase(TestCase, SessionMetricsTestCase):
             }
         )
         query = QueryDefinition([self.project], query_params)
-        assert get_series([self.project], query.to_metrics_query(), include_meta=True)["meta"] == []
+        assert (
+            get_series(
+                [self.project],
+                query.to_metrics_query(),
+                include_meta=True,
+                use_case_id=UseCaseKey.RELEASE_HEALTH,
+            )["meta"]
+            == []
+        )
 
 
 class GetCustomMeasurementsTest(MetricsEnhancedPerformanceTestCase):
     METRIC_STRINGS = [
-        "d:custom/measurements.something_custom@millisecond",
-        "d:custom/measurements.something_else@byte",
+        "d:transactions/measurements.something_custom@millisecond",
+        "d:transactions/measurements.something_else@byte",
     ]
 
     def setUp(self):
@@ -93,20 +114,24 @@ class GetCustomMeasurementsTest(MetricsEnhancedPerformanceTestCase):
         self.day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
 
     def test_simple(self):
+        something_custom_metric = "d:transactions/measurements.something_custom@millisecond"
         self.store_metric(
             1,
             metric="measurements.something_custom",
-            internal_metric="d:custom/measurements.something_custom@millisecond",
+            internal_metric=something_custom_metric,
             entity="metrics_distributions",
             timestamp=self.day_ago + timedelta(hours=1, minutes=0),
         )
         result = get_custom_measurements(
-            project_ids=[self.project.id], organization_id=self.organization.id, start=self.day_ago
+            project_ids=[self.project.id],
+            organization=self.organization,
+            start=self.day_ago,
+            use_case_id=UseCaseKey.PERFORMANCE,
         )
         assert result == [
             {
                 "name": "measurements.something_custom",
-                "type": "distribution",
+                "type": "generic_distribution",
                 "operations": [
                     "avg",
                     "count",
@@ -120,14 +145,19 @@ class GetCustomMeasurementsTest(MetricsEnhancedPerformanceTestCase):
                     "p99",
                 ],
                 "unit": "millisecond",
+                "metric_id": indexer.resolve(
+                    self.organization.id, something_custom_metric, UseCaseKey.PERFORMANCE
+                ),
             }
         ]
 
     def test_metric_outside_query_daterange(self):
+        something_custom_metric = "d:transactions/measurements.something_custom@millisecond"
+        something_else_metric = "d:transactions/measurements.something_else@byte"
         self.store_metric(
             1,
             metric="measurements.something_custom",
-            internal_metric="d:custom/measurements.something_custom@millisecond",
+            internal_metric=something_custom_metric,
             entity="metrics_distributions",
             timestamp=self.day_ago + timedelta(hours=1, minutes=0),
         )
@@ -135,17 +165,21 @@ class GetCustomMeasurementsTest(MetricsEnhancedPerformanceTestCase):
         self.store_metric(
             1,
             metric="measurements.something_else",
-            internal_metric="d:transactions/measurements.something_else@byte",
+            internal_metric=something_else_metric,
             entity="metrics_distributions",
             timestamp=self.day_ago - timedelta(days=1, minutes=0),
         )
         result = get_custom_measurements(
-            project_ids=[self.project.id], organization_id=self.organization.id, start=self.day_ago
+            project_ids=[self.project.id],
+            organization=self.organization,
+            start=self.day_ago,
+            use_case_id=UseCaseKey.PERFORMANCE,
         )
+
         assert result == [
             {
                 "name": "measurements.something_custom",
-                "type": "distribution",
+                "type": "generic_distribution",
                 "operations": [
                     "avg",
                     "count",
@@ -159,5 +193,26 @@ class GetCustomMeasurementsTest(MetricsEnhancedPerformanceTestCase):
                     "p99",
                 ],
                 "unit": "millisecond",
+                "metric_id": indexer.resolve(
+                    self.organization.id, something_custom_metric, UseCaseKey.PERFORMANCE
+                ),
             }
         ]
+
+    @mock.patch("sentry.snuba.metrics.datasource.parse_mri")
+    def test_broken_custom_metric(self, mock):
+        # Store valid metric
+        self.store_metric(
+            1,
+            metric="measurements.something_custom",
+            internal_metric="d:transactions/measurements.something_custom@millisecond",
+            entity="metrics_distributions",
+            timestamp=self.day_ago + timedelta(hours=1, minutes=0),
+        )
+
+        # mock mri failing to parse the metric
+        mock.return_value = None
+        result = get_custom_measurements(
+            projects=[self.project], organization=self.organization, start=self.day_ago
+        )
+        assert result == []

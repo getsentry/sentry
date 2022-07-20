@@ -1,4 +1,6 @@
-import {TokenResult} from '../searchSyntax/parser';
+import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
+
+import {Token, TokenResult} from '../searchSyntax/parser';
 
 export enum ItemType {
   DEFAULT = 'default',
@@ -26,13 +28,20 @@ export type SearchItem = {
    * Call a callback instead of setting a value in the search query
    */
   callback?: () => void;
-  children?: React.ReactNode[];
+  /**
+   * Child search items, we only support 1 level of nesting though.
+   */
+  children?: SearchItem[];
   desc?: string;
   documentation?: React.ReactNode;
   ignoreMaxSearchItems?: boolean;
+  kind?: FieldValueKind;
   title?: string;
   type?: ItemType;
-  value?: string;
+  /**
+   * A value of null means that this item is not selectable in the search dropdown
+   */
+  value?: string | null;
 };
 
 export type Tag = {
@@ -51,7 +60,7 @@ export enum ShortcutType {
 
 export type Shortcut = {
   canRunShortcut: (
-    token: TokenResult<any> | null | undefined,
+    token: TokenResult<Token> | null | undefined,
     filterTokenCount: number
   ) => boolean;
   icon: React.ReactNode;
@@ -59,6 +68,6 @@ export type Shortcut = {
   text: string;
   hotkeys?: {
     actual: string[] | string;
-    display: string[] | string;
+    display?: string[] | string;
   };
 };

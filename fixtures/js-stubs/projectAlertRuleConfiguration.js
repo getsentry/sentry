@@ -1,107 +1,188 @@
 export function ProjectAlertRuleConfiguration(params = {}) {
   return {
+    actions: [
+      {
+        id: 'sentry.mail.actions.NotifyEmailAction',
+        label: 'Send a notification to {targetType}',
+        enabled: true,
+        prompt: 'Send a notification',
+        formFields: {
+          targetType: {
+            type: 'mailAction',
+            choices: [
+              ['IssueOwners', 'Issue Owners'],
+              ['Team', 'Team'],
+              ['Member', 'Member'],
+            ],
+          },
+        },
+      },
+      {
+        id: 'sentry.rules.actions.notify_event.NotifyEventAction',
+        label: 'Send a notification (for all legacy integrations)',
+        enabled: true,
+        prompt: 'Send a notification to all legacy integrations',
+      },
+      {
+        id: 'sentry.integrations.slack.notify_action.SlackNotifyServiceAction',
+        label:
+          'Send a notification to the {workspace} Slack workspace to {channel} (optionally, an ID: {channel_id}) and show tags {tags} in notification',
+        enabled: true,
+        prompt: 'Send a Slack notification',
+        formFields: {
+          workspace: {type: 'choice', choices: [[123, 'Sentry']]},
+          channel: {type: 'string', placeholder: 'i.e #critical, Jane Schmidt'},
+          channel_id: {type: 'string', placeholder: 'i.e. CA2FRA079 or UA1J9RTE1'},
+          tags: {type: 'string', placeholder: 'i.e environment,user,my_tag'},
+        },
+      },
+      {
+        id: 'sentry.integrations.pagerduty.notify_action.PagerDutyNotifyServiceAction',
+        label: 'Send a notification to PagerDuty account {account} and service {service}',
+        enabled: true,
+        prompt: 'Send a PagerDuty notification',
+        formFields: {
+          account: {type: 'choice', choices: []},
+          service: {type: 'choice', choices: []},
+        },
+      },
+    ],
     conditions: [
       {
-        enabled: true,
         id: 'sentry.rules.conditions.every_event.EveryEventCondition',
-        label: 'An event occurs',
+        label: 'The event occurs',
+        enabled: false,
       },
       {
-        enabled: true,
         id: 'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition',
         label: 'A new issue is created',
+        enabled: true,
       },
       {
-        enabled: true,
         id: 'sentry.rules.conditions.regression_event.RegressionEventCondition',
         label: 'The issue changes state from resolved to unresolved',
+        enabled: true,
       },
       {
-        enabled: true,
         id: 'sentry.rules.conditions.reappeared_event.ReappearedEventCondition',
         label: 'The issue changes state from ignored to unresolved',
+        enabled: true,
       },
       {
-        formFields: {
-          value: {placeholder: 'value', type: 'string'},
-          match: {
-            type: 'choice',
-            choices: [
-              ['eq', 'equals'],
-              ['ne', 'does not equal'],
-              ['sw', 'starts with'],
-              ['ew', 'ends with'],
-              ['co', 'contains'],
-              ['nc', 'does not contain'],
-              ['is', 'is set'],
-              ['ns', 'is not set'],
-            ],
-          },
-          key: {placeholder: 'key', type: 'string'},
-        },
-        enabled: true,
-        id: 'sentry.rules.conditions.tagged_event.TaggedEventCondition',
-        label: "An event's tags match {key} {match} {value}",
-      },
-      {
-        formFields: {
-          interval: {
-            type: 'choice',
-            choices: [
-              ['1m', 'one minute'],
-              ['1h', 'one hour'],
-              ['1d', 'one day'],
-              ['1w', 'one week'],
-              ['30d', '30 days'],
-            ],
-          },
-          value: {placeholder: 100, type: 'number'},
-        },
-        enabled: true,
         id: 'sentry.rules.conditions.event_frequency.EventFrequencyCondition',
         label: 'The issue is seen more than {value} times in {interval}',
-      },
-      {
+        enabled: true,
         formFields: {
+          value: {type: 'number', placeholder: 100},
           interval: {
             type: 'choice',
             choices: [
               ['1m', 'one minute'],
+              ['5m', '5 minutes'],
+              ['15m', '15 minutes'],
               ['1h', 'one hour'],
               ['1d', 'one day'],
               ['1w', 'one week'],
               ['30d', '30 days'],
             ],
           },
-          value: {placeholder: 100, type: 'number'},
         },
-        enabled: true,
-        id: 'sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyCondition',
-        label: 'The issue is seen by more than {value} users in {interval}',
       },
       {
+        id: 'sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyCondition',
+        label: 'The issue is seen by more than {value} users in {interval}',
+        enabled: true,
         formFields: {
+          value: {type: 'number', placeholder: 100},
           interval: {
             type: 'choice',
             choices: [
-              ['1m', '1 minute'],
+              ['1m', 'one minute'],
+              ['5m', '5 minutes'],
+              ['15m', '15 minutes'],
+              ['1h', 'one hour'],
+              ['1d', 'one day'],
+              ['1w', 'one week'],
+              ['30d', '30 days'],
+            ],
+          },
+        },
+      },
+      {
+        id: 'sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition',
+        label: 'The issue affects more than {value} percent of sessions in {interval}',
+        enabled: true,
+        formFields: {
+          value: {type: 'number', placeholder: 100},
+          interval: {
+            type: 'choice',
+            choices: [
               ['5m', '5 minutes'],
               ['10m', '10 minutes'],
               ['30m', '30 minutes'],
               ['1h', '1 hour'],
             ],
           },
-          value: {placeholder: 100, type: 'number'},
         },
+      },
+    ],
+    filters: [
+      {
+        id: 'sentry.rules.filters.age_comparison.AgeComparisonFilter',
+        label: 'The issue is {comparison_type} than {value} {time}',
         enabled: true,
-        id: 'sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition',
-        label: 'The issue has more errors than {value} percent of sessions in {interval}',
+        prompt: 'The issue is older or newer than...',
+        formFields: {
+          comparison_type: {
+            type: 'choice',
+            choices: [
+              ['older', 'older'],
+              ['newer', 'newer'],
+            ],
+          },
+          value: {type: 'number', placeholder: 10},
+          time: {
+            type: 'choice',
+            choices: [
+              ['minute', 'minute(s)'],
+              ['hour', 'hour(s)'],
+              ['day', 'day(s)'],
+              ['week', 'week(s)'],
+            ],
+          },
+        },
       },
       {
+        id: 'sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter',
+        label: 'The issue has happened at least {value} times',
+        enabled: true,
+        prompt: 'The issue has happened at least {x} times (Note: this is approximate)',
+        formFields: {value: {type: 'number', placeholder: 10}},
+      },
+      {
+        id: 'sentry.rules.filters.assigned_to.AssignedToFilter',
+        label: 'The issue is assigned to {targetType}',
+        enabled: true,
+        prompt: 'The issue is assigned to {no one/team/member}',
+        formFields: {
+          targetType: {
+            type: 'assignee',
+            choices: [
+              ['Unassigned', 'Unassigned'],
+              ['Team', 'Team'],
+              ['Member', 'Member'],
+            ],
+          },
+        },
+      },
+      {
+        id: 'sentry.rules.filters.event_attribute.EventAttributeFilter',
+        label: "The event's {attribute} value {match} {value}",
+        enabled: true,
         formFields: {
           attribute: {
-            placeholder: 'i.e. exception.type',
             type: 'choice',
+            placeholder: 'i.e. exception.type',
             choices: [
               ['message', 'message'],
               ['platform', 'platform'],
@@ -115,40 +196,61 @@ export function ProjectAlertRuleConfiguration(params = {}) {
               ['user.ip_address', 'user.ip_address'],
               ['http.method', 'http.method'],
               ['http.url', 'http.url'],
+              ['sdk.name', 'sdk.name'],
               ['stacktrace.code', 'stacktrace.code'],
               ['stacktrace.module', 'stacktrace.module'],
               ['stacktrace.filename', 'stacktrace.filename'],
+              ['stacktrace.abs_path', 'stacktrace.abs_path'],
+              ['stacktrace.package', 'stacktrace.package'],
             ],
           },
-          value: {placeholder: 'value', type: 'string'},
           match: {
             type: 'choice',
             choices: [
-              ['eq', 'equals'],
-              ['ne', 'does not equal'],
-              ['sw', 'starts with'],
-              ['ew', 'ends with'],
               ['co', 'contains'],
-              ['nc', 'does not contain'],
+              ['ew', 'ends with'],
+              ['eq', 'equals'],
               ['is', 'is set'],
+              ['nc', 'does not contain'],
+              ['new', 'does not end with'],
+              ['ne', 'does not equal'],
               ['ns', 'is not set'],
+              ['nsw', 'does not start with'],
+              ['sw', 'starts with'],
             ],
           },
+          value: {type: 'string', placeholder: 'value'},
         },
-        enabled: true,
-        id: 'sentry.rules.conditions.event_attribute.EventAttributeCondition',
-        label: "An event's {attribute} value {match} {value}",
       },
       {
+        id: 'sentry.rules.filters.tagged_event.TaggedEventFilter',
+        label: "The event's tags match {key} {match} {value}",
+        enabled: true,
         formFields: {
+          key: {type: 'string', placeholder: 'key'},
           match: {
             type: 'choice',
             choices: [
-              ['eq', 'equal to'],
-              ['lte', 'less than or equal to'],
-              ['gte', 'greater than or equal to'],
+              ['co', 'contains'],
+              ['ew', 'ends with'],
+              ['eq', 'equals'],
+              ['is', 'is set'],
+              ['nc', 'does not contain'],
+              ['new', 'does not end with'],
+              ['ne', 'does not equal'],
+              ['ns', 'is not set'],
+              ['nsw', 'does not start with'],
+              ['sw', 'starts with'],
             ],
           },
+          value: {type: 'string', placeholder: 'value'},
+        },
+      },
+      {
+        id: 'sentry.rules.filters.level.LevelFilter',
+        label: "The event's level is {match} {level}",
+        enabled: true,
+        formFields: {
           level: {
             type: 'choice',
             choices: [
@@ -160,83 +262,15 @@ export function ProjectAlertRuleConfiguration(params = {}) {
               ['0', 'sample'],
             ],
           },
-        },
-        enabled: true,
-        id: 'sentry.rules.conditions.level.LevelCondition',
-        label: "An event's level is {match} {level}",
-      },
-    ],
-    actions: [
-      {
-        enabled: true,
-        id: 'sentry.rules.actions.notify_event.NotifyEventAction',
-        label: 'Send a notification (for all legacy integrations)',
-      },
-      {
-        formFields: {service: {type: 'choice', choices: [['mail', 'Mail']]}},
-        enabled: true,
-        id: 'sentry.rules.actions.notify_event_service.NotifyEventServiceAction',
-        label: 'Send a notification via {service}',
-      },
-      {
-        formFields: {
-          channel: {placeholder: 'i.e #critical', type: 'string'},
-          workspace: {type: 'choice', choices: []},
-          tags: {placeholder: 'i.e environment,user,my_tag', type: 'string'},
-        },
-        enabled: false,
-        id: 'sentry.integrations.slack.notify_action.SlackNotifyServiceAction',
-        label:
-          'Send a notification to the {workspace} Slack workspace to {channel} and show tags {tags} in notification',
-      },
-      {
-        formFields: {
-          account: {type: 'choice', choices: []},
-          service: {type: 'choice', choices: []},
-        },
-        enabled: false,
-        id: 'sentry.integrations.pagerduty.notify_action.PagerDutyNotifyServiceAction',
-        label: 'Send a notification to PagerDuty account {account} and service {service}',
-      },
-    ],
-    filters: [
-      {
-        formFields: {
-          comparison_type: {
+          match: {
             type: 'choice',
             choices: [
-              ['older', 'older'],
-              ['newer', 'newer'],
-            ],
-          },
-          value: {
-            placeholder: 10,
-            type: 'number',
-          },
-          time: {
-            type: 'choice',
-            choices: [
-              ['minute', 'minute(s)'],
-              ['hour', 'hour(s)'],
-              ['day', 'day(s)'],
-              ['week', 'week(s)'],
+              ['eq', 'equal to'],
+              ['gte', 'greater than or equal to'],
+              ['lte', 'less than or equal to'],
             ],
           },
         },
-        enabled: true,
-        id: 'sentry.rules.filters.age_comparison.AgeComparisonFilter',
-        label: 'The issue is {comparison_type} than {value} {time}',
-      },
-      {
-        formFields: {
-          value: {
-            placeholder: 10,
-            type: 'number',
-          },
-        },
-        enabled: true,
-        id: 'sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter',
-        label: 'An issue has happened at least {value} times',
       },
     ],
     ...params,
