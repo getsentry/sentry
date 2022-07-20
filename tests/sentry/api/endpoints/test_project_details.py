@@ -2,6 +2,7 @@ from time import time
 from unittest import mock
 
 import pytest
+from django.urls import reverse
 
 from sentry import audit_log
 from sentry.api.endpoints.project_details import (
@@ -10,6 +11,7 @@ from sentry.api.endpoints.project_details import (
 )
 from sentry.constants import RESERVED_PROJECT_SLUGS
 from sentry.models import (
+    ApiToken,
     AuditLogEntry,
     DeletedProject,
     EnvironmentProject,
@@ -220,6 +222,130 @@ class ProjectDetailsTest(APITestCase):
         self.login_as(user=user)
 
         self.get_error_response(other_org.slug, "old_slug", status_code=403)
+
+
+class ProjectUpdateTestTokenAuthenticated(APITestCase):
+    endpoint = "sentry-api-0-project-details"
+    method = "put"
+
+    def setUp(self):
+        super().setUp()
+        self.project = self.create_project(platform="javascript")
+        self.user = self.create_user("bar@example.com")
+
+    def test_member_can_read_project_details(self):
+        self.create_member(
+            user=self.user,
+            organization=self.project.organization,
+            teams=[self.project.teams.first()],
+            role="member",
+        )
+
+        token = ApiToken.objects.create(user=self.user, scope_list=["project:read"])
+        authorization = f"Bearer {token.token}"
+
+        url = reverse(
+            "sentry-api-0-project-details",
+            kwargs={
+                "organization_slug": self.project.organization.slug,
+                "project_slug": self.project.slug,
+            },
+        )
+        response = self.client.get(url, format="json", HTTP_AUTHORIZATION=authorization)
+        assert response.status_code == 200, response.content
+
+    def test_member_updates_denied_with_token(self):
+        self.create_member(
+            user=self.user,
+            organization=self.project.organization,
+            teams=[self.project.teams.first()],
+            role="member",
+        )
+
+        token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
+        authorization = f"Bearer {token.token}"
+
+        data = {"platform": "rust"}
+
+        url = reverse(
+            "sentry-api-0-project-details",
+            kwargs={
+                "organization_slug": self.project.organization.slug,
+                "project_slug": self.project.slug,
+            },
+        )
+        response = self.client.put(url, format="json", HTTP_AUTHORIZATION=authorization, data=data)
+        assert response.status_code == 403, response.content
+
+    def test_admin_updates_allowed_with_correct_token_scope(self):
+        self.create_member(
+            user=self.user,
+            organization=self.project.organization,
+            teams=[self.project.teams.first()],
+            role="admin",
+        )
+
+        token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
+        authorization = f"Bearer {token.token}"
+
+        data = {"platform": "rust"}
+
+        url = reverse(
+            "sentry-api-0-project-details",
+            kwargs={
+                "organization_slug": self.project.organization.slug,
+                "project_slug": self.project.slug,
+            },
+        )
+        response = self.client.put(url, format="json", HTTP_AUTHORIZATION=authorization, data=data)
+        assert response.status_code == 200, response.content
+
+    def test_admin_updates_denied_with_token(self):
+        self.create_member(
+            user=self.user,
+            organization=self.project.organization,
+            teams=[self.project.teams.first()],
+            role="admin",
+        )
+
+        # even though the user has the 'admin' role, they've issued a token with only a project:read scope
+        token = ApiToken.objects.create(user=self.user, scope_list=["project:read"])
+        authorization = f"Bearer {token.token}"
+
+        data = {"platform": "rust"}
+
+        url = reverse(
+            "sentry-api-0-project-details",
+            kwargs={
+                "organization_slug": self.project.organization.slug,
+                "project_slug": self.project.slug,
+            },
+        )
+        response = self.client.put(url, format="json", HTTP_AUTHORIZATION=authorization, data=data)
+        assert response.status_code == 403, response.content
+
+    def test_empty_token_scopes_denied(self):
+        self.create_member(
+            user=self.user,
+            organization=self.project.organization,
+            teams=[self.project.teams.first()],
+            role="member",
+        )
+
+        token = ApiToken.objects.create(user=self.user, scope_list=[""])
+        authorization = f"Bearer {token.token}"
+
+        data = {"platform": "rust"}
+
+        url = reverse(
+            "sentry-api-0-project-details",
+            kwargs={
+                "organization_slug": self.project.organization.slug,
+                "project_slug": self.project.slug,
+            },
+        )
+        response = self.client.put(url, format="json", HTTP_AUTHORIZATION=authorization, data=data)
+        assert response.status_code == 403, response.content
 
 
 class ProjectUpdateTest(APITestCase):
