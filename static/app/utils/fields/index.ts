@@ -107,6 +107,30 @@ export enum FieldValueType {
   NEVER = 'never',
 }
 
+export enum WebVital {
+  FP = 'measurements.fp',
+  FCP = 'measurements.fcp',
+  LCP = 'measurements.lcp',
+  FID = 'measurements.fid',
+  CLS = 'measurements.cls',
+  TTFB = 'measurements.ttfb',
+  RequestTime = 'measurements.ttfb.requesttime',
+}
+
+export enum MobileVital {
+  AppStartCold = 'measurements.app_start_cold',
+  AppStartWarm = 'measurements.app_start_warm',
+  FramesTotal = 'measurements.frames_total',
+  FramesSlow = 'measurements.frames_slow',
+  FramesFrozen = 'measurements.frames_frozen',
+  FramesSlowRate = 'measurements.frames_slow_rate',
+  FramesFrozenRate = 'measurements.frames_frozen_rate',
+  StallCount = 'measurements.stall_count',
+  StallTotalTime = 'measurements.stall_total_time',
+  StallLongestTime = 'measurements.stall_longest_time',
+  StallPercentage = 'measurements.stall_percentage',
+}
+
 export interface FieldDefinition {
   kind: FieldKind;
   valueType: FieldValueType;
