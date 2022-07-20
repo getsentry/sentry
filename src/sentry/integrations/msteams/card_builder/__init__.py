@@ -74,6 +74,8 @@ def generate_action_payload(action_type, event, rules, integration):
 def build_group_title(group: Group) -> TextBlock:
     text = build_attachment_title(group)
 
+    link = group.get_absolute_url(params={"referrer": "msteams"})
+
     title_text = f"[{text}]({link})"
     return create_text_block(
         title_text,
