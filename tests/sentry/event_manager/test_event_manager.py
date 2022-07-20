@@ -2119,9 +2119,10 @@ class AutoAssociateCommitTest(EventManagerTest):
             f"https://api.github.com/repos/{self.repo_name}/commits/{EARLIER_COMMIT_SHA}",
             json=json.loads(GET_PRIOR_COMMIT_EXAMPLE),
         )
+        self.dummy_commit_sha = "a" * 40
         responses.add(
             responses.GET,
-            f"https://api.github.com/repos/{self.repo_name}/compare/{'a' * 40}...{LATER_COMMIT_SHA}",
+            f"https://api.github.com/repos/{self.repo_name}/compare/{self.dummy_commit_sha}...{LATER_COMMIT_SHA}",
             json=json.loads(COMPARE_COMMITS_EXAMPLE_WITH_INTERMEDIATE),
         )
         responses.add(
@@ -2144,7 +2145,7 @@ class AutoAssociateCommitTest(EventManagerTest):
             commit = Commit.objects.create(
                 organization_id=self.project.organization.id,
                 repository_id=self.repo.id,
-                key="a" * 40,
+                key=self.dummy_commit_sha,
             )
             # Make a release head commit
             ReleaseHeadCommit.objects.create(
