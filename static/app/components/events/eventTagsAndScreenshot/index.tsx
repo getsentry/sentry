@@ -14,7 +14,6 @@ type Props = Omit<React.ComponentProps<typeof Tags>, 'projectSlug' | 'hasContext
   onDeleteScreenshot: ScreenshotProps['onDelete'];
   projectId: string;
   hasContext?: boolean;
-  isBorderless?: boolean;
   isShare?: boolean;
 };
 
@@ -26,7 +25,6 @@ function EventTagsAndScreenshots({
   onDeleteScreenshot,
   organization,
   isShare = false,
-  isBorderless = false,
   hasContext = false,
 }: Props) {
   const {tags = []} = event;
@@ -43,11 +41,7 @@ function EventTagsAndScreenshots({
   const showTags = !!tags.length || hasContext;
 
   return (
-    <Wrapper
-      isBorderless={isBorderless}
-      showScreenshot={showScreenshot}
-      showTags={showTags}
-    >
+    <Wrapper showScreenshot={showScreenshot} showTags={showTags}>
       {showScreenshot && (
         <Screenshot
           organization={organization}
@@ -74,7 +68,6 @@ function EventTagsAndScreenshots({
 export default EventTagsAndScreenshots;
 
 const Wrapper = styled(DataSection)<{
-  isBorderless: boolean;
   showScreenshot: boolean;
   showTags: boolean;
 }>`
@@ -83,6 +76,10 @@ const Wrapper = styled(DataSection)<{
     :last-child {
       border: 0;
       padding: 0;
+    }
+
+    :first-child {
+      padding: 0 ${space(3)} ${space(3)} ${space(3)};
     }
   }
 
@@ -99,29 +96,35 @@ const Wrapper = styled(DataSection)<{
           border: 0;
           padding: ${space(3)} 0;
         }
+
+        ${p =>
+          p.showScreenshot &&
+          css`
+            :first-child {
+              padding: ${space(3)} ${space(4)};
+            }
+          `}
+
+        :last-child {
+          overflow: hidden;
+        }
       }
     }
   }
 
-  ${p =>
-    p.isBorderless &&
-    css`
-      && {
-        padding-left: 0;
-        padding-right: 0;
-      }
-    `}
+  && {
+    padding-left: 0;
+    padding-right: 0;
+  }
 `;
 
 const Divider = styled('div')`
   background: ${p => p.theme.innerBorder};
   height: 1px;
   width: 100%;
-  margin: ${space(3)} 0;
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     height: 100%;
     width: 1px;
-    margin: 0 ${space(3)};
   }
 `;

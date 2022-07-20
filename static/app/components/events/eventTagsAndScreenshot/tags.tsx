@@ -3,6 +3,7 @@ import {Location} from 'history';
 
 import {SectionContents} from 'sentry/components/events/eventDataSection';
 import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 
@@ -21,29 +22,51 @@ type Props = {
 
 function Tags({event, organization, projectSlug, location, hasContext}: Props) {
   return (
-    <StyledDataSection
-      title={t('Tags')}
-      description={t(
-        'Tags help you quickly both access related events and view the tag distribution for a set of events'
+    <div>
+      {hasContext && (
+        <TagsHighlightWrapper>
+          <TagsHighlight event={event} />
+        </TagsHighlightWrapper>
       )}
-      data-test-id="event-tags"
-    >
-      {hasContext && <TagsHighlight event={event} />}
-      <EventTags
-        event={event}
-        organization={organization}
-        projectId={projectSlug}
-        location={location}
-      />
-    </StyledDataSection>
+      <Divider />
+      <StyledDataSection
+        title={t('Tags')}
+        description={t(
+          'Tags help you quickly both access related events and view the tag distribution for a set of events'
+        )}
+        data-test-id="event-tags"
+      >
+        <EventTags
+          event={event}
+          organization={organization}
+          projectId={projectSlug}
+          location={location}
+        />
+      </StyledDataSection>
+    </div>
   );
 }
 
 export default Tags;
 
+const TagsHighlightWrapper = styled('div')`
+  padding: 0 ${space(2)};
+
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+    padding: 0 ${space(4)};
+  }
+`;
+
 const StyledDataSection = styled(DataSection)`
+  border-top: 0;
   overflow: hidden;
   ${SectionContents} {
     overflow: hidden;
   }
+`;
+
+const Divider = styled('div')`
+  height: 1px;
+  width: 100%;
+  background: ${p => p.theme.innerBorder};
 `;
