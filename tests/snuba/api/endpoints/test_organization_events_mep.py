@@ -25,6 +25,8 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         "good",
         "meh",
         "d:transactions/measurements.something_custom@millisecond",
+        "d:transactions/measurements.bytes_transfered@byte",
+        "d:transactions/measurements.datacenter_memory@pebibyte",
     ]
 
     def setUp(self):
@@ -1069,6 +1071,57 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert data[0]["transaction"] == "foo_transaction"
         assert data[0]["p50(measurements.something_custom)"] == 1
         assert meta["isMetricsData"]
+        assert meta["fields"]["p50(measurements.something_custom)"] == "duration"
+        assert meta["units"]["p50(measurements.something_custom)"] == "millisecond"
+
+    def test_custom_measurement_size_meta_type(self):
+        self.store_metric(
+            1,
+            metric="measurements.bytes_transfered",
+            internal_metric="d:transactions/measurements.bytes_transfered@byte",
+            entity="metrics_distributions",
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+        self.store_metric(
+            100,
+            metric="measurements.bytes_transfered",
+            internal_metric="d:transactions/measurements.datacenter_memory@pebibyte",
+            entity="metrics_distributions",
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+
+        query = {
+            "project": [self.project.id],
+            "orderby": "p50(measurements.bytes_transfered)",
+            "field": [
+                "transaction",
+                "p50(measurements.bytes_transfered)",
+                "p99(measurements.bytes_transfered)",
+                "max(measurements.datacenter_memory)",
+            ],
+            "statsPeriod": "24h",
+            "dataset": "metricsEnhanced",
+            "per_page": 50,
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        data = response.data["data"]
+        meta = response.data["meta"]
+
+        assert data[0]["transaction"] == "foo_transaction"
+        assert data[0]["p50(measurements.bytes_transfered)"] == 1
+        assert data[0]["max(measurements.datacenter_memory)"] == 100
+        assert meta["isMetricsData"]
+        assert meta["fields"]["p50(measurements.bytes_transfered)"] == "size"
+        assert meta["units"]["p50(measurements.bytes_transfered)"] == "byte"
+        assert meta["fields"]["p99(measurements.bytes_transfered)"] == "size"
+        assert meta["units"]["p99(measurements.bytes_transfered)"] == "byte"
+        assert meta["fields"]["max(measurements.datacenter_memory)"] == "size"
+        assert meta["units"]["max(measurements.datacenter_memory)"] == "pebibyte"
 
     def test_environment_param(self):
         self.create_environment(self.project, name="staging")
