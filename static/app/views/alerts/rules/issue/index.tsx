@@ -768,7 +768,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
   }
 
   renderEnvironmentSelect(disabled: boolean) {
-    const {environments, rule,} = this.state;
+    const {environments, rule} = this.state;
 
     const environmentOptions = [
       {
@@ -799,7 +799,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
             value={environment}
             options={environmentOptions}
             onChange={({value}) => {
-              this.handleEnvironmentChange(value)
+              this.handleEnvironmentChange(value);
               onChange(value, {});
               onBlur(value, {});
             }}
@@ -808,7 +808,6 @@ class IssueRuleEditor extends AsyncView<Props, State> {
       </FormField>
     );
   }
-
 
   renderProjectSelect(disabled: boolean) {
     const {project: _selectedProject, projects, organization} = this.props;
@@ -934,7 +933,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
             value={`${frequency}`}
             options={FREQUENCY_OPTIONS}
             onChange={({value}) => {
-              this.handleChange('frequency', value)
+              this.handleChange('frequency', value);
               onChange(value, {});
               onBlur(value, {});
             }}
