@@ -118,10 +118,10 @@ function _initializeData(
         []
       );
     }
-    newSettings.selectedProject = selectedProject;
+    newSettings.selectedProject = selectedProject.id;
   }
 
-  newSettings.selectedProject = settings.selectedProject ?? newSettings.projects[0];
+  newSettings.selectedProject = settings.selectedProject ?? newSettings.projects[0].id;
   const data = initializeData(newSettings);
 
   // Modify page filters store to stop rerendering due to the test harness.

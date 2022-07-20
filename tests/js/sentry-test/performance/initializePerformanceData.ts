@@ -13,7 +13,7 @@ export interface initializeDataSettings {
   features?: string[];
   projects?: Project[];
   query?: {};
-  selectedProject?: number;
+  selectedProject?: number | string;
 }
 
 export function initializeData(settings?: initializeDataSettings) {
