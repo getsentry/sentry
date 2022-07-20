@@ -342,7 +342,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
 
     def test_simple(self):
         for rating, lcp in [("good", 2000), ("meh", 3000), ("poor", 5000)]:
-            self.store_metric(
+            self.store_transaction_metric(
                 lcp,
                 metric="measurements.lcp",
                 tags={"transaction": "foo_transaction", "measurement_rating": rating},
@@ -369,7 +369,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         ]
         for rating, duration, count in counts:
             for _ in range(count):
-                self.store_metric(
+                self.store_transaction_metric(
                     duration,
                     metric="measurements.lcp",
                     tags={"transaction": "foo_transaction", "measurement_rating": rating},
@@ -397,7 +397,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             ("measurements.fp", 4000, "poor"),
         ]
         for vital, duration, rating in vitals:
-            self.store_metric(
+            self.store_transaction_metric(
                 duration,
                 metric=vital,
                 tags={"transaction": "foo_transaction", "measurement_rating": rating},

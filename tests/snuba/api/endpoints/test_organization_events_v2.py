@@ -4904,7 +4904,7 @@ class OrganizationEventsV2MetricsEnhancedPerformanceEndpointTest(
         assert data[0]["p50"] == 0
 
     def test_project_name(self):
-        self.store_metric(
+        self.store_transaction_metric(
             1,
             tags={"environment": "staging"},
             timestamp=self.min_ago,
@@ -4934,7 +4934,7 @@ class OrganizationEventsV2MetricsEnhancedPerformanceEndpointTest(
 
     def test_title_alias(self):
         """title is an alias to transaction name"""
-        self.store_metric(
+        self.store_transaction_metric(
             1,
             tags={"transaction": "foo_transaction"},
             timestamp=self.min_ago,
@@ -4961,12 +4961,12 @@ class OrganizationEventsV2MetricsEnhancedPerformanceEndpointTest(
         assert meta["p50"] == "duration"
 
     def test_having_condition(self):
-        self.store_metric(
+        self.store_transaction_metric(
             1,
             tags={"environment": "staging", "transaction": "foo_transaction"},
             timestamp=self.min_ago,
         )
-        self.store_metric(
+        self.store_transaction_metric(
             # shouldn't show up
             100,
             tags={"environment": "staging", "transaction": "bar_transaction"},
@@ -4996,12 +4996,12 @@ class OrganizationEventsV2MetricsEnhancedPerformanceEndpointTest(
         assert meta["p50_transaction_duration"] == "duration"
 
     def test_having_condition_with_preventing_aggregates(self):
-        self.store_metric(
+        self.store_transaction_metric(
             1,
             tags={"environment": "staging", "transaction": "foo_transaction"},
             timestamp=self.min_ago,
         )
-        self.store_metric(
+        self.store_transaction_metric(
             100,
             tags={"environment": "staging", "transaction": "bar_transaction"},
             timestamp=self.min_ago,
@@ -5041,12 +5041,12 @@ class OrganizationEventsV2MetricsEnhancedPerformanceEndpointTest(
         assert response.status_code == 400, response.content
 
     def test_having_condition_not_selected(self):
-        self.store_metric(
+        self.store_transaction_metric(
             1,
             tags={"environment": "staging", "transaction": "foo_transaction"},
             timestamp=self.min_ago,
         )
-        self.store_metric(
+        self.store_transaction_metric(
             # shouldn't show up
             100,
             tags={"environment": "staging", "transaction": "bar_transaction"},
@@ -5076,7 +5076,7 @@ class OrganizationEventsV2MetricsEnhancedPerformanceEndpointTest(
         assert meta["p50_transaction_duration"] == "duration"
 
     def test_non_metrics_tag_with_implicit_format(self):
-        self.store_metric(
+        self.store_transaction_metric(
             1,
             tags={"environment": "staging", "transaction": "foo_transaction"},
             timestamp=self.min_ago,
@@ -5095,7 +5095,7 @@ class OrganizationEventsV2MetricsEnhancedPerformanceEndpointTest(
         assert not response.data["meta"]["isMetricsData"]
 
     def test_non_metrics_tag_with_implicit_format_metrics_dataset(self):
-        self.store_metric(
+        self.store_transaction_metric(
             1,
             tags={"environment": "staging", "transaction": "foo_transaction"},
             timestamp=self.min_ago,
@@ -5112,7 +5112,7 @@ class OrganizationEventsV2MetricsEnhancedPerformanceEndpointTest(
         assert response.status_code == 400, response.content
 
     def test_performance_homepage_query(self):
-        self.store_metric(
+        self.store_transaction_metric(
             1,
             tags={
                 "transaction": "foo_transaction",
@@ -5120,31 +5120,31 @@ class OrganizationEventsV2MetricsEnhancedPerformanceEndpointTest(
             },
             timestamp=self.min_ago,
         )
-        self.store_metric(
+        self.store_transaction_metric(
             1,
             "measurements.fcp",
             tags={"transaction": "foo_transaction"},
             timestamp=self.min_ago,
         )
-        self.store_metric(
+        self.store_transaction_metric(
             2,
             "measurements.lcp",
             tags={"transaction": "foo_transaction"},
             timestamp=self.min_ago,
         )
-        self.store_metric(
+        self.store_transaction_metric(
             3,
             "measurements.fid",
             tags={"transaction": "foo_transaction"},
             timestamp=self.min_ago,
         )
-        self.store_metric(
+        self.store_transaction_metric(
             4,
             "measurements.cls",
             tags={"transaction": "foo_transaction"},
             timestamp=self.min_ago,
         )
-        self.store_metric(
+        self.store_transaction_metric(
             1,
             "user",
             tags={
@@ -5201,8 +5201,12 @@ class OrganizationEventsV2MetricsEnhancedPerformanceEndpointTest(
             assert meta["user_misery"] == "number"
 
     def test_no_team_key_transactions(self):
-        self.store_metric(1, tags={"transaction": "foo_transaction"}, timestamp=self.min_ago)
-        self.store_metric(100, tags={"transaction": "bar_transaction"}, timestamp=self.min_ago)
+        self.store_transaction_metric(
+            1, tags={"transaction": "foo_transaction"}, timestamp=self.min_ago
+        )
+        self.store_transaction_metric(
+            100, tags={"transaction": "bar_transaction"}, timestamp=self.min_ago
+        )
 
         query = {
             "team": "myteams",
@@ -5251,10 +5255,14 @@ class OrganizationEventsV2MetricsEnhancedPerformanceEndpointTest(
         ]
 
         # Not a key transaction
-        self.store_metric(100, tags={"transaction": "bar_transaction"}, timestamp=self.min_ago)
+        self.store_transaction_metric(
+            100, tags={"transaction": "bar_transaction"}, timestamp=self.min_ago
+        )
 
         for team, transaction in key_transactions:
-            self.store_metric(1, tags={"transaction": transaction}, timestamp=self.min_ago)
+            self.store_transaction_metric(
+                1, tags={"transaction": transaction}, timestamp=self.min_ago
+            )
             TeamKeyTransaction.objects.create(
                 organization=self.organization,
                 transaction=transaction,
@@ -5338,10 +5346,14 @@ class OrganizationEventsV2MetricsEnhancedPerformanceEndpointTest(
         ]
 
         # Not a key transaction
-        self.store_metric(100, tags={"transaction": "bar_transaction"}, timestamp=self.min_ago)
+        self.store_transaction_metric(
+            100, tags={"transaction": "bar_transaction"}, timestamp=self.min_ago
+        )
 
         for team, transaction, value in key_transactions:
-            self.store_metric(value, tags={"transaction": transaction}, timestamp=self.min_ago)
+            self.store_transaction_metric(
+                value, tags={"transaction": transaction}, timestamp=self.min_ago
+            )
             self.create_team_membership(team, user=self.user)
             self.project.add_team(team)
             TeamKeyTransaction.objects.create(
@@ -5414,10 +5426,14 @@ class OrganizationEventsV2MetricsEnhancedPerformanceEndpointTest(
         ]
 
         # Not a key transaction
-        self.store_metric(100, tags={"transaction": "bar_transaction"}, timestamp=self.min_ago)
+        self.store_transaction_metric(
+            100, tags={"transaction": "bar_transaction"}, timestamp=self.min_ago
+        )
 
         for team, transaction, value in key_transactions:
-            self.store_metric(value, tags={"transaction": transaction}, timestamp=self.min_ago)
+            self.store_transaction_metric(
+                value, tags={"transaction": transaction}, timestamp=self.min_ago
+            )
             self.create_team_membership(team, user=self.user)
             self.project.add_team(team)
             TeamKeyTransaction.objects.create(
@@ -5521,7 +5537,7 @@ class OrganizationEventsV2MetricsEnhancedPerformanceEndpointTest(
             transactions = ["foo_transaction", "bar_transaction", "baz_transaction"]
 
             for i in range(MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS + 1):
-                self.store_metric(
+                self.store_transaction_metric(
                     100, tags={"transaction": transactions[i]}, timestamp=self.min_ago
                 )
 
@@ -5566,31 +5582,31 @@ class OrganizationEventsV2MetricsEnhancedPerformanceEndpointTest(
             assert meta["isMetricsData"]
 
     def test_measurement_rating(self):
-        self.store_metric(
+        self.store_transaction_metric(
             50,
             metric="measurements.lcp",
             tags={"measurement_rating": "good", "transaction": "foo_transaction"},
             timestamp=self.min_ago,
         )
-        self.store_metric(
+        self.store_transaction_metric(
             15,
             metric="measurements.fp",
             tags={"measurement_rating": "good", "transaction": "foo_transaction"},
             timestamp=self.min_ago,
         )
-        self.store_metric(
+        self.store_transaction_metric(
             1500,
             metric="measurements.fcp",
             tags={"measurement_rating": "meh", "transaction": "foo_transaction"},
             timestamp=self.min_ago,
         )
-        self.store_metric(
+        self.store_transaction_metric(
             125,
             metric="measurements.fid",
             tags={"measurement_rating": "meh", "transaction": "foo_transaction"},
             timestamp=self.min_ago,
         )
-        self.store_metric(
+        self.store_transaction_metric(
             0.15,
             metric="measurements.cls",
             tags={"measurement_rating": "good", "transaction": "foo_transaction"},
@@ -5631,7 +5647,7 @@ class OrganizationEventsV2MetricsEnhancedPerformanceEndpointTest(
         assert meta["count_web_vitals_measurements_cls_good"] == "integer"
 
     def test_measurement_rating_that_does_not_exist(self):
-        self.store_metric(
+        self.store_transaction_metric(
             1,
             metric="measurements.lcp",
             tags={"measurement_rating": "good", "transaction": "foo_transaction"},
@@ -5731,18 +5747,18 @@ class OrganizationEventsV2MetricsEnhancedPerformanceEndpointTest(
             assert mock_builder.call_args.kwargs["dry_run"]
 
     def test_count_unique_user_returns_zero(self):
-        self.store_metric(
+        self.store_transaction_metric(
             50,
             metric="user",
             tags={"transaction": "foo_transaction"},
             timestamp=self.min_ago,
         )
-        self.store_metric(
+        self.store_transaction_metric(
             50,
             tags={"transaction": "foo_transaction"},
             timestamp=self.min_ago,
         )
-        self.store_metric(
+        self.store_transaction_metric(
             100,
             tags={"transaction": "bar_transaction"},
             timestamp=self.min_ago,
@@ -10846,7 +10862,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert data[0]["p50()"] == 0
 
     def test_project_name(self):
-        self.store_metric(
+        self.store_transaction_metric(
             1,
             tags={"environment": "staging"},
             timestamp=self.min_ago,
@@ -10877,7 +10893,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
 
     def test_title_alias(self):
         """title is an alias to transaction name"""
-        self.store_metric(
+        self.store_transaction_metric(
             1,
             tags={"transaction": "foo_transaction"},
             timestamp=self.min_ago,
@@ -10905,12 +10921,12 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert field_meta["p50()"] == "duration"
 
     def test_having_condition(self):
-        self.store_metric(
+        self.store_transaction_metric(
             1,
             tags={"environment": "staging", "transaction": "foo_transaction"},
             timestamp=self.min_ago,
         )
-        self.store_metric(
+        self.store_transaction_metric(
             # shouldn't show up
             100,
             tags={"environment": "staging", "transaction": "bar_transaction"},
@@ -10941,12 +10957,12 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert field_meta["p50(transaction.duration)"] == "duration"
 
     def test_having_condition_with_preventing_aggregates(self):
-        self.store_metric(
+        self.store_transaction_metric(
             1,
             tags={"environment": "staging", "transaction": "foo_transaction"},
             timestamp=self.min_ago,
         )
-        self.store_metric(
+        self.store_transaction_metric(
             100,
             tags={"environment": "staging", "transaction": "bar_transaction"},
             timestamp=self.min_ago,
@@ -10987,12 +11003,12 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert response.status_code == 400, response.content
 
     def test_having_condition_not_selected(self):
-        self.store_metric(
+        self.store_transaction_metric(
             1,
             tags={"environment": "staging", "transaction": "foo_transaction"},
             timestamp=self.min_ago,
         )
-        self.store_metric(
+        self.store_transaction_metric(
             # shouldn't show up
             100,
             tags={"environment": "staging", "transaction": "bar_transaction"},
@@ -11023,7 +11039,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert field_meta["p50(transaction.duration)"] == "duration"
 
     def test_non_metrics_tag_with_implicit_format(self):
-        self.store_metric(
+        self.store_transaction_metric(
             1,
             tags={"environment": "staging", "transaction": "foo_transaction"},
             timestamp=self.min_ago,
@@ -11042,7 +11058,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert not response.data["meta"]["isMetricsData"]
 
     def test_non_metrics_tag_with_implicit_format_metrics_dataset(self):
-        self.store_metric(
+        self.store_transaction_metric(
             1,
             tags={"environment": "staging", "transaction": "foo_transaction"},
             timestamp=self.min_ago,
@@ -11059,7 +11075,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert response.status_code == 400, response.content
 
     def test_performance_homepage_query(self):
-        self.store_metric(
+        self.store_transaction_metric(
             1,
             tags={
                 "transaction": "foo_transaction",
@@ -11067,31 +11083,31 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             },
             timestamp=self.min_ago,
         )
-        self.store_metric(
+        self.store_transaction_metric(
             1,
             "measurements.fcp",
             tags={"transaction": "foo_transaction"},
             timestamp=self.min_ago,
         )
-        self.store_metric(
+        self.store_transaction_metric(
             2,
             "measurements.lcp",
             tags={"transaction": "foo_transaction"},
             timestamp=self.min_ago,
         )
-        self.store_metric(
+        self.store_transaction_metric(
             3,
             "measurements.fid",
             tags={"transaction": "foo_transaction"},
             timestamp=self.min_ago,
         )
-        self.store_metric(
+        self.store_transaction_metric(
             4,
             "measurements.cls",
             tags={"transaction": "foo_transaction"},
             timestamp=self.min_ago,
         )
-        self.store_metric(
+        self.store_transaction_metric(
             1,
             "user",
             tags={
@@ -11149,8 +11165,12 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             assert field_meta["user_misery()"] == "number"
 
     def test_no_team_key_transactions(self):
-        self.store_metric(1, tags={"transaction": "foo_transaction"}, timestamp=self.min_ago)
-        self.store_metric(100, tags={"transaction": "bar_transaction"}, timestamp=self.min_ago)
+        self.store_transaction_metric(
+            1, tags={"transaction": "foo_transaction"}, timestamp=self.min_ago
+        )
+        self.store_transaction_metric(
+            100, tags={"transaction": "bar_transaction"}, timestamp=self.min_ago
+        )
 
         query = {
             "team": "myteams",
@@ -11200,10 +11220,14 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         ]
 
         # Not a key transaction
-        self.store_metric(100, tags={"transaction": "bar_transaction"}, timestamp=self.min_ago)
+        self.store_transaction_metric(
+            100, tags={"transaction": "bar_transaction"}, timestamp=self.min_ago
+        )
 
         for team, transaction in key_transactions:
-            self.store_metric(1, tags={"transaction": transaction}, timestamp=self.min_ago)
+            self.store_transaction_metric(
+                1, tags={"transaction": transaction}, timestamp=self.min_ago
+            )
             TeamKeyTransaction.objects.create(
                 organization=self.organization,
                 transaction=transaction,
@@ -11290,10 +11314,14 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         ]
 
         # Not a key transaction
-        self.store_metric(100, tags={"transaction": "bar_transaction"}, timestamp=self.min_ago)
+        self.store_transaction_metric(
+            100, tags={"transaction": "bar_transaction"}, timestamp=self.min_ago
+        )
 
         for team, transaction, value in key_transactions:
-            self.store_metric(value, tags={"transaction": transaction}, timestamp=self.min_ago)
+            self.store_transaction_metric(
+                value, tags={"transaction": transaction}, timestamp=self.min_ago
+            )
             self.create_team_membership(team, user=self.user)
             self.project.add_team(team)
             TeamKeyTransaction.objects.create(
@@ -11368,10 +11396,14 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         ]
 
         # Not a key transaction
-        self.store_metric(100, tags={"transaction": "bar_transaction"}, timestamp=self.min_ago)
+        self.store_transaction_metric(
+            100, tags={"transaction": "bar_transaction"}, timestamp=self.min_ago
+        )
 
         for team, transaction, value in key_transactions:
-            self.store_metric(value, tags={"transaction": transaction}, timestamp=self.min_ago)
+            self.store_transaction_metric(
+                value, tags={"transaction": transaction}, timestamp=self.min_ago
+            )
             self.create_team_membership(team, user=self.user)
             self.project.add_team(team)
             TeamKeyTransaction.objects.create(
@@ -11479,7 +11511,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             transactions = ["foo_transaction", "bar_transaction", "baz_transaction"]
 
             for i in range(MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS + 1):
-                self.store_metric(
+                self.store_transaction_metric(
                     100, tags={"transaction": transactions[i]}, timestamp=self.min_ago
                 )
 
@@ -11524,31 +11556,31 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             assert meta["isMetricsData"]
 
     def test_measurement_rating(self):
-        self.store_metric(
+        self.store_transaction_metric(
             50,
             metric="measurements.lcp",
             tags={"measurement_rating": "good", "transaction": "foo_transaction"},
             timestamp=self.min_ago,
         )
-        self.store_metric(
+        self.store_transaction_metric(
             15,
             metric="measurements.fp",
             tags={"measurement_rating": "good", "transaction": "foo_transaction"},
             timestamp=self.min_ago,
         )
-        self.store_metric(
+        self.store_transaction_metric(
             1500,
             metric="measurements.fcp",
             tags={"measurement_rating": "meh", "transaction": "foo_transaction"},
             timestamp=self.min_ago,
         )
-        self.store_metric(
+        self.store_transaction_metric(
             125,
             metric="measurements.fid",
             tags={"measurement_rating": "meh", "transaction": "foo_transaction"},
             timestamp=self.min_ago,
         )
-        self.store_metric(
+        self.store_transaction_metric(
             0.15,
             metric="measurements.cls",
             tags={"measurement_rating": "good", "transaction": "foo_transaction"},
@@ -11590,7 +11622,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert field_meta["count_web_vitals(measurements.cls, good)"] == "integer"
 
     def test_measurement_rating_that_does_not_exist(self):
-        self.store_metric(
+        self.store_transaction_metric(
             1,
             metric="measurements.lcp",
             tags={"measurement_rating": "good", "transaction": "foo_transaction"},
@@ -11690,18 +11722,18 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             assert mock_builder.call_args.kwargs["dry_run"]
 
     def test_count_unique_user_returns_zero(self):
-        self.store_metric(
+        self.store_transaction_metric(
             50,
             metric="user",
             tags={"transaction": "foo_transaction"},
             timestamp=self.min_ago,
         )
-        self.store_metric(
+        self.store_transaction_metric(
             50,
             tags={"transaction": "foo_transaction"},
             timestamp=self.min_ago,
         )
-        self.store_metric(
+        self.store_transaction_metric(
             100,
             tags={"transaction": "bar_transaction"},
             timestamp=self.min_ago,
@@ -11732,17 +11764,17 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert meta["isMetricsData"]
 
     def test_sum_transaction_duration(self):
-        self.store_metric(
+        self.store_transaction_metric(
             50,
             tags={"transaction": "foo_transaction"},
             timestamp=self.min_ago,
         )
-        self.store_metric(
+        self.store_transaction_metric(
             100,
             tags={"transaction": "foo_transaction"},
             timestamp=self.min_ago,
         )
-        self.store_metric(
+        self.store_transaction_metric(
             150,
             tags={"transaction": "foo_transaction"},
             timestamp=self.min_ago,
@@ -11770,7 +11802,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert meta["isMetricsData"]
 
     def test_custom_measurements_simple(self):
-        self.store_metric(
+        self.store_transaction_metric(
             1,
             metric="measurements.something_custom",
             internal_metric="d:transactions/measurements.something_custom@millisecond",

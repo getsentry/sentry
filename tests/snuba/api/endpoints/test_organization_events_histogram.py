@@ -1033,7 +1033,7 @@ class OrganizationEventsMetricsEnhancedPerformanceHistogramEndpointTest(
             spec = HistogramSpec(*spec)
             for suffix_key, count in spec.fields:
                 for i in range(count):
-                    self.store_metric(
+                    self.store_transaction_metric(
                         (spec.end + spec.start) / 2,
                         metric=suffix_key,
                         tags={"transaction": suffix_key},

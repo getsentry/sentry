@@ -1123,7 +1123,7 @@ class BaseMetricsTestCase(SnubaTestCase):
             "type": {"counter": "c", "set": "s", "distribution": "d"}[type],
             "value": value,
             "retention_days": 90,
-            "use_case_id": use_case_id.value,
+            "use_case_id": use_case_id,
         }
 
         msg["mapping_meta"] = {}
@@ -1168,7 +1168,7 @@ class SessionMetricsReleaseHealthTestCase(BaseMetricsTestCase):
         # This check is not yet reflected in relay, see https://getsentry.atlassian.net/browse/INGEST-464
         user_is_nil = user is None or user == "00000000-0000-0000-0000-000000000000"
 
-        def push(type, mri, tags, value):
+        def push(type, mri: str, tags, value):
             self.store_metric(
                 org_id,
                 project_id,
@@ -1189,11 +1189,11 @@ class SessionMetricsReleaseHealthTestCase(BaseMetricsTestCase):
 
         # Mark the session as errored, which includes fatal sessions.
         if session.get("errors", 0) > 0 or status not in ("ok", "exited"):
-            push("set", SessionMRI.ERROR, {}, session["session_id"])
+            push("set", SessionMRI.ERROR.value, {}, session["session_id"])
             if not user_is_nil:
                 push("set", SessionMRI.USER.value, {"session.status": "errored"}, user)
         elif not user_is_nil:
-            push("set", SessionMRI.USER, {}, user)
+            push("set", SessionMRI.USER.value, {}, user)
 
         if status in ("abnormal", "crashed"):  # fatal
             push("counter", SessionMRI.SESSION.value, {"session.status": status}, +1)
