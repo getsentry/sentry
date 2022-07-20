@@ -10,6 +10,9 @@ updates:
       time: '15:30'
     reviewers:
       - '@getsentry/owners-js-deps'
+    labels:
+      - 'dependencies'
+      - 'Scope: Frontend'
     ignore:
       # Babel updates all really should happen in unison, so let's keep these
       # ignored for now and manually handle it
@@ -77,5 +80,8 @@ updates:
       time: '09:00'
     reviewers:
       - '@getsentry/team-web-backend'
+    labels:
+      - 'dependencies'
+      - 'Scope: Backend'
     allow:
       - dependency-name: 'sentry-sdk'
