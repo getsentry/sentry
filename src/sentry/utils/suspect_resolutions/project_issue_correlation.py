@@ -1,21 +1,23 @@
 from sentry.models import Group
-from sentry.utils.types import Sequence
+from sentry.utils.suspect_resolutions.commit_correlation import is_issue_commit_correlated
+from sentry.utils.suspect_resolutions.metric_correlation import is_issue_error_rate_correlated
 
 
 def get_project_issues_with_correlated_commits_and_error_rate(
-    project_id: int, resolved_issue_id: int
-) -> Sequence[int]:
-    # for the given project and issue, scan all the issues within a project to
-    # see whether they're:  (commit-correlated and error-rate-correlated)
+    project_id: int, resolved_issue: Group
+):
+    if not Group.objects.filter(id=resolved_issue.id).exists():
+        return {}
 
-    all_project_issues = Group.objects.filter(project=project_id).values_list("id", flat=True)
+    all_project_issues = list(
+        Group.objects.filter(project=project_id).exclude(id=resolved_issue.id)
+    )
 
-    correlated_issues = []
-
-    for issue in all_project_issues:
-        if is_issue_commit_correlated(resolved_issue_id, issue) and is_issue_error_rate_correlated(
-            resolved_issue_id, issue
-        ):
-            correlated_issues.append(issue)
+    correlated_issues = {
+        issue.id
+        for issue in all_project_issues
+        if is_issue_commit_correlated(resolved_issue.id, issue.id)
+        and is_issue_error_rate_correlated(resolved_issue, issue)
+    }
 
     return correlated_issues
