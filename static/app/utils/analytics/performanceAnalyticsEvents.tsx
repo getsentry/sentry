@@ -161,6 +161,8 @@ export const performanceEventMap: Record<PerformanceEventKey, string | null> = {
     'Performance Views: Transaction Summary status breakdown option clicked',
   'performance_views.all_events.open_in_discover':
     'Performance Views: All Events page open in Discover button clicked',
+  'performance_views.tags.change_aggregate_column':
+    'Performance Views: Tags page changed aggregate column',
   'performance_views.tags.change_tag':
     'Performance Views: Tags Page changed selected tag',
   'performance_views.tags.jump_to_release':
