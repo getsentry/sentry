@@ -21,6 +21,7 @@ google-cloud-core>=1.5.0
 googleapis-common-protos>=1.56.2
 google-cloud-pubsub>=2.2.0
 google-cloud-storage>=1.35.0
+google-cloud-functions>=1.8.0
 # Only necessary to prevent installing the latest version
 # https://github.com/googleapis/python-crc32c/issues/83
 google-crc32c>=1.1.2
