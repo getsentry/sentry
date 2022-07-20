@@ -133,7 +133,7 @@ class Form<
 
     return (
       <FormContext.Provider value={this.getContext()}>
-        <StyledForm onSubmit={this.onSubmit} className={this.props.className}>
+        <StyledForm role="form" onSubmit={this.onSubmit} className={this.props.className}>
           {isError && !hideErrors && (
             <div className="alert alert-error alert-block">
               {nonFieldErrors ? (
