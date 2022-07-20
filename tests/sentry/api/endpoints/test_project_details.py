@@ -233,6 +233,27 @@ class ProjectUpdateTestTokenAuthenticated(APITestCase):
         self.project = self.create_project(platform="javascript")
         self.user = self.create_user("bar@example.com")
 
+    def test_member_can_read_project_details(self):
+        self.create_member(
+            user=self.user,
+            organization=self.project.organization,
+            teams=[self.project.teams.first()],
+            role="member",
+        )
+
+        token = ApiToken.objects.create(user=self.user, scope_list=["project:read"])
+        authorization = f"Bearer {token.token}"
+
+        url = reverse(
+            "sentry-api-0-project-details",
+            kwargs={
+                "organization_slug": self.project.organization.slug,
+                "project_slug": self.project.slug,
+            },
+        )
+        response = self.client.get(url, format="json", HTTP_AUTHORIZATION=authorization)
+        assert response.status_code == 200, response.content
+
     def test_member_updates_denied_with_token(self):
         self.create_member(
             user=self.user,
