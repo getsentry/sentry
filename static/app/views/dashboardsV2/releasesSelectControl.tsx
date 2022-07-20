@@ -6,20 +6,28 @@ import CompactSelect from 'sentry/components/forms/compactSelect';
 import TextOverflow from 'sentry/components/textOverflow';
 import {IconReleases} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {Release} from 'sentry/types';
 import {useReleases} from 'sentry/utils/releases/releasesProvider';
 
+import {DashboardFilterKeys, DashboardFilters} from './types';
+
 type Props = {
+  selectedReleases: string[];
   className?: string;
+  handleChangeFilter?: (activeFilters: DashboardFilters) => void;
   isDisabled?: boolean;
 };
 
-function ReleasesSelectControl({className, isDisabled}: Props) {
+function ReleasesSelectControl({
+  handleChangeFilter,
+  selectedReleases,
+  className,
+  isDisabled,
+}: Props) {
   const {releases, loading} = useReleases();
-  const [selectedReleases, setSelectedReleases] = useState<Release[]>([]);
+  const [activeReleases, setActiveReleases] = useState<string[]>(selectedReleases);
 
-  const triggerLabel = selectedReleases.length ? (
-    <TextOverflow>{selectedReleases[0]} </TextOverflow>
+  const triggerLabel = activeReleases.length ? (
+    <TextOverflow>{activeReleases[0]} </TextOverflow>
   ) : (
     t('All Releases')
   );
@@ -43,13 +51,16 @@ function ReleasesSelectControl({className, isDisabled}: Props) {
             })
           : []
       }
-      onChange={opts => setSelectedReleases(opts.map(opt => opt.value))}
-      value={selectedReleases}
+      onChange={opts => setActiveReleases(opts.map(opt => opt.value))}
+      onClose={() => {
+        handleChangeFilter?.({[DashboardFilterKeys.RELEASE]: activeReleases});
+      }}
+      value={activeReleases}
       triggerLabel={
         <ButtonLabelWrapper>
           {triggerLabel}{' '}
-          {selectedReleases.length > 1 && (
-            <StyledBadge text={`+${selectedReleases.length - 1}`} />
+          {activeReleases.length > 1 && (
+            <StyledBadge text={`+${activeReleases.length - 1}`} />
           )}
         </ButtonLabelWrapper>
       }

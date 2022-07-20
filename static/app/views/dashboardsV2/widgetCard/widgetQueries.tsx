@@ -13,7 +13,7 @@ import {Series} from 'sentry/types/echarts';
 import {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
 
 import {ErrorsAndTransactionsConfig} from '../datasetConfig/errorsAndTransactions';
-import {Widget} from '../types';
+import {DashboardFilters, Widget} from '../types';
 
 import {DashboardsMEPContext} from './dashboardsMEPContext';
 import GenericWidgetQueries, {
@@ -98,6 +98,7 @@ type Props = {
   selection: PageFilters;
   widget: Widget;
   cursor?: string;
+  dashboardFilters?: DashboardFilters;
   limit?: number;
   onDataFetched?: (results: OnDataFetchedProps) => void;
 };
@@ -108,6 +109,7 @@ function WidgetQueries({
   organization,
   selection,
   widget,
+  dashboardFilters,
   cursor,
   limit,
   onDataFetched,
@@ -158,6 +160,7 @@ function WidgetQueries({
       widget={widget}
       cursor={cursor}
       limit={limit}
+      dashboardFilters={dashboardFilters}
       onDataFetched={onDataFetched}
       afterFetchSeriesData={afterFetchSeriesData}
       afterFetchTableData={afterFetchTableData}

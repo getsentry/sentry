@@ -389,7 +389,8 @@ class Dashboard extends Component<Props, State> {
 
   renderWidget(widget: Widget, index: number) {
     const {isMobile, windowWidth} = this.state;
-    const {isEditing, organization, widgetLimitReached, isPreview} = this.props;
+    const {isEditing, organization, widgetLimitReached, isPreview, dashboard} =
+      this.props;
 
     const widgetProps = {
       widget,
@@ -399,6 +400,7 @@ class Dashboard extends Component<Props, State> {
       onEdit: this.handleEditWidget(widget, index),
       onDuplicate: this.handleDuplicateWidget(widget, index),
       isPreview,
+      dashboardFilters: dashboard.filters,
     };
 
     if (organization.features.includes('dashboard-grid-layout')) {
