@@ -52,7 +52,7 @@ from sentry.utils.dates import to_timestamp
 EMPTY = object()
 
 
-pytestmark = pytest.mark.sentry_metrics
+pytestmark = [pytest.mark.sentry_metrics, pytest.mark.broken_under_tags_values_as_strings]
 
 
 @freeze_time()

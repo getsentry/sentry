@@ -150,7 +150,7 @@ jobs:
         run: |
           # Note: `USE_SNUBA` is not used for backend tests because there are a few failing tests with Snuba enabled.
           unset USE_SNUBA
-          export PYTEST_ADDOPTS="-m sentry_metrics"
+          export PYTEST_ADDOPTS="-m 'sentry_metrics and not broken_under_tags_values_as_strings'"
           export SENTRY_METRICS_SIMULATE_TAG_VALUES_IN_CLICKHOUSE=1
           make test-python-ci
 

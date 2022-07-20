@@ -73,7 +73,7 @@ from sentry.testutils import BaseIncidentsTest, SnubaTestCase, TestCase
 from sentry.testutils.cases import BaseMetricsTestCase
 from sentry.utils import json
 
-pytestmark = pytest.mark.sentry_metrics
+pytestmark = [pytest.mark.sentry_metrics, pytest.mark.broken_under_tags_values_as_strings]
 
 
 class CreateIncidentTest(TestCase):
