@@ -71,8 +71,12 @@ function SentryFunctionDetails(props: Props) {
     }
   }
 
-  const defaultCode =
-    "exports.yourFunction = (req, res) => {\n\tlet message = req.query.message || req.body.message || 'Hello World!';\n\tconsole.log('Query: ' + req.query);\n\tconsole.log('Body: ' + req.body);\n\tres.status(200).send(message);\n};";
+  const defaultCode = `exports.yourFunction = (req, res) => {
+    let message = req.query.message || req.body.message || 'Hello World!';
+    console.log('Query: ' + req.query);
+    console.log('Body: ' + req.body);
+    res.status(200).send(message);
+};`;
   return (
     <div>
       <Feature features={['organizations:sentry-functions']}>
