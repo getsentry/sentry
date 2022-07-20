@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any, Sequence, Tuple
 if TYPE_CHECKING:
     from sentry.integrations.msteams.card_builder import (
         Action,
+        ActionSet,
         Block,
         ColumnBlock,
         ColumnSetBlock,
@@ -16,7 +17,6 @@ if TYPE_CHECKING:
         InputChoiceSetBlock,
         ItemBlock,
         TextBlock,
-        ActionSet,
     )
 
 from sentry.utils.assets import get_asset_url
