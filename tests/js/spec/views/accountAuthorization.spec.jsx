@@ -19,12 +19,14 @@ describe('AccountAuthorizations', function () {
 
     const wrapper = render(<AccountAuthorizations />, {
       context: {
-        location: TestStubs.location(),
-        router: TestStubs.router(),
-      },
-      childContextTypes: {
-        location: PropTypes.object,
-        router: PropTypes.object,
+        context: {
+          location: TestStubs.location(),
+          router: TestStubs.router(),
+        },
+        childContextTypes: {
+          location: PropTypes.object,
+          router: PropTypes.object,
+        },
       },
     });
 
