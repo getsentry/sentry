@@ -3,10 +3,14 @@ import {LocationRange} from 'pegjs';
 
 import {t} from 'sentry/locale';
 import {
+  AGGREGATIONS,
+  ColumnType,
   isMeasurement,
   isSpanOperationBreakdownField,
   measurementType,
+  ValidateColumnTypes,
 } from 'sentry/utils/discover/fields';
+import {FieldKind, FIELDS, FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
 
 import grammar from './grammar.pegjs';
 import {getKeyName} from './utils';
@@ -302,6 +306,13 @@ type TokenConverterOpts = {
   text: TextFn;
 };
 
+type AggregateFilter =
+  | FilterType.AggregateDate
+  | FilterType.AggregateDuration
+  | FilterType.AggregateNumeric
+  | FilterType.AggregatePercentage
+  | FilterType.AggregateRelativeDate;
+
 /**
  * Used to construct token results via the token grammar
  */
@@ -532,12 +543,8 @@ export class TokenConverter {
   predicateFilter = <T extends FilterType>(type: T, key: FilterMap[T]['key']) => {
     // @ts-expect-error Unclear why this isn’t resolving correctly
     const keyName = getKeyName(key);
-    const aggregateKey = key as ReturnType<TokenConverter['tokenKeyAggregate']>;
 
-    const {isNumeric, isDuration, isBoolean, isDate, isPercentage} = this.keyValidation;
-
-    const checkAggregate = (check: (s: string) => boolean) =>
-      aggregateKey.args?.args.some(arg => check(arg?.value?.value ?? ''));
+    const {isNumeric, isDuration, isBoolean, isDate} = this.keyValidation;
 
     switch (type) {
       case FilterType.Numeric:
@@ -554,15 +561,6 @@ export class TokenConverter {
       case FilterType.RelativeDate:
       case FilterType.SpecificDate:
         return isDate(keyName);
-
-      case FilterType.AggregateDuration:
-        return checkAggregate(isDuration);
-
-      case FilterType.AggregateDate:
-        return checkAggregate(isDate);
-
-      case FilterType.AggregatePercentage:
-        return checkAggregate(isPercentage);
 
       default:
         return true;
@@ -600,7 +598,101 @@ export class TokenConverter {
       return this.checkInvalidInFilter(value as InFilter['value']);
     }
 
+    if (
+      [
+        FilterType.AggregateDate,
+        FilterType.AggregateDuration,
+        FilterType.AggregateNumeric,
+        FilterType.AggregatePercentage,
+        FilterType.AggregateRelativeDate,
+      ].includes(filter)
+    ) {
+      return this.checkInvalidAggregateFilter(
+        filter as AggregateFilter,
+        key as FilterMap[AggregateFilter]['key'],
+        value as FilterMap[AggregateFilter]['value']
+      );
+    }
+
     return null;
+  };
+
+  checkInvalidAggregateFilter = (
+    filterType: AggregateFilter,
+    key: FilterMap[AggregateFilter]['key'],
+    value: FilterMap[AggregateFilter]['value']
+  ) => {
+    const {isNumeric, isDuration, isDate, isPercentage} = this.keyValidation;
+
+    const keyName = key.name.text;
+
+    const checkAggregateKey = (check: (s: string) => boolean) => {
+      if (check(keyName)) {
+        if (key.args === null) {
+          // Aggregate keys without args will rely on default values
+          return null;
+        }
+
+        // Get valid column types from the aggregate key
+        const aggregation = AGGREGATIONS[keyName];
+        const validColumnTypes = (aggregation?.parameters?.find(p => p.kind === 'column')
+          ?.columnTypes ?? null) as ValidateColumnTypes | null;
+
+        // Check each argument whether it is a valid parameter to this aggregation
+        const invalidArgs = key.args.args.filter(arg => {
+          const argKey = arg?.value?.value;
+          if (!argKey) {
+            return true;
+          }
+
+          const fieldDef = getFieldDefinition(argKey);
+          if (!fieldDef?.valueType) {
+            return true;
+          }
+
+          return !validateAggregateType(
+            validColumnTypes,
+            argKey,
+            fieldDef.valueType as ColumnType
+          );
+        });
+
+        if (invalidArgs.length > 0) {
+          return {
+            reason: getAggregateInvalidArgumentMessage(
+              keyName,
+              validColumnTypes,
+              invalidArgs.map(arg => arg.value?.value ?? '')
+            ),
+          };
+        }
+
+        return null;
+      }
+
+      const definition = getFieldDefinition(keyName);
+      return {
+        reason: `'${keyName}' returns a ${
+          `${definition?.valueType}` ?? 'different value type.'
+        }; '${value.text}' is not valid here.`,
+      };
+    };
+
+    switch (filterType) {
+      case FilterType.AggregateRelativeDate:
+      case FilterType.AggregateDate:
+        return checkAggregateKey(isDate.bind(this));
+
+      case FilterType.AggregateDuration:
+        return checkAggregateKey(isDuration.bind(this));
+      case FilterType.AggregatePercentage:
+        return checkAggregateKey(isPercentage.bind(this));
+      case FilterType.AggregateNumeric:
+        return checkAggregateKey(isNumeric.bind(this));
+
+      default:
+        return null;
+    }
   };
 
   /**
@@ -757,43 +849,72 @@ export type SearchConfig = {
   textOperatorKeys: Set<string>;
 };
 
+const getKeySet = (options: {
+  allowGenericAggregations: boolean;
+  valueTypes: FieldValueType[];
+  preFilter?: (key: string) => boolean;
+}) => {
+  let keys = Object.keys(FIELDS);
+
+  if (options.preFilter) {
+    keys = keys.filter(options.preFilter);
+  }
+
+  return new Set(
+    keys.filter(fieldKey => {
+      const fieldDef = getFieldDefinition(fieldKey);
+
+      if (fieldDef) {
+        // Is a strict percentage field
+        if (fieldDef?.valueType && options.valueTypes.includes(fieldDef.valueType)) {
+          return true;
+        }
+
+        // Is an aggregation that takes any values
+        if (
+          options.allowGenericAggregations &&
+          fieldDef.kind === FieldKind.FUNCTION &&
+          !fieldDef.valueType
+        ) {
+          return true;
+        }
+      }
+
+      return false;
+    })
+  );
+};
+
 const defaultConfig: SearchConfig = {
-  textOperatorKeys: new Set([
-    'release.version',
-    'release.build',
-    'release.package',
-    'release.stage',
-  ]),
-  durationKeys: new Set(['transaction.duration']),
-  percentageKeys: new Set(['percentage']),
-  // do not put functions in this Set
-  numericKeys: new Set([
-    'project_id',
-    'project.id',
-    'issue.id',
-    'stack.colno',
-    'stack.lineno',
-    'stack.stack_level',
-    'transaction.duration',
-  ]),
-  dateKeys: new Set([
-    'start',
-    'end',
-    'firstSeen',
-    'lastSeen',
-    'last_seen()',
-    'time',
-    'event.timestamp',
-    'timestamp',
-    'timestamp.to_hour',
-    'timestamp.to_day',
-  ]),
-  booleanKeys: new Set([
-    'error.handled',
-    'error.unhandled',
-    'stack.in_app',
-    'team_key_transaction',
-  ]),
+  textOperatorKeys: getKeySet({
+    valueTypes: [FieldValueType.STRING],
+    allowGenericAggregations: false,
+    preFilter: fieldKey => {
+      const fieldDef = getFieldDefinition(fieldKey);
+
+      return fieldDef?.allowTextOperators ?? false;
+    },
+  }),
+  durationKeys: getKeySet({
+    valueTypes: [FieldValueType.DURATION],
+    allowGenericAggregations: true,
+  }),
+  percentageKeys: getKeySet({
+    valueTypes: [FieldValueType.PERCENTAGE],
+    allowGenericAggregations: true,
+  }),
+  numericKeys: getKeySet({
+    valueTypes: [FieldValueType.NUMBER, FieldValueType.INTEGER],
+    allowGenericAggregations: true,
+  }),
+  dateKeys: getKeySet({
+    valueTypes: [FieldValueType.DATE],
+    allowGenericAggregations: true,
+  }),
+  booleanKeys: getKeySet({
+    valueTypes: [FieldValueType.BOOLEAN],
+    allowGenericAggregations: true,
+  }),
   allowBoolean: true,
 };
 
@@ -840,3 +961,37 @@ export function joinQuery(
       : parsedTerms.map(p => p.text).join(additionalSpaceBetween ? ' ' : ''))
   );
 }
+
+const validateAggregateType = (
+  columnTypes: ValidateColumnTypes | null,
+  argKey: string,
+  argType: ColumnType
+): boolean => {
+  if (!columnTypes) {
+    return false;
+  }
+
+  if (typeof columnTypes === 'function') {
+    return columnTypes({name: argKey, dataType: argType});
+  }
+
+  return (columnTypes as string[]).includes(argType);
+};
+
+const getAggregateInvalidArgumentMessage = (
+  keyName: string,
+  validColumnTypes: ValidateColumnTypes | null,
+  invalidArgs: string[]
+) => {
+  if (validColumnTypes === null) {
+    return `'${keyName}' does not take any arguments.`;
+  }
+
+  if (invalidArgs.length === 1) {
+    return `'${keyName}' does not take '${invalidArgs[0]}' as an argument.`;
+  }
+
+  const quotedArgs = invalidArgs.map(arg => `'${arg}'`);
+
+  return `${keyName}' does not take ${quotedArgs.join(', ')} as arguments.`;
+};
