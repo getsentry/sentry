@@ -31,6 +31,10 @@ def is_issue_commit_correlated(resolved_issue_id: int, candidate_issue_id: int) 
 
 
 def get_files_changed(issue_id: int, start: DateTimeField, end: DateTimeField) -> Set:
+
+    if issue_id is None or start is None or end is None:
+        raise ValueError(f"{issue_id}, {start}, {end}")
+
     releases = GroupRelease.objects.filter(
         group_id=issue_id, first_seen__gte=start, first_seen__lte=end
     ).values_list("release_id")
