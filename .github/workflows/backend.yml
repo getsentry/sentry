@@ -130,14 +130,31 @@ jobs:
     name: requirements check
     runs-on: ubuntu-20.04
     timeout-minutes: 3
-    # Assuming Python 3.8 in GHA's ubuntu 20.04. If we run into any issues,
-    # this can just be pinned with setup-python.
     steps:
+      - uses: getsentry/action-github-app-token@v1
+        id: token
+        continue-on-error: true
+        with:
+          app_id: ${{ secrets.SENTRY_INTERNAL_APP_ID }}
+          private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
       - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: 3.8.13
       - name: check requirements
         run: |
-          python -m pip install 'pip-tools==6.7.0'
-          python -S -m tools.check_frozen_requirements sentry
+          python -m pip install -q "$(grep '^pip-tools==' requirements-dev-frozen.txt)"
+          python -S -m tools.freeze_requirements sentry
+          if ! git diff --exit-code; then
+            echo $'\n\nrun `make freeze-requirements` locally to update requirements'
+            exit 1
+          fi
+      - name: apply any requirements changes
+        if: steps.token.outcome == 'success' && github.ref != 'refs/heads/master' && always()
+        uses: getsentry/action-github-commit@main
+        with:
+          github-token: ${{ steps.token.outputs.token }}
+          message: ':snowflake: re-freeze requirements'
 
   lint:
     if: needs.files-changed.outputs.backend == 'true'
@@ -146,15 +163,14 @@ jobs:
     runs-on: ubuntu-20.04
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v2
-
-      - name: Internal github app token
+      - uses: getsentry/action-github-app-token@v1
         id: token
-        uses: getsentry/action-github-app-token@v1
         continue-on-error: true
         with:
           app_id: ${{ secrets.SENTRY_INTERNAL_APP_ID }}
           private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
+
+      - uses: actions/checkout@v2
 
       - uses: getsentry/paths-filter@v2
         id: files
@@ -199,7 +215,6 @@ jobs:
           #      `getconf ARG_MAX` - max # bytes of args + environ for exec()
           pre-commit run --files ${{ steps.files.outputs.all_files }}
 
-      # If working tree is dirty, commit and update if we have a token
       - name: Apply any pre-commit fixed files
         if: steps.token.outcome == 'success' && github.ref != 'refs/heads/master' && always()
         uses: getsentry/action-github-commit@main
