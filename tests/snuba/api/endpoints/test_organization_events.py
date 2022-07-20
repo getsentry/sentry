@@ -4950,7 +4950,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
             "project": [self.project.id],
         }
         with freeze_time("2000-01-01"):
-            for _ in range(25):
+            for _ in range(10):
                 self.do_request(query, features={"organizations:discover-events-rate-limit": True})
             response = self.do_request(
                 query, features={"organizations:discover-events-rate-limit": True}
@@ -4964,7 +4964,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
             "project": [self.project.id],
         }
         with freeze_time("2000-01-01"):
-            for _ in range(25):
+            for _ in range(10):
                 self.do_request(query)
             response = self.do_request(query)
             assert response.status_code == 200, response.content
