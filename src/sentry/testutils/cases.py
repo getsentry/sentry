@@ -16,7 +16,6 @@ __all__ = (
     "IntegrationTestCase",
     "SnubaTestCase",
     "BaseMetricsTestCase",
-    "BaseMetricsTestCase",
     "BaseIncidentsTest",
     "IntegrationRepositoryTestCase",
     "ReleaseCommitPatchTest",
