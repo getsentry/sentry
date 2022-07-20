@@ -4,6 +4,7 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
+import {defined} from 'sentry/utils';
 import {
   DashboardDetails,
   DashboardListItem,
@@ -40,18 +41,25 @@ export function createDashboard(
   newDashboard: DashboardDetails,
   duplicate?: boolean
 ): Promise<DashboardDetails> {
-  const {title, widgets} = newDashboard;
+  const {title, widgets, projects, environment, period, start, end} = newDashboard;
 
   const promise: Promise<DashboardDetails> = api.requestPromise(
     `/organizations/${orgId}/dashboards/`,
     {
       method: 'POST',
-      data: {title, widgets: widgets.map(widget => omit(widget, ['tempId'])), duplicate},
-      query: {
-        // TODO: This should be replaced in the future with projects
-        // when we save Dashboard page filters. This is being sent to
-        // bypass validation when creating or updating dashboards
-        project: [ALL_ACCESS_PROJECTS],
+      data: {
+        title,
+        widgets: widgets.map(widget => omit(widget, ['tempId'])),
+        duplicate,
+        // Ensure projects and environment are sent as arrays, or undefined in the request
+        projects: Array.isArray(projects) || !defined(projects) ? projects : [projects],
+        environment:
+          Array.isArray(environment) || !defined(environment)
+            ? environment
+            : [environment],
+        period,
+        start,
+        end,
       },
     }
   );

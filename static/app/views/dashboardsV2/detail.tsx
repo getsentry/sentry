@@ -484,7 +484,24 @@ class DashboardDetail extends Component<Props, State> {
               was_previewed: true,
             });
           }
-          createDashboard(api, organization.slug, modifiedDashboard, this.isPreview).then(
+          let newModifiedDashboard = modifiedDashboard;
+          if (organization.features.includes('dashboards-top-level-filter')) {
+            const {project, environment, statsPeriod, start, end} = location.query;
+            newModifiedDashboard = {
+              ...cloneDashboard(modifiedDashboard),
+              projects: project,
+              environment,
+              period: statsPeriod,
+              start,
+              end,
+            };
+          }
+          createDashboard(
+            api,
+            organization.slug,
+            newModifiedDashboard,
+            this.isPreview
+          ).then(
             (newDashboard: DashboardDetails) => {
               addSuccessMessage(t('Dashboard created'));
               trackAnalyticsEvent({
