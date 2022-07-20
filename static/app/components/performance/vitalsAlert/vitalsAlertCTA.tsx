@@ -1,3 +1,4 @@
+import {useEffect} from 'react';
 import styled from '@emotion/styled';
 import maxBy from 'lodash/maxBy';
 
@@ -11,7 +12,6 @@ import ButtonBar from 'sentry/components/buttonBar';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -49,27 +49,6 @@ function getVitalsType(vital: VitalsKey) {
   return ['FCP', 'LCP'].includes(vital) ? 'web' : 'mobile';
 }
 
-function getVitalWithLink({
-  vital,
-  organization,
-}: {
-  organization: Organization;
-  vital: VitalsKey;
-}) {
-  const url = new URL(getDocsLink(vital));
-  url.searchParams.append('referrer', 'vitals-alert');
-  return (
-    <ExternalLink
-      onClick={() => {
-        trackAdvancedAnalyticsEvent('vitals_alert.clicked_docs', {vital, organization});
-      }}
-      href={url.toString()}
-    >
-      {vital}
-    </ExternalLink>
-  );
-}
-
 export default function VitalsAlertCTA({data, dismissAlert}: Props) {
   const organization = useOrganization();
   // persist to dismiss alert
@@ -90,6 +69,26 @@ export default function VitalsAlertCTA({data, dismissAlert}: Props) {
       })
     : null;
 
+  const industryDiffPercentage = getPercentage(industryDiff);
+  const sentryDiffPercentage = getPercentage(sentryDiff);
+  const vitalsType = vital ? getVitalsType(vital) : null;
+
+  const getAnalyticsParams = () => {
+    // shouldn't call any analytics function if this is missing
+    // but this check helps us with typing
+    if (!vital || !vitalsType) {
+      throw new Error('Cannot get analytics params without vital');
+    }
+    return {
+      vital,
+      vitals_type: vitalsType,
+      organization,
+      user_vital_value: userVitalValue,
+      sentry_diff: sentryDiff,
+      industry_diff: industryDiff,
+    } as const;
+  };
+
   const showVitalsAlert = () => {
     // check if we have the vital and the count is at least at the min
     if (!vital || userVitalValue < MIN_VITAL_COUNT_FOR_DISPLAY) {
@@ -103,18 +102,38 @@ export default function VitalsAlertCTA({data, dismissAlert}: Props) {
     return hasGlobalViews || bestProjectData;
   };
 
-  // TODO: log experiment
+  useEffect(() => {
+    if (!vital || !showVitalsAlert()) {
+      return;
+    }
+    trackAdvancedAnalyticsEvent('vitals_alert.displayed', getAnalyticsParams());
+  });
+
   if (!vital || !showVitalsAlert()) {
     return null;
   }
 
-  const industryDiffPercentage = getPercentage(industryDiff);
-  const sentryDiffPercentage = getPercentage(sentryDiff);
-  const vitalsType = getVitalsType(vital);
+  function getVitalWithLink() {
+    if (!vital) {
+      throw new Error('Cannot get vitals link without vital');
+    }
+    const url = new URL(getDocsLink(vital));
+    url.searchParams.append('referrer', 'vitals-alert');
+    return (
+      <ExternalLink
+        onClick={() => {
+          trackAdvancedAnalyticsEvent('vitals_alert.clicked_docs', getAnalyticsParams());
+        }}
+        href={url.toString()}
+      >
+        {vital}
+      </ExternalLink>
+    );
+  }
 
   const getText = () => {
     const args = {
-      vital: getVitalWithLink({vital, organization}),
+      vital: getVitalWithLink(),
       industryDiffPercentage,
       sentryDiffPercentage,
     };
@@ -178,10 +197,10 @@ export default function VitalsAlertCTA({data, dismissAlert}: Props) {
           size="xs"
           onClick={() => {
             dismissAndPromptUpdate();
-            trackAdvancedAnalyticsEvent('vitals_alert.clicked_see_vitals', {
-              vital,
-              organization,
-            });
+            trackAdvancedAnalyticsEvent(
+              'vitals_alert.clicked_see_vitals',
+              getAnalyticsParams()
+            );
           }}
         >
           {buttonText}
@@ -191,10 +210,7 @@ export default function VitalsAlertCTA({data, dismissAlert}: Props) {
           icon={<IconClose />}
           onClick={() => {
             dismissAndPromptUpdate();
-            trackAdvancedAnalyticsEvent('vitals_alert.dismissed', {
-              vital,
-              organization,
-            });
+            trackAdvancedAnalyticsEvent('vitals_alert.dismissed', getAnalyticsParams());
           }}
           size="xs"
           priority="link"
