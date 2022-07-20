@@ -25,9 +25,10 @@ class OrganizationReplayIndexEndpoint(OrganizationEndpoint):
                 filter_params[key] = value
 
         snuba_response = query_replays_collection(
-            project_id=filter_params["project_id"],
+            project_ids=filter_params["project_id"],
+            start=filter_params["start"],
+            end=filter_params["end"],
             environment=filter_params.get("environment"),
-            stats_period=filter_params.get("statsPeriod"),
             sort=filter_params.get("sort"),
             limit=filter_params.get("limit"),
             offset=filter_params.get("offset"),

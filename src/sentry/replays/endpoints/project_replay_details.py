@@ -17,10 +17,13 @@ class ProjectReplayDetailsEndpoint(ProjectEndpoint):
         ):
             return Response(status=404)
 
+        filter_params = self.get_filter_params(request, project)
+
         snuba_response = query_replay_instance(
             project_id=project.id,
             replay_id=replay_id,
-            stats_period=request.query_args.get("statsPeriod"),
+            start=filter_params["start"],
+            end=filter_params["end"],
         )
 
         response = process_raw_response(

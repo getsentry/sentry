@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from typing import Any, List, Optional, Union
 
 import requests
+from django.conf import settings
 from snuba_sdk import (
     Column,
     Condition,
@@ -24,21 +25,22 @@ from snuba_sdk.orderby import Direction, OrderBy
 MAX_PAGE_SIZE = 100
 DEFAULT_PAGE_SIZE = 10
 DEFAULT_OFFSET = 0
-SNUBA_URL = ""  # TODO
+SNUBA_URL = settings.SENTRY_SNUBA + "/replays/snql"
 
 paginators = namedtuple("Paginators", ("limit", "offset"))
 
 
 def query_replays_collection(
-    project_ids: List[str],
+    project_ids: List[int],
+    start: datetime,
+    end: datetime,
     environment: Optional[str],
-    stats_period: Optional[str],
     sort: Optional[str],
     limit: Optional[str],
     offset: Optional[str],
 ) -> dict:
     """Query aggregated replay collection."""
-    conditions = make_collection_default_filter_conditions(project_ids, stats_period)
+    conditions = make_collection_default_filter_conditions(project_ids, start, end)
     if environment:
         conditions.append(Condition(Column("environment"), Op.EQ, environment))
 
@@ -61,16 +63,21 @@ def query_replays_collection(
         flags=Flags(debug=True),
     )
 
-    return requests.post(url=SNUBA_URL, data=snuba_request.serialize())
+    response = requests.post(url=SNUBA_URL, data=snuba_request.serialize())
+    if response.status_code != 200:
+        raise Exception("Snuba could not be reached.")
+
+    return response.json()["data"]
 
 
 def query_replay_instance(
-    project_id: str,
+    project_id: int,
     replay_id: str,
-    stats_period: Optional[str],
+    start: datetime,
+    end: datetime,
 ):
     """Query aggregated replay instance."""
-    conditions = make_instance_default_filter_conditions(project_id, stats_period)
+    conditions = make_instance_default_filter_conditions(project_id, start, end)
     conditions.append(Condition(Column("replay_id"), Op.EQ, replay_id))
 
     snuba_request = Request(
@@ -86,7 +93,11 @@ def query_replay_instance(
         flags=Flags(debug=True),
     )
 
-    return requests.post(url=SNUBA_URL, data=snuba_request.serialize())
+    response = requests.post(url=SNUBA_URL, data=snuba_request.serialize())
+    if response.status_code != 200:
+        raise Exception("Snuba could not be reached.")
+
+    return response.json()["data"]
 
 
 # Select.
@@ -194,33 +205,35 @@ def _grouped_unique_scalar_value(column_name: str, aliased: bool = True) -> Func
 
 
 def make_collection_default_filter_conditions(
-    project_ids: List[str],
-    stats_period: Optional[str],
+    project_ids: List[int],
+    start: datetime,
+    end: datetime,
 ) -> List[Condition]:
     """Return the set of conditions to filter a collection query by."""
-    conditions = _make_default_filter_conditions(stats_period)
+    conditions = _make_default_filter_conditions(start, end)
     conditions.append(Condition(Column("project_id"), Op.IN, project_ids))
     return conditions
 
 
 def make_instance_default_filter_conditions(
-    project_id: str,
-    stats_period: Optional[str],
+    project_id: int,
+    start: datetime,
+    end: datetime,
 ) -> List[Condition]:
     """Return the set of conditions to filter an instance query by."""
-    conditions = _make_default_filter_conditions(stats_period)
+    conditions = _make_default_filter_conditions(start, end)
     conditions.append(Condition(Column("project_id"), Op.EQ, project_id))
     return conditions
 
 
-def _make_default_filter_conditions(stats_period: Optional[str]) -> List[Condition]:
+def _make_default_filter_conditions(start: datetime, end: datetime) -> List[Condition]:
     """Return the default set of conditions to filter by."""
     return [
         # Required for entity validation timestamp must not be in the
         # future.
-        Condition(Column("timestamp"), Op.LT, datetime.now()),
+        Condition(Column("timestamp"), Op.LT, end),
         # Bounded minimum to prevent us from blowing up clickhouse.
-        Condition(Column("timestamp"), Op.GTE, _make_start_period(stats_period)),
+        Condition(Column("timestamp"), Op.GTE, start),
         # Feature request: replays must have a duration greater than 5
         # seconds.  Anything less than is useless.
         Condition(Column("duration"), Op.GTE, 5),
