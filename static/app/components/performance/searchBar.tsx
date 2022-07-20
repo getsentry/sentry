@@ -109,6 +109,7 @@ function SearchBar(props: SearchBarProps) {
   const handleSearch = (query: string) => {
     const lastIndex = query.lastIndexOf(':');
     const transactionName = query.slice(0, lastIndex);
+    setSearchResults([]);
     onSearch(transactionName);
   };
 
@@ -117,6 +118,7 @@ function SearchBar(props: SearchBarProps) {
     const transactionName = name.slice(0, lastIndex);
     const projectId = name.slice(lastIndex + 1);
     const query = eventView.generateQueryStringObject();
+    setSearchResults([]);
 
     const next = transactionSummaryRouteWithQuery({
       orgSlug: organization.slug,
