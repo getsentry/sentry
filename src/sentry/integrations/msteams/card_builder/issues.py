@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any, List, Sequence, Tuple
 
 from sentry.integrations.msteams.card_builder import (
@@ -9,9 +10,13 @@ from sentry.integrations.msteams.card_builder import (
     AdaptiveCard,
     Block,
     ColumnSetBlock,
+    ContainerBlock,
+    ImageBlock,
     TextBlock,
 )
 from sentry.integrations.msteams.card_builder.utils import IssueConstants
+
+# TODO: Move these to a location common to both msteams and slack.
 from sentry.integrations.slack.message_builder.issues import (
     build_attachment_text,
     build_attachment_title,
@@ -80,7 +85,7 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
             )
 
     @staticmethod
-    def create_footer_logo_block():
+    def create_footer_logo_block() -> ImageBlock:
         return create_logo_block(height="20px")
 
     @staticmethod
@@ -93,7 +98,7 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
         )
 
     def get_timestamp(self) -> str:
-        ts = self.group.last_seen
+        ts: datetime = self.group.last_seen
 
         date = max(ts, self.event.datetime) if self.event else ts
 
@@ -171,7 +176,7 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
             (team["text"], team["value"]) for team in format_actor_options(teams)
         ]
 
-    def build_group_actions(self):
+    def build_group_actions(self) -> ContainerBlock:
         status = self.group.get_status()
 
         resolve_action = self.create_issue_action_block(
@@ -221,7 +226,7 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
             )
         )
 
-    def build_assignee_note(self):
+    def build_assignee_note(self) -> TextBlock | None:
         assignee = self.group.get_assignee()
         if assignee:
             assignee_text = format_actor_option(assignee)["text"]
