@@ -1,9 +1,12 @@
 from datetime import timedelta
 
+import pytest
 from django.urls import reverse
 
 from sentry.testutils import MetricsEnhancedPerformanceTestCase
 from sentry.testutils.helpers.datetime import before_now
+
+pytestmark = pytest.mark.sentry_metrics
 
 
 class OrganizationMeasurementsMetaEndpoint(MetricsEnhancedPerformanceTestCase):

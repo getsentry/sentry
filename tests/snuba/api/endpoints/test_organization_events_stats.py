@@ -18,6 +18,8 @@ from sentry.testutils import APITestCase, MetricsEnhancedPerformanceTestCase, Sn
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils.samples import load_data
 
+pytestmark = pytest.mark.sentry_metrics
+
 
 class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-events-stats"
