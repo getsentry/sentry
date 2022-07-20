@@ -50,19 +50,11 @@ if [ -z "${SENTRY_PYTHON_VERSION-}" ] && ! query-valid-python-version; then
     return 1
 fi
 
-python3 -m pip install -U pip || {
-    echo "bootstrap failed!"
-    return 1
-}
 python3 -m venv "${venv_name}" || {
     echo "bootstrap failed!"
     return 1
 }
 source "${venv_name}/bin/activate" || {
-    echo "bootstrap failed!"
-    return 1
-}
-python3 -m pip install -U pip wheel || {
     echo "bootstrap failed!"
     return 1
 }
