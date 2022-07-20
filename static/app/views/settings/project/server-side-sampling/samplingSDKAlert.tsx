@@ -1,3 +1,4 @@
+import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
@@ -8,6 +9,7 @@ import {t, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {RecommendedSdkUpgrade, SamplingRule} from 'sentry/types/sampling';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 
 import {
   RecommendedStepsModal,
@@ -30,6 +32,17 @@ export function SamplingSDKAlert({
   onReadDocs,
   showLinkToTheModal = true,
 }: Props) {
+  useEffect(() => {
+    if (recommendedSdkUpgrades.length === 0) {
+      return;
+    }
+
+    trackAdvancedAnalyticsEvent('sampling.sdk.updgrades.alert', {
+      organization,
+      project_id: projectId,
+    });
+  }, [recommendedSdkUpgrades.length, organization, projectId]);
+
   if (recommendedSdkUpgrades.length === 0) {
     return null;
   }
