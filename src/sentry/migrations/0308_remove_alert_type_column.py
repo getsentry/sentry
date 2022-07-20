@@ -27,4 +27,10 @@ class Migration(CheckedMigration):
         ("sentry", "0307_remove_alert_type_state"),
     ]
 
-    operations = [migrations.RunSQL('ALTER TABLE sentry_alertrule DROP COLUMN "type"')]
+    operations = [
+        migrations.RunSQL(
+            'ALTER TABLE sentry_alertrule DROP COLUMN "type"',
+            hints={"tables": ["sentry_alertrule"]},
+            reverse_sql="ALTER TABLE sentry_alertrule ADD COLUMN type smallint",
+        )
+    ]
