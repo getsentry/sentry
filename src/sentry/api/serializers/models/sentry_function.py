@@ -9,6 +9,8 @@ class SentryFunctionSerializer(Serializer):
             "name": obj.name,
             "slug": obj.slug,
             "author": obj.author,
+            "code": obj.code,
+            "overview": obj.overview,
             "external_id": obj.external_id,
         }
         return data

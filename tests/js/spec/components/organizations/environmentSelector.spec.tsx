@@ -134,6 +134,14 @@ describe('EnvironmentSelector', function () {
     expect(screen.getByLabelText('dev')).toBeInTheDocument();
   });
 
+  it('does not open selector menu when disabled', async function () {
+    renderSelector({disabled: true});
+    await clickMenu();
+
+    // Dropdown not open
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+  });
+
   describe('Superuser My Projects / all environments', function () {
     it('shows env when no team belonging', async function () {
       ConfigStore.set('user', {...ConfigStore.get('user'), isSuperuser: true});

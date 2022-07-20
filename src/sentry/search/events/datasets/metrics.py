@@ -29,7 +29,8 @@ class MetricsDatasetConfig(DatasetConfig):
             constants.PROJECT_NAME_ALIAS: self._project_slug_filter_converter,
             constants.EVENT_TYPE_ALIAS: self._event_type_converter,
             constants.TEAM_KEY_TRANSACTION_ALIAS: self._key_transaction_filter_converter,
-            "transaction.duration": self._duration_filter_converter,
+            "transaction.duration": self._duration_filter_converter,  # Only for dry_run
+            "environment": self.builder._environment_filter_converter,
         }
 
     @property

@@ -407,7 +407,19 @@ class GetEntitySubscriptionFromSnubaQueryTest(TestCase):
             (
                 PerformanceMetricsEntitySubscription,
                 SnubaQuery.Type.PERFORMANCE,
+                QueryDatasets.PERFORMANCE_METRICS,
+                "count()",
+            ),
+            (
+                PerformanceMetricsEntitySubscription,
+                SnubaQuery.Type.PERFORMANCE,
                 QueryDatasets.METRICS,
+                "count_unique(user)",
+            ),
+            (
+                PerformanceMetricsEntitySubscription,
+                SnubaQuery.Type.PERFORMANCE,
+                QueryDatasets.PERFORMANCE_METRICS,
                 "count_unique(user)",
             ),
             (
@@ -459,6 +471,20 @@ class GetEntityKeyFromSnubaQueryTest(TestCase):
                 EntityKey.GenericMetricsSets,
                 SnubaQuery.Type.PERFORMANCE,
                 QueryDatasets.METRICS,
+                "count_unique(user)",
+                "",
+            ),
+            (
+                EntityKey.GenericMetricsDistributions,
+                SnubaQuery.Type.PERFORMANCE,
+                QueryDatasets.PERFORMANCE_METRICS,
+                "count()",
+                "",
+            ),
+            (
+                EntityKey.GenericMetricsSets,
+                SnubaQuery.Type.PERFORMANCE,
+                QueryDatasets.PERFORMANCE_METRICS,
                 "count_unique(user)",
                 "",
             ),

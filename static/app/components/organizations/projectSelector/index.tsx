@@ -65,6 +65,10 @@ type Props = WithRouterProps & {
    */
   disableMultipleProjectSelection?: boolean;
   /**
+   * Disable the dropdown
+   */
+  disabled?: boolean;
+  /**
    * Message to show in the footer
    */
   footerMessage?: React.ReactNode;

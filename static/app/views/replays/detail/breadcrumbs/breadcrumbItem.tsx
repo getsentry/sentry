@@ -16,9 +16,9 @@ interface Props {
   isHovered: boolean;
   isSelected: boolean;
   onClick: MouseCallback;
-  onMouseEnter: MouseCallback;
-  onMouseLeave: MouseCallback;
   startTimestamp: number;
+  onMouseEnter?: MouseCallback;
+  onMouseLeave?: MouseCallback;
 }
 
 function BreadcrumbItem({
@@ -33,11 +33,11 @@ function BreadcrumbItem({
   const {title, description} = getDetails(crumb);
 
   const handleMouseEnter = useCallback(
-    (e: React.MouseEvent<HTMLElement>) => onMouseEnter(crumb, e),
+    (e: React.MouseEvent<HTMLElement>) => onMouseEnter && onMouseEnter(crumb, e),
     [onMouseEnter, crumb]
   );
   const handleMouseLeave = useCallback(
-    (e: React.MouseEvent<HTMLElement>) => onMouseLeave(crumb, e),
+    (e: React.MouseEvent<HTMLElement>) => onMouseLeave && onMouseLeave(crumb, e),
     [onMouseLeave, crumb]
   );
   const handleClick = useCallback(
@@ -138,6 +138,10 @@ const CrumbItem = styled(PanelItem)<CrumbItemProps>`
   &:last-of-type::after {
     top: 0;
     height: ${space(1)};
+  }
+
+  &:only-of-type::after {
+    height: 0;
   }
 `;
 

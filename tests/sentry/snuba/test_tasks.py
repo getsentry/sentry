@@ -10,6 +10,7 @@ from django.utils import timezone
 from exam import patcher
 from snuba_sdk import And, Column, Condition, Entity, Function, Op, Or, Query
 
+from sentry.incidents.logic import query_datasets_to_type
 from sentry.search.events.constants import METRICS_MAP
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
@@ -21,7 +22,6 @@ from sentry.snuba.entity_subscription import (
 )
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.models import QueryDatasets, QuerySubscription, SnubaQuery, SnubaQueryEventType
-from sentry.snuba.subscriptions import query_datasets_to_type
 from sentry.snuba.tasks import (
     SUBSCRIPTION_STATUS_MAX_AGE,
     build_query_builder,
@@ -1022,44 +1022,44 @@ class BuildSnqlQueryTest(TestCase):
 class TestApplyDatasetQueryConditions(TestCase):
     def test_no_event_types_no_discover(self):
         assert (
-            apply_dataset_query_conditions(QueryDatasets.EVENTS, "release:123", None, False)
+            apply_dataset_query_conditions(SnubaQuery.Type.ERROR, "release:123", None, False)
             == "(event.type:error) AND (release:123)"
         )
         assert (
             apply_dataset_query_conditions(
-                QueryDatasets.EVENTS, "release:123 OR release:456", None, False
+                SnubaQuery.Type.ERROR, "release:123 OR release:456", None, False
             )
             == "(event.type:error) AND (release:123 OR release:456)"
         )
         assert (
-            apply_dataset_query_conditions(QueryDatasets.TRANSACTIONS, "release:123", None, False)
+            apply_dataset_query_conditions(SnubaQuery.Type.PERFORMANCE, "release:123", None, False)
             == "release:123"
         )
         assert (
             apply_dataset_query_conditions(
-                QueryDatasets.TRANSACTIONS, "release:123 OR release:456", None, False
+                SnubaQuery.Type.PERFORMANCE, "release:123 OR release:456", None, False
             )
             == "release:123 OR release:456"
         )
 
     def test_no_event_types_discover(self):
         assert (
-            apply_dataset_query_conditions(QueryDatasets.EVENTS, "release:123", None, True)
+            apply_dataset_query_conditions(SnubaQuery.Type.ERROR, "release:123", None, True)
             == "(event.type:error) AND (release:123)"
         )
         assert (
             apply_dataset_query_conditions(
-                QueryDatasets.EVENTS, "release:123 OR release:456", None, True
+                SnubaQuery.Type.ERROR, "release:123 OR release:456", None, True
             )
             == "(event.type:error) AND (release:123 OR release:456)"
         )
         assert (
-            apply_dataset_query_conditions(QueryDatasets.TRANSACTIONS, "release:123", None, True)
+            apply_dataset_query_conditions(SnubaQuery.Type.PERFORMANCE, "release:123", None, True)
             == "(event.type:transaction) AND (release:123)"
         )
         assert (
             apply_dataset_query_conditions(
-                QueryDatasets.TRANSACTIONS, "release:123 OR release:456", None, True
+                SnubaQuery.Type.PERFORMANCE, "release:123 OR release:456", None, True
             )
             == "(event.type:transaction) AND (release:123 OR release:456)"
         )
@@ -1067,13 +1067,13 @@ class TestApplyDatasetQueryConditions(TestCase):
     def test_event_types_no_discover(self):
         assert (
             apply_dataset_query_conditions(
-                QueryDatasets.EVENTS, "release:123", [SnubaQueryEventType.EventType.ERROR], False
+                SnubaQuery.Type.ERROR, "release:123", [SnubaQueryEventType.EventType.ERROR], False
             )
             == "(event.type:error) AND (release:123)"
         )
         assert (
             apply_dataset_query_conditions(
-                QueryDatasets.EVENTS,
+                SnubaQuery.Type.ERROR,
                 "release:123",
                 [SnubaQueryEventType.EventType.ERROR, SnubaQueryEventType.EventType.DEFAULT],
                 False,
@@ -1082,7 +1082,7 @@ class TestApplyDatasetQueryConditions(TestCase):
         )
         assert (
             apply_dataset_query_conditions(
-                QueryDatasets.TRANSACTIONS,
+                SnubaQuery.Type.PERFORMANCE,
                 "release:123",
                 [SnubaQueryEventType.EventType.TRANSACTION],
                 False,
@@ -1091,7 +1091,7 @@ class TestApplyDatasetQueryConditions(TestCase):
         )
         assert (
             apply_dataset_query_conditions(
-                QueryDatasets.SESSIONS,
+                SnubaQuery.Type.CRASH_RATE,
                 "release:123",
                 [],
                 False,
@@ -1102,13 +1102,13 @@ class TestApplyDatasetQueryConditions(TestCase):
     def test_event_types_discover(self):
         assert (
             apply_dataset_query_conditions(
-                QueryDatasets.EVENTS, "release:123", [SnubaQueryEventType.EventType.ERROR], True
+                SnubaQuery.Type.ERROR, "release:123", [SnubaQueryEventType.EventType.ERROR], True
             )
             == "(event.type:error) AND (release:123)"
         )
         assert (
             apply_dataset_query_conditions(
-                QueryDatasets.EVENTS,
+                SnubaQuery.Type.ERROR,
                 "release:123",
                 [SnubaQueryEventType.EventType.ERROR, SnubaQueryEventType.EventType.DEFAULT],
                 True,
@@ -1117,7 +1117,7 @@ class TestApplyDatasetQueryConditions(TestCase):
         )
         assert (
             apply_dataset_query_conditions(
-                QueryDatasets.TRANSACTIONS,
+                SnubaQuery.Type.PERFORMANCE,
                 "release:123",
                 [SnubaQueryEventType.EventType.TRANSACTION],
                 True,
