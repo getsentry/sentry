@@ -24,7 +24,7 @@ export function sanitizePath(path: string) {
       // `tertiarySlug` can be undefined
       let suffix = `${tertiarySlug ?? ''}${end}`;
 
-      if (isOrg && contentType === 'events/') {
+      if (isOrg && contentType === 'events/' && typeof tertiarySlug === 'string') {
         // https://github.com/getsentry/sentry/blob/8d4482f01aa2122c6f6670ab84f9263e6f021467/src/sentry/api/urls.py#L1004
         // r"^(?P<organization_slug>[^\/]+)/events/(?P<project_slug>[^\/]+):(?P<event_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
         suffix = tertiarySlug.replace(/[^:]+(.*)/, '{projectSlug}$1');
