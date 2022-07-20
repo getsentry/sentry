@@ -58,22 +58,6 @@ ActionSet = Mapping[str, Union[str, Sequence[Action]]]
 AdaptiveCard = Mapping[str, Union[str, Sequence[Block], Sequence[Action]]]
 
 
-def build_input_choice_card(
-    data: Any,
-    title: str,
-    input_id: str,
-    choices: Sequence[Tuple[str, Any]],
-    default_choice: Any = None,
-) -> AdaptiveCard:
-    return MSTeamsMessageBuilder().build(
-        title=create_text_block(title, weight=TextWeight.BOLDER),
-        text=create_input_choice_set_block(
-            id=input_id, choices=choices, default_choice=default_choice
-        ),
-        actions=[create_action_block(ActionType.SUBMIT, title=title, data=data)],
-    )
-
-
 class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
     def __init__(self, group: Group, event: Event, rules: Sequence[Rule], integration: Integration):
         self.group = group
@@ -168,6 +152,22 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
             date_column,
         )
 
+    @staticmethod
+    def build_input_choice_card(
+        data: Any,
+        title: str,
+        input_id: str,
+        choices: Sequence[Tuple[str, Any]],
+        default_choice: Any = None,
+    ) -> AdaptiveCard:
+        return MSTeamsMessageBuilder().build(
+            title=create_text_block(title, weight=TextWeight.BOLDER),
+            text=create_input_choice_set_block(
+                id=input_id, choices=choices, default_choice=default_choice
+            ),
+            actions=[create_action_block(ActionType.SUBMIT, title=title, data=data)],
+        )
+
     def create_issue_action_block(
         self,
         toggled: bool,
@@ -182,7 +182,7 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
             return create_action_block(ActionType.SUBMIT, title=reverse_action_title, data=data)
 
         data = self.generate_action_payload(action)
-        card = build_input_choice_card(data=data, **card_kwargs)
+        card = self.build_input_choice_card(data=data, **card_kwargs)
         return create_action_block(ActionType.SHOW_CARD, title=action_title, card=card)
 
     def get_teams_choices(self) -> Sequence[Tuple[str, str]]:
