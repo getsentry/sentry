@@ -51,9 +51,7 @@ describe('Server-side Sampling - Recommended Steps Modal', function () {
 
     expect(
       screen.getByText(
-        textWithMarkupMatcher(
-          "I know what you're thinking, “It's already working, why should I?”. By updating the following SDK's before activating any server sampling rules, you're avoiding situations when our servers aren't accepting enough transactions (double sampling) or our servers are accepting too many transactions (exceeded quota)."
-        )
+        'To ensure you are properly monitoring the performance of all your other services, we require you update to the latest version of the following SDK(s):'
       )
     ).toBeInTheDocument();
 
@@ -74,14 +72,14 @@ describe('Server-side Sampling - Recommended Steps Modal', function () {
 
     // Second recommended step
     expect(
-      screen.getByRole('heading', {name: 'Increase your SDK Transaction sample rate'})
+      screen.getByRole('heading', {
+        name: 'Increase your client-side transaction sample rate',
+      })
     ).toBeInTheDocument();
 
     expect(
       screen.getByText(
-        textWithMarkupMatcher(
-          'This comes in handy when server-side sampling target the transactions you want to accept, but you need more of those transactions being sent by your client. Here we  already suggest a value based on your quota and throughput.'
-        )
+        'Once you’ve updated the above SDK(s), you can increase the client-side transaction sample rate in your application. This helps to ensure you are sending enough transactions to accurately monitor overall performance and ensure all transactions you have deemed important in your server-side sample rules are available. Below is the suggested rate we’ve calculated based on your organization’s usage and quota.'
       )
     ).toBeInTheDocument();
 
@@ -128,7 +126,9 @@ describe('Server-side Sampling - Recommended Steps Modal', function () {
     ).not.toBeInTheDocument();
 
     expect(
-      screen.getByRole('heading', {name: 'Increase your SDK Transaction sample rate'})
+      screen.getByRole('heading', {
+        name: 'Increase your client-side transaction sample rate',
+      })
     ).toBeInTheDocument();
   });
 

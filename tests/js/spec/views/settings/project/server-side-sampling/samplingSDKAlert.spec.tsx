@@ -27,7 +27,7 @@ describe('Server-side Sampling - Sampling SDK Alert', function () {
     ).not.toBeInTheDocument();
   });
 
-  it('renders content with not active rule info', function () {
+  it('renders content with update sdks info', function () {
     const {organization, project} = getMockData();
 
     render(
@@ -69,31 +69,6 @@ describe('Server-side Sampling - Sampling SDK Alert', function () {
       screen.getByRole('heading', {
         name: 'Update your SDK(s) before defining sample rules',
       })
-    ).toBeInTheDocument();
-  });
-
-  it('renders content with active rule info', function () {
-    const {organization, project} = getMockData();
-
-    render(
-      <SamplingSDKAlert
-        organization={organization}
-        projectId={project.id}
-        onReadDocs={jest.fn()}
-        rules={[{...uniformRule, active: true}]}
-        recommendedSdkUpgrades={recommendedSdkUpgrades}
-        showLinkToTheModal
-      />
-    );
-
-    expect(screen.getByTestId('recommended-sdk-upgrades-alert')).toBeInTheDocument();
-
-    userEvent.click(screen.getByRole('button', {name: 'Resolve Now'}));
-
-    expect(
-      screen.getByText(
-        'Server-side sampling rules are in effect without the following SDK’s being updated to their latest version.'
-      )
     ).toBeInTheDocument();
   });
 });

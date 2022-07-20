@@ -4,6 +4,7 @@ import {
   userEvent,
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import GlobalModal from 'sentry/components/globalModal';
@@ -50,20 +51,22 @@ describe('Server-side Sampling - Uniform Rate Modal', function () {
     ).toBeInTheDocument();
 
     expect(
-      screen.getByText(/Similarly to how you would configure a/)
+      screen.getByText(
+        textWithMarkupMatcher(
+          'Set a global sample rate for the percent of transactions you want to process (Client) and those you want to index (Server) for your project. Below are suggested rates based on your organization’s usage and quota. Once set, the number of transactions processed and indexed for this project come from your organization’s overall quota and might impact the amount of transactions retained for other projects. Learn more about quota management.'
+        )
+      )
     ).toBeInTheDocument();
 
     // Content
-    expect(screen.getByText('Last 30 days of Transactions')).toBeInTheDocument(); // Chart
+    expect(screen.getByText('Transactions (Last 30 days)')).toBeInTheDocument(); // Chart
     expect(screen.getByRole('radio', {name: 'Current'})).toBeChecked();
-    expect(screen.getByRole('radio', {name: 'Recommended'})).not.toBeChecked();
+    expect(screen.getByRole('radio', {name: 'Suggested'})).not.toBeChecked();
     expect(screen.getByText('100%')).toBeInTheDocument(); // Current client-side sample rate
     expect(screen.getByText('N/A')).toBeInTheDocument(); // Current server-side sample rate
-    expect(screen.getAllByRole('spinbutton')[0]).toHaveValue(30); // Recommended client-side sample rate
-    expect(screen.getAllByRole('spinbutton')[1]).toHaveValue(100); // Recommended server-side sample rate
-    expect(
-      screen.queryByLabelText('Reset to recommended values')
-    ).not.toBeInTheDocument();
+    expect(screen.getAllByRole('spinbutton')[0]).toHaveValue(30); // Suggested client-side sample rate
+    expect(screen.getAllByRole('spinbutton')[1]).toHaveValue(100); // Suggested server-side sample rate
+    expect(screen.queryByLabelText('Reset to suggested values')).not.toBeInTheDocument();
 
     // Enter invalid client-side sample rate
     userEvent.clear(screen.getAllByRole('spinbutton')[0]);
@@ -75,15 +78,15 @@ describe('Server-side Sampling - Uniform Rate Modal', function () {
 
     // Enter valid custom client-sample rate
     userEvent.type(screen.getAllByRole('spinbutton')[0], '20{enter}');
-    expect(screen.queryByText('Recommended')).not.toBeInTheDocument();
+    expect(screen.queryByText('Suggested')).not.toBeInTheDocument();
     expect(screen.getAllByRole('spinbutton')[0]).toHaveValue(20); // Custom client-side sample rate
     expect(screen.getByRole('radio', {name: 'New'})).toBeChecked();
-    expect(screen.getByLabelText('Reset to recommended values')).toBeInTheDocument();
+    expect(screen.getByLabelText('Reset to suggested values')).toBeInTheDocument();
 
-    // Reset client-side sample rate to recommended value
-    userEvent.click(screen.getByLabelText('Reset to recommended values'));
-    expect(screen.getByText('Recommended')).toBeInTheDocument();
-    expect(screen.getAllByRole('spinbutton')[0]).toHaveValue(30); // Recommended client-side sample rate
+    // Reset client-side sample rate to suggested value
+    userEvent.click(screen.getByLabelText('Reset to suggested values'));
+    expect(screen.getByText('Suggested')).toBeInTheDocument();
+    expect(screen.getAllByRole('spinbutton')[0]).toHaveValue(30); // Suggested client-side sample rate
 
     // Footer
     expect(screen.getByRole('button', {name: 'Read Docs'})).toHaveAttribute(
@@ -143,9 +146,9 @@ describe('Server-side Sampling - Uniform Rate Modal', function () {
     ));
 
     // Content
-    const recommendedSampleRates = await screen.findAllByRole('spinbutton');
-    expect(recommendedSampleRates[0]).toHaveValue(100); // Recommended client-side sample rate
-    expect(recommendedSampleRates[1]).toHaveValue(100); // Recommended server-side sample rate
+    const suggestedSampleRates = await screen.findAllByRole('spinbutton');
+    expect(suggestedSampleRates[0]).toHaveValue(100); // Suggested client-side sample rate
+    expect(suggestedSampleRates[1]).toHaveValue(100); // Suggested server-side sample rate
     expect(trackAdvancedAnalyticsEvent).toHaveBeenCalledWith(
       'sampling.settings.modal.uniform.rate_switch_current',
       expect.objectContaining({
@@ -164,8 +167,8 @@ describe('Server-side Sampling - Uniform Rate Modal', function () {
       await screen.findByText('Current sampling values selected')
     ).toBeInTheDocument();
 
-    // Switch to recommended sample rates
-    userEvent.click(screen.getByText('Recommended'));
+    // Switch to suggested sample rates
+    userEvent.click(screen.getByText('Suggested'));
     expect(screen.getByRole('button', {name: 'Done'})).toBeEnabled();
     expect(trackAdvancedAnalyticsEvent).toHaveBeenCalledWith(
       'sampling.settings.modal.uniform.rate_switch_recommended',

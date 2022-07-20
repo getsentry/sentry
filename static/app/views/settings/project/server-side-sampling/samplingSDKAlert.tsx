@@ -46,29 +46,24 @@ export function SamplingSDKAlert({
     ));
   }
 
-  const atLeastOneRuleActive = rules.some(rule => rule.active);
   const uniformRule = rules.find(isUniformRule);
 
   return (
     <Alert
       data-test-id="recommended-sdk-upgrades-alert"
-      type={atLeastOneRuleActive ? 'error' : 'info'}
+      type="info"
       showIcon
       trailingItems={
         showLinkToTheModal && uniformRule ? (
           <Button onClick={handleOpenRecommendedSteps} priority="link" borderless>
-            {atLeastOneRuleActive ? t('Resolve Now') : t('Learn More')}
+            {t('Learn More')}
           </Button>
         ) : undefined
       }
     >
-      {atLeastOneRuleActive
-        ? t(
-            'Server-side sampling rules are in effect without the following SDK’s being updated to their latest version.'
-          )
-        : t(
-            'To ensure you are properly monitoring the performance of all your other services, we require you update to the latest version of the following SDK(s):'
-          )}
+      {t(
+        'To ensure you are properly monitoring the performance of all your other services, we require you update to the latest version of the following SDK(s):'
+      )}
       <Projects>
         {recommendedSdkUpgrades.map(recommendedSdkUpgrade => (
           <ProjectBadge

@@ -36,9 +36,7 @@ export function Promo({onGetStarted, onReadDocs, hasAccess}: Props) {
             onClick={onGetStarted}
             disabled={!hasAccess}
             title={
-              hasAccess
-                ? undefined
-                : t('You do not have permission to set up the sampling rules.')
+              hasAccess ? undefined : t('You do not have permission to set up rules')
             }
           >
             {t('Start Setup')}

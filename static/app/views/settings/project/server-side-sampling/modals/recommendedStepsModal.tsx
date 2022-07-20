@@ -165,7 +165,7 @@ export function RecommendedStepsModal({
             </ListItem>
           )}
           <ListItem>
-            <h5>{t('Update your SDK(s) transaction sample rate')}</h5>
+            <h5>{t('Increase your client-side transaction sample rate')}</h5>
             <TextBlock>
               {t(
                 'Once you’ve updated the above SDK(s), you can increase the client-side transaction sample rate in your application. This helps to ensure you are sending enough transactions to accurately monitor overall performance and ensure all transactions you have deemed important in your server-side sample rules are available. Below is the suggested rate we’ve calculated based on your organization’s usage and quota.'
