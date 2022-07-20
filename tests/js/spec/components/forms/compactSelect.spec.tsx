@@ -131,4 +131,27 @@ describe('CompactSelect', function () {
     expect(screen.getByText('Option Two')).toBeInTheDocument();
     expect(screen.queryByText('Option One')).not.toBeInTheDocument();
   });
+
+  it('triggers onClose when the menu is closed if provided', function () {
+    const onCloseMock = jest.fn();
+    render(
+      <CompactSelect
+        isSearchable
+        onClose={onCloseMock}
+        placeholder="Search here…"
+        options={[
+          {value: 'opt_one', label: 'Option One'},
+          {value: 'opt_two', label: 'Option Two'},
+        ]}
+      />
+    );
+
+    // click on the trigger button
+    userEvent.click(screen.getByRole('button'));
+    expect(onCloseMock).not.toHaveBeenCalled();
+
+    // close the menu
+    userEvent.keyboard('{esc}');
+    expect(onCloseMock).toHaveBeenCalled();
+  });
 });
