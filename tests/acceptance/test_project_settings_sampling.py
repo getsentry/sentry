@@ -78,6 +78,7 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
         self.browser.get(self.path)
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
 
+    @pytest.mark.skip(reason="Flaky")
     def test_add_uniform_rule_with_recommended_sampling_values(self):
         with self.feature(FEATURE_NAME):
             self.wait_until_page_loaded()
