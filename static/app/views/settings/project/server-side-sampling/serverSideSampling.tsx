@@ -375,7 +375,7 @@ export function ServerSideSampling({project}: Props) {
           ? t('Successfully edited sampling rule')
           : t('Successfully added sampling rule')
       );
-      onSuccess?.();
+      onSuccess?.(response.dynamicSampling?.rules ?? []);
     } catch (error) {
       addErrorMessage(
         typeof error === 'string'
