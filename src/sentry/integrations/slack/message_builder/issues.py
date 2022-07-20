@@ -13,7 +13,7 @@ from sentry.integrations.notifications import (
     build_footer,
     format_actor_options,
 )
-from sentry.integrations.slack.message_builder import LEVEL_TO_COLOR, SlackBody
+from sentry.integrations.slack.message_builder import LEVEL_TO_COLOR, SLACK_URL_FORMAT, SlackBody
 from sentry.integrations.slack.message_builder.base.base import SlackMessageBuilder
 from sentry.integrations.slack.utils.escape import escape_slack_text
 from sentry.models import (
@@ -284,7 +284,7 @@ class SlackIssuesMessageBuilder(SlackMessageBuilder):
         footer = (
             self.notification.build_notification_footer(self.recipient)
             if self.notification and self.recipient
-            else build_footer(self.group, project, self.rules)
+            else build_footer(self.group, project, self.rules, SLACK_URL_FORMAT)
         )
         obj = self.event if self.event is not None else self.group
         if not self.issue_details or (self.recipient and isinstance(self.recipient, Team)):
@@ -371,7 +371,7 @@ class SlackReleaseIssuesMessageBuilder(SlackMessageBuilder):
         footer = (
             self.notification.build_notification_footer(self.recipient)
             if self.notification and self.recipient
-            else build_footer(self.group, project, self.rules)
+            else build_footer(self.group, project, self.rules, SLACK_URL_FORMAT)
         )
         obj = self.event if self.event is not None else self.group
         if not self.issue_details or (self.recipient and isinstance(self.recipient, Team)):

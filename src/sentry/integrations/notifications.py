@@ -3,6 +3,7 @@ from __future__ import annotations
 from abc import ABC
 from typing import Any, Callable, Mapping, Sequence
 
+from sentry.integrations.slack.message_builder import SLACK_URL_FORMAT
 from sentry.models import Event, Group, Project, Rule, Team, User
 from sentry.utils.http import absolute_uri
 
@@ -69,7 +70,7 @@ def build_footer(
     group: Group,
     project: Project,
     rules: Sequence[Rule] | None = None,
-    url_format: str = "<{url}|{text}>",
+    url_format: str = SLACK_URL_FORMAT,
 ) -> str:
     footer = f"{group.qualified_short_id}"
     if rules:
