@@ -6,7 +6,6 @@ import debounce from 'lodash/debounce';
 
 import BaseSearchBar from 'sentry/components/searchBar';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
-import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
@@ -110,6 +109,7 @@ function SearchBar(props: SearchBarProps) {
     const lastIndex = query.lastIndexOf(':');
     const transactionName = query.slice(0, lastIndex);
     setSearchResults([]);
+    setSearchString(transactionName);
     onSearch(transactionName);
   };
 
