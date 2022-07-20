@@ -108,7 +108,7 @@ export function RecommendedStepsModal({
     }
 
     trackAdvancedAnalyticsEvent('sampling.settings.modal.recommended.next.steps_back', {
-      organization: organization.slug,
+      organization,
       project_id: projectId,
     });
 
@@ -119,7 +119,7 @@ export function RecommendedStepsModal({
     trackAdvancedAnalyticsEvent(
       'sampling.settings.modal.recommended.next.steps_read_docs',
       {
-        organization: organization.slug,
+        organization,
         project_id: projectId,
       }
     );
