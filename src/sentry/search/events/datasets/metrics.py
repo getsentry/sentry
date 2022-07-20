@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Callable, Mapping, Optional, Union
+from typing import Any, Callable, Dict, List, Mapping, Optional, Union
 
 from snuba_sdk import AliasedExpression, Column, Function
 
@@ -59,13 +59,17 @@ class MetricsDatasetConfig(DatasetConfig):
 
         return value_id
 
-    def reflective_metric_type(self, index: Optional[int] = 0) -> Callable[[Any, Any], str]:
+    def reflective_metric_type(
+        self, index: Optional[int] = 0
+    ) -> Callable[[List[fields.FunctionArg], Dict[str, Any]], str]:
         """Return the type of the metric, default to duration
 
         based on fields.reflective_result_type, but in this config since we need the _custom_measurement_cache
         """
 
-        def result_type_fn(function_arguments: Any, parameter_values: Any) -> str:
+        def result_type_fn(
+            function_arguments: List[fields.FunctionArg], parameter_values: Dict[str, Any]
+        ) -> str:
             argument = function_arguments[index]
             value = parameter_values[argument.name]
             for measurement in self.builder.custom_measurement_map:

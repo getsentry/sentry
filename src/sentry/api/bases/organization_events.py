@@ -214,8 +214,10 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             has_results="true" if bool(cursor) else "false",
         )
 
-    def handle_unit_meta(self, meta: Dict[str, str]) -> Tuple[Dict[str, str], Dict[str, str]]:
-        units = {}
+    def handle_unit_meta(
+        self, meta: Dict[str, str]
+    ) -> Tuple[Dict[str, str], Dict[str, Optional[str]]]:
+        units: Dict[str, Optional[str]] = {}
         for key, value in meta.items():
             if value in SIZE_UNITS:
                 units[key] = value
