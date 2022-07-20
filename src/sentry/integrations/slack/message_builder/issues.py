@@ -7,7 +7,7 @@ from sentry_relay import parse_release
 
 from sentry import tagstore
 from sentry.eventstore.models import Event
-from sentry.integrations.notifications import (
+from sentry.integrations.message_builder import (
     build_attachment_text,
     build_attachment_title,
     build_footer,

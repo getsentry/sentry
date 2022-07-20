@@ -779,15 +779,14 @@ const defaultConfig: SearchConfig = {
   dateKeys: new Set([
     'start',
     'end',
-    'first_seen',
-    'last_seen',
+    'firstSeen',
+    'lastSeen',
+    'last_seen()',
     'time',
     'event.timestamp',
     'timestamp',
     'timestamp.to_hour',
     'timestamp.to_day',
-    'transaction.start_time',
-    'transaction.end_time',
   ]),
   booleanKeys: new Set([
     'error.handled',

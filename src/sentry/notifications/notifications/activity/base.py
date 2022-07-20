@@ -182,7 +182,7 @@ class GroupActivityNotification(ActivityNotification, abc.ABC):
         return get_title_link(self.group, None, False, True, self)
 
     def build_attachment_title(self, recipient: Team | User) -> str:
-        from sentry.integrations.notifications import build_attachment_title
+        from sentry.integrations.message_builder import build_attachment_title
 
         return build_attachment_title(self.group)
 

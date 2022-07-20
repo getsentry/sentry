@@ -3,6 +3,13 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, List, Sequence, Tuple
 
+from sentry.integrations.message_builder import (
+    build_attachment_text,
+    build_attachment_title,
+    build_footer,
+    format_actor_option,
+    format_actor_options,
+)
 from sentry.integrations.msteams.card_builder import (
     ME,
     MSTEAMS_URL_FORMAT,
@@ -15,13 +22,6 @@ from sentry.integrations.msteams.card_builder import (
     TextBlock,
 )
 from sentry.integrations.msteams.card_builder.utils import IssueConstants
-from sentry.integrations.notifications import (
-    build_attachment_text,
-    build_attachment_title,
-    build_footer,
-    format_actor_option,
-    format_actor_options,
-)
 from sentry.models import Event, Group, GroupStatus, Integration, Project, Rule
 
 from ..utils import ACTION_TYPE

@@ -111,7 +111,7 @@ class AlertRuleNotification(ProjectNotification):
         return context
 
     def get_notification_title(self, context: Mapping[str, Any] | None = None) -> str:
-        from sentry.integrations.notifications import build_rule_url
+        from sentry.integrations.message_builder import build_rule_url
 
         title_str = "Alert triggered"
 
@@ -247,7 +247,7 @@ class ActiveReleaseAlertNotification(AlertRuleNotification):
         )
 
     def get_notification_title(self, context: Mapping[str, Any] | None = None) -> str:
-        from sentry.integrations.notifications import build_rule_url
+        from sentry.integrations.message_builder import build_rule_url
 
         title_str = "Active Release alert triggered"
 
