@@ -1,5 +1,7 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {useState} from 'react';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import OptionSelector from 'sentry/components/charts/optionSelector';
 import {t} from 'sentry/locale';
@@ -13,15 +15,36 @@ describe('EventsV2 > OptionSelector (Multiple)', function () {
     {label: 'count_unique(user)', value: 'count_unique(user)'},
     {label: 'avg(transaction.duration)', value: 'avg(transaction.duration)'},
   ];
-  let organization, initialData, selected, wrapper, onChangeStub, dropdownItem;
+  const onChangeStub = jest.fn();
+  const organization = TestStubs.Organization({
+    features: [...features],
+  });
 
-  beforeEach(() => {
-    organization = TestStubs.Organization({
-      features: [...features],
-    });
+  afterEach(() => {
+    jest.resetAllMocks();
+  });
 
+  const TestComponent = () => {
+    const [currentSelected, setCurrentSelected] = useState([...yAxisValue]);
+
+    return (
+      <OptionSelector
+        multiple
+        isOpen
+        title={t('Y-Axis')}
+        selected={currentSelected}
+        options={yAxisOptions}
+        onChange={newSelected => {
+          setCurrentSelected(newSelected);
+          onChangeStub(newSelected);
+        }}
+      />
+    );
+  };
+
+  const renderComponent = () => {
     // Start off with an invalid view (empty is invalid)
-    initialData = initializeOrg({
+    const initialData = initializeOrg({
       organization,
       router: {
         location: {query: {query: 'tag:value'}},
@@ -29,48 +52,39 @@ describe('EventsV2 > OptionSelector (Multiple)', function () {
       project: 1,
       projects: [],
     });
-    selected = [...yAxisValue];
-    wrapper = mountWithTheme(
-      <OptionSelector
-        multiple
-        isOpen
-        title={t('Y-Axis')}
-        selected={selected}
-        options={yAxisOptions}
-        onChange={() => undefined}
-      />,
-      initialData.routerContext
-    );
-    // Parent component usually handles the new selected state but we don't have one in this test so we update props ourselves
-    onChangeStub = jest.fn(newSelected => wrapper.setProps({selected: newSelected}));
-    wrapper.setProps({onChange: onChangeStub});
 
-    dropdownItem = wrapper.find('SelectOption');
-  });
+    return render(<TestComponent />, {context: initialData.routerContext});
+  };
 
   it('renders yAxisOptions with yAxisValue selected', function () {
-    expect(dropdownItem.at(0).find('span').last().children().html()).toEqual('count()');
-    expect(dropdownItem.at(1).find('span').last().children().html()).toEqual(
-      'failure_count()'
-    );
-    expect(dropdownItem.at(2).find('span').last().children().html()).toEqual(
-      'count_unique(user)'
-    );
-    expect(dropdownItem.at(0).props().isSelected).toEqual(true);
-    expect(dropdownItem.at(1).props().isSelected).toEqual(true);
-    expect(dropdownItem.at(2).props().isSelected).toEqual(false);
+    renderComponent();
+    expect(
+      within(screen.getByTestId('count()')).getByTestId('icon-check-mark')
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('failure_count()')).getByTestId('icon-check-mark')
+    ).toBeInTheDocument();
+    expect(
+      // eslint-disable-next-line testing-library/prefer-presence-queries
+      within(screen.getByTestId('count_unique(user)')).queryByTestId('icon-check-mark')
+    ).not.toBeInTheDocument();
   });
 
   it('calls onChange prop with new checkbox option state', function () {
-    dropdownItem.at(0).find('div').first().simulate('click');
+    renderComponent();
+    userEvent.click(screen.getByTestId('count()'));
     expect(onChangeStub).toHaveBeenCalledWith(['failure_count()']);
-    dropdownItem.at(0).find('div').first().simulate('click');
+    onChangeStub.mockClear();
+    userEvent.click(screen.getByTestId('count()'));
     expect(onChangeStub).toHaveBeenCalledWith(['failure_count()', 'count()']);
-    dropdownItem.at(1).find('div').first().simulate('click');
+    onChangeStub.mockClear();
+    userEvent.click(screen.getByTestId('failure_count()'));
     expect(onChangeStub).toHaveBeenCalledWith(['count()']);
-    dropdownItem.at(1).find('div').first().simulate('click');
+    onChangeStub.mockClear();
+    userEvent.click(screen.getByTestId('failure_count()'));
     expect(onChangeStub).toHaveBeenCalledWith(['count()', 'failure_count()']);
-    dropdownItem.at(2).find('div').first().simulate('click');
+    onChangeStub.mockClear();
+    userEvent.click(screen.getByTestId('count_unique(user)'));
     expect(onChangeStub).toHaveBeenCalledWith([
       'count()',
       'failure_count()',
@@ -79,29 +93,34 @@ describe('EventsV2 > OptionSelector (Multiple)', function () {
   });
 
   it('does not uncheck options when clicked if only one option is currently selected', function () {
-    dropdownItem.at(0).find('div').first().simulate('click');
+    renderComponent();
+    userEvent.click(screen.getByTestId('count()'));
     expect(onChangeStub).toHaveBeenCalledWith(['failure_count()']);
-    dropdownItem.at(1).find('div').first().simulate('click');
+    userEvent.click(screen.getByTestId('failure_count()'));
     expect(onChangeStub).toHaveBeenCalledWith(['failure_count()']);
   });
 
   it('only allows up to 3 options to be checked at one time', function () {
-    dropdownItem.at(2).find('div').first().simulate('click');
+    renderComponent();
+    userEvent.click(screen.getByTestId('count_unique(user)'));
     expect(onChangeStub).toHaveBeenCalledWith([
       'count()',
       'failure_count()',
       'count_unique(user)',
     ]);
-    dropdownItem.at(3).find('div').first().simulate('click');
+    onChangeStub.mockClear();
+    userEvent.click(screen.getByTestId('avg(transaction.duration)'));
     expect(onChangeStub).not.toHaveBeenCalledWith([
       'count()',
       'failure_count()',
       'count_unique(user)',
       'avg(transaction.duration)',
     ]);
-    dropdownItem.at(2).find('div').first().simulate('click');
+    onChangeStub.mockClear();
+    userEvent.click(screen.getByTestId('count_unique(user)'));
     expect(onChangeStub).toHaveBeenCalledWith(['count()', 'failure_count()']);
-    dropdownItem.at(3).find('div').first().simulate('click');
+    onChangeStub.mockClear();
+    userEvent.click(screen.getByTestId('count_unique(user)'));
     expect(onChangeStub).toHaveBeenCalledWith([
       'count()',
       'failure_count()',
