@@ -132,6 +132,7 @@ describe('findRangeOfMultiSeries()', () => {
 });
 
 describe('getDurationUnit()', () => {
+  const MILLISECOND = 1;
   const generateSeries = (axisValues: number[]): Series[] => {
     return [
       {
@@ -141,10 +142,22 @@ describe('getDurationUnit()', () => {
     ];
   };
 
+  it('should return ms during transtion between ms to s', () => {
+    const series = generateSeries([700, 800, 900, SECOND, 1.1 * SECOND]);
+
+    expect(getDurationUnit(series)).toBe(MILLISECOND);
+  });
+
+  it('should return s during transtion between s to min', () => {
+    const series = generateSeries([40 * SECOND, 50 * SECOND, MINUTE, 1.3 * MINUTE]);
+
+    expect(getDurationUnit(series)).toBe(SECOND);
+  });
+
   it('should return ms if y range is small', () => {
     const series = generateSeries([1000, 1050, 1100, 1150, 1200]);
 
-    expect(getDurationUnit(series)).toBe(1);
+    expect(getDurationUnit(series)).toBe(MILLISECOND);
   });
 
   it('should return min if yAxis range >= 5 min', () => {
@@ -164,6 +177,6 @@ describe('getDurationUnit()', () => {
     const durationUnit = getDurationUnit(series);
     const numOfDigits = ((4.0001 * HOUR) / durationUnit).toFixed(0).length;
     expect(numOfDigits).toBeLessThan(6);
-    expect(durationUnit).not.toBe(1);
+    expect(durationUnit).not.toBe(MILLISECOND);
   });
 });
