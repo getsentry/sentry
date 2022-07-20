@@ -68,7 +68,7 @@ import {
   Widget,
   WidgetType,
 } from './types';
-import {cloneDashboard, hasSavedFilters} from './utils';
+import {cloneDashboard, hasSavedPageFilters} from './utils';
 
 const UNSAVED_MESSAGE = t('You have unsaved changes, are you sure you want to leave?');
 
@@ -626,7 +626,7 @@ class DashboardDetail extends Component<Props, State> {
         }}
         skipLoadLastUsed={
           organization.features.includes('dashboards-top-level-filter') &&
-          hasSavedFilters(dashboard)
+          hasSavedPageFilters(dashboard)
         }
       >
         <PageContent>
@@ -719,7 +719,7 @@ class DashboardDetail extends Component<Props, State> {
           }}
           skipLoadLastUsed={
             organization.features.includes('dashboards-top-level-filter') &&
-            hasSavedFilters(dashboard)
+            hasSavedPageFilters(dashboard)
           }
         >
           <StyledPageContent>
