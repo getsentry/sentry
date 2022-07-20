@@ -63,11 +63,7 @@ def query_replays_collection(
         flags=Flags(debug=True),
     )
 
-    response = requests.post(url=SNUBA_URL, data=snuba_request.serialize())
-    if response.status_code != 200:
-        raise Exception("Snuba could not be reached.")
-
-    return response.json()["data"]
+    return query_snuba_replays_endpoint(request=snuba_request)
 
 
 def query_replay_instance(
@@ -93,11 +89,15 @@ def query_replay_instance(
         flags=Flags(debug=True),
     )
 
-    response = requests.post(url=SNUBA_URL, data=snuba_request.serialize())
-    if response.status_code != 200:
-        raise Exception("Snuba could not be reached.")
+    return query_snuba_replays_endpoint(request=snuba_request)
 
-    return response.json()["data"]
+
+def query_snuba_replays_endpoint(request: Request) -> List[dict]:
+    response = requests.post(url=SNUBA_URL, data=request.serialize())
+    if response.status_code == 200:
+        return response.json()["data"]
+
+    raise Exception("Snuba could not be reached.")
 
 
 # Select.
