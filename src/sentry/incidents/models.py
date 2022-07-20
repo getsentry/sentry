@@ -357,8 +357,6 @@ class AlertRule(Model):
         "sentry.Project", related_name="alert_rule_exclusions", through=AlertRuleExcludedProjects
     )
     name = models.TextField()
-    # To be removed
-    type = models.SmallIntegerField(null=True)
     status = models.SmallIntegerField(default=AlertRuleStatus.PENDING.value)
     # Determines whether we include all current and future projects from this
     # organization in this rule.
