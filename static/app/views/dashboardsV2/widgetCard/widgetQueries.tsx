@@ -124,14 +124,15 @@ function WidgetQueries({
   const isSeriesMetricsDataResults: boolean[] = [];
   const afterFetchSeriesData = (rawResults: SeriesResult) => {
     if (rawResults.data) {
+      rawResults = rawResults as EventsStats;
       if (rawResults.isMetricsData !== undefined) {
-        isSeriesMetricsDataResults.push((rawResults as EventsStats).isMetricsData!);
+        isSeriesMetricsDataResults.push(rawResults.isMetricsData);
       }
     } else {
       Object.keys(rawResults).forEach(key => {
         const rawResult: EventsStats = rawResults[key];
         if (rawResult.isMetricsData !== undefined) {
-          isSeriesMetricsDataResults.push(rawResult.isMetricsData!);
+          isSeriesMetricsDataResults.push(rawResult.isMetricsData);
         }
       });
     }
