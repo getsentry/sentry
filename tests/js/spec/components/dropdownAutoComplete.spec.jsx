@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 
@@ -19,33 +19,51 @@ describe('DropdownAutoComplete', function () {
   ];
 
   it('has actor wrapper', function () {
-    const wrapper = mountWithTheme(
+    render(
       <DropdownAutoComplete items={items}>{() => 'Click Me!'}</DropdownAutoComplete>
     );
-    expect(wrapper.find('div[role="button"]')).toHaveLength(1);
-    expect(wrapper.find('div[role="button"]').text()).toBe('Click Me!');
+
+    expect(screen.getByRole('button')).toHaveTextContent('Click Me!');
   });
 
-  it('opens dropdown menu when actor is clicked', function () {
-    const wrapper = mountWithTheme(
+  it('does not allow the dropdown to be closed without allowActorToggle', function () {
+    render(
       <DropdownAutoComplete items={items}>{() => 'Click Me!'}</DropdownAutoComplete>
     );
-    wrapper.find('Actor[role="button"]').simulate('click');
-    expect(wrapper.find('StyledDropdownBubble')).toHaveLength(1);
 
-    wrapper.find('Actor[role="button"]').simulate('click');
-    expect(wrapper.find('StyledDropdownBubble')).toHaveLength(1);
+    const actor = screen.getByRole('button');
+
+    // Starts closed
+    expect(actor).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+
+    // Clicking once opens the menu
+    userEvent.click(actor);
+    expect(actor).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByRole('listbox')).toBeInTheDocument();
+
+    // Clicking again does not close the menu
+    userEvent.click(actor);
+    expect(actor).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByRole('listbox')).toBeInTheDocument();
   });
 
-  it('toggles dropdown menu when actor is clicked', function () {
-    const wrapper = mountWithTheme(
+  it('toggles dropdown menu when actor is clicked and allowActorToggle=true', function () {
+    render(
       <DropdownAutoComplete allowActorToggle items={items}>
         {() => 'Click Me!'}
       </DropdownAutoComplete>
     );
-    wrapper.find('Actor[role="button"]').simulate('click');
-    expect(wrapper.find('StyledDropdownBubble')).toHaveLength(1);
-    wrapper.find('Actor[role="button"]').simulate('click');
-    expect(wrapper.find('StyledDropdownBubble')).toHaveLength(0);
+    const actor = screen.getByRole('button');
+
+    // Clicking once opens
+    userEvent.click(actor);
+    expect(actor).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByRole('listbox')).toBeInTheDocument();
+
+    // Clicking again closes
+    userEvent.click(actor);
+    expect(actor).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
   });
 });
