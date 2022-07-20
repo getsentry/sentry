@@ -98,9 +98,9 @@ describe('ProjectAlertsCreate', function () {
     it('loads default values', function () {
       createWrapper();
 
-      expect(screen.getByDisplayValue('__all_environments__')).toBeInTheDocument();
+      expect(screen.getByText('All Environments')).toBeInTheDocument();
       expect(screen.getAllByDisplayValue('all')).toHaveLength(2);
-      expect(screen.getByDisplayValue('30')).toBeInTheDocument();
+      expect(screen.getByText('30 minutes')).toBeInTheDocument();
     });
 
     it('can remove filters', async function () {
