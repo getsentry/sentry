@@ -6,6 +6,7 @@ import debounce from 'lodash/debounce';
 
 import BaseSearchBar from 'sentry/components/searchBar';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
+import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
@@ -128,7 +129,6 @@ function SearchBar(props: SearchBarProps) {
     <Container data-test-id="transaction-search-bar">
       <BaseSearchBar
         placeholder={t('Search Transactions')}
-        onSearch={handleSearch}
         onChange={getSuggestedTransactions}
         query={searchString}
       />
