@@ -70,11 +70,11 @@ const Range = styled(RangeSlider)`
 `;
 
 const PlaybackTimeValue = styled(Progress.Value)`
-  background: ${p => p.theme.purple300};
+  background: ${p => p.theme.purple100};
 `;
 
 const MouseTrackingValue = styled(Progress.Value)`
-  background: ${p => p.theme.purple200};
+  background: ${p => p.theme.purple100};
 `;
 
 const Wrapper = styled('div')`
@@ -107,15 +107,11 @@ const Wrapper = styled('div')`
   }
 `;
 
-export const TimelineScubber = styled(Scrubber)`
+export const TimelineScrubber = styled(Scrubber)`
   height: 100%;
 
   ${Meter} {
     background: transparent;
-  }
-
-  ${PlaybackTimeValue} {
-    opacity: 0.2;
   }
 
   ${RangeWrapper},
