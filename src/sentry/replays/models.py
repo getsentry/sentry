@@ -29,7 +29,7 @@ class ReplayRecordingSegment(Model):
             ("project_id", "replay_id", "sequence_id"),
         )
 
-    __repr__ = sane_repr("event_id", "name", "file_id")
+    __repr__ = sane_repr("replay_id", "sequence_id", "file_id")
 
     @cached_property
     def mimetype(self):
