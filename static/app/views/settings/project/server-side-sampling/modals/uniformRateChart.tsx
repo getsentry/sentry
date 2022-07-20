@@ -26,7 +26,7 @@ function UniformRateChart({series, isLoading}: Props) {
     <ChartPanel>
       <ChartContainer>
         <TransitionChart loading={isLoading} reloading={false} height="224px">
-          <HeaderTitle>{t('Last 30 days of Transactions ')}</HeaderTitle>
+          <HeaderTitle>{t('Transactions (Last 30 days) ')}</HeaderTitle>
 
           {getDynamicText({
             value: (

@@ -174,7 +174,7 @@ export function Rule({
           >
             <Tooltip
               disabled={!noPermission}
-              title={t('You do not have permission to edit sampling rules')}
+              title={t('You do not have permission to edit rules')}
               containerDisplayMode="block"
             >
               {t('Edit')}
@@ -182,7 +182,7 @@ export function Rule({
           </MenuItemActionLink>
           <MenuItemActionLink
             onAction={onDeleteRule}
-            message={t('Are you sure you wish to delete this sampling rule?')}
+            message={t('Are you sure you wish to delete this rule?')}
             icon={<IconDownload size="xs" />}
             title={t('Delete')}
             disabled={!canDelete}
@@ -194,7 +194,7 @@ export function Rule({
               title={
                 isUniform
                   ? t("You can't delete the uniform rule")
-                  : t('You do not have permission to delete sampling rules')
+                  : t('You do not have permission to delete rules')
               }
               containerDisplayMode="block"
             >

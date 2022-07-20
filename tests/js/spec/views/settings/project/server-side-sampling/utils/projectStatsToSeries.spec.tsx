@@ -4,7 +4,7 @@ describe('projectStatsToSeries', function () {
   it('returns correct series', function () {
     expect(projectStatsToSeries(TestStubs.Outcomes())).toEqual([
       {
-        seriesName: 'Accepted',
+        seriesName: 'Indexed',
         color: 'hsl(340.79999999999995, 61%, 79.4%)',
         barMinHeight: 1,
         type: 'bar',
@@ -61,7 +61,7 @@ describe('projectStatsToSeries', function () {
         ],
       },
       {
-        seriesName: 'Dropped (Server)',
+        seriesName: 'Processed',
         color: '#F55459',
         data: [
           {name: 1656788400000, value: 250},
@@ -118,7 +118,7 @@ describe('projectStatsToSeries', function () {
         stack: 'usage',
       },
       {
-        seriesName: 'Dropped (Client)',
+        seriesName: 'Dropped',
         color: '#F5B000',
         data: [
           {name: 1656788400000, value: 0},

@@ -232,9 +232,11 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
       dateThreshold: new Date('2022-07-05'),
       steps: [
         {
-          title: t('Activate first rule'),
+          title: t('Activate your first rule'),
           target: 'sampling_rule_toggle',
-          description: t('Rules will propagate within a few minutes.'),
+          description: t(
+            'Start keeping what you need and dropping what you don’t - get up and running in minutes.'
+          ),
           nextText: t('Activate Rule'),
           dismissText: t('Later'),
           hasNextGuide: true,
@@ -247,10 +249,10 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
       dateThreshold: new Date('2022-07-05'),
       steps: [
         {
-          title: t('Create a new rule based on specific conditions'),
+          title: t('Create a new sample rule'),
           target: 'add_conditional_rule',
           description: t(
-            'Target the transactions you want more details on (where your quota actually goes).'
+            'Define sample rules to retain the transactions you care about most such as the highest converting pages, critical API endpoints, or latency issues from your latest release. '
           ),
           dismissText: t('Enough already'),
         },
