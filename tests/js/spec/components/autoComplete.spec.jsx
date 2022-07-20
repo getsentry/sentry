@@ -170,7 +170,7 @@ describe('AutoComplete', function () {
 
       fireEvent.change(input, {target: {value: 'a', charCode: 65}});
       expect(screen.getByTestId('test-autocomplete')).toBeInTheDocument();
-      expect(screen.getAllByRole('listitem')).toHaveLength(3);
+      expect(screen.getAllByRole('option')).toHaveLength(3);
     });
 
     it('reopens dropdown menu after item is selected and then input is changed', function () {
@@ -181,21 +181,21 @@ describe('AutoComplete', function () {
       fireEvent.change(input, {target: {value: 'eapp'}});
       expect(screen.getByTestId('test-autocomplete')).toBeInTheDocument();
 
-      expect(screen.getByRole('listitem')).toBeInTheDocument();
+      expect(screen.getByRole('option')).toBeInTheDocument();
       fireEvent.keyDown(input, {key: 'Enter', charCode: 13});
       expect(screen.queryByTestId('test-autocomplete')).not.toBeInTheDocument();
 
       fireEvent.change(input, {target: {value: 'app'}});
       expect(screen.getByTestId('test-autocomplete')).toBeInTheDocument();
 
-      expect(screen.getAllByRole('listitem')).toHaveLength(2);
+      expect(screen.getAllByRole('option')).toHaveLength(2);
     });
 
     it('selects dropdown item by clicking and sets input to selected value', function () {
       createWrapper();
       fireEvent.focus(input);
       expect(screen.getByTestId('test-autocomplete')).toBeInTheDocument();
-      expect(screen.getAllByRole('listitem')).toHaveLength(3);
+      expect(screen.getAllByRole('option')).toHaveLength(3);
 
       fireEvent.click(screen.getByText(items[1].name));
       expect(mocks.onSelect).toHaveBeenCalledWith(
@@ -205,7 +205,7 @@ describe('AutoComplete', function () {
       );
 
       expect(input).toHaveValue('Pineapple');
-      expect(screen.queryByRole('listitem')).not.toBeInTheDocument();
+      expect(screen.queryByRole('option')).not.toBeInTheDocument();
     });
 
     it('can navigate dropdown items with keyboard and select with "Enter" keypress', function () {
@@ -220,7 +220,7 @@ describe('AutoComplete', function () {
       fireEvent.keyDown(input, {key: 'ArrowDown', charCode: 40});
       expect(screen.getByText('Orange')).toHaveAttribute('aria-selected', 'true');
 
-      expect(screen.getAllByRole('listitem')).toHaveLength(3);
+      expect(screen.getAllByRole('option')).toHaveLength(3);
       fireEvent.keyDown(input, {key: 'Enter', charCode: 13});
 
       expect(mocks.onSelect).toHaveBeenCalledWith(
@@ -228,7 +228,7 @@ describe('AutoComplete', function () {
         expect.objectContaining({inputValue: '', highlightedIndex: 2}),
         expect.anything()
       );
-      expect(screen.queryByRole('listitem')).not.toBeInTheDocument();
+      expect(screen.queryByRole('option')).not.toBeInTheDocument();
       expect(input).toHaveValue('Orange');
     });
 
@@ -259,7 +259,7 @@ describe('AutoComplete', function () {
       fireEvent.keyDown(input, {key: 'ArrowUp', charCode: 38});
       expect(screen.getByText('Apple')).toHaveAttribute('aria-selected', 'true');
 
-      expect(screen.getAllByRole('listitem')).toHaveLength(3);
+      expect(screen.getAllByRole('option')).toHaveLength(3);
     });
 
     it('can filter items and then navigate with keyboard', function () {
@@ -267,27 +267,27 @@ describe('AutoComplete', function () {
       fireEvent.focus(input);
       expect(screen.getByTestId('test-autocomplete')).toBeInTheDocument();
       expect(screen.getByText('Apple')).toHaveAttribute('aria-selected', 'true');
-      expect(screen.getAllByRole('listitem')).toHaveLength(3);
+      expect(screen.getAllByRole('option')).toHaveLength(3);
 
       fireEvent.keyDown(input, {target: {value: 'a', charCode: 65}});
       expect(screen.getByText('Apple')).toHaveAttribute('aria-selected', 'true');
       expect(input).toHaveValue('a');
       // Apple, pineapple, orange
-      expect(screen.getAllByRole('listitem')).toHaveLength(3);
+      expect(screen.getAllByRole('option')).toHaveLength(3);
 
       fireEvent.change(input, {target: {value: 'ap'}});
       expect(screen.getByText('Apple')).toHaveAttribute('aria-selected', 'true');
       expect(input).toHaveValue('ap');
       expect(autoCompleteState[autoCompleteState.length - 1].inputValue).toBe('ap');
       // Apple, pineapple
-      expect(screen.getAllByRole('listitem')).toHaveLength(2);
+      expect(screen.getAllByRole('option')).toHaveLength(2);
 
       fireEvent.keyDown(input, {key: 'ArrowDown', charCode: 40});
       expect(screen.getByText('Pineapple')).toHaveAttribute('aria-selected', 'true');
 
       fireEvent.keyDown(input, {key: 'ArrowDown', charCode: 40});
       expect(screen.getByText('Pineapple')).toHaveAttribute('aria-selected', 'true');
-      expect(screen.getAllByRole('listitem')).toHaveLength(2);
+      expect(screen.getAllByRole('option')).toHaveLength(2);
 
       fireEvent.keyDown(input, {key: 'Enter', charCode: 13});
       expect(mocks.onSelect).toHaveBeenCalledWith(
@@ -295,7 +295,7 @@ describe('AutoComplete', function () {
         expect.objectContaining({inputValue: 'ap', highlightedIndex: 1}),
         expect.anything()
       );
-      expect(screen.queryByRole('listitem')).not.toBeInTheDocument();
+      expect(screen.queryByRole('option')).not.toBeInTheDocument();
       expect(input).toHaveValue('Pineapple');
     });
 
@@ -320,7 +320,7 @@ describe('AutoComplete', function () {
     it('has dropdown menu initially open', function () {
       createWrapper({isOpen: true});
       expect(screen.getByTestId('test-autocomplete')).toBeInTheDocument();
-      expect(screen.getAllByRole('listitem')).toHaveLength(3);
+      expect(screen.getAllByRole('option')).toHaveLength(3);
     });
 
     it('closes when props change', function () {
@@ -329,7 +329,7 @@ describe('AutoComplete', function () {
 
       // Menu should be closed
       expect(screen.queryByTestId('test-autocomplete')).not.toBeInTheDocument();
-      expect(screen.queryByRole('listitem')).not.toBeInTheDocument();
+      expect(screen.queryByRole('option')).not.toBeInTheDocument();
     });
 
     it('remains closed when input is focused, but calls `onOpen`', function () {
@@ -341,7 +341,7 @@ describe('AutoComplete', function () {
       fireEvent.focus(input);
       jest.runAllTimers();
       expect(screen.queryByTestId('test-autocomplete')).not.toBeInTheDocument();
-      expect(screen.queryByRole('listitem')).not.toBeInTheDocument();
+      expect(screen.queryByRole('option')).not.toBeInTheDocument();
 
       expect(mocks.onOpen).toHaveBeenCalledTimes(1);
     });
@@ -389,7 +389,7 @@ describe('AutoComplete', function () {
       fireEvent.change(input, {target: {value: 'eapp'}});
       expect(screen.getByTestId('test-autocomplete')).toBeInTheDocument();
 
-      expect(screen.getByRole('listitem')).toBeInTheDocument();
+      expect(screen.getByRole('option')).toBeInTheDocument();
       fireEvent.keyDown(input, {key: 'Enter', charCode: 13});
       expect(screen.getByTestId('test-autocomplete')).toBeInTheDocument();
 
@@ -398,7 +398,7 @@ describe('AutoComplete', function () {
 
     it('selects dropdown item by clicking and sets input to selected value', function () {
       createWrapper({isOpen: true});
-      expect(screen.getAllByRole('listitem')).toHaveLength(3);
+      expect(screen.getAllByRole('option')).toHaveLength(3);
 
       fireEvent.click(screen.getByText(items[1].name));
       expect(mocks.onSelect).toHaveBeenCalledWith(
@@ -423,7 +423,7 @@ describe('AutoComplete', function () {
       fireEvent.keyDown(input, {key: 'ArrowDown', charCode: 40});
       expect(screen.getByText('Orange')).toHaveAttribute('aria-selected', 'true');
 
-      expect(screen.getAllByRole('listitem')).toHaveLength(3);
+      expect(screen.getAllByRole('option')).toHaveLength(3);
       fireEvent.keyDown(input, {key: 'Enter', charCode: 13});
 
       expect(mocks.onSelect).toHaveBeenCalledWith(
@@ -462,7 +462,7 @@ describe('AutoComplete', function () {
       fireEvent.keyDown(input, {key: 'ArrowUp', charCode: 38});
       expect(screen.getByText('Apple')).toHaveAttribute('aria-selected', 'true');
 
-      expect(screen.getAllByRole('listitem')).toHaveLength(3);
+      expect(screen.getAllByRole('option')).toHaveLength(3);
     });
 
     it('can filter items and then navigate with keyboard', function () {
@@ -470,27 +470,27 @@ describe('AutoComplete', function () {
       expect(screen.getByTestId('test-autocomplete')).toBeInTheDocument();
 
       expect(screen.getByText('Apple')).toHaveAttribute('aria-selected', 'true');
-      expect(screen.getAllByRole('listitem')).toHaveLength(3);
+      expect(screen.getAllByRole('option')).toHaveLength(3);
 
       fireEvent.keyDown(input, {target: {value: 'a', charCode: 65}});
       expect(screen.getByText('Apple')).toHaveAttribute('aria-selected', 'true');
       expect(input).toHaveValue('a');
       // Apple, pineapple, orange
-      expect(screen.getAllByRole('listitem')).toHaveLength(3);
+      expect(screen.getAllByRole('option')).toHaveLength(3);
 
       fireEvent.change(input, {target: {value: 'ap'}});
       expect(screen.getByText('Apple')).toHaveAttribute('aria-selected', 'true');
       expect(input).toHaveValue('ap');
       expect(autoCompleteState[autoCompleteState.length - 1].inputValue).toBe('ap');
       // Apple, pineapple
-      expect(screen.getAllByRole('listitem')).toHaveLength(2);
+      expect(screen.getAllByRole('option')).toHaveLength(2);
 
       fireEvent.keyDown(input, {key: 'ArrowDown', charCode: 40});
       expect(screen.getByText('Pineapple')).toHaveAttribute('aria-selected', 'true');
 
       fireEvent.keyDown(input, {key: 'ArrowDown', charCode: 40});
       expect(screen.getByText('Pineapple')).toHaveAttribute('aria-selected', 'true');
-      expect(screen.getAllByRole('listitem')).toHaveLength(2);
+      expect(screen.getAllByRole('option')).toHaveLength(2);
 
       fireEvent.keyDown(input, {key: 'Enter', charCode: 13});
       expect(mocks.onSelect).toHaveBeenCalledWith(
@@ -564,7 +564,7 @@ describe('AutoComplete', function () {
       wrapper.rerender(createComponent({inputValue: 'apple'}));
       expect(screen.getByTestId('test-autocomplete')).toBeInTheDocument();
 
-      expect(screen.getAllByRole('listitem')).toHaveLength(2);
+      expect(screen.getAllByRole('option')).toHaveLength(2);
 
       fireEvent.click(screen.getByText('Apple'));
 
@@ -584,7 +584,7 @@ describe('AutoComplete', function () {
       expect(screen.getByTestId('test-autocomplete')).toBeInTheDocument();
 
       expect(screen.getByText('Apple')).toHaveAttribute('aria-selected', 'true');
-      expect(screen.getAllByRole('listitem')).toHaveLength(2);
+      expect(screen.getAllByRole('option')).toHaveLength(2);
 
       fireEvent.keyDown(input, {key: 'ArrowDown', charCode: 40});
       fireEvent.keyDown(input, {key: 'ArrowDown', charCode: 40});
