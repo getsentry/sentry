@@ -6,10 +6,9 @@ import CreateAlertButton, {
 } from 'sentry/components/createAlertButton';
 import GuideStore from 'sentry/stores/guideStore';
 import EventView from 'sentry/utils/discover/eventView';
-import {ALL_VIEWS, DEFAULT_EVENT_VIEW} from 'sentry/views/eventsV2/data';
+import {DEFAULT_EVENT_VIEW} from 'sentry/views/eventsV2/data';
 
-const onIncompatibleQueryMock = jest.fn();
-const onSuccessMock = jest.fn();
+const onClickMock = jest.fn();
 const context = TestStubs.routerContext();
 
 function renderComponent(organization, eventView) {
@@ -19,8 +18,7 @@ function renderComponent(organization, eventView) {
       organization={organization}
       eventView={eventView}
       projects={[TestStubs.Project()]}
-      onIncompatibleQuery={onIncompatibleQueryMock}
-      onClick={onSuccessMock}
+      onClick={onClickMock}
     />,
     {context}
   );
@@ -37,98 +35,7 @@ describe('CreateAlertFromViewButton', () => {
     jest.resetAllMocks();
   });
 
-  it('renders', () => {
-    const eventView = EventView.fromSavedQuery(DEFAULT_EVENT_VIEW);
-    renderComponent(organization, eventView);
-    expect(screen.getByRole('button')).toHaveTextContent('Create Alert');
-  });
-
-  it('should warn when project is not selected', () => {
-    const eventView = EventView.fromSavedQuery({
-      ...DEFAULT_EVENT_VIEW,
-      query: 'event.type:error',
-    });
-    renderComponent(organization, eventView);
-    userEvent.click(screen.getByRole('button', {name: 'Create Alert'}));
-    expect(onIncompatibleQueryMock).toHaveBeenCalledTimes(1);
-  });
-
-  it('should warn when all projects are selected (-1)', () => {
-    const eventView = EventView.fromSavedQuery({
-      ...DEFAULT_EVENT_VIEW,
-      query: 'event.type:error',
-      projects: [-1],
-    });
-    renderComponent(organization, eventView);
-    userEvent.click(screen.getByRole('button', {name: 'Create Alert'}));
-    expect(onIncompatibleQueryMock).toHaveBeenCalledTimes(1);
-  });
-
-  it('should warn when event.type is not specified', () => {
-    const eventView = EventView.fromSavedQuery({
-      ...DEFAULT_EVENT_VIEW,
-      query: '',
-      projects: [2],
-    });
-    renderComponent(organization, eventView);
-    userEvent.click(screen.getByRole('button', {name: 'Create Alert'}));
-    expect(onIncompatibleQueryMock).toHaveBeenCalledTimes(1);
-  });
-
-  it('should warn when yAxis is not allowed', () => {
-    const eventView = EventView.fromSavedQuery({
-      ...ALL_VIEWS.find(view => view.name === 'Errors by URL'),
-      query: 'event.type:error',
-      yAxis: 'count_unique(issue)',
-      projects: [2],
-    });
-    expect(eventView.getYAxis()).toBe('count_unique(issue)');
-    renderComponent(organization, eventView);
-    userEvent.click(screen.getByRole('button', {name: 'Create Alert'}));
-    expect(onIncompatibleQueryMock).toHaveBeenCalledTimes(1);
-  });
-
-  it('should allow yAxis with a number as the parameter', () => {
-    const eventView = EventView.fromSavedQuery({
-      ...DEFAULT_EVENT_VIEW,
-      query: 'event.type:transaction',
-      yAxis: 'apdex(300)',
-      fields: [...DEFAULT_EVENT_VIEW.fields, 'apdex(300)'],
-      projects: [2],
-    });
-    expect(eventView.getYAxis()).toBe('apdex(300)');
-    renderComponent(organization, eventView);
-    userEvent.click(screen.getByRole('button', {name: 'Create Alert'}));
-    expect(onIncompatibleQueryMock).toHaveBeenCalledTimes(0);
-  });
-
-  it('should allow yAxis with a measurement as the parameter', () => {
-    const eventView = EventView.fromSavedQuery({
-      ...DEFAULT_EVENT_VIEW,
-      query: 'event.type:transaction',
-      yAxis: 'p75(measurements.fcp)',
-      fields: [...DEFAULT_EVENT_VIEW.fields, 'p75(measurements.fcp)'],
-      projects: [2],
-    });
-    expect(eventView.getYAxis()).toBe('p75(measurements.fcp)');
-    renderComponent(organization, eventView);
-    userEvent.click(screen.getByRole('button', {name: 'Create Alert'}));
-    expect(onIncompatibleQueryMock).toHaveBeenCalledTimes(0);
-  });
-
-  it('should warn with multiple errors, missing event.type and project', () => {
-    const eventView = EventView.fromSavedQuery({
-      ...ALL_VIEWS.find(view => view.name === 'Errors by URL'),
-      query: '',
-      yAxis: 'count_unique(issue.id)',
-      projects: [],
-    });
-    renderComponent(organization, eventView);
-    userEvent.click(screen.getByRole('button', {name: 'Create Alert'}));
-    expect(onIncompatibleQueryMock).toHaveBeenCalledTimes(1);
-  });
-
-  it('should trigger success callback', () => {
+  it('should trigger onClick callback', () => {
     const eventView = EventView.fromSavedQuery({
       ...DEFAULT_EVENT_VIEW,
       query: 'event.type:error',
@@ -136,8 +43,7 @@ describe('CreateAlertFromViewButton', () => {
     });
     renderComponent(organization, eventView);
     userEvent.click(screen.getByRole('button', {name: 'Create Alert'}));
-    expect(onIncompatibleQueryMock).toHaveBeenCalledTimes(0);
-    expect(onSuccessMock).toHaveBeenCalledTimes(1);
+    expect(onClickMock).toHaveBeenCalledTimes(1);
   });
 
   it('disables the create alert button for members', () => {

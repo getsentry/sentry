@@ -28,11 +28,7 @@ describe('IncompatibleAlertQuery', () => {
       query: 'event.type:error',
     });
     renderComponent(eventView);
-    expect(
-      screen.getByText(
-        'An alert can use data from only one Project. Select one and try again.'
-      )
-    ).toBeInTheDocument();
+    expect(screen.getByText('No project was selected')).toBeInTheDocument();
   });
 
   it('should warn when all projects are selected (-1)', () => {
@@ -42,11 +38,7 @@ describe('IncompatibleAlertQuery', () => {
       projects: [-1],
     });
     renderComponent(eventView);
-    expect(
-      screen.getByText(
-        'An alert can use data from only one Project. Select one and try again.'
-      )
-    ).toBeInTheDocument();
+    expect(screen.getByText('No project was selected')).toBeInTheDocument();
   });
 
   it('should warn when event.type is not specified', () => {
@@ -56,8 +48,7 @@ describe('IncompatibleAlertQuery', () => {
       projects: [2],
     });
     renderComponent(eventView);
-    expect(screen.getByText('An alert needs a filter of')).toBeInTheDocument();
-    expect(screen.getByText('event.type:error')).toBeInTheDocument();
+    expect(screen.getByText("An event type wasn't selected")).toBeInTheDocument();
   });
 
   it('should warn when yAxis is not allowed', () => {
@@ -72,5 +63,44 @@ describe('IncompatibleAlertQuery', () => {
     renderComponent(eventView);
     expect(screen.getByText('An alert can’t use the metric')).toBeInTheDocument();
     expect(screen.getByText('count_unique(issue)')).toBeInTheDocument();
+  });
+
+  it('should allow yAxis with a number as the parameter', () => {
+    const eventView = EventView.fromSavedQuery({
+      ...DEFAULT_EVENT_VIEW,
+      query: 'event.type:transaction',
+      yAxis: ['apdex(300)'],
+      fields: [...DEFAULT_EVENT_VIEW.fields, 'apdex(300)'],
+      projects: [2],
+    });
+    expect(eventView.getYAxis()).toBe('apdex(300)');
+    const wrapper = renderComponent(eventView);
+    expect(wrapper.container).toBeEmptyDOMElement();
+  });
+
+  it('should allow yAxis with a measurement as the parameter', () => {
+    const eventView = EventView.fromSavedQuery({
+      ...DEFAULT_EVENT_VIEW,
+      query: 'event.type:transaction',
+      yAxis: ['p75(measurements.fcp)'],
+      fields: [...DEFAULT_EVENT_VIEW.fields, 'p75(measurements.fcp)'],
+      projects: [2],
+    });
+    expect(eventView.getYAxis()).toBe('p75(measurements.fcp)');
+    const wrapper = renderComponent(eventView);
+    expect(wrapper.container).toBeEmptyDOMElement();
+  });
+
+  it('should warn with multiple errors, missing event.type and project', () => {
+    const eventView = EventView.fromSavedQuery({
+      ...DEFAULT_EVENT_VIEW,
+      ...ALL_VIEWS.find(view => view.name === 'Errors by URL'),
+      query: '',
+      yAxis: ['count_unique(issue.id)'],
+      projects: [],
+    });
+    renderComponent(eventView);
+    expect(screen.getByText('No project was selected')).toBeInTheDocument();
+    expect(screen.getByText("An event type wasn't selected")).toBeInTheDocument();
   });
 });
