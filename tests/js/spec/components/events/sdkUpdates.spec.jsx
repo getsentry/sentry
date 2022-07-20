@@ -1,5 +1,5 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {render} from 'sentry-test/reactTestingLibrary';
 
 import EventSdkUpdates from 'sentry/components/events/sdkUpdates';
 
@@ -11,7 +11,7 @@ describe('EventSdkUpdates', function () {
       event: TestStubs.UpdateSdkAndEnableIntegrationSuggestion(),
     };
 
-    const wrapper = mountWithTheme(<EventSdkUpdates {...props} />, routerContext);
-    expect(wrapper).toSnapshot();
+    const wrapper = render(<EventSdkUpdates {...props} />, routerContext);
+    expect(wrapper.container).toSnapshot();
   });
 });
