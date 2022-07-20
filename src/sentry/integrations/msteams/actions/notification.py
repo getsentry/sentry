@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from sentry.integrations.msteams.actions.form import MsTeamsNotifyServiceForm
-from sentry.integrations.msteams.card_builder import MSTeamsIssueMessageBuilder
+from sentry.integrations.msteams.card_builder.issues import MSTeamsIssueMessageBuilder
 from sentry.integrations.msteams.client import MsTeamsClient
 from sentry.integrations.msteams.utils import get_channel_id
 from sentry.models import Integration

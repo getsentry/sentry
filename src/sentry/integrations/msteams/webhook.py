@@ -15,7 +15,6 @@ from sentry.utils.audit import create_audit_entry
 from sentry.utils.signing import sign
 from sentry.web.decorators import transaction_start
 
-from .card_builder import MSTeamsIssueMessageBuilder
 from .card_builder.help import (
     build_help_command_card,
     build_mentioned_card,
@@ -28,6 +27,7 @@ from .card_builder.identity import (
     build_unlink_identity_card,
 )
 from .card_builder.installation import build_personal_installation_message, build_welcome_card
+from .card_builder.issues import MSTeamsIssueMessageBuilder
 from .client import CLOCK_SKEW, MsTeamsClient, MsTeamsJwtClient
 from .link_identity import build_linking_url
 from .unlink_identity import build_unlinking_url

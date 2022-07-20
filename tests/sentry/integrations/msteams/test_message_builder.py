@@ -3,7 +3,6 @@ import time
 
 import pytest
 
-from sentry.integrations.msteams.card_builder import MSTeamsIssueMessageBuilder
 from sentry.integrations.msteams.card_builder.base import MSTeamsMessageBuilder
 from sentry.integrations.msteams.card_builder.block import (
     ActionType,
@@ -32,6 +31,7 @@ from sentry.integrations.msteams.card_builder.installation import (
     build_personal_installation_message,
     build_welcome_card,
 )
+from sentry.integrations.msteams.card_builder.issues import MSTeamsIssueMessageBuilder
 from sentry.models import (
     Identity,
     IdentityProvider,
