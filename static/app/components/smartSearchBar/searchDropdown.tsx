@@ -5,6 +5,7 @@ import color from 'color';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {parseSearch} from 'sentry/components/searchSyntax/parser';
 import HighlightQuery from 'sentry/components/searchSyntax/renderer';
+import {IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
@@ -44,6 +45,7 @@ class SearchDropdown extends PureComponent<Props> {
       maxMenuHeight,
       searchSubstring,
       onClick,
+      onIconClick,
     } = this.props;
     return (
       <StyledSearchDropdown className={className}>
@@ -67,6 +69,7 @@ class SearchDropdown extends PureComponent<Props> {
                         item={child}
                         searchSubstring={searchSubstring}
                         onClick={onClick}
+                        onIconClick={onIconClick}
                       />
                     ))}
                   {isEmpty && <Info>{t('No items found')}</Info>}
@@ -266,9 +269,16 @@ type DropdownItemProps = {
   onClick: (value: string, item: SearchItem) => void;
   searchSubstring: string;
   isChild?: boolean;
+  onIconClick?: any;
 };
 
-const DropdownItem = ({item, isChild, searchSubstring, onClick}: DropdownItemProps) => {
+const DropdownItem = ({
+  item,
+  isChild,
+  searchSubstring,
+  onClick,
+  onIconClick,
+}: DropdownItemProps) => {
   const isDisabled = item.value === null;
 
   let children: React.ReactNode;
@@ -284,6 +294,18 @@ const DropdownItem = ({item, isChild, searchSubstring, onClick}: DropdownItemPro
           highlight: <Highlight />,
         })}
       </Invalid>
+    );
+  } else if (item.type === ItemType.LINK) {
+    children = (
+      <Fragment>
+        <ItemTitle item={item} isChild={isChild} searchSubstring={searchSubstring} />
+        <IconOpen
+          onClick={e => {
+            e.stopPropagation();
+            onIconClick(item.value);
+          }}
+        />
+      </Fragment>
     );
   } else {
     children = (
@@ -452,7 +474,7 @@ const SearchItemTitleWrapper = styled('div')`
   display: flex;
   flex-grow: 1;
   flex-shrink: 0;
-  max-width: min(280px, 50%);
+  max-width: 75%;
 
   color: ${p => p.theme.textColor};
   font-weight: normal;

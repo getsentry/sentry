@@ -13,6 +13,7 @@ import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
+import {IconOpen} from 'sentry/icons';
 
 import SearchDropdown from '../smartSearchBar/searchDropdown';
 import {ItemType, SearchGroup} from '../smartSearchBar/types';
@@ -79,7 +80,7 @@ function SearchBar(props: SearchBarProps) {
             searchGroup.children.push({
               value: `${item.transaction}:${item.project_id}`,
               title: item.transaction,
-              type: ItemType.DEFAULT,
+              type: ItemType.LINK,
               desc: '',
             });
             return searchGroup;
@@ -103,7 +104,9 @@ function SearchBar(props: SearchBarProps) {
   );
 
   const handleSearch = (query: string) => {
-    onSearch(query);
+    const lastIndex = query.lastIndexOf(':');
+    const transactionName = query.slice(0, lastIndex);
+    onSearch(transactionName);
   };
 
   const navigateToTransactionSummary = (name: string) => {
@@ -137,7 +140,8 @@ function SearchBar(props: SearchBarProps) {
         }}
         loading={loading}
         items={searchResults}
-        onClick={navigateToTransactionSummary}
+        onClick={handleSearch}
+        onIconClick={navigateToTransactionSummary}
       />
     </Container>
   );
