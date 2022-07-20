@@ -32,15 +32,7 @@ from sentry.integrations.msteams.card_builder.installation import (
     build_personal_installation_message,
     build_welcome_card,
 )
-from sentry.models import (
-    Identity,
-    IdentityProvider,
-    IdentityStatus,
-    Integration,
-    Organization,
-    OrganizationIntegration,
-    Rule,
-)
+from sentry.models import Integration, Organization, OrganizationIntegration, Rule
 from sentry.models.group import GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.testutils import TestCase
@@ -57,7 +49,6 @@ class MSTeamsMessageBuilderTest(TestCase):
         self.user = self.create_user(is_superuser=False)
         owner = self.create_user()
         self.org = self.create_organization(owner=owner)
-        self.team = self.create_team(organization=self.org, members=[self.user])
 
         self.integration = Integration.objects.create(
             provider="msteams",
@@ -70,17 +61,6 @@ class MSTeamsMessageBuilderTest(TestCase):
             },
         )
         OrganizationIntegration.objects.create(organization=self.org, integration=self.integration)
-
-        self.idp = IdentityProvider.objects.create(
-            type="msteams", external_id="f3ll0wsh1p", config={}
-        )
-        self.identity = Identity.objects.create(
-            external_id="g4nd4lf",
-            idp=self.idp,
-            user=self.user,
-            status=IdentityStatus.VALID,
-            scopes=[],
-        )
 
         self.project1 = self.create_project(organization=self.org)
         self.event1 = self.store_event(
