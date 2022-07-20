@@ -73,9 +73,9 @@ export const MEPSettingProvider = ({
 }) => {
   const organization = useOrganization();
   const canUseMEP =
-    organization.features.includes('performance-use-metrics') || forceMetricsOnly;
+    organization.features.includes('performance-use-metrics') || !!forceMetricsOnly;
 
-  const isControlledMEP = typeof _hasMEPState !== 'undefined' || forceMetricsOnly;
+  const isControlledMEP = typeof _hasMEPState !== 'undefined' || !!forceMetricsOnly;
 
   const [_metricSettingState, setMetricSettingState] = useReducer(
     (_: MEPState, next: MEPState) => next,
@@ -86,11 +86,16 @@ export const MEPSettingProvider = ({
     AutoSampleState.unset
   );
 
-  const metricSettingState = isControlledMEP
-    ? forceMetricsOnly
-      ? MEPState.metricsOnly
-      : _hasMEPState
-    : _metricSettingState;
+  let metricSettingState = _metricSettingState;
+
+  if (isControlledMEP) {
+    if (forceMetricsOnly) {
+      metricSettingState = MEPState.metricsOnly;
+    }
+    if (_hasMEPState) {
+      metricSettingState = _hasMEPState;
+    }
+  }
 
   const hideSinceMetricsOnly =
     canUseMEP &&
