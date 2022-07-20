@@ -13,7 +13,6 @@ def is_issue_error_rate_correlated(
 
     resolution_time = resolved_issue.resolved_at
 
-    # change to 5-6h?
     start_time = resolution_time - timedelta(hours=1)
     end_time = resolution_time + timedelta(hours=1)
 
