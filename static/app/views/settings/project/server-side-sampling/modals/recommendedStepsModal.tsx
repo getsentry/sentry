@@ -6,7 +6,6 @@ import styled from '@emotion/styled';
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {
@@ -40,6 +39,7 @@ export type RecommendedStepsModalProps = ModalRenderProps & {
   recommendedSdkUpgrades: RecommendedSdkUpgrade[];
   clientSampleRate?: number;
   onGoBack?: () => void;
+  onSetRules?: (newRules: SamplingRule[]) => void;
   onSubmit?: UniformModalsSubmit;
   recommendedSampleRate?: boolean;
   serverSampleRate?: number;
@@ -61,6 +61,7 @@ export function RecommendedStepsModal({
   uniformRule,
   projectId,
   recommendedSampleRate,
+  onSetRules,
 }: RecommendedStepsModalProps) {
   const [saving, setSaving] = useState(false);
   const {projectStats} = useProjectStats({
@@ -92,8 +93,9 @@ export function RecommendedStepsModal({
       uniformRateModalOrigin: false,
       sampleRate: serverSampleRate!,
       rule: uniformRule,
-      onSuccess: () => {
+      onSuccess: newRules => {
         setSaving(false);
+        onSetRules?.(newRules);
         closeModal();
       },
       onError: () => {
@@ -130,7 +132,7 @@ export function RecommendedStepsModal({
   return (
     <Fragment>
       <Header closeButton>
-        <h4>{t('Recommended next steps\u2026')}</h4>
+        <h4>{t('Next steps')}</h4>
       </Header>
       <Body>
         <List symbol="colored-numeric">
@@ -138,14 +140,8 @@ export function RecommendedStepsModal({
             <ListItem>
               <h5>{t('Update the following SDK versions')}</h5>
               <TextBlock>
-                {tct(
-                  "I know what you're thinking, [italic:“[strong:It's already working, why should I?]”]. By updating the following SDK's before activating any server sampling rules, you're avoiding situations when our servers aren't accepting enough transactions ([doubleSamplingLink:double sampling]) or our servers are accepting too many transactions ([exceededQuotaLink:exceeded quota]).",
-                  {
-                    strong: <strong />,
-                    italic: <i />,
-                    doubleSamplingLink: <ExternalLink href="" />,
-                    exceededQuotaLink: <ExternalLink href="" />,
-                  }
+                {t(
+                  'To ensure you are properly monitoring the performance of all your other services, we require you update to the latest version of the following SDK(s):'
                 )}
               </TextBlock>
               <UpgradeSDKfromProjects>
@@ -172,10 +168,10 @@ export function RecommendedStepsModal({
             </ListItem>
           )}
           <ListItem>
-            <h5>{t('Increase your SDK Transaction sample rate')}</h5>
+            <h5>{t('Increase your client-side transaction sample rate')}</h5>
             <TextBlock>
               {t(
-                'This comes in handy when server-side sampling target the transactions you want to accept, but you need more of those transactions being sent by your client. Here we  already suggest a value based on your quota and throughput.'
+                'Once you’ve updated the above SDK(s), you can increase the client-side transaction sample rate in your application. This helps to ensure you are sending enough transactions to accurately monitor overall performance and ensure all transactions you have deemed important in your server-side sample rules are available. Below is the suggested rate we’ve calculated based on your organization’s usage and quota.'
               )}
             </TextBlock>
             <div>

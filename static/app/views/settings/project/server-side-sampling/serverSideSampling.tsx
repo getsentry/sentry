@@ -353,6 +353,13 @@ export function ServerSideSampling({project}: Props) {
       }
     );
 
+    trackAdvancedAnalyticsEvent('sampling.settings.rule.uniform_save', {
+      organization,
+      project_id: project.id,
+      sampling_rate: newRule.sampleRate,
+      old_sampling_rate: rule ? rule.sampleRate : null,
+    });
+
     const newRules = rule
       ? rules.map(existingRule => (existingRule.id === rule.id ? newRule : existingRule))
       : [...rules, newRule];
@@ -368,7 +375,7 @@ export function ServerSideSampling({project}: Props) {
           ? t('Successfully edited sampling rule')
           : t('Successfully added sampling rule')
       );
-      onSuccess?.();
+      onSuccess?.(response.dynamicSampling?.rules ?? []);
     } catch (error) {
       addErrorMessage(
         typeof error === 'string'
@@ -394,7 +401,7 @@ export function ServerSideSampling({project}: Props) {
         <SettingsPageHeader title={t('Server-side Sampling')} />
         <TextBlock>
           {t(
-            'Server-side sampling provides an additional dial for dropping transactions. This comes in handy when your server-side sampling rules target the transactions you want to keep, but you need more of those transactions being sent by the SDK.'
+            'Server-side sampling lets you control what transactions Sentry retains by setting sample rules and rates so you see more of the transactions you want to explore further in Sentry – and less of the ones you don’t – without re-configuring the Sentry SDK and redeploying anything.'
           )}
         </TextBlock>
         <PermissionAlert
