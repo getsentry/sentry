@@ -308,7 +308,8 @@ class ProjectUpdateTestTokenAuthenticated(APITestCase):
             role="admin",
         )
 
-        token = ApiToken.objects.create(user=self.user, scope_list=["event:read"])
+        # even though the user has the 'admin' role, they've issued a token with only a project:read scope
+        token = ApiToken.objects.create(user=self.user, scope_list=["project:read"])
         authorization = f"Bearer {token.token}"
 
         data = {"platform": "rust"}
