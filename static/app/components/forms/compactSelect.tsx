@@ -210,6 +210,7 @@ function CompactSelect<OptionType extends GeneralSelectValue = GeneralSelectValu
   renderWrapAs,
   closeOnSelect = true,
   menuTitle,
+  onClose,
   ...props
 }: Props<OptionType>) {
   // Manage the dropdown menu's open state
@@ -308,6 +309,11 @@ function CompactSelect<OptionType extends GeneralSelectValue = GeneralSelectValu
     );
   }
 
+  function onMenuClose() {
+    onClose?.();
+    state.close();
+  }
+
   function renderMenu() {
     if (!state.isOpen) {
       return null;
@@ -316,7 +322,7 @@ function CompactSelect<OptionType extends GeneralSelectValue = GeneralSelectValu
     return (
       <Menu
         targetRef={triggerRef}
-        onClose={state.close}
+        onClose={onMenuClose}
         minMenuWidth={triggerWidth}
         {...props}
       >

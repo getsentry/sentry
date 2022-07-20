@@ -1,6 +1,6 @@
 from contextlib import contextmanager
 from datetime import timedelta
-from typing import Any, Callable, Dict, Generator, Optional, Sequence, cast
+from typing import Any, Callable, Dict, Generator, Optional, Sequence, Tuple, cast
 
 import sentry_sdk
 from django.utils import timezone
@@ -18,7 +18,7 @@ from sentry.discover.arithmetic import ArithmeticError, is_equation, strip_equat
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.models import Organization, Project, Team
 from sentry.models.group import Group
-from sentry.search.events.constants import TIMEOUT_ERROR_MESSAGE
+from sentry.search.events.constants import DURATION_UNITS, SIZE_UNITS, TIMEOUT_ERROR_MESSAGE
 from sentry.search.events.fields import get_function_alias
 from sentry.snuba import discover, metrics_enhanced_performance, metrics_performance
 from sentry.utils import snuba
@@ -214,6 +214,23 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             has_results="true" if bool(cursor) else "false",
         )
 
+    def handle_unit_meta(
+        self, meta: Dict[str, str]
+    ) -> Tuple[Dict[str, str], Dict[str, Optional[str]]]:
+        units: Dict[str, Optional[str]] = {}
+        for key, value in meta.items():
+            if value in SIZE_UNITS:
+                units[key] = value
+                meta[key] = "size"
+            elif value in DURATION_UNITS:
+                units[key] = value
+                meta[key] = "duration"
+            elif value == "duration":
+                units[key] = "millisecond"
+            else:
+                units[key] = None
+        return meta, units
+
     def handle_results_with_meta(
         self,
         request: Request,
@@ -228,8 +245,10 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
 
             if standard_meta:
                 isMetricsData = meta.pop("isMetricsData", False)
+                fields, units = self.handle_unit_meta(meta)
                 meta = {
-                    "fields": meta,
+                    "fields": fields,
+                    "units": units,
                     "isMetricsData": isMetricsData,
                     "tips": results.get("tips", {}),
                 }

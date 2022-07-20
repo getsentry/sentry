@@ -2294,6 +2294,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert len(response.data["data"]) == 1
         assert response.data["meta"]["fields"]["transaction.duration"] == "duration"
         assert response.data["meta"]["fields"]["transaction.status"] == "string"
+        assert response.data["meta"]["units"]["transaction.duration"] == "millisecond"
         assert response.data["data"][0]["transaction.status"] == "ok"
 
     def test_trace_columns(self):
@@ -2886,6 +2887,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         response = self.do_request(query, features=features)
         assert response.status_code == 200, response.content
         meta = response.data["meta"]["fields"]
+        units = response.data["meta"]["units"]
         assert meta["p50()"] == "duration"
         assert meta["p75()"] == "duration"
         assert meta["p95()"] == "duration"
@@ -2896,6 +2898,13 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert meta["failure_rate()"] == "percentage"
         assert meta["user_misery(300)"] == "number"
         assert meta["count_miserable(user, 300)"] == "integer"
+
+        assert units["p50()"] == "millisecond"
+        assert units["p75()"] == "millisecond"
+        assert units["p95()"] == "millisecond"
+        assert units["p99()"] == "millisecond"
+        assert units["p100()"] == "millisecond"
+        assert units["percentile(transaction.duration, 0.99)"] == "millisecond"
 
         data = response.data["data"]
         assert len(data) == 1
@@ -2938,6 +2947,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         response = self.do_request(query, features=features)
         assert response.status_code == 200, response.content
         meta = response.data["meta"]["fields"]
+        units = response.data["meta"]["units"]
         assert meta["p50()"] == "duration"
         assert meta["p75()"] == "duration"
         assert meta["p95()"] == "duration"
@@ -2952,6 +2962,13 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert meta["project_threshold_config"] == "string"
         assert meta["user_misery()"] == "number"
         assert meta["count_miserable(user)"] == "integer"
+
+        assert units["p50()"] == "millisecond"
+        assert units["p75()"] == "millisecond"
+        assert units["p95()"] == "millisecond"
+        assert units["p99()"] == "millisecond"
+        assert units["p100()"] == "millisecond"
+        assert units["percentile(transaction.duration, 0.99)"] == "millisecond"
 
         data = response.data["data"]
         assert len(data) == 1
@@ -3856,6 +3873,15 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert meta["percentile(measurements.cls, 0.95)"] == "number"
         assert meta["percentile(measurements.foo, 0.95)"] == "number"
         assert meta["percentile(measurements.bar, 0.95)"] == "number"
+
+        units = response.data["meta"]["units"]
+        assert units["percentile(transaction.duration, 0.95)"] == "millisecond"
+        assert units["percentile(measurements.fp, 0.95)"] == "millisecond"
+        assert units["percentile(measurements.fcp, 0.95)"] == "millisecond"
+        assert units["percentile(measurements.lcp, 0.95)"] == "millisecond"
+        assert units["percentile(measurements.fid, 0.95)"] == "millisecond"
+        assert units["percentile(measurements.ttfb, 0.95)"] == "millisecond"
+        assert units["percentile(measurements.ttfb.requesttime, 0.95)"] == "millisecond"
 
     def test_count_at_least_query(self):
         self.store_event(self.transaction_data, self.project.id)
@@ -4950,7 +4976,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
             "project": [self.project.id],
         }
         with freeze_time("2000-01-01"):
-            for _ in range(25):
+            for _ in range(15):
                 self.do_request(query, features={"organizations:discover-events-rate-limit": True})
             response = self.do_request(
                 query, features={"organizations:discover-events-rate-limit": True}
@@ -4964,7 +4990,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
             "project": [self.project.id],
         }
         with freeze_time("2000-01-01"):
-            for _ in range(25):
+            for _ in range(15):
                 self.do_request(query)
             response = self.do_request(query)
             assert response.status_code == 200, response.content
