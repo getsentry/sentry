@@ -869,24 +869,35 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     const {frequency} = rule || {};
 
     return (
-      <StyledSelectField
-        hasAlertWizardV3={this.hasAlertWizardV3}
+      <FormField
+        name="frequency"
+        inline={false}
+        style={{padding: 0, border: 'none'}}
+        flexibleControlStateSize={this.hasAlertWizardV3 ? true : undefined}
         label={this.hasAlertWizardV3 ? null : t('Action Interval')}
         help={
           this.hasAlertWizardV3
             ? null
             : t('Perform these actions once this often for an issue')
         }
-        clearable={false}
-        name="frequency"
         className={this.hasError('frequency') ? ' error' : ''}
-        value={frequency}
         required
-        options={FREQUENCY_OPTIONS}
-        onChange={val => this.handleChange('frequency', val)}
         disabled={disabled}
-        flexibleControlStateSize={this.hasAlertWizardV3 ? true : undefined}
-      />
+      >
+        {({onChange, onBlur}) => (
+          <SelectControl
+            clearable={false}
+            disabled={disabled}
+            value={`${frequency}`}
+            options={FREQUENCY_OPTIONS}
+            onChange={({value}) => {
+              this.handleChange('frequency', value)
+              onChange(value, {});
+              onBlur(value, {});
+            }}
+          />
+        )}
+      </FormField>
     );
   }
 
