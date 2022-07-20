@@ -8,10 +8,6 @@ jobs:
   build_and_deref_json:
     runs-on: ubuntu-20.04
     timeout-minutes: 90
-    strategy:
-      matrix:
-        python-version: [3.8.12]
-
     steps:
       - name: Getsentry Token
         id: getsentry
@@ -33,12 +29,10 @@ jobs:
           token: ${{ github.token }}
           filters: .github/file-filters.yml
 
-      - name: Setup sentry env (python ${{ matrix.python-version }})
+      - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
         if: steps.changes.outputs.api_docs == 'true'
         id: setup
-        with:
-          python-version: ${{ matrix.python-version }}
 
       - name: Checkout getsentry/sentry-api-schema
         if: steps.changes.outputs.api_docs == 'true'

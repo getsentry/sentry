@@ -8,6 +8,9 @@ type Rule = {
 };
 
 export type SamplingEventParameters = {
+  'sampling.sdk.updgrades.alert': {
+    project_id: string;
+  };
   'sampling.settings.modal.recommended.next.steps_back': {
     project_id: string;
   };
@@ -65,6 +68,11 @@ export type SamplingEventParameters = {
     project_id: string;
     sampling_rate: Rule['sampling_rate'];
   };
+  'sampling.settings.rule.uniform_save': {
+    old_sampling_rate: Rule['sampling_rate'];
+    project_id: string;
+    sampling_rate: Rule['sampling_rate'];
+  };
   'sampling.settings.rule.uniform_update': {
     old_sampling_rate: Rule['sampling_rate'];
     project_id: string;
@@ -82,6 +90,7 @@ export type SamplingEventParameters = {
 type SamplingAnalyticsKey = keyof SamplingEventParameters;
 
 export const samplingEventMap: Record<SamplingAnalyticsKey, string> = {
+  'sampling.sdk.updgrades.alert': 'Recommended sdk upgrades alert',
   'sampling.settings.modal.recommended.next.steps_back': 'Go back to uniform rate step',
   'sampling.settings.modal.recommended.next.steps_cancel':
     'Cancel at recommended next steps step ',
@@ -99,16 +108,17 @@ export const samplingEventMap: Record<SamplingAnalyticsKey, string> = {
     'Switch to current uniform rate step',
   'sampling.settings.modal.uniform.rate_switch_recommended':
     'Switch to recommended next steps step',
-  'sampling.settings.modal.specific.rule.condition_add': 'Add Sampling Condition',
-  'sampling.settings.rule.specific_create': 'Create Specific Sampling Rule',
-  'sampling.settings.rule.specific_delete': 'Delete Specific Sampling Rule',
-  'sampling.settings.rule.specific_save': 'Save Specific Sampling Rule', // fired for both create and update
-  'sampling.settings.rule.specific_update': 'Update Specific Sampling Rule',
-  'sampling.settings.rule.uniform_activate': 'Activate Uniform Sampling Rule',
-  'sampling.settings.rule.uniform_create': 'Create Uniform Sampling Rule',
-  'sampling.settings.rule.uniform_deactivate': 'Deactivate Uniform Sampling Rule',
-  'sampling.settings.rule.uniform_update': 'Update Uniform Sampling Rule',
-  'sampling.settings.view': 'View Sampling Settings',
-  'sampling.settings.view_get_started': 'Get Started with Sampling',
-  'sampling.settings.view_read_docs': 'Read Sampling Docs', // fired for all read docs buttons
+  'sampling.settings.modal.specific.rule.condition_add': 'Add sampling condition',
+  'sampling.settings.rule.specific_create': 'Create specific sampling rule',
+  'sampling.settings.rule.specific_delete': 'Delete specific sampling rule',
+  'sampling.settings.rule.specific_save': 'Save specific sampling rule', // fired for both create and update
+  'sampling.settings.rule.specific_update': 'Update specific sampling rule',
+  'sampling.settings.rule.uniform_activate': 'Activate uniform sampling rule',
+  'sampling.settings.rule.uniform_create': 'Create uniform sampling rule',
+  'sampling.settings.rule.uniform_deactivate': 'Deactivate uniform sampling rule',
+  'sampling.settings.rule.uniform_save': 'Save uniform sampling rule', // fired for both create and update
+  'sampling.settings.rule.uniform_update': 'Update uniform sampling rule',
+  'sampling.settings.view': 'View sampling settings',
+  'sampling.settings.view_get_started': 'Get started with sampling',
+  'sampling.settings.view_read_docs': 'Read sampling docs', // fired for all read docs buttons
 };
