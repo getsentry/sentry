@@ -67,7 +67,7 @@ class GroupSuspectReleasesEndpoint(GroupEndpoint, EnvironmentMixin):
         suspect_releases = [serialize(release, request.user) for release in suspect_releases]
         data.update(
             {
-                "suspect_releases": list(
+                "suspectReleases": list(
                     sorted(suspect_releases, key=lambda x: x["dateCreated"], reverse=True)
                 ),
             }
