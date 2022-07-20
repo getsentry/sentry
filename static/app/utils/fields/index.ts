@@ -104,6 +104,7 @@ export enum FieldValueType {
   NUMBER = 'number',
   PERCENTAGE = 'percentage',
   STRING = 'string',
+  NEVER = 'never',
 }
 
 export interface FieldDefinition {
