@@ -282,7 +282,9 @@ class SlackIssuesMessageBuilder(SlackMessageBuilder):
         color = get_color(event_for_tags, self.notification)
         fields = build_tag_fields(event_for_tags, self.tags)
         footer = (
-            self.notification.build_notification_footer(self.recipient)
+            self.notification.build_notification_footer(
+                self.recipient, ExternalProviders.SLACK, SLACK_URL_FORMAT
+            )
             if self.notification and self.recipient
             else build_footer(self.group, project, self.rules, SLACK_URL_FORMAT)
         )
@@ -369,7 +371,9 @@ class SlackReleaseIssuesMessageBuilder(SlackMessageBuilder):
         color = get_color(event_for_tags, self.notification)
         fields = build_tag_fields(event_for_tags, self.tags)
         footer = (
-            self.notification.build_notification_footer(self.recipient)
+            self.notification.build_notification_footer(
+                self.recipient, ExternalProviders.SLACK, SLACK_URL_FORMAT
+            )
             if self.notification and self.recipient
             else build_footer(self.group, project, self.rules, SLACK_URL_FORMAT)
         )

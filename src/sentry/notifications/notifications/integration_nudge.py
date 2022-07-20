@@ -96,7 +96,9 @@ class IntegrationNudgeNotification(BaseNotification):
     def build_attachment_title(self, recipient: Team | User) -> str:
         return ""
 
-    def build_notification_footer(self, recipient: Team | User) -> str:
+    def build_notification_footer(
+        self, recipient: Team | User, provider: ExternalProviders, url_format: str
+    ) -> str:
         return ""
 
     def record_notification_sent(self, recipient: Team | User, provider: ExternalProviders) -> None:
