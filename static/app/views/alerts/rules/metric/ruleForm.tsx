@@ -38,7 +38,10 @@ import TriggersChart from 'sentry/views/alerts/rules/metric/triggers/chart';
 import {getEventTypeFilter} from 'sentry/views/alerts/rules/metric/utils/getEventTypeFilter';
 import hasThresholdValue from 'sentry/views/alerts/rules/metric/utils/hasThresholdValue';
 import {AlertRuleType} from 'sentry/views/alerts/types';
-import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
+import {
+  AlertWizardAlertNames,
+  MetricQueryTypeMap,
+} from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
 
 import {isCrashFreeAlert} from './utils/isCrashFreeAlert';
@@ -543,6 +546,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     const {
       project,
       aggregate,
+      dataset,
       resolveThreshold,
       triggers,
       thresholdType,
@@ -591,6 +595,8 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
           comparisonDelta: comparisonDelta ?? null,
           timeWindow,
           aggregate,
+          queryType:
+            MetricQueryTypeMap[getAlertTypeFromAggregateDataset({aggregate, dataset})],
         },
         {
           duplicateRule: this.isDuplicateRule ? 'true' : 'false',
