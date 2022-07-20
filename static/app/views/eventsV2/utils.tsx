@@ -184,7 +184,6 @@ export function downloadAsCsv(tableData, columnOrder, filename) {
     fields: headings,
     data: data.map(row =>
       headings.map(col => {
-        col = getAggregateAlias(col);
         return disableMacros(row[col]);
       })
     ),
