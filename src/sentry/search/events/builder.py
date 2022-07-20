@@ -1621,6 +1621,18 @@ class MetricsQueryBuilder(QueryBuilder):
     def is_performance(self) -> bool:
         return self.dataset is Dataset.PerformanceMetrics
 
+    @property
+    def custom_measurement_map(self) -> List[MetricMeta]:
+        if self._custom_measurement_cache is None:
+            from sentry.snuba.metrics.datasource import get_custom_measurements
+
+            self._custom_measurement_cache = get_custom_measurements(
+                Project.objects.filter(id__in=self.params["project_id"]),
+                start=self.start,
+                end=self.end,
+            )
+        return self._custom_measurement_cache
+
     def resolve_query(
         self,
         query: Optional[str] = None,

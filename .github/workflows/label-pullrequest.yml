@@ -27,13 +27,13 @@ jobs:
         uses: actions-ecosystem/action-add-labels@18f1af5e3544586314bbe15c0273249c770b2daf
         if: steps.changes.outputs.frontend == 'true'
         with:
-          labels: frontend
+          labels: 'Scope: Frontend'
 
       - name: Add backend label
         uses: actions-ecosystem/action-add-labels@18f1af5e3544586314bbe15c0273249c770b2daf
         if: steps.changes.outputs.backend == 'true'
         with:
-          labels: backend
+          labels: 'Scope: Backend'
 
       - name: Find previous frontend/backend warning comment
         uses: peter-evans/find-comment@1769778a0c5bd330272d749d12c036d65e70d39d
