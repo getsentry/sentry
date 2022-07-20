@@ -37,6 +37,7 @@ type MenuProps<E extends Element> = {
   onClick: (e: React.MouseEvent<E>) => void;
   onMouseEnter: (e: React.MouseEvent<E>) => void;
   onMouseLeave: (e: React.MouseEvent<E>) => void;
+  role: string;
 };
 
 export type GetActorPropsFn = <E extends Element = Element>(
@@ -329,6 +330,8 @@ class DropdownMenu extends Component<Props, State> {
       ...props,
       ...refProps,
       style: {...style, outline: 'none'},
+      'aria-expanded': this.isOpen(),
+      'aria-haspopup': 'listbox',
 
       onKeyDown: (e: React.KeyboardEvent<E>) => {
         if (typeof onKeyDown === 'function') {
@@ -400,6 +403,7 @@ class DropdownMenu extends Component<Props, State> {
     return {
       ...props,
       ...refProps,
+      role: 'listbox',
       onMouseEnter: (e: React.MouseEvent<E>) => {
         onMouseEnter?.(e);
 
