@@ -129,11 +129,16 @@ def build_rule_url(rule: Any, group: Group, project: Project) -> str:
     return url
 
 
-def build_footer(group: Group, project: Project, rules: Sequence[Rule] | None = None) -> str:
+def build_footer(
+    group: Group,
+    project: Project,
+    rules: Sequence[Rule] | None = None,
+    url_format: str = "<{url}|{text}>",
+) -> str:
     footer = f"{group.qualified_short_id}"
     if rules:
         rule_url = build_rule_url(rules[0], group, project)
-        footer += f" via <{rule_url}|{rules[0].label}>"
+        footer += f" via {url_format.format(text=rules[0].label, url=rule_url)}"
 
         if len(rules) > 1:
             footer += f" (+{len(rules) - 1} other)"

@@ -3,13 +3,20 @@ from __future__ import annotations
 from typing import Any, Mapping, Sequence, Union
 
 from sentry.integrations.metric_alerts import incident_attachment_info
-from sentry.models import Group, GroupStatus, Project, Team, User
+from sentry.integrations.slack.message_builder.issues import (
+    build_attachment_text,
+    build_attachment_title,
+    build_footer,
+    format_actor_option,
+)
+from sentry.models import GroupStatus, Project
 from sentry.utils.assets import get_asset_url
 from sentry.utils.http import absolute_uri
 
 from ..utils import ACTION_TYPE
 
 ME = "ME"
+URL_FORMAT = "[{text}]({url})"
 
 # TODO: Covert these types to a class hierarchy.
 # This is not ideal, but better than no typing. These types should be
@@ -43,27 +50,8 @@ def generate_action_payload(action_type, event, rules, integration):
     }
 
 
-def get_assignee_string(group: Group) -> str | None:
-    """Get a string representation of the group's assignee."""
-    assignee = group.get_assignee()
-    if isinstance(assignee, User):
-        return assignee.email
-
-    if isinstance(assignee, Team):
-        return f"#{assignee.slug}"
-
-    return None
-
-
 def build_group_title(group):
-    # TODO: implement with event as well
-    ev_metadata = group.get_event_metadata()
-    ev_type = group.get_event_type()
-
-    if ev_type == "error" and "type" in ev_metadata:
-        text = ev_metadata["type"]
-    else:
-        text = group.title
+    text = build_attachment_title(group)
 
     link = group.get_absolute_url(params={"referrer": "msteams"})
 
@@ -79,10 +67,8 @@ def build_group_title(group):
 
 def build_group_descr(group):
     # TODO: implement with event as well
-    ev_type = group.get_event_type()
-    if ev_type == "error":
-        ev_metadata = group.get_event_metadata()
-        text = ev_metadata.get("value") or ev_metadata.get("function")
+    text = build_attachment_text(group)
+    if text:
         return {
             "type": "TextBlock",
             "size": "Medium",
@@ -90,15 +76,6 @@ def build_group_descr(group):
             "text": text,
             "wrap": True,
         }
-    else:
-        return None
-
-
-def build_rule_url(rule, group, project):
-    org_slug = group.organization.slug
-    project_slug = project.slug
-    rule_url = f"/organizations/{org_slug}/alerts/rules/{project_slug}/{rule.id}/details/"
-    return absolute_uri(rule_url)
 
 
 def build_group_footer(group, rules, project, event):
@@ -115,12 +92,7 @@ def build_group_footer(group, rules, project, event):
         "width": "auto",
     }
 
-    text = f"{group.qualified_short_id}"
-    if rules:
-        rule_url = build_rule_url(rules[0], group, project)
-        text += f" via [{rules[0].label}]({rule_url})"
-        if len(rules) > 1:
-            text += f" (+{len(rules) - 1} other)"
+    text = build_footer(group, project, rules, URL_FORMAT)
 
     text_column = {
         "type": "Column",
@@ -241,7 +213,7 @@ def build_group_actions(group, event, rules, integration):
             },
         }
 
-    if get_assignee_string(group):
+    if group.get_assignee():
         assign_action = {
             "type": "Action.Submit",
             "title": "Unassign",
@@ -278,62 +250,18 @@ def build_group_actions(group, event, rules, integration):
     }
 
 
-def build_group_resolve_card(group, event, rules, integration):
-    return [
-        {
-            "type": "TextBlock",
-            "size": "Large",
-            "text": "Resolve",
-            "weight": "Bolder",
-            "id": "resolveTitle",
-            "isVisible": False,
-        }
-    ]
-
-
-def build_group_ignore_card(group, event, rules, integration):
-    return [
-        {
-            "type": "TextBlock",
-            "size": "Large",
-            "text": "Ignore until this happens again...",
-            "weight": "Bolder",
-            "id": "ignoreTitle",
-            "isVisible": False,
-        }
-    ]
-
-
-def build_group_assign_card(group, event, rules, integration):
-    return [
-        {
-            "type": "TextBlock",
-            "size": "Large",
-            "text": "Assign to...",
-            "weight": "Bolder",
-            "id": "assignTitle",
-            "isVisible": False,
-        }
-    ]
-
-
-def build_group_action_cards(group, event, rules, integration):
-    status = group.get_status()
-    action_cards = []
-    if status != GroupStatus.RESOLVED:
-        action_cards += build_group_resolve_card(group, event, rules, integration)
-    if status != GroupStatus.IGNORED:
-        action_cards += build_group_ignore_card(group, event, rules, integration)
-    action_cards += build_group_assign_card(group, event, rules, integration)
-
-    return {"type": "ColumnSet", "columns": [{"type": "Column", "items": action_cards}]}
-
-
 def build_assignee_note(group):
-    assignee = get_assignee_string(group)
+    assignee = group.get_assignee()
     if not assignee:
         return None
-    return {"type": "TextBlock", "size": "Small", "text": f"**Assigned to {assignee}**"}
+
+    assignee_text = format_actor_option(assignee)["text"]
+
+    return {
+        "type": "TextBlock",
+        "size": "Small",
+        "text": f"**Assigned to {assignee_text}**",
+    }
 
 
 def build_group_card(group, event, rules, integration):
