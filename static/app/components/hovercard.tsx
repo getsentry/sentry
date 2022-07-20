@@ -2,7 +2,6 @@ import {Fragment} from 'react';
 import {createPortal} from 'react-dom';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import classNames from 'classnames';
 import {AnimatePresence} from 'framer-motion';
 
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
@@ -83,7 +82,7 @@ function Hovercard({
         }}
         originPoint={arrowData}
         placement={placement}
-        className={classNames('hovercard', className)}
+        className={className}
       >
         {header ? <Header>{header}</Header> : null}
         {body ? <Body className={bodyClassName}>{body}</Body> : null}
@@ -102,6 +101,13 @@ function Hovercard({
 const StyledHovercard = styled(Overlay)`
   width: 295px;
   line-height: 1.2;
+
+  h6 {
+    color: ${p => p.theme.subText};
+    font-size: ${p => p.theme.fontSizeExtraSmall};
+    margin-bottom: ${space(1)};
+    text-transform: uppercase;
+  }
 `;
 
 const Header = styled('div')`
@@ -119,4 +125,28 @@ const Body = styled('div')`
   min-height: 30px;
 `;
 
-export {Hovercard, Header, Body};
+const Divider = styled('div')`
+  position: relative;
+  margin-top: ${space(1.5)};
+  margin-bottom: ${space(1)};
+
+  &:before {
+    display: block;
+    position: absolute;
+    content: '';
+    height: 1px;
+    top: 50%;
+    left: ${space(2)};
+    right: ${space(2)};
+    background: ${p => p.theme.innerBorder};
+    z-index: -1;
+  }
+
+  h6 {
+    display: inline;
+    padding-right: ${space(1)};
+    background: ${p => p.theme.background};
+  }
+`;
+
+export {Hovercard, Header, Body, Divider};
