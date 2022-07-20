@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
@@ -24,11 +25,13 @@ function Tags({event, organization, projectSlug, location, hasContext}: Props) {
   return (
     <div>
       {hasContext && (
-        <TagsHighlightWrapper>
-          <TagsHighlight event={event} />
-        </TagsHighlightWrapper>
+        <Fragment>
+          <TagsHighlightWrapper>
+            <TagsHighlight event={event} />
+          </TagsHighlightWrapper>
+          <Divider />
+        </Fragment>
       )}
-      <Divider />
       <StyledDataSection
         title={t('Tags')}
         description={t(
