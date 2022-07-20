@@ -1848,7 +1848,9 @@ class MetricsQueryBuilder(QueryBuilder):
         return self._indexer_cache[value]
 
     def _resolve_tag_value(self, value: str) -> Union[int, str]:
-        if options.get("sentry-metrics.performance.tags-values-are-strings"):
+        if self.is_performance and options.get(
+            "sentry-metrics.performance.tags-values-are-strings"
+        ):
             return value
         if self.dry_run:
             return -1

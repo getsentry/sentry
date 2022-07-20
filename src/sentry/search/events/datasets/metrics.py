@@ -62,7 +62,9 @@ class MetricsDatasetConfig(DatasetConfig):
         return metric_id
 
     def resolve_tag_value(self, value: str) -> Union[str, int]:
-        if options.get("sentry-metrics.performance.tags-values-are-strings"):
+        if self.builder.is_performance and options.get(
+            "sentry-metrics.performance.tags-values-are-strings"
+        ):
             return value
         return self.resolve_value(value)
 
