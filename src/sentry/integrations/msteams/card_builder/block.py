@@ -1,16 +1,20 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import cast
+from typing import TYPE_CHECKING, Any
 
-from sentry.integrations.msteams.card_builder import (
-    Action,
-    ColumnBlock,
-    ColumnSetBlock,
-    ImageBlock,
-    ItemBlock,
-    TextBlock,
-)
+# Prevent circular imports for the time being, till functionality is
+# moved out of card_builder/__init__.py where types are defined.
+if TYPE_CHECKING:
+    from sentry.integrations.msteams.card_builder import (
+        Action,
+        ColumnBlock,
+        ColumnSetBlock,
+        ImageBlock,
+        ItemBlock,
+        TextBlock,
+    )
+
 from sentry.utils.assets import get_asset_url
 from sentry.utils.http import absolute_uri
 
@@ -62,7 +66,7 @@ REQUIRED_ACTION_PARAM = {
 }
 
 
-def create_text_block(text: str, **kwargs: str) -> TextBlock:
+def create_text_block(text: str, **kwargs: str | bool) -> TextBlock:
     return {
         "type": "TextBlock",
         "text": text,
@@ -72,6 +76,10 @@ def create_text_block(text: str, **kwargs: str) -> TextBlock:
 
 
 def create_logo_block(**kwargs: str) -> ImageBlock:
+    # Default size if no size is given
+    if "height" not in kwargs:
+        kwargs["size"] = ImageSize.MEDIUM
+
     return create_image_block(get_asset_url("sentry", SENTRY_ICON_URL), **kwargs)
 
 
@@ -79,12 +87,11 @@ def create_image_block(url: str, **kwargs: str) -> ImageBlock:
     return {
         "type": "Image",
         "url": absolute_uri(url),
-        "size": ImageSize.MEDIUM,
         **kwargs,
     }
 
 
-def create_column_block(item: ItemBlock, **kwargs: str) -> ColumnBlock:
+def create_column_block(item: ItemBlock, **kwargs: Any) -> ColumnBlock:
     kwargs["width"] = kwargs.get("width", ColumnWidth.AUTO)
 
     if isinstance(item, str):
@@ -101,7 +108,9 @@ def ensure_column_block(item: ItemBlock | ColumnBlock) -> ColumnBlock:
     if isinstance(item, dict) and "Column" == item.get("type", ""):
         return item
 
-    return create_column_block(cast(ItemBlock, item))
+    item: ItemBlock = item
+
+    return create_column_block(item)
 
 
 def create_column_set_block(*columns: ItemBlock | ColumnBlock) -> ColumnSetBlock:
@@ -111,7 +120,7 @@ def create_column_set_block(*columns: ItemBlock | ColumnBlock) -> ColumnSetBlock
     }
 
 
-def create_action_block(action_type: ActionType, title: str, **kwargs: str) -> Action:
+def create_action_block(action_type: ActionType, title: str, **kwargs: Any) -> Action:
     param = REQUIRED_ACTION_PARAM[action_type]
 
     return {
