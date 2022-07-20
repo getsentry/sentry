@@ -74,7 +74,15 @@ class MetricsDatasetConfig(DatasetConfig):
             value = parameter_values[argument.name]
             for measurement in self.builder.custom_measurement_map:
                 if measurement["name"] == value and measurement["metric_id"] is not None:
-                    return measurement["unit"]
+                    unit = measurement["unit"]
+                    if unit in constants.SIZE_UNITS or unit in constants.DURATION_UNITS:
+                        return unit
+                    elif unit == "none":
+                        return "integer"
+                    elif unit in constants.PERCENT_UNITS:
+                        return "percentage"
+                    else:
+                        return "number"
             return "duration"
 
         return result_type_fn
