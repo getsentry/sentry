@@ -57,14 +57,10 @@ function ReplayTimeline({}: Props) {
                   startTimestamp={startTimestamp}
                 />
               </UnderTimestamp>
-              <TimelinePosition
-                color={theme.purple300}
-                currentTime={currentTime}
-                duration={duration}
-              />
+              <TimelinePosition currentTime={currentTime} duration={duration} />
               {currentHoverTime ? (
                 <TimelinePosition
-                  color={theme.purple200}
+                  color={theme.purple300}
                   currentTime={currentHoverTime}
                   duration={duration}
                 />
