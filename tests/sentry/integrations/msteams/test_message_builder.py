@@ -1,5 +1,4 @@
 import re
-import time
 
 import pytest
 
@@ -54,11 +53,7 @@ class MSTeamsMessageBuilderTest(TestCase):
             provider="msteams",
             name="Fellowship of the Ring",
             external_id="f3ll0wsh1p",
-            metadata={
-                "service_url": "https://smba.trafficmanager.net/amer",
-                "access_token": "y0u_5h4ll_n07_p455",
-                "expires_at": int(time.time()) + 86400,
-            },
+            metadata={},
         )
         OrganizationIntegration.objects.create(organization=self.org, integration=self.integration)
 
