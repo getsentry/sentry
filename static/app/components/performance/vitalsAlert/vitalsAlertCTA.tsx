@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import maxBy from 'lodash/maxBy';
 
 import {promptsUpdate} from 'sentry/actionCreators/prompts';
 import {
@@ -15,9 +16,13 @@ import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAna
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import {INDUSTRY_STANDARDS, SENTRY_CUSTOMERS} from './constants';
+import {
+  INDUSTRY_STANDARDS,
+  MIN_VITAL_COUNT_FOR_DISPLAY,
+  SENTRY_CUSTOMERS,
+} from './constants';
 import {VitalsKey, VitalsResult} from './types';
-import {getRelativeDiff, getWorstVital} from './utils';
+import {getCountParameterName, getRelativeDiff, getWorstVital} from './utils';
 
 interface Props {
   data: VitalsResult;
@@ -70,18 +75,36 @@ export default function VitalsAlertCTA({data, dismissAlert}: Props) {
   // persist to dismiss alert
   const api = useApi({persistInFlight: true});
   const vital = getWorstVital(data);
-  if (!vital) {
-    return null;
-  }
-  const ourValue = data[vital];
-  if (!ourValue) {
-    return null;
-  }
-  const sentryDiff = getRelativeDiff(ourValue, SENTRY_CUSTOMERS[vital]);
-  const industryDiff = getRelativeDiff(ourValue, INDUSTRY_STANDARDS[vital]);
+  const userVitalValue = vital ? data[vital] : 0;
+  const sentryDiff = vital ? getRelativeDiff(userVitalValue, SENTRY_CUSTOMERS[vital]) : 0;
+  const industryDiff = vital
+    ? getRelativeDiff(userVitalValue, INDUSTRY_STANDARDS[vital])
+    : 0;
 
-  // if worst vital is better than Sentry users, we shouldn't show this alert
-  if (sentryDiff < 0) {
+  const hasGlobalViews = organization.features.includes('global-views');
+  // find the project that has the most events of the same type
+  const bestProjectData = vital
+    ? maxBy(data.projectData, item => {
+        const parameterName = getCountParameterName(vital);
+        return item[parameterName];
+      })
+    : null;
+
+  const showVitalsAlert = () => {
+    // check if we have the vital and the count is at least at the min
+    if (!vital || userVitalValue < MIN_VITAL_COUNT_FOR_DISPLAY) {
+      return false;
+    }
+    // if worst vital is better than Sentry users, we shouldn't show this alert
+    if (sentryDiff < 0) {
+      return false;
+    }
+    // must have either global views enabled or we can pick a specific project
+    return hasGlobalViews || bestProjectData;
+  };
+
+  // TODO: log experiment
+  if (!vital || !showVitalsAlert()) {
     return null;
   }
 
@@ -109,12 +132,16 @@ export default function VitalsAlertCTA({data, dismissAlert}: Props) {
   };
 
   const getVitalsURL = () => {
-    // TODO: add logic for project selection
     const performanceRoot = `/organizations/${organization.slug}/performance`;
-    const baseParams = {
+    const baseParams: Record<string, string> = {
       statsPeriod: '7d',
       referrer: `vitals-alert-${vital.toLowerCase()}`,
     };
+    // specify a specific project if we have to and we can
+    if (!hasGlobalViews && bestProjectData) {
+      baseParams.project = bestProjectData.projectId;
+    }
+
     // we can land on a specific web vital
     if (vitalsType === 'web') {
       const searchParams = new URLSearchParams({
