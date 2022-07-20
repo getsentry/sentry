@@ -65,14 +65,17 @@ export class MEPSetting {
 export const MEPSettingProvider = ({
   children,
   _hasMEPState,
+  forceMetricsOnly,
 }: {
   children: ReactNode;
   _hasMEPState?: MEPState;
+  forceMetricsOnly?: boolean;
 }) => {
   const organization = useOrganization();
-  const canUseMEP = organization.features.includes('performance-use-metrics');
+  const canUseMEP =
+    organization.features.includes('performance-use-metrics') || forceMetricsOnly;
 
-  const isControlledMEP = typeof _hasMEPState !== 'undefined';
+  const isControlledMEP = typeof _hasMEPState !== 'undefined' || forceMetricsOnly;
 
   const [_metricSettingState, setMetricSettingState] = useReducer(
     (_: MEPState, next: MEPState) => next,
@@ -83,7 +86,11 @@ export const MEPSettingProvider = ({
     AutoSampleState.unset
   );
 
-  const metricSettingState = isControlledMEP ? _hasMEPState : _metricSettingState;
+  const metricSettingState = isControlledMEP
+    ? forceMetricsOnly
+      ? MEPState.metricsOnly
+      : _hasMEPState
+    : _metricSettingState;
 
   const hideSinceMetricsOnly =
     canUseMEP &&

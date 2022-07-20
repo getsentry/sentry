@@ -27,12 +27,13 @@ type SearchBarProps = {
 };
 
 function SearchBar(props: SearchBarProps) {
-  const {organization, eventView, onSearch, query: searchQuery} = props;
+  const {organization, eventView: _eventView, onSearch, query: searchQuery} = props;
   const [searchResults, setSearchResults] = useState<SearchGroup[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchString, setSearchString] = useState(searchQuery);
 
   const api = useApi();
+  const eventView = _eventView.clone();
 
   const prepareQuery = (query: string) => {
     const prependedChar = query[0] === '*' ? '' : '*';
@@ -74,6 +75,7 @@ function SearchBar(props: SearchBarProps) {
           sort: '-count()',
           query: conditions.formatString(),
           statsPeriod: eventView.statsPeriod,
+          referrer: 'api.performance.transaction-name-search-bar',
         });
 
         const parsedResults = results.data.reduce(

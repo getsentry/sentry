@@ -442,8 +442,14 @@ function generateGenericPerformanceEventView(
     const parsedFreeText = withStaticFilters
       ? decodeScalar(conditions.freeText, '')
       : conditions.freeText.join(' ');
-    // the query here is a user entered condition, no need to escape it
-    conditions.setFilterValues('transaction', [`*${parsedFreeText}*`], false);
+
+    if (withStaticFilters) {
+      // the query here is a user entered condition, no need to escape it
+      conditions.setFilterValues('transaction', [`${parsedFreeText}`], false);
+    } else {
+      // the query here is a user entered condition, no need to escape it
+      conditions.setFilterValues('transaction', [`*${parsedFreeText}*`], false);
+    }
     conditions.freeText = [];
   }
   savedQuery.query = conditions.formatString();
@@ -519,8 +525,13 @@ function generateBackendPerformanceEventView(
       ? decodeScalar(conditions.freeText, '')
       : conditions.freeText.join(' ');
 
-    // the query here is a user entered condition, no need to escape it
-    conditions.setFilterValues('transaction', [`*${parsedFreeText}*`], false);
+    if (withStaticFilters) {
+      // the query here is a user entered condition, no need to escape it
+      conditions.setFilterValues('transaction', [`${parsedFreeText}`], false);
+    } else {
+      // the query here is a user entered condition, no need to escape it
+      conditions.setFilterValues('transaction', [`*${parsedFreeText}*`], false);
+    }
     conditions.freeText = [];
   }
   savedQuery.query = conditions.formatString();
@@ -601,8 +612,13 @@ function generateMobilePerformanceEventView(
         decodeScalar(conditions.freeText, '')
       : conditions.freeText.join(' ');
 
-    // the query here is a user entered condition, no need to escape it
-    conditions.setFilterValues('transaction', [`*${parsedFreeText}*`], false);
+    if (withStaticFilters) {
+      // the query here is a user entered condition, no need to escape it
+      conditions.setFilterValues('transaction', [`${parsedFreeText}`], false);
+    } else {
+      // the query here is a user entered condition, no need to escape it
+      conditions.setFilterValues('transaction', [`*${parsedFreeText}*`], false);
+    }
     conditions.freeText = [];
   }
   savedQuery.query = conditions.formatString();
@@ -669,8 +685,13 @@ function generateFrontendPageloadPerformanceEventView(
         decodeScalar(conditions.freeText, '')
       : conditions.freeText.join(' ');
 
-    // the query here is a user entered condition, no need to escape it
-    conditions.setFilterValues('transaction', [`*${parsedFreeText}*`], false);
+    if (withStaticFilters) {
+      // the query here is a user entered condition, no need to escape it
+      conditions.setFilterValues('transaction', [`${parsedFreeText}`], false);
+    } else {
+      // the query here is a user entered condition, no need to escape it
+      conditions.setFilterValues('transaction', [`*${parsedFreeText}*`], false);
+    }
     conditions.freeText = [];
   }
   savedQuery.query = conditions.formatString();
@@ -738,8 +759,14 @@ function generateFrontendOtherPerformanceEventView(
         decodeScalar(conditions.freeText, '')
       : conditions.freeText.join(' ');
 
-    // the query here is a user entered condition, no need to escape it
-    conditions.setFilterValues('transaction', [`*${parsedFreeText}*`], false);
+    if (withStaticFilters) {
+      // the query here is a user entered condition, no need to escape it
+      conditions.setFilterValues('transaction', [`${parsedFreeText}`], false);
+    } else {
+      // the query here is a user entered condition, no need to escape it
+      conditions.setFilterValues('transaction', [`*${parsedFreeText}*`], false);
+    }
+
     conditions.freeText = [];
   }
   savedQuery.query = conditions.formatString();
