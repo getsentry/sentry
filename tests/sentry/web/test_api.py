@@ -128,16 +128,17 @@ class ClientConfigViewTest(TestCase):
         assert resp.status_code == 200
         assert resp["Content-Type"] == "application/json"
 
-        resp = self.client.get(self.path)
-        assert resp.status_code == 200
-        assert resp["Content-Type"] == "application/json"
+        with self.options({"system.organization-base-hostname": "{slug}.{region}.testserver"}):
+            resp = self.client.get(self.path)
+            assert resp.status_code == 200
+            assert resp["Content-Type"] == "application/json"
 
-        data = json.loads(resp.content)
+            data = json.loads(resp.content)
 
-        assert data["isAuthenticated"] is True
-        assert data["lastOrganization"] == self.organization.slug
-        assert data["sentryUrl"] == "http://testserver"
-        assert data["organizationUrl"] == f"http://{self.organization.slug}.us.testserver"
+            assert data["isAuthenticated"] is True
+            assert data["lastOrganization"] == self.organization.slug
+            assert data["sentryUrl"] == "http://testserver"
+            assert data["organizationUrl"] == f"http://{self.organization.slug}.us.testserver"
 
     def test_organization_url_region(self):
         self.login_as(self.user)
@@ -149,7 +150,7 @@ class ClientConfigViewTest(TestCase):
         assert resp.status_code == 200
         assert resp["Content-Type"] == "application/json"
 
-        with self.options({"system.region": "eu"}):
+        with self.options({"system.region": "eu", "system.organization-base-hostname": "{region}.{slug}.testserver"}):
             resp = self.client.get(self.path)
             assert resp.status_code == 200
             assert resp["Content-Type"] == "application/json"
@@ -159,7 +160,7 @@ class ClientConfigViewTest(TestCase):
             assert data["isAuthenticated"] is True
             assert data["lastOrganization"] == self.organization.slug
             assert data["sentryUrl"] == "http://testserver"
-            assert data["organizationUrl"] == f"http://{self.organization.slug}.eu.testserver"
+            assert data["organizationUrl"] == f"http://eu.{self.organization.slug}.testserver"
 
     def test_organization_url_organization_base_hostname(self):
         self.login_as(self.user)
@@ -182,6 +183,18 @@ class ClientConfigViewTest(TestCase):
             assert data["lastOrganization"] == self.organization.slug
             assert data["sentryUrl"] == "http://testserver"
             assert data["organizationUrl"] == "http://testserver"
+
+        with self.options({"system.organization-base-hostname": "{region}.testserver"}):
+            resp = self.client.get(self.path)
+            assert resp.status_code == 200
+            assert resp["Content-Type"] == "application/json"
+
+            data = json.loads(resp.content)
+
+            assert data["isAuthenticated"] is True
+            assert data["lastOrganization"] == self.organization.slug
+            assert data["sentryUrl"] == "http://testserver"
+            assert data["organizationUrl"] == "http://us.testserver"
 
         with self.options({"system.organization-base-hostname": "{region}.{slug}.testserver"}):
             resp = self.client.get(self.path)
@@ -229,7 +242,7 @@ class ClientConfigViewTest(TestCase):
             assert data["sentryUrl"] == "http://testserver"
             assert data["organizationUrl"] == "http://testserver"
 
-        with self.options({"system.organization-url-template": "ftp://{hostname}"}):
+        with self.options({"system.organization-url-template": "ftp://{hostname}", "system.organization-base-hostname": "{slug}.{region}.testserver"}):
             resp = self.client.get(self.path)
             assert resp.status_code == 200
             assert resp["Content-Type"] == "application/json"
