@@ -95,7 +95,7 @@ function SentryFunctionDetails(props: Props) {
                 height="40vh"
                 theme="light"
                 defaultLanguage="javascript"
-                defaultValue='for (let i = 0; i < cars.length; i++) {text += cars[i] + "<br>";}'
+                defaultValue='function yourFunction() { console.log("Hello World");}'
                 onMount={handleEditorDidMount}
                 options={{
                   minimap: {
