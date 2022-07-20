@@ -92,7 +92,6 @@ DURATION_UNITS = {
     "microsecond",
     "millisecond",
     "second",
-    "second",
     "minute",
     "hour",
     "day",
