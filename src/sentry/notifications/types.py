@@ -42,6 +42,8 @@ class NotificationSettingTypes(Enum):
 
     # Notifications for changes in assignment, resolution, comments, etc.
     WORKFLOW = 30
+    # Notification when an issue happens shortly after your release.
+    ACTIVE_RELEASE = 31
 
     # Notifications that require approval like a request to invite a member
     APPROVAL = 40
@@ -63,6 +65,7 @@ NOTIFICATION_SETTING_TYPES = {
     NotificationSettingTypes.DEPLOY: "deploy",
     NotificationSettingTypes.ISSUE_ALERTS: "alerts",
     NotificationSettingTypes.WORKFLOW: "workflow",
+    NotificationSettingTypes.ACTIVE_RELEASE: "activeRelease",
     NotificationSettingTypes.APPROVAL: "approval",
     NotificationSettingTypes.QUOTA: "quota",
     NotificationSettingTypes.QUOTA_ERRORS: "quotaErrors",
@@ -128,6 +131,7 @@ class FineTuningAPIKey(Enum):
     QUOTA = "quota"
     REPORTS = "reports"
     WORKFLOW = "workflow"
+    ACTIVE_RELEASE = "activeRelease"
 
 
 class UserOptionsSettingsKey(Enum):
@@ -136,6 +140,7 @@ class UserOptionsSettingsKey(Enum):
     SELF_ASSIGN = "selfAssignOnResolve"
     SUBSCRIBE_BY_DEFAULT = "subscribeByDefault"
     WORKFLOW = "workflowNotifications"
+    ACTIVE_RELEASE = "activeReleaseNotifications"
     APPROVAL = "approvalNotifications"
     QUOTA = "quotaNotifications"
 
@@ -177,6 +182,10 @@ VALID_VALUES_FOR_KEY = {
     NotificationSettingTypes.WORKFLOW: {
         NotificationSettingOptionValues.ALWAYS,
         NotificationSettingOptionValues.SUBSCRIBE_ONLY,
+        NotificationSettingOptionValues.NEVER,
+    },
+    NotificationSettingTypes.ACTIVE_RELEASE: {
+        NotificationSettingOptionValues.ALWAYS,
         NotificationSettingOptionValues.NEVER,
     },
 }
