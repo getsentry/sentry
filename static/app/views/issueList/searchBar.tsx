@@ -57,7 +57,7 @@ const getSupportedTags = (supportedTags: {[key: string]: Tag}) => {
       key,
       {
         ...supportedTags[key],
-        kind: supportedTags[key].predefined ? FieldValueKind.TAG : FieldValueKind.FIELD,
+        kind: supportedTags[key].predefined ? FieldValueKind.FIELD : FieldValueKind.TAG,
       },
     ])
   );
