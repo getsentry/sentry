@@ -15,9 +15,7 @@ from sentry.integrations.msteams.card_builder import (
     TextBlock,
 )
 from sentry.integrations.msteams.card_builder.utils import IssueConstants
-
-# TODO: Move these to a location common to both msteams and slack.
-from sentry.integrations.slack.message_builder.issues import (
+from sentry.integrations.notifications import (
     build_attachment_text,
     build_attachment_title,
     build_footer,
