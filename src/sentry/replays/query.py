@@ -130,8 +130,8 @@ def make_select_statement() -> List[Union[Column, Function]]:
         _grouped_unique_scalar_value(column_name="user_name"),
         _grouped_unique_scalar_value(column_name="sdk_name"),
         _grouped_unique_scalar_value(column_name="sdk_version"),
-        _grouped_unique_scalar_value(column_name="tags.key"),
-        _grouped_unique_scalar_value(column_name="tags.value"),
+        _grouped_unique_values(column_name="tags.key"),
+        _grouped_unique_values(column_name="tags.value"),
         # Flatten array of arrays.
         Function(
             "arrayMap",
