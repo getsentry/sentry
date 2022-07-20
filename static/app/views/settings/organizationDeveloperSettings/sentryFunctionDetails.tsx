@@ -71,6 +71,8 @@ function SentryFunctionDetails(props: Props) {
     }
   }
 
+  const defaultCode =
+    "exports.yourFunction = (req, res) => {\n\tlet message = req.query.message || req.body.message || 'Hello World!';\n\tconsole.log('Query: ' + req.query);\n\tconsole.log('Body: ' + req.body);\n\tres.status(200).send(message);\n};";
   return (
     <div>
       <Feature features={['organizations:sentry-functions']}>
@@ -95,7 +97,7 @@ function SentryFunctionDetails(props: Props) {
                 height="40vh"
                 theme="light"
                 defaultLanguage="javascript"
-                defaultValue='function yourFunction() { console.log("Hello World");}'
+                defaultValue={defaultCode}
                 onMount={handleEditorDidMount}
                 options={{
                   minimap: {
