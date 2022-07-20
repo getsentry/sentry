@@ -8,6 +8,9 @@ type Rule = {
 };
 
 export type SamplingEventParameters = {
+  'sampling.sdk.updgrades.alert': {
+    project_id: string;
+  };
   'sampling.settings.modal.recommended.next.steps_back': {
     project_id: string;
   };
@@ -65,6 +68,11 @@ export type SamplingEventParameters = {
     project_id: string;
     sampling_rate: Rule['sampling_rate'];
   };
+  'sampling.settings.rule.uniform_save': {
+    old_sampling_rate: Rule['sampling_rate'];
+    project_id: string;
+    sampling_rate: Rule['sampling_rate'];
+  };
   'sampling.settings.rule.uniform_update': {
     old_sampling_rate: Rule['sampling_rate'];
     project_id: string;
@@ -82,6 +90,7 @@ export type SamplingEventParameters = {
 type SamplingAnalyticsKey = keyof SamplingEventParameters;
 
 export const samplingEventMap: Record<SamplingAnalyticsKey, string> = {
+  'sampling.sdk.updgrades.alert': 'Recommended SDK upgrades alert',
   'sampling.settings.modal.recommended.next.steps_back': 'Go back to uniform rate step',
   'sampling.settings.modal.recommended.next.steps_cancel':
     'Cancel at recommended next steps step ',
@@ -107,6 +116,7 @@ export const samplingEventMap: Record<SamplingAnalyticsKey, string> = {
   'sampling.settings.rule.uniform_activate': 'Activate Uniform Sampling Rule',
   'sampling.settings.rule.uniform_create': 'Create Uniform Sampling Rule',
   'sampling.settings.rule.uniform_deactivate': 'Deactivate Uniform Sampling Rule',
+  'sampling.settings.rule.uniform_save': 'Save Uniform Sampling Rule', // fired for both create and update
   'sampling.settings.rule.uniform_update': 'Update Uniform Sampling Rule',
   'sampling.settings.view': 'View Sampling Settings',
   'sampling.settings.view_get_started': 'Get Started with Sampling',

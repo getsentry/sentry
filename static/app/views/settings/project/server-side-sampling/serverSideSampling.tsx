@@ -353,6 +353,13 @@ export function ServerSideSampling({project}: Props) {
       }
     );
 
+    trackAdvancedAnalyticsEvent('sampling.settings.rule.uniform_save', {
+      organization,
+      project_id: project.id,
+      sampling_rate: newRule.sampleRate,
+      old_sampling_rate: rule ? rule.sampleRate : null,
+    });
+
     const newRules = rule
       ? rules.map(existingRule => (existingRule.id === rule.id ? newRule : existingRule))
       : [...rules, newRule];
