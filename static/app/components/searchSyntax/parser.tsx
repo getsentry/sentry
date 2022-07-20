@@ -711,16 +711,17 @@ type KVConverter<T extends Token> = ConverterResultMap[KVTokens] & {type: T};
  */
 export type TokenResult<T extends Token> = ConverterResultMap[Converter] & {type: T};
 
-/**
- * Result from parsing a search query.
- */
-export type ParseResult = Array<
+type ParseResultItem =
   | TokenResult<Token.LogicBoolean>
   | TokenResult<Token.LogicGroup>
   | TokenResult<Token.Filter>
   | TokenResult<Token.FreeText>
-  | TokenResult<Token.Spaces>
->;
+  | TokenResult<Token.Spaces>;
+
+/**
+ * Result from parsing a search query.
+ */
+export type ParseResult = Array<ParseResultItem>;
 
 /**
  * Configures behavior of search parsing
@@ -819,6 +820,67 @@ export function parseSearch(query: string): ParseResult | null {
   return null;
 }
 
+function getParsedTermPart(part: KVConverter<Token>): string {
+  let elements: (string | boolean | null | undefined)[] = [];
+  // TODO: @taylangocmen implement other types
+
+  if (
+    part.type === Token.KeySimple ||
+    part.type === Token.KeyAggregateParam ||
+    part.type === Token.ValueText
+  ) {
+    elements = [part.text ?? part.value];
+  }
+
+  if (part.type === Token.ValueBoolean) {
+    elements = [String(part.text ?? part.value)];
+  }
+
+  if (part.type === Token.ValueDuration) {
+    elements = [part.text ?? part.value, part.unit];
+  }
+
+  if (part.type === Token.ValueRelativeDate) {
+    elements = [part.sign, part.text ?? part.value, part.unit];
+  }
+
+  if (part.type === Token.KeyAggregate) {
+    elements = [
+      getParsedTermPart(part.name),
+      '(',
+      part.args && getParsedTermPart(part.args),
+      ')',
+    ];
+  }
+
+  if (part.type === Token.KeyAggregateArgs) {
+    elements = part.args.map(arg => arg.value && getParsedTermPart(arg.value));
+  }
+
+  return elements.filter(p => p).join('');
+}
+
+function getTermQuery(parsedTerm: ParseResultItem): string {
+  if (parsedTerm.type === Token.Spaces) {
+    return parsedTerm.value;
+  }
+
+  if (parsedTerm.type === Token.Filter) {
+    return [
+      parsedTerm.negated ? '!' : '',
+      parsedTerm.key ? getParsedTermPart(parsedTerm.key) : '',
+      parsedTerm.key && parsedTerm.value ? ':' : '',
+      parsedTerm.operator ?? '',
+      parsedTerm.value ? getParsedTermPart(parsedTerm.value) : '',
+    ]
+      .filter(p => p)
+      .join('');
+  }
+
+  // TODO: @taylangocmen implement other types
+  return parsedTerm.text ?? '';
+}
+
 /**
  * Join a parsed query array into a string.
  * Should handle null cases to chain easily with parseSearch.
@@ -837,7 +899,9 @@ export function joinQuery(
   return (
     (leadingSpace ? ' ' : '') +
     (parsedTerms.length === 1
-      ? parsedTerms[0].text
-      : parsedTerms.map(p => p.text).join(additionalSpaceBetween ? ' ' : ''))
+      ? getTermQuery(parsedTerms[0])
+      : additionalSpaceBetween
+      ? parsedTerms.map(getTermQuery).join(' ')
+      : parsedTerms.map(getTermQuery).reduce((a, b) => a + b))
   );
 }

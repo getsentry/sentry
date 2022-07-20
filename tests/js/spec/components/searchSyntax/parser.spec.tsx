@@ -1,6 +1,7 @@
 import {loadFixtures} from 'sentry-test/loadFixtures';
 
 import {
+  joinQuery,
   ParseResult,
   parseSearch,
   Token,
@@ -74,9 +75,17 @@ describe('searchSyntax/parser', function () {
       expect(normalizeResult(result)).toEqual(testCase.result);
     });
 
+  const registerReverseTestCase = (testCase: TestCase) =>
+    it(`handles reverse ${testCase.query}`, () => {
+      const result = joinQuery(testCase.result);
+
+      expect(result).toEqual(testCase.query);
+    });
+
   Object.entries(testData).map(([name, cases]) =>
     describe(`${name}`, () => {
       cases.map(registerTestCase);
+      cases.map(registerReverseTestCase);
     })
   );
 });
