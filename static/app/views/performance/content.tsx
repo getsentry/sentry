@@ -145,10 +145,14 @@ function PerformanceContent({selection, location, demoMode}: Props) {
     });
   }
 
+  const forceMetricsOnly = organization.features.includes(
+    'performance-transaction-name-only-search'
+  );
+
   return (
     <SentryDocumentTitle title={t('Performance')} orgSlug={organization.slug}>
       <PerformanceEventViewProvider value={{eventView}}>
-        <MEPSettingProvider>
+        <MEPSettingProvider forceMetricsOnly={forceMetricsOnly}>
           <PageFiltersContainer
             defaultSelection={{
               datetime: {

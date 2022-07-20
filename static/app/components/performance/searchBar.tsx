@@ -20,29 +20,33 @@ import {ItemType, SearchGroup} from '../smartSearchBar/types';
 type SearchBarProps = {
   eventView: EventView;
   location: Location;
+  onSearch: (query: string) => void;
   organization: Organization;
+  query: string;
 };
 
 function SearchBar(props: SearchBarProps) {
-  const {organization, eventView} = props;
+  const {organization, eventView: _eventView, onSearch, query: searchQuery} = props;
   const [searchResults, setSearchResults] = useState<SearchGroup[]>([]);
   const [loading, setLoading] = useState(false);
+  const [searchString, setSearchString] = useState(searchQuery);
 
   const api = useApi();
+  const eventView = _eventView.clone();
 
   const prepareQuery = (query: string) => {
     const prependedChar = query[0] === '*' ? '' : '*';
-    const appendedhar = query[query.length - 1] === '*' ? '' : '*';
-    return `${prependedChar}${query}${appendedhar}`;
+    const appendedChar = query[query.length - 1] === '*' ? '' : '*';
+    return `${prependedChar}${query}${appendedChar}`;
   };
 
-  const handleSearch = debounce(
+  const getSuggestedTransactions = debounce(
     async query => {
       if (query.length < 3) {
         setSearchResults([]);
         return;
       }
-
+      setSearchString(query);
       const projectIdStrings = (eventView.project as Readonly<number>[])?.map(String);
       try {
         setLoading(true);
@@ -67,9 +71,10 @@ function SearchBar(props: SearchBarProps) {
         }>(api, url, {
           field: ['transaction', 'project_id', 'count()'],
           project: projectIdStrings,
-          sort: '-transaction',
+          sort: '-count()',
           query: conditions.formatString(),
           statsPeriod: eventView.statsPeriod,
+          referrer: 'api.performance.transaction-name-search-bar',
         });
 
         const parsedResults = results.data.reduce(
@@ -77,14 +82,18 @@ function SearchBar(props: SearchBarProps) {
             searchGroup.children.push({
               value: `${item.transaction}:${item.project_id}`,
               title: item.transaction,
-              type: ItemType.DEFAULT,
+              type: ItemType.LINK,
               desc: '',
             });
             return searchGroup;
           },
-          {title: '', children: [], icon: null, type: ItemType.DEFAULT}
+          {
+            title: 'All Transactions',
+            children: [],
+            icon: null,
+            type: 'header',
+          }
         );
-
         setSearchResults([parsedResults]);
       } catch (_) {
         throw new Error('Unable to fetch event field values');
@@ -96,11 +105,20 @@ function SearchBar(props: SearchBarProps) {
     {leading: true}
   );
 
+  const handleSearch = (query: string) => {
+    const lastIndex = query.lastIndexOf(':');
+    const transactionName = query.slice(0, lastIndex);
+    setSearchResults([]);
+    setSearchString(transactionName);
+    onSearch(transactionName);
+  };
+
   const navigateToTransactionSummary = (name: string) => {
     const lastIndex = name.lastIndexOf(':');
     const transactionName = name.slice(0, lastIndex);
     const projectId = name.slice(lastIndex + 1);
     const query = eventView.generateQueryStringObject();
+    setSearchResults([]);
 
     const next = transactionSummaryRouteWithQuery({
       orgSlug: organization.slug,
@@ -113,16 +131,22 @@ function SearchBar(props: SearchBarProps) {
 
   return (
     <Container data-test-id="transaction-search-bar">
-      <BaseSearchBar placeholder={t('Search Transactions')} onChange={handleSearch} />
+      <BaseSearchBar
+        placeholder={t('Search Transactions')}
+        onChange={getSuggestedTransactions}
+        query={searchString}
+      />
       <SearchDropdown
         css={{
           display: searchResults[0]?.children.length ? 'block' : 'none',
           maxHeight: '300px',
           overflowY: 'auto',
         }}
+        searchSubstring={searchString}
         loading={loading}
         items={searchResults}
-        onClick={navigateToTransactionSummary}
+        onClick={handleSearch}
+        onIconClick={navigateToTransactionSummary}
       />
     </Container>
   );
