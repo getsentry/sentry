@@ -16,7 +16,7 @@ __all__ = (
     "IntegrationTestCase",
     "SnubaTestCase",
     "BaseMetricsTestCase",
-    "SessionMetricsReleaseHealthTestCase",
+    "BaseMetricsTestCase",
     "BaseIncidentsTest",
     "IntegrationRepositoryTestCase",
     "ReleaseCommitPatchTest",
@@ -1152,8 +1152,6 @@ class BaseMetricsTestCase(SnubaTestCase):
             == 200
         )
 
-
-class SessionMetricsReleaseHealthTestCase(BaseMetricsTestCase):
     def store_session(self, session):
         """Mimic relays behavior of always emitting a metric for a started session,
         and emitting an additional one if the session is fatal
@@ -1745,7 +1743,7 @@ class SlackActivityNotificationTest(ActivityTestCase):
 
 @apply_feature_flag_on_cls("organizations:metrics")
 @pytest.mark.usefixtures("reset_snuba")
-class MetricsAPIBaseTestCase(SessionMetricsReleaseHealthTestCase, APITestCase):
+class MetricsAPIBaseTestCase(BaseMetricsTestCase, APITestCase):
     ...
 
 

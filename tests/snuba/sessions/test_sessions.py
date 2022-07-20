@@ -12,7 +12,7 @@ from sentry.release_health.sessions import SessionsReleaseHealthBackend
 from sentry.snuba.dataset import EntityKey
 from sentry.snuba.sessions import _make_stats
 from sentry.testutils import SnubaTestCase, TestCase
-from sentry.testutils.cases import SessionMetricsReleaseHealthTestCase
+from sentry.testutils.cases import BaseMetricsTestCase
 
 
 def parametrize_backend(cls):
@@ -25,7 +25,7 @@ def parametrize_backend(cls):
     assert not hasattr(cls, "backend")
     cls.backend = SessionsReleaseHealthBackend()
 
-    class MetricsTest(SessionMetricsReleaseHealthTestCase, cls):
+    class MetricsTest(BaseMetricsTestCase, cls):
         __doc__ = f"Repeat tests from {cls} with metrics"
         backend = MetricsReleaseHealthBackend()
 

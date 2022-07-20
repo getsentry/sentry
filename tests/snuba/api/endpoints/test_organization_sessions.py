@@ -9,7 +9,7 @@ from freezegun import freeze_time
 from sentry.release_health.duplex import DuplexReleaseHealthBackend
 from sentry.release_health.metrics import MetricsReleaseHealthBackend
 from sentry.testutils import APITestCase, SnubaTestCase
-from sentry.testutils.cases import BaseMetricsTestCase, SessionMetricsReleaseHealthTestCase
+from sentry.testutils.cases import BaseMetricsTestCase
 from sentry.testutils.helpers.features import Feature
 from sentry.testutils.helpers.link_header import parse_link_header
 from sentry.utils.cursors import Cursor
@@ -1089,7 +1089,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
 
 @patch("sentry.api.endpoints.organization_sessions.release_health", MetricsReleaseHealthBackend())
 class OrganizationSessionsEndpointMetricsTest(
-    SessionMetricsReleaseHealthTestCase, OrganizationSessionsEndpointTest
+    BaseMetricsTestCase, OrganizationSessionsEndpointTest
 ):
     """Repeat all tests with metrics backend"""
 
@@ -1539,7 +1539,7 @@ class OrganizationSessionsEndpointMetricsTest(
 
 
 @patch("sentry.api.endpoints.organization_sessions.release_health", MetricsReleaseHealthBackend())
-class SessionsMetricsSortReleaseTimestampTest(SessionMetricsReleaseHealthTestCase, APITestCase):
+class SessionsMetricsSortReleaseTimestampTest(BaseMetricsTestCase, APITestCase):
     def do_request(self, query, user=None, org=None):
         self.login_as(user=user or self.user)
         url = reverse(

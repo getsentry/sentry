@@ -62,6 +62,9 @@ def control_metrics_access(monkeypatch, request, set_sentry_option):
         old_build_results = snuba._apply_cache_and_build_results
 
         def new_build_results(*args, **kwargs):
+            if isinstance(args[0][0][0], dict):
+                # We only support snql queries, and metrics only go through snql
+                return old_build_results(*args, **kwargs)
             query = args[0][0][0].query
             is_performance_metrics = query.match.name.startswith("generic_metrics")
             is_metrics = "metrics" in query.match.name

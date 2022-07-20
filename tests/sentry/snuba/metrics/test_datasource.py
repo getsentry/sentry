@@ -9,14 +9,14 @@ from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.snuba.metrics.datasource import get_custom_measurements, get_series
 from sentry.snuba.metrics.query_builder import QueryDefinition
-from sentry.testutils import SessionMetricsReleaseHealthTestCase, TestCase
+from sentry.testutils import BaseMetricsTestCase, TestCase
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
 from sentry.testutils.helpers.datetime import before_now
 
 pytestmark = pytest.mark.sentry_metrics
 
 
-class DataSourceTestCase(TestCase, SessionMetricsReleaseHealthTestCase):
+class DataSourceTestCase(TestCase, BaseMetricsTestCase):
     def test_valid_filter_include_meta(self):
         self.create_release(version="foo", project=self.project)
         self.store_session(

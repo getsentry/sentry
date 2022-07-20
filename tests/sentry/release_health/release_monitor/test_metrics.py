@@ -1,7 +1,7 @@
 import pytest
 
 from sentry.release_health.release_monitor.metrics import MetricReleaseMonitorBackend
-from sentry.testutils import BaseMetricsTestCase, SessionMetricsReleaseHealthTestCase, TestCase
+from sentry.testutils import BaseMetricsTestCase, TestCase
 from tests.sentry.release_health.release_monitor import (
     BaseFetchProjectReleaseHealthTotalsTest,
     BaseFetchProjectsWithRecentSessionsTest,
@@ -17,6 +17,6 @@ class MetricFetchProjectsWithRecentSessionsTest(
 
 
 class SessionFetchProjectReleaseHealthTotalsTest(
-    BaseFetchProjectReleaseHealthTotalsTest, TestCase, SessionMetricsReleaseHealthTestCase
+    BaseFetchProjectReleaseHealthTotalsTest, TestCase, BaseMetricsTestCase
 ):
     backend_class = MetricReleaseMonitorBackend
