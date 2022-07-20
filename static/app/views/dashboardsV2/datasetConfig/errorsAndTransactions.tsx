@@ -505,6 +505,7 @@ function getEventsSeriesRequest(
       field: [...widgetQuery.columns, ...widgetQuery.aggregates],
       queryExtras: getDashboardsMEPQueryParams(isMEPEnabled),
       includeAllArgs: true,
+      topEvents: TOP_N,
     };
     if (widgetQuery.orderby) {
       requestData.orderby = widgetQuery.orderby;
