@@ -15,7 +15,7 @@ import {PlatformKey} from 'sentry/data/platformCategories';
 import platforms from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Project} from 'sentry/types';
+import {Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {Theme} from 'sentry/utils/theme';
@@ -41,6 +41,74 @@ type Props = {
   search: string;
   loadingProjects?: boolean;
 } & StepProps;
+
+function ProjecDocs(props: {
+  hasError: boolean;
+  onRetry: () => void;
+  organization: Organization;
+  platform: PlatformKey | null;
+  platformDocs: PlatformDoc | null;
+  project: Project;
+}) {
+  const testOnlyAlert = (
+    <Alert type="warning">
+      Platform documentation is not rendered in for tests in CI
+    </Alert>
+  );
+  const missingExampleWarning = () => {
+    const missingExample =
+      props.platformDocs && props.platformDocs.html.includes(INCOMPLETE_DOC_FLAG);
+
+    if (!missingExample) {
+      return null;
+    }
+
+    return (
+      <Alert type="warning" showIcon>
+        {tct(
+          `Looks like this getting started example is still undergoing some
+           work and doesn't include an example for triggering an event quite
+           yet. If you have trouble sending your first event be sure to consult
+           the [docsLink:full documentation] for [platform].`,
+          {
+            docsLink: <ExternalLink href={props.platformDocs?.link} />,
+            platform: platforms.find(p => p.id === props.platform)?.name,
+          }
+        )}
+      </Alert>
+    );
+  };
+
+  const docs = props.platformDocs !== null && (
+    <DocsWrapper key={props.platformDocs.html}>
+      <Content dangerouslySetInnerHTML={{__html: props.platformDocs.html}} />
+      {missingExampleWarning()}
+    </DocsWrapper>
+  );
+  const loadingError = (
+    <LoadingError
+      message={t(
+        'Failed to load documentation for the %s platform.',
+        props.project?.platform
+      )}
+      onRetry={props.onRetry}
+    />
+  );
+
+  const currentPlatform = props.platform ?? props.project?.platform ?? 'other';
+  return (
+    <Fragment>
+      <FullIntroduction
+        currentPlatform={currentPlatform}
+        organization={props.organization}
+      />
+      {getDynamicText({
+        value: !props.hasError ? docs : loadingError,
+        fixed: testOnlyAlert,
+      })}
+    </Fragment>
+  );
+}
 
 function SetupDocs({
   organization,
@@ -158,50 +226,6 @@ function SetupDocs({
     setNewProject(newProjectId);
   };
 
-  const missingExampleWarning = () => {
-    const missingExample =
-      platformDocs && platformDocs.html.includes(INCOMPLETE_DOC_FLAG);
-
-    if (!missingExample) {
-      return null;
-    }
-
-    return (
-      <Alert type="warning" showIcon>
-        {tct(
-          `Looks like this getting started example is still undergoing some
-           work and doesn't include an example for triggering an event quite
-           yet. If you have trouble sending your first event be sure to consult
-           the [docsLink:full documentation] for [platform].`,
-          {
-            docsLink: <ExternalLink href={platformDocs?.link} />,
-            platform: platforms.find(p => p.id === loadedPlatform)?.name,
-          }
-        )}
-      </Alert>
-    );
-  };
-
-  const docs = platformDocs !== null && (
-    <DocsWrapper key={platformDocs.html}>
-      <Content dangerouslySetInnerHTML={{__html: platformDocs.html}} />
-      {missingExampleWarning()}
-    </DocsWrapper>
-  );
-
-  const loadingError = (
-    <LoadingError
-      message={t('Failed to load documentation for the %s platform.', project?.platform)}
-      onRetry={fetchData}
-    />
-  );
-
-  const testOnlyAlert = (
-    <Alert type="warning">
-      Platform documentation is not rendered in for tests in CI
-    </Alert>
-  );
-
   return (
     <Fragment>
       <Wrapper>
@@ -219,14 +243,14 @@ function SetupDocs({
           />
         </SidebarWrapper>
         <MainContent>
-          <FullIntroduction
-            currentPlatform={currentPlatform}
+          <ProjecDocs
+            platform={loadedPlatform}
             organization={organization}
+            project={project}
+            hasError={hasError}
+            platformDocs={platformDocs}
+            onRetry={fetchData}
           />
-          {getDynamicText({
-            value: !hasError ? docs : loadingError,
-            fixed: testOnlyAlert,
-          })}
         </MainContent>
       </Wrapper>
 
