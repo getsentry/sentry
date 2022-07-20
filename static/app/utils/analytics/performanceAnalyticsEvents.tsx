@@ -71,6 +71,9 @@ export type PerformanceEventParameters = {
   'performance_views.spans.change_sort': {
     sort_column?: string;
   };
+  'performance_views.tags.change_aggregate_column': {
+    value: string;
+  };
   'performance_views.tags.change_tag': {
     from_tag: string;
     is_other_tag: boolean;
