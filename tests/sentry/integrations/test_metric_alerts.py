@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+import pytest
 from django.utils import timezone
 from freezegun import freeze_time
 
@@ -10,6 +11,8 @@ from sentry.snuba.models import QueryDatasets
 from sentry.testutils import BaseIncidentsTest, SnubaTestCase, TestCase
 from sentry.testutils.cases import BaseMetricsTestCase
 from sentry.utils.dates import to_timestamp
+
+pytestmark = pytest.mark.sentry_metrics
 
 
 class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):

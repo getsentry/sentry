@@ -1163,9 +1163,9 @@ class SessionMetricsReleaseHealthTestCase(BaseMetricsTestCase):
         org_id = session["org_id"]
         project_id = session["project_id"]
         base_tags = {}
-        if session.get("release"):
+        if session.get("release") is not None:
             base_tags["release"] = session["release"]
-        if session.get("environment"):
+        if session.get("environment") is not None:
             base_tags["environment"] = session["environment"]
 
         # This check is not yet reflected in relay, see https://getsentry.atlassian.net/browse/INGEST-464

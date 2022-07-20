@@ -15,6 +15,8 @@ from sentry.testutils.helpers.link_header import parse_link_header
 from sentry.utils.cursors import Cursor
 from sentry.utils.dates import to_timestamp
 
+pytestmark = pytest.mark.sentry_metrics
+
 
 def result_sorted(result):
     """sort the groups of the results array by the `by` object, ensuring a stable order"""

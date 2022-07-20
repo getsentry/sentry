@@ -429,7 +429,7 @@ class BaseCrashRateMetricsEntitySubscription(BaseMetricsEntitySubscription):
                 tag_value = reverse_resolve_tag_value(
                     UseCaseKey.RELEASE_HEALTH, row[session_status]
                 )
-                if not tag_value:
+                if tag_value is None:
                     raise MetricIndexNotFound()
                 translated_data[tag_value] = row[value_col_name]
 
