@@ -14,7 +14,7 @@ Django>=2.2.28
 djangorestframework>=3.12.4
 drf-spectacular>=0.22.1
 email-reply-parser>=0.5.12
-google-api-core>=1.25.1
+google-api-core>=1.32.0
 google-auth>=1.24.0
 google-cloud-bigtable>=1.6.1
 google-cloud-core>=1.5.0
@@ -83,7 +83,7 @@ kombu>=4.6.11
 # Note, grpcio>1.30.0 requires setting GRPC_POLL_STRATEGY=epoll1
 # See https://github.com/grpc/grpc/issues/23796 and
 # https://github.com/grpc/grpc/blob/v1.35.x/doc/core/grpc-polling-engines.md#polling-engine-implementations-in-grpc
-grpcio>=1.40.0
+grpcio>=1.47.0
 
 # not directly used, but provides a speedup for redis
 hiredis>=0.3.1
