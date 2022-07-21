@@ -1,7 +1,7 @@
 # It seems like when we unapply NOT NULL as part of rolling back the migration in this test that
 # the zero downtime migrations library has some problem that causes the not null constraint to not
 # be removed. Disabling this test for now.
-# from sentry.snuba.models import QueryDatasets
+# from sentry.snuba.dataset import Dataset
 # from sentry.testutils.cases import TestMigrations
 #
 #
@@ -11,7 +11,7 @@
 #
 #     def setup_initial_state(self):
 #         self.alerts = [
-#             self.create_alert_rule(query="", dataset=dataset) for dataset in QueryDatasets
+#             self.create_alert_rule(query="", dataset=dataset) for dataset in Dataset
 #         ]
 #
 #     def setup_before_migration(self, apps):

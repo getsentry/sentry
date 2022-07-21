@@ -1057,6 +1057,7 @@ function WidgetBuilder({
                     <BuildSteps symbol="colored-numeric">
                       <VisualizationStep
                         widget={currentWidget}
+                        dashboardFilters={dashboard.filters}
                         organization={organization}
                         pageFilters={pageFilters}
                         displayType={state.displayType}
@@ -1111,6 +1112,7 @@ function WidgetBuilder({
                         onQueryRemove={handleQueryRemove}
                         selection={pageFilters}
                         widgetType={widgetType}
+                        dashboardFilters={dashboard.filters}
                       />
                       {widgetBuilderNewDesign && isTimeseriesChart && (
                         <GroupByStep
