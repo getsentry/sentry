@@ -1303,7 +1303,6 @@ def find_histogram_min_max(
         params=params,
         limit=1,
         referrer="api.organization-events-histogram-min-max",
-        functions_acl=[],
     )
 
     data = results.get("data")
