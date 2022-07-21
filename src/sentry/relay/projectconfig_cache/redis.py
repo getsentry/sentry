@@ -1,8 +1,30 @@
+import logging
+import random
+
+import zstandard
+
+from sentry import options
 from sentry.relay.projectconfig_cache.base import ProjectConfigCache
 from sentry.utils import json, metrics, redis
 from sentry.utils.redis import validate_dynamic_cluster
 
 REDIS_CACHE_TIMEOUT = 3600  # 1 hr
+COMPRESSION_OPTION = "relay.project-config-cache-compress"
+COMPRESSION_LEVEL = 9  # TODO: is this too much for Relay decompression?
+
+logger = logging.getLogger(__name__)
+
+
+def _use_compression(public_key: str) -> bool:
+    option_value = options.get(COMPRESSION_OPTION)
+    try:
+        return public_key in option_value
+    except TypeError:
+        try:
+            return random.random() < option_value
+        except TypeError:
+            logger.error("Invalid value for option %r: %r", COMPRESSION_OPTION, option_value)
+    return False
 
 
 class RedisProjectConfigCache(ProjectConfigCache):
@@ -24,7 +46,10 @@ class RedisProjectConfigCache(ProjectConfigCache):
         # Note: Those are multiple pipelines, one per cluster node
         p = self.cluster.pipeline()
         for public_key, config in configs.items():
-            p.setex(self.__get_redis_key(public_key), REDIS_CACHE_TIMEOUT, json.dumps(config))
+            value = json.dumps(config)
+            if _use_compression(public_key):
+                value = zstandard.compress(value.encode(), level=COMPRESSION_LEVEL)
+            p.setex(self.__get_redis_key(public_key), REDIS_CACHE_TIMEOUT, value)
 
         p.execute()
 
@@ -42,5 +67,10 @@ class RedisProjectConfigCache(ProjectConfigCache):
     def get(self, public_key):
         rv = self.cluster.get(self.__get_redis_key(public_key))
         if rv is not None:
+            try:
+                rv = zstandard.decompress(rv).decode()
+            except TypeError:
+                # str instead of bytes, assume raw json
+                pass
             return json.loads(rv)
         return None
