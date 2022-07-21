@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from enum import Enum
 from typing import Any, Sequence, Tuple, cast
 
@@ -66,10 +67,39 @@ REQUIRED_ACTION_PARAM = {
 }
 
 
+def convert_urls(text: str) -> str:
+    """
+    Converts the URLs used in all notifications to Microsoft Teams compatible URL format.
+    Currently all notifications use the Slack format - `<url|text>`.
+    Microsoft Teams uses the markdown format - `[text](url)`.
+    """
+    pat = re.compile(
+        r"""\<              # <
+            ([^|]+[^\s])    # url - multiple characters except pipe (|) and ending with non whitespace character. Also capture it as group 1.
+            \s*             # optional whitespaces
+            \|              # pipe (|)
+            \s*             # optional whitespaces
+            ([^\>]+[^\s])   # text - multiple characters except > and ending with non whitespace character. Also capture it as group 2.
+            \s*             # optional whitespaces
+            \>              # >""",
+        re.VERBOSE,
+    )
+
+    return pat.sub(
+        # replace with [text](url)
+        # url is group 1 (\g<1>)
+        # text is group 2 (\g<2>)
+        r"[\g<2>](\g<1>)",
+        text,
+    )
+
+
 def create_text_block(text: str, **kwargs: str | bool) -> TextBlock:
+    urls_converted_text = convert_urls(text)
+
     return {
         "type": "TextBlock",
-        "text": text,
+        "text": urls_converted_text,
         "wrap": True,
         **kwargs,
     }

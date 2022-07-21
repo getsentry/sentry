@@ -111,6 +111,34 @@ class MSTeamsMessageBuilderTest(TestCase):
         assert "Column" == column["type"]
         assert "column1" == column["items"][0]["text"]
 
+    def test_urls(self):
+        normal_url = "This is a simple url: <https://www.example.com|example> for test."
+        weird_url = "Slightly more complicated url: <https://www.hello.com|hello> world>."
+        spaced_url = "Spaced url: <http://localhost:9000/?hello world |   too many spaces    >."
+
+        card = MSTeamsMessageBuilder().build(
+            fields=[
+                normal_url,
+                weird_url,
+                spaced_url,
+            ]
+        )
+
+        assert 3 == len(card["body"])
+        assert (
+            "This is a simple url: [example](https://www.example.com) for test."
+            == card["body"][0]["text"]
+        )
+        assert (
+            "Slightly more complicated url: [hello](https://www.hello.com) world>."
+            == card["body"][1]["text"]
+        )
+
+        assert (
+            "Spaced url: [too many spaces](http://localhost:9000/?hello world)."
+            == card["body"][2]["text"]
+        )
+
     def test_help_messages(self):
         help_card = build_help_command_card()
 
