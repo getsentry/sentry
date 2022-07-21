@@ -11,7 +11,11 @@ import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingM
 import Placeholder from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons';
 import {Series} from 'sentry/types/echarts';
-import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
+import {
+  axisLabelFormatter,
+  getDurationUnit,
+  tooltipFormatter,
+} from 'sentry/utils/discover/charts';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {Theme} from 'sentry/utils/theme';
 
@@ -56,6 +60,26 @@ function Content({
     );
   }
 
+  const colors = (data && theme.charts.getColorPalette(data.length - 2)) || [];
+
+  // Create a list of series based on the order of the fields,
+  // We need to flip it at the end to ensure the series stack right.
+  const series = data
+    ? data
+        .map((values, i: number) => {
+          return {
+            ...values,
+            color: colors[i],
+            lineStyle: {
+              opacity: 0,
+            },
+          };
+        })
+        .reverse()
+    : [];
+
+  const durationUnit = getDurationUnit(series, legend);
+
   const chartOptions = {
     grid: {
       left: '10px',
@@ -77,31 +101,16 @@ function Content({
         }
       : undefined,
     yAxis: {
+      minInterval: durationUnit,
       axisLabel: {
         color: theme.chartLabel,
         // p50() coerces the axis to be time based
-        formatter: (value: number) => axisLabelFormatter(value, 'p50()'),
+        formatter: (value: number) => {
+          return axisLabelFormatter(value, 'p50()', undefined, durationUnit);
+        },
       },
     },
   };
-
-  const colors = (data && theme.charts.getColorPalette(data.length - 2)) || [];
-
-  // Create a list of series based on the order of the fields,
-  // We need to flip it at the end to ensure the series stack right.
-  const series = data
-    ? data
-        .map((values, i: number) => {
-          return {
-            ...values,
-            color: colors[i],
-            lineStyle: {
-              opacity: 0,
-            },
-          };
-        })
-        .reverse()
-    : [];
 
   return (
     <ChartZoom router={router} period={period} start={start} end={end} utc={utc}>
@@ -115,23 +124,25 @@ function Content({
           projects={projects}
           environments={environments}
         >
-          {({releaseSeries}) => (
-            <TransitionChart loading={loading} reloading={reloading}>
-              <TransparentLoadingMask visible={reloading} />
-              {getDynamicText({
-                value: (
-                  <AreaChart
-                    {...zoomRenderProps}
-                    {...chartOptions}
-                    legend={legend}
-                    onLegendSelectChanged={onLegendSelectChanged}
-                    series={[...series, ...releaseSeries]}
-                  />
-                ),
-                fixed: <Placeholder height="200px" testId="skeleton-ui" />,
-              })}
-            </TransitionChart>
-          )}
+          {({releaseSeries}) => {
+            return (
+              <TransitionChart loading={loading} reloading={reloading}>
+                <TransparentLoadingMask visible={reloading} />
+                {getDynamicText({
+                  value: (
+                    <AreaChart
+                      {...zoomRenderProps}
+                      {...chartOptions}
+                      legend={legend}
+                      onLegendSelectChanged={onLegendSelectChanged}
+                      series={[...series, ...releaseSeries]}
+                    />
+                  ),
+                  fixed: <Placeholder height="200px" testId="skeleton-ui" />,
+                })}
+              </TransitionChart>
+            );
+          }}
         </ReleaseSeries>
       )}
     </ChartZoom>
