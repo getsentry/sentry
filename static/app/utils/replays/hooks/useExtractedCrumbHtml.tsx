@@ -1,12 +1,21 @@
 import {useEffect, useState} from 'react';
 import first from 'lodash/first';
-import {Replayer} from 'rrweb'; // , ReplayerEvents
+import {Replayer} from 'rrweb';
 import {eventWithTime} from 'rrweb/typings/types';
 
 import type {Crumb} from 'sentry/types/breadcrumbs';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
 
-const IncrementalSnapshot = 3;
+// Copied from `node_modules/rrweb/typings/types.d.ts`
+enum EventType {
+  DomContentLoaded = 0,
+  Load = 1,
+  FullSnapshot = 2,
+  IncrementalSnapshot = 3,
+  Meta = 4,
+  Custom = 5,
+  Plugin = 6,
+}
 
 type Extraction = {
   crumb: Crumb;
@@ -81,7 +90,7 @@ class BreadcrumbReferencesPlugin {
   isFinished: (event: eventWithTime) => boolean;
   onFinish: (mutations: Extraction[]) => void;
 
-  activites: Extraction[] = [];
+  activities: Extraction[] = [];
 
   constructor({crumbs, isFinished, onFinish}: PluginOpts) {
     this.crumbs = crumbs;
@@ -90,7 +99,7 @@ class BreadcrumbReferencesPlugin {
   }
 
   handler(event: eventWithTime, _isSync: boolean, {replayer}: {replayer: Replayer}) {
-    if (event.type === IncrementalSnapshot) {
+    if (event.type === EventType.IncrementalSnapshot) {
       const crumb = first(this.crumbs);
       const nextTimestamp = +new Date(crumb?.timestamp || '');
 
@@ -102,7 +111,7 @@ class BreadcrumbReferencesPlugin {
         // @ts-expect-error
         const html = node?.outerHTML || node?.textContent || '';
 
-        this.activites.push({
+        this.activities.push({
           crumb,
           html,
           timestamp: nextTimestamp,
@@ -112,7 +121,7 @@ class BreadcrumbReferencesPlugin {
     }
 
     if (this.isFinished(event)) {
-      this.onFinish(this.activites);
+      this.onFinish(this.activities);
     }
   }
 }
