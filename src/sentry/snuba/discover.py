@@ -792,6 +792,90 @@ def spans_histogram_query(
     return normalize_span_histogram_results(span, histogram_params, results)
 
 
+def span_count_histogram_query(
+    span_op,
+    user_query,
+    params,
+    num_buckets,
+    precision=0,
+    min_value=None,
+    max_value=None,
+    data_filter=None,
+    referrer=None,
+    group_by=None,
+    order_by=None,
+    limit_by=None,
+    extra_condition=None,
+    normalize_results=True,
+):
+    """
+    API for generating histograms for span exclusive time.
+
+    :param [str] span_op: A span op for which you want to generate histograms for.
+    :param str user_query: Filter query string to create conditions from.
+    :param {str: str} params: Filtering parameters with start, end, project_id, environment
+    :param int num_buckets: The number of buckets the histogram should contain.
+    :param int precision: The number of decimal places to preserve, default 0.
+    :param float min_value: The minimum value allowed to be in the histogram.
+        If left unspecified, it is queried using `user_query` and `params`.
+    :param float max_value: The maximum value allowed to be in the histogram.
+        If left unspecified, it is queried using `user_query` and `params`.
+    :param str data_filter: Indicate the filter strategy to be applied to the data.
+    :param [str] group_by: Allows additional grouping to serve multifacet histograms.
+    :param [str] order_by: Allows additional ordering within each alias to serve multifacet histograms.
+    :param [str] limit_by: Allows limiting within a group when serving multifacet histograms.
+    :param [Condition] extra_condition: Adds any additional conditions to the histogram query
+    :param bool normalize_results: Indicate whether to normalize the results by column into bins.
+    """
+    multiplier = int(10**precision)
+    if max_value is not None:
+        # We want the specified max_value to be exclusive, and the queried max_value
+        # to be inclusive. So we adjust the specified max_value using the multiplier.
+        max_value -= 0.1 / multiplier
+
+    min_value, max_value = find_span_op_count_histogram_min_max(
+        span_op, min_value, max_value, user_query, params, data_filter
+    )
+
+    key_column = None
+    field_names = []
+    histogram_rows = None
+
+    histogram_params = find_histogram_params(num_buckets, min_value, max_value, multiplier)
+    histogram_column = get_span_histogram_column(span_op, histogram_params)
+
+    builder = HistogramQueryBuilder(
+        num_buckets,
+        histogram_column,
+        histogram_rows,
+        histogram_params,
+        key_column,
+        field_names,
+        group_by,
+        # Arguments for QueryBuilder
+        Dataset.Discover,
+        params,
+        query=user_query,
+        selected_columns=[""],
+        orderby=order_by,
+        limitby=limit_by,
+    )
+    if extra_condition is not None:
+        builder.add_conditions(extra_condition)
+
+    builder.add_conditions(
+        [
+            Condition(Function("has", [builder.column("spans_op"), span_op]), Op.EQ, 1),
+        ]
+    )
+    results = builder.run_query(referrer)
+
+    if not normalize_results:
+        return results
+
+    return normalize_span_histogram_results(span_op, histogram_params, results)
+
+
 def histogram_query(
     fields,
     user_query,
@@ -915,6 +999,16 @@ def get_span_histogram_column(span, histogram_params):
     span_op = span.op
     span_group = span.group
     return f'spans_histogram("{span_op}", {span_group}, {histogram_params.bucket_size:d}, {histogram_params.start_offset:d}, {histogram_params.multiplier:d})'
+
+
+def get_span_count_histogram_column(span_op, histogram_params):
+    """
+    Generate the histogram column string for span_op count.
+
+    :param [str] spanOp: The span op for which count you want to generate the histograms for.
+    :param HistogramParams histogram_params: The histogram parameters used.
+    """
+    return f'spans_histogram("{span_op}", {histogram_params.bucket_size:d}, {histogram_params.start_offset:d}, {histogram_params.multiplier:d})'
 
 
 def get_histogram_column(fields, key_column, histogram_params, array_column):
@@ -1073,6 +1167,106 @@ def find_span_histogram_min_max(span, min_value, max_value, user_query, params, 
     return min_value, max_value
 
 
+def find_span_op_count_histogram_min_max(
+    span_op, min_value, max_value, user_query, params, data_filter=None
+):
+    """
+    Find the min/max value of the specified span op count. If either min/max is already
+    specified, it will be used and not queried for.
+
+    :param [str] span_op: A span op for which count you want to generate the histograms for.
+    :param float min_value: The minimum value allowed to be in the histogram.
+        If left unspecified, it is queried using `user_query` and `params`.
+    :param float max_value: The maximum value allowed to be in the histogram.
+        If left unspecified, it is queried using `user_query` and `params`.
+    :param str user_query: Filter query string to create conditions from.
+    :param {str: str} params: Filtering parameters with start, end, project_id, environment
+    :param str data_filter: Indicate the filter strategy to be applied to the data.
+    """
+    if min_value is not None and max_value is not None:
+        return min_value, max_value
+
+    selected_columns = []
+    min_column = ""
+    max_column = ""
+    outlier_lower_fence = ""
+    outlier_upper_fence = ""
+    if min_value is None:
+        min_column = f'fn_span_count("{span_op}", min)'
+        selected_columns.append(min_column)
+    if max_value is None:
+        max_column = f'fn_span_count("{span_op}", max)'
+        selected_columns.append(max_column)
+    if data_filter == "exclude_outliers":
+        outlier_lower_fence = f'fn_span_count("{span_op}", quantile(0.25))'
+        outlier_upper_fence = f'fn_span_count("{span_op}", quantile(0.75))'
+        selected_columns.append(outlier_lower_fence)
+        selected_columns.append(outlier_upper_fence)
+
+    results = query(
+        selected_columns=selected_columns,
+        query=user_query,
+        params=params,
+        limit=1,
+        referrer="api.organization-spans-histogram-min-max",
+        functions_acl=["fn_span_count"],
+    )
+
+    data = results.get("data")
+
+    # there should be exactly 1 row in the results, but if something went wrong here,
+    # we force the min/max to be None to coerce an empty histogram
+    if data is None or len(data) != 1:
+        return None, None
+
+    row = data[0]
+
+    if min_value is None:
+        calculated_min_value = row[get_function_alias(min_column)]
+        min_value = calculated_min_value if calculated_min_value else None
+        if max_value is not None and min_value is not None:
+            # max_value was provided by the user, and min_value was queried.
+            # If min_value > max_value, then we adjust min_value with respect to
+            # max_value. The rationale is that if the user provided max_value,
+            # then any and all data above max_value should be ignored since it is
+            # and upper bound.
+            min_value = min([max_value, min_value])
+
+    if max_value is None:
+        calculated_max_value = row[get_function_alias(max_column)]
+        max_value = calculated_max_value if calculated_max_value else None
+
+        max_fence_value = None
+        if data_filter == "exclude_outliers":
+            outlier_lower_fence_alias = get_function_alias(outlier_lower_fence)
+            outlier_upper_fence_alias = get_function_alias(outlier_upper_fence)
+
+            first_quartile = row[outlier_lower_fence_alias]
+            third_quartile = row[outlier_upper_fence_alias]
+
+            if (
+                first_quartile is not None
+                or third_quartile is not None
+                or not math.isnan(first_quartile)
+                or not math.isnan(third_quartile)
+            ):
+                interquartile_range = abs(third_quartile - first_quartile)
+                upper_outer_fence = third_quartile + 3 * interquartile_range
+                max_fence_value = upper_outer_fence
+
+        candidates = [max_fence_value, max_value]
+        candidates = list(filter(lambda v: v is not None, candidates))
+        max_value = min(candidates) if candidates else None
+        if max_value is not None and min_value is not None:
+            # min_value may be either queried or provided by the user. max_value was queried.
+            # If min_value > max_value, then max_value should be adjusted with respect to
+            # min_value, since min_value is a lower bound, and any and all data below
+            # min_value should be ignored.
+            max_value = max([max_value, min_value])
+
+    return min_value, max_value
+
+
 def find_histogram_min_max(
     fields, min_value, max_value, user_query, params, data_filter=None, query_fn=None
 ):
@@ -1099,16 +1293,12 @@ def find_histogram_min_max(
 
     for field in fields:
         if min_value is None:
-            # min_columns.append(f"min({field})")
-            min_columns.append(f'fn_span_count("{field}", min)')
+            min_columns.append(f"min({field})")
         if max_value is None:
-            # max_columns.append(f"max({field})")
-            min_columns.append(f'fn_span_count("{field}", max)')
+            max_columns.append(f"max({field})")
         if data_filter == "exclude_outliers":
-            # quartiles.append(f"percentile({field}, 0.25)")
-            # quartiles.append(f"percentile({field}, 0.75)")
-            quartiles.append(f'fn_span_count("{field}", quantile(0.25))')
-            quartiles.append(f'fn_span_count("{field}", quantile(0.75))')
+            quartiles.append(f"percentile({field}, 0.25)")
+            quartiles.append(f"percentile({field}, 0.75)")
 
     if query_fn is None:
         query_fn = query
@@ -1119,7 +1309,7 @@ def find_histogram_min_max(
         params=params,
         limit=1,
         referrer="api.organization-events-histogram-min-max",
-        functions_acl=["fn_span_count"],
+        functions_acl=[],
     )
 
     data = results.get("data")
