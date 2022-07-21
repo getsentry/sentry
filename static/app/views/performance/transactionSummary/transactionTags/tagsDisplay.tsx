@@ -10,14 +10,12 @@ import SegmentExplorerQuery from 'sentry/utils/performance/segmentExplorer/segme
 import TagKeyHistogramQuery from 'sentry/utils/performance/segmentExplorer/tagKeyHistogramQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
 
-import {SpanOperationBreakdownFilter} from '../filter';
-import {getTransactionField} from '../transactionOverview/tagExplorer';
-
 import TagsHeatMap from './tagsHeatMap';
 import {TagValueTable} from './tagValueTable';
 import {getTagSortForTagsPage} from './utils';
 
 type Props = {
+  aggregateColumn: string;
   eventView: EventView;
   location: Location;
   organization: Organization;
@@ -99,14 +97,8 @@ export const TAGS_TABLE_COLUMN_ORDER: TagsTableColumn[] = [
 ];
 
 const TagsDisplay = (props: Props) => {
-  const {eventView: _eventView, location, organization, projects, tagKey} = props;
+  const {eventView: _eventView, location, organization, aggregateColumn, tagKey} = props;
   const eventView = _eventView.clone();
-
-  const aggregateColumn = getTransactionField(
-    SpanOperationBreakdownFilter.None,
-    projects,
-    eventView
-  );
 
   const handleCursor: CursorHandler = (cursor, pathname, query) =>
     browserHistory.push({

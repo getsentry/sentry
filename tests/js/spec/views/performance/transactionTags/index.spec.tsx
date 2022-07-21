@@ -1,4 +1,5 @@
 import {browserHistory} from 'react-router';
+import selectEvent from 'react-select-event';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -323,5 +324,50 @@ describe('Performance > Transaction Tags', function () {
         transaction: 'Test Transaction',
       },
     });
+  });
+
+  it('changes the aggregate column when a new x-axis is selected', async function () {
+    const {organization, router, routerContext} = initializeData({
+      query: {tagKey: 'os'},
+    });
+
+    render(<TransactionTags location={router.location} />, {
+      context: routerContext,
+      organization,
+    });
+
+    await waitFor(() => {
+      expect(screen.getByRole('table')).toBeInTheDocument();
+    });
+
+    expect(histogramMock).toHaveBeenCalledTimes(1);
+
+    expect(histogramMock).toHaveBeenNthCalledWith(
+      1,
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          aggregateColumn: 'transaction.duration',
+        }),
+      })
+    );
+
+    await selectEvent.select(screen.getByText('X-Axis'), 'LCP');
+
+    await waitFor(() => {
+      expect(screen.getByRole('table')).toBeInTheDocument();
+    });
+
+    expect(histogramMock).toHaveBeenCalledTimes(2);
+
+    expect(histogramMock).toHaveBeenNthCalledWith(
+      2,
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          aggregateColumn: 'measurements.lcp',
+        }),
+      })
+    );
   });
 });

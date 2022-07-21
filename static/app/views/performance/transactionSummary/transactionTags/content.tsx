@@ -7,6 +7,7 @@ import {SectionHeading} from 'sentry/components/charts/styles';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import SearchBar from 'sentry/components/events/searchBar';
+import CompactSelect from 'sentry/components/forms/compactSelect';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
@@ -27,6 +28,7 @@ import {SidebarSpacer} from 'sentry/views/performance/transactionSummary/utils';
 import {SpanOperationBreakdownFilter} from '../filter';
 import {getTransactionField} from '../transactionOverview/tagExplorer';
 
+import {X_AXIS_SELECT_OPTIONS} from './constants';
 import TagsDisplay, {TAG_PAGE_TABLE_CURSOR} from './tagsDisplay';
 import {decodeSelectedTagKey} from './utils';
 
@@ -43,10 +45,8 @@ type TagOption = string;
 const TagsPageContent = (props: Props) => {
   const {eventView, location, organization, projects} = props;
 
-  const aggregateColumn = getTransactionField(
-    SpanOperationBreakdownFilter.None,
-    projects,
-    eventView
+  const [aggregateColumn, setAggregateColumn] = useState(
+    getTransactionField(SpanOperationBreakdownFilter.None, projects, eventView)
   );
 
   return (
@@ -61,7 +61,15 @@ const TagsPageContent = (props: Props) => {
         allTagKeys
       >
         {({isLoading, tableData}) => {
-          return <InnerContent {...props} isLoading={isLoading} tableData={tableData} />;
+          return (
+            <InnerContent
+              {...props}
+              isLoading={isLoading}
+              tableData={tableData}
+              aggregateColumn={aggregateColumn}
+              onChangeAggregateColumn={setAggregateColumn}
+            />
+          );
         }}
       </SegmentExplorerQuery>
     </Layout.Main>
@@ -83,9 +91,22 @@ function getTagKeyOptions(tableData: TableData) {
 }
 
 const InnerContent = (
-  props: Props & {tableData: TableData | null; isLoading?: boolean}
+  props: Props & {
+    aggregateColumn: string;
+    onChangeAggregateColumn: (aggregateColumn: string) => void;
+    tableData: TableData | null;
+    isLoading?: boolean;
+  }
 ) => {
-  const {eventView: _eventView, location, organization, tableData, isLoading} = props;
+  const {
+    eventView: _eventView,
+    location,
+    organization,
+    tableData,
+    aggregateColumn,
+    onChangeAggregateColumn,
+    isLoading,
+  } = props;
   const eventView = _eventView.clone();
 
   const tagOptions = tableData ? getTagKeyOptions(tableData) : null;
@@ -175,12 +196,27 @@ const InnerContent = (
             <EnvironmentPageFilter />
             <DatePageFilter alignDropdown="left" />
           </PageFilterBar>
-          <SearchBar
+          <StyledSearchBar
             organization={organization}
             projectIds={eventView.project}
             query={query}
             fields={eventView.fields}
             onSearch={handleSearch}
+          />
+          <CompactSelect
+            value={aggregateColumn}
+            options={X_AXIS_SELECT_OPTIONS}
+            onChange={opt => {
+              trackAdvancedAnalyticsEvent(
+                'performance_views.tags.change_aggregate_column',
+                {
+                  organization,
+                  value: opt.value,
+                }
+              );
+              onChangeAggregateColumn(opt.value);
+            }}
+            triggerProps={{prefix: t('X-Axis')}}
           />
         </FilterActions>
         <TagsDisplay {...props} tagKey={tagSelected} />
@@ -310,13 +346,25 @@ const StyledMain = styled('div')`
   max-width: 100%;
 `;
 
+const StyledSearchBar = styled(SearchBar)`
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    order: 1;
+    grid-column: 1/6;
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
+    order: initial;
+    grid-column: auto;
+  }
+`;
+
 const FilterActions = styled('div')`
   display: grid;
   gap: ${space(2)};
   margin-bottom: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
-    grid-template-columns: auto 1fr;
+    grid-template-columns: auto 1fr auto;
   }
 `;
 
