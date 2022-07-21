@@ -816,6 +816,25 @@ class DashboardDetail extends Component<Props, State> {
                     isEditingDashboard={this.isEditing}
                     filters={filters}
                     onDashboardFilterChange={this.handleChangeFilter}
+                    onCancel={() => {
+                      this.setState({
+                        modifiedDashboard: {
+                          ...(modifiedDashboard ?? dashboard),
+                          filters: dashboard.filters,
+                        },
+                      });
+
+                      browserHistory.replace({
+                        ...location,
+                        query: {
+                          project: dashboard.projects,
+                          environment: dashboard.environment,
+                          statsPeriod: dashboard.period,
+                          start: dashboard.start,
+                          end: dashboard.end,
+                        },
+                      });
+                    }}
                     onSave={() => {
                       // TODO: Get releases from state
                       // PUT dashboard

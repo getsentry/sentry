@@ -21,6 +21,7 @@ type FiltersBarProps = {
   filters: DashboardFilters;
   hasUnsavedChanges: boolean;
   isEditingDashboard: boolean;
+  onCancel: () => void;
   onDashboardFilterChange: (activeFilters: DashboardFilters) => void;
   onSave: () => void;
 };
@@ -29,6 +30,7 @@ export default function FiltersBar({
   filters,
   hasUnsavedChanges,
   isEditingDashboard,
+  onCancel,
   onDashboardFilterChange,
   onSave,
 }: FiltersBarProps) {
@@ -61,7 +63,7 @@ export default function FiltersBar({
               <Button priority="primary" onClick={onSave}>
                 {t('Save')}
               </Button>
-              <Button>{t('Cancel')}</Button>
+              <Button onClick={onCancel}>{t('Cancel')}</Button>
             </Fragment>
           )}
         </Fragment>
