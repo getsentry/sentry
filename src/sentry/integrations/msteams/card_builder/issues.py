@@ -16,6 +16,7 @@ from sentry.integrations.msteams.card_builder import (
     Action,
     AdaptiveCard,
     Block,
+    ColumnBlock,
     ColumnSetBlock,
     ContainerBlock,
     ImageBlock,
@@ -97,6 +98,10 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
             wrap=False,
         )
 
+    @staticmethod
+    def create_footer_column_block(footer_text_block: TextBlock) -> ColumnBlock:
+        return create_column_block(footer_text_block, isSubtle=True, spacing="none")
+
     def get_timestamp(self) -> str:
         ts: datetime = self.group.last_seen
 
@@ -125,9 +130,7 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
 
         text = build_footer(self.group, project, self.rules, MSTEAMS_URL_FORMAT)
 
-        text_column = create_column_block(
-            self.create_footer_text_block(text), isSubtle=True, spacing="none"
-        )
+        text_column = self.create_footer_column_block(self.create_footer_text_block(text))
 
         date_column = self.create_date_block()
 

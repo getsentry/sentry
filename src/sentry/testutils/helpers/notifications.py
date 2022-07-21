@@ -40,3 +40,15 @@ class AnotherDummyNotification(DummyNotification):
     def __init__(self, organization, some_value) -> None:
         super().__init__(organization)
         self.some_value = some_value
+
+
+class DummyNotificationWithMoreFields(DummyNotification):
+    def get_notification_title(self, context: Mapping[str, Any] | None = None) -> str:
+        some_value = context["some_field"]
+        return f"Notification Title with {some_value}"
+
+    def build_notification_footer(self, *args):
+        return "Notification Footer"
+
+    def get_message_description(self, recipient: User | Team):
+        return "Message Description"
