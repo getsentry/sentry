@@ -80,12 +80,12 @@ class PostProcessGroupTest(TestCase):
             group_id=event.group_id,
         )
 
-        mock_processor.assert_not_called()
-        mock_process_service_hook.assert_not_called()
-        mock_process_resource_change_bound.assert_not_called()
+        assert not mock_processor.called
+        assert not mock_process_service_hook.called
+        assert not mock_process_resource_change_bound.called
 
         # transaction events do not call event.processed
-        mock_signal.assert_not_called()
+        assert not mock_signal.called
 
     @patch("sentry.rules.processor.RuleProcessor")
     def test_no_cache_abort(self, mock_processor):
