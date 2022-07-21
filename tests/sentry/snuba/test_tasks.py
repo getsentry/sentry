@@ -10,10 +10,11 @@ from django.utils import timezone
 from exam import patcher
 from snuba_sdk import And, Column, Condition, Entity, Function, Op, Or, Query
 
+from sentry.incidents.logic import query_datasets_to_type
 from sentry.search.events.constants import METRICS_MAP
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
-from sentry.sentry_metrics.utils import resolve, resolve_many_weak, resolve_tag_key, resolve_weak
+from sentry.sentry_metrics.utils import resolve, resolve_tag_key, resolve_tag_value
 from sentry.snuba.entity_subscription import (
     apply_dataset_query_conditions,
     get_entity_key_from_query_builder,
@@ -21,7 +22,6 @@ from sentry.snuba.entity_subscription import (
 )
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.models import QueryDatasets, QuerySubscription, SnubaQuery, SnubaQueryEventType
-from sentry.snuba.subscriptions import query_datasets_to_type
 from sentry.snuba.tasks import (
     SUBSCRIPTION_STATUS_MAX_AGE,
     build_query_builder,
@@ -33,6 +33,8 @@ from sentry.snuba.tasks import (
 from sentry.testutils import TestCase
 from sentry.utils import json
 from sentry.utils.snuba import _snuba_pool
+
+pytestmark = pytest.mark.sentry_metrics
 
 
 def indexer_record(use_case_id: UseCaseKey, org_id: int, string: str) -> int:
@@ -375,7 +377,7 @@ class BuildSnqlQueryTest(TestCase):
                                             UseCaseKey.RELEASE_HEALTH, org_id, "session.status"
                                         )
                                     ),
-                                    resolve(UseCaseKey.RELEASE_HEALTH, org_id, "init"),
+                                    resolve_tag_value(UseCaseKey.RELEASE_HEALTH, org_id, "init"),
                                 ],
                             ),
                         ],
@@ -393,7 +395,7 @@ class BuildSnqlQueryTest(TestCase):
                                             UseCaseKey.RELEASE_HEALTH, org_id, "session.status"
                                         )
                                     ),
-                                    resolve(UseCaseKey.RELEASE_HEALTH, org_id, "crashed"),
+                                    resolve_tag_value(UseCaseKey.RELEASE_HEALTH, org_id, "crashed"),
                                 ],
                             ),
                         ],
@@ -420,7 +422,7 @@ class BuildSnqlQueryTest(TestCase):
                                             UseCaseKey.RELEASE_HEALTH, org_id, "session.status"
                                         )
                                     ),
-                                    resolve(UseCaseKey.RELEASE_HEALTH, org_id, "crashed"),
+                                    resolve_tag_value(UseCaseKey.RELEASE_HEALTH, org_id, "crashed"),
                                 ],
                             ),
                         ],
@@ -866,9 +868,10 @@ class BuildSnqlQueryTest(TestCase):
                     )
                 ),
                 Op.IN,
-                resolve_many_weak(
-                    UseCaseKey.RELEASE_HEALTH, self.organization.id, ["crashed", "init"]
-                ),
+                [
+                    resolve_tag_value(UseCaseKey.RELEASE_HEALTH, self.organization.id, "crashed"),
+                    resolve_tag_value(UseCaseKey.RELEASE_HEALTH, self.organization.id, "init"),
+                ],
             ),
         ]
         self.run_test(
@@ -926,7 +929,7 @@ class BuildSnqlQueryTest(TestCase):
                     name=resolve_tag_key(UseCaseKey.RELEASE_HEALTH, self.organization.id, "release")
                 ),
                 Op.EQ,
-                resolve_weak(UseCaseKey.RELEASE_HEALTH, self.organization.id, "ahmed@12.2"),
+                resolve_tag_value(UseCaseKey.RELEASE_HEALTH, self.organization.id, "ahmed@12.2"),
             ),
             Condition(Column(name="project_id"), Op.IN, (self.project.id,)),
             Condition(Column(name="org_id"), Op.EQ, self.organization.id),
@@ -942,16 +945,17 @@ class BuildSnqlQueryTest(TestCase):
                     )
                 ),
                 Op.IN,
-                resolve_many_weak(
-                    UseCaseKey.RELEASE_HEALTH, self.organization.id, ["crashed", "init"]
-                ),
+                [
+                    resolve_tag_value(UseCaseKey.RELEASE_HEALTH, self.organization.id, "crashed"),
+                    resolve_tag_value(UseCaseKey.RELEASE_HEALTH, self.organization.id, "init"),
+                ],
             ),
             Condition(
                 Column(
                     resolve_tag_key(UseCaseKey.RELEASE_HEALTH, self.organization.id, "environment")
                 ),
                 Op.EQ,
-                resolve_weak(UseCaseKey.RELEASE_HEALTH, self.organization.id, env.name),
+                resolve_tag_value(UseCaseKey.RELEASE_HEALTH, self.organization.id, env.name),
             ),
         ]
         self.run_test(
@@ -986,7 +990,7 @@ class BuildSnqlQueryTest(TestCase):
                     name=resolve_tag_key(UseCaseKey.RELEASE_HEALTH, self.organization.id, "release")
                 ),
                 Op.EQ,
-                resolve_weak(UseCaseKey.RELEASE_HEALTH, self.organization.id, "ahmed@12.2"),
+                resolve_tag_value(UseCaseKey.RELEASE_HEALTH, self.organization.id, "ahmed@12.2"),
             ),
             Condition(Column(name="project_id"), Op.IN, (self.project.id,)),
             Condition(Column(name="org_id"), Op.EQ, self.organization.id),
@@ -1000,7 +1004,7 @@ class BuildSnqlQueryTest(TestCase):
                     resolve_tag_key(UseCaseKey.RELEASE_HEALTH, self.organization.id, "environment")
                 ),
                 Op.EQ,
-                resolve_weak(UseCaseKey.RELEASE_HEALTH, self.organization.id, env.name),
+                resolve_tag_value(UseCaseKey.RELEASE_HEALTH, self.organization.id, env.name),
             ),
         ]
         self.run_test(
@@ -1018,44 +1022,44 @@ class BuildSnqlQueryTest(TestCase):
 class TestApplyDatasetQueryConditions(TestCase):
     def test_no_event_types_no_discover(self):
         assert (
-            apply_dataset_query_conditions(QueryDatasets.EVENTS, "release:123", None, False)
+            apply_dataset_query_conditions(SnubaQuery.Type.ERROR, "release:123", None, False)
             == "(event.type:error) AND (release:123)"
         )
         assert (
             apply_dataset_query_conditions(
-                QueryDatasets.EVENTS, "release:123 OR release:456", None, False
+                SnubaQuery.Type.ERROR, "release:123 OR release:456", None, False
             )
             == "(event.type:error) AND (release:123 OR release:456)"
         )
         assert (
-            apply_dataset_query_conditions(QueryDatasets.TRANSACTIONS, "release:123", None, False)
+            apply_dataset_query_conditions(SnubaQuery.Type.PERFORMANCE, "release:123", None, False)
             == "release:123"
         )
         assert (
             apply_dataset_query_conditions(
-                QueryDatasets.TRANSACTIONS, "release:123 OR release:456", None, False
+                SnubaQuery.Type.PERFORMANCE, "release:123 OR release:456", None, False
             )
             == "release:123 OR release:456"
         )
 
     def test_no_event_types_discover(self):
         assert (
-            apply_dataset_query_conditions(QueryDatasets.EVENTS, "release:123", None, True)
+            apply_dataset_query_conditions(SnubaQuery.Type.ERROR, "release:123", None, True)
             == "(event.type:error) AND (release:123)"
         )
         assert (
             apply_dataset_query_conditions(
-                QueryDatasets.EVENTS, "release:123 OR release:456", None, True
+                SnubaQuery.Type.ERROR, "release:123 OR release:456", None, True
             )
             == "(event.type:error) AND (release:123 OR release:456)"
         )
         assert (
-            apply_dataset_query_conditions(QueryDatasets.TRANSACTIONS, "release:123", None, True)
+            apply_dataset_query_conditions(SnubaQuery.Type.PERFORMANCE, "release:123", None, True)
             == "(event.type:transaction) AND (release:123)"
         )
         assert (
             apply_dataset_query_conditions(
-                QueryDatasets.TRANSACTIONS, "release:123 OR release:456", None, True
+                SnubaQuery.Type.PERFORMANCE, "release:123 OR release:456", None, True
             )
             == "(event.type:transaction) AND (release:123 OR release:456)"
         )
@@ -1063,13 +1067,13 @@ class TestApplyDatasetQueryConditions(TestCase):
     def test_event_types_no_discover(self):
         assert (
             apply_dataset_query_conditions(
-                QueryDatasets.EVENTS, "release:123", [SnubaQueryEventType.EventType.ERROR], False
+                SnubaQuery.Type.ERROR, "release:123", [SnubaQueryEventType.EventType.ERROR], False
             )
             == "(event.type:error) AND (release:123)"
         )
         assert (
             apply_dataset_query_conditions(
-                QueryDatasets.EVENTS,
+                SnubaQuery.Type.ERROR,
                 "release:123",
                 [SnubaQueryEventType.EventType.ERROR, SnubaQueryEventType.EventType.DEFAULT],
                 False,
@@ -1078,7 +1082,7 @@ class TestApplyDatasetQueryConditions(TestCase):
         )
         assert (
             apply_dataset_query_conditions(
-                QueryDatasets.TRANSACTIONS,
+                SnubaQuery.Type.PERFORMANCE,
                 "release:123",
                 [SnubaQueryEventType.EventType.TRANSACTION],
                 False,
@@ -1087,7 +1091,7 @@ class TestApplyDatasetQueryConditions(TestCase):
         )
         assert (
             apply_dataset_query_conditions(
-                QueryDatasets.SESSIONS,
+                SnubaQuery.Type.CRASH_RATE,
                 "release:123",
                 [],
                 False,
@@ -1098,13 +1102,13 @@ class TestApplyDatasetQueryConditions(TestCase):
     def test_event_types_discover(self):
         assert (
             apply_dataset_query_conditions(
-                QueryDatasets.EVENTS, "release:123", [SnubaQueryEventType.EventType.ERROR], True
+                SnubaQuery.Type.ERROR, "release:123", [SnubaQueryEventType.EventType.ERROR], True
             )
             == "(event.type:error) AND (release:123)"
         )
         assert (
             apply_dataset_query_conditions(
-                QueryDatasets.EVENTS,
+                SnubaQuery.Type.ERROR,
                 "release:123",
                 [SnubaQueryEventType.EventType.ERROR, SnubaQueryEventType.EventType.DEFAULT],
                 True,
@@ -1113,7 +1117,7 @@ class TestApplyDatasetQueryConditions(TestCase):
         )
         assert (
             apply_dataset_query_conditions(
-                QueryDatasets.TRANSACTIONS,
+                SnubaQuery.Type.PERFORMANCE,
                 "release:123",
                 [SnubaQueryEventType.EventType.TRANSACTION],
                 True,

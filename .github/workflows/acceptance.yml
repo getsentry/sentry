@@ -113,7 +113,6 @@ jobs:
       # and reducing the risk that one of many runs would turn red again (read: intermittent tests)
       fail-fast: false
       matrix:
-        python-version: [3.8.12]
         # XXX: When updating this, make sure you also update MATRIX_INSTANCE_TOTAL.
         instance: [0, 1, 2, 3]
         pg-version: ['9.6']
@@ -152,11 +151,10 @@ jobs:
         run: |
           yarn build-acceptance
 
-      - name: Setup sentry env (python ${{ matrix.python-version }})
+      - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
-          python-version: ${{ matrix.python-version }}
           snuba: true
           pg-version: ${{ matrix.pg-version }}
 
@@ -191,7 +189,6 @@ jobs:
       # and reducing the risk that one of many runs would turn red again (read: intermittent tests)
       fail-fast: false
       matrix:
-        python-version: [3.8.12]
         # XXX: When updating this, make sure you also update MATRIX_INSTANCE_TOTAL.
         instance: [0]
     env:
@@ -207,11 +204,10 @@ jobs:
           # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
           fetch-depth: '2'
 
-      - name: Setup sentry env (python ${{ matrix.python-version }})
+      - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
-          python-version: ${{ matrix.python-version }}
           chartcuterie: true
 
       - name: yarn cache

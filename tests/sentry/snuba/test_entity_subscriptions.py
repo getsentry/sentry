@@ -9,7 +9,7 @@ from sentry.exceptions import (
 from sentry.search.events.constants import METRICS_MAP
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
-from sentry.sentry_metrics.utils import resolve, resolve_tag_key
+from sentry.sentry_metrics.utils import resolve, resolve_tag_key, resolve_tag_value
 from sentry.snuba.dataset import EntityKey
 from sentry.snuba.entity_subscription import (
     EventsEntitySubscription,
@@ -25,6 +25,8 @@ from sentry.snuba.entity_subscription import (
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.models import QueryDatasets, SnubaQuery
 from sentry.testutils import TestCase
+
+pytestmark = pytest.mark.sentry_metrics
 
 
 class EntitySubscriptionTestCase(TestCase):
@@ -164,7 +166,7 @@ class EntitySubscriptionTestCase(TestCase):
         }
         assert entity_subscription.dataset == QueryDatasets.METRICS
         session_status = resolve_tag_key(use_case_id, org_id, "session.status")
-        session_status_crashed = resolve(use_case_id, org_id, "crashed")
+        session_status_crashed = resolve_tag_value(use_case_id, org_id, "crashed")
         snql_query = entity_subscription.build_query_builder(
             "", [self.project.id], None, {"organization_id": self.organization.id}
         ).get_snql_query()
@@ -222,8 +224,8 @@ class EntitySubscriptionTestCase(TestCase):
         }
         assert entity_subscription.dataset == QueryDatasets.METRICS
         session_status = resolve_tag_key(use_case_id, org_id, "session.status")
-        session_status_crashed = resolve(use_case_id, org_id, "crashed")
-        session_status_init = resolve(use_case_id, org_id, "init")
+        session_status_crashed = resolve_tag_value(use_case_id, org_id, "crashed")
+        session_status_init = resolve_tag_value(use_case_id, org_id, "init")
         snql_query = entity_subscription.build_query_builder(
             "", [self.project.id], None, {"organization_id": self.organization.id}
         ).get_snql_query()
@@ -405,7 +407,19 @@ class GetEntitySubscriptionFromSnubaQueryTest(TestCase):
             (
                 PerformanceMetricsEntitySubscription,
                 SnubaQuery.Type.PERFORMANCE,
+                QueryDatasets.PERFORMANCE_METRICS,
+                "count()",
+            ),
+            (
+                PerformanceMetricsEntitySubscription,
+                SnubaQuery.Type.PERFORMANCE,
                 QueryDatasets.METRICS,
+                "count_unique(user)",
+            ),
+            (
+                PerformanceMetricsEntitySubscription,
+                SnubaQuery.Type.PERFORMANCE,
+                QueryDatasets.PERFORMANCE_METRICS,
                 "count_unique(user)",
             ),
             (
@@ -457,6 +471,20 @@ class GetEntityKeyFromSnubaQueryTest(TestCase):
                 EntityKey.GenericMetricsSets,
                 SnubaQuery.Type.PERFORMANCE,
                 QueryDatasets.METRICS,
+                "count_unique(user)",
+                "",
+            ),
+            (
+                EntityKey.GenericMetricsDistributions,
+                SnubaQuery.Type.PERFORMANCE,
+                QueryDatasets.PERFORMANCE_METRICS,
+                "count()",
+                "",
+            ),
+            (
+                EntityKey.GenericMetricsSets,
+                SnubaQuery.Type.PERFORMANCE,
+                QueryDatasets.PERFORMANCE_METRICS,
                 "count_unique(user)",
                 "",
             ),

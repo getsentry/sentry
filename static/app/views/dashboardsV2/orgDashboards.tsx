@@ -1,5 +1,6 @@
 import {browserHistory} from 'react-router';
 import {Location} from 'history';
+import isEmpty from 'lodash/isEmpty';
 import isEqual from 'lodash/isEqual';
 
 import {Client} from 'sentry/api';
@@ -14,6 +15,7 @@ import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 
 import {assignTempId} from './layoutUtils';
 import {DashboardDetails, DashboardListItem} from './types';
+import {hasSavedPageFilters} from './utils';
 
 type OrgDashboardsChildrenProps = {
   dashboard: DashboardDetails | null;
@@ -89,6 +91,24 @@ class OrgDashboards extends AsyncComponent<Props, State> {
     const {params, organization, location} = this.props;
 
     if (params.dashboardId || stateKey === 'selectedDashboard') {
+      if (
+        organization.features.includes('dashboards-top-level-filter') &&
+        stateKey === 'selectedDashboard' &&
+        hasSavedPageFilters(data) &&
+        isEmpty(location.query)
+      ) {
+        browserHistory.replace({
+          ...location,
+          query: {
+            ...location.query,
+            project: data.projects,
+            environment: data.environment,
+            statsPeriod: data.period,
+            start: data.start,
+            end: data.end,
+          },
+        });
+      }
       return;
     }
 
@@ -153,6 +173,7 @@ class OrgDashboards extends AsyncComponent<Props, State> {
 
   renderComponent() {
     const {organization, location} = this.props;
+    const {loading, selectedDashboard} = this.state;
 
     if (!organization.features.includes('dashboards-basic')) {
       // Redirect to Dashboards v1
@@ -163,6 +184,19 @@ class OrgDashboards extends AsyncComponent<Props, State> {
         },
       });
       return null;
+    }
+
+    if (
+      loading ||
+      (organization.features.includes('dashboards-top-level-filter') &&
+        selectedDashboard &&
+        hasSavedPageFilters(selectedDashboard) &&
+        isEmpty(location.query))
+    ) {
+      // Block dashboard from rendering if the dashboard has filters and
+      // the URL does not contain filters yet. The filters can either match the
+      // saved filters, or can be different (i.e. sharing an unsaved state)
+      return this.renderLoading();
     }
 
     return (

@@ -243,7 +243,11 @@ describe('Dashboards > Detail', function () {
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
-        body: TestStubs.Dashboard(widgets, {id: '1', title: 'Custom Errors'}),
+        body: TestStubs.Dashboard(widgets, {
+          id: '1',
+          title: 'Custom Errors',
+          filters: {release: ['abc@1.2.0']},
+        }),
       });
       mockPut = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
@@ -278,6 +282,10 @@ describe('Dashboards > Detail', function () {
         url: '/organizations/org-slug/users/',
         method: 'GET',
         body: [],
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events-geo/',
+        body: {data: [], meta: {}},
       });
     });
 
@@ -345,6 +353,36 @@ describe('Dashboards > Detail', function () {
 
       // Visit should not be called again on dashboard update
       expect(mockVisit).toHaveBeenCalledTimes(1);
+    });
+
+    it('appends dashboard-level filters to series request', async function () {
+      const mock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events-stats/',
+        body: [],
+      });
+
+      wrapper = mountWithTheme(
+        <OrganizationContext.Provider value={initialData.organization}>
+          <ViewEditDashboard
+            organization={initialData.organization}
+            params={{orgId: 'org-slug', dashboardId: '1'}}
+            router={initialData.router}
+            location={initialData.router.location}
+          />
+        </OrganizationContext.Provider>,
+        initialData.routerContext
+      );
+      await tick();
+      wrapper.update();
+
+      expect(mock).toHaveBeenLastCalledWith(
+        '/organizations/org-slug/events-stats/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            query: 'event.type:transaction transaction:/api/cats release:abc@1.2.0 ',
+          }),
+        })
+      );
     });
 
     it('can enter edit mode for widgets', async function () {
@@ -880,6 +918,98 @@ describe('Dashboards > Detail', function () {
             widgetType: 'discover',
           }),
           onClose: expect.anything(),
+        })
+      );
+    });
+
+    it('saves a new dashboard with the page filters', async () => {
+      const mockPOST = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/',
+        method: 'POST',
+        body: [],
+      });
+      render(
+        <CreateDashboard
+          organization={{
+            ...initialData.organization,
+            features: [
+              ...initialData.organization.features,
+              'dashboards-top-level-filter',
+            ],
+          }}
+          params={{orgId: 'org-slug'}}
+          router={initialData.router}
+          location={{
+            ...initialData.router.location,
+            query: {
+              ...initialData.router.location.query,
+              statsPeriod: '7d',
+              project: [2],
+              environment: ['alpha', 'beta'],
+            },
+          }}
+        />,
+        {
+          context: initialData.routerContext,
+          organization: initialData.organization,
+        }
+      );
+
+      userEvent.click(await screen.findByText('Save and Finish'));
+      expect(mockPOST).toHaveBeenCalledWith(
+        '/organizations/org-slug/dashboards/',
+        expect.objectContaining({
+          data: expect.objectContaining({
+            projects: [2],
+            environment: ['alpha', 'beta'],
+            period: '7d',
+          }),
+        })
+      );
+    });
+
+    it('saves a template with the page filters', async () => {
+      const mockPOST = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/',
+        method: 'POST',
+        body: [],
+      });
+      render(
+        <CreateDashboard
+          organization={{
+            ...initialData.organization,
+            features: [
+              ...initialData.organization.features,
+              'dashboards-top-level-filter',
+            ],
+          }}
+          params={{orgId: 'org-slug', templateId: 'default-template'}}
+          router={initialData.router}
+          location={{
+            ...initialData.router.location,
+            query: {
+              ...initialData.router.location.query,
+              statsPeriod: '7d',
+              project: [2],
+              environment: ['alpha', 'beta'],
+            },
+          }}
+        />,
+        {
+          context: initialData.routerContext,
+          organization: initialData.organization,
+        }
+      );
+
+      userEvent.click(await screen.findByText('Add Dashboard'));
+      expect(mockPOST).toHaveBeenCalledWith(
+        '/organizations/org-slug/dashboards/',
+        expect.objectContaining({
+          data: expect.objectContaining({
+            projects: [2],
+            environment: ['alpha', 'beta'],
+            period: '7d',
+          }),
         })
       );
     });

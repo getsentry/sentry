@@ -11,8 +11,6 @@ import useRAF from 'sentry/utils/replays/hooks/useRAF';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
 import usePrevious from 'sentry/utils/usePrevious';
 
-import HighlightReplayPlugin from './highlightReplayPlugin';
-
 type Dimensions = {height: number; width: number};
 type RootElem = null | HTMLDivElement;
 
@@ -49,7 +47,7 @@ type ReplayPlayerContextProps = {
   dimensions: Dimensions;
 
   /**
-   * Duration of the video, in miliseconds
+   * Duration of the video, in milliseconds
    */
   duration: undefined | number;
 
@@ -280,8 +278,6 @@ export function Provider({children, replay, initialTimeOffset = 0, value = {}}: 
         }
       }
 
-      const highlightReplayPlugin = new HighlightReplayPlugin();
-
       // eslint-disable-next-line no-new
       const inst = new Replayer(events, {
         root,
@@ -295,7 +291,7 @@ export function Provider({children, replay, initialTimeOffset = 0, value = {}}: 
           strokeStyle: theme.purple200,
         },
         // unpackFn: _ => _,
-        plugins: [highlightReplayPlugin],
+        // plugins: [],
         skipInactive: true,
       });
 

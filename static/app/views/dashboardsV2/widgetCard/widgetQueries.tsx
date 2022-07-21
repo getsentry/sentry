@@ -1,4 +1,4 @@
-import {useCallback, useContext} from 'react';
+import {useContext} from 'react';
 import omit from 'lodash/omit';
 
 import {Client} from 'sentry/api';
@@ -13,7 +13,7 @@ import {Series} from 'sentry/types/echarts';
 import {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
 
 import {ErrorsAndTransactionsConfig} from '../datasetConfig/errorsAndTransactions';
-import {Widget} from '../types';
+import {DashboardFilters, Widget} from '../types';
 
 import {DashboardsMEPContext} from './dashboardsMEPContext';
 import GenericWidgetQueries, {
@@ -98,6 +98,7 @@ type Props = {
   selection: PageFilters;
   widget: Widget;
   cursor?: string;
+  dashboardFilters?: DashboardFilters;
   limit?: number;
   onDataFetched?: (results: OnDataFetchedProps) => void;
 };
@@ -108,6 +109,7 @@ function WidgetQueries({
   organization,
   selection,
   widget,
+  dashboardFilters,
   cursor,
   limit,
   onDataFetched,
@@ -115,31 +117,38 @@ function WidgetQueries({
   const config = ErrorsAndTransactionsConfig;
   const context = useContext(DashboardsMEPContext);
 
-  let isMetricsData: undefined | boolean;
   let setIsMetricsData: undefined | ((value?: boolean) => void);
 
   if (context) {
-    isMetricsData = context.isMetricsData;
     setIsMetricsData = context.setIsMetricsData;
   }
 
-  const afterFetchSeriesData = useCallback(
-    (rawResults: SeriesResult) => {
-      // If one of the queries is sampled, then mark the whole thing as sampled
-      const currentResultIsMetricsData =
-        isMetricsData === false ? false : getIsMetricsDataFromSeriesResponse(rawResults);
-      setIsMetricsData?.(currentResultIsMetricsData);
-    },
-    [isMetricsData, setIsMetricsData]
-  );
-
-  const isMetricsDataResults: boolean[] = [];
-  const afterFetchTableData = (rawResults: TableResult) => {
-    if (rawResults.meta?.isMetricsData !== undefined) {
-      isMetricsDataResults.push(rawResults.meta.isMetricsData);
+  const isSeriesMetricsDataResults: boolean[] = [];
+  const afterFetchSeriesData = (rawResults: SeriesResult) => {
+    if (rawResults.data) {
+      rawResults = rawResults as EventsStats;
+      if (rawResults.isMetricsData !== undefined) {
+        isSeriesMetricsDataResults.push(rawResults.isMetricsData);
+      }
+    } else {
+      Object.keys(rawResults).forEach(key => {
+        const rawResult: EventsStats = rawResults[key];
+        if (rawResult.isMetricsData !== undefined) {
+          isSeriesMetricsDataResults.push(rawResult.isMetricsData);
+        }
+      });
     }
     // If one of the queries is sampled, then mark the whole thing as sampled
-    setIsMetricsData?.(!isMetricsDataResults.includes(false));
+    setIsMetricsData?.(!isSeriesMetricsDataResults.includes(false));
+  };
+
+  const isTableMetricsDataResults: boolean[] = [];
+  const afterFetchTableData = (rawResults: TableResult) => {
+    if (rawResults.meta?.isMetricsData !== undefined) {
+      isTableMetricsDataResults.push(rawResults.meta.isMetricsData);
+    }
+    // If one of the queries is sampled, then mark the whole thing as sampled
+    setIsMetricsData?.(!isTableMetricsDataResults.includes(false));
   };
 
   return (
@@ -151,6 +160,7 @@ function WidgetQueries({
       widget={widget}
       cursor={cursor}
       limit={limit}
+      dashboardFilters={dashboardFilters}
       onDataFetched={onDataFetched}
       afterFetchSeriesData={afterFetchSeriesData}
       afterFetchTableData={afterFetchTableData}

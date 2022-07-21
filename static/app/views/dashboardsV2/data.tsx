@@ -13,6 +13,8 @@ export const EMPTY_DASHBOARD: DashboardDetails = {
   createdBy: undefined,
   title: t('Untitled dashboard'),
   widgets: [],
+  projects: [],
+  filters: {},
 };
 
 export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
@@ -22,6 +24,8 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
     createdBy: undefined,
     title: t('General Template'),
     description: t('Various Frontend and Backend Widgets'),
+    projects: [],
+    filters: {},
     widgets: [
       {
         title: t('Number of Errors'),
@@ -383,6 +387,8 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
     dateCreated: '',
     createdBy: undefined,
     description: t('Erroring URLs and Web Vitals'),
+    projects: [],
+    filters: {},
     widgets: [
       {
         title: t('Top 5 Issues by Unique Users Over Time'),
@@ -758,6 +764,8 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
     dateCreated: '',
     createdBy: undefined,
     description: t('Issues and Performance'),
+    projects: [],
+    filters: {},
     widgets: [
       {
         title: t('Top 5 Issues by Unique Users Over Time'),
@@ -1121,6 +1129,8 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
     dateCreated: '',
     createdBy: undefined,
     description: t('Crash Details and Performance Vitals'),
+    projects: [],
+    filters: {},
     widgets: [
       {
         title: t('Total Crashes'),

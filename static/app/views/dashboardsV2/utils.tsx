@@ -1,5 +1,6 @@
 import {Query} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
+import isEmpty from 'lodash/isEmpty';
 import pick from 'lodash/pick';
 import trimStart from 'lodash/trimStart';
 import * as qs from 'query-string';
@@ -386,4 +387,14 @@ export function getCustomMeasurementQueryParams() {
   return {
     dataset: 'metrics',
   };
+}
+
+export function hasSavedPageFilters(dashboard: DashboardDetails) {
+  return !(
+    isEmpty(dashboard.projects) &&
+    dashboard.environment === undefined &&
+    dashboard.start === undefined &&
+    dashboard.end === undefined &&
+    dashboard.period === undefined
+  );
 }
