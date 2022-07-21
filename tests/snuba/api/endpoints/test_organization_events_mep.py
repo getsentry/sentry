@@ -1170,7 +1170,11 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert data[0]["max(measurements.cls)"] == 1
         assert meta["isMetricsData"]
         assert meta["fields"]["p75(measurements.cls)"] == "number"
-        assert meta["units"]["p50(measurements.cls)"] is None
+        assert meta["units"]["p75(measurements.cls)"] is None
+        assert meta["fields"]["p99(measurements.cls)"] == "number"
+        assert meta["units"]["p99(measurements.cls)"] is None
+        assert meta["fields"]["max(measurements.cls)"] == "number"
+        assert meta["units"]["max(measurements.cls)"] is None
 
     def test_environment_param(self):
         self.create_environment(self.project, name="staging")

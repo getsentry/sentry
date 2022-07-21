@@ -11,6 +11,7 @@ from sentry.search.events.builder import MetricsQueryBuilder
 from sentry.search.events.datasets import field_aliases, filter_aliases
 from sentry.search.events.datasets.base import DatasetConfig
 from sentry.search.events.types import SelectType, WhereType
+from sentry.utils.snuba import is_duration_measurement
 
 
 class MetricsDatasetConfig(DatasetConfig):
@@ -83,6 +84,8 @@ class MetricsDatasetConfig(DatasetConfig):
                         return "percentage"
                     else:
                         return "number"
+            if not is_duration_measurement(value):
+                return "number"
             return "duration"
 
         return result_type_fn
