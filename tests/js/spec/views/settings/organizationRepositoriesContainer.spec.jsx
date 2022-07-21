@@ -32,11 +32,13 @@ describe('OrganizationRepositoriesContainer', function () {
         <OrganizationRepositoriesContainer params={{orgId: 'org-slug'}} />,
         {
           context: {
-            router: TestStubs.router(),
-            organization: TestStubs.Organization(),
-            location: TestStubs.location(),
+            context: {
+              router: TestStubs.router(),
+              organization: TestStubs.Organization(),
+              location: TestStubs.location(),
+            },
+            childContextTypes,
           },
-          childContextTypes,
         }
       );
       expect(wrapper.container).toSnapshot();
