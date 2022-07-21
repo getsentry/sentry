@@ -417,7 +417,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             assert field_meta["p75(measurements.fcp)"] == "duration"
             assert field_meta["p75(measurements.lcp)"] == "duration"
             assert field_meta["p75(measurements.fid)"] == "duration"
-            assert field_meta["p75(measurements.cls)"] == "duration"
+            assert field_meta["p75(measurements.cls)"] == "number"
             assert field_meta["apdex()"] == "number"
             assert field_meta["count_miserable(user)"] == "integer"
             assert field_meta["user_misery()"] == "number"
