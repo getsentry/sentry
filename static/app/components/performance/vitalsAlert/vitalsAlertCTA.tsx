@@ -61,7 +61,7 @@ export default function VitalsAlertCTA({data, dismissAlert}: Props) {
     : 0;
 
   // must have the global-views
-  // and either be an owner/member or the org allows open membership
+  // and either be an owner/manager or the org allows open membership
   const canSeeAllProjects =
     organization.features.includes('global-views') &&
     (['owner', 'manager'].includes(organization.orgRole || '') ||
