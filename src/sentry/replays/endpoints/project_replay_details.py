@@ -1,3 +1,5 @@
+import uuid
+
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -19,6 +21,11 @@ class ProjectReplayDetailsEndpoint(ProjectEndpoint):
 
         filter_params = self.get_filter_params(request, project)
 
+        try:
+            uuid.UUID(replay_id)
+        except ValueError:
+            return Response(status=404)
+
         snuba_response = query_replay_instance(
             project_id=project.id,
             replay_id=replay_id,
@@ -31,4 +38,7 @@ class ProjectReplayDetailsEndpoint(ProjectEndpoint):
             fields=request.query_params.getlist("field"),
         )
 
-        return Response(response, status=200)
+        if len(response) == 0:
+            return Response(status=404)
+        else:
+            return Response({"data": response[0]}, status=200)
