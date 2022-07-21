@@ -17,6 +17,8 @@ from sentry.snuba.sessions_v2 import InvalidParams
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from tests.snuba.api.endpoints.test_organization_sessions import result_sorted
 
+pytestmark = pytest.mark.sentry_metrics
+
 
 class MetricsSessionsV2Test(APITestCase, SnubaTestCase):
     def setUp(self):
