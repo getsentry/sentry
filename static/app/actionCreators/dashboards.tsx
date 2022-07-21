@@ -56,6 +56,9 @@ export function createDashboard(
         start,
         end,
       },
+      query: {
+        project: projects,
+      },
     }
   );
 
