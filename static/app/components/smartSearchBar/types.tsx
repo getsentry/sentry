@@ -11,6 +11,7 @@ export enum ItemType {
   INVALID_TAG = 'invalid-tag',
   RECENT_SEARCH = 'recent-search',
   PROPERTY = 'property',
+  LINK = 'link',
 }
 
 export type SearchGroup = {
