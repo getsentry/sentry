@@ -1,4 +1,5 @@
 import sentry_sdk
+from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -7,6 +8,12 @@ from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.paginator import SequencePaginator
 from sentry.api.serializers import serialize
 from sentry.tagstore.base import TAG_KEY_RE
+
+
+def validate_sort_field(field_name: str) -> str:
+    if field_name not in ("-last_seen", "-count"):
+        raise ParseError(detail="Invalid sort parameter. Please use one of: -last_seen or -count")
+    return field_name
 
 
 class OrganizationTagKeyValuesEndpoint(OrganizationEventsEndpointBase):
@@ -33,7 +40,7 @@ class OrganizationTagKeyValuesEndpoint(OrganizationEventsEndpointBase):
                     filter_params["start"],
                     filter_params["end"],
                     query=request.GET.get("query"),
-                    order_by=request.GET.get("sort", "-last_seen"),
+                    order_by=validate_sort_field(request.GET.get("sort", "-last_seen")),
                     include_transactions=request.GET.get("includeTransactions") == "1",
                     include_sessions=request.GET.get("includeSessions") == "1",
                 )

@@ -133,6 +133,17 @@ class OrganizationTagKeyValuesTest(OrganizationTagKeyTestCase):
             sort="-count",
         )
 
+    def test_invalid_sort_field(self):
+        self.store_event(
+            data={"timestamp": iso_format(self.day_ago), "tags": {"fruit": "apple"}},
+            project_id=self.project.id,
+        )
+        response = self.get_response("fruit", sort="invalid_field")
+        assert response.status_code == 400
+        assert response.data == {
+            "detail": "Invalid sort parameter. Please use one of: -last_seen or -count"
+        }
+
     def test_semver_with_env(self):
         env = self.create_environment(name="dev", project=self.project)
         env1 = self.create_environment(name="prod", project=self.project)
