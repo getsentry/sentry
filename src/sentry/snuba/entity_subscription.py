@@ -85,7 +85,7 @@ def apply_dataset_query_conditions(
     :param query: A string containing query to apply conditions to
     :param event_types: A list of EventType(s) to apply to the query
     :param discover: Whether this is intended for use with the discover dataset or not.
-    When False, we won't modify queries for `QueryDatasets.TRANSACTIONS` at all. This is
+    When False, we won't modify queries for `Dataset.Transactions` at all. This is
     because the discover dataset requires that we always specify `event.type` so we can
     differentiate between errors and transactions, but the TRANSACTIONS dataset doesn't
     need it specified, and `event.type` ends up becoming a tag search.

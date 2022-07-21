@@ -420,7 +420,7 @@ DEFAULT_ALERT_RULE_RESOLUTION = 1
 DEFAULT_CMP_ALERT_RULE_RESOLUTION = 2
 
 
-# Temporary mapping of `QueryDatasets` to `AlertRule.Type`. In the future, `Performance` will be
+# Temporary mapping of `Dataset` to `AlertRule.Type`. In the future, `Performance` will be
 # able to be run on `METRICS` as well.
 query_datasets_to_type = {
     Dataset.Events: SnubaQuery.Type.ERROR,
