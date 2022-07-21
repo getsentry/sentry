@@ -150,7 +150,12 @@ class ClientConfigViewTest(TestCase):
         assert resp.status_code == 200
         assert resp["Content-Type"] == "application/json"
 
-        with self.options({"system.region": "eu", "system.organization-base-hostname": "{region}.{slug}.testserver"}):
+        with self.options(
+            {
+                "system.region": "eu",
+                "system.organization-base-hostname": "{region}.{slug}.testserver",
+            }
+        ):
             resp = self.client.get(self.path)
             assert resp.status_code == 200
             assert resp["Content-Type"] == "application/json"
@@ -242,7 +247,12 @@ class ClientConfigViewTest(TestCase):
             assert data["sentryUrl"] == "http://testserver"
             assert data["organizationUrl"] == "http://testserver"
 
-        with self.options({"system.organization-url-template": "ftp://{hostname}", "system.organization-base-hostname": "{slug}.{region}.testserver"}):
+        with self.options(
+            {
+                "system.organization-url-template": "ftp://{hostname}",
+                "system.organization-base-hostname": "{slug}.{region}.testserver",
+            }
+        ):
             resp = self.client.get(self.path)
             assert resp.status_code == 200
             assert resp["Content-Type"] == "application/json"
