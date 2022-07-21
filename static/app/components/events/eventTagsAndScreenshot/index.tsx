@@ -41,7 +41,7 @@ function EventTagsAndScreenshots({
   const showTags = !!tags.length || hasContext;
 
   return (
-    <Wrapper showScreenshot={showScreenshot} showTags={showTags}>
+    <Wrapper showScreenshot={showScreenshot} showTags={showTags} hasContext={hasContext}>
       {showScreenshot && (
         <Screenshot
           organization={organization}
@@ -67,20 +67,37 @@ function EventTagsAndScreenshots({
 
 export default EventTagsAndScreenshots;
 
+/**
+ * Used to adjust padding based on which 3 elements are shown
+ * - screenshot
+ * - context
+ * - tags
+ */
 const Wrapper = styled(DataSection)<{
+  hasContext: boolean;
   showScreenshot: boolean;
   showTags: boolean;
 }>`
+  ${p => !p.hasContext && !p.showScreenshot && `padding: 0;`}
+
   > * {
     :first-child,
     :last-child {
       border: 0;
-      padding: 0;
     }
 
-    :first-child {
-      padding: 0 ${space(3)} ${space(3)} ${space(3)};
-    }
+    ${p =>
+      p.showScreenshot
+        ? css`
+            :first-child {
+              padding: 0 ${space(3)} ${space(3)} ${space(3)};
+            }
+          `
+        : css`
+            :first-child {
+              padding: 0;
+            }
+          `}
   }
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
@@ -91,11 +108,13 @@ const Wrapper = styled(DataSection)<{
     padding-bottom: 0;
     && {
       > * {
-        :first-child,
-        :last-child {
-          border: 0;
-          padding: ${space(3)} 0;
-        }
+        ${p =>
+          p.hasContext &&
+          css`
+            :last-child {
+              padding: ${space(3)} 0;
+            }
+          `}
 
         ${p =>
           p.showScreenshot &&
