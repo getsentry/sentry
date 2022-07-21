@@ -779,15 +779,14 @@ const defaultConfig: SearchConfig = {
   dateKeys: new Set([
     'start',
     'end',
-    'first_seen',
-    'last_seen',
+    'firstSeen',
+    'lastSeen',
+    'last_seen()',
     'time',
     'event.timestamp',
     'timestamp',
     'timestamp.to_hour',
     'timestamp.to_day',
-    'transaction.start_time',
-    'transaction.end_time',
   ]),
   booleanKeys: new Set([
     'error.handled',
@@ -817,4 +816,27 @@ export function parseSearch(query: string): ParseResult | null {
   }
 
   return null;
+}
+
+/**
+ * Join a parsed query array into a string.
+ * Should handle null cases to chain easily with parseSearch.
+ * Option to add a leading space when applicable (e.g. to combine with other strings).
+ * Option to add a space between elements (e.g. for when no Token.Spaces present).
+ */
+export function joinQuery(
+  parsedTerms: ParseResult | null | undefined,
+  leadingSpace?: boolean,
+  additionalSpaceBetween?: boolean
+): string {
+  if (!parsedTerms || !parsedTerms.length) {
+    return '';
+  }
+
+  return (
+    (leadingSpace ? ' ' : '') +
+    (parsedTerms.length === 1
+      ? parsedTerms[0].text
+      : parsedTerms.map(p => p.text).join(additionalSpaceBetween ? ' ' : ''))
+  );
 }

@@ -2,6 +2,7 @@ from time import time
 from unittest import mock
 
 import pytest
+from django.urls import reverse
 
 from sentry import audit_log
 from sentry.api.endpoints.project_details import (
@@ -10,6 +11,7 @@ from sentry.api.endpoints.project_details import (
 )
 from sentry.constants import RESERVED_PROJECT_SLUGS
 from sentry.models import (
+    ApiToken,
     AuditLogEntry,
     DeletedProject,
     EnvironmentProject,
@@ -34,35 +36,61 @@ from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 
 
-def _dyn_sampling_data():
-    return {
-        "rules": [
-            {
-                "sampleRate": 0.7,
-                "type": "trace",
-                "active": True,
-                "condition": {
-                    "op": "and",
-                    "inner": [
-                        {"op": "eq", "name": "field1", "value": ["val"]},
-                        {"op": "glob", "name": "field1", "value": ["val"]},
-                    ],
-                },
-                "id": 0,
+def _dyn_sampling_data(multiple_uniform_rules=False, uniform_rule_last_position=True):
+    rules = [
+        {
+            "sampleRate": 0.7,
+            "type": "trace",
+            "active": True,
+            "condition": {
+                "op": "and",
+                "inner": [
+                    {"op": "eq", "name": "field1", "value": ["val"]},
+                    {"op": "glob", "name": "field1", "value": ["val"]},
+                ],
             },
+            "id": 0,
+        },
+        {
+            "sampleRate": 0.8,
+            "type": "trace",
+            "active": True,
+            "condition": {
+                "op": "and",
+                "inner": [
+                    {"op": "eq", "name": "field1", "value": ["val"]},
+                ],
+            },
+            "id": 0,
+        },
+    ]
+    if uniform_rule_last_position:
+        rules.append(
             {
                 "sampleRate": 0.8,
                 "type": "trace",
                 "active": True,
                 "condition": {
                     "op": "and",
-                    "inner": [
-                        {"op": "eq", "name": "field1", "value": ["val"]},
-                    ],
+                    "inner": [],
                 },
                 "id": 0,
             },
-        ]
+        )
+    if multiple_uniform_rules:
+        new_rule_1 = {
+            "sampleRate": 0.22,
+            "type": "trace",
+            "condition": {
+                "op": "and",
+                "inner": [],
+            },
+            "id": 0,
+        }
+        rules.insert(0, new_rule_1)
+
+    return {
+        "rules": rules,
     }
 
 
@@ -194,6 +222,130 @@ class ProjectDetailsTest(APITestCase):
         self.login_as(user=user)
 
         self.get_error_response(other_org.slug, "old_slug", status_code=403)
+
+
+class ProjectUpdateTestTokenAuthenticated(APITestCase):
+    endpoint = "sentry-api-0-project-details"
+    method = "put"
+
+    def setUp(self):
+        super().setUp()
+        self.project = self.create_project(platform="javascript")
+        self.user = self.create_user("bar@example.com")
+
+    def test_member_can_read_project_details(self):
+        self.create_member(
+            user=self.user,
+            organization=self.project.organization,
+            teams=[self.project.teams.first()],
+            role="member",
+        )
+
+        token = ApiToken.objects.create(user=self.user, scope_list=["project:read"])
+        authorization = f"Bearer {token.token}"
+
+        url = reverse(
+            "sentry-api-0-project-details",
+            kwargs={
+                "organization_slug": self.project.organization.slug,
+                "project_slug": self.project.slug,
+            },
+        )
+        response = self.client.get(url, format="json", HTTP_AUTHORIZATION=authorization)
+        assert response.status_code == 200, response.content
+
+    def test_member_updates_denied_with_token(self):
+        self.create_member(
+            user=self.user,
+            organization=self.project.organization,
+            teams=[self.project.teams.first()],
+            role="member",
+        )
+
+        token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
+        authorization = f"Bearer {token.token}"
+
+        data = {"platform": "rust"}
+
+        url = reverse(
+            "sentry-api-0-project-details",
+            kwargs={
+                "organization_slug": self.project.organization.slug,
+                "project_slug": self.project.slug,
+            },
+        )
+        response = self.client.put(url, format="json", HTTP_AUTHORIZATION=authorization, data=data)
+        assert response.status_code == 403, response.content
+
+    def test_admin_updates_allowed_with_correct_token_scope(self):
+        self.create_member(
+            user=self.user,
+            organization=self.project.organization,
+            teams=[self.project.teams.first()],
+            role="admin",
+        )
+
+        token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
+        authorization = f"Bearer {token.token}"
+
+        data = {"platform": "rust"}
+
+        url = reverse(
+            "sentry-api-0-project-details",
+            kwargs={
+                "organization_slug": self.project.organization.slug,
+                "project_slug": self.project.slug,
+            },
+        )
+        response = self.client.put(url, format="json", HTTP_AUTHORIZATION=authorization, data=data)
+        assert response.status_code == 200, response.content
+
+    def test_admin_updates_denied_with_token(self):
+        self.create_member(
+            user=self.user,
+            organization=self.project.organization,
+            teams=[self.project.teams.first()],
+            role="admin",
+        )
+
+        # even though the user has the 'admin' role, they've issued a token with only a project:read scope
+        token = ApiToken.objects.create(user=self.user, scope_list=["project:read"])
+        authorization = f"Bearer {token.token}"
+
+        data = {"platform": "rust"}
+
+        url = reverse(
+            "sentry-api-0-project-details",
+            kwargs={
+                "organization_slug": self.project.organization.slug,
+                "project_slug": self.project.slug,
+            },
+        )
+        response = self.client.put(url, format="json", HTTP_AUTHORIZATION=authorization, data=data)
+        assert response.status_code == 403, response.content
+
+    def test_empty_token_scopes_denied(self):
+        self.create_member(
+            user=self.user,
+            organization=self.project.organization,
+            teams=[self.project.teams.first()],
+            role="member",
+        )
+
+        token = ApiToken.objects.create(user=self.user, scope_list=[""])
+        authorization = f"Bearer {token.token}"
+
+        data = {"platform": "rust"}
+
+        url = reverse(
+            "sentry-api-0-project-details",
+            kwargs={
+                "organization_slug": self.project.organization.slug,
+                "project_slug": self.project.slug,
+            },
+        )
+        response = self.client.put(url, format="json", HTTP_AUTHORIZATION=authorization, data=data)
+        assert response.status_code == 403, response.content
 
 
 class ProjectUpdateTest(APITestCase):
@@ -678,7 +830,9 @@ class ProjectUpdateTest(APITestCase):
                     "type": "trace",
                     "condition": {
                         "op": "and",
-                        "inner": [],
+                        "inner": [
+                            {"op": "eq", "name": "field1", "value": ["val"]},
+                        ],
                     },
                     "id": 0,
                 },
@@ -687,7 +841,9 @@ class ProjectUpdateTest(APITestCase):
                     "type": "trace",
                     "condition": {
                         "op": "and",
-                        "inner": [],
+                        "inner": [
+                            {"op": "eq", "name": "field1", "value": ["val"]},
+                        ],
                     },
                     "id": 0,
                 },
@@ -727,7 +883,9 @@ class ProjectUpdateTest(APITestCase):
             "type": "trace",
             "condition": {
                 "op": "and",
-                "inner": [],
+                "inner": [
+                    {"op": "eq", "name": "field1", "value": ["val"]},
+                ],
             },
             "id": 0,
         }
@@ -769,6 +927,52 @@ class ProjectUpdateTest(APITestCase):
             response = self.get_success_response(self.org_slug, self.proj_slug, method="get")
         saved_config = response.data["dynamicSampling"]
         assert all([rule["active"] for rule in saved_config["rules"]])
+
+    def test_dynamic_sampling_rules_should_contain_single_uniform_rule(self):
+        """
+        Tests that ensures you can only have one uniform rule
+        """
+        with Feature({"organizations:server-side-sampling": True}):
+            response = self.get_response(
+                self.org_slug,
+                self.proj_slug,
+                dynamicSampling=_dyn_sampling_data(multiple_uniform_rules=True),
+            )
+            assert response.status_code == 400
+            assert (
+                response.json()["dynamicSampling"]["non_field_errors"][0] == "Uniform rule "
+                "must be in the last position only"
+            )
+
+    def test_dynamic_sampling_rules_single_uniform_rule_in_last_position(self):
+        """
+        Tests that ensures you can only have one uniform rule, and it is at the last position
+        """
+        with Feature({"organizations:server-side-sampling": True}):
+            response = self.get_response(
+                self.org_slug,
+                self.proj_slug,
+                dynamicSampling=_dyn_sampling_data(uniform_rule_last_position=False),
+            )
+            assert response.status_code == 400
+            assert (
+                response.json()["dynamicSampling"]["non_field_errors"][0]
+                == "Last rule is reserved for uniform rule which must have no conditions"
+            )
+
+    def test_dynamic_sampling_rules_should_contain_uniform_rule(self):
+        """
+        Tests that ensures that payload has a uniform rule i.e. guards against deletion of rule
+        """
+        with Feature({"organizations:server-side-sampling": True}):
+            response = self.get_response(
+                self.org_slug, self.proj_slug, dynamicSampling={"rules": []}
+            )
+            assert response.status_code == 400
+            assert (
+                response.json()["dynamicSampling"]["non_field_errors"][0]
+                == "Payload must contain a uniform dynamic sampling rule"
+            )
 
     def test_cap_secondary_grouping_expiry(self):
         now = time()
@@ -1209,7 +1413,17 @@ def test_rule_config_serializer():
                         {"op": "glob", "name": "field1", "value": ["val"]},
                     ],
                 },
-            }
+            },
+            {
+                "sampleRate": 0.7,
+                "type": "trace",
+                "active": False,
+                "id": 2,
+                "condition": {
+                    "op": "and",
+                    "inner": [],
+                },
+            },
         ],
         "next_id": 22,
     }

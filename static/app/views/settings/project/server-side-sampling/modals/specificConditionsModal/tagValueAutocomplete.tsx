@@ -3,24 +3,25 @@ import {components, MultiValueProps} from 'react-select';
 import styled from '@emotion/styled';
 
 import {fetchTagValues} from 'sentry/actionCreators/tags';
+import Count from 'sentry/components/count';
 import SelectField from 'sentry/components/forms/selectField';
 import {t} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
+import {Organization, Project, TagValue as IssueTagValue} from 'sentry/types';
 import {SamplingInnerName} from 'sentry/types/sampling';
 import useApi from 'sentry/utils/useApi';
 
 import {TruncatedLabel} from './truncatedLabel';
 import {formatCreateTagLabel, getMatchFieldPlaceholder} from './utils';
 
-type Tag = {
-  value: string;
-};
+type TagValue = Pick<
+  IssueTagValue,
+  'key' | 'name' | 'value' | 'count' | 'lastSeen' | 'firstSeen'
+>;
 
 export interface TagValueAutocompleteProps {
   category:
     | SamplingInnerName.TRACE_ENVIRONMENT
     | SamplingInnerName.TRACE_RELEASE
-    | SamplingInnerName.TRACE_TRANSACTION
     | string;
   onChange: (value: string) => void;
   orgSlug: Organization['slug'];
@@ -38,7 +39,7 @@ function TagValueAutocomplete({
   tagKey,
 }: TagValueAutocompleteProps) {
   const api = useApi();
-  const [tagValues, setTagValues] = useState<Tag[]>([]);
+  const [tagValues, setTagValues] = useState<TagValue[]>([]);
 
   function getAriaLabel() {
     switch (category) {
@@ -46,8 +47,6 @@ function TagValueAutocomplete({
         return t('Search or add a release');
       case SamplingInnerName.TRACE_ENVIRONMENT:
         return t('Search or add an environment');
-      case SamplingInnerName.TRACE_TRANSACTION:
-        return t('Search or add a transaction');
       default:
         return undefined;
     }
@@ -66,7 +65,9 @@ function TagValueAutocomplete({
         null,
         [projectId],
         null,
-        true
+        true,
+        undefined,
+        '-count'
       );
       setTagValues(response);
     } catch {
@@ -80,20 +81,28 @@ function TagValueAutocomplete({
 
   // react-select doesn't seem to work very well when its value contains
   // a created item that isn't listed in the options
-  const createdOptions: Tag[] = !value
+  const createdOptions: TagValue[] = !value
     ? []
     : value
         .split('\n')
         .filter(v => !tagValues.some(tagValue => tagValue.value === v))
-        .map(v => ({value: v}));
+        .map(v => ({
+          value: v,
+          name: v,
+          key: tagKey,
+          count: 0,
+          firstSeen: '',
+          lastSeen: '',
+        }));
 
   return (
     <StyledSelectField
       name="match"
       aria-label={getAriaLabel()}
-      options={[...createdOptions, ...tagValues].map(tagValue => ({
+      options={[...tagValues, ...createdOptions].map(tagValue => ({
         value: tagValue.value,
         label: <TruncatedLabel value={tagValue.value} />,
+        trailingItems: <StyledCount value={tagValue.count} />,
       }))}
       value={value?.split('\n')}
       onChange={newValue => {
@@ -109,6 +118,9 @@ function TagValueAutocomplete({
       }}
       formatCreateLabel={formatCreateTagLabel}
       isValidNewOption={newOption => {
+        if (tagValues.some(tagValue => tagValue.value === newOption)) {
+          return false;
+        }
         // Tag values cannot be empty and must have a maximum length of 200 characters
         // https://github.com/getsentry/relay/blob/d8223d8d03ed4764063855eb3480f22684163d92/relay-general/src/store/normalize.rs#L230-L236
         // In addition to that, it cannot contain a line-feed (newline) character
@@ -134,6 +146,10 @@ function TagValueAutocomplete({
 
 const StyledSelectField = styled(SelectField)`
   width: 100%;
+`;
+
+const StyledCount = styled(Count)`
+  color: ${p => p.theme.subText};
 `;
 
 export {TagValueAutocomplete};

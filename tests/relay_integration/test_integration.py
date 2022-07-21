@@ -193,11 +193,11 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
             raw_event = event.get_raw_data()
 
             exclusive_times = [
-                pytest.approx(50, rel=1e3),
-                pytest.approx(0, rel=1e3),
-                pytest.approx(200, rel=1e3),
-                pytest.approx(0, rel=1e3),
-                pytest.approx(200, rel=1e3),
+                pytest.approx(50, abs=2),
+                pytest.approx(0, abs=2),
+                pytest.approx(200, abs=2),
+                pytest.approx(0, abs=2),
+                pytest.approx(200, abs=2),
             ]
             for actual, expected, exclusive_time in zip(
                 raw_event["spans"], event_data["spans"], exclusive_times
@@ -209,10 +209,10 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
                 )
             assert raw_event["breakdowns"] == {
                 "span_ops": {
-                    "ops.browser": {"unit": "millisecond", "value": pytest.approx(200, rel=1e3)},
-                    "ops.resource": {"unit": "millisecond", "value": pytest.approx(200, rel=1e3)},
-                    "ops.http": {"unit": "millisecond", "value": pytest.approx(200, rel=1e3)},
-                    "ops.db": {"unit": "millisecond", "value": pytest.approx(200, rel=1e3)},
-                    "total.time": {"unit": "millisecond", "value": pytest.approx(1050, rel=1e3)},
+                    "ops.browser": {"unit": "millisecond", "value": pytest.approx(200, abs=2)},
+                    "ops.resource": {"unit": "millisecond", "value": pytest.approx(200, abs=2)},
+                    "ops.http": {"unit": "millisecond", "value": pytest.approx(200, abs=2)},
+                    "ops.db": {"unit": "millisecond", "value": pytest.approx(200, abs=2)},
+                    "total.time": {"unit": "millisecond", "value": pytest.approx(1050, abs=2)},
                 }
             }

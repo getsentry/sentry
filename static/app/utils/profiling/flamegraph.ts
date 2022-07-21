@@ -1,10 +1,11 @@
 import {lastOfArray} from 'sentry/utils';
+import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 
 import {Rect} from './gl/utils';
 import {Profile} from './profile/profile';
 import {makeFormatter, makeTimelineFormatter} from './units/units';
 import {CallTreeNode} from './callTreeNode';
-import {FlamegraphFrame} from './flamegraphFrame';
+import {Frame} from './frame';
 
 export class Flamegraph {
   profile: Profile;
@@ -20,8 +21,8 @@ export class Flamegraph {
   root: FlamegraphFrame = {
     key: -1,
     parent: null,
-    frame: CallTreeNode.Root.frame,
-    node: CallTreeNode.Root,
+    frame: new Frame({...Frame.Root}),
+    node: new CallTreeNode(new Frame({...Frame.Root}), null),
     depth: -1,
     start: 0,
     end: 0,
@@ -91,24 +92,20 @@ export class Flamegraph {
         this.depth
       );
     }
+
+    const weight = this.root.children.reduce(
+      (acc, frame) => acc + frame.node.totalWeight,
+      0
+    );
+
+    this.root.node.addToTotalWeight(weight);
+    this.root.end = this.root.start + weight;
+    this.root.frame.addToTotalWeight(weight);
   }
 
   buildCallOrderGraph(profile: Profile, offset: number): FlamegraphFrame[] {
     const frames: FlamegraphFrame[] = [];
     const stack: FlamegraphFrame[] = [];
-
-    const virtualRoot: FlamegraphFrame = {
-      key: -1,
-      frame: CallTreeNode.Root.frame,
-      node: CallTreeNode.Root,
-      parent: null,
-      children: [],
-      depth: 0,
-      start: 0,
-      end: 0,
-    };
-
-    this.root = virtualRoot;
     let idx = 0;
 
     const openFrame = (node: CallTreeNode, value: number) => {

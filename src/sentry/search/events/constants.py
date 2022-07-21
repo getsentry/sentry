@@ -86,6 +86,20 @@ FUNCTION_PATTERN = re.compile(
 DURATION_PATTERN = re.compile(r"(\d+\.?\d?)(\D{1,3})")
 
 RESULT_TYPES = {"duration", "string", "number", "integer", "percentage", "date"}
+SIZE_UNITS = {"bit", "byte", "kibibyte", "mebibyte", "gibibyte", "tebibyte", "pebibyte", "exbibyte"}
+DURATION_UNITS = {
+    "nanosecond",
+    "microsecond",
+    "millisecond",
+    "second",
+    "minute",
+    "hour",
+    "day",
+    "week",
+}
+PERCENT_UNITS = {"ratio", "percent"}
+RESULT_TYPES = RESULT_TYPES.union(SIZE_UNITS)
+RESULT_TYPES = RESULT_TYPES.union(DURATION_UNITS)
 NO_CONVERSION_FIELDS = {"start", "end"}
 EQUALITY_OPERATORS = frozenset(["=", "IN"])
 INEQUALITY_OPERATORS = frozenset(["!=", "NOT IN"])
@@ -192,11 +206,13 @@ METRICS_MAP = {
 }
 # 50 to match the size of tables in the UI + 1 for pagination reasons
 METRICS_MAX_LIMIT = 101
-METRICS_GRANULARITIES = [86400, 3600, 60, 10]
+
+METRICS_GRANULARITIES = [86400, 3600, 60]
 METRIC_TOLERATED_TAG_VALUE = "tolerated"
 METRIC_SATISFIED_TAG_VALUE = "satisfied"
 METRIC_FRUSTRATED_TAG_VALUE = "frustrated"
 METRIC_SATISFACTION_TAG_KEY = "satisfaction"
+
 # Only the metrics that are on the distributions & are in milliseconds
 METRIC_DURATION_COLUMNS = {
     key
@@ -233,7 +249,7 @@ METRIC_PERCENTILES = {
 
 CUSTOM_MEASUREMENT_PATTERN = re.compile(r"^measurements\..+$")
 METRIC_FUNCTION_LIST_BY_TYPE = {
-    "distribution": [
+    "generic_distribution": [
         "apdex",
         "avg",
         "p50",
@@ -247,10 +263,10 @@ METRIC_FUNCTION_LIST_BY_TYPE = {
         "sum",
         "percentile",
     ],
-    "set": [
+    "generic_set": [
         "count_miserable",
         "user_misery",
         "count_unique",
     ],
-    "counter": [],
+    "generic_counter": [],
 }

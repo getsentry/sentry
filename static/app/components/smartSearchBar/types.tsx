@@ -1,3 +1,5 @@
+import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
+
 import {Token, TokenResult} from '../searchSyntax/parser';
 
 export enum ItemType {
@@ -9,6 +11,7 @@ export enum ItemType {
   INVALID_TAG = 'invalid-tag',
   RECENT_SEARCH = 'recent-search',
   PROPERTY = 'property',
+  LINK = 'link',
 }
 
 export type SearchGroup = {
@@ -26,13 +29,20 @@ export type SearchItem = {
    * Call a callback instead of setting a value in the search query
    */
   callback?: () => void;
-  children?: React.ReactNode[];
+  /**
+   * Child search items, we only support 1 level of nesting though.
+   */
+  children?: SearchItem[];
   desc?: string;
   documentation?: React.ReactNode;
   ignoreMaxSearchItems?: boolean;
+  kind?: FieldValueKind;
   title?: string;
   type?: ItemType;
-  value?: string;
+  /**
+   * A value of null means that this item is not selectable in the search dropdown
+   */
+  value?: string | null;
 };
 
 export type Tag = {
