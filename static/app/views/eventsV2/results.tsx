@@ -584,7 +584,6 @@ const StyledSearchBar = styled(SearchBar)`
 
 const Top = styled(Layout.Main)`
   flex-grow: 0;
-  margin-bottom: ${space(1)};
 `;
 
 type SavedQueryState = AsyncComponent['state'] & {
