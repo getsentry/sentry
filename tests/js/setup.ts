@@ -70,6 +70,7 @@ ConfigStore.loadInitialData(fixtures.Config());
 /**
  * Mocks
  */
+jest.mock('screenfull');
 jest.mock('lodash/debounce', () => jest.fn(fn => fn));
 jest.mock('sentry/utils/recreateRoute');
 jest.mock('sentry/api');
