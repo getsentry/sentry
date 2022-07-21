@@ -11,7 +11,7 @@ function scheduleMicroTask(callback: () => void) {
       .then(callback)
       .catch(e => {
         // Escape the promise and throw the error so it gets reported
-        if (window && 'setTimeout' in window) {
+        if (window) {
           window.setTimeout(() => {
             throw e;
           });
