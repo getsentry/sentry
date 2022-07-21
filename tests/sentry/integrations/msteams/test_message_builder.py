@@ -250,7 +250,7 @@ class MSTeamsMessageBuilderTest(TestCase):
         assert 4 == len(body)
 
         title = body[0]
-        assert "oh no" in title["text"]
+        assert "[oh no](" in title["text"]
         assert TextSize.LARGE == title["size"]
         assert TextWeight.BOLDER == title["weight"]
 
@@ -267,7 +267,7 @@ class MSTeamsMessageBuilderTest(TestCase):
 
         issue_id_and_rule = footer["columns"][1]["items"][0]
         assert self.group1.qualified_short_id in issue_id_and_rule["text"]
-        assert "rule1" in issue_id_and_rule["text"]
+        assert "[rule1](" in issue_id_and_rule["text"]
         assert "+1 other" in issue_id_and_rule["text"]
 
         date = footer["columns"][2]["items"][0]
