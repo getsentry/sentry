@@ -157,40 +157,34 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
       expect(buttonDelete.exists()).toBe(false);
     });
 
-    it('hides the banner when save is complete.', async () => {
+    it('hides the banner when save is complete.', () => {
       mount(location, organization, router, errorsView, undefined, yAxis);
 
       // Click on ButtonSaveAs to open dropdown
-      userEvent.click(await screen.findByRole('button', {name: 'Save as'}));
+      userEvent.click(screen.getByRole('button', {name: 'Save as'}));
 
       // Fill in the Input
-      userEvent.type(
-        await screen.findByPlaceholderText('Display name'),
-        'My New Query Name'
-      );
+      userEvent.type(screen.getByPlaceholderText('Display name'), 'My New Query Name');
 
       // Click on Save in the Dropdown
-      userEvent.click(await screen.findByRole('button', {name: 'Save for Org'}));
+      userEvent.click(screen.getByRole('button', {name: 'Save for Org'}));
 
       // The banner should not render
       mountWithTheme(<DiscoverBanner organization={organization} resultsUrl="" />);
       expect(screen.queryByText('Discover Trends')).not.toBeInTheDocument();
     });
 
-    it('saves a well-formed query', async () => {
+    it('saves a well-formed query', () => {
       mount(location, organization, router, errorsView, undefined, yAxis);
 
       // Click on ButtonSaveAs to open dropdown
-      userEvent.click(await screen.findByRole('button', {name: 'Save as'}));
+      userEvent.click(screen.getByRole('button', {name: 'Save as'}));
 
       // Fill in the Input
-      userEvent.type(
-        await screen.findByPlaceholderText('Display name'),
-        'My New Query Name'
-      );
+      userEvent.type(screen.getByPlaceholderText('Display name'), 'My New Query Name');
 
       // Click on Save in the Dropdown
-      userEvent.click(await screen.findByRole('button', {name: 'Save for Org'}));
+      userEvent.click(screen.getByRole('button', {name: 'Save for Org'}));
 
       expect(mockUtils).toHaveBeenCalledWith(
         expect.anything(), // api
@@ -204,16 +198,16 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
       );
     });
 
-    it('rejects if query.name is empty', async () => {
+    it('rejects if query.name is empty', () => {
       mount(location, organization, router, errorsView, undefined, yAxis);
 
       // Click on ButtonSaveAs to open dropdown
-      userEvent.click(await screen.findByRole('button', {name: 'Save as'}));
+      userEvent.click(screen.getByRole('button', {name: 'Save as'}));
 
       // Do not fill in Input
 
       // Click on Save in the Dropdown
-      userEvent.click(await screen.findByRole('button', {name: 'Save for Org'}));
+      userEvent.click(screen.getByRole('button', {name: 'Save for Org'}));
 
       // Check that EventView has a name
       expect(errorsView.name).toBe('Errors by Title');
@@ -503,20 +497,17 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
         mockUtils.mockClear();
       });
 
-      it('checks that it is forked from a saved query', async () => {
+      it('checks that it is forked from a saved query', () => {
         mount(location, organization, router, errorsViewModified, savedQuery, yAxis);
 
         // Click on ButtonSaveAs to open dropdown
-        userEvent.click(await screen.findByRole('button', {name: 'Save as'}));
+        userEvent.click(screen.getByRole('button', {name: 'Save as'}));
 
         // Fill in the Input
-        userEvent.type(
-          await screen.findByPlaceholderText('Display name'),
-          'Forked Query'
-        );
+        userEvent.type(screen.getByPlaceholderText('Display name'), 'Forked Query');
 
         // Click on Save in the Dropdown
-        userEvent.click(await screen.findByRole('button', {name: 'Save for Org'}));
+        userEvent.click(screen.getByRole('button', {name: 'Save for Org'}));
 
         expect(mockUtils).toHaveBeenCalledWith(
           expect.anything(), // api
