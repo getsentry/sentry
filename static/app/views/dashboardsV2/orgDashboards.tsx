@@ -15,7 +15,7 @@ import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 
 import {assignTempId} from './layoutUtils';
 import {DashboardDetails, DashboardListItem} from './types';
-import {hasSavedFilters} from './utils';
+import {hasSavedPageFilters} from './utils';
 
 type OrgDashboardsChildrenProps = {
   dashboard: DashboardDetails | null;
@@ -94,7 +94,7 @@ class OrgDashboards extends AsyncComponent<Props, State> {
       if (
         organization.features.includes('dashboards-top-level-filter') &&
         stateKey === 'selectedDashboard' &&
-        hasSavedFilters(data) &&
+        hasSavedPageFilters(data) &&
         isEmpty(location.query)
       ) {
         browserHistory.replace({
@@ -190,7 +190,7 @@ class OrgDashboards extends AsyncComponent<Props, State> {
       loading ||
       (organization.features.includes('dashboards-top-level-filter') &&
         selectedDashboard &&
-        hasSavedFilters(selectedDashboard) &&
+        hasSavedPageFilters(selectedDashboard) &&
         isEmpty(location.query))
     ) {
       // Block dashboard from rendering if the dashboard has filters and

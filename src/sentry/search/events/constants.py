@@ -110,6 +110,8 @@ DURATION_UNITS = {
 }
 RESULT_TYPES = RESULT_TYPES.union(SIZE_UNITS.keys())
 RESULT_TYPES = RESULT_TYPES.union(DURATION_UNITS.keys())
+PERCENT_UNITS = {"ratio", "percent"}
+
 NO_CONVERSION_FIELDS = {"start", "end"}
 EQUALITY_OPERATORS = frozenset(["=", "IN"])
 INEQUALITY_OPERATORS = frozenset(["!=", "NOT IN"])

@@ -2,6 +2,7 @@ import time
 from datetime import datetime, timedelta
 from unittest.mock import patch
 
+import pytest
 from freezegun import freeze_time
 
 from sentry.sentry_metrics import indexer
@@ -13,6 +14,8 @@ from tests.sentry.api.endpoints.test_organization_metrics import (
     MOCKED_DERIVED_METRICS,
     mocked_mri_resolver,
 )
+
+pytestmark = pytest.mark.sentry_metrics
 
 
 def _indexer_record(org_id: int, string: str) -> int:
