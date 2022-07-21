@@ -20,15 +20,6 @@ query_aggregation_to_snuba = {
 }
 
 
-class QueryDatasets(Enum):
-    EVENTS = "events"
-    TRANSACTIONS = "transactions"
-    SESSIONS = "sessions"
-    # Actually Release Health
-    METRICS = "metrics"
-    PERFORMANCE_METRICS = "generic_metrics"
-
-
 class SnubaQuery(Model):
     __include_in_export__ = True
 

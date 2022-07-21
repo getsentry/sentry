@@ -6,7 +6,7 @@ from freezegun import freeze_time
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.incident import DetailedIncidentSerializer
 from sentry.incidents.logic import subscribe_to_incident
-from sentry.snuba.models import QueryDatasets
+from sentry.snuba.dataset import Dataset
 from sentry.testutils import TestCase
 
 
@@ -60,7 +60,7 @@ class DetailedIncidentSerializerTest(TestCase):
 
     def test_transaction_alert_rule(self):
         query = "test query"
-        alert_rule = self.create_alert_rule(dataset=QueryDatasets.TRANSACTIONS, query=query)
+        alert_rule = self.create_alert_rule(dataset=Dataset.Transactions, query=query)
         incident = self.create_incident(alert_rule=alert_rule)
 
         serializer = DetailedIncidentSerializer()

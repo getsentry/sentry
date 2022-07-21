@@ -4,7 +4,8 @@ import logging
 
 from django.db import migrations
 
-from sentry.snuba.models import QueryDatasets, SnubaQueryEventType
+from sentry.snuba.dataset import Dataset
+from sentry.snuba.models import SnubaQueryEventType
 from sentry.snuba.tasks import _create_in_snuba, _delete_from_snuba
 from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
@@ -33,14 +34,14 @@ def migrate_subscriptions(apps, schema_editor):
 
             try:
                 _delete_from_snuba(
-                    QueryDatasets(subscription.snuba_query.dataset),
+                    Dataset(subscription.snuba_query.dataset),
                     subscription.subscription_id,
                 )
             except Exception as e:
                 try:
                     # Delete the subscription we just created to avoid orphans
                     _delete_from_snuba(
-                        QueryDatasets(subscription.snuba_query.dataset),
+                        Dataset(subscription.snuba_query.dataset),
                         subscription_id,
                     )
                 except Exception as oe:
