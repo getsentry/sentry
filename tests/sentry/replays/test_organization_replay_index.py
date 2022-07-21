@@ -1,10 +1,9 @@
 import datetime
-import typing
 
 from django.urls import reverse
 
+from sentry.replays.testutils import assert_expected_response, mock_expected_response, mock_replay
 from sentry.testutils import APITestCase, ReplaysSnubaTestCase
-from tests.sentry.replays import utils
 
 REPLAYS_FEATURES = {"organizations:session-replay": True}
 
@@ -51,7 +50,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             expected_response = mock_expected_response(
                 replay1_id, seq1_timestamp, seq2_timestamp, urls=["", ""], count_sequences=2
             )
-            utils.assert_expected_response(response_data["data"][0], expected_response)
+            assert_expected_response(response_data["data"][0], expected_response)
 
     def test_get_replays_start_at_sorted(self):
         project = self.create_project(teams=[self.team])
@@ -154,98 +153,3 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             response_data = response.json()
             assert "data" in response_data
             assert len(response_data["data"]) == 0
-
-
-def mock_expected_response(
-    replay_id: str,
-    started_at: datetime.datetime,
-    finished_at: datetime.datetime,
-    **kwargs: typing.Dict[str, typing.Any],
-) -> typing.Dict[str, typing.Any]:
-    urls = kwargs.pop("urls", [""])
-    return {
-        "replay_id": replay_id,
-        "title": kwargs.pop("title", ""),
-        "platform": kwargs.pop("platform", "javascript"),
-        "environment": kwargs.pop("environment", ""),
-        "release": kwargs.pop("release", ""),
-        "dist": kwargs.pop("dist", "abc123"),
-        "ip_address_v4": kwargs.pop("ip_address_v4", "127.0.0.1"),
-        "ip_address_v6": kwargs.pop("ip_address_v6", "::"),
-        "user": kwargs.pop("user", ""),
-        "user_id": kwargs.pop("user_id", "123"),
-        "user_email": kwargs.pop("user_email", "username@example.com"),
-        "user_hash": kwargs.pop("user_hash", 0),
-        "user_name": kwargs.pop("user_name", "username"),
-        "sdk_name": kwargs.pop("sdk_name", "sentry.javascript.react"),
-        "sdk_version": kwargs.pop("sdk_version", "6.18.1"),
-        "trace_ids": kwargs.pop("trace_ids", ["ffb5344a-41dd-4b21-9288-187a2cd1ad6d"]),
-        "started_at": datetime.datetime.strftime(started_at, "%Y-%m-%dT%H:%M:%S+00:00"),
-        "finished_at": datetime.datetime.strftime(finished_at, "%Y-%m-%dT%H:%M:%S+00:00"),
-        "duration": (finished_at - started_at).seconds,
-        "urls": urls,
-        "count_urls": len(urls),
-        "count_sequences": kwargs.pop("count_sequences", 1),
-        "tags": {"isReplayRoot": "yes", "skippedNormalization": "True", "transaction": "/"},
-        "count_errors": kwargs.pop("count_errors", 0),
-        "longest_transaction": kwargs.pop("longest_transaction", 0),
-    }
-
-
-def mock_replay(
-    timestamp: datetime.datetime,
-    project_id: str,
-    replay_id: str,
-    **kwargs: typing.Dict[str, typing.Any],
-) -> typing.Dict[str, typing.Any]:
-    return {
-        "datetime": int(timestamp.timestamp()),
-        "platform": "javascript",
-        "project_id": project_id,
-        "replay_id": replay_id,
-        "retention_days": 20,
-        "sequence_id": kwargs.pop("sequence_id", 0),
-        "trace_ids": kwargs.pop("trace_ids", ["ffb5344a-41dd-4b21-9288-187a2cd1ad6d"]),
-        "data": {
-            "timestamp": int(timestamp.timestamp()),
-            "replay_id": replay_id,
-            "environment": kwargs.pop("environment", "production"),
-            "project_id": project_id,
-            "release": kwargs.pop("release", "version@1.3"),
-            "dist": kwargs.pop("dist", "abc123"),
-            "sdk": {
-                "name": kwargs.pop("sdk_name", "sentry.javascript.react"),
-                "version": kwargs.pop("sdk_version", "6.18.1"),
-                "integrations": [
-                    "InboundFilters",
-                    "FunctionToString",
-                    "TryCatch",
-                    "Breadcrumbs",
-                    "GlobalHandlers",
-                    "LinkedErrors",
-                    "Dedupe",
-                    "UserAgent",
-                    "Replay",
-                    "BrowserTracing",
-                ],
-                "packages": [{"name": "npm:@sentry/react", "version": "6.18.1"}],
-            },
-            "platform": kwargs.pop("platform", "javascript"),
-            "version": "6.18.1",
-            "type": "replay_event",
-            "datetime": int(timestamp.timestamp()),
-            "tags": [
-                ["isReplayRoot", "yes"],
-                ["skippedNormalization", "True"],
-                ["transaction", "/"],
-            ],
-            "user": {
-                "username": kwargs.pop("username", "username"),
-                "ip_address": kwargs.pop("ip_address", "127.0.0.1"),
-                "id": kwargs.pop("id", "123"),
-                "email": kwargs.pop("email", "username@example.com"),
-                "hash": kwargs.pop("hash", 123),
-            },
-            "title": kwargs.pop("title", "test"),
-        },
-    }
