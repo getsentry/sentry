@@ -37,6 +37,7 @@ class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
         replay_id = str(self.replay_id)
 
         self.store_replays(mock_replay(seq1_timestamp, self.project.id, replay_id))
+        self.store_replays(mock_replay(seq1_timestamp, self.project.id, str(uuid.uuid4())))
         self.store_replays(
             mock_replay(
                 seq2_timestamp,
@@ -61,18 +62,18 @@ class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
 
             expected_response = {
                 "replay_id": replay_id,
-                "title": "",
+                "title": "",  # NOT WRITTEN
                 "platform": "javascript",
-                "environment": "",
-                "release": "",
-                "dist": "",
-                "ip_address_v4": "0.0.0.0",
+                "environment": "",  # NOT WRITTEN
+                "release": "",  # NOT WRITTEN
+                "dist": "abc123",
+                "ip_address_v4": "127.0.0.1",
                 "ip_address_v6": "::",
                 "user": "",
-                "user_id": "",
-                "user_email": "",
-                "user_hash": 0,
-                "user_name": "",
+                "user_id": "123",
+                "user_email": "username@example.com",
+                "user_hash": 0,  # NOT WRITTEN
+                "user_name": "username",
                 "sdk_name": "sentry.javascript.react",
                 "sdk_version": "16.8.2",
                 "trace_ids": [
@@ -118,6 +119,8 @@ def mock_replay(
             "replay_id": replay_id,
             "environment": "production",
             "project_id": project_id,
+            "release": "version@1.3",
+            "dist": "abc123",
             "sdk": {
                 "name": kwargs.pop("sdk_name", "sentry.javascript.react"),
                 "version": kwargs.pop("sdk_version", "6.18.1"),
@@ -144,6 +147,13 @@ def mock_replay(
                 ["skippedNormalization", "True"],
                 ["transaction", "/"],
             ],
+            "user": {
+                "username": "username",
+                "ip_address": "127.0.0.1",
+                "id": "123",
+                "email": "username@example.com",
+                "hash": 123,
+            },
             "title": "test",
         },
     }
