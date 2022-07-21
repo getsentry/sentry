@@ -26,9 +26,13 @@ def restrict_response_by_fields(
 def make_tags_object(payload: List[Dict[str, Any]]) -> None:
     """Zip the tag keys and values into a tags dictionary."""
     for item in payload:
-        keys = item.pop("tags.key")
-        values = item.pop("tags.value")
-        item["tags"] = dict(zip(keys, values))
+        keys = item.pop("tags.key", []) or []
+        values = item.pop("tags.value", []) or []
+
+        if len(keys) != len(values):
+            item["tags"] = {}
+        else:
+            item["tags"] = dict(zip(keys, values))
 
 
 def make_sequence_urls(payload: List[Dict[str, Any]], project_id: str) -> None:
