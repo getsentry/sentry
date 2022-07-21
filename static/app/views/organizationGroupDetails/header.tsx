@@ -161,7 +161,6 @@ class GroupHeader extends Component<Props, State> {
     }
 
     const {memberList} = this.state;
-    const orgId = organization.slug;
     const message = getMessage(group);
 
     const searchTermWithoutQuery = omit(location.query, 'query');
@@ -200,7 +199,10 @@ class GroupHeader extends Component<Props, State> {
         <div className={className}>
           <StyledBreadcrumbs
             crumbs={[
-              {label: 'Issues', to: `/organizations/${orgId}/issues/${location.search}`},
+              {
+                label: 'Issues',
+                to: `/organizations/${organization.slug}/issues/${location.search}`,
+              },
               {
                 label: shortIdBreadCrumb,
               },
@@ -229,7 +231,7 @@ class GroupHeader extends Component<Props, State> {
                         <EventAnnotationWithSpace>
                           <Link
                             to={{
-                              pathname: `/organizations/${orgId}/issues/`,
+                              pathname: `/organizations/${organization.slug}/issues/`,
                               query: {query: 'logger:' + group.logger},
                             }}
                           >
