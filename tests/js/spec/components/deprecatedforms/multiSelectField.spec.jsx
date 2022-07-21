@@ -19,7 +19,7 @@ describe('MultiSelectField', function () {
 
   it('has the right value from props', function () {
     render(
-      <form role="form">
+      <form aria-label="Test Form">
         <MultiSelectField
           options={[
             {label: 'a', value: 'a'},
@@ -35,7 +35,7 @@ describe('MultiSelectField', function () {
 
   it('renders with form context', function () {
     render(
-      <Form initialData={{fieldName: ['a', 'b']}}>
+      <Form initialData={{fieldName: ['a', 'b']}} aria-label="Multi Form">
         <MultiSelectField
           options={[
             {label: 'a', value: 'a'},
