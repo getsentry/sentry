@@ -421,3 +421,24 @@ def reset_snuba(call_snuba):
         response.status_code == 200
         for response in ThreadPoolExecutor(4).map(call_snuba, init_endpoints)
     )
+
+
+@pytest.fixture
+def set_sentry_option(request):
+    """
+    A pytest-style wrapper around override_options.
+
+    ```python
+    def test_basic(set_sentry_option):
+        set_sentry_option("key", 1.0)
+    ```
+    """
+    from sentry.testutils.helpers.options import override_options
+
+    def inner(key, value):
+        ctx_mgr = override_options({key: value})
+        ctx_mgr.__enter__()
+
+        request.addfinalizer(lambda: ctx_mgr.__exit__(None, None, None))
+
+    return inner

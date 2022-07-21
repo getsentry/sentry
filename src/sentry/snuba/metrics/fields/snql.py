@@ -3,7 +3,7 @@ from typing import List
 from snuba_sdk import Column, Function
 
 from sentry.sentry_metrics.configuration import UseCaseKey
-from sentry.sentry_metrics.utils import resolve_weak
+from sentry.sentry_metrics.utils import resolve_tag_key, resolve_tag_value, resolve_tag_values
 from sentry.snuba.metrics.naming_layer.public import (
     TransactionSatisfactionTagValue,
     TransactionStatusTagValue,
@@ -24,9 +24,13 @@ def _aggregation_on_session_status_func_factory(aggregate):
                             "equals",
                             [
                                 Column(
-                                    f"tags[{resolve_weak(UseCaseKey.RELEASE_HEALTH, org_id, 'session.status')}]"
+                                    resolve_tag_key(
+                                        UseCaseKey.RELEASE_HEALTH, org_id, "session.status"
+                                    )
                                 ),
-                                resolve_weak(UseCaseKey.RELEASE_HEALTH, org_id, session_status),
+                                resolve_tag_value(
+                                    UseCaseKey.RELEASE_HEALTH, org_id, session_status
+                                ),
                             ],
                         ),
                         Function("in", [Column("metric_id"), list(metric_ids)]),
@@ -63,11 +67,11 @@ def _aggregation_on_tx_status_func_factory(aggregate):
             return metric_match
 
         tx_col = Column(
-            f"tags[{resolve_weak(UseCaseKey.PERFORMANCE, org_id, TransactionTagsKey.TRANSACTION_STATUS.value)}]"
+            resolve_tag_key(
+                UseCaseKey.PERFORMANCE, org_id, TransactionTagsKey.TRANSACTION_STATUS.value
+            )
         )
-        excluded_statuses = [
-            resolve_weak(UseCaseKey.PERFORMANCE, org_id, s) for s in exclude_tx_statuses
-        ]
+        excluded_statuses = resolve_tag_values(UseCaseKey.PERFORMANCE, org_id, exclude_tx_statuses)
         exclude_tx_statuses = Function(
             "notIn",
             [
@@ -115,9 +119,15 @@ def _aggregation_on_tx_satisfaction_func_factory(aggregate):
                             "equals",
                             [
                                 Column(
-                                    f"tags[{resolve_weak(UseCaseKey.PERFORMANCE, org_id, TransactionTagsKey.TRANSACTION_SATISFACTION.value)}]"
+                                    resolve_tag_key(
+                                        UseCaseKey.PERFORMANCE,
+                                        org_id,
+                                        TransactionTagsKey.TRANSACTION_SATISFACTION.value,
+                                    )
                                 ),
-                                resolve_weak(UseCaseKey.PERFORMANCE, org_id, satisfaction_value),
+                                resolve_tag_value(
+                                    UseCaseKey.PERFORMANCE, org_id, satisfaction_value
+                                ),
                             ],
                         ),
                         Function("in", [Column("metric_id"), list(metric_ids)]),
@@ -289,10 +299,8 @@ def session_duration_filters(org_id):
         Function(
             "equals",
             (
-                Column(
-                    f"tags[{resolve_weak(UseCaseKey.RELEASE_HEALTH, org_id, 'session.status')}]"
-                ),
-                resolve_weak(UseCaseKey.RELEASE_HEALTH, org_id, "exited"),
+                Column(resolve_tag_key(UseCaseKey.RELEASE_HEALTH, org_id, "session.status")),
+                resolve_tag_value(UseCaseKey.RELEASE_HEALTH, org_id, "exited"),
             ),
         )
     ]

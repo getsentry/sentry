@@ -27,10 +27,10 @@ from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.utils import (
     MetricIndexNotFound,
     resolve,
-    resolve_many_weak,
     resolve_tag_key,
-    resolve_weak,
-    reverse_resolve,
+    resolve_tag_value,
+    resolve_tag_values,
+    reverse_resolve_tag_value,
 )
 from sentry.snuba.dataset import EntityKey
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
@@ -352,7 +352,7 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
                 Condition(
                     Column(resolve_tag_key(UseCaseKey.RELEASE_HEALTH, self.org_id, "environment")),
                     Op.EQ,
-                    resolve_weak(UseCaseKey.RELEASE_HEALTH, self.org_id, environment.name),
+                    resolve_tag_value(UseCaseKey.RELEASE_HEALTH, self.org_id, environment.name),
                 )
             )
         qb.add_conditions(extra_conditions)
@@ -426,7 +426,11 @@ class BaseCrashRateMetricsEntitySubscription(BaseMetricsEntitySubscription):
             translated_data: Dict[str, Any] = {}
             session_status = resolve_tag_key(UseCaseKey.RELEASE_HEALTH, org_id, "session.status")
             for row in data:
-                tag_value = reverse_resolve(UseCaseKey.RELEASE_HEALTH, row[session_status])
+                tag_value = reverse_resolve_tag_value(
+                    UseCaseKey.RELEASE_HEALTH, row[session_status]
+                )
+                if tag_value is None:
+                    raise MetricIndexNotFound()
                 translated_data[tag_value] = row[value_col_name]
 
             total_session_count = translated_data.get("init", 0)
@@ -533,7 +537,7 @@ class MetricsCountersEntitySubscription(BaseCrashRateMetricsEntitySubscription):
             Condition(
                 Column(self.session_status),
                 Op.IN,
-                resolve_many_weak(UseCaseKey.RELEASE_HEALTH, self.org_id, ["crashed", "init"]),
+                resolve_tag_values(UseCaseKey.RELEASE_HEALTH, self.org_id, ["crashed", "init"]),
             )
         )
         return extra_conditions

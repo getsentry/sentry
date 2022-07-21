@@ -14,7 +14,7 @@ from sentry.incidents.logic import query_datasets_to_type
 from sentry.search.events.constants import METRICS_MAP
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
-from sentry.sentry_metrics.utils import resolve, resolve_many_weak, resolve_tag_key, resolve_weak
+from sentry.sentry_metrics.utils import resolve, resolve_tag_key, resolve_tag_value
 from sentry.snuba.entity_subscription import (
     apply_dataset_query_conditions,
     get_entity_key_from_query_builder,
@@ -33,6 +33,8 @@ from sentry.snuba.tasks import (
 from sentry.testutils import TestCase
 from sentry.utils import json
 from sentry.utils.snuba import _snuba_pool
+
+pytestmark = pytest.mark.sentry_metrics
 
 
 def indexer_record(use_case_id: UseCaseKey, org_id: int, string: str) -> int:
@@ -375,7 +377,7 @@ class BuildSnqlQueryTest(TestCase):
                                             UseCaseKey.RELEASE_HEALTH, org_id, "session.status"
                                         )
                                     ),
-                                    resolve(UseCaseKey.RELEASE_HEALTH, org_id, "init"),
+                                    resolve_tag_value(UseCaseKey.RELEASE_HEALTH, org_id, "init"),
                                 ],
                             ),
                         ],
@@ -393,7 +395,7 @@ class BuildSnqlQueryTest(TestCase):
                                             UseCaseKey.RELEASE_HEALTH, org_id, "session.status"
                                         )
                                     ),
-                                    resolve(UseCaseKey.RELEASE_HEALTH, org_id, "crashed"),
+                                    resolve_tag_value(UseCaseKey.RELEASE_HEALTH, org_id, "crashed"),
                                 ],
                             ),
                         ],
@@ -420,7 +422,7 @@ class BuildSnqlQueryTest(TestCase):
                                             UseCaseKey.RELEASE_HEALTH, org_id, "session.status"
                                         )
                                     ),
-                                    resolve(UseCaseKey.RELEASE_HEALTH, org_id, "crashed"),
+                                    resolve_tag_value(UseCaseKey.RELEASE_HEALTH, org_id, "crashed"),
                                 ],
                             ),
                         ],
@@ -866,9 +868,10 @@ class BuildSnqlQueryTest(TestCase):
                     )
                 ),
                 Op.IN,
-                resolve_many_weak(
-                    UseCaseKey.RELEASE_HEALTH, self.organization.id, ["crashed", "init"]
-                ),
+                [
+                    resolve_tag_value(UseCaseKey.RELEASE_HEALTH, self.organization.id, "crashed"),
+                    resolve_tag_value(UseCaseKey.RELEASE_HEALTH, self.organization.id, "init"),
+                ],
             ),
         ]
         self.run_test(
@@ -926,7 +929,7 @@ class BuildSnqlQueryTest(TestCase):
                     name=resolve_tag_key(UseCaseKey.RELEASE_HEALTH, self.organization.id, "release")
                 ),
                 Op.EQ,
-                resolve_weak(UseCaseKey.RELEASE_HEALTH, self.organization.id, "ahmed@12.2"),
+                resolve_tag_value(UseCaseKey.RELEASE_HEALTH, self.organization.id, "ahmed@12.2"),
             ),
             Condition(Column(name="project_id"), Op.IN, (self.project.id,)),
             Condition(Column(name="org_id"), Op.EQ, self.organization.id),
@@ -942,16 +945,17 @@ class BuildSnqlQueryTest(TestCase):
                     )
                 ),
                 Op.IN,
-                resolve_many_weak(
-                    UseCaseKey.RELEASE_HEALTH, self.organization.id, ["crashed", "init"]
-                ),
+                [
+                    resolve_tag_value(UseCaseKey.RELEASE_HEALTH, self.organization.id, "crashed"),
+                    resolve_tag_value(UseCaseKey.RELEASE_HEALTH, self.organization.id, "init"),
+                ],
             ),
             Condition(
                 Column(
                     resolve_tag_key(UseCaseKey.RELEASE_HEALTH, self.organization.id, "environment")
                 ),
                 Op.EQ,
-                resolve_weak(UseCaseKey.RELEASE_HEALTH, self.organization.id, env.name),
+                resolve_tag_value(UseCaseKey.RELEASE_HEALTH, self.organization.id, env.name),
             ),
         ]
         self.run_test(
@@ -986,7 +990,7 @@ class BuildSnqlQueryTest(TestCase):
                     name=resolve_tag_key(UseCaseKey.RELEASE_HEALTH, self.organization.id, "release")
                 ),
                 Op.EQ,
-                resolve_weak(UseCaseKey.RELEASE_HEALTH, self.organization.id, "ahmed@12.2"),
+                resolve_tag_value(UseCaseKey.RELEASE_HEALTH, self.organization.id, "ahmed@12.2"),
             ),
             Condition(Column(name="project_id"), Op.IN, (self.project.id,)),
             Condition(Column(name="org_id"), Op.EQ, self.organization.id),
@@ -1000,7 +1004,7 @@ class BuildSnqlQueryTest(TestCase):
                     resolve_tag_key(UseCaseKey.RELEASE_HEALTH, self.organization.id, "environment")
                 ),
                 Op.EQ,
-                resolve_weak(UseCaseKey.RELEASE_HEALTH, self.organization.id, env.name),
+                resolve_tag_value(UseCaseKey.RELEASE_HEALTH, self.organization.id, env.name),
             ),
         ]
         self.run_test(

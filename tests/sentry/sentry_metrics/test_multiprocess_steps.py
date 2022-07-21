@@ -30,6 +30,9 @@ from sentry.utils import json
 logger = logging.getLogger(__name__)
 
 
+pytestmark = pytest.mark.sentry_metrics
+
+
 def compare_messages_ignoring_mapping_metadata(actual: Message, expected: Message) -> None:
     assert actual.offset == expected.offset
     assert actual.partition == expected.partition

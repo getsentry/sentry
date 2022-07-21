@@ -1,9 +1,12 @@
 from datetime import timedelta
 
+import pytest
 from django.urls import reverse
 
 from sentry.testutils import MetricsEnhancedPerformanceTestCase
 from sentry.testutils.helpers.datetime import before_now
+
+pytestmark = pytest.mark.sentry_metrics
 
 
 class OrganizationMeasurementsMetaEndpoint(MetricsEnhancedPerformanceTestCase):
@@ -30,7 +33,7 @@ class OrganizationMeasurementsMetaEndpoint(MetricsEnhancedPerformanceTestCase):
             return self.client.get(self.url if url is None else url, data=data, format="json")
 
     def test_simple(self):
-        self.store_metric(
+        self.store_transaction_metric(
             1,
             metric="measurements.something_custom",
             internal_metric="d:transactions/measurements.something_custom@millisecond",
@@ -64,7 +67,7 @@ class OrganizationMeasurementsMetaEndpoint(MetricsEnhancedPerformanceTestCase):
         }
 
     def test_metric_outside_query_daterange(self):
-        self.store_metric(
+        self.store_transaction_metric(
             1,
             metric="measurements.something_custom",
             internal_metric="d:transactions/measurements.something_custom@millisecond",

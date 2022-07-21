@@ -8,7 +8,7 @@ from snuba_sdk import Column, Direction, Function, OrderBy
 
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
-from sentry.sentry_metrics.utils import resolve_weak
+from sentry.sentry_metrics.utils import resolve_tag_value, resolve_weak
 from sentry.snuba.dataset import EntityKey
 from sentry.snuba.metrics import (
     DERIVED_METRICS,
@@ -39,6 +39,8 @@ from sentry.snuba.metrics.fields.snql import (
 from sentry.snuba.metrics.naming_layer import SessionMRI, TransactionMRI, get_public_name_from_mri
 from sentry.testutils import TestCase
 from tests.sentry.snuba.metrics.test_query_builder import PseudoProject
+
+pytestmark = pytest.mark.sentry_metrics
 
 
 def indexer_record(use_case_id: UseCaseKey, org_id: int, string: str) -> int:
@@ -539,7 +541,7 @@ class DerivedMetricAliasTestCase(TestCase):
                     "equals",
                     (
                         Column(f"tags[{resolve_weak(use_case_id, org_id, 'session.status')}]"),
-                        resolve_weak(use_case_id, org_id, "exited"),
+                        resolve_tag_value(use_case_id, org_id, "exited"),
                     ),
                 ),
             ],

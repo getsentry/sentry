@@ -29,6 +29,8 @@ from sentry.snuba.models import QueryDatasets, SnubaQuery, SnubaQueryEventType
 from sentry.testutils import TestCase
 from sentry.utils import json
 
+pytestmark = pytest.mark.sentry_metrics
+
 
 class TestAlertRuleSerializer(TestCase):
     @fixture

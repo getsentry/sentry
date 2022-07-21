@@ -12,6 +12,8 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils.samples import load_data
 from sentry.utils.snuba import get_array_column_alias
 
+pytestmark = pytest.mark.sentry_metrics
+
 HistogramSpec = namedtuple("HistogramSpec", ["start", "end", "fields"])
 
 ARRAY_COLUMNS = ["measurements", "span_op_breakdowns"]
@@ -1033,7 +1035,7 @@ class OrganizationEventsMetricsEnhancedPerformanceHistogramEndpointTest(
             spec = HistogramSpec(*spec)
             for suffix_key, count in spec.fields:
                 for i in range(count):
-                    self.store_metric(
+                    self.store_transaction_metric(
                         (spec.end + spec.start) / 2,
                         metric=suffix_key,
                         tags={"transaction": suffix_key},

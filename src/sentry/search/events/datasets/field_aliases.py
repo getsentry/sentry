@@ -8,8 +8,8 @@ from sentry.models import Project, ProjectTeam
 from sentry.search.events import constants, fields
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.types import SelectType
-from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.sentry_metrics.utils import resolve_tag_value
 from sentry.utils.numbers import format_grouped_length
 
 
@@ -48,7 +48,7 @@ def resolve_team_key_transaction_alias(
     count = len(team_key_transactions)
     if resolve_metric_index:
         team_key_transactions = [
-            (project, indexer.resolve(org_id, transaction, UseCaseKey.PERFORMANCE))
+            (project, resolve_tag_value(UseCaseKey.PERFORMANCE, org_id, transaction))
             for project, transaction in team_key_transactions
         ]
 

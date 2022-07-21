@@ -121,8 +121,10 @@ class MetricsQuery(MetricsQueryValidationRunner):
                 and condition.lhs.function == "ifNull"
             ):
                 parameter = condition.lhs.parameters[0]
-                if isinstance(parameter, Column) and parameter.name.startswith("tags["):
-                    tag_name = parameter.name.split("tags[")[1].split("]")[0]
+                if isinstance(parameter, Column) and parameter.name.startswith(
+                    ("tags_raw[", "tags[")
+                ):
+                    tag_name = parameter.name.split("[")[1].split("]")[0]
                     if tag_name in UNALLOWED_TAGS:
                         raise InvalidParams(f"Tag name {tag_name} is not a valid query filter")
 

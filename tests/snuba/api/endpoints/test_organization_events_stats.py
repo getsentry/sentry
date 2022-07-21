@@ -18,6 +18,8 @@ from sentry.testutils import APITestCase, MetricsEnhancedPerformanceTestCase, Sn
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils.samples import load_data
 
+pytestmark = pytest.mark.sentry_metrics
+
 
 class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-events-stats"
@@ -896,7 +898,9 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
         event_counts = [6, 0, 6, 3, 0, 3]
         for hour, count in enumerate(event_counts):
             for minute in range(count):
-                self.store_metric(1, timestamp=self.day_ago + timedelta(hours=hour, minutes=minute))
+                self.store_transaction_metric(
+                    1, timestamp=self.day_ago + timedelta(hours=hour, minutes=minute)
+                )
 
         for axis in ["epm()", "tpm()"]:
             response = self.do_request(
@@ -923,7 +927,9 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
         event_counts = [6, 0, 6, 3, 0, 3]
         for hour, count in enumerate(event_counts):
             for minute in range(count):
-                self.store_metric(1, timestamp=self.day_ago + timedelta(hours=hour, minutes=minute))
+                self.store_transaction_metric(
+                    1, timestamp=self.day_ago + timedelta(hours=hour, minutes=minute)
+                )
 
         for axis in ["epm()", "tpm()"]:
             response = self.do_request(
@@ -948,7 +954,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
         event_counts = [6, 0, 6, 3, 0, 3]
         for hour, count in enumerate(event_counts):
             for minute in range(count):
-                self.store_metric(
+                self.store_transaction_metric(
                     1, timestamp=self.day_ago + timedelta(hours=hour, minutes=minute + 30)
                 )
 
@@ -977,7 +983,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
         event_counts = [6, 0, 6, 3, 0, 3]
         for minute, count in enumerate(event_counts):
             for second in range(count):
-                self.store_metric(
+                self.store_transaction_metric(
                     1, timestamp=self.day_ago + timedelta(minutes=minute, seconds=second)
                 )
 
@@ -1004,9 +1010,9 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
     def test_failure_rate(self):
         for hour in range(6):
             timestamp = self.day_ago + timedelta(hours=hour, minutes=30)
-            self.store_metric(1, tags={"transaction.status": "ok"}, timestamp=timestamp)
+            self.store_transaction_metric(1, tags={"transaction.status": "ok"}, timestamp=timestamp)
             if hour < 3:
-                self.store_metric(
+                self.store_transaction_metric(
                     1, tags={"transaction.status": "internal_error"}, timestamp=timestamp
                 )
 
@@ -1036,8 +1042,8 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
     def test_percentiles_multi_axis(self):
         for hour in range(6):
             timestamp = self.day_ago + timedelta(hours=hour, minutes=30)
-            self.store_metric(111, timestamp=timestamp)
-            self.store_metric(222, metric="measurements.lcp", timestamp=timestamp)
+            self.store_transaction_metric(111, timestamp=timestamp)
+            self.store_transaction_metric(222, metric="measurements.lcp", timestamp=timestamp)
 
         response = self.do_request(
             data={
@@ -1077,8 +1083,12 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
         assert mock_query.call_count == 1
 
     def test_aggregate_function_user_count(self):
-        self.store_metric(1, metric="user", timestamp=self.day_ago + timedelta(minutes=30))
-        self.store_metric(1, metric="user", timestamp=self.day_ago + timedelta(hours=1, minutes=30))
+        self.store_transaction_metric(
+            1, metric="user", timestamp=self.day_ago + timedelta(minutes=30)
+        )
+        self.store_transaction_metric(
+            1, metric="user", timestamp=self.day_ago + timedelta(hours=1, minutes=30)
+        )
         response = self.do_request(
             data={
                 "start": iso_format(self.day_ago),
@@ -1153,9 +1163,9 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
         return not response.data["isMetricsData"]
 
     def test_sum_transaction_duration(self):
-        self.store_metric(123, timestamp=self.day_ago + timedelta(minutes=30))
-        self.store_metric(456, timestamp=self.day_ago + timedelta(hours=1, minutes=30))
-        self.store_metric(789, timestamp=self.day_ago + timedelta(hours=1, minutes=30))
+        self.store_transaction_metric(123, timestamp=self.day_ago + timedelta(minutes=30))
+        self.store_transaction_metric(456, timestamp=self.day_ago + timedelta(hours=1, minutes=30))
+        self.store_transaction_metric(789, timestamp=self.day_ago + timedelta(hours=1, minutes=30))
         response = self.do_request(
             data={
                 "start": iso_format(self.day_ago),
