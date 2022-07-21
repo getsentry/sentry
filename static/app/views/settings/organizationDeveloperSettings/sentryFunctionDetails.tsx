@@ -1,4 +1,4 @@
-import React, {MutableRefObject, useRef} from 'react';
+import React, {useRef} from 'react';
 import Editor from '@monaco-editor/react';
 
 import {
@@ -59,16 +59,8 @@ function SentryFunctionDetails(props: Props) {
     addSuccessMessage(t('Sentry Function successfully saved.', data.name));
   };
 
-  // TODO: Should type the editor better, don't use any
-  const editorRef: MutableRefObject<null | any> = useRef(null);
-
-  function handleEditorDidMount(editor) {
-    editorRef.current = editor;
-  }
-  function updateCode() {
-    if (editorRef.current) {
-      form.current.setValue('code', editorRef.current.getValue());
-    }
+  function handleEditorChange(value, _event) {
+    form.current.setValue('code', value);
   }
 
   const defaultCode = `exports.yourFunction = (req, res) => {
@@ -87,7 +79,6 @@ function SentryFunctionDetails(props: Props) {
           apiEndpoint={endpoint}
           model={form.current}
           onPreSubmit={() => {
-            updateCode();
             addLoadingMessage(t('Saving changes..'));
           }}
           onSubmitError={handleSubmitError}
@@ -102,7 +93,7 @@ function SentryFunctionDetails(props: Props) {
                 theme="light"
                 defaultLanguage="javascript"
                 defaultValue={defaultCode}
-                onMount={handleEditorDidMount}
+                onChange={handleEditorChange}
                 options={{
                   minimap: {
                     enabled: false,
