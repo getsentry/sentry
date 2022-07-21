@@ -57,6 +57,7 @@ def slugify_instance(
     **kwargs: Any,
 ) -> None:
     base_value = slugify(label)[:max_length]
+    base_value = base_value.strip("-")
 
     if base_value is not None:
         base_value = base_value.strip()
