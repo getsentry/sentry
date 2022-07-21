@@ -71,6 +71,7 @@ const Range = styled(RangeSlider)`
 
 const PlaybackTimeValue = styled(Progress.Value)`
   background: ${p => p.theme.purple200};
+  border-radius: 3px;
 `;
 
 // Need the named value so we can target it separatly from PlaybackTimeValue
