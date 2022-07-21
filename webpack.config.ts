@@ -544,6 +544,12 @@ if (
     },
   };
 
+  // Speed up warm cache dev-ui startup time
+  appConfig.cache = {
+    type: 'filesystem',
+    allowCollectingMemory: true,
+  };
+
   if (!IS_UI_DEV_ONLY) {
     // This proxies to local backend server
     const backendAddress = `http://localhost:${SENTRY_BACKEND_PORT}/`;
