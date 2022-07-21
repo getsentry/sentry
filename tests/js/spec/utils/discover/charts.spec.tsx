@@ -109,6 +109,13 @@ describe('findRangeOfMultiSeries()', () => {
     expect(findRangeOfMultiSeries(series)).toStrictEqual({max: 2300, min: 50});
   });
 
+  it('should not find range if no items selected', () => {
+    const legend: LegendComponentOption = {
+      selected: {'p100()': false, 'p95()': false, 'p50()': false},
+    };
+    expect(findRangeOfMultiSeries(series, legend)).toStrictEqual(undefined);
+  });
+
   it('should ignore p100 series if not selected', () => {
     const legend: LegendComponentOption = {
       selected: {'p100()': false},
