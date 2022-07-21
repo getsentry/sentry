@@ -6,9 +6,9 @@ import {divide} from 'sentry/components/replays/utils';
 import space from 'sentry/styles/space';
 
 type Props = {
-  color: string;
   currentTime: number;
   duration: number;
+  color?: string;
 };
 
 function TimelinePosition({color, currentTime, duration}: Props) {
@@ -22,7 +22,7 @@ function TimelinePosition({color, currentTime, duration}: Props) {
 }
 
 const Value = styled(Progress.Value)<Pick<Props, 'color'>>`
-  border-right: ${space(0.25)} solid ${p => p.color};
+  ${p => p.color && `border-right: ${space(0.25)} solid ${p.color};`}
 `;
 
 export default TimelinePosition;

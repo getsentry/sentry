@@ -1,4 +1,5 @@
 import {Fragment, useMemo, useState} from 'react';
+// eslint-disable-next-line no-restricted-imports
 import {withRouter} from 'react-router';
 
 import Button from 'sentry/components/button';

@@ -8,6 +8,7 @@ from typing import (
     Any,
     Callable,
     List,
+    Literal,
     Mapping,
     Optional,
     Sequence,
@@ -27,7 +28,6 @@ from sentry_sdk import (
     set_extra,
     set_tag,
 )
-from typing_extensions import Literal
 
 from sentry import features
 from sentry.models import Organization, Project

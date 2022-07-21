@@ -7,7 +7,6 @@ on:
       - '.github/workflows/development-environment.yml'
       - 'requirements-*.txt'
       - '.python-version'
-      - '.github/actions/setup-python'
       - '.envrc'
       - 'Brewfile'
       - 'scripts/*'
@@ -53,11 +52,11 @@ jobs:
 
       # This handles Python's cache
       - name: Setup Python & cache
-        uses: ./.github/actions/setup-python
-        # Remove this block when 3.8.13 becomes available in:
-        # https://raw.githubusercontent.com/actions/python-versions/main/versions-manifest.json
+        uses: actions/setup-python@v4
         with:
-          python-version: 3.8.12
+          python-version: 3.8.13
+          cache: 'pip'
+          cache-dependency-path: requirements-dev-frozen.txt
 
       # This tests starting up the dev services, loading mocks and pre-commit installation
       # This can take over 15 minutes
@@ -101,12 +100,11 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-python@v3
+      - uses: actions/setup-python@v4
         with:
-          python-version: 3.8.12
-          cache: 'pip'
-          cache-dependency-path: |
-            requirements-dev-only-frozen.txt
+          python-version: 3.8.13
+          cache: pip
+          cache-dependency-path: requirements-dev-only-frozen.txt
       - name: install dependencies
         run: pip install -r requirements-dev-only-frozen.txt
       - name: run tests
