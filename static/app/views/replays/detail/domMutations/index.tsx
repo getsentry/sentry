@@ -1,4 +1,4 @@
-import {Fragment, useRef} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import BreadcrumbIcon from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/type/icon';
@@ -17,17 +17,12 @@ type Props = {
 };
 
 function DomMutations({replay}: Props) {
-  const hiddenDivRef = useRef<HTMLDivElement>(null);
-  const {isLoading, actions} = useExtractedCrumbHtml({
-    replay,
-    domRoot: hiddenDivRef.current,
-  });
+  const {isLoading, actions} = useExtractedCrumbHtml({replay});
 
   const startTimestamp = replay.getEvent().startTimestamp;
 
   return (
     <Fragment>
-      <HiddenReplayMountpoint className="sr-block" ref={hiddenDivRef} />
       <StyledPanelTable
         isEmpty={actions.length === 0}
         emptyMessage={t('No DOM actions found.')}
@@ -69,14 +64,6 @@ function DomMutations({replay}: Props) {
   );
 }
 
-const HiddenReplayMountpoint = styled('div')`
-  position: fixed;
-  inset: 0;
-  width: 0;
-  height: 0;
-  overflow: hidden;
-`;
-
 const StyledPanelTable = styled(PanelTable)`
   grid-template-columns: max-content max-content 1fr max-content;
   font-size: ${p => p.theme.fontSizeSmall};
@@ -117,9 +104,7 @@ const Title = styled('span')`
 
 const HTMLCode = styled(
   ({children, className}: {children: string; className?: string}) => (
-    <textarea className={className} readOnly>
-      {children}
-    </textarea>
+    <textarea className={className} readOnly value={children} />
   )
 )`
   border: none;

@@ -24,17 +24,22 @@ type Extraction = {
 };
 
 type HookOpts = {
-  domRoot: null | HTMLDivElement;
   replay: ReplayReader;
 };
-function useExtractedCrumbHtml({replay, domRoot}: HookOpts) {
+function useExtractedCrumbHtml({replay}: HookOpts) {
   const [breadcrumbRefs, setBreadcrumbReferences] = useState<Extraction[]>([]);
 
   useEffect(() => {
-    if (!domRoot) {
-      setBreadcrumbReferences([]);
-      return;
-    }
+    const domRoot = document.createElement('div');
+    domRoot.className = 'sr-block';
+    const {style} = domRoot;
+    style.position = 'fixed';
+    style.inset = '0';
+    style.width = '0';
+    style.height = '0';
+    style.overflow = 'hidden';
+
+    document.body.appendChild(domRoot);
 
     // Get a list of the breadcrumbs that relate directly to the DOM, for each
     // crumb we will extract the referenced HTML.
@@ -63,7 +68,10 @@ function useExtractedCrumbHtml({replay, domRoot}: HookOpts) {
         new BreadcrumbReferencesPlugin({
           crumbs,
           isFinished: isLastRRWebEvent,
-          onFinish: setBreadcrumbReferences,
+          onFinish: rows => {
+            setBreadcrumbReferences(rows);
+            document.body.removeChild(domRoot);
+          },
         }),
       ],
       mouseTail: false,
@@ -71,7 +79,7 @@ function useExtractedCrumbHtml({replay, domRoot}: HookOpts) {
 
     // Run the replay to the end, we will capture data as it streams into the plugin
     replayerRef.pause(replay.getEvent().endTimestamp);
-  }, [domRoot, replay]);
+  }, [replay]);
 
   return {
     isLoading: false,
