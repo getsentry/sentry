@@ -243,7 +243,11 @@ describe('Dashboards > Detail', function () {
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
-        body: TestStubs.Dashboard(widgets, {id: '1', title: 'Custom Errors'}),
+        body: TestStubs.Dashboard(widgets, {
+          id: '1',
+          title: 'Custom Errors',
+          filters: {release: ['abc@1.2.0']},
+        }),
       });
       mockPut = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
@@ -347,6 +351,36 @@ describe('Dashboards > Detail', function () {
       expect(mockVisit).toHaveBeenCalledTimes(1);
     });
 
+    it('appends dashboard-level filters to series request', async function () {
+      const mock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events-stats/',
+        body: [],
+      });
+
+      wrapper = mountWithTheme(
+        <OrganizationContext.Provider value={initialData.organization}>
+          <ViewEditDashboard
+            organization={initialData.organization}
+            params={{orgId: 'org-slug', dashboardId: '1'}}
+            router={initialData.router}
+            location={initialData.router.location}
+          />
+        </OrganizationContext.Provider>,
+        initialData.routerContext
+      );
+      await tick();
+      wrapper.update();
+
+      expect(mock).toHaveBeenLastCalledWith(
+        '/organizations/org-slug/events-stats/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            query: 'event.type:transaction transaction:/api/cats release:abc@1.2.0 ',
+          }),
+        })
+      );
+    });
+
     it('can enter edit mode for widgets', async function () {
       wrapper = mountWithTheme(
         <OrganizationContext.Provider value={initialData.organization}>
@@ -442,7 +476,8 @@ describe('Dashboards > Detail', function () {
       expect(openEditModal).toHaveBeenCalledTimes(1);
     });
 
-    it('shows top level release filter', async function () {
+    // eslint-disable-next-line jest/no-disabled-tests
+    it.skip('shows top level release filter', async function () {
       const mockReleases = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/releases/',
         body: [TestStubs.Release()],

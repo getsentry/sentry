@@ -62,3 +62,14 @@ class InstallationMessages:
     )
     INSTALLATION_CONFIRMATION_BUTTON = "Add Alert Rules"
     ALERT_RULE_URL = "organizations/{organization_slug}/alerts/rules/"
+
+
+class IssueConstants:
+    # NOTE: DATE and TIME are formatting functions in Adaptive Cards.
+    # The syntax is `{{DATE(<some_date>, SHORT)}}` or `{{TIME(<some_date>)}}`
+    # https://docs.microsoft.com/en-us/adaptive-cards/authoring-cards/text-features
+    # Since `{` and `}` are special characters in format strings, we need to use
+    # double `{{` and `}}` to get the actual character in. Hence the `{{{{` and `}}}}`.
+    DATE_FORMAT = "{{{{DATE({date}, SHORT)}}}} at {{{{TIME({date})}}}}"
+
+    ASSIGNEE_NOTE = "**Assigned to {assignee}**"
