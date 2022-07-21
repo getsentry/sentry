@@ -4,6 +4,7 @@ from functools import partial
 from operator import itemgetter
 from unittest.mock import patch
 
+import pytest
 from django.urls import reverse
 
 from sentry.models import ApiToken
@@ -37,6 +38,8 @@ MOCKED_DERIVED_METRICS.update(
         )
     }
 )
+
+pytestmark = pytest.mark.sentry_metrics
 
 
 def mocked_mri_resolver(metric_names, mri_func):
