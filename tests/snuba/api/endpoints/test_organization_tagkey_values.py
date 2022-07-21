@@ -97,6 +97,42 @@ class OrganizationTagKeyValuesTest(OrganizationTagKeyTestCase):
             expected=[("apple", 1)],
         )
 
+    def test_env_with_order_by_count(self):
+        # this set of tags has count 5 and but very old
+        for minute in range(1, 6):
+            self.store_event(
+                data={
+                    "timestamp": iso_format(before_now(minutes=minute * 10)),
+                    "tags": {"fruit": "apple"},
+                    "environment": self.environment.name,
+                },
+                project_id=self.project.id,
+            )
+        # this set of tags has count 4 and but more fresh
+        for minute in range(1, 5):
+            self.store_event(
+                data={
+                    "timestamp": iso_format(self.min_ago),
+                    "tags": {"fruit": "orange"},
+                    "environment": self.environment.name,
+                },
+                project_id=self.project.id,
+            )
+        # default test ignore count just use timestamp
+        self.run_test(
+            "fruit",
+            environment=self.environment.name,
+            expected=[("orange", 4), ("apple", 5)],
+        )
+
+        # check new sorting but count
+        self.run_test(
+            "fruit",
+            environment=self.environment.name,
+            expected=[("apple", 5), ("orange", 4)],
+            sort="-count",
+        )
+
     def test_semver_with_env(self):
         env = self.create_environment(name="dev", project=self.project)
         env1 = self.create_environment(name="prod", project=self.project)
