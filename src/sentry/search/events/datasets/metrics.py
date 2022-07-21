@@ -508,7 +508,7 @@ class MetricsDatasetConfig(DatasetConfig):
                         ],
                         alias,
                     ),
-                    default_result_type="integer",
+                    default_result_type="percentage",
                 ),
                 fields.MetricsFunction(
                     "histogram",
