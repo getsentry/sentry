@@ -34,14 +34,51 @@ function tryParseStorage<T>(jsonEncodedValue: string): T | null {
   }
 }
 
+function makeTypeExceptionString(instance: string) {
+  return `useLocalStorage: Native serialization of ${instance} is not supported. You are attempting to serialize a ${instance} instance this data will be lost. For more info, see how ${instance.toLowerCase()}s are serialized https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify#examples`;
+}
+
+const SUPPORTS_BIG_INT = typeof BigInt !== 'undefined';
+const SUPPORTS_MAP = typeof Map !== 'undefined';
+const SUPPORTS_SET = typeof Set !== 'undefined';
+const SUPPORTS_WEAK_MAP = typeof WeakMap !== 'undefined';
+const SUPPORTS_WEAK_SET = typeof WeakSet !== 'undefined';
+
+function strictReplacer(_key: string, value: any) {
+  if (SUPPORTS_BIG_INT && typeof value === 'bigint') {
+    throw new TypeError(makeTypeExceptionString('BigInt'));
+  }
+  if (value instanceof RegExp) {
+    throw new TypeError(makeTypeExceptionString('RegExp'));
+  }
+  if (SUPPORTS_MAP && value instanceof Map) {
+    throw new TypeError(makeTypeExceptionString('Map'));
+  }
+  if (SUPPORTS_SET && value instanceof Set) {
+    throw new TypeError(makeTypeExceptionString('Set'));
+  }
+  if (SUPPORTS_WEAK_MAP && value instanceof WeakMap) {
+    throw new TypeError(makeTypeExceptionString('WeakMap'));
+  }
+  if (SUPPORTS_WEAK_SET && value instanceof WeakSet) {
+    throw new TypeError(makeTypeExceptionString('WeakSet'));
+  }
+  return value;
+}
+
+function stringifyForStorage(value: unknown) {
+  return JSON.stringify(value, strictReplacer, 0);
+}
+
 function defaultOrInitializer<S>(
-  defaultValueOrInitializeFn: S | ((rawStorageValue?: unknown) => S),
-  rawStorageValue?: unknown
+  defaultValueOrInitializeFn: S | ((value?: unknown, rawStorageValue?: unknown) => S),
+  value?: unknown,
+  rawValue?: unknown
 ): S {
   if (typeof defaultValueOrInitializeFn === 'function') {
     // https://github.com/microsoft/TypeScript/issues/37663#issuecomment-759728342
     // @ts-expect-error
-    return defaultValueOrInitializeFn(rawStorageValue);
+    return defaultValueOrInitializeFn(value, rawValue);
   }
   return defaultValueOrInitializeFn;
 }
@@ -56,32 +93,40 @@ function initializeStorage<S>(
     throw new TypeError('useLocalStorage: key must be a string');
   }
 
-  // Return default if env does not support localStorage
+  // Return default if env does not support localStorage. Passing null to initializer
+  // to mimick not having any previously stored value there.
   if (!SUPPORTS_LOCAL_STORAGE) {
-    return defaultOrInitializer(defaultValueOrInitializeFn, undefined);
+    return defaultOrInitializer(defaultValueOrInitializeFn, undefined, null);
   }
 
   // getItem and try and decode it, if null is returned use default initializer
   const jsonEncodedValue = localStorage.getItem(key);
   if (jsonEncodedValue === null) {
-    return defaultOrInitializer(defaultValueOrInitializeFn, null);
+    return defaultOrInitializer(defaultValueOrInitializeFn, undefined, null);
   }
 
   // We may have failed to parse the value, so just pass it down raw to the initializer
   const decodedValue = tryParseStorage<S>(jsonEncodedValue);
   if (decodedValue === null) {
-    return defaultOrInitializer(defaultValueOrInitializeFn, jsonEncodedValue);
+    return defaultOrInitializer(defaultValueOrInitializeFn, undefined, jsonEncodedValue);
   }
 
   // We managed to decode the value, so use it
-  return decodedValue;
+  return defaultOrInitializer(defaultValueOrInitializeFn, decodedValue, jsonEncodedValue);
 }
 
+// Mimicks the behavior of React.useState but keeps state synced with localStorage.
+// The only difference from React is that when a state initializer fn is passed,
+// the first argument to that function will be the value that we decoded from localStorage
+// and the second argument will be the raw value from localStorage. This is useful for cases where you may
+// want to recover the error, apply a transformation or use an alternative parsing function.
 export function useLocalStorageState<S>(
   key: string,
-  initialState: S | ((rawStorageValue?: unknown) => S)
+  initialState: S | ((value?: unknown, rawValue?: unknown) => S)
 ): [S, (value: S) => void] {
-  const [value, setValue] = useState(() => initializeStorage<S>(key, initialState));
+  const [value, setValue] = useState(() => {
+    return initializeStorage<S>(key, initialState);
+  });
 
   // We want to avoid a blinking state with the old value when props change, so we reinitialize the state
   // before the screen updates using useLayoutEffect vs useEffect.
@@ -102,7 +147,7 @@ export function useLocalStorageState<S>(
 
       // Not critical and we dont want to block anything after this
       scheduleMicroTask(() => {
-        window.localStorage.setItem(key, JSON.stringify(newValue));
+        window.localStorage.setItem(key, stringifyForStorage(newValue));
       });
     },
     [key]
