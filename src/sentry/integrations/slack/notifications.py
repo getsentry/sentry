@@ -116,7 +116,9 @@ def send_notification_as_slack(
     with sentry_sdk.start_span(
         op="notification.send_slack", description="gen_channel_integration_map"
     ):
-        data = get_integrations_by_channel_by_recipient(notification.organization, recipients)
+        data = get_integrations_by_channel_by_recipient(
+            notification.organization, recipients, ExternalProviders.SLACK
+        )
     for recipient, integrations_by_channel in data.items():
         with sentry_sdk.start_span(op="notification.send_slack", description="send_one"):
             with sentry_sdk.start_span(op="notification.send_slack", description="gen_attachments"):
