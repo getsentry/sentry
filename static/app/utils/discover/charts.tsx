@@ -142,7 +142,7 @@ export function getDurationUnit(
   const range = findRangeOfMultiSeries(series, legend);
   if (range) {
     const avg = (range.max + range.min) / 2;
-    durationUnit = categorizeDuration((range.max - range.min) / 5); // avg min of 4 yAxis ticks per chart
+    durationUnit = categorizeDuration((range.max - range.min) / 5); // avg min of 5 yAxis ticks per chart
 
     const numOfDigits = (avg / durationUnit).toFixed(0).length;
     if (numOfDigits > 6) {
