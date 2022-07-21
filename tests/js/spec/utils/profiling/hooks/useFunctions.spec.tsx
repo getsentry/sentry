@@ -49,7 +49,7 @@ describe('useFunctions', function () {
     expect(hook.result.current).toEqual({type: 'initial'});
   });
 
-  it('fetches functions', async function () {
+  it('fetches functions legacy', async function () {
     MockApiClient.addMockResponse({
       url: `/projects/org-slug/${project.slug}/profiling/functions/`,
       body: {
@@ -72,7 +72,39 @@ describe('useFunctions', function () {
     await hook.waitForNextUpdate();
     expect(hook.result.current).toEqual({
       type: 'resolved',
-      data: [],
+      data: {
+        functions: [],
+        version: 1,
+      },
+    });
+  });
+
+  it('fetches functions', async function () {
+    MockApiClient.addMockResponse({
+      url: `/projects/org-slug/${project.slug}/profiling/functions/`,
+      body: [],
+    });
+
+    const hook = reactHooks.renderHook(
+      () =>
+        useFunctions({
+          project,
+          query: '',
+          transaction: '',
+          selection,
+          sort: '-p99',
+        }),
+      {wrapper: TestContext}
+    );
+    expect(hook.result.current).toEqual({type: 'loading'});
+    await hook.waitForNextUpdate();
+    expect(hook.result.current).toEqual({
+      type: 'resolved',
+      data: {
+        functions: [],
+        pageLinks: null,
+        version: 2,
+      },
     });
   });
 });
