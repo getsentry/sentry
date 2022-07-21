@@ -14,7 +14,7 @@ from sentry.integrations.slack.message_builder.discover import SlackDiscoverMess
 from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
 from sentry.integrations.slack.message_builder.metric_alerts import SlackMetricAlertMessageBuilder
 from sentry.integrations.slack.unfurl import LinkType, UnfurlableUrl, link_handlers, match_link
-from sentry.snuba.dataset import Dataset
+from sentry.snuba.models import QueryDatasets
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import install_slack
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -235,7 +235,7 @@ class UnfurlTest(TestCase):
     @patch("sentry.incidents.charts.generate_chart", return_value="chart-url")
     def test_unfurl_metric_alerts_chart_transaction(self, mock_generate_chart):
         # Using the transactions dataset
-        alert_rule = self.create_alert_rule(query="p95", dataset=Dataset.Transactions)
+        alert_rule = self.create_alert_rule(query="p95", dataset=QueryDatasets.TRANSACTIONS)
         incident = self.create_incident(
             status=2,
             organization=self.organization,
@@ -289,7 +289,7 @@ class UnfurlTest(TestCase):
         alert_rule = self.create_alert_rule(
             query="",
             aggregate="percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate",
-            dataset=Dataset.Sessions,
+            dataset=QueryDatasets.SESSIONS,
             time_window=60,
             resolve_threshold=10,
             threshold_period=1,

@@ -90,7 +90,7 @@ from sentry.models import (
 from sentry.models.integrations.integration_feature import Feature, IntegrationTypes
 from sentry.models.releasefile import update_artifact_index
 from sentry.signals import project_created
-from sentry.snuba.dataset import Dataset
+from sentry.snuba.models import QueryDatasets
 from sentry.types.activity import ActivityType
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json, loremipsum
@@ -1044,7 +1044,7 @@ class Factories:
         excluded_projects=None,
         date_added=None,
         query_type=None,
-        dataset=Dataset.Events,
+        dataset=QueryDatasets.EVENTS,
         threshold_type=AlertRuleThresholdType.ABOVE,
         resolve_threshold=None,
         user=None,

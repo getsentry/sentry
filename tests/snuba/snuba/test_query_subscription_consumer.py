@@ -12,8 +12,7 @@ from django.conf import settings
 from django.test.utils import override_settings
 from exam import fixture
 
-from sentry.snuba.dataset import Dataset
-from sentry.snuba.models import SnubaQuery
+from sentry.snuba.models import QueryDatasets, SnubaQuery
 from sentry.snuba.query_subscription_consumer import (
     QuerySubscriptionConsumer,
     register_subscriber,
@@ -98,7 +97,7 @@ class QuerySubscriptionConsumerTest(TestCase, SnubaTestCase):
         with self.tasks():
             snuba_query = create_snuba_query(
                 SnubaQuery.Type.ERROR,
-                Dataset.Events,
+                QueryDatasets.EVENTS,
                 "hello",
                 "count()",
                 timedelta(minutes=1),

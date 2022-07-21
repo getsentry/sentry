@@ -16,8 +16,7 @@ from sentry.incidents.models import (
 )
 from sentry.models import AuditLogEntry, Rule, RuleFireHistory
 from sentry.models.organizationmember import OrganizationMember
-from sentry.snuba.dataset import Dataset
-from sentry.snuba.models import SnubaQueryEventType
+from sentry.snuba.models import QueryDatasets, SnubaQueryEventType
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils import json
@@ -366,7 +365,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
     def test_no_perf_alerts(self):
         self.create_team(organization=self.organization, members=[self.user])
         self.create_alert_rule()
-        perf_alert_rule = self.create_alert_rule(query="p95", dataset=Dataset.Transactions)
+        perf_alert_rule = self.create_alert_rule(query="p95", dataset=QueryDatasets.TRANSACTIONS)
         self.login_as(self.user)
         with self.feature("organizations:incidents"):
             resp = self.get_success_response(self.organization.slug)

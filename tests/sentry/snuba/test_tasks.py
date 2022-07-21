@@ -15,14 +15,13 @@ from sentry.search.events.constants import METRICS_MAP
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.utils import resolve, resolve_tag_key, resolve_tag_value
-from sentry.snuba.dataset import Dataset
 from sentry.snuba.entity_subscription import (
     apply_dataset_query_conditions,
     get_entity_key_from_query_builder,
     get_entity_subscription,
 )
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
-from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
+from sentry.snuba.models import QueryDatasets, QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.tasks import (
     SUBSCRIPTION_STATUS_MAX_AGE,
     build_query_builder,
@@ -75,7 +74,7 @@ class BaseSnubaTaskTest(metaclass=abc.ABCMeta):
         if status is None:
             status = self.expected_status
         if dataset is None:
-            dataset = Dataset.Events
+            dataset = QueryDatasets.EVENTS
         if aggregate is None:
             aggregate = "count_unique(tags[sentry:user])"
         if query is None:
@@ -151,7 +150,7 @@ class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest, TestCase):
 
     def test_transaction(self):
         sub = self.create_subscription(
-            QuerySubscription.Status.CREATING, dataset=Dataset.Transactions
+            QuerySubscription.Status.CREATING, dataset=QueryDatasets.TRANSACTIONS
         )
         create_subscription_in_snuba(sub.id)
         sub = QuerySubscription.objects.get(id=sub.id)
@@ -183,7 +182,7 @@ class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest, TestCase):
         ]:
             for idx, aggregate in enumerate(["sessions", "users"]):
                 sub = self.create_subscription(
-                    dataset=Dataset.Metrics,
+                    dataset=QueryDatasets.METRICS,
                     aggregate=f"percentage({aggregate}_crashed, {aggregate}) AS "
                     f"_crash_rate_alert_aggregate",
                     query="",
@@ -247,7 +246,7 @@ class DeleteSubscriptionFromSnubaTest(BaseSnubaTaskTest, TestCase):
 class BuildSnqlQueryTest(TestCase):
     aggregate_mappings = {
         SnubaQuery.Type.ERROR: {
-            Dataset.Events: {
+            QueryDatasets.EVENTS: {
                 "count_unique(user)": lambda org_id: [
                     Function(
                         function="uniq",
@@ -258,7 +257,7 @@ class BuildSnqlQueryTest(TestCase):
             },
         },
         SnubaQuery.Type.PERFORMANCE: {
-            Dataset.Transactions: {
+            QueryDatasets.TRANSACTIONS: {
                 "count_unique(user)": lambda org_id, **kwargs: [
                     Function(
                         function="uniq",
@@ -277,7 +276,7 @@ class BuildSnqlQueryTest(TestCase):
                     Function("quantile(0.95)", parameters=[Column(name="duration")], alias="p95")
                 ],
             },
-            Dataset.Metrics: {
+            QueryDatasets.METRICS: {
                 "count_unique(user)": lambda org_id, metric_id, **kwargs: [
                     Function(
                         function="uniqIf",
@@ -331,7 +330,7 @@ class BuildSnqlQueryTest(TestCase):
             },
         },
         SnubaQuery.Type.CRASH_RATE: {
-            Dataset.Sessions: {
+            QueryDatasets.SESSIONS: {
                 "percentage(sessions_crashed, sessions) as _crash_rate_alert_aggregate": lambda org_id, **kwargs: [
                     Function(
                         function="if",
@@ -364,7 +363,7 @@ class BuildSnqlQueryTest(TestCase):
                     )
                 ],
             },
-            Dataset.Metrics: {
+            QueryDatasets.METRICS: {
                 "percentage(sessions_crashed, sessions) as _crash_rate_alert_aggregate": lambda org_id, **kwargs: [
                     Function(
                         function="sumIf",
@@ -468,7 +467,7 @@ class BuildSnqlQueryTest(TestCase):
         )
         snql_query = query_builder.get_snql_query()
         select = self.string_aggregate_to_snql(query_type, dataset, aggregate, aggregate_kwargs)
-        if dataset == Dataset.Sessions:
+        if dataset == QueryDatasets.SESSIONS:
             col_name = "sessions" if "sessions" in aggregate else "users"
             select.insert(
                 0,
@@ -502,7 +501,7 @@ class BuildSnqlQueryTest(TestCase):
     def test_simple_events(self):
         self.run_test(
             SnubaQuery.Type.ERROR,
-            Dataset.Events,
+            QueryDatasets.EVENTS,
             "count_unique(user)",
             "",
             [
@@ -514,7 +513,7 @@ class BuildSnqlQueryTest(TestCase):
     def test_simple_performance_transactions(self):
         self.run_test(
             SnubaQuery.Type.PERFORMANCE,
-            Dataset.Transactions,
+            QueryDatasets.TRANSACTIONS,
             "count_unique(user)",
             "",
             [
@@ -526,7 +525,7 @@ class BuildSnqlQueryTest(TestCase):
         metric_id = resolve(UseCaseKey.PERFORMANCE, self.organization.id, METRICS_MAP["user"])
         self.run_test(
             SnubaQuery.Type.PERFORMANCE,
-            Dataset.Metrics,
+            QueryDatasets.METRICS,
             "count_unique(user)",
             "",
             [
@@ -559,7 +558,7 @@ class BuildSnqlQueryTest(TestCase):
         ]
         self.run_test(
             SnubaQuery.Type.ERROR,
-            Dataset.Events,
+            QueryDatasets.EVENTS,
             "count_unique(user)",
             "release:latest",
             expected_conditions,
@@ -573,7 +572,7 @@ class BuildSnqlQueryTest(TestCase):
         ]
         self.run_test(
             SnubaQuery.Type.PERFORMANCE,
-            Dataset.Transactions,
+            QueryDatasets.TRANSACTIONS,
             "percentile(transaction.duration,.95)",
             "release:latest",
             expected_conditions,
@@ -600,7 +599,7 @@ class BuildSnqlQueryTest(TestCase):
 
         self.run_test(
             SnubaQuery.Type.PERFORMANCE,
-            Dataset.Metrics,
+            QueryDatasets.METRICS,
             "percentile(transaction.duration,.95)",
             f"release:{version}",
             expected_conditions,
@@ -628,7 +627,7 @@ class BuildSnqlQueryTest(TestCase):
         ]
         self.run_test(
             SnubaQuery.Type.ERROR,
-            Dataset.Events,
+            QueryDatasets.EVENTS,
             "count()",
             "user:anengineer@work.io",
             expected_conditions,
@@ -641,7 +640,7 @@ class BuildSnqlQueryTest(TestCase):
         ]
         self.run_test(
             SnubaQuery.Type.PERFORMANCE,
-            Dataset.Transactions,
+            QueryDatasets.TRANSACTIONS,
             "p95()",
             "user:anengineer@work.io",
             expected_conditions,
@@ -671,7 +670,7 @@ class BuildSnqlQueryTest(TestCase):
 
         self.run_test(
             SnubaQuery.Type.PERFORMANCE,
-            Dataset.Metrics,
+            QueryDatasets.METRICS,
             "p95()",
             f"{tag_key}:{tag_value}",
             expected_conditions,
@@ -710,7 +709,7 @@ class BuildSnqlQueryTest(TestCase):
         ]
         self.run_test(
             SnubaQuery.Type.ERROR,
-            Dataset.Events,
+            QueryDatasets.EVENTS,
             "count_unique(user)",
             "release:latest OR release:123",
             expected_conditions,
@@ -751,7 +750,7 @@ class BuildSnqlQueryTest(TestCase):
         ]
         self.run_test(
             SnubaQuery.Type.ERROR,
-            Dataset.Events,
+            QueryDatasets.EVENTS,
             "count_unique(user)",
             "release:latest OR release:123",
             expected_conditions,
@@ -779,7 +778,7 @@ class BuildSnqlQueryTest(TestCase):
         ]
         self.run_test(
             SnubaQuery.Type.ERROR,
-            Dataset.Events,
+            QueryDatasets.EVENTS,
             "count_unique(user)",
             f"issue.id:[{self.group.id}, 2]",
             expected_conditions,
@@ -793,7 +792,7 @@ class BuildSnqlQueryTest(TestCase):
 
         self.run_test(
             SnubaQuery.Type.CRASH_RATE,
-            Dataset.Sessions,
+            QueryDatasets.SESSIONS,
             "percentage(sessions_crashed, sessions) as _crash_rate_alert_aggregate",
             "",
             expected_conditions,
@@ -807,7 +806,7 @@ class BuildSnqlQueryTest(TestCase):
         ]
         self.run_test(
             SnubaQuery.Type.CRASH_RATE,
-            Dataset.Sessions,
+            QueryDatasets.SESSIONS,
             "percentage(users_crashed, users) as _crash_rate_alert_aggregate",
             "",
             expected_conditions,
@@ -824,7 +823,7 @@ class BuildSnqlQueryTest(TestCase):
         ]
         self.run_test(
             SnubaQuery.Type.CRASH_RATE,
-            Dataset.Sessions,
+            QueryDatasets.SESSIONS,
             "percentage(sessions_crashed, sessions) as _crash_rate_alert_aggregate",
             "release:ahmed@12.2",
             expected_conditions,
@@ -842,7 +841,7 @@ class BuildSnqlQueryTest(TestCase):
         ]
         self.run_test(
             SnubaQuery.Type.CRASH_RATE,
-            Dataset.Sessions,
+            QueryDatasets.SESSIONS,
             "percentage(users_crashed, users) as _crash_rate_alert_aggregate",
             "release:ahmed@12.2",
             expected_conditions,
@@ -877,7 +876,7 @@ class BuildSnqlQueryTest(TestCase):
         ]
         self.run_test(
             SnubaQuery.Type.CRASH_RATE,
-            Dataset.Metrics,
+            QueryDatasets.METRICS,
             "percentage(sessions_crashed, sessions) as _crash_rate_alert_aggregate",
             "",
             expected_conditions,
@@ -901,7 +900,7 @@ class BuildSnqlQueryTest(TestCase):
         ]
         self.run_test(
             SnubaQuery.Type.CRASH_RATE,
-            Dataset.Metrics,
+            QueryDatasets.METRICS,
             "percentage(users_crashed, users) AS _crash_rate_alert_aggregate",
             "",
             expected_conditions,
@@ -961,7 +960,7 @@ class BuildSnqlQueryTest(TestCase):
         ]
         self.run_test(
             SnubaQuery.Type.CRASH_RATE,
-            Dataset.Metrics,
+            QueryDatasets.METRICS,
             "percentage(sessions_crashed, sessions) as _crash_rate_alert_aggregate",
             "release:ahmed@12.2",
             expected_conditions,
@@ -1010,7 +1009,7 @@ class BuildSnqlQueryTest(TestCase):
         ]
         self.run_test(
             SnubaQuery.Type.CRASH_RATE,
-            Dataset.Metrics,
+            QueryDatasets.METRICS,
             "percentage(users_crashed, users) AS _crash_rate_alert_aggregate",
             "release:ahmed@12.2",
             expected_conditions,
@@ -1129,7 +1128,7 @@ class TestApplyDatasetQueryConditions(TestCase):
 
 class SubscriptionCheckerTest(TestCase):
     def create_subscription(self, status, subscription_id=None, date_updated=None):
-        dataset = Dataset.Events.value
+        dataset = QueryDatasets.EVENTS.value
         aggregate = "count_unique(tags[sentry:user])"
         query = "hello"
         time_window = 60
