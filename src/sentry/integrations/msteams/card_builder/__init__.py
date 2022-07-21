@@ -177,6 +177,13 @@ def create_issue_action_block(
     reverse_action_title: str,
     **card_kwargs: Any,
 ) -> Action:
+    """
+    Build an action block for a particular `action` (Resolve).
+    It could be one of the following depending on if the state is `toggled` (Resolved issue).
+    If the issue is `toggled` then present a button with the `reverse_action` (Unresolve).
+    If it is not `toggled` then present a button which reveals a card with options to
+    perform the action ([Immediately, In current release, ...])
+    """
     if toggled:
         data = generate_action_payload(reverse_action, event, rules, integration)
         return create_action_block(ActionType.SUBMIT, title=reverse_action_title, data=data)
