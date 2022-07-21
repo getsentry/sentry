@@ -52,3 +52,8 @@ class DummyNotificationWithMoreFields(DummyNotification):
 
     def get_message_description(self, recipient: User | Team):
         return "Message Description"
+
+    def get_title_link(self, *args):
+        from sentry.integrations.slack.message_builder.issues import get_title_link
+
+        return get_title_link(self.group, None, False, True, self)

@@ -33,7 +33,7 @@ from sentry.integrations.msteams.card_builder.installation import (
 )
 from sentry.integrations.msteams.card_builder.issues import MSTeamsIssueMessageBuilder
 from sentry.integrations.msteams.card_builder.notifications import (
-    MSTeamsIssueNotificationsMessageBuilder,
+    MSTeamsNotificationsMessageBuilder,
 )
 from sentry.models import Integration, Organization, OrganizationIntegration, Rule
 from sentry.models.group import GroupStatus
@@ -369,7 +369,7 @@ class MSTeamsMessageBuilderTest(TestCase):
         assert "Unassign" == assign_action["title"]
 
 
-class MSTeamsIssueNotificationMessageBuilderTest(TestCase):
+class MSTeamsNotificationMessageBuilderTest(TestCase):
     def setUp(self):
         owner = self.create_user()
         self.org = self.create_organization(owner=owner)
@@ -383,7 +383,7 @@ class MSTeamsIssueNotificationMessageBuilderTest(TestCase):
         self.recipient = owner
 
     def test_simple(self):
-        notification_card = MSTeamsIssueNotificationsMessageBuilder(
+        notification_card = MSTeamsNotificationsMessageBuilder(
             self.notification,
             self.context,
             self.recipient,
@@ -396,7 +396,7 @@ class MSTeamsIssueNotificationMessageBuilderTest(TestCase):
         assert "Notification Title with some_value" == title["text"]
 
         group_title = body[1]
-        assert "[Hello world]" in group_title["text"]
+        assert "[My Title]" in group_title["text"]
         assert TextSize.LARGE == group_title["size"]
         assert TextWeight.BOLDER == group_title["weight"]
 
@@ -419,7 +419,7 @@ class MSTeamsIssueNotificationMessageBuilderTest(TestCase):
         dummy_notifcation = DummyNotification(self.org)
         dummy_notifcation.group = self.group1
 
-        notification_card = MSTeamsIssueNotificationsMessageBuilder(
+        notification_card = MSTeamsNotificationsMessageBuilder(
             dummy_notifcation,
             self.context,
             self.recipient,
