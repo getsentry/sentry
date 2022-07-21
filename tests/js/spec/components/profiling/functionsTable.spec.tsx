@@ -3,7 +3,7 @@ import {ReactElement, useEffect, useMemo} from 'react';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {FunctionsTable} from 'sentry/components/profiling/functionsTable';
+import {LegacyFunctionsTable} from 'sentry/components/profiling/legacyFunctionsTable';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {RouteContext} from 'sentry/views/routeContext';
@@ -35,11 +35,16 @@ function TestContext({children}: {children: ReactElement}) {
   );
 }
 
-describe('FunctionsTable', function () {
+describe('LegacyFunctionsTable', function () {
   it('renders loading', function () {
     render(
       <TestContext>
-        <FunctionsTable isLoading error={null} functionCalls={[]} project={project} />
+        <LegacyFunctionsTable
+          isLoading
+          error={null}
+          functionCalls={[]}
+          project={project}
+        />
       </TestContext>
     );
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
@@ -48,7 +53,7 @@ describe('FunctionsTable', function () {
   it('renders empty data', function () {
     render(
       <TestContext>
-        <FunctionsTable
+        <LegacyFunctionsTable
           isLoading={false}
           error={null}
           functionCalls={[]}
@@ -96,7 +101,7 @@ describe('FunctionsTable', function () {
 
     render(
       <TestContext>
-        <FunctionsTable
+        <LegacyFunctionsTable
           isLoading={false}
           error={null}
           functionCalls={[func]}

@@ -42,6 +42,7 @@ describe('useFunctions', function () {
           project,
           query: '',
           transaction: '',
+          sort: '-p99',
         }),
       {wrapper: TestContext}
     );
@@ -63,6 +64,7 @@ describe('useFunctions', function () {
           query: '',
           transaction: '',
           selection,
+          sort: '-p99',
         }),
       {wrapper: TestContext}
     );
