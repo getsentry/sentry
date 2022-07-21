@@ -202,7 +202,6 @@ class Organization(Model, SnowflakeIdMixin):
         self.save_with_snowflake_id(
             snowflake_redis_key, lambda: super(Organization, self).save(*args, **kwargs)
         )
-        super().save(*args, **kwargs)
 
     def delete(self, **kwargs):
         from sentry.models import NotificationSetting
