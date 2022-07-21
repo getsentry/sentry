@@ -27,6 +27,7 @@ __all__ = (
     "MetricsEnhancedPerformanceTestCase",
     "MetricsAPIBaseTestCase",
     "OrganizationMetricMetaIntegrationTestCase",
+    "ReplaysSnubaTestCase",
 )
 
 import hashlib
@@ -1350,6 +1351,18 @@ class OutcomesSnubaTest(TestCase):
             ).status_code
             == 200
         )
+
+
+@pytest.mark.snuba
+@requires_snuba
+class ReplaysSnubaTestCase(TestCase):
+    def setUp(self):
+        super().setUp()
+        assert requests.post(settings.SENTRY_SNUBA + "/tests/replays/drop").status_code == 200
+
+    def store_replays(self, replay):
+        response = requests.post(settings.SENTRY_SNUBA + "/tests/replays/insert", json=[replay])
+        assert response.status_code == 200
 
 
 class IntegrationRepositoryTestCase(APITestCase):
