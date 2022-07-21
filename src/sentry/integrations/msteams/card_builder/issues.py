@@ -72,7 +72,7 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
             weight=TextWeight.BOLDER,
         )
 
-    def build_group_descr(self) -> TextBlock:
+    def build_group_descr(self) -> TextBlock | None:
         # TODO: implement with event as well
         text = build_attachment_text(self.group)
         if text:
@@ -81,6 +81,8 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
                 size=TextSize.MEDIUM,
                 weight=TextWeight.BOLDER,
             )
+
+        return None
 
     @staticmethod
     def create_footer_logo_block() -> ImageBlock:
@@ -233,6 +235,8 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
                 IssueConstants.ASSIGNEE_NOTE.format(assignee=assignee_text),
                 size=TextSize.SMALL,
             )
+
+        return None
 
     def build_group_card(
         self,
