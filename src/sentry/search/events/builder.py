@@ -16,6 +16,7 @@ from snuba_sdk.function import CurriedFunction, Function
 from snuba_sdk.orderby import Direction, LimitBy, OrderBy
 from snuba_sdk.query import Query
 
+from sentry import options
 from sentry.api.event_search import (
     AggregateFilter,
     ParenExpression,
@@ -74,6 +75,7 @@ from sentry.search.events.types import (
     WhereType,
 )
 from sentry.sentry_metrics import indexer
+from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.snuba.metrics.fields import histogram as metrics_histogram
 from sentry.snuba.metrics.utils import MetricMeta
 from sentry.utils.dates import outside_retention_with_modified_start, to_timestamp
@@ -1616,6 +1618,22 @@ class MetricsQueryBuilder(QueryBuilder):
         else:
             raise InvalidSearchQuery("Organization id required to create a metrics query")
 
+    @property
+    def is_performance(self) -> bool:
+        return self.dataset is Dataset.PerformanceMetrics
+
+    @property
+    def custom_measurement_map(self) -> List[MetricMeta]:
+        if self._custom_measurement_cache is None:
+            from sentry.snuba.metrics.datasource import get_custom_measurements
+
+            self._custom_measurement_cache = get_custom_measurements(
+                Project.objects.filter(id__in=self.params["project_id"]),
+                start=self.start,
+                end=self.end,
+            )
+        return self._custom_measurement_cache
+
     def resolve_query(
         self,
         query: Optional[str] = None,
@@ -1661,7 +1679,12 @@ class MetricsQueryBuilder(QueryBuilder):
         tag_id = self.resolve_metric_index(col)
         if tag_id is None:
             raise InvalidSearchQuery(f"Unknown field: {col}")
-        return f"tags[{tag_id}]"
+        if self.is_performance and options.get(
+            "sentry-metrics.performance.tags-values-are-strings"
+        ):
+            return f"tags_raw[{tag_id}]"
+        else:
+            return f"tags[{tag_id}]"
 
     def column(self, name: str) -> Column:
         """Given an unresolved sentry name and return a snql column.
@@ -1827,12 +1850,20 @@ class MetricsQueryBuilder(QueryBuilder):
     def resolve_metric_index(self, value: str) -> Optional[int]:
         """Layer on top of the metric indexer so we'll only hit it at most once per value"""
         if value not in self._indexer_cache:
-            result = indexer.resolve(self.organization_id, value)
+            if self.is_performance:
+                use_case_id = UseCaseKey.PERFORMANCE
+            else:
+                use_case_id = UseCaseKey.RELEASE_HEALTH
+            result = indexer.resolve(self.organization_id, value, use_case_id=use_case_id)
             self._indexer_cache[value] = result
 
         return self._indexer_cache[value]
 
-    def _resolve_tag_value(self, value: str) -> int:
+    def _resolve_tag_value(self, value: str) -> Union[int, str]:
+        if self.is_performance and options.get(
+            "sentry-metrics.performance.tags-values-are-strings"
+        ):
+            return value
         if self.dry_run:
             return -1
         result = self.resolve_metric_index(value)
@@ -1877,6 +1908,31 @@ class MetricsQueryBuilder(QueryBuilder):
         # TODO(wmak): Need to handle `has` queries, basically check that tags.keys has the value?
 
         return Condition(lhs, Op(search_filter.operator), value)
+
+    def _environment_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+        """All of this is copied from the parent class except for the addition of `resolve_value`
+
+        Going to live with the duplicated code since this will go away anyways once we move to the metric layer
+        """
+        # conditions added to env_conditions can be OR'ed
+        env_conditions = []
+        value = search_filter.value.value
+        values_set = set(value if isinstance(value, (list, tuple)) else [value])
+        # sorted for consistency
+        values = sorted(
+            self.config.resolve_value(f"{value}") if value else 0 for value in values_set
+        )
+        environment = self.column("environment")
+        if len(values) == 1:
+            operator = Op.EQ if search_filter.operator in EQUALITY_OPERATORS else Op.NEQ
+            env_conditions.append(Condition(environment, operator, values.pop()))
+        elif values:
+            operator = Op.IN if search_filter.operator in EQUALITY_OPERATORS else Op.NOT_IN
+            env_conditions.append(Condition(environment, operator, values))
+        if len(env_conditions) > 1:
+            return Or(conditions=env_conditions)
+        else:
+            return env_conditions[0]
 
     def get_snql_query(self) -> Request:
         self.validate_having_clause()
@@ -2212,6 +2268,7 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
         allow_metric_aggregates: Optional[bool] = False,
         functions_acl: Optional[List[str]] = None,
         dry_run: Optional[bool] = False,
+        limit: Optional[int] = 10000,
     ):
         super().__init__(
             params=params,
@@ -2230,6 +2287,7 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
                     break
 
         self.time_column = self.resolve_time_column(interval)
+        self.limit = None if limit is None else Limit(limit)
 
         # This is a timeseries, the groupby will always be time
         self.groupby = [self.time_column]

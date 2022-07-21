@@ -53,6 +53,7 @@ from sentry.release_health.base import (
     SessionsQueryResult,
     SessionsQueryValue,
 )
+from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.snuba.dataset import EntityKey
 from sentry.snuba.metrics.datasource import get_series
 from sentry.snuba.metrics.naming_layer.public import SessionMetricKey
@@ -554,7 +555,7 @@ def run_sessions_query(
     # TODO: Stop passing project IDs everywhere
     projects = Project.objects.get_many_from_cache(project_ids)
     try:
-        metrics_results = get_series(projects, metrics_query)
+        metrics_results = get_series(projects, metrics_query, use_case_id=UseCaseKey.RELEASE_HEALTH)
     except OrderByNotSupportedOverCompositeEntityException:
         raise InvalidParams(f"Cannot order by {query.raw_orderby[0]} with the current filters")
     except UtilsInvalidParams as e:

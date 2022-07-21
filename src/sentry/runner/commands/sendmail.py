@@ -9,13 +9,14 @@ def send_prepared_email(input, fail_silently=False):
 
     msg = email.message_from_string(input)
     headers = {k: v for (k, v) in msg.items() if k.lower() not in ("to", "reply-to", "subject")}
+    reply_to = msg.get("reply-to")
     send_mail(
         subject=msg["subject"],
         message=msg.get_payload(),
         from_email=options.get("mail.from"),
         recipient_list=[msg["to"]],
         fail_silently=fail_silently,
-        reply_to=msg.get("reply-to"),
+        reply_to=[reply_to] if reply_to else None,
         headers=headers,
     )
 

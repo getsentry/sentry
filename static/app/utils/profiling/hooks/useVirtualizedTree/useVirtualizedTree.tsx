@@ -364,6 +364,8 @@ export function useVirtualizedTree<T extends TreeLike>(
   // On scroll, we update scrollTop position.
   // Keep a rafId reference in the unlikely event where component unmounts before raf is executed.
   const scrollEndTimeoutId = useRef<AnimationTimeoutId | undefined>(undefined);
+  const previousScrollHeight = useRef<number>(0);
+
   useEffect(() => {
     const scrollContainer = props.scrollContainer;
 
@@ -371,7 +373,13 @@ export function useVirtualizedTree<T extends TreeLike>(
       return undefined;
     }
 
-    const handleScroll = evt => {
+    function handleScroll(evt) {
+      const top = Math.max(evt.target.scrollTop, 0);
+
+      if (previousScrollHeight.current === top) {
+        return;
+      }
+
       evt.target.firstChild.style.pointerEvents = 'none';
 
       if (scrollEndTimeoutId.current !== undefined) {
@@ -384,7 +392,7 @@ export function useVirtualizedTree<T extends TreeLike>(
 
       dispatch({
         type: 'set scroll top',
-        payload: Math.max(evt.target.scrollTop, 0),
+        payload: top,
       });
 
       // On scroll, we need to update the selected ghost row and clear the hovered ghost row
@@ -402,7 +410,9 @@ export function useVirtualizedTree<T extends TreeLike>(
       hideGhostRow({
         ref: hoveredGhostRowRef,
       });
-    };
+
+      previousScrollHeight.current = top;
+    }
 
     scrollContainer.addEventListener('scroll', handleScroll, {
       passive: true,

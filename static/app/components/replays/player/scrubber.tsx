@@ -1,7 +1,6 @@
 import styled from '@emotion/styled';
 
 import RangeSlider from 'sentry/components/forms/controls/rangeSlider';
-import SliderAndInputWrapper from 'sentry/components/forms/controls/rangeSlider/sliderAndInputWrapper';
 import * as Progress from 'sentry/components/replays/progress';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {divide} from 'sentry/components/replays/utils';
@@ -70,11 +69,11 @@ const Range = styled(RangeSlider)`
 `;
 
 const PlaybackTimeValue = styled(Progress.Value)`
-  background: ${p => p.theme.purple300};
+  background: ${p => p.theme.purple100};
 `;
 
 const MouseTrackingValue = styled(Progress.Value)`
-  background: ${p => p.theme.purple200};
+  background: ${p => p.theme.purple100};
 `;
 
 const Wrapper = styled('div')`
@@ -107,7 +106,7 @@ const Wrapper = styled('div')`
   }
 `;
 
-export const TimelineScubber = styled(Scrubber)`
+export const TimelineScrubber = styled(Scrubber)`
   height: 100%;
 `;
 

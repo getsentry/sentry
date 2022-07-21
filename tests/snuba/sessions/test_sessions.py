@@ -2,6 +2,7 @@ import time
 from datetime import datetime, timedelta
 from datetime import timezone as dt_timezone
 
+import pytest
 import pytz
 from django.utils import timezone
 
@@ -12,7 +13,9 @@ from sentry.release_health.sessions import SessionsReleaseHealthBackend
 from sentry.snuba.dataset import EntityKey
 from sentry.snuba.sessions import _make_stats
 from sentry.testutils import SnubaTestCase, TestCase
-from sentry.testutils.cases import SessionMetricsTestCase
+from sentry.testutils.cases import BaseMetricsTestCase
+
+pytestmark = pytest.mark.sentry_metrics
 
 
 def parametrize_backend(cls):
@@ -25,7 +28,7 @@ def parametrize_backend(cls):
     assert not hasattr(cls, "backend")
     cls.backend = SessionsReleaseHealthBackend()
 
-    class MetricsTest(SessionMetricsTestCase, cls):
+    class MetricsTest(BaseMetricsTestCase, cls):
         __doc__ = f"Repeat tests from {cls} with metrics"
         backend = MetricsReleaseHealthBackend()
 
