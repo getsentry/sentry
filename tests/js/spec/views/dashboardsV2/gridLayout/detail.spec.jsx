@@ -480,8 +480,7 @@ describe('Dashboards > Detail', function () {
       expect(openEditModal).toHaveBeenCalledTimes(1);
     });
 
-    // eslint-disable-next-line jest/no-disabled-tests
-    it.skip('shows top level release filter', async function () {
+    it('shows top level release filter', async function () {
       const mockReleases = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/releases/',
         body: [TestStubs.Release()],
