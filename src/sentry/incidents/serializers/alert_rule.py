@@ -8,6 +8,7 @@ from django.utils import timezone
 from rest_framework import serializers
 from snuba_sdk import Column, Condition, Function, Limit, Op
 
+from sentry import features
 from sentry.api.fields.actor import ActorField
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.api.serializers.rest_framework.environment import EnvironmentField
@@ -31,10 +32,9 @@ from sentry.snuba.entity_subscription import (
     get_entity_key_from_query_builder,
     get_entity_subscription,
 )
-from sentry.snuba.models import QueryDatasets, QuerySubscription, SnubaQuery, SnubaQueryEventType
+from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.tasks import build_query_builder
 
-from ... import features
 from . import (
     CRASH_RATE_ALERTS_ALLOWED_TIME_WINDOWS,
     QUERY_TYPE_VALID_DATASETS,
@@ -151,16 +151,13 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
 
     def validate_dataset(self, dataset):
         try:
-            return QueryDatasets(dataset)
+            return Dataset(dataset)
         except ValueError:
             raise serializers.ValidationError(
-                "Invalid dataset, valid values are %s" % [item.value for item in QueryDatasets]
+                "Invalid dataset, valid values are %s" % [item.value for item in Dataset]
             )
 
     def validate_event_types(self, event_types):
-        dataset = self.initial_data.get("dataset")
-        if dataset not in [Dataset.Events.value, Dataset.Transactions.value]:
-            return []
         try:
             return [SnubaQueryEventType.EventType[event_type.upper()] for event_type in event_types]
         except KeyError:
@@ -187,6 +184,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
         > or < the value depends on threshold type).
         """
         self._validate_query(data)
+        query_type = data["query_type"]
 
         triggers = data.get("triggers", [])
         if not triggers:
@@ -196,9 +194,11 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
                 "Must send 1 or 2 triggers - A critical trigger, and an optional warning trigger"
             )
 
+        if query_type == SnubaQuery.Type.CRASH_RATE:
+            data["event_types"] = []
         event_types = data.get("event_types")
 
-        valid_event_types = QUERY_TYPE_VALID_EVENT_TYPES.get(data["query_type"], set())
+        valid_event_types = QUERY_TYPE_VALID_EVENT_TYPES.get(query_type, set())
         if event_types and set(event_types) - valid_event_types:
             raise serializers.ValidationError(
                 "Invalid event types for this dataset. Valid event types are %s"
@@ -229,7 +229,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
         return data
 
     def _validate_query(self, data):
-        dataset = data.setdefault("dataset", QueryDatasets.EVENTS)
+        dataset = data.setdefault("dataset", Dataset.Events)
         query_type = data.setdefault("query_type", query_datasets_to_type[dataset])
 
         valid_datasets = QUERY_TYPE_VALID_DATASETS[query_type]
@@ -245,7 +245,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
                 self.context["organization"],
                 actor=self.context.get("user", None),
             )
-            and dataset == QueryDatasets.PERFORMANCE_METRICS
+            and dataset == Dataset.PerformanceMetrics
             and query_type == SnubaQuery.Type.PERFORMANCE
         ):
             raise serializers.ValidationError(
