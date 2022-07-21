@@ -108,7 +108,7 @@ export function axisDuration(value: number, durationUnit?: number): string {
  */
 export function findRangeOfMultiSeries(series: Series[], legend?: LegendComponentOption) {
   let range: {max: number; min: number} | undefined;
-  if (series[0]) {
+  if (series[0]?.data) {
     let minSeries = series[0];
     let maxSeries;
     series.forEach(({seriesName}, idx) => {
@@ -117,7 +117,7 @@ export function findRangeOfMultiSeries(series: Series[], legend?: LegendComponen
         maxSeries ??= series[idx];
       }
     });
-    if (maxSeries) {
+    if (maxSeries?.data) {
       const max = Math.max(...maxSeries.data.map(({value}) => value));
       const min = Math.min(
         ...minSeries.data.map(({value}) => value).filter(value => !!value)
