@@ -25,9 +25,10 @@ export type Field = {
   width?: number;
 };
 
+// ColumnType is kept as a string literal union instead of an enum due to the countless uses of it and refactoring would take huge effort.
 export type ColumnType = `${Exclude<FieldValueType, FieldValueType.NEVER>}`;
 
-export type ColumnValueType = ColumnType | `${FieldValueType.NEVER}`; // Matches to nothing
+export type ColumnValueType = ColumnType | `${FieldValueType.NEVER}`;
 
 export type ParsedFunction = {
   arguments: string[];
