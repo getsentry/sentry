@@ -97,6 +97,7 @@ DURATION_UNITS = {
     "day",
     "week",
 }
+PERCENT_UNITS = {"ratio", "percent"}
 RESULT_TYPES = RESULT_TYPES.union(SIZE_UNITS)
 RESULT_TYPES = RESULT_TYPES.union(DURATION_UNITS)
 NO_CONVERSION_FIELDS = {"start", "end"}
