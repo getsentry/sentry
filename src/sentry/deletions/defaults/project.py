@@ -6,6 +6,7 @@ class ProjectDeletionTask(ModelDeletionTask):
         from sentry import models
         from sentry.discover.models import DiscoverSavedQueryProject
         from sentry.incidents.models import IncidentProject
+        from sentry.replays.models import ReplayRecordingSegment
         from sentry.snuba.models import QuerySubscription
 
         relations = [
@@ -36,7 +37,7 @@ class ProjectDeletionTask(ModelDeletionTask):
             models.PromptsActivity,
             # order matters, ProjectCodeOwners to be deleted before RepositoryProjectPathConfig
             models.ProjectCodeOwners,
-            models.ReplayRecordingSegment,
+            ReplayRecordingSegment,
             models.RepositoryProjectPathConfig,
             models.SavedSearchUserDefault,
             models.SavedSearch,
