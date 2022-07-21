@@ -22,7 +22,6 @@ import EventGroupingInfo from 'sentry/components/events/groupingInfo';
 import EventPackageData from 'sentry/components/events/packageData';
 import RRWebIntegration from 'sentry/components/events/rrwebIntegration';
 import EventSdkUpdates from 'sentry/components/events/sdkUpdates';
-import {DataSection} from 'sentry/components/events/styles';
 import EventUserFeedback from 'sentry/components/events/userFeedback';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
@@ -351,7 +350,7 @@ const EventEntries = memo(
     const hasErrors = !objectIsEmpty(event.errors) || !!proGuardErrors.length;
 
     return (
-      <div className={className} data-test-id={`event-entries-loading-${isLoading}`}>
+      <Wrap className={className} data-test-id={`event-entries-loading-${isLoading}`}>
         {hasErrors && !isLoading && (
           <EventErrors
             event={event}
@@ -443,10 +442,19 @@ const EventEntries = memo(
             )}
           />
         )}
-      </div>
+      </Wrap>
     );
   }
 );
+
+const Wrap = styled('div')`
+  /* Padding aligns with Layout.Body */
+  padding: 0 ${space(4)};
+
+  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+    padding: 0 ${space(2)};
+  }
+`;
 
 const StyledEventDataSection = styled(EventDataSection)`
   /* Hiding the top border because of the event section appears at this breakpoint */
@@ -461,28 +469,10 @@ const LatestEventNotAvailable = styled('div')`
   padding: ${space(2)} ${space(4)};
 `;
 
-const ErrorContainer = styled('div')`
-  /*
-  Remove border on adjacent context summary box.
-  Once that component uses emotion this will be harder.
-  */
-  & + .context-summary {
-    border-top: none;
-  }
-`;
-
 const BorderlessEventEntries = styled(EventEntries)`
-  & ${/* sc-selector */ DataSection} {
-    margin-left: 0 !important;
-    margin-right: 0 !important;
-    padding: ${space(3)} 0 0 0;
-  }
-  & ${/* sc-selector */ DataSection}:first-child {
-    padding-top: 0;
-    border-top: 0;
-  }
-  & ${/* sc-selector */ ErrorContainer} {
-    margin-bottom: ${space(2)};
+  padding: 0;
+  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+    padding: 0;
   }
 `;
 
