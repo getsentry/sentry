@@ -812,8 +812,12 @@ class DashboardDetail extends Component<Props, State> {
               <Layout.Body>
                 <Layout.Main fullWidth>
                   <FiltersBar
-                    hasUnsavedChanges={hasUnsavedFilterChanges}
-                    isEditingDashboard={this.isEditing}
+                    hasUnsavedChanges={
+                      dashboardState !== DashboardState.CREATE && hasUnsavedFilterChanges
+                    }
+                    isEditingDashboard={
+                      dashboardState !== DashboardState.CREATE && this.isEditing
+                    }
                     filters={filters}
                     onDashboardFilterChange={this.handleChangeFilter}
                     onCancel={() => {
