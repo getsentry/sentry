@@ -1,5 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
-import {act} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {createProject} from 'sentry/actionCreators/projects';
 import TeamStore from 'sentry/stores/teamStore';
@@ -8,12 +7,16 @@ import OnboardingPlatform from 'sentry/views/onboarding/platform';
 jest.mock('sentry/actionCreators/projects');
 
 describe('OnboardingWelcome', function () {
+  afterEach(() => {
+    jest.resetAllMocks();
+  });
+
   it('calls onUpdate when setting the platform', function () {
     const onUpdate = jest.fn();
 
-    const wrapper = mountWithTheme(<OnboardingPlatform active onUpdate={onUpdate} />);
+    render(<OnboardingPlatform active onUpdate={onUpdate} />);
 
-    wrapper.find('[data-test-id="platform-dotnet"]').first().simulate('click');
+    userEvent.click(screen.getByTestId('platform-dotnet'));
 
     expect(onUpdate).toHaveBeenCalled();
   });
@@ -21,17 +24,18 @@ describe('OnboardingWelcome', function () {
   it('creates a project when no project exists', async function () {
     const onComplete = jest.fn();
 
-    const wrapper = mountWithTheme(<OnboardingPlatform active onComplete={onComplete} />);
-
-    const getButton = () => wrapper.find('Button[priority="primary"]');
+    const wrapper = render(<OnboardingPlatform active onComplete={onComplete} />);
 
     // Select a platform to create
-    wrapper.setProps({platform: 'dotnet'});
+    wrapper.rerender(
+      <OnboardingPlatform active onComplete={onComplete} platform="dotnet" />
+    );
     act(() => {
       TeamStore.loadInitialData([{id: '1', slug: 'team-slug'}]);
     });
-    expect(getButton().text()).toEqual('Create Project');
-    expect(getButton().props().disabled).toBe(false);
+    const button = screen.getByRole('button', {name: 'Create Project'});
+    expect(button).toBeInTheDocument();
+    expect(button).toBeEnabled();
 
     let resolveProjectCreate;
     createProject.mockReturnValue(
@@ -39,24 +43,24 @@ describe('OnboardingWelcome', function () {
     );
 
     // Create the project
-    getButton().simulate('click');
+    userEvent.click(button);
 
-    expect(getButton().text()).toEqual('Creating Project...');
+    expect(button).toHaveTextContent('Creating Project...');
 
     // Project completed creation (tick for async completion)
     resolveProjectCreate({id: 1, slug: 'test-project'});
-    await tick();
 
-    wrapper.setProps({active: false});
-    expect(getButton().text()).toEqual('Project Created');
-    expect(onComplete).toHaveBeenCalled();
+    wrapper.rerender(
+      <OnboardingPlatform active={false} onComplete={onComplete} platform="dotnet" />
+    );
+    expect(button).toHaveTextContent('Project Created');
+    await waitFor(() => expect(onComplete).toHaveBeenCalled());
   });
 
   it('does not create a project if one already exists', async function () {
-    createProject.mockReset();
     const onComplete = jest.fn();
 
-    const wrapper = mountWithTheme(
+    render(
       <OnboardingPlatform
         active
         project={{id: '1', slug: 'test'}}
@@ -65,20 +69,18 @@ describe('OnboardingWelcome', function () {
       />
     );
 
-    const getButton = () => wrapper.find('Button[priority="primary"]');
-
     act(() => {
       TeamStore.loadInitialData([{id: '1', slug: 'team-slug'}]);
     });
-    expect(getButton().text()).toEqual('Set Up Your Project');
-    expect(getButton().props().disabled).toBe(false);
+    const button = screen.getByRole('button', {name: 'Set Up Your Project'});
+    expect(button).toBeInTheDocument();
+    expect(button).toBeEnabled();
 
     // Create the project
-    getButton().simulate('click');
-    await tick();
+    userEvent.click(button);
 
-    expect(getButton().props().disabled).toBe(true);
+    expect(button).toBeDisabled();
     expect(createProject).not.toHaveBeenCalled();
-    expect(onComplete).toHaveBeenCalled();
+    await waitFor(() => expect(onComplete).toHaveBeenCalled());
   });
 });

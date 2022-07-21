@@ -1,19 +1,18 @@
 import {browserHistory} from 'react-router';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import Onboarding from 'sentry/views/onboarding/onboarding';
 
 const MockStep = ({name, data, active, project, onComplete, onUpadte}) => (
   <div>
-    {active && <div id="is_active" />}
-    <div id="step_name">{name}</div>
-    <div id="project_slug">{project && project.slug}</div>
-    <a id="complete" href="#" onClick={() => onComplete(data)} />
-    <a id="update" href="#" onClick={() => onUpadte(data)} />
+    {active && <div data-test-id="is_active" />}
+    <div data-test-id="step_name">{name}</div>
+    <div data-test-id="project_slug">{project && project.slug}</div>
+    <a data-test-id="complete" href="#" onClick={() => onComplete(data)} />
+    <a data-test-id="update" href="#" onClick={() => onUpadte(data)} />
   </div>
 );
 
@@ -46,7 +45,7 @@ describe('Onboarding', function () {
       orgId: 'org-bar',
     };
 
-    mountWithTheme(<Onboarding steps={MOCKED_STEPS} params={params} />);
+    render(<Onboarding steps={MOCKED_STEPS} params={params} />, {});
 
     expect(browserHistory.replace).toHaveBeenCalledWith('/onboarding/org-bar/step1/');
   });
@@ -57,13 +56,13 @@ describe('Onboarding', function () {
       orgId: 'org-bar',
     };
 
-    const wrapper = mountWithTheme(<Onboarding steps={MOCKED_STEPS} params={params} />);
+    render(<Onboarding steps={MOCKED_STEPS} params={params} />);
 
     // Validate that the first step is shown
-    expect(wrapper.find('#step_name').text()).toEqual('step_1');
+    expect(screen.getByTestId('step_name')).toHaveTextContent('step_1');
 
     // Validate that the progress bar is displayed and active
-    expect(wrapper.find('ProgressStep').first().props().active).toBe(true);
+    expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '1');
   });
 
   it('moves to next step on complete', function () {
@@ -74,9 +73,9 @@ describe('Onboarding', function () {
       orgId: 'org-bar',
     };
 
-    const wrapper = mountWithTheme(<Onboarding steps={MOCKED_STEPS} params={params} />);
+    render(<Onboarding steps={MOCKED_STEPS} params={params} />);
 
-    wrapper.find('#complete').simulate('click');
+    userEvent.click(screen.getByTestId('complete'));
     expect(browserHistory.push).toHaveBeenCalledWith('/onboarding/org-bar/step2/');
   });
 
@@ -86,11 +85,11 @@ describe('Onboarding', function () {
       orgId: 'org-bar',
     };
 
-    const wrapper = mountWithTheme(<Onboarding steps={MOCKED_STEPS} params={params} />);
+    render(<Onboarding steps={MOCKED_STEPS} params={params} />);
 
     // Validate that second step is visible
-    expect(wrapper.find('#step_name').text()).toEqual('step_2');
-    expect(wrapper.find('MockStep').find('#active').exists()).toBe(false);
+    expect(screen.getByTestId('step_name')).toHaveTextContent('step_2');
+    expect(screen.getByTestId('is_active')).toBeInTheDocument();
   });
 
   it('goes back when back button clicked', function () {
@@ -101,9 +100,9 @@ describe('Onboarding', function () {
       orgId: 'org-bar',
     };
 
-    const wrapper = mountWithTheme(<Onboarding steps={MOCKED_STEPS} params={params} />);
+    render(<Onboarding steps={MOCKED_STEPS} params={params} />);
 
-    wrapper.find('Back Button').simulate('click');
+    userEvent.click(screen.getByRole('button', {name: 'Go back'}));
     expect(browserHistory.replace).toHaveBeenCalledWith('/onboarding/org-bar/step1/');
   });
 
@@ -124,11 +123,8 @@ describe('Onboarding', function () {
       orgId: organization.slug,
     };
 
-    const wrapper = mountWithTheme(
-      <Onboarding steps={MOCKED_STEPS} params={params} />,
-      routerContext
-    );
+    render(<Onboarding steps={MOCKED_STEPS} params={params} />, {context: routerContext});
 
-    expect(wrapper.find('#project_slug').text()).toBe('first');
+    expect(screen.getByTestId('project_slug')).toHaveTextContent('first');
   });
 });

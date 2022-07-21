@@ -124,7 +124,11 @@ class Onboarding extends Component<Props, State> {
   renderProgressBar() {
     const activeStepIndex = this.activeStepIndex;
     return (
-      <ProgressBar>
+      <ProgressBar
+        role="progressbar"
+        aria-valuenow={activeStepIndex + 1}
+        aria-valuemax={this.props.steps.length}
+      >
         {this.props.steps.map((step, index) => (
           <ProgressStep active={activeStepIndex === index} key={step.id} />
         ))}
