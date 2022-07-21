@@ -38,7 +38,7 @@ import hasThresholdValue from 'sentry/views/alerts/rules/metric/utils/hasThresho
 import {AlertRuleType} from 'sentry/views/alerts/types';
 import {
   AlertWizardAlertNames,
-  MetricQueryTypeMap,
+  DatasetMEPAlertQueryTypes,
 } from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
 
@@ -592,8 +592,9 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
           comparisonDelta: comparisonDelta ?? null,
           timeWindow,
           aggregate,
-          queryType:
-            MetricQueryTypeMap[getAlertTypeFromAggregateDataset({aggregate, dataset})],
+          ...(organization.features.includes('metrics-performance-alerts')
+            ? {queryType: DatasetMEPAlertQueryTypes[dataset]}
+            : {}),
         },
         {
           duplicateRule: this.isDuplicateRule ? 'true' : 'false',
@@ -724,6 +725,22 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     this.goBack();
   };
 
+  handleMEPAlertDataset = data => {
+    if (!data) {
+      return;
+    }
+
+    const {isMetricsData} = data;
+
+    if (isMetricsData === undefined) {
+      return;
+    }
+
+    if (isMetricsData && this.state.dataset === Dataset.TRANSACTIONS) {
+      this.setState({dataset: Dataset.GENERIC_METRICS});
+    }
+  };
+
   renderLoading() {
     return this.renderBody();
   }
@@ -759,6 +776,9 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       triggers,
       query: isCrashFreeAlert(dataset) ? query : queryWithTypeFilter,
       aggregate,
+      dataset,
+      newAlertOrQuery: !ruleId || query !== rule.query,
+      handleMEPAlertDataset: this.handleMEPAlertDataset,
       timeWindow,
       environment,
       resolveThreshold,

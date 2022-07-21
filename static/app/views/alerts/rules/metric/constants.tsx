@@ -30,6 +30,7 @@ export const DEFAULT_TRANSACTION_AGGREGATE = 'p95(transaction.duration)';
 export const DATASET_EVENT_TYPE_FILTERS = {
   [Dataset.ERRORS]: 'event.type:error',
   [Dataset.TRANSACTIONS]: 'event.type:transaction',
+  [Dataset.GENERIC_METRICS]: 'event.type:transaction',
 } as const;
 
 export const DATASOURCE_EVENT_TYPE_FILTERS = {

@@ -21,27 +21,26 @@ export type AlertType =
   | 'crash_free_sessions'
   | 'crash_free_users';
 
-export enum QueryType {
+export enum MEPAlertsQueryType {
   ERROR = 0,
   PERFORMANCE = 1,
   CRASH_RATE = 2,
 }
 
+export enum MEPAlertsDataset {
+  DISCOVER = 'discover',
+  METRICS = 'metrics',
+  METRICS_ENHANCED = 'metricsEnhanced',
+}
+
 export type MetricAlertType = Exclude<AlertType, 'issues'>;
 
-export const MetricQueryTypeMap: Record<MetricAlertType, QueryType> = {
-  num_errors: QueryType.ERROR,
-  users_experiencing_errors: QueryType.ERROR,
-  throughput: QueryType.PERFORMANCE,
-  trans_duration: QueryType.PERFORMANCE,
-  apdex: QueryType.PERFORMANCE,
-  failure_rate: QueryType.PERFORMANCE,
-  lcp: QueryType.PERFORMANCE,
-  fid: QueryType.PERFORMANCE,
-  cls: QueryType.PERFORMANCE,
-  custom: QueryType.PERFORMANCE,
-  crash_free_sessions: QueryType.CRASH_RATE,
-  crash_free_users: QueryType.CRASH_RATE,
+export const DatasetMEPAlertQueryTypes: Record<Dataset, MEPAlertsQueryType> = {
+  [Dataset.ERRORS]: MEPAlertsQueryType.ERROR,
+  [Dataset.TRANSACTIONS]: MEPAlertsQueryType.PERFORMANCE,
+  [Dataset.GENERIC_METRICS]: MEPAlertsQueryType.PERFORMANCE,
+  [Dataset.METRICS]: MEPAlertsQueryType.CRASH_RATE,
+  [Dataset.SESSIONS]: MEPAlertsQueryType.CRASH_RATE,
 };
 
 export const AlertWizardAlertNames: Record<AlertType, string> = {
@@ -208,4 +207,24 @@ export function getFunctionHelpText(alertType: AlertType): {
     labelText: t('Select function and time interval'),
     timeWindowText,
   };
+}
+
+export function getMEPAlertsDataset(
+  dataset: Dataset,
+  newAlert: boolean
+): MEPAlertsDataset {
+  // Dataset.ERRORS overrides all cases
+  if (dataset === Dataset.ERRORS) {
+    return MEPAlertsDataset.DISCOVER;
+  }
+
+  if (newAlert) {
+    return MEPAlertsDataset.METRICS_ENHANCED;
+  }
+
+  if (dataset === Dataset.GENERIC_METRICS) {
+    return MEPAlertsDataset.METRICS;
+  }
+
+  return MEPAlertsDataset.DISCOVER;
 }

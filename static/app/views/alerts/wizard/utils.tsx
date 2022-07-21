@@ -17,6 +17,15 @@ const alertTypeIdentifiers: Record<Dataset, Partial<Record<MetricAlertType, stri
     fid: 'measurements.fid',
     cls: 'measurements.cls',
   },
+  [Dataset.GENERIC_METRICS]: {
+    throughput: 'count()',
+    trans_duration: 'transaction.duration',
+    apdex: 'apdex',
+    failure_rate: 'failure_rate()',
+    lcp: 'measurements.lcp',
+    fid: 'measurements.fid',
+    cls: 'measurements.cls',
+  },
   [Dataset.SESSIONS]: {
     crash_free_sessions: SessionsAggregate.CRASH_FREE_SESSIONS,
     crash_free_users: SessionsAggregate.CRASH_FREE_USERS,
