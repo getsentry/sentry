@@ -5,6 +5,7 @@ import partial from 'lodash/partial';
 
 import Count from 'sentry/components/count';
 import Duration from 'sentry/components/duration';
+import FileSize from 'sentry/components/fileSize';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -58,9 +59,14 @@ export type RenderFunctionBaggage = {
   location: Location;
   organization: Organization;
   eventView?: EventView;
+  unit?: string;
 };
 
-type FieldFormatterRenderFunction = (field: string, data: EventData) => React.ReactNode;
+type FieldFormatterRenderFunction = (
+  field: string,
+  data: EventData,
+  baggage?: RenderFunctionBaggage
+) => React.ReactNode;
 
 type FieldFormatterRenderFunctionPartial = (
   data: EventData,
@@ -80,6 +86,7 @@ type FieldFormatters = {
   integer: FieldFormatter;
   number: FieldFormatter;
   percentage: FieldFormatter;
+  size: FieldFormatter;
   string: FieldFormatter;
 };
 
@@ -102,6 +109,26 @@ export function nullableValue(value: string | null): string | React.ReactElement
   }
 }
 
+const SIZE_UNITS = {
+  bit: {scale: 1 / 8},
+  byte: {scale: 1},
+  kibibyte: {scale: 1024},
+  mebibyte: {scale: 1024 ** 2},
+  gibibyte: {scale: 1024 ** 3},
+  tebibyte: {scale: 1024 ** 4},
+  pebibyte: {scale: 1024 ** 5},
+  exbibyte: {scale: 1024 ** 6},
+};
+const DURATION_UNITS = {
+  nanosecond: {scale: 1 / 1000 ** 2},
+  microsecond: {scale: 1 / 1000},
+  millisecond: {scale: 1},
+  second: {scale: 1000},
+  minute: {scale: 1000 * 60},
+  hour: {scale: 1000 * 60 * 60},
+  day: {scale: 1000 * 60 * 60 * 24},
+  week: {scale: 1000 * 60 * 60 * 24 * 7},
+};
 /**
  * A mapping of field types to their rendering function.
  * This mapping is used when a field is not defined in SPECIAL_FIELDS
@@ -132,15 +159,24 @@ export const FIELD_FORMATTERS: FieldFormatters = {
   },
   duration: {
     isSortable: true,
-    renderFunc: (field, data) => (
-      <NumberContainer>
-        {typeof data[field] === 'number' ? (
-          <Duration seconds={data[field] / 1000} fixedDigits={2} abbreviation />
-        ) : (
-          emptyValue
-        )}
-      </NumberContainer>
-    ),
+    renderFunc: (field, data, baggage) => {
+      const {unit} = baggage ?? {};
+      return (
+        <NumberContainer>
+          {typeof data[field] === 'number' ? (
+            <Duration
+              seconds={
+                (data[field] * ((unit && DURATION_UNITS[unit]?.scale) ?? 1)) / 1000
+              }
+              fixedDigits={2}
+              abbreviation
+            />
+          ) : (
+            emptyValue
+          )}
+        </NumberContainer>
+      );
+    },
   },
   integer: {
     isSortable: true,
@@ -165,6 +201,21 @@ export const FIELD_FORMATTERS: FieldFormatters = {
         {typeof data[field] === 'number' ? formatPercentage(data[field]) : emptyValue}
       </NumberContainer>
     ),
+  },
+  size: {
+    isSortable: true,
+    renderFunc: (field, data, baggage) => {
+      const {unit} = baggage ?? {};
+      return (
+        <NumberContainer>
+          {unit && SIZE_UNITS[unit] && typeof data[field] === 'number' ? (
+            <FileSize bytes={data[field] * SIZE_UNITS[unit].scale} />
+          ) : (
+            emptyValue
+          )}
+        </NumberContainer>
+      );
+    },
   },
   string: {
     isSortable: true,
@@ -719,7 +770,10 @@ export function getFieldRenderer(
   return partial(FIELD_FORMATTERS.string.renderFunc, fieldName);
 }
 
-type FieldTypeFormatterRenderFunctionPartial = (data: EventData) => React.ReactNode;
+type FieldTypeFormatterRenderFunctionPartial = (
+  data: EventData,
+  baggage?: RenderFunctionBaggage
+) => React.ReactNode;
 
 /**
  * Get the field renderer for the named field only based on its type from the given
