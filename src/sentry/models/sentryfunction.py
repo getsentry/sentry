@@ -11,6 +11,8 @@ class SentryFunction(DefaultFieldsModel):
     slug = models.CharField(max_length=64, unique=True)
     author = models.TextField()
     external_id = models.CharField(max_length=128, unique=True)
+    overview = models.TextField(null=True)
+    code = models.TextField(null=True)
 
     objects = BaseManager()
 

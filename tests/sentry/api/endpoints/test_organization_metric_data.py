@@ -5,6 +5,7 @@ from typing import Optional
 from unittest import mock
 from unittest.mock import patch
 
+import pytest
 from django.utils import timezone
 from freezegun import freeze_time
 
@@ -29,6 +30,9 @@ def indexer_record(use_case_id: UseCaseKey, org_id: int, string: str) -> int:
 
 perf_indexer_record = partial(indexer_record, UseCaseKey.PERFORMANCE)
 rh_indexer_record = partial(indexer_record, UseCaseKey.RELEASE_HEALTH)
+
+
+pytestmark = [pytest.mark.sentry_metrics, pytest.mark.broken_under_tags_values_as_strings]
 
 
 class OrganizationMetricDataTest(MetricsAPIBaseTestCase):

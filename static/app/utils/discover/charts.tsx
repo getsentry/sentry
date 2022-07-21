@@ -1,4 +1,7 @@
+import {LegendComponentOption} from 'echarts';
+
 import {t} from 'sentry/locale';
+import {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {
@@ -40,7 +43,8 @@ export function tooltipFormatter(value: number | null, seriesName: string = ''):
 export function axisLabelFormatter(
   value: number,
   seriesName: string,
-  abbreviation: boolean = false
+  abbreviation: boolean = false,
+  durationUnit?: number
 ): string {
   switch (aggregateOutputType(seriesName)) {
     case 'integer':
@@ -49,7 +53,7 @@ export function axisLabelFormatter(
     case 'percentage':
       return formatPercentage(value, 0);
     case 'duration':
-      return axisDuration(value);
+      return axisDuration(value, durationUnit);
     default:
       return value.toString();
   }
@@ -62,30 +66,112 @@ export function axisLabelFormatter(
  *
  * @param value Number of milliseconds to format.
  */
-export function axisDuration(value: number): string {
+export function axisDuration(value: number, durationUnit?: number): string {
+  durationUnit ??= categorizeDuration(value);
   if (value === 0) {
     return '0';
   }
+  switch (durationUnit) {
+    case WEEK: {
+      const label = (value / WEEK).toFixed(0);
+      return t('%swk', label);
+    }
+    case DAY: {
+      const label = (value / DAY).toFixed(0);
+      return t('%sd', label);
+    }
+    case HOUR: {
+      const label = (value / HOUR).toFixed(0);
+      return t('%shr', label);
+    }
+    case MINUTE: {
+      const label = (value / MINUTE).toFixed(0);
+      return t('%smin', label);
+    }
+    case SECOND: {
+      const label = (value / SECOND).toFixed(0);
+      return t('%ss', label);
+    }
+    default:
+      const label = value.toFixed(0);
+      return t('%sms', label);
+  }
+}
+
+/**
+ * Given an array of series and an eCharts legend object,
+ * finds the range of y values (min and max) based on which series is selected in the legend
+ * Assumes series[0] > series[1] > ...
+ * @param series Array of eCharts series
+ * @param legend eCharts legend object
+ * @returns
+ */
+export function findRangeOfMultiSeries(series: Series[], legend?: LegendComponentOption) {
+  let range: {max: number; min: number} | undefined;
+  if (series[0]?.data) {
+    let minSeries = series[0];
+    let maxSeries;
+    series.forEach(({seriesName}, idx) => {
+      if (legend?.selected?.[seriesName] !== false) {
+        minSeries = series[idx];
+        maxSeries ??= series[idx];
+      }
+    });
+    if (maxSeries?.data) {
+      const max = Math.max(...maxSeries.data.map(({value}) => value));
+      const min = Math.min(
+        ...minSeries.data.map(({value}) => value).filter(value => !!value)
+      );
+      range = {max, min};
+    }
+  }
+  return range;
+}
+
+/**
+ * Given a eCharts series and legend, returns the unit to be used on the yAxis for a duration chart
+ * @param series eCharts series array
+ * @param legend eCharts legend object
+ * @returns
+ */
+export function getDurationUnit(
+  series: Series[],
+  legend?: LegendComponentOption
+): number {
+  let durationUnit = 0;
+  const range = findRangeOfMultiSeries(series, legend);
+  if (range) {
+    const avg = (range.max + range.min) / 2;
+    durationUnit = categorizeDuration((range.max - range.min) / 5); // avg of 5 yAxis ticks per chart
+
+    const numOfDigits = (avg / durationUnit).toFixed(0).length;
+    if (numOfDigits > 6) {
+      durationUnit = categorizeDuration(avg);
+    }
+  }
+  return durationUnit;
+}
+
+/**
+ * Categorizes the duration by Second, Minute, Hour, etc
+ * Ex) categorizeDuration(1200) = MINUTE
+ * @param value Duration in ms
+ */
+export function categorizeDuration(value): number {
   if (value >= WEEK) {
-    const label = (value / WEEK).toFixed(0);
-    return t('%swk', label);
+    return WEEK;
   }
   if (value >= DAY) {
-    const label = (value / DAY).toFixed(0);
-    return t('%sd', label);
+    return DAY;
   }
   if (value >= HOUR) {
-    const label = (value / HOUR).toFixed(0);
-    return t('%shr', label);
+    return HOUR;
   }
   if (value >= MINUTE) {
-    const label = (value / MINUTE).toFixed(0);
-    return t('%smin', label);
+    return MINUTE;
   }
   if (value >= SECOND) {
-    const label = (value / SECOND).toFixed(0);
-    return t('%ss', label);
+    return SECOND;
   }
-  const label = value.toFixed(0);
-  return t('%sms', label);
+  return 1;
 }

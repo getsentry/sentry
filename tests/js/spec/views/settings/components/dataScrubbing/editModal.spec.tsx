@@ -156,7 +156,7 @@ describe('Edit Modal', () => {
     const methodFieldInput = methodField.find('input').at(0);
     methodFieldInput.simulate('keyDown', {key: 'ArrowDown'});
     const methodFieldMenuOptions = wrapper.find(
-      '[data-test-id="method-field"] MenuList Option Wrapper'
+      '[data-test-id="method-field"] MenuList Option'
     );
     const maskOption = methodFieldMenuOptions.at(1);
     maskOption.simulate('click');
@@ -170,7 +170,7 @@ describe('Edit Modal', () => {
     const typeFieldInput = typeField.find('input').at(0);
     typeFieldInput.simulate('keyDown', {key: 'ArrowDown'});
     const typeFieldMenuOptions = wrapper.find(
-      '[data-test-id="type-field"] MenuList Option Wrapper'
+      '[data-test-id="type-field"] MenuList Option'
     );
     const anythingOption = typeFieldMenuOptions.at(0);
     anythingOption.simulate('click');
