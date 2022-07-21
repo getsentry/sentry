@@ -70,12 +70,11 @@ const Range = styled(RangeSlider)`
 `;
 
 const PlaybackTimeValue = styled(Progress.Value)`
-  background: ${p => p.theme.purple100};
+  background: ${p => p.theme.purple200};
 `;
 
-const MouseTrackingValue = styled(Progress.Value)`
-  background: ${p => p.theme.purple100};
-`;
+// Need the named value so we can target it separatly from PlaybackTimeValue
+const MouseTrackingValue = styled(Progress.Value)``;
 
 const Wrapper = styled('div')`
   position: relative;
@@ -86,24 +85,6 @@ const Wrapper = styled('div')`
     position: absolute;
     top: 0;
     left: 0;
-  }
-
-  ${MouseTrackingValue}:after {
-    content: '';
-    display: block;
-    width: ${space(0.5)};
-    height: ${space(1.5)};
-    pointer-events: none;
-    background: ${p => p.theme.purple200};
-    box-sizing: content-box;
-    position: absolute;
-    top: -${space(0.5)};
-    right: -1px;
-  }
-
-  :hover ${MouseTrackingValue}:after {
-    height: ${space(2)};
-    top: -${space(0.5)};
   }
 `;
 
@@ -118,6 +99,10 @@ export const TimelineScrubber = styled(Scrubber)`
   ${Range},
   ${SliderAndInputWrapper} {
     height: 100%;
+  }
+
+  ${MouseTrackingValue} {
+    border-right: ${space(0.25)} solid ${p => p.theme.purple300};
   }
 `;
 
@@ -156,5 +141,22 @@ export const PlayerScrubber = styled(Scrubber)`
   }
   :hover ${PlaybackTimeValue}:after {
     opacity: 1;
+  }
+
+  ${MouseTrackingValue}:after {
+    content: '';
+    display: block;
+    width: ${space(0.5)};
+    height: ${space(1.5)};
+    pointer-events: none;
+    background: ${p => p.theme.purple200};
+    box-sizing: content-box;
+    position: absolute;
+    top: -${space(0.5)};
+    right: -1px;
+  }
+  :hover ${MouseTrackingValue}:after {
+    height: ${space(2)};
+    top: -${space(0.5)};
   }
 `;
