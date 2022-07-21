@@ -99,7 +99,6 @@ const Item = styled('div')<{color?: string; numeric?: boolean}>`
   border-radius: 0;
   padding: ${space(0.75)} ${space(1.5)};
   background-color: ${p => p.theme.background};
-  line-height: 1;
   min-width: 0;
 
   ${p => p.numeric && 'font-variant-numeric: tabular-nums;'}
@@ -117,6 +116,7 @@ const Item = styled('div')<{color?: string; numeric?: boolean}>`
 const StyledPanelTable = styled(PanelTable)<{columns: number}>`
   grid-template-columns: max-content minmax(200px, 1fr) repeat(3, max-content);
   font-size: ${p => p.theme.fontSizeSmall};
+  line-height: 16px;
 
   > * {
     border-right: 1px solid ${p => p.theme.innerBorder};
@@ -150,6 +150,7 @@ const StyledPanelTable = styled(PanelTable)<{columns: number}>`
 const StatusPlaceHolder = styled(Placeholder)`
   border: 1px solid ${p => p.theme.border};
   border-radius: 17px;
+  max-width: 40px;
 `;
 
 const Text = styled('p')`
@@ -158,6 +159,7 @@ const Text = styled('p')`
   text-overflow: ellipsis;
   white-space: nowrap;
   overflow: hidden;
+  line-height: 16px;
 `;
 
 const SortItem = styled('span')`
