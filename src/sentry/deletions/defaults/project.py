@@ -36,6 +36,7 @@ class ProjectDeletionTask(ModelDeletionTask):
             models.PromptsActivity,
             # order matters, ProjectCodeOwners to be deleted before RepositoryProjectPathConfig
             models.ProjectCodeOwners,
+            models.ReplayRecordingSegment,
             models.RepositoryProjectPathConfig,
             models.SavedSearchUserDefault,
             models.SavedSearch,
