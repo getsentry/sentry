@@ -9,6 +9,8 @@ import {
   SESSIONS_OPERATIONS,
 } from 'sentry/views/dashboardsV2/widgetBuilder/releaseWidget/fields';
 
+import {FieldValueType} from '../fields';
+
 export type Sort = {
   field: string;
   kind: 'asc' | 'desc';
@@ -23,16 +25,10 @@ export type Field = {
   width?: number;
 };
 
-export type ColumnType =
-  | 'boolean'
-  | 'date'
-  | 'duration'
-  | 'integer'
-  | 'number'
-  | 'percentage'
-  | 'string';
+// ColumnType is kept as a string literal union instead of an enum due to the countless uses of it and refactoring would take huge effort.
+export type ColumnType = `${Exclude<FieldValueType, FieldValueType.NEVER>}`;
 
-export type ColumnValueType = ColumnType | 'never'; // Matches to nothing
+export type ColumnValueType = ColumnType | `${FieldValueType.NEVER}`;
 
 export type ParsedFunction = {
   arguments: string[];
