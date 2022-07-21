@@ -41,7 +41,6 @@ jobs:
     timeout-minutes: 8
     strategy:
       matrix:
-        python-version: [3.8.12]
         pg-version: ['9.6']
 
     needs: did-migration-change
@@ -53,11 +52,10 @@ jobs:
         with:
           ref: master
 
-      - name: Setup sentry env (python ${{ matrix.python-version }})
+      - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
-          python-version: ${{ matrix.python-version }}
           pg-version: ${{ matrix.pg-version }}
 
       - name: Apply migrations

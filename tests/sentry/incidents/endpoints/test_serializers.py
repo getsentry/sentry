@@ -29,6 +29,8 @@ from sentry.snuba.models import QueryDatasets, SnubaQuery, SnubaQueryEventType
 from sentry.testutils import TestCase
 from sentry.utils import json
 
+pytestmark = pytest.mark.sentry_metrics
+
 
 class TestAlertRuleSerializer(TestCase):
     @fixture
@@ -177,6 +179,7 @@ class TestAlertRuleSerializer(TestCase):
         with self.feature("organizations:metrics-performance-alerts"):
             base_params = self.valid_params.copy()
             base_params["queryType"] = SnubaQuery.Type.PERFORMANCE.value
+            base_params["eventTypes"] = [SnubaQueryEventType.EventType.TRANSACTION.name.lower()]
             base_params["dataset"] = QueryDatasets.PERFORMANCE_METRICS.value
             base_params["query"] = ""
             serializer = AlertRuleSerializer(context=self.context, data=base_params)

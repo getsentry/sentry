@@ -155,58 +155,34 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
       expect(buttonDelete.exists()).toBe(false);
     });
 
-    it('hides the banner when save is complete.', async () => {
-      const wrapper = generateWrappedComponent(
-        location,
-        organization,
-        router,
-        errorsView,
-        undefined,
-        yAxis
-      );
+    it('hides the banner when save is complete.', () => {
+      mount(location, organization, router, errorsView, undefined, yAxis);
 
       // Click on ButtonSaveAs to open dropdown
-      const buttonSaveAs = wrapper.find('DropdownControl').first();
-      buttonSaveAs.simulate('click');
+      userEvent.click(screen.getByRole('button', {name: 'Save as'}));
 
       // Fill in the Input
-      buttonSaveAs
-        .find('ButtonSaveInput')
-        .simulate('change', {target: {value: 'My New Query Name'}}); // currentTarget.value does not work
-      await tick();
+      userEvent.type(screen.getByPlaceholderText('Display name'), 'My New Query Name');
 
       // Click on Save in the Dropdown
-      await buttonSaveAs.find('ButtonSaveDropDown Button').simulate('click');
+      userEvent.click(screen.getByRole('button', {name: 'Save for Org'}));
 
       // The banner should not render
-      const banner = mountWithTheme(
-        <DiscoverBanner organization={organization} resultsUrl="" />
-      );
-      expect(banner.find('BannerTitle').exists()).toBe(false);
+      mountWithTheme(<DiscoverBanner organization={organization} resultsUrl="" />);
+      expect(screen.queryByText('Discover Trends')).not.toBeInTheDocument();
     });
 
-    it('saves a well-formed query', async () => {
-      const wrapper = generateWrappedComponent(
-        location,
-        organization,
-        router,
-        errorsView,
-        undefined,
-        yAxis
-      );
+    it('saves a well-formed query', () => {
+      mount(location, organization, router, errorsView, undefined, yAxis);
 
       // Click on ButtonSaveAs to open dropdown
-      const buttonSaveAs = wrapper.find('DropdownControl').first();
-      buttonSaveAs.simulate('click');
+      userEvent.click(screen.getByRole('button', {name: 'Save as'}));
 
       // Fill in the Input
-      buttonSaveAs
-        .find('ButtonSaveInput')
-        .simulate('change', {target: {value: 'My New Query Name'}}); // currentTarget.value does not work
-      await tick();
+      userEvent.type(screen.getByPlaceholderText('Display name'), 'My New Query Name');
 
       // Click on Save in the Dropdown
-      await buttonSaveAs.find('ButtonSaveDropDown Button').simulate('click');
+      userEvent.click(screen.getByRole('button', {name: 'Save for Org'}));
 
       expect(mockUtils).toHaveBeenCalledWith(
         expect.anything(), // api
@@ -220,25 +196,16 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
       );
     });
 
-    it('rejects if query.name is empty', async () => {
-      const wrapper = generateWrappedComponent(
-        location,
-        organization,
-        router,
-        errorsView,
-        undefined,
-        yAxis
-      );
+    it('rejects if query.name is empty', () => {
+      mount(location, organization, router, errorsView, undefined, yAxis);
 
       // Click on ButtonSaveAs to open dropdown
-      const buttonSaveAs = wrapper.find('DropdownControl').first();
-      buttonSaveAs.simulate('click');
+      userEvent.click(screen.getByRole('button', {name: 'Save as'}));
 
       // Do not fill in Input
-      await tick();
 
       // Click on Save in the Dropdown
-      buttonSaveAs.find('ButtonSaveDropDown Button').simulate('click');
+      userEvent.click(screen.getByRole('button', {name: 'Save for Org'}));
 
       // Check that EventView has a name
       expect(errorsView.name).toBe('Errors by Title');
@@ -528,28 +495,17 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
         mockUtils.mockClear();
       });
 
-      it('checks that it is forked from a saved query', async () => {
-        const wrapper = generateWrappedComponent(
-          location,
-          organization,
-          router,
-          errorsViewModified,
-          savedQuery,
-          yAxis
-        );
+      it('checks that it is forked from a saved query', () => {
+        mount(location, organization, router, errorsViewModified, savedQuery, yAxis);
 
         // Click on ButtonSaveAs to open dropdown
-        const buttonSaveAs = wrapper.find('DropdownControl').first();
-        buttonSaveAs.simulate('click');
+        userEvent.click(screen.getByRole('button', {name: 'Save as'}));
 
         // Fill in the Input
-        buttonSaveAs
-          .find('ButtonSaveInput')
-          .simulate('change', {target: {value: 'Forked Query'}});
-        await tick();
+        userEvent.type(screen.getByPlaceholderText('Display name'), 'Forked Query');
 
         // Click on Save in the Dropdown
-        await buttonSaveAs.find('ButtonSaveDropDown Button').simulate('click');
+        userEvent.click(screen.getByRole('button', {name: 'Save for Org'}));
 
         expect(mockUtils).toHaveBeenCalledWith(
           expect.anything(), // api
