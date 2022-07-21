@@ -16,7 +16,7 @@ from sentry.incidents.models import (
     IncidentStatusMethod,
 )
 from sentry.models import Project
-from sentry.snuba.models import QueryDatasets
+from sentry.snuba.dataset import Dataset
 from sentry.snuba.query_subscription_consumer import register_subscriber
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
@@ -113,7 +113,7 @@ def handle_subscription_metrics_logger(subscription_update, subscription):
     from sentry.incidents.subscription_processor import SubscriptionProcessor
 
     try:
-        if subscription.snuba_query.dataset == QueryDatasets.METRICS.value:
+        if subscription.snuba_query.dataset == Dataset.Metrics.value:
             processor = SubscriptionProcessor(subscription)
             # XXX: Temporary hack so that we can extract these values without raising an exception
             processor.reset_trigger_counts = lambda *arg, **kwargs: None
