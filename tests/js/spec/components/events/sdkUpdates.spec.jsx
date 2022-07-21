@@ -11,7 +11,7 @@ describe('EventSdkUpdates', function () {
       event: TestStubs.UpdateSdkAndEnableIntegrationSuggestion(),
     };
 
-    const wrapper = render(<EventSdkUpdates {...props} />, routerContext);
+    const wrapper = render(<EventSdkUpdates {...props} />, {context: routerContext});
     expect(wrapper.container).toSnapshot();
   });
 });
