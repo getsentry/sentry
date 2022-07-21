@@ -151,17 +151,18 @@ def build_group_footer(group: Group, rules: Sequence[Rule], event: Event) -> Col
 
 def build_input_choice_card(
     data: Any,
-    title: str,
+    card_title: str,
     input_id: str,
+    submit_button_title: str,
     choices: Sequence[Tuple[str, Any]],
     default_choice: Any = None,
 ) -> AdaptiveCard:
     return MSTeamsMessageBuilder().build(
-        title=create_text_block(title, weight=TextWeight.BOLDER),
+        title=create_text_block(card_title, weight=TextWeight.BOLDER),
         text=create_input_choice_set_block(
             id=input_id, choices=choices, default_choice=default_choice
         ),
-        actions=[create_action_block(ActionType.SUBMIT, title=title, data=data)],
+        actions=[create_action_block(ActionType.SUBMIT, title=submit_button_title, data=data)],
     )
 
 
@@ -203,7 +204,8 @@ def build_group_actions(group: Group, event: Event, rules: Rule, integration: In
         reverse_action=ACTION_TYPE.UNRESOLVE,
         reverse_action_title=IssueConstants.UNRESOLVE,
         # card_kwargs
-        title=IssueConstants.RESOLVE,
+        card_title=IssueConstants.RESOLVE,
+        submit_button_title=IssueConstants.RESOLVE,
         input_id=IssueConstants.RESOLVE_INPUT_ID,
         choices=IssueConstants.RESOLVE_INPUT_CHOICES,
     )
@@ -218,7 +220,8 @@ def build_group_actions(group: Group, event: Event, rules: Rule, integration: In
         reverse_action=ACTION_TYPE.UNRESOLVE,
         reverse_action_title=IssueConstants.STOP_IGNORING,
         # card_kwargs
-        title=IssueConstants.IGNORE_INPUT_TITLE,
+        card_title=IssueConstants.IGNORE_INPUT_TITLE,
+        submit_button_title=IssueConstants.IGNORE,
         input_id=IssueConstants.IGNORE_INPUT_ID,
         choices=IssueConstants.IGNORE_INPUT_CHOICES,
     )
@@ -235,7 +238,8 @@ def build_group_actions(group: Group, event: Event, rules: Rule, integration: In
         reverse_action=ACTION_TYPE.UNASSIGN,
         reverse_action_title=IssueConstants.UNASSIGN,
         # card_kwargs
-        title=IssueConstants.ASSIGN_INPUT_TITLE,
+        card_title=IssueConstants.ASSIGN_INPUT_TITLE,
+        submit_button_title=IssueConstants.ASSIGN,
         input_id=IssueConstants.ASSIGN_INPUT_ID,
         choices=teams_choices,
         default_choice=ME,
