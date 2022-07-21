@@ -19,12 +19,16 @@ import {DashboardFilters} from './types';
 
 type FiltersBarProps = {
   filters: DashboardFilters;
+  hasUnsavedChanges: boolean;
+  isEditingDashboard: boolean;
   onDashboardFilterChange: (activeFilters: DashboardFilters) => void;
   onSave: () => void;
 };
 
 export default function FiltersBar({
   filters,
+  hasUnsavedChanges,
+  isEditingDashboard,
   onDashboardFilterChange,
   onSave,
 }: FiltersBarProps) {
@@ -34,9 +38,9 @@ export default function FiltersBar({
   return (
     <Wrapper>
       <PageFilterBar condensed>
-        <ProjectPageFilter />
-        <EnvironmentPageFilter />
-        <DatePageFilter alignDropdown="left" />
+        <ProjectPageFilter disabled={isEditingDashboard} />
+        <EnvironmentPageFilter disabled={isEditingDashboard} />
+        <DatePageFilter alignDropdown="left" disabled={isEditingDashboard} />
       </PageFilterBar>
       <Feature features={['dashboards-top-level-filter']}>
         {/* TODO: Styling */}
@@ -47,14 +51,19 @@ export default function FiltersBar({
                 <ReleasesSelectControl
                   handleChangeFilter={onDashboardFilterChange}
                   selectedReleases={filters?.release || []}
+                  isDisabled={isEditingDashboard}
                 />
               </ReleasesProvider>
             </FilterButton>
           </FilterButtons>
-          <Button priority="primary" onClick={onSave}>
-            {t('Save')}
-          </Button>
-          <Button>{t('Cancel')}</Button>
+          {hasUnsavedChanges && !isEditingDashboard && (
+            <Fragment>
+              <Button priority="primary" onClick={onSave}>
+                {t('Save')}
+              </Button>
+              <Button>{t('Cancel')}</Button>
+            </Fragment>
+          )}
         </Fragment>
       </Feature>
     </Wrapper>

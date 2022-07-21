@@ -787,6 +787,8 @@ class DashboardDetail extends Component<Props, State> {
               <Layout.Body>
                 <Layout.Main fullWidth>
                   <FiltersBar
+                    hasUnsavedChanges
+                    isEditingDashboard={this.isEditing}
                     filters={filters}
                     onDashboardFilterChange={this.handleChangeFilter}
                     onSave={() => {
@@ -797,8 +799,14 @@ class DashboardDetail extends Component<Props, State> {
                       // PUT dashboard
                       const newModifiedDashboard = {
                         ...cloneDashboard(modifiedDashboard ?? dashboard),
-                        projects: project.map(Number),
-                        environment,
+                        projects:
+                          project === undefined
+                            ? []
+                            : typeof project === 'string'
+                            ? [Number(project)]
+                            : project.map(Number),
+                        environment:
+                          typeof environment === 'string' ? [environment] : environment,
                         period: statsPeriod,
                         start,
                         end,
@@ -811,7 +819,7 @@ class DashboardDetail extends Component<Props, State> {
                               modifiedDashboard: null,
                             });
                           }
-                          addSuccessMessage(t('Dashboard updated'));
+                          addSuccessMessage(t('Dashboard filters updated'));
                         },
                         () => undefined
                       );
