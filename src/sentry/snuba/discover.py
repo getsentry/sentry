@@ -925,9 +925,8 @@ def histogram_query(
         # to be inclusive. So we adjust the specified max_value using the multiplier.
         max_value -= 0.1 / multiplier
 
-    span_fields = ["db"]
     min_value, max_value = find_histogram_min_max(
-        span_fields,
+        fields,
         min_value,
         max_value,
         user_query,
@@ -953,16 +952,12 @@ def histogram_query(
 
         field_names = [histogram_function(field) for field in fields]
     histogram_params = find_histogram_params(num_buckets, min_value, max_value, multiplier)
-    # returns f'spans_count_histogram("db", {histogram_params.bucket_size:d}, {histogram_params.start_offset:d}, {histogram_params.multiplier:d})'
     histogram_column = get_histogram_column(fields, key_column, histogram_params, array_column)
     if min_value is None or max_value is None:
         return normalize_histogram_results(
             fields, key_column, histogram_params, {"data": []}, array_column
         )
 
-    histogram_rows = None
-    key_column = None
-    field_names = []
     builder = HistogramQueryBuilder(
         num_buckets,
         histogram_column,
@@ -974,8 +969,8 @@ def histogram_query(
         # Arguments for QueryBuilder
         Dataset.Discover,
         params,
-        user_query,
-        selected_columns=[""],
+        query=user_query,
+        selected_columns=fields,
         orderby=order_by,
         limitby=limit_by,
     )
@@ -1021,9 +1016,8 @@ def get_histogram_column(fields, key_column, histogram_params, array_column):
     :param HistogramParams histogram_params: The histogram parameters used.
     :param str array_column: Array column prefix
     """
-    # field = fields[0] if key_column is None else f"{array_column}_value"
-    # return f"histogram({field}, {histogram_params.bucket_size:d}, {histogram_params.start_offset:d}, {histogram_params.multiplier:d})"
-    return f'spans_count_histogram("db", {histogram_params.bucket_size:d}, {histogram_params.start_offset:d}, {histogram_params.multiplier:d})'
+    field = fields[0] if key_column is None else f"{array_column}_value"
+    return f"histogram({field}, {histogram_params.bucket_size:d}, {histogram_params.start_offset:d}, {histogram_params.multiplier:d})"
 
 
 def find_histogram_params(num_buckets, min_value, max_value, multiplier):
@@ -1341,8 +1335,8 @@ def find_histogram_min_max(
         fences = []
         if data_filter == "exclude_outliers":
             for field in fields:
-                q1_alias = get_function_alias(f'fn_span_count("{field}", quantile(0.25))')
-                q3_alias = get_function_alias(f'fn_span_count("{field}", quantile(0.75))')
+                q1_alias = get_function_alias(f"percentile({field}, 0.25)")
+                q3_alias = get_function_alias(f"percentile({field}, 0.75)")
 
                 first_quartile = row[q1_alias]
                 third_quartile = row[q3_alias]
