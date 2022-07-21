@@ -4,6 +4,7 @@ from typing import Any, Callable, Dict, List, Mapping, Optional, Union
 
 from snuba_sdk import AliasedExpression, Column, Function
 
+from sentry import options
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.search.events import constants, fields
@@ -52,6 +53,13 @@ class MetricsDatasetConfig(DatasetConfig):
             raise IncompatibleMetricsQuery(f"Metric: {value} could not be resolved")
         self.builder.metric_ids.add(metric_id)
         return metric_id
+
+    def resolve_tag_value(self, value: str) -> Union[str, int]:
+        if self.builder.is_performance and options.get(
+            "sentry-metrics.performance.tags-values-are-strings"
+        ):
+            return value
+        return self.resolve_value(value)
 
     def resolve_value(self, value: str) -> int:
         if self.builder.dry_run:
@@ -321,7 +329,7 @@ class MetricsDatasetConfig(DatasetConfig):
                     calculated_args=[
                         {
                             "name": "resolved_val",
-                            "fn": lambda args: self.resolve_value(args["if_val"]),
+                            "fn": lambda args: self.resolve_tag_value(args["if_val"]),
                         }
                     ],
                     snql_counter=lambda args, alias: Function(
@@ -385,7 +393,7 @@ class MetricsDatasetConfig(DatasetConfig):
                     calculated_args=[
                         {
                             "name": "resolved_val",
-                            "fn": lambda args: self.resolve_value(args["if_val"]),
+                            "fn": lambda args: self.resolve_tag_value(args["if_val"]),
                         }
                     ],
                     snql_set=lambda args, alias: Function(
@@ -603,8 +611,8 @@ class MetricsDatasetConfig(DatasetConfig):
         _: Mapping[str, Union[str, Column, SelectType, int, float]],
         alias: Optional[str] = None,
     ) -> SelectType:
-        metric_satisfied = self.resolve_value(constants.METRIC_SATISFIED_TAG_VALUE)
-        metric_tolerated = self.resolve_value(constants.METRIC_TOLERATED_TAG_VALUE)
+        metric_satisfied = self.resolve_tag_value(constants.METRIC_SATISFIED_TAG_VALUE)
+        metric_tolerated = self.resolve_tag_value(constants.METRIC_TOLERATED_TAG_VALUE)
 
         # Nothing is satisfied or tolerated, the score must be 0
         if metric_satisfied is None and metric_tolerated is None:
@@ -669,7 +677,7 @@ class MetricsDatasetConfig(DatasetConfig):
         args: Mapping[str, Union[str, Column, SelectType, int, float]],
         alias: Optional[str] = None,
     ) -> SelectType:
-        metric_frustrated = self.resolve_value(constants.METRIC_FRUSTRATED_TAG_VALUE)
+        metric_frustrated = self.resolve_tag_value(constants.METRIC_FRUSTRATED_TAG_VALUE)
 
         # Nobody is miserable, we can return 0
         if metric_frustrated is None:
@@ -739,7 +747,7 @@ class MetricsDatasetConfig(DatasetConfig):
         _: Mapping[str, Union[str, Column, SelectType, int, float]],
         alias: Optional[str] = None,
     ) -> SelectType:
-        statuses = [self.resolve_value(status) for status in constants.NON_FAILURE_STATUS]
+        statuses = [self.resolve_tag_value(status) for status in constants.NON_FAILURE_STATUS]
         return self._resolve_count_if(
             Function(
                 "equals",
@@ -827,7 +835,7 @@ class MetricsDatasetConfig(DatasetConfig):
                 alias,
             )
 
-        quality_id = self.resolve_value(quality)
+        quality_id = self.resolve_tag_value(quality)
         if quality_id is None:
             return Function(
                 # This matches the type from doing `select toTypeName(count()) ...` from clickhouse
