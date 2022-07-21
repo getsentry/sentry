@@ -18,7 +18,7 @@ class OrganizationReplayIndexEndpoint(OrganizationEndpoint):
         try:
             filter_params = self.get_filter_params(request, organization)
         except NoProjects:
-            return Response([], status=200)
+            return Response({"data": []}, status=200)
 
         for key, value in request.query_params.items():
             if key not in filter_params:
@@ -39,4 +39,4 @@ class OrganizationReplayIndexEndpoint(OrganizationEndpoint):
             fields=request.query_params.getlist("field"),
         )
 
-        return Response(response, status=200)
+        return Response({"data": response}, status=200)
