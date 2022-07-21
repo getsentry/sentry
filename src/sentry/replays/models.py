@@ -22,7 +22,7 @@ class ReplayRecordingSegment(Model):
 
     class Meta:
         app_label = "replays"
-        db_table = "replay_recordingsegment"
+        db_table = "replays_replayrecordingsegment"
         index_together = (("replay_id", "sequence_id"),)
         unique_together = (
             ("project_id", "replay_id", "file_id"),
