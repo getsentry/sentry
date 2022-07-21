@@ -728,8 +728,33 @@ class DashboardDetail extends Component<Props, State> {
     const {modifiedDashboard, dashboardState, widgetLimitReached, seriesData, setData} =
       this.state;
     const {dashboardId} = params;
+    const {project, environment, statsPeriod, start, end} = location.query;
 
     const {filters} = modifiedDashboard || dashboard;
+
+    const hasUnsavedFilterChanges = !isEqual(
+      {
+        projects: dashboard.projects,
+        environment: dashboard.environment,
+        period: dashboard.period,
+        start: dashboard.start,
+        end: dashboard.end,
+        filters: dashboard.filters,
+      },
+      {
+        projects:
+          project === undefined
+            ? []
+            : typeof project === 'string'
+            ? [Number(project)]
+            : project.map(Number),
+        environment: typeof environment === 'string' ? [environment] : environment,
+        period: statsPeriod,
+        start,
+        end,
+        filters,
+      }
+    );
 
     return (
       <SentryDocumentTitle title={dashboard.title} orgSlug={organization.slug}>
@@ -787,14 +812,11 @@ class DashboardDetail extends Component<Props, State> {
               <Layout.Body>
                 <Layout.Main fullWidth>
                   <FiltersBar
-                    hasUnsavedChanges
+                    hasUnsavedChanges={hasUnsavedFilterChanges}
                     isEditingDashboard={this.isEditing}
                     filters={filters}
                     onDashboardFilterChange={this.handleChangeFilter}
                     onSave={() => {
-                      // Get page filters from URL
-                      const {project, environment, statsPeriod, start, end} =
-                        location.query;
                       // TODO: Get releases from state
                       // PUT dashboard
                       const newModifiedDashboard = {
