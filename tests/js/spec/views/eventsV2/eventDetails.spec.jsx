@@ -8,6 +8,8 @@ import {ALL_VIEWS, DEFAULT_EVENT_VIEW} from 'sentry/views/eventsV2/data';
 import EventDetails from 'sentry/views/eventsV2/eventDetails';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
+jest.mock('screenfull');
+
 const WrappedEventDetails = ({organization, ...rest}) => {
   return (
     <OrganizationContext.Provider value={organization}>
