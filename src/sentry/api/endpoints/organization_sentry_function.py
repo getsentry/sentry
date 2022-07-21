@@ -9,7 +9,7 @@ from sentry.api.bases import OrganizationEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.models.sentryfunction import SentryFunction
-from sentry.utils.cloudfunctions import create_function_v1
+from sentry.utils.cloudfunctions import create_function_v2
 
 
 class SentryFunctionSerializer(CamelSnakeSerializer):
@@ -37,8 +37,8 @@ class OrganizationSentryFunctionEndpoint(OrganizationEndpoint):
         # In future, may add "global_slug" so users can publish their functions
         data["organization_id"] = organization.id
         data["external_id"] = data["slug"] + "-" + uuid4().hex
-        create_function_v1(data["code"], data["external_id"], data.get("overview", None))
-        # create_function_v2(data["code"], data["external_id"], data.get("overview", None))
+        # create_function_v1(data["code"], data["external_id"], data.get("overview", None))
+        create_function_v2(data["code"], data["external_id"], data.get("overview", None))
         function = SentryFunction.objects.create(**data)
         return Response(serialize(function), status=201)
 
