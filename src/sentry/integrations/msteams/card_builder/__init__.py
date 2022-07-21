@@ -3,13 +3,29 @@ from __future__ import annotations
 from typing import Any, Mapping, Sequence, Union
 
 from sentry.integrations.metric_alerts import incident_attachment_info
-from sentry.models import Group, GroupStatus, Project, Team, User
-from sentry.utils.assets import get_asset_url
-from sentry.utils.http import absolute_uri
+from sentry.integrations.msteams.card_builder.utils import IssueConstants
+from sentry.integrations.slack.message_builder.issues import (
+    build_attachment_text,
+    build_attachment_title,
+    build_footer,
+    format_actor_option,
+)
+from sentry.models import Event, GroupStatus, Project
+from sentry.models.group import Group
+from sentry.models.rule import Rule
 
 from ..utils import ACTION_TYPE
+from .block import (
+    TextSize,
+    TextWeight,
+    create_column_block,
+    create_column_set_block,
+    create_logo_block,
+    create_text_block,
+)
 
 ME = "ME"
+URL_FORMAT = "[{text}]({url})"
 
 # TODO: Covert these types to a class hierarchy.
 # This is not ideal, but better than no typing. These types should be
@@ -43,115 +59,82 @@ def generate_action_payload(action_type, event, rules, integration):
     }
 
 
-def get_assignee_string(group: Group) -> str | None:
-    """Get a string representation of the group's assignee."""
-    assignee = group.get_assignee()
-    if isinstance(assignee, User):
-        return assignee.email
-
-    if isinstance(assignee, Team):
-        return f"#{assignee.slug}"
-
-    return None
-
-
-def build_group_title(group):
-    # TODO: implement with event as well
-    ev_metadata = group.get_event_metadata()
-    ev_type = group.get_event_type()
-
-    if ev_type == "error" and "type" in ev_metadata:
-        text = ev_metadata["type"]
-    else:
-        text = group.title
+def build_group_title(group: Group) -> TextBlock:
+    text = build_attachment_title(group)
 
     link = group.get_absolute_url(params={"referrer": "msteams"})
 
     title_text = f"[{text}]({link})"
-    return {
-        "type": "TextBlock",
-        "size": "Large",
-        "weight": "Bolder",
-        "text": title_text,
-        "wrap": True,
-    }
+    return create_text_block(
+        title_text,
+        size=TextSize.LARGE,
+        weight=TextWeight.BOLDER,
+    )
 
 
-def build_group_descr(group):
+def build_group_descr(group: Group) -> TextBlock:
     # TODO: implement with event as well
-    ev_type = group.get_event_type()
-    if ev_type == "error":
-        ev_metadata = group.get_event_metadata()
-        text = ev_metadata.get("value") or ev_metadata.get("function")
-        return {
-            "type": "TextBlock",
-            "size": "Medium",
-            "weight": "Bolder",
-            "text": text,
-            "wrap": True,
-        }
-    else:
-        return None
+    text = build_attachment_text(group)
+    if text:
+        return create_text_block(
+            text,
+            size=TextSize.MEDIUM,
+            weight=TextWeight.BOLDER,
+        )
 
 
-def build_rule_url(rule, group, project):
-    org_slug = group.organization.slug
-    project_slug = project.slug
-    rule_url = f"/organizations/{org_slug}/alerts/rules/{project_slug}/{rule.id}/details/"
-    return absolute_uri(rule_url)
+def create_footer_logo_block():
+    return create_logo_block(height="20px")
 
 
-def build_group_footer(group, rules, project, event):
+def create_footer_text_block(footer_text: str) -> TextBlock:
+    return create_text_block(
+        footer_text,
+        size=TextSize.SMALL,
+        weight=TextWeight.LIGHTER,
+        wrap=False,
+    )
+
+
+def get_timestamp(group: Group, event: Event) -> str:
+    ts = group.last_seen
+
+    date = max(ts, event.datetime) if event else ts
+
+    # Adaptive cards is strict about the isoformat.
+    date_str: str = date.replace(microsecond=0).isoformat()
+
+    return date_str
+
+
+def create_date_block(group: Group, event: Event) -> TextBlock:
+    date_str = get_timestamp(group, event)
+
+    return create_text_block(
+        IssueConstants.DATE_FORMAT.format(date=date_str),
+        size=TextSize.SMALL,
+        weight=TextWeight.LIGHTER,
+        horizontalAlignment="Center",
+    )
+
+
+def build_group_footer(group: Group, rules: Sequence[Rule], event: Event) -> ColumnSetBlock:
+    project = Project.objects.get_from_cache(id=group.project_id)
+
     # TODO: implement with event as well
-    image_column = {
-        "type": "Column",
-        "items": [
-            {
-                "type": "Image",
-                "url": absolute_uri(get_asset_url("sentry", "images/sentry-glyph-black.png")),
-                "height": "20px",
-            }
-        ],
-        "width": "auto",
-    }
+    image_column = create_footer_logo_block()
 
-    text = f"{group.qualified_short_id}"
-    if rules:
-        rule_url = build_rule_url(rules[0], group, project)
-        text += f" via [{rules[0].label}]({rule_url})"
-        if len(rules) > 1:
-            text += f" (+{len(rules) - 1} other)"
+    text = build_footer(group, project, rules, URL_FORMAT)
 
-    text_column = {
-        "type": "Column",
-        "items": [{"type": "TextBlock", "size": "Small", "weight": "Lighter", "text": text}],
-        "isSubtle": True,
-        "width": "auto",
-        "spacing": "none",
-    }
+    text_column = create_column_block(create_footer_text_block(text), isSubtle=True, spacing="none")
 
-    date_ts = group.last_seen
-    if event:
-        event_ts = event.datetime
-        date_ts = max(date_ts, event_ts)
+    date_column = create_date_block(group, event)
 
-    date = date_ts.replace(microsecond=0).isoformat()
-    date_text = f"{{{{DATE({date}, SHORT)}}}} at {{{{TIME({date})}}}}"
-    date_column = {
-        "type": "Column",
-        "items": [
-            {
-                "type": "TextBlock",
-                "size": "Small",
-                "weight": "Lighter",
-                "horizontalAlignment": "Center",
-                "text": date_text,
-            }
-        ],
-        "width": "auto",
-    }
-
-    return {"type": "ColumnSet", "columns": [image_column, text_column, date_column]}
+    return create_column_set_block(
+        image_column,
+        text_column,
+        date_column,
+    )
 
 
 def build_group_actions(group, event, rules, integration):
@@ -241,7 +224,7 @@ def build_group_actions(group, event, rules, integration):
             },
         }
 
-    if get_assignee_string(group):
+    if group.get_assignee():
         assign_action = {
             "type": "Action.Submit",
             "title": "Unassign",
@@ -278,67 +261,18 @@ def build_group_actions(group, event, rules, integration):
     }
 
 
-def build_group_resolve_card(group, event, rules, integration):
-    return [
-        {
-            "type": "TextBlock",
-            "size": "Large",
-            "text": "Resolve",
-            "weight": "Bolder",
-            "id": "resolveTitle",
-            "isVisible": False,
-        }
-    ]
-
-
-def build_group_ignore_card(group, event, rules, integration):
-    return [
-        {
-            "type": "TextBlock",
-            "size": "Large",
-            "text": "Ignore until this happens again...",
-            "weight": "Bolder",
-            "id": "ignoreTitle",
-            "isVisible": False,
-        }
-    ]
-
-
-def build_group_assign_card(group, event, rules, integration):
-    return [
-        {
-            "type": "TextBlock",
-            "size": "Large",
-            "text": "Assign to...",
-            "weight": "Bolder",
-            "id": "assignTitle",
-            "isVisible": False,
-        }
-    ]
-
-
-def build_group_action_cards(group, event, rules, integration):
-    status = group.get_status()
-    action_cards = []
-    if status != GroupStatus.RESOLVED:
-        action_cards += build_group_resolve_card(group, event, rules, integration)
-    if status != GroupStatus.IGNORED:
-        action_cards += build_group_ignore_card(group, event, rules, integration)
-    action_cards += build_group_assign_card(group, event, rules, integration)
-
-    return {"type": "ColumnSet", "columns": [{"type": "Column", "items": action_cards}]}
-
-
 def build_assignee_note(group):
-    assignee = get_assignee_string(group)
-    if not assignee:
-        return None
-    return {"type": "TextBlock", "size": "Small", "text": f"**Assigned to {assignee}**"}
+    assignee = group.get_assignee()
+    if assignee:
+        assignee_text = format_actor_option(assignee)["text"]
+
+        return create_text_block(
+            IssueConstants.ASSIGNEE_NOTE.format(assignee=assignee_text),
+            size=TextSize.SMALL,
+        )
 
 
 def build_group_card(group, event, rules, integration):
-    project = Project.objects.get_from_cache(id=group.project_id)
-
     title = build_group_title(group)
     body = [title]
 
@@ -346,7 +280,7 @@ def build_group_card(group, event, rules, integration):
     if desc:
         body.append(desc)
 
-    footer = build_group_footer(group, rules, project, event)
+    footer = build_group_footer(group, rules, event)
     body.append(footer)
 
     assignee_note = build_assignee_note(group)
