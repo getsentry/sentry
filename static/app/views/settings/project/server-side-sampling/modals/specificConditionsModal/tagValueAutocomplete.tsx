@@ -118,6 +118,9 @@ function TagValueAutocomplete({
       }}
       formatCreateLabel={formatCreateTagLabel}
       isValidNewOption={newOption => {
+        if (tagValues.some(tagValue => tagValue.value === newOption)) {
+          return false;
+        }
         // Tag values cannot be empty and must have a maximum length of 200 characters
         // https://github.com/getsentry/relay/blob/d8223d8d03ed4764063855eb3480f22684163d92/relay-general/src/store/normalize.rs#L230-L236
         // In addition to that, it cannot contain a line-feed (newline) character
