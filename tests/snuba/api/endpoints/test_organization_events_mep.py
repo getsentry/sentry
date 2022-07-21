@@ -1094,7 +1094,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert meta["units"]["p50(measurements.something_custom)"] == "millisecond"
 
     def test_custom_measurement_size_meta_type(self):
-        self.store_metric(
+        self.store_transaction_metric(
             1,
             metric="measurements.bytes_transfered",
             internal_metric="d:transactions/measurements.bytes_transfered@byte",
@@ -1102,7 +1102,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             tags={"transaction": "foo_transaction"},
             timestamp=self.min_ago,
         )
-        self.store_metric(
+        self.store_transaction_metric(
             100,
             metric="measurements.bytes_transfered",
             internal_metric="d:transactions/measurements.datacenter_memory@pebibyte",
