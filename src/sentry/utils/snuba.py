@@ -522,6 +522,7 @@ def _prepare_query_params(query_params):
         Dataset.Discover,
         Dataset.Sessions,
         Dataset.Transactions,
+        Dataset.Replays,
     ]:
         (organization_id, params_to_update) = get_query_params_to_update_for_projects(
             query_params, with_org=query_params.dataset == Dataset.Sessions
