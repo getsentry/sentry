@@ -40,7 +40,8 @@ export function createDashboard(
   newDashboard: DashboardDetails,
   duplicate?: boolean
 ): Promise<DashboardDetails> {
-  const {title, widgets, projects, environment, period, start, end} = newDashboard;
+  const {title, widgets, projects, environment, period, start, end, filters} =
+    newDashboard;
 
   const promise: Promise<DashboardDetails> = api.requestPromise(
     `/organizations/${orgId}/dashboards/`,
@@ -55,6 +56,7 @@ export function createDashboard(
         period,
         start,
         end,
+        filters,
       },
       query: {
         project: projects,
