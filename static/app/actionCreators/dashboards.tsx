@@ -124,6 +124,12 @@ export function updateDashboard(
   const data = {
     title: dashboard.title,
     widgets: dashboard.widgets.map(widget => omit(widget, ['tempId'])),
+    projects: dashboard.projects,
+    environment: dashboard.environment,
+    period: dashboard.period,
+    start: dashboard.start,
+    end: dashboard.end,
+    filters: dashboard.filters,
   };
 
   const promise: Promise<DashboardDetails> = api.requestPromise(
