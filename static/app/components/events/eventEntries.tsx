@@ -101,7 +101,7 @@ const EventEntries = memo(
     const orgFeatures = organization?.features ?? [];
 
     const hasEventAttachmentsFeature = orgFeatures.includes('event-attachments');
-    const replayId = event?.tags.find(({key}) => key === 'replayId')?.value;
+    const replayId = event?.tags?.find(({key}) => key === 'replayId')?.value;
 
     useEffect(() => {
       checkProGuardError();
@@ -445,7 +445,7 @@ const EventEntries = memo(
             )}
           />
         )}
-        {replayId && (
+        {!isShare && replayId && (
           <EventReplay replayId={replayId} orgSlug={orgSlug} projectSlug={projectSlug} />
         )}
       </div>
