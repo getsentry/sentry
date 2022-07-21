@@ -21,6 +21,7 @@ import {
   Aggregation,
   AGGREGATIONS,
   Column,
+  ColumnType,
   explodeFieldString,
   Field,
   getAggregateAlias,
@@ -502,7 +503,8 @@ export function generateFieldOptions({
         kind: FieldValueKind.FIELD,
         meta: {
           name: field,
-          dataType: getFieldDefinition(field)?.valueType ?? FieldValueType.STRING,
+          dataType: (getFieldDefinition(field)?.valueType ??
+            FieldValueType.STRING) as ColumnType,
         },
       },
     };

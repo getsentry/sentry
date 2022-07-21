@@ -1228,7 +1228,7 @@ export function getColumnType(column: Column): ColumnType {
     }
   } else if (column.kind === 'field') {
     if (FIELDS.hasOwnProperty(column.field)) {
-      return FIELDS[column.field].valueType;
+      return FIELDS[column.field].valueType as ColumnType;
     }
     if (isMeasurement(column.field)) {
       return measurementType(column.field);
