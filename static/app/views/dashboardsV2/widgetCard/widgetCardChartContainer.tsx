@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+// eslint-disable-next-line no-restricted-imports
 import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import type {DataZoomComponentOption} from 'echarts';
@@ -11,7 +12,7 @@ import {Organization, PageFilters} from 'sentry/types';
 import {EChartEventHandler, Series} from 'sentry/types/echarts';
 import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 
-import {Widget, WidgetType} from '../types';
+import {DashboardFilters, Widget, WidgetType} from '../types';
 
 import WidgetCardChart, {AugmentedEChartDataZoomHandler} from './chart';
 import {IssueWidgetCard} from './issueWidgetCard';
@@ -25,6 +26,7 @@ type Props = WithRouterProps & {
   selection: PageFilters;
   widget: Widget;
   chartZoomOptions?: DataZoomComponentOption;
+  dashboardFilters?: DashboardFilters;
   expandNumbers?: boolean;
   isMobile?: boolean;
   legendOptions?: LegendComponentOption;
@@ -54,6 +56,7 @@ export function WidgetCardChartContainer({
   organization,
   selection,
   widget,
+  dashboardFilters,
   isMobile,
   renderErrorMessage,
   tableItemLimit,
@@ -76,6 +79,7 @@ export function WidgetCardChartContainer({
         selection={selection}
         limit={tableItemLimit}
         onDataFetched={onDataFetched}
+        dashboardFilters={dashboardFilters}
       >
         {({tableResults, errorMessage, loading}) => {
           return (
@@ -109,6 +113,7 @@ export function WidgetCardChartContainer({
         selection={selection}
         limit={widget.limit ?? tableItemLimit}
         onDataFetched={onDataFetched}
+        dashboardFilters={dashboardFilters}
       >
         {({tableResults, timeseriesResults, errorMessage, loading}) => {
           return (
@@ -149,6 +154,7 @@ export function WidgetCardChartContainer({
       selection={selection}
       limit={tableItemLimit}
       onDataFetched={onDataFetched}
+      dashboardFilters={dashboardFilters}
     >
       {({tableResults, timeseriesResults, errorMessage, loading}) => {
         return (

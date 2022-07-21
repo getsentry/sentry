@@ -140,6 +140,7 @@ class AlertRuleSerializer(Serializer):
             "name": obj.name,
             "organizationId": str(obj.organization_id),
             "status": obj.status,
+            "queryType": obj.snuba_query.type,
             "dataset": obj.snuba_query.dataset,
             "query": obj.snuba_query.query,
             "aggregate": aggregate,

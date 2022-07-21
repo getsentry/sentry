@@ -47,7 +47,12 @@ type SampleEvent = {
 };
 
 type VitalsAlert = {
+  can_see_all_projects: boolean;
+  industry_diff: number;
+  sentry_diff: number;
+  user_vital_value: number;
   vital: string;
+  vitals_type: 'mobile' | 'web';
 };
 
 // define the event key to payload mappings
@@ -132,6 +137,7 @@ export type GrowthEventParameters = {
   'vitals_alert.clicked_docs': VitalsAlert;
   'vitals_alert.clicked_see_vitals': VitalsAlert;
   'vitals_alert.dismissed': VitalsAlert;
+  'vitals_alert.displayed': VitalsAlert;
 };
 
 type GrowthAnalyticsKey = keyof GrowthEventParameters;
@@ -196,4 +202,5 @@ export const growthEventMap: Record<GrowthAnalyticsKey, string | null> = {
   'vitals_alert.clicked_see_vitals': 'Vitals Alert: Clicked See Vitals',
   'vitals_alert.dismissed': 'Vitals Alert: Dismissed',
   'vitals_alert.clicked_docs': 'Vitals Alert: Clicked Docs',
+  'vitals_alert.displayed': 'Vitals Alert: Displayed',
 };

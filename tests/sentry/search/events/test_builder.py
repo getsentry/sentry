@@ -12,6 +12,7 @@ from snuba_sdk.conditions import Condition, Op, Or
 from snuba_sdk.function import Function
 from snuba_sdk.orderby import Direction, LimitBy, OrderBy
 
+from sentry import options
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.search.events import constants
 from sentry.search.events.builder import (
@@ -23,8 +24,11 @@ from sentry.search.events.builder import (
 from sentry.search.events.types import HistogramParams
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.sentry_metrics.utils import resolve_tag_key, resolve_tag_value
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase, TestCase
 from sentry.utils.snuba import Dataset, QueryOutsideRetentionError
+
+pytestmark = pytest.mark.sentry_metrics
 
 
 class QueryBuilderTest(TestCase):
@@ -719,7 +723,9 @@ def _metric_percentile_definition(
                         "equals",
                         [
                             Column("metric_id"),
-                            indexer.resolve(org_id, constants.METRICS_MAP[field]),
+                            indexer.resolve(
+                                org_id, constants.METRICS_MAP[field], UseCaseKey.PERFORMANCE
+                            ),
                         ],
                     ),
                 ],
@@ -735,7 +741,10 @@ def _metric_conditions(org_id, metrics) -> List[Condition]:
         Condition(
             Column("metric_id"),
             Op.IN,
-            sorted(indexer.resolve(org_id, constants.METRICS_MAP[metric]) for metric in metrics),
+            sorted(
+                indexer.resolve(org_id, constants.METRICS_MAP[metric], UseCaseKey.PERFORMANCE)
+                for metric in metrics
+            ),
         )
     ]
 
@@ -771,43 +780,41 @@ class MetricBuilderBaseTest(MetricsEnhancedPerformanceTestCase):
             Condition(Column("timestamp"), Op.LT, self.end),
             Condition(Column("project_id"), Op.IN, self.projects),
             Condition(Column("org_id"), Op.EQ, self.organization.id),
-            # Hack cause snuba isn't handling granularity right now
-            Condition(Column("granularity"), Op.EQ, 2),
         ]
 
         for string in self.METRIC_STRINGS:
             indexer.record(
-                use_case_id=UseCaseKey.RELEASE_HEALTH, org_id=self.organization.id, string=string
+                use_case_id=UseCaseKey.PERFORMANCE, org_id=self.organization.id, string=string
             )
 
         indexer.record(
-            use_case_id=UseCaseKey.RELEASE_HEALTH, org_id=self.organization.id, string="transaction"
+            use_case_id=UseCaseKey.PERFORMANCE, org_id=self.organization.id, string="transaction"
         )
 
     def setup_orderby_data(self):
-        self.store_metric(
+        self.store_transaction_metric(
             100,
             tags={"transaction": "foo_transaction"},
             timestamp=self.start + datetime.timedelta(minutes=5),
         )
-        self.store_metric(
+        self.store_transaction_metric(
             1,
             metric="user",
             tags={"transaction": "foo_transaction"},
             timestamp=self.start + datetime.timedelta(minutes=5),
         )
-        self.store_metric(
+        self.store_transaction_metric(
             50,
             tags={"transaction": "bar_transaction"},
             timestamp=self.start + datetime.timedelta(minutes=5),
         )
-        self.store_metric(
+        self.store_transaction_metric(
             1,
             metric="user",
             tags={"transaction": "bar_transaction"},
             timestamp=self.start + datetime.timedelta(minutes=5),
         )
-        self.store_metric(
+        self.store_transaction_metric(
             2,
             metric="user",
             tags={"transaction": "bar_transaction"},
@@ -833,11 +840,15 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             query.columns,
             [
                 AliasedExpression(
-                    Column(f"tags[{indexer.resolve(self.organization.id, 'transaction')}]"),
+                    Column(
+                        f"tags[{indexer.resolve(self.organization.id, 'transaction', UseCaseKey.PERFORMANCE)}]"
+                    ),
                     "tags[transaction]",
                 ),
                 AliasedExpression(
-                    Column(f"tags[{indexer.resolve(self.organization.id, 'transaction')}]"),
+                    Column(
+                        f"tags[{indexer.resolve(self.organization.id, 'transaction', UseCaseKey.PERFORMANCE)}]"
+                    ),
                     "transaction",
                 ),
             ],
@@ -933,6 +944,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                                         indexer.resolve(
                                             self.organization.id,
                                             constants.METRICS_MAP["transaction.duration"],
+                                            UseCaseKey.PERFORMANCE,
                                         ),
                                     ],
                                 ),
@@ -1003,6 +1015,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                                 indexer.resolve(
                                     self.organization.id,
                                     constants.METRICS_MAP["transaction.duration"],
+                                    UseCaseKey.PERFORMANCE,
                                 ),
                             ],
                         ),
@@ -1026,9 +1039,8 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                 *_metric_conditions(self.organization.id, ["transaction.duration"]),
             ],
         )
-        transaction_index = indexer.resolve(self.organization.id, "transaction")
         transaction = AliasedExpression(
-            Column(f"tags[{transaction_index}]"),
+            Column(resolve_tag_key(UseCaseKey.PERFORMANCE, self.organization.id, "transaction")),
             "transaction",
         )
         project = Function(
@@ -1059,9 +1071,12 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             dataset=Dataset.PerformanceMetrics,
             selected_columns=["transaction", "project", "p95(transaction.duration)"],
         )
-        transaction_index = indexer.resolve(self.organization.id, "transaction")
-        transaction_name = indexer.resolve(self.organization.id, "foo_transaction")
-        transaction = Column(f"tags[{transaction_index}]")
+        transaction_name = resolve_tag_value(
+            UseCaseKey.PERFORMANCE, self.organization.id, "foo_transaction"
+        )
+        transaction = Column(
+            resolve_tag_key(UseCaseKey.PERFORMANCE, self.organization.id, "transaction")
+        )
         self.assertCountEqual(
             query.where,
             [
@@ -1078,10 +1093,15 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             dataset=Dataset.PerformanceMetrics,
             selected_columns=["transaction", "project", "p95(transaction.duration)"],
         )
-        transaction_index = indexer.resolve(self.organization.id, "transaction")
-        transaction_name1 = indexer.resolve(self.organization.id, "foo_transaction")
-        transaction_name2 = indexer.resolve(self.organization.id, "bar_transaction")
-        transaction = Column(f"tags[{transaction_index}]")
+        transaction_name1 = resolve_tag_value(
+            UseCaseKey.PERFORMANCE, self.organization.id, "foo_transaction"
+        )
+        transaction_name2 = resolve_tag_value(
+            UseCaseKey.PERFORMANCE, self.organization.id, "bar_transaction"
+        )
+        transaction = Column(
+            resolve_tag_key(UseCaseKey.PERFORMANCE, self.organization.id, "transaction")
+        )
         self.assertCountEqual(
             query.where,
             [
@@ -1092,6 +1112,9 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         )
 
     def test_missing_transaction_index(self):
+        if options.get("sentry-metrics.performance.tags-values-are-strings"):
+            pytest.skip("test does not apply if tag values are in clickhouse")
+
         with pytest.raises(
             InvalidSearchQuery,
             match=re.escape("Tag value was not found"),
@@ -1104,6 +1127,8 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             )
 
     def test_missing_transaction_index_in_filter(self):
+        if options.get("sentry-metrics.performance.tags-values-are-strings"):
+            pytest.skip("test does not apply if tag values are in clickhouse")
         with pytest.raises(
             InvalidSearchQuery,
             match=re.escape("Tag value was not found"),
@@ -1308,18 +1333,18 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             query.get_snql_query()
 
     def test_run_query(self):
-        self.store_metric(
+        self.store_transaction_metric(
             100,
             tags={"transaction": "foo_transaction"},
             timestamp=self.start + datetime.timedelta(minutes=5),
         )
-        self.store_metric(
+        self.store_transaction_metric(
             100,
             metric="measurements.lcp",
             tags={"transaction": "foo_transaction"},
             timestamp=self.start + datetime.timedelta(minutes=5),
         )
-        self.store_metric(
+        self.store_transaction_metric(
             1000,
             metric="measurements.lcp",
             tags={"transaction": "foo_transaction"},
@@ -1338,7 +1363,11 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         result = query.run_query("test_query")
         assert len(result["data"]) == 1
         assert result["data"][0] == {
-            "transaction": indexer.resolve(self.organization.id, "foo_transaction"),
+            "transaction": resolve_tag_value(
+                UseCaseKey.PERFORMANCE,
+                self.organization.id,
+                "foo_transaction",
+            ),
             "p95_transaction_duration": 100,
             "p100_measurements_lcp": 1000,
         }
@@ -1352,12 +1381,12 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         )
 
     def test_run_query_multiple_tables(self):
-        self.store_metric(
+        self.store_transaction_metric(
             100,
             tags={"transaction": "foo_transaction"},
             timestamp=self.start + datetime.timedelta(minutes=5),
         )
-        self.store_metric(
+        self.store_transaction_metric(
             1,
             metric="user",
             tags={"transaction": "foo_transaction"},
@@ -1376,7 +1405,11 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         result = query.run_query("test_query")
         assert len(result["data"]) == 1
         assert result["data"][0] == {
-            "transaction": indexer.resolve(self.organization.id, "foo_transaction"),
+            "transaction": resolve_tag_value(
+                UseCaseKey.PERFORMANCE,
+                self.organization.id,
+                "foo_transaction",
+            ),
             "p95_transaction_duration": 100,
             "count_unique_user": 1,
         }
@@ -1406,13 +1439,21 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         result = query.run_query("test_query")
         assert len(result["data"]) == 2
         assert result["data"][0] == {
-            "transaction": indexer.resolve(self.organization.id, "foo_transaction"),
+            "transaction": resolve_tag_value(
+                UseCaseKey.PERFORMANCE,
+                self.organization.id,
+                "foo_transaction",
+            ),
             "project": self.project.slug,
             "p95_transaction_duration": 100,
             "count_unique_user": 1,
         }
         assert result["data"][1] == {
-            "transaction": indexer.resolve(self.organization.id, "bar_transaction"),
+            "transaction": resolve_tag_value(
+                UseCaseKey.PERFORMANCE,
+                self.organization.id,
+                "bar_transaction",
+            ),
             "project": self.project.slug,
             "p95_transaction_duration": 50,
             "count_unique_user": 2,
@@ -1444,13 +1485,21 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         result = query.run_query("test_query")
         assert len(result["data"]) == 2
         assert result["data"][0] == {
-            "transaction": indexer.resolve(self.organization.id, "bar_transaction"),
+            "transaction": resolve_tag_value(
+                UseCaseKey.PERFORMANCE,
+                self.organization.id,
+                "bar_transaction",
+            ),
             "project": self.project.slug,
             "p95_transaction_duration": 50,
             "count_unique_user": 2,
         }
         assert result["data"][1] == {
-            "transaction": indexer.resolve(self.organization.id, "foo_transaction"),
+            "transaction": resolve_tag_value(
+                UseCaseKey.PERFORMANCE,
+                self.organization.id,
+                "foo_transaction",
+            ),
             "project": self.project.slug,
             "p95_transaction_duration": 100,
             "count_unique_user": 1,
@@ -1469,7 +1518,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         project_1 = self.create_project(slug="aaaaaa")
         project_2 = self.create_project(slug="zzzzzz")
         for project in [project_1, project_2]:
-            self.store_metric(
+            self.store_transaction_metric(
                 100,
                 tags={"transaction": "foo_transaction"},
                 project=project.id,
@@ -1490,12 +1539,20 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         result = query.run_query("test_query")
         assert len(result["data"]) == 2
         assert result["data"][0] == {
-            "transaction": indexer.resolve(self.organization.id, "foo_transaction"),
+            "transaction": resolve_tag_value(
+                UseCaseKey.PERFORMANCE,
+                self.organization.id,
+                "foo_transaction",
+            ),
             "project": project_1.slug,
             "p95_transaction_duration": 100,
         }
         assert result["data"][1] == {
-            "transaction": indexer.resolve(self.organization.id, "foo_transaction"),
+            "transaction": resolve_tag_value(
+                UseCaseKey.PERFORMANCE,
+                self.organization.id,
+                "foo_transaction",
+            ),
             "project": project_2.slug,
             "p95_transaction_duration": 100,
         }
@@ -1513,12 +1570,20 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         result = query.run_query("test_query")
         assert len(result["data"]) == 2
         assert result["data"][0] == {
-            "transaction": indexer.resolve(self.organization.id, "foo_transaction"),
+            "transaction": resolve_tag_value(
+                UseCaseKey.PERFORMANCE,
+                self.organization.id,
+                "foo_transaction",
+            ),
             "project": project_2.slug,
             "p95_transaction_duration": 100,
         }
         assert result["data"][1] == {
-            "transaction": indexer.resolve(self.organization.id, "foo_transaction"),
+            "transaction": resolve_tag_value(
+                UseCaseKey.PERFORMANCE,
+                self.organization.id,
+                "foo_transaction",
+            ),
             "project": project_1.slug,
             "p95_transaction_duration": 100,
         }
@@ -1541,7 +1606,9 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
 
     def test_run_query_with_events_per_aggregates(self):
         for i in range(5):
-            self.store_metric(100, timestamp=self.start + datetime.timedelta(minutes=i * 15))
+            self.store_transaction_metric(
+                100, timestamp=self.start + datetime.timedelta(minutes=i * 15)
+            )
         query = MetricsQueryBuilder(
             self.params,
             "",
@@ -1564,11 +1631,11 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
 
     def test_count(self):
         for _ in range(3):
-            self.store_metric(
+            self.store_transaction_metric(
                 150,
                 timestamp=self.start + datetime.timedelta(minutes=5),
             )
-            self.store_metric(
+            self.store_transaction_metric(
                 50,
                 timestamp=self.start + datetime.timedelta(minutes=5),
             )
@@ -1586,11 +1653,11 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
 
     def test_avg_duration(self):
         for _ in range(3):
-            self.store_metric(
+            self.store_transaction_metric(
                 150,
                 timestamp=self.start + datetime.timedelta(minutes=5),
             )
-            self.store_metric(
+            self.store_transaction_metric(
                 50,
                 timestamp=self.start + datetime.timedelta(minutes=5),
             )
@@ -1608,12 +1675,12 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
 
     def test_avg_span_http(self):
         for _ in range(3):
-            self.store_metric(
+            self.store_transaction_metric(
                 150,
                 metric="spans.http",
                 timestamp=self.start + datetime.timedelta(minutes=5),
             )
-            self.store_metric(
+            self.store_transaction_metric(
                 50,
                 metric="spans.http",
                 timestamp=self.start + datetime.timedelta(minutes=5),
@@ -1632,12 +1699,12 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
 
     def test_failure_rate(self):
         for _ in range(3):
-            self.store_metric(
+            self.store_transaction_metric(
                 100,
                 tags={"transaction.status": "internal_error"},
                 timestamp=self.start + datetime.timedelta(minutes=5),
             )
-            self.store_metric(
+            self.store_transaction_metric(
                 100,
                 tags={"transaction.status": "ok"},
                 timestamp=self.start + datetime.timedelta(minutes=5),
@@ -1657,7 +1724,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         assert data["failure_count"] == 3
 
     def test_run_function_without_having_or_groupby(self):
-        self.store_metric(
+        self.store_transaction_metric(
             1,
             metric="user",
             tags={"transaction": "foo_transaction"},
@@ -1679,7 +1746,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         """Since the null value is on count_unique(user) we will still get baz_transaction since we query distributions
         first which will have it, and then just not find a unique count in the second"""
         self.setup_orderby_data()
-        self.store_metric(
+        self.store_transaction_metric(
             200,
             tags={"transaction": "baz_transaction"},
             timestamp=self.start + datetime.timedelta(minutes=5),
@@ -1699,19 +1766,31 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         result = query.run_query("test_query")
         assert len(result["data"]) == 3
         assert result["data"][0] == {
-            "transaction": indexer.resolve(self.organization.id, "bar_transaction"),
+            "transaction": resolve_tag_value(
+                UseCaseKey.PERFORMANCE,
+                self.organization.id,
+                "bar_transaction",
+            ),
             "project": self.project.slug,
             "p95_transaction_duration": 50,
             "count_unique_user": 2,
         }
         assert result["data"][1] == {
-            "transaction": indexer.resolve(self.organization.id, "foo_transaction"),
+            "transaction": resolve_tag_value(
+                UseCaseKey.PERFORMANCE,
+                self.organization.id,
+                "foo_transaction",
+            ),
             "project": self.project.slug,
             "p95_transaction_duration": 100,
             "count_unique_user": 1,
         }
         assert result["data"][2] == {
-            "transaction": indexer.resolve(self.organization.id, "baz_transaction"),
+            "transaction": resolve_tag_value(
+                UseCaseKey.PERFORMANCE,
+                self.organization.id,
+                "baz_transaction",
+            ),
             "project": self.project.slug,
             "p95_transaction_duration": 200,
             "count_unique_user": 0,
@@ -1733,7 +1812,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         """But if the null value is in the first entity, it won't show up in the groupby values, which means the
         transaction will be missing"""
         self.setup_orderby_data()
-        self.store_metric(200, tags={"transaction": "baz_transaction"})
+        self.store_transaction_metric(200, tags={"transaction": "baz_transaction"})
         query = MetricsQueryBuilder(
             self.params,
             f"project:{self.project.slug}",
@@ -1749,18 +1828,30 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         result = query.run_query("test_query")
         assert len(result["data"]) == 3
         assert result["data"][0] == {
-            "transaction": indexer.resolve(self.organization.id, "baz_transaction"),
+            "transaction": resolve_tag_value(
+                UseCaseKey.PERFORMANCE,
+                self.organization.id,
+                "baz_transaction",
+            ),
             "project": self.project.slug,
             "p95_transaction_duration": 200,
         }
         assert result["data"][1] == {
-            "transaction": indexer.resolve(self.organization.id, "foo_transaction"),
+            "transaction": resolve_tag_value(
+                UseCaseKey.PERFORMANCE,
+                self.organization.id,
+                "foo_transaction",
+            ),
             "project": self.project.slug,
             "p95_transaction_duration": 100,
             "count_unique_user": 1,
         }
         assert result["data"][2] == {
-            "transaction": indexer.resolve(self.organization.id, "bar_transaction"),
+            "transaction": resolve_tag_value(
+                UseCaseKey.PERFORMANCE,
+                self.organization.id,
+                "bar_transaction",
+            ),
             "project": self.project.slug,
             "p95_transaction_duration": 50,
             "count_unique_user": 2,
@@ -1816,24 +1907,24 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             query.run_query("test_query")
 
     def test_aggregate_query_with_multiple_entities_without_orderby(self):
-        self.store_metric(
+        self.store_transaction_metric(
             200,
             tags={"transaction": "baz_transaction"},
             timestamp=self.start + datetime.timedelta(minutes=5),
         )
-        self.store_metric(
+        self.store_transaction_metric(
             1,
             metric="user",
             tags={"transaction": "bar_transaction"},
             timestamp=self.start + datetime.timedelta(minutes=5),
         )
-        self.store_metric(
+        self.store_transaction_metric(
             1,
             metric="user",
             tags={"transaction": "baz_transaction"},
             timestamp=self.start + datetime.timedelta(minutes=5),
         )
-        self.store_metric(
+        self.store_transaction_metric(
             2,
             metric="user",
             tags={"transaction": "baz_transaction"},
@@ -1857,7 +1948,11 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         result = query.run_query("test_query")
         assert len(result["data"]) == 1
         assert result["data"][0] == {
-            "transaction": indexer.resolve(self.organization.id, "baz_transaction"),
+            "transaction": resolve_tag_value(
+                UseCaseKey.PERFORMANCE,
+                self.organization.id,
+                "baz_transaction",
+            ),
             "project": self.project.slug,
             "p95_transaction_duration": 200,
             "count_unique_user": 2,
@@ -1873,17 +1968,17 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         )
 
     def test_aggregate_query_with_multiple_entities_with_orderby(self):
-        self.store_metric(
+        self.store_transaction_metric(
             200,
             tags={"transaction": "baz_transaction"},
             timestamp=self.start + datetime.timedelta(minutes=5),
         )
-        self.store_metric(
+        self.store_transaction_metric(
             1,
             tags={"transaction": "bar_transaction"},
             timestamp=self.start + datetime.timedelta(minutes=5),
         )
-        self.store_metric(
+        self.store_transaction_metric(
             1,
             metric="user",
             tags={"transaction": "baz_transaction"},
@@ -1907,7 +2002,11 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         result = query.run_query("test_query")
         assert len(result["data"]) == 1
         assert result["data"][0] == {
-            "transaction": indexer.resolve(self.organization.id, "baz_transaction"),
+            "transaction": resolve_tag_value(
+                UseCaseKey.PERFORMANCE,
+                self.organization.id,
+                "baz_transaction",
+            ),
             "project": self.project.slug,
             "p95_transaction_duration": 200,
             "count_unique_user": 1,
@@ -2072,16 +2171,37 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                 "count_web_vitals(measurements.lcp, good)",
             ],
         )
-        self.assertCountEqual(
-            mock_indexer.mock_calls,
+
+        expected = [
+            mock.call(self.organization.id, "transaction", use_case_id=UseCaseKey.PERFORMANCE)
+        ]
+
+        if not options.get("sentry-metrics.performance.tags-values-are-strings"):
+            expected.append(
+                mock.call(
+                    self.organization.id, "foo_transaction", use_case_id=UseCaseKey.PERFORMANCE
+                )
+            )
+
+        expected.extend(
             [
-                mock.call(self.organization.id, "transaction"),
-                mock.call(self.organization.id, "foo_transaction"),
-                mock.call(self.organization.id, constants.METRICS_MAP["measurements.lcp"]),
-                mock.call(self.organization.id, "measurement_rating"),
-                mock.call(self.organization.id, "good"),
-            ],
+                mock.call(
+                    self.organization.id,
+                    constants.METRICS_MAP["measurements.lcp"],
+                    use_case_id=UseCaseKey.PERFORMANCE,
+                ),
+                mock.call(
+                    self.organization.id, "measurement_rating", use_case_id=UseCaseKey.PERFORMANCE
+                ),
+            ]
         )
+
+        if not options.get("sentry-metrics.performance.tags-values-are-strings"):
+            expected.append(
+                mock.call(self.organization.id, "good", use_case_id=UseCaseKey.PERFORMANCE)
+            )
+
+        self.assertCountEqual(mock_indexer.mock_calls, expected)
 
     def test_custom_measurement_allowed(self):
         MetricsQueryBuilder(
@@ -2144,7 +2264,9 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             snql_query.groupby,
             [
                 project,
-                Column(f"tags[{indexer.resolve(self.organization.id, 'transaction')}]"),
+                Column(
+                    resolve_tag_key(UseCaseKey.PERFORMANCE, self.organization.id, "transaction")
+                ),
             ],
         )
 
@@ -2161,8 +2283,6 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         snql_query = query.get_snql_query()
         assert len(snql_query) == 1
         query = snql_query[0].query
-        del self.default_conditions[-1]
-        self.default_conditions.append(Condition(Column("granularity"), Op.EQ, 1))
         self.assertCountEqual(
             query.where,
             [
@@ -2182,8 +2302,6 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             query="",
             selected_columns=[],
         )
-        del self.default_conditions[-1]
-        self.default_conditions.append(Condition(Column("granularity"), Op.EQ, 1))
         self.assertCountEqual(query.where, self.default_conditions)
 
     def test_granularity(self):
@@ -2241,12 +2359,16 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             query="transaction:[foo_transaction, bar_transaction]",
             selected_columns=["p95(transaction.duration)"],
         )
-        transaction_index = indexer.resolve(self.organization.id, "transaction")
-        transaction_name1 = indexer.resolve(self.organization.id, "foo_transaction")
-        transaction_name2 = indexer.resolve(self.organization.id, "bar_transaction")
-        transaction = Column(f"tags[{transaction_index}]")
-        del self.default_conditions[-1]
-        self.default_conditions.append(Condition(Column("granularity"), Op.EQ, 1))
+        transaction_name1 = resolve_tag_value(
+            UseCaseKey.PERFORMANCE, self.organization.id, "foo_transaction"
+        )
+        transaction_name2 = resolve_tag_value(
+            UseCaseKey.PERFORMANCE, self.organization.id, "bar_transaction"
+        )
+
+        transaction = Column(
+            resolve_tag_key(UseCaseKey.PERFORMANCE, self.organization.id, "transaction")
+        )
         self.assertCountEqual(
             query.where,
             [
@@ -2257,6 +2379,8 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         )
 
     def test_missing_transaction_index(self):
+        if options.get("sentry-metrics.performance.tags-values-are-strings"):
+            pytest.skip("test does not apply if tag values are in clickhouse")
         with pytest.raises(
             InvalidSearchQuery,
             match=re.escape("Tag value was not found"),
@@ -2270,6 +2394,8 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             )
 
     def test_missing_transaction_index_in_filter(self):
+        if options.get("sentry-metrics.performance.tags-values-are-strings"):
+            pytest.skip("test does not apply if tag values are in clickhouse")
         with pytest.raises(
             InvalidSearchQuery,
             match=re.escape("Tag value was not found"),
@@ -2290,8 +2416,6 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             query=f"project:{self.project.slug}",
             selected_columns=["p95(transaction.duration)"],
         )
-        del self.default_conditions[-1]
-        self.default_conditions.append(Condition(Column("granularity"), Op.EQ, 1))
         self.assertCountEqual(
             query.where,
             [
@@ -2332,8 +2456,10 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
 
     def test_run_query(self):
         for i in range(5):
-            self.store_metric(100, timestamp=self.start + datetime.timedelta(minutes=i * 15))
-            self.store_metric(
+            self.store_transaction_metric(
+                100, timestamp=self.start + datetime.timedelta(minutes=i * 15)
+            )
+            self.store_transaction_metric(
                 1,
                 metric="user",
                 timestamp=self.start + datetime.timedelta(minutes=i * 15),
@@ -2396,7 +2522,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         }
 
         for i in range(5):
-            self.store_metric(
+            self.store_transaction_metric(
                 100,
                 timestamp=self.start + datetime.timedelta(minutes=i * 15),
             )
@@ -2438,7 +2564,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         }
 
         for i in range(1, 5):
-            self.store_metric(
+            self.store_transaction_metric(
                 100,
                 timestamp=self.start + datetime.timedelta(minutes=i * 15),
             )
@@ -2466,12 +2592,12 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
 
     def test_run_query_with_filter(self):
         for i in range(5):
-            self.store_metric(
+            self.store_transaction_metric(
                 100,
                 tags={"transaction": "foo_transaction"},
                 timestamp=self.start + datetime.timedelta(minutes=i * 15),
             )
-            self.store_metric(
+            self.store_transaction_metric(
                 200,
                 tags={"transaction": "bar_transaction"},
                 timestamp=self.start + datetime.timedelta(minutes=i * 15),
@@ -2570,17 +2696,17 @@ class HistogramMetricQueryBuilderTest(MetricBuilderBaseTest):
         )
 
     def test_get_query(self):
-        self.store_metric(
+        self.store_transaction_metric(
             100,
             tags={"transaction": "foo_transaction"},
             timestamp=self.start + datetime.timedelta(minutes=5),
         )
-        self.store_metric(
+        self.store_transaction_metric(
             100,
             tags={"transaction": "foo_transaction"},
             timestamp=self.start + datetime.timedelta(minutes=5),
         )
-        self.store_metric(
+        self.store_transaction_metric(
             450,
             tags={"transaction": "foo_transaction"},
             timestamp=self.start + datetime.timedelta(minutes=5),
@@ -2612,7 +2738,7 @@ class HistogramMetricQueryBuilderTest(MetricBuilderBaseTest):
     def test_query_normal_distribution(self):
         for i in range(5):
             for _ in range((5 - abs(i - 2)) ** 2):
-                self.store_metric(
+                self.store_transaction_metric(
                     100 * i + 50,
                     tags={"transaction": "foo_transaction"},
                     timestamp=self.start + datetime.timedelta(minutes=5),

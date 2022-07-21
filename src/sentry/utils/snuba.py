@@ -10,7 +10,6 @@ from contextlib import contextmanager
 from copy import deepcopy
 from datetime import datetime, timedelta
 from hashlib import sha1
-from operator import itemgetter
 from typing import Any, Callable, List, Mapping, MutableMapping, Optional, Sequence, Tuple, Union
 from urllib.parse import urlparse
 
@@ -38,7 +37,6 @@ from sentry.net.http import connection_from_url
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.events import Columns
 from sentry.utils import json, metrics
-from sentry.utils.compat import map
 from sentry.utils.dates import outside_retention_with_modified_start, to_timestamp
 
 logger = logging.getLogger(__name__)
@@ -443,10 +441,10 @@ def get_query_params_to_update_for_projects(query_params, with_org=False):
         # Otherwise infer the project_ids from any related models
         with timer("get_related_project_ids"):
             ids = [
-                get_related_project_ids(k, query_params.filter_keys[k])
+                set(get_related_project_ids(k, query_params.filter_keys[k]))
                 for k in query_params.filter_keys
             ]
-            project_ids = list(set.union(*map(set, ids)))
+            project_ids = list(set.union(*ids))
     elif query_params.conditions:
         project_ids = []
         for cond in query_params.conditions:
@@ -727,7 +725,7 @@ def bulk_raw_query(
     referrer: Optional[str] = None,
     use_cache: Optional[bool] = False,
 ) -> ResultSet:
-    params = map(_prepare_query_params, snuba_param_list)
+    params = [_prepare_query_params(param) for param in snuba_param_list]
     return _apply_cache_and_build_results(params, referrer=referrer, use_cache=use_cache)
 
 
@@ -762,7 +760,7 @@ def _apply_cache_and_build_results(
         to_query = [(query_pos, query_params, None) for query_pos, query_params in query_param_list]
 
     if to_query:
-        query_results = _bulk_snuba_query(map(itemgetter(1), to_query), headers)
+        query_results = _bulk_snuba_query([item[1] for item in to_query], headers)
         for result, (query_pos, _, cache_key) in zip(query_results, to_query):
             if cache_key:
                 cache.set(cache_key, json.dumps(result), settings.SENTRY_SNUBA_CACHE_TTL_SECONDS)
@@ -771,7 +769,7 @@ def _apply_cache_and_build_results(
     # Sort so that we get the results back in the original param list order
     results.sort()
     # Drop the sort order val
-    return map(itemgetter(1), results)
+    return [result[1] for result in results]
 
 
 def _bulk_snuba_query(

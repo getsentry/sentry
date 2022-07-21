@@ -9,8 +9,10 @@ from snuba_sdk import Column, Direction, Function, Granularity, Limit, Offset
 from snuba_sdk.conditions import Condition, ConditionGroup
 
 from sentry.api.utils import InvalidParams
+from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.snuba.metrics.fields import metric_object_factory
 from sentry.snuba.metrics.fields.base import get_derived_metrics
+from sentry.snuba.metrics.naming_layer.mri import parse_mri
 from sentry.utils.dates import to_timestamp
 
 # TODO: Add __all__ to be consistent with sibling modules
@@ -119,8 +121,10 @@ class MetricsQuery(MetricsQueryValidationRunner):
                 and condition.lhs.function == "ifNull"
             ):
                 parameter = condition.lhs.parameters[0]
-                if isinstance(parameter, Column) and parameter.name.startswith("tags["):
-                    tag_name = parameter.name.split("tags[")[1].split("]")[0]
+                if isinstance(parameter, Column) and parameter.name.startswith(
+                    ("tags_raw[", "tags[")
+                ):
+                    tag_name = parameter.name.split("[")[1].split("]")[0]
                     if tag_name in UNALLOWED_TAGS:
                         raise InvalidParams(f"Tag name {tag_name} is not a valid query filter")
 
@@ -139,7 +143,14 @@ class MetricsQuery(MetricsQueryValidationRunner):
             metric_mri = get_mri(f.field.metric_name)
             # Construct a metrics expression
             metric_field_obj = metric_object_factory(f.field.op, metric_mri)
-            entity = metric_field_obj.get_entity(self.project_ids)
+
+            parsed_mri = parse_mri(metric_mri)
+            # Find correct use_case_id based on metric_name
+            use_case_id = UseCaseKey.RELEASE_HEALTH
+            if parsed_mri is not None and parsed_mri.namespace == "transaction":
+                use_case_id = UseCaseKey.PERFORMANCE
+
+            entity = metric_field_obj.get_entity(self.project_ids, use_case_id)
 
             if isinstance(entity, Mapping):
                 metric_entities.update(entity.keys())
