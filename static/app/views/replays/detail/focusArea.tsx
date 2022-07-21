@@ -10,7 +10,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import Console from './console';
 import IssueList from './issueList';
 import MemoryChart from './memoryChart';
-import NetworkList from './networkList';
+import NetworkList from './network';
 import Trace from './trace';
 
 type Props = {};
