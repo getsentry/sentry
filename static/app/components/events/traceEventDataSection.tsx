@@ -274,7 +274,7 @@ export function PermalinkTitle(props: PermalinkTitleProps) {
   return (
     <Permalink href={'#' + props.type} className="permalink" {...props}>
       <StyledIconAnchor />
-      {t('Stack Trace')}
+      {props.children}
     </Permalink>
   );
 }
