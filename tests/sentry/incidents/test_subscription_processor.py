@@ -4,6 +4,7 @@ from random import randint
 from unittest.mock import Mock, call, patch
 from uuid import uuid4
 
+import pytest
 import pytz
 from django.utils import timezone
 from exam import fixture, patcher
@@ -40,15 +41,18 @@ from sentry.incidents.subscription_processor import (
 from sentry.models import Integration
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.indexer.models import MetricsKeyIndexer
-from sentry.sentry_metrics.utils import resolve_tag_key, resolve_weak
+from sentry.sentry_metrics.utils import resolve_tag_key, resolve_tag_value
 from sentry.snuba.models import QueryDatasets, QuerySubscription, SnubaQueryEventType
 from sentry.testutils import SnubaTestCase, TestCase
-from sentry.testutils.cases import SessionMetricsTestCase
+from sentry.testutils.cases import BaseMetricsTestCase
 from sentry.testutils.helpers.datetime import iso_format
 from sentry.utils import json
 from sentry.utils.dates import to_timestamp
 
 EMPTY = object()
+
+
+pytestmark = [pytest.mark.sentry_metrics, pytest.mark.broken_under_tags_values_as_strings]
 
 
 @freeze_time()
@@ -1597,7 +1601,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         )
 
 
-class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, SessionMetricsTestCase):
+class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetricsTestCase):
     entity_subscription_metrics = patcher("sentry.snuba.entity_subscription.metrics")
     format = "v2"  # TODO: remove once subscriptions migrated
 
@@ -2195,8 +2199,8 @@ class MetricsCrashRateAlertProcessUpdateV1Test(MetricsCrashRateAlertProcessUpdat
                     denominator = count
                     numerator = int(value * denominator)
             session_status = resolve_tag_key(UseCaseKey.RELEASE_HEALTH, org_id, "session.status")
-            tag_value_init = resolve_weak(UseCaseKey.RELEASE_HEALTH, org_id, "init")
-            tag_value_crashed = resolve_weak(UseCaseKey.RELEASE_HEALTH, org_id, "crashed")
+            tag_value_init = resolve_tag_value(UseCaseKey.RELEASE_HEALTH, org_id, "init")
+            tag_value_crashed = resolve_tag_value(UseCaseKey.RELEASE_HEALTH, org_id, "crashed")
             processor.process_update(
                 {
                     "subscription_id": subscription.subscription_id

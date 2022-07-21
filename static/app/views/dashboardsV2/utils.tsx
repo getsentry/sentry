@@ -389,9 +389,8 @@ export function getCustomMeasurementQueryParams() {
   };
 }
 
-export function hasSavedFilters(dashboard: DashboardDetails) {
+export function hasSavedPageFilters(dashboard: DashboardDetails) {
   return !(
-    isEmpty(dashboard.filters) &&
     isEmpty(dashboard.projects) &&
     dashboard.environment === undefined &&
     dashboard.start === undefined &&
