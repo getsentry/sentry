@@ -87,6 +87,7 @@ from .rawevent import *  # NOQA
 from .recentsearch import *  # NOQA
 from .relay import *  # NOQA
 from .release import *  # NOQA
+from .releaseactivity import *  # NOQA
 from .releasecommit import *  # NOQA
 from .releaseenvironment import *  # NOQA
 from .releasefile import *  # NOQA
@@ -100,6 +101,7 @@ from .savedsearch import *  # NOQA
 from .scheduledeletion import *  # NOQA
 from .scheduledjob import *  # NOQA
 from .search_common import *  # NOQA
+from .sentryfunction import *  # NOQA
 from .servicehook import *  # NOQA
 from .team import *  # NOQA
 from .transaction_threshold import *  # NOQA

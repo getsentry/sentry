@@ -60,6 +60,7 @@ import ReleasesSelectControl from './releasesSelectControl';
 import DashboardTitle from './title';
 import {
   DashboardDetails,
+  DashboardFilters,
   DashboardListItem,
   DashboardState,
   DashboardWidgetSource,
@@ -67,7 +68,7 @@ import {
   Widget,
   WidgetType,
 } from './types';
-import {cloneDashboard} from './utils';
+import {cloneDashboard, hasSavedFilters} from './utils';
 
 const UNSAVED_MESSAGE = t('You have unsaved changes, are you sure you want to leave?');
 
@@ -384,6 +385,18 @@ class DashboardDetail extends Component<Props, State> {
     });
   };
 
+  handleChangeFilter = (activeFilters: DashboardFilters) => {
+    const {dashboard} = this.props;
+    const {modifiedDashboard} = this.state;
+    const newModifiedDashboard = modifiedDashboard || dashboard;
+    this.setState({
+      modifiedDashboard: {
+        ...newModifiedDashboard,
+        filters: {...newModifiedDashboard.filters, ...activeFilters},
+      },
+    });
+  };
+
   handleUpdateWidgetList = (widgets: Widget[]) => {
     const {organization, dashboard, api, onDashboardUpdate, location} = this.props;
     const {modifiedDashboard} = this.state;
@@ -611,6 +624,10 @@ class DashboardDetail extends Component<Props, State> {
             period: DEFAULT_STATS_PERIOD,
           },
         }}
+        skipLoadLastUsed={
+          organization.features.includes('dashboards-top-level-filter') &&
+          hasSavedFilters(dashboard)
+        }
       >
         <PageContent>
           <NoProjectMessage organization={organization}>
@@ -687,6 +704,8 @@ class DashboardDetail extends Component<Props, State> {
       this.state;
     const {dashboardId} = params;
 
+    const {filters} = modifiedDashboard || dashboard;
+
     return (
       <SentryDocumentTitle title={dashboard.title} orgSlug={organization.slug}>
         <PageFiltersContainer
@@ -698,6 +717,10 @@ class DashboardDetail extends Component<Props, State> {
               period: DEFAULT_STATS_PERIOD,
             },
           }}
+          skipLoadLastUsed={
+            organization.features.includes('dashboards-top-level-filter') &&
+            hasSavedFilters(dashboard)
+          }
         >
           <StyledPageContent>
             <NoProjectMessage organization={organization}>
@@ -750,7 +773,10 @@ class DashboardDetail extends Component<Props, State> {
                           organization={organization}
                           selection={selection}
                         >
-                          <ReleasesSelectControl />
+                          <ReleasesSelectControl
+                            handleChangeFilter={this.handleChangeFilter}
+                            selectedReleases={filters?.release || []}
+                          />
                         </ReleasesProvider>
                       </FilterButtons>
                     </Feature>

@@ -34,20 +34,15 @@ jobs:
     needs: files-changed
     name: api docs test
     runs-on: ubuntu-20.04
-    strategy:
-      matrix:
-        python-version: [3.8.12]
     steps:
       - uses: actions/checkout@v2
 
       - uses: ./.github/actions/setup-volta
 
-      - name: Setup sentry python env (python ${{ matrix.python-version }})
+      - name: Setup sentry python env
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
-          python-version: ${{ matrix.python-version }}
-          pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
           snuba: true
 
       - name: Run API docs tests
@@ -68,7 +63,6 @@ jobs:
       # and reducing the risk that one of many runs would turn red again (read: intermittent tests)
       fail-fast: false
       matrix:
-        python-version: [3.8.12]
         # XXX: When updating this, make sure you also update MATRIX_INSTANCE_TOTAL.
         instance: [0, 1, 2]
         pg-version: ['9.6']
@@ -85,12 +79,10 @@ jobs:
           # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
           fetch-depth: '2'
 
-      - name: Setup sentry env (python ${{ matrix.python-version }})
+      - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
-          python-version: ${{ matrix.python-version }}
-          pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
           snuba: true
           # Right now, we run so few bigtable related tests that the
           # overhead of running bigtable in all backend tests
@@ -115,17 +107,14 @@ jobs:
     timeout-minutes: 10
     strategy:
       matrix:
-        python-version: [3.8.12]
         pg-version: ['9.6']
     steps:
       - uses: actions/checkout@v2
 
-      - name: Setup sentry env (python ${{ matrix.python-version }})
+      - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
-          python-version: ${{ matrix.python-version }}
-          pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
           pg-version: ${{ matrix.pg-version }}
 
       - name: Run test
@@ -156,9 +145,6 @@ jobs:
     name: backend lint
     runs-on: ubuntu-20.04
     timeout-minutes: 10
-    strategy:
-      matrix:
-        python-version: [3.8.12]
     steps:
       - uses: actions/checkout@v2
 
@@ -186,12 +172,11 @@ jobs:
               - added|modified: '**/*.py'
               - added|modified: 'requirements-*.txt'
 
-      - uses: actions/setup-python@v3
+      - uses: actions/setup-python@v4
         with:
-          python-version: ${{ matrix.python-version }}
-          cache: 'pip'
-          cache-dependency-path: |
-            requirements-dev-only-frozen.txt
+          python-version: 3.8.13
+          cache: pip
+          cache-dependency-path: requirements-dev-only-frozen.txt
 
       - uses: actions/cache@v3
         with:
@@ -228,19 +213,16 @@ jobs:
     runs-on: ubuntu-20.04
     strategy:
       matrix:
-        python-version: [3.8.12]
         pg-version: ['9.6']
 
     steps:
       - name: Checkout sentry
         uses: actions/checkout@v2
 
-      - name: Setup sentry env (python ${{ matrix.python-version }})
+      - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
-          python-version: ${{ matrix.python-version }}
-          pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
           pg-version: ${{ matrix.pg-version }}
 
       - name: Migration & lockfile checks
@@ -256,18 +238,13 @@ jobs:
     name: plugins test
     runs-on: ubuntu-20.04
     timeout-minutes: 10
-    strategy:
-      matrix:
-        python-version: [3.8.12]
     steps:
       - uses: actions/checkout@v2
 
-      - name: Setup sentry env (python ${{ matrix.python-version }})
+      - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
-          python-version: ${{ matrix.python-version }}
-          pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
           snuba: true
 
       - name: Run test
@@ -280,9 +257,6 @@ jobs:
     name: relay test
     runs-on: ubuntu-20.04
     timeout-minutes: 20
-    strategy:
-      matrix:
-        python-version: [3.8.12]
     steps:
       - uses: actions/checkout@v2
         with:
@@ -290,12 +264,10 @@ jobs:
           # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
           fetch-depth: '2'
 
-      - name: Setup sentry env (python ${{ matrix.python-version }})
+      - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
-          python-version: ${{ matrix.python-version }}
-          pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
           snuba: true
           kafka: true
 
@@ -323,7 +295,6 @@ jobs:
       # and reducing the risk that one of many runs would turn red again (read: intermittent tests)
       fail-fast: false
       matrix:
-        python-version: [3.8.12]
         # XXX: When updating this, make sure you also update MATRIX_INSTANCE_TOTAL.
         instance: [0, 1]
     env:
@@ -339,12 +310,10 @@ jobs:
           # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
           fetch-depth: '2'
 
-      - name: Setup sentry env (python ${{ matrix.python-version }})
+      - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
-          python-version: ${{ matrix.python-version }}
-          pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
           snuba: true
           kafka: true
 
@@ -361,9 +330,6 @@ jobs:
     name: symbolicator test
     runs-on: ubuntu-20.04
     timeout-minutes: 10
-    strategy:
-      matrix:
-        python-version: [3.8.12]
     steps:
       - uses: actions/checkout@v2
         with:
@@ -371,12 +337,10 @@ jobs:
           # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
           fetch-depth: '2'
 
-      - name: Setup sentry env (python ${{ matrix.python-version }})
+      - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
-          python-version: ${{ matrix.python-version }}
-          pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
           snuba: true
           kafka: true
 
@@ -405,16 +369,15 @@ jobs:
     name: backend typing
     runs-on: ubuntu-20.04
     timeout-minutes: 12
-    strategy:
-      matrix:
-        python-version: [3.8.12]
     steps:
       - uses: actions/checkout@v2
 
-      - name: Setup Python ${{ matrix.python-version }}
-        uses: ./.github/actions/setup-python
+      - name: Setup Python
+        uses: actions/setup-python@v4
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: 3.8.13
+          cache: pip
+          cache-dependency-path: requirements-dev-frozen.txt
 
       # We don't call setup-sentry, because we don't need devservices.
       - name: Setup backend typing

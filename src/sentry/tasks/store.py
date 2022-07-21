@@ -688,7 +688,11 @@ def _do_save_event(
                 manager = EventManager(data)
                 # event.project.organization is populated after this statement.
                 manager.save(
-                    project_id, assume_normalized=True, start_time=start_time, cache_key=cache_key
+                    project_id,
+                    assume_normalized=True,
+                    start_time=start_time,
+                    cache_key=cache_key,
+                    auto_upgrade_grouping=event_type != "transaction",
                 )
                 # Put the updated event back into the cache so that post_process
                 # has the most recent data.
