@@ -18,7 +18,7 @@ def get_project_issues_with_correlated_commits_and_error_rate(
     correlated_issues = {
         issue.id
         for issue in all_project_issues
-        if is_issue_commit_correlated(resolved_issue.id, issue.id)
+        if is_issue_commit_correlated(resolved_issue.id, issue.id, project_id)
         and is_issue_error_rate_correlated(resolved_issue, issue)
     }
 
