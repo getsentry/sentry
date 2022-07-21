@@ -409,7 +409,7 @@ register("relay.drop-transaction-metrics", default=[])
 register("relay.transaction-metrics-org-sample-rate", default=0.0)
 
 # Write new kafka headers in eventstream
-register("eventstream:kafka-headers", default=False)
+register("eventstream:kafka-headers", default=True)
 
 # Post process forwarder options
 # Gets data from Kafka headers
