@@ -8,7 +8,7 @@ import sentry_sdk
 from django.utils import timezone
 
 from sentry.models import Any, Environment, Mapping, Optional
-from sentry.snuba.dataset import Dataset, EntityKey
+from sentry.snuba.dataset import EntityKey
 from sentry.snuba.entity_subscription import (
     BaseEntitySubscription,
     get_entity_key_from_query_builder,
@@ -16,7 +16,7 @@ from sentry.snuba.entity_subscription import (
     get_entity_subscription,
     get_entity_subscription_from_snuba_query,
 )
-from sentry.snuba.models import QuerySubscription, SnubaQuery
+from sentry.snuba.models import QueryDatasets, QuerySubscription, SnubaQuery
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json, metrics
 from sentry.utils.snuba import SnubaError, _snuba_pool
@@ -54,7 +54,7 @@ def create_subscription_in_snuba(query_subscription_id, **kwargs):
         # This mostly shouldn't happen, but it's possible that a subscription can get
         # into this state. Just attempt to delete the existing subscription and then
         # create a new one.
-        query_dataset = Dataset(subscription.snuba_query.dataset)
+        query_dataset = QueryDatasets(subscription.snuba_query.dataset)
         entity_key = get_entity_key_from_snuba_query(
             subscription.snuba_query, subscription.project.organization_id, subscription.project_id
         )
@@ -98,7 +98,7 @@ def update_subscription_in_snuba(
         return
 
     if subscription.subscription_id is not None:
-        dataset = Dataset(
+        dataset = QueryDatasets(
             old_dataset if old_dataset is not None else subscription.snuba_query.dataset
         )
         query_type = SnubaQuery.Type(
@@ -123,7 +123,7 @@ def update_subscription_in_snuba(
             ),
         )
         _delete_from_snuba(
-            Dataset(dataset),
+            QueryDatasets(dataset),
             subscription.subscription_id,
             old_entity_key,
         )
@@ -161,7 +161,7 @@ def delete_subscription_from_snuba(query_subscription_id, **kwargs):
         return
 
     if subscription.subscription_id is not None:
-        query_dataset = Dataset(subscription.snuba_query.dataset)
+        query_dataset = QueryDatasets(subscription.snuba_query.dataset)
         entity_key = get_entity_key_from_snuba_query(
             subscription.snuba_query, subscription.project.organization_id, subscription.project_id
         )
@@ -228,7 +228,7 @@ def _create_snql_in_snuba(subscription, snuba_query, snql_query, entity_subscrip
     return json.loads(response.data)["subscription_id"]
 
 
-def _delete_from_snuba(dataset: Dataset, subscription_id: str, entity_key: EntityKey) -> None:
+def _delete_from_snuba(dataset: QueryDatasets, subscription_id: str, entity_key: EntityKey) -> None:
     response = _snuba_pool.urlopen(
         "DELETE", f"/{dataset.value}/{entity_key.value}/subscriptions/{subscription_id}"
     )

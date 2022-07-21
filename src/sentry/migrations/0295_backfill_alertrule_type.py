@@ -5,7 +5,7 @@ from django.db import migrations
 from sentry.new_migrations.migrations import CheckedMigration
 from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
-# Keys from `Dataset`, values from `AlertRule.Type`
+# Keys from `QueryDatasets`, values from `AlertRule.Type`
 dataset_to_type_map = {
     "events": 0,
     "transactions": 1,

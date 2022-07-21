@@ -3,8 +3,7 @@
 # be removed. Disabling this test for now.
 # from datetime import timedelta
 #
-# from sentry.snuba.dataset import Dataset
-# from sentry.snuba.models import SnubaQuery
+# from sentry.snuba.models import QueryDatasets, SnubaQuery
 # from sentry.snuba.subscriptions import create_snuba_query
 # from sentry.testutils.cases import TestMigrations
 #
@@ -18,7 +17,7 @@
 #             create_snuba_query(
 #                 dataset, "", "count()", timedelta(seconds=60), timedelta(seconds=60), None
 #             )
-#             for dataset in Dataset
+#             for dataset in QueryDatasets
 #         ]
 #
 #     def setup_before_migration(self, apps):

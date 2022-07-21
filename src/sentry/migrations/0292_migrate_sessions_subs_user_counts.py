@@ -7,7 +7,8 @@ import re
 from django.db import migrations
 
 from sentry.new_migrations.migrations import CheckedMigration
-from sentry.snuba.dataset import Dataset, EntityKey
+from sentry.snuba.dataset import EntityKey
+from sentry.snuba.models import QueryDatasets
 from sentry.snuba.tasks import _create_in_snuba, _delete_from_snuba
 from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
@@ -21,19 +22,19 @@ def create_subscription_in_snuba(subscription):
     subscription.save()
 
 
-def map_aggregate_to_entity_key(dataset: Dataset, aggregate: str) -> EntityKey:
-    if dataset == Dataset.Events:
+def map_aggregate_to_entity_key(dataset: QueryDatasets, aggregate: str) -> EntityKey:
+    if dataset == QueryDatasets.EVENTS:
         entity_key = EntityKey.Events
-    elif dataset == Dataset.Transactions:
+    elif dataset == QueryDatasets.TRANSACTIONS:
         entity_key = EntityKey.Transactions
-    elif dataset in [Dataset.Metrics, Dataset.Sessions]:
+    elif dataset in [QueryDatasets.METRICS, QueryDatasets.SESSIONS]:
         match = re.match(CRASH_RATE_ALERT_AGGREGATE_RE, aggregate)
         if not match:
             raise Exception(
                 f"Only crash free percentage queries are supported for subscriptions"
                 f"over the {dataset.value} dataset"
             )
-        if dataset == Dataset.Metrics:
+        if dataset == QueryDatasets.METRICS:
             count_col_matched = match.group(2)
             if count_col_matched == "sessions":
                 entity_key = EntityKey.MetricsCounters
@@ -46,7 +47,7 @@ def map_aggregate_to_entity_key(dataset: Dataset, aggregate: str) -> EntityKey:
     return entity_key
 
 
-def delete_subscription_from_snuba(subscription, query_dataset: Dataset):
+def delete_subscription_from_snuba(subscription, query_dataset: QueryDatasets):
     entity_key: EntityKey = map_aggregate_to_entity_key(
         query_dataset, subscription.snuba_query.aggregate
     )
@@ -65,9 +66,9 @@ def event_types(self):
 def update_metrics_subscriptions(apps, schema_editor):
     QuerySubscription = apps.get_model("sentry", "QuerySubscription")
     for subscription in RangeQuerySetWrapperWithProgressBar(
-        QuerySubscription.objects.filter(snuba_query__dataset=Dataset.Metrics.value).select_related(
-            "snuba_query"
-        )
+        QuerySubscription.objects.filter(
+            snuba_query__dataset=QueryDatasets.METRICS.value
+        ).select_related("snuba_query")
     ):
         old_subscription_id = subscription.subscription_id
         if old_subscription_id is not None:
@@ -75,7 +76,7 @@ def update_metrics_subscriptions(apps, schema_editor):
                 # The migration apps don't build this property, so patch it here:
                 subscription.snuba_query.event_types = event_types
                 create_subscription_in_snuba(subscription)
-                delete_subscription_from_snuba(subscription, Dataset.Metrics)
+                delete_subscription_from_snuba(subscription, QueryDatasets.METRICS)
             except Exception:
                 logging.exception(
                     "Failed to recreate metrics subscription in snuba",

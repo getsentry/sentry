@@ -7,7 +7,8 @@ import re
 from django.db import migrations
 
 from sentry.new_migrations.migrations import CheckedMigration
-from sentry.snuba.dataset import Dataset, EntityKey
+from sentry.snuba.dataset import EntityKey
+from sentry.snuba.models import QueryDatasets
 from sentry.snuba.tasks import _create_in_snuba, _delete_from_snuba
 from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
@@ -26,19 +27,19 @@ def event_types(self):
     return [type.event_type for type in self.snubaqueryeventtype_set.all()]
 
 
-def map_aggregate_to_entity_key(dataset: Dataset, aggregate: str) -> EntityKey:
-    if dataset == Dataset.Events:
+def map_aggregate_to_entity_key(dataset: QueryDatasets, aggregate: str) -> EntityKey:
+    if dataset == QueryDatasets.EVENTS:
         entity_key = EntityKey.Events
-    elif dataset == Dataset.Transactions:
+    elif dataset == QueryDatasets.TRANSACTIONS:
         entity_key = EntityKey.Transactions
-    elif dataset in [Dataset.Metrics, Dataset.Sessions]:
+    elif dataset in [QueryDatasets.METRICS, QueryDatasets.SESSIONS]:
         match = re.match(CRASH_RATE_ALERT_AGGREGATE_RE, aggregate)
         if not match:
             raise Exception(
                 f"Only crash free percentage queries are supported for subscriptions"
                 f"over the {dataset.value} dataset"
             )
-        if dataset == Dataset.Metrics:
+        if dataset == QueryDatasets.METRICS:
             count_col_matched = match.group(2)
             if count_col_matched == "sessions":
                 entity_key = EntityKey.MetricsCounters
@@ -54,9 +55,9 @@ def map_aggregate_to_entity_key(dataset: Dataset, aggregate: str) -> EntityKey:
 def update_metrics_subscriptions(apps, schema_editor):
     QuerySubscription = apps.get_model("sentry", "QuerySubscription")
     for subscription in RangeQuerySetWrapperWithProgressBar(
-        QuerySubscription.objects.filter(snuba_query__dataset=Dataset.Metrics.value).select_related(
-            "snuba_query"
-        )
+        QuerySubscription.objects.filter(
+            snuba_query__dataset=QueryDatasets.METRICS.value
+        ).select_related("snuba_query")
     ):
         old_subscription_id = subscription.subscription_id
         if old_subscription_id is not None:
@@ -65,11 +66,11 @@ def update_metrics_subscriptions(apps, schema_editor):
                 subscription.snuba_query.event_types = event_types
                 create_subscription_in_snuba(subscription)
                 entity_key: EntityKey = map_aggregate_to_entity_key(
-                    Dataset.Metrics, subscription.snuba_query.aggregate
+                    QueryDatasets.METRICS, subscription.snuba_query.aggregate
                 )
                 # Delete the old subscription ID:
                 _delete_from_snuba(
-                    Dataset.Metrics,
+                    QueryDatasets.METRICS,
                     old_subscription_id,
                     entity_key,
                 )

@@ -7,7 +7,7 @@ from freezegun import freeze_time
 from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL
 from sentry.incidents.models import IncidentStatus, IncidentTrigger
 from sentry.integrations.metric_alerts import incident_attachment_info
-from sentry.snuba.dataset import Dataset
+from sentry.snuba.models import QueryDatasets
 from sentry.testutils import BaseIncidentsTest, SnubaTestCase, TestCase
 from sentry.testutils.cases import BaseMetricsTestCase
 from sentry.utils.dates import to_timestamp
@@ -140,7 +140,7 @@ class IncidentAttachmentInfoTestForCrashRateAlerts(TestCase, SnubaTestCase):
         self.alert_rule = self.create_alert_rule(
             query="",
             aggregate=f"percentage({field}_crashed, {field}) AS _crash_rate_alert_aggregate",
-            dataset=Dataset.Sessions,
+            dataset=QueryDatasets.SESSIONS,
             time_window=60,
         )
         self.incident = self.create_incident(
@@ -211,7 +211,7 @@ class IncidentAttachmentInfoTestForCrashRateAlerts(TestCase, SnubaTestCase):
         alert_rule = self.create_alert_rule(
             query="",
             aggregate="percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate",
-            dataset=Dataset.Sessions,
+            dataset=QueryDatasets.SESSIONS,
             time_window=60,
         )
         trigger = self.create_alert_rule_trigger(alert_rule, CRITICAL_TRIGGER_LABEL, 95)
@@ -241,7 +241,7 @@ class IncidentAttachmentInfoTestForMetricsCrashRateAlerts(
         self.alert_rule = self.create_alert_rule(
             query="",
             aggregate=f"percentage({field}_crashed, {field}) AS _crash_rate_alert_aggregate",
-            dataset=Dataset.Metrics,
+            dataset=QueryDatasets.METRICS,
             time_window=60,
         )
         self.incident = self.create_incident(

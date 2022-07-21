@@ -68,8 +68,7 @@ from sentry.incidents.models import (
 )
 from sentry.models import ActorTuple, Integration, PagerDutyService
 from sentry.shared_integrations.exceptions import ApiRateLimitedError
-from sentry.snuba.dataset import Dataset
-from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
+from sentry.snuba.models import QueryDatasets, QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.testutils import BaseIncidentsTest, SnubaTestCase, TestCase
 from sentry.testutils.cases import BaseMetricsTestCase
 from sentry.utils import json
@@ -277,7 +276,7 @@ class GetCrashRateIncidentAggregatesTest(TestCase, SnubaTestCase):
         self.now = timezone.now().replace(minute=0, second=0, microsecond=0)
         for _ in range(2):
             self.store_session(self.build_session(status="exited"))
-        self.dataset = Dataset.Sessions
+        self.dataset = QueryDatasets.SESSIONS
 
     def test_sessions(self):
         incident = self.create_incident(
@@ -302,7 +301,7 @@ class GetCrashRateMetricsIncidentAggregatesTest(
 ):
     def setUp(self):
         super().setUp()
-        self.dataset = Dataset.Metrics
+        self.dataset = QueryDatasets.METRICS
 
 
 @freeze_time()
@@ -439,7 +438,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert alert_rule.status == AlertRuleStatus.PENDING.value
         assert alert_rule.snuba_query.subscriptions.all().count() == 1
         assert alert_rule.snuba_query.type == SnubaQuery.Type.ERROR.value
-        assert alert_rule.snuba_query.dataset == Dataset.Events.value
+        assert alert_rule.snuba_query.dataset == QueryDatasets.EVENTS.value
         assert alert_rule.snuba_query.query == query
         assert alert_rule.snuba_query.aggregate == aggregate
         assert alert_rule.snuba_query.time_window == time_window * 60
@@ -476,7 +475,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert alert_rule.status == AlertRuleStatus.PENDING.value
         assert alert_rule.snuba_query.subscriptions.all().count() == 1
         assert alert_rule.snuba_query.type == SnubaQuery.Type.ERROR.value
-        assert alert_rule.snuba_query.dataset == Dataset.Events.value
+        assert alert_rule.snuba_query.dataset == QueryDatasets.EVENTS.value
         assert alert_rule.snuba_query.query == query
         assert alert_rule.snuba_query.aggregate == aggregate
         assert alert_rule.snuba_query.time_window == time_window * 60
@@ -588,10 +587,10 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
             AlertRuleThresholdType.ABOVE,
             1,
             query_type=SnubaQuery.Type.CRASH_RATE,
-            dataset=Dataset.Sessions,
+            dataset=QueryDatasets.SESSIONS,
         )
         assert alert_rule.snuba_query.type == SnubaQuery.Type.CRASH_RATE.value
-        assert alert_rule.snuba_query.dataset == Dataset.Sessions.value
+        assert alert_rule.snuba_query.dataset == QueryDatasets.SESSIONS.value
 
         with self.feature("organizations:alert-crash-free-metrics"):
             alert_rule = create_alert_rule(
@@ -604,10 +603,10 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
                 AlertRuleThresholdType.ABOVE,
                 1,
                 query_type=SnubaQuery.Type.CRASH_RATE,
-                dataset=Dataset.Sessions,
+                dataset=QueryDatasets.SESSIONS,
             )
         assert alert_rule.snuba_query.type == SnubaQuery.Type.CRASH_RATE.value
-        assert alert_rule.snuba_query.dataset == Dataset.Metrics.value
+        assert alert_rule.snuba_query.dataset == QueryDatasets.METRICS.value
 
     def test_performance_metric_alert(self):
         alert_rule = create_alert_rule(
@@ -620,10 +619,10 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
             AlertRuleThresholdType.ABOVE,
             1,
             query_type=SnubaQuery.Type.PERFORMANCE,
-            dataset=Dataset.PerformanceMetrics,
+            dataset=QueryDatasets.PERFORMANCE_METRICS,
         )
         assert alert_rule.snuba_query.type == SnubaQuery.Type.PERFORMANCE.value
-        assert alert_rule.snuba_query.dataset == Dataset.PerformanceMetrics.value
+        assert alert_rule.snuba_query.dataset == QueryDatasets.PERFORMANCE_METRICS.value
 
 
 class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
@@ -899,16 +898,16 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             AlertRuleThresholdType.ABOVE,
             1,
             query_type=SnubaQuery.Type.CRASH_RATE,
-            dataset=Dataset.Sessions,
+            dataset=QueryDatasets.SESSIONS,
         )
-        alert_rule = update_alert_rule(alert_rule, dataset=Dataset.Sessions)
+        alert_rule = update_alert_rule(alert_rule, dataset=QueryDatasets.SESSIONS)
         assert alert_rule.snuba_query.type == SnubaQuery.Type.CRASH_RATE.value
-        assert alert_rule.snuba_query.dataset == Dataset.Sessions.value
+        assert alert_rule.snuba_query.dataset == QueryDatasets.SESSIONS.value
 
         with self.feature("organizations:alert-crash-free-metrics"):
-            alert_rule = update_alert_rule(alert_rule, dataset=Dataset.Sessions)
+            alert_rule = update_alert_rule(alert_rule, dataset=QueryDatasets.SESSIONS)
         assert alert_rule.snuba_query.type == SnubaQuery.Type.CRASH_RATE.value
-        assert alert_rule.snuba_query.dataset == Dataset.Metrics.value
+        assert alert_rule.snuba_query.dataset == QueryDatasets.METRICS.value
 
     def test_performance_metric_alert(self):
         alert_rule = create_alert_rule(
@@ -921,15 +920,15 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             AlertRuleThresholdType.ABOVE,
             1,
             query_type=SnubaQuery.Type.ERROR,
-            dataset=Dataset.Events,
+            dataset=QueryDatasets.EVENTS,
         )
         alert_rule = update_alert_rule(
             alert_rule,
             query_type=SnubaQuery.Type.PERFORMANCE,
-            dataset=Dataset.PerformanceMetrics,
+            dataset=QueryDatasets.PERFORMANCE_METRICS,
         )
         assert alert_rule.snuba_query.type == SnubaQuery.Type.PERFORMANCE.value
-        assert alert_rule.snuba_query.dataset == Dataset.PerformanceMetrics.value
+        assert alert_rule.snuba_query.dataset == QueryDatasets.PERFORMANCE_METRICS.value
 
 
 class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
