@@ -27,7 +27,7 @@ function DomMutations({replay}: Props) {
 
   return (
     <Fragment>
-      <HiddenReplayMountpoint ref={hiddenDivRef} />
+      <HiddenReplayMountpoint className="sr-block" ref={hiddenDivRef} />
       <StyledPanelTable
         isEmpty={actions.length === 0}
         emptyMessage={t('No DOM actions found.')}
