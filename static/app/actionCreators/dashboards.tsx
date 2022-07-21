@@ -50,10 +50,8 @@ export function createDashboard(
         title,
         widgets: widgets.map(widget => omit(widget, ['tempId'])),
         duplicate,
-        // Ensure projects and environment are sent as arrays, or undefined in the request
-        // location.query will return a string if there's only one value
-        projects: typeof projects === 'string' ? [projects] : projects,
-        environment: typeof environment === 'string' ? [environment] : environment,
+        projects,
+        environment,
         period,
         start,
         end,

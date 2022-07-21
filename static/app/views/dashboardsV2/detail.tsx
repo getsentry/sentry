@@ -502,8 +502,15 @@ class DashboardDetail extends Component<Props, State> {
             const {project, environment, statsPeriod, start, end} = location.query;
             newModifiedDashboard = {
               ...cloneDashboard(modifiedDashboard),
-              projects: project,
-              environment,
+              // Ensure projects and environment are sent as arrays, or undefined in the request
+              // location.query will return a string if there's only one value
+              projects:
+                project === undefined
+                  ? []
+                  : typeof project === 'string'
+                  ? [Number(project)]
+                  : project.map(Number),
+              environment: typeof environment === 'string' ? [environment] : environment,
               period: statsPeriod,
               start,
               end,
