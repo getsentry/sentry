@@ -27,13 +27,13 @@ class OrganizationSentryFunctions(APITestCase):
             assert response.data["code"] == defaultCode
             assert response.data["overview"] == "qux"
 
-    # def test_post_missing_params(self):
-    #     data = {"name": "foo", "overview": "qux"}
-    #     with Feature("organizations:sentry-functions"):
-    #         response = self.get_error_response(self.organization.slug, **data)
-    #         assert response.status_code == 400
+    def test_post_missing_params(self):
+        data = {"name": "foo", "overview": "qux"}
+        with Feature("organizations:sentry-functions"):
+            response = self.get_error_response(self.organization.slug, **data)
+            assert response.status_code == 400
 
-    # def test_post_feature_false(self):
-    #     data = {"name": "foo", "author": "bar"}
-    #     response = self.get_error_response(self.organization.slug, **data)
-    #     assert response.status_code == 404
+    def test_post_feature_false(self):
+        data = {"name": "foo", "author": "bar"}
+        response = self.get_error_response(self.organization.slug, **data)
+        assert response.status_code == 404
