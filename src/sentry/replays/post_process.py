@@ -84,11 +84,10 @@ def add_trace_id_computed_fields(payload: List[Dict[str, Any]]) -> None:
     # length.
     trace_performance_metrics_map = _make_performance_metrics_object(trace_ids)
 
-    # Set longest_transaction from the max of all transaction times found.
     for item in payload:
-        item["longest_transaction"] = max(
-            trace_performance_metrics_map.get(trace_id, 0) for trace_id in item["trace_ids"]
-        )
+        # Set longest_transaction from the max of all transaction times found.
+        m = [trace_performance_metrics_map.get(trace_id, 0) for trace_id in item["trace_ids"]]
+        item["longest_transaction"] = max(m) if m else 0
 
     return None
 
