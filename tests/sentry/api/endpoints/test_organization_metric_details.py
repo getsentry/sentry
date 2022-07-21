@@ -2,9 +2,12 @@ import copy
 import time
 from unittest.mock import patch
 
+import pytest
+
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
-from sentry.snuba.metrics import SingularEntityDerivedMetric, resolve_weak
+from sentry.sentry_metrics.utils import resolve_weak
+from sentry.snuba.metrics import SingularEntityDerivedMetric
 from sentry.snuba.metrics.fields.snql import complement, division_float
 from sentry.snuba.metrics.naming_layer.mapping import get_mri, get_public_name_from_mri
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
@@ -28,6 +31,8 @@ MOCKED_DERIVED_METRICS_2.update(
         )
     }
 )
+
+pytestmark = pytest.mark.sentry_metrics
 
 
 def _indexer_record(org_id: int, string: str) -> int:

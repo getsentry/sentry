@@ -86,6 +86,20 @@ FUNCTION_PATTERN = re.compile(
 DURATION_PATTERN = re.compile(r"(\d+\.?\d?)(\D{1,3})")
 
 RESULT_TYPES = {"duration", "string", "number", "integer", "percentage", "date"}
+SIZE_UNITS = {"bit", "byte", "kibibyte", "mebibyte", "gibibyte", "tebibyte", "pebibyte", "exbibyte"}
+DURATION_UNITS = {
+    "nanosecond",
+    "microsecond",
+    "millisecond",
+    "second",
+    "minute",
+    "hour",
+    "day",
+    "week",
+}
+PERCENT_UNITS = {"ratio", "percent"}
+RESULT_TYPES = RESULT_TYPES.union(SIZE_UNITS)
+RESULT_TYPES = RESULT_TYPES.union(DURATION_UNITS)
 NO_CONVERSION_FIELDS = {"start", "end"}
 EQUALITY_OPERATORS = frozenset(["=", "IN"])
 INEQUALITY_OPERATORS = frozenset(["!=", "NOT IN"])

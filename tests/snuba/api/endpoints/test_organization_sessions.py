@@ -9,11 +9,13 @@ from freezegun import freeze_time
 from sentry.release_health.duplex import DuplexReleaseHealthBackend
 from sentry.release_health.metrics import MetricsReleaseHealthBackend
 from sentry.testutils import APITestCase, SnubaTestCase
-from sentry.testutils.cases import SessionMetricsReleaseHealthTestCase, SessionMetricsTestCase
+from sentry.testutils.cases import BaseMetricsTestCase
 from sentry.testutils.helpers.features import Feature
 from sentry.testutils.helpers.link_header import parse_link_header
 from sentry.utils.cursors import Cursor
 from sentry.utils.dates import to_timestamp
+
+pytestmark = pytest.mark.sentry_metrics
 
 
 def result_sorted(result):
@@ -1087,7 +1089,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
 
 @patch("sentry.api.endpoints.organization_sessions.release_health", MetricsReleaseHealthBackend())
 class OrganizationSessionsEndpointMetricsTest(
-    SessionMetricsReleaseHealthTestCase, OrganizationSessionsEndpointTest
+    BaseMetricsTestCase, OrganizationSessionsEndpointTest
 ):
     """Repeat all tests with metrics backend"""
 
@@ -1537,7 +1539,7 @@ class OrganizationSessionsEndpointMetricsTest(
 
 
 @patch("sentry.api.endpoints.organization_sessions.release_health", MetricsReleaseHealthBackend())
-class SessionsMetricsSortReleaseTimestampTest(SessionMetricsReleaseHealthTestCase, APITestCase):
+class SessionsMetricsSortReleaseTimestampTest(BaseMetricsTestCase, APITestCase):
     def do_request(self, query, user=None, org=None):
         self.login_as(user=user or self.user)
         url = reverse(
@@ -2032,7 +2034,7 @@ class SessionsMetricsSortReleaseTimestampTest(SessionMetricsReleaseHealthTestCas
     "sentry.api.endpoints.organization_sessions.release_health",
     DuplexReleaseHealthBackend(datetime.datetime(2022, 4, 28, 16, 0, tzinfo=datetime.timezone.utc)),
 )
-class DuplexTestCase(SessionMetricsTestCase, APITestCase):
+class DuplexTestCase(BaseMetricsTestCase, APITestCase):
     """Tests specific to the duplex backend"""
 
     def do_request(self, query, user=None, org=None):
