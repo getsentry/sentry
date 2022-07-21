@@ -109,6 +109,44 @@ describe('useLocalStorageState', () => {
     expect(initialize).toHaveBeenCalledWith('valid json', JSON.stringify('valid json'));
   });
 
+  it('crashes with TypeError for unsupported primitives when they are recursive', () => {
+    const recursiveReferenceMap = new Map();
+    recursiveReferenceMap.set('key', recursiveReferenceMap);
+
+    jest.spyOn(global.window, 'queueMicrotask').mockImplementation(cb => cb());
+
+    const {result} = reactHooks.renderHook(() =>
+      useLocalStorageState('key', recursiveReferenceMap)
+    );
+
+    try {
+      result.current[1](recursiveReferenceMap);
+    } catch (e) {
+      expect(
+        e.message.startsWith(
+          `useLocalStorage: Native serialization of Map is not supported`
+        )
+      ).toBe(true);
+    }
+  });
+
+  it('crashes with native error on recursive serialization of plain objects', () => {
+    const recursiveObject: Record<string, any> = {};
+    recursiveObject.key = recursiveObject;
+
+    jest.spyOn(global.window, 'queueMicrotask').mockImplementation(cb => cb());
+
+    const {result} = reactHooks.renderHook(() =>
+      useLocalStorageState('key', recursiveObject)
+    );
+
+    try {
+      result.current[1](recursiveObject);
+    } catch (e) {
+      expect(e.message.startsWith('Converting circular structure to JSON')).toBe(true);
+    }
+  });
+
   it.each([
     ['BigInt', BigInt(1)],
     ['RegExp (literal)', /regex/],
