@@ -10,7 +10,7 @@ on:
       - .github/labels.yml
 jobs:
   sync:
-    name: syncs reposiory labels
+    name: syncs repository labels
     runs-on: ubuntu-latest
     permissions:
       issues: write
