@@ -16,6 +16,6 @@ export function getUnknownData({allData, knownKeys, meta}: Props): KeyValueListD
       key,
       value,
       subject: startCase(key),
-      meta: meta[key]?.[''],
+      meta: meta?.[key]?.[''],
     }));
 }
