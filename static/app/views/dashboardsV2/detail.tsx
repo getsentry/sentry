@@ -295,16 +295,7 @@ class DashboardDetail extends Component<Props, State> {
       organization.features.includes('dashboards-top-level-filter') &&
       hasUnsavedFilterChanges(dashboard, location, dashboard.filters)
     ) {
-      browserHistory.replace({
-        ...this.props.location,
-        query: {
-          project: dashboard.projects,
-          environment: dashboard.environment,
-          statsPeriod: dashboard.period,
-          start: dashboard.start,
-          end: dashboard.end,
-        },
-      });
+      this.resetPageFilters();
     }
 
     this.setState({
@@ -452,16 +443,7 @@ class DashboardDetail extends Component<Props, State> {
         (modifiedDashboard || dashboard).filters
       )
     ) {
-      browserHistory.replace({
-        ...this.props.location,
-        query: {
-          project: dashboard.projects,
-          environment: dashboard.environment,
-          statsPeriod: dashboard.period,
-          start: dashboard.start,
-          end: dashboard.end,
-        },
-      });
+      this.resetPageFilters();
     }
 
     // Use the new widgets for calculating layout because widgets has
@@ -536,13 +518,7 @@ class DashboardDetail extends Component<Props, State> {
         const queryParamOverrides =
           organization.features.includes('dashboards-top-level-filter') &&
           hasUnsavedFilterChanges(dashboard, location, filters)
-            ? {
-                project: dashboard.projects,
-                environment: dashboard.environment,
-                statsPeriod: dashboard.period,
-                start: dashboard.start,
-                end: dashboard.end,
-              }
+            ? this.getInitialPageFilterValues()
             : {};
 
         router.push({
@@ -703,6 +679,24 @@ class DashboardDetail extends Component<Props, State> {
       },
     }));
   };
+
+  getInitialPageFilterValues() {
+    const {dashboard} = this.props;
+    return {
+      project: dashboard.projects,
+      environment: dashboard.environment,
+      statsPeriod: dashboard.period,
+      start: dashboard.start,
+      end: dashboard.end,
+    };
+  }
+
+  resetPageFilters() {
+    browserHistory.replace({
+      ...location,
+      query: this.getInitialPageFilterValues(),
+    });
+  }
 
   renderWidgetBuilder() {
     const {children, dashboard} = this.props;
@@ -882,21 +876,11 @@ class DashboardDetail extends Component<Props, State> {
                     filters={filters}
                     onDashboardFilterChange={this.handleChangeFilter}
                     onCancel={() => {
+                      this.resetPageFilters();
                       this.setState({
                         modifiedDashboard: {
                           ...(modifiedDashboard ?? dashboard),
                           filters: dashboard.filters,
-                        },
-                      });
-
-                      browserHistory.replace({
-                        ...location,
-                        query: {
-                          project: dashboard.projects,
-                          environment: dashboard.environment,
-                          statsPeriod: dashboard.period,
-                          start: dashboard.start,
-                          end: dashboard.end,
                         },
                       });
                     }}
