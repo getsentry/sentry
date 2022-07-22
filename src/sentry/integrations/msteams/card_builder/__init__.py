@@ -1,15 +1,38 @@
 from __future__ import annotations
 
-from typing import Any, Mapping, Sequence, Union
+from typing import Any, Mapping, Sequence, Tuple, Union
 
 from sentry.integrations.metric_alerts import incident_attachment_info
-from sentry.models import Group, GroupStatus, Project, Team, User
-from sentry.utils.assets import get_asset_url
-from sentry.utils.http import absolute_uri
+from sentry.integrations.msteams.card_builder.utils import IssueConstants
+from sentry.integrations.slack.message_builder.issues import (
+    build_attachment_text,
+    build_attachment_title,
+    build_footer,
+    format_actor_option,
+    format_actor_options,
+)
+from sentry.models import Event, GroupStatus, Integration, Project
+from sentry.models.group import Group
+from sentry.models.rule import Rule
 
 from ..utils import ACTION_TYPE
+from .base import MSTeamsMessageBuilder
+from .block import (
+    ActionType,
+    TextSize,
+    TextWeight,
+    create_action_block,
+    create_action_set_block,
+    create_column_block,
+    create_column_set_block,
+    create_container_block,
+    create_input_choice_set_block,
+    create_logo_block,
+    create_text_block,
+)
 
 ME = "ME"
+URL_FORMAT = "[{text}]({url})"
 
 # TODO: Covert these types to a class hierarchy.
 # This is not ideal, but better than no typing. These types should be
@@ -21,11 +44,16 @@ ItemBlock = Union[str, TextBlock, ImageBlock]
 
 ColumnBlock = Mapping[str, Union[str, Sequence[ItemBlock]]]
 ColumnSetBlock = Mapping[str, Union[str, Sequence[ColumnBlock]]]
+# NOTE: Instead of Any, it should have been block, but mypy does not support cyclic definition.
+ContainerBlock = Mapping[str, Any]
 
-Block = Union[TextBlock, ImageBlock, ColumnSetBlock]
+Block = Union[TextBlock, ImageBlock, ColumnSetBlock, ContainerBlock]
+
+InputChoiceSetBlock = Mapping[str, Union[str, Sequence[Mapping[str, Any]]]]
 
 # Maps to Any because Actions can have an arbitrarily nested data field.
 Action = Mapping[str, Any]
+ActionSet = Mapping[str, Union[str, Sequence[Action]]]
 
 AdaptiveCard = Mapping[str, Union[str, Sequence[Block], Sequence[Action]]]
 
@@ -43,302 +71,208 @@ def generate_action_payload(action_type, event, rules, integration):
     }
 
 
-def get_assignee_string(group: Group) -> str | None:
-    """Get a string representation of the group's assignee."""
-    assignee = group.get_assignee()
-    if isinstance(assignee, User):
-        return assignee.email
-
-    if isinstance(assignee, Team):
-        return f"#{assignee.slug}"
-
-    return None
-
-
-def build_group_title(group):
-    # TODO: implement with event as well
-    ev_metadata = group.get_event_metadata()
-    ev_type = group.get_event_type()
-
-    if ev_type == "error" and "type" in ev_metadata:
-        text = ev_metadata["type"]
-    else:
-        text = group.title
+def build_group_title(group: Group) -> TextBlock:
+    text = build_attachment_title(group)
 
     link = group.get_absolute_url(params={"referrer": "msteams"})
 
     title_text = f"[{text}]({link})"
-    return {
-        "type": "TextBlock",
-        "size": "Large",
-        "weight": "Bolder",
-        "text": title_text,
-        "wrap": True,
-    }
+    return create_text_block(
+        title_text,
+        size=TextSize.LARGE,
+        weight=TextWeight.BOLDER,
+    )
 
 
-def build_group_descr(group):
+def build_group_descr(group: Group) -> TextBlock:
     # TODO: implement with event as well
-    ev_type = group.get_event_type()
-    if ev_type == "error":
-        ev_metadata = group.get_event_metadata()
-        text = ev_metadata.get("value") or ev_metadata.get("function")
-        return {
-            "type": "TextBlock",
-            "size": "Medium",
-            "weight": "Bolder",
-            "text": text,
-            "wrap": True,
-        }
-    else:
-        return None
+    text = build_attachment_text(group)
+    if text:
+        return create_text_block(
+            text,
+            size=TextSize.MEDIUM,
+            weight=TextWeight.BOLDER,
+        )
 
 
-def build_rule_url(rule, group, project):
-    org_slug = group.organization.slug
-    project_slug = project.slug
-    rule_url = f"/organizations/{org_slug}/alerts/rules/{project_slug}/{rule.id}/details/"
-    return absolute_uri(rule_url)
+def create_footer_logo_block():
+    return create_logo_block(height="20px")
 
 
-def build_group_footer(group, rules, project, event):
+def create_footer_text_block(footer_text: str) -> TextBlock:
+    return create_text_block(
+        footer_text,
+        size=TextSize.SMALL,
+        weight=TextWeight.LIGHTER,
+        wrap=False,
+    )
+
+
+def get_timestamp(group: Group, event: Event) -> str:
+    ts = group.last_seen
+
+    date = max(ts, event.datetime) if event else ts
+
+    # Adaptive cards is strict about the isoformat.
+    date_str: str = date.replace(microsecond=0).isoformat()
+
+    return date_str
+
+
+def create_date_block(group: Group, event: Event) -> TextBlock:
+    date_str = get_timestamp(group, event)
+
+    return create_text_block(
+        IssueConstants.DATE_FORMAT.format(date=date_str),
+        size=TextSize.SMALL,
+        weight=TextWeight.LIGHTER,
+        horizontalAlignment="Center",
+    )
+
+
+def build_group_footer(group: Group, rules: Sequence[Rule], event: Event) -> ColumnSetBlock:
+    project = Project.objects.get_from_cache(id=group.project_id)
+
     # TODO: implement with event as well
-    image_column = {
-        "type": "Column",
-        "items": [
-            {
-                "type": "Image",
-                "url": absolute_uri(get_asset_url("sentry", "images/sentry-glyph-black.png")),
-                "height": "20px",
-            }
-        ],
-        "width": "auto",
-    }
+    image_column = create_footer_logo_block()
 
-    text = f"{group.qualified_short_id}"
-    if rules:
-        rule_url = build_rule_url(rules[0], group, project)
-        text += f" via [{rules[0].label}]({rule_url})"
-        if len(rules) > 1:
-            text += f" (+{len(rules) - 1} other)"
+    text = build_footer(group, project, rules, URL_FORMAT)
 
-    text_column = {
-        "type": "Column",
-        "items": [{"type": "TextBlock", "size": "Small", "weight": "Lighter", "text": text}],
-        "isSubtle": True,
-        "width": "auto",
-        "spacing": "none",
-    }
+    text_column = create_column_block(create_footer_text_block(text), isSubtle=True, spacing="none")
 
-    date_ts = group.last_seen
-    if event:
-        event_ts = event.datetime
-        date_ts = max(date_ts, event_ts)
+    date_column = create_date_block(group, event)
 
-    date = date_ts.replace(microsecond=0).isoformat()
-    date_text = f"{{{{DATE({date}, SHORT)}}}} at {{{{TIME({date})}}}}"
-    date_column = {
-        "type": "Column",
-        "items": [
-            {
-                "type": "TextBlock",
-                "size": "Small",
-                "weight": "Lighter",
-                "horizontalAlignment": "Center",
-                "text": date_text,
-            }
-        ],
-        "width": "auto",
-    }
-
-    return {"type": "ColumnSet", "columns": [image_column, text_column, date_column]}
+    return create_column_set_block(
+        image_column,
+        text_column,
+        date_column,
+    )
 
 
-def build_group_actions(group, event, rules, integration):
+def build_input_choice_card(
+    data: Any,
+    card_title: str,
+    input_id: str,
+    submit_button_title: str,
+    choices: Sequence[Tuple[str, Any]],
+    default_choice: Any = None,
+) -> AdaptiveCard:
+    return MSTeamsMessageBuilder().build(
+        title=create_text_block(card_title, weight=TextWeight.BOLDER),
+        text=create_input_choice_set_block(
+            id=input_id, choices=choices, default_choice=default_choice
+        ),
+        actions=[create_action_block(ActionType.SUBMIT, title=submit_button_title, data=data)],
+    )
+
+
+def create_issue_action_block(
+    event: Event,
+    rules: Sequence[Rule],
+    integration: Integration,
+    toggled: bool,
+    action: ACTION_TYPE,
+    action_title: str,
+    reverse_action: ACTION_TYPE,
+    reverse_action_title: str,
+    **card_kwargs: Any,
+) -> Action:
+    """
+    Build an action block for a particular `action` (Resolve).
+    It could be one of the following depending on if the state is `toggled` (Resolved issue).
+    If the issue is `toggled` then present a button with the `reverse_action` (Unresolve).
+    If it is not `toggled` then present a button which reveals a card with options to
+    perform the action ([Immediately, In current release, ...])
+    """
+    if toggled:
+        data = generate_action_payload(reverse_action, event, rules, integration)
+        return create_action_block(ActionType.SUBMIT, title=reverse_action_title, data=data)
+
+    data = generate_action_payload(action, event, rules, integration)
+    card = build_input_choice_card(data=data, **card_kwargs)
+    return create_action_block(ActionType.SHOW_CARD, title=action_title, card=card)
+
+
+def get_teams_choices(group: Group) -> Sequence[Tuple[str, str]]:
+    teams = group.project.teams.all().order_by("slug")
+    return [("Me", ME)] + [(team["text"], team["value"]) for team in format_actor_options(teams)]
+
+
+def build_group_actions(group: Group, event: Event, rules: Rule, integration: Integration):
     status = group.get_status()
 
-    if status == GroupStatus.RESOLVED:
-        resolve_action = {
-            "type": "Action.Submit",
-            "title": "Unresolve",
-            "data": generate_action_payload(ACTION_TYPE.UNRESOLVE, event, rules, integration),
-        }
-    else:
-        resolve_action = {
-            "type": "Action.ShowCard",
-            "version": "1.2",
-            "title": "Resolve",
-            "card": {
-                "type": "AdaptiveCard",
-                "body": [
-                    {"type": "TextBlock", "text": "Resolve", "weight": "Bolder"},
-                    {
-                        "type": "Input.ChoiceSet",
-                        "id": "resolveInput",
-                        "choices": [
-                            {"title": "Immediately", "value": "resolved"},
-                            {
-                                "title": "In the current release",
-                                "value": "resolved:inCurrentRelease",
-                            },
-                            {"title": "In the next release", "value": "resolved:inNextRelease"},
-                        ],
-                    },
-                ],
-                "actions": [
-                    {
-                        "type": "Action.Submit",
-                        "title": "Resolve",
-                        "data": generate_action_payload(
-                            ACTION_TYPE.RESOLVE, event, rules, integration
-                        ),
-                    }
-                ],
-            },
-        }
+    resolve_action = create_issue_action_block(
+        event=event,
+        rules=rules,
+        integration=integration,
+        toggled=GroupStatus.RESOLVED == status,
+        action=ACTION_TYPE.RESOLVE,
+        action_title=IssueConstants.RESOLVE,
+        reverse_action=ACTION_TYPE.UNRESOLVE,
+        reverse_action_title=IssueConstants.UNRESOLVE,
+        # card_kwargs
+        card_title=IssueConstants.RESOLVE,
+        submit_button_title=IssueConstants.RESOLVE,
+        input_id=IssueConstants.RESOLVE_INPUT_ID,
+        choices=IssueConstants.RESOLVE_INPUT_CHOICES,
+    )
 
-    if status == GroupStatus.IGNORED:
-        ignore_action = {
-            "type": "Action.Submit",
-            "title": "Stop Ignoring",
-            "data": generate_action_payload(ACTION_TYPE.UNRESOLVE, event, rules, integration),
-        }
-    else:
-        ignore_action = {
-            "type": "Action.ShowCard",
-            "version": "1.2",
-            "title": "Ignore",
-            "card": {
-                "type": "AdaptiveCard",
-                "body": [
-                    {
-                        "type": "TextBlock",
-                        "text": "Ignore until this happens again...",
-                        "weight": "Bolder",
-                    },
-                    {
-                        "type": "Input.ChoiceSet",
-                        "id": "ignoreInput",
-                        "choices": [
-                            {"title": "Ignore indefinitely", "value": -1},
-                            {"title": "1 time", "value": 1},
-                            {"title": "10 times", "value": 10},
-                            {"title": "100 times", "value": 100},
-                            {"title": "1,000 times", "value": 1000},
-                            {"title": "10,000 times", "value": 10000},
-                        ],
-                    },
-                ],
-                "actions": [
-                    {
-                        "type": "Action.Submit",
-                        "title": "Ignore",
-                        "data": generate_action_payload(
-                            ACTION_TYPE.IGNORE, event, rules, integration
-                        ),
-                    }
-                ],
-            },
-        }
+    ignore_action = create_issue_action_block(
+        event=event,
+        rules=rules,
+        integration=integration,
+        toggled=GroupStatus.IGNORED == status,
+        action=ACTION_TYPE.IGNORE,
+        action_title=IssueConstants.IGNORE,
+        reverse_action=ACTION_TYPE.UNRESOLVE,
+        reverse_action_title=IssueConstants.STOP_IGNORING,
+        # card_kwargs
+        card_title=IssueConstants.IGNORE_INPUT_TITLE,
+        submit_button_title=IssueConstants.IGNORE,
+        input_id=IssueConstants.IGNORE_INPUT_ID,
+        choices=IssueConstants.IGNORE_INPUT_CHOICES,
+    )
 
-    if get_assignee_string(group):
-        assign_action = {
-            "type": "Action.Submit",
-            "title": "Unassign",
-            "data": generate_action_payload(ACTION_TYPE.UNASSIGN, event, rules, integration),
-        }
-    else:
-        teams_list = group.project.teams.all().order_by("slug")
-        teams = [{"title": f"#{u.slug}", "value": f"team:{u.id}"} for u in teams_list]
-        teams = [{"title": "Me", "value": ME}] + teams
-        assign_action = {
-            "type": "Action.ShowCard",
-            "version": "1.2",
-            "title": "Assign",
-            "card": {
-                "type": "AdaptiveCard",
-                "body": [
-                    {"type": "Input.ChoiceSet", "id": "assignInput", "value": ME, "choices": teams}
-                ],
-                "actions": [
-                    {
-                        "type": "Action.Submit",
-                        "title": "Assign",
-                        "data": generate_action_payload(
-                            ACTION_TYPE.ASSIGN, event, rules, integration
-                        ),
-                    }
-                ],
-            },
-        }
+    teams_choices = get_teams_choices(group)
 
-    return {
-        "type": "Container",
-        "items": [{"type": "ActionSet", "actions": [resolve_action, ignore_action, assign_action]}],
-    }
+    assign_action = create_issue_action_block(
+        event=event,
+        rules=rules,
+        integration=integration,
+        toggled=group.get_assignee(),
+        action=ACTION_TYPE.ASSIGN,
+        action_title=IssueConstants.ASSIGN,
+        reverse_action=ACTION_TYPE.UNASSIGN,
+        reverse_action_title=IssueConstants.UNASSIGN,
+        # card_kwargs
+        card_title=IssueConstants.ASSIGN_INPUT_TITLE,
+        submit_button_title=IssueConstants.ASSIGN,
+        input_id=IssueConstants.ASSIGN_INPUT_ID,
+        choices=teams_choices,
+        default_choice=ME,
+    )
 
-
-def build_group_resolve_card(group, event, rules, integration):
-    return [
-        {
-            "type": "TextBlock",
-            "size": "Large",
-            "text": "Resolve",
-            "weight": "Bolder",
-            "id": "resolveTitle",
-            "isVisible": False,
-        }
-    ]
-
-
-def build_group_ignore_card(group, event, rules, integration):
-    return [
-        {
-            "type": "TextBlock",
-            "size": "Large",
-            "text": "Ignore until this happens again...",
-            "weight": "Bolder",
-            "id": "ignoreTitle",
-            "isVisible": False,
-        }
-    ]
-
-
-def build_group_assign_card(group, event, rules, integration):
-    return [
-        {
-            "type": "TextBlock",
-            "size": "Large",
-            "text": "Assign to...",
-            "weight": "Bolder",
-            "id": "assignTitle",
-            "isVisible": False,
-        }
-    ]
-
-
-def build_group_action_cards(group, event, rules, integration):
-    status = group.get_status()
-    action_cards = []
-    if status != GroupStatus.RESOLVED:
-        action_cards += build_group_resolve_card(group, event, rules, integration)
-    if status != GroupStatus.IGNORED:
-        action_cards += build_group_ignore_card(group, event, rules, integration)
-    action_cards += build_group_assign_card(group, event, rules, integration)
-
-    return {"type": "ColumnSet", "columns": [{"type": "Column", "items": action_cards}]}
+    return create_container_block(
+        create_action_set_block(
+            resolve_action,
+            ignore_action,
+            assign_action,
+        )
+    )
 
 
 def build_assignee_note(group):
-    assignee = get_assignee_string(group)
-    if not assignee:
-        return None
-    return {"type": "TextBlock", "size": "Small", "text": f"**Assigned to {assignee}**"}
+    assignee = group.get_assignee()
+    if assignee:
+        assignee_text = format_actor_option(assignee)["text"]
+
+        return create_text_block(
+            IssueConstants.ASSIGNEE_NOTE.format(assignee=assignee_text),
+            size=TextSize.SMALL,
+        )
 
 
 def build_group_card(group, event, rules, integration):
-    project = Project.objects.get_from_cache(id=group.project_id)
-
     title = build_group_title(group)
     body = [title]
 
@@ -346,7 +280,7 @@ def build_group_card(group, event, rules, integration):
     if desc:
         body.append(desc)
 
-    footer = build_group_footer(group, rules, project, event)
+    footer = build_group_footer(group, rules, event)
     body.append(footer)
 
     assignee_note = build_assignee_note(group)

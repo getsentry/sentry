@@ -55,16 +55,18 @@ describe('Server-side Sampling', function () {
 
     expect(
       screen.getByText(
-        'Server-side sampling provides an additional dial for dropping transactions. This comes in handy when your server-side sampling rules target the transactions you want to keep, but you need more of those transactions being sent by the SDK.'
+        'Server-side sampling lets you control what transactions Sentry retains by setting sample rules and rates so you see more of the transactions you want to explore further in Sentry – and less of the ones you don’t – without re-configuring the Sentry SDK and redeploying anything.'
       )
     ).toBeInTheDocument();
 
     expect(
-      screen.getByRole('heading', {name: 'No sampling rules active yet'})
+      screen.getByRole('heading', {name: 'Set sample rules for your project'})
     ).toBeInTheDocument();
 
     expect(
-      screen.getByText('Set up your project for sampling success')
+      screen.getByText(
+        'Because every project is different – some need more events from high converting pages, critical API endpoints, or just want to focus on latency issues from the latest release – set multiple sample rules with different sample rates per project so you can keep what you need and drop what you don’t.'
+      )
     ).toBeInTheDocument();
 
     expect(screen.getByRole('button', {name: 'Read Docs'})).toHaveAttribute(
@@ -191,7 +193,7 @@ describe('Server-side Sampling', function () {
 
     expect(
       within(recommendedSdkUpgradesAlert).getByText(
-        'To keep a consistent amount of transactions across your applications multiple services, we recommend you update the SDK versions for the following projects:'
+        'To ensure you are properly monitoring the performance of all your other services, we require you update to the latest version of the following SDK(s):'
       )
     ).toBeInTheDocument();
 
@@ -211,9 +213,7 @@ describe('Server-side Sampling', function () {
       })
     );
 
-    expect(
-      await screen.findByRole('heading', {name: 'Recommended next steps\u2026'})
-    ).toBeInTheDocument();
+    expect(await screen.findByRole('heading', {name: 'Next steps'})).toBeInTheDocument();
   });
 
   it('Open specific conditions modal', async function () {
@@ -333,7 +333,7 @@ describe('Server-side Sampling', function () {
 
     expect(
       await screen.findByRole('heading', {
-        name: 'Set a uniform sample rate for Transactions',
+        name: 'Define a global sample rate',
       })
     ).toBeInTheDocument();
   });

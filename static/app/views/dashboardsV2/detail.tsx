@@ -60,6 +60,7 @@ import ReleasesSelectControl from './releasesSelectControl';
 import DashboardTitle from './title';
 import {
   DashboardDetails,
+  DashboardFilters,
   DashboardListItem,
   DashboardState,
   DashboardWidgetSource,
@@ -67,7 +68,7 @@ import {
   Widget,
   WidgetType,
 } from './types';
-import {cloneDashboard} from './utils';
+import {cloneDashboard, hasSavedPageFilters} from './utils';
 
 const UNSAVED_MESSAGE = t('You have unsaved changes, are you sure you want to leave?');
 
@@ -384,6 +385,18 @@ class DashboardDetail extends Component<Props, State> {
     });
   };
 
+  handleChangeFilter = (activeFilters: DashboardFilters) => {
+    const {dashboard} = this.props;
+    const {modifiedDashboard} = this.state;
+    const newModifiedDashboard = modifiedDashboard || dashboard;
+    this.setState({
+      modifiedDashboard: {
+        ...newModifiedDashboard,
+        filters: {...newModifiedDashboard.filters, ...activeFilters},
+      },
+    });
+  };
+
   handleUpdateWidgetList = (widgets: Widget[]) => {
     const {organization, dashboard, api, onDashboardUpdate, location} = this.props;
     const {modifiedDashboard} = this.state;
@@ -484,7 +497,31 @@ class DashboardDetail extends Component<Props, State> {
               was_previewed: true,
             });
           }
-          createDashboard(api, organization.slug, modifiedDashboard, this.isPreview).then(
+          let newModifiedDashboard = modifiedDashboard;
+          if (organization.features.includes('dashboards-top-level-filter')) {
+            const {project, environment, statsPeriod, start, end} = location.query;
+            newModifiedDashboard = {
+              ...cloneDashboard(modifiedDashboard),
+              // Ensure projects and environment are sent as arrays, or undefined in the request
+              // location.query will return a string if there's only one value
+              projects:
+                project === undefined
+                  ? []
+                  : typeof project === 'string'
+                  ? [Number(project)]
+                  : project.map(Number),
+              environment: typeof environment === 'string' ? [environment] : environment,
+              period: statsPeriod,
+              start,
+              end,
+            };
+          }
+          createDashboard(
+            api,
+            organization.slug,
+            newModifiedDashboard,
+            this.isPreview
+          ).then(
             (newDashboard: DashboardDetails) => {
               addSuccessMessage(t('Dashboard created'));
               trackAnalyticsEvent({
@@ -611,6 +648,10 @@ class DashboardDetail extends Component<Props, State> {
             period: DEFAULT_STATS_PERIOD,
           },
         }}
+        skipLoadLastUsed={
+          organization.features.includes('dashboards-top-level-filter') &&
+          hasSavedPageFilters(dashboard)
+        }
       >
         <PageContent>
           <NoProjectMessage organization={organization}>
@@ -687,6 +728,8 @@ class DashboardDetail extends Component<Props, State> {
       this.state;
     const {dashboardId} = params;
 
+    const {filters} = modifiedDashboard || dashboard;
+
     return (
       <SentryDocumentTitle title={dashboard.title} orgSlug={organization.slug}>
         <PageFiltersContainer
@@ -698,6 +741,10 @@ class DashboardDetail extends Component<Props, State> {
               period: DEFAULT_STATS_PERIOD,
             },
           }}
+          skipLoadLastUsed={
+            organization.features.includes('dashboards-top-level-filter') &&
+            hasSavedPageFilters(dashboard)
+          }
         >
           <StyledPageContent>
             <NoProjectMessage organization={organization}>
@@ -750,7 +797,10 @@ class DashboardDetail extends Component<Props, State> {
                           organization={organization}
                           selection={selection}
                         >
-                          <ReleasesSelectControl />
+                          <ReleasesSelectControl
+                            handleChangeFilter={this.handleChangeFilter}
+                            selectedReleases={filters?.release || []}
+                          />
                         </ReleasesProvider>
                       </FilterButtons>
                     </Feature>

@@ -16,6 +16,7 @@ from snuba_sdk.function import CurriedFunction, Function
 from snuba_sdk.orderby import Direction, LimitBy, OrderBy
 from snuba_sdk.query import Query
 
+from sentry import options
 from sentry.api.event_search import (
     AggregateFilter,
     ParenExpression,
@@ -1621,6 +1622,18 @@ class MetricsQueryBuilder(QueryBuilder):
     def is_performance(self) -> bool:
         return self.dataset is Dataset.PerformanceMetrics
 
+    @property
+    def custom_measurement_map(self) -> List[MetricMeta]:
+        if self._custom_measurement_cache is None:
+            from sentry.snuba.metrics.datasource import get_custom_measurements
+
+            self._custom_measurement_cache = get_custom_measurements(
+                Project.objects.filter(id__in=self.params["project_id"]),
+                start=self.start,
+                end=self.end,
+            )
+        return self._custom_measurement_cache
+
     def resolve_query(
         self,
         query: Optional[str] = None,
@@ -1666,7 +1679,12 @@ class MetricsQueryBuilder(QueryBuilder):
         tag_id = self.resolve_metric_index(col)
         if tag_id is None:
             raise InvalidSearchQuery(f"Unknown field: {col}")
-        return f"tags[{tag_id}]"
+        if self.is_performance and options.get(
+            "sentry-metrics.performance.tags-values-are-strings"
+        ):
+            return f"tags_raw[{tag_id}]"
+        else:
+            return f"tags[{tag_id}]"
 
     def column(self, name: str) -> Column:
         """Given an unresolved sentry name and return a snql column.
@@ -1836,12 +1854,16 @@ class MetricsQueryBuilder(QueryBuilder):
                 use_case_id = UseCaseKey.PERFORMANCE
             else:
                 use_case_id = UseCaseKey.RELEASE_HEALTH
-            result = indexer.resolve(self.organization_id, value, use_case_id=use_case_id)
+            result = indexer.resolve(self.organization_id, value, use_case_id=use_case_id)  # type: ignore
             self._indexer_cache[value] = result
 
         return self._indexer_cache[value]
 
-    def _resolve_tag_value(self, value: str) -> int:
+    def _resolve_tag_value(self, value: str) -> Union[int, str]:
+        if self.is_performance and options.get(
+            "sentry-metrics.performance.tags-values-are-strings"
+        ):
+            return value
         if self.dry_run:
             return -1
         result = self.resolve_metric_index(value)
@@ -1883,7 +1905,14 @@ class MetricsQueryBuilder(QueryBuilder):
                     "Filter on timestamp is outside of the selected date range."
                 )
 
-        # TODO(wmak): Need to handle `has` queries, basically check that tags.keys has the value?
+        # Handle checks for existence
+        if search_filter.operator in ("=", "!=") and search_filter.value.value == "":
+            if is_tag:
+                return Condition(
+                    Function("has", [Column("tags.key"), self.resolve_metric_index(name)]),
+                    Op.EQ if search_filter.operator == "!=" else Op.NEQ,
+                    1,
+                )
 
         return Condition(lhs, Op(search_filter.operator), value)
 
