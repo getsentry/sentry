@@ -923,7 +923,7 @@ class SnubaTagStorage(TagStorage):
         if not (order_by == "-last_seen" or order_by == "-count"):
             raise ValueError("Unsupported order_by: %s" % order_by)
 
-        # We need to repalce `-count` into `-times_seen`, becaseu
+        # We need to replace `-count` into `-times_seen`, because
         # internally we can not order by `count` we can only by `times_seen`.
         if order_by == "-count":
             order_by = "-times_seen"
