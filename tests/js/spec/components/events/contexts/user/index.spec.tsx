@@ -1,6 +1,7 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import UserEventContext, {
+import {
+  UserEventContext,
   UserEventContextData,
 } from 'sentry/components/events/contexts/user';
 
