@@ -1762,7 +1762,7 @@ SENTRY_DEFAULT_OPTIONS = {}
 
 # You should not change this setting after your database has been created
 # unless you have altered all schemas first
-SENTRY_USE_BIG_INTS = True
+SENTRY_USE_BIG_INTS = False
 
 # Delay (in ms) to induce on API responses
 #
