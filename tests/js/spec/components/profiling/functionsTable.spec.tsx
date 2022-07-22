@@ -106,9 +106,6 @@ describe('FunctionsTable', function () {
     expect(screen.getByText('P75 Duration')).toBeInTheDocument();
     expect(screen.getByText('10.00ms')).toBeInTheDocument();
 
-    expect(screen.getByText('P95 Duration')).toBeInTheDocument();
-    expect(screen.getByText('12.00ms')).toBeInTheDocument();
-
     expect(screen.getByText('P99 Duration')).toBeInTheDocument();
     expect(screen.getByText('12.50ms')).toBeInTheDocument();
   });
