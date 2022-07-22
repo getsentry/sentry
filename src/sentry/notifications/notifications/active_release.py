@@ -88,6 +88,7 @@ class ActiveReleaseIssueNotification(AlertRuleNotification):
             return
 
         shared_context = self.get_context()
+
         for provider, participants in participants_by_provider.items():
             if (
                 features.has("organizations:active-release-monitor-alpha", self.organization)
