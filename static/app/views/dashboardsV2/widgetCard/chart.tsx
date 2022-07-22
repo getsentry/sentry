@@ -210,7 +210,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
         tableMeta[field] = 'string';
       }
 
-      if (!field || !result.data.length) {
+      if (!field || !result.data?.length) {
         return <BigNumber key={`big_number:${result.title}`}>{'\u2014'}</BigNumber>;
       }
 

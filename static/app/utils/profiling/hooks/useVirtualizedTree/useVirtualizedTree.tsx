@@ -244,9 +244,9 @@ export interface UseVirtualizedListProps<T extends TreeLike> {
       tabIndexKey: number | null;
     }
   ) => React.ReactNode;
-  roots: T[];
   rowHeight: number;
   scrollContainer: HTMLElement | null;
+  tree: T[];
   overscroll?: number;
   skipFunction?: (node: VirtualizedTreeNode<T>) => boolean;
   sortFunction?: (a: VirtualizedTreeNode<T>, b: VirtualizedTreeNode<T>) => number;
@@ -279,7 +279,7 @@ export function useVirtualizedTree<T extends TreeLike>(
 
   const [state, dispatch] = useReducer(VirtualizedTreeStateReducer, {
     scrollTop: 0,
-    roots: props.roots,
+    roots: props.tree,
     tabIndexKey: null,
     overscroll: props.overscroll ?? DEFAULT_OVERSCROLL_ITEMS,
     scrollHeight: props.scrollContainer?.getBoundingClientRect()?.height ?? 0,
@@ -289,7 +289,7 @@ export function useVirtualizedTree<T extends TreeLike>(
   const latestStateRef = useRef<typeof state>(state);
   latestStateRef.current = state;
   const [tree, setTree] = useState(() => {
-    const initialTree = VirtualizedTree.fromRoots(props.roots, props.skipFunction);
+    const initialTree = VirtualizedTree.fromRoots(props.tree, props.skipFunction);
 
     if (props.sortFunction) {
       initialTree.sort(props.sortFunction);
@@ -311,7 +311,7 @@ export function useVirtualizedTree<T extends TreeLike>(
   useEffectAfterFirstRender(() => {
     const expandedNodes = tree.getAllExpandedNodes(expandedHistory.current);
     const newTree = VirtualizedTree.fromRoots(
-      props.roots,
+      props.tree,
       props.skipFunction,
       expandedNodes
     );
@@ -346,7 +346,7 @@ export function useVirtualizedTree<T extends TreeLike>(
 
     dispatch({type: 'set tab index key', payload: tabIndex});
     setTree(newTree);
-  }, [props.roots, props.skipFunction, cleanupAllHoveredRows]);
+  }, [props.tree, props.skipFunction, cleanupAllHoveredRows]);
 
   const items = useMemo(() => {
     return findVisibleItems<T>({
@@ -364,6 +364,8 @@ export function useVirtualizedTree<T extends TreeLike>(
   // On scroll, we update scrollTop position.
   // Keep a rafId reference in the unlikely event where component unmounts before raf is executed.
   const scrollEndTimeoutId = useRef<AnimationTimeoutId | undefined>(undefined);
+  const previousScrollHeight = useRef<number>(0);
+
   useEffect(() => {
     const scrollContainer = props.scrollContainer;
 
@@ -371,7 +373,13 @@ export function useVirtualizedTree<T extends TreeLike>(
       return undefined;
     }
 
-    const handleScroll = evt => {
+    function handleScroll(evt) {
+      const top = Math.max(evt.target.scrollTop, 0);
+
+      if (previousScrollHeight.current === top) {
+        return;
+      }
+
       evt.target.firstChild.style.pointerEvents = 'none';
 
       if (scrollEndTimeoutId.current !== undefined) {
@@ -384,7 +392,7 @@ export function useVirtualizedTree<T extends TreeLike>(
 
       dispatch({
         type: 'set scroll top',
-        payload: Math.max(evt.target.scrollTop, 0),
+        payload: top,
       });
 
       // On scroll, we need to update the selected ghost row and clear the hovered ghost row
@@ -402,7 +410,9 @@ export function useVirtualizedTree<T extends TreeLike>(
       hideGhostRow({
         ref: hoveredGhostRowRef,
       });
-    };
+
+      previousScrollHeight.current = top;
+    }
 
     scrollContainer.addEventListener('scroll', handleScroll, {
       passive: true,

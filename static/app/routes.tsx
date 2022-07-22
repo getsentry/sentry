@@ -14,7 +14,6 @@ import {EXPERIMENTAL_SPA} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
 import {HookName} from 'sentry/types/hooks';
-import {SamplingRuleType} from 'sentry/types/sampling';
 import errorHandler from 'sentry/utils/errorHandler';
 import App from 'sentry/views/app';
 import AuthLayout from 'sentry/views/auth/layout';
@@ -464,14 +463,6 @@ function buildRoutes() {
         <Route path=":filterType/" />
       </Route>
       <Route
-        path="sampling/"
-        name={t('Sampling')}
-        component={make(() => import('sentry/views/settings/project/sampling'))}
-      >
-        <IndexRedirect to={`${SamplingRuleType.TRACE}/`} />
-        <Route path=":ruleType/" />
-      </Route>
-      <Route
         path="server-side-sampling/"
         name={t('Server-side Sampling')}
         component={make(
@@ -817,6 +808,18 @@ function buildRoutes() {
               )
           )}
         />
+        <Route path="sentry-functions/" name={t('Sentry Functions')}>
+          <Route
+            path="new/"
+            name={t('Create Sentry Function')}
+            component={make(
+              () =>
+                import(
+                  'sentry/views/settings/organizationDeveloperSettings/sentryFunctionDetails'
+                )
+            )}
+          />
+        </Route>
       </Route>
     </Route>
   );
@@ -1041,10 +1044,6 @@ function buildRoutes() {
         path=":eventSlug/"
         component={make(() => import('sentry/views/replays/details'))}
       />
-      <Route
-        path=":eventSlug/v2/"
-        component={make(() => import('sentry/views/replays/details_v2'))}
-      />
     </Route>
   );
 
@@ -1057,6 +1056,10 @@ function buildRoutes() {
       >
         <IndexRoute
           component={make(() => import('sentry/views/releases/detail/overview'))}
+        />
+        <Route
+          path="activity/"
+          component={make(() => import('sentry/views/releases/detail/activity'))}
         />
         <Route
           path="commits/"
@@ -1683,6 +1686,10 @@ function buildRoutes() {
       component={make(() => import('sentry/views/profiling'))}
     >
       <IndexRoute component={make(() => import('sentry/views/profiling/content'))} />
+      <Route
+        path="onboarding/"
+        component={make(() => import('sentry/views/profiling/onboarding'))}
+      />
       <Route
         path="summary/:projectId/"
         component={make(() => import('sentry/views/profiling/profileSummary'))}

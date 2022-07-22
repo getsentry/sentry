@@ -6,7 +6,7 @@ import TextField from 'sentry/components/deprecatedforms/textField';
 import space from 'sentry/styles/space';
 
 import {IconData, iconGroups, IconPropName, iconProps, icons} from './data';
-import IconInfoBox from './infoBox';
+import IconEntry from './iconEntry';
 
 export type ExtendedIconData = IconData & {
   name: string;
@@ -20,23 +20,20 @@ export type SelectedIcon = {
   icon: string;
 };
 
-const enumerateIconProps = (iconData: ExtendedIconData[], prop: string) =>
+const enumerateIconProps = (iconData: ExtendedIconData[], prop: IconPropName) =>
   iconData.reduce<ExtendedIconData[]>((acc, cur) => {
     const propData = iconProps[prop];
 
     switch (propData.type) {
       case 'select':
-        const availableOptions: string[][] = cur.limitOptions?.[prop] ?? propData.options;
+        const availableOptions = cur.limitOptions?.[prop] ?? propData.options ?? [];
 
         return [
           ...acc,
           ...availableOptions.map(option => ({
             ...cur,
-            id: `${cur.id}-${prop}-${option[0]}`,
-            defaultProps: {
-              ...cur.defaultProps,
-              [prop]: option[0],
-            },
+            id: `${cur.id}-${prop}-${option.value}`,
+            defaultProps: {...cur.defaultProps, [prop]: option.value},
           })),
         ];
       case 'boolean':
@@ -67,7 +64,6 @@ const enumerateIconVariants = (iconData: ExtendedIconData[]): ExtendedIconData[]
     return [...acc, ...iconVariants];
   }, []);
 
-// All the icons, split into iterable groups
 const addIconNames = (iconData: IconData[]): ExtendedIconData[] =>
   iconData.map(icon => {
     const nameString = icon.id.split('-')[0];
@@ -75,6 +71,7 @@ const addIconNames = (iconData: IconData[]): ExtendedIconData[] =>
     return {...icon, name};
   });
 
+// All the icons, split into iterable groups
 const groupedIcons: Results = iconGroups.map(group => {
   const filteredIcons = icons.filter(i => i.groups.includes(group.id));
   const namedIcons = addIconNames(filteredIcons);
@@ -86,10 +83,6 @@ const groupedIcons: Results = iconGroups.map(group => {
 const fuse = new Fuse(icons, {keys: ['id', 'groups', 'keywords'], threshold: 0.3});
 
 function SearchPanel() {
-  // The same icon can appear in multiple groups, so we also need to store
-  // which group the selected icon is in
-  const [selectedIcon, setSelectedIcon] = useState<SelectedIcon>({group: '', icon: ''});
-
   /**
    * Use Fuse.js to implement icon search
    */
@@ -118,7 +111,6 @@ function SearchPanel() {
         value={query}
         onChange={value => {
           setQuery(value as string);
-          setSelectedIcon({group: '', icon: ''});
         }}
       />
 
@@ -127,13 +119,7 @@ function SearchPanel() {
           <GroupLabel>{group.label}</GroupLabel>
           <GroupIcons>
             {group.icons.map(icon => (
-              <IconInfoBox
-                key={icon.id}
-                icon={icon}
-                selectedIcon={selectedIcon}
-                setSelectedIcon={setSelectedIcon}
-                groupId={group.id}
-              />
+              <IconEntry key={icon.id} icon={icon} />
             ))}
           </GroupIcons>
         </GroupWrap>
@@ -161,6 +147,6 @@ const GroupLabel = styled('p')`
 const GroupIcons = styled('div')`
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  row-gap: ${space(1)};
+  gap: ${space(1)};
   margin-top: ${space(1)};
 `;

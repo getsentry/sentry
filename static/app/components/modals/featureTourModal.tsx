@@ -160,7 +160,7 @@ class ModalContents extends Component<ContentsProps, ContentsState> {
     const hasNext = steps[current + 1] !== undefined;
 
     return (
-      <Body>
+      <Body data-test-id="feature-tour">
         <CloseButton
           borderless
           size="zero"
@@ -175,11 +175,7 @@ class ModalContents extends Component<ContentsProps, ContentsState> {
           <TourButtonBar gap={1}>
             {step.actions && step.actions}
             {hasNext && (
-              <Button
-                data-test-id="next-step"
-                priority="primary"
-                onClick={this.handleAdvance}
-              >
+              <Button priority="primary" onClick={this.handleAdvance}>
                 {t('Next')}
               </Button>
             )}
@@ -187,7 +183,6 @@ class ModalContents extends Component<ContentsProps, ContentsState> {
               <Button
                 external
                 href={doneUrl}
-                data-test-id="complete-tour"
                 onClick={closeModal}
                 priority="primary"
                 aria-label={t('Complete tour')}

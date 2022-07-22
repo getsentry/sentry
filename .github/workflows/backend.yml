@@ -15,6 +15,7 @@ jobs:
     outputs:
       api_docs: ${{ steps.changes.outputs.api_docs }}
       backend: ${{ steps.changes.outputs.backend }}
+      backend_dependencies: ${{ steps.changes.outputs.backend_dependencies }}
       backend_any_type: ${{ steps.changes.outputs.backend_any_type }}
       migration_lockfile: ${{ steps.changes.outputs.migration_lockfile }}
       plugins: ${{ steps.changes.outputs.plugins }}
@@ -33,20 +34,15 @@ jobs:
     needs: files-changed
     name: api docs test
     runs-on: ubuntu-20.04
-    strategy:
-      matrix:
-        python-version: [3.8.12]
     steps:
       - uses: actions/checkout@v2
 
       - uses: ./.github/actions/setup-volta
 
-      - name: Setup sentry python env (python ${{ matrix.python-version }})
+      - name: Setup sentry python env
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
-          python-version: ${{ matrix.python-version }}
-          pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
           snuba: true
 
       - name: Run API docs tests
@@ -67,7 +63,6 @@ jobs:
       # and reducing the risk that one of many runs would turn red again (read: intermittent tests)
       fail-fast: false
       matrix:
-        python-version: [3.8.12]
         # XXX: When updating this, make sure you also update MATRIX_INSTANCE_TOTAL.
         instance: [0, 1, 2]
         pg-version: ['9.6']
@@ -84,12 +79,10 @@ jobs:
           # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
           fetch-depth: '2'
 
-      - name: Setup sentry env (python ${{ matrix.python-version }})
+      - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
-          python-version: ${{ matrix.python-version }}
-          pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
           snuba: true
           # Right now, we run so few bigtable related tests that the
           # overhead of running bigtable in all backend tests
@@ -106,6 +99,55 @@ jobs:
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
 
+  backend-test-snuba-contains-metrics-tag-values:
+    if: needs.files-changed.outputs.backend == 'true'
+    needs: files-changed
+    name: backend test (snuba contains metrics tag values)
+    runs-on: ubuntu-20.04
+    timeout-minutes: 20
+    strategy:
+      # This helps not having to run multiple jobs because one fails, thus, reducing resource usage
+      # and reducing the risk that one of many runs would turn red again (read: intermittent tests)
+      fail-fast: false
+      matrix:
+        # XXX: When updating this, make sure you also update MATRIX_INSTANCE_TOTAL.
+        instance: [0]
+        pg-version: ['9.6']
+
+    env:
+      # XXX: MATRIX_INSTANCE_TOTAL must be hardcoded to the length of strategy.matrix.instance.
+      MATRIX_INSTANCE_TOTAL: 1
+      MIGRATIONS_TEST_MIGRATE: 1
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          # Avoid codecov error message related to SHA resolution:
+          # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
+          fetch-depth: '2'
+
+      - name: Setup sentry env
+        uses: ./.github/actions/setup-sentry
+        id: setup
+        with:
+          snuba: true
+          # Right now, we run so few bigtable related tests that the
+          # overhead of running bigtable in all backend tests
+          # is way smaller than the time it would take to run in its own job.
+          bigtable: true
+          pg-version: ${{ matrix.pg-version }}
+
+      - name: Run backend test (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
+        run: |
+          # Note: `USE_SNUBA` is not used for backend tests because there are a few failing tests with Snuba enabled.
+          unset USE_SNUBA
+          export PYTEST_ADDOPTS="-m 'sentry_metrics and not broken_under_tags_values_as_strings'"
+          export SENTRY_METRICS_SIMULATE_TAG_VALUES_IN_CLICKHOUSE=1
+          make test-python-ci
+
+      - name: Handle artifacts
+        uses: ./.github/actions/artifacts
+
   cli:
     if: needs.files-changed.outputs.backend == 'true'
     needs: files-changed
@@ -114,17 +156,14 @@ jobs:
     timeout-minutes: 10
     strategy:
       matrix:
-        python-version: [3.8.12]
         pg-version: ['9.6']
     steps:
       - uses: actions/checkout@v2
 
-      - name: Setup sentry env (python ${{ matrix.python-version }})
+      - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
-          python-version: ${{ matrix.python-version }}
-          pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
           pg-version: ${{ matrix.pg-version }}
 
       - name: Run test
@@ -134,25 +173,53 @@ jobs:
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
 
+  requirements:
+    if: needs.files-changed.outputs.backend_dependencies == 'true'
+    needs: files-changed
+    name: requirements check
+    runs-on: ubuntu-20.04
+    timeout-minutes: 3
+    steps:
+      - uses: getsentry/action-github-app-token@v1
+        id: token
+        continue-on-error: true
+        with:
+          app_id: ${{ secrets.SENTRY_INTERNAL_APP_ID }}
+          private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: 3.8.13
+      - name: check requirements
+        run: |
+          python -m pip install -q "$(grep '^pip-tools==' requirements-dev-frozen.txt)"
+          python -S -m tools.freeze_requirements sentry
+          if ! git diff --exit-code; then
+            echo $'\n\nrun `make freeze-requirements` locally to update requirements'
+            exit 1
+          fi
+      - name: apply any requirements changes
+        if: steps.token.outcome == 'success' && github.ref != 'refs/heads/master' && always()
+        uses: getsentry/action-github-commit@main
+        with:
+          github-token: ${{ steps.token.outputs.token }}
+          message: ':snowflake: re-freeze requirements'
+
   lint:
     if: needs.files-changed.outputs.backend == 'true'
     needs: files-changed
     name: backend lint
     runs-on: ubuntu-20.04
     timeout-minutes: 10
-    strategy:
-      matrix:
-        python-version: [3.8.12]
     steps:
-      - uses: actions/checkout@v2
-
-      - name: Internal github app token
+      - uses: getsentry/action-github-app-token@v1
         id: token
-        uses: getsentry/action-github-app-token@v1
         continue-on-error: true
         with:
           app_id: ${{ secrets.SENTRY_INTERNAL_APP_ID }}
           private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
+
+      - uses: actions/checkout@v2
 
       - uses: getsentry/paths-filter@v2
         id: files
@@ -168,14 +235,13 @@ jobs:
           filters: |
             all:
               - added|modified: '**/*.py'
-              - added|modified: 'requirements-dev-only-frozen.txt'
+              - added|modified: 'requirements-*.txt'
 
-      - uses: actions/setup-python@v3
+      - uses: actions/setup-python@v4
         with:
-          python-version: ${{ matrix.python-version }}
-          cache: 'pip'
-          cache-dependency-path: |
-            requirements-dev-only-frozen.txt
+          python-version: 3.8.13
+          cache: pip
+          cache-dependency-path: requirements-dev-only-frozen.txt
 
       - uses: actions/cache@v3
         with:
@@ -198,7 +264,6 @@ jobs:
           #      `getconf ARG_MAX` - max # bytes of args + environ for exec()
           pre-commit run --files ${{ steps.files.outputs.all_files }}
 
-      # If working tree is dirty, commit and update if we have a token
       - name: Apply any pre-commit fixed files
         if: steps.token.outcome == 'success' && github.ref != 'refs/heads/master' && always()
         uses: getsentry/action-github-commit@main
@@ -212,19 +277,16 @@ jobs:
     runs-on: ubuntu-20.04
     strategy:
       matrix:
-        python-version: [3.8.12]
         pg-version: ['9.6']
 
     steps:
       - name: Checkout sentry
         uses: actions/checkout@v2
 
-      - name: Setup sentry env (python ${{ matrix.python-version }})
+      - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
-          python-version: ${{ matrix.python-version }}
-          pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
           pg-version: ${{ matrix.pg-version }}
 
       - name: Migration & lockfile checks
@@ -240,18 +302,13 @@ jobs:
     name: plugins test
     runs-on: ubuntu-20.04
     timeout-minutes: 10
-    strategy:
-      matrix:
-        python-version: [3.8.12]
     steps:
       - uses: actions/checkout@v2
 
-      - name: Setup sentry env (python ${{ matrix.python-version }})
+      - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
-          python-version: ${{ matrix.python-version }}
-          pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
           snuba: true
 
       - name: Run test
@@ -264,9 +321,6 @@ jobs:
     name: relay test
     runs-on: ubuntu-20.04
     timeout-minutes: 20
-    strategy:
-      matrix:
-        python-version: [3.8.12]
     steps:
       - uses: actions/checkout@v2
         with:
@@ -274,12 +328,10 @@ jobs:
           # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
           fetch-depth: '2'
 
-      - name: Setup sentry env (python ${{ matrix.python-version }})
+      - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
-          python-version: ${{ matrix.python-version }}
-          pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
           snuba: true
           kafka: true
 
@@ -307,7 +359,6 @@ jobs:
       # and reducing the risk that one of many runs would turn red again (read: intermittent tests)
       fail-fast: false
       matrix:
-        python-version: [3.8.12]
         # XXX: When updating this, make sure you also update MATRIX_INSTANCE_TOTAL.
         instance: [0, 1]
     env:
@@ -323,12 +374,10 @@ jobs:
           # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
           fetch-depth: '2'
 
-      - name: Setup sentry env (python ${{ matrix.python-version }})
+      - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
-          python-version: ${{ matrix.python-version }}
-          pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
           snuba: true
           kafka: true
 
@@ -345,9 +394,6 @@ jobs:
     name: symbolicator test
     runs-on: ubuntu-20.04
     timeout-minutes: 10
-    strategy:
-      matrix:
-        python-version: [3.8.12]
     steps:
       - uses: actions/checkout@v2
         with:
@@ -355,12 +401,10 @@ jobs:
           # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
           fetch-depth: '2'
 
-      - name: Setup sentry env (python ${{ matrix.python-version }})
+      - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
-          python-version: ${{ matrix.python-version }}
-          pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
           snuba: true
           kafka: true
 
@@ -389,25 +433,22 @@ jobs:
     name: backend typing
     runs-on: ubuntu-20.04
     timeout-minutes: 12
-    strategy:
-      matrix:
-        python-version: [3.8.12]
     steps:
       - uses: actions/checkout@v2
 
-      - name: Setup Python ${{ matrix.python-version }}
-        uses: ./.github/actions/setup-python
+      - name: Setup Python
+        uses: actions/setup-python@v4
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: 3.8.13
+          cache: pip
+          cache-dependency-path: requirements-dev-frozen.txt
 
       # We don't call setup-sentry, because we don't need devservices.
       - name: Setup backend typing
-        env:
-          SENTRY_LIGHT_BUILD: 1
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends libxmlsec1-dev
-          pip install -U -e ".[dev]"
+          pip install -r requirements-dev-frozen.txt
 
       - name: Run backend typing (${{ steps.setup.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
         run: |
@@ -423,6 +464,7 @@ jobs:
         backend-test,
         cli,
         lint,
+        requirements,
         migration,
         plugins,
         relay,

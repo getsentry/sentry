@@ -559,7 +559,7 @@ def callback_timing(
             "status": primary_status,
             "primary": "true",
         },
-        **metric_kwargs,
+        **metric_kwargs,  # type: ignore
     )
 
     for i, secondary_backend_name in enumerate(backend_names[1:], 1):
@@ -603,17 +603,17 @@ def callback_timing(
                     "status": secondary_status,
                     "primary": "false",
                 },
-                **metric_kwargs,
+                **metric_kwargs,  # type: ignore
             )
             metrics.timing(
                 f"{metric_name}.timing_delta_ms",
                 secondary_duration_ms - primary_duration_ms,
                 tags=tags,
-                **metric_kwargs,
+                **metric_kwargs,  # type: ignore
             )
             metrics.timing(
                 f"{metric_name}.timing_relative_delta",
                 secondary_duration_ms / primary_duration_ms,
                 tags=tags,
-                **metric_kwargs,
+                **metric_kwargs,  # type: ignore
             )
