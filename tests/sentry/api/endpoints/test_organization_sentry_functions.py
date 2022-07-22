@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import Feature
 
@@ -11,7 +13,8 @@ class OrganizationSentryFunctions(APITestCase):
         self.create_organization(owner=self.user, name="RowdyTiger")
         self.login_as(user=self.user)
 
-    def test_post_feature_true(self):
+    @patch("sentry.api.endpoints.organization_sentry_function.create_function")
+    def test_post_feature_true(self, mock_func):
         defaultCode = "exports.yourFunction = (req, res) => {\n\tlet message = req.query.message || req.body.message || 'Hello World!';\n\tconsole.log('Query: ' + req.query);\n\tconsole.log('Body: ' + req.body);\n\tres.status(200).send(message);\n};"
         data = {
             "name": "foo",
@@ -26,6 +29,7 @@ class OrganizationSentryFunctions(APITestCase):
             assert response.data["author"] == "bar"
             assert response.data["code"] == defaultCode
             assert response.data["overview"] == "qux"
+            mock_func.assert_called_once_with(defaultCode, response.data["external_id"], "qux")
 
     def test_post_missing_params(self):
         data = {"name": "foo", "overview": "qux"}
