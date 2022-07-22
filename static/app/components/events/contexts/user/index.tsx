@@ -3,7 +3,7 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import ContextBlock from 'sentry/components/events/contexts/contextBlock';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import {removeFilterMaskedEntries} from 'sentry/components/events/interfaces/utils';
-import {AvatarUser as UserType} from 'sentry/types';
+import {AvatarUser} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 
@@ -11,14 +11,14 @@ import {getUnknownData} from '../getUnknownData';
 
 import {getUserKnownData} from './getUserKnownData';
 
+export type UserEventContextData = {
+  data: Record<string, string>;
+} & AvatarUser;
+
 type Props = {
-  data: Data;
+  data: UserEventContextData;
   event: Event;
 };
-
-type Data = {
-  data: Record<string, string>;
-} & UserType;
 
 export enum UserKnownDataType {
   ID = 'id',
@@ -32,7 +32,7 @@ export enum UserIgnoredDataType {
   DATA = 'data',
 }
 
-const userKnownDataValues = [
+export const userKnownDataValues = [
   UserKnownDataType.ID,
   UserKnownDataType.EMAIL,
   UserKnownDataType.USERNAME,
@@ -50,7 +50,7 @@ function User({data, event}: Props) {
       <div className="pull-left">
         <UserAvatar user={removeFilterMaskedEntries(data)} size={48} gravatar={false} />
       </div>
-      <ContextBlock data={getUserKnownData({data, userKnownDataValues, meta})} />
+      <ContextBlock data={getUserKnownData({data, meta})} />
       <ContextBlock
         data={getUnknownData({
           allData: data,

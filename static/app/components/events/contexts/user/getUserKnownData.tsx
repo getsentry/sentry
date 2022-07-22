@@ -1,20 +1,15 @@
-import {AvatarUser as UserType, Event, KeyValueListData} from 'sentry/types';
+import {Event, KeyValueListData} from 'sentry/types';
 import {defined} from 'sentry/utils';
 
 import {getUserKnownDataDetails} from './getUserKnownDataDetails';
-import {UserKnownDataType} from '.';
+import {UserEventContextData, UserKnownDataType, userKnownDataValues} from '.';
 
 type Props = {
-  data: UserType;
+  data: UserEventContextData;
   meta: NonNullable<Event['_meta']>['user'];
-  userKnownDataValues: Array<UserKnownDataType>;
 };
 
-export function getUserKnownData({
-  data,
-  userKnownDataValues,
-  meta,
-}: Props): KeyValueListData {
+export function getUserKnownData({data, meta}: Props): KeyValueListData {
   const knownData: KeyValueListData = [];
 
   const dataKeys = userKnownDataValues.filter(userKnownDataValue => {
@@ -28,7 +23,10 @@ export function getUserKnownData({
   });
 
   for (const key of dataKeys) {
-    const knownDataDetails = getUserKnownDataDetails(data, key as UserKnownDataType);
+    const knownDataDetails = getUserKnownDataDetails({
+      data,
+      type: key as UserKnownDataType,
+    });
 
     if (!knownDataDetails) {
       continue;
