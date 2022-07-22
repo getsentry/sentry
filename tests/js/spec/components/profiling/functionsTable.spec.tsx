@@ -3,6 +3,7 @@ import {ReactElement, useEffect, useMemo} from 'react';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import {FunctionsTable} from 'sentry/components/profiling/functionsTable';
 import {LegacyFunctionsTable} from 'sentry/components/profiling/legacyFunctionsTable';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {OrganizationContext} from 'sentry/views/organizationContext';
@@ -34,6 +35,84 @@ function TestContext({children}: {children: ReactElement}) {
     </RouteContext.Provider>
   );
 }
+
+describe('FunctionsTable', function () {
+  it('renders loading', function () {
+    render(
+      <TestContext>
+        <FunctionsTable
+          isLoading
+          error={null}
+          functions={[]}
+          project={project}
+          sort="p99"
+        />
+      </TestContext>
+    );
+    expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
+  });
+
+  it('renders empty data', function () {
+    render(
+      <TestContext>
+        <FunctionsTable
+          isLoading={false}
+          error={null}
+          functions={[]}
+          project={project}
+          sort="-p99"
+        />
+      </TestContext>
+    );
+
+    expect(screen.getByText('No results found for your query')).toBeInTheDocument();
+  });
+
+  it('renders one function', function () {
+    const func = {
+      count: 10,
+      examples: ['aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'],
+      fingerprint: 1234,
+      name: 'foo',
+      p75: 10000000,
+      p95: 12000000,
+      p99: 12500000,
+      package: 'bar',
+      path: 'baz',
+      worst: 'cccccccccccccccccccccccccccccccc',
+    };
+
+    render(
+      <TestContext>
+        <FunctionsTable
+          isLoading={false}
+          error={null}
+          functions={[func]}
+          project={project}
+          sort="-p99"
+        />
+      </TestContext>
+    );
+
+    expect(screen.getByText('Name')).toBeInTheDocument();
+    expect(screen.getByText('foo')).toBeInTheDocument();
+
+    expect(screen.getByText('Package')).toBeInTheDocument();
+    expect(screen.getByText('bar')).toBeInTheDocument();
+
+    expect(screen.getByText('Count')).toBeInTheDocument();
+    expect(screen.getByText('10')).toBeInTheDocument();
+
+    expect(screen.getByText('P75 Duration')).toBeInTheDocument();
+    expect(screen.getByText('10.00ms')).toBeInTheDocument();
+
+    expect(screen.getByText('P95 Duration')).toBeInTheDocument();
+    expect(screen.getByText('12.00ms')).toBeInTheDocument();
+
+    expect(screen.getByText('P99 Duration')).toBeInTheDocument();
+    expect(screen.getByText('12.50ms')).toBeInTheDocument();
+  });
+});
 
 describe('LegacyFunctionsTable', function () {
   it('renders loading', function () {
