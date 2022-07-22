@@ -1,8 +1,8 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import Device from 'sentry/components/events/contexts/device/device';
+import Device from 'sentry/components/events/contexts/device';
 import {commonDisplayResolutions} from 'sentry/components/events/contexts/device/utils';
-import User from 'sentry/components/events/contexts/user/user';
+import User from 'sentry/components/events/contexts/user';
 import {FILTER_MASK} from 'sentry/constants';
 
 describe('User', function () {
