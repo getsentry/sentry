@@ -50,7 +50,7 @@ class MailAdapter:
             "target_identifier": target_identifier,
         }
         log_event = "dispatched"
-        for future in futures:
+        for future in filter(lambda f: f.rule, futures):
             rules.append(future.rule)
             extra["rule_id"] = future.rule.id
             if not future.kwargs:
