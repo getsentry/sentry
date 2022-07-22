@@ -42,6 +42,9 @@ function SearchBar(props: SearchBarProps) {
 
   const getSuggestedTransactions = debounce(
     async query => {
+      if (query.length === 0) {
+        onSearch('');
+      }
       if (query.length < 3) {
         setSearchResults([]);
         return;
@@ -110,7 +113,7 @@ function SearchBar(props: SearchBarProps) {
     const transactionName = query.slice(0, lastIndex);
     setSearchResults([]);
     setSearchString(transactionName);
-    onSearch(transactionName);
+    onSearch(`transaction:${transactionName}`);
   };
 
   const navigateToTransactionSummary = (name: string) => {

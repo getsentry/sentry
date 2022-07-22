@@ -31,7 +31,6 @@ import {
   PageErrorAlert,
   PageErrorProvider,
 } from 'sentry/utils/performance/contexts/pageError';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useTeams from 'sentry/utils/useTeams';
 
@@ -115,7 +114,11 @@ export function PerformanceLanding(props: Props) {
 
   const getFreeTextFromQuery = (query: string) => {
     const conditions = new MutableSearch(query);
-    return decodeScalar(conditions.freeText, '');
+    const transactionValues = conditions.getFilterValues('transaction');
+    if (transactionValues.length) {
+      return transactionValues[0];
+    }
+    return '';
   };
 
   const derivedQuery = getTransactionSearchQuery(location, eventView.query);
