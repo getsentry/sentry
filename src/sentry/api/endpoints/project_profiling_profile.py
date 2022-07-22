@@ -46,6 +46,9 @@ class ProjectProfilingPaginatedBaseEndpoint(ProjectProfilingBaseEndpoint, ABC):
     def get_data_fn(self, request: Request, project: Project, kwargs: Dict[str, Any]) -> Any:
         raise NotImplementedError
 
+    def get_on_result(self) -> Any:
+        return None
+
     def get(self, request: Request, project: Project) -> Response:
         if not features.has("organizations:profiling", project.organization, actor=request.user):
             return Response(404)
@@ -61,6 +64,7 @@ class ProjectProfilingPaginatedBaseEndpoint(ProjectProfilingBaseEndpoint, ABC):
             paginator=GenericOffsetPaginator(data_fn=self.get_data_fn(request, project, kwargs)),
             default_per_page=self.DEFAULT_PER_PAGE,
             max_per_page=self.MAX_PER_PAGE,
+            on_results=self.get_on_result(),
         )
 
 
@@ -124,3 +128,6 @@ class ProjectProfilingFunctionsEndpoint(ProjectProfilingPaginatedBaseEndpoint):
             return data.get("functions", [])
 
         return data_fn
+
+    def get_on_result(self) -> Any:
+        return lambda results: {"functions": results}
