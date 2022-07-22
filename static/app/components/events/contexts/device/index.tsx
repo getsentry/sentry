@@ -56,9 +56,9 @@ export const deviceKnownDataValues = [
 
 const deviceIgnoredDataValues = [];
 
-export function Device({data, event}: Props) {
+export function DeviceEventContext({data, event}: Props) {
   const inferredData = getInferredData(data);
-  const meta = event._meta?.device ?? {};
+  const meta = event._meta?.contexts?.device ?? {};
 
   return (
     <Fragment>

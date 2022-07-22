@@ -27,6 +27,11 @@ export function getDeviceKnownData({data, event, meta}: Props): KeyValueListData
 
   for (const type of dataKeys) {
     const knownDataDetails = getDeviceKnownDataDetails({event, data, type});
+
+    if (!knownDataDetails) {
+      continue;
+    }
+
     knownData.push({
       key: type,
       ...knownDataDetails,

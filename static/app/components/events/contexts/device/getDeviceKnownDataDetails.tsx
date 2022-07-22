@@ -20,7 +20,11 @@ type Props = {
   type: DeviceKnownDataType;
 };
 
-export function getDeviceKnownDataDetails({data, event, type}: Props): Output {
+export function getDeviceKnownDataDetails({
+  data,
+  event,
+  type,
+}: Props): Output | undefined {
   switch (type) {
     case DeviceKnownDataType.NAME:
       return {
@@ -180,7 +184,9 @@ export function getDeviceKnownDataDetails({data, event, type}: Props): Output {
     case DeviceKnownDataType.LANGUAGE:
       return {
         subject: t('Language'),
-        value: getFullLanguageDescription(data.language),
+        value: defined(data.language)
+          ? getFullLanguageDescription(data.language)
+          : undefined,
       };
     case DeviceKnownDataType.LOW_MEMORY:
       return {
@@ -238,9 +244,6 @@ export function getDeviceKnownDataDetails({data, event, type}: Props): Output {
         value: data.screen_width_pixels,
       };
     default:
-      return {
-        subject: type,
-        value: data[type],
-      };
+      return undefined;
   }
 }

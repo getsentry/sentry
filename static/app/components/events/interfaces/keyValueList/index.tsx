@@ -42,6 +42,7 @@ function KeyValueList({
             subjectDataTestId,
             actionButton,
           }) => {
+            // console.log({key, value, meta});
             return (
               <tr key={`${key}.${value}`}>
                 <TableSubject className="key" wide={longKeys}>

@@ -1,77 +1,67 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import UserEventContext, {
-  UserEventContextData,
-} from 'sentry/components/events/contexts/user';
+import {DeviceEventContext} from 'sentry/components/events/contexts/device';
+import {DeviceData} from 'sentry/components/events/contexts/device/types';
 
-// the values of this mock are correct and the types need to be updated
-export const userMockData = {
-  data: null,
-  email: null,
-  id: '',
-  ip_address: null,
-  name: null,
-  username: null,
-} as unknown as UserEventContextData;
+export const deviceMockData = {
+  screen_resolution: '1136x768',
+  orientation: 'portrait',
+  family: 'Android',
+  battery_level: 100,
+  screen_dpi: 480,
+  memory_size: 1055186944,
+  timezone: 'America/Los_Angeles',
+  external_storage_size: 534761472,
+  external_free_storage: 534702080,
+  screen_width_pixels: 768,
+  low_memory: false,
+  simulator: true,
+  screen_height_pixels: 1136,
+  free_memory: 658702336,
+  online: true,
+  screen_density: 3,
+  type: 'device',
+  charging: true,
+  locale: 'US',
+  model_id: 'NYC',
+  brand: 'google',
+  storage_size: 817143808,
+  boot_time: '2019-12-11T11:38:15Z',
+  arch: 'x86',
+  manufacturer: 'Google',
+  name: '', // redacted
+  free_storage: 508784640,
+  model: 'Android SDK built for x86',
+  uuid: 'abadcade-feed-dead-beef-baddadfeeded',
+  archs: ['x86'],
+} as unknown as DeviceData;
 
-export const userMetaMockData = {
-  email: null,
-  id: {
+export const deviceContextMetaMockData = {
+  name: {
     '': {
-      chunks: [
-        {
-          remark: 'x',
-          rule_id: 'project:0',
-          text: '',
-          type: 'redaction',
-        },
-      ],
-      len: 9,
-      rem: [['project:0', 'x', 0, 0]],
+      rem: [['project:1', 's', 0, 0]],
+      len: 25,
     },
   },
-  ip_address: {
-    '': {
-      err: [
-        [
-          'invalid_data',
-          {
-            reason: 'expected an ip address',
-          },
-        ],
-      ],
-      len: 14,
-      rem: [['project:0', 'x', 0, 0]],
-      val: '',
-    },
-  },
-  name: null,
-  username: null,
 };
 
 const event = {
   ...TestStubs.Event(),
   _meta: {
-    user: userMetaMockData,
+    contexts: {
+      device: deviceContextMetaMockData,
+    },
   },
 };
 
 describe('device event context', function () {
-  it('display the right context data according to its value and meta', async function () {
-    render(<UserEventContext event={event} data={userMockData} />);
-
-    // expect(screen.getByText('ID')).toBeInTheDocument(); // subject
-    // expect(screen.getByText(/redacted/)).toBeInTheDocument(); // value
-    // userEvent.hover(screen.getByText(/redacted/));
-    // expect(
-    //   await screen.findByText('Removed because of PII rule "project:0"')
-    // ).toBeInTheDocument(); // tooltip description
-
-    // expect(screen.getByText('IP Address')).toBeInTheDocument(); // subject
-    // expect(screen.getByText('None')).toBeInTheDocument(); // value
-    // userEvent.hover(screen.getByText('None'));
-    // expect(
-    //   await screen.findByText('Removed because of PII rule "project:0"')
-    // ).toBeInTheDocument(); // tooltip description
+  it('display redacted data', async function () {
+    render(<DeviceEventContext event={event} data={deviceMockData} />);
+    expect(screen.getByText('Name')).toBeInTheDocument(); // subject
+    expect(screen.getByText(/redacted/)).toBeInTheDocument(); // value
+    userEvent.hover(screen.getByText(/redacted/));
+    expect(
+      await screen.findByText('Replaced because of PII rule "project:1"')
+    ).toBeInTheDocument(); // tooltip description
   });
 });
