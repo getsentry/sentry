@@ -64,8 +64,17 @@ export type FunctionCall = {
   transaction_names: string[];
 };
 
-export type VersionedFunctionCalls = {
-  Versions: Record<string, {FunctionCalls: FunctionCall[]}>;
+export type SuspectFunction = {
+  count: number;
+  examples: string[];
+  fingerprint: number;
+  name: string;
+  p75: number;
+  p95: number;
+  p99: number;
+  package: string;
+  path: string;
+  worst: string;
 };
 
 export type ProfileTransaction = {

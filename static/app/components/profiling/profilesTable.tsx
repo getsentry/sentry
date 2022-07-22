@@ -49,7 +49,7 @@ function ProfilesTable(props: ProfilesTableProps) {
         columnOrder={(props.columnOrder ?? DEFAULT_COLUMN_ORDER).map(key => COLUMNS[key])}
         columnSortBy={[]}
         grid={{
-          renderHeadCell: renderTableHead(RIGHT_ALIGNED_COLUMNS),
+          renderHeadCell: renderTableHead({rightAlignedColumns: RIGHT_ALIGNED_COLUMNS}),
           renderBodyCell: renderProfilesTableCell,
         }}
         location={location}
