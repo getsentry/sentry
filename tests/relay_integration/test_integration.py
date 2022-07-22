@@ -1,13 +1,17 @@
 from io import BytesIO
+from unittest import mock
 from uuid import uuid4
 
 import pytest
 
 from sentry.models.eventattachment import EventAttachment
+from sentry.relay.projectconfig_cache import redis
 from sentry.spans.grouping.utils import hash_values
+from sentry.tasks.relay import invalidate_project_config
 from sentry.testutils import RelayStoreHelper, TransactionTestCase
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.datetime import before_now, iso_format, timestamp_format
+from sentry.testutils.helpers.options import override_options
 
 
 class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
@@ -216,3 +220,17 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
                     "total.time": {"unit": "millisecond", "value": pytest.approx(1050, abs=2)},
                 }
             }
+
+    def test_project_config_compression(self):
+        # Populate redis cache with compressed config:
+        with override_options({redis.COMPRESSION_OPTION: 1.0}):
+            invalidate_project_config(public_key=self.projectkey, trigger="test")
+
+        # Disable project config endpoint, to make sure Relay gets its data
+        # from redis:
+        with mock.patch(
+            "sentry.api.endpoints.relay.project_configs.RelayProjectConfigsEndpoint.post"
+        ):
+            event_data = {"message": "hello", "timestamp": iso_format(before_now(seconds=1))}
+            event = self.post_and_retrieve_event(event_data)
+            assert event.message == "hello"
