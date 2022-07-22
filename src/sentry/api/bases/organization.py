@@ -158,29 +158,6 @@ class OrganizationAlertRulePermission(OrganizationPermission):
     }
 
 
-def parse_subdomain(subdomain):
-    if subdomain is None:
-        return None, None
-    org_base_hostname = options.get("system.organization-base-hostname")
-    if not org_base_hostname or "{slug}" not in org_base_hostname:
-        return None, None
-    org_slug = subdomain
-    region = None
-    if "{region}" in org_base_hostname:
-        if "." in subdomain:
-            org_slug, _, region = subdomain.rpartition(".")
-        else:
-            return None, None
-    return org_slug, region
-
-
-def resolve_org_slug_region(request: Request, organization_slug: Optional[str] = None):
-    region = None
-    if organization_slug is None and request.subdomain is not None:
-        organization_slug, region = parse_subdomain(request.subdomain)
-    return organization_slug, region
-
-
 class OrganizationEndpoint(Endpoint):
     permission_classes = (OrganizationPermission,)
 
