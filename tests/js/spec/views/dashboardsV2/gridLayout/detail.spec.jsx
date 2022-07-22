@@ -1,3 +1,5 @@
+import {browserHistory} from 'react-router';
+
 import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -1079,6 +1081,67 @@ describe('Dashboards > Detail', function () {
           data: expect.objectContaining({
             period: '7d',
             filters: {release: ['sentry-android-shop@1.2.0']},
+          }),
+        })
+      );
+    });
+
+    it('can clear dashboard filters in existing dashboard', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/releases/',
+        body: [
+          TestStubs.Release({
+            shortVersion: 'sentry-android-shop@1.2.0',
+            version: 'sentry-android-shop@1.2.0',
+          }),
+        ],
+      });
+      const testData = initializeOrg({
+        organization: TestStubs.Organization({
+          features: [
+            'global-views',
+            'dashboards-basic',
+            'dashboards-edit',
+            'discover-query',
+            'dashboard-grid-layout',
+            'dashboards-top-level-filter',
+          ],
+        }),
+        router: {
+          location: {
+            ...TestStubs.location(),
+            query: {
+              statsPeriod: '7d',
+              project: [1, 2],
+              environment: ['alpha', 'beta'],
+            },
+          },
+        },
+      });
+      render(
+        <ViewEditDashboard
+          organization={testData.organization}
+          params={{orgId: 'org-slug', dashboardId: '1'}}
+          router={testData.router}
+          location={testData.router.location}
+        />,
+        {context: testData.routerContext, organization: testData.organization}
+      );
+
+      await screen.findByText('7D');
+      userEvent.click(await screen.findByText('All Releases'));
+      userEvent.click(screen.getByText('sentry-android-shop@1.2.0'));
+      userEvent.keyboard('{esc}');
+
+      userEvent.click(screen.getByText('Cancel'));
+
+      screen.getByText('All Releases');
+      expect(browserHistory.replace).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({
+            project: undefined,
+            statsPeriod: undefined,
+            environment: undefined,
           }),
         })
       );
