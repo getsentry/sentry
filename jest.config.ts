@@ -142,7 +142,7 @@ if (
 const ESM_NODE_MODULES = ['copy-text-to-clipboard'];
 
 const config: Config.InitialOptions = {
-  verbose: true,
+  verbose: false,
   collectCoverageFrom: [
     'tests/js/spec/**/*.{js,jsx,tsx}',
     'static/app/**/*.{js,jsx,ts,tsx}',

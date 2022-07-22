@@ -255,29 +255,6 @@
     "validate-api-examples": "cd api-docs && yarn openapi-examples-validator ../tests/apidocs/openapi-derefed.json --no-additional-properties",
     "mkcert-localhost": "mkcert -key-file config/localhost-key.pem -cert-file config/localhost.pem localhost 127.0.0.1 dev.getsentry.net && mkcert -install"
   },
-  "browserslist": {
-    "production": [
-      "last 10 Chrome versions",
-      "last 10 Firefox versions",
-      "last 2 Edge major versions",
-      "last 2 Safari major versions",
-      "last 3 iOS major versions",
-      "last 1 OperaMobile version",
-      "Firefox ESR"
-    ],
-    "development": [
-      "last 10 Chrome versions",
-      "last 10 Firefox versions",
-      "last 2 Edge major versions",
-      "last 2 Safari major versions",
-      "last 3 iOS major versions",
-      "last 1 OperaMobile version",
-      "Firefox ESR"
-    ],
-    "test": [
-      "current node"
-    ]
-  },
   "volta": {
     "node": "16.13.1",
     "yarn": "1.22.5"
