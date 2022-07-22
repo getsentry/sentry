@@ -66,6 +66,7 @@ function TagValueAutocomplete({
         null,
         true,
         undefined,
+        false,
         '-count'
       )
     );
