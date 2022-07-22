@@ -1,8 +1,28 @@
+import logging
+import random
+
+import zstandard
+
+from sentry import options
 from sentry.relay.projectconfig_cache.base import ProjectConfigCache
 from sentry.utils import json, metrics, redis
 from sentry.utils.redis import validate_dynamic_cluster
 
 REDIS_CACHE_TIMEOUT = 3600  # 1 hr
+COMPRESSION_OPTION_DSNS = "relay.project-config-cache-compress"
+COMPRESSION_OPTION_SAMPLE_RATE = "relay.project-config-cache-compress-sample-rate"
+COMPRESSION_LEVEL = 3  # 3 is the default level of compression
+
+logger = logging.getLogger(__name__)
+
+
+def _use_compression(public_key: str) -> bool:
+    enabled_dsns = options.get(COMPRESSION_OPTION_DSNS)
+    if public_key in enabled_dsns:
+        return True
+
+    # Apply sample rate:
+    return random.random() < options.get(COMPRESSION_OPTION_SAMPLE_RATE)
 
 
 class RedisProjectConfigCache(ProjectConfigCache):
@@ -24,7 +44,11 @@ class RedisProjectConfigCache(ProjectConfigCache):
         # Note: Those are multiple pipelines, one per cluster node
         p = self.cluster.pipeline()
         for public_key, config in configs.items():
-            p.setex(self.__get_redis_key(public_key), REDIS_CACHE_TIMEOUT, json.dumps(config))
+            value = json.dumps(config)
+            if _use_compression(public_key):
+                value = zstandard.compress(value.encode(), level=COMPRESSION_LEVEL)
+            metrics.timing("relay.projectconfig_cache.size", len(value))
+            p.setex(self.__get_redis_key(public_key), REDIS_CACHE_TIMEOUT, value)
 
         p.execute()
 
@@ -42,5 +66,10 @@ class RedisProjectConfigCache(ProjectConfigCache):
     def get(self, public_key):
         rv = self.cluster.get(self.__get_redis_key(public_key))
         if rv is not None:
+            try:
+                rv = zstandard.decompress(rv).decode()
+            except (TypeError, zstandard.ZstdError):
+                # assume raw json
+                pass
             return json.loads(rv)
         return None
