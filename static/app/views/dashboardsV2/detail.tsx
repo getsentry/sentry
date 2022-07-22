@@ -71,6 +71,33 @@ const UNSAVED_MESSAGE = t('You have unsaved changes, are you sure you want to le
 
 const HookHeader = HookOrDefault({hookName: 'component:dashboards-header'});
 
+function hasUnsavedFilterChanges(dashboard, location, filters) {
+  const {project, environment, statsPeriod, start, end} = location.query;
+  return !isEqual(
+    {
+      projects: dashboard.projects,
+      environment: dashboard.environment,
+      period: dashboard.period,
+      start: dashboard.start,
+      end: dashboard.end,
+      filters: dashboard.filters,
+    },
+    {
+      projects:
+        project === undefined
+          ? []
+          : typeof project === 'string'
+          ? [Number(project)]
+          : project.map(Number),
+      environment: typeof environment === 'string' ? [environment] : environment,
+      period: statsPeriod,
+      start,
+      end,
+      filters,
+    }
+  );
+}
+
 type RouteParams = {
   orgId: string;
   dashboardId?: string;
@@ -252,13 +279,30 @@ class DashboardDetail extends Component<Props, State> {
   }
 
   onEdit = () => {
-    const {dashboard} = this.props;
+    const {organization, dashboard} = this.props;
 
     trackAnalyticsEvent({
       eventKey: 'dashboards2.edit.start',
       eventName: 'Dashboards2: Edit start',
       organization_id: parseInt(this.props.organization.id, 10),
     });
+
+    const {filters} = this.state.modifiedDashboard || dashboard;
+    if (
+      organization.features.includes('dashboards-top-level-filter') &&
+      hasUnsavedFilterChanges(dashboard, location, filters)
+    ) {
+      browserHistory.replace({
+        ...this.props.location,
+        query: {
+          project: dashboard.projects,
+          environment: dashboard.environment,
+          statsPeriod: dashboard.period,
+          start: dashboard.start,
+          end: dashboard.end,
+        },
+      });
+    }
 
     this.setState({
       dashboardState: DashboardState.EDIT,
@@ -459,10 +503,24 @@ class DashboardDetail extends Component<Props, State> {
       !organization.features.includes('new-widget-builder-experience-modal-access')
     ) {
       if (dashboardId) {
+        const {filters} = this.state.modifiedDashboard || dashboard;
+        const queryParamOverrides =
+          organization.features.includes('dashboards-top-level-filter') &&
+          hasUnsavedFilterChanges(dashboard, location, filters)
+            ? {
+                project: dashboard.projects,
+                environment: dashboard.environment,
+                statsPeriod: dashboard.period,
+                start: dashboard.start,
+                end: dashboard.end,
+              }
+            : {};
+
         router.push({
           pathname: `/organizations/${organization.slug}/dashboard/${dashboardId}/widget/new/`,
           query: {
             ...location.query,
+            ...queryParamOverrides,
             source: DashboardWidgetSource.DASHBOARDS,
           },
         });
@@ -732,30 +790,6 @@ class DashboardDetail extends Component<Props, State> {
 
     const {filters} = modifiedDashboard || dashboard;
 
-    const hasUnsavedFilterChanges = !isEqual(
-      {
-        projects: dashboard.projects,
-        environment: dashboard.environment,
-        period: dashboard.period,
-        start: dashboard.start,
-        end: dashboard.end,
-        filters: dashboard.filters,
-      },
-      {
-        projects:
-          project === undefined
-            ? []
-            : typeof project === 'string'
-            ? [Number(project)]
-            : project.map(Number),
-        environment: typeof environment === 'string' ? [environment] : environment,
-        period: statsPeriod,
-        start,
-        end,
-        filters,
-      }
-    );
-
     return (
       <SentryDocumentTitle title={dashboard.title} orgSlug={organization.slug}>
         <PageFiltersContainer
@@ -813,7 +847,8 @@ class DashboardDetail extends Component<Props, State> {
                 <Layout.Main fullWidth>
                   <FiltersBar
                     hasUnsavedChanges={
-                      dashboardState !== DashboardState.CREATE && hasUnsavedFilterChanges
+                      dashboardState !== DashboardState.CREATE &&
+                      hasUnsavedFilterChanges(dashboard, location, filters)
                     }
                     isEditingDashboard={
                       dashboardState !== DashboardState.CREATE && this.isEditing
