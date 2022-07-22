@@ -30,6 +30,9 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         "d:transactions/measurements.something_custom@millisecond",
         "d:transactions/measurements.bytes_transfered@byte",
         "d:transactions/measurements.datacenter_memory@pebibyte",
+        "d:transactions/measurements.longtaskcount@none",
+        "d:transactions/measurements.percent@ratio",
+        "d:transactions/measurements.custom_type@somethingcustom",
     ]
 
     def setUp(self):
@@ -417,7 +420,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             assert field_meta["p75(measurements.fcp)"] == "duration"
             assert field_meta["p75(measurements.lcp)"] == "duration"
             assert field_meta["p75(measurements.fid)"] == "duration"
-            assert field_meta["p75(measurements.cls)"] == "duration"
+            assert field_meta["p75(measurements.cls)"] == "number"
             assert field_meta["apdex()"] == "number"
             assert field_meta["count_miserable(user)"] == "integer"
             assert field_meta["user_misery()"] == "number"
@@ -1095,17 +1098,25 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
 
     def test_custom_measurement_size_meta_type(self):
         self.store_transaction_metric(
-            1,
-            metric="measurements.bytes_transfered",
-            internal_metric="d:transactions/measurements.bytes_transfered@byte",
+            100,
+            metric="measurements.custom_type",
+            internal_metric="d:transactions/measurements.custom_type@somethingcustom",
             entity="metrics_distributions",
             tags={"transaction": "foo_transaction"},
             timestamp=self.min_ago,
         )
         self.store_transaction_metric(
             100,
-            metric="measurements.bytes_transfered",
-            internal_metric="d:transactions/measurements.datacenter_memory@pebibyte",
+            metric="measurements.percent",
+            internal_metric="d:transactions/measurements.percent@ratio",
+            entity="metrics_distributions",
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+        self.store_transaction_metric(
+            100,
+            metric="measurements.longtaskcount",
+            internal_metric="d:transactions/measurements.longtaskcount@none",
             entity="metrics_distributions",
             tags={"transaction": "foo_transaction"},
             timestamp=self.min_ago,
@@ -1113,12 +1124,12 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
 
         query = {
             "project": [self.project.id],
-            "orderby": "p50(measurements.bytes_transfered)",
+            "orderby": "p50(measurements.longtaskcount)",
             "field": [
                 "transaction",
-                "p50(measurements.bytes_transfered)",
-                "p99(measurements.bytes_transfered)",
-                "max(measurements.datacenter_memory)",
+                "p50(measurements.longtaskcount)",
+                "p50(measurements.percent)",
+                "p50(measurements.custom_type)",
             ],
             "statsPeriod": "24h",
             "dataset": "metricsEnhanced",
@@ -1132,15 +1143,57 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         meta = response.data["meta"]
 
         assert data[0]["transaction"] == "foo_transaction"
-        assert data[0]["p50(measurements.bytes_transfered)"] == 1
-        assert data[0]["max(measurements.datacenter_memory)"] == 100
+        assert data[0]["p50(measurements.longtaskcount)"] == 100
+        assert data[0]["p50(measurements.percent)"] == 100
+        assert data[0]["p50(measurements.custom_type)"] == 100
         assert meta["isMetricsData"]
-        assert meta["fields"]["p50(measurements.bytes_transfered)"] == "size"
-        assert meta["units"]["p50(measurements.bytes_transfered)"] == "byte"
-        assert meta["fields"]["p99(measurements.bytes_transfered)"] == "size"
-        assert meta["units"]["p99(measurements.bytes_transfered)"] == "byte"
-        assert meta["fields"]["max(measurements.datacenter_memory)"] == "size"
-        assert meta["units"]["max(measurements.datacenter_memory)"] == "pebibyte"
+        assert meta["fields"]["p50(measurements.longtaskcount)"] == "integer"
+        assert meta["units"]["p50(measurements.longtaskcount)"] is None
+        assert meta["fields"]["p50(measurements.percent)"] == "percentage"
+        assert meta["units"]["p50(measurements.percent)"] is None
+        assert meta["fields"]["p50(measurements.custom_type)"] == "number"
+        assert meta["units"]["p50(measurements.custom_type)"] is None
+
+    def test_custom_measurement_none_type(self):
+        self.store_transaction_metric(
+            1,
+            metric="measurements.cls",
+            entity="metrics_distributions",
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+
+        query = {
+            "project": [self.project.id],
+            "orderby": "p75(measurements.cls)",
+            "field": [
+                "transaction",
+                "p75(measurements.cls)",
+                "p99(measurements.cls)",
+                "max(measurements.cls)",
+            ],
+            "statsPeriod": "24h",
+            "dataset": "metricsEnhanced",
+            "per_page": 50,
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        data = response.data["data"]
+        meta = response.data["meta"]
+
+        assert data[0]["transaction"] == "foo_transaction"
+        assert data[0]["p75(measurements.cls)"] == 1
+        assert data[0]["p99(measurements.cls)"] == 1
+        assert data[0]["max(measurements.cls)"] == 1
+        assert meta["isMetricsData"]
+        assert meta["fields"]["p75(measurements.cls)"] == "number"
+        assert meta["units"]["p75(measurements.cls)"] is None
+        assert meta["fields"]["p99(measurements.cls)"] == "number"
+        assert meta["units"]["p99(measurements.cls)"] is None
+        assert meta["fields"]["max(measurements.cls)"] == "number"
+        assert meta["units"]["max(measurements.cls)"] is None
 
     def test_environment_param(self):
         self.create_environment(self.project, name="staging")
