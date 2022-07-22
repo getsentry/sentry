@@ -272,13 +272,23 @@ class MSTeamsMessageBuilderTest(TestCase):
         for action in actions:
             assert ActionType.SHOW_CARD == action["type"]
             card_body = action["card"]["body"]
-            assert 1 <= len(card_body)
+            assert 2 == len(card_body)
             assert "Input.ChoiceSet" == card_body[-1]["type"]
 
         resolve_action, ignore_action, assign_action = actions
         assert "Resolve" == resolve_action["title"]
         assert "Ignore" == ignore_action["title"]
         assert "Assign" == assign_action["title"]
+
+        body = ignore_action["card"]["body"]
+        assert 2 == len(body)
+        assert "Ignore until this happens again..." == body[0]["text"]
+        assert "Ignore" == ignore_action["card"]["actions"][0]["title"]
+
+        body = assign_action["card"]["body"]
+        assert 2 == len(body)
+        assert "Assign to..." == body[0]["text"]
+        assert "Assign" == assign_action["card"]["actions"][0]["title"]
 
         # Check if card is serializable to json
         card_json = json.dumps(issue_card)
