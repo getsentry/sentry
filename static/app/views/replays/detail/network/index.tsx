@@ -25,13 +25,16 @@ function NetworkList({event, networkSpans}: Props) {
   });
 
   const handleSort = useCallback(
-    (heading: typeof sortConfig.by) => {
+    (
+      heading: typeof sortConfig.by,
+      substractValue?: typeof sortConfig.substractValue
+    ) => {
       setSortConfig(prevSort => {
         if (prevSort.by === heading) {
-          return {by: heading, asc: !prevSort.asc};
+          return {by: heading, asc: !prevSort.asc, substractValue};
         }
 
-        return {by: heading, asc: true};
+        return {by: heading, asc: true, substractValue};
       });
     },
     [sortConfig]
@@ -42,18 +45,27 @@ function NetworkList({event, networkSpans}: Props) {
     [networkSpans, sortConfig]
   );
 
+  const sortArrow = (sortedBy: keyof NetworkSpan) => (
+    <IconArrow
+      color={sortConfig.by === sortedBy ? 'gray300' : 'gray200'}
+      size="xs"
+      direction={sortConfig.by === sortedBy && !sortConfig.asc ? 'up' : 'down'}
+    />
+  );
+
   const columns = [
-    t('status'),
-    t('path'),
-    t('type'),
-    t('duration'),
+    t('Status'),
+    <SortItem key="path" onClick={() => handleSort('description')}>
+      {t('Path')} {sortArrow('description')}
+    </SortItem>,
+    <SortItem key="type" onClick={() => handleSort('op')}>
+      {t('Type')} {sortArrow('op')}
+    </SortItem>,
+    <SortItem key="duration" onClick={() => handleSort('endTimestamp', 'startTimestamp')}>
+      {t('Duration')} {sortArrow('endTimestamp')}
+    </SortItem>,
     <SortItem key="timestamp" onClick={() => handleSort('startTimestamp')}>
-      {t('timestamp')}{' '}
-      <IconArrow
-        color="gray300"
-        size="xs"
-        direction={sortConfig.by === 'startTimestamp' && sortConfig.asc ? 'down' : 'up'}
-      />
+      {t('Timestamp')} {sortArrow('startTimestamp')}
     </SortItem>,
   ];
 
@@ -117,6 +129,15 @@ const StyledPanelTable = styled(PanelTable)<{columns: number}>`
   grid-template-columns: max-content minmax(200px, 1fr) repeat(3, max-content);
   font-size: ${p => p.theme.fontSizeSmall};
   line-height: 16px;
+  margin-bottom: 0;
+  height: 100%;
+  overflow: auto;
+  /* Make the header row sticky */
+  > :nth-child(-n + ${p => p.columns}) {
+    justify-content: center; /* because justify-content:end is applied to some columns, the content, but the flex-direction is different for content and headers, so we need to remove that. */
+    position: sticky;
+    top: 0;
+  }
 
   > * {
     border-right: 1px solid ${p => p.theme.innerBorder};
@@ -131,6 +152,12 @@ const StyledPanelTable = styled(PanelTable)<{columns: number}>`
       text-align: right;
       justify-content: end;
     }
+
+    /* 2nd last column */
+    &:nth-child(${p => p.columns}n - 1) {
+      text-align: right;
+      justify-content: end;
+    }
   }
 
   ${/* sc-selector */ PanelTableHeader} {
@@ -139,12 +166,6 @@ const StyledPanelTable = styled(PanelTable)<{columns: number}>`
     border-radius: 0;
     color: ${p => p.theme.subText};
   }
-
-  &::-webkit-scrollbar {
-    display: none;
-  }
-  -ms-overflow-style: none;
-  scrollbar-width: none;
 `;
 
 const StatusPlaceHolder = styled(Placeholder)`
