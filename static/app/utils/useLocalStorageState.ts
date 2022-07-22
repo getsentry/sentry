@@ -1,5 +1,7 @@
 import {useCallback, useLayoutEffect, useState} from 'react';
 
+import localStorageWrapper from 'sentry/utils/localStorage';
+
 const SUPPORTS_QUEUE_MICROTASK = window && 'queueMicrotask' in window;
 const SUPPORTS_LOCAL_STORAGE = window && 'localStorage' in window;
 
@@ -147,7 +149,7 @@ export function useLocalStorageState<S>(
 
       // Not critical and we dont want to block anything after this
       scheduleMicroTask(() => {
-        window.localStorage.setItem(key, stringifyForStorage(newValue));
+        localStorageWrapper.setItem(key, stringifyForStorage(newValue));
       });
     },
     [key]
