@@ -4,7 +4,7 @@ import UserEventContext, {
   UserEventContextData,
 } from 'sentry/components/events/contexts/user';
 
-// the values of this mock is correct and the type needs to be updated
+// the values of this mock are correct and the types need to be updated
 export const userMockData = {
   data: null,
   email: null,
