@@ -190,6 +190,6 @@ export const performanceEventMap: Record<PerformanceEventKey, string | null> = {
   'performance_views.event_details.json_button_click':
     'Performance Views: Event Details JSON button clicked',
   'performance_views.transaction_summary.view':
-    'Performance Views: Trnasaction Summary View',
+    'Performance Views: Transaction Summary View',
   'performance_views.filter_dropdown.selection': 'Performance Views: Filter Dropdown',
 };
