@@ -94,12 +94,24 @@ class NotificationSettings extends AsyncComponent<Props, State> {
   };
 
   get notificationSettingsType() {
-    const hasFeatureFlag =
-      this.props.organizations.filter(org =>
-        org.features?.includes('slack-overage-notifications')
-      ).length > 0;
     // filter out quotas if the feature flag isn't set
-    return NOTIFICATION_SETTINGS_TYPES.filter(type => type !== 'quota' || hasFeatureFlag);
+    const hasSlackOverage = this.props.organizations.some(org =>
+      org.features?.includes('slack-overage-notifications')
+    );
+    const hasActiveRelease = this.props.organizations.some(org =>
+      org.features?.includes('active-release-monitor-alpha')
+    );
+
+    return NOTIFICATION_SETTINGS_TYPES.filter(type => {
+      if (type === 'quota' && !hasSlackOverage) {
+        return false;
+      }
+      if (type === 'activeRelease' && !hasActiveRelease) {
+        return false;
+      }
+
+      return true;
+    });
   }
 
   getInitialData(): {[key: string]: string} {
