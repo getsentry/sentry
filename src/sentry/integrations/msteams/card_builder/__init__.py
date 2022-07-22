@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Mapping, Sequence, Union
+from typing import Any, Mapping, Sequence, Tuple, Union
 
 from sentry.integrations.metric_alerts import incident_attachment_info
 from sentry.integrations.msteams.card_builder.utils import IssueConstants
@@ -9,17 +9,24 @@ from sentry.integrations.slack.message_builder.issues import (
     build_attachment_title,
     build_footer,
     format_actor_option,
+    format_actor_options,
 )
-from sentry.models import Event, GroupStatus, Project
+from sentry.models import Event, GroupStatus, Integration, Project
 from sentry.models.group import Group
 from sentry.models.rule import Rule
 
 from ..utils import ACTION_TYPE
+from .base import MSTeamsMessageBuilder
 from .block import (
+    ActionType,
     TextSize,
     TextWeight,
+    create_action_block,
+    create_action_set_block,
     create_column_block,
     create_column_set_block,
+    create_container_block,
+    create_input_choice_set_block,
     create_logo_block,
     create_text_block,
 )
@@ -37,11 +44,16 @@ ItemBlock = Union[str, TextBlock, ImageBlock]
 
 ColumnBlock = Mapping[str, Union[str, Sequence[ItemBlock]]]
 ColumnSetBlock = Mapping[str, Union[str, Sequence[ColumnBlock]]]
+# NOTE: Instead of Any, it should have been block, but mypy does not support cyclic definition.
+ContainerBlock = Mapping[str, Any]
 
-Block = Union[TextBlock, ImageBlock, ColumnSetBlock]
+Block = Union[TextBlock, ImageBlock, ColumnSetBlock, ContainerBlock]
+
+InputChoiceSetBlock = Mapping[str, Union[str, Sequence[Mapping[str, Any]]]]
 
 # Maps to Any because Actions can have an arbitrarily nested data field.
 Action = Mapping[str, Any]
+ActionSet = Mapping[str, Union[str, Sequence[Action]]]
 
 AdaptiveCard = Mapping[str, Union[str, Sequence[Block], Sequence[Action]]]
 
@@ -137,128 +149,116 @@ def build_group_footer(group: Group, rules: Sequence[Rule], event: Event) -> Col
     )
 
 
-def build_group_actions(group, event, rules, integration):
+def build_input_choice_card(
+    data: Any,
+    card_title: str,
+    input_id: str,
+    submit_button_title: str,
+    choices: Sequence[Tuple[str, Any]],
+    default_choice: Any = None,
+) -> AdaptiveCard:
+    return MSTeamsMessageBuilder().build(
+        title=create_text_block(card_title, weight=TextWeight.BOLDER),
+        text=create_input_choice_set_block(
+            id=input_id, choices=choices, default_choice=default_choice
+        ),
+        actions=[create_action_block(ActionType.SUBMIT, title=submit_button_title, data=data)],
+    )
+
+
+def create_issue_action_block(
+    event: Event,
+    rules: Sequence[Rule],
+    integration: Integration,
+    toggled: bool,
+    action: ACTION_TYPE,
+    action_title: str,
+    reverse_action: ACTION_TYPE,
+    reverse_action_title: str,
+    **card_kwargs: Any,
+) -> Action:
+    """
+    Build an action block for a particular `action` (Resolve).
+    It could be one of the following depending on if the state is `toggled` (Resolved issue).
+    If the issue is `toggled` then present a button with the `reverse_action` (Unresolve).
+    If it is not `toggled` then present a button which reveals a card with options to
+    perform the action ([Immediately, In current release, ...])
+    """
+    if toggled:
+        data = generate_action_payload(reverse_action, event, rules, integration)
+        return create_action_block(ActionType.SUBMIT, title=reverse_action_title, data=data)
+
+    data = generate_action_payload(action, event, rules, integration)
+    card = build_input_choice_card(data=data, **card_kwargs)
+    return create_action_block(ActionType.SHOW_CARD, title=action_title, card=card)
+
+
+def get_teams_choices(group: Group) -> Sequence[Tuple[str, str]]:
+    teams = group.project.teams.all().order_by("slug")
+    return [("Me", ME)] + [(team["text"], team["value"]) for team in format_actor_options(teams)]
+
+
+def build_group_actions(group: Group, event: Event, rules: Rule, integration: Integration):
     status = group.get_status()
 
-    if status == GroupStatus.RESOLVED:
-        resolve_action = {
-            "type": "Action.Submit",
-            "title": "Unresolve",
-            "data": generate_action_payload(ACTION_TYPE.UNRESOLVE, event, rules, integration),
-        }
-    else:
-        resolve_action = {
-            "type": "Action.ShowCard",
-            "version": "1.2",
-            "title": "Resolve",
-            "card": {
-                "type": "AdaptiveCard",
-                "body": [
-                    {"type": "TextBlock", "text": "Resolve", "weight": "Bolder"},
-                    {
-                        "type": "Input.ChoiceSet",
-                        "id": "resolveInput",
-                        "choices": [
-                            {"title": "Immediately", "value": "resolved"},
-                            {
-                                "title": "In the current release",
-                                "value": "resolved:inCurrentRelease",
-                            },
-                            {"title": "In the next release", "value": "resolved:inNextRelease"},
-                        ],
-                    },
-                ],
-                "actions": [
-                    {
-                        "type": "Action.Submit",
-                        "title": "Resolve",
-                        "data": generate_action_payload(
-                            ACTION_TYPE.RESOLVE, event, rules, integration
-                        ),
-                    }
-                ],
-            },
-        }
+    resolve_action = create_issue_action_block(
+        event=event,
+        rules=rules,
+        integration=integration,
+        toggled=GroupStatus.RESOLVED == status,
+        action=ACTION_TYPE.RESOLVE,
+        action_title=IssueConstants.RESOLVE,
+        reverse_action=ACTION_TYPE.UNRESOLVE,
+        reverse_action_title=IssueConstants.UNRESOLVE,
+        # card_kwargs
+        card_title=IssueConstants.RESOLVE,
+        submit_button_title=IssueConstants.RESOLVE,
+        input_id=IssueConstants.RESOLVE_INPUT_ID,
+        choices=IssueConstants.RESOLVE_INPUT_CHOICES,
+    )
 
-    if status == GroupStatus.IGNORED:
-        ignore_action = {
-            "type": "Action.Submit",
-            "title": "Stop Ignoring",
-            "data": generate_action_payload(ACTION_TYPE.UNRESOLVE, event, rules, integration),
-        }
-    else:
-        ignore_action = {
-            "type": "Action.ShowCard",
-            "version": "1.2",
-            "title": "Ignore",
-            "card": {
-                "type": "AdaptiveCard",
-                "body": [
-                    {
-                        "type": "TextBlock",
-                        "text": "Ignore until this happens again...",
-                        "weight": "Bolder",
-                    },
-                    {
-                        "type": "Input.ChoiceSet",
-                        "id": "ignoreInput",
-                        "choices": [
-                            {"title": "Ignore indefinitely", "value": -1},
-                            {"title": "1 time", "value": 1},
-                            {"title": "10 times", "value": 10},
-                            {"title": "100 times", "value": 100},
-                            {"title": "1,000 times", "value": 1000},
-                            {"title": "10,000 times", "value": 10000},
-                        ],
-                    },
-                ],
-                "actions": [
-                    {
-                        "type": "Action.Submit",
-                        "title": "Ignore",
-                        "data": generate_action_payload(
-                            ACTION_TYPE.IGNORE, event, rules, integration
-                        ),
-                    }
-                ],
-            },
-        }
+    ignore_action = create_issue_action_block(
+        event=event,
+        rules=rules,
+        integration=integration,
+        toggled=GroupStatus.IGNORED == status,
+        action=ACTION_TYPE.IGNORE,
+        action_title=IssueConstants.IGNORE,
+        reverse_action=ACTION_TYPE.UNRESOLVE,
+        reverse_action_title=IssueConstants.STOP_IGNORING,
+        # card_kwargs
+        card_title=IssueConstants.IGNORE_INPUT_TITLE,
+        submit_button_title=IssueConstants.IGNORE,
+        input_id=IssueConstants.IGNORE_INPUT_ID,
+        choices=IssueConstants.IGNORE_INPUT_CHOICES,
+    )
 
-    if group.get_assignee():
-        assign_action = {
-            "type": "Action.Submit",
-            "title": "Unassign",
-            "data": generate_action_payload(ACTION_TYPE.UNASSIGN, event, rules, integration),
-        }
-    else:
-        teams_list = group.project.teams.all().order_by("slug")
-        teams = [{"title": f"#{u.slug}", "value": f"team:{u.id}"} for u in teams_list]
-        teams = [{"title": "Me", "value": ME}] + teams
-        assign_action = {
-            "type": "Action.ShowCard",
-            "version": "1.2",
-            "title": "Assign",
-            "card": {
-                "type": "AdaptiveCard",
-                "body": [
-                    {"type": "Input.ChoiceSet", "id": "assignInput", "value": ME, "choices": teams}
-                ],
-                "actions": [
-                    {
-                        "type": "Action.Submit",
-                        "title": "Assign",
-                        "data": generate_action_payload(
-                            ACTION_TYPE.ASSIGN, event, rules, integration
-                        ),
-                    }
-                ],
-            },
-        }
+    teams_choices = get_teams_choices(group)
 
-    return {
-        "type": "Container",
-        "items": [{"type": "ActionSet", "actions": [resolve_action, ignore_action, assign_action]}],
-    }
+    assign_action = create_issue_action_block(
+        event=event,
+        rules=rules,
+        integration=integration,
+        toggled=group.get_assignee(),
+        action=ACTION_TYPE.ASSIGN,
+        action_title=IssueConstants.ASSIGN,
+        reverse_action=ACTION_TYPE.UNASSIGN,
+        reverse_action_title=IssueConstants.UNASSIGN,
+        # card_kwargs
+        card_title=IssueConstants.ASSIGN_INPUT_TITLE,
+        submit_button_title=IssueConstants.ASSIGN,
+        input_id=IssueConstants.ASSIGN_INPUT_ID,
+        choices=teams_choices,
+        default_choice=ME,
+    )
+
+    return create_container_block(
+        create_action_set_block(
+            resolve_action,
+            ignore_action,
+            assign_action,
+        )
+    )
 
 
 def build_assignee_note(group):
