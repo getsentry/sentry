@@ -141,17 +141,18 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
     @staticmethod
     def build_input_choice_card(
         data: Any,
-        title: str,
+        card_title: str,
         input_id: str,
+        submit_button_title: str,
         choices: Sequence[Tuple[str, Any]],
         default_choice: Any = None,
     ) -> AdaptiveCard:
         return MSTeamsMessageBuilder().build(
-            title=create_text_block(title, weight=TextWeight.BOLDER),
+            title=create_text_block(card_title, weight=TextWeight.BOLDER),
             text=create_input_choice_set_block(
                 id=input_id, choices=choices, default_choice=default_choice
             ),
-            actions=[create_action_block(ActionType.SUBMIT, title=title, data=data)],
+            actions=[create_action_block(ActionType.SUBMIT, title=submit_button_title, data=data)],
         )
 
     def create_issue_action_block(
@@ -163,6 +164,13 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
         reverse_action_title: str,
         **card_kwargs: Any,
     ) -> Action:
+        """
+        Build an action block for a particular `action` (Resolve).
+        It could be one of the following depending on if the state is `toggled` (Resolved issue).
+        If the issue is `toggled` then present a button with the `reverse_action` (Unresolve).
+        If it is not `toggled` then present a button which reveals a card with options to
+        perform the action ([Immediately, In current release, ...])
+        """
         if toggled:
             data = self.generate_action_payload(reverse_action)
             return create_action_block(ActionType.SUBMIT, title=reverse_action_title, data=data)
@@ -187,7 +195,8 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
             reverse_action=ACTION_TYPE.UNRESOLVE,
             reverse_action_title=IssueConstants.UNRESOLVE,
             # card_kwargs
-            title=IssueConstants.RESOLVE,
+            card_title=IssueConstants.RESOLVE,
+            submit_button_title=IssueConstants.RESOLVE,
             input_id=IssueConstants.RESOLVE_INPUT_ID,
             choices=IssueConstants.RESOLVE_INPUT_CHOICES,
         )
@@ -199,7 +208,8 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
             reverse_action=ACTION_TYPE.UNRESOLVE,
             reverse_action_title=IssueConstants.STOP_IGNORING,
             # card_kwargs
-            title=IssueConstants.IGNORE_INPUT_TITLE,
+            card_title=IssueConstants.IGNORE_INPUT_TITLE,
+            submit_button_title=IssueConstants.IGNORE,
             input_id=IssueConstants.IGNORE_INPUT_ID,
             choices=IssueConstants.IGNORE_INPUT_CHOICES,
         )
@@ -213,7 +223,8 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
             reverse_action=ACTION_TYPE.UNASSIGN,
             reverse_action_title=IssueConstants.UNASSIGN,
             # card_kwargs
-            title=IssueConstants.ASSIGN_INPUT_TITLE,
+            card_title=IssueConstants.ASSIGN_INPUT_TITLE,
+            submit_button_title=IssueConstants.ASSIGN,
             input_id=IssueConstants.ASSIGN_INPUT_ID,
             choices=teams_choices,
             default_choice=ME,
