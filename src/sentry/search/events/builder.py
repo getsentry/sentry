@@ -1868,7 +1868,7 @@ class MetricsQueryBuilder(QueryBuilder):
                 use_case_id = UseCaseKey.PERFORMANCE
             else:
                 use_case_id = UseCaseKey.RELEASE_HEALTH
-            result = indexer.resolve(self.organization_id, value, use_case_id=use_case_id)
+            result = indexer.resolve(self.organization_id, value, use_case_id=use_case_id)  # type: ignore
             self._indexer_cache[value] = result
 
         return self._indexer_cache[value]
@@ -1919,7 +1919,14 @@ class MetricsQueryBuilder(QueryBuilder):
                     "Filter on timestamp is outside of the selected date range."
                 )
 
-        # TODO(wmak): Need to handle `has` queries, basically check that tags.keys has the value?
+        # Handle checks for existence
+        if search_filter.operator in ("=", "!=") and search_filter.value.value == "":
+            if is_tag:
+                return Condition(
+                    Function("has", [Column("tags.key"), self.resolve_metric_index(name)]),
+                    Op.EQ if search_filter.operator == "!=" else Op.NEQ,
+                    1,
+                )
 
         return Condition(lhs, Op(search_filter.operator), value)
 
