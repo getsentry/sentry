@@ -47,6 +47,7 @@ class RedisProjectConfigCache(ProjectConfigCache):
             value = json.dumps(config)
             if _use_compression(public_key):
                 value = zstandard.compress(value.encode(), level=COMPRESSION_LEVEL)
+            metrics.timing("relay.projectconfig_cache.size", len(value))
             p.setex(self.__get_redis_key(public_key), REDIS_CACHE_TIMEOUT, value)
 
         p.execute()
