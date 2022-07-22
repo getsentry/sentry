@@ -66,6 +66,7 @@ import {
 } from './types';
 import {
   cloneDashboard,
+  getCurrentPageFilters,
   getInitialPageFilterValues,
   hasSavedPageFilters,
   hasUnsavedFilterChanges,
@@ -530,21 +531,9 @@ class DashboardDetail extends Component<Props, State> {
           }
           let newModifiedDashboard = modifiedDashboard;
           if (organization.features.includes('dashboards-top-level-filter')) {
-            const {project, environment, statsPeriod, start, end} = location.query ?? {};
             newModifiedDashboard = {
               ...cloneDashboard(modifiedDashboard),
-              // Ensure projects and environment are sent as arrays, or undefined in the request
-              // location.query will return a string if there's only one value
-              projects:
-                project === undefined
-                  ? []
-                  : typeof project === 'string'
-                  ? [Number(project)]
-                  : project.map(Number),
-              environment: typeof environment === 'string' ? [environment] : environment,
-              period: statsPeriod,
-              start,
-              end,
+              ...getCurrentPageFilters(location),
             };
           }
           createDashboard(
@@ -769,7 +758,6 @@ class DashboardDetail extends Component<Props, State> {
     const {modifiedDashboard, dashboardState, widgetLimitReached, seriesData, setData} =
       this.state;
     const {dashboardId} = params;
-    const {project, environment, statsPeriod, start, end} = location.query ?? {};
 
     const {filters} = modifiedDashboard || dashboard;
 
@@ -849,20 +837,9 @@ class DashboardDetail extends Component<Props, State> {
                       });
                     }}
                     onSave={() => {
-                      // TODO: Extracting the values could be a util
                       const newModifiedDashboard = {
                         ...cloneDashboard(modifiedDashboard ?? dashboard),
-                        projects:
-                          project === undefined
-                            ? []
-                            : typeof project === 'string'
-                            ? [Number(project)]
-                            : project.map(Number),
-                        environment:
-                          typeof environment === 'string' ? [environment] : environment,
-                        period: statsPeriod,
-                        start,
-                        end,
+                        ...getCurrentPageFilters(location),
                       };
                       updateDashboard(api, organization.slug, newModifiedDashboard).then(
                         (newDashboard: DashboardDetails) => {

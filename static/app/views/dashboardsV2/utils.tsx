@@ -407,7 +407,6 @@ export function hasUnsavedFilterChanges(
   location: Location,
   newDashboardFilters: DashboardFilters
 ) {
-  const {project, environment, statsPeriod, start, end} = location.query ?? {};
   return !isEqual(
     {
       projects: initialDashboard.projects,
@@ -418,16 +417,7 @@ export function hasUnsavedFilterChanges(
       filters: initialDashboard.filters,
     },
     {
-      projects:
-        project === undefined || project === null
-          ? []
-          : typeof project === 'string'
-          ? [Number(project)]
-          : project.map(Number),
-      environment: typeof environment === 'string' ? [environment] : environment,
-      period: statsPeriod,
-      start,
-      end,
+      ...getCurrentPageFilters(location),
       filters: newDashboardFilters,
     }
   );
@@ -448,4 +438,25 @@ export function resetPageFilters(dashboard: DashboardDetails, location: Location
     ...location,
     query: getInitialPageFilterValues(dashboard),
   });
+}
+
+export function getCurrentPageFilters(
+  location: Location
+): Pick<DashboardDetails, 'projects' | 'environment' | 'period' | 'start' | 'end'> {
+  const {project, environment, statsPeriod, start, end} = location.query ?? {};
+  return {
+    // Ensure projects and environment are sent as arrays, or undefined in the request
+    // location.query will return a string if there's only one value
+    projects:
+      project === undefined || project === null
+        ? []
+        : typeof project === 'string'
+        ? [Number(project)]
+        : project.map(Number),
+    environment:
+      typeof environment === 'string' ? [environment] : environment ?? undefined,
+    period: statsPeriod as string | undefined,
+    start: start as string | undefined,
+    end: end as string | undefined,
+  };
 }
