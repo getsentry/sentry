@@ -15,7 +15,6 @@ from sentry.integrations.msteams.card_builder import (
     ItemBlock,
     TextBlock,
 )
-
 from sentry.utils.assets import get_asset_url
 from sentry.utils.http import absolute_uri
 
