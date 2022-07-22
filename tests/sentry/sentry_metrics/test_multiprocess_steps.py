@@ -3,8 +3,7 @@ import time
 from copy import deepcopy
 from datetime import datetime, timezone
 from typing import Dict, List, MutableMapping, Sequence, Union
-from unittest import mock
-from unittest.mock import Mock, call, patch
+from unittest.mock import Mock, call
 
 import pytest
 from arroyo.backends.kafka import KafkaPayload
@@ -261,8 +260,7 @@ def __translated_payload(
     return payload
 
 
-@patch("sentry.sentry_metrics.consumers.indexer.processing.get_indexer", return_value=MockIndexer())
-def test_process_messages(mock_indexer) -> None:
+def test_process_messages() -> None:
     message_payloads = [counter_payload, distribution_payload, set_payload]
     message_batch = [
         Message(
@@ -294,8 +292,7 @@ def test_process_messages(mock_indexer) -> None:
     compare_message_batches_ignoring_metadata(new_batch, expected_new_batch)
 
 
-@patch("sentry.sentry_metrics.consumers.indexer.processing.get_indexer", return_value=MockIndexer())
-def test_transform_step(mock_indexer) -> None:
+def test_transform_step() -> None:
     config = get_ingest_config(UseCaseKey.RELEASE_HEALTH)
 
     message_payloads = [counter_payload, distribution_payload, set_payload]
@@ -417,10 +414,7 @@ def test_process_messages_invalid_messages(
     last = message_batch[-1]
     outer_message = Message(last.partition, last.offset, message_batch, last.timestamp)
 
-    with caplog.at_level(logging.ERROR), mock.patch(
-        "sentry.sentry_metrics.consumers.indexer.processing.get_indexer",
-        return_value=MockIndexer(),
-    ):
+    with caplog.at_level(logging.ERROR):
         new_batch = process_messages(
             use_case_id=UseCaseKey.RELEASE_HEALTH, outer_message=outer_message
         )
@@ -478,14 +472,12 @@ def test_process_messages_rate_limited(caplog) -> None:
     last = message_batch[-1]
     outer_message = Message(last.partition, last.offset, message_batch, last.timestamp)
 
-    mock_indexer = MockIndexer()
-    # Insert a None-value into the mock-indexer to simulate a rate-limit.
-    mock_indexer._strings[1]["rate_limited_test"] = None
+    from sentry.sentry_metrics.indexer import backend
 
-    with caplog.at_level(logging.ERROR), mock.patch(
-        "sentry.sentry_metrics.consumers.indexer.processing.get_indexer",
-        return_value=mock_indexer,
-    ):
+    # Insert a None-value into the mock-indexer to simulate a rate-limit.
+    backend._strings[1]["rate_limited_test"] = None
+
+    with caplog.at_level(logging.ERROR):
         new_batch = process_messages(
             use_case_id=UseCaseKey.RELEASE_HEALTH, outer_message=outer_message
         )
