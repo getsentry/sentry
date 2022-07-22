@@ -69,8 +69,8 @@ class RedisProjectConfigCache(ProjectConfigCache):
         if rv is not None:
             try:
                 rv = zstandard.decompress(rv).decode()
-            except TypeError:
-                # str instead of bytes, assume raw json
+            except (TypeError, zstandard.ZstdError):
+                # assume raw json
                 pass
             return json.loads(rv)
         return None
