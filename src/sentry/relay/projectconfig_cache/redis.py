@@ -9,22 +9,20 @@ from sentry.utils import json, metrics, redis
 from sentry.utils.redis import validate_dynamic_cluster
 
 REDIS_CACHE_TIMEOUT = 3600  # 1 hr
-COMPRESSION_OPTION = "relay.project-config-cache-compress"
+COMPRESSION_OPTION_DSNS = "relay.project-config-cache-compress"
+COMPRESSION_OPTION_SAMPLE_RATE = "relay.project-config-cache-compress-sample-rate"
 COMPRESSION_LEVEL = 9  # TODO: is this too much for Relay decompression?
 
 logger = logging.getLogger(__name__)
 
 
 def _use_compression(public_key: str) -> bool:
-    option_value = options.get(COMPRESSION_OPTION)
-    try:
-        return public_key in option_value
-    except TypeError:
-        try:
-            return random.random() < option_value
-        except TypeError:
-            logger.error("Invalid value for option %r: %r", COMPRESSION_OPTION, option_value)
-    return False
+    enabled_dsns = options.get(COMPRESSION_OPTION_DSNS)
+    if public_key in enabled_dsns:
+        return True
+
+    # Apply sample rate:
+    return random.random() < options.get(COMPRESSION_OPTION_SAMPLE_RATE)
 
 
 class RedisProjectConfigCache(ProjectConfigCache):

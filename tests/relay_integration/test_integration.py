@@ -5,7 +5,6 @@ from uuid import uuid4
 import pytest
 
 from sentry.models.eventattachment import EventAttachment
-from sentry.relay.projectconfig_cache import redis
 from sentry.spans.grouping.utils import hash_values
 from sentry.tasks.relay import invalidate_project_config
 from sentry.testutils import RelayStoreHelper, TransactionTestCase
@@ -223,7 +222,7 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
 
     def test_project_config_compression(self):
         # Populate redis cache with compressed config:
-        with override_options({redis.COMPRESSION_OPTION: 1.0}):
+        with override_options({"relay.project-config-cache-compress-sample-rate": 1.0}):
             invalidate_project_config(public_key=self.projectkey, trigger="test")
 
         # Disable project config endpoint, to make sure Relay gets its data
