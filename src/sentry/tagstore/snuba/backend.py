@@ -917,7 +917,6 @@ class SnubaTagStorage(TagStorage):
         order_by="-last_seen",
         include_transactions=False,
         include_sessions=False,
-        include_errors=False,
     ):
         from sentry.api.paginator import SequencePaginator
 
