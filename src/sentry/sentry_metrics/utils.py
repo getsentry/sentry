@@ -38,7 +38,7 @@ def reverse_resolve(use_case_id: UseCaseKey, index: int) -> str:
     if resolved is None:
         raise MetricIndexNotFound()
 
-    return resolved  # type: ignore
+    return resolved
 
 
 def reverse_resolve_weak(use_case_id: UseCaseKey, index: int) -> Optional[str]:
@@ -64,7 +64,7 @@ def resolve(
     if resolved is None:
         raise MetricIndexNotFound(f"Unknown string: {string!r}")
 
-    return resolved  # type: ignore
+    return resolved
 
 
 def resolve_tag_key(use_case_id: UseCaseKey, org_id: int, string: str) -> str:
@@ -112,7 +112,7 @@ def resolve_weak(use_case_id: UseCaseKey, org_id: int, string: str) -> int:
     if resolved is None:
         return STRING_NOT_FOUND
 
-    return resolved  # type: ignore
+    return resolved
 
 
 def resolve_many_weak(
