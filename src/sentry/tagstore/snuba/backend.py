@@ -917,6 +917,7 @@ class SnubaTagStorage(TagStorage):
         order_by="-last_seen",
         include_transactions=False,
         include_sessions=False,
+        include_errors=False,
     ):
         from sentry.api.paginator import SequencePaginator
 
@@ -931,6 +932,9 @@ class SnubaTagStorage(TagStorage):
         dataset = Dataset.Events
         if include_transactions:
             dataset = Dataset.Discover
+        elif include_errors:
+            dataset = Dataset.Transactions
+
         snuba_key = snuba.get_snuba_column_name(key, dataset=dataset)
 
         # We cannot search the values of these columns like we do other columns because they are
