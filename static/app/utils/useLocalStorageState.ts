@@ -1,4 +1,4 @@
-import {useCallback, useLayoutEffect, useState} from 'react';
+import {useCallback, useLayoutEffect, useRef, useState} from 'react';
 
 import localStorageWrapper from 'sentry/utils/localStorage';
 
@@ -40,29 +40,23 @@ function makeTypeExceptionString(instance: string) {
   return `useLocalStorage: Native serialization of ${instance} is not supported. You are attempting to serialize a ${instance} instance this data will be lost. For more info, see how ${instance.toLowerCase()}s are serialized https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify#examples`;
 }
 
-const SUPPORTS_BIG_INT = typeof BigInt !== 'undefined';
-const SUPPORTS_MAP = typeof Map !== 'undefined';
-const SUPPORTS_SET = typeof Set !== 'undefined';
-const SUPPORTS_WEAK_MAP = typeof WeakMap !== 'undefined';
-const SUPPORTS_WEAK_SET = typeof WeakSet !== 'undefined';
-
-function strictReplacer(_key: string, value: any) {
-  if (SUPPORTS_BIG_INT && typeof value === 'bigint') {
+function strictReplacer<T>(_key: string, value: T): T {
+  if (typeof BigInt !== 'undefined' && typeof value === 'bigint') {
     throw new TypeError(makeTypeExceptionString('BigInt'));
   }
   if (value instanceof RegExp) {
     throw new TypeError(makeTypeExceptionString('RegExp'));
   }
-  if (SUPPORTS_MAP && value instanceof Map) {
+  if (typeof Map !== 'undefined' && value instanceof Map) {
     throw new TypeError(makeTypeExceptionString('Map'));
   }
-  if (SUPPORTS_SET && value instanceof Set) {
+  if (typeof Set !== 'undefined' && value instanceof Set) {
     throw new TypeError(makeTypeExceptionString('Set'));
   }
-  if (SUPPORTS_WEAK_MAP && value instanceof WeakMap) {
+  if (typeof WeakMap !== 'undefined' && value instanceof WeakMap) {
     throw new TypeError(makeTypeExceptionString('WeakMap'));
   }
-  if (SUPPORTS_WEAK_SET && value instanceof WeakSet) {
+  if (typeof WeakSet !== 'undefined' && value instanceof WeakSet) {
     throw new TypeError(makeTypeExceptionString('WeakSet'));
   }
   return value;
@@ -82,7 +76,7 @@ function defaultOrInitializer<S>(
     // @ts-expect-error
     return defaultValueOrInitializeFn(value, rawValue);
   }
-  return defaultValueOrInitializeFn;
+  return value === undefined ? defaultValueOrInitializeFn : (value as S);
 }
 
 // Initialize state with default value or value from localStorage.
@@ -131,10 +125,16 @@ export function useLocalStorageState<S>(
   });
 
   // We want to avoid a blinking state with the old value when props change, so we reinitialize the state
-  // before the screen updates using useLayoutEffect vs useEffect.
+  // before the screen updates using useLayoutEffect vs useEffect. The ref prevents this from firing on mount
+  // as the value will already be initialized from the initialState and it would be unnecessary to re-initialize
+  const renderRef = useRef(false);
   useLayoutEffect(() => {
-    setValue(initializeStorage(key, initialState));
+    if (!renderRef.current) {
+      renderRef.current = true;
+      return;
+    }
 
+    setValue(initializeStorage(key, initialState));
     // We only want to update the value when the key changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
@@ -147,7 +147,8 @@ export function useLocalStorageState<S>(
 
       setValue(newValue);
 
-      // Not critical and we dont want to block anything after this
+      // Not critical and we dont want to block anything after this, so fire microtask
+      // and allow this to eventually be in sync.
       scheduleMicroTask(() => {
         localStorageWrapper.setItem(key, stringifyForStorage(newValue));
       });

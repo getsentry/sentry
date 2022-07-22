@@ -1,4 +1,4 @@
-import {reactHooks} from 'sentry-test/reactTestingLibrary';
+import {reactHooks, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import localStorageWrapper from 'sentry/utils/localStorage';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
@@ -36,6 +36,16 @@ describe('useLocalStorageState', () => {
     expect(result.current[0]).toBe('default value');
   });
 
+  it('initializes with default value', () => {
+    localStorageWrapper.setItem('key', JSON.stringify('initial storage value'));
+
+    const {result} = reactHooks.renderHook(() =>
+      useLocalStorageState('key', 'default value')
+    );
+
+    expect(result.current[0]).toBe('initial storage value');
+  });
+
   it('sets new value', () => {
     const {result} = reactHooks.renderHook(() =>
       useLocalStorageState('key', 'default value')
@@ -59,8 +69,9 @@ describe('useLocalStorageState', () => {
     });
 
     // Exhaust task queue because setItem is scheduled as microtask
-    await tick();
-    expect(spy).toHaveBeenCalledWith('key', JSON.stringify('new value'));
+    await waitFor(() => {
+      expect(spy).toHaveBeenCalledWith('key', JSON.stringify('new value'));
+    });
   });
 
   it('when no value is present in storage, calls init with undefined and null', () => {
