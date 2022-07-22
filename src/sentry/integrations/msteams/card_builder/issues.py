@@ -226,6 +226,7 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
             # card_kwargs
             card_title=IssueConstants.ASSIGN_INPUT_TITLE,
             submit_button_title=IssueConstants.ASSIGN,
+            input_id=IssueConstants.ASSIGN_INPUT_ID,
             choices=teams_choices,
             default_choice=ME,
         )
