@@ -1,5 +1,9 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
-import {mountGlobalModal} from 'sentry-test/modal';
+import {
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
 import RepositoryRow from 'sentry/components/repositoryRow';
@@ -33,44 +37,42 @@ describe('RepositoryRow', function () {
     const routerContext = TestStubs.routerContext([{organization}]);
 
     it('displays provider information', function () {
-      const wrapper = mountWithTheme(
+      render(
         <RepositoryRow
           repository={repository}
           api={api}
           orgId={organization.slug}
           organization={organization}
         />,
-        routerContext
+        {context: routerContext}
       );
-      expect(wrapper.find('strong').text()).toEqual(repository.name);
-      expect(wrapper.find('small a').text()).toEqual('github.com/example/repo-name');
+      expect(screen.getByText(repository.name)).toBeInTheDocument();
+      expect(screen.getByText('github.com/example/repo-name')).toBeInTheDocument();
 
       // Trash button should display enabled
-      expect(wrapper.find('Confirm').props().disabled).toEqual(false);
+      expect(screen.getByRole('button', {name: 'delete'})).toBeEnabled();
 
       // No cancel button
-      expect(wrapper.find('Button[data-test-id="repo-cancel"]')).toHaveLength(0);
+      expect(screen.queryByRole('button', {name: 'Cancel'})).not.toBeInTheDocument();
     });
 
     it('displays cancel pending button', function () {
-      const wrapper = mountWithTheme(
+      render(
         <RepositoryRow
           repository={pendingRepo}
           api={api}
           orgId={organization.slug}
           organization={organization}
         />,
-        routerContext
+        {context: routerContext}
       );
 
       // Trash button should be disabled
-      expect(wrapper.find('Confirm').props().disabled).toEqual(true);
-      expect(wrapper.find('Button[aria-label="delete"]').props().disabled).toEqual(true);
+      expect(screen.getByRole('button', {name: 'delete'})).toBeDisabled();
 
       // Cancel button active
-      const cancel = wrapper.find('Button[data-test-id="repo-cancel"]');
-      expect(cancel).toHaveLength(1);
-      expect(cancel.props().disabled).toEqual(false);
+      expect(screen.getByRole('button', {name: 'Cancel'})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Cancel'})).toBeEnabled();
     });
   });
 
@@ -81,36 +83,33 @@ describe('RepositoryRow', function () {
     const routerContext = TestStubs.routerContext([{organization}]);
 
     it('displays disabled trash', function () {
-      const wrapper = mountWithTheme(
+      render(
         <RepositoryRow
           repository={repository}
           api={api}
           orgId={organization.slug}
           organization={organization}
         />,
-        routerContext
+        {context: routerContext}
       );
 
       // Trash button should be disabled
-      expect(wrapper.find('Confirm').props().disabled).toEqual(true);
-      expect(wrapper.find('Button[aria-label="delete"]').props().disabled).toEqual(true);
+      expect(screen.getByRole('button', {name: 'delete'})).toBeDisabled();
     });
 
     it('displays disabled cancel', function () {
-      const wrapper = mountWithTheme(
+      render(
         <RepositoryRow
           repository={pendingRepo}
           api={api}
           orgId={organization.slug}
           organization={organization}
         />,
-        routerContext
+        {context: routerContext}
       );
 
       // Cancel should be disabled
-      expect(wrapper.find('Button[data-test-id="repo-cancel"]').props().disabled).toEqual(
-        true
-      );
+      expect(screen.getByRole('button', {name: 'Cancel'})).toBeDisabled();
     });
   });
 
@@ -120,7 +119,7 @@ describe('RepositoryRow', function () {
     });
     const routerContext = TestStubs.routerContext([{organization}]);
 
-    it('sends api request on delete', async function () {
+    it('sends api request on delete', function () {
       const deleteRepo = Client.addMockResponse({
         url: `/organizations/${organization.slug}/repos/${repository.id}/`,
         method: 'DELETE',
@@ -128,21 +127,20 @@ describe('RepositoryRow', function () {
         body: {},
       });
 
-      const wrapper = mountWithTheme(
+      render(
         <RepositoryRow
           repository={repository}
           api={api}
           orgId={organization.slug}
           organization={organization}
         />,
-        routerContext
+        {context: routerContext}
       );
-      wrapper.find('Button[aria-label="delete"]').simulate('click');
+      renderGlobalModal();
+      userEvent.click(screen.getByRole('button', {name: 'delete'}));
 
       // Confirm modal
-      const modal = await mountGlobalModal();
-      modal.find('Button[priority="primary"]').simulate('click');
-      wrapper.update();
+      userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
 
       expect(deleteRepo).toHaveBeenCalled();
     });
@@ -162,17 +160,16 @@ describe('RepositoryRow', function () {
         body: {},
       });
 
-      const wrapper = mountWithTheme(
+      render(
         <RepositoryRow
           repository={pendingRepo}
           api={api}
           orgId={organization.slug}
           organization={organization}
         />,
-        routerContext
+        {context: routerContext}
       );
-      wrapper.find('Button[data-test-id="repo-cancel"]').simulate('click');
-      wrapper.update();
+      userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
 
       expect(cancel).toHaveBeenCalled();
     });
@@ -186,47 +183,44 @@ describe('RepositoryRow', function () {
     const routerContext = TestStubs.routerContext([{organization}]);
 
     it('displays edit button', function () {
-      const wrapper = mountWithTheme(
+      render(
         <RepositoryRow
           repository={customRepo}
           api={api}
           orgId={organization.slug}
           organization={organization}
         />,
-        routerContext
+        {context: routerContext}
       );
 
       // Trash button should display enabled
-      expect(wrapper.find('Confirm').props().disabled).toEqual(false);
+      expect(screen.getByRole('button', {name: 'delete'})).toBeEnabled();
       // No cancel button
-      expect(wrapper.find('Button[data-test-id="repo-cancel"]')).toHaveLength(0);
+      expect(screen.queryByRole('button', {name: 'Cancel'})).not.toBeInTheDocument();
 
       // Edit button should display enabled
-      expect(wrapper.find('Button[aria-label="edit"]').props().disabled).toEqual(false);
+      expect(screen.getByRole('button', {name: 'edit'})).toBeEnabled();
     });
 
     it('disables edit button when cancel pending', function () {
-      const wrapper = mountWithTheme(
+      render(
         <RepositoryRow
           repository={customPendingRepo}
           api={api}
           orgId={organization.slug}
           organization={organization}
         />,
-        routerContext
+        {context: routerContext}
       );
 
       // Trash button should be disabled
-      expect(wrapper.find('Confirm').props().disabled).toEqual(true);
-      expect(wrapper.find('Button[aria-label="delete"]').props().disabled).toEqual(true);
+      expect(screen.getByRole('button', {name: 'delete'})).toBeDisabled();
 
       // Edit button should be disabled
-      expect(wrapper.find('Button[aria-label="edit"]').props().disabled).toEqual(true);
+      expect(screen.getByRole('button', {name: 'edit'})).toBeDisabled();
 
       // Cancel button active
-      const cancel = wrapper.find('Button[data-test-id="repo-cancel"]');
-      expect(cancel).toHaveLength(1);
-      expect(cancel.props().disabled).toEqual(false);
+      expect(screen.queryByRole('button', {name: 'Cancel'})).toBeEnabled();
     });
   });
 });

@@ -5,6 +5,8 @@ from sentry.sentry_metrics.indexer.cache import indexer_cache
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
 
+pytestmark = pytest.mark.sentry_metrics
+
 
 @pytest.fixture
 def use_case_id() -> str:

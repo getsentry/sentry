@@ -28,6 +28,7 @@ from sentry.models import (
     ProjectOption,
     ProjectOwnership,
     Release,
+    ReleaseActivity,
     Repository,
     Rule,
     User,
@@ -35,6 +36,7 @@ from sentry.models import (
     UserOption,
     UserReport,
 )
+from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.notifications.types import (
     ActionTargetType,
@@ -48,7 +50,8 @@ from sentry.plugins.base import Notification
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.types.activity import ActivityType
-from sentry.types.integrations import ExternalProviders
+from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
+from sentry.types.releaseactivity import ReleaseActivityType
 from sentry.types.rules import RuleFuture
 from sentry.utils.email import MessageBuilder, get_email_addresses
 from sentry_plugins.opsgenie.plugin import OpsGeniePlugin
@@ -77,11 +80,20 @@ class MailAdapterActiveReleaseTest(BaseMailAdapterTest):
     @mock.patch("sentry.analytics.record")
     @mock.patch("sentry.notifications.utils.participants.get_release_committers")
     def test_simple(self, mock_get_release_committers, record):
-        mock_get_release_committers.return_value = [
-            self.create_user(email="test@example.com", username="foo")
-        ]
+        new_user = self.create_user(email="test@example.com", username="foo")
+        mock_get_release_committers.return_value = [new_user]
+        self.team = self.create_team(
+            name="Team Name", organization=self.organization, members=[new_user]
+        )
         event = self.store_event(
             data={"message": "Hello world", "level": "error"}, project_id=self.project.id
+        )
+        GroupOwner.objects.create(
+            group_id=event.group.id,
+            project=event.project,
+            organization_id=self.organization.id,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+            user=new_user,
         )
         newRelease = Release.objects.create(
             organization_id=self.organization.id,
@@ -104,7 +116,9 @@ class MailAdapterActiveReleaseTest(BaseMailAdapterTest):
         event.data["tags"] = (("sentry:release", newRelease.version),)
 
         mail.outbox = []
-        with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
+        with self.options({"system.url-prefix": "http://example.com"}), self.tasks(), self.feature(
+            "organizations:active-release-monitor-alpha"
+        ):
             self.adapter.notify(Notification(event=event), ActionTargetType.RELEASE_MEMBERS, None)
 
         assert len(mail.outbox) == 1
@@ -126,8 +140,17 @@ class MailAdapterActiveReleaseTest(BaseMailAdapterTest):
                 release_version="2",
                 recipient_email="test@example.com",
                 recipient_username="foo",
+                suspect_committer_ids=[f"user:{new_user.id}"],
+                code_owner_ids=[new_user.id],
+                team_ids=[self.team.id],
             )
         ]
+
+        activity = list(ReleaseActivity.objects.filter(release_id=newRelease.id))
+        assert len(activity) == 1
+        assert activity[0].type == ReleaseActivityType.ISSUE.value
+        assert activity[0].data["provider"] == EXTERNAL_PROVIDERS[ExternalProviders.EMAIL]
+        assert activity[0].data["group_id"]
 
 
 class MailAdapterGetSendableUsersTest(BaseMailAdapterTest):

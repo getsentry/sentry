@@ -63,6 +63,9 @@ export const MEPTag = () => {
     // Separate if for easier flag deletion
     return null;
   }
+  if (organization.features.includes('transaction-name-only-search')) {
+    return null;
+  }
   if (metricSettingState === MEPState.auto && isMetricsData === false) {
     return (
       <Tag

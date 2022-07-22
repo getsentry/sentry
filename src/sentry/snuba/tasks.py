@@ -116,7 +116,10 @@ def update_subscription_in_snuba(
         )
         old_entity_key = get_entity_key_from_query_builder(
             old_entity_subscription.build_query_builder(
-                subscription.snuba_query.query, [subscription.project_id], None
+                subscription.snuba_query.query,
+                [subscription.project_id],
+                None,
+                {"organization_id": subscription.project.organization_id},
             ),
         )
         _delete_from_snuba(
@@ -200,6 +203,12 @@ def _create_in_snuba(subscription: QuerySubscription) -> str:
             "project_id": [subscription.project_id],
         },
     ).get_snql_query()
+    return _create_snql_in_snuba(subscription, snuba_query, snql_query, entity_subscription)
+
+
+# This indirection function only exists such that snql queries can be rewritten
+# by sentry.utils.pytest.metrics
+def _create_snql_in_snuba(subscription, snuba_query, snql_query, entity_subscription):
     body = {
         "project_id": subscription.project_id,
         "query": str(snql_query.query),

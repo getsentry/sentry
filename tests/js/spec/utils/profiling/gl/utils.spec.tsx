@@ -1,7 +1,7 @@
+import Fuse from 'fuse.js';
 import {mat3, vec2} from 'gl-matrix';
 
 import {
-  Bounds,
   computeConfigViewWithStategy,
   computeHighlightedBounds,
   createProgram,
@@ -321,12 +321,6 @@ describe('Rect', () => {
 });
 
 describe('findRangeBinarySearch', () => {
-  it('throws if target is out of range', () => {
-    expect(() =>
-      findRangeBinarySearch({low: 1, high: 2}, () => 0, 0, Number.MIN_SAFE_INTEGER)
-    ).toThrow('Target has to be in range of low <= target <= high, got 1 <= 0 <= 2');
-  });
-
   it('finds in single iteration', () => {
     const text = new Array(10)
       .fill(0)
@@ -490,7 +484,7 @@ describe('computeHighlightedBounds', () => {
   ];
 
   it.each(testTable)(`$name`, ({args, expected}) => {
-    const value = computeHighlightedBounds(args.bounds as Bounds, args.trim);
+    const value = computeHighlightedBounds(args.bounds as Fuse.RangeTuple, args.trim);
     expect(value).toEqual(expected);
   });
 });
