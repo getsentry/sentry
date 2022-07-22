@@ -2,7 +2,6 @@ import re
 
 import pytest
 
-from sentry.integrations.msteams.card_builder import build_group_card
 from sentry.integrations.msteams.card_builder.base import MSTeamsMessageBuilder
 from sentry.integrations.msteams.card_builder.block import (
     ActionType,
@@ -31,6 +30,7 @@ from sentry.integrations.msteams.card_builder.installation import (
     build_personal_installation_message,
     build_welcome_card,
 )
+from sentry.integrations.msteams.card_builder.issues import MSTeamsIssueMessageBuilder
 from sentry.models import Integration, Organization, OrganizationIntegration, Rule
 from sentry.models.group import GroupStatus
 from sentry.models.groupassignee import GroupAssignee
@@ -214,9 +214,9 @@ class MSTeamsMessageBuilderTest(TestCase):
         self.group1.data["metadata"].update({"value": "some error"})
         self.event1.data["type"] = self.group1.data["type"] = "error"
 
-        issue_card = build_group_card(
+        issue_card = MSTeamsIssueMessageBuilder(
             group=self.group1, event=self.event1, rules=self.rules, integration=self.integration
-        )
+        ).build_group_card()
 
         body = issue_card["body"]
         assert 4 == len(body)
@@ -295,17 +295,17 @@ class MSTeamsMessageBuilderTest(TestCase):
         assert card_json[0] == "{" and card_json[-1] == "}"
 
     def test_issue_without_description(self):
-        issue_card = build_group_card(
+        issue_card = MSTeamsIssueMessageBuilder(
             group=self.group1, event=self.event1, rules=self.rules, integration=self.integration
-        )
+        ).build_group_card()
 
         assert 3 == len(issue_card["body"])
 
     def test_issue_with_only_one_rule(self):
         one_rule = self.rules[:1]
-        issue_card = build_group_card(
+        issue_card = MSTeamsIssueMessageBuilder(
             group=self.group1, event=self.event1, rules=one_rule, integration=self.integration
-        )
+        ).build_group_card()
 
         issue_id_and_rule = issue_card["body"][1]["columns"][1]["items"][0]
 
@@ -316,9 +316,9 @@ class MSTeamsMessageBuilderTest(TestCase):
         self.group1.status = GroupStatus.RESOLVED
         self.group1.save()
 
-        issue_card = build_group_card(
+        issue_card = MSTeamsIssueMessageBuilder(
             group=self.group1, event=self.event1, rules=self.rules, integration=self.integration
-        )
+        ).build_group_card()
 
         action_set = issue_card["body"][2]["items"][0]
 
@@ -329,9 +329,9 @@ class MSTeamsMessageBuilderTest(TestCase):
     def test_ignored_issue_message(self):
         self.group1.status = GroupStatus.IGNORED
 
-        issue_card = build_group_card(
+        issue_card = MSTeamsIssueMessageBuilder(
             group=self.group1, event=self.event1, rules=self.rules, integration=self.integration
-        )
+        ).build_group_card()
 
         action_set = issue_card["body"][2]["items"][0]
 
@@ -342,9 +342,9 @@ class MSTeamsMessageBuilderTest(TestCase):
     def test_assigned_issue_message(self):
         GroupAssignee.objects.assign(self.group1, self.user)
 
-        issue_card = build_group_card(
+        issue_card = MSTeamsIssueMessageBuilder(
             group=self.group1, event=self.event1, rules=self.rules, integration=self.integration
-        )
+        ).build_group_card()
 
         body = issue_card["body"]
         assert 4 == len(body)
