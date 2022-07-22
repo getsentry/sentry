@@ -5,7 +5,7 @@ import FeatureBadge from 'sentry/components/featureBadge';
 import SelectControl from 'sentry/components/forms/selectControl';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import {IssueOwnership, Organization, Project} from 'sentry/types';
 import {
   IssueAlertRuleAction,
   IssueAlertRuleActionTemplate,
@@ -43,6 +43,7 @@ type Props = {
    */
   placeholder: string;
   project: Project;
+  ownership?: null | IssueOwnership;
   selectType?: 'grouped';
 };
 
@@ -144,6 +145,7 @@ class RuleNodeList extends Component<Props> {
       placeholder,
       items,
       organization,
+      ownership,
       project,
       disabled,
       error,
@@ -239,6 +241,7 @@ class RuleNodeList extends Component<Props> {
               organization={organization}
               project={project}
               disabled={disabled}
+              ownership={ownership}
             />
           ))}
         </RuleNodes>
