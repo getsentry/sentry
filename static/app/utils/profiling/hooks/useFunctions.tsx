@@ -75,21 +75,23 @@ function useFunctions({
       cursor,
     })
       .then(([functions, , response]) => {
-        if (Array.isArray(functions)) {
+        const isLegacy =
+          functions.functions.length && functions.functions[0].hasOwnProperty('symbol');
+        if (isLegacy) {
           setRequestState({
             type: 'resolved',
             data: {
-              functions: functions ?? [],
-              pageLinks: response?.getResponseHeader('Link') ?? null,
-              version: 2,
+              functions: functions.functions ?? [],
+              version: 1,
             },
           });
         } else {
           setRequestState({
             type: 'resolved',
             data: {
-              functions: functions.functions ?? null,
-              version: 1,
+              functions: functions.functions ?? [],
+              pageLinks: response?.getResponseHeader('Link') ?? null,
+              version: 2,
             },
           });
         }

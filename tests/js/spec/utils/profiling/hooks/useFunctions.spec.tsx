@@ -52,9 +52,7 @@ describe('useFunctions', function () {
   it('fetches functions legacy', async function () {
     MockApiClient.addMockResponse({
       url: `/projects/org-slug/${project.slug}/profiling/functions/`,
-      body: {
-        functions: [],
-      },
+      body: {functions: [{symbol: ''}]}, // only the legacy response contains symbol
     });
 
     const hook = reactHooks.renderHook(
@@ -73,7 +71,7 @@ describe('useFunctions', function () {
     expect(hook.result.current).toEqual({
       type: 'resolved',
       data: {
-        functions: [],
+        functions: [{symbol: ''}],
         version: 1,
       },
     });
@@ -82,7 +80,7 @@ describe('useFunctions', function () {
   it('fetches functions', async function () {
     MockApiClient.addMockResponse({
       url: `/projects/org-slug/${project.slug}/profiling/functions/`,
-      body: [],
+      body: {functions: []},
     });
 
     const hook = reactHooks.renderHook(
