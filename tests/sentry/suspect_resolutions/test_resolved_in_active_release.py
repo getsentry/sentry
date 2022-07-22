@@ -11,10 +11,11 @@ from sentry.testutils import TestCase
 
 class ResolvedInActiveReleaseTest(TestCase):
     def test_unresolved_issue_in_active_release(self):
-        group = self.create_group(project=self.project, status=GroupStatus.UNRESOLVED)
-        release = self.create_release(project=self.project)
+        project = self.create_project()
+        group = self.create_group(project=project, status=GroupStatus.UNRESOLVED)
+        release = self.create_release(project=project)
         GroupRelease.objects.create(
-            project_id=self.project.id,
+            project_id=project.id,
             group_id=group.id,
             release_id=release.id,
         )
@@ -25,13 +26,14 @@ class ResolvedInActiveReleaseTest(TestCase):
             date_finished=timezone.now() - timedelta(minutes=20),
         )
 
-        assert not is_resolved_issue_within_active_release(group.id)
+        assert not is_resolved_issue_within_active_release(group.id, project)
 
     def test_resolved_issue_in_active_release(self):
-        group = self.create_group(project=self.project, status=GroupStatus.RESOLVED)
-        release = self.create_release(project=self.project)
+        project = self.create_project()
+        group = self.create_group(project=project, status=GroupStatus.RESOLVED)
+        release = self.create_release(project=project)
         GroupRelease.objects.create(
-            project_id=self.project.id,
+            project_id=project.id,
             group_id=group.id,
             release_id=release.id,
         )
@@ -42,13 +44,14 @@ class ResolvedInActiveReleaseTest(TestCase):
             date_finished=timezone.now() - timedelta(minutes=20),
         )
 
-        assert is_resolved_issue_within_active_release(group.id)
+        assert is_resolved_issue_within_active_release(group.id, project)
 
     def test_resolved_issue_in_old_deploy(self):
-        group = self.create_group(project=self.project, status=GroupStatus.RESOLVED)
-        release = self.create_release(project=self.project)
+        project = self.create_project()
+        group = self.create_group(project=project, status=GroupStatus.RESOLVED)
+        release = self.create_release(project=project)
         GroupRelease.objects.create(
-            project_id=self.project.id,
+            project_id=project.id,
             group_id=group.id,
             release_id=release.id,
         )
@@ -59,14 +62,15 @@ class ResolvedInActiveReleaseTest(TestCase):
             date_finished=timezone.now() - timedelta(days=3),
         )
 
-        assert not is_resolved_issue_within_active_release(group.id)
+        assert not is_resolved_issue_within_active_release(group.id, project)
 
     def test_resolved_issue_in_active_release_not_deployed(self):
-        group = self.create_group(project=self.project, status=GroupStatus.RESOLVED)
-        release = self.create_release(project=self.project)
+        project = self.create_project()
+        group = self.create_group(project=project, status=GroupStatus.RESOLVED)
+        release = self.create_release(project=project)
         GroupRelease.objects.create(
-            project_id=self.project.id,
+            project_id=project.id,
             group_id=group.id,
             release_id=release.id,
         )
-        assert not is_resolved_issue_within_active_release(group.id)
+        assert not is_resolved_issue_within_active_release(group.id, project)
