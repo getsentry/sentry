@@ -30,6 +30,8 @@ function useExtractedCrumbHtml({replay}: HookOpts) {
   const [breadcrumbRefs, setBreadcrumbReferences] = useState<Extraction[]>([]);
 
   useEffect(() => {
+    let isMounted = true;
+
     const domRoot = document.createElement('div');
     domRoot.className = 'sr-block';
     const {style} = domRoot;
@@ -69,7 +71,9 @@ function useExtractedCrumbHtml({replay}: HookOpts) {
           crumbs,
           isFinished: isLastRRWebEvent,
           onFinish: rows => {
-            setBreadcrumbReferences(rows);
+            if (isMounted) {
+              setBreadcrumbReferences(rows);
+            }
             document.body.removeChild(domRoot);
           },
         }),
@@ -79,6 +83,10 @@ function useExtractedCrumbHtml({replay}: HookOpts) {
 
     // Run the replay to the end, we will capture data as it streams into the plugin
     replayerRef.pause(replay.getEvent().endTimestamp);
+
+    return () => {
+      isMounted = false;
+    };
   }, [replay]);
 
   return {
