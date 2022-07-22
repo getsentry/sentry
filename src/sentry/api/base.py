@@ -504,3 +504,12 @@ def create_region_endpoint_class(endpoint_class):
             exclude=True,
         )
     return extend_schema_view(**schema)(region_endpoint_class)
+
+
+def resolve_region(request: Request):
+    subdomain = request.subdomain
+    if subdomain is None:
+        return None
+    if subdomain in {"us", "eu"}:
+        return subdomain
+    return None

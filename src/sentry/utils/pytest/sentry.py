@@ -147,7 +147,7 @@ def pytest_configure(config):
             "mail.backend": "django.core.mail.backends.locmem.EmailBackend",
             "system.url-prefix": "http://testserver",
             "system.base-hostname": "testserver",
-            "system.organization-base-hostname": "{region}.testserver",
+            "system.organization-base-hostname": "{slug}.{region}.testserver",
             "system.organization-url-template": "http://{hostname}",
             "system.region": "us",
             "system.secret-key": "a" * 52,
