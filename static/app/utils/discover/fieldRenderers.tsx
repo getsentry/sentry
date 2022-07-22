@@ -110,24 +110,24 @@ export function nullableValue(value: string | null): string | React.ReactElement
 }
 
 const SIZE_UNITS = {
-  bit: {scale: 1 / 8},
-  byte: {scale: 1},
-  kibibyte: {scale: 1024},
-  mebibyte: {scale: 1024 ** 2},
-  gibibyte: {scale: 1024 ** 3},
-  tebibyte: {scale: 1024 ** 4},
-  pebibyte: {scale: 1024 ** 5},
-  exbibyte: {scale: 1024 ** 6},
+  bit: 1 / 8,
+  byte: 1,
+  kibibyte: 1024,
+  mebibyte: 1024 ** 2,
+  gibibyte: 1024 ** 3,
+  tebibyte: 1024 ** 4,
+  pebibyte: 1024 ** 5,
+  exbibyte: 1024 ** 6,
 };
 const DURATION_UNITS = {
-  nanosecond: {scale: 1 / 1000 ** 2},
-  microsecond: {scale: 1 / 1000},
-  millisecond: {scale: 1},
-  second: {scale: 1000},
-  minute: {scale: 1000 * 60},
-  hour: {scale: 1000 * 60 * 60},
-  day: {scale: 1000 * 60 * 60 * 24},
-  week: {scale: 1000 * 60 * 60 * 24 * 7},
+  nanosecond: 1 / 1000 ** 2,
+  microsecond: 1 / 1000,
+  millisecond: 1,
+  second: 1000,
+  minute: 1000 * 60,
+  hour: 1000 * 60 * 60,
+  day: 1000 * 60 * 60 * 24,
+  week: 1000 * 60 * 60 * 24 * 7,
 };
 /**
  * A mapping of field types to their rendering function.
@@ -165,9 +165,7 @@ export const FIELD_FORMATTERS: FieldFormatters = {
         <NumberContainer>
           {typeof data[field] === 'number' ? (
             <Duration
-              seconds={
-                (data[field] * ((unit && DURATION_UNITS[unit]?.scale) ?? 1)) / 1000
-              }
+              seconds={(data[field] * ((unit && DURATION_UNITS[unit]) ?? 1)) / 1000}
               fixedDigits={2}
               abbreviation
             />
@@ -209,7 +207,7 @@ export const FIELD_FORMATTERS: FieldFormatters = {
       return (
         <NumberContainer>
           {unit && SIZE_UNITS[unit] && typeof data[field] === 'number' ? (
-            <FileSize bytes={data[field] * SIZE_UNITS[unit].scale} />
+            <FileSize bytes={data[field] * SIZE_UNITS[unit]} />
           ) : (
             emptyValue
           )}
