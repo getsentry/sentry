@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+from django.db.models import Q
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -46,25 +47,40 @@ class GroupSuspectReleasesEndpoint(GroupEndpoint, EnvironmentMixin):
             .order_by("-date_added")
             .first()
         )
-        if regression:
+
+        latest_regression_date = None
+        if regression and regression.release:
             suspect_releases.add(regression.release)
+        else:
+            latest_regression_date = regression.date_added if regression else None
 
         first_seen = group.first_seen
-        deploys = Deploy.objects.filter(
+        deploy_filter = Q(
+            organization_id=organization.id,
             date_finished__gt=first_seen - timedelta(hours=1),
             date_finished__lte=first_seen,
+            release__projects__in=[group.project],
         )
+        if latest_regression_date:
+            deploy_filter |= Q(
+                organization_id=organization.id,
+                date_finished__gt=latest_regression_date - timedelta(hours=1),
+                date_finished__lte=latest_regression_date,
+                release__projects__in=[group.project],
+            )
+
+        deploys = Deploy.objects.filter(deploy_filter).select_related("release")
         if deploys.exists():
-            suspect_releases.add(deploys.first().release)
+            suspect_releases.update({deploy.release for deploy in deploys})
         else:
             releases = Release.objects.filter(
+                projects__in=[group.project],
                 date_released__gt=first_seen - timedelta(hours=1),
                 date_released__lte=first_seen,
             )
-            if releases.exists():
-                suspect_releases.add(releases)
+            suspect_releases.update(releases)
 
-        suspect_releases = [serialize(release, request.user) for release in suspect_releases]
+        suspect_releases = serialize(suspect_releases, request.user)
         data.update(
             {
                 "suspectReleases": list(
