@@ -20,6 +20,8 @@ TEST_ROOT = os.path.normpath(
     os.path.join(os.path.dirname(__file__), os.pardir, os.pardir, os.pardir, os.pardir, "tests")
 )
 
+TEST_REDIS_DB = 9
+
 
 def pytest_configure(config):
     import warnings
@@ -141,11 +143,11 @@ def pytest_configure(config):
 
     settings.SENTRY_OPTIONS.update(
         {
-            "redis.clusters": {"default": {"hosts": {0: {"db": 9}}}},
+            "redis.clusters": {"default": {"hosts": {0: {"db": TEST_REDIS_DB}}}},
             "mail.backend": "django.core.mail.backends.locmem.EmailBackend",
             "system.url-prefix": "http://testserver",
             "system.base-hostname": "testserver",
-            "system.organization-base-hostname": "{slug}.{region}.testserver",
+            "system.organization-base-hostname": "{region}.testserver",
             "system.organization-url-template": "http://{hostname}",
             "system.region": "us",
             "system.secret-key": "a" * 52,

@@ -41,6 +41,19 @@ export const ACCOUNT_NOTIFICATION_FIELDS: Record<string, FineTuneField> = {
     defaultValue: '-1',
     defaultFieldName: 'workflowNotifications',
   },
+  activeRelease: {
+    title: 'Issues in My Releases',
+    description: t(
+      'Get a notification when an issue happens shortly after your release.'
+    ),
+    type: 'select',
+    defaultValue: '0',
+    options: [
+      {value: '1', label: t('On')},
+      {value: '0', label: t('Off')},
+    ],
+    defaultFieldName: 'activeReleaseNotifications',
+  },
   deploy: {
     title: t('Deploy Notifications'),
     description: t(
