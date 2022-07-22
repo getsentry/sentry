@@ -441,6 +441,26 @@ class DashboardDetail extends Component<Props, State> {
     const {organization, dashboard, api, onDashboardUpdate, location} = this.props;
     const {modifiedDashboard} = this.state;
 
+    if (
+      organization.features.includes('dashboards-top-level-filter') &&
+      hasUnsavedFilterChanges(
+        dashboard,
+        location,
+        (modifiedDashboard || dashboard).filters
+      )
+    ) {
+      browserHistory.replace({
+        ...this.props.location,
+        query: {
+          project: dashboard.projects,
+          environment: dashboard.environment,
+          statsPeriod: dashboard.period,
+          start: dashboard.start,
+          end: dashboard.end,
+        },
+      });
+    }
+
     // Use the new widgets for calculating layout because widgets has
     // the most up to date information in edit state
     const currentLayout = getDashboardLayout(widgets);
@@ -449,6 +469,12 @@ class DashboardDetail extends Component<Props, State> {
       ...cloneDashboard(modifiedDashboard || dashboard),
       widgets: assignDefaultLayout(widgets, layoutColumnDepths),
     };
+    if (
+      organization.features.includes('dashboards-top-level-filter') &&
+      hasUnsavedFilterChanges(dashboard, location, newModifiedDashboard.filters)
+    ) {
+      newModifiedDashboard.filters = dashboard.filters;
+    }
     this.setState({
       modifiedDashboard: newModifiedDashboard,
       widgetLimitReached: widgets.length >= MAX_WIDGETS,
