@@ -221,6 +221,41 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
             ),
         ]
 
+    # TODO: add these to the shared frontend tests later
+    def test_size_filter(self):
+        config = SearchConfig()
+
+        assert parse_search_query("measurements.foo:>5gb measurements.bar:<3pb", config=config) == [
+            SearchFilter(
+                key=SearchKey(name="measurements.foo"),
+                operator=">",
+                value=SearchValue(5 * 1024**3),
+            ),
+            SearchFilter(
+                key=SearchKey(name="measurements.bar"),
+                operator="<",
+                value=SearchValue(3 * 1024**5),
+            ),
+        ]
+
+    def test_aggregate_size_filter(self):
+        config = SearchConfig()
+
+        assert parse_search_query(
+            "p50(measurements.foo):>5gb p100(measurements.bar):<3pb", config=config
+        ) == [
+            SearchFilter(
+                key=SearchKey(name="p50(measurements.foo)"),
+                operator=">",
+                value=SearchValue(5 * 1024**3),
+            ),
+            SearchFilter(
+                key=SearchKey(name="p100(measurements.bar)"),
+                operator="<",
+                value=SearchValue(3 * 1024**5),
+            ),
+        ]
+
     def test_rel_time_filter(self):
         now = timezone.now()
         with freeze_time(now):
