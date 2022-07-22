@@ -22,7 +22,7 @@ export default function EventReplay({replayId, orgSlug, projectSlug}: Props) {
     orgId: orgSlug,
   });
 
-  const {ref: fullscreenRef, isFullscreen, toggle: toggleFullscreen} = useFullscreen();
+  const {ref: fullscreenRef, toggle: toggleFullscreen} = useFullscreen();
 
   return (
     <EventDataSection type="replay" title={t('Replay')}>
@@ -35,12 +35,7 @@ export default function EventReplay({replayId, orgSlug, projectSlug}: Props) {
           {fetching ? (
             <Placeholder height="350px" width="100%" />
           ) : (
-            replay && (
-              <ReplayView
-                toggleFullscreen={toggleFullscreen}
-                isFullscreen={isFullscreen}
-              />
-            )
+            <ReplayView toggleFullscreen={toggleFullscreen} />
           )}
         </PlayerContainer>
       </ReplayContextProvider>
@@ -51,4 +46,12 @@ export default function EventReplay({replayId, orgSlug, projectSlug}: Props) {
 const PlayerContainer = styled('div')`
   max-width: 420px;
   margin-top: ${space(2)};
+
+  background: ${p => p.theme.background};
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  flex-grow: 1;
+  overflow: hidden;
+  gap: ${space(1)};
 `;

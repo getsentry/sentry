@@ -75,7 +75,7 @@ function ReplayLayout({
   showTimeline = true,
   showVideo = true,
 }: Props) {
-  const {ref: fullscreenRef, isFullscreen, toggle: toggleFullscreen} = useFullscreen();
+  const {ref: fullscreenRef, toggle: toggleFullscreen} = useFullscreen();
 
   const timeline = showTimeline ? (
     <ErrorBoundary mini>
@@ -86,7 +86,7 @@ function ReplayLayout({
   const video = showVideo ? (
     <VideoSection ref={fullscreenRef}>
       <ErrorBoundary mini>
-        <ReplayView toggleFullscreen={toggleFullscreen} isFullscreen={isFullscreen} />
+        <ReplayView toggleFullscreen={toggleFullscreen} />
       </ErrorBoundary>
     </VideoSection>
   ) : null;
@@ -219,12 +219,16 @@ const BodyContent = styled('main')`
   padding: ${space(2)};
 `;
 
-export const VideoSection = styled('section')`
+const VideoSection = styled('section')`
   height: 100%;
+
+  background: ${p => p.theme.background};
   display: flex;
-  flex-grow: 1;
-  flex-wrap: nowrap;
   flex-direction: column;
+  flex-wrap: nowrap;
+  flex-grow: 1;
+  overflow: hidden;
+  gap: ${space(1)};
 `;
 
 export default ReplayLayout;
