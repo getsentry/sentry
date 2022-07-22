@@ -1,5 +1,5 @@
 import {t} from 'sentry/locale';
-import {QueryType} from 'sentry/views/alerts/wizard/options';
+import {MEPAlertsQueryType} from 'sentry/views/alerts/wizard/options';
 import type {SchemaFormConfig} from 'sentry/views/organizationIntegrations/sentryAppExternalForm';
 
 import type {Incident} from '../../types';
@@ -23,6 +23,8 @@ export enum AlertRuleComparisonType {
 export enum Dataset {
   ERRORS = 'events',
   TRANSACTIONS = 'transactions',
+  /** Also used for performance alerts **/
+  GENERIC_METRICS = 'generic_metrics',
   SESSIONS = 'sessions',
   /** Also used for crash free alerts */
   METRICS = 'metrics',
@@ -92,7 +94,7 @@ export type UnsavedMetricRule = {
   comparisonDelta?: number | null;
   eventTypes?: EventTypes[];
   owner?: string | null;
-  queryType?: QueryType | null;
+  queryType?: MEPAlertsQueryType | null;
 };
 
 export interface SavedMetricRule extends UnsavedMetricRule {

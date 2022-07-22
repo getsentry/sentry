@@ -1,5 +1,7 @@
 from typing import Mapping, Set, Tuple
 
+import pytest
+
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.indexer.base import KeyCollection, KeyResult, KeyResults
 from sentry.sentry_metrics.indexer.cache import indexer_cache
@@ -19,6 +21,9 @@ def assert_fetch_type_for_tag_string_set(
     meta: Mapping[str, Tuple[int, FetchType]], fetch_type: FetchType, str_set: Set[str]
 ):
     assert all([meta[string][1] == fetch_type for string in str_set])
+
+
+pytestmark = pytest.mark.sentry_metrics
 
 
 class PostgresIndexerTest(TestCase):
