@@ -3,7 +3,6 @@ import mean from 'lodash/mean';
 import {RenderProps} from 'sentry/components/charts/eventsRequest';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {defined} from 'sentry/utils';
-import {axisLabelFormatter} from 'sentry/utils/discover/charts';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 
 import {QueryDefinitionWithKey, WidgetDataConstraint, WidgetPropUnion} from '../types';
@@ -25,7 +24,7 @@ export function transformEventsRequestToArea<T extends WidgetDataConstraint>(
     return {
       mean: meanData,
       outputType: aggregateOutputType(series.seriesName),
-      label: axisLabelFormatter(meanData, series.seriesName),
+      // label: axisLabelFormatter(meanData, series.seriesName),
     };
   });
 

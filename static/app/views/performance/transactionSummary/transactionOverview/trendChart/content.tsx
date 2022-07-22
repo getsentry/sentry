@@ -58,6 +58,21 @@ function Content({
     );
   }
 
+  const series = data
+    ? data
+        .map(values => {
+          return {
+            ...values,
+            color: theme.purple300,
+            lineStyle: {
+              opacity: 0.75,
+              width: 1,
+            },
+          };
+        })
+        .reverse()
+    : [];
+
   const chartOptions: Omit<LineChartProps, 'series'> = {
     grid: {
       left: '10px',
@@ -87,21 +102,6 @@ function Content({
       },
     },
   };
-
-  const series = data
-    ? data
-        .map(values => {
-          return {
-            ...values,
-            color: theme.purple300,
-            lineStyle: {
-              opacity: 0.75,
-              width: 1,
-            },
-          };
-        })
-        .reverse()
-    : [];
 
   const {smoothedResults} = transformEventStatsSmoothed(data, t('Smoothed'));
 
