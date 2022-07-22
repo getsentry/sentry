@@ -59,12 +59,12 @@ export default function FiltersBar({
             </FilterButton>
           </FilterButtons>
           {hasUnsavedChanges && !isEditingDashboard && (
-            <Fragment>
+            <FilterButtons>
               <Button priority="primary" onClick={onSave}>
                 {t('Save')}
               </Button>
               <Button onClick={onCancel}>{t('Cancel')}</Button>
-            </Fragment>
+            </FilterButtons>
           )}
         </Fragment>
       </Feature>
@@ -72,7 +72,6 @@ export default function FiltersBar({
   );
 }
 
-// TODO: Styling
 const Wrapper = styled('div')`
   display: flex;
   flex-direction: row;
@@ -81,7 +80,7 @@ const Wrapper = styled('div')`
 
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     display: grid;
-    grid-template-columns: min-content 1fr;
+    grid-auto-flow: row;
   }
 `;
 
@@ -97,5 +96,7 @@ const FilterButtons = styled(ButtonBar)`
 `;
 
 const FilterButton = styled('div')`
-  max-width: 300px;
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    max-width: 300px;
+  }
 `;
