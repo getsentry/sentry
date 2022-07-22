@@ -3,7 +3,7 @@ import base64
 from django.http import HttpRequest
 from rest_framework.response import Response
 
-from sentry.api.base import Endpoint, resolve_region
+from sentry.api.base import Endpoint
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.models import ApiKey
 from sentry.testutils import APITestCase
@@ -163,15 +163,3 @@ class EndpointJSONBodyTest(APITestCase):
         Endpoint().load_json_body(self.request)
 
         assert not self.request.json_body
-
-
-class CustomerDomainTest(APITestCase):
-    def test_resolve_region(self):
-        def request_with_subdomain(subdomain):
-            request = self.make_request(method="GET")
-            request.subdomain = subdomain
-            return resolve_region(request)
-
-        assert request_with_subdomain("us") == "us"
-        assert request_with_subdomain("eu") == "eu"
-        assert request_with_subdomain("sentry") is None
