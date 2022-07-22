@@ -1,12 +1,13 @@
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
+import localStorageWrapper from 'sentry/utils/localStorage';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 
 describe('useLocalStorageState', () => {
   beforeEach(() => {
-    global.localStorage.clear();
+    localStorageWrapper.clear();
 
-    if (global.localStorage.length > 0) {
+    if (localStorageWrapper.length > 0) {
       throw new Error('localStorage was not cleared');
     }
   });
