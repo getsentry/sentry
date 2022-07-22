@@ -96,36 +96,6 @@ class DynamicSamplingSerializer(serializers.Serializer):
     rules = serializers.ListSerializer(child=DynamicSamplingRuleSerializer())
     next_id = serializers.IntegerField(min_value=0, required=False)
 
-    @staticmethod
-    def _is_uniform_sampling_rule(rule):
-        # A uniform sampling rule must be an 'and' with no rules. An 'or' with no rules will not
-        # match anything.
-        assert rule["condition"]["op"] == "and"
-        # Matching the uniform sampling rule check on UI because currently we only support
-        # uniform rules on traces, not on single transactions. If we change this spec in the
-        # future, we will have to update this to also support single transactions.
-        return len(rule["condition"]["inner"]) == 0 and rule["type"] == "trace"
-
-    def validate_uniform_sampling_rule(self, rules):
-        # Guards against deletion of uniform sampling rule i.e. sending a payload with no rules
-        if len(rules) == 0:
-            raise serializers.ValidationError(
-                "Payload must contain a uniform dynamic sampling rule"
-            )
-
-        uniform_rule = rules[-1]
-        # Guards against placing uniform sampling rule not in last position or adding multiple
-        # uniform sampling rules
-        for rule in rules[:-1]:
-            if self._is_uniform_sampling_rule(rule):
-                raise serializers.ValidationError("Uniform rule must be in the last position only")
-
-        # Ensures last rule in rules is always a uniform sampling rule
-        if not self._is_uniform_sampling_rule(uniform_rule):
-            raise serializers.ValidationError(
-                "Last rule is reserved for uniform rule which must have no conditions"
-            )
-
     def validate(self, data):
         """
         Additional validation using sentry-relay to make sure that
@@ -136,7 +106,6 @@ class DynamicSamplingSerializer(serializers.Serializer):
         try:
             config_str = json.dumps(data)
             validate_sampling_configuration(config_str)
-            self.validate_uniform_sampling_rule(data.get("rules", []))
         except ValueError as err:
             reason = err.args[0] if len(err.args) > 0 else "invalid configuration"
             raise serializers.ValidationError(reason)
@@ -462,7 +431,8 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         serializer = serializer_cls(
             data=request.data, partial=True, context={"project": project, "request": request}
         )
-        serializer.is_valid()
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
 
         result = serializer.validated_data
 
@@ -476,9 +446,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 {"detail": ["You do not have permission to set sampling."]},
                 status=403,
             )
-
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
 
         if not has_project_write:
             # options isn't part of the serializer, but should not be editable by members
@@ -832,7 +799,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         if raw_dynamic_sampling is not None:
             rules = raw_dynamic_sampling.get("rules", [])
-
             for rule in rules:
                 rid = rule.get("id", 0)
                 original_rule = original_rules_dict.get(rid)
