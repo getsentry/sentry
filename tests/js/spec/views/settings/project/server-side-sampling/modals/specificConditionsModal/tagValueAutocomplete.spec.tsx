@@ -64,7 +64,6 @@ describe('TagValueAutocomplete', function () {
     userEvent.paste(input, 'deve');
 
     // Assert that we offer to create that option
-    // await waitFor(() => {
     expect(
       await screen.findByText(textWithMarkupMatcher('Add "deve"'))
     ).toBeInTheDocument();
