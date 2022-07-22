@@ -35,7 +35,7 @@ class SlackNewProcessingIssuesNotificationTest(SlackActivityNotificationTest):
         attachment, text = get_attachment()
         assert (
             text
-            == f"Processing issues on <{self.project.slug}|http://testserver/settings/{self.organization.slug}/projects/{self.project.slug}/processing-issues/"
+            == f"Processing issues on <http://testserver/settings/{self.organization.slug}/projects/{self.project.slug}/processing-issues/|{self.project.slug}>"
         )
         assert (
             attachment["text"]
