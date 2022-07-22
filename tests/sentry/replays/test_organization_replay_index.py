@@ -140,64 +140,61 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
     #         assert "data" in response_data
     #         assert response_data["data"][0]["replay_id"] == replay2_id
 
-    # TODO: Snuba has a default timestamp sort that preempts whatever aggreagted timestamp
-    #       sort we apply. This should be removed if possible.
-    #
-    # def test_get_replays_started_at_sorted(self):
-    #     project = self.create_project(teams=[self.team])
+    def test_get_replays_started_at_sorted(self):
+        project = self.create_project(teams=[self.team])
 
-    #     replay1_id = "44c586f7-bd12-4c1b-b609-189344a19e92"
-    #     replay2_id = "6f959c5c-bc77-4683-8723-6e3367b0cfac"
-    #     replay1_timestamp0 = datetime.datetime.now() - datetime.timedelta(seconds=15)
-    #     replay1_timestamp1 = datetime.datetime.now() - datetime.timedelta(seconds=5)
-    #     replay2_timestamp0 = datetime.datetime.now() - datetime.timedelta(seconds=10)
-    #     replay2_timestamp1 = datetime.datetime.now() - datetime.timedelta(seconds=2)
+        replay1_id = "44c586f7-bd12-4c1b-b609-189344a19e92"
+        replay2_id = "6f959c5c-bc77-4683-8723-6e3367b0cfac"
+        replay1_timestamp0 = datetime.datetime.now() - datetime.timedelta(seconds=15)
+        replay1_timestamp1 = datetime.datetime.now() - datetime.timedelta(seconds=5)
+        replay2_timestamp0 = datetime.datetime.now() - datetime.timedelta(seconds=10)
+        replay2_timestamp1 = datetime.datetime.now() - datetime.timedelta(seconds=2)
 
-    #     self.store_replays(mock_replay(replay1_timestamp0, project.id, replay1_id))
-    #     self.store_replays(mock_replay(replay1_timestamp1, project.id, replay1_id))
-    #     self.store_replays(mock_replay(replay2_timestamp0, project.id, replay2_id))
-    #     self.store_replays(mock_replay(replay2_timestamp1, project.id, replay2_id))
+        self.store_replays(mock_replay(replay1_timestamp0, project.id, replay1_id))
+        self.store_replays(mock_replay(replay1_timestamp1, project.id, replay1_id))
+        self.store_replays(mock_replay(replay2_timestamp0, project.id, replay2_id))
+        self.store_replays(mock_replay(replay2_timestamp1, project.id, replay2_id))
 
-    #     with self.feature(REPLAYS_FEATURES):
-    #         # Latest first.
-    #         response = self.client.get(self.url + "?sort=-started-at")
-    #         response_data = response.json()
-    #         assert response_data["data"][0]["replay_id"] == replay2_id
-    #         assert response_data["data"][1]["replay_id"] == replay1_id
+        with self.feature(REPLAYS_FEATURES):
+            # Latest first.
+            response = self.client.get(self.url + "?sort=-started_at")
+            response_data = response.json()
+            assert response_data["data"][0]["replay_id"] == replay2_id
+            assert response_data["data"][1]["replay_id"] == replay1_id
 
-    #         # Earlist first.
-    #         response = self.client.get(self.url + "?sort=started-at")
-    #         response_data = response.json()
-    #         assert response_data["data"][0]["replay_id"] == replay1_id
-    #         assert response_data["data"][1]["replay_id"] == replay2_id
+            # Earlist first.
+            response = self.client.get(self.url + "?sort=started_at")
+            response_data = response.json()
+            assert response_data["data"][0]["replay_id"] == replay1_id
+            assert response_data["data"][1]["replay_id"] == replay2_id
 
-    # def test_get_replays_finished_at_sorted(self):
-    #     project = self.create_project(teams=[self.team])
+    def test_get_replays_finished_at_sorted(self):
+        project = self.create_project(teams=[self.team])
 
-    #     replay1_id = "44c586f7-bd12-4c1b-b609-189344a19e92"
-    #     replay2_id = "6f959c5c-bc77-4683-8723-6e3367b0cfac"
-    #     replay1_timestamp0 = datetime.datetime.now() - datetime.timedelta(seconds=15)
-    #     replay1_timestamp1 = datetime.datetime.now() - datetime.timedelta(seconds=5)
-    #     replay2_timestamp0 = datetime.datetime.now() - datetime.timedelta(seconds=10)
-    #     replay2_timestamp1 = datetime.datetime.now() - datetime.timedelta(seconds=2)
+        replay1_id = "44c586f7-bd12-4c1b-b609-189344a19e92"
+        replay2_id = "6f959c5c-bc77-4683-8723-6e3367b0cfac"
+        replay1_timestamp0 = datetime.datetime.now() - datetime.timedelta(seconds=15)
+        replay1_timestamp1 = datetime.datetime.now() - datetime.timedelta(seconds=5)
+        replay2_timestamp0 = datetime.datetime.now() - datetime.timedelta(seconds=10)
+        replay2_timestamp1 = datetime.datetime.now() - datetime.timedelta(seconds=2)
 
-    #     self.store_replays(mock_replay(replay1_timestamp0, project.id, replay1_id))
-    #     self.store_replays(mock_replay(replay1_timestamp1, project.id, replay1_id))
-    #     self.store_replays(mock_replay(replay2_timestamp0, project.id, replay2_id))
-    #     self.store_replays(mock_replay(replay2_timestamp1, project.id, replay2_id))
+        self.store_replays(mock_replay(replay1_timestamp0, project.id, replay1_id))
+        self.store_replays(mock_replay(replay1_timestamp1, project.id, replay1_id))
+        self.store_replays(mock_replay(replay2_timestamp0, project.id, replay2_id))
+        self.store_replays(mock_replay(replay2_timestamp1, project.id, replay2_id))
 
-    #     with self.feature(REPLAYS_FEATURES):
-    #         # Latest first.
-    #         response = self.client.get(self.url + "?sort=-finished-at")
-    #         response_data = response.json()
-    #         assert response_data["data"][0]["replay_id"] == replay2_id
-    #         assert response_data["data"][1]["replay_id"] == replay1_id
+        with self.feature(REPLAYS_FEATURES):
+            # Latest first.
+            response = self.client.get(self.url + "?sort=-finished_at")
+            response_data = response.json()
+            assert response_data["data"][0]["replay_id"] == replay2_id
+            assert response_data["data"][1]["replay_id"] == replay1_id
 
-    #         # Earlist first.
-    #         response = self.client.get(self.url + "?sort=finished-at")
-    #         response_data = response.json()
-    #         assert response_data["data"][0]["replay_id"] == replay1_id
-    #         assert response_data["data"][1]["replay_id"] == replay2_id
+            # Earlist first.
+            response = self.client.get(self.url + "?sort=finished_at")
+            response_data = response.json()
+            assert response_data["data"][0]["replay_id"] == replay1_id
+            assert response_data["data"][1]["replay_id"] == replay2_id
 
     def test_get_replays_duration_sorted(self):
         """Test replays can be sorted by duration."""
