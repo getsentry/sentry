@@ -1854,7 +1854,7 @@ class MetricsQueryBuilder(QueryBuilder):
                 use_case_id = UseCaseKey.PERFORMANCE
             else:
                 use_case_id = UseCaseKey.RELEASE_HEALTH
-            result = indexer.resolve(self.organization_id, value, use_case_id=use_case_id)
+            result = indexer.resolve(self.organization_id, value, use_case_id=use_case_id)  # type: ignore
             self._indexer_cache[value] = result
 
         return self._indexer_cache[value]
