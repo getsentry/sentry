@@ -10,7 +10,7 @@ from django.utils import timezone
 
 from sentry import analytics, features
 from sentry.eventstore.models import Event
-from sentry.mail.actions import NotifyEmailAction
+from sentry.mail.actions import NotifyActiveReleaseEmailAction
 from sentry.models import GroupRuleStatus, Rule
 from sentry.notifications.types import ActionTargetType
 from sentry.rules import EventState, history, rules
@@ -259,7 +259,11 @@ class RuleProcessor:
 
     def _get_active_release_rule_actions(self) -> Sequence[EventAction]:
         # TODO: we need this to be configurable on a pre-project level?
-        return [NotifyEmailAction(data={"targetType": ActionTargetType.RELEASE_MEMBERS.value})]
+        return [
+            NotifyActiveReleaseEmailAction(
+                data={"targetType": ActionTargetType.RELEASE_MEMBERS.value}
+            )
+        ]
 
     def _get_last_active_time_for_active_release(self) -> str | None:
         # TODO:
@@ -313,11 +317,7 @@ class RuleProcessor:
 
     def apply(
         self,
-    ) -> Iterable[Tuple[Callable[[Event, Sequence[RuleFuture]], None], List[RuleFuture]]]:  #
-        # [ ((Callable(param: [Event, Sequence[RuleFuture]]) -> None), (RuleFuture, RuleFuture, ...))
-        #   ()
-        # ]
-
+    ) -> Iterable[Tuple[Callable[[Event, Sequence[RuleFuture]], None], List[RuleFuture]]]:
         # we should only apply rules on unresolved issues
         if not self.event.group.is_unresolved():
             return {}.values()

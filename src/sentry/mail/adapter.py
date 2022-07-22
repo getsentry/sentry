@@ -7,12 +7,10 @@ from sentry.digests import Digest
 from sentry.digests import get_option_key as get_digest_option_key
 from sentry.digests.notifications import event_to_record, unsplit_key
 from sentry.models import NotificationSetting, Project, ProjectOption
+from sentry.notifications.notifications.active_release import ActiveReleaseAlertNotification
 from sentry.notifications.notifications.activity import EMAIL_CLASSES_BY_TYPE
 from sentry.notifications.notifications.digest import DigestNotification
-from sentry.notifications.notifications.rules import (
-    ActiveReleaseAlertNotification,
-    AlertRuleNotification,
-)
+from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.notifications.notifications.user_report import UserReportNotification
 from sentry.notifications.types import ActionTargetType
 from sentry.plugins.base.structs import Notification
@@ -51,7 +49,7 @@ class MailAdapter:
             "target_identifier": target_identifier,
         }
         log_event = "dispatched"
-        for future in futures:
+        for future in filter(lambda f: f.rule, futures):
             rules.append(future.rule)
             extra["rule_id"] = future.rule.id
             if not future.kwargs:
@@ -63,8 +61,7 @@ class MailAdapter:
         project = event.group.project
         extra["project_id"] = project.id
 
-        # XXX(workflow): remove the extra condition after digests.enabled(project) when wf2.0 experiment is over
-        if digests.enabled(project) and target_type != ActionTargetType.RELEASE_MEMBERS:
+        if digests.enabled(project):
 
             def get_digest_option(key):
                 return ProjectOption.objects.get_value(project, get_digest_option_key("mail", key))
@@ -87,6 +84,25 @@ class MailAdapter:
             self.notify(notification, target_type, target_identifier)
 
         logger.info("mail.adapter.notification.%s" % log_event, extra=extra)
+
+    def active_release_notify(
+        self,
+        event: Any,
+    ) -> None:
+        metrics.incr("mail_adapter.active_release_notify")
+        extra = {
+            "event_id": event.event_id,
+            "group_id": event.group_id,
+            "is_from_mail_action_adapter": True,
+        }
+        log_event = "dispatched"
+        project = event.group.project
+        extra["project_id"] = project.id
+
+        notification = Notification(event=event, rules=None)
+        self.notify(notification, ActionTargetType.RELEASE_MEMBERS)
+
+        logger.info("mail.adapter.notification.active_release.%s" % log_event, extra=extra)
 
     @staticmethod
     def get_sendable_user_objects(project):
