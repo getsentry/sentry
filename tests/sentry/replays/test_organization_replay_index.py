@@ -98,6 +98,48 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             assert "data" in response_data
             assert len(response_data["data"]) == 0
 
+    # TODO: Environment not being ingested.
+    #
+    # def test_get_replays_filter_environment(self):
+    #     """Test returned replays can not partially fall outside of range."""
+    #     project = self.create_project(teams=[self.team])
+
+    #     self.create_environment(name="development", project=self.project)
+    #     self.create_environment(name="production", project=self.project)
+
+    #     replay1_id = "44c586f7-bd12-4c1b-b609-189344a19e92"
+    #     replay2_id = "6f959c5c-bc77-4683-8723-6e3367b0cfac"
+    #     timestamp0 = datetime.datetime.now() - datetime.timedelta(seconds=20)
+    #     timestamp1 = datetime.datetime.now() - datetime.timedelta(seconds=10)
+
+    #     self.store_replays(
+    #         mock_replay(timestamp0, project.id, replay1_id, environment="development")
+    #     )
+    #     self.store_replays(
+    #         mock_replay(timestamp1, project.id, replay1_id, environment="development")
+    #     )
+    #     self.store_replays(
+    #         mock_replay(timestamp0, project.id, replay2_id, environment="production")
+    #     )
+    #     self.store_replays(
+    #         mock_replay(timestamp1, project.id, replay2_id, environment="production")
+    #     )
+
+    #     with self.feature(REPLAYS_FEATURES):
+    #         response = self.client.get(self.url + "?environment=development")
+    #         assert response.status_code == 200
+
+    #         response_data = response.json()
+    #         assert "data" in response_data
+    #         assert response_data["data"][0]["replay_id"] == replay1_id
+
+    #         response = self.client.get(self.url + "?environment=production")
+    #         assert response.status_code == 200
+
+    #         response_data = response.json()
+    #         assert "data" in response_data
+    #         assert response_data["data"][0]["replay_id"] == replay2_id
+
     # TODO: Snuba has a default timestamp sort that preempts whatever aggreagted timestamp
     #       sort we apply. This should be removed if possible.
     #
