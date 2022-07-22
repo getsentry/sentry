@@ -11,7 +11,6 @@ from pytz import utc
 from snuba_sdk.column import Column
 from snuba_sdk.function import Function
 
-from sentry.api.utils import generate_organization_hostname
 from sentry.discover.models import TeamKeyTransaction
 from sentry.models import ApiKey, ProjectTeam, ProjectTransactionThreshold, ReleaseStages
 from sentry.models.transaction_threshold import (
@@ -4994,33 +4993,3 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
                 self.do_request(query)
             response = self.do_request(query)
             assert response.status_code == 200, response.content
-
-
-class CustomerOrganizationEventsEndpointTest(OrganizationEventsEndpointTest):
-    viewname = "sentry-api-0-region-organization-events"
-
-    def client_get(self, *args, **kwargs):
-        if "HTTP_HOST" not in kwargs:
-            kwargs["HTTP_HOST"] = generate_organization_hostname(self.organization.slug)
-        return self.client.get(
-            *args,
-            **kwargs,
-        )
-
-    def reverse_url(self):
-        return reverse(self.viewname)
-
-    def test_invalid_org_slug(self):
-        self.organization.slug = "not-found"
-        response = self.do_request({})
-
-        assert response.status_code == 404, response.content
-
-    def test_non_customer_base_host(self):
-        self.login_as(user=self.user)
-        with self.feature({"organizations:discover-basic": True}):
-            query = {}
-            response = self.client_get(
-                self.reverse_url(), query, format="json", HTTP_HOST="testserver"
-            )
-            assert response.status_code == 404, response.content

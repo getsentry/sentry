@@ -9,7 +9,6 @@ from rest_framework.response import Response
 
 from sentry import features
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
-from sentry.api.bases.organization import resolve_org_slug_region
 from sentry.api.helpers.deprecation import deprecated
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import InvalidParams
@@ -79,9 +78,6 @@ DEFAULT_EVENTS_RATE_LIMIT_CONFIG = {
 
 
 def rate_limit_events(request: Request, organization_slug=None, *args, **kwargs) -> RateLimitConfig:
-    organization_slug, _ = resolve_org_slug_region(
-        request=request, organization_slug=organization_slug
-    )
     try:
         organization = Organization.objects.get_from_cache(slug=organization_slug)
     except Organization.DoesNotExist:
