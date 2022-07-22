@@ -1,6 +1,7 @@
 import {cloneElement, Component, isValidElement} from 'react';
 import {browserHistory, PlainRoute, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
+import {Location} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
@@ -70,20 +71,24 @@ const UNSAVED_MESSAGE = t('You have unsaved changes, are you sure you want to le
 
 const HookHeader = HookOrDefault({hookName: 'component:dashboards-header'});
 
-function hasUnsavedFilterChanges(dashboard, location, filters) {
+function hasUnsavedFilterChanges(
+  initialDashboard: DashboardDetails,
+  location: Location,
+  newDashboardFilters: DashboardFilters
+) {
   const {project, environment, statsPeriod, start, end} = location.query ?? {};
   return !isEqual(
     {
-      projects: dashboard.projects,
-      environment: dashboard.environment,
-      period: dashboard.period,
-      start: dashboard.start,
-      end: dashboard.end,
-      filters: dashboard.filters,
+      projects: initialDashboard.projects,
+      environment: initialDashboard.environment,
+      period: initialDashboard.period,
+      start: initialDashboard.start,
+      end: initialDashboard.end,
+      filters: initialDashboard.filters,
     },
     {
       projects:
-        project === undefined
+        project === undefined || project === null
           ? []
           : typeof project === 'string'
           ? [Number(project)]
@@ -92,7 +97,7 @@ function hasUnsavedFilterChanges(dashboard, location, filters) {
       period: statsPeriod,
       start,
       end,
-      filters,
+      filters: newDashboardFilters,
     }
   );
 }
@@ -278,7 +283,7 @@ class DashboardDetail extends Component<Props, State> {
   }
 
   onEdit = () => {
-    const {organization, dashboard} = this.props;
+    const {organization, dashboard, location} = this.props;
 
     trackAnalyticsEvent({
       eventKey: 'dashboards2.edit.start',
@@ -286,10 +291,9 @@ class DashboardDetail extends Component<Props, State> {
       organization_id: parseInt(this.props.organization.id, 10),
     });
 
-    const {filters} = this.state.modifiedDashboard || dashboard;
     if (
       organization.features.includes('dashboards-top-level-filter') &&
-      hasUnsavedFilterChanges(dashboard, location, filters)
+      hasUnsavedFilterChanges(dashboard, location, dashboard.filters)
     ) {
       browserHistory.replace({
         ...this.props.location,
