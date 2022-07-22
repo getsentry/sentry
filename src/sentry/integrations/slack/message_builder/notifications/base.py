@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
-from sentry.integrations.slack.message_builder import SlackBody
+from sentry.integrations.slack.message_builder import SLACK_URL_FORMAT, SlackBody
 from sentry.integrations.slack.message_builder.base.base import SlackMessageBuilder
 from sentry.models import Team, User
 from sentry.notifications.notifications.base import BaseNotification
@@ -20,6 +20,7 @@ class SlackNotificationsMessageBuilder(SlackMessageBuilder):
         self.notification = notification
         self.context = context
         self.recipient = recipient
+        self.notification.url_format = SLACK_URL_FORMAT
 
     def build(self) -> SlackBody:
         callback_id_raw = self.notification.get_callback_data()

@@ -61,6 +61,20 @@ class BaseNotification(abc.ABC):
         raise NotImplementedError
 
     @property
+    def url_format(self) -> str:
+        """
+        The URL format used when embedding links in text.
+        Slack notifications should set this to `<{url}|{text}>`.
+        Microsoft Teams notifications should set this to `[text](url)`.
+        URLs should be built using `self.url_format.format(text=some_text, url=some_url)`.
+        """
+        return self._url_format
+
+    @url_format.setter
+    def url_format(self, url_format: str) -> None:
+        self._url_format = url_format
+
+    @property
     @abc.abstractmethod
     def template_path(self) -> str:
         """
@@ -247,7 +261,10 @@ class ProjectNotification(BaseNotification, abc.ABC):
                 environment = latest_event.get_environment()
             except Environment.DoesNotExist:
                 pass
+
         if environment and getattr(environment, "name", None) != "":
             footer += f" | {environment.name}"
-        footer += f" | <{settings_url}|Notification Settings>"
+
+        footer += f" | {self.url_format.format(text='Notification Settings', url=settings_url)}"
+
         return footer
