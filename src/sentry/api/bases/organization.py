@@ -5,7 +5,6 @@ from django.core.cache import cache
 from rest_framework.exceptions import ParseError, PermissionDenied
 from rest_framework.request import Request
 
-from sentry import options
 from sentry.api.base import Endpoint, resolve_region
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.environments import get_environments
