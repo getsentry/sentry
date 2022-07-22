@@ -17,7 +17,7 @@ import ParentLabel from 'sentry/views/settings/account/notifications/parentLabel
  * Which fine-tuning parts are grouped by project
  */
 export const isGroupedByProject = (notificationType: string): boolean =>
-  ['alerts', 'email', 'workflow'].includes(notificationType);
+  ['alerts', 'email', 'workflow', 'activeRelease'].includes(notificationType);
 
 export const getParentKey = (notificationType: string): string => {
   return isGroupedByProject(notificationType) ? 'project' : 'organization';
