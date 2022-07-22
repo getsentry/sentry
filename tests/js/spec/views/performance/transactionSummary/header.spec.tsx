@@ -67,7 +67,6 @@ const WrappedComponent = ({
         transactionName="transaction_name"
         currentTab={Tab.TransactionSummary}
         hasWebVitals={hasWebVitals}
-        handleIncompatibleQuery={() => {}}
       />
     </OrganizationContext.Provider>
   );

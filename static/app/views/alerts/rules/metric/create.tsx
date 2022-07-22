@@ -68,6 +68,7 @@ function MetricRulesCreate(props: Props) {
       sessionId={sessionId}
       project={project}
       userTeamIds={userTeamIds}
+      eventView={eventView}
       {...otherProps}
     />
   );
