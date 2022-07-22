@@ -8,10 +8,18 @@ from typing import Any, Callable, Iterable, List, Mapping, MutableMapping, Seque
 from django.core.cache import cache
 from django.utils import timezone
 
-from sentry import analytics
+from sentry import analytics, features
 from sentry.eventstore.models import Event
+from sentry.mail.actions import NotifyEmailAction
 from sentry.models import GroupRuleStatus, Rule
+from sentry.notifications.types import ActionTargetType
 from sentry.rules import EventState, history, rules
+from sentry.rules.actions import EventAction
+from sentry.rules.base import CallbackFuture
+from sentry.rules.conditions.active_release import ActiveReleaseEventCondition
+from sentry.rules.conditions.base import EventCondition
+from sentry.rules.filters.base import EventFilter
+from sentry.rules.filters.issue_occurrences import IssueOccurrencesFilter
 from sentry.types.rules import RuleFuture
 from sentry.utils.hashlib import hash_values
 from sentry.utils.safe import safe_execute
@@ -249,7 +257,67 @@ class RuleProcessor:
                 else:
                     self.grouped_futures[key][1].append(rule_future)
 
-    def apply(self) -> Iterable[Any]:
+    def _get_active_release_rule_actions(self) -> Sequence[EventAction]:
+        # TODO: we need this to be configurable on a pre-project level?
+        return [NotifyEmailAction(data={"targetType": ActionTargetType.RELEASE_MEMBERS.value})]
+
+    def _get_last_active_time_for_active_release(self) -> str | None:
+        # TODO:
+        return None
+
+    def _update_last_active_time_for_active_release(self) -> None:
+        # TODO:
+        pass
+
+    def apply_active_release_rule(
+        self,
+        conditions: Sequence[EventCondition],
+        filters: Sequence[EventFilter],
+        frequency_minutes: int = 5,
+    ) -> None:
+        now = timezone.now()
+        freq_offset = now - timedelta(minutes=frequency_minutes)
+        last_active_time = self._get_last_active_time_for_active_release()
+        if last_active_time and last_active_time > freq_offset:
+            return
+
+        state = self.get_state()
+
+        if not all(
+            safe_execute(f.passes, event=self.event, state=state, _with_transaction=False)
+            for f in filters
+        ):
+            return
+
+        if not all(
+            safe_execute(c.passes, event=self.event, state=state, _with_transaction=False)
+            for c in conditions
+        ):
+            return
+
+        self._update_last_active_time_for_active_release()
+
+        for action in self._get_active_release_rule_actions():
+            results: Sequence[CallbackFuture] = safe_execute(
+                action.after, event=self.event, state=state, _with_transaction=False
+            )
+            for future in results or ():
+                key = future.key if future.key is not None else future.callback
+                # TODO: need to check if rule=None is legit
+                rule_future = RuleFuture(rule=None, kwargs=future.kwargs)
+
+                if key not in self.grouped_futures:
+                    self.grouped_futures[key] = (future.callback, [rule_future])
+                else:
+                    self.grouped_futures[key][1].append(rule_future)
+
+    def apply(
+        self,
+    ) -> Iterable[Tuple[Callable[[Event, Sequence[RuleFuture]], None], List[RuleFuture]]]:  #
+        # [ ((Callable(param: [Event, Sequence[RuleFuture]]) -> None), (RuleFuture, RuleFuture, ...))
+        #   ()
+        # ]
+
         # we should only apply rules on unresolved issues
         if not self.event.group.is_unresolved():
             return {}.values()
@@ -259,4 +327,13 @@ class RuleProcessor:
         rule_statuses = self.bulk_get_rule_status(rules)
         for rule in rules:
             self.apply_rule(rule, rule_statuses[rule.id])
+        if features.has("projects:active-release-monitor-default-on", self.project):
+            condition_list: Sequence[EventCondition] = [
+                ActiveReleaseEventCondition(project=self.project)
+            ]
+            filter_list: Sequence[EventFilter] = [
+                IssueOccurrencesFilter(project=self.project, data={"value": "1"})
+            ]
+            self.apply_active_release_rule(condition_list, filter_list)
+
         return self.grouped_futures.values()
