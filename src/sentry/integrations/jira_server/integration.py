@@ -263,6 +263,13 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
     IntegrationInstallation implementation for Jira-Server
     """
 
+    comment_key = "sync_comments"
+    outbound_status_key = "sync_status_forward"
+    inbound_status_key = "sync_status_reverse"
+    outbound_assignee_key = "sync_forward_assignment"
+    inbound_assignee_key = "sync_reverse_assignment"
+    issues_ignored_fields_key = "issues_ignored_fields"
+
     default_identity = None
 
     @classproperty
