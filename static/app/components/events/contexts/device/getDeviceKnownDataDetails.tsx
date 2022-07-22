@@ -14,11 +14,13 @@ type Output = {
   value?: React.ReactNode;
 };
 
-function getDeviceKnownDataDetails(
-  event: Event,
-  data: DeviceData,
-  type: DeviceKnownDataType
-): Output {
+type Props = {
+  data: DeviceData;
+  event: Event;
+  type: DeviceKnownDataType;
+};
+
+export function getDeviceKnownDataDetails({data, event, type}: Props): Output {
   switch (type) {
     case DeviceKnownDataType.NAME:
       return {
@@ -242,5 +244,3 @@ function getDeviceKnownDataDetails(
       };
   }
 }
-
-export default getDeviceKnownDataDetails;

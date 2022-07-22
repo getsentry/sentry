@@ -5,7 +5,7 @@ import {Event} from 'sentry/types/event';
 
 import {getUnknownData} from '../getUnknownData';
 
-import getDeviceKnownData from './getDeviceKnownData';
+import {getDeviceKnownData} from './getDeviceKnownData';
 import {DeviceData, DeviceKnownDataType} from './types';
 import {getInferredData} from './utils';
 
@@ -14,7 +14,7 @@ type Props = {
   event: Event;
 };
 
-const deviceKnownDataValues = [
+export const deviceKnownDataValues = [
   DeviceKnownDataType.NAME,
   DeviceKnownDataType.FAMILY,
   DeviceKnownDataType.CPU_DESCRIPTION,
@@ -56,22 +56,20 @@ const deviceKnownDataValues = [
 
 const deviceIgnoredDataValues = [];
 
-function Device({data, event}: Props) {
+export function Device({data, event}: Props) {
   const inferredData = getInferredData(data);
+  const meta = event._meta?.device ?? {};
 
   return (
     <Fragment>
-      <ContextBlock
-        data={getDeviceKnownData(event, inferredData, deviceKnownDataValues)}
-      />
+      <ContextBlock data={getDeviceKnownData({event, data: inferredData, meta})} />
       <ContextBlock
         data={getUnknownData({
           allData: inferredData,
           knownKeys: [...deviceKnownDataValues, ...deviceIgnoredDataValues],
+          meta,
         })}
       />
     </Fragment>
   );
 }
-
-export default Device;
