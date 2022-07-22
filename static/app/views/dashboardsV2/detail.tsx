@@ -653,8 +653,18 @@ class DashboardDetail extends Component<Props, State> {
   };
 
   renderWidgetBuilder() {
-    const {children, dashboard} = this.props;
+    const {children, dashboard, organization, location} = this.props;
     const {modifiedDashboard} = this.state;
+
+    if (
+      organization.features.includes('dashboards-top-level-filter') &&
+      modifiedDashboard &&
+      hasUnsavedFilterChanges(dashboard, location, modifiedDashboard.filters)
+    ) {
+      this.setState({
+        modifiedDashboard: {...modifiedDashboard, filters: dashboard.filters},
+      });
+    }
 
     return isValidElement(children)
       ? cloneElement(children, {
