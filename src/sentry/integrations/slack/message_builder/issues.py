@@ -270,7 +270,7 @@ class SlackIssuesMessageBuilder(SlackMessageBuilder):
         self.link_to_event = link_to_event
         self.issue_details = issue_details
         self.notification = notification
-        if notification:
+        if self.notification:
             self.notification.url_format = SLACK_URL_FORMAT
         self.recipient = recipient
 
@@ -340,7 +340,7 @@ class SlackReleaseIssuesMessageBuilder(SlackMessageBuilder):
         self.link_to_event = link_to_event
         self.issue_details = issue_details
         self.notification = notification
-        if notification:
+        if self.notification:
             self.notification.url_format = SLACK_URL_FORMAT
         self.recipient = recipient
         self.last_release = last_release
