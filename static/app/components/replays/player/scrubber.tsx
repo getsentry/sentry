@@ -69,12 +69,8 @@ const Range = styled(RangeSlider)`
   }
 `;
 
-const PlaybackTimeValue = styled(Progress.Value)`
-  background: ${p => p.theme.purple200};
-  border-radius: 3px;
-`;
-
 // Need the named value so we can target it separatly from PlaybackTimeValue
+const PlaybackTimeValue = styled(Progress.Value)``;
 const MouseTrackingValue = styled(Progress.Value)``;
 
 const Wrapper = styled('div')`
@@ -102,6 +98,20 @@ export const TimelineScrubber = styled(Scrubber)`
     height: 100%;
   }
 
+  ${PlaybackTimeValue} {
+    background: ${p => p.theme.purple100};
+    border-top-left-radius: 3px;
+    border-bottom-left-radius: 3px;
+  }
+
+  /**
+   * Draw lines so users can see the currenTime & their mouse position
+   * "----|----|--------------------- duration = 1:00"
+   *      ^    ^
+   *      |    PlaybackTimeValue @ 20s
+   *      MouseTrackingValue @ 10s
+   */
+  ${PlaybackTimeValue},
   ${MouseTrackingValue} {
     border-right: ${space(0.25)} solid ${p => p.theme.purple300};
   }
@@ -122,6 +132,17 @@ export const PlayerScrubber = styled(Scrubber)`
     height: ${space(0.75)};
   }
 
+  ${PlaybackTimeValue} {
+    background: ${p => p.theme.purple200};
+    border-bottom-left-radius: 3px;
+  }
+
+  /**
+   * Draw the circle (appears on hover) to mark the currentTime of the video
+   * "---------o-------------------- duration = 1:00"
+   *           ^
+   *           PlaybackTimeValue @ 20s
+   */
   ${PlaybackTimeValue}:after {
     content: '';
     display: block;
@@ -144,6 +165,13 @@ export const PlayerScrubber = styled(Scrubber)`
     opacity: 1;
   }
 
+  /*
+   * Draw a square so users can see their mouse position when it is left or right of the currentTime
+   * "----□----o--------------------- duration = 1:00"
+   *      ^    ^
+   *      |    PlaybackTimeValue @ 20s
+   *      MouseTrackingValue @ 10s
+   */
   ${MouseTrackingValue}:after {
     content: '';
     display: block;
