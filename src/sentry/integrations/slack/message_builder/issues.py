@@ -28,12 +28,14 @@ from sentry.models import (
     Team,
     User,
 )
+
+from sentry.notifications.notifications.active_release import CommitData
 from sentry.notifications.notifications.base import (
     BaseNotification,
     ProjectNotification,
     create_notification_with_properties,
 )
-from sentry.notifications.notifications.rules import AlertRuleNotification, CommitData
+from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.notifications.utils.actions import MessageAction
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json

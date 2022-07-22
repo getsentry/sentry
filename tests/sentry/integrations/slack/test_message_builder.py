@@ -16,7 +16,7 @@ from sentry.integrations.slack.message_builder.issues import (
 )
 from sentry.integrations.slack.message_builder.metric_alerts import SlackMetricAlertMessageBuilder
 from sentry.models import Group, Team, User
-from sentry.notifications.notifications.rules import ActiveReleaseAlertNotification
+from sentry.notifications.notifications.active_release import ActiveReleaseAlertNotification
 from sentry.testutils import TestCase
 from sentry.utils.dates import to_timestamp
 from sentry.utils.http import absolute_uri
