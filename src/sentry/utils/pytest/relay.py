@@ -13,6 +13,7 @@ import pytest
 import requests
 
 from sentry.runner.commands.devservices import get_docker_client
+from sentry.utils.pytest.sentry import TEST_REDIS_DB
 
 _log = logging.getLogger(__name__)
 
@@ -78,11 +79,17 @@ def relay_server_setup(live_server, tmpdir_factory):
     # NOTE: if we ever need to start the test relay server at various ports here's where we need to change
     relay_port = 33331
 
+    redis_db = TEST_REDIS_DB
+    from sentry.relay import projectconfig_cache
+
+    assert redis_db == projectconfig_cache.backend.cluster.connection_pool.connection_kwargs["db"]
+
     template_vars = {
         "SENTRY_HOST": upstream_host,
         "RELAY_PORT": relay_port,
         "KAFKA_HOST": kafka_host,
         "REDIS_HOST": redis_host,
+        "REDIS_DB": redis_db,
     }
 
     for source in sources:
