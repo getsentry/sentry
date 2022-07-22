@@ -72,16 +72,17 @@ def convert_urls(text: str) -> str:
     Converts the URLs used in all notifications to Microsoft Teams compatible URL format.
     Currently all notifications use the Slack format - `<url|text>`.
     Microsoft Teams uses the markdown format - `[text](url)`.
+    NOTE: URLs are expected to start with http(s)://. This can be udpated in the future if it too restrictive.
     """
     pat = re.compile(
-        r"""\<              # <
-            ([^|]+[^\s])    # url - multiple characters except pipe (|) and ending with non whitespace character. Also capture it as group 1.
-            \s*             # optional whitespaces
-            \|              # pipe (|)
-            \s*             # optional whitespaces
-            ([^\>]+[^\s])   # text - multiple characters except > and ending with non whitespace character. Also capture it as group 2.
-            \s*             # optional whitespaces
-            \>              # >""",
+        r"""\<                      # <
+            (https?://[^|]+[^\s])   # url - multiple characters except pipe (|), ending with non whitespace character. Also capture it as group 1.
+            \s*                     # optional whitespaces
+            \|                      # pipe (|)
+            \s*                     # optional whitespaces
+            ([^\>]+[^\s])           # text - multiple characters except (>), ending with non whitespace character. Also capture it as group 2.
+            \s*                     # optional whitespaces
+            \>                      # >""",
         re.VERBOSE,
     )
 
