@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Mapping, Sequence, Tuple, Union
+from typing import Any, Mapping, Sequence, Union
 
 from sentry.integrations.metric_alerts import incident_attachment_info
 
