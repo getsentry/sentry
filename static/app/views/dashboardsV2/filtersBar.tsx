@@ -45,7 +45,6 @@ export default function FiltersBar({
         <DatePageFilter alignDropdown="left" disabled={isEditingDashboard} />
       </PageFilterBar>
       <Feature features={['dashboards-top-level-filter']}>
-        {/* TODO: Styling */}
         <Fragment>
           <FilterButtons>
             <FilterButton>
