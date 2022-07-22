@@ -86,7 +86,7 @@ class NotificationPlugin(Plugin):
     def rule_notify(self, event, futures):
         rules = []
         extra = {"event_id": event.event_id, "group_id": event.group_id, "plugin": self.slug}
-        for future in filter(lambda f: f.rule, futures):
+        for future in futures:
             rules.append(future.rule)
             extra["rule_id"] = future.rule.id
             if not future.kwargs:
