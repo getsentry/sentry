@@ -1,4 +1,4 @@
-import {useCallback, useLayoutEffect, useRef, useState} from 'react';
+import {useCallback, useEffect, useLayoutEffect, useRef, useState} from 'react';
 
 import localStorageWrapper from 'sentry/utils/localStorage';
 
@@ -22,17 +22,6 @@ function scheduleMicroTask(callback: () => void) {
           throw e;
         }
       });
-  }
-}
-
-// Attempt to parse JSON. If it fails, swallow the error and return null.
-// As an improvement, we should maybe allow users to intercept here or possibly use
-// a different parsing function from JSON.parse
-function tryParseStorage<T>(jsonEncodedValue: string): T | null {
-  try {
-    return JSON.parse(jsonEncodedValue);
-  } catch (e) {
-    return null;
   }
 }
 
@@ -62,15 +51,29 @@ function strictReplacer<T>(_key: string, value: T): T {
   return value;
 }
 
-function stringifyForStorage(value: unknown) {
+// Attempt to parse JSON. If it fails, swallow the error and return null.
+// As an improvement, we should maybe allow users to intercept here or possibly use
+// a different parsing function from JSON.parse
+function parseFromStorage<T>(jsonEncodedValue: string): T | null {
+  try {
+    return JSON.parse(jsonEncodedValue);
+  } catch (e) {
+    return null;
+  }
+}
+
+function serializeForStorage(value: unknown) {
   return JSON.stringify(value, strictReplacer, 0);
 }
 
 function defaultOrInitializer<S>(
   defaultValueOrInitializeFn: S | ((value?: unknown, rawStorageValue?: unknown) => S),
   value?: unknown,
-  rawValue?: unknown
+  rawValue?: string | null
 ): S {
+  if (typeof value !== 'undefined') {
+    return value as S;
+  }
   if (typeof defaultValueOrInitializeFn === 'function') {
     // https://github.com/microsoft/TypeScript/issues/37663#issuecomment-759728342
     // @ts-expect-error
@@ -86,7 +89,7 @@ function initializeStorage<S>(
   defaultValueOrInitializeFn: S | ((rawStorageValue?: unknown) => S)
 ): S {
   if (typeof key !== 'string') {
-    throw new TypeError('useLocalStorage: key must be a string');
+    throw new TypeError('useLocalStorageState: key must be a string');
   }
 
   // Return default if env does not support localStorage. Passing null to initializer
@@ -102,7 +105,7 @@ function initializeStorage<S>(
   }
 
   // We may have failed to parse the value, so just pass it down raw to the initializer
-  const decodedValue = tryParseStorage<S>(jsonEncodedValue);
+  const decodedValue = parseFromStorage<S>(jsonEncodedValue);
   if (decodedValue === null) {
     return defaultOrInitializer(defaultValueOrInitializeFn, undefined, jsonEncodedValue);
   }
@@ -118,7 +121,7 @@ function initializeStorage<S>(
 // want to recover the error, apply a transformation or use an alternative parsing function.
 export function useLocalStorageState<S>(
   key: string,
-  initialState: S | ((value?: unknown, rawValue?: unknown) => S)
+  initialState: S | ((value?: unknown, rawValue?: string | null) => S)
 ): [S, (value: S) => void] {
   const [value, setValue] = useState(() => {
     return initializeStorage<S>(key, initialState);
@@ -142,7 +145,7 @@ export function useLocalStorageState<S>(
   const setStoredValue = useCallback(
     (newValue: S) => {
       if (typeof key !== 'string') {
-        throw new TypeError('useLocalStorage: key must be a string');
+        throw new TypeError('useLocalStorageState: key must be a string');
       }
 
       setValue(newValue);
@@ -150,10 +153,117 @@ export function useLocalStorageState<S>(
       // Not critical and we dont want to block anything after this, so fire microtask
       // and allow this to eventually be in sync.
       scheduleMicroTask(() => {
-        localStorageWrapper.setItem(key, stringifyForStorage(newValue));
+        localStorageWrapper.setItem(key, serializeForStorage(newValue));
       });
     },
     [key]
+  );
+
+  return [value, setStoredValue];
+}
+
+type CustomStorageEvent<K extends string, T> = CustomEvent<{
+  key: Readonly<K>;
+  newValue: Readonly<T>;
+  oldValue: Readonly<T | undefined>;
+  storageArea: Readonly<Storage>;
+  url: Readonly<string>;
+}>;
+
+function isLocalStorageSyncEvent<K extends string, T>(
+  event: Event
+): event is CustomStorageEvent<K, T> {
+  if (event instanceof CustomEvent) {
+    return (
+      'key' in event.detail && 'newValue' in event.detail && 'oldValue' in event.detail
+    );
+  }
+  return false;
+}
+
+export function useSyncedLocalStorageState<K extends string, S>(
+  key: K,
+  initialState: S | ((value?: unknown, rawValue?: unknown) => S)
+): [S | null, (value: S) => void] {
+  const [value, setValue] = useLocalStorageState<S | null>(key, initialState);
+
+  // We subscribe to two event handler, a custom event and the native localStorage event.
+  // We do this because storage.setItem by default does not trigger a storage event on the same
+  // page where it was called. See note on https://developer.mozilla.org/en-US/docs/Web/API/Window/storage_event
+  useEffect(() => {
+    if (!window) {
+      throw new Error(
+        'useSyncedLocalStorageState: window is not defined, storage values cannot be synced as sync events are dispatched through the window interface.'
+      );
+    }
+
+    // Native storage handler
+    function onStorage(event: StorageEvent) {
+      if (event.key !== key) {
+        return;
+      }
+
+      const encodedValue = event.newValue;
+      if (encodedValue === null) {
+        setValue(null);
+        return;
+      }
+
+      const decodedValue = parseFromStorage<S>(encodedValue);
+      if (decodedValue === null) {
+        setValue(defaultOrInitializer(initialState, undefined, encodedValue));
+      }
+
+      setValue(decodedValue);
+    }
+
+    // Custom storage handler
+    function onLocalStorageSync(event: Event) {
+      if (!isLocalStorageSyncEvent<K, S>(event)) {
+        return;
+      }
+
+      // In this case, newValue is not the raw string value, but the decoded value
+      setValue(event.detail.newValue);
+    }
+
+    window.addEventListener('storage', onStorage);
+    window.addEventListener('onlocalstoragesync', onLocalStorageSync);
+
+    return () => {
+      window.removeEventListener('storage', onStorage);
+      window.removeEventListener('onlocalstoragesync', onLocalStorageSync);
+    };
+  }, [key, setValue, initialState]);
+
+  // Wraps setValue to trigger a custom event on the window when new values are set
+  const setStoredValue = useCallback(
+    (newValue: S) => {
+      if (typeof key !== 'string') {
+        throw new TypeError('useSyncedLocalStorageState: key must be a string');
+      }
+      if (!window) {
+        throw new Error(
+          'useSyncedLocalStorageState: window is not defined, storage values cannot be synced as sync events are dispatched through the window interface.'
+        );
+      }
+
+      setValue(newValue);
+      const event: CustomStorageEvent<K, S | null> = new CustomEvent(
+        'onlocalstoragesync',
+        {
+          detail: {
+            key,
+            newValue,
+            oldValue: value,
+            storageArea: localStorageWrapper,
+            url: document.URL,
+          },
+        }
+      );
+      window.dispatchEvent(event);
+    },
+    [key, value, setValue]
   );
 
   return [value, setStoredValue];
