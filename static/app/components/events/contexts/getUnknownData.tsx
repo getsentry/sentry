@@ -1,12 +1,14 @@
 import startCase from 'lodash/startCase';
 
-import {getMeta} from 'sentry/components/events/meta/metaProxy';
-import {KeyValueListData} from 'sentry/types';
+import {Event, KeyValueListData} from 'sentry/types';
 
-function getUnknownData(
-  allData: Record<string, any>,
-  knownKeys: string[]
-): KeyValueListData {
+type Props = {
+  allData: Record<string, any>;
+  knownKeys: string[];
+  meta?: NonNullable<Event['_meta']>[keyof Event['_meta']];
+};
+
+export function getUnknownData({allData, knownKeys, meta}: Props): KeyValueListData {
   return Object.entries(allData)
     .filter(([key]) => key !== 'type' && key !== 'title')
     .filter(([key]) => !knownKeys.includes(key))
@@ -14,8 +16,6 @@ function getUnknownData(
       key,
       value,
       subject: startCase(key),
-      meta: getMeta(allData, key),
+      meta: meta[key]?.[''],
     }));
 }
-
-export default getUnknownData;

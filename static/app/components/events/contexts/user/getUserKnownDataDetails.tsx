@@ -3,7 +3,7 @@ import {IconMail} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {AvatarUser as UserType} from 'sentry/types';
 
-import {UserKnownDataType} from './types';
+import {UserKnownDataType} from '.';
 
 const EMAIL_REGEX = /[^@]+@[^\.]+\..+/;
 
@@ -13,7 +13,7 @@ type Output = {
   subjectIcon?: React.ReactNode;
 };
 
-function getUserKnownDataDetails(
+export function getUserKnownDataDetails(
   data: UserType,
   type: UserKnownDataType
 ): Output | undefined {
@@ -52,5 +52,3 @@ function getUserKnownDataDetails(
       return undefined;
   }
 }
-
-export default getUserKnownDataDetails;

@@ -1,4 +1,4 @@
-import getUnknownData from 'sentry/components/events/contexts/getUnknownData';
+import {getUnknownData} from 'sentry/components/events/contexts/getUnknownData';
 
 describe('getUnknownData', function () {
   it('filters out known data and transforms into the right way', function () {
@@ -12,7 +12,7 @@ describe('getUnknownData', function () {
     };
     const knownKeys = ['id', 'email'];
 
-    const unknownData = getUnknownData(allData, knownKeys);
+    const unknownData = getUnknownData({allData, knownKeys});
 
     expect(unknownData).toEqual([
       {key: 'username', value: 'a', subject: 'Username', meta: undefined},
