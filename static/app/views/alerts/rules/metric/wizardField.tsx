@@ -190,7 +190,8 @@ export default function WizardField({
 
   return (
     <FormField {...fieldProps}>
-      {({onChange, value: aggregate, model, disabled}) => {
+      {({onChange, model, disabled}) => {
+        const aggregate = model.getValue('aggregate');
         const dataset: Dataset = model.getValue('dataset');
         const eventTypes = [...(model.getValue('eventTypes') ?? [])];
 
