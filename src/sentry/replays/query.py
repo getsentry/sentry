@@ -6,7 +6,6 @@ from snuba_sdk import (
     Column,
     Condition,
     Entity,
-    Flags,
     Function,
     Granularity,
     Identifier,
@@ -114,7 +113,6 @@ def query_replays_dataset(
             granularity=Granularity(3600),
             **query_options,
         ),
-        flags=Flags(debug=True),
     )
     return raw_snql_query(snuba_request)
 
