@@ -38,3 +38,24 @@ class NotifyEmailAction(EventAction):
 
     def get_form_instance(self):
         return self.form_cls(self.project, self.data)
+
+
+class NotifyActiveReleaseEmailAction(NotifyEmailAction):
+    id = "sentry.mail.actions.NotifyActiveReleaseEmailAction"
+    form_cls = NotifyEmailForm
+    label = f"Send a notification to {ActionTargetType.RELEASE_MEMBERS.value}"
+    metrics_slug = "ActiveReleaseEmailAction"
+
+    def after(self, event, state):
+        extra = {"event_id": event.event_id}
+        group = event.group
+
+        if not determine_eligible_recipients(
+            group.project, ActionTargetType.RELEASE_MEMBERS, target_identifier=None, event=event
+        ):
+            extra["group_id"] = group.id
+            self.logger.info("rule.fail.should_notify", extra=extra)
+            return
+
+        metrics.incr("notifications.sent", instance=self.metrics_slug, skip_internal=False)
+        yield self.future(lambda evt, futures: mail_adapter.active_release_notify(evt))
