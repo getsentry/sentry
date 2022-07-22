@@ -1,3 +1,4 @@
+import cloneDeep from 'lodash/cloneDeep';
 import moment from 'moment';
 
 import {t} from 'sentry/locale';
@@ -23,41 +24,31 @@ export function projectStatsToSeries(projectStats: SeriesApi | undefined): Serie
     stack: 'usage',
   };
 
+  const emptySeries = projectStats.intervals.map(interval => ({
+    name: moment(interval).valueOf(),
+    value: 0,
+  }));
+
   const seriesData: Record<string, Series['data']> = {
-    accepted: [],
-    droppedServer: [],
-    droppedClient: [],
+    accepted: cloneDeep(emptySeries),
+    droppedServer: cloneDeep(emptySeries),
+    droppedClient: cloneDeep(emptySeries),
   };
 
-  projectStats.intervals.forEach((interval, index) => {
+  projectStats.intervals.forEach((_interval, index) => {
     projectStats.groups.forEach(group => {
       switch (group.by.outcome) {
         case Outcome.ACCEPTED:
-          seriesData.accepted[index] = {
-            name: moment(interval).valueOf(),
-            value:
-              (seriesData.accepted[index]?.value ?? 0) +
-              group.series[quantityField][index],
-          };
+          seriesData.accepted[index].value += group.series[quantityField][index];
           break;
         case Outcome.CLIENT_DISCARD:
-          seriesData.droppedClient[index] = {
-            name: moment(interval).valueOf(),
-            value:
-              (seriesData.droppedClient[index]?.value ?? 0) +
-              group.series[quantityField][index],
-          };
+          seriesData.droppedClient[index].value += group.series[quantityField][index];
           break;
         case Outcome.DROPPED:
         case Outcome.FILTERED:
         case Outcome.INVALID:
         case Outcome.RATE_LIMITED:
-          seriesData.droppedServer[index] = {
-            name: moment(interval).valueOf(),
-            value:
-              (seriesData.droppedServer[index]?.value ?? 0) +
-              group.series[quantityField][index],
-          };
+          seriesData.droppedServer[index].value += group.series[quantityField][index];
           break;
         default:
         // We do not care about other outcomes (right now there no other outcomes)
@@ -67,19 +58,19 @@ export function projectStatsToSeries(projectStats: SeriesApi | undefined): Serie
 
   return [
     {
-      seriesName: t('Accepted'),
+      seriesName: t('Indexed'),
       color: COLOR_TRANSACTIONS,
       ...commonSeriesConfig,
       data: seriesData.accepted,
     },
     {
-      seriesName: t('Dropped (Server)'),
+      seriesName: t('Processed'),
       color: COLOR_DROPPED,
       data: seriesData.droppedServer,
       ...commonSeriesConfig,
     },
     {
-      seriesName: t('Dropped (Client)'),
+      seriesName: t('Dropped'),
       color: commonTheme.yellow300,
       data: seriesData.droppedClient,
       ...commonSeriesConfig,

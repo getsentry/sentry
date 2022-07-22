@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -5,16 +6,18 @@ import ReplayTimeline from 'sentry/components/replays/breadcrumbs/replayTimeline
 import ReplayView from 'sentry/components/replays/replayView';
 import space from 'sentry/styles/space';
 import useFullscreen from 'sentry/utils/replays/hooks/useFullscreen';
+import useUrlParams from 'sentry/utils/replays/hooks/useUrlParams';
 import Breadcrumbs from 'sentry/views/replays/detail/breadcrumbs';
 import FocusArea from 'sentry/views/replays/detail/focusArea';
 import FocusTabs from 'sentry/views/replays/detail/focusTabs';
-
-import Container from './container';
-import ResizePanel from './resizePanel';
+import FluidPanel from 'sentry/views/replays/detail/layout/fluidPanel';
+import SplitPanel from 'sentry/views/replays/detail/layout/splitPanel';
+import SideTabs from 'sentry/views/replays/detail/sideTabs';
+import TagPanel from 'sentry/views/replays/detail/tagPanel';
 
 type Layout =
   /**
-   * ### Sidebar
+   * ### Sidebar Right
    * ┌───────────────────┐
    * │ Timeline          │
    * ├──────────┬────────┤
@@ -25,7 +28,20 @@ type Layout =
    * │          >        │
    * └──────────┴────────┘
    */
-  | 'sidebar'
+  | 'sidebar_right'
+  /**
+   * ### Sidebar Left
+   * ┌───────────────────┐
+   * │ Timeline          │
+   * ├────────┬──────────┤
+   * │ Video  > Details  │
+   * │        >          │
+   * │^^^^^^^ >          |
+   * │ Crumbs >          │
+   * │        >          │
+   * └────────┴──────────┘
+   */
+  | 'sidebar_left'
   /**
    * ### Topbar
    *┌────────────────────┐
@@ -40,8 +56,11 @@ type Layout =
    */
   | 'topbar';
 
-const SIDEBAR_MIN_WIDTH = 325;
-const TOPBAR_MIN_HEIGHT = 325;
+const MIN_VIDEO_WIDTH = {px: 325};
+const MIN_CONTENT_WIDTH = {px: 325};
+const MIN_VIDEO_HEIGHT = {px: 200};
+const MIN_CONTENT_HEIGHT = {px: 200};
+const MIN_CRUMBS_HEIGHT = {px: 200};
 
 type Props = {
   layout?: Layout;
@@ -59,11 +78,9 @@ function ReplayLayout({
   const {ref: fullscreenRef, isFullscreen, toggle: toggleFullscreen} = useFullscreen();
 
   const timeline = showTimeline ? (
-    <TimelineSection>
-      <ErrorBoundary mini>
-        <ReplayTimeline />
-      </ErrorBoundary>
-    </TimelineSection>
+    <ErrorBoundary mini>
+      <ReplayTimeline />
+    </ErrorBoundary>
   ) : null;
 
   const video = showVideo ? (
@@ -75,99 +92,139 @@ function ReplayLayout({
   ) : null;
 
   const crumbs = showCrumbs ? (
-    <BreadcrumbSection>
-      <ErrorBoundary mini>
-        <Breadcrumbs />
-      </ErrorBoundary>
-    </BreadcrumbSection>
+    <ErrorBoundary mini>
+      <Breadcrumbs />
+    </ErrorBoundary>
   ) : null;
 
   const content = (
-    <ContentSection>
-      <ErrorBoundary mini>
-        <FocusTabs />
+    <ErrorBoundary mini>
+      <FluidPanel title={<FocusTabs />}>
         <FocusArea />
-      </ErrorBoundary>
-    </ContentSection>
+      </FluidPanel>
+    </ErrorBoundary>
   );
 
-  if (layout === 'sidebar') {
+  if (layout === 'sidebar_right') {
     return (
-      <Container>
+      <BodyContent>
         {timeline}
-        <PageRow>
-          {content}
-          <ResizePanel direction="w" minWidth={SIDEBAR_MIN_WIDTH}>
-            <SidebarSection>
-              {video ? <ResizePanel direction="s">{video}</ResizePanel> : null}
-              {crumbs}
-            </SidebarSection>
-          </ResizePanel>
-        </PageRow>
-      </Container>
+        <SplitPanel
+          left={{
+            content,
+            default: '60%',
+            min: MIN_CONTENT_WIDTH,
+          }}
+          right={{
+            content: <SidebarContent video={video} crumbs={crumbs} />,
+            default: '325px',
+            min: MIN_VIDEO_WIDTH,
+          }}
+        />
+      </BodyContent>
+    );
+  }
+
+  if (layout === 'sidebar_left') {
+    return (
+      <BodyContent>
+        {timeline}
+        <SplitPanel
+          left={{
+            content: <SidebarContent video={video} crumbs={crumbs} />,
+            default: '325px',
+            min: MIN_VIDEO_WIDTH,
+          }}
+          right={{
+            content,
+            default: '60%',
+            min: MIN_CONTENT_WIDTH,
+          }}
+        />
+      </BodyContent>
     );
   }
 
   // layout === 'topbar' or default
   return (
-    <Container>
+    <BodyContent>
       {timeline}
-      <ResizePanel
-        direction="s"
-        minHeight={TOPBAR_MIN_HEIGHT}
-        modifierClass="overlapDown"
-      >
-        <TopbarSection>
-          {video}
-          {crumbs}
-        </TopbarSection>
-      </ResizePanel>
-      {content}
-    </Container>
+      <SplitPanel
+        top={{
+          content: (
+            <SplitPanel
+              left={{
+                content: video,
+                min: MIN_VIDEO_WIDTH,
+              }}
+              right={{
+                content: crumbs,
+                default: '30%',
+              }}
+            />
+          ),
+          default: '325px',
+          min: MIN_VIDEO_HEIGHT,
+        }}
+        bottom={{
+          content,
+          min: MIN_CONTENT_HEIGHT,
+        }}
+      />
+    </BodyContent>
   );
 }
 
-const PageColumn = styled('section')`
+function SidebarContent({video, crumbs}) {
+  const {getParamValue} = useUrlParams('t_side', 'video');
+  if (getParamValue() === 'tags') {
+    return (
+      <FluidPanel title={<SideTabs />}>
+        <TagPanel />
+      </FluidPanel>
+    );
+  }
+  if (video && crumbs) {
+    return (
+      <FluidPanel title={<SideTabs />}>
+        <SplitPanel
+          top={{
+            content: video,
+            default: '55%',
+            min: MIN_VIDEO_HEIGHT,
+          }}
+          bottom={{
+            content: crumbs,
+            min: MIN_CRUMBS_HEIGHT,
+          }}
+        />
+      </FluidPanel>
+    );
+  }
+  return (
+    <Fragment>
+      {video}
+      {crumbs}
+    </Fragment>
+  );
+}
+
+const BodyContent = styled('main')`
+  background: ${p => p.theme.background};
+  width: 100%;
+  height: 100%;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  overflow: hidden;
+  padding: ${space(2)};
+`;
+
+export const VideoSection = styled('section')`
+  height: 100%;
   display: flex;
   flex-grow: 1;
   flex-wrap: nowrap;
   flex-direction: column;
-`;
-
-const PageRow = styled(PageColumn)`
-  flex-direction: row;
-`;
-
-const TimelineSection = styled(PageColumn)`
-  flex-grow: 0;
-`;
-
-const ContentSection = styled(PageColumn)`
-  flex-grow: 3; /* Higher growth than SidebarSection or TopVideoSection */
-
-  height: 100%;
-  min-height: 300px;
-  width: 100%;
-`;
-
-const VideoSection = styled(PageColumn)`
-  flex-grow: 2;
-`;
-
-const BreadcrumbSection = styled(PageColumn)``;
-
-const SidebarSection = styled(PageColumn)`
-  min-width: ${SIDEBAR_MIN_WIDTH}px;
-`;
-
-const TopbarSection = styled(PageRow)`
-  height: ${TOPBAR_MIN_HEIGHT}px;
-  min-height: ${TOPBAR_MIN_HEIGHT}px;
-
-  ${BreadcrumbSection} {
-    max-width: ${SIDEBAR_MIN_WIDTH}px;
-    margin-left: ${space(2)};
-  }
 `;
 
 export default ReplayLayout;

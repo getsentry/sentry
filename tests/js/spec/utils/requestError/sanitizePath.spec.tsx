@@ -14,6 +14,11 @@ describe('sanitizePath', function () {
       '/organizations/{orgSlug}/events/{projectSlug}:123/',
     ],
 
+    [
+      'https://sentry.io/api/0/organizations/sentry-test/events/',
+      'https://sentry.io/api/0/organizations/{orgSlug}/events/',
+    ],
+
     // https://github.com/getsentry/sentry/blob/8d4482f01aa2122c6f6670ab84f9263e6f021467/src/sentry/api/urls.py#L1235
     // r"^(?P<organization_slug>[^\/]+)/members/(?P<member_id>[^\/]+)/teams/(?P<team_slug>[^\/]+)/$",
     [

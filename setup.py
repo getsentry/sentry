@@ -32,7 +32,7 @@ from sentry.utils.distutils import (
     BuildJsSdkRegistryCommand,
 )
 
-VERSION = "22.7.0.dev0"
+VERSION = "22.8.0.dev0"
 IS_LIGHT_BUILD = os.environ.get("SENTRY_LIGHT_BUILD") == "1"
 
 
@@ -89,7 +89,7 @@ def get_requirements(env):
 # for development, which will be rejected by PyPI when trying to upload the wheel.
 extras_require = {"rabbitmq": ["amqp==2.6.1"]}
 if not sys.argv[1:][0].startswith("bdist"):
-    extras_require["dev"] = get_requirements("dev")
+    extras_require["dev"] = get_requirements("dev-frozen")
 
 
 setup(
@@ -104,7 +104,7 @@ setup(
     package_dir={"": "src"},
     packages=find_packages("src"),
     zip_safe=False,
-    install_requires=get_requirements("base"),
+    install_requires=get_requirements("frozen"),
     extras_require=extras_require,
     cmdclass=cmdclass,
     license="BSL-1.1",

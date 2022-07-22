@@ -86,7 +86,8 @@ export function fetchTagValues(
   projectIds: string[] | null = null,
   endpointParams: Query | null = null,
   includeTransactions = false,
-  includeSessions = false
+  includeSessions = false,
+  sort: string | null = null
 ) {
   const url = `/organizations/${orgId}/tags/${tagKey}/values/`;
 
@@ -114,6 +115,10 @@ export function fetchTagValues(
 
   if (includeSessions) {
     query.includeSessions = '1';
+  }
+
+  if (sort) {
+    query.sort = sort;
   }
 
   return api.requestPromise(url, {

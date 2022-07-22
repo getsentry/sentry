@@ -21,7 +21,13 @@ import {stripDerivedMetricsPrefix} from 'sentry/utils/discover/fields';
 import {TOP_N} from 'sentry/utils/discover/types';
 
 import {ReleasesConfig} from '../datasetConfig/releases';
-import {DEFAULT_TABLE_LIMIT, DisplayType, Widget, WidgetQuery} from '../types';
+import {
+  DashboardFilters,
+  DEFAULT_TABLE_LIMIT,
+  DisplayType,
+  Widget,
+  WidgetQuery,
+} from '../types';
 import {
   DERIVED_STATUS_METRICS_PATTERN,
   DerivedStatusFields,
@@ -41,6 +47,7 @@ type Props = {
   selection: PageFilters;
   widget: Widget;
   cursor?: string;
+  dashboardFilters?: DashboardFilters;
   limit?: number;
   onDataFetched?: (results: {
     tableResults?: TableDataWithTitle[];
@@ -178,7 +185,7 @@ class ReleaseWidgetQueries extends Component<Props, State> {
             sort: 'date',
             project: projects,
             per_page: 50,
-            environments,
+            environment: environments,
           },
         }
       );
@@ -224,7 +231,8 @@ class ReleaseWidgetQueries extends Component<Props, State> {
       SessionApiResponse | MetricsApiResponse
     >
   ) => {
-    const {loading, limit, widget, cursor, organization, selection} = nextProps;
+    const {loading, limit, widget, cursor, organization, selection, dashboardFilters} =
+      nextProps;
     const ignoredWidgetProps = [
       'queries',
       'title',
@@ -236,6 +244,7 @@ class ReleaseWidgetQueries extends Component<Props, State> {
     const ignoredQueryProps = ['name', 'fields', 'aggregates', 'columns'];
     return (
       limit !== prevProps.limit ||
+      dashboardFilters !== prevProps.dashboardFilters ||
       organization.slug !== prevProps.organization.slug ||
       !isSelectionEqual(selection, prevProps.selection) ||
       // If the widget changed (ignore unimportant fields, + queries as they are handled lower)
@@ -336,8 +345,16 @@ class ReleaseWidgetQueries extends Component<Props, State> {
   };
 
   render() {
-    const {api, children, organization, selection, widget, cursor, onDataFetched} =
-      this.props;
+    const {
+      api,
+      children,
+      organization,
+      selection,
+      widget,
+      cursor,
+      dashboardFilters,
+      onDataFetched,
+    } = this.props;
     const config = ReleasesConfig;
 
     return (
@@ -350,6 +367,7 @@ class ReleaseWidgetQueries extends Component<Props, State> {
         organization={organization}
         selection={selection}
         widget={this.transformWidget(widget)}
+        dashboardFilters={dashboardFilters}
         cursor={cursor}
         limit={this.limit}
         onDataFetched={onDataFetched}

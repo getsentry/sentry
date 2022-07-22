@@ -6,7 +6,13 @@ import GlobalModal from 'sentry/components/globalModal';
 import {RecommendedStepsModal} from 'sentry/views/settings/project/server-side-sampling/modals/recommendedStepsModal';
 import {SERVER_SIDE_SAMPLING_DOC_LINK} from 'sentry/views/settings/project/server-side-sampling/utils';
 
-import {getMockData, mockedProjects, mockedSamplingSdkVersions} from '../utils';
+import {
+  getMockData,
+  mockedProjects,
+  mockedSamplingSdkVersions,
+  recommendedSdkUpgrades,
+  uniformRule,
+} from '../utils';
 
 describe('Server-side Sampling - Recommended Steps Modal', function () {
   beforeEach(function () {
@@ -26,30 +32,26 @@ describe('Server-side Sampling - Recommended Steps Modal', function () {
       <RecommendedStepsModal
         {...modalProps}
         organization={organization}
-        project={project}
-        recommendedSdkUpgrades={[
-          {
-            project: mockedProjects[1],
-            latestSDKName: mockedSamplingSdkVersions[1].latestSDKName,
-            latestSDKVersion: mockedSamplingSdkVersions[1].latestSDKVersion,
-          },
-        ]}
+        projectId={project.id}
+        recommendedSdkUpgrades={recommendedSdkUpgrades}
+        onReadDocs={jest.fn()}
         onSubmit={jest.fn()}
+        clientSampleRate={0.5}
       />
     ));
 
-    expect(screen.getByText('Recommended next steps\u2026')).toBeInTheDocument();
+    expect(screen.getByText('Next steps')).toBeInTheDocument();
 
     // First recommended step
     expect(
-      screen.getByRole('heading', {name: 'Update the following SDK versions'})
+      screen.getByRole('heading', {
+        name: 'Update the following SDK versions',
+      })
     ).toBeInTheDocument();
 
     expect(
       screen.getByText(
-        textWithMarkupMatcher(
-          "I know what you're thinking, “It's already working, why should I?”. By updating the following SDK's before activating any server sampling rules, you're avoiding situations when our servers aren't accepting enough transactions (double sampling) or our servers are accepting too many transactions (exceeded quota)."
-        )
+        'To ensure you are properly monitoring the performance of all your other services, we require you update to the latest version of the following SDK(s):'
       )
     ).toBeInTheDocument();
 
@@ -70,18 +72,20 @@ describe('Server-side Sampling - Recommended Steps Modal', function () {
 
     // Second recommended step
     expect(
-      screen.getByRole('heading', {name: 'Increase your SDK Transaction sample rate'})
+      screen.getByRole('heading', {
+        name: 'Increase your client-side transaction sample rate',
+      })
     ).toBeInTheDocument();
 
     expect(
       screen.getByText(
-        textWithMarkupMatcher(
-          'This comes in handy when server-side sampling target the transactions you want to accept, but you need more of those transactions being sent by your client. Here we  already suggest a value based on your quota and throughput.'
-        )
+        'Once you’ve updated the above SDK(s), you can increase the client-side transaction sample rate in your application. This helps to ensure you are sending enough transactions to accurately monitor overall performance and ensure all transactions you have deemed important in your server-side sample rules are available. Below is the suggested rate we’ve calculated based on your organization’s usage and quota.'
       )
     ).toBeInTheDocument();
 
     expect(screen.getByText(textWithMarkupMatcher(/Sentry.init/))).toBeInTheDocument();
+    expect(screen.getByText('0.5')).toBeInTheDocument();
+    expect(screen.getByText('// 50%')).toBeInTheDocument();
 
     // Footer
     expect(screen.getByRole('button', {name: 'Read Docs'})).toHaveAttribute(
@@ -107,18 +111,24 @@ describe('Server-side Sampling - Recommended Steps Modal', function () {
       <RecommendedStepsModal
         {...modalProps}
         organization={organization}
-        project={project}
+        projectId={project.id}
         recommendedSdkUpgrades={[]}
         onSubmit={jest.fn()}
+        onReadDocs={jest.fn()}
+        clientSampleRate={uniformRule.sampleRate}
       />
     ));
 
     expect(
-      screen.queryByRole('heading', {name: 'Update the following SDK versions'})
+      screen.queryByRole('heading', {
+        name: 'Update the following SDK versions',
+      })
     ).not.toBeInTheDocument();
 
     expect(
-      screen.getByRole('heading', {name: 'Increase your SDK Transaction sample rate'})
+      screen.getByRole('heading', {
+        name: 'Increase your client-side transaction sample rate',
+      })
     ).toBeInTheDocument();
   });
 
@@ -133,10 +143,12 @@ describe('Server-side Sampling - Recommended Steps Modal', function () {
       <RecommendedStepsModal
         {...modalProps}
         organization={organization}
-        project={project}
+        projectId={project.id}
         recommendedSdkUpgrades={[]}
         onGoBack={onGoBack}
         onSubmit={jest.fn()}
+        onReadDocs={jest.fn()}
+        clientSampleRate={uniformRule.sampleRate}
       />
     ));
 

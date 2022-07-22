@@ -1,4 +1,5 @@
 import {PureComponent} from 'react';
+// eslint-disable-next-line no-restricted-imports
 import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import color from 'color';
@@ -227,7 +228,7 @@ class MetricChart extends PureComponent<Props, State> {
         </StyledInlineContainer>
         {!isSessionAggregate(rule.aggregate) && (
           <Feature features={['discover-basic']}>
-            <Button size="small" {...props}>
+            <Button size="sm" {...props}>
               {buttonText}
             </Button>
           </Feature>

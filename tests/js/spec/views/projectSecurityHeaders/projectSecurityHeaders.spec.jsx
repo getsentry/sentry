@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render} from 'sentry-test/reactTestingLibrary';
 
 import ProjectSecurityHeaders from 'sentry/views/settings/projectSecurityHeaders';
 
@@ -17,7 +17,7 @@ describe('ProjectSecurityHeaders', function () {
   });
 
   it('renders', function () {
-    const wrapper = mountWithTheme(
+    const wrapper = render(
       <ProjectSecurityHeaders
         organization={org}
         project={project}
@@ -27,6 +27,6 @@ describe('ProjectSecurityHeaders', function () {
         })}
       />
     );
-    expect(wrapper).toSnapshot();
+    expect(wrapper.container).toSnapshot();
   });
 });

@@ -1,5 +1,6 @@
 import {Query} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
+import isEmpty from 'lodash/isEmpty';
 import pick from 'lodash/pick';
 import trimStart from 'lodash/trimStart';
 import * as qs from 'query-string';
@@ -213,7 +214,8 @@ export function getWidgetDiscoverUrl(
   widget: Widget,
   selection: PageFilters,
   organization: Organization,
-  index: number = 0
+  index: number = 0,
+  isMetricsData: boolean = false
 ) {
   const eventView = eventViewFromWidget(
     widget.title,
@@ -265,6 +267,10 @@ export function getWidgetDiscoverUrl(
       fields.unshift(term);
     }
   });
+
+  if (isMetricsData) {
+    discoverLocation.query.fromMetric = 'true';
+  }
 
   // Construct and return the discover url
   const discoverPath = `${discoverLocation.pathname}?${qs.stringify({
@@ -381,4 +387,14 @@ export function getCustomMeasurementQueryParams() {
   return {
     dataset: 'metrics',
   };
+}
+
+export function hasSavedPageFilters(dashboard: DashboardDetails) {
+  return !(
+    isEmpty(dashboard.projects) &&
+    dashboard.environment === undefined &&
+    dashboard.start === undefined &&
+    dashboard.end === undefined &&
+    dashboard.period === undefined
+  );
 }

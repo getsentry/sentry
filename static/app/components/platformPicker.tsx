@@ -238,7 +238,7 @@ const ClearButton = styled(Button)`
 ClearButton.defaultProps = {
   icon: <IconClose isCircled size="xs" />,
   borderless: true,
-  size: 'xsmall',
+  size: 'xs',
 };
 
 const PlatformCard = styled(({platform, selected, onClear, ...props}) => (

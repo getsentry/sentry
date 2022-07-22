@@ -1,4 +1,5 @@
 import {forwardRef, useEffect} from 'react';
+// eslint-disable-next-line no-restricted-imports
 import {Link as RouterLink, withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';

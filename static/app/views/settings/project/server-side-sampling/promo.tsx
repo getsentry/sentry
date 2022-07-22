@@ -13,17 +13,22 @@ import {SERVER_SIDE_SAMPLING_DOC_LINK} from './utils';
 type Props = {
   hasAccess: boolean;
   onGetStarted: () => void;
+  onReadDocs: () => void;
 };
 
-export function Promo({onGetStarted, hasAccess}: Props) {
+export function Promo({onGetStarted, onReadDocs, hasAccess}: Props) {
   return (
     <StyledEmptyStateWarning withIcon={false}>
       <img src={onboardingServerSideSampling} />
       <Description>
-        <h3>{t('No sampling rules active yet')}</h3>
-        <p>{t('Set up your project for sampling success')}</p>
+        <h3>{t('Set sample rules for your project')}</h3>
+        <p>
+          {t(
+            'Because every project is different – some need more events from high converting pages, critical API endpoints, or just want to focus on latency issues from the latest release – set multiple sample rules with different sample rates per project so you can keep what you need and drop what you don’t.'
+          )}
+        </p>
         <Actions gap={1}>
-          <Button href={SERVER_SIDE_SAMPLING_DOC_LINK} external>
+          <Button href={SERVER_SIDE_SAMPLING_DOC_LINK} onClick={onReadDocs} external>
             {t('Read Docs')}
           </Button>
           <Button
@@ -31,12 +36,10 @@ export function Promo({onGetStarted, hasAccess}: Props) {
             onClick={onGetStarted}
             disabled={!hasAccess}
             title={
-              hasAccess
-                ? undefined
-                : t('You do not have permission to set up the sampling rules.')
+              hasAccess ? undefined : t('You do not have permission to set up rules')
             }
           >
-            {t('Get Started')}
+            {t('Start Setup')}
           </Button>
         </Actions>
       </Description>
