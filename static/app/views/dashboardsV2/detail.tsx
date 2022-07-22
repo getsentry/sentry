@@ -65,7 +65,12 @@ import {
   Widget,
   WidgetType,
 } from './types';
-import {cloneDashboard, hasSavedPageFilters} from './utils';
+import {
+  cloneDashboard,
+  getInitialPageFilterValues,
+  hasSavedPageFilters,
+  resetPageFilters,
+} from './utils';
 
 const UNSAVED_MESSAGE = t('You have unsaved changes, are you sure you want to leave?');
 
@@ -295,7 +300,7 @@ class DashboardDetail extends Component<Props, State> {
       organization.features.includes('dashboards-top-level-filter') &&
       hasUnsavedFilterChanges(dashboard, location, dashboard.filters)
     ) {
-      this.resetPageFilters();
+      resetPageFilters(dashboard, location);
     }
 
     this.setState({
@@ -443,7 +448,7 @@ class DashboardDetail extends Component<Props, State> {
         (modifiedDashboard || dashboard).filters
       )
     ) {
-      this.resetPageFilters();
+      resetPageFilters(dashboard, location);
     }
 
     // Use the new widgets for calculating layout because widgets has
@@ -518,7 +523,7 @@ class DashboardDetail extends Component<Props, State> {
         const queryParamOverrides =
           organization.features.includes('dashboards-top-level-filter') &&
           hasUnsavedFilterChanges(dashboard, location, filters)
-            ? this.getInitialPageFilterValues()
+            ? getInitialPageFilterValues(dashboard)
             : {};
 
         router.push({
@@ -679,24 +684,6 @@ class DashboardDetail extends Component<Props, State> {
       },
     }));
   };
-
-  getInitialPageFilterValues() {
-    const {dashboard} = this.props;
-    return {
-      project: dashboard.projects,
-      environment: dashboard.environment,
-      statsPeriod: dashboard.period,
-      start: dashboard.start,
-      end: dashboard.end,
-    };
-  }
-
-  resetPageFilters() {
-    browserHistory.replace({
-      ...location,
-      query: this.getInitialPageFilterValues(),
-    });
-  }
 
   renderWidgetBuilder() {
     const {children, dashboard} = this.props;
@@ -876,7 +863,7 @@ class DashboardDetail extends Component<Props, State> {
                     filters={filters}
                     onDashboardFilterChange={this.handleChangeFilter}
                     onCancel={() => {
-                      this.resetPageFilters();
+                      resetPageFilters(dashboard, location);
                       this.setState({
                         modifiedDashboard: {
                           ...(modifiedDashboard ?? dashboard),

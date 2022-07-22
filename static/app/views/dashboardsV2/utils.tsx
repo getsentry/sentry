@@ -1,4 +1,5 @@
-import {Query} from 'history';
+import {browserHistory} from 'react-router';
+import {Location, Query} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 import isEmpty from 'lodash/isEmpty';
 import pick from 'lodash/pick';
@@ -397,4 +398,21 @@ export function hasSavedPageFilters(dashboard: DashboardDetails) {
     dashboard.end === undefined &&
     dashboard.period === undefined
   );
+}
+
+export function getInitialPageFilterValues(dashboard: DashboardDetails) {
+  return {
+    project: dashboard.projects,
+    environment: dashboard.environment,
+    statsPeriod: dashboard.period,
+    start: dashboard.start,
+    end: dashboard.end,
+  };
+}
+
+export function resetPageFilters(dashboard: DashboardDetails, location: Location) {
+  browserHistory.replace({
+    ...location,
+    query: getInitialPageFilterValues(dashboard),
+  });
 }
