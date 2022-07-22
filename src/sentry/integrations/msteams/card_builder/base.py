@@ -15,7 +15,7 @@ class MSTeamsMessageBuilder(AbstractMessageBuilder):
         self,
         text: str | Block | None = None,
         title: str | Block | None = None,
-        fields: Sequence[str | Block] | None = None,
+        fields: Sequence[str | Block | None] | None = None,
         footer: str | Block | None = None,
         actions: Sequence[Action] | None = None,
         **kwargs: Any,
