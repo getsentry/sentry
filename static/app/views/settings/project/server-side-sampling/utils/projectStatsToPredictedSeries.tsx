@@ -15,12 +15,15 @@ import {quantityField} from '.';
 
 export function projectStatsToPredictedSeries(
   projectStats?: SeriesApi,
-  clientRate?: number,
-  serverRate?: number
+  client?: number,
+  server?: number
 ): Series[] {
-  if (!projectStats || !defined(clientRate) || !defined(serverRate)) {
+  if (!projectStats || !defined(client) || !defined(server)) {
     return [];
   }
+
+  const clientRate = Math.max(Math.min(client, 1), 0);
+  let serverRate = Math.max(Math.min(server, 1), 0);
 
   const commonSeriesConfig = {
     barMinHeight: 1,
@@ -84,19 +87,19 @@ export function projectStatsToPredictedSeries(
 
   return [
     {
-      seriesName: t('Accepted'),
+      seriesName: t('Indexed'),
       color: COLOR_TRANSACTIONS,
       ...commonSeriesConfig,
       data: seriesData.accepted,
     },
     {
-      seriesName: t('Dropped (Server)'),
+      seriesName: t('Processed'),
       color: COLOR_DROPPED,
       data: seriesData.droppedServer,
       ...commonSeriesConfig,
     },
     {
-      seriesName: t('Dropped (Client)'),
+      seriesName: t('Dropped'),
       color: commonTheme.yellow300,
       data: seriesData.droppedClient,
       ...commonSeriesConfig,

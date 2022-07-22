@@ -41,6 +41,7 @@ export type Preset = {
     project: Project,
     organization: Organization
   ): Promise<PresetContext>;
+  makeUnqueriedContext(project: Project, organization: Organization): PresetContext;
   title: string;
 };
 
@@ -94,17 +95,14 @@ function makeTeamWarningAlert(threshold: number = 100) {
   };
 }
 
-export const PRESET_AGGREGATES: Preset[] = [
+export const PRESET_AGGREGATES: readonly Preset[] = [
   {
     id: 'p95-highest-volume',
     title: t('Slow transactions'),
     description: 'Get notified when important transactions are slower on average',
     Icon: IconGraph,
     alertType: 'trans_duration',
-    async makeContext(client, project, organization) {
-      const transaction = (
-        await getHighestVolumeTransaction(client, organization.slug, project.id)
-      )?.[0];
+    makeUnqueriedContext(project, _) {
       return {
         name: t('p95 Alert for %s', [project.slug]),
         aggregate: 'p95(transaction.duration)',
@@ -115,6 +113,14 @@ export const PRESET_AGGREGATES: Preset[] = [
         comparisonType: AlertRuleComparisonType.CHANGE,
         thresholdType: AlertRuleThresholdType.ABOVE,
         triggers: [makeTeamCriticalAlert(project), makeTeamWarningAlert()],
+      };
+    },
+    async makeContext(client, project, organization) {
+      const transaction = (
+        await getHighestVolumeTransaction(client, organization.slug, project.id)
+      )?.[0];
+      return {
+        ...this.makeUnqueriedContext(project, organization),
         query: 'transaction:' + transaction,
       };
     },
@@ -125,10 +131,7 @@ export const PRESET_AGGREGATES: Preset[] = [
     description: 'Send an alert when transaction throughput drops significantly',
     Icon: IconGraph,
     alertType: 'throughput',
-    async makeContext(client, project, organization) {
-      const transaction = (
-        await getHighestVolumeTransaction(client, organization.slug, project.id)
-      )?.[0];
+    makeUnqueriedContext(project, _) {
       return {
         name: t('Throughput Alert for %s', [project.slug]),
         aggregate: 'count()',
@@ -139,6 +142,14 @@ export const PRESET_AGGREGATES: Preset[] = [
         comparisonType: AlertRuleComparisonType.CHANGE,
         thresholdType: AlertRuleThresholdType.BELOW,
         triggers: [makeTeamCriticalAlert(project, 500), makeTeamWarningAlert(300)],
+      };
+    },
+    async makeContext(client, project, organization) {
+      const transaction = (
+        await getHighestVolumeTransaction(client, organization.slug, project.id)
+      )?.[0];
+      return {
+        ...this.makeUnqueriedContext(project, organization),
         query: 'transaction:' + transaction,
       };
     },
@@ -150,10 +161,7 @@ export const PRESET_AGGREGATES: Preset[] = [
       'Learn when the ratio of satisfactory, tolerable, and frustrated requests drop',
     Icon: IconGraph,
     alertType: 'apdex',
-    async makeContext(client, project, organization) {
-      const transaction = (
-        await getHighestVolumeTransaction(client, organization.slug, project.id)
-      )?.[0];
+    makeUnqueriedContext(project, _) {
       return {
         name: t('Apdex regression for %s', [project.slug]),
         aggregate: 'apdex(300)',
@@ -164,8 +172,16 @@ export const PRESET_AGGREGATES: Preset[] = [
         comparisonType: AlertRuleComparisonType.CHANGE,
         thresholdType: AlertRuleThresholdType.BELOW,
         triggers: [makeTeamCriticalAlert(project), makeTeamWarningAlert()],
+      };
+    },
+    async makeContext(client, project, organization) {
+      const transaction = (
+        await getHighestVolumeTransaction(client, organization.slug, project.id)
+      )?.[0];
+      return {
+        ...this.makeUnqueriedContext(project, organization),
         query: 'transaction:' + transaction,
       };
     },
   },
-];
+] as const;

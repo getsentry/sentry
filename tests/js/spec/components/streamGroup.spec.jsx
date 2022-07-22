@@ -1,8 +1,9 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import StreamGroup from 'sentry/components/stream/group';
 import GroupStore from 'sentry/stores/groupStore';
+import GuideStore from 'sentry/stores/guideStore';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 
 jest.mock('sentry/utils/analytics/trackAdvancedAnalyticsEvent');
@@ -34,11 +35,12 @@ describe('StreamGroup', function () {
 
   afterEach(function () {
     trackAdvancedAnalyticsEvent.mockClear();
+    GroupStore.teardown();
   });
 
-  it('renders with anchors', async function () {
+  it('renders with anchors', function () {
     const {routerContext} = initializeOrg();
-    const component = mountWithTheme(
+    const wrapper = render(
       <StreamGroup
         id="1L"
         orgId="orgId"
@@ -48,19 +50,16 @@ describe('StreamGroup', function () {
         hasGuideAnchor
         {...routerContext}
       />,
-      routerContext
+      {context: routerContext}
     );
-    component.update();
-    await tick();
 
-    expect(component.find('GuideAnchor').exists()).toBe(true);
-    expect(component.find('GuideAnchor')).toHaveLength(2);
-    expect(component).toSnapshot();
+    expect(GuideStore.state.anchors).toEqual(new Set(['dynamic_counts', 'issue_stream']));
+    expect(wrapper.container).toSnapshot();
   });
 
   it('marks as reviewed', function () {
     const {routerContext, organization} = initializeOrg();
-    const wrapper = mountWithTheme(
+    render(
       <StreamGroup
         id="1337"
         orgId="orgId"
@@ -71,19 +70,19 @@ describe('StreamGroup', function () {
         organization={organization}
         {...routerContext}
       />,
-      routerContext
+      {context: routerContext}
     );
 
-    const streamGroup = wrapper.find('StreamGroup');
-    expect(streamGroup.state('reviewed')).toBe(false);
+    expect(screen.getByTestId('group')).toHaveAttribute('data-test-reviewed', 'false');
     GROUP_1.inbox = false;
-    streamGroup.instance().onGroupChange(new Set(['1337']));
-    expect(streamGroup.state('reviewed')).toBe(true);
+    GroupStore.trigger(new Set(['1337']));
+    // Reviewed only applies styles, difficult to select with RTL
+    expect(screen.getByTestId('group')).toHaveAttribute('data-test-reviewed', 'true');
   });
 
   it('tracks clicks from issues stream', function () {
     const {routerContext, organization} = initializeOrg();
-    const wrapper = mountWithTheme(
+    render(
       <StreamGroup
         id="1337"
         orgId="orgId"
@@ -94,10 +93,10 @@ describe('StreamGroup', function () {
         organization={organization}
         {...routerContext}
       />,
-      routerContext
+      {context: routerContext}
     );
 
-    wrapper.find('GlobalSelectionLink').simulate('click');
+    userEvent.click(screen.getByText('RequestError'));
     expect(trackAdvancedAnalyticsEvent).toHaveBeenCalledTimes(2);
   });
 });

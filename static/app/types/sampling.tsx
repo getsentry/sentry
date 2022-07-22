@@ -208,9 +208,11 @@ export type RecommendedSdkUpgrade = {
   project: Project;
 };
 
-export type UniformModalsSubmit = (
-  sampleRate: number,
-  rule?: SamplingRule,
-  onSuccess?: () => void,
-  onError?: () => void
-) => void;
+export type UniformModalsSubmit = (props: {
+  sampleRate: number;
+  uniformRateModalOrigin: boolean;
+  onError?: () => void;
+  onSuccess?: (newRules: SamplingRule[]) => void;
+  recommendedSampleRate?: boolean;
+  rule?: SamplingRule;
+}) => void;

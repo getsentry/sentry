@@ -1,4 +1,5 @@
 import {Component, Fragment} from 'react';
+// eslint-disable-next-line no-restricted-imports
 import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import map from 'lodash/map';
@@ -48,7 +49,13 @@ import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transac
 import * as SpanEntryContext from './context';
 import InlineDocs from './inlineDocs';
 import {ParsedTraceType, ProcessedSpanType, rawSpanKeys, RawSpanType} from './types';
-import {getTraceDateTimeRange, isGapSpan, isOrphanSpan, scrollToSpan} from './utils';
+import {
+  getCumulativeAlertLevelFromErrors,
+  getTraceDateTimeRange,
+  isGapSpan,
+  isOrphanSpan,
+  scrollToSpan,
+} from './utils';
 
 const DEFAULT_ERRORS_VISIBLE = 5;
 
@@ -285,11 +292,11 @@ class SpanDetail extends Component<Props, State> {
       : relatedErrors.slice(0, DEFAULT_ERRORS_VISIBLE);
 
     return (
-      <Alert type="error" system>
+      <Alert type={getCumulativeAlertLevelFromErrors(relatedErrors)} system>
         <ErrorMessageTitle>
           {tn(
-            'An error event occurred in this transaction.',
-            '%s error events occurred in this transaction.',
+            'An error event occurred in this span.',
+            '%s error events occurred in this span.',
             relatedErrors.length
           )}
         </ErrorMessageTitle>

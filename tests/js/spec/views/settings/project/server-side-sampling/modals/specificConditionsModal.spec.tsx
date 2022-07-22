@@ -5,6 +5,7 @@ import {
   waitFor,
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import * as indicators from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
@@ -25,7 +26,7 @@ describe('Server-side Sampling - Specific Conditions Modal', function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/release/values/',
       method: 'GET',
-      body: [{value: '1.2.3'}],
+      body: [{value: '1.2.3', count: 97}],
     });
 
     const {organization, project} = getMockData({
@@ -117,11 +118,20 @@ describe('Server-side Sampling - Specific Conditions Modal', function () {
     // Release field is empty
     expect(screen.queryByTestId('multivalue')).not.toBeInTheDocument();
 
-    // Type into release field
-    userEvent.paste(screen.getByLabelText('Search or add a release'), '1.2.3');
+    // Type an empty string into release field
+    userEvent.paste(screen.getByLabelText('Search or add a release'), ' ');
+
+    // Since empty strings are invalid, autocomplete does not suggest creating a new empty label
+    expect(screen.queryByText(textWithMarkupMatcher('Add " "'))).not.toBeInTheDocument();
+
+    // Type the release version into release field
+    userEvent.paste(screen.getByLabelText('Search or add a release'), '1.2');
 
     // Autocomplete suggests options
-    expect(screen.getByTestId('1.2.3')).toHaveTextContent('1.2.3');
+    expect(await screen.findByTestId('1.2.3')).toHaveTextContent('1.2.3');
+
+    // Assert that we display the counts of tag values
+    expect(screen.getByText(97)).toBeInTheDocument();
 
     // Click on the suggested option
     userEvent.click(screen.getByTestId('1.2.3'));

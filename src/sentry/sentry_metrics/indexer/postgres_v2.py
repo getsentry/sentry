@@ -81,7 +81,7 @@ class PGStringIndexerV2(StringIndexer):
         cache_keys = KeyCollection(org_strings)
         metrics.gauge("sentry_metrics.indexer.lookups_per_batch", value=cache_keys.size)
         cache_key_strs = cache_keys.as_strings()
-        cache_results = indexer_cache.get_many(cache_key_strs)
+        cache_results = indexer_cache.get_many(cache_key_strs, use_case_id.value)
 
         hits = [k for k, v in cache_results.items() if v is not None]
         metrics.incr(
@@ -134,7 +134,7 @@ class PGStringIndexerV2(StringIndexer):
         )
 
         if db_write_keys.size == 0:
-            indexer_cache.set_many(new_results_to_cache)
+            indexer_cache.set_many(new_results_to_cache, use_case_id.value)
             return cache_key_results.merge(db_read_key_results)
 
         (
@@ -175,7 +175,7 @@ class PGStringIndexerV2(StringIndexer):
         )
 
         new_results_to_cache.update(db_write_key_results.get_mapped_key_strings_to_ints())
-        indexer_cache.set_many(new_results_to_cache)
+        indexer_cache.set_many(new_results_to_cache, use_case_id.value)
 
         return cache_key_results.merge(db_read_key_results).merge(db_write_key_results)
 
@@ -184,6 +184,8 @@ class PGStringIndexerV2(StringIndexer):
         result = self.bulk_record(use_case_id=use_case_id, org_strings={org_id: {string}})
         return result[org_id][string]
 
+    # TODO: @andriisoldatenko
+    # move use_case_id to 1st parameter and remove default value
     def resolve(
         self, org_id: int, string: str, use_case_id: UseCaseKey = UseCaseKey.RELEASE_HEALTH
     ) -> Optional[int]:
@@ -193,7 +195,7 @@ class PGStringIndexerV2(StringIndexer):
 
         """
         key = f"{org_id}:{string}"
-        result = indexer_cache.get(key)
+        result = indexer_cache.get(key, use_case_id.value)
         table = self._table(use_case_id)
 
         if result and isinstance(result, int):
@@ -205,10 +207,12 @@ class PGStringIndexerV2(StringIndexer):
             id: int = table.objects.using_replica().get(organization_id=org_id, string=string).id
         except table.DoesNotExist:
             return None
-        indexer_cache.set(key, id)
+        indexer_cache.set(key, id, use_case_id.value)
 
         return id
 
+    # TODO: @andriisoldatenko
+    # move use_case_id to 1st parameter and remove default value
     def reverse_resolve(
         self, id: int, use_case_id: UseCaseKey = UseCaseKey.RELEASE_HEALTH
     ) -> Optional[str]:
@@ -264,6 +268,8 @@ class StaticStringsIndexerDecorator(StringIndexer):
             return SHARED_STRINGS[string]
         return self.indexer.record(use_case_id=use_case_id, org_id=org_id, string=string)
 
+    # TODO: @andriisoldatenko
+    # move use_case_id to 1st parameter and remove default value
     def resolve(
         self, org_id: int, string: str, use_case_id: UseCaseKey = UseCaseKey.RELEASE_HEALTH
     ) -> Optional[int]:
@@ -271,6 +277,8 @@ class StaticStringsIndexerDecorator(StringIndexer):
             return SHARED_STRINGS[string]
         return self.indexer.resolve(use_case_id=use_case_id, org_id=org_id, string=string)
 
+    # TODO: @andriisoldatenko
+    # move use_case_id to 1st parameter and remove default value
     def reverse_resolve(
         self, id: int, use_case_id: UseCaseKey = UseCaseKey.RELEASE_HEALTH
     ) -> Optional[str]:

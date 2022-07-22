@@ -46,7 +46,7 @@ import type {Theme} from 'sentry/utils/theme';
 
 import Grid from './components/grid';
 import Legend from './components/legend';
-import Tooltip from './components/tooltip';
+import Tooltip, {TooltipSubLabel} from './components/tooltip';
 import XAxis from './components/xAxis';
 import YAxis from './components/yAxis';
 import LineSeries from './series/lineSeries';
@@ -94,12 +94,12 @@ interface TooltipOption
     bucketSize: number | undefined,
     seriesParamsOrParam: TooltipComponentFormatterCallbackParams
   ) => string;
-  /**
-   * Array containing seriesNames that need to be indented
-   */
-  indentLabels?: string[];
   markerFormatter?: (marker: string, label?: string) => string;
   nameFormatter?: (name: string) => string;
+  /**
+   * Array containing data that is used to display indented sublabels.
+   */
+  subLabels?: TooltipSubLabel[];
   valueFormatter?: (
     value: number,
     label?: string,
@@ -587,7 +587,7 @@ const ChartContainer = styled('div')<{autoHeightResize: boolean}>`
     color: ${p => p.theme.textColor};
   }
   .tooltip-label-indent {
-    margin-left: ${space(3)};
+    margin-left: 18px;
   }
   .tooltip-series > div {
     display: flex;

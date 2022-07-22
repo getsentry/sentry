@@ -15,6 +15,7 @@ import {t, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Project} from 'sentry/types';
 import {SamplingRule, SamplingRuleOperator} from 'sentry/types/sampling';
+import {formatPercentage} from 'sentry/utils/formatters';
 
 import {getInnerNameLabel, isUniformRule} from './utils';
 
@@ -118,7 +119,7 @@ export function Rule({
             ))}
       </ConditionColumn>
       <RateColumn>
-        <SampleRate>{`${rule.sampleRate * 100}\u0025`}</SampleRate>
+        <SampleRate>{formatPercentage(rule.sampleRate)}</SampleRate>
       </RateColumn>
       <ActiveColumn>
         <GuideAnchor
@@ -173,7 +174,7 @@ export function Rule({
           >
             <Tooltip
               disabled={!noPermission}
-              title={t('You do not have permission to edit sampling rules')}
+              title={t('You do not have permission to edit rules')}
               containerDisplayMode="block"
             >
               {t('Edit')}
@@ -181,7 +182,7 @@ export function Rule({
           </MenuItemActionLink>
           <MenuItemActionLink
             onAction={onDeleteRule}
-            message={t('Are you sure you wish to delete this sampling rule?')}
+            message={t('Are you sure you wish to delete this rule?')}
             icon={<IconDownload size="xs" />}
             title={t('Delete')}
             disabled={!canDelete}
@@ -193,7 +194,7 @@ export function Rule({
               title={
                 isUniform
                   ? t("You can't delete the uniform rule")
-                  : t('You do not have permission to delete sampling rules')
+                  : t('You do not have permission to delete rules')
               }
               containerDisplayMode="block"
             >

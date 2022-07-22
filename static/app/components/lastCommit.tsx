@@ -1,11 +1,14 @@
+import styled from '@emotion/styled';
+
 import UserAvatar from 'sentry/components/avatar/userAvatar';
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
 import {AvatarUser, Commit} from 'sentry/types';
 
 type Props = {
   commit: Commit;
-  headerClass: string;
+  className?: string;
 };
 
 const unknownUser: AvatarUser = {
@@ -21,7 +24,7 @@ const unknownUser: AvatarUser = {
   ip_address: '',
 };
 
-function LastCommit({commit, headerClass}: Props) {
+function LastCommit({commit, className}: Props) {
   function renderMessage(message: Commit['message']) {
     if (!message) {
       return t('No message provided');
@@ -43,21 +46,38 @@ function LastCommit({commit, headerClass}: Props) {
 
   const commitAuthor = commit?.author;
   return (
-    <div>
-      <h6 className={headerClass}>Last commit</h6>
-      <div className="commit">
-        <div className="commit-avatar">
-          <UserAvatar user={commitAuthor || unknownUser} />
+    <div className={className}>
+      <h6>Last commit</h6>
+      <InnerWrap>
+        <UserAvatar user={commitAuthor || unknownUser} />
+        <div>
+          <Message>{renderMessage(commit.message)}</Message>
+          <Meta>
+            <strong>{commitAuthor?.name || t('Unknown Author')}</strong>
+            &nbsp;
+            <TimeSince date={commit.dateCreated} />
+          </Meta>
         </div>
-        <div className="commit-message truncate">{renderMessage(commit.message)}</div>
-        <div className="commit-meta">
-          <strong>{commitAuthor?.name || t('Unknown Author')}</strong>
-          &nbsp;
-          <TimeSince date={commit.dateCreated} />
-        </div>
-      </div>
+      </InnerWrap>
     </div>
   );
 }
 
 export default LastCommit;
+
+const InnerWrap = styled('div')`
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: ${space(1)};
+  margin-top: ${space(1)};
+`;
+
+const Message = styled('div')`
+  ${p => p.theme.overflowEllipsis}
+  margin-bottom: ${space(0.5)};
+`;
+
+const Meta = styled('div')`
+  font-size: ${p => p.theme.fontSizeSmall};
+  color: ${p => p.theme.subText};
+`;
