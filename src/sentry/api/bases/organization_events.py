@@ -389,11 +389,11 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                             organization,
                             serializer,
                             event_result,
+                            params,
                             columns,
                             query_columns,
                             allow_partial_buckets,
                             zerofill_results=zerofill_results,
-                            params=params,
                         )
                     else:
                         # Need to get function alias if count is a field, but not the axis
@@ -410,11 +410,11 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                     organization,
                     serializer,
                     result,
+                    params,
                     columns,
                     query_columns,
                     allow_partial_buckets,
                     zerofill_results=zerofill_results,
-                    params=params,
                 )
                 if top_events > 0 and isinstance(result, SnubaTSResult):
                     serialized_result = {"": serialized_result}
@@ -441,11 +441,11 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         organization: Organization,
         serializer: BaseSnubaSerializer,
         event_result: SnubaTSResult,
+        params: Dict[str, Any],
         columns: Sequence[str],
         query_columns: Sequence[str],
         allow_partial_buckets: bool,
         zerofill_results: bool = True,
-        params: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         # Return with requested yAxis as the key
         result = {}
