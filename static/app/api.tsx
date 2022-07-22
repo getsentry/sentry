@@ -16,6 +16,11 @@ import getCsrfToken from 'sentry/utils/getCsrfToken';
 import {uniqueId} from 'sentry/utils/guid';
 import createRequestError from 'sentry/utils/requestError/createRequestError';
 
+import RequestDeduper from './requestDeduper';
+
+// TODO: fix type
+const requestDeduper = new RequestDeduper<any>();
+
 export class Request {
   /**
    * Is the request still in flight
@@ -337,12 +342,7 @@ export class Client {
     errorCb?.(response, textStatus, errorThrown);
   }
 
-  /**
-   * Initate a request to the backend API.
-   *
-   * Consider using `requestPromise` for the async Promise version of this method.
-   */
-  request(path: string, options: Readonly<RequestOptions> = {}): Request {
+  getRequestArgs(path: string, options: Readonly<RequestOptions> = {}) {
     const method = options.method || (options.data ? 'POST' : 'GET');
 
     let fullUrl = buildRequestUrl(this.baseUrl, path, options.query);
@@ -363,7 +363,16 @@ export class Client {
         fullUrl = fullUrl + (fullUrl.indexOf('?') !== -1 ? '&' : '?') + queryString;
       }
     }
+    return {data, fullUrl, method};
+  }
 
+  /**
+   * Initate a request to the backend API.
+   *
+   * Consider using `requestPromise` for the async Promise version of this method.
+   */
+  request(path: string, options: Readonly<RequestOptions> = {}): Request {
+    const {data, fullUrl, method} = this.getRequestArgs(path, options);
     const id = uniqueId();
     const startMarker = `api-request-start-${id}`;
 
@@ -545,39 +554,51 @@ export class Client {
       ? [any, string | undefined, ResponseMeta | undefined]
       : any
   > {
-    // Create an error object here before we make any async calls so that we
-    // have a helpful stack trace if it errors
-    //
-    // This *should* get logged to Sentry only if the promise rejection is not handled
-    // (since SDK captures unhandled rejections). Ideally we explicitly ignore rejection
-    // or handle with a user friendly error message
-    const preservedError = new Error();
+    const promiseGenerator: () => Promise<
+      IncludeAllArgsType extends true
+        ? [any, string | undefined, ResponseMeta | undefined]
+        : any
+    > = () => {
+      // Create an error object here before we make any async calls so that we
+      // have a helpful stack trace if it errors
+      //
+      // This *should* get logged to Sentry only if the promise rejection is not handled
+      // (since SDK captures unhandled rejections). Ideally we explicitly ignore rejection
+      // or handle with a user friendly error message
+      const preservedError = new Error();
 
-    return new Promise((resolve, reject) =>
-      this.request(path, {
-        ...options,
-        preservedError,
-        success: (data, textStatus, resp) => {
-          if (includeAllArgs) {
-            resolve([data, textStatus, resp] as any);
-          } else {
-            resolve(data);
-          }
-        },
-        error: (resp: ResponseMeta) => {
-          const errorObjectToUse = createRequestError(
-            resp,
-            preservedError.stack,
-            options.method,
-            path
-          );
-          errorObjectToUse.removeFrames(2);
+      return new Promise((resolve, reject) =>
+        this.request(path, {
+          ...options,
+          preservedError,
+          success: (data, textStatus, resp) => {
+            if (includeAllArgs) {
+              resolve([data, textStatus, resp] as any);
+            } else {
+              resolve(data);
+            }
+          },
+          error: (resp: ResponseMeta) => {
+            const errorObjectToUse = createRequestError(
+              resp,
+              preservedError.stack,
+              options.method,
+              path
+            );
+            errorObjectToUse.removeFrames(2);
 
-          // Although `this.request` logs all error responses, this error object can
-          // potentially be logged by Sentry's unhandled rejection handler
-          reject(errorObjectToUse);
-        },
-      })
-    );
+            // Although `this.request` logs all error responses, this error object can
+            // potentially be logged by Sentry's unhandled rejection handler
+            reject(errorObjectToUse);
+          },
+        })
+      );
+    };
+    // if get request, we can de-dupe
+    const {fullUrl, method} = this.getRequestArgs(path, options);
+    if (method === 'GET') {
+      return requestDeduper.dedupe(fullUrl, promiseGenerator);
+    }
+    return promiseGenerator();
   }
 }
