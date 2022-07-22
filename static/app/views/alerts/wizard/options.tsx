@@ -158,13 +158,13 @@ export const AlertWizardRuleTemplates: Record<
     aggregate: SessionsAggregate.CRASH_FREE_SESSIONS,
     // TODO(scttcper): Use Dataset.Metric on GA of alert-crash-free-metrics
     dataset: Dataset.SESSIONS,
-    eventTypes: EventTypes.SESSION,
+    eventTypes: EventTypes.DEFAULT,
   },
   crash_free_users: {
     aggregate: SessionsAggregate.CRASH_FREE_USERS,
     // TODO(scttcper): Use Dataset.Metric on GA of alert-crash-free-metrics
     dataset: Dataset.SESSIONS,
-    eventTypes: EventTypes.USER,
+    eventTypes: EventTypes.DEFAULT,
   },
 };
 

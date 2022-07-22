@@ -34,8 +34,6 @@ export enum EventTypes {
   DEFAULT = 'default',
   ERROR = 'error',
   TRANSACTION = 'transaction',
-  USER = 'user',
-  SESSION = 'session',
 }
 
 export enum Datasource {
