@@ -17,7 +17,6 @@ import {
 } from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
-import Button from 'sentry/components/button';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import HookOrDefault from 'sentry/components/hookOrDefault';
@@ -72,7 +71,7 @@ const UNSAVED_MESSAGE = t('You have unsaved changes, are you sure you want to le
 const HookHeader = HookOrDefault({hookName: 'component:dashboards-header'});
 
 function hasUnsavedFilterChanges(dashboard, location, filters) {
-  const {project, environment, statsPeriod, start, end} = location.query;
+  const {project, environment, statsPeriod, start, end} = location.query ?? {};
   return !isEqual(
     {
       projects: dashboard.projects,
@@ -579,7 +578,7 @@ class DashboardDetail extends Component<Props, State> {
           }
           let newModifiedDashboard = modifiedDashboard;
           if (organization.features.includes('dashboards-top-level-filter')) {
-            const {project, environment, statsPeriod, start, end} = location.query;
+            const {project, environment, statsPeriod, start, end} = location.query ?? {};
             newModifiedDashboard = {
               ...cloneDashboard(modifiedDashboard),
               // Ensure projects and environment are sent as arrays, or undefined in the request
@@ -755,15 +754,11 @@ class DashboardDetail extends Component<Props, State> {
                 widgetLimitReached={widgetLimitReached}
               />
             </StyledPageHeader>
-            <div>
-              <PageFilterBar condensed>
-                <ProjectPageFilter />
-                <EnvironmentPageFilter />
-                <DatePageFilter alignDropdown="left" />
-              </PageFilterBar>
-              <Button priority="primary">{t('Save')}</Button>
-              <Button>{t('Cancel')}</Button>
-            </div>
+            <PageFilterBar condensed>
+              <ProjectPageFilter />
+              <EnvironmentPageFilter />
+              <DatePageFilter alignDropdown="left" />
+            </PageFilterBar>
             <HookHeader organization={organization} />
             <Dashboard
               paramDashboardId={dashboardId}
@@ -812,7 +807,7 @@ class DashboardDetail extends Component<Props, State> {
     const {modifiedDashboard, dashboardState, widgetLimitReached, seriesData, setData} =
       this.state;
     const {dashboardId} = params;
-    const {project, environment, statsPeriod, start, end} = location.query;
+    const {project, environment, statsPeriod, start, end} = location.query ?? {};
 
     const {filters} = modifiedDashboard || dashboard;
 
@@ -873,6 +868,7 @@ class DashboardDetail extends Component<Props, State> {
                 <Layout.Main fullWidth>
                   <FiltersBar
                     hasUnsavedChanges={
+                      dashboard.id !== 'default-overview' &&
                       dashboardState !== DashboardState.CREATE &&
                       hasUnsavedFilterChanges(dashboard, location, filters)
                     }
