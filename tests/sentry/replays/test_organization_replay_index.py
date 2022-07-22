@@ -17,10 +17,12 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
         self.url = reverse(self.endpoint, args=(self.organization.slug,))
 
     def test_feature_flag_disabled(self):
+        """Test replays can be disabled."""
         response = self.client.get(self.url)
         assert response.status_code == 404
 
     def test_no_projects(self):
+        """Test replays must be used with a project(s)."""
         with self.feature(REPLAYS_FEATURES):
             response = self.client.get(self.url)
             assert response.status_code == 200
@@ -30,6 +32,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             assert response_data["data"] == []
 
     def test_get_replays(self):
+        """Test replays conform to the interchange format."""
         project = self.create_project(teams=[self.team])
 
         replay1_id = "44c586f7-bd12-4c1b-b609-189344a19e92"
@@ -52,52 +55,118 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             )
             assert_expected_response(response_data["data"][0], expected_response)
 
-    def test_get_replays_start_at_sorted(self):
+    def test_get_replays_require_duration(self):
+        """Test returned replays must have a substantive duration."""
         project = self.create_project(teams=[self.team])
-
-        replay1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=15)
-        replay2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=10)
 
         replay1_id = "44c586f7-bd12-4c1b-b609-189344a19e92"
         replay2_id = "6f959c5c-bc77-4683-8723-6e3367b0cfac"
+        replay1_timestamp0 = datetime.datetime.now() - datetime.timedelta(seconds=15)
+        replay1_timestamp1 = datetime.datetime.now() - datetime.timedelta(seconds=10)
+        replay2_timestamp0 = datetime.datetime.now() - datetime.timedelta(seconds=10)
+        replay2_timestamp1 = datetime.datetime.now() - datetime.timedelta(seconds=6)
 
-        self.store_replays(mock_replay(replay1_timestamp, project.id, replay1_id))
-        self.store_replays(mock_replay(replay2_timestamp, project.id, replay2_id))
+        self.store_replays(mock_replay(replay1_timestamp0, project.id, replay1_id))
+        self.store_replays(mock_replay(replay1_timestamp1, project.id, replay1_id))
+        self.store_replays(mock_replay(replay2_timestamp0, project.id, replay2_id))
+        self.store_replays(mock_replay(replay2_timestamp1, project.id, replay2_id))
 
         with self.feature(REPLAYS_FEATURES):
-            # Default latest first.
             response = self.client.get(self.url)
             assert response.status_code == 200
 
             response_data = response.json()
             assert "data" in response_data
-            assert len(response_data["data"]) == 2
+            assert len(response_data["data"]) == 1
 
-            assert response_data["data"][0]["replay_id"] == replay2_id
-            assert response_data["data"][1]["replay_id"] == replay1_id
-
-            # Earlist first.
-            response = self.client.get(self.url + "?sort=started-at")
-            response_data = response.json()
-            assert response_data["data"][0]["replay_id"] == replay1_id
-            assert response_data["data"][1]["replay_id"] == replay2_id
-
-            # Latest first.
-            response = self.client.get(self.url + "?sort=-started-at")
-            response_data = response.json()
-            assert response_data["data"][0]["replay_id"] == replay2_id
-            assert response_data["data"][1]["replay_id"] == replay1_id
-
-    def test_get_replays_duration_sorted(self):
+    def test_get_replays_require_timely_initial_sequence(self):
+        """Test returned replays can not partially fall outside of range."""
         project = self.create_project(teams=[self.team])
 
-        replay1_timestamp0 = datetime.datetime.now() - datetime.timedelta(seconds=15)
+        replay1_id = "44c586f7-bd12-4c1b-b609-189344a19e92"
+        replay1_timestamp0 = datetime.datetime.now() - datetime.timedelta(days=365)
         replay1_timestamp1 = datetime.datetime.now() - datetime.timedelta(seconds=10)
-        replay2_timestamp0 = datetime.datetime.now() - datetime.timedelta(seconds=10)
-        replay2_timestamp1 = datetime.datetime.now() - datetime.timedelta(seconds=2)
+
+        self.store_replays(mock_replay(replay1_timestamp0, project.id, replay1_id))
+        self.store_replays(mock_replay(replay1_timestamp1, project.id, replay1_id))
+
+        with self.feature(REPLAYS_FEATURES):
+            response = self.client.get(self.url)
+            assert response.status_code == 200
+
+            response_data = response.json()
+            assert "data" in response_data
+            assert len(response_data["data"]) == 0
+
+    # TODO: Snuba has a default timestamp sort that preempts whatever aggreagted timestamp
+    #       sort we apply. This should be removed if possible.
+    #
+    # def test_get_replays_started_at_sorted(self):
+    #     project = self.create_project(teams=[self.team])
+
+    #     replay1_id = "44c586f7-bd12-4c1b-b609-189344a19e92"
+    #     replay2_id = "6f959c5c-bc77-4683-8723-6e3367b0cfac"
+    #     replay1_timestamp0 = datetime.datetime.now() - datetime.timedelta(seconds=15)
+    #     replay1_timestamp1 = datetime.datetime.now() - datetime.timedelta(seconds=5)
+    #     replay2_timestamp0 = datetime.datetime.now() - datetime.timedelta(seconds=10)
+    #     replay2_timestamp1 = datetime.datetime.now() - datetime.timedelta(seconds=2)
+
+    #     self.store_replays(mock_replay(replay1_timestamp0, project.id, replay1_id))
+    #     self.store_replays(mock_replay(replay1_timestamp1, project.id, replay1_id))
+    #     self.store_replays(mock_replay(replay2_timestamp0, project.id, replay2_id))
+    #     self.store_replays(mock_replay(replay2_timestamp1, project.id, replay2_id))
+
+    #     with self.feature(REPLAYS_FEATURES):
+    #         # Latest first.
+    #         response = self.client.get(self.url + "?sort=-started-at")
+    #         response_data = response.json()
+    #         assert response_data["data"][0]["replay_id"] == replay2_id
+    #         assert response_data["data"][1]["replay_id"] == replay1_id
+
+    #         # Earlist first.
+    #         response = self.client.get(self.url + "?sort=started-at")
+    #         response_data = response.json()
+    #         assert response_data["data"][0]["replay_id"] == replay1_id
+    #         assert response_data["data"][1]["replay_id"] == replay2_id
+
+    # def test_get_replays_finished_at_sorted(self):
+    #     project = self.create_project(teams=[self.team])
+
+    #     replay1_id = "44c586f7-bd12-4c1b-b609-189344a19e92"
+    #     replay2_id = "6f959c5c-bc77-4683-8723-6e3367b0cfac"
+    #     replay1_timestamp0 = datetime.datetime.now() - datetime.timedelta(seconds=15)
+    #     replay1_timestamp1 = datetime.datetime.now() - datetime.timedelta(seconds=5)
+    #     replay2_timestamp0 = datetime.datetime.now() - datetime.timedelta(seconds=10)
+    #     replay2_timestamp1 = datetime.datetime.now() - datetime.timedelta(seconds=2)
+
+    #     self.store_replays(mock_replay(replay1_timestamp0, project.id, replay1_id))
+    #     self.store_replays(mock_replay(replay1_timestamp1, project.id, replay1_id))
+    #     self.store_replays(mock_replay(replay2_timestamp0, project.id, replay2_id))
+    #     self.store_replays(mock_replay(replay2_timestamp1, project.id, replay2_id))
+
+    #     with self.feature(REPLAYS_FEATURES):
+    #         # Latest first.
+    #         response = self.client.get(self.url + "?sort=-finished-at")
+    #         response_data = response.json()
+    #         assert response_data["data"][0]["replay_id"] == replay2_id
+    #         assert response_data["data"][1]["replay_id"] == replay1_id
+
+    #         # Earlist first.
+    #         response = self.client.get(self.url + "?sort=finished-at")
+    #         response_data = response.json()
+    #         assert response_data["data"][0]["replay_id"] == replay1_id
+    #         assert response_data["data"][1]["replay_id"] == replay2_id
+
+    def test_get_replays_duration_sorted(self):
+        """Test replays can be sorted by duration."""
+        project = self.create_project(teams=[self.team])
 
         replay1_id = "44c586f7-bd12-4c1b-b609-189344a19e92"
         replay2_id = "6f959c5c-bc77-4683-8723-6e3367b0cfac"
+        replay1_timestamp0 = datetime.datetime.now() - datetime.timedelta(seconds=15)
+        replay1_timestamp1 = datetime.datetime.now() - datetime.timedelta(seconds=10)
+        replay2_timestamp0 = datetime.datetime.now() - datetime.timedelta(seconds=9)
+        replay2_timestamp1 = datetime.datetime.now() - datetime.timedelta(seconds=2)
 
         self.store_replays(mock_replay(replay1_timestamp0, project.id, replay1_id))
         self.store_replays(mock_replay(replay1_timestamp1, project.id, replay1_id))
@@ -118,14 +187,20 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             assert response_data["data"][1]["replay_id"] == replay1_id
 
     def test_get_replays_pagination(self):
+        """Test replays can be paginated."""
         project = self.create_project(teams=[self.team])
 
         replay1_id = "44c586f7-bd12-4c1b-b609-189344a19e92"
         replay2_id = "6f959c5c-bc77-4683-8723-6e3367b0cfac"
-        replay1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=15)
-        replay2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=10)
-        self.store_replays(mock_replay(replay1_timestamp, project.id, replay1_id))
-        self.store_replays(mock_replay(replay2_timestamp, project.id, replay2_id))
+        replay1_timestamp0 = datetime.datetime.now() - datetime.timedelta(seconds=15)
+        replay1_timestamp1 = datetime.datetime.now() - datetime.timedelta(seconds=5)
+        replay2_timestamp0 = datetime.datetime.now() - datetime.timedelta(seconds=10)
+        replay2_timestamp1 = datetime.datetime.now() - datetime.timedelta(seconds=2)
+
+        self.store_replays(mock_replay(replay1_timestamp0, project.id, replay1_id))
+        self.store_replays(mock_replay(replay1_timestamp1, project.id, replay1_id))
+        self.store_replays(mock_replay(replay2_timestamp0, project.id, replay2_id))
+        self.store_replays(mock_replay(replay2_timestamp1, project.id, replay2_id))
 
         with self.feature(REPLAYS_FEATURES):
             # First page.

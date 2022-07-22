@@ -2,11 +2,24 @@ from collections import namedtuple
 from datetime import datetime
 from typing import Any, List, Optional, Union
 
-from snuba_sdk import Column, Function, Identifier, Lambda
+from snuba_sdk import (
+    Column,
+    Condition,
+    Entity,
+    Flags,
+    Function,
+    Granularity,
+    Identifier,
+    Lambda,
+    Limit,
+    Offset,
+    Op,
+    Query,
+    Request,
+)
 from snuba_sdk.orderby import Direction, OrderBy
 
-from sentry.snuba.dataset import Dataset
-from sentry.utils.snuba import raw_query
+from sentry.utils.snuba import raw_snql_query
 
 MAX_PAGE_SIZE = 100
 DEFAULT_PAGE_SIZE = 10
@@ -19,28 +32,26 @@ def query_replays_collection(
     project_ids: List[int],
     start: datetime,
     end: datetime,
-    environment: Optional[str],
+    environment: List[str],
     sort: Optional[str],
     limit: Optional[str],
     offset: Optional[str],
 ) -> dict:
     """Query aggregated replay collection."""
-    filter_keys = {"project_id": project_ids}
+    conditions = []
     if environment:
-        filter_keys["environment"] = environment
+        conditions.append(Condition("environment"), Op.IN, environment)
 
     sort_ordering = make_sort_ordering(sort)
     paginators = make_pagination_values(limit, offset)
 
-    response = raw_query(
-        dataset=Dataset.Replays,
-        selected_columns=make_select_statement(),
-        limit=paginators.limit,
-        offset=paginators.offset,
-        sort=sort_ordering,
-        conditions=[["timestamp", ">=", start], ["timestamp", "<", end]],
-        filter_keys=filter_keys,
-        groupby=[Column("replay_id")],
+    response = query_replays_dataset(
+        project_ids=project_ids,
+        start=start,
+        end=end,
+        where=[],
+        sorting=sort_ordering,
+        pagination=paginators,
     )
     return response["data"]
 
@@ -52,14 +63,60 @@ def query_replay_instance(
     end: datetime,
 ):
     """Query aggregated replay instance."""
-    response = raw_query(
-        dataset=Dataset.Replays,
-        selected_columns=make_select_statement(),
-        conditions=[["timestamp", ">=", start], ["timestamp", "<", end]],
-        filter_keys={"project_id": [project_id], "replay_id": replay_id},
-        groupby=[Column("replay_id")],
+    response = query_replays_dataset(
+        project_ids=[project_id],
+        start=start,
+        end=end,
+        where=[
+            Condition(Column("replay_id"), Op.EQ, replay_id),
+        ],
+        sorting=[],
+        pagination=None,
     )
     return response["data"]
+
+
+def query_replays_dataset(
+    project_ids: List[str],
+    start: datetime,
+    end: datetime,
+    where: List[Condition],
+    sorting: List[OrderBy],
+    pagination: Optional[Paginators],
+):
+    query_options = {}
+
+    # Instance requests do not paginate.
+    if pagination:
+        query_options["limit"] = Limit(pagination.limit)
+        query_options["offset"] = Offset(pagination.offset)
+
+    snuba_request = Request(
+        dataset="replays",
+        app_id="replay-backend-web",
+        query=Query(
+            match=Entity("replays"),
+            select=make_select_statement(),
+            where=[
+                Condition(Column("project_id"), Op.IN, project_ids),
+                Condition(Column("timestamp"), Op.LT, end),
+                Condition(Column("timestamp"), Op.GTE, start),
+                *where,
+            ],
+            having=[
+                # Must include the first sequence otherwise the replay is too old.
+                Condition(Function("min", parameters=[Column("sequence_id")]), Op.EQ, 0),
+                # Discard short replays (5 seconds by arbitrary decision).
+                Condition(Column("duration"), Op.GTE, 5),
+            ],
+            orderby=sorting,
+            groupby=[Column("replay_id")],
+            granularity=Granularity(3600),
+            **query_options,
+        ),
+        flags=Flags(debug=True),
+    )
+    return raw_snql_query(snuba_request)
 
 
 # Select.
