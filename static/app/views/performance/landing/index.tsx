@@ -153,11 +153,9 @@ export function PerformanceLanding(props: Props) {
     pageFilters = <SearchContainerWithFilter>{pageFilters}</SearchContainerWithFilter>;
   }
 
-  const SearchFilterContainer =
-    organization.features.includes('performance-use-metrics') &&
-    !organization.features.includes('performance-transaction-name-only-search')
-      ? SearchContainerWithFilterAndMetrics
-      : SearchContainerWithFilter;
+  const SearchFilterContainer = organization.features.includes('performance-use-metrics')
+    ? SearchContainerWithFilterAndMetrics
+    : SearchContainerWithFilter;
 
   return (
     <StyledPageContent data-test-id="performance-landing-v3">
@@ -254,11 +252,7 @@ export function PerformanceLanding(props: Props) {
                       )
                     }
                   </Feature>
-                  <Feature
-                    features={['organizations:performance-transaction-name-only-search']}
-                  >
-                    {({hasFeature}) => !hasFeature && <MetricsEventsDropdown />}
-                  </Feature>
+                  <MetricsEventsDropdown />
                 </SearchFilterContainer>
                 {initiallyLoaded ? (
                   <TeamKeyTransactionManager.Provider
