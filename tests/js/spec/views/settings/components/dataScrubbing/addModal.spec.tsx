@@ -127,16 +127,13 @@ describe('Add Modal', () => {
     methodFieldInput.simulate('keyDown', {key: 'ArrowDown'});
 
     const methodFieldMenuOptions = wrapper.find(
-      '[data-test-id="method-field"] MenuList Option Wrapper'
+      '[data-test-id="method-field"] MenuList Option'
     );
     expect(methodFieldMenuOptions).toHaveLength(4);
     const replaceOption = methodFieldMenuOptions.at(3);
 
-    expect(replaceOption.find('[data-test-id="label"]').text()).toEqual('Replace');
-
-    expect(replaceOption.find('Description').text()).toEqual(
-      '(Replace with Placeholder)'
-    );
+    expect(replaceOption.find('Label').text()).toEqual('Replace');
+    expect(replaceOption.find('Details').text()).toEqual('(Replace with Placeholder)');
 
     // After the click the placeholder field MUST be in the DOM
     replaceOption.simulate('click');
@@ -169,7 +166,7 @@ describe('Add Modal', () => {
       .simulate('keyDown', {key: 'ArrowDown'});
 
     const hashOption = wrapper
-      .find('[data-test-id="method-field"] MenuList Option Wrapper')
+      .find('[data-test-id="method-field"] MenuList Option')
       .at(0);
 
     hashOption.simulate('click');
@@ -197,13 +194,13 @@ describe('Add Modal', () => {
     typeFieldInput.simulate('keyDown', {key: 'ArrowDown'});
 
     const typeFieldMenuOptions = wrapper.find(
-      '[data-test-id="type-field"] MenuList Option Wrapper'
+      '[data-test-id="type-field"] MenuList Option'
     );
 
     expect(typeFieldMenuOptions).toHaveLength(13);
     const regexOption = typeFieldMenuOptions.at(7);
 
-    expect(regexOption.find('[data-test-id="label"]').text()).toEqual('Regex matches');
+    expect(regexOption.find('Label').text()).toEqual('Regex matches');
 
     // After the click, the regex matches field MUST be in the DOM
     regexOption.simulate('click');
@@ -231,7 +228,7 @@ describe('Add Modal', () => {
       .simulate('keyDown', {key: 'ArrowDown'});
 
     const creditCardOption = wrapper
-      .find('[data-test-id="type-field"] MenuList Option Wrapper')
+      .find('[data-test-id="type-field"] MenuList Option')
       .at(1);
 
     creditCardOption.simulate('click');
