@@ -702,7 +702,7 @@ def _associate_commits_with_release(release: Release, project: Project):
         RepositoryProjectPathConfig.objects.select_related(
             "repository", "organization_integration", "organization_integration__integration"
         )
-        .filter(project=project)
+        .filter(project=project, repository__provider="integrations:github")
         .all()
     )
     if possible_repos:
@@ -765,7 +765,7 @@ def _get_or_create_release_many(jobs, projects):
         if features.has(
             "projects:auto-associate-commits-to-release", projects[project_id]
         ) and _is_commit_sha(release.version):
-            _associate_commits_with_release(release, projects[project_id])
+            safe_execute(_associate_commits_with_release, release, projects[project_id])
 
         for job in jobs_to_update:
             # Don't allow a conflicting 'release' tag
