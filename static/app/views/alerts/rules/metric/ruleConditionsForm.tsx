@@ -531,7 +531,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
             <AlertContainer>
               <Alert type="info" showIcon>
                 {tct(
-                  'Filtering by these conditions automatically switch you to retained events. [link:Learn more].',
+                  'Filtering by these conditions automatically switch you to indexed events. [link:Learn more].',
                   {
                     link: (
                       <ExternalLink href="https://docs.sentry.io/product/sentry-basics/search/" />
