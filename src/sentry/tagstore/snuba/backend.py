@@ -932,8 +932,6 @@ class SnubaTagStorage(TagStorage):
         dataset = Dataset.Events
         if include_transactions:
             dataset = Dataset.Discover
-        elif include_errors:
-            dataset = Dataset.Transactions
 
         snuba_key = snuba.get_snuba_column_name(key, dataset=dataset)
 
