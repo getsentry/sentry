@@ -24,6 +24,7 @@ import RRWebIntegration from 'sentry/components/events/rrwebIntegration';
 import EventSdkUpdates from 'sentry/components/events/sdkUpdates';
 import {DataSection} from 'sentry/components/events/styles';
 import EventUserFeedback from 'sentry/components/events/userFeedback';
+import LazyLoad from 'sentry/components/lazyLoad';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -100,6 +101,7 @@ const EventEntries = memo(
     const orgFeatures = organization?.features ?? [];
 
     const hasEventAttachmentsFeature = orgFeatures.includes('event-attachments');
+    const replayId = event?.tags?.find(({key}) => key === 'replayId')?.value;
 
     useEffect(() => {
       checkProGuardError();
@@ -431,7 +433,7 @@ const EventEntries = memo(
             showGroupingConfig={orgFeatures.includes('set-grouping-config')}
           />
         )}
-        {!isShare && hasEventAttachmentsFeature && (
+        {!isShare && !replayId && hasEventAttachmentsFeature && (
           <RRWebIntegration
             event={event}
             orgId={orgSlug}
@@ -441,6 +443,14 @@ const EventEntries = memo(
                 {children}
               </StyledReplayEventDataSection>
             )}
+          />
+        )}
+        {!isShare && replayId && orgFeatures.includes('session-replay') && (
+          <LazyLoad
+            component={() => import('./eventReplay')}
+            replayId={replayId}
+            orgSlug={orgSlug}
+            projectSlug={projectSlug}
           />
         )}
       </div>
