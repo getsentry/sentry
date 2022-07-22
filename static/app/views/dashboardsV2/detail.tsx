@@ -174,6 +174,9 @@ class DashboardDetail extends Component<Props, State> {
                   pathname: `/organizations/${organization.slug}/dashboard/${dashboardId}/widget/${widgetIndex}/edit/`,
                   query: {
                     ...location.query,
+                    ...(organization.features.includes('dashboards-top-level-filter')
+                      ? getInitialPageFilterValues(dashboard)
+                      : {}),
                     source: DashboardWidgetSource.DASHBOARDS,
                   },
                 });
@@ -488,18 +491,13 @@ class DashboardDetail extends Component<Props, State> {
       !organization.features.includes('new-widget-builder-experience-modal-access')
     ) {
       if (dashboardId) {
-        const {filters} = this.state.modifiedDashboard || dashboard;
-        const queryParamOverrides =
-          organization.features.includes('dashboards-top-level-filter') &&
-          hasUnsavedFilterChanges(dashboard, location, filters)
-            ? getInitialPageFilterValues(dashboard)
-            : {};
-
         router.push({
           pathname: `/organizations/${organization.slug}/dashboard/${dashboardId}/widget/new/`,
           query: {
             ...location.query,
-            ...queryParamOverrides,
+            ...(organization.features.includes('dashboards-top-level-filter')
+              ? getInitialPageFilterValues(dashboard)
+              : {}),
             source: DashboardWidgetSource.DASHBOARDS,
           },
         });
@@ -841,8 +839,7 @@ class DashboardDetail extends Component<Props, State> {
                       });
                     }}
                     onSave={() => {
-                      // TODO: Get releases from state
-                      // PUT dashboard
+                      // TODO: Extracting the values could be a util
                       const newModifiedDashboard = {
                         ...cloneDashboard(modifiedDashboard ?? dashboard),
                         projects:
