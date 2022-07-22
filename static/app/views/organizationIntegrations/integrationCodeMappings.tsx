@@ -9,6 +9,7 @@ import Access from 'sentry/components/acl/access';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import Button from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
+import Pagination, {CursorHandler} from 'sentry/components/pagination';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
 import RepositoryProjectPathConfigForm from 'sentry/components/repositoryProjectPathConfigForm';
 import RepositoryProjectPathConfigRow, {
@@ -175,9 +176,26 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
     ));
   };
 
+  /**
+   * This is a workaround to paginate without affecting browserHistory or modifiying the URL
+   * It's necessary because we don't want to affect the pagination state of other tabs on the page.
+   */
+  handleCursor: CursorHandler = async (cursor, _path, query, _direction) => {
+    const orgSlug = this.props.organization.slug;
+    const [pathConfigs, _, responseMeta] = await this.api.requestPromise(
+      `/organizations/${orgSlug}/code-mappings/`,
+      {includeAllArgs: true, query: {...query, cursor}}
+    );
+    this.setState({
+      pathConfigs,
+      pathConfigsPageLinks: responseMeta?.getResponseHeader('link'),
+    });
+  };
+
   renderBody() {
     const pathConfigs = this.pathConfigs;
     const {integration} = this.props;
+    const {pathConfigsPageLinks} = this.state;
 
     return (
       <Fragment>
@@ -270,6 +288,9 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
               .filter(item => !!item)}
           </PanelBody>
         </Panel>
+        {pathConfigsPageLinks && (
+          <Pagination pageLinks={pathConfigsPageLinks} onCursor={this.handleCursor} />
+        )}
       </Fragment>
     );
   }
