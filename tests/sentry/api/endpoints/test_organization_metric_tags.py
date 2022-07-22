@@ -1,6 +1,8 @@
 import time
 from unittest.mock import patch
 
+import pytest
+
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.snuba.metrics.naming_layer import get_mri
@@ -11,6 +13,8 @@ from tests.sentry.api.endpoints.test_organization_metrics import (
     MOCKED_DERIVED_METRICS,
     mocked_mri_resolver,
 )
+
+pytestmark = pytest.mark.sentry_metrics
 
 
 class OrganizationMetricsTagsIntegrationTest(OrganizationMetricMetaIntegrationTestCase):

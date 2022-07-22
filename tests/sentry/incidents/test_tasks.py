@@ -1,6 +1,7 @@
 from datetime import timedelta
 from unittest.mock import Mock, call, patch
 
+import pytest
 import pytz
 from django.urls import reverse
 from django.utils import timezone
@@ -30,11 +31,14 @@ from sentry.incidents.tasks import (
     send_subscriber_notifications,
 )
 from sentry.sentry_metrics.configuration import UseCaseKey
-from sentry.sentry_metrics.utils import resolve, resolve_tag_key
-from sentry.snuba.models import QueryDatasets, SnubaQuery
+from sentry.sentry_metrics.utils import resolve_tag_key, resolve_tag_value
+from sentry.snuba.dataset import Dataset
+from sentry.snuba.models import SnubaQuery
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils import TestCase
 from sentry.utils.http import absolute_uri
+
+pytestmark = pytest.mark.sentry_metrics
 
 
 class BaseIncidentActivityTest:
@@ -206,7 +210,7 @@ class TestHandleSubscriptionMetricsLogger(TestCase):
     def subscription(self):
         snuba_query = create_snuba_query(
             SnubaQuery.Type.CRASH_RATE,
-            QueryDatasets.METRICS,
+            Dataset.Metrics,
             "hello",
             "count()",
             timedelta(minutes=1),
@@ -262,13 +266,15 @@ class TestHandleSubscriptionMetricsLoggerV1(TestHandleSubscriptionMetricsLogger)
                 {
                     resolve_tag_key(
                         UseCaseKey.RELEASE_HEALTH, self.organization.id, "session.status"
-                    ): resolve(UseCaseKey.RELEASE_HEALTH, self.organization.id, "init"),
+                    ): resolve_tag_value(UseCaseKey.RELEASE_HEALTH, self.organization.id, "init"),
                     "value": 100.0,
                 },
                 {
                     resolve_tag_key(
                         UseCaseKey.RELEASE_HEALTH, self.organization.id, "session.status"
-                    ): resolve(UseCaseKey.RELEASE_HEALTH, self.organization.id, "crashed"),
+                    ): resolve_tag_value(
+                        UseCaseKey.RELEASE_HEALTH, self.organization.id, "crashed"
+                    ),
                     "value": 2.0,
                 },
             ]
