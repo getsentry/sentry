@@ -8,11 +8,13 @@ import pick from 'lodash/pick';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
+import Alert from 'sentry/components/alert';
 import SearchBar from 'sentry/components/events/searchBar';
 import FormField from 'sentry/components/forms/formField';
 import SelectControl from 'sentry/components/forms/selectControl';
 import SelectField from 'sentry/components/forms/selectField';
 import IdBadge from 'sentry/components/idBadge';
+import ExternalLink from 'sentry/components/links/externalLink';
 import ListItem from 'sentry/components/list/listItem';
 import {Panel, PanelBody} from 'sentry/components/panels';
 import Tooltip from 'sentry/components/tooltip';
@@ -67,6 +69,7 @@ type Props = {
   project: Project;
   projects: Project[];
   router: InjectedRouter;
+  showMEPAlertBanner: boolean;
   thresholdChart: React.ReactNode;
   timeWindow: number;
   allowChangeEventTypes?: boolean;
@@ -495,6 +498,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
       allowChangeEventTypes,
       hasAlertWizardV3,
       dataset,
+      showMEPAlertBanner,
     } = this.props;
     const {environments} = this.state;
 
@@ -522,6 +526,21 @@ class RuleConditionsForm extends PureComponent<Props, State> {
         <ChartPanel>
           <StyledPanelBody>{this.props.thresholdChart}</StyledPanelBody>
         </ChartPanel>
+        {showMEPAlertBanner &&
+          organization.features.includes('metrics-performance-alerts') && (
+            <AlertContainer>
+              <Alert type="info" showIcon>
+                {tct(
+                  'Filtering by these conditions automatically switch you to stored events. [link:Learn more]',
+                  {
+                    link: (
+                      <ExternalLink href="https://docs.sentry.io/product/sentry-basics/search/" />
+                    ),
+                  }
+                )}
+              </Alert>
+            </AlertContainer>
+          )}
         {hasAlertWizardV3 && this.renderInterval()}
         <StyledListItem>{t('Filter events')}</StyledListItem>
         <FormRow
@@ -627,7 +646,11 @@ const StyledListTitle = styled('div')`
 `;
 
 const ChartPanel = styled(Panel)`
-  margin-bottom: ${space(4)};
+  margin-bottom: ${space(1)};
+`;
+
+const AlertContainer = styled('div')`
+  margin-bottom: ${space(2)};
 `;
 
 const StyledPanelBody = styled(PanelBody)`
