@@ -1905,7 +1905,14 @@ class MetricsQueryBuilder(QueryBuilder):
                     "Filter on timestamp is outside of the selected date range."
                 )
 
-        # TODO(wmak): Need to handle `has` queries, basically check that tags.keys has the value?
+        # Handle checks for existence
+        if search_filter.operator in ("=", "!=") and search_filter.value.value == "":
+            if is_tag:
+                return Condition(
+                    Function("has", [Column("tags.key"), self.resolve_metric_index(name)]),
+                    Op.EQ if search_filter.operator == "!=" else Op.NEQ,
+                    1,
+                )
 
         return Condition(lhs, Op(search_filter.operator), value)
 
