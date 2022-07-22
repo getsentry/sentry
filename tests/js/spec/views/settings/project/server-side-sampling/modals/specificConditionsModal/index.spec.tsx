@@ -220,10 +220,12 @@ describe('Server-side Sampling - Specific Conditions Modal', function () {
     // Empty conditions message is not displayed
     expect(screen.queryByText('No conditions added')).not.toBeInTheDocument();
 
-    // Type into realease field
+    // Type into release field
     userEvent.clear(screen.getByLabelText('Search or add a release'));
-    userEvent.paste(screen.getByLabelText('Search or add a release'), '1.2.3');
-    userEvent.keyboard('{enter}');
+    userEvent.paste(screen.getByLabelText('Search or add a release'), '1.2');
+
+    // Click on the suggested option
+    userEvent.click(await screen.findByTestId('1.2.3'));
 
     // Update sample rate field
     userEvent.clear(screen.getByPlaceholderText('\u0025'));
@@ -318,8 +320,10 @@ describe('Server-side Sampling - Specific Conditions Modal', function () {
     );
 
     // Type into environment field
-    userEvent.paste(screen.getByLabelText('Search or add an environment'), 'prod');
-    userEvent.keyboard('{enter}');
+    userEvent.paste(screen.getByLabelText('Search or add an environment'), 'pro');
+
+    // Click on the suggested option
+    userEvent.click(await screen.findByTestId('prod'));
 
     // Fill sample rate field
     userEvent.paste(screen.getByPlaceholderText('\u0025'), '50');

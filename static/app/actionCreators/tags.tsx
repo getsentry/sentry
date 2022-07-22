@@ -87,7 +87,6 @@ export function fetchTagValues(
   endpointParams: Query | null = null,
   includeTransactions = false,
   includeSessions = false,
-  includeErrors = true,
   sort: string | null = null
 ) {
   const url = `/organizations/${orgId}/tags/${tagKey}/values/`;
@@ -116,10 +115,6 @@ export function fetchTagValues(
 
   if (includeSessions) {
     query.includeSessions = '1';
-  }
-
-  if (includeErrors === false) {
-    query.includeErrors = '0';
   }
 
   if (sort) {
