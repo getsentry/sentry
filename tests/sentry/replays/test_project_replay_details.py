@@ -29,13 +29,15 @@ class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
             assert response.status_code == 404
 
     def test_get_replay(self):
+        replay_id = str(self.replay_id)
+        non_returned_replay_id = str(uuid.uuid4())
         seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=6)
         seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=3)
         seq3_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=1)
 
-        replay_id = str(self.replay_id)
+        self.store_replays(mock_replay(seq1_timestamp, self.project.id, non_returned_replay_id))
+        self.store_replays(mock_replay(seq3_timestamp, self.project.id, non_returned_replay_id))
 
-        self.store_replays(mock_replay(seq1_timestamp, self.project.id, str(uuid.uuid4())))
         self.store_replays(
             mock_replay(
                 seq1_timestamp,
