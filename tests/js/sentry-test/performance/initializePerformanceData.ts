@@ -11,6 +11,7 @@ import {
 
 export interface initializeDataSettings {
   features?: string[];
+  project?: Project;
   projects?: Project[];
   query?: {};
   selectedProject?: number | string;
@@ -36,8 +37,8 @@ export function initializeData(settings?: initializeDataSettings) {
       ...query,
     },
   };
-  if (settings?.selectedProject) {
-    routerLocation.query.project = project;
+  if (settings?.selectedProject || settings?.project) {
+    routerLocation.query.project = project || settings?.project;
   }
   const router = {
     location: routerLocation,
