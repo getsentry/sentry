@@ -1,7 +1,6 @@
 import {cloneElement, Component, isValidElement} from 'react';
 import {browserHistory, PlainRoute, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
@@ -69,43 +68,13 @@ import {
   cloneDashboard,
   getInitialPageFilterValues,
   hasSavedPageFilters,
+  hasUnsavedFilterChanges,
   resetPageFilters,
 } from './utils';
 
 const UNSAVED_MESSAGE = t('You have unsaved changes, are you sure you want to leave?');
 
 const HookHeader = HookOrDefault({hookName: 'component:dashboards-header'});
-
-function hasUnsavedFilterChanges(
-  initialDashboard: DashboardDetails,
-  location: Location,
-  newDashboardFilters: DashboardFilters
-) {
-  const {project, environment, statsPeriod, start, end} = location.query ?? {};
-  return !isEqual(
-    {
-      projects: initialDashboard.projects,
-      environment: initialDashboard.environment,
-      period: initialDashboard.period,
-      start: initialDashboard.start,
-      end: initialDashboard.end,
-      filters: initialDashboard.filters,
-    },
-    {
-      projects:
-        project === undefined || project === null
-          ? []
-          : typeof project === 'string'
-          ? [Number(project)]
-          : project.map(Number),
-      environment: typeof environment === 'string' ? [environment] : environment,
-      period: statsPeriod,
-      start,
-      end,
-      filters: newDashboardFilters,
-    }
-  );
-}
 
 type RouteParams = {
   orgId: string;

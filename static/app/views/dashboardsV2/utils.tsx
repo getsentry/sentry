@@ -2,6 +2,7 @@ import {browserHistory} from 'react-router';
 import {Location, Query} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 import isEmpty from 'lodash/isEmpty';
+import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 import trimStart from 'lodash/trimStart';
 import * as qs from 'query-string';
@@ -37,6 +38,7 @@ import {DisplayModes} from 'sentry/utils/discover/types';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
 import {
   DashboardDetails,
+  DashboardFilters,
   DisplayType,
   Widget,
   WidgetQuery,
@@ -397,6 +399,37 @@ export function hasSavedPageFilters(dashboard: DashboardDetails) {
     dashboard.start === undefined &&
     dashboard.end === undefined &&
     dashboard.period === undefined
+  );
+}
+
+export function hasUnsavedFilterChanges(
+  initialDashboard: DashboardDetails,
+  location: Location,
+  newDashboardFilters: DashboardFilters
+) {
+  const {project, environment, statsPeriod, start, end} = location.query ?? {};
+  return !isEqual(
+    {
+      projects: initialDashboard.projects,
+      environment: initialDashboard.environment,
+      period: initialDashboard.period,
+      start: initialDashboard.start,
+      end: initialDashboard.end,
+      filters: initialDashboard.filters,
+    },
+    {
+      projects:
+        project === undefined || project === null
+          ? []
+          : typeof project === 'string'
+          ? [Number(project)]
+          : project.map(Number),
+      environment: typeof environment === 'string' ? [environment] : environment,
+      period: statsPeriod,
+      start,
+      end,
+      filters: newDashboardFilters,
+    }
   );
 }
 
