@@ -1197,7 +1197,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert meta["units"]["max(measurements.cls)"] is None
 
     def test_custom_measurement_size_filtering(self):
-        self.store_metric(
+        self.store_transaction_metric(
             1,
             metric="measurements.runtime",
             internal_metric="d:transactions/measurements.runtime@hour",
@@ -1205,7 +1205,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             tags={"transaction": "foo_transaction"},
             timestamp=self.min_ago,
         )
-        self.store_metric(
+        self.store_transaction_metric(
             180,
             metric="measurements.runtime",
             internal_metric="d:transactions/measurements.runtime@hour",
@@ -1237,7 +1237,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert meta["isMetricsData"]
 
     def test_custom_measurement_duration_filtering(self):
-        self.store_metric(
+        self.store_transaction_metric(
             1,
             metric="measurements.bytes_transfered",
             internal_metric="d:transactions/measurements.datacenter_memory@pebibyte",
@@ -1245,7 +1245,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             tags={"transaction": "foo_transaction"},
             timestamp=self.min_ago,
         )
-        self.store_metric(
+        self.store_transaction_metric(
             100,
             metric="measurements.bytes_transfered",
             internal_metric="d:transactions/measurements.datacenter_memory@pebibyte",
