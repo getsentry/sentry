@@ -23,11 +23,12 @@ def get_project_issues_with_correlated_commits_and_error_rate(
         and is_issue_error_rate_correlated(resolved_issue, issue)
     }
 
-    analytics.record(
-        "suspect_resolution.evaluation",
-        resolved_group_id=resolved_issue.id,
-        candidate_group_ids=[issue.id for issue in all_project_issues],
-        suspect_resolution_ids=list(correlated_issues),
-    )
+    if len(correlated_issues) != 0:
+        analytics.record(
+            "suspect_resolution.evaluation",
+            resolved_group_id=resolved_issue.id,
+            candidate_group_ids=[issue.id for issue in all_project_issues],
+            suspect_resolution_ids=list(correlated_issues),
+        )
 
     return correlated_issues
