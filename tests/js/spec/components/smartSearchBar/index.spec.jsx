@@ -855,6 +855,102 @@ describe('SmartSearchBar', function () {
         'nested.child2'
       );
     });
+
+    it('selects the correct free text word', async function () {
+      jest.useRealTimers();
+
+      const props = {
+        query: '',
+        organization,
+        location,
+        supportedTags,
+      };
+      const smartSearchBar = mountWithTheme(<SmartSearchBar {...props} />, options);
+      const searchBar = smartSearchBar.instance();
+      const textarea = smartSearchBar.find('textarea');
+
+      textarea.simulate('focus');
+      mockCursorPosition(searchBar, 6);
+      textarea.simulate('change', {target: {value: 'typ testest    err'}});
+      await tick();
+
+      // Expect the correct search term to be selected
+      expect(searchBar.state.searchTerm).toEqual('testest');
+      expect(searchBar.state.searchTermLocation.start).toBe(4);
+      expect(searchBar.state.searchTermLocation.end).toBe(11);
+    });
+
+    it('selects the correct free text word (last word)', async function () {
+      jest.useRealTimers();
+
+      const props = {
+        query: '',
+        organization,
+        location,
+        supportedTags,
+      };
+      const smartSearchBar = mountWithTheme(<SmartSearchBar {...props} />, options);
+      const searchBar = smartSearchBar.instance();
+      const textarea = smartSearchBar.find('textarea');
+
+      textarea.simulate('focus');
+      mockCursorPosition(searchBar, 15);
+      textarea.simulate('change', {target: {value: 'typ testest    err'}});
+      await tick();
+
+      // Expect the correct search term to be selected
+      expect(searchBar.state.searchTerm).toEqual('err');
+      expect(searchBar.state.searchTermLocation.start).toBe(15);
+      expect(searchBar.state.searchTermLocation.end).toBe(18);
+    });
+
+    it('selects the correct free text word (first word)', async function () {
+      jest.useRealTimers();
+
+      const props = {
+        query: '',
+        organization,
+        location,
+        supportedTags,
+      };
+      const smartSearchBar = mountWithTheme(<SmartSearchBar {...props} />, options);
+      const searchBar = smartSearchBar.instance();
+      const textarea = smartSearchBar.find('textarea');
+
+      textarea.simulate('focus');
+      mockCursorPosition(searchBar, 1);
+      textarea.simulate('change', {target: {value: 'typ testest    err'}});
+      await tick();
+
+      // Expect the correct search term to be selected
+      expect(searchBar.state.searchTerm).toEqual('typ');
+      expect(searchBar.state.searchTermLocation.start).toBe(0);
+      expect(searchBar.state.searchTermLocation.end).toBe(3);
+    });
+
+    it('search term location correctly selects key of filter tokens', async function () {
+      jest.useRealTimers();
+
+      const props = {
+        query: '',
+        organization,
+        location,
+        supportedTags,
+      };
+      const smartSearchBar = mountWithTheme(<SmartSearchBar {...props} />, options);
+      const searchBar = smartSearchBar.instance();
+      const textarea = smartSearchBar.find('textarea');
+
+      textarea.simulate('focus');
+      mockCursorPosition(searchBar, 6);
+      textarea.simulate('change', {target: {value: 'typ device:123'}});
+      await tick();
+
+      // Expect the correct search term to be selected
+      expect(searchBar.state.searchTerm).toEqual('device');
+      expect(searchBar.state.searchTermLocation.start).toBe(4);
+      expect(searchBar.state.searchTermLocation.end).toBe(10);
+    });
   });
 
   describe('onAutoComplete()', function () {
@@ -916,7 +1012,8 @@ describe('SmartSearchBar', function () {
       );
     });
 
-    it('keeps the negation operator is present', function () {
+    it('keeps the negation operator present', async function () {
+      jest.useRealTimers();
       const props = {
         query: '',
         organization,
@@ -927,8 +1024,14 @@ describe('SmartSearchBar', function () {
       const searchBar = smartSearchBar.instance();
       const textarea = smartSearchBar.find('textarea');
       // start typing part of the tag prefixed by the negation operator!
+      textarea.simulate('focus');
       textarea.simulate('change', {target: {value: 'event.type:error !ti'}});
       mockCursorPosition(searchBar, 20);
+      await tick();
+      // Expect the correct search term to be selected
+      expect(searchBar.state.searchTerm).toEqual('ti');
+      expect(searchBar.state.searchTermLocation.start).toBe(18);
+      expect(searchBar.state.searchTermLocation.end).toBe(20);
       // use autocompletion to do the rest
       searchBar.onAutoComplete('title:', {});
       expect(searchBar.state.query).toEqual('event.type:error !title:');
@@ -1137,6 +1240,32 @@ describe('SmartSearchBar', function () {
           'is:unresolved sdk.name:sentry-cocoa has:key '
         );
       }
+    });
+
+    it('replaces the correct word', async function () {
+      const props = {
+        query: '',
+        organization,
+        location,
+        supportedTags,
+      };
+      const smartSearchBar = mountWithTheme(<SmartSearchBar {...props} />, options);
+      const searchBar = smartSearchBar.instance();
+      const textarea = smartSearchBar.find('textarea');
+
+      textarea.simulate('focus');
+      mockCursorPosition(searchBar, 4);
+      textarea.simulate('change', {target: {value: 'typ ti err'}});
+
+      await tick();
+
+      // Expect the correct search term to be selected
+      expect(searchBar.state.searchTerm).toEqual('ti');
+      expect(searchBar.state.searchTermLocation.start).toBe(4);
+      expect(searchBar.state.searchTermLocation.end).toBe(6);
+      // use autocompletion to do the rest
+      searchBar.onAutoComplete('title:', {});
+      expect(searchBar.state.query).toEqual('typ title: err');
     });
   });
 

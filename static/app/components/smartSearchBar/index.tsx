@@ -1254,7 +1254,13 @@ class SmartSearchBar extends Component<Props, State> {
         }
 
         if (cursor === this.cursorPosition) {
-          this.setState({searchTerm: tagName, searchTermLocation: null});
+          this.setState({
+            searchTerm: tagName,
+            searchTermLocation: {
+              start: cursorToken.key.location.start.offset,
+              end: cursorToken.key.location.end.offset,
+            },
+          });
           this.updateAutoCompleteStateMultiHeader(autocompleteGroups);
         }
         return;
