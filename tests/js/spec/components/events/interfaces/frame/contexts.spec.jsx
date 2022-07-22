@@ -1,6 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import Device from 'sentry/components/events/contexts/device';
+import Device from 'sentry/components/events/contexts/device/device';
 import {commonDisplayResolutions} from 'sentry/components/events/contexts/device/utils';
 import User from 'sentry/components/events/contexts/user';
 import {FILTER_MASK} from 'sentry/constants';
