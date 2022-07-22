@@ -445,7 +445,7 @@ const EventEntries = memo(
             )}
           />
         )}
-        {!isShare && replayId && (
+        {!isShare && replayId && orgFeatures.includes('session-replay') && (
           <LazyLoad
             component={() => import('./eventReplay')}
             replayId={replayId}
