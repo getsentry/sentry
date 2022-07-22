@@ -113,7 +113,13 @@ export function VitalWidget(props: PerformanceWidgetProps) {
           }));
 
           _eventView.sorts = [{kind: 'desc', field: sortField}];
-          _eventView.additionalConditions.setFilterValues('!transaction', ['']);
+          if (
+            props.organization.features.includes(
+              'performance-transaction-name-only-search'
+            )
+          ) {
+            _eventView.additionalConditions.setFilterValues('!transaction', ['']);
+          }
 
           _eventView.fields = [
             {field: 'transaction'},
