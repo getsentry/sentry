@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from time import sleep, time
-from typing import Any, List, Mapping, MutableMapping, Optional, cast
+from typing import Any, List, Mapping, MutableMapping, Optional
 
 import sentry_sdk
 from django.conf import settings
@@ -50,17 +50,19 @@ def process_profile(
     organization = Organization.objects.get_from_cache(id=project.organization_id)
 
     _normalize(profile=profile, organization=organization)
+
+    if not _insert_vroom_profile(profile=profile):
+        return
+
     _initialize_publisher()
+    _insert_eventstream_call_tree(profile=profile)
     _insert_eventstream_profile(profile=profile)
-    if _should_extract_call_trees(profile):
-        _insert_eventstream_call_tree(profile)
 
     _track_outcome(profile=profile, project=project, key_id=key_id)
 
 
 SHOULD_SYMBOLICATE = frozenset(["cocoa", "rust"])
 SHOULD_DEOBFUSCATE = frozenset(["android"])
-SHOULD_EXTRACT_CALL_TREES = frozenset(["cocoa", "android"])
 
 
 def _should_symbolicate(profile: Profile) -> bool:
@@ -71,11 +73,6 @@ def _should_symbolicate(profile: Profile) -> bool:
 def _should_deobfuscate(profile: Profile) -> bool:
     platform: str = profile["platform"]
     return platform in SHOULD_DEOBFUSCATE
-
-
-def _should_extract_call_trees(profile: Profile) -> bool:
-    platform: str = profile["platform"]
-    return platform in SHOULD_EXTRACT_CALL_TREES
 
 
 @metrics.wraps("process_profile.normalize")
@@ -308,22 +305,27 @@ def _get_event_instance(profile: Profile) -> Any:
         "os_name": profile["device_os_name"],
         "os_version": profile["device_os_version"],
         "retention_days": profile["retention_days"],
-        "call_trees": _get_call_trees(profile),
+        "call_trees": profile["call_trees"],
     }
 
 
-def _get_call_trees(profile: Profile) -> CallTrees:
+def _insert_vroom_profile(profile: Profile) -> bool:
     profile = dict(profile)
+    original_timestamp = profile["received"]
 
-    profile["received"] = (
-        datetime.utcfromtimestamp(profile["received"]).replace(tzinfo=timezone.utc).isoformat()
-    )
+    try:
+        profile["received"] = (
+            datetime.utcfromtimestamp(profile["received"]).replace(tzinfo=timezone.utc).isoformat()
+        )
+        response = get_from_profiling_service(method="POST", path="/profile", json_data=profile)
 
-    response = get_from_profiling_service(method="POST", path="/call_tree", json_data=profile)
-
-    # something went wrong, return empty call trees
-    if response.status != 200:
-        metrics.incr("profiling.get_call_tree", tags={"platform": profile["platform"]})
-        return {}
-
-    return cast(CallTrees, json.loads(response.data)["call_trees"])
+        if response.status == 204:
+            profile["call_trees"] = {}
+        elif response.status == 200:
+            profile["call_trees"] = json.loads(response.data)["call_trees"]
+        else:
+            metrics.incr("profiling.insert_vroom_profile", tags={"platform": profile["platform"]})
+            return False
+        return True
+    finally:
+        profile["received"] = original_timestamp
