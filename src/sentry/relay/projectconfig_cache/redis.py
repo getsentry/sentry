@@ -11,7 +11,7 @@ from sentry.utils.redis import validate_dynamic_cluster
 REDIS_CACHE_TIMEOUT = 3600  # 1 hr
 COMPRESSION_OPTION_DSNS = "relay.project-config-cache-compress"
 COMPRESSION_OPTION_SAMPLE_RATE = "relay.project-config-cache-compress-sample-rate"
-COMPRESSION_LEVEL = 9  # TODO: is this too much for Relay decompression?
+COMPRESSION_LEVEL = 3  # 3 is the default level of compression
 
 logger = logging.getLogger(__name__)
 
