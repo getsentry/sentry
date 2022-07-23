@@ -17,7 +17,7 @@ module.exports = createTransformer({
     experimental: {
       plugins: [
         [
-          'emotion-swc-plugin',
+          '@swc/plugin-emotion',
           {
             // default is true. It will be disabled when build type is production.
             sourceMap: false,
