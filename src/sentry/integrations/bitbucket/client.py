@@ -26,6 +26,7 @@ class BitbucketAPIPath:
 
     repository = "/2.0/repositories/{repo}"
     repositories = "/2.0/repositories/{username}"
+    repository_commit = "/2.0/repositories/{repo}/commit/{sha}"
     repository_commits = "/2.0/repositories/{repo}/commits/{revision}"
     repository_diff = "/2.0/repositories/{repo}/diff/{spec}"
     repository_hook = "/2.0/repositories/{repo}/hooks/{uid}"
@@ -123,7 +124,7 @@ class BitbucketApiClient(ApiClient):
     def get_commit(self, repo, sha):
         # return api request that fetches the commit details
         # see https://developer.atlassian.com/cloud/bitbucket/rest/api-group-commits/#api-repositories-workspace-repo-slug-commit-commit-get
-        return self.get(f"/2.0/repositories/{repo}/commits/{sha}")
+        return self.get_cached(BitbucketAPIPath.repository_commit.format(repo=repo, sha=sha))
 
     def compare_commits(self, repo, start_sha, end_sha):
         # where start_sha is oldest and end_sha is most recent
