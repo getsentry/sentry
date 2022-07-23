@@ -873,7 +873,7 @@ def span_count_histogram_query(
     if not normalize_results:
         return results
 
-    return normalize_span_histogram_results(span_op, histogram_params, results)
+    return normalize_span_op_histogram_results(span_op, histogram_params, results)
 
 
 def histogram_query(
@@ -1003,7 +1003,7 @@ def get_span_count_histogram_column(span_op, histogram_params):
     :param [str] spanOp: The span op for which count you want to generate the histograms for.
     :param HistogramParams histogram_params: The histogram parameters used.
     """
-    return f'spans_histogram("{span_op}", {histogram_params.bucket_size:d}, {histogram_params.start_offset:d}, {histogram_params.multiplier:d})'
+    return f'spans_count_histogram("{span_op}", {histogram_params.bucket_size:d}, {histogram_params.start_offset:d}, {histogram_params.multiplier:d})'
 
 
 def get_histogram_column(fields, key_column, histogram_params, array_column):
@@ -1380,6 +1380,40 @@ def normalize_span_histogram_results(span, histogram_params, results):
     """
 
     histogram_column = get_span_histogram_column(span, histogram_params)
+    bin_name = get_function_alias(histogram_column)
+
+    # zerofill and rename the columns while making sure to adjust for precision
+    bucket_map = {}
+    for row in results["data"]:
+        # we expect the bin the be an integer, this is because all floating
+        # point values are rounded during the calculation
+        bucket = int(row[bin_name])
+        bucket_map[bucket] = row["count"]
+
+    new_data = []
+    for i in range(histogram_params.num_buckets):
+        bucket = histogram_params.start_offset + histogram_params.bucket_size * i
+        row = {"bin": bucket, "count": bucket_map.get(bucket, 0)}
+        if histogram_params.multiplier > 1:
+            row["bin"] /= float(histogram_params.multiplier)
+        new_data.append(row)
+
+    return new_data
+
+
+def normalize_span_op_histogram_results(span_op, histogram_params, results):
+    """
+    Normalizes the span histogram results by renaming the columns to key and bin
+    and make sure to zerofill any missing values.
+
+    :param str span_op: The span op for which you want to generate the
+        histograms for.
+    :param HistogramParams histogram_params: The histogram parameters used.
+    :param any results: The results from the histogram query that may be missing
+        bins and needs to be normalized.
+    """
+
+    histogram_column = get_span_count_histogram_column(span_op, histogram_params)
     bin_name = get_function_alias(histogram_column)
 
     # zerofill and rename the columns while making sure to adjust for precision
