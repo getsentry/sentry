@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import concurrent.futures
 import logging
-import time
 from collections import deque
 from concurrent.futures import ALL_COMPLETED, Future, wait
 from io import BytesIO
@@ -17,14 +16,23 @@ from arroyo.types import Message, Position
 from django.conf import settings
 
 from sentry.attachments import MissingAttachmentChunks, attachment_cache
+from sentry.attachments.base import CachedAttachment
 from sentry.models import File
-from sentry.replays.consumers.recording.types import RecordingChunkMessage, RecordingMessage
+from sentry.replays.consumers.recording.types import (
+    RecordingChunkMessage,
+    RecordingMessage,
+    RecordingSegmentHeaders,
+)
 from sentry.replays.models import ReplayRecordingSegment
 from sentry.utils import json
 
 logger = logging.getLogger("sentry.replays")
 
 CACHE_TIMEOUT = 3600
+
+
+class MissingRecordingSegmentHeaders(TypeError):
+    pass
 
 
 class ReplayRecordingMessageFuture(NamedTuple):
@@ -35,10 +43,10 @@ class ReplayRecordingMessageFuture(NamedTuple):
     """
 
     message: Message[KafkaPayload]
-    future: Future[bool | None]
+    future: Future[None]
 
 
-class ProcessRecordingStrategy(ProcessingStrategy[KafkaPayload]):
+class ProcessRecordingStrategy(ProcessingStrategy[KafkaPayload]):  # type: ignore
     def __init__(
         self,
         commit: Callable[[Mapping[Partition, Position]], None],
@@ -54,8 +62,7 @@ class ProcessRecordingStrategy(ProcessingStrategy[KafkaPayload]):
     def _process_chunk(
         self, message_dict: RecordingChunkMessage, message: Message[KafkaPayload]
     ) -> None:
-
-        # can't make this a future as we need to guarentee this happens before
+        # can't make this a future as we need to guarantee this happens before
         # the final kafka message
         # TODO: determine if this is acceptable at scale
         id = message_dict["id"]
@@ -71,60 +78,76 @@ class ProcessRecordingStrategy(ProcessingStrategy[KafkaPayload]):
             timeout=CACHE_TIMEOUT,
         )
 
-    def _store(self, message_dict: RecordingMessage, recording: bytes) -> None:
-        # create a File for our recording segment.
-        recording_file_name = (
-            f"rr:{message_dict['replay_id']}:{message_dict['recording_headers']['sequence_id']}"
-        )
+    def _process_headers(
+        self, recording_segment_with_headers: bytes
+    ) -> tuple[RecordingSegmentHeaders, bytes]:
+        # split the recording payload by a newline into the headers and the recording
+        try:
+            recording_headers, recording_segment = recording_segment_with_headers.split(b"\n", 1)
+        except ValueError:
+            raise MissingRecordingSegmentHeaders
+        return json.loads(recording_headers), recording_segment
 
+    def _store(
+        self,
+        message_dict: RecordingMessage,
+        cached_replay_recording_segment: CachedAttachment,
+    ) -> None:
+        try:
+            headers, recording_segment = self._process_headers(cached_replay_recording_segment.data)
+        except MissingRecordingSegmentHeaders:
+            logger.warning(f"missing header on {message_dict['replay_id']}")
+            return
+
+        # create a File for our recording segment.
+        recording_file_name = f"rr:{message_dict['replay_id']}:{headers['sequence_id']}"
         file = File.objects.create(
             name=recording_file_name,
             type="replay.recording",
         )
         file.putfile(
-            BytesIO(recording),
+            BytesIO(recording_segment),
             blob_size=settings.SENTRY_ATTACHMENT_BLOB_SIZE,
         )
         # associate this file with an indexable replay_id via ReplayRecordingSegment
         ReplayRecordingSegment.objects.create(
             replay_id=message_dict["replay_id"],
             project_id=message_dict["project_id"],
-            sequence_id=message_dict["recording_headers"]["sequence_id"],
+            sequence_id=headers["sequence_id"],
             file_id=file.id,
         )
+        # delete the recording segment from cache after we've stored it
+        cached_replay_recording_segment.delete()
 
-    def _get_from_cache(self, message_dict):
+    def _get_from_cache(self, message_dict: RecordingMessage) -> CachedAttachment | None:
         replay_recording = message_dict["replay_recording"]
         id = message_dict["replay_recording"]["id"]
         project_id = message_dict["project_id"]
         cache_id = replay_cache_id(id, project_id)
-        replay_payload = attachment_cache.get_from_chunks(key=cache_id, **replay_recording)
+        cached_replay_recording = attachment_cache.get_from_chunks(key=cache_id, **replay_recording)
         try:
-            replay_data = replay_payload.data
+            # try accessing data to ensure that is exists, and load it
+            cached_replay_recording.data
         except MissingAttachmentChunks:
             logger.warning("missing replay recording chunks!")
             return None
-        replay_payload.delete()
-        return replay_data
+        return cached_replay_recording
 
     def _process_recording(
         self, message_dict: RecordingMessage, message: Message[KafkaPayload]
     ) -> None:
-        recording = self._get_from_cache(message_dict)
-        # split the recording payload by a newline into the headers and the recording
-        try:
-            recording_headers, recording = recording.split(b"\n", 1)
-        except ValueError:
-            logger.warning(f"no headers on recording {message_dict['replay_id']}, dropping")
+        cached_replay_recording = self._get_from_cache(message_dict)
+        if cached_replay_recording is None:
             return
-        message_dict["recording_headers"] = json.loads(recording_headers)
 
-        # Upload the combined to the datastore.
+        # in a thread, upload the recording segment and delete the cached version
         self.__futures.append(
             ReplayRecordingMessageFuture(
                 message,
                 self.__threadpool.submit(
-                    self._store, message_dict=message_dict, recording=recording
+                    self._store,
+                    message_dict=message_dict,
+                    cached_replay_recording_segment=cached_replay_recording,
                 ),
             )
         )
@@ -142,22 +165,21 @@ class ProcessRecordingStrategy(ProcessingStrategy[KafkaPayload]):
                 self._process_recording(cast(RecordingMessage, message_dict), message)
         except Exception as e:
             # avoid crash looping on bad messsages for now
+            logger.exception("Failed to process message")
             sentry_sdk.capture_exception(e)
-            logger.error(e)
 
     def join(self, timeout: Optional[float] = None) -> None:
-        wait([f for m, f in self.__futures], timeout=timeout, return_when=ALL_COMPLETED)
+        wait([f for _, f in self.__futures], timeout=timeout, return_when=ALL_COMPLETED)
         self._commit_and_prune_futures()
 
     def close(self) -> None:
         self.__closed = True
 
-    def _commit_and_prune_futures(self, timeout: float | None = None) -> None:
+    def _commit_and_prune_futures(self) -> None:
         """
         Commit the latest offset of any completed message from the original
         consumer.
         """
-        start = time.perf_counter()
 
         committable: MutableMapping[Partition, Message[KafkaPayload]] = {}
 
@@ -166,9 +188,6 @@ class ProcessRecordingStrategy(ProcessingStrategy[KafkaPayload]):
             # overwrite any existing message as we assume the deque is in order
             # committing offset x means all offsets up to and including x are processed
             committable[message.partition] = message
-
-            if timeout is not None and time.perf_counter() - start > timeout:
-                break
 
         # Commit the latest offset that has its corresponding produce finished, per partition
 
@@ -184,8 +203,8 @@ class ProcessRecordingStrategy(ProcessingStrategy[KafkaPayload]):
 
     def terminate(self) -> None:
         self.close()
-        self.__threadpool.shutdown(wait=False, cancel_futures=True)
+        self.__threadpool.shutdown(wait=False)
 
 
-def replay_cache_id(id: int, project_id: int) -> str:
+def replay_cache_id(id: str, project_id: int) -> str:
     return f"{project_id}:{id}"

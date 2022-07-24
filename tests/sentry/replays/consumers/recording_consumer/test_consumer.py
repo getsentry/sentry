@@ -65,6 +65,7 @@ class TestRecordingsConsumerEndToEnd(TestCase):
         processing_strategy.join(1)
 
         recording_file_name = f"rr:{self.replay_id}:{sequence_id}"
+        # breakpoint()
         recording = File.objects.get(name=recording_file_name)
 
         assert recording

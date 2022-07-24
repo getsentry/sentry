@@ -17,8 +17,7 @@ def get_replays_recordings_consumer(
     group_id: str,
     max_batch_size: int,
     auto_offset_reset: str,
-    **options: dict[str, str],
-) -> None:
+) -> StreamProcessor:
 
     consumer_config = get_config(topic, group_id, auto_offset_reset)
     consumer = KafkaConsumer(consumer_config)
