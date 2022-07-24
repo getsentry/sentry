@@ -94,7 +94,9 @@ def validate_channel_id(name: str, integration_id: Optional[int], input_channel_
 
     stripped_channel_name = strip_channel_name(name)
     results_channel_name = results.get("channel", {}).get("name")
-    if not stripped_channel_name == results_channel_name:
+    if not results_channel_name:
+        raise ValidationError("Did not receive channel name from API results")
+    if stripped_channel_name != results_channel_name:
         channel_name = results_channel_name
         raise ValidationError(
             f"Received channel name {channel_name} does not match inputted channel name {stripped_channel_name}."
