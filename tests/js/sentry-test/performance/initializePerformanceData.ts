@@ -38,7 +38,7 @@ export function initializeData(settings?: initializeDataSettings) {
     },
   };
   if (settings?.selectedProject || settings?.project) {
-    routerLocation.query.project = project || settings?.project;
+    routerLocation.query.project = (project || settings?.project) as any;
   }
   const router = {
     location: routerLocation,
