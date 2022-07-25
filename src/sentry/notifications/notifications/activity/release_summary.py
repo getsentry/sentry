@@ -162,7 +162,7 @@ class ReleaseSummaryActivityNotification(ActivityNotification):
         )
         new_issue_counts = sum(self.group_counts_by_project.get(p.id, 0) for p in self.projects)
         release_url_text = self.url_format.format(
-            text=escape_slack_text(self.version_parsed, url=release_link)
+            text=escape_slack_text(self.version_parsed), url=release_link
         )
         issue_url_text = self.url_format.format(
             text=issues_link,
