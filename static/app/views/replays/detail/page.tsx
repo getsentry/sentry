@@ -9,6 +9,7 @@ import space from 'sentry/styles/space';
 import type {Crumb} from 'sentry/types/breadcrumbs';
 import type {EventTransaction} from 'sentry/types/event';
 import getUrlPathname from 'sentry/utils/getUrlPathname';
+import ChooseLayout from 'sentry/views/replays/detail/layout/chooseLayout';
 
 import EventMetaData from './eventMetaData';
 
@@ -33,6 +34,7 @@ function Page({children, crumbs, duration, event, orgId}: Props) {
       </HeaderContent>
       <ButtonActionsWrapper>
         <FeatureFeedback featureName="replay" buttonProps={{size: 'sm'}} />
+        <ChooseLayout />
       </ButtonActionsWrapper>
       <SubHeading>{pathname}</SubHeading>
       <MetaDataColumn>
@@ -66,6 +68,7 @@ const ButtonActionsWrapper = styled(Layout.HeaderActions)`
   display: grid;
   grid-template-columns: repeat(2, max-content);
   justify-content: flex-end;
+  gap: ${space(2)};
 `;
 
 const SubHeading = styled('div')`
