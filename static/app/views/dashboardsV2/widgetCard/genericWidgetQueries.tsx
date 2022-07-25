@@ -312,9 +312,11 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
         );
       })
     );
+    const rawResultsClone = cloneDeep(this.state.rawResults) ?? [];
     const transformedTimeseriesResults: Series[] = [];
     responses.forEach(([data], requestIndex) => {
       afterFetchSeriesData?.(data);
+      rawResultsClone[requestIndex] = data;
       const transformedResult = config.transformSeries!(
         data,
         widget.queries[requestIndex],
@@ -334,7 +336,10 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
 
     if (this._isMounted && this.state.queryFetchID === queryFetchID) {
       onDataFetched?.({timeseriesResults: transformedTimeseriesResults});
-      this.setState({timeseriesResults: transformedTimeseriesResults});
+      this.setState({
+        timeseriesResults: transformedTimeseriesResults,
+        rawResults: rawResultsClone,
+      });
     }
   }
 
