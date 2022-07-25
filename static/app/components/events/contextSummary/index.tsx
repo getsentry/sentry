@@ -9,7 +9,7 @@ import ContextSummaryDevice from './contextSummaryDevice';
 import ContextSummaryGeneric from './contextSummaryGeneric';
 import ContextSummaryGPU from './contextSummaryGPU';
 import ContextSummaryOS from './contextSummaryOS';
-import {ContextSummaryUser} from './contextSummaryUser';
+import ContextSummaryUser from './contextSummaryUser';
 import filterContexts from './filterContexts';
 
 export type Context = {

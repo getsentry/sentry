@@ -12,7 +12,7 @@ describe('User', function () {
       name: FILTER_MASK,
     };
 
-    const wrapper1 = mountWithTheme(<User data={user1} />);
+    const wrapper1 = mountWithTheme(<User data={user1} event={TestStubs.Event()} />);
     expect(wrapper1.find('[data-test-id="user-context-name-value"]').text()).toEqual(
       FILTER_MASK
     );
@@ -23,7 +23,7 @@ describe('User', function () {
       email: FILTER_MASK,
     };
 
-    const wrapper2 = mountWithTheme(<User data={user2} />);
+    const wrapper2 = mountWithTheme(<User data={user2} event={TestStubs.Event()} />);
     expect(wrapper2.find('[data-test-id="user-context-email-value"]').text()).toEqual(
       FILTER_MASK
     );
@@ -34,7 +34,7 @@ describe('User', function () {
       username: FILTER_MASK,
     };
 
-    const wrapper3 = mountWithTheme(<User data={user3} />);
+    const wrapper3 = mountWithTheme(<User data={user3} event={TestStubs.Event()} />);
     expect(wrapper3.find('[data-test-id="user-context-username-value"]').text()).toEqual(
       FILTER_MASK
     );
