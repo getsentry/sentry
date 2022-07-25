@@ -11,7 +11,6 @@ import type {Crumb} from 'sentry/types/breadcrumbs';
 import type {EventTransaction} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import useProjects from 'sentry/utils/useProjects';
-import {useRouteContext} from 'sentry/utils/useRouteContext';
 
 type Props = {
   crumbs: Crumb[] | undefined;
@@ -20,24 +19,24 @@ type Props = {
 };
 
 function EventMetaData({crumbs, duration, event}: Props) {
-  const {
-    params: {eventSlug},
-  } = useRouteContext();
   const {projects} = useProjects();
   const errors = crumbs?.filter(crumb => crumb.type === 'error').length;
 
-  const project = eventSlug.split(':')[0] || '';
-
   return (
     <KeyMetrics>
-      <ProjectBadge
-        project={
-          projects.find(p => p.slug === project) || {
-            slug: event?.projectSlug || '',
+      {event ? (
+        <ProjectBadge
+          project={
+            projects.find(p => p.id === event.projectID) || {
+              slug: event.projectSlug || '',
+            }
           }
-        }
-        avatarSize={16}
-      />
+          avatarSize={16}
+        />
+      ) : (
+        <HeaderPlaceholder />
+      )}
+
       <KeyMetricData>
         {event ? (
           <React.Fragment>
