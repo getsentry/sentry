@@ -24,7 +24,7 @@ class CommitFileChange(Model):
 
     organization_id = BoundedPositiveIntegerField(db_index=True)
     commit = FlexibleForeignKey("sentry.Commit")
-    filename = models.CharField(max_length=255)
+    filename = models.TextField()
     type = models.CharField(
         max_length=1, choices=(("A", "Added"), ("D", "Deleted"), ("M", "Modified"))
     )

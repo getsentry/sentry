@@ -2,14 +2,19 @@
 name: meta(labels)
 
 on:
-  pull_request:
+  pull_request_target:
 
 jobs:
   label-pullrequest:
+    permissions:
+      contents: read
+      pull-requests: write
     name: labels pull requests (frontend / backend)
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
+        with:
+          persist-credentials: false
 
       - name: Check for file changes
         uses: getsentry/paths-filter@master
@@ -22,13 +27,13 @@ jobs:
         uses: actions-ecosystem/action-add-labels@18f1af5e3544586314bbe15c0273249c770b2daf
         if: steps.changes.outputs.frontend == 'true'
         with:
-          labels: frontend
+          labels: 'Scope: Frontend'
 
       - name: Add backend label
         uses: actions-ecosystem/action-add-labels@18f1af5e3544586314bbe15c0273249c770b2daf
         if: steps.changes.outputs.backend == 'true'
         with:
-          labels: backend
+          labels: 'Scope: Backend'
 
       - name: Find previous frontend/backend warning comment
         uses: peter-evans/find-comment@1769778a0c5bd330272d749d12c036d65e70d39d

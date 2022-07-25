@@ -1,5 +1,6 @@
 import {Component, createRef} from 'react';
 import TextareaAutosize from 'react-autosize-textarea';
+// eslint-disable-next-line no-restricted-imports
 import {withRouter, WithRouterProps} from 'react-router';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
@@ -50,8 +51,9 @@ import {ItemType, SearchGroup, SearchItem, Shortcut, ShortcutType} from './types
 import {
   addSpace,
   createSearchGroups,
-  filterSearchGroupsByIndex,
   generateOperatorEntryMap,
+  getSearchGroupWithItemMarkedActive,
+  getTagItemsFromKeys,
   getValidOps,
   removeSpace,
   shortcuts,
@@ -677,21 +679,7 @@ class SmartSearchBar extends Component<Props, State> {
       evt.preventDefault();
 
       const {flatSearchItems, activeSearchItem} = this.state;
-      const searchGroups = [...this.state.searchGroups];
-
-      const [groupIndex, childrenIndex] = isSelectingDropdownItems
-        ? filterSearchGroupsByIndex(searchGroups, activeSearchItem)
-        : [];
-
-      // Remove the previous 'active' property
-      if (typeof groupIndex !== 'undefined') {
-        if (
-          childrenIndex !== undefined &&
-          searchGroups[groupIndex]?.children?.[childrenIndex]
-        ) {
-          delete searchGroups[groupIndex].children[childrenIndex].active;
-        }
-      }
+      let searchGroups = [...this.state.searchGroups];
 
       const currIndex = isSelectingDropdownItems ? activeSearchItem : 0;
       const totalItems = flatSearchItems.length;
@@ -704,23 +692,13 @@ class SmartSearchBar extends Component<Props, State> {
           ? (currIndex + 1) % totalItems
           : 0;
 
-      const [nextGroupIndex, nextChildrenIndex] = filterSearchGroupsByIndex(
-        searchGroups,
-        nextActiveSearchItem
-      );
+      // Clear previous selection
+      const prevItem = flatSearchItems[currIndex];
+      searchGroups = getSearchGroupWithItemMarkedActive(searchGroups, prevItem, false);
 
-      // Make sure search items exist (e.g. both groups could be empty) and
-      // attach the 'active' property to the item
-      if (
-        nextGroupIndex !== undefined &&
-        nextChildrenIndex !== undefined &&
-        searchGroups[nextGroupIndex]?.children
-      ) {
-        searchGroups[nextGroupIndex].children[nextChildrenIndex] = {
-          ...searchGroups[nextGroupIndex].children[nextChildrenIndex],
-          active: true,
-        };
-      }
+      // Set new selection
+      const activeItem = flatSearchItems[nextActiveSearchItem];
+      searchGroups = getSearchGroupWithItemMarkedActive(searchGroups, activeItem, true);
 
       this.setState({searchGroups, activeSearchItem: nextActiveSearchItem});
     }
@@ -732,15 +710,9 @@ class SmartSearchBar extends Component<Props, State> {
     ) {
       evt.preventDefault();
 
-      const {activeSearchItem, searchGroups} = this.state;
-      const [groupIndex, childrenIndex] = filterSearchGroupsByIndex(
-        searchGroups,
-        activeSearchItem
-      );
-      const item =
-        groupIndex !== undefined &&
-        childrenIndex !== undefined &&
-        searchGroups[groupIndex].children[childrenIndex];
+      const {activeSearchItem, flatSearchItems} = this.state;
+
+      const item = flatSearchItems[activeSearchItem];
 
       if (item) {
         if (item.callback) {
@@ -799,26 +771,28 @@ class SmartSearchBar extends Component<Props, State> {
     }
 
     evt.preventDefault();
-    const isSelectingDropdownItems = this.state.activeSearchItem > -1;
 
     if (!this.state.showDropdown) {
       this.blur();
       return;
     }
 
-    const {searchGroups, activeSearchItem} = this.state;
-    const [groupIndex, childrenIndex] = isSelectingDropdownItems
-      ? filterSearchGroupsByIndex(searchGroups, activeSearchItem)
-      : [];
+    const {flatSearchItems, activeSearchItem} = this.state;
+    const isSelectingDropdownItems = this.state.activeSearchItem > -1;
 
-    if (groupIndex !== undefined && childrenIndex !== undefined) {
-      delete searchGroups[groupIndex].children[childrenIndex].active;
+    let searchGroups = [...this.state.searchGroups];
+    if (isSelectingDropdownItems) {
+      searchGroups = getSearchGroupWithItemMarkedActive(
+        searchGroups,
+        flatSearchItems[activeSearchItem],
+        false
+      );
     }
 
     this.setState({
       activeSearchItem: -1,
       showDropdown: false,
-      searchGroups: [...this.state.searchGroups],
+      searchGroups,
     });
   };
 
@@ -916,8 +890,7 @@ class SmartSearchBar extends Component<Props, State> {
 
     const supportedTags = this.props.supportedTags ?? {};
 
-    // Return all if query is empty
-    let tagKeys = Object.keys(supportedTags).map(key => `${key}:`);
+    let tagKeys = Object.keys(supportedTags);
 
     if (query) {
       const preparedQuery =
@@ -928,19 +901,12 @@ class SmartSearchBar extends Component<Props, State> {
     // If the environment feature is active and excludeEnvironment = true
     // then remove the environment key
     if (this.props.excludeEnvironment) {
-      tagKeys = tagKeys.filter(key => key !== 'environment:');
+      tagKeys = tagKeys.filter(key => key !== 'environment');
     }
 
-    return [
-      tagKeys
-        .map(value => ({
-          value,
-          desc: value,
-          documentation: getFieldDoc?.(value.slice(0, -1)) ?? '',
-        }))
-        .sort((a, b) => a.value.localeCompare(b.value)),
-      supportedTagType ?? ItemType.TAG_KEY,
-    ];
+    const tagItems = getTagItemsFromKeys(tagKeys, supportedTags, getFieldDoc);
+
+    return [tagItems, supportedTagType ?? ItemType.TAG_KEY];
   }
 
   /**
@@ -1207,20 +1173,23 @@ class SmartSearchBar extends Component<Props, State> {
     const {query} = this.state;
     const [defaultSearchItems, defaultRecentItems] = this.props.defaultSearchItems!;
 
+    // Always clear searchTerm on showing default state.
+    this.setState({searchTerm: ''});
+
     if (!defaultSearchItems.length) {
       // Update searchTerm, otherwise <SearchDropdown> will have wrong state
       // (e.g. if you delete a query, the last letter will be highlighted if `searchTerm`
       // does not get updated)
-      this.setState({searchTerm: query});
 
       const [tagKeys, tagType] = this.getTagKeys('');
       const recentSearches = await this.getRecentSearches();
 
-      this.updateAutoCompleteState(tagKeys, recentSearches ?? [], '', tagType);
+      if (this.state.query === query) {
+        this.updateAutoCompleteState(tagKeys, recentSearches ?? [], '', tagType);
+      }
+
       return;
     }
-    // cursor on whitespace show default "help" search terms
-    this.setState({searchTerm: ''});
 
     this.updateAutoCompleteState(
       defaultSearchItems,
@@ -1260,7 +1229,11 @@ class SmartSearchBar extends Component<Props, State> {
             autocompleteGroups.unshift(opGroup);
           }
         }
-        this.updateAutoCompleteStateMultiHeader(autocompleteGroups);
+
+        if (cursor === this.cursorPosition) {
+          this.updateAutoCompleteStateMultiHeader(autocompleteGroups);
+        }
+
         return;
       }
 
@@ -1272,8 +1245,11 @@ class SmartSearchBar extends Component<Props, State> {
           const opGroup = generateOpAutocompleteGroup(getValidOps(cursorToken), tagName);
           autocompleteGroups.unshift(opGroup);
         }
-        this.setState({searchTerm: tagName});
-        this.updateAutoCompleteStateMultiHeader(autocompleteGroups);
+
+        if (cursor === this.cursorPosition) {
+          this.setState({searchTerm: tagName});
+          this.updateAutoCompleteStateMultiHeader(autocompleteGroups);
+        }
         return;
       }
 
@@ -1287,8 +1263,11 @@ class SmartSearchBar extends Component<Props, State> {
       const lastToken = cursorToken.text.trim().split(' ').pop() ?? '';
       const keyText = lastToken.replace(new RegExp(`^${NEGATION_OPERATOR}`), '');
       const autocompleteGroups = [await this.generateTagAutocompleteGroup(keyText)];
-      this.setState({searchTerm: keyText});
-      this.updateAutoCompleteStateMultiHeader(autocompleteGroups);
+
+      if (cursor === this.cursorPosition) {
+        this.setState({searchTerm: keyText});
+        this.updateAutoCompleteStateMultiHeader(autocompleteGroups);
+      }
       return;
     }
   };
@@ -1326,7 +1305,8 @@ class SmartSearchBar extends Component<Props, State> {
       tagName,
       type,
       maxSearchItems,
-      queryCharsLeft
+      queryCharsLeft,
+      true
     );
 
     this.setState(searchGroups);
@@ -1351,7 +1331,8 @@ class SmartSearchBar extends Component<Props, State> {
           tagName,
           type,
           maxSearchItems,
-          queryCharsLeft
+          queryCharsLeft,
+          false
         )
       )
       .reduce(

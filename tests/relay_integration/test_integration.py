@@ -1,13 +1,16 @@
 from io import BytesIO
+from unittest import mock
 from uuid import uuid4
 
 import pytest
 
 from sentry.models.eventattachment import EventAttachment
 from sentry.spans.grouping.utils import hash_values
+from sentry.tasks.relay import invalidate_project_config
 from sentry.testutils import RelayStoreHelper, TransactionTestCase
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.datetime import before_now, iso_format, timestamp_format
+from sentry.testutils.helpers.options import override_options
 
 
 class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
@@ -193,11 +196,11 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
             raw_event = event.get_raw_data()
 
             exclusive_times = [
-                pytest.approx(50, rel=1e3),
-                pytest.approx(0, rel=1e3),
-                pytest.approx(200, rel=1e3),
-                pytest.approx(0, rel=1e3),
-                pytest.approx(200, rel=1e3),
+                pytest.approx(50, abs=2),
+                pytest.approx(0, abs=2),
+                pytest.approx(200, abs=2),
+                pytest.approx(0, abs=2),
+                pytest.approx(200, abs=2),
             ]
             for actual, expected, exclusive_time in zip(
                 raw_event["spans"], event_data["spans"], exclusive_times
@@ -209,10 +212,24 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
                 )
             assert raw_event["breakdowns"] == {
                 "span_ops": {
-                    "ops.browser": {"unit": "millisecond", "value": pytest.approx(200, rel=1e3)},
-                    "ops.resource": {"unit": "millisecond", "value": pytest.approx(200, rel=1e3)},
-                    "ops.http": {"unit": "millisecond", "value": pytest.approx(200, rel=1e3)},
-                    "ops.db": {"unit": "millisecond", "value": pytest.approx(200, rel=1e3)},
-                    "total.time": {"unit": "millisecond", "value": pytest.approx(1050, rel=1e3)},
+                    "ops.browser": {"unit": "millisecond", "value": pytest.approx(200, abs=2)},
+                    "ops.resource": {"unit": "millisecond", "value": pytest.approx(200, abs=2)},
+                    "ops.http": {"unit": "millisecond", "value": pytest.approx(200, abs=2)},
+                    "ops.db": {"unit": "millisecond", "value": pytest.approx(200, abs=2)},
+                    "total.time": {"unit": "millisecond", "value": pytest.approx(1050, abs=2)},
                 }
             }
+
+    def test_project_config_compression(self):
+        # Populate redis cache with compressed config:
+        with override_options({"relay.project-config-cache-compress-sample-rate": 1.0}):
+            invalidate_project_config(public_key=self.projectkey, trigger="test")
+
+        # Disable project config endpoint, to make sure Relay gets its data
+        # from redis:
+        with mock.patch(
+            "sentry.api.endpoints.relay.project_configs.RelayProjectConfigsEndpoint.post"
+        ):
+            event_data = {"message": "hello", "timestamp": iso_format(before_now(seconds=1))}
+            event = self.post_and_retrieve_event(event_data)
+            assert event.message == "hello"

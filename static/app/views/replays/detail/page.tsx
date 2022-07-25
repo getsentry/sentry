@@ -6,50 +6,87 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import DetailsPageBreadcrumbs from 'sentry/components/replays/header/detailsPageBreadcrumbs';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import space from 'sentry/styles/space';
-import {Event} from 'sentry/types/event';
+import type {Crumb} from 'sentry/types/breadcrumbs';
+import type {EventTransaction} from 'sentry/types/event';
+import getUrlPathname from 'sentry/utils/getUrlPathname';
+
+import EventMetaData from './eventMetaData';
 
 type Props = {
   children: ReactNode;
-  eventSlug: string;
   orgId: string;
-  event?: Event;
+  crumbs?: Crumb[];
+  duration?: number;
+  event?: EventTransaction;
 };
 
-function Page({children, event, orgId, eventSlug}: Props) {
+function Page({children, crumbs, duration, event, orgId}: Props) {
   const title = event ? `${event.id} - Replays - ${orgId}` : `Replays - ${orgId}`;
+
+  const urlTag = event?.tags?.find(({key}) => key === 'url');
+  const pathname = getUrlPathname(urlTag?.value ?? '') ?? '';
+
+  const header = (
+    <Header>
+      <HeaderContent>
+        <DetailsPageBreadcrumbs orgId={orgId} event={event} />
+      </HeaderContent>
+      <ButtonActionsWrapper>
+        <FeatureFeedback featureName="replay" buttonProps={{size: 'sm'}} />
+      </ButtonActionsWrapper>
+      <SubHeading>{pathname}</SubHeading>
+      <MetaDataColumn>
+        <EventMetaData crumbs={crumbs} duration={duration} event={event} />
+      </MetaDataColumn>
+    </Header>
+  );
 
   return (
     <SentryDocumentTitle title={title}>
       <FullViewport>
-        <Layout.Header>
-          <Layout.HeaderContent>
-            <DetailsPageBreadcrumbs orgId={orgId} event={event} eventSlug={eventSlug} />
-          </Layout.HeaderContent>
-          <ButtonActionsWrapper>
-            <FeatureFeedback featureName="replay" buttonProps={{size: 'small'}} />
-          </ButtonActionsWrapper>
-        </Layout.Header>
-        <FullViewportContent>{children}</FullViewportContent>
+        {header}
+        {children}
       </FullViewport>
     </SentryDocumentTitle>
   );
 }
+
+const Header = styled(Layout.Header)`
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+    padding-bottom: ${space(1.5)};
+  }
+`;
+
+const HeaderContent = styled(Layout.HeaderContent)`
+  margin-bottom: 0;
+`;
 
 // TODO(replay); This could make a lot of sense to put inside HeaderActions by default
 const ButtonActionsWrapper = styled(Layout.HeaderActions)`
   display: grid;
   grid-template-columns: repeat(2, max-content);
   justify-content: flex-end;
-  gap: ${space(1)};
+`;
+
+const SubHeading = styled('div')`
+  font-size: ${p => p.theme.fontSizeMedium};
+  line-height: ${p => p.theme.text.lineHeightBody};
+  color: ${p => p.theme.subText};
+  align-self: end;
+  ${p => p.theme.overflowEllipsis};
+`;
+
+const MetaDataColumn = styled(Layout.HeaderActions)`
+  padding-left: ${space(3)};
+  align-self: end;
 `;
 
 const FullViewport = styled('div')`
   height: 100vh;
   width: 100%;
 
-  display: flex;
-  flex-flow: nowrap column;
-  flex-direction: column;
+  display: grid;
+  grid-template-rows: auto 1fr;
   overflow: hidden;
 
   /*
@@ -60,11 +97,11 @@ const FullViewport = styled('div')`
   ~ footer {
     display: none;
   }
-`;
 
-const FullViewportContent = styled('section')`
-  flex-grow: 1;
-  background: ${p => p.theme.background};
+  /*
+  TODO: Set \`body { overflow: hidden; }\` so that the body doesn't wiggle
+  when you try to scroll something that is non-scrollable.
+  */
 `;
 
 export default Page;

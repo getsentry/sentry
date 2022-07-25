@@ -1,5 +1,7 @@
 from typing import Mapping, Set, Tuple
 
+import pytest
+
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.indexer.base import KeyCollection, KeyResult, KeyResults
 from sentry.sentry_metrics.indexer.cache import indexer_cache
@@ -19,6 +21,9 @@ def assert_fetch_type_for_tag_string_set(
     meta: Mapping[str, Tuple[int, FetchType]], fetch_type: FetchType, str_set: Set[str]
 ):
     assert all([meta[string][1] == fetch_type for string in str_set])
+
+
+pytestmark = pytest.mark.sentry_metrics
 
 
 class PostgresIndexerTest(TestCase):
@@ -93,6 +98,7 @@ class PostgresIndexerV2Test(TestCase):
         self.indexer = PGStringIndexerV2()
         self.org2 = self.create_organization()
         self.use_case_id = UseCaseKey("release-health")
+        self.cache_namespace = self.use_case_id.value
 
     def tearDown(self) -> None:
         cache.clear()
@@ -106,7 +112,10 @@ class PostgresIndexerV2Test(TestCase):
         StringIndexer.objects.create(organization_id=999, string="hey")
 
         assert list(
-            indexer_cache.get_many([f"{org1_id}:{string}" for string in self.strings]).values()
+            indexer_cache.get_many(
+                [f"{org1_id}:{string}" for string in self.strings],
+                cache_namespace=self.cache_namespace,
+            ).values()
         ) == [None, None, None]
 
         results = self.indexer.bulk_record(
@@ -125,13 +134,16 @@ class PostgresIndexerV2Test(TestCase):
             assert value in org1_string_ids
 
         for cache_value in indexer_cache.get_many(
-            [f"{org1_id}:{string}" for string in self.strings]
+            [f"{org1_id}:{string}" for string in self.strings], cache_namespace=self.cache_namespace
         ).values():
             assert cache_value in org1_string_ids
 
         # verify org2 results and cache values
         assert results[org2_id]["sup"] == org2_string_id
-        assert indexer_cache.get(f"{org2_id}:sup") == org2_string_id
+        assert (
+            indexer_cache.get(f"{org2_id}:sup", cache_namespace=self.cache_namespace)
+            == org2_string_id
+        )
 
         # we should have no results for org_id 999
         assert not results.get(999)
@@ -212,7 +224,7 @@ class PostgresIndexerV2Test(TestCase):
         """
         org_id = 8
         cached = {f"{org_id}:beep": 10, f"{org_id}:boop": 11}
-        indexer_cache.set_many(cached)
+        indexer_cache.set_many(cached, self.cache_namespace)
 
         results = self.indexer.bulk_record(
             use_case_id=self.use_case_id, org_strings={org_id: {"beep", "boop"}}
@@ -245,13 +257,13 @@ class PostgresIndexerV2Test(TestCase):
         collection = KeyCollection({123: {"oop"}})
         key = "123:oop"
 
-        assert indexer_cache.get(key) is None
-        assert indexer_cache.get(string.id) is None
+        assert indexer_cache.get(key, self.cache_namespace) is None
+        assert indexer_cache.get(string.id, self.cache_namespace) is None
 
         self.indexer._get_db_records(self.use_case_id, collection)
 
-        assert indexer_cache.get(string.id) is None
-        assert indexer_cache.get(key) is None
+        assert indexer_cache.get(string.id, self.cache_namespace) is None
+        assert indexer_cache.get(key, self.cache_namespace) is None
 
 
 class KeyCollectionTest(TestCase):

@@ -25,10 +25,12 @@ import IndicatorStore from 'sentry/stores/indicatorStore';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import {metric} from 'sentry/utils/analytics';
+import {logExperiment, metric} from 'sentry/utils/analytics';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import type EventView from 'sentry/utils/discover/eventView';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import withProjects from 'sentry/utils/withProjects';
+import {IncompatibleAlertQuery} from 'sentry/views/alerts/rules/metric/incompatibleAlertQuery';
 import RuleNameOwnerForm from 'sentry/views/alerts/rules/metric/ruleNameOwnerForm';
 import ThresholdTypeForm from 'sentry/views/alerts/rules/metric/thresholdTypeForm';
 import Triggers from 'sentry/views/alerts/rules/metric/triggers';
@@ -36,7 +38,10 @@ import TriggersChart from 'sentry/views/alerts/rules/metric/triggers/chart';
 import {getEventTypeFilter} from 'sentry/views/alerts/rules/metric/utils/getEventTypeFilter';
 import hasThresholdValue from 'sentry/views/alerts/rules/metric/utils/hasThresholdValue';
 import {AlertRuleType} from 'sentry/views/alerts/types';
-import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
+import {
+  AlertWizardAlertNames,
+  DatasetMEPAlertQueryTypes,
+} from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
 
 import {isCrashFreeAlert} from './utils/isCrashFreeAlert';
@@ -78,6 +83,7 @@ type Props = {
   rule: MetricRule;
   userTeamIds: string[];
   disableProjectSelector?: boolean;
+  eventView?: EventView;
   isCustomMetric?: boolean;
   isDuplicateRule?: boolean;
   ruleId?: string;
@@ -540,6 +546,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     const {
       project,
       aggregate,
+      dataset,
       resolveThreshold,
       triggers,
       thresholdType,
@@ -588,6 +595,9 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
           comparisonDelta: comparisonDelta ?? null,
           timeWindow,
           aggregate,
+          ...(organization.features.includes('metrics-performance-alerts')
+            ? {queryType: DatasetMEPAlertQueryTypes[dataset]}
+            : {}),
         },
         {
           duplicateRule: this.isDuplicateRule ? 'true' : 'false',
@@ -718,13 +728,36 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     this.goBack();
   };
 
+  handleMEPAlertDataset = data => {
+    if (!data) {
+      return;
+    }
+
+    const {isMetricsData} = data;
+
+    if (isMetricsData === undefined) {
+      return;
+    }
+
+    if (isMetricsData && this.state.dataset === Dataset.TRANSACTIONS) {
+      this.setState({dataset: Dataset.GENERIC_METRICS});
+    }
+  };
+
   renderLoading() {
     return this.renderBody();
   }
 
   renderBody() {
-    const {organization, ruleId, rule, onSubmitSuccess, router, disableProjectSelector} =
-      this.props;
+    const {
+      organization,
+      ruleId,
+      rule,
+      onSubmitSuccess,
+      router,
+      disableProjectSelector,
+      eventView,
+    } = this.props;
     const {
       name,
       query,
@@ -753,6 +786,9 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       triggers,
       query: isCrashFreeAlert(dataset) ? query : queryWithTypeFilter,
       aggregate,
+      dataset,
+      newAlertOrQuery: !ruleId || query !== rule.query,
+      handleMEPAlertDataset: this.handleMEPAlertDataset,
       timeWindow,
       environment,
       resolveThreshold,
@@ -825,6 +861,20 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       />
     );
 
+    let showPresetSidebar: boolean =
+      dataset === Dataset.TRANSACTIONS &&
+      project.firstTransactionEvent &&
+      !this.props.ruleId;
+    if (showPresetSidebar) {
+      logExperiment({
+        key: 'MetricAlertPresetExperiment',
+        organization,
+      });
+    }
+
+    showPresetSidebar =
+      showPresetSidebar && !!organization.experiments.MetricAlertPresetExperiment;
+
     return (
       <Access access={['alerts:write']}>
         {({hasAccess}) => {
@@ -832,22 +882,25 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
 
           return (
             <Fragment>
-              {organization.experiments.MetricAlertPresetExperiment &&
-                dataset === Dataset.TRANSACTIONS &&
-                project.firstTransactionEvent &&
-                !this.props.ruleId && (
-                  <Side>
-                    <PresetSidebar
-                      organization={organization}
-                      project={project}
-                      onSelect={(preset, context) => {
-                        this.setPreset(preset, context);
-                      }}
-                      selectedPresetId={selectedPresetId}
-                    />
-                  </Side>
+              {showPresetSidebar && (
+                <Side>
+                  <PresetSidebar
+                    organization={organization}
+                    project={project}
+                    onSelect={(preset, context) => {
+                      this.setPreset(preset, context);
+                    }}
+                    selectedPresetId={selectedPresetId}
+                  />
+                </Side>
+              )}
+              <Main fullWidth={!showPresetSidebar}>
+                {eventView && (
+                  <IncompatibleAlertQuery
+                    orgSlug={organization.slug}
+                    eventView={eventView}
+                  />
                 )}
-              <Main>
                 <Form
                   model={this.form}
                   apiMethod={ruleId ? 'PUT' : 'POST'}

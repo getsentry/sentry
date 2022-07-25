@@ -115,12 +115,11 @@ type Props<T> = typeof defaultProps & {
   disabled: boolean;
   defaultHighlightedIndex?: number;
   defaultInputValue?: string;
-  /**
-   * Currently, this does not act as a "controlled" prop, only for initial state of dropdown
-   */
+  inputValue?: string;
   isOpen?: boolean;
   itemToString?: (item?: T) => string;
   onClose?: (...args: Array<any>) => void;
+  onInputValueChange?: (value: string) => void;
   onMenuOpen?: () => void;
   onOpen?: (...args: Array<any>) => void;
   onSelect?: (
@@ -140,11 +139,11 @@ class AutoComplete<T extends Item> extends Component<Props<T>, State<T>> {
   state: State<T> = this.getInitialState();
 
   getInitialState() {
-    const {defaultHighlightedIndex, isOpen, defaultInputValue} = this.props;
+    const {defaultHighlightedIndex, isOpen, inputValue, defaultInputValue} = this.props;
     return {
       isOpen: !!isOpen,
       highlightedIndex: defaultHighlightedIndex || 0,
-      inputValue: defaultInputValue || '',
+      inputValue: inputValue ?? defaultInputValue ?? '',
       selectedItem: undefined,
     };
   }
@@ -183,12 +182,20 @@ class AutoComplete<T extends Item> extends Component<Props<T>, State<T>> {
   blurTimeout: number | undefined = undefined;
   cancelCloseTimeout: number | undefined = undefined;
 
-  get isControlled() {
+  get inputValueIsControlled() {
+    return typeof this.props.inputValue !== 'undefined';
+  }
+
+  get isOpenIsControlled() {
     return typeof this.props.isOpen !== 'undefined';
   }
 
+  get inputValue() {
+    return this.props.inputValue ?? this.state.inputValue;
+  }
+
   get isOpen() {
-    return this.isControlled ? this.props.isOpen : this.state.isOpen;
+    return this.isOpenIsControlled ? this.props.isOpen : this.state.isOpen;
   }
 
   /**
@@ -221,10 +228,14 @@ class AutoComplete<T extends Item> extends Component<Props<T>, State<T>> {
       // 1) it's possible to have menu closed but input with focus (i.e. hitting "Esc")
       // 2) you select an item, input still has focus, and then change input
       this.openMenu();
-      this.setState({
-        inputValue: value,
-      });
 
+      if (!this.inputValueIsControlled) {
+        this.setState({
+          inputValue: value,
+        });
+      }
+
+      this.props.onInputValueChange?.(value);
       onChange?.(changeEvent);
     };
   }
@@ -380,7 +391,7 @@ class AutoComplete<T extends Item> extends Component<Props<T>, State<T>> {
 
     onOpen?.(...args);
 
-    if (disabled || this.isControlled) {
+    if (disabled || this.isOpenIsControlled) {
       return;
     }
 
@@ -400,12 +411,12 @@ class AutoComplete<T extends Item> extends Component<Props<T>, State<T>> {
 
     onClose?.(...args);
 
-    if (this.isControlled || !this._mounted) {
+    if (!this._mounted) {
       return;
     }
 
     this.setState(state => ({
-      isOpen: false,
+      isOpen: !this.isOpenIsControlled ? false : state.isOpen,
       inputValue: resetInputOnClose ? '' : state.inputValue,
     }));
   };
@@ -416,7 +427,7 @@ class AutoComplete<T extends Item> extends Component<Props<T>, State<T>> {
     const {onChange, onKeyDown, onFocus, onBlur, ...rest} = inputProps ?? {};
     return {
       ...rest,
-      value: this.state.inputValue,
+      value: this.inputValue,
       onChange: this.makeHandleInputChange<E>(onChange),
       onKeyDown: this.makeHandleInputKeydown<E>(onKeyDown),
       onFocus: this.makeHandleInputFocus<E>(onFocus),
@@ -429,6 +440,7 @@ class AutoComplete<T extends Item> extends Component<Props<T>, State<T>> {
 
     return {
       ...props,
+      role: 'option',
       'data-test-id': item['data-test-id'],
       onClick: this.makeHandleItemClick(itemProps),
       onMouseEnter: this.makeHandleMouseEnter(itemProps),
@@ -446,7 +458,7 @@ class AutoComplete<T extends Item> extends Component<Props<T>, State<T>> {
 
   render() {
     const {children, onMenuOpen, inputIsActor} = this.props;
-    const {selectedItem, inputValue, highlightedIndex} = this.state;
+    const {selectedItem, highlightedIndex} = this.state;
     const isOpen = this.isOpen;
 
     return (
@@ -476,7 +488,7 @@ class AutoComplete<T extends Item> extends Component<Props<T>, State<T>> {
             getItemProps: this.getItemProps,
             registerVisibleItem: this.registerVisibleItem,
             registerItemCount: this.registerItemCount,
-            inputValue,
+            inputValue: this.inputValue,
             selectedItem,
             highlightedIndex,
             actions: {

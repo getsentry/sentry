@@ -66,7 +66,10 @@ type Props = {
   /**
    * Function to filter the options that are used as parameters for function/aggregate.
    */
-  filterAggregateParameters?: (option: FieldValueOption) => boolean;
+  filterAggregateParameters?: (
+    option: FieldValueOption,
+    fieldValue?: QueryFieldValue
+  ) => boolean;
   /**
    * Filter the options in the primary selector. Useful if you only want to
    * show a subset of selectable items.
@@ -142,6 +145,7 @@ class QueryField extends Component<Props> {
     switch (value.kind) {
       case FieldValueKind.TAG:
       case FieldValueKind.MEASUREMENT:
+      case FieldValueKind.CUSTOM_MEASUREMENT:
       case FieldValueKind.BREAKDOWN:
       case FieldValueKind.FIELD:
         fieldValue = {kind: 'field', field: value.meta.name};
@@ -194,6 +198,7 @@ class QueryField extends Component<Props> {
             (field.kind === FieldValueKind.FIELD ||
               field.kind === FieldValueKind.TAG ||
               field.kind === FieldValueKind.MEASUREMENT ||
+              field.kind === FieldValueKind.CUSTOM_MEASUREMENT ||
               field.kind === FieldValueKind.METRICS ||
               field.kind === FieldValueKind.BREAKDOWN) &&
             validateColumnTypes(param.columnTypes as ValidateColumnTypes, field)
@@ -358,6 +363,7 @@ class QueryField extends Component<Props> {
                   (value.kind === FieldValueKind.FIELD ||
                     value.kind === FieldValueKind.TAG ||
                     value.kind === FieldValueKind.MEASUREMENT ||
+                    value.kind === FieldValueKind.CUSTOM_MEASUREMENT ||
                     value.kind === FieldValueKind.METRICS ||
                     value.kind === FieldValueKind.BREAKDOWN) &&
                   validateColumnTypes(param.columnTypes as ValidateColumnTypes, value)
@@ -417,6 +423,7 @@ class QueryField extends Component<Props> {
       filterAggregateParameters,
       hideParameterSelector,
       skipParameterPlaceholder,
+      fieldValue,
     } = this.props;
 
     const inputs = parameters.map((descriptor: ParameterDescription, index: number) => {
@@ -425,7 +432,9 @@ class QueryField extends Component<Props> {
           return null;
         }
         const aggregateParameters = filterAggregateParameters
-          ? descriptor.options.filter(filterAggregateParameters)
+          ? descriptor.options.filter(option =>
+              filterAggregateParameters(option, fieldValue)
+            )
           : descriptor.options;
 
         aggregateParameters.forEach(opt => {
@@ -538,6 +547,7 @@ class QueryField extends Component<Props> {
         text = 'f(x)';
         tagType = 'success';
         break;
+      case FieldValueKind.CUSTOM_MEASUREMENT:
       case FieldValueKind.MEASUREMENT:
         text = 'field';
         tagType = 'highlight';

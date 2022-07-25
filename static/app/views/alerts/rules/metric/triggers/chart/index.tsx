@@ -30,7 +30,10 @@ import withApi from 'sentry/utils/withApi';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';
 import {isSessionAggregate, SESSION_AGGREGATE_TO_FIELD} from 'sentry/views/alerts/utils';
 import {getComparisonMarkLines} from 'sentry/views/alerts/utils/getComparisonMarkLines';
-import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
+import {
+  AlertWizardAlertNames,
+  getMEPAlertsDataset,
+} from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
 
 import {
@@ -49,8 +52,10 @@ type Props = {
   aggregate: MetricRule['aggregate'];
   api: Client;
   comparisonType: AlertRuleComparisonType;
-
+  dataset: MetricRule['dataset'];
   environment: string | null;
+  handleMEPAlertDataset: (isMetricsData?: boolean) => void;
+  newAlertOrQuery: boolean;
   organization: Organization;
   projects: Project[];
   query: MetricRule['query'];
@@ -287,6 +292,9 @@ class TriggersChart extends PureComponent<Props, State> {
       timeWindow,
       query,
       aggregate,
+      dataset,
+      newAlertOrQuery,
+      handleMEPAlertDataset,
       environment,
       comparisonDelta,
       triggers,
@@ -297,6 +305,12 @@ class TriggersChart extends PureComponent<Props, State> {
     const renderComparisonStats = Boolean(
       organization.features.includes('change-alerts') && comparisonDelta
     );
+
+    const queryExtras = {
+      ...(organization.features.includes('metrics-performance-alerts')
+        ? {dataset: getMEPAlertsDataset(dataset, newAlertOrQuery)}
+        : {}),
+    };
 
     return isSessionAggregate(aggregate) ? (
       <SessionsRequest
@@ -350,6 +364,8 @@ class TriggersChart extends PureComponent<Props, State> {
         includePrevious={false}
         currentSeriesNames={[aggregate]}
         partial={false}
+        queryExtras={queryExtras}
+        processDataCallback={handleMEPAlertDataset}
       >
         {({loading, reloading, timeseriesData, comparisonTimeseriesData}) => {
           let comparisonMarkLines: LineChartSeries[] = [];
