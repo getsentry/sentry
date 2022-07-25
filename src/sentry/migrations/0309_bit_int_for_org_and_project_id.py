@@ -20,6 +20,9 @@ class Migration(CheckedMigration):
 
     # please don't preform database_operations as they already have been applied, they were added so the tests could run
     is_dangerous = True
+
+    # This is set to false only as database_operations are going to be ignored. Please do not set checked
+    # to false if you plan to alter the database
     checked = False
 
     # This flag is used to decide whether to run this migration in a transaction or not. Generally
