@@ -289,6 +289,7 @@ class ConfirmModal extends Component<ModalProps, ModalState> {
       renderConfirmButton,
       renderCancelButton,
     } = this.props;
+    console.log('blah');
     return (
       <Fragment>
         {header && <Header>{header}</Header>}

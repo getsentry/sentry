@@ -148,7 +148,7 @@ describe('Source', () => {
     expect(wrapper.state().fieldValues[2].value).toBe(valueSuggestions[1].value);
   });
 
-  it('suggestions keyDown and keyUp should work', () => {
+  it('suggestions keyDown and keyUp should work', async () => {
     const handleOnChange = jest.fn();
     Element.prototype.scrollIntoView = jest.fn();
     const wrapper = renderComponent({value: 'foo ', onChange: handleOnChange});
