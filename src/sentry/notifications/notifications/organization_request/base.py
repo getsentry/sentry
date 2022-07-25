@@ -46,10 +46,13 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
         if isinstance(recipient, Team):
             raise NotImplementedError
 
-        # notification footer only used for Slack for now
         settings_url = self.get_settings_url(recipient, ExternalProviders.SLACK)
-        return self.role_based_recipient_strategy.build_notification_footer_from_settings_url(
-            settings_url, recipient
+        recipient_role_string = self.role_based_recipient_strategy.get_recipient_role_string(
+            recipient
+        )
+        return (
+            "You are receiving this notification because you're listed as an organization "
+            f"{recipient_role_string} | {self.url_format.format(text='Notification Settings', url=settings_url)}"
         )
 
     def get_title_link(self, recipient: Team | User) -> str | None:
