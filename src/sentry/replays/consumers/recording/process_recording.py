@@ -31,7 +31,7 @@ logger = logging.getLogger("sentry.replays")
 CACHE_TIMEOUT = 3600
 
 
-class MissingRecordingSegmentHeaders(TypeError):
+class MissingRecordingSegmentHeaders(ValueError):
     pass
 
 
@@ -128,7 +128,7 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):  # type
         cache_id = replay_recording_segment_cache_id(project_id, recording_segment_uuid)
         cached_replay_recording = attachment_cache.get_from_chunks(key=cache_id, **replay_recording)
         try:
-            # try accessing data to ensure that is exists, and load it
+            # try accessing data to ensure that it exists, which loads it
             cached_replay_recording.data
         except MissingAttachmentChunks:
             logger.warning("missing replay recording chunks!")
