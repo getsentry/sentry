@@ -9,6 +9,7 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import useFullscreen from 'sentry/utils/replays/hooks/useFullscreen';
 import useReplayData from 'sentry/utils/replays/hooks/useReplayData';
+import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 
 type Props = {
   orgSlug: string;
@@ -43,15 +44,10 @@ export default function EventReplay({replayId, orgSlug, projectSlug}: Props) {
   );
 }
 
-const PlayerContainer = styled('div')`
+const PlayerContainer = styled(FluidHeight)`
   max-width: 420px;
   margin-top: ${space(2)};
 
   background: ${p => p.theme.background};
-  display: flex;
-  flex-direction: column;
-  flex-wrap: nowrap;
-  flex-grow: 1;
-  overflow: hidden;
   gap: ${space(1)};
 `;

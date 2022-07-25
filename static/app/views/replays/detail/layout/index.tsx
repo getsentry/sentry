@@ -10,6 +10,7 @@ import useUrlParams from 'sentry/utils/replays/hooks/useUrlParams';
 import Breadcrumbs from 'sentry/views/replays/detail/breadcrumbs';
 import FocusArea from 'sentry/views/replays/detail/focusArea';
 import FocusTabs from 'sentry/views/replays/detail/focusTabs';
+import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import FluidPanel from 'sentry/views/replays/detail/layout/fluidPanel';
 import SplitPanel from 'sentry/views/replays/detail/layout/splitPanel';
 import SideTabs from 'sentry/views/replays/detail/sideTabs';
@@ -219,15 +220,10 @@ const BodyContent = styled('main')`
   padding: ${space(2)};
 `;
 
-const VideoSection = styled('section')`
+const VideoSection = styled(FluidHeight)`
   height: 100%;
 
   background: ${p => p.theme.background};
-  display: flex;
-  flex-direction: column;
-  flex-wrap: nowrap;
-  flex-grow: 1;
-  overflow: hidden;
   gap: ${space(1)};
 `;
 
