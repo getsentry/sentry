@@ -26,12 +26,12 @@ const noopStorage: Storage = {
 // This asserts that storage is both available and that it can be used.
 // See https://developer.mozilla.org/en-US/docs/Web/API/Web_Storage_API/Using_the_Web_Storage_API
 const STORAGE_TEST_KEY = 'sentry';
-export default function createStorage(getStorage: () => globalThis.Storage): Storage {
+export default function createStorage(getStorage: () => Storage): Storage {
   try {
     const storage = getStorage();
 
     // Test if a value can be set into the storage.
-    // This can fail in cases where
+    // This can fail in cases if the storage is full.
     storage.setItem(STORAGE_TEST_KEY, STORAGE_TEST_KEY);
     storage.removeItem(STORAGE_TEST_KEY);
 
