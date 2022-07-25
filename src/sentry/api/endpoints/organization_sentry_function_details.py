@@ -18,7 +18,9 @@ class OrganizationSentryFunctionDetailsEndpoint(OrganizationEndpoint):
         args, kwargs = super().convert_args(request, organization_slug, *args, **kwargs)
 
         try:
-            function = SentryFunction.objects.get(slug=function_slug)
+            function = SentryFunction.objects.get(
+                slug=function_slug, organization__slug=organization_slug
+            )
         except SentryFunction.DoesNotExist:
             raise Http404
 
@@ -27,12 +29,12 @@ class OrganizationSentryFunctionDetailsEndpoint(OrganizationEndpoint):
 
     def get(self, request, organization, function):
         if not features.has("organizations:sentry-functions", organization, actor=request.user):
-            return Response("organizations:sentry-functions flag set to false", status=404)
+            return Response(status=404)
         return Response(serialize(function), status=200)
 
     def put(self, request, organization, function):
         if not features.has("organizations:sentry-functions", organization, actor=request.user):
-            return Response("organizations:sentry-functions flag set to false", status=404)
+            return Response(status=404)
         serializer = SentryFunctionSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
@@ -53,5 +55,7 @@ class OrganizationSentryFunctionDetailsEndpoint(OrganizationEndpoint):
         except Exception:
             # for hackweek, just eat the error and move on
             pass
-        SentryFunction.objects.filter(organization=organization, name=function.name).delete()
+        SentryFunction.objects.filter(
+            organization=organization, name=function.name, external_id=function.external_id
+        ).delete()
         return Response(status=204)

@@ -54,7 +54,7 @@ def create_function(code, funcId, description):
             name="projects/hackweek-sentry-functions/locations/us-central1/functions/fn-" + funcId,
             description=description,
             source_upload_url=upload_url,
-            runtime="nodejs14",
+            runtime="nodejs16",
             entry_point="yourFunction",
             event_trigger=EventTrigger(
                 event_type="providers/cloud.pubsub/eventTypes/topic.publish",
@@ -75,7 +75,7 @@ def update_function(code, funcId, description):
                 + funcId,
                 description=description,
                 source_upload_url=upload_url,
-                runtime="nodejs14",
+                runtime="nodejs16",
                 entry_point="yourFunction",
                 event_trigger=EventTrigger(
                     event_type="providers/cloud.pubsub/eventTypes/topic.publish",
