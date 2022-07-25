@@ -920,12 +920,18 @@ class SnubaTagStorage(TagStorage):
     ):
         from sentry.api.paginator import SequencePaginator
 
-        if not order_by == "-last_seen":
+        if not (order_by == "-last_seen" or order_by == "-count"):
             raise ValueError("Unsupported order_by: %s" % order_by)
+
+        # We need to replace `-count` into `-times_seen`, because
+        # internally we can not order by `count` we can only by `times_seen`.
+        if order_by == "-count":
+            order_by = "-times_seen"
 
         dataset = Dataset.Events
         if include_transactions:
             dataset = Dataset.Discover
+
         snuba_key = snuba.get_snuba_column_name(key, dataset=dataset)
 
         # We cannot search the values of these columns like we do other columns because they are
@@ -1107,8 +1113,15 @@ class SnubaTagStorage(TagStorage):
 
         desc = order_by.startswith("-")
         score_field = order_by.lstrip("-")
+
+        def score_field_to_int(tv: TagValue) -> int:
+            if score_field == "times_seen":
+                # times_seen already an int
+                return int(getattr(tv, score_field))
+            return int(to_timestamp(getattr(tv, score_field)) * 1000)
+
         return SequencePaginator(
-            [(int(to_timestamp(getattr(tv, score_field)) * 1000), tv) for tv in tag_values],
+            [(score_field_to_int(tv), tv) for tv in tag_values],
             reverse=desc,
         )
 
