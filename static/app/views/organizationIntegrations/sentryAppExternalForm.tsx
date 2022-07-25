@@ -296,6 +296,7 @@ export class SentryAppExternalForm extends Component<Props, State> {
         defaultOptions,
         filterOption,
         allowClear,
+        placeholder: 'Type to search',
       } as Field;
       if (field.depends_on) {
         // check if this is dependent on other fields which haven't been set yet
