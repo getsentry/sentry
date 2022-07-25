@@ -68,12 +68,13 @@ function SimpleTableChart({
         getCustomFieldRenderer?.(column.key, tableMeta, organization) ??
         getFieldRenderer(column.key, tableMeta);
 
+      const unit = tableMeta.units?.[column.key];
       return (
         <TableCell key={`${index}-${columnIndex}:${column.name}`}>
           {topResultsIndicators && columnIndex === 0 && (
             <TopResultsIndicator count={topResultsIndicators} index={index} />
           )}
-          {fieldRenderer(row, {organization, location, eventView})}
+          {fieldRenderer(row, {organization, location, eventView, unit})}
         </TableCell>
       );
     });
