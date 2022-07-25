@@ -41,12 +41,14 @@ from sentry.models.project import Project
 from sentry.search.events.constants import (
     ARRAY_FIELDS,
     DRY_RUN_COLUMNS,
+    DURATION_UNITS,
     EQUALITY_OPERATORS,
     METRICS_GRANULARITIES,
     METRICS_MAX_LIMIT,
     NO_CONVERSION_FIELDS,
     PROJECT_THRESHOLD_CONFIG_ALIAS,
     QUERY_TIPS,
+    SIZE_UNITS,
     TAG_KEY_RE,
     TIMESTAMP_FIELDS,
     TREND_FUNCTION_TYPE_MAP,
@@ -974,11 +976,14 @@ class QueryBuilder:
         else:
             return [operator(conditions=combined_conditions)]
 
+    def resolve_aggregate_value(self, aggregate_filter: AggregateFilter) -> SearchValue:
+        return aggregate_filter.value
+
     def convert_aggregate_filter_to_condition(
         self, aggregate_filter: AggregateFilter
     ) -> Optional[WhereType]:
         name = aggregate_filter.key.name
-        value = aggregate_filter.value.value
+        value = self.resolve_aggregate_value(aggregate_filter).value
 
         value = (
             int(to_timestamp(value))
@@ -1789,6 +1794,15 @@ class MetricsQueryBuilder(QueryBuilder):
         conditions.append(Condition(self.column("organization_id"), Op.EQ, self.organization_id))
         return conditions
 
+    def resolve_aggregate_value(self, aggregate_filter: AggregateFilter) -> SearchValue:
+        unit = self.get_function_result_type(aggregate_filter.key.name)
+        value = aggregate_filter.value.value
+        if unit in SIZE_UNITS:
+            return SearchValue(SIZE_UNITS[unit] * value)
+        elif unit in DURATION_UNITS:
+            return SearchValue(DURATION_UNITS[unit] * value)
+        return aggregate_filter.value
+
     def resolve_having(
         self, parsed_terms: ParsedTerms, use_aggregate_conditions: bool
     ) -> List[WhereType]:
@@ -1905,7 +1919,14 @@ class MetricsQueryBuilder(QueryBuilder):
                     "Filter on timestamp is outside of the selected date range."
                 )
 
-        # TODO(wmak): Need to handle `has` queries, basically check that tags.keys has the value?
+        # Handle checks for existence
+        if search_filter.operator in ("=", "!=") and search_filter.value.value == "":
+            if is_tag:
+                return Condition(
+                    Function("has", [Column("tags.key"), self.resolve_metric_index(name)]),
+                    Op.EQ if search_filter.operator == "!=" else Op.NEQ,
+                    1,
+                )
 
         return Condition(lhs, Op(search_filter.operator), value)
 
