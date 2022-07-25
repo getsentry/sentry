@@ -82,7 +82,6 @@ class JiraSearchEndpointTest(APITestCase):
             responses.GET,
             "https://jira.example.org/rest/api/2/project",
             json=[{"key": "HSP", "id": "10000"}],
-            match_querystring=False,
         )
 
         def responder(request):
@@ -96,7 +95,6 @@ class JiraSearchEndpointTest(APITestCase):
             "https://jira.example.org/rest/api/2/user/assignable/search",
             callback=responder,
             content_type="json",
-            match_querystring=False,
         )
         org = self.organization
         self.login_as(self.user)
@@ -113,14 +111,12 @@ class JiraSearchEndpointTest(APITestCase):
             responses.GET,
             "https://jira.example.org/rest/api/2/project",
             json=[{"key": "HSP", "id": "10000"}],
-            match_querystring=False,
         )
         responses.add(
             responses.GET,
             "https://jira.example.org/rest/api/2/user/assignable/search",
             status=500,
             body="Bad things",
-            match_querystring=False,
         )
         org = self.organization
         self.login_as(self.user)

@@ -1,15 +1,23 @@
 import {useCallback, useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 
+import Feature from 'sentry/components/acl/feature';
 import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import DatePageFilter from 'sentry/components/datePageFilter';
+import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import Input from 'sentry/components/forms/controls/input';
 import Field from 'sentry/components/forms/field';
+import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
+import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
+import {ReleasesProvider} from 'sentry/utils/releases/releasesProvider';
 import {getDatasetConfig} from 'sentry/views/dashboardsV2/datasetConfig/base';
-import {WidgetQuery, WidgetType} from 'sentry/views/dashboardsV2/types';
+import ReleasesSelectControl from 'sentry/views/dashboardsV2/releasesSelectControl';
+import {DashboardFilters, WidgetQuery, WidgetType} from 'sentry/views/dashboardsV2/types';
 
 import {BuildStep} from '../buildStep';
 
@@ -23,12 +31,14 @@ interface Props {
   queries: WidgetQuery[];
   selection: PageFilters;
   widgetType: WidgetType;
+  dashboardFilters?: DashboardFilters;
   projectIds?: number[] | readonly number[];
   queryErrors?: Record<string, any>[];
 }
 
 export function FilterResultsStep({
   canAddSearchConditions,
+  dashboardFilters,
   queries,
   onQueryRemove,
   onAddSearchConditions,
@@ -69,7 +79,7 @@ export function FilterResultsStep({
         onQueryChange(queryIndex, newQuery);
       };
     },
-    [queries]
+    [onQueryChange, queries]
   );
 
   const handleBlur = useCallback(
@@ -84,7 +94,7 @@ export function FilterResultsStep({
         }
       };
     },
-    [queries]
+    [onQueryChange, queries]
   );
 
   const datasetConfig = getDatasetConfig(widgetType);
@@ -100,6 +110,22 @@ export function FilterResultsStep({
           : t('This is how you filter down your search.')
       }
     >
+      <Feature features={['dashboards-top-level-filter']}>
+        <StyledPageFilterBar>
+          <ProjectPageFilter disabled />
+          <EnvironmentPageFilter disabled />
+          <DatePageFilter alignDropdown="left" disabled />
+        </StyledPageFilterBar>
+        <FilterButtons>
+          <ReleasesProvider organization={organization} selection={selection}>
+            <StyledReleasesSelectControl
+              selectedReleases={dashboardFilters?.release ?? []}
+              isDisabled
+              className="widget-release-select"
+            />
+          </ReleasesProvider>
+        </FilterButtons>
+      </Feature>
       <div>
         {queries.map((query, queryIndex) => {
           return (
@@ -148,11 +174,7 @@ export function FilterResultsStep({
           );
         })}
         {canAddSearchConditions && (
-          <Button
-            size="small"
-            icon={<IconAdd isCircled />}
-            onClick={onAddSearchConditions}
-          >
+          <Button size="sm" icon={<IconAdd isCircled />} onClick={onAddSearchConditions}>
             {t('Add Query')}
           </Button>
         )}
@@ -167,6 +189,26 @@ const LegendAliasInput = styled(Input)`
 
 const QueryField = styled(Field)`
   padding-bottom: ${space(1)};
+`;
+
+const StyledPageFilterBar = styled(PageFilterBar)`
+  margin-bottom: ${space(1)};
+  margin-right: ${space(2)};
+`;
+
+const FilterButtons = styled(ButtonBar)`
+  grid-template-columns: 1fr;
+
+  margin-bottom: ${space(1)};
+  margin-right: ${space(2)};
+
+  justify-content: space-between;
+`;
+
+const StyledReleasesSelectControl = styled(ReleasesSelectControl)`
+  button {
+    width: 100%;
+  }
 `;
 
 const SearchConditionsWrapper = styled('div')`

@@ -20,17 +20,17 @@ query_aggregation_to_snuba = {
 }
 
 
-class QueryDatasets(Enum):
-    EVENTS = "events"
-    TRANSACTIONS = "transactions"
-    SESSIONS = "sessions"
-    METRICS = "metrics"
-
-
 class SnubaQuery(Model):
     __include_in_export__ = True
 
+    class Type(Enum):
+        ERROR = 0
+        PERFORMANCE = 1
+        CRASH_RATE = 2
+
     environment = FlexibleForeignKey("sentry.Environment", null=True, db_constraint=False)
+    # Possible values are in the the `Type` enum
+    type = models.SmallIntegerField()
     dataset = models.TextField()
     query = models.TextField()
     aggregate = models.TextField()

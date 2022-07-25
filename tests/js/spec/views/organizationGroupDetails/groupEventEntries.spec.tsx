@@ -31,9 +31,9 @@ async function renderComponent(event: Event, errors?: Array<Error>) {
   const eventErrors = wrapper.find('Errors');
 
   const alert = eventErrors.find('StyledAlert');
-  const alertSummaryInfo = alert.find('MessageContainer');
+  const alertSummaryInfo = alert.find('Message');
 
-  alertSummaryInfo.simulate('click');
+  alert.simulate('click');
 
   await tick();
   wrapper.update();

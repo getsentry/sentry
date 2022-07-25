@@ -91,6 +91,13 @@ describe('ProjectSelector', function () {
     expect(createProject).toBeEnabled();
   });
 
+  it('does not open selector menu when disabled', function () {
+    render(<ProjectSelector {...props} disabled />, {context: routerContext});
+    openMenu();
+
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+  });
+
   it('lists projects and has filter', function () {
     render(<ProjectSelector {...props} />, {context: routerContext});
     openMenu();

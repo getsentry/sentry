@@ -1,12 +1,11 @@
 import 'prism-sentry/index.css';
 
-import {Fragment} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {
@@ -18,25 +17,33 @@ import {
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
-import {SamplingSdkVersion} from 'sentry/types/sampling';
+import {
+  RecommendedSdkUpgrade,
+  SamplingRule,
+  UniformModalsSubmit,
+} from 'sentry/types/sampling';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {formatPercentage} from 'sentry/utils/formatters';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
-import {SERVER_SIDE_SAMPLING_DOC_LINK} from '../utils';
+import {isValidSampleRate, SERVER_SIDE_SAMPLING_DOC_LINK} from '../utils';
+import {projectStatsToSampleRates} from '../utils/projectStatsToSampleRates';
+import useProjectStats from '../utils/useProjectStats';
 
 import {FooterActions, Stepper} from './uniformRateModal';
 
-type RecommendedSdkUpgrade = {
-  latestSDKName: SamplingSdkVersion['latestSDKName'];
-  latestSDKVersion: SamplingSdkVersion['latestSDKVersion'];
-  project: Project;
-};
-
 export type RecommendedStepsModalProps = ModalRenderProps & {
-  onSubmit: () => void;
+  onReadDocs: () => void;
   organization: Organization;
+  projectId: Project['id'];
   recommendedSdkUpgrades: RecommendedSdkUpgrade[];
+  clientSampleRate?: number;
   onGoBack?: () => void;
-  project?: Project;
+  onSetRules?: (newRules: SamplingRule[]) => void;
+  onSubmit?: UniformModalsSubmit;
+  recommendedSampleRate?: boolean;
+  serverSampleRate?: number;
+  uniformRule?: SamplingRule;
 };
 
 export function RecommendedStepsModal({
@@ -47,12 +54,85 @@ export function RecommendedStepsModal({
   organization,
   recommendedSdkUpgrades,
   onGoBack,
+  onReadDocs,
   onSubmit,
+  clientSampleRate,
+  serverSampleRate,
+  uniformRule,
+  projectId,
+  recommendedSampleRate,
+  onSetRules,
 }: RecommendedStepsModalProps) {
+  const [saving, setSaving] = useState(false);
+  const {projectStats} = useProjectStats({
+    orgSlug: organization.slug,
+    projectId,
+    interval: '1h',
+    statsPeriod: '48h',
+    disable: !!clientSampleRate,
+  });
+  const {maxSafeSampleRate} = projectStatsToSampleRates(projectStats);
+  const suggestedClientSampleRate = clientSampleRate ?? maxSafeSampleRate;
+
+  const isValid =
+    isValidSampleRate(clientSampleRate) && isValidSampleRate(serverSampleRate);
+
+  function handleDone() {
+    if (!onSubmit) {
+      closeModal();
+    }
+
+    if (!isValid) {
+      return;
+    }
+
+    setSaving(true);
+
+    onSubmit?.({
+      recommendedSampleRate: recommendedSampleRate ?? false, // the recommendedSampleRate prop will always be available in the wizard modal
+      uniformRateModalOrigin: false,
+      sampleRate: serverSampleRate!,
+      rule: uniformRule,
+      onSuccess: newRules => {
+        setSaving(false);
+        onSetRules?.(newRules);
+        closeModal();
+      },
+      onError: () => {
+        setSaving(false);
+      },
+    });
+  }
+
+  function handleGoBack() {
+    if (!onGoBack) {
+      return;
+    }
+
+    trackAdvancedAnalyticsEvent('sampling.settings.modal.recommended.next.steps_back', {
+      organization,
+      project_id: projectId,
+    });
+
+    onGoBack();
+  }
+
+  function handleReadDocs() {
+    trackAdvancedAnalyticsEvent(
+      'sampling.settings.modal.recommended.next.steps_read_docs',
+      {
+        organization,
+        project_id: projectId,
+      }
+    );
+
+    onReadDocs();
+  }
+
   return (
     <Fragment>
       <Header closeButton>
-        <h4>{t('Recommended next steps\u2026')}</h4>
+        <h4>{t('Next steps')}</h4>
       </Header>
       <Body>
         <List symbol="colored-numeric">
@@ -60,22 +140,19 @@ export function RecommendedStepsModal({
             <ListItem>
               <h5>{t('Update the following SDK versions')}</h5>
               <TextBlock>
-                {tct(
-                  "I know what you're thinking, [italic:“[strong:It's already working, why should I?]”]. By updating the following SDK's before activating any server sampling rules, you're avoiding situations when our servers aren't accepting enough transactions ([doubleSamplingLink:double sampling]) or our servers are accepting too many transactions ([exceededQuotaLink:exceeded quota]).",
-                  {
-                    strong: <strong />,
-                    italic: <i />,
-                    doubleSamplingLink: <ExternalLink href="" />,
-                    exceededQuotaLink: <ExternalLink href="" />,
-                  }
+                {t(
+                  'To ensure you are properly monitoring the performance of all your other services, we require you update to the latest version of the following SDK(s):'
                 )}
               </TextBlock>
               <UpgradeSDKfromProjects>
                 {recommendedSdkUpgrades.map(
-                  ({project, latestSDKName, latestSDKVersion}) => {
+                  ({project: upgradableProject, latestSDKName, latestSDKVersion}) => {
                     return (
-                      <div key={project.id}>
-                        <SdkProjectBadge project={project} organization={organization} />
+                      <div key={upgradableProject.id}>
+                        <SdkProjectBadge
+                          project={upgradableProject}
+                          organization={organization}
+                        />
                         <SdkOutdatedVersion>
                           {tct('This project is on [current-version]', {
                             ['current-version']: (
@@ -91,10 +168,10 @@ export function RecommendedStepsModal({
             </ListItem>
           )}
           <ListItem>
-            <h5>{t('Increase your SDK Transaction sample rate')}</h5>
+            <h5>{t('Increase your client-side transaction sample rate')}</h5>
             <TextBlock>
               {t(
-                'This comes in handy when server-side sampling target the transactions you want to accept, but you need more of those transactions being sent by your client. Here we  already suggest a value based on your quota and throughput.'
+                'Once you’ve updated the above SDK(s), you can increase the client-side transaction sample rate in your application. This helps to ensure you are sending enough transactions to accurately monitor overall performance and ensure all transactions you have deemed important in your server-side sample rules are available. Below is the suggested rate we’ve calculated based on your organization’s usage and quota.'
               )}
             </TextBlock>
             <div>
@@ -112,9 +189,14 @@ export function RecommendedStepsModal({
                     {'  traceSampleRate'}
                   </span>
                   <span className="token operator">:</span>{' '}
-                  <span className="token string">1.0</span>
+                  <span className="token string">{suggestedClientSampleRate || ''}</span>
                   <span className="token punctuation">,</span>{' '}
-                  <span className="token comment">// 100%</span>
+                  <span className="token comment">
+                    //{' '}
+                    {suggestedClientSampleRate
+                      ? formatPercentage(suggestedClientSampleRate)
+                      : ''}
+                  </span>
                   <br />
                   <span className="token punctuation">{'}'}</span>
                   <span className="token punctuation">)</span>
@@ -127,18 +209,29 @@ export function RecommendedStepsModal({
       </Body>
       <Footer>
         <FooterActions>
-          <Button href={SERVER_SIDE_SAMPLING_DOC_LINK} external>
+          <Button href={SERVER_SIDE_SAMPLING_DOC_LINK} onClick={handleReadDocs} external>
             {t('Read Docs')}
           </Button>
           <ButtonBar gap={1}>
             {onGoBack && (
               <Fragment>
                 <Stepper>{t('Step 2 of 2')}</Stepper>
-                <Button onClick={onGoBack}>{t('Back')}</Button>
+                <Button onClick={handleGoBack}>{t('Back')}</Button>
               </Fragment>
             )}
             {!onGoBack && <Button onClick={closeModal}>{t('Cancel')}</Button>}
-            <Button priority="primary" onClick={onSubmit}>
+            <Button
+              priority="primary"
+              onClick={handleDone}
+              disabled={onSubmit ? saving || !isValid : false} // do not disable the button if there's on onSubmit handler (modal was opened from the sdk alert)
+              title={
+                onSubmit
+                  ? !isValid
+                    ? t('Sample rate is not valid')
+                    : undefined
+                  : undefined
+              }
+            >
               {t('Done')}
             </Button>
           </ButtonBar>

@@ -15,6 +15,7 @@ import {
   TagCollection,
 } from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
+import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
 import {MetaType} from 'sentry/utils/discover/eventView';
 import {
@@ -149,6 +150,8 @@ export const ErrorsAndTransactionsConfig: DatasetConfig<
   },
   transformSeries: transformEventsResponseToSeries,
   transformTable: transformEventsResponseToTable,
+  filterTableOptions,
+  filterAggregateParams,
 };
 
 function getTableSortOptions(_organization: Organization, widgetQuery: WidgetQuery) {
@@ -229,7 +232,11 @@ function getTimeseriesSortOptions(
   return {...options, ...fieldOptions};
 }
 
-function getEventsTableFieldOptions(organization: Organization, tags?: TagCollection) {
+function getEventsTableFieldOptions(
+  organization: Organization,
+  tags?: TagCollection,
+  customMeasurements?: CustomMeasurementCollection
+) {
   const measurements = getMeasurements();
 
   return generateFieldOptions({
@@ -237,6 +244,14 @@ function getEventsTableFieldOptions(organization: Organization, tags?: TagCollec
     tagKeys: Object.values(tags ?? {}).map(({key}) => key),
     measurementKeys: Object.values(measurements).map(({key}) => key),
     spanOperationBreakdownKeys: SPAN_OP_BREAKDOWN_FIELDS,
+    customMeasurements: organization.features.includes(
+      'dashboard-custom-measurement-widgets'
+    )
+      ? Object.values(customMeasurements ?? {}).map(({key, functions}) => ({
+          key,
+          functions,
+        }))
+      : undefined,
   });
 }
 
@@ -490,6 +505,7 @@ function getEventsSeriesRequest(
       field: [...widgetQuery.columns, ...widgetQuery.aggregates],
       queryExtras: getDashboardsMEPQueryParams(isMEPEnabled),
       includeAllArgs: true,
+      topEvents: TOP_N,
     };
     if (widgetQuery.orderby) {
       requestData.orderby = widgetQuery.orderby;
@@ -550,4 +566,22 @@ function getEventsSeriesRequest(
   }
 
   return doEventsRequest<true>(api, requestData);
+}
+
+// Custom Measurements aren't selectable as columns/yaxis without using an aggregate
+function filterTableOptions(option: FieldValueOption) {
+  return option.value.kind !== FieldValueKind.CUSTOM_MEASUREMENT;
+}
+
+// Checks fieldValue to see what function is being used and only allow supported custom measurements
+function filterAggregateParams(option: FieldValueOption, fieldValue?: QueryFieldValue) {
+  if (
+    option.value.kind === FieldValueKind.CUSTOM_MEASUREMENT &&
+    fieldValue?.kind === 'function' &&
+    fieldValue?.function &&
+    !option.value.meta.functions.includes(fieldValue.function[0])
+  ) {
+    return false;
+  }
+  return true;
 }

@@ -362,11 +362,11 @@ const measureAssetsOnTransaction = () => {
         const filtered = spans.filter(s => s.op === op);
         const count = filtered.length;
         const transfered = filtered.reduce(
-          (acc, curr) => acc + curr.data['Transfer Size'] ?? 0,
+          (acc, curr) => acc + (curr.data['Transfer Size'] ?? 0),
           0
         );
         const encoded = filtered.reduce(
-          (acc, curr) => acc + curr.data['Encoded Body Size'] ?? 0,
+          (acc, curr) => acc + (curr.data['Encoded Body Size'] ?? 0),
           0
         );
 

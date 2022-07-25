@@ -6,8 +6,8 @@ import {Client} from 'sentry/api';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
 import {Organization, PageFilters} from 'sentry/types';
+import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
-import {MeasurementCollection} from 'sentry/utils/measurements/measurements';
 import useApi from 'sentry/utils/useApi';
 
 import {
@@ -15,11 +15,15 @@ import {
   CustomMeasurementsContextValue,
 } from './customMeasurementsContext';
 
+type MeasurementsMetaResponse = {
+  [x: string]: {functions: string[]};
+};
+
 function fetchCustomMeasurements(
   api: Client,
   organization: Organization,
   selection?: PageFilters
-): Promise<MeasurementCollection> {
+): Promise<MeasurementsMetaResponse> {
   const query: Query = selection?.datetime
     ? {...normalizeDateTimeParams(selection.datetime)}
     : {};
@@ -53,35 +57,37 @@ export function CustomMeasurementsProvider({
   useEffect(() => {
     let shouldCancelRequest = false;
 
-    fetchCustomMeasurements(api, organization, selection)
-      .then(response => {
-        if (shouldCancelRequest) {
-          return;
-        }
+    if (organization.features.includes('dashboard-custom-measurement-widgets')) {
+      fetchCustomMeasurements(api, organization, selection)
+        .then(response => {
+          if (shouldCancelRequest) {
+            return;
+          }
 
-        const newCustomMeasurements = Object.keys(response).reduce<MeasurementCollection>(
-          (acc, customMeasurement) => {
+          const newCustomMeasurements = Object.keys(
+            response
+          ).reduce<CustomMeasurementCollection>((acc, customMeasurement) => {
             acc[customMeasurement] = {
               key: customMeasurement,
               name: customMeasurement,
+              functions: response[customMeasurement].functions,
             };
-
             return acc;
-          },
-          {}
-        );
+          }, {});
 
-        setState({customMeasurements: newCustomMeasurements});
-      })
-      .catch(e => {
-        if (shouldCancelRequest) {
-          return;
-        }
+          setState({customMeasurements: newCustomMeasurements});
+        })
+        .catch(e => {
+          if (shouldCancelRequest) {
+            return;
+          }
 
-        const errorResponse = e?.responseJSON ?? t('Unable to fetch custom measurements');
-        addErrorMessage(errorResponse);
-        handleXhrErrorResponse(errorResponse)(e);
-      });
+          const errorResponse =
+            e?.responseJSON ?? t('Unable to fetch custom measurements');
+          addErrorMessage(errorResponse);
+          handleXhrErrorResponse(errorResponse)(e);
+        });
+    }
 
     return () => {
       shouldCancelRequest = true;

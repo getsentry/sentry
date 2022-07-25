@@ -7,6 +7,14 @@ export function generateProfilingRoute({orgSlug}: {orgSlug: Organization['slug']
   return `/organizations/${orgSlug}/profiling/`;
 }
 
+export function generateProfilingOnboardingRoute({
+  orgSlug,
+}: {
+  orgSlug: Organization['slug'];
+}): Path {
+  return `/organizations/${orgSlug}/profiling/onboarding/`;
+}
+
 export function generateProfileSummaryRoute({
   orgSlug,
   projectSlug,

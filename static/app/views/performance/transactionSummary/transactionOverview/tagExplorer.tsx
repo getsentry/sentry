@@ -22,7 +22,6 @@ import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import EventView, {fromSorts, isFieldSortable} from 'sentry/utils/discover/eventView';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
 import {formatPercentage} from 'sentry/utils/formatters';
-import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import SegmentExplorerQuery, {
   TableData,
   TableDataRow,
@@ -185,7 +184,7 @@ type Props = {
 type State = {
   widths: number[];
 };
-class _TagExplorer extends Component<Props> {
+export class TagExplorer extends Component<Props> {
   state: State = {
     widths: [],
   };
@@ -528,12 +527,12 @@ function TagsHeader(props: HeaderProps) {
       <Button
         onClick={handleViewAllTagsClick}
         to={viewAllTarget}
-        size="xsmall"
+        size="xs"
         data-test-id="tags-explorer-open-tags"
       >
         {t('View All Tags')}
       </Button>
-      <StyledPagination pageLinks={pageLinks} onCursor={handleCursor} size="xsmall" />
+      <StyledPagination pageLinks={pageLinks} onCursor={handleCursor} size="xs" />
     </Header>
   );
 }
@@ -554,13 +553,3 @@ const Header = styled('div')`
 const StyledPagination = styled(Pagination)`
   margin: 0 0 0 ${space(1)};
 `;
-
-export const TagExplorer = (props: Props) => {
-  const {hideSinceMetricsOnly} = useMEPSettingContext();
-
-  if (hideSinceMetricsOnly) {
-    return null;
-  }
-
-  return <_TagExplorer {...props} />;
-};

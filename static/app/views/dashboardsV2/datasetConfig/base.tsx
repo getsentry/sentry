@@ -4,6 +4,7 @@ import {Client, ResponseMeta} from 'sentry/api';
 import {SearchBarProps} from 'sentry/components/events/searchBar';
 import {Organization, PageFilters, SelectValue, TagCollection} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
+import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {TableData} from 'sentry/utils/discover/discoverQuery';
 import {MetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
@@ -44,7 +45,8 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
    */
   getTableFieldOptions: (
     organization: Organization,
-    tags?: TagCollection
+    tags?: TagCollection,
+    customMeasurements?: CustomMeasurementCollection
   ) => Record<string, SelectValue<FieldValue>>;
   /**
    * List of supported display types for dataset.
@@ -79,7 +81,10 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
    * of an aggregate function in QueryField component on the
    * Widget Builder.
    */
-  filterAggregateParams?: (option: FieldValueOption) => boolean;
+  filterAggregateParams?: (
+    option: FieldValueOption,
+    fieldValue?: QueryFieldValue
+  ) => boolean;
   /**
    * Refine the options available in the sort options for timeseries
    * displays on the 'Sort by' step of the Widget Builder.

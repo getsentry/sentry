@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
 import AdminSettings from 'sentry/views/admin/adminSettings';
@@ -115,12 +115,8 @@ describe('AdminSettings', function () {
     });
 
     it('renders', function () {
-      const wrapper = mountWithTheme(<AdminSettings params={{}} />, {
-        context: {
-          router: TestStubs.router(),
-        },
-      });
-      expect(wrapper).toSnapshot();
+      const wrapper = render(<AdminSettings params={{}} />);
+      expect(wrapper.container).toSnapshot();
     });
   });
 });
