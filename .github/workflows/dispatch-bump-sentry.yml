@@ -1,5 +1,9 @@
 name: dispatch getsentry bump-sentry
 
+# Serializes the execution of this workflow.
+concurrency:
+  group: ${{ github.workflow }}
+
 on:
   push:
     branches:
