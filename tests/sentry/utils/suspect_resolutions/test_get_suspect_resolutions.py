@@ -5,8 +5,8 @@ from django.utils import timezone
 from sentry.models import Commit, CommitFileChange, GroupRelease, GroupStatus, ReleaseCommit
 from sentry.testutils import TestCase
 from sentry.utils.suspect_resolutions.commit_correlation import is_issue_commit_correlated
+from sentry.utils.suspect_resolutions.get_suspect_resolutions import get_suspect_resolutions
 from sentry.utils.suspect_resolutions.metric_correlation import is_issue_error_rate_correlated
-from sentry.utils.suspect_resolutions.project_issue_correlation import get_suspect_resolutions
 from tests.sentry.utils.suspect_resolutions.test_metric_correlation import (
     END,
     START,
