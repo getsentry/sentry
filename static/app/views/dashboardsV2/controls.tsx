@@ -27,12 +27,16 @@ type Props = {
   onEdit: () => void;
   organization: Organization;
   widgetLimitReached: boolean;
+  disabled?: boolean;
+  disabledMessage?: string;
 };
 
 function Controls({
   organization,
   dashboardState,
   dashboards,
+  disabled = false,
+  disabledMessage,
   widgetLimitReached,
   onEdit,
   onCommit,
@@ -130,17 +134,21 @@ function Controls({
                 onEdit();
               }}
               icon={<IconEdit />}
-              disabled={!hasFeature}
+              disabled={!hasFeature || disabled}
+              title={disabled && disabledMessage}
               priority="default"
             >
               {t('Edit Dashboard')}
             </Button>
             {hasFeature ? (
               <Tooltip
-                title={tct('Max widgets ([maxWidgets]) per dashboard reached.', {
-                  maxWidgets: MAX_WIDGETS,
-                })}
-                disabled={!!!widgetLimitReached}
+                title={
+                  disabledMessage ||
+                  tct('Max widgets ([maxWidgets]) per dashboard reached.', {
+                    maxWidgets: MAX_WIDGETS,
+                  })
+                }
+                disabled={!!!widgetLimitReached || disabled}
               >
                 <GuideAnchor
                   disabled={!!!organization.features.includes('dashboards-releases')}
@@ -149,7 +157,8 @@ function Controls({
                   <Button
                     data-test-id="add-widget-library"
                     priority="primary"
-                    disabled={widgetLimitReached}
+                    disabled={widgetLimitReached || disabled}
+                    title={disabled && disabledMessage}
                     icon={<IconAdd isCircled />}
                     onClick={() => {
                       trackAdvancedAnalyticsEvent(

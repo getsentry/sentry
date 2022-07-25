@@ -83,6 +83,8 @@ import {
 export interface WidgetViewerModalOptions {
   organization: Organization;
   widget: Widget;
+  disableEditWidget?: boolean;
+  disabledMessage?: string;
   onEdit?: () => void;
   pageLinks?: string;
   seriesData?: Series[];
@@ -165,6 +167,8 @@ function WidgetViewerModal(props: Props) {
     tableData,
     totalIssuesCount,
     pageLinks: defaultPageLinks,
+    disableEditWidget,
+    disabledMessage,
   } = props;
   const shouldShowSlider = organization.features.includes('widget-viewer-modal-minimap');
   // Get widget zoom from location
@@ -954,6 +958,8 @@ function WidgetViewerModal(props: Props) {
                       display_type: widget.displayType,
                     });
                   }}
+                  disabled={disableEditWidget}
+                  title={disableEditWidget && disabledMessage}
                 >
                   {t('Edit Widget')}
                 </Button>

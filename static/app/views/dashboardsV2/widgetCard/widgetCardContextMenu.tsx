@@ -1,5 +1,6 @@
 import {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
+import {Item} from '@react-stately/collections';
 import {Location} from 'history';
 
 import {openDashboardWidgetQuerySelectorModal} from 'sentry/actionCreators/modal';
@@ -36,6 +37,7 @@ type Props = {
   selection: PageFilters;
   widget: Widget;
   widgetLimitReached: boolean;
+  hasUnsavedFilters?: boolean;
   index?: string;
   isPreview?: boolean;
   onDelete?: () => void;
@@ -67,6 +69,7 @@ function WidgetCardContextMenu({
   tableData,
   pageLinks,
   totalIssuesCount,
+  hasUnsavedFilters = false,
 }: Props) {
   const {isMetricsData} = useDashboardsMEPContext();
   if (!showContextMenu) {
@@ -253,7 +256,28 @@ function WidgetCardContextMenu({
               icon: <IconEllipsis direction="down" size="sm" />,
             }}
             placement="bottom right"
-            disabledKeys={disabledKeys}
+            disabledKeys={[
+              ...disabledKeys,
+              ...(hasUnsavedFilters
+                ? ['duplicate-widget', 'edit-widget', 'delete-widget']
+                : []),
+            ]}
+            renderItem={({isDisabled, ...item}) => (
+              <Item {...item}>
+                <Tooltip
+                  title={
+                    isDisabled && hasUnsavedFilters
+                      ? t(
+                          'You have unsaved dashboard filters. You can save or discard them.'
+                        )
+                      : ''
+                  }
+                  position="left"
+                >
+                  {item.label}
+                </Tooltip>
+              </Item>
+            )}
           />
           {showWidgetViewerButton && (
             <OpenWidgetViewerButton
