@@ -388,6 +388,13 @@ def _filter_option_to_config_setting(flt, setting):
     return ret_val
 
 
+#: Version of the transaction metrics extraction.
+#: When you increment this version, outdated Relays will stop extracting
+#: transaction metrics.
+#: See https://github.com/getsentry/relay/blob/4f3e224d5eeea8922fe42163552e8f20db674e86/relay-server/src/metrics_extraction/transactions.rs#L71
+TRANSACTION_METRICS_EXTRACTION_VERSION = 1
+
+
 #: Top-level metrics for transactions
 TRANSACTION_METRICS = frozenset(
     [
@@ -426,6 +433,7 @@ class CustomMeasurementSettings(TypedDict):
 
 
 class TransactionMetricsSettings(TypedDict):
+    version: int
     extractMetrics: Collection[str]
     extractCustomTags: Collection[str]
     customMeasurements: CustomMeasurementSettings
@@ -480,6 +488,7 @@ def get_transaction_metrics_settings(
         capture_exception()
 
     return {
+        "version": TRANSACTION_METRICS_EXTRACTION_VERSION,
         "extractMetrics": metrics,
         "extractCustomTags": custom_tags,
         "customMeasurements": {"limit": CUSTOM_MEASUREMENT_LIMIT},
