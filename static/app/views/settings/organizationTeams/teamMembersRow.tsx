@@ -7,7 +7,7 @@ import RoleSelectControl from 'sentry/components/roleSelectControl';
 import {IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Member, Organization, User} from 'sentry/types';
+import {Member, Organization, TeamMember, User} from 'sentry/types';
 import {
   hasOrgRoleOverwrite,
   RoleOverwriteIcon,
@@ -15,13 +15,14 @@ import {
 
 const TeamMembersRow = (props: {
   hasWriteAccess: boolean;
-  member: Member;
+  member: TeamMember;
   organization: Organization;
   removeMember: (member: Member) => void;
   updateMemberRole: (member: Member, newRole: string) => void;
   user: User;
 }) => {
-  const {organization, member} = props;
+  const {organization, member, user, hasWriteAccess, removeMember, updateMemberRole} =
+    props;
 
   return (
     <TeamRolesPanelItem key={member.id}>
@@ -29,10 +30,20 @@ const TeamMembersRow = (props: {
         <IdBadge avatarSize={36} member={member} useLink orgId={organization.slug} />
       </div>
       <div>
-        <TeamRoleSelect {...props} />
+        <TeamRoleSelect
+          hasWriteAccess={hasWriteAccess}
+          updateMemberRole={updateMemberRole}
+          organization={organization}
+          member={member}
+        />
       </div>
       <div>
-        <RemoveButton {...props} />
+        <RemoveButton
+          hasWriteAccess={hasWriteAccess}
+          onClick={() => removeMember(member)}
+          member={member}
+          user={user}
+        />
       </div>
     </TeamRolesPanelItem>
   );
@@ -40,9 +51,9 @@ const TeamMembersRow = (props: {
 
 const TeamRoleSelect = (props: {
   hasWriteAccess: boolean;
-  member: Member;
+  member: TeamMember;
   organization: Organization;
-  updateMemberRole: (member: Member, newRole: string) => void;
+  updateMemberRole: (member: TeamMember, newRole: string) => void;
 }) => {
   const {hasWriteAccess, organization, member, updateMemberRole} = props;
   const {orgRoleList, teamRoleList, features} = organization;
@@ -53,7 +64,7 @@ const TeamRoleSelect = (props: {
   const {orgRole: orgRoleId} = member;
   const orgRole = orgRoleList.find(r => r.id === orgRoleId);
 
-  const teamRoleId: any = (member as any).teamRole || orgRole?.minimumTeamRole; // FIXME
+  const teamRoleId = member.teamRole || orgRole?.minimumTeamRole;
   const teamRole = teamRoleList.find(r => r.id === teamRoleId) || teamRoleList[0];
 
   if (
@@ -88,11 +99,11 @@ const TeamRoleSelect = (props: {
 
 const RemoveButton = (props: {
   hasWriteAccess: boolean;
-  member: Member;
-  removeMember: (member: Member) => void;
+  member: TeamMember;
+  onClick: () => void;
   user: User;
 }) => {
-  const {member, user, hasWriteAccess, removeMember} = props;
+  const {member, user, hasWriteAccess, onClick} = props;
 
   const isSelf = member.email === user.email;
   const canRemoveMember = hasWriteAccess || isSelf;
@@ -105,7 +116,7 @@ const RemoveButton = (props: {
       size="xs"
       disabled={!canRemoveMember}
       icon={<IconSubtract size="xs" isCircled />}
-      onClick={() => removeMember(member)}
+      onClick={onClick}
       aria-label={t('Remove')}
     >
       {t('Remove')}

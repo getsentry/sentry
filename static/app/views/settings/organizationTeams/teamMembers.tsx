@@ -21,7 +21,7 @@ import {Panel, PanelHeader} from 'sentry/components/panels';
 import {IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Config, Member, Organization} from 'sentry/types';
+import {Config, Member, Organization, TeamMember} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 import withConfig from 'sentry/utils/withConfig';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -45,7 +45,7 @@ type State = {
   error: boolean;
   loading: boolean;
   orgMemberList: Member[];
-  teamMemberList: Member[];
+  teamMemberList: TeamMember[];
 };
 
 class TeamMembers extends Component<Props, State> {
@@ -154,7 +154,7 @@ class TeamMembers extends Component<Props, State> {
           this.setState({
             loading: false,
             error: false,
-            teamMemberList: this.state.teamMemberList.concat([orgMember]),
+            teamMemberList: this.state.teamMemberList.concat([orgMember as TeamMember]),
           });
           addSuccessMessage(t('Successfully added member to team.'));
         },
