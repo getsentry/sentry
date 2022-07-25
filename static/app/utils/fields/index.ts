@@ -1,3 +1,5 @@
+import {t} from 'sentry/locale';
+
 export enum FieldKind {
   TAG = 'tag',
   MEASUREMENT = 'measurement',
@@ -107,6 +109,30 @@ export enum FieldValueType {
   NEVER = 'never',
 }
 
+export enum WebVital {
+  FP = 'measurements.fp',
+  FCP = 'measurements.fcp',
+  LCP = 'measurements.lcp',
+  FID = 'measurements.fid',
+  CLS = 'measurements.cls',
+  TTFB = 'measurements.ttfb',
+  RequestTime = 'measurements.ttfb.requesttime',
+}
+
+export enum MobileVital {
+  AppStartCold = 'measurements.app_start_cold',
+  AppStartWarm = 'measurements.app_start_warm',
+  FramesTotal = 'measurements.frames_total',
+  FramesSlow = 'measurements.frames_slow',
+  FramesFrozen = 'measurements.frames_frozen',
+  FramesSlowRate = 'measurements.frames_slow_rate',
+  FramesFrozenRate = 'measurements.frames_frozen_rate',
+  StallCount = 'measurements.stall_count',
+  StallTotalTime = 'measurements.stall_total_time',
+  StallLongestTime = 'measurements.stall_longest_time',
+  StallPercentage = 'measurements.stall_percentage',
+}
+
 export interface FieldDefinition {
   kind: FieldKind;
   valueType: FieldValueType;
@@ -114,7 +140,101 @@ export interface FieldDefinition {
   desc?: string;
 }
 
+export const MEASUREMENT_FIELDS: Record<string, FieldDefinition> = {
+  [WebVital.FP]: {
+    desc: t('Web Vital First Paint'),
+    kind: FieldKind.METRICS,
+    valueType: FieldValueType.DURATION,
+  },
+  [WebVital.FCP]: {
+    desc: t('Web Vital First Contentful Paint'),
+    kind: FieldKind.METRICS,
+    valueType: FieldValueType.DURATION,
+  },
+  [WebVital.LCP]: {
+    desc: t('Web Vital Largest Contentful Paint'),
+    kind: FieldKind.METRICS,
+    valueType: FieldValueType.DURATION,
+  },
+  [WebVital.FID]: {
+    desc: t('Web Vital First Input Delay'),
+    kind: FieldKind.METRICS,
+    valueType: FieldValueType.DURATION,
+  },
+  [WebVital.CLS]: {
+    desc: t('Web Vital Cumulative Layout Shift'),
+    kind: FieldKind.METRICS,
+    valueType: FieldValueType.NUMBER,
+  },
+  [WebVital.TTFB]: {
+    desc: t('Web Vital Time To First Byte'),
+    kind: FieldKind.METRICS,
+    valueType: FieldValueType.DURATION,
+  },
+  [WebVital.RequestTime]: {
+    desc: t('Time between start of request to start of response'),
+    kind: FieldKind.METRICS,
+    valueType: FieldValueType.DURATION,
+  },
+  [MobileVital.AppStartCold]: {
+    desc: t('First launch (not in memory and no process exists)'),
+    kind: FieldKind.METRICS,
+    valueType: FieldValueType.DURATION,
+  },
+  [MobileVital.AppStartWarm]: {
+    desc: t('Already launched (partial memory and process may exist)'),
+    kind: FieldKind.METRICS,
+    valueType: FieldValueType.DURATION,
+  },
+  [MobileVital.FramesTotal]: {
+    desc: t('Total number of frames'),
+    kind: FieldKind.METRICS,
+    valueType: FieldValueType.INTEGER,
+  },
+  [MobileVital.FramesSlow]: {
+    desc: t('Number of slow frames'),
+    kind: FieldKind.METRICS,
+    valueType: FieldValueType.INTEGER,
+  },
+  [MobileVital.FramesFrozen]: {
+    desc: t('Number of frozen frames'),
+    kind: FieldKind.METRICS,
+    valueType: FieldValueType.INTEGER,
+  },
+  [MobileVital.FramesSlowRate]: {
+    desc: t('Number of slow frames out of the total'),
+    kind: FieldKind.METRICS,
+    valueType: FieldValueType.PERCENTAGE,
+  },
+  [MobileVital.FramesFrozenRate]: {
+    desc: t('Number of frozen frames out of the total'),
+    kind: FieldKind.METRICS,
+    valueType: FieldValueType.PERCENTAGE,
+  },
+  [MobileVital.StallCount]: {
+    desc: t('Count of slow Javascript event loops (React Native)'),
+    kind: FieldKind.METRICS,
+    valueType: FieldValueType.INTEGER,
+  },
+  [MobileVital.StallTotalTime]: {
+    desc: t('Total stall duration (React Native)'),
+    kind: FieldKind.METRICS,
+    valueType: FieldValueType.PERCENTAGE,
+  },
+  [MobileVital.StallLongestTime]: {
+    desc: t('Duration of slowest Javascript event loop (React Native)'),
+    kind: FieldKind.METRICS,
+    valueType: FieldValueType.INTEGER,
+  },
+  [MobileVital.StallPercentage]: {
+    desc: t('Total stall duration out of the total transaction duration (React Native)'),
+    kind: FieldKind.METRICS,
+    valueType: FieldValueType.PERCENTAGE,
+  },
+};
+
 export const FIELDS: Record<string, FieldDefinition> = {
+  ...MEASUREMENT_FIELDS,
   [FieldKey.AGE]: {
     desc: 'The age of the issue in relative time',
     kind: FieldKind.FIELD,
@@ -568,6 +688,89 @@ export const ISSUE_FIELDS = [
   FieldKey.USER_ID,
   FieldKey.USER_IP,
   FieldKey.USER_USERNAME,
+];
+
+/**
+ * Refer to src/sentry/snuba/events.py, search for Columns
+ */
+export const DISCOVER_FIELDS = [
+  FieldKey.ID,
+  // issue.id and project.id are omitted on purpose.
+  // Customers should use `issue` and `project` instead.
+  FieldKey.TIMESTAMP,
+  // time is omitted on purpose.
+  // Customers should use `timestamp` or `timestamp.to_hour`.
+  FieldKey.TIMESTAMP_TO_HOUR,
+  FieldKey.TIMESTAMP_TO_DAY,
+
+  FieldKey.CULPRIT,
+  FieldKey.LOCATION,
+  FieldKey.MESSAGE,
+  FieldKey.PLATFORM_NAME,
+  FieldKey.ENVIRONMENT,
+  FieldKey.RELEASE,
+  FieldKey.DIST,
+  FieldKey.TITLE,
+  FieldKey.EVENT_TYPE,
+  // tags.key and tags.value are omitted on purpose as well.
+
+  FieldKey.TRANSACTION,
+  FieldKey.USER,
+  FieldKey.USER_ID,
+  FieldKey.USER_EMAIL,
+  FieldKey.USER_USERNAME,
+  FieldKey.USER_IP,
+  FieldKey.SDK_NAME,
+  FieldKey.SDK_VERSION,
+  FieldKey.HTTP_METHOD,
+  FieldKey.HTTP_REFERER,
+  FieldKey.HTTP_URL,
+  FieldKey.OS_BUILD,
+  FieldKey.OS_KERNEL_VERSION,
+  FieldKey.DEVICE_NAME,
+  FieldKey.DEVICE_BRAND,
+  FieldKey.DEVICE_LOCALE,
+  FieldKey.DEVICE_UUID,
+  FieldKey.DEVICE_ARCH,
+  FieldKey.DEVICE_FAMILY,
+  FieldKey.DEVICE_BATTERY_LEVEL,
+  FieldKey.DEVICE_ORIENTATION,
+  FieldKey.DEVICE_SIMULATOR,
+  FieldKey.DEVICE_ONLINE,
+  FieldKey.DEVICE_CHARGING,
+  FieldKey.GEO_COUNTRY_CODE,
+  FieldKey.GEO_REGION,
+  FieldKey.GEO_CITY,
+  FieldKey.ERROR_TYPE,
+  FieldKey.ERROR_VALUE,
+  FieldKey.ERROR_MECHANISM,
+  FieldKey.ERROR_HANDLED,
+  FieldKey.ERROR_UNHANDLED,
+  FieldKey.LEVEL,
+  FieldKey.STACK_ABS_PATH,
+  FieldKey.STACK_FILENAME,
+  FieldKey.STACK_PACKAGE,
+  FieldKey.STACK_MODULE,
+  FieldKey.STACK_FUNCTION,
+  FieldKey.STACK_IN_APP,
+  FieldKey.STACK_COLNO,
+  FieldKey.STACK_LINENO,
+  FieldKey.STACK_STACK_LEVEL,
+  // contexts.key and contexts.value omitted on purpose.
+
+  // Transaction event fields.
+  FieldKey.TRANSACTION_DURATION,
+  FieldKey.TRANSACTION_OP,
+  FieldKey.TRANSACTION_STATUS,
+
+  FieldKey.TRACE,
+  FieldKey.TRACE_SPAN,
+  FieldKey.TRACE_PARENT_SPAN,
+
+  // Field alises defined in src/sentry/api/event_search.py
+  FieldKey.PROJECT,
+  FieldKey.ISSUE,
+  FieldKey.USER_DISPLAY,
 ];
 
 export const getFieldDefinition = (key: string): FieldDefinition | null => {

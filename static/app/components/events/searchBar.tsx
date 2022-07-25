@@ -12,7 +12,6 @@ import {defined} from 'sentry/utils';
 import {
   Field,
   FIELD_TAGS,
-  getFieldDoc,
   isAggregateField,
   isEquation,
   isMeasurement,
@@ -207,7 +206,6 @@ function SearchBar(props: SearchBarProps) {
           maxSearchItems={maxSearchItems}
           excludeEnvironment
           maxMenuHeight={maxMenuHeight ?? 300}
-          getFieldDoc={getFieldDoc}
           {...props}
         />
       )}
