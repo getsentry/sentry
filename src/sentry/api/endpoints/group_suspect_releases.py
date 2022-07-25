@@ -56,36 +56,33 @@ class GroupSuspectReleasesEndpoint(GroupEndpoint, EnvironmentMixin):
 
         first_seen = group.first_seen
         deploy_filter = Q(
-            organization_id=organization.id,
             date_finished__gt=first_seen - timedelta(hours=1),
             date_finished__lte=first_seen,
-            release__projects__in=[group.project],
         )
         if latest_regression_date:
             deploy_filter |= Q(
-                organization_id=organization.id,
                 date_finished__gt=latest_regression_date - timedelta(hours=1),
                 date_finished__lte=latest_regression_date,
-                release__projects__in=[group.project],
             )
 
-        deploys = Deploy.objects.filter(deploy_filter).select_related("release")
-        if deploys.exists():
-            suspect_releases.update({deploy.release for deploy in deploys})
-        else:
-            releases = Release.objects.filter(
-                projects__in=[group.project],
-                date_released__gt=first_seen - timedelta(hours=1),
-                date_released__lte=first_seen,
-            )
-            suspect_releases.update(releases)
+        deploys = Deploy.objects.filter(
+            deploy_filter,
+            organization_id=organization.id,
+            release__projects__in=[group.project],
+        ).select_related("release")
+        suspect_releases.update({deploy.release for deploy in deploys})
+
+        releases = Release.objects.filter(
+            projects__in=[group.project],
+            date_released__gt=first_seen - timedelta(hours=1),
+            date_released__lte=first_seen,
+        )
+        suspect_releases.update(releases)
 
         suspect_releases = serialize(suspect_releases, request.user)
-        data.update(
-            {
-                "suspectReleases": list(
-                    sorted(suspect_releases, key=lambda x: x["dateCreated"], reverse=True)
-                ),
-            }
-        )
+        data = {
+            "suspectReleases": list(
+                sorted(suspect_releases, key=lambda x: x["dateCreated"], reverse=True)
+            )
+        }
         return Response(data)
