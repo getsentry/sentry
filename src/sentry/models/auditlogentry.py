@@ -2,6 +2,7 @@ from django.db import models
 from django.utils import timezone
 
 from sentry.db.models import (
+    BoundedBigIntegerField,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     GzippedDictField,
@@ -32,7 +33,7 @@ class AuditLogEntry(Model):
         on_delete=models.SET_NULL,
     )
     # TODO(dcramer): we want to compile this mapping into JSX for the UI
-    event = BoundedPositiveIntegerField()
+    event = BoundedBigIntegerField()
     ip_address = models.GenericIPAddressField(null=True, unpack_ipv4=True)
     data = GzippedDictField()
     datetime = models.DateTimeField(default=timezone.now)
