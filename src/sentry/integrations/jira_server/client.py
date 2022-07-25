@@ -45,23 +45,39 @@ class JiraServerClient(ApiClient):
     # lets the user make their second jira issue with cached data.
     cache_time = 240
 
-    def __init__(self, base_url, jira_style, verify_ssl, logging_context=None):
+    def __init__(self, base_url, credentials, verify_ssl, logging_context=None):
         self.base_url = base_url
-        # `jira_style` encapsulates differences between jira server & jira cloud.
-        # We only support one API version for Jira, but server/cloud require different
-        # authentication mechanisms and caching.
-        self.jira_style = jira_style
+        self.credentials = credentials
         super().__init__(verify_ssl, logging_context)
 
     def get_cache_prefix(self):
-        return self.jira_style.cache_prefix
+        return "sentry-jira-server:"
+
+    def request_hook(self, method, path, data, params, **kwargs):
+        """
+        Used by Jira Client to apply the jira-server authentication
+        Which is RSA signed OAuth1
+        """
+        if "auth" not in kwargs:
+            kwargs["auth"] = OAuth1(
+                client_key=self.credentials["consumer_key"],
+                rsa_key=self.credentials["private_key"],
+                resource_owner_key=self.credentials["access_token"],
+                resource_owner_secret=self.credentials["access_token_secret"],
+                signature_method=SIGNATURE_RSA,
+                signature_type="auth_header",
+            )
+
+        request_spec = kwargs.copy()
+        request_spec.update(dict(method=method, path=path, data=data, params=params))
+        return request_spec
 
     def request(self, method, path, data=None, params=None, **kwargs):
         """
         Use the request_hook method for our specific style of Jira to
         add authentication data and transform parameters.
         """
-        request_spec = self.jira_style.request_hook(method, path, data, params, **kwargs)
+        request_spec = self.request_hook(method, path, data, params, **kwargs)
         if "headers" not in request_spec:
             request_spec["headers"] = {}
 
@@ -72,13 +88,13 @@ class JiraServerClient(ApiClient):
         return self._request(**request_spec)
 
     def user_id_get_param(self):
-        return self.jira_style.user_id_get_param()
+        return "username"
 
     def user_id_field(self):
-        return self.jira_style.user_id_field()
+        return "name"
 
     def user_query_param(self):
-        return self.jira_style.user_query_param()
+        return "username"
 
     def get_issue(self, issue_id):
         return self.get(self.ISSUE_URL % (issue_id,))
@@ -290,58 +306,3 @@ class JiraServerSetupClient(ApiClient):
                 signature_type="auth_header",
             )
         return self._request(*args, **kwargs)
-
-
-class JiraServer:
-    """
-    Contains the Jira Server specifics that a JiraClient needs
-    in order to communicate with jira
-
-    You can find JIRA REST API docs here:
-
-    https://developer.atlassian.com/server/jira/platform/rest-apis/
-    """
-
-    def __init__(self, credentials):
-        self.credentials = credentials
-
-    @property
-    def cache_prefix(self):
-        return "sentry-jira-server:"
-
-    def request_hook(self, method, path, data, params, **kwargs):
-        """
-        Used by Jira Client to apply the jira-server authentication
-        Which is RSA signed OAuth1
-        """
-        if "auth" not in kwargs:
-            kwargs["auth"] = OAuth1(
-                client_key=self.credentials["consumer_key"],
-                rsa_key=self.credentials["private_key"],
-                resource_owner_key=self.credentials["access_token"],
-                resource_owner_secret=self.credentials["access_token_secret"],
-                signature_method=SIGNATURE_RSA,
-                signature_type="auth_header",
-            )
-
-        request_spec = kwargs.copy()
-        request_spec.update(dict(method=method, path=path, data=data, params=params))
-        return request_spec
-
-    def user_id_field(self):
-        """
-        Jira Server doesn't require GDPR compliant API usage so we can use `name`
-        """
-        return "name"
-
-    def user_query_param(self):
-        """
-        Jira Server doesn't require GDPR compliant API usage so we can use `username`
-        """
-        return "username"
-
-    def user_id_get_param(self):
-        """
-        Jira Server doesn't require GDPR compliant API usage so we can use `username`
-        """
-        return "username"

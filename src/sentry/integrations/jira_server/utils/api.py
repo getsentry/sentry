@@ -3,32 +3,29 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any, Mapping
 
-from rest_framework import status
-from rest_framework.response import Response
-
 from sentry.integrations.utils import sync_group_assignee_inbound
-from sentry.shared_integrations.exceptions import ApiError
+from sentry.shared_integrations.exceptions import IntegrationError
 
-from ..client import JiraApiClient
+from ..client import JiraServerClient
 
 if TYPE_CHECKING:
-    from sentry.models import Integration
-
+    from sentry.models import Identity, Integration, OrganizationIntegration
 
 logger = logging.getLogger(__name__)
 
 
-def _get_client(integration: Integration) -> JiraApiClient:
-    return JiraApiClient(
+def _get_client(integration: Integration) -> JiraServerClient:
+    oi = OrganizationIntegration.objects.get(integration_id=integration.id)
+    try:
+        default_identity = Identity.objects.get(id=oi.default_auth_id)
+    except Identity.DoesNotExist:
+        raise IntegrationError("Identity not found.")
+
+    return JiraServerClient(
         integration.metadata["base_url"],
-        integration.metadata["shared_secret"],
+        default_identity.data,
         verify_ssl=True,
     )
-
-
-def set_badge(integration: Integration, issue_key: str, group_link_num: int) -> Response:
-    client = _get_client(integration)
-    return client.set_issue_property(issue_key, group_link_num)
 
 
 def get_assignee_email(
@@ -100,19 +97,3 @@ def handle_status_change(integration, data):
         installation.sync_status_inbound(
             issue_key, {"changelog": changelog, "issue": data["issue"]}
         )
-
-
-def handle_jira_api_error(error: ApiError, message: str = "") -> Mapping[str, str] | None:
-    if error.code in (
-        status.HTTP_500_INTERNAL_SERVER_ERROR,
-        status.HTTP_503_SERVICE_UNAVAILABLE,
-    ):
-        return {"error_message": f"Cannot reach host{message}."}
-
-    if error.code in (
-        status.HTTP_403_FORBIDDEN,
-        status.HTTP_404_NOT_FOUND,
-    ):
-        return {"error_message": f"User lacks permissions{message}."}
-
-    return None

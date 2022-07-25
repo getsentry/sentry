@@ -16,59 +16,6 @@ ISSUE_KEY_RE = re.compile(r"^[A-Za-z][A-Za-z0-9]*-\d+$")
 CUSTOMFIELD_PREFIX = "customfield_"
 
 
-class JiraCloud:
-    """
-    Contains the jira-cloud specifics that a JiraClient needs
-    in order to communicate with jira
-    """
-
-    def __init__(self, shared_secret):
-        self.shared_secret = shared_secret
-
-    @property
-    def cache_prefix(self):
-        return "sentry-jira-2:"
-
-    def request_hook(self, method, path, data, params, **kwargs):
-        """
-        Used by Jira Client to apply the jira-cloud authentication
-        """
-        # handle params that are already part of the path
-        url_params = dict(parse_qs(urlsplit(path).query))
-        url_params.update(params or {})
-        path = path.split("?")[0]
-
-        jwt_payload = {
-            "iss": JIRA_KEY,
-            "iat": datetime.datetime.utcnow(),
-            "exp": datetime.datetime.utcnow() + datetime.timedelta(seconds=5 * 60),
-            "qsh": get_query_hash(path, method.upper(), url_params),
-        }
-        encoded_jwt = jwt.encode(jwt_payload, self.shared_secret)
-        params = dict(jwt=encoded_jwt, **(url_params or {}))
-        request_spec = kwargs.copy()
-        request_spec.update(dict(method=method, path=path, data=data, params=params))
-        return request_spec
-
-    def user_id_field(self):
-        """
-        Jira-Cloud requires GDPR compliant API usage so we have to use accountId
-        """
-        return "accountId"
-
-    def user_query_param(self):
-        """
-        Jira-Cloud requires GDPR compliant API usage so we have to use query
-        """
-        return "query"
-
-    def user_id_get_param(self):
-        """
-        Jira-Cloud requires GDPR compliant API usage so we have to use accountId
-        """
-        return "accountId"
-
-
 class JiraApiClient(ApiClient):
     # TODO: Update to v3 endpoints
     COMMENTS_URL = "/rest/api/2/issue/%s/comment"
@@ -97,23 +44,41 @@ class JiraApiClient(ApiClient):
     # lets the user make their second jira issue with cached data.
     cache_time = 240
 
-    def __init__(self, base_url, jira_style, verify_ssl, logging_context=None):
+    def __init__(self, base_url, shared_secret, verify_ssl, logging_context=None):
         self.base_url = base_url
-        # `jira_style` encapsulates differences between jira server & jira cloud.
-        # We only support one API version for Jira, but server/cloud require different
-        # authentication mechanisms and caching.
-        self.jira_style = jira_style
+        self.shared_secret = shared_secret
         super().__init__(verify_ssl, logging_context)
 
     def get_cache_prefix(self):
-        return self.jira_style.cache_prefix
+        return "sentry-jira-2:"
+
+    def request_hook(self, method, path, data, params, **kwargs):
+        """
+        Used by Jira Client to apply the jira-cloud authentication
+        """
+        # handle params that are already part of the path
+        url_params = dict(parse_qs(urlsplit(path).query))
+        url_params.update(params or {})
+        path = path.split("?")[0]
+
+        jwt_payload = {
+            "iss": JIRA_KEY,
+            "iat": datetime.datetime.utcnow(),
+            "exp": datetime.datetime.utcnow() + datetime.timedelta(seconds=5 * 60),
+            "qsh": get_query_hash(path, method.upper(), url_params),
+        }
+        encoded_jwt = jwt.encode(jwt_payload, self.shared_secret)
+        params = dict(jwt=encoded_jwt, **(url_params or {}))
+        request_spec = kwargs.copy()
+        request_spec.update(dict(method=method, path=path, data=data, params=params))
+        return request_spec
 
     def request(self, method, path, data=None, params=None, **kwargs):
         """
         Use the request_hook method for our specific style of Jira to
         add authentication data and transform parameters.
         """
-        request_spec = self.jira_style.request_hook(method, path, data, params, **kwargs)
+        request_spec = self.request_hook(method, path, data, params, **kwargs)
         if "headers" not in request_spec:
             request_spec["headers"] = {}
 
@@ -124,13 +89,22 @@ class JiraApiClient(ApiClient):
         return self._request(**request_spec)
 
     def user_id_get_param(self):
-        return self.jira_style.user_id_get_param()
+        """
+        Jira-Cloud requires GDPR compliant API usage so we have to use accountId
+        """
+        return "accountId"
 
     def user_id_field(self):
-        return self.jira_style.user_id_field()
+        """
+        Jira-Cloud requires GDPR compliant API usage so we have to use accountId
+        """
+        return "accountId"
 
     def user_query_param(self):
-        return self.jira_style.user_query_param()
+        """
+        Jira-Cloud requires GDPR compliant API usage so we have to use query
+        """
+        return "query"
 
     def get_issue(self, issue_id):
         return self.get(self.ISSUE_URL % (issue_id,))

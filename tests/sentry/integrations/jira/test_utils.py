@@ -6,11 +6,11 @@ from sentry.testutils import TestCase
 class BuildUserChoiceTest(TestCase):
     def test_jira_cloud(self):
         user_response = StubService.get_stub_data("jira", "user.json")
-        assert build_user_choice(user_response, user_id_field="accountId") == (
+        assert build_user_choice(user_response) == (
             "012345:00000000-1111-2222-3333-444444444444",
             "Saif Hakim",
         )
 
     def test_unexpected_id(self):
-        user_response = StubService.get_stub_data("jira", "user.json")
-        assert build_user_choice(user_response, user_id_field="name") is None
+        user_response = StubService.get_stub_data("jira", "unexpected_user.json")
+        assert build_user_choice(user_response) is None

@@ -46,7 +46,7 @@ from sentry.utils.hashlib import sha1_text
 from sentry.utils.http import absolute_uri
 from sentry.web.helpers import render_to_response
 
-from .client import JiraServer, JiraServerClient, JiraServerSetupClient
+from .client import JiraServerClient, JiraServerSetupClient
 
 logger = logging.getLogger("sentry.integrations.jira_server")
 
@@ -286,7 +286,7 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
 
         return JiraServerClient(
             self.model.metadata["base_url"],
-            JiraServer(self.default_identity.data),
+            self.default_identity.data,
             self.model.metadata["verify_ssl"],
         )
 
@@ -881,7 +881,7 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
                         },
                     )
                     continue
-                reporter_tuple = build_user_choice(reporter_info, client.user_id_field())
+                reporter_tuple = build_user_choice(reporter_info)
                 if not reporter_tuple:
                     continue
                 reporter_id, reporter_label = reporter_tuple
