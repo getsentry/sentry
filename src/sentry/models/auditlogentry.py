@@ -24,7 +24,7 @@ class AuditLogEntry(Model):
     )
     # if the entry was created via an api key
     actor_key = FlexibleForeignKey("sentry.ApiKey", null=True, blank=True)
-    target_object = BoundedPositiveIntegerField(null=True)
+    target_object = BoundedBigIntegerField(null=True)
     target_user = FlexibleForeignKey(
         "sentry.User",
         null=True,
@@ -33,7 +33,7 @@ class AuditLogEntry(Model):
         on_delete=models.SET_NULL,
     )
     # TODO(dcramer): we want to compile this mapping into JSX for the UI
-    event = BoundedBigIntegerField()
+    event = BoundedPositiveIntegerField()
     ip_address = models.GenericIPAddressField(null=True, unpack_ipv4=True)
     data = GzippedDictField()
     datetime = models.DateTimeField(default=timezone.now)
