@@ -6,6 +6,7 @@ import TriggersChart from 'sentry/views/alerts/rules/metric/triggers/chart';
 import {
   AlertRuleComparisonType,
   AlertRuleThresholdType,
+  Dataset,
 } from 'sentry/views/alerts/rules/metric/types';
 
 describe('Incident Rules Create', () => {
@@ -32,11 +33,14 @@ describe('Incident Rules Create', () => {
         query="event.type:error"
         timeWindow={1}
         aggregate="count()"
+        dataset={Dataset.ERRORS}
         triggers={[]}
         environment={null}
         comparisonType={AlertRuleComparisonType.COUNT}
         resolveThreshold={null}
         thresholdType={AlertRuleThresholdType.BELOW}
+        newAlertOrQuery
+        handleMEPAlertDataset={() => {}}
       />
     );
 

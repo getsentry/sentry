@@ -12,6 +12,7 @@ from sentry.search.events.builder import MetricsQueryBuilder
 from sentry.search.events.datasets import field_aliases, filter_aliases
 from sentry.search.events.datasets.base import DatasetConfig
 from sentry.search.events.types import SelectType, WhereType
+from sentry.utils.snuba import is_duration_measurement, is_span_op_breakdown
 
 
 class MetricsDatasetConfig(DatasetConfig):
@@ -67,7 +68,7 @@ class MetricsDatasetConfig(DatasetConfig):
 
         return value_id
 
-    def reflective_metric_type(
+    def metric_type_resolver(
         self, index: Optional[int] = 0
     ) -> Callable[[List[fields.FunctionArg], Dict[str, Any]], str]:
         """Return the type of the metric, default to duration
@@ -82,8 +83,22 @@ class MetricsDatasetConfig(DatasetConfig):
             value = parameter_values[argument.name]
             for measurement in self.builder.custom_measurement_map:
                 if measurement["name"] == value and measurement["metric_id"] is not None:
-                    return measurement["unit"]
-            return "duration"
+                    unit = measurement["unit"]
+                    if unit in constants.SIZE_UNITS or unit in constants.DURATION_UNITS:
+                        return unit
+                    elif unit == "none":
+                        return "integer"
+                    elif unit in constants.PERCENT_UNITS:
+                        return "percentage"
+                    else:
+                        return "number"
+            if (
+                value == "transaction.duration"
+                or is_duration_measurement(value)
+                or is_span_op_breakdown(value)
+            ):
+                return "duration"
+            return "number"
 
         return result_type_fn
 
@@ -136,7 +151,7 @@ class MetricsDatasetConfig(DatasetConfig):
                         ],
                         alias,
                     ),
-                    result_type_fn=self.reflective_metric_type(),
+                    result_type_fn=self.metric_type_resolver(),
                     default_result_type="integer",
                 ),
                 fields.MetricsFunction(
@@ -171,7 +186,7 @@ class MetricsDatasetConfig(DatasetConfig):
                     snql_distribution=lambda args, alias: self._resolve_percentile(
                         args, alias, 0.5
                     ),
-                    result_type_fn=self.reflective_metric_type(),
+                    result_type_fn=self.metric_type_resolver(),
                     default_result_type="duration",
                 ),
                 fields.MetricsFunction(
@@ -188,7 +203,7 @@ class MetricsDatasetConfig(DatasetConfig):
                     snql_distribution=lambda args, alias: self._resolve_percentile(
                         args, alias, 0.75
                     ),
-                    result_type_fn=self.reflective_metric_type(),
+                    result_type_fn=self.metric_type_resolver(),
                     default_result_type="duration",
                 ),
                 fields.MetricsFunction(
@@ -205,7 +220,7 @@ class MetricsDatasetConfig(DatasetConfig):
                     snql_distribution=lambda args, alias: self._resolve_percentile(
                         args, alias, 0.90
                     ),
-                    result_type_fn=self.reflective_metric_type(),
+                    result_type_fn=self.metric_type_resolver(),
                     default_result_type="duration",
                 ),
                 fields.MetricsFunction(
@@ -222,7 +237,7 @@ class MetricsDatasetConfig(DatasetConfig):
                     snql_distribution=lambda args, alias: self._resolve_percentile(
                         args, alias, 0.95
                     ),
-                    result_type_fn=self.reflective_metric_type(),
+                    result_type_fn=self.metric_type_resolver(),
                     default_result_type="duration",
                 ),
                 fields.MetricsFunction(
@@ -239,7 +254,7 @@ class MetricsDatasetConfig(DatasetConfig):
                     snql_distribution=lambda args, alias: self._resolve_percentile(
                         args, alias, 0.99
                     ),
-                    result_type_fn=self.reflective_metric_type(),
+                    result_type_fn=self.metric_type_resolver(),
                     default_result_type="duration",
                 ),
                 fields.MetricsFunction(
@@ -254,7 +269,7 @@ class MetricsDatasetConfig(DatasetConfig):
                     ],
                     calculated_args=[resolve_metric_id],
                     snql_distribution=lambda args, alias: self._resolve_percentile(args, alias, 1),
-                    result_type_fn=self.reflective_metric_type(),
+                    result_type_fn=self.metric_type_resolver(),
                     default_result_type="duration",
                 ),
                 fields.MetricsFunction(
@@ -271,7 +286,7 @@ class MetricsDatasetConfig(DatasetConfig):
                         ],
                         alias,
                     ),
-                    result_type_fn=self.reflective_metric_type(),
+                    result_type_fn=self.metric_type_resolver(),
                 ),
                 fields.MetricsFunction(
                     "min",
@@ -287,7 +302,7 @@ class MetricsDatasetConfig(DatasetConfig):
                         ],
                         alias,
                     ),
-                    result_type_fn=self.reflective_metric_type(),
+                    result_type_fn=self.metric_type_resolver(),
                 ),
                 fields.MetricsFunction(
                     "sum",
@@ -303,7 +318,7 @@ class MetricsDatasetConfig(DatasetConfig):
                         ],
                         alias,
                     ),
-                    result_type_fn=self.reflective_metric_type(),
+                    result_type_fn=self.metric_type_resolver(),
                 ),
                 fields.MetricsFunction(
                     "sumIf",
@@ -340,7 +355,7 @@ class MetricsDatasetConfig(DatasetConfig):
                     ],
                     calculated_args=[resolve_metric_id],
                     snql_distribution=self._resolve_percentile,
-                    result_type_fn=self.reflective_metric_type(),
+                    result_type_fn=self.metric_type_resolver(),
                     default_result_type="duration",
                 ),
                 fields.MetricsFunction(
@@ -508,7 +523,7 @@ class MetricsDatasetConfig(DatasetConfig):
                         ],
                         alias,
                     ),
-                    default_result_type="integer",
+                    default_result_type="percentage",
                 ),
                 fields.MetricsFunction(
                     "histogram",

@@ -266,10 +266,10 @@ function transformEventsResponseToTable(
   );
   // events api uses a different response format so we need to construct tableData differently
   if (shouldUseEvents) {
-    const fieldsMeta = (data as EventsTableData).meta?.fields;
+    const {fields, ...otherMeta} = (data as EventsTableData).meta ?? {};
     tableData = {
       ...data,
-      meta: {...fieldsMeta, isMetricsData: data.meta?.isMetricsData},
+      meta: {...fields, ...otherMeta},
     } as TableData;
   }
   return tableData as TableData;

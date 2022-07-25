@@ -1,20 +1,20 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import TYPE_CHECKING, Any
+from typing import Any, Sequence, Tuple, cast
 
-# Prevent circular imports for the time being, till functionality is
-# moved out of card_builder/__init__.py where types are defined.
-if TYPE_CHECKING:
-    from sentry.integrations.msteams.card_builder import (
-        Action,
-        ColumnBlock,
-        ColumnSetBlock,
-        ImageBlock,
-        ItemBlock,
-        TextBlock,
-    )
-
+from sentry.integrations.msteams.card_builder import (
+    Action,
+    ActionSet,
+    Block,
+    ColumnBlock,
+    ColumnSetBlock,
+    ContainerBlock,
+    ImageBlock,
+    InputChoiceSetBlock,
+    ItemBlock,
+    TextBlock,
+)
 from sentry.utils.assets import get_asset_url
 from sentry.utils.http import absolute_uri
 
@@ -108,9 +108,7 @@ def ensure_column_block(item: ItemBlock | ColumnBlock) -> ColumnBlock:
     if isinstance(item, dict) and "Column" == item.get("type", ""):
         return item
 
-    item: ItemBlock = item
-
-    return create_column_block(item)
+    return create_column_block(cast(ItemBlock, item))
 
 
 def create_column_set_block(*columns: ItemBlock | ColumnBlock) -> ColumnSetBlock:
@@ -127,4 +125,25 @@ def create_action_block(action_type: ActionType, title: str, **kwargs: Any) -> A
         "type": action_type,
         "title": title,
         param: kwargs[param],
+    }
+
+
+def create_action_set_block(*actions: Action) -> ActionSet:
+    return {"type": "ActionSet", "actions": list(actions)}
+
+
+def create_container_block(*items: Block) -> ContainerBlock:
+    return {"type": "Container", "items": list(items)}
+
+
+def create_input_choice_set_block(
+    id: str, choices: Sequence[Tuple[str, Any]], default_choice: Any
+) -> InputChoiceSetBlock:
+    default_choice_arg = {"value": default_choice} if default_choice else {}
+
+    return {
+        "type": "Input.ChoiceSet",
+        "id": id,
+        "choices": [{"title": title, "value": value} for title, value in choices],
+        **default_choice_arg,
     }
