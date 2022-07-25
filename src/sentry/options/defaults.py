@@ -413,7 +413,7 @@ register("eventstream:kafka-headers", default=True)
 
 # Post process forwarder options
 # Gets data from Kafka headers
-register("post-process-forwarder:kafka-headers", default=False)
+register("post-process-forwarder:kafka-headers", default=True)
 # Number of threads to use for post processing
 register("post-process-forwarder:concurrency", default=1)
 
