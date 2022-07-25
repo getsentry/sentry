@@ -1,4 +1,3 @@
-import os
 from unittest.mock import patch
 
 from django.urls import reverse
@@ -14,9 +13,6 @@ class OrganizationSentryFunctionDetails(APITestCase):
         super().setUp()
         self.create_organization(owner=self.user, name="RowdyTiger")
         self.login_as(user=self.user)
-        os.environ[
-            "GOOGLE_APPLICATION_CREDENTIALS"
-        ] = "/Users/vpandiar/Documents/testing-sentry/vignesh-dev.json"
 
     @patch("sentry.api.endpoints.organization_sentry_function.create_function")
     def test_get_valid_function(self, mock_func):
