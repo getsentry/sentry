@@ -38,11 +38,15 @@ _TRANSACTION_METRICS_TO_RULE_FIELD = {
 _SATISFACTION_TARGET_METRICS = (
     "s:transactions/user@none",
     "d:transactions/duration@millisecond",
+    "d:transactions/measurements.lcp@millisecond",
 )
 
 _SATISFACTION_TARGET_TAG = "satisfaction"
 
-_HISTOGRAM_OUTLIERS_TARGET_METRICS = ("d:transactions/duration@millisecond",)
+_HISTOGRAM_OUTLIERS_TARGET_METRICS = (
+    "d:transactions/duration@millisecond",
+    "d:transactions/measurements.lcp@millisecond",
+)
 
 
 @dataclass
