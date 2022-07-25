@@ -68,6 +68,11 @@ class BaseNotification(abc.ABC):
         Microsoft Teams notifications should set this to `[text](url)`.
         URLs should be built using `self.url_format.format(text=some_text, url=some_url)`.
         """
+        if getattr(self, "_url_format", None) is None:
+            raise AttributeError(
+                f"'url_format' not set on '{self.__class__.__name__}'. Please set the 'url_format' property from the message builder."
+            )
+
         return self._url_format
 
     @url_format.setter
