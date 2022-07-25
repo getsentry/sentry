@@ -21,7 +21,9 @@ class SubdomainMiddlewareTest(TestCase):
             assert request_with_host("dev.getsentry.net:8000").subdomain is None
             assert request_with_host("us.dev.getsentry.net:8000").subdomain is None
             assert request_with_host("foobar.us.dev.getsentry.net:8000").subdomain == "foobar"
+            assert request_with_host("FOOBAR.us.dev.getsentry.net:8000").subdomain == "foobar"
             assert request_with_host("foo.bar.us.dev.getsentry.net:8000").subdomain == "foo.bar"
+            assert request_with_host("foo.BAR.us.dev.getsentry.net:8000").subdomain == "foo.bar"
 
         with self.options({}):
             assert request_with_host("foobar").subdomain is None
