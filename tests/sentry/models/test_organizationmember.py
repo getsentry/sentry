@@ -8,7 +8,13 @@ from django.utils import timezone
 from sentry import roles
 from sentry.auth import manager
 from sentry.exceptions import UnableToAcceptMemberInvitationException
-from sentry.models import INVITE_DAYS_VALID, InviteStatus, OrganizationMember, OrganizationOption
+from sentry.models import (
+    INVITE_DAYS_VALID,
+    AuthProvider,
+    InviteStatus,
+    OrganizationMember,
+    OrganizationOption,
+)
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import with_feature
 
@@ -134,6 +140,22 @@ class OrganizationMemberTest(TestCase):
         )
         OrganizationMember.objects.delete_expired(timezone.now())
         assert OrganizationMember.objects.filter(id=member.id).first() is None
+
+    def test_delete_expired_SCIM_enabled(self):
+        organization = self.create_organization()
+        AuthProvider.objects.create(
+            provider="saml2", organization=organization, flags=AuthProvider.flags["scim_enabled"]
+        )
+        ninety_one_days = timezone.now() - timedelta(days=1)
+        member = OrganizationMember.objects.create(
+            organization=organization,
+            role="member",
+            email="test@example.com",
+            token="abc-def",
+            token_expires_at=ninety_one_days,
+        )
+        OrganizationMember.objects.delete_expired(timezone.now())
+        assert OrganizationMember.objects.filter(id=member.id).exists()
 
     def test_delete_expired_miss(self):
         organization = self.create_organization()

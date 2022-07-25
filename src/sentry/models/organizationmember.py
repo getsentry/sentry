@@ -22,6 +22,7 @@ from sentry import features
 from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
 from sentry.db.models.manager import BaseManager
 from sentry.exceptions import UnableToAcceptMemberInvitationException
+from sentry.models import AuthProvider
 from sentry.models.team import TeamStatus
 from sentry.roles import organization_roles
 from sentry.signals import member_invited
@@ -62,6 +63,13 @@ class OrganizationMemberManager(BaseManager):
 
     def delete_expired(self, threshold: int) -> None:
         """Delete un-accepted member invitations that expired `threshold` days ago."""
+        auth_provider_query = AuthProvider.objects.filter(
+            organization_id=self.get().organization.id
+        )
+        # early return is SCIM is enabled, let SCIM control users
+        if auth_provider_query.exists() and auth_provider_query[0].flags.scim_enabled:
+            return
+
         self.filter(
             token_expires_at__lt=threshold,
             user_id__exact=None,
