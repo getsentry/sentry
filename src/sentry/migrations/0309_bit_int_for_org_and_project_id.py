@@ -17,7 +17,9 @@ class Migration(CheckedMigration):
     # - Adding indexes to large tables. Since this can take a long time, we'd generally prefer to
     #   have ops run this and not block the deploy. Note that while adding an index is a schema
     #   change, it's completely safe to run the operation after the code has deployed.
-    is_dangerous = False
+
+    # please don't preform database_operations as they already have been applied, they were added so the tests could run
+    is_dangerous = True
 
     # This flag is used to decide whether to run this migration in a transaction or not. Generally
     # we don't want to run in a transaction here, since for long running operations like data
@@ -30,7 +32,147 @@ class Migration(CheckedMigration):
 
     operations = [
         migrations.SeparateDatabaseAndState(
-            database_operations=[],
+            database_operations=[
+                migrations.AlterField(
+                    model_name="auditlogentry",
+                    name="target_object",
+                    field=sentry.db.models.fields.bounded.BoundedBigIntegerField(null=True),
+                ),
+                migrations.AlterField(
+                    model_name="commit",
+                    name="organization_id",
+                    field=sentry.db.models.fields.bounded.BoundedBigIntegerField(db_index=True),
+                ),
+                migrations.AlterField(
+                    model_name="commitauthor",
+                    name="organization_id",
+                    field=sentry.db.models.fields.bounded.BoundedBigIntegerField(db_index=True),
+                ),
+                migrations.AlterField(
+                    model_name="commitfilechange",
+                    name="organization_id",
+                    field=sentry.db.models.fields.bounded.BoundedBigIntegerField(db_index=True),
+                ),
+                migrations.AlterField(
+                    model_name="deploy",
+                    name="organization_id",
+                    field=sentry.db.models.fields.bounded.BoundedBigIntegerField(db_index=True),
+                ),
+                migrations.AlterField(
+                    model_name="distribution",
+                    name="organization_id",
+                    field=sentry.db.models.fields.bounded.BoundedBigIntegerField(db_index=True),
+                ),
+                migrations.AlterField(
+                    model_name="environment",
+                    name="organization_id",
+                    field=sentry.db.models.fields.bounded.BoundedBigIntegerField(),
+                ),
+                migrations.AlterField(
+                    model_name="environment",
+                    name="project_id",
+                    field=sentry.db.models.fields.bounded.BoundedBigIntegerField(null=True),
+                ),
+                migrations.AlterField(
+                    model_name="eventuser",
+                    name="project_id",
+                    field=sentry.db.models.fields.bounded.BoundedBigIntegerField(db_index=True),
+                ),
+                migrations.AlterField(
+                    model_name="grouprelease",
+                    name="project_id",
+                    field=sentry.db.models.fields.bounded.BoundedBigIntegerField(db_index=True),
+                ),
+                migrations.AlterField(
+                    model_name="monitor",
+                    name="organization_id",
+                    field=sentry.db.models.fields.bounded.BoundedBigIntegerField(db_index=True),
+                ),
+                migrations.AlterField(
+                    model_name="monitor",
+                    name="project_id",
+                    field=sentry.db.models.fields.bounded.BoundedBigIntegerField(db_index=True),
+                ),
+                migrations.AlterField(
+                    model_name="monitorcheckin",
+                    name="project_id",
+                    field=sentry.db.models.fields.bounded.BoundedBigIntegerField(db_index=True),
+                ),
+                migrations.AlterField(
+                    model_name="promptsactivity",
+                    name="organization_id",
+                    field=sentry.db.models.fields.bounded.BoundedBigIntegerField(db_index=True),
+                ),
+                migrations.AlterField(
+                    model_name="promptsactivity",
+                    name="project_id",
+                    field=sentry.db.models.fields.bounded.BoundedBigIntegerField(db_index=True),
+                ),
+                migrations.AlterField(
+                    model_name="pullrequest",
+                    name="organization_id",
+                    field=sentry.db.models.fields.bounded.BoundedBigIntegerField(db_index=True),
+                ),
+                migrations.AlterField(
+                    model_name="release",
+                    name="project_id",
+                    field=sentry.db.models.fields.bounded.BoundedBigIntegerField(null=True),
+                ),
+                migrations.AlterField(
+                    model_name="releasecommit",
+                    name="organization_id",
+                    field=sentry.db.models.fields.bounded.BoundedBigIntegerField(db_index=True),
+                ),
+                migrations.AlterField(
+                    model_name="releasecommit",
+                    name="project_id",
+                    field=sentry.db.models.fields.bounded.BoundedBigIntegerField(null=True),
+                ),
+                migrations.AlterField(
+                    model_name="releaseenvironment",
+                    name="project_id",
+                    field=sentry.db.models.fields.bounded.BoundedBigIntegerField(null=True),
+                ),
+                migrations.AlterField(
+                    model_name="releasefile",
+                    name="project_id",
+                    field=sentry.db.models.fields.bounded.BoundedBigIntegerField(null=True),
+                ),
+                migrations.AlterField(
+                    model_name="releaseheadcommit",
+                    name="organization_id",
+                    field=sentry.db.models.fields.bounded.BoundedBigIntegerField(db_index=True),
+                ),
+                migrations.AlterField(
+                    model_name="repository",
+                    name="organization_id",
+                    field=sentry.db.models.fields.bounded.BoundedBigIntegerField(db_index=True),
+                ),
+                migrations.AlterField(
+                    model_name="servicehook",
+                    name="actor_id",
+                    field=sentry.db.models.fields.bounded.BoundedBigIntegerField(db_index=True),
+                ),
+                migrations.AlterField(
+                    model_name="servicehook",
+                    name="organization_id",
+                    field=sentry.db.models.fields.bounded.BoundedBigIntegerField(
+                        db_index=True, null=True
+                    ),
+                ),
+                migrations.AlterField(
+                    model_name="servicehook",
+                    name="project_id",
+                    field=sentry.db.models.fields.bounded.BoundedBigIntegerField(
+                        db_index=True, null=True
+                    ),
+                ),
+                migrations.AlterField(
+                    model_name="servicehookproject",
+                    name="project_id",
+                    field=sentry.db.models.fields.bounded.BoundedBigIntegerField(db_index=True),
+                ),
+            ],
             state_operations=[
                 migrations.AlterField(
                     model_name="auditlogentry",
