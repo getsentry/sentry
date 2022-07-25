@@ -3,7 +3,6 @@ from unittest import mock
 import pytest
 
 from sentry.relay.projectconfig_cache import redis
-from sentry.testutils.helpers import override_options
 
 
 def test_delete_count(monkeypatch):
@@ -20,24 +19,8 @@ def test_delete_count(monkeypatch):
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize(
-    "enabled_dsns, sample_rate, should_use_compression",
-    [
-        (["fake-dsn-1", "fake-dsn-2"], 0.0, True),
-        (["fake-dsn-1", "fake-dsn-2"], 1.0, True),
-        ([], 1.0, True),
-        ([], 0.0, False),
-    ],
-)
-def test_read_write(enabled_dsns, sample_rate, should_use_compression):
+def test_read_write():
     cache = redis.RedisProjectConfigCache()
     my_key = "fake-dsn-1"
-    with override_options(
-        {
-            "relay.project-config-cache-compress": enabled_dsns,
-            "relay.project-config-cache-compress-sample-rate": sample_rate,
-        }
-    ):
-        assert redis._use_compression(my_key) == should_use_compression
-        cache.set_many({my_key: "my-value"})
-        assert cache.get(my_key) == "my-value"
+    cache.set_many({my_key: "my-value"})
+    assert cache.get(my_key) == "my-value"
