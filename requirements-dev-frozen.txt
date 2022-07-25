@@ -42,10 +42,11 @@ filelock==3.7.0
 flake8==4.0.1
 flake8-bugbear==22.4.25
 freezegun==1.1.0
-google-api-core[grpc]==1.25.1
-google-auth==1.24.0
+google-api-core[grpc]==1.32.0
+google-auth==1.35.0
 google-cloud-bigtable==1.6.1
 google-cloud-core==1.5.0
+google-cloud-functions==1.8.0
 google-cloud-pubsub==2.2.0
 google-cloud-storage==1.35.0
 google-crc32c==1.1.2
