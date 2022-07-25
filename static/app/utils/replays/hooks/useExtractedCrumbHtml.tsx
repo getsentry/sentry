@@ -1,4 +1,5 @@
 import {useEffect, useState} from 'react';
+import * as Sentry from '@sentry/react';
 import first from 'lodash/first';
 import {Replayer} from 'rrweb';
 import {eventWithTime} from 'rrweb/typings/types';
@@ -54,9 +55,8 @@ function useExtractedCrumbHtml({replay}: HookOpts) {
     // Grab the last event, but skip the synthetic `replay-end` event that the
     // ReplayerReader added. RRWeb will skip that event when it comes time to render
     const lastEvent = rrwebEvents[rrwebEvents.length - 2];
-    const lastTimestamp = lastEvent.timestamp;
 
-    const isLastRRWebEvent = (event: eventWithTime) => lastTimestamp === event.timestamp;
+    const isLastRRWebEvent = (event: eventWithTime) => lastEvent === event;
 
     const replayerRef = new Replayer(rrwebEvents, {
       root: domRoot,
@@ -74,15 +74,23 @@ function useExtractedCrumbHtml({replay}: HookOpts) {
             if (isMounted) {
               setBreadcrumbReferences(rows);
             }
-            document.body.removeChild(domRoot);
+            setTimeout(() => {
+              if (document.body.contains(domRoot)) {
+                document.body.removeChild(domRoot);
+              }
+            }, 0);
           },
         }),
       ],
       mouseTail: false,
     });
 
-    // Run the replay to the end, we will capture data as it streams into the plugin
-    replayerRef.pause(replay.getEvent().endTimestamp);
+    try {
+      // Run the replay to the end, we will capture data as it streams into the plugin
+      replayerRef.pause(replay.getEvent().endTimestamp);
+    } catch (error) {
+      Sentry.captureException(error);
+    }
 
     return () => {
       isMounted = false;
@@ -119,7 +127,7 @@ class BreadcrumbReferencesPlugin {
       const crumb = first(this.crumbs);
       const nextTimestamp = +new Date(crumb?.timestamp || '');
 
-      if (crumb && nextTimestamp && nextTimestamp < event.timestamp) {
+      if (crumb && nextTimestamp && nextTimestamp <= event.timestamp) {
         // we passed the next one, grab the dom, and pop the timestamp off
         const mirror = replayer.getMirror();
         // @ts-expect-error
