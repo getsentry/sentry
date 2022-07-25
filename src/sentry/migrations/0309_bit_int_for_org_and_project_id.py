@@ -20,6 +20,7 @@ class Migration(CheckedMigration):
 
     # please don't preform database_operations as they already have been applied, they were added so the tests could run
     is_dangerous = True
+    checked = False
 
     # This flag is used to decide whether to run this migration in a transaction or not. Generally
     # we don't want to run in a transaction here, since for long running operations like data
