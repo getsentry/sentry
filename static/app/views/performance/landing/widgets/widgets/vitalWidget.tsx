@@ -20,12 +20,8 @@ import {VitalData} from 'sentry/utils/performance/vitals/vitalsCardsDiscoverQuer
 import {decodeList} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withApi from 'sentry/utils/withApi';
-import {
-  vitalDetailRouteWithQuery,
-  VitalState,
-} from 'sentry/views/performance/vitalDetail/utils';
+import {vitalDetailRouteWithQuery} from 'sentry/views/performance/vitalDetail/utils';
 import {_VitalChart} from 'sentry/views/performance/vitalDetail/vitalChart';
-import VitalPercents from 'sentry/views/performance/vitalDetail/vitalPercents';
 
 import {excludeTransaction} from '../../utils';
 import {VitalBar} from '../../vitalsCards';
@@ -48,6 +44,13 @@ import {
 import {eventsRequestQueryProps, getMEPQueryParams} from '../utils';
 import {ChartDefinition, PerformanceWidgetSetting} from '../widgetDefinitions';
 
+const settingToVital: {[x: string]: WebVital} = {
+  [PerformanceWidgetSetting.WORST_LCP_VITALS]: WebVital.LCP,
+  [PerformanceWidgetSetting.WORST_FCP_VITALS]: WebVital.FCP,
+  [PerformanceWidgetSetting.WORST_FID_VITALS]: WebVital.FID,
+  [PerformanceWidgetSetting.WORST_CLS_VITALS]: WebVital.CLS,
+};
+
 type DataType = {
   chart: WidgetDataResult & ReturnType<typeof transformEventsRequestToVitals>;
   list: WidgetDataResult & ReturnType<typeof transformDiscoverToList>;
@@ -67,11 +70,11 @@ function getVitalFields(baseField: string) {
 }
 
 export function transformFieldsWithStops(props: {
-  field: string;
   fields: string[];
+  vital: WebVital;
   vitalStops: ChartDefinition['vitalStops'];
 }) {
-  const {field, fields, vitalStops} = props;
+  const {vital, fields, vitalStops} = props;
   const poorStop = vitalStops?.poor;
   const mehStop = vitalStops?.meh;
 
@@ -82,7 +85,7 @@ export function transformFieldsWithStops(props: {
     };
   }
 
-  const vitalFields = getVitalFields(field);
+  const vitalFields = getVitalFields(vital);
 
   const fieldsList = [
     vitalFields.poorCountField,
@@ -114,7 +117,7 @@ export function VitalWidget(props: PerformanceWidgetProps & VitalDetailWidgetPro
   const isVitalDetailView = props.chartDefinition.isVitalDetailView;
 
   const {fieldsList, vitalFields, sortField} = transformFieldsWithStops({
-    field,
+    vital: settingToVital[props.chartSetting],
     fields: props.fields,
     vitalStops: props.chartDefinition.vitalStops,
   });
@@ -122,7 +125,6 @@ export function VitalWidget(props: PerformanceWidgetProps & VitalDetailWidgetPro
   const Queries = {
     list: useMemo<QueryDefinition<DataType, WidgetDataResult>>(
       () => ({
-        enabled: () => !isVitalDetailView,
         fields: sortField,
         component: provided => {
           const _eventView = provided.eventView.clone();
@@ -204,13 +206,6 @@ export function VitalWidget(props: PerformanceWidgetProps & VitalDetailWidgetPro
     ),
   };
 
-  const settingToVital: {[x: string]: WebVital} = {
-    [PerformanceWidgetSetting.WORST_LCP_VITALS]: WebVital.LCP,
-    [PerformanceWidgetSetting.WORST_FCP_VITALS]: WebVital.FCP,
-    [PerformanceWidgetSetting.WORST_FID_VITALS]: WebVital.FID,
-    [PerformanceWidgetSetting.WORST_CLS_VITALS]: WebVital.CLS,
-  };
-
   const handleViewAllClick = () => {
     // TODO(k-fish): Add analytics.
   };
@@ -221,7 +216,7 @@ export function VitalWidget(props: PerformanceWidgetProps & VitalDetailWidgetPro
       Subtitle={provided => {
         const listItem = provided.widgetData.list?.data[selectedListIndex];
 
-        if (!listItem) {
+        if (!listItem || props.isVitalDetailView) {
           return <Subtitle />;
         }
 
@@ -251,16 +246,30 @@ export function VitalWidget(props: PerformanceWidgetProps & VitalDetailWidgetPro
       EmptyComponent={WidgetEmptyStateWarning}
       HeaderActions={provided => {
         if (props.isVitalDetailView) {
+          const listItem = provided.widgetData.list?.data[selectedListIndex];
+
+          if (!listItem) {
+            return null;
+          }
+
           const vital = settingToVital[props.chartSetting];
 
+          const data = {
+            [settingToVital[props.chartSetting]]: getVitalDataForListItem(
+              listItem,
+              vital,
+              !useEvents
+            ),
+          };
+
           return (
-            <VitalPercents
-              vital={vital}
-              percents={[
-                {vitalState: VitalState.GOOD, percent: 1},
-                {vitalState: VitalState.MEH, percent: 1},
-                {vitalState: VitalState.POOR, percent: 1},
-              ]}
+            <VitalBar
+              isLoading={provided.widgetData.list?.isLoading}
+              vital={settingToVital[props.chartSetting]}
+              data={data}
+              showBar={false}
+              showDurationDetail={false}
+              showDetail
             />
           );
         }
