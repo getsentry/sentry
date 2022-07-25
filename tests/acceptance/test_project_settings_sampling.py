@@ -241,14 +241,23 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
             self.browser.element('[data-test-id="trace.user.segment"]').click()
 
             # Fill in Environment
+            self.browser.element('[aria-label="Search or add an environment"]').send_keys("prod")
+            self.browser.wait_until_not('[data-test-id="loading-indicator"]')
             self.browser.element('[aria-label="Search or add an environment"]').send_keys(
-                "prod", Keys.ENTER, "production", Keys.ENTER
+                Keys.ENTER
+            )
+            self.browser.element('[aria-label="Search or add an environment"]').send_keys(
+                "production"
+            )
+            self.browser.wait_until_not('[data-test-id="loading-indicator"]')
+            self.browser.element('[aria-label="Search or add an environment"]').send_keys(
+                Keys.ENTER
             )
 
             # Fill in Release
-            self.browser.element('[aria-label="Search or add a release"]').send_keys(
-                "frontend@22*", Keys.ENTER
-            )
+            self.browser.element('[aria-label="Search or add a release"]').send_keys("frontend@22*")
+            self.browser.wait_until_not('[data-test-id="loading-indicator"]')
+            self.browser.element('[aria-label="Search or add a release"]').send_keys(Keys.ENTER)
 
             # Fill in User Segment
             self.browser.element('[placeholder="ex. paid, common (Multiline)"]').send_keys(
