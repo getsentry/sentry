@@ -6,10 +6,10 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 import {getUnknownData} from '../getUnknownData';
 
-import getTraceKnownData from './getTraceKnownData';
+import {getTraceKnownData} from './getTraceKnownData';
 import {TraceKnownData, TraceKnownDataType} from './types';
 
-const traceKnownDataValues = [
+export const traceKnownDataValues = [
   TraceKnownDataType.STATUS,
   TraceKnownDataType.TRACE_ID,
   TraceKnownDataType.SPAN_ID,
@@ -26,13 +26,14 @@ type Props = {
   organization: Organization;
 };
 
-function Trace({event, data}: Props) {
+export function TraceEventContext({event, data}: Props) {
   const organization = useOrganization();
+  const meta = event._meta?.trace ?? {};
 
   return (
     <ErrorBoundary mini>
       <KeyValueList
-        data={getTraceKnownData(data, traceKnownDataValues, event, organization)}
+        data={getTraceKnownData({data, meta, event, organization})}
         isSorted={false}
         raw={false}
         isContextData
@@ -41,6 +42,7 @@ function Trace({event, data}: Props) {
         data={getUnknownData({
           allData: data,
           knownKeys: [...traceKnownDataValues, ...traceIgnoredDataValues],
+          meta,
         })}
         isSorted={false}
         raw={false}
@@ -49,5 +51,3 @@ function Trace({event, data}: Props) {
     </ErrorBoundary>
   );
 }
-
-export default Trace;

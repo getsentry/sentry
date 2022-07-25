@@ -1,6 +1,5 @@
 import {deviceKnownDataValues} from 'sentry/components/events/contexts/device';
 import {getDeviceKnownDataDetails} from 'sentry/components/events/contexts/device/getDeviceKnownDataDetails';
-import {DeviceKnownDataType} from 'sentry/components/events/contexts/device/types';
 
 import {deviceMockData} from './index.spec';
 
@@ -10,13 +9,13 @@ describe('getDeviceKnownDataDetails', function () {
 
     for (const type of Object.keys(deviceKnownDataValues)) {
       const deviceKnownData = getDeviceKnownDataDetails({
-        type: deviceKnownDataValues[type] as unknown as DeviceKnownDataType,
+        type: deviceKnownDataValues[type],
         data: deviceMockData,
         event: TestStubs.Event(),
       });
 
       if (!deviceKnownData) {
-        return;
+        continue;
       }
 
       allKnownData.push(deviceKnownData);
