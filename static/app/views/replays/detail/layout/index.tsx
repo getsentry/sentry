@@ -10,6 +10,7 @@ import useUrlParams from 'sentry/utils/replays/hooks/useUrlParams';
 import Breadcrumbs from 'sentry/views/replays/detail/breadcrumbs';
 import FocusArea from 'sentry/views/replays/detail/focusArea';
 import FocusTabs from 'sentry/views/replays/detail/focusTabs';
+import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import FluidPanel from 'sentry/views/replays/detail/layout/fluidPanel';
 import SplitPanel from 'sentry/views/replays/detail/layout/splitPanel';
 import SideTabs from 'sentry/views/replays/detail/sideTabs';
@@ -75,7 +76,7 @@ function ReplayLayout({
   showTimeline = true,
   showVideo = true,
 }: Props) {
-  const {ref: fullscreenRef, isFullscreen, toggle: toggleFullscreen} = useFullscreen();
+  const {ref: fullscreenRef, toggle: toggleFullscreen} = useFullscreen();
 
   const timeline = showTimeline ? (
     <ErrorBoundary mini>
@@ -86,7 +87,7 @@ function ReplayLayout({
   const video = showVideo ? (
     <VideoSection ref={fullscreenRef}>
       <ErrorBoundary mini>
-        <ReplayView toggleFullscreen={toggleFullscreen} isFullscreen={isFullscreen} />
+        <ReplayView toggleFullscreen={toggleFullscreen} />
       </ErrorBoundary>
     </VideoSection>
   ) : null;
@@ -219,12 +220,11 @@ const BodyContent = styled('main')`
   padding: ${space(2)};
 `;
 
-export const VideoSection = styled('section')`
+const VideoSection = styled(FluidHeight)`
   height: 100%;
-  display: flex;
-  flex-grow: 1;
-  flex-wrap: nowrap;
-  flex-direction: column;
+
+  background: ${p => p.theme.background};
+  gap: ${space(1)};
 `;
 
 export default ReplayLayout;

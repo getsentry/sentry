@@ -125,6 +125,10 @@ export const PlayerScrubber = styled(Scrubber)`
     height: ${space(1)};
   }
 
+  ${Meter} {
+    border-radius: ${p => p.theme.borderRadiusBottom};
+  }
+
   ${RangeWrapper} {
     height: ${space(0.5)};
   }
@@ -134,7 +138,7 @@ export const PlayerScrubber = styled(Scrubber)`
 
   ${PlaybackTimeValue} {
     background: ${p => p.theme.purple200};
-    border-bottom-left-radius: 3px;
+    border-bottom-left-radius: ${p => p.theme.borderRadius};
   }
 
   /**
