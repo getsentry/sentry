@@ -19,9 +19,9 @@ from sentry.attachments import MissingAttachmentChunks, attachment_cache
 from sentry.attachments.base import CachedAttachment
 from sentry.models import File
 from sentry.replays.consumers.recording.types import (
-    RecordingChunkMessage,
-    RecordingMessage,
+    RecordingSegmentChunkMessage,
     RecordingSegmentHeaders,
+    RecordingSegmentMessage,
 )
 from sentry.replays.models import ReplayRecordingSegment
 from sentry.utils import json
@@ -46,7 +46,7 @@ class ReplayRecordingMessageFuture(NamedTuple):
     future: Future[None]
 
 
-class ProcessRecordingStrategy(ProcessingStrategy[KafkaPayload]):  # type: ignore
+class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):  # type: ignore
     def __init__(
         self,
         commit: Callable[[Mapping[Partition, Position]], None],
@@ -60,15 +60,15 @@ class ProcessRecordingStrategy(ProcessingStrategy[KafkaPayload]):  # type: ignor
         self._commit_and_prune_futures()
 
     def _process_chunk(
-        self, message_dict: RecordingChunkMessage, message: Message[KafkaPayload]
+        self, message_dict: RecordingSegmentChunkMessage, message: Message[KafkaPayload]
     ) -> None:
-        # can't make this a future as we need to guarantee this happens before
-        # the final kafka message
-        # TODO: determine if this is acceptable at scale
+        # TODO: implement threaded chunk sets, and wait for an individual segment's
+        # futures to finish before trying to read from redis in the final kafka message
+        # https://github.com/getsentry/replay-backend/pull/38/files
         id = message_dict["id"]
         project_id = message_dict["project_id"]
         chunk_index = message_dict["chunk_index"]
-        cache_key = replay_cache_id(id, project_id)
+        cache_key = replay_recording_segment_cache_id(id, project_id)
 
         attachment_cache.set_chunk(
             key=cache_key,
@@ -90,7 +90,7 @@ class ProcessRecordingStrategy(ProcessingStrategy[KafkaPayload]):  # type: ignor
 
     def _store(
         self,
-        message_dict: RecordingMessage,
+        message_dict: RecordingSegmentMessage,
         cached_replay_recording_segment: CachedAttachment,
     ) -> None:
         try:
@@ -100,9 +100,9 @@ class ProcessRecordingStrategy(ProcessingStrategy[KafkaPayload]):  # type: ignor
             return
 
         # create a File for our recording segment.
-        recording_file_name = f"rr:{message_dict['replay_id']}:{headers['sequence_id']}"
+        recording_segment_file_name = f"rr:{message_dict['replay_id']}:{headers['sequence_id']}"
         file = File.objects.create(
-            name=recording_file_name,
+            name=recording_segment_file_name,
             type="replay.recording",
         )
         file.putfile(
@@ -119,11 +119,13 @@ class ProcessRecordingStrategy(ProcessingStrategy[KafkaPayload]):  # type: ignor
         # delete the recording segment from cache after we've stored it
         cached_replay_recording_segment.delete()
 
-    def _get_from_cache(self, message_dict: RecordingMessage) -> CachedAttachment | None:
+        # TODO: how to handle failures in the above calls. what should happen?
+
+    def _get_from_cache(self, message_dict: RecordingSegmentMessage) -> CachedAttachment | None:
         replay_recording = message_dict["replay_recording"]
         id = message_dict["replay_recording"]["id"]
         project_id = message_dict["project_id"]
-        cache_id = replay_cache_id(id, project_id)
+        cache_id = replay_recording_segment_cache_id(id, project_id)
         cached_replay_recording = attachment_cache.get_from_chunks(key=cache_id, **replay_recording)
         try:
             # try accessing data to ensure that is exists, and load it
@@ -134,7 +136,7 @@ class ProcessRecordingStrategy(ProcessingStrategy[KafkaPayload]):  # type: ignor
         return cached_replay_recording
 
     def _process_recording(
-        self, message_dict: RecordingMessage, message: Message[KafkaPayload]
+        self, message_dict: RecordingSegmentMessage, message: Message[KafkaPayload]
     ) -> None:
         cached_replay_recording = self._get_from_cache(message_dict)
         if cached_replay_recording is None:
@@ -160,9 +162,9 @@ class ProcessRecordingStrategy(ProcessingStrategy[KafkaPayload]):  # type: ignor
             message_dict = msgpack.unpackb(message.payload.value)
 
             if message_dict["type"] == "replay_recording_chunk":
-                self._process_chunk(cast(RecordingChunkMessage, message_dict), message)
+                self._process_chunk(cast(RecordingSegmentChunkMessage, message_dict), message)
             if message_dict["type"] == "replay_recording":
-                self._process_recording(cast(RecordingMessage, message_dict), message)
+                self._process_recording(cast(RecordingSegmentMessage, message_dict), message)
         except Exception as e:
             # avoid crash looping on bad messsages for now
             logger.exception("Failed to process message")
@@ -206,5 +208,5 @@ class ProcessRecordingStrategy(ProcessingStrategy[KafkaPayload]):  # type: ignor
         self.__threadpool.shutdown(wait=False)
 
 
-def replay_cache_id(id: str, project_id: int) -> str:
+def replay_recording_segment_cache_id(id: str, project_id: int) -> str:
     return f"{project_id}:{id}"

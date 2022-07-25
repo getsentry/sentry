@@ -5,7 +5,7 @@ from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
 from arroyo.types import Partition, Position
 
-from sentry.replays.consumers.recording.process_recording import ProcessRecordingStrategy
+from sentry.replays.consumers.recording.process_recording import ProcessRecordingSegmentStrategy
 
 logger = logging.getLogger(__name__)
 
@@ -21,4 +21,4 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
         commit: Callable[[Mapping[Partition, Position]], None],
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
-        return ProcessRecordingStrategy(commit)
+        return ProcessRecordingSegmentStrategy(commit)

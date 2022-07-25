@@ -1,7 +1,7 @@
 from typing import TypedDict
 
 
-class RecordingChunkMessage(TypedDict):
+class RecordingSegmentChunkMessage(TypedDict):
     payload: bytes
     replay_id: str
     id: str
@@ -9,7 +9,7 @@ class RecordingChunkMessage(TypedDict):
     chunk_index: int
 
 
-class ReplayRecording(TypedDict):
+class ReplayRecordingSegment(TypedDict):
     chunks: int
     id: str
 
@@ -18,7 +18,7 @@ class RecordingSegmentHeaders(TypedDict):
     sequence_id: int
 
 
-class RecordingMessage(TypedDict):
+class RecordingSegmentMessage(TypedDict):
     replay_id: str
     project_id: int
-    replay_recording: ReplayRecording
+    replay_recording: ReplayRecordingSegment
