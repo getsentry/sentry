@@ -1,14 +1,28 @@
+import functools
 import logging
+from typing import TYPE_CHECKING
 
 from arroyo.types import Message
 
-from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.consumers.indexer.batch import IndexerBatch
 from sentry.sentry_metrics.consumers.indexer.common import MessageBatch
-from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
+
+
+@functools.lru_cache(maxsize=10)
+def get_metrics():  # type: ignore
+    from sentry.utils import metrics
+
+    return metrics
+
+
+@functools.lru_cache(maxsize=10)
+def get_indexer():  # type: ignore
+    from sentry.sentry_metrics import indexer
+
+    return indexer
 
 
 def process_messages(
@@ -33,6 +47,15 @@ def process_messages(
     The value of the message is what we need to parse and then translate
     using the indexer.
     """
+    if TYPE_CHECKING:
+        from sentry.sentry_metrics import indexer
+        from sentry.utils import metrics
+    else:
+        # This, instead of importing the normal way, was likely done to prevent
+        # fork-safety issues.
+        indexer = get_indexer()
+        metrics = get_metrics()
+
     batch = IndexerBatch(use_case_id, outer_message)
 
     org_strings, strings = batch.extract_strings()
