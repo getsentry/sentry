@@ -291,6 +291,18 @@
           "name": "Django"
         },
         {
+          "link": "https://docs.getsentry.com/clients/python/integrations/starlette/",
+          "type": "framework",
+          "id": "python-starlette",
+          "name": "Starlette"
+        },
+        {
+          "link": "https://docs.getsentry.com/clients/python/integrations/fastapi/",
+          "type": "framework",
+          "id": "python-fastapi",
+          "name": "FastAPI"
+        },
+        {
           "link": "https://docs.getsentry.com/clients/python/integrations/flask/",
           "type": "framework",
           "id": "python-flask",
