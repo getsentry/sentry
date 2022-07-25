@@ -96,7 +96,7 @@ function initializeStorage<S>(
   }
 
   // getItem and try and decode it, if null is returned use default initializer
-  const jsonEncodedValue = localStorage.getItem(key);
+  const jsonEncodedValue = localStorageWrapper.getItem(key);
   if (jsonEncodedValue === null) {
     return defaultOrInitializer(defaultValueOrInitializeFn, undefined, null);
   }
