@@ -27,8 +27,10 @@ import {Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {logExperiment, metric} from 'sentry/utils/analytics';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import type EventView from 'sentry/utils/discover/eventView';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import withProjects from 'sentry/utils/withProjects';
+import {IncompatibleAlertQuery} from 'sentry/views/alerts/rules/metric/incompatibleAlertQuery';
 import RuleNameOwnerForm from 'sentry/views/alerts/rules/metric/ruleNameOwnerForm';
 import ThresholdTypeForm from 'sentry/views/alerts/rules/metric/thresholdTypeForm';
 import Triggers from 'sentry/views/alerts/rules/metric/triggers';
@@ -36,7 +38,10 @@ import TriggersChart from 'sentry/views/alerts/rules/metric/triggers/chart';
 import {getEventTypeFilter} from 'sentry/views/alerts/rules/metric/utils/getEventTypeFilter';
 import hasThresholdValue from 'sentry/views/alerts/rules/metric/utils/hasThresholdValue';
 import {AlertRuleType} from 'sentry/views/alerts/types';
-import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
+import {
+  AlertWizardAlertNames,
+  DatasetMEPAlertQueryTypes,
+} from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
 
 import {isCrashFreeAlert} from './utils/isCrashFreeAlert';
@@ -78,6 +83,7 @@ type Props = {
   rule: MetricRule;
   userTeamIds: string[];
   disableProjectSelector?: boolean;
+  eventView?: EventView;
   isCustomMetric?: boolean;
   isDuplicateRule?: boolean;
   ruleId?: string;
@@ -95,16 +101,17 @@ type State = {
   // Needed for TriggersChart
   dataset: Dataset;
   environment: string | null;
+  eventTypes: EventTypes[];
   project: Project;
   query: string;
   resolveThreshold: UnsavedMetricRule['resolveThreshold'];
+  showMEPAlertBanner: boolean;
   thresholdPeriod: UnsavedMetricRule['thresholdPeriod'];
   thresholdType: UnsavedMetricRule['thresholdType'];
   timeWindow: number;
   triggerErrors: Map<number, {[fieldName: string]: string}>;
   triggers: Trigger[];
   comparisonDelta?: number;
-  eventTypes?: EventTypes[];
   selectedPresetId?: string;
   uuid?: string;
 } & AsyncComponent['state'];
@@ -121,6 +128,13 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
 
   get hasAlertWizardV3(): boolean {
     return this.props.organization.features.includes('alert-wizard-v3');
+  }
+
+  get chartQuery(): string {
+    const {query, eventTypes, dataset} = this.state;
+    const eventTypeFilter = getEventTypeFilter(this.state.dataset, eventTypes);
+    const queryWithTypeFilter = `${query} ${eventTypeFilter}`.trim();
+    return isCrashFreeAlert(dataset) ? query : queryWithTypeFilter;
   }
 
   componentDidMount() {
@@ -148,7 +162,13 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
   getDefaultState(): State {
     const {rule, location} = this.props;
     const triggersClone = [...rule.triggers];
-    const {aggregate, eventTypes: _eventTypes, dataset, name} = location?.query ?? {};
+    const {
+      aggregate,
+      eventTypes: _eventTypes,
+      dataset,
+      name,
+      showMEPAlertBanner,
+    } = location?.query ?? {};
     const eventTypes = typeof _eventTypes === 'string' ? [_eventTypes] : _eventTypes;
 
     // Warning trigger is removed if it is blank when saving
@@ -162,7 +182,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       name: name ?? rule.name ?? '',
       aggregate: aggregate ?? rule.aggregate,
       dataset: dataset ?? rule.dataset,
-      eventTypes: eventTypes ?? rule.eventTypes,
+      eventTypes: eventTypes ?? rule.eventTypes ?? [],
       query: rule.query ?? '',
       timeWindow: rule.timeWindow,
       environment: rule.environment || null,
@@ -178,6 +198,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
         : AlertRuleComparisonType.COUNT,
       project: this.props.project,
       owner: rule.owner,
+      showMEPAlertBanner: showMEPAlertBanner ?? false,
     };
   }
 
@@ -540,6 +561,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     const {
       project,
       aggregate,
+      dataset,
       resolveThreshold,
       triggers,
       thresholdType,
@@ -588,6 +610,9 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
           comparisonDelta: comparisonDelta ?? null,
           timeWindow,
           aggregate,
+          ...(organization.features.includes('metrics-performance-alerts')
+            ? {queryType: DatasetMEPAlertQueryTypes[dataset]}
+            : {}),
         },
         {
           duplicateRule: this.isDuplicateRule ? 'true' : 'false',
@@ -718,13 +743,41 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     this.goBack();
   };
 
+  handleMEPAlertDataset = data => {
+    const {organization} = this.props;
+    const {dataset, showMEPAlertBanner} = this.state;
+    const {isMetricsData} = data ?? {};
+
+    if (
+      isMetricsData === undefined ||
+      !organization.features.includes('metrics-performance-alerts')
+    ) {
+      return;
+    }
+
+    if (isMetricsData && dataset === Dataset.TRANSACTIONS) {
+      this.setState({dataset: Dataset.GENERIC_METRICS, showMEPAlertBanner: false});
+    }
+
+    if (!isMetricsData && dataset === Dataset.GENERIC_METRICS && !showMEPAlertBanner) {
+      this.setState({dataset: Dataset.TRANSACTIONS, showMEPAlertBanner: true});
+    }
+  };
+
   renderLoading() {
     return this.renderBody();
   }
 
   renderBody() {
-    const {organization, ruleId, rule, onSubmitSuccess, router, disableProjectSelector} =
-      this.props;
+    const {
+      organization,
+      ruleId,
+      rule,
+      onSubmitSuccess,
+      router,
+      disableProjectSelector,
+      eventView,
+    } = this.props;
     const {
       name,
       query,
@@ -742,17 +795,18 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       eventTypes,
       dataset,
       selectedPresetId,
+      showMEPAlertBanner,
     } = this.state;
-
-    const eventTypeFilter = getEventTypeFilter(this.state.dataset, eventTypes);
-    const queryWithTypeFilter = `${query} ${eventTypeFilter}`.trim();
 
     const chartProps = {
       organization,
       projects: [project],
       triggers,
-      query: isCrashFreeAlert(dataset) ? query : queryWithTypeFilter,
+      query: this.chartQuery,
       aggregate,
+      dataset,
+      newAlertOrQuery: !ruleId || query !== rule.query,
+      handleMEPAlertDataset: this.handleMEPAlertDataset,
       timeWindow,
       environment,
       resolveThreshold,
@@ -859,6 +913,12 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
                 </Side>
               )}
               <Main fullWidth={!showPresetSidebar}>
+                {eventView && (
+                  <IncompatibleAlertQuery
+                    orgSlug={organization.slug}
+                    eventView={eventView}
+                  />
+                )}
                 <Form
                   model={this.form}
                   apiMethod={ruleId ? 'PUT' : 'POST'}
@@ -925,6 +985,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
                         this.handleFieldChange('timeWindow', value)
                       }
                       disableProjectSelector={disableProjectSelector}
+                      showMEPAlertBanner={showMEPAlertBanner}
                     />
                     {!this.hasAlertWizardV3 && thresholdTypeForm(disabled)}
                     <AlertListItem>

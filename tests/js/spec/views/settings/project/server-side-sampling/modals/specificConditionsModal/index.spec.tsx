@@ -5,7 +5,6 @@ import {
   waitFor,
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
-import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import * as indicators from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
@@ -15,7 +14,7 @@ import {SpecificConditionsModal} from 'sentry/views/settings/project/server-side
 import {distributedTracesConditions} from 'sentry/views/settings/project/server-side-sampling/modals/specificConditionsModal/utils';
 import {getInnerNameLabel} from 'sentry/views/settings/project/server-side-sampling/utils';
 
-import {getMockData, specificRule, uniformRule} from '../utils';
+import {getMockData, specificRule, uniformRule} from '../../utils';
 
 describe('Server-side Sampling - Specific Conditions Modal', function () {
   afterEach(function () {
@@ -26,7 +25,7 @@ describe('Server-side Sampling - Specific Conditions Modal', function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/release/values/',
       method: 'GET',
-      body: [{value: '1.2.3'}],
+      body: [{value: '1.2.3', count: 97}],
     });
 
     const {organization, project} = getMockData({
@@ -118,17 +117,11 @@ describe('Server-side Sampling - Specific Conditions Modal', function () {
     // Release field is empty
     expect(screen.queryByTestId('multivalue')).not.toBeInTheDocument();
 
-    // Type an empty string into release field
-    userEvent.paste(screen.getByLabelText('Search or add a release'), ' ');
-
-    // Since empty strings are invalid, autocomplete does not suggest creating a new empty label
-    expect(screen.queryByText(textWithMarkupMatcher('Add " "'))).not.toBeInTheDocument();
-
     // Type the release version into release field
-    userEvent.paste(screen.getByLabelText('Search or add a release'), '1.2.3');
+    userEvent.paste(screen.getByLabelText('Search or add a release'), '1.2');
 
     // Autocomplete suggests options
-    expect(screen.getByTestId('1.2.3')).toHaveTextContent('1.2.3');
+    expect(await screen.findByTestId('1.2.3')).toHaveTextContent('1.2.3');
 
     // Click on the suggested option
     userEvent.click(screen.getByTestId('1.2.3'));
@@ -227,10 +220,12 @@ describe('Server-side Sampling - Specific Conditions Modal', function () {
     // Empty conditions message is not displayed
     expect(screen.queryByText('No conditions added')).not.toBeInTheDocument();
 
-    // Type into realease field
+    // Type into release field
     userEvent.clear(screen.getByLabelText('Search or add a release'));
-    userEvent.paste(screen.getByLabelText('Search or add a release'), '1.2.3');
-    userEvent.keyboard('{enter}');
+    userEvent.paste(screen.getByLabelText('Search or add a release'), '1.2');
+
+    // Click on the suggested option
+    userEvent.click(await screen.findByTestId('1.2.3'));
 
     // Update sample rate field
     userEvent.clear(screen.getByPlaceholderText('\u0025'));
@@ -325,8 +320,10 @@ describe('Server-side Sampling - Specific Conditions Modal', function () {
     );
 
     // Type into environment field
-    userEvent.paste(screen.getByLabelText('Search or add an environment'), 'prod');
-    userEvent.keyboard('{enter}');
+    userEvent.paste(screen.getByLabelText('Search or add an environment'), 'pro');
+
+    // Click on the suggested option
+    userEvent.click(await screen.findByTestId('prod'));
 
     // Fill sample rate field
     userEvent.paste(screen.getByPlaceholderText('\u0025'), '50');

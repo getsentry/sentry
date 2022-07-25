@@ -193,7 +193,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
     }
 
     const {containerHeight} = this.state;
-    const {organization, widget, isMobile, expandNumbers} = this.props;
+    const {location, organization, widget, isMobile, expandNumbers} = this.props;
     const isAlias =
       !organization.features.includes('discover-frontend-use-events-endpoint') &&
       widget.widgetType !== WidgetType.RELEASE;
@@ -217,8 +217,10 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
       const dataRow = result.data[0];
       const fieldRenderer = getFieldFormatter(field, tableMeta, isAlias);
 
+      const unit = tableMeta.units?.[field];
       const rendered = fieldRenderer(
-        shouldExpandInteger ? {[field]: dataRow[field].toLocaleString()} : dataRow
+        shouldExpandInteger ? {[field]: dataRow[field].toLocaleString()} : dataRow,
+        {location, organization, unit}
       );
 
       const isModalWidget = !!!(widget.id || widget.tempId);

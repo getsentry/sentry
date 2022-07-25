@@ -277,7 +277,12 @@ function WidgetBuilder({
     });
 
     if (objectIsEmpty(tags)) {
-      loadOrganizationTags(api, organization.slug, selection);
+      loadOrganizationTags(api, organization.slug, {
+        ...selection,
+        // Pin the request to 14d to avoid timeouts, see DD-967 for
+        // more information
+        datetime: {period: '14d', start: null, end: null, utc: null},
+      });
     }
 
     if (isEditing && isValidWidgetIndex) {
@@ -1057,6 +1062,7 @@ function WidgetBuilder({
                     <BuildSteps symbol="colored-numeric">
                       <VisualizationStep
                         widget={currentWidget}
+                        dashboardFilters={dashboard.filters}
                         organization={organization}
                         pageFilters={pageFilters}
                         displayType={state.displayType}
@@ -1111,6 +1117,7 @@ function WidgetBuilder({
                         onQueryRemove={handleQueryRemove}
                         selection={pageFilters}
                         widgetType={widgetType}
+                        dashboardFilters={dashboard.filters}
                       />
                       {widgetBuilderNewDesign && isTimeseriesChart && (
                         <GroupByStep

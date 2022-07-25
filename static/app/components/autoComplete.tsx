@@ -440,6 +440,7 @@ class AutoComplete<T extends Item> extends Component<Props<T>, State<T>> {
 
     return {
       ...props,
+      role: 'option',
       'data-test-id': item['data-test-id'],
       onClick: this.makeHandleItemClick(itemProps),
       onMouseEnter: this.makeHandleMouseEnter(itemProps),

@@ -148,7 +148,7 @@ function PerformanceContent({selection, location, demoMode}: Props) {
   return (
     <SentryDocumentTitle title={t('Performance')} orgSlug={organization.slug}>
       <PerformanceEventViewProvider value={{eventView}}>
-        <MEPSettingProvider>
+        <MEPSettingProvider location={location}>
           <PageFiltersContainer
             defaultSelection={{
               datetime: {

@@ -336,6 +336,7 @@ INSTALLED_APPS = (
     "sentry.discover",
     "sentry.analytics.events",
     "sentry.nodestore",
+    "sentry.replays",
     "sentry.release_health",
     "sentry.search",
     "sentry.sentry_metrics.indexer",
@@ -1186,6 +1187,8 @@ SENTRY_FEATURES = {
     "projects:servicehooks": False,
     # Use Kafka (instead of Celery) for ingestion pipeline.
     "projects:kafka-ingest": False,
+    # Workflow 2.0 Auto associate commits to commit sha release
+    "projects:auto-associate-commits-to-release": False,
     # Automatically opt IN users to receiving Slack notifications.
     "users:notification-slack-automatic": False,
     # Don't add feature defaults down here! Please add them in their associated
@@ -2712,3 +2715,10 @@ SENTRY_POST_PROCESS_LOCKS_BACKEND_OPTIONS = {
 
 # maximum number of projects allowed to query snuba with for the organization_vitals_overview endpoint
 ORGANIZATION_VITALS_OVERVIEW_PROJECT_LIMIT = 300
+
+
+# Default string indexer cache options
+SENTRY_STRING_INDEXER_CACHE_OPTIONS = {
+    "version": 1,
+    "cache_name": "default",
+}

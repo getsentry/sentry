@@ -2,6 +2,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
+import {DashboardFilterKeys} from 'sentry/views/dashboardsV2/types';
 import {DashboardsMEPContext} from 'sentry/views/dashboardsV2/widgetCard/dashboardsMEPContext';
 import WidgetQueries, {
   flattenMultiSeriesDataWithGrouping,
@@ -106,6 +107,62 @@ describe('Dashboards > WidgetQueries', function () {
     await screen.findByTestId('child');
     expect(errorMock).toHaveBeenCalledTimes(1);
     expect(defaultMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('appends dashboard filters to events series request', async function () {
+    const mock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: [],
+    });
+    render(
+      <WidgetQueries
+        api={api}
+        widget={singleQueryWidget}
+        organization={initialData.organization}
+        selection={selection}
+        dashboardFilters={{[DashboardFilterKeys.RELEASE]: ['abc@1.2.0', 'abc@1.3.0']}}
+      >
+        {() => <div data-test-id="child" />}
+      </WidgetQueries>
+    );
+
+    await screen.findByTestId('child');
+    expect(mock).toHaveBeenCalledWith(
+      '/organizations/org-slug/events-stats/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          query: 'event.type:error release:[abc@1.2.0,abc@1.3.0] ',
+        }),
+      })
+    );
+  });
+
+  it('appends dashboard filters to events table request', async function () {
+    const mock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/eventsv2/',
+      body: [],
+    });
+    render(
+      <WidgetQueries
+        api={api}
+        widget={tableWidget}
+        organization={initialData.organization}
+        selection={selection}
+        dashboardFilters={{[DashboardFilterKeys.RELEASE]: ['abc@1.3.0']}}
+      >
+        {() => <div data-test-id="child" />}
+      </WidgetQueries>
+    );
+
+    await screen.findByTestId('child');
+    expect(mock).toHaveBeenCalledWith(
+      '/organizations/org-slug/eventsv2/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          query: 'event.type:error release:abc@1.3.0 ',
+        }),
+      })
+    );
   });
 
   it('sets errorMessage when the first request fails', async function () {
@@ -636,6 +693,68 @@ describe('Dashboards > WidgetQueries', function () {
     expect(eventsStatsMock).toHaveBeenCalledWith(
       '/organizations/org-slug/events-stats/',
       expect.objectContaining({query: expect.objectContaining({interval: '4h'})})
+    );
+  });
+
+  it('does not re-query events and sets name in widgets', async function () {
+    const eventsStatsMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: TestStubs.EventsStats(),
+    });
+    const lineWidget = {
+      ...singleQueryWidget,
+      displayType: 'line',
+      interval: '5m',
+    };
+    let childProps;
+    const {rerender} = render(
+      <WidgetQueries
+        api={api}
+        widget={lineWidget}
+        organization={initialData.organization}
+        selection={selection}
+      >
+        {props => {
+          childProps = props;
+          return <div data-test-id="child" />;
+        }}
+      </WidgetQueries>
+    );
+
+    expect(eventsStatsMock).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(childProps.loading).toEqual(false));
+
+    // Simulate a re-render with a new query alias
+    rerender(
+      <WidgetQueries
+        api={api}
+        widget={{
+          ...lineWidget,
+          queries: [
+            {
+              conditions: 'event.type:error',
+              fields: ['count()'],
+              aggregates: ['count()'],
+              columns: [],
+              name: 'this query alias changed',
+              orderby: '',
+            },
+          ],
+        }}
+        organization={initialData.organization}
+        selection={selection}
+      >
+        {props => {
+          childProps = props;
+          return <div data-test-id="child" />;
+        }}
+      </WidgetQueries>
+    );
+
+    // Did not re-query
+    expect(eventsStatsMock).toHaveBeenCalledTimes(1);
+    expect(childProps.timeseriesResults[0].seriesName).toEqual(
+      'this query alias changed : count()'
     );
   });
 
