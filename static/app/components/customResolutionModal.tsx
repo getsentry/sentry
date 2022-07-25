@@ -53,10 +53,12 @@ function CustomResolutionModal(props: CustomResolutionModalProps) {
     props.closeModal();
   };
 
+  const {Header, Body, Footer} = props;
+
   return (
     <form onSubmit={onSubmit}>
-      <props.Header>{t('Resolved In')}</props.Header>
-      <props.Body>
+      <Header>{t('Resolved In')}</Header>
+      <Body>
         <SelectAsyncField
           label={t('Version')}
           id="version"
@@ -67,15 +69,15 @@ function CustomResolutionModal(props: CustomResolutionModalProps) {
           onResults={onAsyncFieldResults}
           onQuery={query => ({query})}
         />
-      </props.Body>
-      <props.Footer>
+      </Body>
+      <Footer>
         <Button type="button" css={{marginRight: space(1.5)}} onClick={props.closeModal}>
           {t('Cancel')}
         </Button>
         <Button type="submit" priority="primary">
           {t('Save Changes')}
         </Button>
-      </props.Footer>
+      </Footer>
     </form>
   );
 }
