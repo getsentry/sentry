@@ -329,3 +329,4 @@ def _insert_vroom_profile(profile: Profile) -> bool:
         return True
     finally:
         profile["received"] = original_timestamp
+        profile["profile"] = ""
