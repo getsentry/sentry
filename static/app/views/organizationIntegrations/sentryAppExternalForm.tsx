@@ -15,8 +15,9 @@ import withApi from 'sentry/utils/withApi';
 // 0 is a valid choice but empty string, undefined, and null are not
 const hasValue = value => !!value || value === 0;
 
+// See docs: https://docs.sentry.io/product/integrations/integration-platform/ui-components/formfield/
 export type FieldFromSchema = Omit<Field, 'choices' | 'type'> & {
-  type: 'select' | 'textarea' | 'text';
+  type: string;
   async?: boolean;
   choices?: Array<[any, string]>;
   default?: 'issue.title' | 'issue.description';
@@ -154,32 +155,6 @@ export class SentryAppExternalForm extends Component<Props, State> {
     return defaultValue;
   };
 
-  getDefaultOptions = (field: FieldFromSchema) => {
-    const savedOption = ((this.props.resetValues || {}).settings || []).find(
-      value => value.name === field.name
-    );
-
-    const currentOptions = (field.choices || []).map(([value, label]) => ({
-      value,
-      label,
-    }));
-
-    if (!savedOption?.value) {
-      return currentOptions;
-    }
-
-    const hasSavedOption =
-      savedOption?.value &&
-      currentOptions.some(option => option.value === savedOption.value);
-
-    // XXX(Ecosystem): Since we don't save the label associated with selections,
-    //                 we must use the value as a fallback label.
-
-    return hasSavedOption
-      ? currentOptions
-      : [{value: savedOption?.value, label: savedOption?.value ?? ''}, ...currentOptions];
-  };
-
   debouncedOptionLoad = debounce(
     // debounce is used to prevent making a request for every input change and
     // instead makes the requests every 200ms
@@ -292,24 +267,28 @@ export class SentryAppExternalForm extends Component<Props, State> {
   renderField = (field: FieldFromSchema, required: boolean) => {
     // This function converts the field we get from the backend into
     // the field we need to pass down
-    let fieldToPass: Field = {
+    let fieldToPass: any = {
       ...field,
       inline: false,
       stacked: true,
       flexibleControlStateSize: true,
       required,
     };
-
-    // async only used for select components
-    const isAsync = typeof field.async === 'undefined' ? true : !!field.async; // default to true
-    if (fieldToPass.type === 'select') {
+    if (field?.uri || field?.async) {
+      fieldToPass.type = 'select_async';
+    }
+    if (['select', 'select_async'].includes(fieldToPass.type || '')) {
       // find the options from state to pass down
-      const defaultOptions = this.getDefaultOptions(field);
+      const defaultOptions = (field.choices || []).map(([value, label]) => ({
+        value,
+        label,
+      }));
       const options = this.state.optionsByField.get(field.name) || defaultOptions;
       const allowClear = !required;
       const defaultValue = this.getDefaultFieldValue(field);
       // filter by what the user is typing
       const filterOption = createFilter({});
+
       fieldToPass = {
         ...fieldToPass,
         options,
@@ -318,11 +297,6 @@ export class SentryAppExternalForm extends Component<Props, State> {
         filterOption,
         allowClear,
       };
-      // default message for async select fields
-      if (isAsync) {
-        fieldToPass.noOptionsMessage = () => 'Type to search';
-      }
-
       if (field.depends_on) {
         // check if this is dependent on other fields which haven't been set yet
         const shouldDisable = field.depends_on.some(
@@ -344,7 +318,7 @@ export class SentryAppExternalForm extends Component<Props, State> {
     const extraProps = field.uri
       ? {
           loadOptions: (input: string) => this.getOptions(field, input),
-          async: isAsync,
+          async: field?.async ?? true,
           cache: false,
           onSelectResetsInput: false,
           onCloseResetsInput: false,
