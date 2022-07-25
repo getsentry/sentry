@@ -165,8 +165,8 @@ class ReleaseSummaryActivityNotification(ActivityNotification):
             text=escape_slack_text(self.version_parsed), url=release_link
         )
         issue_url_text = self.url_format.format(
-            text=issues_link,
-            url=f"{new_issue_counts} issues",
+            text=f"{new_issue_counts} issues",
+            url=issues_link,
         )
         message = (
             f"Release {release_url_text} has been deployed to {self.environment} for an hour"

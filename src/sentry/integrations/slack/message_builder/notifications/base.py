@@ -18,9 +18,9 @@ class SlackNotificationsMessageBuilder(SlackMessageBuilder):
     ) -> None:
         super().__init__()
         self.notification = notification
+        self.notification.url_format = SLACK_URL_FORMAT
         self.context = context
         self.recipient = recipient
-        self.notification.url_format = SLACK_URL_FORMAT
 
     def build(self) -> SlackBody:
         callback_id_raw = self.notification.get_callback_data()

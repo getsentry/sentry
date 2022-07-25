@@ -2,6 +2,7 @@ from urllib.parse import quote
 
 from django.core import mail
 
+from sentry.integrations.slack.message_builder import SLACK_URL_FORMAT
 from sentry.models import Activity, Environment, Repository
 from sentry.notifications.notifications.activity.release_summary import (
     ReleaseSummaryActivityNotification,
@@ -52,6 +53,7 @@ class ReleaseSummaryTestCase(ActivityTestCase):
                     data={"version": self.release.version, "deploy_id": self.deploy.id},
                 )
             )
+            release_summary.url_format = SLACK_URL_FORMAT
 
         # user1 is included because they committed
         participants = release_summary.get_participants_with_group_subscription_reason()[
