@@ -82,7 +82,7 @@ describe('useLocalStorageState', () => {
   });
 
   it('when a value is present but cannot be parsed, calls init with undefined, null', () => {
-    global.localStorage.setItem('key', JSON.stringify('invalid').slice(0, 5));
+    localStorage.setItem('key', JSON.stringify('invalid').slice(0, 5));
     const initialize = jest.fn(() => 'default value');
 
     reactHooks.renderHook(() => useLocalStorageState('key', initialize));
@@ -93,7 +93,7 @@ describe('useLocalStorageState', () => {
   });
 
   it('when a value is present but cannot be parsed init can recover', () => {
-    global.localStorage.setItem('key', JSON.stringify('invalid').slice(5, 9));
+    localStorage.setItem('key', JSON.stringify('invalid').slice(5, 9));
     const initialize = jest.fn((_decodedValue, encodedValue) => {
       const value = JSON.parse('"va' + encodedValue);
       return value;
@@ -104,7 +104,7 @@ describe('useLocalStorageState', () => {
   });
 
   it('when a value is present, init can transform it', () => {
-    global.localStorage.setItem('key', JSON.stringify('valid json'));
+    localStorage.setItem('key', JSON.stringify('valid json'));
     const initialize = jest.fn((decodedValue, _encodedValue) => {
       return 'super ' + decodedValue;
     });
@@ -114,7 +114,7 @@ describe('useLocalStorageState', () => {
   });
 
   it('when a value is present and can be parsed, calls init with decoded and encoded value', () => {
-    global.localStorage.setItem('key', JSON.stringify('valid json'));
+    localStorage.setItem('key', JSON.stringify('valid json'));
     const initialize = jest.fn(() => 'default value');
 
     reactHooks.renderHook(() => useLocalStorageState('key', initialize));
@@ -125,7 +125,7 @@ describe('useLocalStorageState', () => {
     const recursiveReferenceMap = new Map();
     recursiveReferenceMap.set('key', recursiveReferenceMap);
 
-    jest.spyOn(global.window, 'queueMicrotask').mockImplementation(cb => cb());
+    jest.spyOn(window, 'queueMicrotask').mockImplementation(cb => cb());
 
     const {result} = reactHooks.renderHook(() =>
       useLocalStorageState('key', recursiveReferenceMap)
@@ -146,7 +146,7 @@ describe('useLocalStorageState', () => {
     const recursiveObject: Record<string, any> = {};
     recursiveObject.key = recursiveObject;
 
-    jest.spyOn(global.window, 'queueMicrotask').mockImplementation(cb => cb());
+    jest.spyOn(window, 'queueMicrotask').mockImplementation(cb => cb());
 
     const {result} = reactHooks.renderHook(() =>
       useLocalStorageState('key', recursiveObject)
@@ -175,7 +175,7 @@ describe('useLocalStorageState', () => {
   ])('when attempting to serialize a %s', (type, value) => {
     const results = reactHooks.renderHook(() => useLocalStorageState('key', value));
     // Immediately execute microtask so that the error is not thrown from the current execution stack and can be caught by a try/catch
-    jest.spyOn(global.window, 'queueMicrotask').mockImplementation(cb => cb());
+    jest.spyOn(window, 'queueMicrotask').mockImplementation(cb => cb());
 
     try {
       results.result.current[1](value);
