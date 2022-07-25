@@ -385,6 +385,7 @@ type EventBase = {
     | EventOrGroupType.EXPECTSTAPLE
     | EventOrGroupType.HPKP;
   user: EventUser | null;
+  _meta?: Record<string, any>;
   context?: Record<string, any>;
   dateCreated?: string;
   device?: Record<string, any>;

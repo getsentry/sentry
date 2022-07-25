@@ -28,7 +28,7 @@ type UserDetails = {
   value?: string;
 };
 
-const ContextSummaryUser = ({data}: Props) => {
+function ContextSummaryUser({data}: Props) {
   const user = removeFilterMaskedEntries(data);
 
   if (Object.keys(user).length === 0) {
@@ -119,7 +119,7 @@ const ContextSummaryUser = ({data}: Props) => {
           renderUserDetails('username')}
     </Item>
   );
-};
+}
 
 export default ContextSummaryUser;
 

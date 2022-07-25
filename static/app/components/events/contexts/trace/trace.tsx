@@ -4,7 +4,7 @@ import {Organization} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import getUnknownData from '../getUnknownData';
+import {getUnknownData} from '../getUnknownData';
 
 import getTraceKnownData from './getTraceKnownData';
 import {TraceKnownData, TraceKnownDataType} from './types';
@@ -38,7 +38,10 @@ function Trace({event, data}: Props) {
         isContextData
       />
       <KeyValueList
-        data={getUnknownData(data, [...traceKnownDataValues, ...traceIgnoredDataValues])}
+        data={getUnknownData({
+          allData: data,
+          knownKeys: [...traceKnownDataValues, ...traceIgnoredDataValues],
+        })}
         isSorted={false}
         raw={false}
         isContextData

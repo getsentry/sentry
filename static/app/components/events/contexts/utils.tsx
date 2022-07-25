@@ -16,7 +16,7 @@ const CONTEXT_TYPES = {
     .default,
   runtime: require('sentry/components/events/contexts/runtime/runtime').default,
   browser: require('sentry/components/events/contexts/browser/browser').default,
-  user: require('sentry/components/events/contexts/user/user').default,
+  user: require('sentry/components/events/contexts/user').default,
   gpu: require('sentry/components/events/contexts/gpu/gpu').default,
   trace: require('sentry/components/events/contexts/trace/trace').default,
   // 'redux.state' will be replaced with more generic context called 'state'

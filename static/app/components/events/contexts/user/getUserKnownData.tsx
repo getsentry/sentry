@@ -1,33 +1,44 @@
-import {getMeta} from 'sentry/components/events/meta/metaProxy';
-import {AvatarUser as UserType, KeyValueListData} from 'sentry/types';
+import {Event, KeyValueListData} from 'sentry/types';
 import {defined} from 'sentry/utils';
 
-import getUserKnownDataDetails from './getUserKnownDataDetails';
-import {UserKnownDataType} from './types';
+import {getUserKnownDataDetails} from './getUserKnownDataDetails';
+import {UserEventContextData, UserKnownDataType, userKnownDataValues} from '.';
 
-function getUserKnownData(
-  data: UserType,
-  userKnownDataValues: Array<UserKnownDataType>
-): KeyValueListData {
+type Props = {
+  data: UserEventContextData;
+  meta: NonNullable<Event['_meta']>['user'];
+};
+
+export function getUserKnownData({data, meta}: Props): KeyValueListData {
   const knownData: KeyValueListData = [];
 
-  const dataKeys = userKnownDataValues.filter(userKnownDataValue =>
-    defined(data[userKnownDataValue])
-  );
+  const dataKeys = userKnownDataValues.filter(userKnownDataValue => {
+    if (!defined(data[userKnownDataValue])) {
+      if (meta[userKnownDataValue]) {
+        return true;
+      }
+      return false;
+    }
+    return true;
+  });
 
   for (const key of dataKeys) {
-    const knownDataDetails = getUserKnownDataDetails(data, key as UserKnownDataType);
-    if ((knownDataDetails && !defined(knownDataDetails.value)) || !knownDataDetails) {
+    const knownDataDetails = getUserKnownDataDetails({
+      data,
+      type: key as UserKnownDataType,
+    });
+
+    if (!knownDataDetails) {
       continue;
     }
+
     knownData.push({
       key,
       ...knownDataDetails,
-      meta: getMeta(data, key),
+      meta: meta[key]?.[''],
       subjectDataTestId: `user-context-${key.toLowerCase()}-value`,
     });
   }
+
   return knownData;
 }
-
-export default getUserKnownData;
