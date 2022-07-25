@@ -615,7 +615,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
 
                     onKeyDown?.(e);
                   }}
-                  onBlur={query => {
+                  onClose={query => {
                     onFilterSearch(query);
                     onBlur(query);
                   }}

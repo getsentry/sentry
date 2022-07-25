@@ -993,6 +993,7 @@ describe('SmartSearchBar', function () {
         supportedTags,
       };
       const searchBar = mountWithTheme(<SmartSearchBar {...props} />, options).instance();
+      mockCursorPosition(searchBar, 'event.type:error '.length);
       searchBar.onAutoComplete('myTag:', {type: 'tag'});
       expect(searchBar.state.query).toEqual('event.type:error myTag:');
     });

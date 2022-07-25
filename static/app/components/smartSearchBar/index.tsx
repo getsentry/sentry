@@ -59,8 +59,6 @@ import {
   shortcuts,
 } from './utils';
 
-const DROPDOWN_BLUR_DURATION = 200;
-
 /**
  * The max width in pixels of the search bar at which the buttons will
  * have overflowed into the dropdown.
@@ -74,8 +72,6 @@ const ACTION_OVERFLOW_STEPS = 75;
 
 const makeQueryState = (query: string) => ({
   query,
-  // Anytime the query changes and it is not "" the dropdown should show
-  showDropdown: true,
   parsedQuery: parseSearch(query),
 });
 
@@ -195,13 +191,20 @@ type Props = WithRouterProps & {
    */
   members?: User[];
   /**
-   * Called when the search is blurred
+   * Called when the search input is blurred.
+   * Note that the input may be blurred when the user selects an autocomplete
+   * value - if you don't want that, onClose may be a better option.
    */
   onBlur?: (value: string) => void;
   /**
    * Called when the search input changes
    */
   onChange?: (value: string, e: React.ChangeEvent) => void;
+  /**
+   * Called when the user has closed the search dropdown.
+   * Occurs on escape, tab, or clicking outside the component.
+   */
+  onClose?: (value: string) => void;
   /**
    * Get a list of recent searches for the current query
    */
@@ -339,6 +342,8 @@ class SmartSearchBar extends Component<Props, State> {
 
     this.inputResizeObserver = new ResizeObserver(this.updateActionsVisible);
     this.inputResizeObserver.observe(this.containerRef.current);
+
+    document.addEventListener('pointerup', this.onBackgroundPointerUp);
   }
 
   componentDidUpdate(prevProps: Props) {
@@ -353,18 +358,13 @@ class SmartSearchBar extends Component<Props, State> {
 
   componentWillUnmount() {
     this.inputResizeObserver?.disconnect();
-    window.clearTimeout(this.blurTimeout);
+    document.removeEventListener('pointerup', this.onBackgroundPointerUp);
   }
 
   get initialQuery() {
     const {query, defaultQuery} = this.props;
     return query !== null ? addSpace(query) : defaultQuery ?? '';
   }
-
-  /**
-   * Tracks the dropdown blur
-   */
-  blurTimeout: number | undefined = undefined;
 
   /**
    * Ref to the search element itself
@@ -380,6 +380,17 @@ class SmartSearchBar extends Component<Props, State> {
    * Used to determine when actions should be moved to the action overflow menu
    */
   inputResizeObserver: ResizeObserver | null = null;
+
+  /**
+   * Only closes the dropdown when pointer events occur outside of this component
+   */
+  onBackgroundPointerUp = (e: PointerEvent) => {
+    if (this.containerRef.current?.contains(e.target as Node)) {
+      return;
+    }
+
+    this.close();
+  };
 
   /**
    * Updates the numActionsVisible count as the search bar is resized
@@ -410,6 +421,7 @@ class SmartSearchBar extends Component<Props, State> {
       return;
     }
     this.searchInput.current.blur();
+    this.close();
   }
 
   async doSearch() {
@@ -606,24 +618,23 @@ class SmartSearchBar extends Component<Props, State> {
     this.doSearch();
   };
 
-  clearSearch = () =>
-    this.setState(makeQueryState(''), () =>
-      callIfFunction(this.props.onSearch, this.state.query)
-    );
+  clearSearch = () => {
+    this.setState(makeQueryState(''), () => {
+      this.close();
+      callIfFunction(this.props.onSearch, this.state.query);
+    });
+  };
+
+  close = () => {
+    this.setState({showDropdown: false});
+    callIfFunction(this.props.onClose, this.state.query);
+  };
 
   onQueryFocus = () => this.setState({inputHasFocus: true, showDropdown: true});
 
   onQueryBlur = (e: React.FocusEvent<HTMLTextAreaElement>) => {
-    // wait before closing dropdown in case blur was a result of clicking a
-    // menu option
-    const blurHandler = () => {
-      this.blurTimeout = undefined;
-      this.setState({inputHasFocus: false, showDropdown: false});
-      callIfFunction(this.props.onBlur, e.target.value);
-    };
-
-    window.clearTimeout(this.blurTimeout);
-    this.blurTimeout = window.setTimeout(blurHandler, DROPDOWN_BLUR_DURATION);
+    this.setState({inputHasFocus: false});
+    callIfFunction(this.props.onBlur, e.target.value);
   };
 
   onQueryChange = (evt: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -725,6 +736,12 @@ class SmartSearchBar extends Component<Props, State> {
       return;
     }
 
+    // If not selecting an item, allow tab to exit search and close the dropdown
+    if (key === 'Tab' && !isSelectingDropdownItems) {
+      this.close();
+      return;
+    }
+
     if (key === 'Enter' && !isSelectingDropdownItems) {
       this.doSearch();
       return;
@@ -792,9 +809,9 @@ class SmartSearchBar extends Component<Props, State> {
 
     this.setState({
       activeSearchItem: -1,
-      showDropdown: false,
       searchGroups,
     });
+    this.close();
   };
 
   /**
@@ -841,12 +858,6 @@ class SmartSearchBar extends Component<Props, State> {
    */
   get cursorPosition() {
     if (!this.searchInput.current) {
-      return -1;
-    }
-
-    // No cursor position when the input loses focus. This is important for
-    // updating the search highlighters active state
-    if (!this.state.inputHasFocus) {
       return -1;
     }
 
@@ -1320,9 +1331,6 @@ class SmartSearchBar extends Component<Props, State> {
   };
 
   updateAutoCompleteItems = () => {
-    window.clearTimeout(this.blurTimeout);
-    this.blurTimeout = undefined;
-
     this.updateAutoCompleteFromAst();
   };
 
@@ -1616,7 +1624,7 @@ class SmartSearchBar extends Component<Props, State> {
             {parsedQuery !== null ? (
               <HighlightQuery
                 parsedQuery={parsedQuery}
-                cursorPosition={cursor === -1 ? undefined : cursor}
+                cursorPosition={!this.state.showDropdown ? -1 : cursor}
               />
             ) : (
               query
@@ -1653,7 +1661,6 @@ class SmartSearchBar extends Component<Props, State> {
 
         {this.state.showDropdown && (
           <SearchDropdown
-            css={{display: inputHasFocus ? 'block' : 'none'}}
             className={dropdownClassName}
             items={searchGroups}
             onClick={this.onAutoComplete}
