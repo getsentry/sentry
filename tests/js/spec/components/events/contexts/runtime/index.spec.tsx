@@ -8,8 +8,6 @@ export const runtimeMockData = {
 } as unknown as RuntimeData;
 
 export const runtimeMetaMockData = {
-  version: '1.7.13',
-  type: 'runtime',
   name: {
     '': {
       chunks: [
