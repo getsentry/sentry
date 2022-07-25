@@ -11,6 +11,7 @@ import {getInterval} from 'sentry/components/charts/utils';
 import Truncate from 'sentry/components/truncate';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
+import {DateString} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import DiscoverQuery, {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {getAggregateAlias, WebVital} from 'sentry/utils/discover/fields';
@@ -21,7 +22,7 @@ import {decodeList} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withApi from 'sentry/utils/withApi';
 import {vitalDetailRouteWithQuery} from 'sentry/views/performance/vitalDetail/utils';
-import {_VitalChart} from 'sentry/views/performance/vitalDetail/vitalChart';
+import VitalChart, {_VitalChart} from 'sentry/views/performance/vitalDetail/vitalChart';
 
 import {excludeTransaction} from '../../utils';
 import {VitalBar} from '../../vitalsCards';
@@ -105,9 +106,32 @@ type VitalDetailWidgetProps = {
   isVitalDetailView?: boolean;
 };
 
-export function VitalWidget(props: PerformanceWidgetProps & VitalDetailWidgetProps) {
+export function VitalWidget(
+  props: PerformanceWidgetProps &
+    VitalDetailWidgetProps & {
+      end: string | undefined;
+      environment: readonly string[];
+      interval: string;
+      project: readonly number[];
+      query: string;
+      start: string | undefined;
+      statsPeriod: string | undefined;
+    }
+) {
   const mepSetting = useMEPSettingContext();
-  const {ContainerActions, eventView, organization, location} = props;
+  const {
+    ContainerActions,
+    eventView,
+    organization,
+    location,
+    project,
+    query,
+    environment,
+    start,
+    end,
+    statsPeriod,
+    interval,
+  } = props;
   const useEvents = organization.features.includes(
     'performance-frontend-use-events-endpoint'
   );
@@ -300,13 +324,25 @@ export function VitalWidget(props: PerformanceWidgetProps & VitalDetailWidgetPro
       Visualizations={[
         {
           component: provided => (
-            <_VitalChart
-              {...provided.widgetData.chart}
-              {...provided}
-              field={field}
-              vitalFields={vitalFields}
-              grid={provided.grid}
-            />
+            <Fragment>
+              <_VitalChart
+                {...provided.widgetData.chart}
+                {...provided}
+                field={field}
+                vitalFields={vitalFields}
+                grid={provided.grid}
+              />
+              <VitalChart
+                organization={organization}
+                environment={environment}
+                project={project}
+                query={query}
+                start={start as DateString}
+                end={end as DateString}
+                statsPeriod={statsPeriod}
+                interval={interval}
+              />
+            </Fragment>
           ),
           height: props.chartHeight,
         },

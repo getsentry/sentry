@@ -49,7 +49,6 @@ import {
   vitalMap,
   vitalSupportedBrowsers,
 } from './utils';
-import VitalChart from './vitalChart';
 import VitalInfo from './vitalInfo';
 
 const FRONTEND_VITALS = [WebVital.FCP, WebVital.LCP, WebVital.FID, WebVital.CLS];
@@ -205,6 +204,16 @@ function VitalDetailContent(props: Props) {
     const chartDefinition = WIDGET_DEFINITIONS({organization})[chartSetting];
     chartDefinition.isVitalDetailView = true;
 
+    const p75WidgetProps = {
+      query,
+      project,
+      environment,
+      start,
+      end,
+      statsPeriod,
+      interval,
+    };
+
     // ContainerActions: React.FC<{isLoading: boolean}>;
     // chartDefinition: ChartDefinition;
     // chartHeight: number;
@@ -239,16 +248,6 @@ function VitalDetailContent(props: Props) {
             onSearch={handleSearch}
           />
         </FilterActions>
-        <VitalChart
-          organization={organization}
-          query={query}
-          project={project}
-          environment={environment}
-          start={localDateStart}
-          end={localDateEnd}
-          statsPeriod={statsPeriod}
-          interval={interval}
-        />
         <VitalWidget
           chartDefinition={chartDefinition}
           chartSetting={chartSetting}
@@ -261,6 +260,7 @@ function VitalDetailContent(props: Props) {
           title={WIDGET_DEFINITIONS({organization})[chartSetting].title}
           titleTooltip={WIDGET_DEFINITIONS({organization})[chartSetting].titleTooltip}
           isVitalDetailView
+          {...p75WidgetProps}
         />
         <StyledVitalInfo>
           <VitalInfo
