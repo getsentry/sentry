@@ -114,15 +114,6 @@ const Item = styled('div')<{color?: string; numeric?: boolean}>`
   min-width: 0;
 
   ${p => p.numeric && 'font-variant-numeric: tabular-nums;'}
-
-  /* Make odd rows have different background colors */
-  &:nth-child(10n + 5),
-  &:nth-child(10n + 4),
-  &:nth-child(10n + 3),
-  &:nth-child(10n + 2),
-  &:nth-child(10n + 1) {
-    background-color: ${p => p.theme.backgroundSecondary};
-  }
 `;
 
 const StyledPanelTable = styled(PanelTable)<{columns: number}>`
