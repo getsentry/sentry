@@ -68,15 +68,15 @@ function CreateAlertFromViewButton({
 
   const to = {
     pathname: `/organizations/${organization.slug}/alerts/new/metric/`,
-        query: {
-          ...queryParams,
-          createFromDiscover: true,
-          referrer,
-          ...alertTemplate,
-          project: project?.slug,
-          aggregate: queryParams.yAxis ?? alertTemplate.aggregate,
-        },
-      };
+    query: {
+      ...queryParams,
+      createFromDiscover: true,
+      referrer,
+      ...alertTemplate,
+      project: project?.slug,
+      aggregate: queryParams.yAxis ?? alertTemplate.aggregate,
+    },
+  };
 
   const handleClick = () => {
     onClick?.();

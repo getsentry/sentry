@@ -7,7 +7,6 @@ import pick from 'lodash/pick';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
-import Feature from 'sentry/components/acl/feature';
 import Alert from 'sentry/components/alert';
 import SearchBar from 'sentry/components/events/searchBar';
 import FormField from 'sentry/components/forms/formField';
@@ -354,45 +353,16 @@ class RuleConditionsForm extends PureComponent<Props, State> {
     );
   }
 
-  render() {
-    const {
-      organization,
-      disabled,
-      onFilterSearch,
-      allowChangeEventTypes,
-      dataset,
-      alertType,
-      timeWindow,
-      onTimeWindowChange,
-    } = this.props;
-    const {environments} = this.state;
-
-    const environmentOptions: SelectValue<string | null>[] = [
-      {
-        value: null,
-        label: t('All Environments'),
-      },
-      ...(environments?.map(env => ({value: env.name, label: getDisplayName(env)})) ??
-        []),
-    ];
-
-    const transactionTags = [
-      'transaction',
-      'transaction.duration',
-      'transaction.op',
-      'transaction.status',
-    ];
-    const measurementTags = Object.values({...WebVital, ...MobileVital});
-    const eventOmitTags =
-      dataset === 'events' ? [...measurementTags, ...transactionTags] : [];
+  renderInterval() {
+    const {organization, disabled, alertType, timeWindow, onTimeWindowChange} =
+      this.props;
 
     return (
       <Fragment>
-        <ChartPanel>
-          <StyledPanelBody>{this.props.thresholdChart}</StyledPanelBody>
-        </ChartPanel>
         <StyledListItem>
-          <StyledListTitle>{t('Define your metric')}</StyledListTitle>
+          <StyledListTitle>
+            <div>{t('Define your metric')}</div>
+          </StyledListTitle>
         </StyledListItem>
         <FormRow>
           <WizardField
@@ -486,6 +456,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
               </Alert>
             </AlertContainer>
           )}
+        {this.renderInterval()}
         <StyledListItem>{t('Filter events')}</StyledListItem>
         <FormRow noMargin columns={1 + (allowChangeEventTypes ? 1 : 0) + 1}>
           {this.renderProjectSelector()}
