@@ -15,7 +15,6 @@ from datetime import datetime
 import pytest
 import requests
 import yaml
-from django.conf import settings
 
 import sentry
 
@@ -27,8 +26,6 @@ UNSAFE_PATH_CHARS = ("<", ">", ":", '"', " | ", "?", "*")
 
 
 DIRECTORY_GROUPING_CHARS = ("::", "-", "[", "]", "\\")
-
-settings.SENTRY_USE_BIG_INTS = True
 
 DEFAULT_EVENT_DATA = {
     "extra": {
