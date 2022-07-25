@@ -26,7 +26,8 @@ class DetailedOrganizationMemberTeamSerializer(Serializer):
     def serialize(self, obj, attrs, user):
         org_member = serialize(attrs["org_member"])
         org_member["user"] = serialize(attrs["user"])
-        org_member["teamRoles"] = [{"teamSlug": self.team.slug, "role": obj.role}]
+        org_member["teamRole"] = obj.role
+        org_member["teamSlug"] = self.team.slug
         return org_member
 
 
@@ -46,6 +47,10 @@ class TeamMembersEndpoint(TeamEndpoint):
 
         serializer = DetailedOrganizationMemberTeamSerializer(team=team)
 
+        # x["user"] may be None as invited members will not have a linked user
         members = serialize(list(queryset), request.user, serializer=serializer)
-        result = sorted(members, key=lambda x: x["user"]["name"] or x["user"]["email"])
+        result = sorted(
+            members,
+            key=lambda x: (x["user"]["name"] or x["user"]["email"]) if x["user"] else x["email"],
+        )
         return Response(result)

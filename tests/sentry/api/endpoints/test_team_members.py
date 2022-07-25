@@ -46,3 +46,12 @@ class TeamMembersTest(APITestCase):
         assert len(response.data) == 2
         assert response.data[0]["id"] == str(self.team_member.id)
         assert response.data[1]["id"] == str(pending_invite.id)
+
+    def test_team_members_list_includes_roles(self):
+        self.login_as(user=self.user)
+
+        response = self.get_response(self.org.slug, self.team.slug)
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert response.data[0]["teamRole"] is None
+        assert response.data[0]["teamSlug"] == self.team.slug
