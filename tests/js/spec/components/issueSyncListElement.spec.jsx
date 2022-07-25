@@ -1,20 +1,18 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import IssueSyncListElement from 'sentry/components/issueSyncListElement';
 
 describe('IssueSyncListElement', function () {
   it('renders', function () {
-    const wrapper = mountWithTheme(<IssueSyncListElement integrationType="github" />);
-    expect(wrapper).toSnapshot();
+    const wrapper = render(<IssueSyncListElement integrationType="github" />);
+    expect(wrapper.container).toSnapshot();
   });
 
   it('can open', function () {
     const onOpen = jest.fn();
-    const wrapper = mountWithTheme(
-      <IssueSyncListElement integrationType="github" onOpen={onOpen} />
-    );
+    render(<IssueSyncListElement integrationType="github" onOpen={onOpen} />);
     expect(onOpen).not.toHaveBeenCalled();
-    wrapper.find('IntegrationLink').simulate('click');
+    userEvent.click(screen.getByText('Link GitHub Issue'));
     expect(onOpen).toHaveBeenCalled();
   });
 
@@ -22,7 +20,7 @@ describe('IssueSyncListElement', function () {
     const onClose = jest.fn();
     const onOpen = jest.fn();
 
-    const wrapper = mountWithTheme(
+    render(
       <IssueSyncListElement
         integrationType="github"
         externalIssueLink="github.com/issues/gh-101"
@@ -33,7 +31,7 @@ describe('IssueSyncListElement', function () {
     );
 
     expect(onClose).not.toHaveBeenCalled();
-    wrapper.find('StyledIcon').simulate('click');
+    userEvent.click(screen.getByRole('button', {name: 'Close'}));
     expect(onClose).toHaveBeenCalled();
   });
 });

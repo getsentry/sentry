@@ -64,13 +64,6 @@ def call_endpoint(client, relay, private_key, default_projectkey):
     return inner
 
 
-@pytest.fixture(autouse=True)
-def max_sample_rate():
-    from sentry import options
-
-    options.set("relay.project-config-v3-enable", 1)
-
-
 @pytest.fixture
 def projectconfig_cache_get_mock_config(monkeypatch):
     monkeypatch.setattr(

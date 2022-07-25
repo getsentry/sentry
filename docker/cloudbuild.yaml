@@ -65,7 +65,7 @@ steps:
           docker-compose logs;
           exit $test_return;
         fi
-    timeout: 660s
+    timeout: 900s
   - name: 'gcr.io/cloud-builders/docker'
     id: docker-push
     waitFor:

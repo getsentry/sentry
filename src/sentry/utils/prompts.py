@@ -4,6 +4,7 @@ from sentry.utils.request_cache import request_cache
 DEFAULT_PROMPTS = {
     "releases": {"required_fields": ["organization_id", "project_id"]},
     "suspect_commits": {"required_fields": ["organization_id", "project_id"]},
+    "profiling_onboarding": {"required_fields": ["organization_id"]},
     "alert_stream": {"required_fields": ["organization_id"]},
     "sdk_updates": {"required_fields": ["organization_id"]},
     "suggest_mobile_project": {"required_fields": ["organization_id"]},
@@ -11,6 +12,7 @@ DEFAULT_PROMPTS = {
     "distributed_tracing": {"required_fields": ["organization_id", "project_id"]},
     "quick_trace_missing": {"required_fields": ["organization_id", "project_id"]},
     "code_owners": {"required_fields": ["organization_id", "project_id"]},
+    "vitals_alert": {"required_fields": ["organization_id"]},
 }
 
 

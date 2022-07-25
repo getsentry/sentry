@@ -140,7 +140,7 @@ type EventsRequestPartialProps = {
    */
   field?: string[];
   /**
-   * Allows overridding the pathname.
+   * Allows overriding the pathname.
    */
   generatePathname?: (org: OrganizationSummary) => string;
   /**
@@ -164,6 +164,10 @@ type EventsRequestPartialProps = {
    */
   orderby?: string;
   previousSeriesNames?: string[];
+  /**
+   * Optional callback to further process events request response data
+   */
+  processDataCallback?: (any) => void;
   /**
    * List of project ids to query
    */
@@ -443,6 +447,7 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
       currentSeriesNames,
       previousSeriesNames,
       comparisonDelta,
+      processDataCallback,
     } = this.props;
     const {current, previous} = this.getData(data);
     const transformedData = includeTransformedData
@@ -479,7 +484,8 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
               end: response.end * 1000,
             }
         : undefined;
-    return {
+
+    const processedData = {
       data: transformedData,
       comparisonData: transformedComparisonData,
       allData: data,
@@ -491,6 +497,12 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
       timeAggregatedData,
       timeframe,
     };
+
+    if (processDataCallback) {
+      processDataCallback(processedData);
+    }
+
+    return processedData;
   }
 
   render() {

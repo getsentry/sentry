@@ -2,7 +2,6 @@ import {forwardRef as reactForwardRef} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {Theme} from 'sentry/utils/theme';
@@ -19,7 +18,7 @@ export type MenuListItemProps = {
    */
   details?: React.ReactNode;
   /**
-   * Item label. Should prefereably be a string. If not, make sure that
+   * Item label. Should preferably be a string. If not, make sure that
    * there are appropriate aria-labels.
    */
   label?: React.ReactNode;
@@ -236,6 +235,7 @@ export const InnerWrap = styled('div', {
 const ContentWrap = styled('div')<{isFocused: boolean; showDivider: boolean}>`
   position: relative;
   width: 100%;
+  min-width: 0;
   display: flex;
   gap: ${space(1)};
   justify-content: space-between;
@@ -272,12 +272,15 @@ const LeadingItems = styled('div')<{isDisabled: boolean; spanFullHeight: boolean
 const LabelWrap = styled('div')`
   padding-right: ${space(1)};
   width: 100%;
+  min-width: 0;
 `;
 
 const Label = styled('p')`
   margin-bottom: 0;
   line-height: 1.4;
   white-space: nowrap;
+
+  ${p => p.theme.overflowEllipsis}
 `;
 
 const Details = styled('p')<{isDisabled: boolean; priority: Priority}>`
@@ -285,7 +288,7 @@ const Details = styled('p')<{isDisabled: boolean; priority: Priority}>`
   color: ${p => p.theme.subText};
   line-height: 1.2;
   margin-bottom: 0;
-  ${overflowEllipsis}
+  ${p => p.theme.overflowEllipsis}
 
   ${p => p.priority !== 'default' && `color: ${getTextColor(p)};`}
 `;

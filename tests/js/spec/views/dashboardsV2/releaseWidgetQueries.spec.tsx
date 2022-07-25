@@ -2,7 +2,11 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
-import {DisplayType, WidgetType} from 'sentry/views/dashboardsV2/types';
+import {
+  DashboardFilterKeys,
+  DisplayType,
+  WidgetType,
+} from 'sentry/views/dashboardsV2/types';
 import ReleaseWidgetQueries from 'sentry/views/dashboardsV2/widgetCard/releaseWidgetQueries';
 
 describe('Dashboards > ReleaseWidgetQueries', function () {
@@ -92,7 +96,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
     await waitFor(() =>
       expect(children).toHaveBeenLastCalledWith(
         expect.objectContaining({
-          tableResults: [],
+          tableResults: undefined,
           timeseriesResults: [
             {
               data: expect.arrayContaining([
@@ -150,7 +154,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
       '/organizations/org-slug/releases/',
       expect.objectContaining({
         data: {
-          environments: ['prod'],
+          environment: ['prod'],
           per_page: 50,
           project: [1],
           sort: 'date',
@@ -218,6 +222,36 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
           project: [1],
           statsPeriod: '14d',
         },
+      })
+    );
+  });
+
+  it('appends dashboard filters to releases request', async function () {
+    const mock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/metrics/data/',
+      body: TestStubs.MetricsSessionUserCountByStatusByRelease(),
+    });
+
+    render(
+      <ReleaseWidgetQueries
+        api={api}
+        widget={singleQueryWidget}
+        organization={organization}
+        selection={selection}
+        dashboardFilters={{[DashboardFilterKeys.RELEASE]: ['abc@1.3.0']}}
+      >
+        {() => <div data-test-id="child" />}
+      </ReleaseWidgetQueries>
+    );
+
+    await screen.findByTestId('child');
+
+    expect(mock).toHaveBeenCalledWith(
+      '/organizations/org-slug/metrics/data/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          query: ' release:abc@1.3.0 ',
+        }),
       })
     );
   });
@@ -515,7 +549,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
               title: 'sessions',
             },
           ],
-          timeseriesResults: [],
+          timeseriesResults: undefined,
         })
       )
     );

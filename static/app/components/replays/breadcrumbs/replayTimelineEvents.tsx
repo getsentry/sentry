@@ -1,16 +1,17 @@
+import {useCallback} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import Type from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/type';
-import Icon from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/type/icon';
 import * as Timeline from 'sentry/components/replays/breadcrumbs/timeline';
 import Tooltip from 'sentry/components/tooltip';
 import space from 'sentry/styles/space';
-import {BreadcrumbType, Crumb} from 'sentry/types/breadcrumbs';
+import {Crumb} from 'sentry/types/breadcrumbs';
 import type {Color} from 'sentry/utils/theme';
+import theme from 'sentry/utils/theme';
+import BreadcrumbItem from 'sentry/views/replays/detail/breadcrumbs/breadcrumbItem';
 
-import {getCrumbsByColumn} from '../utils';
-
-import {getDescription, getTitle} from './utils';
+import {useReplayContext} from '../replayContext';
+import {getCrumbsByColumn, relativeTimeInMs} from '../utils';
 
 const EVENT_STICK_MARKER_WIDTH = 4;
 
@@ -33,20 +34,15 @@ function ReplayTimelineEvents({
   const eventsByCol = getCrumbsByColumn(startTimestamp, duration, crumbs, totalColumns);
 
   return (
-    <EventColumns className={className} totalColumns={totalColumns} remainder={0}>
+    <Timeline.Columns className={className} totalColumns={totalColumns} remainder={0}>
       {Array.from(eventsByCol.entries()).map(([column, breadcrumbs]) => (
         <EventColumn key={column} column={column}>
-          <Event crumbs={breadcrumbs} />
+          <Event crumbs={breadcrumbs} startTimestamp={startTimestamp} />
         </EventColumn>
       ))}
-    </EventColumns>
+    </Timeline.Columns>
   );
 }
-
-const EventColumns = styled(Timeline.Columns)`
-  height: ${space(4)};
-  margin-top: ${space(1)};
-`;
 
 const EventColumn = styled(Timeline.Col)<{column: number}>`
   grid-column: ${p => Math.floor(p.column)};
@@ -58,86 +54,112 @@ const EventColumn = styled(Timeline.Col)<{column: number}>`
   }
 `;
 
-function getCrumbDetail(crumb: Crumb) {
-  switch (crumb.type) {
-    case BreadcrumbType.ERROR:
-      return `${crumb.data?.label}: ${crumb.message}`;
-    default:
-      return getDescription(crumb);
-  }
-}
+function Event({
+  crumbs,
+  startTimestamp,
+}: {
+  crumbs: Crumb[];
+  startTimestamp: number;
+  className?: string;
+}) {
+  const {setCurrentTime} = useReplayContext();
 
-function sortByMostInterestingType(a: Crumb, b: Crumb) {
-  const rank = {
-    [BreadcrumbType.USER]: 0,
-    [BreadcrumbType.UI]: 0,
-    [BreadcrumbType.NAVIGATION]: 1,
-    [BreadcrumbType.ERROR]: 2,
-  };
-
-  return rank[a.type] - rank[b.type];
-}
-
-function Event({crumbs}: {crumbs: Crumb[]; className?: string}) {
-  const title = (
-    <HoverList>
-      {crumbs.map(crumb => (
-        <HoverListItem key={crumb.id}>
-          <Type type={crumb.type} color={crumb.color} description={crumb.description} />
-          <small>{getCrumbDetail(crumb) || getTitle(crumb)}</small>
-        </HoverListItem>
-      ))}
-    </HoverList>
+  const handleClick = useCallback(
+    (crumb: Crumb) => {
+      crumb.timestamp !== undefined
+        ? setCurrentTime(relativeTimeInMs(crumb.timestamp, startTimestamp))
+        : null;
+    },
+    [setCurrentTime, startTimestamp]
   );
 
-  const mostInteresting = crumbs.reduce((best, crumb) =>
-    sortByMostInterestingType(best, crumb) >= 1 ? best : crumb
-  );
+  const title = crumbs.map(crumb => (
+    <BreadcrumbItem
+      key={crumb.id}
+      crumb={crumb}
+      startTimestamp={startTimestamp}
+      isHovered={false}
+      isSelected={false}
+      onClick={handleClick}
+    />
+  ));
 
-  const icon = crumbs.length === 1 ? <Icon type={mostInteresting.type} /> : crumbs.length;
+  const overlayStyle = css`
+    /* We make sure to override existing styles */
+    padding: ${space(0.5)} !important;
+    max-width: 291px !important;
+    width: 291px;
+
+    @media screen and (max-width: ${theme.breakpoints.small}) {
+      max-width: 220px !important;
+    }
+  `;
+
+  // If we have more than 3 events we want to make sure of showing all the different colors that we have
+  const colors = [...new Set(crumbs.map(crumb => crumb.color))];
+
+  // We just need to stack up to 3 times
+  const totalStackNumber = Math.min(crumbs.length, 3);
 
   return (
     <IconPosition>
-      <Tooltip key={mostInteresting.id} title={title} containerDisplayMode="block">
-        <IconNode color={mostInteresting.color}>{icon}</IconNode>
-      </Tooltip>
+      <IconNodeTooltip title={title} overlayStyle={overlayStyle} isHoverable>
+        {crumbs.slice(0, totalStackNumber).map((crumb, index) => (
+          <IconNode
+            color={colors[index] || crumb.color}
+            key={crumb.id}
+            stack={{totalStackNumber, index}}
+          />
+        ))}
+      </IconNodeTooltip>
     </IconPosition>
   );
 }
 
-const HoverList = styled('ul')`
-  margin: 0;
-  padding: 0;
-`;
+const getNodeDimensions = ({
+  stack,
+}: {
+  stack: {
+    index: number;
+    totalStackNumber: number;
+  };
+}) => {
+  const {totalStackNumber, index} = stack;
+  const multiplier = totalStackNumber - index;
+  const size = (multiplier + 1) * 4;
+  return `
+    width: ${size}px;
+    height: ${size}px;
+  `;
+};
 
-const HoverListItem = styled('li')`
+const IconNodeTooltip = styled(Tooltip)`
   display: grid;
-  grid-template-columns: max-content 150px;
-  gap: ${space(1)};
-  padding: ${space(0.5)};
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
-  &:last-child {
-    border-bottom: none;
-  }
+  justify-items: center;
+  align-items: center;
 `;
 
 const IconPosition = styled('div')`
   position: absolute;
   transform: translate(-50%);
   margin-left: ${EVENT_STICK_MARKER_WIDTH / 2}px;
+  align-self: center;
+  display: grid;
 `;
 
-const IconNode = styled('div')<{color: Color}>`
-  font-size: ${p => p.theme.fontSizeSmall};
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
+const IconNode = styled('div')<{
+  color: Color;
+  stack: {
+    index: number;
+    totalStackNumber: number;
+  };
+}>`
+  grid-column: 1;
+  grid-row: 1;
+  ${getNodeDimensions}
   border-radius: 50%;
   color: ${p => p.theme.white};
   background: ${p => p.theme[p.color] ?? p.color};
-  border: 1px solid ${p => p.theme.white};
   box-shadow: ${p => p.theme.dropShadowLightest};
   user-select: none;
 `;

@@ -1,5 +1,8 @@
+import {act} from 'react-dom/test-utils';
+
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {triggerPress} from 'sentry-test/utils';
 
 import {Client} from 'sentry/api';
 import TransactionsList from 'sentry/components/discover/transactionsList';
@@ -146,9 +149,21 @@ describe('TransactionsList', function () {
       });
     });
 
-    const selectDropdownOption = (w, selection) => {
-      w.find('DropdownControl').first().simulate('click');
-      w.find(`DropdownItem[data-test-id="option-${selection}"] span`).simulate('click');
+    const openDropdown = async w => {
+      await act(async () => {
+        triggerPress(w.find('CompactSelect Button'));
+        await tick();
+        w.update();
+      });
+    };
+
+    const selectDropdownOption = async (w, selection) => {
+      await openDropdown(w);
+      await act(async () => {
+        triggerPress(w.find(`MenuItemWrap[value="${selection}"]`));
+        await tick();
+        w.update();
+      });
     };
 
     describe('with eventsv2', function () {
@@ -168,8 +183,9 @@ describe('TransactionsList', function () {
         await tick();
         wrapper.update();
 
-        expect(wrapper.find('DropdownControl')).toHaveLength(1);
-        expect(wrapper.find('DropdownItem')).toHaveLength(2);
+        expect(wrapper.find('CompactSelect')).toHaveLength(1);
+        await openDropdown(wrapper);
+        expect(wrapper.find('MenuItemWrap')).toHaveLength(2);
         expect(wrapper.find('DiscoverButton')).toHaveLength(1);
         expect(wrapper.find('Pagination')).toHaveLength(1);
         expect(wrapper.find('PanelTable')).toHaveLength(1);
@@ -201,8 +217,9 @@ describe('TransactionsList', function () {
         await tick();
         wrapper.update();
 
-        expect(wrapper.find('DropdownControl')).toHaveLength(1);
-        expect(wrapper.find('DropdownItem')).toHaveLength(3);
+        expect(wrapper.find('CompactSelect')).toHaveLength(1);
+        await openDropdown(wrapper);
+        expect(wrapper.find('MenuItemWrap')).toHaveLength(3);
         expect(wrapper.find('DiscoverButton')).toHaveLength(0);
         expect(wrapper.find('Pagination')).toHaveLength(1);
         expect(wrapper.find('PanelTable')).toHaveLength(1);
@@ -279,7 +296,7 @@ describe('TransactionsList', function () {
         expect(wrapper.find('GridCell').last().text()).toEqual('/b');
         expect(wrapper.find('GridCellNumber').last().text()).toEqual('1000');
 
-        selectDropdownOption(wrapper, 'count');
+        await selectDropdownOption(wrapper, 'count');
         await tick();
         wrapper.update();
 
@@ -350,8 +367,9 @@ describe('TransactionsList', function () {
         wrapper.update();
 
         expect(wrapper.find('LoadingIndicator')).toHaveLength(0);
-        expect(wrapper.find('DropdownControl')).toHaveLength(1);
-        expect(wrapper.find('DropdownItem')).toHaveLength(2);
+        expect(wrapper.find('CompactSelect')).toHaveLength(1);
+        await openDropdown(wrapper);
+        expect(wrapper.find('MenuItemWrap')).toHaveLength(2);
         expect(wrapper.find('DiscoverButton')).toHaveLength(1);
         expect(wrapper.find('Pagination')).toHaveLength(1);
         expect(wrapper.find('PanelTable')).toHaveLength(1);
@@ -383,8 +401,9 @@ describe('TransactionsList', function () {
         await tick();
         wrapper.update();
 
-        expect(wrapper.find('DropdownControl')).toHaveLength(1);
-        expect(wrapper.find('DropdownItem')).toHaveLength(2);
+        expect(wrapper.find('CompactSelect')).toHaveLength(1);
+        await openDropdown(wrapper);
+        expect(wrapper.find('MenuItemWrap')).toHaveLength(2);
         expect(wrapper.find('DiscoverButton')).toHaveLength(1);
         expect(wrapper.find('Pagination')).toHaveLength(1);
         expect(wrapper.find('PanelTable')).toHaveLength(1);
@@ -416,8 +435,9 @@ describe('TransactionsList', function () {
         await tick();
         wrapper.update();
 
-        expect(wrapper.find('DropdownControl')).toHaveLength(1);
-        expect(wrapper.find('DropdownItem')).toHaveLength(3);
+        expect(wrapper.find('CompactSelect')).toHaveLength(1);
+        await openDropdown(wrapper);
+        expect(wrapper.find('MenuItemWrap')).toHaveLength(3);
         expect(wrapper.find('DiscoverButton')).toHaveLength(0);
         expect(wrapper.find('Pagination')).toHaveLength(1);
         expect(wrapper.find('PanelTable')).toHaveLength(1);
@@ -494,7 +514,7 @@ describe('TransactionsList', function () {
         expect(wrapper.find('GridCell').last().text()).toEqual('/b');
         expect(wrapper.find('GridCellNumber').last().text()).toEqual('1000');
 
-        selectDropdownOption(wrapper, 'count');
+        await selectDropdownOption(wrapper, 'count');
         await tick();
         wrapper.update();
 
@@ -565,8 +585,9 @@ describe('TransactionsList', function () {
         wrapper.update();
 
         expect(wrapper.find('LoadingIndicator')).toHaveLength(0);
-        expect(wrapper.find('DropdownControl')).toHaveLength(1);
-        expect(wrapper.find('DropdownItem')).toHaveLength(2);
+        expect(wrapper.find('CompactSelect')).toHaveLength(1);
+        await openDropdown(wrapper);
+        expect(wrapper.find('MenuItemWrap')).toHaveLength(2);
         expect(wrapper.find('DiscoverButton')).toHaveLength(1);
         expect(wrapper.find('Pagination')).toHaveLength(1);
         expect(wrapper.find('PanelTable')).toHaveLength(1);

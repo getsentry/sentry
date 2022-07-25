@@ -1,3 +1,4 @@
+import logging
 import time
 from base64 import b64encode
 
@@ -8,6 +9,7 @@ from rest_framework.response import Response
 
 from sentry import options
 from sentry.app import ratelimiter
+from sentry.auth.authenticators.sms import SMSRateLimitExceeded
 from sentry.auth.authenticators.u2f import U2fInterface
 from sentry.models import Authenticator
 from sentry.utils import auth, json
@@ -17,6 +19,8 @@ from sentry.web.helpers import render_to_response
 
 COOKIE_NAME = "s2fai"
 COOKIE_MAX_AGE = 60 * 60 * 24 * 31
+
+logger = logging.getLogger(__name__)
 
 
 class TwoFactorAuthView(BaseView):
@@ -129,14 +133,29 @@ class TwoFactorAuthView(BaseView):
             )
 
         if request.method == "GET":
-            activation = interface.activate(request)
+            try:
+                activation = interface.activate(request)
 
-            if activation is not None and activation.type == "challenge":
-                challenge = activation.challenge
+                if activation is not None and activation.type == "challenge":
+                    challenge = activation.challenge
 
-                if interface.type == U2fInterface.type:
-                    activation.challenge = {}
-                    activation.challenge["webAuthnAuthenticationData"] = b64encode(challenge)
+                    if interface.type == U2fInterface.type:
+                        activation.challenge = {}
+                        activation.challenge["webAuthnAuthenticationData"] = b64encode(challenge)
+            except SMSRateLimitExceeded as e:
+                logger.warning(
+                    "login.2fa.sms.rate-limited-exceeded",
+                    extra={
+                        "remote_ip": f"{e.remote_ip}",
+                        "user_id": f"{e.user_id}",
+                        "phone_number": f"{e.phone_number}",
+                    },
+                )
+                return HttpResponse(
+                    "You have made too many 2FA attempts. Please try again later.",
+                    content_type="text/plain",
+                    status=429,
+                )
 
         elif "challenge" in request.POST:
             challenge = json.loads(request.POST["challenge"])

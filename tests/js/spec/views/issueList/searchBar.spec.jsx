@@ -13,9 +13,6 @@ describe('IssueListSearchBar', function () {
     organization: {access: [], features: []},
   });
 
-  const clickInput = searchBar =>
-    searchBar.find('textarea[name="query"]').simulate('click');
-
   const mockCursorPosition = (wrapper, pos) => {
     const component = wrapper.find('SmartSearchBar').instance();
     delete component.cursorPosition;
@@ -51,15 +48,7 @@ describe('IssueListSearchBar', function () {
   });
 
   describe('updateAutoCompleteItems()', function () {
-    beforeAll(function () {
-      jest.useFakeTimers();
-    });
-
-    afterAll(function () {
-      jest.useRealTimers();
-    });
-
-    it('sets state with complete tag', function () {
+    it('sets state with complete tag', async () => {
       const loader = (key, value) => {
         expect(key).toEqual('url');
         expect(value).toEqual('fu');
@@ -74,13 +63,17 @@ describe('IssueListSearchBar', function () {
       };
       const searchBar = mountWithTheme(<IssueListSearchBar {...props} />, routerContext);
       mockCursorPosition(searchBar, 5);
-      clickInput(searchBar);
-      jest.advanceTimersByTime(301);
+
+      searchBar.find('textarea').simulate('click');
+      searchBar.find('textarea').simulate('focus');
+
+      await tick();
+
       expect(searchBar.find('SearchDropdown').prop('searchSubstring')).toEqual('"fu"');
       expect(searchBar.find('SearchDropdown').prop('items')).toEqual([]);
     });
 
-    it('sets state when value has colon', function () {
+    it('sets state when value has colon', async () => {
       const loader = (key, value) => {
         expect(key).toEqual('url');
         expect(value).toEqual('http://example.com');
@@ -97,17 +90,22 @@ describe('IssueListSearchBar', function () {
       };
 
       const searchBar = mountWithTheme(<IssueListSearchBar {...props} />, routerContext);
+
       mockCursorPosition(searchBar, 5);
-      clickInput(searchBar);
+
+      searchBar.find('textarea').simulate('click');
+      searchBar.find('textarea').simulate('focus');
+
+      await tick();
+
       expect(searchBar.state.searchTerm).toEqual();
       expect(searchBar.find('SearchDropdown').prop('searchSubstring')).toEqual(
         '"http://example.com"'
       );
       expect(searchBar.find('SearchDropdown').prop('items')).toEqual([]);
-      jest.advanceTimersByTime(301);
     });
 
-    it('does not request values when tag is `timesSeen`', function () {
+    it('does not request values when tag is `timesSeen`', async () => {
       // This should never get called
       const loader = jest.fn(x => x);
 
@@ -120,15 +118,18 @@ describe('IssueListSearchBar', function () {
         onSearch: jest.fn(),
       };
       const searchBar = mountWithTheme(<IssueListSearchBar {...props} />, routerContext);
-      clickInput(searchBar);
-      jest.advanceTimersByTime(301);
+
+      searchBar.find('textarea').simulate('click');
+      searchBar.find('textarea').simulate('focus');
+
+      await tick();
+
       expect(loader).not.toHaveBeenCalled();
     });
   });
 
   describe('Recent Searches', function () {
     it('saves search query as a recent search', async function () {
-      jest.useFakeTimers();
       const saveRecentSearch = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/recent-searches/',
         method: 'POST',
@@ -149,8 +150,11 @@ describe('IssueListSearchBar', function () {
       };
       const searchBar = mountWithTheme(<IssueListSearchBar {...props} />, routerContext);
       mockCursorPosition(searchBar, 5);
-      clickInput(searchBar);
-      jest.advanceTimersByTime(301);
+      searchBar.find('textarea').simulate('focus');
+      searchBar.find('textarea').simulate('click');
+
+      await tick();
+
       expect(searchBar.find('SearchDropdown').prop('searchSubstring')).toEqual('"fu"');
       expect(searchBar.find('SearchDropdown').prop('items')).toEqual([]);
 

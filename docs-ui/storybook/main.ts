@@ -11,6 +11,7 @@ const toPath = (p: string) => path.join(process.cwd(), p);
 
 const config: StorybookConfig = {
   stories: ['../stories/**/*.stories.*'],
+  framework: '@storybook/react',
   core: {
     builder: 'webpack5',
   },
@@ -21,8 +22,14 @@ const config: StorybookConfig = {
     },
     '@storybook/addon-a11y',
     '@storybook/addon-links',
+    '@storybook/addon-docs',
     'storybook-dark-mode',
   ],
+
+  features: {
+    emotionAlias: false,
+    babelModeV7: true,
+  },
 
   // For whatever reason the `babel` config override is not present in
   // storybooks StorybookConfig type.
@@ -44,6 +51,11 @@ const config: StorybookConfig = {
         '@emotion/styled': toPath('node_modules/@emotion/styled'),
         'emotion-theming': toPath('node_modules/@emotion/react'),
         '@babel/preset-react': toPath('node_modules/@babel/preset-react'),
+      },
+      // See: https://github.com/storybookjs/storybook/issues/17458
+      fallback: {
+        ...webpackConf?.resolve?.fallback,
+        assert: toPath('commonjs-assert'),
       },
     },
   }),

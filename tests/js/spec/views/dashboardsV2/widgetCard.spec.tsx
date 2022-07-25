@@ -62,11 +62,11 @@ describe('Dashboards > WidgetCard', function () {
   beforeEach(function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
-      body: [],
+      body: {meta: {isMetricsData: false}},
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-geo/',
-      body: [],
+      body: {meta: {isMetricsData: false}},
     });
     eventsv2Mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/eventsv2/',
@@ -112,6 +112,7 @@ describe('Dashboards > WidgetCard', function () {
     expect(screen.getByText('Open in Discover')).toBeInTheDocument();
     userEvent.click(screen.getByText('Open in Discover'));
     expect(spy).toHaveBeenCalledWith({
+      isMetricsData: false,
       organization,
       widget: multipleQueryWidget,
     });
@@ -263,6 +264,43 @@ describe('Dashboards > WidgetCard', function () {
     expect(router.push).toHaveBeenCalledWith(
       '/organizations/org-slug/discover/results/?display=top5&environment=prod&field=transaction&field=count%28%29&name=Errors&project=1&query=event.type%3Aerror&statsPeriod=14d&yAxis=count%28%29'
     );
+  });
+
+  it('disables Open in Discover when the widget contains custom measurements', async function () {
+    render(
+      <WidgetCard
+        api={api}
+        organization={organization}
+        widget={{
+          ...multipleQueryWidget,
+          displayType: DisplayType.LINE,
+          queries: [
+            {
+              ...multipleQueryWidget.queries[0],
+              fields: [],
+              columns: [],
+              aggregates: ['p99(measurements.custom.measurement)'],
+            },
+          ],
+        }}
+        selection={selection}
+        isEditing={false}
+        onDelete={() => undefined}
+        onEdit={() => undefined}
+        onDuplicate={() => undefined}
+        renderErrorMessage={() => undefined}
+        isSorting={false}
+        currentWidgetDragging={false}
+        showContextMenu
+        widgetLimitReached={false}
+      />,
+      {context: routerContext}
+    );
+
+    userEvent.click(await screen.findByLabelText('Widget actions'));
+    expect(screen.getByText('Open in Discover')).toBeInTheDocument();
+    userEvent.click(screen.getByText('Open in Discover'));
+    expect(router.push).not.toHaveBeenCalledWith();
   });
 
   it('calls onDuplicate when Duplicate Widget is clicked', async function () {
@@ -495,7 +533,8 @@ describe('Dashboards > WidgetCard', function () {
         tableItemLimit={20}
       />
     );
-    await tick();
+    await waitFor(() => expect(eventsv2Mock).toHaveBeenCalled());
+
     expect(SimpleTableChart).toHaveBeenCalledWith(
       expect.objectContaining({stickyHeaders: true}),
       expect.anything()
@@ -606,7 +645,7 @@ describe('Dashboards > WidgetCard', function () {
 
     await waitFor(() => {
       // Badge in the widget header
-      expect(screen.getByText('Stored')).toBeInTheDocument();
+      expect(screen.getByText('Sampled')).toBeInTheDocument();
     });
 
     await waitFor(() => {
@@ -772,7 +811,7 @@ describe('Dashboards > WidgetCard', function () {
 
       await waitFor(() => {
         // Badge in the widget header
-        expect(screen.getByText('Stored')).toBeInTheDocument();
+        expect(screen.getByText('Sampled')).toBeInTheDocument();
       });
 
       await waitFor(() => {

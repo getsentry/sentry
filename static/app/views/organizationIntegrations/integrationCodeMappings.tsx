@@ -9,6 +9,7 @@ import Access from 'sentry/components/acl/access';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import Button from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
+import Pagination, {CursorHandler} from 'sentry/components/pagination';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
 import RepositoryProjectPathConfigForm from 'sentry/components/repositoryProjectPathConfigForm';
 import RepositoryProjectPathConfigRow, {
@@ -175,9 +176,26 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
     ));
   };
 
+  /**
+   * This is a workaround to paginate without affecting browserHistory or modifiying the URL
+   * It's necessary because we don't want to affect the pagination state of other tabs on the page.
+   */
+  handleCursor: CursorHandler = async (cursor, _path, query, _direction) => {
+    const orgSlug = this.props.organization.slug;
+    const [pathConfigs, _, responseMeta] = await this.api.requestPromise(
+      `/organizations/${orgSlug}/code-mappings/`,
+      {includeAllArgs: true, query: {...query, cursor}}
+    );
+    this.setState({
+      pathConfigs,
+      pathConfigsPageLinks: responseMeta?.getResponseHeader('link'),
+    });
+  };
+
   renderBody() {
     const pathConfigs = this.pathConfigs;
     const {integration} = this.props;
+    const {pathConfigsPageLinks} = this.state;
 
     return (
       <Fragment>
@@ -208,15 +226,15 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
                       )}
                       disabled={hasAccess}
                     >
-                      <AddButton
+                      <Button
                         data-test-id="add-mapping-button"
                         onClick={() => this.openModal()}
-                        size="xsmall"
+                        size="xs"
                         icon={<IconAdd size="xs" isCircled />}
                         disabled={!hasAccess}
                       >
                         {t('Add Code Mapping')}
-                      </AddButton>
+                      </Button>
                     </Tooltip>
                   </ButtonColumn>
                 )}
@@ -230,7 +248,7 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
                 action={
                   <Button
                     href={`https://docs.sentry.io/product/integrations/${integration.provider.key}/#stack-trace-linking`}
-                    size="small"
+                    size="sm"
                     onClick={() => {
                       trackIntegrationAnalytics('integrations.stacktrace_docs_clicked', {
                         view: 'integration_configuration_detail',
@@ -270,6 +288,9 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
               .filter(item => !!item)}
           </PanelBody>
         </Panel>
+        {pathConfigsPageLinks && (
+          <Pagination pageLinks={pathConfigsPageLinks} onCursor={this.handleCursor} />
+        )}
       </Fragment>
     );
   }
@@ -277,21 +298,18 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
 
 export default withProjects(withOrganization(IntegrationCodeMappings));
 
-const AddButton = styled(Button)``;
-
 const Layout = styled('div')`
   display: grid;
   grid-column-gap: ${space(1)};
   width: 100%;
   align-items: center;
-  grid-template-columns: 4.5fr 2.5fr 2.5fr 1.6fr;
+  grid-template-columns: 4.5fr 2.5fr 2.5fr max-content;
   grid-template-areas: 'name-repo input-path output-path button';
 `;
 
 const HeaderLayout = styled(Layout)`
   align-items: center;
-  margin: 0;
-  margin-left: ${space(2)};
+  margin: 0 ${space(1)} 0 ${space(2)};
 `;
 
 const ConfigPanelItem = styled(PanelItem)``;

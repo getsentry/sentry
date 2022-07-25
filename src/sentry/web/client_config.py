@@ -9,6 +9,7 @@ import sentry
 from sentry import features, options
 from sentry.api.serializers.base import serialize
 from sentry.api.serializers.models.user import DetailedSelfUserSerializer
+from sentry.api.utils import generate_organization_url
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import ProjectKey
 from sentry.utils import auth
@@ -138,6 +139,8 @@ def get_client_config(request=None):
 
     public_dsn = _get_public_dsn()
 
+    last_organization = session["activeorg"] if session and "activeorg" in session else None
+
     context = {
         "singleOrganization": settings.SENTRY_SINGLE_ORGANIZATION,
         "supportEmail": get_support_mail(),
@@ -160,12 +163,17 @@ def get_client_config(request=None):
         # Note `lastOrganization` should not be expected to update throughout frontend app lifecycle
         # It should only be used on a fresh browser nav to a path where an
         # organization is not in context
-        "lastOrganization": session["activeorg"] if session and "activeorg" in session else None,
+        "lastOrganization": last_organization,
         "languageCode": language_code,
         "userIdentity": user_identity,
         "csrfCookieName": settings.CSRF_COOKIE_NAME,
         "sentryConfig": {
             "dsn": public_dsn,
+            # XXX: In the world of frontend / backend deploys being separated,
+            # this is likely incorrect, since the backend version may not
+            # match the frontend build version.
+            #
+            # This is likely to be removed sometime in the future.
             "release": f"frontend@{settings.SENTRY_SDK_CONFIG['release']}",
             "environment": settings.SENTRY_SDK_CONFIG["environment"],
             # By default `ALLOWED_HOSTS` is [*], however the JS SDK does not support globbing
@@ -178,6 +186,10 @@ def get_client_config(request=None):
         "demoMode": settings.DEMO_MODE,
         "enableAnalytics": settings.ENABLE_ANALYTICS,
         "validateSUForm": getattr(settings, "VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON", False),
+        "sentryUrl": options.get("system.url-prefix"),
+        "organizationUrl": generate_organization_url(last_organization)
+        if last_organization
+        else None,
     }
     if user and user.is_authenticated:
         context.update(

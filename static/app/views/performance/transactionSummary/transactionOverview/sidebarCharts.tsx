@@ -1,3 +1,4 @@
+// eslint-disable-next-line no-restricted-imports
 import {browserHistory, InjectedRouter, withRouter, WithRouterProps} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -356,7 +357,7 @@ function SidebarChartsContainer({
     api,
     start,
     end,
-    statsPeriod,
+    period: statsPeriod,
     project,
     environment,
     query,

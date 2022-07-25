@@ -54,7 +54,6 @@ import {
   TransactionFilterOptions,
 } from '../utils';
 
-import {MetricsEventsDropdown} from './metricEvents/metricsEventsDropdown';
 import TransactionSummaryCharts from './charts';
 import RelatedIssues from './relatedIssues';
 import SidebarCharts from './sidebarCharts';
@@ -296,7 +295,6 @@ function SummaryContent({
             onSearch={handleSearch}
             maxQueryLength={MAX_QUERY_LENGTH}
           />
-          <MetricsEventsDropdown />
         </FilterActions>
         <TransactionSummaryCharts
           organization={organization}
@@ -489,7 +487,7 @@ const FilterActions = styled('div')`
   }
 
   @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
-    grid-template-columns: auto auto 1fr auto;
+    grid-template-columns: auto auto 1fr;
   }
 `;
 

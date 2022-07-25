@@ -53,6 +53,7 @@ const List = styled(
   padding: 0;
   list-style: none;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: ${space(0.5)};
   ${p =>
     typeof p.symbol === 'string' &&

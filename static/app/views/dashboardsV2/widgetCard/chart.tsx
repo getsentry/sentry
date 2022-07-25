@@ -42,7 +42,7 @@ import {eventViewFromWidget} from 'sentry/views/dashboardsV2/utils';
 import {getDatasetConfig} from '../datasetConfig/base';
 import {DisplayType, Widget, WidgetType} from '../types';
 
-import WidgetQueries from './widgetQueries';
+import {GenericWidgetQueriesChildrenProps} from './genericWidgetQueries';
 
 const OTHER = 'Other';
 export const SLIDER_HEIGHT = 60;
@@ -56,12 +56,12 @@ export type AugmentedEChartDataZoomHandler = (
 ) => void;
 
 type TableResultProps = Pick<
-  WidgetQueries['state'],
+  GenericWidgetQueriesChildrenProps,
   'errorMessage' | 'loading' | 'tableResults'
 >;
 
 type WidgetCardChartProps = Pick<
-  WidgetQueries['state'],
+  GenericWidgetQueriesChildrenProps,
   'timeseriesResults' | 'tableResults' | 'errorMessage' | 'loading'
 > & {
   location: Location;
@@ -193,7 +193,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
     }
 
     const {containerHeight} = this.state;
-    const {organization, widget, isMobile, expandNumbers} = this.props;
+    const {location, organization, widget, isMobile, expandNumbers} = this.props;
     const isAlias =
       !organization.features.includes('discover-frontend-use-events-endpoint') &&
       widget.widgetType !== WidgetType.RELEASE;
@@ -210,15 +210,17 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
         tableMeta[field] = 'string';
       }
 
-      if (!field || !result.data.length) {
+      if (!field || !result.data?.length) {
         return <BigNumber key={`big_number:${result.title}`}>{'\u2014'}</BigNumber>;
       }
 
       const dataRow = result.data[0];
       const fieldRenderer = getFieldFormatter(field, tableMeta, isAlias);
 
+      const unit = tableMeta.units?.[field];
       const rendered = fieldRenderer(
-        shouldExpandInteger ? {[field]: dataRow[field].toLocaleString()} : dataRow
+        shouldExpandInteger ? {[field]: dataRow[field].toLocaleString()} : dataRow,
+        {location, organization, unit}
       );
 
       const isModalWidget = !!!(widget.id || widget.tempId);

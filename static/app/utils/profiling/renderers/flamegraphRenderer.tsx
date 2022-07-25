@@ -83,7 +83,7 @@ class FlamegraphRenderer {
 
     this.colors = new Array(VERTICES * COLOR_COMPONENTS);
     this.frames = [...this.flamegraph.frames];
-    this.roots = this.flamegraph.frames.filter(f => !f.parent);
+    this.roots = [...this.flamegraph.root.children];
 
     // Generate colors for the flamegraph
     const {colorBuffer, colorMap} = this.theme.COLORS.STACK_TO_COLOR(
@@ -392,7 +392,7 @@ class FlamegraphRenderer {
 
   draw(
     configViewToPhysicalSpace: mat3,
-    searchResults: FlamegraphSearch['results'] = null
+    searchResults: FlamegraphSearch['results']
   ): void {
     if (!this.gl) {
       throw new Error('Uninitialized WebGL context');
@@ -438,17 +438,16 @@ class FlamegraphRenderer {
     const VERTICES = 6;
 
     const length = this.frames.length;
-    let frame;
+    let frame: FlamegraphFrame | null;
 
     // This is an optimization to avoid setting uniform1i for each draw call when user is not searching
-    if (searchResults) {
+    if (searchResults.size > 0) {
       for (let i = 0; i < length; i++) {
         frame = this.frames[i];
         const vertexOffset = i * VERTICES;
-        const frameId = getFlamegraphFrameSearchId(frame);
         this.gl.uniform1i(
           this.uniforms.u_is_search_result,
-          searchResults[frameId] ? 1 : 0
+          searchResults.has(getFlamegraphFrameSearchId(frame)) ? 1 : 0
         );
         this.gl.drawArrays(this.gl.TRIANGLES, vertexOffset, VERTICES);
       }

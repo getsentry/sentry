@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-from typing import Callable, Mapping, Optional, Union
+from typing import Any, Callable, Dict, List, Mapping, Optional, Union
 
 from snuba_sdk import AliasedExpression, Column, Function
 
+from sentry import options
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.search.events import constants, fields
@@ -11,6 +12,7 @@ from sentry.search.events.builder import MetricsQueryBuilder
 from sentry.search.events.datasets import field_aliases, filter_aliases
 from sentry.search.events.datasets.base import DatasetConfig
 from sentry.search.events.types import SelectType, WhereType
+from sentry.utils.snuba import is_duration_measurement, is_span_op_breakdown
 
 
 class MetricsDatasetConfig(DatasetConfig):
@@ -26,7 +28,8 @@ class MetricsDatasetConfig(DatasetConfig):
             constants.PROJECT_NAME_ALIAS: self._project_slug_filter_converter,
             constants.EVENT_TYPE_ALIAS: self._event_type_converter,
             constants.TEAM_KEY_TRANSACTION_ALIAS: self._key_transaction_filter_converter,
-            "transaction.duration": self._duration_filter_converter,
+            "transaction.duration": self._duration_filter_converter,  # Only for dry_run
+            "environment": self.builder._environment_filter_converter,
         }
 
     @property
@@ -41,9 +44,22 @@ class MetricsDatasetConfig(DatasetConfig):
     def resolve_metric(self, value: str) -> int:
         metric_id = self.resolve_value(constants.METRICS_MAP.get(value, value))
         if metric_id is None:
+            # Maybe this is a custom measurment?
+            for measurement in self.builder.custom_measurement_map:
+                if measurement["name"] == value and measurement["metric_id"] is not None:
+                    metric_id = measurement["metric_id"]
+        # If its still None its not a custom measurement
+        if metric_id is None:
             raise IncompatibleMetricsQuery(f"Metric: {value} could not be resolved")
         self.builder.metric_ids.add(metric_id)
         return metric_id
+
+    def resolve_tag_value(self, value: str) -> Union[str, int]:
+        if self.builder.is_performance and options.get(
+            "sentry-metrics.performance.tags-values-are-strings"
+        ):
+            return value
+        return self.resolve_value(value)
 
     def resolve_value(self, value: str) -> int:
         if self.builder.dry_run:
@@ -52,11 +68,47 @@ class MetricsDatasetConfig(DatasetConfig):
 
         return value_id
 
+    def metric_type_resolver(
+        self, index: Optional[int] = 0
+    ) -> Callable[[List[fields.FunctionArg], Dict[str, Any]], str]:
+        """Return the type of the metric, default to duration
+
+        based on fields.reflective_result_type, but in this config since we need the _custom_measurement_cache
+        """
+
+        def result_type_fn(
+            function_arguments: List[fields.FunctionArg], parameter_values: Dict[str, Any]
+        ) -> str:
+            argument = function_arguments[index]
+            value = parameter_values[argument.name]
+            for measurement in self.builder.custom_measurement_map:
+                if measurement["name"] == value and measurement["metric_id"] is not None:
+                    unit = measurement["unit"]
+                    if unit in constants.SIZE_UNITS or unit in constants.DURATION_UNITS:
+                        return unit
+                    elif unit == "none":
+                        return "integer"
+                    elif unit in constants.PERCENT_UNITS:
+                        return "percentage"
+                    else:
+                        return "number"
+            if (
+                value == "transaction.duration"
+                or is_duration_measurement(value)
+                or is_span_op_breakdown(value)
+            ):
+                return "duration"
+            return "number"
+
+        return result_type_fn
+
     @property
     def function_converter(self) -> Mapping[str, fields.MetricsFunction]:
         """While the final functions in clickhouse must have their -Merge combinators in order to function, we don't
         need to add them here since snuba has a FunctionMapper that will add it for us. Basically it turns expressions
         like quantiles(0.9)(value) into quantilesMerge(0.9)(percentiles)
+        Make sure to update METRIC_FUNCTION_LIST_BY_TYPE when adding functions here, can't be a dynamic list since the
+        Metric Layer will actually handle which dataset each function goes to
         """
         resolve_metric_id = {
             "name": "metric_id",
@@ -99,6 +151,7 @@ class MetricsDatasetConfig(DatasetConfig):
                         ],
                         alias,
                     ),
+                    result_type_fn=self.metric_type_resolver(),
                     default_result_type="integer",
                 ),
                 fields.MetricsFunction(
@@ -133,6 +186,7 @@ class MetricsDatasetConfig(DatasetConfig):
                     snql_distribution=lambda args, alias: self._resolve_percentile(
                         args, alias, 0.5
                     ),
+                    result_type_fn=self.metric_type_resolver(),
                     default_result_type="duration",
                 ),
                 fields.MetricsFunction(
@@ -149,6 +203,7 @@ class MetricsDatasetConfig(DatasetConfig):
                     snql_distribution=lambda args, alias: self._resolve_percentile(
                         args, alias, 0.75
                     ),
+                    result_type_fn=self.metric_type_resolver(),
                     default_result_type="duration",
                 ),
                 fields.MetricsFunction(
@@ -165,6 +220,7 @@ class MetricsDatasetConfig(DatasetConfig):
                     snql_distribution=lambda args, alias: self._resolve_percentile(
                         args, alias, 0.90
                     ),
+                    result_type_fn=self.metric_type_resolver(),
                     default_result_type="duration",
                 ),
                 fields.MetricsFunction(
@@ -181,6 +237,7 @@ class MetricsDatasetConfig(DatasetConfig):
                     snql_distribution=lambda args, alias: self._resolve_percentile(
                         args, alias, 0.95
                     ),
+                    result_type_fn=self.metric_type_resolver(),
                     default_result_type="duration",
                 ),
                 fields.MetricsFunction(
@@ -197,6 +254,7 @@ class MetricsDatasetConfig(DatasetConfig):
                     snql_distribution=lambda args, alias: self._resolve_percentile(
                         args, alias, 0.99
                     ),
+                    result_type_fn=self.metric_type_resolver(),
                     default_result_type="duration",
                 ),
                 fields.MetricsFunction(
@@ -211,6 +269,7 @@ class MetricsDatasetConfig(DatasetConfig):
                     ],
                     calculated_args=[resolve_metric_id],
                     snql_distribution=lambda args, alias: self._resolve_percentile(args, alias, 1),
+                    result_type_fn=self.metric_type_resolver(),
                     default_result_type="duration",
                 ),
                 fields.MetricsFunction(
@@ -227,6 +286,7 @@ class MetricsDatasetConfig(DatasetConfig):
                         ],
                         alias,
                     ),
+                    result_type_fn=self.metric_type_resolver(),
                 ),
                 fields.MetricsFunction(
                     "min",
@@ -242,6 +302,7 @@ class MetricsDatasetConfig(DatasetConfig):
                         ],
                         alias,
                     ),
+                    result_type_fn=self.metric_type_resolver(),
                 ),
                 fields.MetricsFunction(
                     "sum",
@@ -257,6 +318,29 @@ class MetricsDatasetConfig(DatasetConfig):
                         ],
                         alias,
                     ),
+                    result_type_fn=self.metric_type_resolver(),
+                ),
+                fields.MetricsFunction(
+                    "sumIf",
+                    required_args=[
+                        fields.ColumnTagArg("if_col"),
+                        fields.FunctionArg("if_val"),
+                    ],
+                    calculated_args=[
+                        {
+                            "name": "resolved_val",
+                            "fn": lambda args: self.resolve_tag_value(args["if_val"]),
+                        }
+                    ],
+                    snql_counter=lambda args, alias: Function(
+                        "sumIf",
+                        [
+                            Column("value"),
+                            Function("equals", [args["if_col"], args["resolved_val"]]),
+                        ],
+                        alias,
+                    ),
+                    default_result_type="integer",
                 ),
                 fields.MetricsFunction(
                     "percentile",
@@ -271,6 +355,7 @@ class MetricsDatasetConfig(DatasetConfig):
                     ],
                     calculated_args=[resolve_metric_id],
                     snql_distribution=self._resolve_percentile,
+                    result_type_fn=self.metric_type_resolver(),
                     default_result_type="duration",
                 ),
                 fields.MetricsFunction(
@@ -286,6 +371,36 @@ class MetricsDatasetConfig(DatasetConfig):
                         [
                             Column("value"),
                             Function("equals", [Column("metric_id"), args["metric_id"]]),
+                        ],
+                        alias,
+                    ),
+                    default_result_type="integer",
+                ),
+                fields.MetricsFunction(
+                    "uniq",
+                    snql_set=lambda args, alias: Function(
+                        "uniq",
+                        [Column("value")],
+                        alias,
+                    ),
+                ),
+                fields.MetricsFunction(
+                    "uniqIf",
+                    required_args=[
+                        fields.ColumnTagArg("if_col"),
+                        fields.FunctionArg("if_val"),
+                    ],
+                    calculated_args=[
+                        {
+                            "name": "resolved_val",
+                            "fn": lambda args: self.resolve_tag_value(args["if_val"]),
+                        }
+                    ],
+                    snql_set=lambda args, alias: Function(
+                        "uniqIf",
+                        [
+                            Column("value"),
+                            Function("equals", [args["if_col"], args["resolved_val"]]),
                         ],
                         alias,
                     ),
@@ -408,7 +523,7 @@ class MetricsDatasetConfig(DatasetConfig):
                         ],
                         alias,
                     ),
-                    default_result_type="integer",
+                    default_result_type="percentage",
                 ),
                 fields.MetricsFunction(
                     "histogram",
@@ -496,10 +611,11 @@ class MetricsDatasetConfig(DatasetConfig):
         _: Mapping[str, Union[str, Column, SelectType, int, float]],
         alias: Optional[str] = None,
     ) -> SelectType:
-        metric_true = self.resolve_value(constants.METRIC_TRUE_TAG_VALUE)
+        metric_satisfied = self.resolve_tag_value(constants.METRIC_SATISFIED_TAG_VALUE)
+        metric_tolerated = self.resolve_tag_value(constants.METRIC_TOLERATED_TAG_VALUE)
 
         # Nothing is satisfied or tolerated, the score must be 0
-        if metric_true is None:
+        if metric_satisfied is None and metric_tolerated is None:
             return Function(
                 "toUInt64",
                 [0],
@@ -507,10 +623,10 @@ class MetricsDatasetConfig(DatasetConfig):
             )
 
         satisfied = Function(
-            "equals", [self.builder.column(constants.METRIC_SATISFIED_TAG_KEY), metric_true]
+            "equals", [self.builder.column(constants.METRIC_SATISFACTION_TAG_KEY), metric_satisfied]
         )
         tolerable = Function(
-            "equals", [self.builder.column(constants.METRIC_TOLERATED_TAG_KEY), metric_true]
+            "equals", [self.builder.column(constants.METRIC_SATISFACTION_TAG_KEY), metric_tolerated]
         )
         metric_condition = Function(
             "equals", [Column("metric_id"), self.resolve_metric("transaction.duration")]
@@ -529,7 +645,7 @@ class MetricsDatasetConfig(DatasetConfig):
                         ),
                     ],
                 ),
-                Function("countIf", [metric_condition]),
+                Function("countIf", [Column("value"), metric_condition]),
             ],
             alias,
         )
@@ -561,10 +677,10 @@ class MetricsDatasetConfig(DatasetConfig):
         args: Mapping[str, Union[str, Column, SelectType, int, float]],
         alias: Optional[str] = None,
     ) -> SelectType:
-        metric_true = self.resolve_value(constants.METRIC_TRUE_TAG_VALUE)
+        metric_frustrated = self.resolve_tag_value(constants.METRIC_FRUSTRATED_TAG_VALUE)
 
         # Nobody is miserable, we can return 0
-        if metric_true is None:
+        if metric_frustrated is None:
             return Function(
                 "toUInt64",
                 [0],
@@ -587,7 +703,10 @@ class MetricsDatasetConfig(DatasetConfig):
                         ),
                         Function(
                             "equals",
-                            [self.builder.column(constants.METRIC_MISERABLE_TAG_KEY), metric_true],
+                            [
+                                self.builder.column(constants.METRIC_SATISFACTION_TAG_KEY),
+                                metric_frustrated,
+                            ],
                         ),
                     ],
                 ),
@@ -628,7 +747,7 @@ class MetricsDatasetConfig(DatasetConfig):
         _: Mapping[str, Union[str, Column, SelectType, int, float]],
         alias: Optional[str] = None,
     ) -> SelectType:
-        statuses = [self.resolve_value(status) for status in constants.NON_FAILURE_STATUS]
+        statuses = [self.resolve_tag_value(status) for status in constants.NON_FAILURE_STATUS]
         return self._resolve_count_if(
             Function(
                 "equals",
@@ -716,7 +835,7 @@ class MetricsDatasetConfig(DatasetConfig):
                 alias,
             )
 
-        quality_id = self.resolve_value(quality)
+        quality_id = self.resolve_tag_value(quality)
         if quality_id is None:
             return Function(
                 # This matches the type from doing `select toTypeName(count()) ...` from clickhouse

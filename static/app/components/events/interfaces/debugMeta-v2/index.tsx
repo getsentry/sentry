@@ -1,4 +1,5 @@
 import {createRef, Fragment, PureComponent} from 'react';
+// eslint-disable-next-line no-restricted-imports
 import {withRouter, WithRouterProps} from 'react-router';
 import {
   AutoSizer,
@@ -541,7 +542,7 @@ class DebugMeta extends PureComponent<Props, State> {
               size="xs"
               position="top"
               title={t(
-                'A list of dynamic librarys or shared objects loaded into process memory at the time of the crash. Images contribute application code that is referenced in stack traces.'
+                'A list of dynamic libraries or shared objects loaded into process memory at the time of the crash. Images contribute application code that is referenced in stack traces.'
               )}
             />
           </TitleWrapper>

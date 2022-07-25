@@ -25,8 +25,15 @@ register("system.secret-key", flags=FLAG_NOSTORE)
 # Absolute URL to the sentry root directory. Should not include a trailing slash.
 register("system.url-prefix", ttl=60, grace=3600, flags=FLAG_REQUIRED | FLAG_PRIORITIZE_DISK)
 register("system.internal-url-prefix", flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
-register("system.base-hostname", flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
-register("system.customer-base-hostname", flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
+register("system.base-hostname", flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_NOSTORE)
+register(
+    "system.organization-base-hostname",
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_NOSTORE,
+)
+register(
+    "system.organization-url-template", flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_NOSTORE
+)
+register("system.region", flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_NOSTORE)
 register("system.root-api-key", flags=FLAG_PRIORITIZE_DISK)
 register("system.logging-format", default=LoggingFormat.HUMAN, flags=FLAG_NOSTORE)
 # This is used for the chunk upload endpoint
@@ -77,15 +84,44 @@ register("mail.reply-hostname", default="", flags=FLAG_ALLOW_EMPTY | FLAG_PRIORI
 register("mail.mailgun-api-key", default="", flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
 register("mail.timeout", default=10, type=Int, flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
 
+# TOTP (Auth app)
+register(
+    "totp.disallow-new-enrollment",
+    default=False,
+    type=Bool,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK,
+)
+
 # SMS
 register("sms.twilio-account", default="", flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
 register("sms.twilio-token", default="", flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
 register("sms.twilio-number", default="", flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
+register(
+    "sms.disallow-new-enrollment",
+    default=False,
+    type=Bool,
+    flags=FLAG_ALLOW_EMPTY,
+)
 
 # U2F
 register("u2f.app-id", default="", flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
 register("u2f.facets", default=(), type=Sequence, flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
+register(
+    "u2f.disallow-new-enrollment",
+    default=False,
+    type=Bool,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK,
+)
 
+# Recovery Codes
+register(
+    "recovery.disallow-new-enrollment",
+    default=False,
+    type=Bool,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK,
+)
+
+# Auth
 register("auth.ip-rate-limit", default=0, flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
 register("auth.user-rate-limit", default=0, flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
 register(
@@ -93,6 +129,7 @@ register(
     default=False,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_REQUIRED,
 )
+
 
 register("api.rate-limit.org-create", default=5, flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
 
@@ -309,6 +346,9 @@ register("processing.can-use-scrubbers", default=True)
 # Note: A value that is neither 0 nor 1 is regarded as 0
 register("store.use-relay-dsn-sample-rate", default=1)
 
+# A rate to apply to any events denoted as experimental to be sent to an experimental dsn.
+register("store.use-experimental-dsn-sample-rate", default=0.0)
+
 # Mock out integrations and services for tests
 register("mocks.jira", default=False)
 
@@ -359,8 +399,17 @@ register("processing.use-release-archives-sample-rate", default=0.0)  # unused
 # All Relay options (statically authenticated Relays can be registered here)
 register("relay.static_auth", default={}, flags=FLAG_NOSTORE)
 
+# Tell Relay to stop extracting metrics from transaction payloads (see killswitches)
+# Example value: [{"project_id": 42}, {"project_id": 123}]
+register("relay.drop-transaction-metrics", default=[])
+
+# Sample rate for opting in orgs into transaction metrics extraction.
+# NOTE: If this value is > 0.0, the extraction feature will be enabled for the
+#       given fraction of orgs even if the corresponding feature flag is disabled.
+register("relay.transaction-metrics-org-sample-rate", default=0.0)
+
 # Write new kafka headers in eventstream
-register("eventstream:kafka-headers", default=False)
+register("eventstream:kafka-headers", default=True)
 
 # Post process forwarder options
 # Gets data from Kafka headers
@@ -394,8 +443,16 @@ register("reprocessing2.drop-delete-old-primary-hash", default=[])
 # e.g. [{"project_id": 2, "message_type": "error"}, {"project_id": 3, "message_type": "transaction"}]
 register("kafka.send-project-events-to-random-partitions", default=[])
 
-# Rate to project_configs_v3
+# Rate to project_configs_v3, no longer used.
 register("relay.project-config-v3-enable", default=0.0)
+
+# [Unused] Use zstandard compression in redis project config cache
+# Set this value to a list of DSNs.
+register("relay.project-config-cache-compress", default=[])  # unused
+
+# [Unused] Use zstandard compression in redis project config cache
+# Set this value of the fraction of config writes you want to compress.
+register("relay.project-config-cache-compress-sample-rate", default=0.0)  # unused
 
 # Mechanism for dialing up the last-seen-updater, which isn't needed outside
 # of SaaS (last_seen is a marker for deleting stale customer data)
@@ -405,3 +462,6 @@ register("sentry-metrics.last-seen-updater.accept-rate", default=0.0)
 register("api.deprecation.brownout-cron", default="0 12 * * *", type=String)
 # Brownout duration to be stored in ISO8601 format for durations (See https://en.wikipedia.org/wiki/ISO_8601#Durations)
 register("api.deprecation.brownout-duration", default="PT1M")
+
+# switch all metrics usage over to using strings for tag values
+register("sentry-metrics.performance.tags-values-are-strings", default=False)

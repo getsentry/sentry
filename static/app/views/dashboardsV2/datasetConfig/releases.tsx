@@ -9,6 +9,7 @@ import {
   MetricsApiResponse,
   Organization,
   PageFilters,
+  SelectValue,
   SessionApiResponse,
   SessionField,
   SessionsMeta,
@@ -17,8 +18,9 @@ import {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import {TableData} from 'sentry/utils/discover/discoverQuery';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import {QueryFieldValue} from 'sentry/utils/discover/fields';
 import {FieldValueOption} from 'sentry/views/eventsV2/table/queryField';
-import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
+import {FieldValue, FieldValueKind} from 'sentry/views/eventsV2/table/types';
 
 import {DisplayType, Widget, WidgetQuery} from '../types';
 import {getWidgetInterval} from '../utils';
@@ -31,6 +33,7 @@ import {
   generateReleaseWidgetFieldOptions,
   SESSIONS_FIELDS,
   SESSIONS_TAGS,
+  TAG_SORT_DENY_LIST,
 } from '../widgetBuilder/releaseWidget/fields';
 import {
   derivedMetricsToField,
@@ -61,6 +64,8 @@ export const ReleasesConfig: DatasetConfig<
   SessionApiResponse | MetricsApiResponse
 > = {
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
+  enableEquations: false,
+  disableSortOptions,
   getTableRequest: (
     api: Client,
     query: WidgetQuery,
@@ -81,8 +86,13 @@ export const ReleasesConfig: DatasetConfig<
       cursor
     ),
   getSeriesRequest: getReleasesSeriesRequest,
+  getTableSortOptions,
+  getTimeseriesSortOptions,
   filterTableOptions: filterPrimaryReleaseTableOptions,
-  filterTableAggregateParams: filterAggregateParams,
+  filterAggregateParams,
+  filterYAxisAggregateParams: (_fieldValue: QueryFieldValue, _displayType: DisplayType) =>
+    filterAggregateParams,
+  filterYAxisOptions,
   getCustomFieldRenderer: (field, meta) => getFieldRenderer(field, meta, false),
   SearchBar: ReleaseSearchBar,
   getTableFieldOptions: getReleasesTableFieldOptions,
@@ -90,6 +100,7 @@ export const ReleasesConfig: DatasetConfig<
     generateReleaseWidgetFieldOptions([] as SessionsMeta[], SESSIONS_TAGS),
   handleColumnFieldChangeOverride,
   handleOrderByReset: handleReleasesTableOrderByReset,
+  filterSeriesSortOptions,
   supportedDisplayTypes: [
     DisplayType.AREA,
     DisplayType.BAR,
@@ -101,6 +112,71 @@ export const ReleasesConfig: DatasetConfig<
   transformSeries: transformSessionsResponseToSeries,
   transformTable: transformSessionsResponseToTable,
 };
+
+function disableSortOptions(widgetQuery: WidgetQuery) {
+  const {columns} = widgetQuery;
+  if (columns.includes('session.status')) {
+    return {
+      disableSort: true,
+      disableSortDirection: true,
+      disableSortReason: t('Sorting currently not supported with session.status'),
+    };
+  }
+  return {
+    disableSort: false,
+    disableSortDirection: false,
+  };
+}
+
+function getTableSortOptions(_organization: Organization, widgetQuery: WidgetQuery) {
+  const {columns, aggregates} = widgetQuery;
+  const options: SelectValue<string>[] = [];
+  [...aggregates, ...columns]
+    .filter(field => !!field)
+    .filter(field => !DISABLED_SORT.includes(field))
+    .filter(field => !TAG_SORT_DENY_LIST.includes(field))
+    .forEach(field => {
+      options.push({label: field, value: field});
+    });
+
+  return options;
+}
+
+function getTimeseriesSortOptions(_organization: Organization, widgetQuery: WidgetQuery) {
+  const columnSet = new Set(widgetQuery.columns);
+  const releaseFieldOptions = generateReleaseWidgetFieldOptions(
+    Object.values(SESSIONS_FIELDS),
+    SESSIONS_TAGS
+  );
+  const options: Record<string, SelectValue<FieldValue>> = {};
+  Object.entries(releaseFieldOptions).forEach(([key, option]) => {
+    if (['count_healthy', 'count_errored'].includes(option.value.meta.name)) {
+      return;
+    }
+    if (option.value.kind === FieldValueKind.FIELD) {
+      // Only allow sorting by release tag
+      if (option.value.meta.name === 'release' && columnSet.has(option.value.meta.name)) {
+        options[key] = option;
+      }
+      return;
+    }
+    options[key] = option;
+  });
+  return options;
+}
+
+function filterSeriesSortOptions(columns: Set<string>) {
+  return (option: FieldValueOption) => {
+    if (['count_healthy', 'count_errored'].includes(option.value.meta.name)) {
+      return false;
+    }
+    if (option.value.kind === FieldValueKind.FIELD) {
+      // Only allow sorting by release tag
+      return columns.has(option.value.meta.name) && option.value.meta.name === 'release';
+    }
+    return filterPrimaryReleaseTableOptions(option);
+  };
+}
 
 function getReleasesSeriesRequest(
   api: Client,
@@ -148,6 +224,14 @@ function filterPrimaryReleaseTableOptions(option: FieldValueOption) {
 
 function filterAggregateParams(option: FieldValueOption) {
   return option.value.kind === FieldValueKind.METRICS;
+}
+
+function filterYAxisOptions(_displayType: DisplayType) {
+  return (option: FieldValueOption) => {
+    return [FieldValueKind.FUNCTION, FieldValueKind.NUMERIC_METRICS].includes(
+      option.value.kind
+    );
+  };
 }
 
 function handleReleasesTableOrderByReset(widgetQuery: WidgetQuery, newFields: string[]) {

@@ -652,3 +652,19 @@ class DiscoverSavedQueriesVersion2Test(DiscoverSavedQueryBase):
             )
         assert response.status_code == 400, response.content
         assert not DiscoverSavedQuery.objects.filter(name="Bad query").exists()
+
+    def test_save_query_long_name(self):
+        with self.feature(self.feature_name):
+            response = self.client.post(
+                self.url,
+                {
+                    "name": "Bad query" * 200,
+                    "projects": [-1],
+                    "fields": ["title", "count()"],
+                    "range": "24h",
+                    "query": "spaceAfterColon:1",
+                    "version": 2,
+                },
+            )
+        assert response.status_code == 400, response.content
+        assert not DiscoverSavedQuery.objects.filter(name="Bad query" * 200).exists()

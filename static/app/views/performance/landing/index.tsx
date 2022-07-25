@@ -31,6 +31,7 @@ import {
   PageErrorAlert,
   PageErrorProvider,
 } from 'sentry/utils/performance/contexts/pageError';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useTeams from 'sentry/utils/useTeams';
 
 import Onboarding from '../onboarding';
@@ -111,9 +112,19 @@ export function PerformanceLanding(props: Props) {
     hasMounted.current = true;
   }, []);
 
-  const filterString = withStaticFilters
-    ? 'transaction.duration:<15m'
-    : getTransactionSearchQuery(location, eventView.query);
+  const getFreeTextFromQuery = (query: string) => {
+    const conditions = new MutableSearch(query);
+    const transactionValues = conditions.getFilterValues('transaction');
+    if (transactionValues.length) {
+      return transactionValues[0];
+    }
+    return '';
+  };
+
+  const derivedQuery = getTransactionSearchQuery(location, eventView.query);
+  const searchQuery = withStaticFilters
+    ? getFreeTextFromQuery(derivedQuery)
+    : derivedQuery;
 
   const ViewComponent = fieldToViewMap[landingDisplay.field];
 
@@ -145,11 +156,9 @@ export function PerformanceLanding(props: Props) {
     pageFilters = <SearchContainerWithFilter>{pageFilters}</SearchContainerWithFilter>;
   }
 
-  const SearchFilterContainer =
-    organization.features.includes('performance-use-metrics') &&
-    !organization.features.includes('performance-transaction-name-only-search')
-      ? SearchContainerWithFilterAndMetrics
-      : SearchContainerWithFilter;
+  const SearchFilterContainer = organization.features.includes('performance-use-metrics')
+    ? SearchContainerWithFilterAndMetrics
+    : SearchContainerWithFilter;
 
   return (
     <StyledPageContent data-test-id="performance-landing-v3">
@@ -226,13 +235,15 @@ export function PerformanceLanding(props: Props) {
                           organization={organization}
                           location={location}
                           eventView={eventView}
+                          onSearch={handleSearch}
+                          query={searchQuery}
                         />
                       ) : (
                         <SearchBar
                           searchSource="performance_landing"
                           organization={organization}
                           projectIds={eventView.project}
-                          query={filterString}
+                          query={searchQuery}
                           fields={generateAggregateFields(
                             organization,
                             [...eventView.fields, {field: 'tps()'}],
@@ -244,11 +255,7 @@ export function PerformanceLanding(props: Props) {
                       )
                     }
                   </Feature>
-                  <Feature
-                    features={['organizations:performance-transaction-name-only-search']}
-                  >
-                    {({hasFeature}) => !hasFeature && <MetricsEventsDropdown />}
-                  </Feature>
+                  <MetricsEventsDropdown />
                 </SearchFilterContainer>
                 {initiallyLoaded ? (
                   <TeamKeyTransactionManager.Provider

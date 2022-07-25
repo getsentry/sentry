@@ -52,7 +52,11 @@ import {MutableSearch} from '../tokenizeSearch';
 import {getSortField} from './fieldRenderers';
 
 // Metadata mapping for discover results.
-export type MetaType = Record<string, ColumnType> & {isMetricsData?: boolean};
+export type MetaType = Record<string, ColumnType> & {
+  isMetricsData?: boolean;
+  tips?: {columns: string; query: string};
+  units?: Record<string, string>;
+};
 export type EventsMetaType = {fields: Record<string, ColumnType>} & {
   isMetricsData?: boolean;
 };
@@ -286,7 +290,7 @@ class EventView {
   interval: string | undefined;
   expired?: boolean;
   createdBy: User | undefined;
-  additionalConditions: MutableSearch; // This allows views to always add additional conditins to the query to get specific data. It should not show up in the UI unless explicitly called.
+  additionalConditions: MutableSearch; // This allows views to always add additional conditions to the query to get specific data. It should not show up in the UI unless explicitly called.
 
   constructor(props: {
     additionalConditions: MutableSearch;
@@ -548,9 +552,9 @@ class EventView {
 
       if (currentValue && otherValue) {
         const currentDateTime = moment.utc(currentValue);
-        const othereDateTime = moment.utc(otherValue);
+        const otherDateTime = moment.utc(otherValue);
 
-        if (!currentDateTime.isSame(othereDateTime)) {
+        if (!currentDateTime.isSame(otherDateTime)) {
           return false;
         }
       }

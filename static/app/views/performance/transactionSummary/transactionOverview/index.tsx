@@ -5,7 +5,7 @@ import {Location} from 'history';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {t} from 'sentry/locale';
 import {Organization, PageFilters, Project} from 'sentry/types';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {
@@ -55,14 +55,13 @@ function TransactionOverview(props: Props) {
 
   const {location, selection, organization, projects} = props;
 
-  useEffect(
-    () => {
-      loadOrganizationTags(api, organization.slug, selection);
-      addRoutePerformanceContext(selection);
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [selection]
-  );
+  useEffect(() => {
+    loadOrganizationTags(api, organization.slug, selection);
+    addRoutePerformanceContext(selection);
+    trackAdvancedAnalyticsEvent('performance_views.transaction_summary.view', {
+      organization,
+    });
+  }, [selection, organization, api]);
 
   return (
     <MEPSettingProvider>
@@ -98,10 +97,8 @@ function OverviewContentWrapper(props: ChildProps) {
   const totalsView = getTotalsEventView(organization, eventView);
 
   const onChangeFilter = (newFilter: SpanOperationBreakdownFilter) => {
-    trackAnalyticsEvent({
-      eventName: 'Performance Views: Filter Dropdown',
-      eventKey: 'performance_views.filter_dropdown.selection',
-      organization_id: parseInt(organization.id, 10),
+    trackAdvancedAnalyticsEvent('performance_views.filter_dropdown.selection', {
+      organization,
       action: newFilter as string,
     });
 

@@ -1,4 +1,5 @@
 from typing import Iterable, Mapping, Optional, Sequence, Union
+from unittest import mock
 
 from sentry.eventstore.models import Event
 from sentry.models import GroupRelease, NotificationSetting, Project, ProjectOwnership, Team, User
@@ -7,7 +8,7 @@ from sentry.notifications.types import (
     NotificationSettingOptionValues,
     NotificationSettingTypes,
 )
-from sentry.notifications.utils.participants import get_owners, get_send_to
+from sentry.notifications.utils.participants import get_owners, get_release_committers, get_send_to
 from sentry.ownership import grammar
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.testutils import TestCase
@@ -157,11 +158,26 @@ class GetSentToReleaseMembersTest(TestCase):
             environment=self.environment.name,
         )
 
-    def test_default_committer(self):
+    @mock.patch(
+        "sentry.notifications.utils.participants.get_release_committers",
+        wraps=get_release_committers,
+    )
+    def test_default_committer(self, spy_get_release_committers):
         event = self.store_event("empty.lol")
         event.group = self.group
+        with self.feature("organizations:active-release-notification-opt-in"):
+            assert self.get_send_to_release_members(event) == {ExternalProviders.EMAIL: {self.user}}
+            assert spy_get_release_committers.call_count == 1
 
-        assert self.get_send_to_release_members(event) == {ExternalProviders.EMAIL: {self.user}}
+    @mock.patch(
+        "sentry.notifications.utils.participants.get_release_committers",
+        wraps=get_release_committers,
+    )
+    def test_flag_off_should_no_release_members(self, spy_get_release_committers):
+        event = self.store_event("empty.lol")
+        event.group = self.group
+        assert not self.get_send_to_release_members(event)
+        assert spy_get_release_committers.call_count == 1
 
 
 class GetSendToOwnersTest(TestCase):

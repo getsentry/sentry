@@ -540,6 +540,14 @@ class Release(Model):
     def is_semver_release(self):
         return self.package is not None
 
+    def get_previous_release(self, project):
+        """Get the release prior to this one. None if none exists"""
+        return (
+            ReleaseProject.objects.filter(project=project, release__date_added__lt=self.date_added)
+            .order_by("-release__date_added")
+            .first()
+        )
+
     @staticmethod
     def is_semver_version(version):
         """
@@ -844,7 +852,7 @@ class Release(Model):
             if not RepositoryProvider.should_ignore_commit(c.get("message", ""))
         ]
         lock_key = type(self).get_lock_key(self.organization_id, self.id)
-        lock = locks.get(lock_key, duration=10)
+        lock = locks.get(lock_key, duration=10, name="release_set_commits")
         if lock.locked():
             # Signal failure to the consumer rapidly. This aims to prevent the number
             # of timeouts and prevent web worker exhaustion when customers create

@@ -23,7 +23,7 @@ def process_pending(partition=None):
     else:
         lock_key = "buffer:process_pending:%d" % partition
 
-    lock = locks.get(lock_key, duration=60)
+    lock = locks.get(lock_key, duration=60, name="process_pending")
 
     try:
         with lock.acquire():
