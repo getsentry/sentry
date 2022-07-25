@@ -137,7 +137,7 @@ export class SentryAppExternalForm extends Component<Props, State> {
   getDefaultFieldValue = (field: FieldFromSchema) => {
     // Interpret the default if a getFieldDefault function is provided.
     const {resetValues, getFieldDefault} = this.props;
-    let defaultValue;
+    let defaultValue = field?.defaultValue;
 
     // Override this default if a reset value is provided
     if (field.default && getFieldDefault) {
