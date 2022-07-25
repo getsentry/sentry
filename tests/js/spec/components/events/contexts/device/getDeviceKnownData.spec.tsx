@@ -14,7 +14,7 @@ describe('getDeviceKnownData', function () {
       {
         key: 'name',
         subject: 'Name',
-        value: 'Android SDK built for x86',
+        value: '',
         meta: deviceContextMetaMockData.name[''],
         subjectDataTestId: 'device-context-name-value',
       },
@@ -119,7 +119,7 @@ describe('getDeviceKnownData', function () {
       {
         key: 'archs',
         subject: 'Architectures',
-        value: ['x86'],
+        value: expect.anything(),
         meta: undefined,
         subjectDataTestId: 'device-context-archs-value',
       },

@@ -22,7 +22,7 @@ describe('getDeviceKnownDataDetails', function () {
     }
 
     expect(allKnownData).toEqual([
-      {subject: 'Name', value: 'Android SDK built for x86'},
+      {subject: 'Name', value: ''},
       {subject: 'Family', value: 'Android'},
       {subject: 'CPU Description', value: undefined},
       {subject: 'Architecture', value: 'x86'},
