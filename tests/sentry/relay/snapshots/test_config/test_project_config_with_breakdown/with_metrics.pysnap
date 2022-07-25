@@ -1,5 +1,5 @@
 ---
-created: '2022-06-29T14:13:27.057078Z'
+created: '2022-07-22T12:59:33.487327Z'
 creator: sentry
 source: tests/sentry/relay/test_config.py
 ---
@@ -887,3 +887,4 @@ transactionMetrics:
   - d:transactions/breakdowns.ops.browser
   - d:transactions/breakdowns.ops.resource
   - d:transactions/breakdowns.ops.ui
+  version: 1
