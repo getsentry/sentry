@@ -283,11 +283,6 @@ type State = {
    * autocompletion for.
    */
   searchTerm: string;
-  /**
-   * The location in the query of the search term with the negation operator skipped in the start location.
-   * If null, then there should be no search term to replace.
-   */
-  searchTermLocation: {end: number; start: number} | null;
 
   /**
    * Boolean indicating if dropdown should be shown
@@ -331,7 +326,6 @@ class SmartSearchBar extends Component<Props, State> {
     inputHasFocus: false,
     loading: false,
     numActionsVisible: this.props.actionBarItems?.length ?? 0,
-    searchTermLocation: null,
   };
 
   componentDidMount() {
@@ -859,6 +853,37 @@ class SmartSearchBar extends Component<Props, State> {
     return this.searchInput.current.selectionStart ?? -1;
   }
 
+  /**
+   * Get the search term at the current cursor position
+   */
+  get cursorSearchTerm() {
+    const cursorPosition = this.cursorPosition;
+    const cursorToken = this.cursorToken;
+
+    if (!cursorToken) {
+      return null;
+    }
+
+    const innerStart = cursorPosition - cursorToken.location.start.offset;
+
+    let tokenStart = innerStart;
+    while (tokenStart > 0 && cursorToken.text[tokenStart - 1] !== ' ') {
+      tokenStart--;
+    }
+    let tokenEnd = innerStart;
+    while (tokenEnd < cursorToken.text.length && cursorToken.text[tokenEnd] !== ' ') {
+      tokenEnd++;
+    }
+
+    const term = cursorToken.text.slice(tokenStart, tokenEnd);
+
+    return {
+      end: cursorToken.location.start.offset + tokenEnd,
+      searchTerm: term.replace(new RegExp(`^${NEGATION_OPERATOR}`), ''),
+      start: cursorToken.location.start.offset + tokenStart,
+    };
+  }
+
   get filterTokens(): TokenResult<Token.Filter>[] {
     return (this.state.parsedQuery?.filter(tok => tok.type === Token.Filter) ??
       []) as TokenResult<Token.Filter>[];
@@ -1181,7 +1206,7 @@ class SmartSearchBar extends Component<Props, State> {
     const [defaultSearchItems, defaultRecentItems] = this.props.defaultSearchItems!;
 
     // Always clear searchTerm on showing default state.
-    this.setState({searchTerm: '', searchTermLocation: null});
+    this.setState({searchTerm: ''});
 
     if (!defaultSearchItems.length) {
       // Update searchTerm, otherwise <SearchDropdown> will have wrong state
@@ -1256,10 +1281,6 @@ class SmartSearchBar extends Component<Props, State> {
         if (cursor === this.cursorPosition) {
           this.setState({
             searchTerm: tagName,
-            searchTermLocation: {
-              start: cursorToken.key.location.start.offset,
-              end: cursorToken.key.location.end.offset,
-            },
           });
           this.updateAutoCompleteStateMultiHeader(autocompleteGroups);
         }
@@ -1272,32 +1293,15 @@ class SmartSearchBar extends Component<Props, State> {
       return;
     }
 
-    if (cursorToken.type === Token.FreeText) {
-      const innerStart = cursor - cursorToken.location.start.offset;
-
-      let tokenStart = innerStart;
-      while (tokenStart > 0 && cursorToken.text[tokenStart - 1] !== ' ') {
-        tokenStart--;
-      }
-      let tokenEnd = innerStart;
-      while (tokenEnd < cursorToken.text.length && cursorToken.text[tokenEnd] !== ' ') {
-        tokenEnd++;
-      }
-
-      const token = cursorToken.text.slice(tokenStart, tokenEnd);
-      const keyText = token.replace(new RegExp(`^${NEGATION_OPERATOR}`), '');
-      const autocompleteGroups = [await this.generateTagAutocompleteGroup(keyText)];
+    const cursorSearchTerm = this.cursorSearchTerm;
+    if (cursorToken.type === Token.FreeText && cursorSearchTerm) {
+      const autocompleteGroups = [
+        await this.generateTagAutocompleteGroup(cursorSearchTerm.searchTerm),
+      ];
 
       if (cursor === this.cursorPosition) {
         this.setState({
-          searchTerm: keyText,
-          searchTermLocation: {
-            start:
-              cursorToken.location.start.offset +
-              tokenStart +
-              (token.startsWith(NEGATION_OPERATOR) ? 1 : 0),
-            end: cursorToken.location.start.offset + tokenEnd,
-          },
+          searchTerm: cursorSearchTerm.searchTerm,
         });
         this.updateAutoCompleteStateMultiHeader(autocompleteGroups);
       }
@@ -1401,7 +1405,7 @@ class SmartSearchBar extends Component<Props, State> {
 
   onAutoCompleteFromAst = (replaceText: string, item: SearchItem) => {
     const cursor = this.cursorPosition;
-    const {query, searchTermLocation} = this.state;
+    const {query} = this.state;
 
     const cursorToken = this.cursorToken;
 
@@ -1470,9 +1474,10 @@ class SmartSearchBar extends Component<Props, State> {
       }
     }
 
-    if (cursorToken.type === Token.FreeText && searchTermLocation) {
-      clauseStart = searchTermLocation.start;
-      clauseEnd = searchTermLocation.end;
+    const cursorSearchTerm = this.cursorSearchTerm;
+    if (cursorToken.type === Token.FreeText && cursorSearchTerm) {
+      clauseStart = cursorSearchTerm.start;
+      clauseEnd = cursorSearchTerm.end;
     }
 
     if (clauseStart !== null && clauseEnd !== null) {
