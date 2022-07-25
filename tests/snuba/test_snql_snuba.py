@@ -2,6 +2,7 @@ import time
 import uuid
 from datetime import datetime, timedelta
 from typing import Optional
+from unittest import mock
 
 from django.utils import timezone
 from snuba_sdk import Request
@@ -39,7 +40,8 @@ class SnQLTest(TestCase, SnubaTestCase):
         )
         return event_id
 
-    def test_basic(self) -> None:
+    @mock.patch("sentry.utils.metrics.incr")
+    def test_basic(self, mock_metrics_incr) -> None:
         now = datetime.now()
         self._insert_event_for_time(now)
 
@@ -56,9 +58,12 @@ class SnQLTest(TestCase, SnubaTestCase):
             )
         )
         request = Request(dataset="events", app_id="tests", query=query)
-        result = snuba.raw_snql_query(request)
+        result = snuba.raw_snql_query(request, referrer="referrer_not_in_enum")
         assert len(result["data"]) == 1
         assert result["data"][0] == {"count": 1, "project_id": self.project.id}
+        mock_metrics_incr.assert_any_call(
+            "snql.sdk.api.new_referrers", tags={"referrer": "referrer_not_in_enum"}
+        )
 
     def test_cache(self):
         """Minimal test to verify if use_cache works"""
