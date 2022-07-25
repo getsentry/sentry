@@ -274,7 +274,7 @@ export class SentryAppExternalForm extends Component<Props, State> {
       flexibleControlStateSize: true,
       required,
     };
-    if (field?.uri || field?.async) {
+    if (field?.uri && field?.async) {
       fieldToPass.type = 'select_async';
     }
     if (['select', 'select_async'].includes(fieldToPass.type || '')) {
