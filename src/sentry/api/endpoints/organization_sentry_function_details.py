@@ -5,6 +5,7 @@ from sentry import features
 from sentry.api.bases import OrganizationEndpoint
 from sentry.api.endpoints.organization_sentry_function import SentryFunctionSerializer
 from sentry.api.serializers import serialize
+from sentry.models.organization import Organization
 from sentry.models.sentryfunction import SentryFunction
 from sentry.utils.cloudfunctions import delete_function, update_function
 
@@ -18,9 +19,8 @@ class OrganizationSentryFunctionDetailsEndpoint(OrganizationEndpoint):
         args, kwargs = super().convert_args(request, organization_slug, *args, **kwargs)
 
         try:
-            function = SentryFunction.objects.get(
-                slug=function_slug, organization__slug=organization_slug
-            )
+            organization = Organization.objects.get(slug=organization_slug)
+            function = SentryFunction.objects.get(slug=function_slug, organization=organization.id)
         except SentryFunction.DoesNotExist:
             raise Http404
 
