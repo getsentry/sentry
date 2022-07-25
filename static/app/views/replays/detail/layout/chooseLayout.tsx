@@ -21,26 +21,31 @@ type Props = {};
 function ChooseLayout({}: Props) {
   const {getParamValue, setParamValue} = useUrlParam('l_page', 'topbar');
   return (
-    <DropdownControl
-      label={getLayoutIcon(getParamValue())}
-      buttonProps={{size: 'sm'}}
-      alwaysRenderMenu={false}
-      alignRight
-    >
-      {LAYOUT_NAMES.map(key => (
-        <DropdownItem
-          key={key}
-          href={`#${key}`}
-          onClick={() => {
-            setParamValue(key);
-          }}
-        >
-          <Icon>{getLayoutIcon(key)}</Icon>
-        </DropdownItem>
-      ))}
-    </DropdownControl>
+    <RelativeContainer>
+      <DropdownControl
+        label={getLayoutIcon(getParamValue())}
+        buttonProps={{size: 'sm'}}
+        alwaysRenderMenu={false}
+        alignRight
+      >
+        {LAYOUT_NAMES.map(key => (
+          <DropdownItem
+            key={key}
+            href={`#${key}`}
+            onClick={() => {
+              setParamValue(key);
+            }}
+          >
+            <Icon>{getLayoutIcon(key)}</Icon>
+          </DropdownItem>
+        ))}
+      </DropdownControl>
+    </RelativeContainer>
   );
 }
+const RelativeContainer = styled('div')`
+  position: relative;
+`;
 
 const Icon = styled('div')`
   text-align: center;
