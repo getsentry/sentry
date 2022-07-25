@@ -224,6 +224,9 @@
 - name: 'Team: Support'
   color: '8D5494'
   description: ''
+- name: 'Team: Telemetry Experience'
+  color: '8D5494'
+  description: telemetry-experience
 - name: 'Team: Visibility'
   color: '8D5494'
   description: ''
