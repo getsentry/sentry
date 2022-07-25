@@ -31,7 +31,7 @@ export default function createStorage(getStorage: () => Storage): Storage {
     const storage = getStorage();
 
     // Test if a value can be set into the storage.
-    // This can fail in cases where
+    // This can fail in cases where storage may be full or not available.
     storage.setItem(STORAGE_TEST_KEY, STORAGE_TEST_KEY);
     storage.removeItem(STORAGE_TEST_KEY);
 

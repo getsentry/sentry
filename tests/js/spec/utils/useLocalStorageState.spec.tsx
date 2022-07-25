@@ -82,7 +82,7 @@ describe('useLocalStorageState', () => {
   });
 
   it('when a value is present but cannot be parsed, calls init with undefined, null', () => {
-    localStorage.setItem('key', JSON.stringify('invalid').slice(0, 5));
+    localStorageWrapper.setItem('key', JSON.stringify('invalid').slice(0, 5));
     const initialize = jest.fn(() => 'default value');
 
     reactHooks.renderHook(() => useLocalStorageState('key', initialize));
@@ -93,7 +93,7 @@ describe('useLocalStorageState', () => {
   });
 
   it('when a value is present but cannot be parsed init can recover', () => {
-    localStorage.setItem('key', JSON.stringify('invalid').slice(5, 9));
+    localStorageWrapper.setItem('key', JSON.stringify('invalid').slice(5, 9));
     const initialize = jest.fn((_decodedValue, encodedValue) => {
       const value = JSON.parse('"va' + encodedValue);
       return value;
@@ -104,7 +104,7 @@ describe('useLocalStorageState', () => {
   });
 
   it('when a value is present, init can transform it', () => {
-    localStorage.setItem('key', JSON.stringify('valid json'));
+    localStorageWrapper.setItem('key', JSON.stringify('valid json'));
     const initialize = jest.fn((decodedValue, _encodedValue) => {
       return 'super ' + decodedValue;
     });
@@ -114,7 +114,7 @@ describe('useLocalStorageState', () => {
   });
 
   it('when a value is present and can be parsed, calls init with decoded and encoded value', () => {
-    localStorage.setItem('key', JSON.stringify('valid json'));
+    localStorageWrapper.setItem('key', JSON.stringify('valid json'));
     const initialize = jest.fn(() => 'default value');
 
     reactHooks.renderHook(() => useLocalStorageState('key', initialize));
