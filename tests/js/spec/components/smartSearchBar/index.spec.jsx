@@ -855,7 +855,9 @@ describe('SmartSearchBar', function () {
         'nested.child2'
       );
     });
+  });
 
+  describe('cursorSearchTerm', function () {
     it('selects the correct free text word', async function () {
       jest.useRealTimers();
 
@@ -875,9 +877,10 @@ describe('SmartSearchBar', function () {
       await tick();
 
       // Expect the correct search term to be selected
-      expect(searchBar.state.searchTerm).toEqual('testest');
-      expect(searchBar.state.searchTermLocation.start).toBe(4);
-      expect(searchBar.state.searchTermLocation.end).toBe(11);
+      const cursorSearchTerm = searchBar.cursorSearchTerm;
+      expect(cursorSearchTerm.searchTerm).toEqual('testest');
+      expect(cursorSearchTerm.start).toBe(4);
+      expect(cursorSearchTerm.end).toBe(11);
     });
 
     it('selects the correct free text word (last word)', async function () {
@@ -899,9 +902,10 @@ describe('SmartSearchBar', function () {
       await tick();
 
       // Expect the correct search term to be selected
-      expect(searchBar.state.searchTerm).toEqual('err');
-      expect(searchBar.state.searchTermLocation.start).toBe(15);
-      expect(searchBar.state.searchTermLocation.end).toBe(18);
+      const cursorSearchTerm = searchBar.cursorSearchTerm;
+      expect(cursorSearchTerm.searchTerm).toEqual('err');
+      expect(cursorSearchTerm.start).toBe(15);
+      expect(cursorSearchTerm.end).toBe(18);
     });
 
     it('selects the correct free text word (first word)', async function () {
@@ -923,12 +927,13 @@ describe('SmartSearchBar', function () {
       await tick();
 
       // Expect the correct search term to be selected
-      expect(searchBar.state.searchTerm).toEqual('typ');
-      expect(searchBar.state.searchTermLocation.start).toBe(0);
-      expect(searchBar.state.searchTermLocation.end).toBe(3);
+      const cursorSearchTerm = searchBar.cursorSearchTerm;
+      expect(cursorSearchTerm.searchTerm).toEqual('typ');
+      expect(cursorSearchTerm.start).toBe(0);
+      expect(cursorSearchTerm.end).toBe(3);
     });
 
-    it('search term location correctly selects key of filter tokens', async function () {
+    it('search term location correctly selects key of filter token', async function () {
       jest.useRealTimers();
 
       const props = {
@@ -947,9 +952,35 @@ describe('SmartSearchBar', function () {
       await tick();
 
       // Expect the correct search term to be selected
-      expect(searchBar.state.searchTerm).toEqual('device');
-      expect(searchBar.state.searchTermLocation.start).toBe(4);
-      expect(searchBar.state.searchTermLocation.end).toBe(10);
+      const cursorSearchTerm = searchBar.cursorSearchTerm;
+      expect(cursorSearchTerm.searchTerm).toEqual('device');
+      expect(cursorSearchTerm.start).toBe(4);
+      expect(cursorSearchTerm.end).toBe(10);
+    });
+
+    it('search term location correctly selects value of filter token', async function () {
+      jest.useRealTimers();
+
+      const props = {
+        query: '',
+        organization,
+        location,
+        supportedTags,
+      };
+      const smartSearchBar = mountWithTheme(<SmartSearchBar {...props} />, options);
+      const searchBar = smartSearchBar.instance();
+      const textarea = smartSearchBar.find('textarea');
+
+      textarea.simulate('focus');
+      mockCursorPosition(searchBar, 11);
+      textarea.simulate('change', {target: {value: 'typ device:123'}});
+      await tick();
+
+      // Expect the correct search term to be selected
+      const cursorSearchTerm = searchBar.cursorSearchTerm;
+      expect(cursorSearchTerm.searchTerm).toEqual('123');
+      expect(cursorSearchTerm.start).toBe(11);
+      expect(cursorSearchTerm.end).toBe(14);
     });
   });
 
@@ -1029,9 +1060,10 @@ describe('SmartSearchBar', function () {
       mockCursorPosition(searchBar, 20);
       await tick();
       // Expect the correct search term to be selected
-      expect(searchBar.state.searchTerm).toEqual('ti');
-      expect(searchBar.state.searchTermLocation.start).toBe(18);
-      expect(searchBar.state.searchTermLocation.end).toBe(20);
+      const cursorSearchTerm = searchBar.cursorSearchTerm;
+      expect(cursorSearchTerm.searchTerm).toEqual('ti');
+      expect(cursorSearchTerm.start).toBe(18);
+      expect(cursorSearchTerm.end).toBe(20);
       // use autocompletion to do the rest
       searchBar.onAutoComplete('title:', {});
       expect(searchBar.state.query).toEqual('event.type:error !title:');
@@ -1260,9 +1292,10 @@ describe('SmartSearchBar', function () {
       await tick();
 
       // Expect the correct search term to be selected
-      expect(searchBar.state.searchTerm).toEqual('ti');
-      expect(searchBar.state.searchTermLocation.start).toBe(4);
-      expect(searchBar.state.searchTermLocation.end).toBe(6);
+      const cursorSearchTerm = searchBar.cursorSearchTerm;
+      expect(cursorSearchTerm.searchTerm).toEqual('ti');
+      expect(cursorSearchTerm.start).toBe(4);
+      expect(cursorSearchTerm.end).toBe(6);
       // use autocompletion to do the rest
       searchBar.onAutoComplete('title:', {});
       expect(searchBar.state.query).toEqual('typ title: err');

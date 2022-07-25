@@ -864,22 +864,32 @@ class SmartSearchBar extends Component<Props, State> {
       return null;
     }
 
+    const LIMITER_CHARS = [' ', ':'];
+
     const innerStart = cursorPosition - cursorToken.location.start.offset;
 
     let tokenStart = innerStart;
-    while (tokenStart > 0 && cursorToken.text[tokenStart - 1] !== ' ') {
+    while (tokenStart > 0 && !LIMITER_CHARS.includes(cursorToken.text[tokenStart - 1])) {
       tokenStart--;
     }
     let tokenEnd = innerStart;
-    while (tokenEnd < cursorToken.text.length && cursorToken.text[tokenEnd] !== ' ') {
+    while (
+      tokenEnd < cursorToken.text.length &&
+      !LIMITER_CHARS.includes(cursorToken.text[tokenEnd])
+    ) {
       tokenEnd++;
     }
 
-    const term = cursorToken.text.slice(tokenStart, tokenEnd);
+    let searchTerm = cursorToken.text.slice(tokenStart, tokenEnd);
+
+    if (searchTerm.startsWith(NEGATION_OPERATOR)) {
+      tokenStart++;
+    }
+    searchTerm = searchTerm.replace(new RegExp(`^${NEGATION_OPERATOR}`), '');
 
     return {
       end: cursorToken.location.start.offset + tokenEnd,
-      searchTerm: term.replace(new RegExp(`^${NEGATION_OPERATOR}`), ''),
+      searchTerm,
       start: cursorToken.location.start.offset + tokenStart,
     };
   }
