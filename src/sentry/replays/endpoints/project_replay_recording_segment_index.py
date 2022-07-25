@@ -20,7 +20,7 @@ class ProjectReplayRecordingSegmentIndexEndpoint(ProjectEndpoint):
             request=request,
             queryset=ReplayRecordingSegment.objects.filter(
                 project_id=project.id,
-                replay_id=replay_id,
+                replay_id=replay_id.replace("-", ""),
             ),
             order_by="sequence_id",
             on_results=lambda x: serialize(x, request.user, ReplayRecordingSegmentSerializer()),

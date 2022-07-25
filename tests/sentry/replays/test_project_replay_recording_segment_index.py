@@ -11,7 +11,7 @@ class ProjectReplayRecordingSegmentTestCase(APITestCase):
     def setUp(self):
         super().setUp()
 
-        self.replay_id = "977771b2-ddd0-4cec-81bf-4c9283"
+        self.replay_id = "6f959c5c-bc77-4683-8723-6e3367b0cfac"
         self.url = reverse(
             self.endpoint,
             args=(self.organization.slug, self.project.slug, self.replay_id),
@@ -21,19 +21,19 @@ class ProjectReplayRecordingSegmentTestCase(APITestCase):
         self.login_as(user=self.user)
 
         recording_segment = ReplayRecordingSegment.objects.create(
-            replay_id=self.replay_id,
+            replay_id=self.replay_id.replace("-", ""),
             project_id=self.project.id,
             sequence_id=0,
             file_id=File.objects.create(name="hello.png", type="image/png").id,
         )
         ReplayRecordingSegment.objects.create(
-            replay_id=self.replay_id,
+            replay_id=self.replay_id.replace("-", ""),
             project_id=self.project.id,
             sequence_id=1,
             file_id=File.objects.create(name="hello.png", type="image/png").id,
         )
         ReplayRecordingSegment.objects.create(
-            replay_id=self.replay_id,
+            replay_id=self.replay_id.replace("-", ""),
             project_id=self.project.id,
             sequence_id=2,
             file_id=File.objects.create(name="hello.png", type="image/png").id,

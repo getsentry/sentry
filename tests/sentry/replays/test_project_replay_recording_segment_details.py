@@ -16,8 +16,10 @@ class ReplayRecordingSegmentDetailsTestCase(APITestCase):
         self.file = File.objects.create(name="recording-segment-0", type="application/octet-stream")
         self.file.putfile(BytesIO(b"replay-recording-segment"))
 
+        replay_id = "6f959c5c-bc77-4683-8723-6e3367b0cfac"
+
         self.recording_segment = ReplayRecordingSegment.objects.create(
-            replay_id="977771b2-ddd0-4cec-81bf-4c9283",
+            replay_id=replay_id.replace("-", ""),
             project_id=self.project.id,
             sequence_id=0,
             file_id=self.file.id,
@@ -28,7 +30,7 @@ class ReplayRecordingSegmentDetailsTestCase(APITestCase):
             args=(
                 self.organization.slug,
                 self.project.slug,
-                self.recording_segment.replay_id,
+                replay_id,
                 self.recording_segment.sequence_id,
             ),
         )

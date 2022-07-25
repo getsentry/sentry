@@ -20,7 +20,7 @@ class ProjectReplayRecordingSegmentDetailsEndpoint(ProjectEndpoint):
         try:
             attachment = ReplayRecordingSegment.objects.filter(
                 project_id=project.id,
-                replay_id=replay_id,
+                replay_id=replay_id.replace("-", ""),
                 sequence_id=segment_id,
             ).get()
         except ReplayRecordingSegment.DoesNotExist:
