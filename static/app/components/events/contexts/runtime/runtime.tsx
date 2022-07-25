@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 
 import ContextBlock from 'sentry/components/events/contexts/contextBlock';
 
-import getUnknownData from '../getUnknownData';
+import {getUnknownData} from '../getUnknownData';
 
 import getRuntimeKnownData from './getRuntimeKnownData';
 import {RuntimeData, RuntimeIgnoredDataType, RuntimeKnownDataType} from './types';
@@ -15,18 +15,18 @@ const runtimeKnownDataValues = [RuntimeKnownDataType.NAME, RuntimeKnownDataType.
 
 const runtimeIgnoredDataValues = [RuntimeIgnoredDataType.BUILD];
 
-const Runtime = ({data}: Props) => {
+function Runtime({data}: Props) {
   return (
     <Fragment>
       <ContextBlock data={getRuntimeKnownData(data, runtimeKnownDataValues)} />
       <ContextBlock
-        data={getUnknownData(data, [
-          ...runtimeKnownDataValues,
-          ...runtimeIgnoredDataValues,
-        ])}
+        data={getUnknownData({
+          allData: data,
+          knownKeys: [...runtimeKnownDataValues, ...runtimeIgnoredDataValues],
+        })}
       />
     </Fragment>
   );
-};
+}
 
 export default Runtime;
