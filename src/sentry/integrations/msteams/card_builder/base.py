@@ -1,8 +1,10 @@
 from __future__ import annotations
 
-from typing import Any, Sequence
+from typing import TYPE_CHECKING, Any, Sequence
 
-from sentry.integrations.msteams.card_builder import Action, AdaptiveCard, Block
+if TYPE_CHECKING:
+    from sentry.integrations.msteams.card_builder import Action, AdaptiveCard, Block
+
 from sentry.integrations.notifications import AbstractMessageBuilder
 
 from .block import create_text_block
@@ -13,7 +15,7 @@ class MSTeamsMessageBuilder(AbstractMessageBuilder):
         self,
         text: str | Block | None = None,
         title: str | Block | None = None,
-        fields: Sequence[str | Block] | None = None,
+        fields: Sequence[str | Block | None] | None = None,
         footer: str | Block | None = None,
         actions: Sequence[Action] | None = None,
         **kwargs: Any,
@@ -33,6 +35,8 @@ class MSTeamsMessageBuilder(AbstractMessageBuilder):
 
         for item in items:
             if item:
+                # NOTE: If the given item is string and not a `block`,
+                # then it will be converted to a text block.
                 if isinstance(item, str):
                     item = create_text_block(item)
 

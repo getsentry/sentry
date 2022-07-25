@@ -23,9 +23,10 @@ from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.utils import (
     STRING_NOT_FOUND,
     resolve_tag_key,
+    resolve_tag_value,
     resolve_weak,
     reverse_resolve,
-    reverse_resolve_weak,
+    reverse_resolve_tag_value,
 )
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.fields import metric_object_factory
@@ -78,9 +79,7 @@ FUNCTION_ALLOWLIST = ("and", "or", "equals", "in")
 
 
 def resolve_tags(
-    use_case_id: UseCaseKey,
-    org_id: int,
-    input_: Any,
+    use_case_id: UseCaseKey, org_id: int, input_: Any, is_tag_value: bool = False
 ) -> Any:
     """Translate tags in snuba condition
 
@@ -89,7 +88,7 @@ def resolve_tags(
     if input_ is None:
         return None
     if isinstance(input_, (list, tuple)):
-        elements = [resolve_tags(use_case_id, org_id, item) for item in input_]
+        elements = [resolve_tags(use_case_id, org_id, item, is_tag_value=True) for item in input_]
         # Lists are either arguments to IN or NOT IN. In both cases, we can
         # drop unknown strings:
         return [x for x in elements if x != STRING_NOT_FOUND]
@@ -102,7 +101,7 @@ def resolve_tags(
                 "equals",
                 [
                     resolve_tags(use_case_id, org_id, input_.parameters[0]),
-                    resolve_tags(use_case_id, org_id, ""),
+                    resolve_tags(use_case_id, org_id, "", is_tag_value=True),
                 ],
             )
         elif input_.function in FUNCTION_ALLOWLIST:
@@ -128,13 +127,13 @@ def resolve_tags(
             return Condition(
                 lhs=resolve_tags(use_case_id, org_id, input_.lhs),
                 op=Op.EQ,
-                rhs=resolve_tags(use_case_id, org_id, ""),
+                rhs=resolve_tags(use_case_id, org_id, "", is_tag_value=True),
             )
         if (
             isinstance(input_.lhs, Function)
             and input_.lhs.function == "ifNull"
             and isinstance(input_.lhs.parameters[0], Column)
-            and input_.lhs.parameters[0].name == "tags[project]"
+            and input_.lhs.parameters[0].name in ("tags[project]", "tags_raw[project]")
         ):
             # Special condition as when we send a `project:<slug>` query, discover converter
             # converts it into a tags[project]:[<slug>] query, so we want to further process
@@ -154,7 +153,7 @@ def resolve_tags(
         return Condition(
             lhs=resolve_tags(use_case_id, org_id, input_.lhs),
             op=input_.op,
-            rhs=resolve_tags(use_case_id, org_id, input_.rhs),
+            rhs=resolve_tags(use_case_id, org_id, input_.rhs, is_tag_value=True),
         )
 
     if isinstance(input_, BooleanCondition):
@@ -175,7 +174,10 @@ def resolve_tags(
             name = input_.name
         return Column(name=resolve_tag_key(use_case_id, org_id, name))
     if isinstance(input_, str):
-        return resolve_weak(use_case_id, org_id, input_)
+        if is_tag_value:
+            return resolve_tag_value(use_case_id, org_id, input_)
+        else:
+            return resolve_weak(use_case_id, org_id, input_)
     if isinstance(input_, int):
         return input_
 
@@ -319,7 +321,7 @@ def get_date_range(params: Mapping) -> Tuple[datetime, datetime, int]:
 
 
 def parse_tag(use_case_id: UseCaseKey, tag_string: str) -> str:
-    tag_key = int(tag_string.replace("tags[", "").replace("]", ""))
+    tag_key = int(tag_string.replace("tags_raw[", "").replace("tags[", "").replace("]", ""))
     return reverse_resolve(use_case_id, tag_key)
 
 
@@ -341,7 +343,7 @@ def translate_meta_results(
 
         # Column name could be either a mri, ["bucketed_time"] or a tag or a dataset col like
         # "project_id" or "metric_id"
-        is_tag = column_name.startswith("tags[")
+        is_tag = column_name.startswith(("tags[", "tags_raw["))
         is_time_col = column_name in [TS_COL_GROUP]
         is_dataset_col = column_name in DATASET_COLUMNS
 
@@ -690,7 +692,7 @@ class SnubaResultConverter:
                 by=dict(
                     (
                         parse_tag(self._use_case_id, key),
-                        reverse_resolve_weak(self._use_case_id, value),
+                        reverse_resolve_tag_value(self._use_case_id, value, weak=True),
                     )
                     if key not in FIELD_ALIAS_MAPPINGS.values()
                     else (key, value)
