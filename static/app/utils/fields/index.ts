@@ -1,3 +1,5 @@
+import {t} from 'sentry/locale';
+
 export enum FieldKind {
   TAG = 'tag',
   MEASUREMENT = 'measurement',
@@ -140,92 +142,92 @@ export interface FieldDefinition {
 
 export const MEASUREMENT_FIELDS: Record<string, FieldDefinition> = {
   [WebVital.FP]: {
-    desc: 'Web Vital First Paint',
+    desc: t('Web Vital First Paint'),
     kind: FieldKind.METRICS,
     valueType: FieldValueType.DURATION,
   },
   [WebVital.FCP]: {
-    desc: 'Web Vital First Contentful Paint',
+    desc: t('Web Vital First Contentful Paint'),
     kind: FieldKind.METRICS,
     valueType: FieldValueType.DURATION,
   },
   [WebVital.LCP]: {
-    desc: 'Web Vital Largest Contentful Paint',
+    desc: t('Web Vital Largest Contentful Paint'),
     kind: FieldKind.METRICS,
     valueType: FieldValueType.DURATION,
   },
   [WebVital.FID]: {
-    desc: 'Web Vital First Input Delay',
+    desc: t('Web Vital First Input Delay'),
     kind: FieldKind.METRICS,
     valueType: FieldValueType.DURATION,
   },
   [WebVital.CLS]: {
-    desc: 'Web Vital Cumulative Layout Shift ',
+    desc: t('Web Vital Cumulative Layout Shift'),
     kind: FieldKind.METRICS,
     valueType: FieldValueType.NUMBER,
   },
   [WebVital.TTFB]: {
-    desc: 'Web Vital Time To First Byte',
+    desc: t('Web Vital Time To First Byte'),
     kind: FieldKind.METRICS,
     valueType: FieldValueType.DURATION,
   },
   [WebVital.RequestTime]: {
-    desc: 'Time between start of request to start of response',
+    desc: t('Time between start of request to start of response'),
     kind: FieldKind.METRICS,
     valueType: FieldValueType.DURATION,
   },
   [MobileVital.AppStartCold]: {
-    desc: 'First launch (not in memory and no process exists)',
+    desc: t('First launch (not in memory and no process exists)'),
     kind: FieldKind.METRICS,
     valueType: FieldValueType.DURATION,
   },
   [MobileVital.AppStartWarm]: {
-    desc: 'Already launched (partial memory and process may exist)',
+    desc: t('Already launched (partial memory and process may exist)'),
     kind: FieldKind.METRICS,
     valueType: FieldValueType.DURATION,
   },
   [MobileVital.FramesTotal]: {
-    desc: 'Total number of frames',
+    desc: t('Total number of frames'),
     kind: FieldKind.METRICS,
     valueType: FieldValueType.INTEGER,
   },
   [MobileVital.FramesSlow]: {
-    desc: 'Number of slow frames',
+    desc: t('Number of slow frames'),
     kind: FieldKind.METRICS,
     valueType: FieldValueType.INTEGER,
   },
   [MobileVital.FramesFrozen]: {
-    desc: 'Number of frozen frames',
+    desc: t('Number of frozen frames'),
     kind: FieldKind.METRICS,
     valueType: FieldValueType.INTEGER,
   },
   [MobileVital.FramesSlowRate]: {
-    desc: 'Number of slow frames out of the total',
+    desc: t('Number of slow frames out of the total'),
     kind: FieldKind.METRICS,
     valueType: FieldValueType.PERCENTAGE,
   },
   [MobileVital.FramesFrozenRate]: {
-    desc: 'Number of frozen frames out of the total',
+    desc: t('Number of frozen frames out of the total'),
     kind: FieldKind.METRICS,
     valueType: FieldValueType.PERCENTAGE,
   },
   [MobileVital.StallCount]: {
-    desc: 'Count of slow Javascript event loops (React Native)',
+    desc: t('Count of slow Javascript event loops (React Native)'),
     kind: FieldKind.METRICS,
     valueType: FieldValueType.INTEGER,
   },
   [MobileVital.StallTotalTime]: {
-    desc: 'Total stall duration (React Native)',
+    desc: t('Total stall duration (React Native)'),
     kind: FieldKind.METRICS,
     valueType: FieldValueType.PERCENTAGE,
   },
   [MobileVital.StallLongestTime]: {
-    desc: 'Duration of slowest Javascript event loop (React Native)',
+    desc: t('Duration of slowest Javascript event loop (React Native)'),
     kind: FieldKind.METRICS,
     valueType: FieldValueType.INTEGER,
   },
   [MobileVital.StallPercentage]: {
-    desc: 'Total stall duration out of the total transaction duration',
+    desc: t('Total stall duration out of the total transaction duration (React Native)'),
     kind: FieldKind.METRICS,
     valueType: FieldValueType.PERCENTAGE,
   },
