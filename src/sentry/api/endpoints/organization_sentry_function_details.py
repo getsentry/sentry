@@ -6,6 +6,7 @@ from sentry.api.bases import OrganizationEndpoint
 from sentry.api.endpoints.organization_sentry_function import SentryFunctionSerializer
 from sentry.api.serializers import serialize
 from sentry.models.sentryfunction import SentryFunction
+from sentry.utils.cloudfunctions import delete_function, update_function
 
 # from sentry.utils.cloudfunctions import delete_function, update_function
 
@@ -39,9 +40,7 @@ class OrganizationSentryFunctionDetailsEndpoint(OrganizationEndpoint):
         data = serializer.validated_data
         function.update(**data)
 
-        # update_function(
-        #     function.code, function.external_id, env_variables, data.get("overview", None)
-        # )
+        update_function(function.code, function.external_id, data.get("overview", None))
 
         return Response(serialize(function), status=201)
 
@@ -49,10 +48,10 @@ class OrganizationSentryFunctionDetailsEndpoint(OrganizationEndpoint):
         # If an operation on the function is still in progress, it will raise
         # an exception. Retrying when the operation has finished deletes the
         # function successfully.
-        # try:
-        #     # delete_function(function.external_id)
-        # except Exception:
-        #     # for hackweek, just eat the error and move on
-        #     pass
+        try:
+            delete_function(function.external_id)
+        except Exception:
+            # for hackweek, just eat the error and move on
+            pass
         SentryFunction.objects.filter(organization=organization, name=function.name).delete()
         return Response(status=204)
