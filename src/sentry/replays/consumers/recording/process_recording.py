@@ -65,14 +65,14 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):  # type
         # TODO: implement threaded chunk sets, and wait for an individual segment's
         # futures to finish before trying to read from redis in the final kafka message
         # https://github.com/getsentry/replay-backend/pull/38/files
-        id = message_dict["id"]
+        recording_segment_uuid = message_dict["id"]
         project_id = message_dict["project_id"]
         chunk_index = message_dict["chunk_index"]
-        cache_key = replay_recording_segment_cache_id(id, project_id)
+        cache_key = replay_recording_segment_cache_id(project_id, recording_segment_uuid)
 
         attachment_cache.set_chunk(
             key=cache_key,
-            id=id,
+            id=recording_segment_uuid,
             chunk_index=chunk_index,
             chunk_data=message_dict["payload"],
             timeout=CACHE_TIMEOUT,
@@ -123,9 +123,9 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):  # type
 
     def _get_from_cache(self, message_dict: RecordingSegmentMessage) -> CachedAttachment | None:
         replay_recording = message_dict["replay_recording"]
-        id = message_dict["replay_recording"]["id"]
+        recording_segment_uuid = message_dict["replay_recording"]["id"]
         project_id = message_dict["project_id"]
-        cache_id = replay_recording_segment_cache_id(id, project_id)
+        cache_id = replay_recording_segment_cache_id(project_id, recording_segment_uuid)
         cached_replay_recording = attachment_cache.get_from_chunks(key=cache_id, **replay_recording)
         try:
             # try accessing data to ensure that is exists, and load it
@@ -208,5 +208,5 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):  # type
         self.__threadpool.shutdown(wait=False)
 
 
-def replay_recording_segment_cache_id(id: str, project_id: int) -> str:
-    return f"{project_id}:{id}"
+def replay_recording_segment_cache_id(project_id: int, recording_segment_uuid: str) -> str:
+    return f"{project_id}:{recording_segment_uuid}"
