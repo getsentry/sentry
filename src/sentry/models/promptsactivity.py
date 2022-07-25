@@ -2,13 +2,7 @@ from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import (
-    BoundedPositiveIntegerField,
-    FlexibleForeignKey,
-    JSONField,
-    Model,
-    sane_repr,
-)
+from sentry.db.models import BoundedBigIntegerField, FlexibleForeignKey, JSONField, Model, sane_repr
 
 
 class PromptsActivity(Model):
@@ -16,9 +10,9 @@ class PromptsActivity(Model):
 
     __include_in_export__ = False
 
-    organization_id = BoundedPositiveIntegerField(db_index=True)
+    organization_id = BoundedBigIntegerField(db_index=True)
     # Not a Foreign Key because it's no longer safe to take out lock on Project table in Prod
-    project_id = BoundedPositiveIntegerField(db_index=True)
+    project_id = BoundedBigIntegerField(db_index=True)
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL, null=False)
     feature = models.CharField(max_length=64, null=False)
     # typically will include a dismissed/snoozed timestamp or something similar
