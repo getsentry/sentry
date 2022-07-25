@@ -1,6 +1,3 @@
-// Filter keys based on generic
-type FilteredKeys<T, U> = {[P in keyof T]: T[P] extends U ? P : never}[keyof T];
-
 export type NetworkSpan = {
   data: Record<string, any>;
   endTimestamp: number;
@@ -11,8 +8,8 @@ export type NetworkSpan = {
 
 export interface ISortConfig {
   asc: boolean;
-  by: keyof NetworkSpan;
-  substractValue?: FilteredKeys<NetworkSpan, number>;
+  by: keyof NetworkSpan | string;
+  getValue: (row: NetworkSpan) => any;
 }
 
 export function sortNetwork(
@@ -20,24 +17,11 @@ export function sortNetwork(
   sortConfig: ISortConfig
 ): NetworkSpan[] {
   return [...network].sort((a, b) => {
-    let valueA =
-      (typeof a[sortConfig.by] === 'string'
-        ? (a[sortConfig.by] as string).toUpperCase()
-        : a[sortConfig.by]) || 0;
+    let valueA = sortConfig.getValue(a);
+    let valueB = sortConfig.getValue(b);
 
-    let valueB =
-      (typeof b[sortConfig.by] === 'string'
-        ? (b[sortConfig.by] as string).toUpperCase()
-        : b[sortConfig.by]) || 0;
-
-    if (
-      sortConfig.substractValue &&
-      typeof valueA === 'number' &&
-      typeof valueB === 'number'
-    ) {
-      valueA = valueA - a[sortConfig.substractValue];
-      valueB = valueB - b[sortConfig.substractValue];
-    }
+    valueA = typeof valueA === 'string' ? valueA.toUpperCase() : valueA;
+    valueB = typeof valueB === 'string' ? valueB.toUpperCase() : valueB;
 
     if (valueA === valueB) {
       return 0;

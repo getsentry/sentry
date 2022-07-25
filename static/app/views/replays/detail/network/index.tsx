@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo, useState} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {PanelTable, PanelTableHeader} from 'sentry/components/panels';
@@ -22,30 +22,33 @@ function NetworkList({event, networkSpans}: Props) {
   const [sortConfig, setSortConfig] = useState<ISortConfig>({
     by: 'startTimestamp',
     asc: true,
+    getValue: row => row[sortConfig.by],
   });
 
-  const handleSort = useCallback(
-    (
-      heading: typeof sortConfig.by,
-      substractValue?: typeof sortConfig.substractValue
-    ) => {
-      setSortConfig(prevSort => {
-        if (prevSort.by === heading) {
-          return {by: heading, asc: !prevSort.asc, substractValue};
-        }
+  function handleSort(fieldName: keyof NetworkSpan): void;
+  function handleSort(key: string, getValue: (row: NetworkSpan) => any): void;
 
-        return {by: heading, asc: true, substractValue};
-      });
-    },
-    [sortConfig]
-  );
+  function handleSort(
+    fieldName: string | keyof NetworkSpan,
+    getValue?: (row: NetworkSpan) => any
+  ) {
+    const getValueFunction = getValue ? getValue : (row: NetworkSpan) => row[fieldName];
+
+    setSortConfig(prevSort => {
+      if (prevSort.by === fieldName) {
+        return {by: fieldName, asc: !prevSort.asc, getValue: getValueFunction};
+      }
+
+      return {by: fieldName, asc: true, getValue: getValueFunction};
+    });
+  }
 
   const networkData = useMemo(
     () => sortNetwork(networkSpans, sortConfig),
     [networkSpans, sortConfig]
   );
 
-  const sortArrow = (sortedBy: keyof NetworkSpan) => (
+  const sortArrow = (sortedBy: string) => (
     <IconArrow
       color={sortConfig.by === sortedBy ? 'gray300' : 'gray200'}
       size="xs"
@@ -61,8 +64,15 @@ function NetworkList({event, networkSpans}: Props) {
     <SortItem key="type" onClick={() => handleSort('op')}>
       {t('Type')} {sortArrow('op')}
     </SortItem>,
-    <SortItem key="duration" onClick={() => handleSort('endTimestamp', 'startTimestamp')}>
-      {t('Duration')} {sortArrow('endTimestamp')}
+    <SortItem
+      key="duration"
+      onClick={() =>
+        handleSort('duration', row => {
+          return row.endTimestamp - row.startTimestamp;
+        })
+      }
+    >
+      {t('Duration')} {sortArrow('duration')}
     </SortItem>,
     <SortItem key="timestamp" onClick={() => handleSort('startTimestamp')}>
       {t('Timestamp')} {sortArrow('startTimestamp')}
