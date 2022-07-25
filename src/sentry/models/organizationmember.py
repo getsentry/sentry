@@ -66,8 +66,8 @@ class OrganizationMemberManager(BaseManager):
         auth_provider_query = AuthProvider.objects.filter(
             organization_id=self.get().organization.id
         )
-        # early return is SCIM is enabled, let SCIM control users
-        if auth_provider_query.exists() and auth_provider_query[0].flags.scim_enabled:
+        # early return if SCIM is enabled, let SCIM control creation, modification, and deletion of users
+        if auth_provider_query.exists() and bool(auth_provider_query[0].flags.scim_enabled):
             return
 
         self.filter(

@@ -130,7 +130,7 @@ class OrganizationMemberTest(TestCase):
 
     def test_delete_expired_clear(self):
         organization = self.create_organization()
-        ninety_one_days = timezone.now() - timedelta(days=1)
+        ninety_one_days = timezone.now() - timedelta(days=91)
         member = OrganizationMember.objects.create(
             organization=organization,
             role="member",
@@ -146,7 +146,7 @@ class OrganizationMemberTest(TestCase):
         AuthProvider.objects.create(
             provider="saml2", organization=organization, flags=AuthProvider.flags["scim_enabled"]
         )
-        ninety_one_days = timezone.now() - timedelta(days=1)
+        ninety_one_days = timezone.now() - timedelta(days=91)
         member = OrganizationMember.objects.create(
             organization=organization,
             role="member",
