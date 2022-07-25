@@ -169,6 +169,11 @@ def get_client_config(request=None):
         "csrfCookieName": settings.CSRF_COOKIE_NAME,
         "sentryConfig": {
             "dsn": public_dsn,
+            # XXX: In the world of frontend / backend deploys being separated,
+            # this is likely incorrect, since the backend version may not
+            # match the frontend build version.
+            #
+            # This is likely to be removed sometime in the future.
             "release": f"frontend@{settings.SENTRY_SDK_CONFIG['release']}",
             "environment": settings.SENTRY_SDK_CONFIG["environment"],
             # By default `ALLOWED_HOSTS` is [*], however the JS SDK does not support globbing

@@ -3,7 +3,7 @@ import {Fragment} from 'react';
 import ContextBlock from 'sentry/components/events/contexts/contextBlock';
 import {Event} from 'sentry/types/event';
 
-import getUnknownData from '../getUnknownData';
+import {getUnknownData} from '../getUnknownData';
 
 import getDeviceKnownData from './getDeviceKnownData';
 import {DeviceData, DeviceKnownDataType} from './types';
@@ -65,10 +65,10 @@ function Device({data, event}: Props) {
         data={getDeviceKnownData(event, inferredData, deviceKnownDataValues)}
       />
       <ContextBlock
-        data={getUnknownData(inferredData, [
-          ...deviceKnownDataValues,
-          ...deviceIgnoredDataValues,
-        ])}
+        data={getUnknownData({
+          allData: inferredData,
+          knownKeys: [...deviceKnownDataValues, ...deviceIgnoredDataValues],
+        })}
       />
     </Fragment>
   );

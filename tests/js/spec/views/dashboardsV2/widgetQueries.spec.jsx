@@ -696,6 +696,68 @@ describe('Dashboards > WidgetQueries', function () {
     );
   });
 
+  it('does not re-query events and sets name in widgets', async function () {
+    const eventsStatsMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: TestStubs.EventsStats(),
+    });
+    const lineWidget = {
+      ...singleQueryWidget,
+      displayType: 'line',
+      interval: '5m',
+    };
+    let childProps;
+    const {rerender} = render(
+      <WidgetQueries
+        api={api}
+        widget={lineWidget}
+        organization={initialData.organization}
+        selection={selection}
+      >
+        {props => {
+          childProps = props;
+          return <div data-test-id="child" />;
+        }}
+      </WidgetQueries>
+    );
+
+    expect(eventsStatsMock).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(childProps.loading).toEqual(false));
+
+    // Simulate a re-render with a new query alias
+    rerender(
+      <WidgetQueries
+        api={api}
+        widget={{
+          ...lineWidget,
+          queries: [
+            {
+              conditions: 'event.type:error',
+              fields: ['count()'],
+              aggregates: ['count()'],
+              columns: [],
+              name: 'this query alias changed',
+              orderby: '',
+            },
+          ],
+        }}
+        organization={initialData.organization}
+        selection={selection}
+      >
+        {props => {
+          childProps = props;
+          return <div data-test-id="child" />;
+        }}
+      </WidgetQueries>
+    );
+
+    // Did not re-query
+    expect(eventsStatsMock).toHaveBeenCalledTimes(1);
+    expect(childProps.timeseriesResults[0].seriesName).toEqual(
+      'this query alias changed : count()'
+    );
+  });
+
   describe('multi-series grouped data', () => {
     const [START, END] = [1647399900, 1647399901];
     let mockCountData, mockCountUniqueData, mockRawResultData;
