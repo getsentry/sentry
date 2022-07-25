@@ -1,5 +1,6 @@
 import React, {Component} from 'react';
 import LazyLoad from 'react-lazyload';
+// eslint-disable-next-line no-restricted-imports
 import {withRouter, WithRouterProps} from 'react-router';
 import {useSortable} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
@@ -15,6 +16,7 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Panel} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
+import {parseSearch} from 'sentry/components/searchSyntax/parser';
 import Tooltip from 'sentry/components/tooltip';
 import {IconCopy, IconDelete, IconEdit, IconGrabbable} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -23,12 +25,13 @@ import {Organization, PageFilters} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {statsPeriodToDays} from 'sentry/utils/dates';
 import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import {parseFunction} from 'sentry/utils/discover/fields';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 
 import {DRAG_HANDLE_CLASS} from '../dashboard';
-import {DisplayType, Widget, WidgetType} from '../types';
+import {DashboardFilters, DisplayType, Widget, WidgetType} from '../types';
 import {isCustomMeasurementWidget} from '../utils';
 import {DEFAULT_RESULTS_LIMIT} from '../widgetBuilder/utils';
 
@@ -48,6 +51,7 @@ type Props = WithRouterProps & {
   selection: PageFilters;
   widget: Widget;
   widgetLimitReached: boolean;
+  dashboardFilters?: DashboardFilters;
   draggableProps?: DraggableProps;
   hideToolbar?: boolean;
   index?: string;
@@ -73,7 +77,17 @@ type State = {
   totalIssuesCount?: string;
 };
 
+type SearchFilterKey = {key?: {value: string}};
+
 const METRICS_BACKED_SESSIONS_START_DATE = new Date('2022-04-12');
+
+const ERROR_FIELDS = [
+  'error.handled',
+  'error.unhandled',
+  'error.mechanism',
+  'error.type',
+  'error.value',
+];
 
 class WidgetCard extends Component<Props, State> {
   state: State = {};
@@ -213,6 +227,7 @@ class WidgetCard extends Component<Props, State> {
       noLazyLoad,
       showStoredAlert,
       noDashboardsMEPProvider,
+      dashboardFilters,
     } = this.props;
 
     const {start, period} = selection.datetime;
@@ -251,6 +266,19 @@ class WidgetCard extends Component<Props, State> {
       }
       return <DashboardsMEPProvider>{component}</DashboardsMEPProvider>;
     }
+    const widgetContainsErrorFields = widget.queries.some(
+      ({columns, aggregates, conditions}) =>
+        ERROR_FIELDS.some(
+          errorField =>
+            columns.includes(errorField) ||
+            aggregates.some(aggregate =>
+              parseFunction(aggregate)?.arguments.includes(errorField)
+            ) ||
+            parseSearch(conditions)?.some(
+              filter => (filter as SearchFilterKey).key?.value === errorField
+            )
+        )
+    );
     return (
       <ErrorBoundary
         customComponent={<ErrorCard>{t('Error loading widget data')}</ErrorCard>}
@@ -279,6 +307,7 @@ class WidgetCard extends Component<Props, State> {
                   tableItemLimit={tableItemLimit}
                   windowWidth={windowWidth}
                   onDataFetched={this.setData}
+                  dashboardFilters={dashboardFilters}
                 />
               ) : (
                 <LazyLoad once resize height={200}>
@@ -292,6 +321,7 @@ class WidgetCard extends Component<Props, State> {
                     tableItemLimit={tableItemLimit}
                     windowWidth={windowWidth}
                     onDataFetched={this.setData}
+                    dashboardFilters={dashboardFilters}
                   />
                 </LazyLoad>
               )}
@@ -320,16 +350,18 @@ class WidgetCard extends Component<Props, State> {
                         </StoredDataAlert>
                       );
                     }
-                    return (
-                      <StoredDataAlert showIcon>
-                        {tct(
-                          "Your selection is only applicable to [storedData: stored event data]. We've automatically adjusted your results.",
-                          {
-                            storedData: <ExternalLink href="https://docs.sentry.io/" />, // TODO(dashboards): Update the docs URL
-                          }
-                        )}
-                      </StoredDataAlert>
-                    );
+                    if (!widgetContainsErrorFields) {
+                      return (
+                        <StoredDataAlert showIcon>
+                          {tct(
+                            "Your selection is only applicable to [storedData: stored event data]. We've automatically adjusted your results.",
+                            {
+                              storedData: <ExternalLink href="https://docs.sentry.io/" />, // TODO(dashboards): Update the docs URL
+                            }
+                          )}
+                        </StoredDataAlert>
+                      );
+                    }
                   }
                   return null;
                 }}

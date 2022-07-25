@@ -9,6 +9,7 @@ from sentry.api.endpoints.organization_profiling_profiles import (
     OrganizationProfilingProfilesEndpoint,
     OrganizationProfilingTransactionsEndpoint,
 )
+from sentry.api.endpoints.organization_sentry_function import OrganizationSentryFunctionEndpoint
 from sentry.api.endpoints.project_grouping_configs import ProjectGroupingConfigsEndpoint
 from sentry.api.endpoints.project_transaction_threshold_override import (
     ProjectTransactionThresholdOverrideEndpoint,
@@ -60,6 +61,9 @@ from sentry.incidents.endpoints.project_alert_rule_index import (
 from sentry.incidents.endpoints.project_alert_rule_task_details import (
     ProjectAlertRuleTaskDetailsEndpoint,
 )
+from sentry.replays.endpoints.organization_replay_index import OrganizationReplayIndexEndpoint
+from sentry.replays.endpoints.project_replay_details import ProjectReplayDetailsEndpoint
+from sentry.replays.endpoints.project_replay_recordings import ProjectReplayRecordingsEndpoint
 from sentry.rules.history.endpoints.project_rule_group_history import (
     ProjectRuleGroupHistoryIndexEndpoint,
 )
@@ -393,6 +397,7 @@ from .endpoints.project_profiling_profile import (
     ProjectProfilingProfileEndpoint,
     ProjectProfilingTransactionIDProfileIDEndpoint,
 )
+from .endpoints.project_release_activity import ProjectReleaseActivityEndpoint
 from .endpoints.project_release_commits import ProjectReleaseCommitsEndpoint
 from .endpoints.project_release_details import ProjectReleaseDetailsEndpoint
 from .endpoints.project_release_file_details import ProjectReleaseFileDetailsEndpoint
@@ -834,8 +839,6 @@ urlpatterns = [
             ]
         ),
     ),
-    # Organizations - region aware
-    url(r"", include("sentry.api.region_organization_urls")),
     # Organizations
     url(
         r"^organizations/",
@@ -1549,6 +1552,16 @@ urlpatterns = [
                     name="sentry-api-0-organization-relay-usage",
                 ),
                 url(
+                    r"^(?P<organization_slug>[^\/]+)/replays/$",
+                    OrganizationReplayIndexEndpoint.as_view(),
+                    name="sentry-api-0-organization-replay-index",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/functions/$",
+                    OrganizationSentryFunctionEndpoint.as_view(),
+                    name="sentry-api-0-organization-sentry-functions",
+                ),
+                url(
                     r"^(?P<organization_slug>[^\/]+)/request-project-creation/$",
                     OrganizationRequestProjectCreation.as_view(),
                     name="sentry-api-0-organization-request-project-creation",
@@ -1989,6 +2002,11 @@ urlpatterns = [
                     name="sentry-api-0-project-release-details",
                 ),
                 url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/(?P<version>[^/]+)/activity/$",
+                    ProjectReleaseActivityEndpoint.as_view(),
+                    name="sentry-api-0-project-release-activity",
+                ),
+                url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/(?P<version>[^/]+)/commits/$",
                     ProjectReleaseCommitsEndpoint.as_view(),
                     name="sentry-api-0-project-release-commits",
@@ -2022,6 +2040,16 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/rules/$",
                     ProjectRulesEndpoint.as_view(),
                     name="sentry-api-0-project-rules",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^/]+)/(?P<project_slug>[^\/]+)/replays/(?P<replay_id>[\w-]+)/$",
+                    ProjectReplayDetailsEndpoint.as_view(),
+                    name="sentry-api-0-project-replay-details",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^/]+)/(?P<project_slug>[^\/]+)/replays/(?P<replay_id>[\w-]+)/recordings/$",
+                    ProjectReplayRecordingsEndpoint.as_view(),
+                    name="sentry-api-0-project-replay-recordings",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/rules/configuration/$",

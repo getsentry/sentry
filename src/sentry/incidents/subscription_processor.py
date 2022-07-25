@@ -30,13 +30,13 @@ from sentry.incidents.models import (
 )
 from sentry.incidents.tasks import handle_trigger_action
 from sentry.models import Project
+from sentry.snuba.dataset import Dataset
 from sentry.snuba.entity_subscription import (
     ENTITY_TIME_COLUMNS,
-    BaseMetricsEntitySubscription,
+    BaseCrashRateMetricsEntitySubscription,
     get_entity_key_from_query_builder,
     get_entity_subscription_from_snuba_query,
 )
-from sentry.snuba.models import QueryDatasets
 from sentry.snuba.tasks import build_query_builder
 from sentry.utils import metrics, redis
 from sentry.utils.dates import to_datetime, to_timestamp
@@ -267,7 +267,7 @@ class SubscriptionProcessor:
         to v2, we can remove v1 and replace this function with current v2.
         """
         rows = subscription_update["values"]["data"]
-        if BaseMetricsEntitySubscription.is_crash_rate_format_v2(rows):
+        if BaseCrashRateMetricsEntitySubscription.is_crash_rate_format_v2(rows):
             version = "v2"
             result = self._get_crash_rate_alert_metrics_aggregation_value_v2(subscription_update)
         else:
@@ -307,7 +307,7 @@ class SubscriptionProcessor:
         (
             total_session_count,
             crash_count,
-        ) = BaseMetricsEntitySubscription.translate_sessions_tag_keys_and_values(
+        ) = BaseCrashRateMetricsEntitySubscription.translate_sessions_tag_keys_and_values(
             data=subscription_update["values"]["data"],
             org_id=self.subscription.project.organization.id,
         )
@@ -365,9 +365,9 @@ class SubscriptionProcessor:
         return aggregation_value
 
     def get_aggregation_value(self, subscription_update):
-        if self.subscription.snuba_query.dataset == QueryDatasets.SESSIONS.value:
+        if self.subscription.snuba_query.dataset == Dataset.Sessions.value:
             aggregation_value = self.get_crash_rate_alert_aggregation_value(subscription_update)
-        elif self.subscription.snuba_query.dataset == QueryDatasets.METRICS.value:
+        elif self.subscription.snuba_query.dataset == Dataset.Metrics.value:
             aggregation_value = self.get_crash_rate_alert_metrics_aggregation_value(
                 subscription_update
             )
@@ -424,7 +424,7 @@ class SubscriptionProcessor:
 
         if (
             len(subscription_update["values"]["data"]) > 1
-            and self.subscription.snuba_query.dataset != QueryDatasets.METRICS.value
+            and self.subscription.snuba_query.dataset != Dataset.Metrics.value
         ):
             logger.warning(
                 "Subscription returned more than 1 row of data",
@@ -437,7 +437,7 @@ class SubscriptionProcessor:
             )
 
         aggregation_value = self.get_aggregation_value(subscription_update)
-        if self.subscription.snuba_query.dataset == QueryDatasets.SESSIONS.value:
+        if self.subscription.snuba_query.dataset == Dataset.Sessions.value:
             try:
                 # Temporarily logging results from session updates for comparison with data from metric
                 # updates

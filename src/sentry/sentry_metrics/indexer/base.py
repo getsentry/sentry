@@ -182,6 +182,8 @@ class StringIndexer(Service):
         """
         raise NotImplementedError()
 
+    # TODO: @andriisoldatenko
+    # move use_case_id to 1st parameter and remove default value
     def resolve(
         self, org_id: int, string: str, use_case_id: UseCaseKey = UseCaseKey.RELEASE_HEALTH
     ) -> Optional[int]:
@@ -196,6 +198,8 @@ class StringIndexer(Service):
         """
         raise NotImplementedError()
 
+    # TODO: @andriisoldatenko
+    # move use_case_id to 1st parameter and remove default value
     def reverse_resolve(
         self, id: int, use_case_id: UseCaseKey = UseCaseKey.RELEASE_HEALTH
     ) -> Optional[str]:

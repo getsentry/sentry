@@ -1,4 +1,5 @@
 import {Fragment, useMemo, useState} from 'react';
+// eslint-disable-next-line no-restricted-imports
 import {withRouter} from 'react-router';
 import pick from 'lodash/pick';
 
@@ -229,7 +230,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
               selectedIndex={selectedListIndex}
               setSelectedIndex={setSelectListIndex}
               items={provided.widgetData.list.data.map(listItem => () => {
-                const transaction = listItem.transaction as string;
+                const transaction = (listItem.transaction as string | undefined) ?? '';
 
                 const additionalQuery: Record<string, string> = {};
 

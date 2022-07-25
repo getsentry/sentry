@@ -1,4 +1,5 @@
 import {Fragment, useMemo, useRef, useState} from 'react';
+// eslint-disable-next-line no-restricted-imports
 import {withRouter, WithRouterProps} from 'react-router';
 import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -63,6 +64,10 @@ type Props = WithRouterProps & {
    * Only allow a single project to be selected at once
    */
   disableMultipleProjectSelection?: boolean;
+  /**
+   * Disable the dropdown
+   */
+  disabled?: boolean;
   /**
    * Message to show in the footer
    */
