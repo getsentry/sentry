@@ -99,7 +99,7 @@ class NotificationPlugin(Plugin):
         extra["project_id"] = project.id
         notification = Notification(event=event, rules=rules)
         self.notify(notification)
-        self.logger.info("notification.%s" % "dispatched", extra=extra)
+        self.logger.info("notification.dispatched", extra=extra)
 
     def notify_users(self, group, event, triggering_rules, fail_silently=False, **kwargs):
         raise NotImplementedError
