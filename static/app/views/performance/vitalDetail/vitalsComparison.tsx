@@ -1,9 +1,10 @@
-import {useEffect} from 'react';
+import React, {useEffect} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import {
   INDUSTRY_STANDARDS,
+  MIN_VITAL_COUNT_FOR_DISPLAY,
   SENTRY_CUSTOMERS,
 } from 'sentry/components/performance/vitalsAlert/constants';
 import QuestionTooltip from 'sentry/components/questionTooltip';
@@ -96,19 +97,31 @@ function MetricsCard({
   );
 }
 
+function ContentWrapper({
+  organization,
+  vital,
+  children,
+  count,
+}: {
+  children: React.ReactNode;
+  count: number;
+  organization: Organization;
+  vital: WebVital;
+}) {
+  useEffect(() => {
+    trackAdvancedAnalyticsEvent('performance_views.vital_detail.comparsion_viewed', {
+      organization,
+      vital,
+      count,
+    });
+  });
+  return <Container>{children}</Container>;
+}
+
 function VitalsComparison(props: Props) {
   const {location, vital: _vital, organization} = props;
   const vitals = Array.isArray(_vital) ? _vital : [_vital];
   const vital = vitals[0];
-  useEffect(() => {
-    if (!SUPPORTED_VITALS.includes(vital)) {
-      return;
-    }
-    trackAdvancedAnalyticsEvent('performance_views.vital_detail.comparsion_viewed', {
-      organization,
-      vital,
-    });
-  });
   if (!SUPPORTED_VITALS.includes(vital)) {
     return null;
   }
@@ -125,8 +138,13 @@ function VitalsComparison(props: Props) {
         const lookupName = vital === 'measurements.fcp' ? 'FCP' : 'LCP';
         const sentryStandard = SENTRY_CUSTOMERS[lookupName];
         const industryStandard = INDUSTRY_STANDARDS[lookupName];
+        const count = vitalsData[vital].total;
+        // only show it if we hit the min number
+        if (count < MIN_VITAL_COUNT_FOR_DISPLAY) {
+          return null;
+        }
         return (
-          <Container>
+          <ContentWrapper {...{organization, vital, count}}>
             <MetricsCard
               title={t('Selected Projects')}
               vital={vital}
@@ -154,7 +172,7 @@ function VitalsComparison(props: Props) {
                 {lookupName}
               )}
             />
-          </Container>
+          </ContentWrapper>
         );
       }}
     </VitalsCardDiscoverQuery>
