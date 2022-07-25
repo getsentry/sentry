@@ -1,6 +1,7 @@
 from django.http import Http404
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.bases import OrganizationEndpoint
 from sentry.api.endpoints.organization_sentry_function import SentryFunctionSerializer
 from sentry.api.serializers import serialize
@@ -10,6 +11,8 @@ from sentry.models.sentryfunction import SentryFunction
 
 
 class OrganizationSentryFunctionDetailsEndpoint(OrganizationEndpoint):
+    private = True
+
     def convert_args(self, request, organization_slug, function_slug, *args, **kwargs):
         args, kwargs = super().convert_args(request, organization_slug, *args, **kwargs)
 
@@ -22,9 +25,13 @@ class OrganizationSentryFunctionDetailsEndpoint(OrganizationEndpoint):
         return (args, kwargs)
 
     def get(self, request, organization, function):
-        return Response(serialize(function))
+        if not features.has("organizations:sentry-functions", organization, actor=request.user):
+            return Response("organizations:sentry-functions flag set to false", status=404)
+        return Response(serialize(function), status=200)
 
     def put(self, request, organization, function):
+        if not features.has("organizations:sentry-functions", organization, actor=request.user):
+            return Response("organizations:sentry-functions flag set to false", status=404)
         serializer = SentryFunctionSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
