@@ -17,7 +17,7 @@ const hasValue = value => !!value || value === 0;
 
 // See docs: https://docs.sentry.io/product/integrations/integration-platform/ui-components/formfield/
 export type FieldFromSchema = Omit<Field, 'choices' | 'type'> & {
-  type: string;
+  type: 'select' | 'textarea' | 'text';
   async?: boolean;
   choices?: Array<[any, string]>;
   default?: 'issue.title' | 'issue.description';
@@ -267,7 +267,7 @@ export class SentryAppExternalForm extends Component<Props, State> {
   renderField = (field: FieldFromSchema, required: boolean) => {
     // This function converts the field we get from the backend into
     // the field we need to pass down
-    let fieldToPass: any = {
+    let fieldToPass: Field = {
       ...field,
       inline: false,
       stacked: true,
@@ -296,7 +296,7 @@ export class SentryAppExternalForm extends Component<Props, State> {
         defaultOptions,
         filterOption,
         allowClear,
-      };
+      } as Field;
       if (field.depends_on) {
         // check if this is dependent on other fields which haven't been set yet
         const shouldDisable = field.depends_on.some(
