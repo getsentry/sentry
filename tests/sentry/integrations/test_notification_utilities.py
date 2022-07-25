@@ -1,8 +1,6 @@
 from sentry.integrations.notifications import get_integrations_by_channel_by_recipient
-from sentry.models import Identity, IdentityProvider, IdentityStatus
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.notifications import DummyNotification
-from sentry.testutils.helpers.slack import install_slack
 from sentry.types.integrations import ExternalProviders
 
 
@@ -11,27 +9,16 @@ class TestNotificationUtilities(TestCase):
         super().setUp()
         self.notification = DummyNotification(self.organization)
 
-        self.integration = install_slack(self.organization)
+        self.external_user_id_1 = "UXXXXXXX1"
+        self.integration = self.create_slack_integration(self.notification.organization)
 
-        self.idp = IdentityProvider.objects.create(type="slack", external_id="TXXXXXXX1", config={})
-        self.identity = Identity.objects.create(
-            external_id="UXXXXXXX1",
-            idp=self.idp,
-            user=self.user,
-            status=IdentityStatus.VALID,
-            scopes=[],
-        )
-
-        self.user2 = self.create_user()
-        self.idp2 = IdentityProvider.objects.create(
-            type="slack", external_id="TXXXXXXX2", config={}
-        )
-        self.identity2 = Identity.objects.create(
-            external_id="TXXXXXXX2",
-            idp=self.idp2,
-            user=self.user2,
-            status=IdentityStatus.VALID,
-            scopes=[],
+        self.user_2 = self.create_user()
+        self.external_team_id_2 = "TXXXXXXX2"
+        self.integration2 = self.create_slack_integration(
+            self.notification.organization,
+            external_id=self.external_team_id_2,
+            user=self.user_2,
+            identity_external_id=self.external_team_id_2,
         )
 
     def test_simple(self):
@@ -41,7 +28,9 @@ class TestNotificationUtilities(TestCase):
             ExternalProviders.SLACK,
         )
 
-        assert {self.user: {"UXXXXXXX1": self.integration}} == integrations_by_channel_by_recipient
+        assert {
+            self.user: {self.external_user_id_1: self.integration}
+        } == integrations_by_channel_by_recipient
 
     def test_matching_idp_and_identity_external_id(self):
         """
@@ -49,20 +38,20 @@ class TestNotificationUtilities(TestCase):
         """
         integrations_by_channel_by_recipient = get_integrations_by_channel_by_recipient(
             self.notification.organization,
-            [self.user2],
+            [self.user_2],
             ExternalProviders.SLACK,
         )
 
-        assert {self.user2: {}} == integrations_by_channel_by_recipient
+        assert {self.user_2: {}} == integrations_by_channel_by_recipient
 
     def test_multiple(self):
         integrations_by_channel_by_recipient = get_integrations_by_channel_by_recipient(
             self.notification.organization,
-            [self.user, self.user2],
+            [self.user, self.user_2],
             ExternalProviders.SLACK,
         )
 
         assert {
-            self.user: {"UXXXXXXX1": self.integration},
-            self.user2: {},
+            self.user: {self.external_user_id_1: self.integration},
+            self.user_2: {},
         } == integrations_by_channel_by_recipient
