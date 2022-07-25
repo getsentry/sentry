@@ -15,6 +15,7 @@ import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 
+import {UNSAVED_FILTERS_MESSAGE} from './detail';
 import {DashboardListItem, DashboardState, MAX_WIDGETS} from './types';
 
 type Props = {
@@ -27,16 +28,14 @@ type Props = {
   onEdit: () => void;
   organization: Organization;
   widgetLimitReached: boolean;
-  disabled?: boolean;
-  disabledMessage?: string;
+  hasUnsavedFilters?: boolean;
 };
 
 function Controls({
   organization,
   dashboardState,
   dashboards,
-  disabled = false,
-  disabledMessage,
+  hasUnsavedFilters = false,
   widgetLimitReached,
   onEdit,
   onCommit,
@@ -134,8 +133,8 @@ function Controls({
                 onEdit();
               }}
               icon={<IconEdit />}
-              disabled={!hasFeature || disabled}
-              title={disabled && disabledMessage}
+              disabled={!hasFeature || hasUnsavedFilters}
+              title={hasUnsavedFilters && UNSAVED_FILTERS_MESSAGE}
               priority="default"
             >
               {t('Edit Dashboard')}
@@ -143,12 +142,12 @@ function Controls({
             {hasFeature ? (
               <Tooltip
                 title={
-                  disabledMessage ||
+                  (hasUnsavedFilters && UNSAVED_FILTERS_MESSAGE) ||
                   tct('Max widgets ([maxWidgets]) per dashboard reached.', {
                     maxWidgets: MAX_WIDGETS,
                   })
                 }
-                disabled={!!!widgetLimitReached || disabled}
+                disabled={!!!widgetLimitReached && !!!hasUnsavedFilters}
               >
                 <GuideAnchor
                   disabled={!!!organization.features.includes('dashboards-releases')}
@@ -157,8 +156,7 @@ function Controls({
                   <Button
                     data-test-id="add-widget-library"
                     priority="primary"
-                    disabled={widgetLimitReached || disabled}
-                    title={disabled && disabledMessage}
+                    disabled={widgetLimitReached || hasUnsavedFilters}
                     icon={<IconAdd isCircled />}
                     onClick={() => {
                       trackAdvancedAnalyticsEvent(

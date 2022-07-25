@@ -75,7 +75,7 @@ import {
 
 const UNSAVED_MESSAGE = t('You have unsaved changes, are you sure you want to leave?');
 
-const UNSAVED_FILTERS_MESSAGE = t(
+export const UNSAVED_FILTERS_MESSAGE = t(
   'You have unsaved dashboard filters. You can save or discard them.'
 );
 
@@ -816,8 +816,7 @@ class DashboardDetail extends Component<Props, State> {
                   <Controls
                     organization={organization}
                     dashboards={dashboards}
-                    disabled={disableDashboardModifications}
-                    disabledMessage={UNSAVED_FILTERS_MESSAGE}
+                    hasUnsavedFilters={disableDashboardModifications}
                     onEdit={this.onEdit}
                     onCancel={this.onCancel}
                     onCommit={this.onCommit}
