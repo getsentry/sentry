@@ -161,10 +161,10 @@ class ReleaseSummaryActivityNotification(ActivityNotification):
             f"/organizations/{self.organization.slug}/issues/?query={quote(f'firstRelease:{self.version}')}{project_query}&referrer=release_summary"
         )
         new_issue_counts = sum(self.group_counts_by_project.get(p.id, 0) for p in self.projects)
-        release_url_text = self.url_format.format(
+        release_url_text = self.format_url(
             text=escape_slack_text(self.version_parsed), url=release_link
         )
-        issue_url_text = self.url_format.format(
+        issue_url_text = self.format_url(
             text=f"{new_issue_counts} issues",
             url=issues_link,
         )
@@ -193,7 +193,7 @@ class ReleaseSummaryActivityNotification(ActivityNotification):
         if self.release:
             footer += f"{self.release.projects.all()[0].slug} | "
 
-        footer += f"{self.url_format.format(text='Notification Settings', url=settings_url)}"
+        footer += f"{self.format_url(text='Notification Settings', url=settings_url)}"
 
         return footer
 

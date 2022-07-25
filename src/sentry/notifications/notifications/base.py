@@ -61,23 +61,24 @@ class BaseNotification(abc.ABC):
         raise NotImplementedError
 
     @property
-    def url_format(self) -> str:
+    def provider_options(self) -> Mapping[str, Any] | None:
         """
-        The URL format used when embedding links in text.
-        Slack notifications should set this to `<{url}|{text}>`.
-        Microsoft Teams notifications should set this to `[text](url)`.
-        URLs should be built using `self.url_format.format(text=some_text, url=some_url)`.
+        Store provider specific options required to build a notification.
         """
-        if getattr(self, "_url_format", None) is None:
-            raise AttributeError(
-                f"'url_format' not set on '{self.__class__.__name__}'. Please set the 'url_format' property from the message builder."
-            )
+        return self._provider_options
 
-        return self._url_format
+    @provider_options.setter
+    def provider_options(self, provider_options: Mapping[str, Any]) -> None:
+        self._provider_options = {
+            "url_format": provider_options["url_format"],
+            **provider_options,
+        }
 
-    @url_format.setter
-    def url_format(self, url_format: str) -> None:
-        self._url_format = url_format
+    def format_url(self, text: str, url: str) -> str:
+        """
+        Format URLs according to the provider options.
+        """
+        return self.provider_options["url_format"].format(text=text, url=url)
 
     @property
     @abc.abstractmethod
@@ -270,6 +271,6 @@ class ProjectNotification(BaseNotification, abc.ABC):
         if environment and getattr(environment, "name", None) != "":
             footer += f" | {environment.name}"
 
-        footer += f" | {self.url_format.format(text='Notification Settings', url=settings_url)}"
+        footer += f" | {self.format_url(text='Notification Settings', url=settings_url)}"
 
         return footer
