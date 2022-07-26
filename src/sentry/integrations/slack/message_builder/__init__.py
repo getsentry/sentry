@@ -21,3 +21,5 @@ INCIDENT_COLOR_MAPPING = {
     "Warning": "warning",
     "Critical": "fatal",
 }
+
+SLACK_URL_FORMAT = "<{url}|{text}>"

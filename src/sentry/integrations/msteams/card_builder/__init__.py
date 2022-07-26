@@ -5,7 +5,7 @@ from typing import Any, Mapping, Sequence, Union
 from sentry.integrations.metric_alerts import incident_attachment_info
 
 ME = "ME"
-URL_FORMAT = "[{text}]({url})"
+MSTEAMS_URL_FORMAT = "[{text}]({url})"
 
 # TODO: Covert these types to a class hierarchy.
 # This is not ideal, but better than no typing. These types should be
