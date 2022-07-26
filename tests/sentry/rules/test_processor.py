@@ -440,12 +440,14 @@ class RuleProcessorTestFilters(TestCase):
 
 class RuleProcessorActiveReleaseTest(TestCase):
     def setUp(self):
-        self.event = self.store_event(data={"message": "Hello world"}, project_id=self.project.id)
-        # self.event.title = "Hello world"
+        self.event = self.store_event(
+            data={"message": "Hello world"},
+            project_id=self.project.id,
+        )
         self.event.group._times_seen_pending = 0
         self.event.group.save()
 
-        oldRelease = Release.objects.create(
+        self.oldRelease = Release.objects.create(
             organization_id=self.organization.id,
             version="1",
             date_added=timezone.now() - timedelta(hours=2),
@@ -454,12 +456,11 @@ class RuleProcessorActiveReleaseTest(TestCase):
         GroupRelease.objects.create(
             project_id=self.project.id,
             group_id=self.event.group.id,
-            release_id=oldRelease.id,
-            environment=self.environment.name,
+            release_id=self.oldRelease.id,
             first_seen=timezone.now(),
             last_seen=timezone.now(),
         )
-        newRelease = Release.objects.create(
+        self.newRelease = Release.objects.create(
             organization_id=self.organization.id,
             version="2",
             date_added=timezone.now() - timedelta(minutes=30),
@@ -468,15 +469,14 @@ class RuleProcessorActiveReleaseTest(TestCase):
         GroupRelease.objects.create(
             project_id=self.project.id,
             group_id=self.event.group.id,
-            release_id=newRelease.id,
-            environment=self.environment.name,
+            release_id=self.newRelease.id,
             first_seen=timezone.now(),
             last_seen=timezone.now(),
         )
-        oldRelease.add_project(self.project)
-        newRelease.add_project(self.project)
+        self.oldRelease.add_project(self.project)
+        self.newRelease.add_project(self.project)
 
-        self.event.data["tags"] = (("sentry:release", newRelease.version),)
+        self.event.data["tags"] = (("sentry:release", self.newRelease.version),)
 
         Rule.objects.filter(project=self.event.project).delete()
 
