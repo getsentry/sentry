@@ -24,6 +24,8 @@ class JiraServerClient(ApiClient):
     STATUS_URL = "/rest/api/2/status"
     CREATE_URL = "/rest/api/2/issue"
     ISSUE_URL = "/rest/api/2/issue/%s"
+    ISSUE_FIELDS_URL = "/rest/api/2/issue/createmeta/%s/issuetypes/%s"
+    ISSUE_TYPES_URL = "/rest/api/2/issue/createmeta/%s/issuetypes"
     META_URL = "/rest/api/2/issue/createmeta"  # TODO replace, this is deprecated
     PRIORITIES_URL = "/rest/api/2/priority"
     PROJECT_URL = "/rest/api/2/project"
@@ -117,6 +119,14 @@ class JiraServerClient(ApiClient):
     def get_projects_list(self):
         return self.get_cached(self.PROJECT_URL)
 
+    def get_issue_types(self, project_id):
+        # Get a list of issue types for the given project
+        return self.get_cached(self.ISSUE_TYPES_URL % (project_id))
+
+    def get_issue_fields(self, project_id, issue_type_id):
+        # Get a list of fields for the issue type and project
+        return self.get_cached(self.ISSUE_FIELDS_URL % (project_id, issue_type_id))
+
     def get_project_key_for_id(self, project_id):
         if not project_id:
             return ""
@@ -127,6 +137,7 @@ class JiraServerClient(ApiClient):
         return ""
 
     def get_create_meta_for_project(self, project):
+        # TODO(ceo): remove this method, endpoint is deprecated
         params = {"expand": "projects.issuetypes.fields", "projectIds": project}
         metas = self.get_cached(self.META_URL, params=params)
         # We saw an empty JSON response come back from the API :(

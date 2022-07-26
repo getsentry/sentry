@@ -676,6 +676,7 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
         meta = None
         if project_id:
             meta = self.fetch_issue_create_meta(client, project_id)
+            # TODO replace w/ calls to get_issue_types and get_issue_fields
         if meta is not None:
             return meta
 
@@ -756,8 +757,11 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
                 example: "Bug", "Epic", "Story".
         :return:
         """
+        # TODO(ceo) not convinced it's actually changing anything in the form when the 
+        # issue type or project ID has changed
+
         kwargs = kwargs or {}
-        kwargs["link_referrer"] = "jira_integration"
+        kwargs["link_referrer"] = "jira_server_integration"
         params = kwargs.get("params", {})
         fields = []
         defaults = {}
@@ -765,13 +769,12 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
             fields = super().get_create_issue_config(group, user, **kwargs)
             defaults = self.get_defaults(group.project, user)
 
-        project_id = params.get("project", defaults.get("project"))
         client = self.get_client()
         try:
             jira_projects = client.get_projects_list()
         except ApiError as e:
             logger.info(
-                "jira.get-create-issue-config.no-projects",
+                "jira_server.get-create-issue-config.no-projects",
                 extra={
                     "integration_id": self.model.id,
                     "organization_id": self.organization_id,
@@ -779,34 +782,41 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
                 },
             )
             raise IntegrationError(
-                "Could not fetch project list from Jira. Ensure that Jira is"
+                "Could not fetch project list from Jira Server. Ensure that Jira Server is"
                 " available and your account is still active."
             )
 
-        meta = self.get_issue_create_meta(client, project_id, jira_projects)
-        if not meta:
-            raise IntegrationError(
-                "Could not fetch issue create metadata from Jira. Ensure that"
-                " the integration user has access to the requested project."
-            )
+        project_id = params.get("project", defaults.get("project"))
+        print("project ID: ", project_id)
+        if not project_id:
+            project_id = jira_projects[0]["id"]
+
+        issue_type_choices = client.get_issue_types(project_id)
+        issue_type_choices_formatted = [(choice["id"], choice["name"]) for choice in issue_type_choices["values"]]
 
         # check if the issuetype was passed as a parameter
         issue_type = params.get("issuetype", defaults.get("issuetype"))
-        issue_type_meta = self.get_issue_type_meta(issue_type, meta)
-        issue_type_choices = self.make_choices(meta["issuetypes"])
+        print("issue type id: ", issue_type)
+        # make sure default issue type is actually one that is allowed for project
+        valid_issue_type = any(choice for choice in issue_type_choices["values"] if choice["id"] == issue_type)
 
-        # make sure default issue type is actually
-        # one that is allowed for project
-        if issue_type:
-            if not any(c for c in issue_type_choices if c[0] == issue_type):
-                issue_type = issue_type_meta["id"]
+        if not issue_type or not valid_issue_type:
+            # pick the first issue type in the list
+            issue_type = issue_type_choices["values"][0]["id"]
+        # meta = self.get_issue_create_meta(client, project_id, jira_projects)
+        issue_type_meta = client.get_issue_fields(project_id, issue_type)
+        if not issue_type_meta:
+            raise IntegrationError(
+                "Could not fetch issue create metadata from Jira Server. Ensure that"
+                " the integration user has access to the requested project."
+            )
 
         fields = [
             {
                 "name": "project",
                 "label": "Jira Project",
                 "choices": [(p["id"], p["key"]) for p in jira_projects],
-                "default": meta["id"],
+                "default": project_id,
                 "type": "select",
                 "updatesForm": True,
             },
@@ -816,9 +826,9 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
                 "label": "Issue Type",
                 "default": issue_type or issue_type_meta["id"],
                 "type": "select",
-                "choices": issue_type_choices,
+                "choices": issue_type_choices_formatted,
                 "updatesForm": True,
-                "required": bool(issue_type_choices),  # required if we have any type choices
+                "required": bool(issue_type_choices_formatted),  # required if we have any type choices
             },
         ]
 
@@ -836,8 +846,8 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
             "components": (-100, ""),
             "security": (-50, ""),
         }
-
-        dynamic_fields = list(issue_type_meta["fields"].keys())
+        # dynamic_fields = list(issue_type_meta["fields"].keys())
+        dynamic_fields = [val["name"] for val in issue_type_meta["values"]]
         # Sort based on priority, then field name
         dynamic_fields.sort(key=lambda f: anti_gravity.get(f, (0, f)))
 
@@ -847,12 +857,14 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
                 # don't overwrite the fixed fields for the form.
                 continue
 
-            mb_field = self.build_dynamic_field(issue_type_meta["fields"][field], group)
-            if mb_field:
-                if mb_field["label"] in params.get("ignored", []):
-                    continue
-                mb_field["name"] = field
-                fields.append(mb_field)
+            # TODO(ceo) put this back in, just temp commented out 
+
+            # mb_field = self.build_dynamic_field(issue_type_meta["fields"][field], group)
+            # if mb_field:
+            #     if mb_field["label"] in params.get("ignored", []):
+            #         continue
+            #     mb_field["name"] = field
+            #     fields.append(mb_field)
 
         for field in fields:
             if field["name"] == "priority":
