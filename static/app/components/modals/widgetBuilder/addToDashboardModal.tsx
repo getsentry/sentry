@@ -11,6 +11,7 @@ import {
 } from 'sentry/actionCreators/dashboards';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import SelectControl from 'sentry/components/forms/selectControl';
@@ -21,7 +22,6 @@ import {DateString, Organization, PageFilters, SelectValue} from 'sentry/types';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import useApi from 'sentry/utils/useApi';
 import {DEFAULT_STATS_PERIOD} from 'sentry/views/dashboardsV2/data';
-import TopLevelFilters from 'sentry/views/dashboardsV2/topLevelFilters';
 import {
   DashboardDetails,
   DashboardListItem,
@@ -58,6 +58,16 @@ export type AddToDashboardModalProps = {
 type Props = ModalRenderProps & AddToDashboardModalProps;
 
 const SELECT_DASHBOARD_MESSAGE = t('Select a dashboard');
+
+export function getSavedPageFilters(dashboard: DashboardDetails) {
+  return {
+    project: dashboard.projects,
+    environment: dashboard.environment,
+    statsPeriod: dashboard.period,
+    start: dashboard.start,
+    end: dashboard.end,
+  };
+}
 
 function AddToDashboardModal({
   Header,
@@ -115,7 +125,7 @@ function AddToDashboardModal({
     return () => {
       unmounted = true;
     };
-  }, [api, organization.slug, selectedDashboardId]);
+  }, [api, organization.slug, selectedDashboardId, router]);
 
   function handleGoToBuilder() {
     const pathname =
@@ -166,6 +176,26 @@ function AddToDashboardModal({
 
   const canSubmit = selectedDashboardId !== null;
 
+  const defaultSelection = selectedDashboard
+    ? ({
+        datetime: {
+          start: selectedDashboard.start,
+          end: selectedDashboard.end,
+          utc: false,
+          period: selectedDashboard.period,
+        },
+        environments: selectedDashboard.environment || [],
+        projects: selectedDashboard.projects || [],
+      } as PageFilters)
+    : {
+        datetime: {
+          start: null,
+          end: null,
+          utc: false,
+          period: DEFAULT_STATS_PERIOD,
+        },
+      };
+
   return (
     <Fragment>
       <Header closeButton>
@@ -173,15 +203,10 @@ function AddToDashboardModal({
       </Header>
       <OrganizationContext.Provider value={organization}>
         <PageFiltersContainer
-          defaultSelection={{
-            datetime: {
-              start: null,
-              end: null,
-              utc: false,
-              period: DEFAULT_STATS_PERIOD,
-            },
-          }}
+          defaultSelection={defaultSelection}
           organization={organization}
+          skipInitializeUrlParams
+          shouldForceProject
           skipLoadLastUsed={
             organization.features.includes('dashboards-top-level-filter') &&
             selectedDashboard
@@ -190,12 +215,13 @@ function AddToDashboardModal({
           }
         >
           <Body>
-            <TopLevelFilters
-              organization={organization}
-              selection={selection}
-              filters={selectedDashboard ? selectedDashboard.filters : {}}
-              disabled
-            />
+            {selectedDashboard && hasSavedPageFilters(selectedDashboard) && (
+              <Alert type="info" showIcon>
+                {t(
+                  'Filters saved on the selected Dashboard have been applied to the visualization.'
+                )}
+              </Alert>
+            )}
             <SelectControlWrapper>
               <SelectControl
                 disabled={dashboards === null}
