@@ -3,8 +3,17 @@ from __future__ import annotations
 from typing import Any, Mapping, MutableMapping, Optional, Sequence, TypedDict
 from urllib.parse import quote, urlencode
 
-from sentry import features
-from sentry.models import Release, ReleaseActivity, ReleaseCommit, User
+from sentry import analytics, features
+from sentry.eventstore.models import Event
+from sentry.models import (
+    GroupOwner,
+    GroupOwnerType,
+    Release,
+    ReleaseActivity,
+    ReleaseCommit,
+    Team,
+    User,
+)
 from sentry.notifications.notifications.rules import AlertRuleNotification, logger
 from sentry.notifications.types import ActionTargetType, NotificationSettingTypes
 from sentry.notifications.utils import (
@@ -14,8 +23,9 @@ from sentry.notifications.utils import (
     has_alert_integration,
     has_integrations,
 )
+from sentry.notifications.utils.participants import get_owners
 from sentry.plugins.base import Notification
-from sentry.types.integrations import EXTERNAL_PROVIDERS
+from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.types.releaseactivity import ReleaseActivityType
 from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
@@ -139,6 +149,43 @@ class ActiveReleaseAlertNotification(AlertRuleNotification):
             )
 
         return context
+
+    def record_active_release_notification_sent(
+        self,
+        participant: Team | User,
+        event: Event,
+        provider: ExternalProviders,
+        release_version: str,
+    ) -> None:
+        suspect_committer_ids = [
+            go.owner_id()
+            for go in GroupOwner.objects.filter(
+                group_id=self.group.id,
+                project=self.project.id,
+                organization_id=self.project.organization_id,
+                type=GroupOwnerType.SUSPECT_COMMIT.value,
+            )
+        ]
+        code_owner_ids = [o.id for o in get_owners(self.project, event)]
+        team_ids = (
+            [t.id for t in Team.objects.get_for_user(self.organization, participant)]
+            if type(participant) == User
+            else None
+        )
+
+        analytics.record(
+            "active_release_notification.sent",
+            organization_id=self.project.organization_id,
+            project_id=self.project.id,
+            group_id=self.group.id,
+            provider=EXTERNAL_PROVIDERS[provider],
+            release_version=release_version,
+            recipient_email=participant.email,
+            recipient_username=participant.username,
+            suspect_committer_ids=suspect_committer_ids,
+            code_owner_ids=code_owner_ids,
+            team_ids=team_ids,
+        )
 
     @staticmethod
     def get_release_commits(release: Release) -> Sequence[CommitData]:

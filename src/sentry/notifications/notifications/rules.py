@@ -5,11 +5,8 @@ from typing import Any, Iterable, Mapping, MutableMapping
 
 import pytz
 
-from sentry import analytics
 from sentry.db.models import Model
-from sentry.eventstore.models import Event
 from sentry.models import Team, User, UserOption
-from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.types import ActionTargetType, NotificationSettingTypes
 from sentry.notifications.utils import (
@@ -21,9 +18,9 @@ from sentry.notifications.utils import (
     has_alert_integration,
     has_integrations,
 )
-from sentry.notifications.utils.participants import get_owners, get_send_to
+from sentry.notifications.utils.participants import get_send_to
 from sentry.plugins.base.structs import Notification
-from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
+from sentry.types.integrations import ExternalProviders
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -57,6 +54,7 @@ class AlertRuleNotification(ProjectNotification):
             target_type=self.target_type,
             target_identifier=self.target_identifier,
             event=self.event,
+            notification_type=self.notification_setting_type,
         )
 
     def get_subject(self, context: Mapping[str, Any] | None = None) -> str:
@@ -160,40 +158,3 @@ class AlertRuleNotification(ProjectNotification):
             "target_identifier": self.target_identifier,
             **super().get_log_params(recipient),
         }
-
-    def record_active_release_notification_sent(
-        self,
-        participant: Team | User,
-        event: Event,
-        provider: ExternalProviders,
-        release_version: str,
-    ) -> None:
-        suspect_committer_ids = [
-            go.owner_id()
-            for go in GroupOwner.objects.filter(
-                group_id=self.group.id,
-                project=self.project.id,
-                organization_id=self.project.organization_id,
-                type=GroupOwnerType.SUSPECT_COMMIT.value,
-            )
-        ]
-        code_owner_ids = [o.id for o in get_owners(self.project, event)]
-        team_ids = (
-            [t.id for t in Team.objects.get_for_user(self.organization, participant)]
-            if type(participant) == User
-            else None
-        )
-
-        analytics.record(
-            "active_release_notification.sent",
-            organization_id=self.project.organization_id,
-            project_id=self.project.id,
-            group_id=self.group.id,
-            provider=EXTERNAL_PROVIDERS[provider],
-            release_version=release_version,
-            recipient_email=participant.email,
-            recipient_username=participant.username,
-            suspect_committer_ids=suspect_committer_ids,
-            code_owner_ids=code_owner_ids,
-            team_ids=team_ids,
-        )
