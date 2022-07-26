@@ -69,17 +69,20 @@ class BaseNotification(abc.ABC):
 
     @provider_options.setter
     def provider_options(self, provider_options: Mapping[str, Any]) -> None:
-        self._provider_options = {
-            "provider": provider_options["provider"],
-            "url_format": provider_options["url_format"],
-            **provider_options,
-        }
+        self._provider_options = provider_options
 
     def format_url(self, text: str, url: str) -> str:
         """
         Format URLs according to the provider options.
         """
-        return self.provider_options["url_format"].format(text=text, url=url)
+        if self.provider_options:
+            # Explicitly typing to satisfy mypy.
+            url_format: str = self.provider_options["url_format"]
+            return url_format.format(text=text, url=url)
+
+        raise AttributeError(
+            f"provider_options['url_format'] not set on {self.__class__.__name__}. Please set provider_options['url_format'] in the message builder."
+        )
 
     @property
     @abc.abstractmethod
