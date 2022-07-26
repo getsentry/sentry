@@ -19,7 +19,7 @@ export const browserKnownDataValues = [
 ];
 
 export function BrowserEventContext({data, event}: Props) {
-  const meta = event._meta?.browser ?? {};
+  const meta = event._meta?.contexts?.browser ?? {};
   return (
     <Fragment>
       <ContextBlock data={getBrowserKnownData({data, meta})} />

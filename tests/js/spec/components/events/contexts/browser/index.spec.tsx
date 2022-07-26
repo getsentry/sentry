@@ -28,7 +28,9 @@ export const browserMetaMockData = {
 const event = {
   ...TestStubs.Event(),
   _meta: {
-    browser: browserMetaMockData,
+    contexts: {
+      browser: browserMetaMockData,
+    },
   },
 };
 
