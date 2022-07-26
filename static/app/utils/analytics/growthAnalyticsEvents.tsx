@@ -50,6 +50,7 @@ type VitalsAlert = {
   can_see_all_projects: boolean;
   industry_diff: number;
   sentry_diff: number;
+  user_vital_count: number;
   user_vital_value: number;
   vital: string;
   vitals_type: 'mobile' | 'web';

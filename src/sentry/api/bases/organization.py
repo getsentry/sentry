@@ -366,10 +366,6 @@ class OrganizationEndpoint(Endpoint):
         return params
 
     def convert_args(self, request: Request, organization_slug=None, *args, **kwargs):
-        organization_slug, region = resolve_org_slug_region(
-            request=request, organization_slug=organization_slug
-        )
-
         if not organization_slug:
             raise ResourceDoesNotExist
 

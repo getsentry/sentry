@@ -5,11 +5,11 @@ import space from 'sentry/styles/space';
 import {Event} from 'sentry/types/event';
 import {objectIsEmpty} from 'sentry/utils';
 
-import ContextSummaryDevice from './contextSummaryDevice';
-import ContextSummaryGeneric from './contextSummaryGeneric';
-import ContextSummaryGPU from './contextSummaryGPU';
-import ContextSummaryOS from './contextSummaryOS';
-import ContextSummaryUser from './contextSummaryUser';
+import {ContextSummaryDevice} from './contextSummaryDevice';
+import {ContextSummaryGeneric} from './contextSummaryGeneric';
+import {ContextSummaryGPU} from './contextSummaryGPU';
+import {ContextSummaryOS} from './contextSummaryOS';
+import {ContextSummaryUser} from './contextSummaryUser';
 import filterContexts from './filterContexts';
 
 export type Context = {
@@ -70,6 +70,7 @@ function ContextSummary({event}: Props) {
           data={data}
           unknownTitle={unknownTitle}
           omitUnknownVersion={omitUnknownVersion}
+          meta={event._meta?.contexts?.[key] ?? {}}
         />
       );
     }
@@ -92,7 +93,14 @@ function ContextSummary({event}: Props) {
           return null;
         }
         contextCount += 1;
-        return <Component key={keys[0]} data={{}} unknownTitle={unknownTitle} />;
+        return (
+          <Component
+            key={keys[0]}
+            data={{}}
+            unknownTitle={unknownTitle}
+            meta={event._meta?.contexts?.[keys[0]] ?? {}}
+          />
+        );
       }
     );
   }
