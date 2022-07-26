@@ -124,7 +124,7 @@ def send_notification_as_slack(
         )
 
     notification_with_properties = create_notification_with_properties(
-        notification, url_format=SLACK_URL_FORMAT
+        notification, url_format=SLACK_URL_FORMAT, provider=ExternalProviders.SLACK
     )
 
     for recipient, integrations_by_channel in data.items():

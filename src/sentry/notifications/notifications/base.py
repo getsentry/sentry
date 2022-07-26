@@ -87,7 +87,7 @@ class BaseNotification(abc.ABC):
 
     @property
     def provider(self) -> ExternalProviders:
-        if not self._provider:
+        if not getattr(self, "_provider", None):
             raise AttributeError(
                 f"'provider' not set on {self.__class__.__name__}. Please set 'provider' from the message builder."
             )
