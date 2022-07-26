@@ -6,7 +6,6 @@
  */
 import type {getInterval} from 'sentry/components/charts/utils';
 import {MenuListItemProps} from 'sentry/components/menuListItem';
-import type {InternalTooltipProps} from 'sentry/components/tooltip';
 import type {API_ACCESS_SCOPES} from 'sentry/constants';
 
 /**
@@ -50,8 +49,6 @@ export type SelectValue<T> = MenuListItemProps & {
   label: string | number | React.ReactElement;
   value: T;
   disabled?: boolean;
-  tooltip?: React.ReactNode;
-  tooltipOptions?: Omit<InternalTooltipProps, 'children' | 'title' | 'className'>;
 };
 
 /**

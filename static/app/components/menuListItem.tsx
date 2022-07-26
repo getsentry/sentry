@@ -2,6 +2,7 @@ import {forwardRef as reactForwardRef} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
+import Tooltip, {InternalTooltipProps} from 'sentry/components/tooltip';
 import space from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {Theme} from 'sentry/utils/theme';
@@ -40,6 +41,16 @@ export type MenuListItemProps = {
    * Whether to show a line divider below this item
    */
   showDivider?: boolean;
+  /**
+   * Optional tooltip that appears when the use hovers over the item. This is
+   * not very visible - if possible, add additional text via the `details`
+   * prop instead.
+   */
+  tooltip?: React.ReactNode;
+  /**
+   * Additional props to be passed into <Tooltip />.
+   */
+  tooltipOptions?: Omit<InternalTooltipProps, 'children' | 'title' | 'className'>;
   /*
    * Items to be added to the right of the label.
    */
@@ -81,46 +92,53 @@ function BaseMenuListItem({
   innerWrapProps = {},
   labelProps = {},
   detailsProps = {},
+  tooltip,
+  tooltipOptions = {delay: 500},
   forwardRef,
   ...props
 }: Props) {
   return (
     <MenuItemWrap as={as} ref={forwardRef} {...props}>
-      <InnerWrap
-        isDisabled={isDisabled}
-        isFocused={isFocused}
-        priority={priority}
-        {...innerWrapProps}
-      >
-        {leadingItems && (
-          <LeadingItems
-            isDisabled={isDisabled}
-            spanFullHeight={leadingItemsSpanFullHeight}
-          >
-            {leadingItems}
-          </LeadingItems>
-        )}
-        <ContentWrap isFocused={isFocused} showDivider={defined(details) || showDivider}>
-          <LabelWrap>
-            <Label aria-hidden="true" {...labelProps}>
-              {label}
-            </Label>
-            {details && (
-              <Details isDisabled={isDisabled} priority={priority} {...detailsProps}>
-                {details}
-              </Details>
-            )}
-          </LabelWrap>
-          {trailingItems && (
-            <TrailingItems
+      <Tooltip skipWrapper title={tooltip} {...tooltipOptions}>
+        <InnerWrap
+          isDisabled={isDisabled}
+          isFocused={isFocused}
+          priority={priority}
+          {...innerWrapProps}
+        >
+          {leadingItems && (
+            <LeadingItems
               isDisabled={isDisabled}
-              spanFullHeight={trailingItemsSpanFullHeight}
+              spanFullHeight={leadingItemsSpanFullHeight}
             >
-              {trailingItems}
-            </TrailingItems>
+              {leadingItems}
+            </LeadingItems>
           )}
-        </ContentWrap>
-      </InnerWrap>
+          <ContentWrap
+            isFocused={isFocused}
+            showDivider={defined(details) || showDivider}
+          >
+            <LabelWrap>
+              <Label aria-hidden="true" {...labelProps}>
+                {label}
+              </Label>
+              {details && (
+                <Details isDisabled={isDisabled} priority={priority} {...detailsProps}>
+                  {details}
+                </Details>
+              )}
+            </LabelWrap>
+            {trailingItems && (
+              <TrailingItems
+                isDisabled={isDisabled}
+                spanFullHeight={trailingItemsSpanFullHeight}
+              >
+                {trailingItems}
+              </TrailingItems>
+            )}
+          </ContentWrap>
+        </InnerWrap>
+      </Tooltip>
     </MenuItemWrap>
   );
 }
