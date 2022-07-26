@@ -7,10 +7,12 @@ type Output = {
   value: React.ReactNode | null;
 };
 
-function getOperatingSystemKnownDataDetails(
-  data: BrowserKnownData,
-  type: BrowserKnownDataType
-): Output {
+type Props = {
+  data: BrowserKnownData;
+  type: BrowserKnownDataType;
+};
+
+export function getBrowserKnownDataDetails({data, type}: Props): Output | undefined {
   switch (type) {
     case BrowserKnownDataType.NAME:
       return {
@@ -23,11 +25,6 @@ function getOperatingSystemKnownDataDetails(
         value: `${data.version}`,
       };
     default:
-      return {
-        subject: type,
-        value: data[type] || null,
-      };
+      return undefined;
   }
 }
-
-export default getOperatingSystemKnownDataDetails;
