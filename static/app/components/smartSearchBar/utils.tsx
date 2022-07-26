@@ -297,7 +297,7 @@ export const shortcuts: Shortcut[] = [
     text: 'Delete',
     shortcutType: ShortcutType.Delete,
     hotkeys: {
-      actual: 'option+backspace',
+      actual: 'ctrl+option+backspace',
     },
     icon: <IconDelete size="xs" color="gray300" />,
     canRunShortcut: token => {
@@ -308,7 +308,7 @@ export const shortcuts: Shortcut[] = [
     text: 'Exclude',
     shortcutType: ShortcutType.Negate,
     hotkeys: {
-      actual: 'option+1',
+      actual: 'ctrl+option+1',
     },
     icon: <IconExclamation size="xs" color="gray300" />,
     canRunShortcut: token => {
@@ -319,7 +319,7 @@ export const shortcuts: Shortcut[] = [
     text: 'Include',
     shortcutType: ShortcutType.Negate,
     hotkeys: {
-      actual: 'option+1',
+      actual: 'ctrl+option+1',
     },
     icon: <IconExclamation size="xs" color="gray300" />,
     canRunShortcut: token => {
@@ -331,7 +331,7 @@ export const shortcuts: Shortcut[] = [
     text: 'Previous',
     shortcutType: ShortcutType.Previous,
     hotkeys: {
-      actual: 'option+left',
+      actual: 'ctrl+option+left',
     },
     icon: <IconArrow direction="left" size="xs" color="gray300" />,
     canRunShortcut: (token, count) => {
@@ -342,7 +342,7 @@ export const shortcuts: Shortcut[] = [
     text: 'Next',
     shortcutType: ShortcutType.Next,
     hotkeys: {
-      actual: 'option+right',
+      actual: 'ctrl+option+right',
     },
     icon: <IconArrow direction="right" size="xs" color="gray300" />,
     canRunShortcut: (token, count) => {
