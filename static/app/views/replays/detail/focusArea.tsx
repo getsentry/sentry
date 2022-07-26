@@ -1,7 +1,10 @@
 import {useMemo} from 'react';
 
+import Feature from 'sentry/components/acl/feature';
+import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import Placeholder from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
+import {t} from 'sentry/locale';
 import type {RawCrumb} from 'sentry/types/breadcrumbs';
 import {isBreadcrumbTypeDefault} from 'sentry/types/breadcrumbs';
 import useActiveReplayTab from 'sentry/utils/replays/hooks/useActiveReplayTab';
@@ -59,7 +62,26 @@ function FocusArea({}: Props) {
     case 'network':
       return <NetworkList event={event} networkSpans={getNetworkSpans()} />;
     case 'trace':
-      return <Trace organization={organization} event={event} />;
+      const features = ['organizations:performance-view'];
+
+      const renderDisabled = () => (
+        <FeatureDisabled
+          featureName={t('Performance Monitoring')}
+          features={features}
+          message={t('Requires performance monitoring.')}
+          hideHelpToggle
+        />
+      );
+      return (
+        <Feature
+          organization={organization}
+          hookName="feature-disabled:configure-distributed-tracing"
+          features={features}
+          renderDisabled={renderDisabled}
+        >
+          <Trace organization={organization} event={event} />
+        </Feature>
+      );
     case 'issues':
       return <IssueList replayId={event.id} projectId={event.projectID} />;
     case 'dom':
