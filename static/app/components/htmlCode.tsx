@@ -1,30 +1,35 @@
+import 'prism-sentry/index.css';
+
+import {useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 import beautify from 'js-beautify';
-
-import space from 'sentry/styles/space';
+import Prism from 'prismjs';
 
 type Props = {
   code: string;
 };
 
 function HTMLCode({code}: Props) {
+  const codeRef = useRef<HTMLModElement | null>(null);
+  const formattedCode = beautify.html(code, {indent_size: 2});
+
+  useEffect(() => {
+    Prism.highlightElement(codeRef.current, false);
+  }, []);
+
   return (
     <CodeWrapper>
-      <div className="gatsby-highlight">
-        <pre className="language-html highlight">
-          <code className="language-html">{beautify.html(code, {indent_size: 2})}</code>
-        </pre>
-      </div>
+      <pre>
+        <code ref={codeRef} className="language-html">
+          {formattedCode}
+        </code>
+      </pre>
     </CodeWrapper>
   );
 }
 
 const CodeWrapper = styled('div')`
   line-height: 1.5;
-
-  .gatsby-highlight {
-    margin-bottom: ${space(3)};
-  }
 
   pre {
     word-break: break-all;
