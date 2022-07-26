@@ -103,9 +103,6 @@ type Props = DefaultProps & {
    * passed down only because it is needed for navigation.
    */
   location: Location;
-  onIncompatibleAlertQuery: React.ComponentProps<
-    typeof CreateAlertFromViewButton
-  >['onIncompatibleQuery'];
   organization: Organization;
   projects: Project[];
   router: InjectedRouter;
@@ -343,7 +340,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
   }
 
   renderButtonCreateAlert() {
-    const {eventView, organization, projects, onIncompatibleAlertQuery} = this.props;
+    const {eventView, organization, projects} = this.props;
 
     return (
       <GuideAnchor target="create_alert_from_discover">
@@ -351,11 +348,11 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
           eventView={eventView}
           organization={organization}
           projects={projects}
-          onIncompatibleQuery={onIncompatibleAlertQuery}
-          onSuccess={this.handleCreateAlertSuccess}
+          onClick={this.handleCreateAlertSuccess}
           referrer="discover"
           aria-label={t('Create Alert')}
           data-test-id="discover2-create-from-discover"
+          useAlertWizardV3={organization.features.includes('alert-wizard-v3')}
         />
       </GuideAnchor>
     );
