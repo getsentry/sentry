@@ -62,8 +62,7 @@ function SentryFunctionDetails(props: Props) {
     console.log('Query: ' + req.query);
     console.log('Body: ' + req.body);
     res.status(200).send(message);
-};`;
-  const [code, setCode] = React.useState(defaultCode);
+  };`;
 
   const handleSubmitError = err => {
     let errorMessage = t('Unknown Error');
@@ -87,7 +86,7 @@ function SentryFunctionDetails(props: Props) {
   };
 
   function handleEditorChange(value, _event) {
-    setCode(value);
+    form.current.setValue('code', value);
   }
 
   async function handleDelete() {
@@ -103,14 +102,13 @@ function SentryFunctionDetails(props: Props) {
       <Feature features={['organizations:sentry-functions']}>
         <h1>{t('Sentry Function Details')}</h1>
         <h2>
-          {sentryFunction ? "Editing  '" + sentryFunction.name + "'" : 'New Function'}
+          {t(sentryFunction ? "Editing  '" + sentryFunction.name + "'" : 'New Function')}
         </h2>
         <Form
           apiMethod={method}
           apiEndpoint={endpoint}
           model={form.current}
           onPreSubmit={() => {
-            form.current.setValue('code', code);
             addLoadingMessage(t('Saving changes..'));
           }}
           initialData={{
@@ -147,7 +145,7 @@ function SentryFunctionDetails(props: Props) {
             type="button"
             priority="danger"
           >
-            Delete Sentry Function
+            {t('Delete Sentry Function')}
           </Button>
         )}
       </Feature>
@@ -156,7 +154,7 @@ function SentryFunctionDetails(props: Props) {
 }
 
 type WrapperState = {
-  sentryFunction: SentryFunction;
+  sentryFunction?: SentryFunction;
 } & AsyncComponent['state'];
 
 type WrapperProps = {
