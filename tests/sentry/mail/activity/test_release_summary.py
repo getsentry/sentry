@@ -54,6 +54,7 @@ class ReleaseSummaryTestCase(ActivityTestCase):
                 )
             )
             release_summary.provider_options = {
+                "provider": ExternalProviders.SLACK,
                 "url_format": SLACK_URL_FORMAT,
             }
 

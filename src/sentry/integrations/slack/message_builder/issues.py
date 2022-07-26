@@ -272,6 +272,7 @@ class SlackIssuesMessageBuilder(SlackMessageBuilder):
         self.notification = notification
         if self.notification:
             self.notification.provider_options = {
+                "provider": ExternalProviders.SLACK,
                 "url_format": SLACK_URL_FORMAT,
             }
         self.recipient = recipient
@@ -344,6 +345,7 @@ class SlackReleaseIssuesMessageBuilder(SlackMessageBuilder):
         self.notification = notification
         if self.notification:
             self.notification.provider_options = {
+                "provider": ExternalProviders.SLACK,
                 "url_format": SLACK_URL_FORMAT,
             }
         self.recipient = recipient

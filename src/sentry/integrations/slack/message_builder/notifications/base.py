@@ -6,6 +6,7 @@ from sentry.integrations.slack.message_builder import SLACK_URL_FORMAT, SlackBod
 from sentry.integrations.slack.message_builder.base.base import SlackMessageBuilder
 from sentry.models import Team, User
 from sentry.notifications.notifications.base import BaseNotification
+from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 
 
@@ -19,6 +20,7 @@ class SlackNotificationsMessageBuilder(SlackMessageBuilder):
         super().__init__()
         self.notification = notification
         self.notification.provider_options = {
+            "provider": ExternalProviders.SLACK,
             "url_format": SLACK_URL_FORMAT,
         }
         self.context = context

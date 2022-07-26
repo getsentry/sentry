@@ -70,6 +70,7 @@ class BaseNotification(abc.ABC):
     @provider_options.setter
     def provider_options(self, provider_options: Mapping[str, Any]) -> None:
         self._provider_options = {
+            "provider": provider_options["provider"],
             "url_format": provider_options["url_format"],
             **provider_options,
         }
@@ -185,7 +186,7 @@ class BaseNotification(abc.ABC):
         """
         return f"?referrer={self.get_referrer(provider, recipient)}"
 
-    def get_settings_url(self, recipient: Team | User, provider: ExternalProviders) -> str:
+    def get_settings_url(self, recipient: Team | User) -> str:
         # Settings url is dependant on the provider so we know which provider is sending them into Sentry.
         if isinstance(recipient, Team):
             url_str = f"/settings/{self.organization.slug}/teams/{recipient.slug}/notifications/"
@@ -196,7 +197,10 @@ class BaseNotification(abc.ABC):
                 if fine_tuning_key:
                     url_str += f"{fine_tuning_key}/"
         return str(
-            urljoin(absolute_uri(url_str), self.get_sentry_query_params(provider, recipient))
+            urljoin(
+                absolute_uri(url_str),
+                self.get_sentry_query_params(self.provider_options["provider"], recipient),
+            )
         )
 
     def determine_recipients(self) -> Iterable[Team | User]:
@@ -255,7 +259,7 @@ class ProjectNotification(BaseNotification, abc.ABC):
 
     def build_notification_footer(self, recipient: Team | User) -> str:
         # notification footer only used for Slack for now
-        settings_url = self.get_settings_url(recipient, ExternalProviders.SLACK)
+        settings_url = self.get_settings_url(recipient)
 
         parent = getattr(self, "project", self.organization)
         footer: str = parent.slug
