@@ -41,7 +41,7 @@ TRANSACTION_METRICS_NAMES = {
     "d:transactions/measurements.lcp@millisecond": PREFIX + 103,
     "d:transactions/measurements.app_start_cold@millisecond": PREFIX + 104,
     "d:transactions/measurements.app_start_warm@millisecond": PREFIX + 105,
-    "d:transactions/measurements.cls@none": PREFIX + 106,  # unused
+    "d:transactions/measurements.cls@millisecond": PREFIX + 106,
     "d:transactions/measurements.fid@millisecond": PREFIX + 107,
     "d:transactions/measurements.fp@millisecond": PREFIX + 108,
     "d:transactions/measurements.frames_frozen@none": PREFIX + 109,
@@ -55,10 +55,10 @@ TRANSACTION_METRICS_NAMES = {
     "d:transactions/measurements.stall_total_time@millisecond": PREFIX + 117,
     "d:transactions/measurements.ttfb@millisecond": PREFIX + 118,
     "d:transactions/measurements.ttfb.requesttime@millisecond": PREFIX + 119,
-    "d:transactions/breakdowns.span_ops.ops.http@millisecond": PREFIX + 120,
-    "d:transactions/breakdowns.span_ops.ops.db@millisecond": PREFIX + 121,
-    "d:transactions/breakdowns.span_ops.ops.browser@millisecond": PREFIX + 122,
-    "d:transactions/breakdowns.span_ops.ops.resource@millisecond": PREFIX + 123,
+    "d:transactions/breakdowns.span_ops.http@millisecond": PREFIX + 120,
+    "d:transactions/breakdowns.span_ops.db@millisecond": PREFIX + 121,
+    "d:transactions/breakdowns.span_ops.browser@millisecond": PREFIX + 122,
+    "d:transactions/breakdowns.span_ops.resource@millisecond": PREFIX + 123,
 }
 
 # 200 - 299
