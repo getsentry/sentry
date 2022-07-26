@@ -11,7 +11,6 @@ from sentry.notifications.utils import (
     get_group_settings_link,
     get_integration_link,
     get_interface_list,
-    get_rules,
     has_alert_integration,
     has_integrations,
 )
@@ -45,18 +44,7 @@ class ActiveReleaseAlertNotification(AlertRuleNotification):
         )
 
     def get_notification_title(self, context: Mapping[str, Any] | None = None) -> str:
-        from sentry.integrations.message_builder import build_rule_url
-
-        title_str = "Active Release alert triggered"
-
-        if self.rules:
-            rule_url = build_rule_url(self.rules[0], self.group, self.project)
-            title_str += f" <{rule_url}|{self.rules[0].label}>"
-
-            if len(self.rules) > 1:
-                title_str += f" (+{len(self.rules) - 1} other)"
-
-        return title_str
+        return "Active Release alert triggered"
 
     def send(self) -> None:
         from sentry.notifications.notify import notify
@@ -114,7 +102,6 @@ class ActiveReleaseAlertNotification(AlertRuleNotification):
     def get_context(self) -> MutableMapping[str, Any]:
         environment = self.event.get_tag("environment")
         enhanced_privacy = self.organization.flags.enhanced_privacy
-        rule_details = get_rules(self.rules, self.organization, self.project)
         group = self.group
         context = {
             "project_label": self.project.get_full_name(),
@@ -122,9 +109,8 @@ class ActiveReleaseAlertNotification(AlertRuleNotification):
             "users_seen": self.group.count_users_seen(),
             "event": self.event,
             "link": get_group_settings_link(
-                self.group, environment, rule_details, referrer="alert_email_release"
+                self.group, environment, rule_details=None, referrer="alert_email_release"
             ),
-            "rules": rule_details,
             "has_integrations": has_integrations(self.organization, self.project),
             "enhanced_privacy": enhanced_privacy,
             "last_release": self.last_release,
