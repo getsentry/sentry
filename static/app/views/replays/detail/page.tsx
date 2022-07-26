@@ -11,7 +11,7 @@ import type {EventTransaction} from 'sentry/types/event';
 import getUrlPathname from 'sentry/utils/getUrlPathname';
 import ChooseLayout from 'sentry/views/replays/detail/layout/chooseLayout';
 
-import EventMetaData from './eventMetaData';
+import EventMetaData, {HeaderPlaceholder} from './eventMetaData';
 
 type Props = {
   children: ReactNode;
@@ -36,7 +36,7 @@ function Page({children, crumbs, duration, event, orgId}: Props) {
         <FeatureFeedback featureName="replay" buttonProps={{size: 'sm'}} />
         <ChooseLayout />
       </ButtonActionsWrapper>
-      <SubHeading>{pathname}</SubHeading>
+      <SubHeading>{pathname || <HeaderPlaceholder />}</SubHeading>
       <MetaDataColumn>
         <EventMetaData crumbs={crumbs} duration={duration} event={event} />
       </MetaDataColumn>
@@ -55,7 +55,7 @@ function Page({children, crumbs, duration, event, orgId}: Props) {
 
 const Header = styled(Layout.Header)`
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    padding-bottom: ${space(1.5)};
+    padding: ${space(2)} ${space(2)} ${space(1.5)} ${space(2)};
   }
 `;
 

@@ -8,6 +8,7 @@ import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import NotFound from 'sentry/components/errors/notFound';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
+import EventCustomPerformanceMetrics from 'sentry/components/events/eventCustomPerformanceMetrics';
 import {BorderlessEventEntries} from 'sentry/components/events/eventEntries';
 import EventMessage from 'sentry/components/events/eventMessage';
 import EventVitals from 'sentry/components/events/eventVitals';
@@ -253,6 +254,17 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
           {isSidebarVisible && (
             <Layout.Side>
               <EventVitals event={event} />
+
+              <Feature
+                organization={organization}
+                features={['organizations:dashboard-custom-measurement-widgets']}
+              >
+                <EventCustomPerformanceMetrics
+                  event={event}
+                  location={location}
+                  organization={organization}
+                />
+              </Feature>
               {event.groupID && (
                 <LinkedIssue groupId={event.groupID} eventId={event.eventID} />
               )}
