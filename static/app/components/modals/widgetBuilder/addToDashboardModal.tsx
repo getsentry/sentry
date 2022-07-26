@@ -118,7 +118,7 @@ function AddToDashboardModal({
     return () => {
       unmounted = true;
     };
-  }, [api, organization.slug, selectedDashboardId, router]);
+  }, [api, organization.slug, selectedDashboardId]);
 
   function handleGoToBuilder() {
     const pathname =
