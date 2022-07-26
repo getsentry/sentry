@@ -93,10 +93,15 @@ function SentryFunctionDetails(props: Props) {
 
   async function handleDelete() {
     // figure out how to send a delete request
-    await api.requestPromise(endpoint, {
+    const response = await api.requestPromise(endpoint, {
       method: 'DELETE',
     });
-    browserHistory.push(`/settings/${orgId}/developer-settings/`);
+    if (response.status === 204) {
+      browserHistory.push(`/settings/${orgId}/developer-settings/`);
+      // TODO: Maybe show a success message?
+    } else if (response.status >= 400 && response.status < 500) {
+      addErrorMessage(t('Error deleting Sentry Function, try again later.'));
+    }
   }
 
   return (
