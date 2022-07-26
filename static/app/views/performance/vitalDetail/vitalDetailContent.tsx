@@ -58,7 +58,7 @@ const FRONTEND_VITALS = [WebVital.FCP, WebVital.LCP, WebVital.FID, WebVital.CLS]
 
 enum DisplayModes {
   WORST_VITALS = 'Worst Vitals',
-  DURATION_P75 = 'Duration P75',
+  DURATION_P75 = 'P75',
 }
 
 type Props = {
@@ -304,14 +304,17 @@ function VitalDetailContent(props: Props) {
           />
         )}
 
-        <InlineContainer data-test-id="display-toggle">
-          <OptionSelector
-            title={t('Display')}
-            selected={display}
-            options={generateDisplayOptions()}
-            onChange={handleDisplayChange}
-          />
-        </InlineContainer>
+        <DropdownContainer>
+          <InlineContainer data-test-id="display-toggle">
+            <OptionSelector
+              title={t('Display')}
+              selected={display}
+              options={generateDisplayOptions()}
+              onChange={handleDisplayChange}
+            />
+          </InlineContainer>
+        </DropdownContainer>
+
         <StyledVitalInfo>
           <VitalInfo
             orgSlug={orgSlug}
@@ -429,4 +432,12 @@ const FilterActions = styled('div')`
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: auto 1fr;
   }
+`;
+
+const DropdownContainer = styled('div')`
+  margin-bottom: ${space(2)};
+  border: 1px ${p => p.theme.border} solid;
+  border-top: 0;
+  border-radius: ${p => `0 0 ${p.theme.borderRadius} ${p.theme.borderRadius}`};
+  box-shadow: ${p => p.theme.dropShadowLight};
 `;

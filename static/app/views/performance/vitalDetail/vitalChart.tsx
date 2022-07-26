@@ -1,5 +1,6 @@
 import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import {useTheme} from '@emotion/react';
+import styled from '@emotion/styled';
 
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
@@ -9,7 +10,6 @@ import ReleaseSeries from 'sentry/components/charts/releaseSeries';
 import {ChartContainer, HeaderTitleLegend} from 'sentry/components/charts/styles';
 import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
-import {Panel} from 'sentry/components/panels';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -84,7 +84,7 @@ function VitalChart({
   }
 
   return (
-    <Panel>
+    <ChartPanel>
       <ChartContainer>
         <HeaderTitleLegend>
           {getVitalChartTitle(vitalName)}
@@ -176,7 +176,7 @@ function VitalChart({
           )}
         </ChartZoom>
       </ChartContainer>
-    </Panel>
+    </ChartPanel>
   );
 }
 
@@ -298,3 +298,10 @@ export function _VitalChart(props: _VitalChartProps) {
     </div>
   );
 }
+
+const ChartPanel = styled('div')`
+  background: ${p => p.theme.background};
+  border-radius: ${p => `${p.theme.borderRadius} ${p.theme.borderRadius} 0 0`};
+  border: 1px ${p => p.theme.border} solid;
+  position: relative;
+`;
