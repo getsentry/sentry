@@ -63,8 +63,7 @@ class StaticMediaTest(TestCase):
 
         try:
             with open(os.path.join(dist_path, "test.js"), "a"):
-                url = get_frontend_app_asset_url("sentry", "test.js", cache_bust=True)
-                assert "?v=" in url
+                url = get_frontend_app_asset_url("sentry", "test.js")
 
                 response = self.client.get(url)
                 close_streaming_response(response)
