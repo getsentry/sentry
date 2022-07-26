@@ -11,7 +11,7 @@ import Console from './console';
 import DomMutations from './domMutations';
 import IssueList from './issueList';
 import MemoryChart from './memoryChart';
-import NetworkList from './networkList';
+import NetworkList from './network';
 import Trace from './trace';
 
 type Props = {};
