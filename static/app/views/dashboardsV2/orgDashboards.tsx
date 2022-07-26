@@ -106,6 +106,7 @@ class OrgDashboards extends AsyncComponent<Props, State> {
             statsPeriod: data.period,
             start: data.start,
             end: data.end,
+            utc: data.utc,
           },
         });
       }

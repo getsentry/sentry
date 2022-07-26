@@ -8,7 +8,12 @@ type Output = {
   value?: React.ReactNode;
 };
 
-function getGPUKnownDataDetails(data: GPUData, type: GPUKnownDataType): Output {
+type Props = {
+  data: GPUData;
+  type: GPUKnownDataType;
+};
+
+export function getGPUKnownDataDetails({data, type}: Props): Output | undefined {
   switch (type) {
     case GPUKnownDataType.NAME:
       return {
@@ -56,11 +61,6 @@ function getGPUKnownDataDetails(data: GPUData, type: GPUKnownDataType): Output {
         value: data.id,
       };
     default:
-      return {
-        subject: type,
-        value: data[type],
-      };
+      return undefined;
   }
 }
-
-export default getGPUKnownDataDetails;
