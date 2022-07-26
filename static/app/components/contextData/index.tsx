@@ -25,10 +25,6 @@ type Props = React.HTMLAttributes<HTMLPreElement> & {
   withAnnotatedText?: boolean;
 };
 
-function getValueWithAnnotatedText(v: Value, meta?: Meta) {
-  return <AnnotatedText value={v} meta={meta} />;
-}
-
 function walk({
   depth,
   value,
@@ -49,13 +45,20 @@ function walk({
   const children: React.ReactNode[] = [];
 
   if (value === null) {
-    return <span className="val-null">{jsonConsts ? 'null' : 'None'}</span>;
+    return (
+      <span className="val-null">
+        <AnnotatedText value={jsonConsts ? 'null' : 'None'} meta={meta} />
+      </span>
+    );
   }
 
   if (value === true || value === false) {
     return (
       <span className="val-bool">
-        {jsonConsts ? (value ? 'true' : 'false') : value ? 'True' : 'False'}
+        <AnnotatedText
+          value={jsonConsts ? (value ? 'true' : 'false') : value ? 'True' : 'False'}
+          meta={meta}
+        />
       </span>
     );
   }
@@ -63,9 +66,11 @@ function walk({
   if (isString(value)) {
     const valueInfo = analyzeStringForRepr(value);
 
-    const valueToBeReturned = withAnnotatedText
-      ? getValueWithAnnotatedText(valueInfo.repr, meta)
-      : valueInfo.repr;
+    const valueToBeReturned = withAnnotatedText ? (
+      <AnnotatedText value={valueInfo.repr} meta={meta} />
+    ) : (
+      valueInfo.repr
+    );
 
     const out = [
       <span
@@ -93,7 +98,7 @@ function walk({
 
   if (isNumber(value)) {
     const valueToBeReturned =
-      withAnnotatedText && meta ? getValueWithAnnotatedText(value, meta) : value;
+      withAnnotatedText && meta ? <AnnotatedText value={value} meta={meta} /> : value;
     return <span>{valueToBeReturned}</span>;
   }
 
