@@ -61,35 +61,28 @@ class BaseNotification(abc.ABC):
         raise NotImplementedError
 
     @property
-    def provider_options(self) -> Mapping[str, Any] | None:
+    def url_format(self) -> str:
         """
-        Provider specific options required to build a notification.
+        The URL format used when embedding links in text.
+        Slack notifications should set this to `<{url}|{text}>`.
+        Microsoft Teams notifications should set this to `[text](url)`.
         """
-        return self._provider_options
+        if not self._url_format:
+            raise AttributeError(
+                f"'url_format' not set on {self.__class__.__name__}. Please set 'url_format' in the message builder."
+            )
 
-    @provider_options.setter
-    def provider_options(self, provider_options: Mapping[str, Any]) -> None:
-        for option in ["url_format"]:
-            if option not in provider_options:
-                raise AttributeError(
-                    f"provider_options['{option}'] not set on {self.__class__.__name__}. "
-                    "Please set provider_options['{option}'] in the message builder."
-                )
+        return self._url_format
 
-        self._provider_options = provider_options
+    @url_format.setter
+    def url_format(self, url_format: str) -> None:
+        self._url_format = url_format
 
     def format_url(self, text: str, url: str) -> str:
         """
         Format URLs according to the provider options.
         """
-        if self.provider_options:
-            # Explicitly typing to satisfy mypy.
-            url_format: str = self.provider_options["url_format"]
-            return url_format.format(text=text, url=url)
-
-        raise AttributeError(
-            f"provider_options['url_format'] not set on {self.__class__.__name__}. Please set provider_options['url_format'] in the message builder."
-        )
+        return self.url_format.format(text=text, url=url)
 
     @property
     @abc.abstractmethod
