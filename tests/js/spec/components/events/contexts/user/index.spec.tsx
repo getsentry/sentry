@@ -1,6 +1,7 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import UserEventContext, {
+import {
+  UserEventContext,
   UserEventContextData,
 } from 'sentry/components/events/contexts/user';
 
@@ -57,7 +58,7 @@ const event = {
 };
 
 describe('user event context', function () {
-  it('display the right context data according to its value and meta', async function () {
+  it('display redacted data', async function () {
     render(<UserEventContext event={event} data={userMockData} />);
 
     expect(screen.getByText('ID')).toBeInTheDocument(); // subject

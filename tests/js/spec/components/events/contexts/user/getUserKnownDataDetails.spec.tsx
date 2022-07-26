@@ -17,7 +17,7 @@ describe('getUserKnownDataDetails', function () {
       });
 
       if (!userKnownData) {
-        return;
+        continue;
       }
 
       allKnownData.push(userKnownData);
