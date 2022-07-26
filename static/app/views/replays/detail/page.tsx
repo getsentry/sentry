@@ -68,7 +68,7 @@ const ButtonActionsWrapper = styled(Layout.HeaderActions)`
   display: grid;
   grid-template-columns: repeat(2, max-content);
   justify-content: flex-end;
-  gap: ${space(2)};
+  gap: ${space(1)};
 `;
 
 const SubHeading = styled('div')`
