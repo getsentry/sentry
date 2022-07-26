@@ -354,7 +354,7 @@ export const shortcuts: Shortcut[] = [
 const getItemTitle = (key: string, kind: FieldKind) => {
   if (kind === FieldKind.FUNCTION) {
     // Replace the function innards with ... for cleanliness
-    return key.replace(/(?<=\()[^\)]*/g, '...');
+    return key.replace(/\(.*\)/g, '(...)');
   }
 
   return key;
