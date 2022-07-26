@@ -233,7 +233,7 @@ export const MEASUREMENT_FIELDS: Record<string, FieldDefinition> = {
   },
 };
 
-export const FIELDS: Record<string, FieldDefinition> = {
+export const FIELDS: Record<FieldKey, FieldDefinition> = {
   ...MEASUREMENT_FIELDS,
   [FieldKey.AGE]: {
     desc: t('The age of the issue in relative time'),
