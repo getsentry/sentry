@@ -97,7 +97,12 @@ export type QueryFieldValue =
       alias?: string;
     }
   | {
-      function: [AggregationKey, string, AggregationRefinement, AggregationRefinement];
+      function: [
+        AggregationKeyWithAlias,
+        string,
+        AggregationRefinement,
+        AggregationRefinement
+      ];
       kind: 'function';
       alias?: string;
     };
@@ -490,7 +495,7 @@ export const ALIASES = {
 
 assert(AGGREGATIONS as Readonly<{[key in AggregationKey]: Aggregation}>);
 
-export type ValidAggregationKey = `${AggregationKey}` | keyof typeof ALIASES | '';
+export type AggregationKeyWithAlias = `${AggregationKey}` | keyof typeof ALIASES | '';
 
 export type AggregationOutputType = Extract<
   ColumnType,

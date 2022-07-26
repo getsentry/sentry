@@ -14,12 +14,12 @@ import space from 'sentry/styles/space';
 import {SelectValue} from 'sentry/types';
 import {
   AggregateParameter,
+  AggregationKeyWithAlias,
   AGGREGATIONS,
   Column,
   ColumnType,
   DEPRECATED_FIELDS,
   QueryFieldValue,
-  ValidAggregationKey,
   ValidateColumnTypes,
 } from 'sentry/utils/discover/fields';
 import {SESSIONS_OPERATIONS} from 'sentry/views/dashboardsV2/widgetBuilder/releaseWidget/fields';
@@ -161,7 +161,7 @@ class QueryField extends Component<Props> {
           fieldValue = {
             kind: 'function',
             function: [
-              value.meta.name as ValidAggregationKey,
+              value.meta.name as AggregationKeyWithAlias,
               current.function[1],
               current.function[2],
               current.function[3],
@@ -170,7 +170,12 @@ class QueryField extends Component<Props> {
         } else {
           fieldValue = {
             kind: 'function',
-            function: [value.meta.name as ValidAggregationKey, '', undefined, undefined],
+            function: [
+              value.meta.name as AggregationKeyWithAlias,
+              '',
+              undefined,
+              undefined,
+            ],
           };
         }
         break;
