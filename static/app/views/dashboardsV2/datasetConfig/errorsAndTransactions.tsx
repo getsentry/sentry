@@ -1,3 +1,4 @@
+import omit from 'lodash/omit';
 import trimStart from 'lodash/trimStart';
 
 import {doEventsRequest} from 'sentry/actionCreators/events';
@@ -19,11 +20,14 @@ import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/custo
 import {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
 import {MetaType} from 'sentry/utils/discover/eventView';
 import {
+  DURATION_UNITS,
   getFieldRenderer,
   RenderFunctionBaggage,
+  SIZE_UNITS,
 } from 'sentry/utils/discover/fieldRenderers';
 import {
   errorsAndTransactionsAggregateFunctionOutputType,
+  getAggregateAlias,
   isEquation,
   isEquationAlias,
   isLegalYAxisType,
@@ -57,10 +61,6 @@ import {
 } from '../utils';
 import {EventsSearchBar} from '../widgetBuilder/buildSteps/filterResultsStep/eventsSearchBar';
 import {CUSTOM_EQUATION_VALUE} from '../widgetBuilder/buildSteps/sortByStep';
-import {
-  flattenMultiSeriesDataWithGrouping,
-  transformSeries,
-} from '../widgetCard/widgetQueries';
 
 import {DatasetConfig, handleOrderByReset} from './base';
 
@@ -152,6 +152,7 @@ export const ErrorsAndTransactionsConfig: DatasetConfig<
   transformTable: transformEventsResponseToTable,
   filterTableOptions,
   filterAggregateParams,
+  getSeriesResultType,
 };
 
 function getTableSortOptions(_organization: Organization, widgetQuery: WidgetQuery) {
@@ -333,6 +334,65 @@ function filterYAxisOptions(displayType: DisplayType) {
   };
 }
 
+function transformSeries(stats: EventsStats, seriesName: string, field: string): Series {
+  const unit = stats.meta?.units?.[getAggregateAlias(field)];
+  // Scale series values to milliseconds or bytes depending on units from meta
+  const scale = (unit && (DURATION_UNITS[unit] ?? SIZE_UNITS[unit])) ?? 1;
+  return {
+    seriesName,
+    data:
+      stats?.data?.map(([timestamp, counts]) => {
+        return {
+          name: timestamp * 1000,
+          value: counts.reduce((acc, {count}) => acc + count, 0) * scale,
+        };
+      }) ?? [],
+  };
+}
+
+/**
+ * Multiseries data with a grouping needs to be "flattened" because the aggregate data
+ * are stored under the group names. These names need to be combined with the aggregate
+ * names to show a series.
+ *
+ * e.g. count() and count_unique() grouped by environment
+ * {
+ *    "local": {
+ *      "count()": {...},
+ *      "count_unique()": {...}
+ *    },
+ *    "prod": {
+ *      "count()": {...},
+ *      "count_unique()": {...}
+ *    }
+ * }
+ */
+function flattenMultiSeriesDataWithGrouping(
+  result: EventsStats | MultiSeriesEventsStats,
+  queryAlias: string
+): SeriesWithOrdering[] {
+  const seriesWithOrdering: SeriesWithOrdering[] = [];
+  const groupNames = Object.keys(result);
+
+  groupNames.forEach(groupName => {
+    // Each group contains an order key which we should ignore
+    const aggregateNames = Object.keys(omit(result[groupName], 'order'));
+
+    aggregateNames.forEach(aggregate => {
+      const seriesName = `${groupName} : ${aggregate}`;
+      const prefixedName = queryAlias ? `${queryAlias} > ${seriesName}` : seriesName;
+      const seriesData: EventsStats = result[groupName][aggregate];
+
+      seriesWithOrdering.push([
+        result[groupName].order || 0,
+        transformSeries(seriesData, prefixedName, seriesName),
+      ]);
+    });
+  });
+
+  return seriesWithOrdering;
+}
+
 function transformEventsResponseToSeries(
   data: EventsStats | MultiSeriesEventsStats,
   widgetQuery: WidgetQuery,
@@ -359,7 +419,10 @@ function transformEventsResponseToSeries(
       seriesWithOrdering = Object.keys(data).map((seriesName: string) => {
         const prefixedName = queryAlias ? `${queryAlias} : ${seriesName}` : seriesName;
         const seriesData: EventsStats = data[seriesName];
-        return [seriesData.order || 0, transformSeries(seriesData, prefixedName)];
+        return [
+          seriesData.order || 0,
+          transformSeries(seriesData, prefixedName, seriesName),
+        ];
       });
     }
 
@@ -371,11 +434,24 @@ function transformEventsResponseToSeries(
   } else {
     const field = widgetQuery.aggregates[0];
     const prefixedName = queryAlias ? `${queryAlias} : ${field}` : field;
-    const transformed = transformSeries(data, prefixedName);
+    const transformed = transformSeries(data, prefixedName, field);
     output.push(transformed);
   }
 
   return output;
+}
+
+// Get the series result type from the EventsStats meta
+function getSeriesResultType(
+  data: EventsStats | MultiSeriesEventsStats,
+  widgetQuery: WidgetQuery
+) {
+  const field = widgetQuery.aggregates[0];
+  // Need to use getAggregateAlias since events-stats still uses aggregate alias format
+  if (isMultiSeriesStats(data)) {
+    return data[Object.keys(data)[0]].meta?.fields[getAggregateAlias(field)];
+  }
+  return data.meta?.fields[getAggregateAlias(field)];
 }
 
 function renderEventIdAsLinkable(data, {eventView, organization}: RenderFunctionBaggage) {
