@@ -28,10 +28,17 @@ export function fetchSamplingSdkVersions({
     }
   );
 
-  promise.then(ServerSideSamplingStore.loadSamplingSdkVersionsSuccess).catch(response => {
-    const errorMessage = t('Unable to fetch sampling sdk versions');
-    handleXhrErrorResponse(errorMessage)(response);
-  });
+  ServerSideSamplingStore.setFetching(true);
+
+  promise
+    .then(ServerSideSamplingStore.loadSamplingSdkVersionsSuccess)
+    .catch(response => {
+      const errorMessage = t('Unable to fetch sampling sdk versions');
+      handleXhrErrorResponse(errorMessage)(response);
+    })
+    .finally(() => {
+      ServerSideSamplingStore.setFetching(false);
+    });
 
   return promise;
 }
@@ -47,6 +54,8 @@ export function fetchSamplingDistribution({
 }): Promise<SamplingDistribution> {
   ServerSideSamplingStore.reset();
 
+  ServerSideSamplingStore.setFetching(true);
+
   const promise = api.requestPromise(
     `/projects/${orgSlug}/${projSlug}/dynamic-sampling/distribution/`,
     {
@@ -61,6 +70,9 @@ export function fetchSamplingDistribution({
     .catch(response => {
       const errorMessage = t('Unable to fetch sampling distribution');
       handleXhrErrorResponse(errorMessage)(response);
+    })
+    .finally(() => {
+      ServerSideSamplingStore.setFetching(false);
     });
 
   return promise;

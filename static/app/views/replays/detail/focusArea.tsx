@@ -8,9 +8,10 @@ import useActiveReplayTab from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import Console from './console';
+import DomMutations from './domMutations';
 import IssueList from './issueList';
 import MemoryChart from './memoryChart';
-import NetworkList from './networkList';
+import NetworkList from './network';
 import Trace from './trace';
 
 type Props = {};
@@ -61,6 +62,8 @@ function FocusArea({}: Props) {
       return <Trace organization={organization} event={event} />;
     case 'issues':
       return <IssueList replayId={event.id} projectId={event.projectID} />;
+    case 'dom':
+      return <DomMutations replay={replay} />;
     case 'memory':
       return (
         <MemoryChart

@@ -1,17 +1,19 @@
 import {Fragment} from 'react';
 
 import ContextBlock from 'sentry/components/events/contexts/contextBlock';
+import {Event} from 'sentry/types/event';
 
-import getUnknownData from '../getUnknownData';
+import {getUnknownData} from '../getUnknownData';
 
-import getOperatingSystemKnownData from './getGPUKnownData';
+import {getGPUKnownData} from './getGPUKnownData';
 import {GPUData, GPUKnownDataType} from './types';
 
 type Props = {
   data: GPUData;
+  event: Event;
 };
 
-const gpuKnownDataValues = [
+export const gpuKnownDataValues = [
   GPUKnownDataType.NAME,
   GPUKnownDataType.VERSION,
   GPUKnownDataType.VENDOR_NAME,
@@ -23,22 +25,27 @@ const gpuKnownDataValues = [
 
 const gpuIgnoredDataValues = [];
 
-const GPU = ({data}: Props) => {
+export function GPUEventContext({event, data}: Props) {
+  const meta = event._meta?.contexts?.gpu ?? {};
+
   if (data.vendor_id > 0) {
     gpuKnownDataValues.unshift[GPUKnownDataType.VENDOR_ID];
   }
+
   if (data.id > 0) {
     gpuKnownDataValues.unshift[GPUKnownDataType.ID];
   }
 
   return (
     <Fragment>
-      <ContextBlock data={getOperatingSystemKnownData(data, gpuKnownDataValues)} />
+      <ContextBlock data={getGPUKnownData({data, gpuKnownDataValues, meta})} />
       <ContextBlock
-        data={getUnknownData(data, [...gpuKnownDataValues, ...gpuIgnoredDataValues])}
+        data={getUnknownData({
+          allData: data,
+          knownKeys: [...gpuKnownDataValues, ...gpuIgnoredDataValues],
+          meta,
+        })}
       />
     </Fragment>
   );
-};
-
-export default GPU;
+}

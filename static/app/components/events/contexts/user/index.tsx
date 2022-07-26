@@ -3,24 +3,36 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import ContextBlock from 'sentry/components/events/contexts/contextBlock';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import {removeFilterMaskedEntries} from 'sentry/components/events/interfaces/utils';
-import {getMeta} from 'sentry/components/events/meta/metaProxy';
-import {AvatarUser as UserType} from 'sentry/types';
+import {AvatarUser} from 'sentry/types';
+import {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 
-import getUnknownData from '../getUnknownData';
+import {getUnknownData} from '../getUnknownData';
 
-import getUserKnownData from './getUserKnownData';
-import {UserIgnoredDataType, UserKnownDataType} from './types';
+import {getUserKnownData} from './getUserKnownData';
+
+export type UserEventContextData = {
+  data: Record<string, string>;
+} & AvatarUser;
 
 type Props = {
-  data: Data;
+  data: UserEventContextData;
+  event: Event;
 };
 
-type Data = {
-  data: Record<string, string>;
-} & UserType;
+export enum UserKnownDataType {
+  ID = 'id',
+  EMAIL = 'email',
+  USERNAME = 'username',
+  IP_ADDRESS = 'ip_address',
+  NAME = 'name',
+}
 
-const userKnownDataValues = [
+export enum UserIgnoredDataType {
+  DATA = 'data',
+}
+
+export const userKnownDataValues = [
   UserKnownDataType.ID,
   UserKnownDataType.EMAIL,
   UserKnownDataType.USERNAME,
@@ -30,15 +42,21 @@ const userKnownDataValues = [
 
 const userIgnoredDataValues = [UserIgnoredDataType.DATA];
 
-function User({data}: Props) {
+export function UserEventContext({data, event}: Props) {
+  const meta = event._meta?.contexts?.user ?? {};
+
   return (
     <div className="user-widget">
       <div className="pull-left">
         <UserAvatar user={removeFilterMaskedEntries(data)} size={48} gravatar={false} />
       </div>
-      <ContextBlock data={getUserKnownData(data, userKnownDataValues)} />
+      <ContextBlock data={getUserKnownData({data, meta})} />
       <ContextBlock
-        data={getUnknownData(data, [...userKnownDataValues, ...userIgnoredDataValues])}
+        data={getUnknownData({
+          allData: data,
+          knownKeys: [...userKnownDataValues, ...userIgnoredDataValues],
+          meta,
+        })}
       />
       {defined(data?.data) && (
         <ErrorBoundary mini>
@@ -47,7 +65,7 @@ function User({data}: Props) {
               key,
               value,
               subject: key,
-              meta: getMeta(data.data, key),
+              meta: meta[key]?.[''],
             }))}
             isContextData
           />
@@ -56,5 +74,3 @@ function User({data}: Props) {
     </div>
   );
 }
-
-export default User;
