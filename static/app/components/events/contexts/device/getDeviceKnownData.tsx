@@ -9,7 +9,7 @@ import {deviceKnownDataValues} from '.';
 type Props = {
   data: DeviceData;
   event: Event;
-  meta: NonNullable<Event['_meta']>['user'];
+  meta: NonNullable<Event['_meta']>['device'];
 };
 
 export function getDeviceKnownData({data, event, meta}: Props): KeyValueListData {
