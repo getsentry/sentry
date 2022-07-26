@@ -31,6 +31,25 @@ def channel_filter(channel, name):
         return name.lower() == "general"
 
 
+def get_user_conversation_id(integration: Integration, user_id: str) -> str:
+    """
+    Get the user_conversation_id even if `integration.metadata.tenant_id` is not set.
+    """
+    client = MsTeamsClient(integration)
+
+    tenant_id = integration.metadata.get("tenant_id")
+
+    if tenant_id:
+        conversation_id = client.get_user_conversation_id(user_id, tenant_id)
+    else:
+        # This is definitely an integration of install_type == 'team',
+        # so use the `integration.external_id` (team_id) to get the tenant_id.
+        members = client.get_member_list(integration.external_id)
+        conversation_id = members[0].get("tenantId")
+
+    return conversation_id
+
+
 def get_channel_id(organization, integration_id, name):
     try:
         integration = Integration.objects.get(
