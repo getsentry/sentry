@@ -427,12 +427,14 @@ class RuleProcessorTestFilters(TestCase):
 
 class RuleProcessorActiveReleaseTest(TestCase):
     def setUp(self):
-        self.event = self.store_event(data={"message": "Hello world"}, project_id=self.project.id)
-        # self.event.title = "Hello world"
+        self.event = self.store_event(
+            data={"message": "Hello world"},
+            project_id=self.project.id,
+        )
         self.event.group._times_seen_pending = 0
         self.event.group.save()
 
-        oldRelease = Release.objects.create(
+        self.oldRelease = Release.objects.create(
             organization_id=self.organization.id,
             version="1",
             date_added=timezone.now() - timedelta(hours=2),
@@ -441,12 +443,11 @@ class RuleProcessorActiveReleaseTest(TestCase):
         GroupRelease.objects.create(
             project_id=self.project.id,
             group_id=self.event.group.id,
-            release_id=oldRelease.id,
-            environment=self.environment.name,
+            release_id=self.oldRelease.id,
             first_seen=timezone.now(),
             last_seen=timezone.now(),
         )
-        newRelease = Release.objects.create(
+        self.newRelease = Release.objects.create(
             organization_id=self.organization.id,
             version="2",
             date_added=timezone.now() - timedelta(minutes=30),
@@ -455,15 +456,14 @@ class RuleProcessorActiveReleaseTest(TestCase):
         GroupRelease.objects.create(
             project_id=self.project.id,
             group_id=self.event.group.id,
-            release_id=newRelease.id,
-            environment=self.environment.name,
+            release_id=self.newRelease.id,
             first_seen=timezone.now(),
             last_seen=timezone.now(),
         )
-        oldRelease.add_project(self.project)
-        newRelease.add_project(self.project)
+        self.oldRelease.add_project(self.project)
+        self.newRelease.add_project(self.project)
 
-        self.event.data["tags"] = (("sentry:release", newRelease.version),)
+        self.event.data["tags"] = (("sentry:release", self.newRelease.version),)
 
         Rule.objects.filter(project=self.event.project).delete()
 
@@ -486,3 +486,38 @@ class RuleProcessorActiveReleaseTest(TestCase):
             assert len(mail.outbox) == 1
             assert mail.outbox[0]
             assert mail.outbox[0].subject == "**ARM** [Sentry] BAR-1 - Hello world"
+            assert mail.outbox[0].to == [x.email for x in mock_get_release_committers.return_value]
+
+    @mock.patch("sentry.notifications.utils.participants.get_release_committers")
+    def test_one_extra_rule(self, mock_get_release_committers):
+        mock_get_release_committers.return_value = [self.user]
+        Rule.objects.create(
+            project=self.event.project,
+            data={
+                "actions": [EMAIL_ACTION_DATA],
+                "filter_match": "any",
+                "conditions": [
+                    {
+                        "id": "sentry.rules.filters.latest_release.LatestReleaseFilter",
+                        "name": "The event is from the latest release",
+                    },
+                ],
+            },
+        )
+        with self.options({"system.url-prefix": "http://example.com"}), self.tasks(), self.feature(
+            "projects:active-release-monitor-default-on"
+        ):
+            mail.outbox = []
+            rp = RuleProcessor(
+                self.event,
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=True,
+                has_reappeared=False,
+            )
+            results = list(rp.apply())
+            assert len(results) == 1
+            assert len(mail.outbox) == 1
+            assert mail.outbox[0]
+            assert mail.outbox[0].subject == "**ARM** [Sentry] BAR-1 - Hello world"
+            assert mail.outbox[0].to == [x.email for x in mock_get_release_committers.return_value]
