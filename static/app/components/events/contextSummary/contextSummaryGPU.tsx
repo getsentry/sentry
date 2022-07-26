@@ -5,6 +5,7 @@ import TextOverflow from 'sentry/components/textOverflow';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Event, Meta} from 'sentry/types';
+import {defined} from 'sentry/utils';
 
 import ContextSummaryNoSummary from './contextSummaryNoSummary';
 import generateClassName from './generateClassName';
@@ -27,12 +28,12 @@ type VersionElement = {
 };
 
 export function ContextSummaryGPU({data, meta}: Props) {
-  if (Object.keys(data).length === 0 || !data.name) {
+  if (Object.keys(data).length === 0) {
     return <ContextSummaryNoSummary title={t('Unknown GPU')} />;
   }
 
   const getVersionElement = (): VersionElement => {
-    if (data.vendor_name) {
+    if (defined(data.vendor_name)) {
       return {
         subject: t('Vendor:'),
         value: data.vendor_name,

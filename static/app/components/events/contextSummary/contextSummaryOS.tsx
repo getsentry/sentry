@@ -5,6 +5,7 @@ import TextOverflow from 'sentry/components/textOverflow';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Event, Meta} from 'sentry/types';
+import {defined} from 'sentry/utils';
 
 import ContextSummaryNoSummary from './contextSummaryNoSummary';
 import generateClassName from './generateClassName';
@@ -28,12 +29,12 @@ type VersionElement = {
 };
 
 export function ContextSummaryOS({data, meta}: Props) {
-  if (Object.keys(data).length === 0 || !data.name) {
+  if (Object.keys(data).length === 0) {
     return <ContextSummaryNoSummary title={t('Unknown OS')} />;
   }
 
   const getVersionElement = (): VersionElement => {
-    if (data.version) {
+    if (defined(data.version)) {
       return {
         subject: t('Version:'),
         value: data.version,
@@ -41,7 +42,7 @@ export function ContextSummaryOS({data, meta}: Props) {
       };
     }
 
-    if (data.kernel_version) {
+    if (defined(data.kernel_version)) {
       return {
         subject: t('Kernel:'),
         value: data.kernel_version,

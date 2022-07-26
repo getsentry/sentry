@@ -5,6 +5,7 @@ import TextOverflow from 'sentry/components/textOverflow';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Event} from 'sentry/types';
+import {defined} from 'sentry/utils';
 
 import ContextSummaryNoSummary from './contextSummaryNoSummary';
 import generateClassName from './generateClassName';
@@ -43,7 +44,7 @@ export function ContextSummaryGeneric({
       {(data.version || !omitUnknownVersion) && (
         <TextOverflow isParagraph>
           <Subject>{t('Version:')}</Subject>
-          {!data.version ? (
+          {!defined(data.version) ? (
             t('Unknown')
           ) : (
             <AnnotatedText value={data.version} meta={meta.version?.['']} />

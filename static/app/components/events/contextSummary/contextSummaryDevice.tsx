@@ -6,6 +6,7 @@ import TextOverflow from 'sentry/components/textOverflow';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Event, Meta} from 'sentry/types';
+import {defined} from 'sentry/utils';
 
 import ContextSummaryNoSummary from './contextSummaryNoSummary';
 import generateClassName from './generateClassName';
@@ -19,7 +20,7 @@ type Props = {
 type Data = {
   arch?: string;
   model?: string;
-  model_id?: string;
+  name?: string;
 };
 
 type SubTitle = {
@@ -34,21 +35,26 @@ export function ContextSummaryDevice({data, meta}: Props) {
   }
 
   const renderName = () => {
-    if (!data.model) {
+    if (!defined(data.model)) {
       return t('Unknown Device');
     }
 
     return (
       <DeviceName value={data.model}>
         {deviceName => {
-          return <AnnotatedText value={deviceName} meta={meta.model?.['']} />;
+          return (
+            <AnnotatedText
+              value={meta.name?.[''] ? data.name : deviceName}
+              meta={meta.name?.['']}
+            />
+          );
         }}
       </DeviceName>
     );
   };
 
   const getSubTitle = (): SubTitle | null => {
-    if (data.arch) {
+    if (defined(data.arch)) {
       return {
         subject: t('Arch:'),
         value: data.arch,
@@ -56,11 +62,11 @@ export function ContextSummaryDevice({data, meta}: Props) {
       };
     }
 
-    if (data.model_id) {
+    if (defined(data.model)) {
       return {
         subject: t('Model:'),
-        value: data.model_id,
-        meta: meta.model_id?.[''],
+        value: data.model,
+        meta: meta.model?.[''],
       };
     }
 
