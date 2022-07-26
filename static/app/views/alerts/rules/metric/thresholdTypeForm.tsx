@@ -29,8 +29,12 @@ const ThresholdTypeForm = ({
   onComparisonDeltaChange,
   onComparisonTypeChange,
   comparisonDelta,
-}: Props) =>
-  isCrashFreeAlert(dataset) ? null : (
+}: Props) => {
+  if (isCrashFreeAlert(dataset)) {
+    return null;
+  }
+
+  return (
     <Feature features={['organizations:change-alerts']} organization={organization}>
       <FormRow>
         <StyledRadioGroup
@@ -88,6 +92,7 @@ const ThresholdTypeForm = ({
       </FormRow>
     </Feature>
   );
+};
 
 const FormRow = styled('div')`
   display: flex;
