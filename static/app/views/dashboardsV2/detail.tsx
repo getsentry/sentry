@@ -200,7 +200,9 @@ class DashboardDetail extends Component<Props, State> {
               source: DashboardWidgetSource.DASHBOARDS,
             });
           },
-          disableEditWidget: true,
+          disableEditWidget:
+            organization.features.includes('dashboards-top-level-filter') &&
+            hasUnsavedFilterChanges(dashboard, location, dashboard.filters),
           disabledMessage: UNSAVED_FILTERS_MESSAGE,
         });
         trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.open', {
