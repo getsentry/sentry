@@ -22,6 +22,7 @@ def assert_expected_response(
 
 
 def mock_expected_response(
+    project_id: str,
     replay_id: str,
     started_at: datetime.datetime,
     finished_at: datetime.datetime,
@@ -31,6 +32,16 @@ def mock_expected_response(
     return {
         "replay_id": replay_id,
         "title": kwargs.pop("title", ""),
+        "project_id": project_id,
+        "urls": urls,
+        "trace_ids": kwargs.pop("trace_ids", []),
+        "started_at": datetime.datetime.strftime(started_at, "%Y-%m-%dT%H:%M:%S+00:00"),
+        "finished_at": datetime.datetime.strftime(finished_at, "%Y-%m-%dT%H:%M:%S+00:00"),
+        "duration": (finished_at - started_at).seconds,
+        "count_errors": kwargs.pop("count_errors", 0),
+        "count_sequences": kwargs.pop("count_sequences", 1),
+        "count_urls": len(urls),
+        "longest_transaction": kwargs.pop("longest_transaction", 0),
         "platform": kwargs.pop("platform", "javascript"),
         "environment": kwargs.pop("environment", ""),
         "release": kwargs.pop("release", ""),
@@ -44,16 +55,7 @@ def mock_expected_response(
         "user_name": kwargs.pop("user_name", "username"),
         "sdk_name": kwargs.pop("sdk_name", "sentry.javascript.react"),
         "sdk_version": kwargs.pop("sdk_version", "6.18.1"),
-        "trace_ids": kwargs.pop("trace_ids", []),
-        "started_at": datetime.datetime.strftime(started_at, "%Y-%m-%dT%H:%M:%S+00:00"),
-        "finished_at": datetime.datetime.strftime(finished_at, "%Y-%m-%dT%H:%M:%S+00:00"),
-        "duration": (finished_at - started_at).seconds,
-        "urls": urls,
-        "count_urls": len(urls),
-        "count_sequences": kwargs.pop("count_sequences", 1),
         "tags": {"isReplayRoot": "yes", "skippedNormalization": "True", "transaction": "/"},
-        "count_errors": kwargs.pop("count_errors", 0),
-        "longest_transaction": kwargs.pop("longest_transaction", 0),
     }
 
 

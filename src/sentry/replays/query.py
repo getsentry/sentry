@@ -126,6 +126,7 @@ def make_select_statement() -> List[Union[Column, Function]]:
         Column("replay_id"),
         # First, non-null value of a collected array.
         _grouped_unique_scalar_value(column_name="title"),
+        _grouped_unique_scalar_value(column_name="project_id", alias="agg_project_id"),
         _grouped_unique_scalar_value(column_name="platform"),
         _grouped_unique_scalar_value(column_name="environment"),
         _grouped_unique_scalar_value(column_name="release"),
@@ -201,7 +202,9 @@ def _grouped_unique_values(column_name: str, aliased: bool = False) -> Function:
     )
 
 
-def _grouped_unique_scalar_value(column_name: str, aliased: bool = True) -> Function:
+def _grouped_unique_scalar_value(
+    column_name: str, alias: Optional[str] = None, aliased: bool = True
+) -> Function:
     """Returns the first value of a unique array.
 
     E.g.
@@ -210,7 +213,7 @@ def _grouped_unique_scalar_value(column_name: str, aliased: bool = True) -> Func
     return Function(
         "arrayElement",
         parameters=[_grouped_unique_values(column_name), 1],
-        alias=column_name if aliased else None,
+        alias=alias or column_name if aliased else None,
     )
 
 

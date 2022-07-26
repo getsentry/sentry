@@ -51,7 +51,12 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
 
             # Assert the response body matches what was expected.
             expected_response = mock_expected_response(
-                replay1_id, seq1_timestamp, seq2_timestamp, urls=["", ""], count_sequences=2
+                project.id,
+                replay1_id,
+                seq1_timestamp,
+                seq2_timestamp,
+                urls=["", ""],
+                count_sequences=2,
             )
             assert_expected_response(response_data["data"][0], expected_response)
 

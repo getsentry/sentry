@@ -104,6 +104,7 @@ class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
             assert "data" in response_data
 
             expected_response = mock_expected_response(
+                self.project.id,
                 replay1_id,
                 seq1_timestamp,
                 seq3_timestamp,
