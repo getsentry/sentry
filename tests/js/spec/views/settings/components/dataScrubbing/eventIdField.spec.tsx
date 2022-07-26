@@ -74,7 +74,7 @@ describe('EventIdField', () => {
     const fieldErrorReason = eventIdField.find('FieldErrorReason');
     expect(fieldErrorReason).toHaveLength(1);
     expect(fieldErrorReason.text()).toEqual(
-      'An error occurred while fetching the suggestions based on this event ID.'
+      'An error occurred while fetching the suggestions based on this event ID'
     );
   });
 
@@ -87,7 +87,7 @@ describe('EventIdField', () => {
     expect(eventIdField.find('CloseIcon')).toHaveLength(1);
     const fieldErrorReason = eventIdField.find('FieldErrorReason');
     expect(fieldErrorReason).toHaveLength(1);
-    expect(fieldErrorReason.text()).toEqual('This event ID is invalid.');
+    expect(fieldErrorReason.text()).toEqual('This event ID is invalid');
   });
 
   it('NOTFOUND status', () => {
@@ -100,7 +100,7 @@ describe('EventIdField', () => {
     const fieldErrorReason = eventIdField.find('FieldErrorReason');
     expect(fieldErrorReason).toHaveLength(1);
     expect(fieldErrorReason.text()).toEqual(
-      'The chosen event ID was not found in projects you have access to.'
+      'The chosen event ID was not found in projects you have access to'
     );
   });
 });

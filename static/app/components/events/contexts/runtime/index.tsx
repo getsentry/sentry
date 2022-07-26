@@ -1,32 +1,37 @@
 import {Fragment} from 'react';
 
 import ContextBlock from 'sentry/components/events/contexts/contextBlock';
+import {Event} from 'sentry/types/event';
 
 import {getUnknownData} from '../getUnknownData';
 
-import getRuntimeKnownData from './getRuntimeKnownData';
+import {getRuntimeKnownData} from './getRuntimeKnownData';
 import {RuntimeData, RuntimeIgnoredDataType, RuntimeKnownDataType} from './types';
 
 type Props = {
   data: RuntimeData;
+  event: Event;
 };
 
-const runtimeKnownDataValues = [RuntimeKnownDataType.NAME, RuntimeKnownDataType.VERSION];
+export const runtimeKnownDataValues = [
+  RuntimeKnownDataType.NAME,
+  RuntimeKnownDataType.VERSION,
+];
 
 const runtimeIgnoredDataValues = [RuntimeIgnoredDataType.BUILD];
 
-function Runtime({data}: Props) {
+export function RuntimeEventContext({data, event}: Props) {
+  const meta = event._meta?.contexts?.runtime ?? {};
   return (
     <Fragment>
-      <ContextBlock data={getRuntimeKnownData(data, runtimeKnownDataValues)} />
+      <ContextBlock data={getRuntimeKnownData({data, meta})} />
       <ContextBlock
         data={getUnknownData({
           allData: data,
           knownKeys: [...runtimeKnownDataValues, ...runtimeIgnoredDataValues],
+          meta,
         })}
       />
     </Fragment>
   );
 }
-
-export default Runtime;

@@ -1,33 +1,41 @@
-import {getMeta} from 'sentry/components/events/meta/metaProxy';
-import {KeyValueListData} from 'sentry/types';
+import {Event, KeyValueListData} from 'sentry/types';
 import {defined} from 'sentry/utils';
 
-import getRuntimeKnownDataDetails from './getRuntimeKnownDataDetails';
-import {RuntimeData, RuntimeKnownDataType} from './types';
+import {getRuntimeKnownDataDetails} from './getRuntimeKnownDataDetails';
+import {runtimeKnownDataValues} from './index';
+import {RuntimeData} from './types';
 
-function getRuntimeKnownData(
-  data: RuntimeData,
-  runTimerKnownDataValues: Array<RuntimeKnownDataType>
-): KeyValueListData {
+type Props = {
+  data: RuntimeData;
+  meta: NonNullable<Event['_meta']>['runtime'];
+};
+
+export function getRuntimeKnownData({data, meta}: Props): KeyValueListData {
   const knownData: KeyValueListData = [];
 
-  const dataKeys = runTimerKnownDataValues.filter(runTimerKnownDataValue =>
-    defined(data[runTimerKnownDataValue])
-  );
+  const dataKeys = runtimeKnownDataValues.filter(runTimerKnownDataValue => {
+    if (!defined(data[runTimerKnownDataValue])) {
+      if (meta[runTimerKnownDataValue]) {
+        return true;
+      }
+      return false;
+    }
+    return true;
+  });
 
-  for (const key of dataKeys) {
-    const knownDataDetails = getRuntimeKnownDataDetails(
-      data,
-      key as RuntimeKnownDataType
-    );
+  for (const type of dataKeys) {
+    const knownDataDetails = getRuntimeKnownDataDetails({data, type});
+
+    if (!knownDataDetails) {
+      continue;
+    }
 
     knownData.push({
-      key,
+      key: type,
       ...knownDataDetails,
-      meta: getMeta(data, key),
+      meta: meta[type]?.[''],
     });
   }
+
   return knownData;
 }
-
-export default getRuntimeKnownData;
