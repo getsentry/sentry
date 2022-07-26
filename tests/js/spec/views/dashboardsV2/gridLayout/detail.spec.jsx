@@ -1086,6 +1086,57 @@ describe('Dashboards > Detail', function () {
       );
     });
 
+    it('can save absolute time range in existing dashboard', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/releases/',
+        body: [],
+      });
+      const testData = initializeOrg({
+        organization: TestStubs.Organization({
+          features: [
+            'global-views',
+            'dashboards-basic',
+            'dashboards-edit',
+            'discover-query',
+            'dashboard-grid-layout',
+            'dashboards-top-level-filter',
+          ],
+        }),
+        router: {
+          location: {
+            ...TestStubs.location(),
+            query: {
+              start: '2022-07-14T07:00:00',
+              end: '2022-07-19T23:59:59',
+              utc: 'true',
+            },
+          },
+        },
+      });
+      render(
+        <ViewEditDashboard
+          organization={testData.organization}
+          params={{orgId: 'org-slug', dashboardId: '1'}}
+          router={testData.router}
+          location={testData.router.location}
+        />,
+        {context: testData.routerContext, organization: testData.organization}
+      );
+
+      userEvent.click(await screen.findByText('Save'));
+
+      expect(mockPut).toHaveBeenCalledWith(
+        '/organizations/org-slug/dashboards/1/',
+        expect.objectContaining({
+          data: expect.objectContaining({
+            start: '2022-07-14T07:00:00.000',
+            end: '2022-07-19T23:59:59.000',
+            utc: true,
+          }),
+        })
+      );
+    });
+
     it('can clear dashboard filters in existing dashboard', async () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/releases/',
