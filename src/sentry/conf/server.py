@@ -2704,6 +2704,7 @@ MAX_REDIS_SNOWFLAKE_RETRY_COUNTER = 5
 SNOWFLAKE_VERSION_ID = 1
 SNOWFLAKE_REGION_ID = 0
 
+
 SENTRY_POST_PROCESS_LOCKS_BACKEND_OPTIONS = {
     "path": "sentry.utils.locking.backends.redis.RedisLockBackend",
     "options": {"cluster": "default"},
@@ -2711,6 +2712,7 @@ SENTRY_POST_PROCESS_LOCKS_BACKEND_OPTIONS = {
 
 # maximum number of projects allowed to query snuba with for the organization_vitals_overview endpoint
 ORGANIZATION_VITALS_OVERVIEW_PROJECT_LIMIT = 300
+
 
 # Default string indexer cache options
 SENTRY_STRING_INDEXER_CACHE_OPTIONS = {
