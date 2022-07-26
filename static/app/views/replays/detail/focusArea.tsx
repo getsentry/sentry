@@ -63,13 +63,12 @@ function FocusArea({}: Props) {
       return <NetworkList event={event} networkSpans={getNetworkSpans()} />;
     case 'trace':
       const features = ['organizations:performance-view'];
-      const noFeatureMessage = t('Requires performance monitoring.');
 
       const renderDisabled = () => (
         <FeatureDisabled
-          featureName={noFeatureMessage}
+          featureName={t('Performance monitoring')}
           features={features}
-          message={noFeatureMessage}
+          message={t('Requires Performance monitoring.')}
           hideHelpToggle
         />
       );
