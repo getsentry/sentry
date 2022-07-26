@@ -1,32 +1,43 @@
-import {getMeta} from 'sentry/components/events/meta/metaProxy';
 import {KeyValueListData} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 
-import getAppKnownDataDetails from './getAppKnownDataDetails';
-import {AppData, AppKnownDataType} from './types';
+import {getAppKnownDataDetails} from './getAppKnownDataDetails';
+import {AppData} from './types';
+import {appKnownDataValues} from '.';
 
-function getAppKnownData(
-  event: Event,
-  data: AppData,
-  appKnownDataValues: Array<AppKnownDataType>
-): KeyValueListData {
+type Props = {
+  data: AppData;
+  event: Event;
+  meta: NonNullable<Event['_meta']>['app'];
+};
+
+export function getAppKnownData({data, event, meta}: Props): KeyValueListData {
   const knownData: KeyValueListData = [];
 
-  const dataKeys = appKnownDataValues.filter(appKnownDataValue =>
-    defined(data[appKnownDataValue])
-  );
+  const dataKeys = appKnownDataValues.filter(appKnownDataValue => {
+    if (!defined(data[appKnownDataValue])) {
+      if (meta[appKnownDataValue]) {
+        return true;
+      }
+      return false;
+    }
+    return true;
+  });
 
-  for (const key of dataKeys) {
-    const knownDataDetails = getAppKnownDataDetails(event, data, key as AppKnownDataType);
+  for (const type of dataKeys) {
+    const knownDataDetails = getAppKnownDataDetails({event, data, type});
+
+    if (!knownDataDetails) {
+      continue;
+    }
 
     knownData.push({
-      key,
+      key: type,
       ...knownDataDetails,
-      meta: getMeta(data, key),
+      meta: meta[type]?.[''],
     });
   }
+
   return knownData;
 }
-
-export default getAppKnownData;
