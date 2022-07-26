@@ -11,7 +11,11 @@ import Placeholder from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Series} from 'sentry/types/echarts';
-import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
+import {
+  axisLabelFormatter,
+  getDurationUnit,
+  tooltipFormatter,
+} from 'sentry/utils/discover/charts';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {Theme} from 'sentry/utils/theme';
 
@@ -73,6 +77,8 @@ function Content({
         .reverse()
     : [];
 
+  const durationUnit = getDurationUnit(series, legend);
+
   const chartOptions: Omit<LineChartProps, 'series'> = {
     grid: {
       left: '10px',
@@ -95,10 +101,12 @@ function Content({
       : undefined,
     yAxis: {
       min: 0,
+      minInterval: durationUnit,
       axisLabel: {
         color: theme.chartLabel,
         // p50() coerces the axis to be time based
-        formatter: (value: number) => axisLabelFormatter(value, 'p50()'),
+        formatter: (value: number) =>
+          axisLabelFormatter(value, 'p50()', undefined, durationUnit),
       },
     },
   };

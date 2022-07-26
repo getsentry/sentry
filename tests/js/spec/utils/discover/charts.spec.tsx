@@ -109,6 +109,28 @@ describe('findRangeOfMultiSeries()', () => {
     expect(findRangeOfMultiSeries(series)).toStrictEqual({max: 2300, min: 50});
   });
 
+  it('should find min and max when series has no data', () => {
+    const noDataSeries: Series[] = [
+      {
+        seriesName: 'p100()',
+        data: [
+          {name: 1, value: 2300},
+          {name: 2, value: 1900},
+          {name: 3, value: 1950},
+        ],
+      },
+      {
+        seriesName: 'p95()',
+        data: [],
+      },
+      {
+        seriesName: 'p50()',
+        data: [],
+      },
+    ];
+    expect(findRangeOfMultiSeries(noDataSeries)).toStrictEqual({max: 2300, min: 1900});
+  });
+
   it('should not find range if no items selected', () => {
     const legend: LegendComponentOption = {
       selected: {'p100()': false, 'p95()': false, 'p50()': false},
