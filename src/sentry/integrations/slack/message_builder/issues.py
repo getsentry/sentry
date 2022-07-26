@@ -271,10 +271,7 @@ class SlackIssuesMessageBuilder(SlackMessageBuilder):
         self.issue_details = issue_details
         self.notification = notification
         if self.notification:
-            self.notification.provider_options = {
-                "provider": ExternalProviders.SLACK,
-                "url_format": SLACK_URL_FORMAT,
-            }
+            self.notification.url_format = SLACK_URL_FORMAT
         self.recipient = recipient
 
     def build(self) -> SlackBody:
@@ -344,10 +341,7 @@ class SlackReleaseIssuesMessageBuilder(SlackMessageBuilder):
         self.issue_details = issue_details
         self.notification = notification
         if self.notification:
-            self.notification.provider_options = {
-                "provider": ExternalProviders.SLACK,
-                "url_format": SLACK_URL_FORMAT,
-            }
+            self.notification.url_format = SLACK_URL_FORMAT
         self.recipient = recipient
         self.last_release = last_release
         self.last_release_link = last_release_link

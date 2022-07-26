@@ -19,10 +19,7 @@ class SlackNotificationsMessageBuilder(SlackMessageBuilder):
     ) -> None:
         super().__init__()
         self.notification = notification
-        self.notification.provider_options = {
-            "provider": ExternalProviders.SLACK,
-            "url_format": SLACK_URL_FORMAT,
-        }
+        self.notification.url_format = SLACK_URL_FORMAT
         self.context = context
         self.recipient = recipient
 
