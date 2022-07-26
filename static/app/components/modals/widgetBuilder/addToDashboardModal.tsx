@@ -29,7 +29,10 @@ import {
   MAX_WIDGETS,
   Widget,
 } from 'sentry/views/dashboardsV2/types';
-import {hasSavedPageFilters} from 'sentry/views/dashboardsV2/utils';
+import {
+  getSavedFiltersAsPageFilters,
+  hasSavedPageFilters,
+} from 'sentry/views/dashboardsV2/utils';
 import {NEW_DASHBOARD_ID} from 'sentry/views/dashboardsV2/widgetBuilder/utils';
 import WidgetCard from 'sentry/views/dashboardsV2/widgetCard';
 import {OrganizationContext} from 'sentry/views/organizationContext';
@@ -58,16 +61,6 @@ export type AddToDashboardModalProps = {
 type Props = ModalRenderProps & AddToDashboardModalProps;
 
 const SELECT_DASHBOARD_MESSAGE = t('Select a dashboard');
-
-export function getSavedPageFilters(dashboard: DashboardDetails) {
-  return {
-    project: dashboard.projects,
-    environment: dashboard.environment,
-    statsPeriod: dashboard.period,
-    start: dashboard.start,
-    end: dashboard.end,
-  };
-}
 
 function AddToDashboardModal({
   Header,
@@ -261,7 +254,12 @@ function AddToDashboardModal({
               isEditing={false}
               isSorting={false}
               widgetLimitReached={false}
-              selection={selection}
+              selection={
+                selectedDashboard
+                  ? getSavedFiltersAsPageFilters(selectedDashboard)
+                  : selection
+              }
+              dashboardFilters={selectedDashboard?.filters}
               widget={widget}
               showStoredAlert
             />
