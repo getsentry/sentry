@@ -7,6 +7,7 @@ import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import AddToDashboardModal from 'sentry/components/modals/widgetBuilder/addToDashboardModal';
 import {
   DashboardDetails,
+  DashboardListItem,
   DashboardWidgetSource,
   DisplayType,
 } from 'sentry/views/dashboardsV2/types';
@@ -31,14 +32,23 @@ describe('add to dashboard modal', () => {
       features: ['new-widget-builder-experience-design'],
     },
   });
+  const testDashboardListItem: DashboardListItem = {
+    id: '1',
+    title: 'Test Dashboard',
+    createdBy: undefined,
+    dateCreated: '2020-01-01T00:00:00.000Z',
+    widgetDisplay: [DisplayType.AREA],
+    widgetPreview: [],
+  };
   const testDashboard: DashboardDetails = {
     id: '1',
     title: 'Test Dashboard',
     createdBy: undefined,
     dateCreated: '2020-01-01T00:00:00.000Z',
     widgets: [],
-    projects: [],
-    filters: {},
+    projects: [1],
+    period: '1h',
+    filters: {release: ['abc@v1.2.0']},
   };
   let widget = {
     title: 'Test title',
@@ -71,7 +81,12 @@ describe('add to dashboard modal', () => {
   beforeEach(() => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/',
-      body: [{...testDashboard, widgetDisplay: [DisplayType.AREA]}],
+      body: [{...testDashboardListItem, widgetDisplay: [DisplayType.AREA]}],
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/1/',
+      body: testDashboard,
     });
 
     eventsStatsMock = MockApiClient.addMockResponse({
@@ -163,6 +178,65 @@ describe('add to dashboard modal', () => {
     selectEvent.openMenu(screen.getByText('Select Dashboard'));
     expect(screen.getByText('+ Create New Dashboard')).toBeInTheDocument();
     expect(screen.getByText('Test Dashboard')).toBeInTheDocument();
+  });
+
+  it('applies dashboard saved filters to visualization', async function () {
+    render(
+      <AddToDashboardModal
+        Header={stubEl}
+        Footer={stubEl as ModalRenderProps['Footer']}
+        Body={stubEl as ModalRenderProps['Body']}
+        CloseButton={stubEl}
+        closeModal={() => undefined}
+        organization={initialData.organization}
+        widget={widget}
+        selection={defaultSelection}
+        router={initialData.router}
+        widgetAsQueryParams={mockWidgetAsQueryParams}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Select Dashboard')).toBeEnabled();
+    });
+
+    expect(eventsStatsMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/events-stats/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          environment: [],
+          project: [],
+          interval: '5m',
+          orderby: '',
+          statsPeriod: '24h',
+          yAxis: ['count()'],
+        }),
+      })
+    );
+
+    await selectEvent.select(screen.getByText('Select Dashboard'), 'Test Dashboard');
+
+    expect(
+      screen.getByText(
+        'Filters saved on the selected Dashboard have been applied to the visualization.'
+      )
+    ).toBeInTheDocument();
+
+    expect(eventsStatsMock).toHaveBeenLastCalledWith(
+      '/organizations/org-slug/events-stats/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          environment: [],
+          interval: '5m',
+          orderby: '',
+          partial: '1',
+          project: [1],
+          query: ' release:abc@v1.2.0 ',
+          statsPeriod: '1h',
+          yAxis: ['count()'],
+        }),
+      })
+    );
   });
 
   it('calls the events stats endpoint with the query and selection values', async function () {
