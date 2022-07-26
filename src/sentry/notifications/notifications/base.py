@@ -63,7 +63,7 @@ class BaseNotification(abc.ABC):
     @property
     def provider_options(self) -> Mapping[str, Any] | None:
         """
-        Store provider specific options required to build a notification.
+        Provider specific options required to build a notification.
         """
         return self._provider_options
 
