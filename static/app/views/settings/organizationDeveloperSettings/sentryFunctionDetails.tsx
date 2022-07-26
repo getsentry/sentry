@@ -15,11 +15,13 @@ import JsonForm from 'sentry/components/forms/jsonForm';
 import FormModel from 'sentry/components/forms/model';
 import {Field} from 'sentry/components/forms/type';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {SentryFunction} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
 
-type Props = WrapperProps;
+type Props = {
+  sentryFunction?: SentryFunction;
+} & WrapperProps;
 const formFields: Field[] = [
   {
     name: 'name',
@@ -102,7 +104,9 @@ function SentryFunctionDetails(props: Props) {
       <Feature features={['organizations:sentry-functions']}>
         <h1>{t('Sentry Function Details')}</h1>
         <h2>
-          {t(sentryFunction ? "Editing  '" + sentryFunction.name + "'" : 'New Function')}
+          {sentryFunction
+            ? tct('Editing [name] + ', {name: sentryFunction.name})
+            : t('New Function')}
         </h2>
         <Form
           apiMethod={method}
@@ -159,7 +163,6 @@ type WrapperState = {
 
 type WrapperProps = {
   params: {orgId: string; functionSlug?: string};
-  sentryFunction?: SentryFunction;
 } & AsyncComponent['props'];
 
 class SentryFunctionsWrapper extends AsyncComponent<WrapperProps, WrapperState> {
