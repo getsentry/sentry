@@ -28,7 +28,7 @@ type Props = {
 
 export function TraceEventContext({event, data}: Props) {
   const organization = useOrganization();
-  const meta = event._meta?.trace ?? {};
+  const meta = event._meta?.contexts?.trace ?? {};
 
   return (
     <ErrorBoundary mini>
