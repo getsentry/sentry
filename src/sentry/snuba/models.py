@@ -20,16 +20,6 @@ query_aggregation_to_snuba = {
 }
 
 
-# TODO: Remove this once we've removed usage from getsentry
-class QueryDatasets(Enum):
-    EVENTS = "events"
-    TRANSACTIONS = "transactions"
-    SESSIONS = "sessions"
-    # Actually Release Health
-    METRICS = "metrics"
-    PERFORMANCE_METRICS = "generic_metrics"
-
-
 class SnubaQuery(Model):
     __include_in_export__ = True
 

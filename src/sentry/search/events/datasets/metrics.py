@@ -121,10 +121,9 @@ class MetricsDatasetConfig(DatasetConfig):
                 # Note while the discover version of apdex, count_miserable, user_misery
                 # accepts arguments, because this is precomputed with tags no parameters
                 # are available
-                # TODO: Should raise IncompatibleMetricsQuery when params are passed
                 fields.MetricsFunction(
                     "apdex",
-                    optional_args=[],
+                    optional_args=[fields.NullableNumberRange("satisfaction", 0, None)],
                     snql_distribution=self._resolve_apdex_function,
                     default_result_type="number",
                 ),
@@ -161,13 +160,22 @@ class MetricsDatasetConfig(DatasetConfig):
                             "column", allowed_columns=["user"], allow_custom_measurements=False
                         )
                     ],
+                    optional_args=[fields.NullableNumberRange("satisfaction", 0, None)],
                     calculated_args=[resolve_metric_id],
                     snql_set=self._resolve_count_miserable_function,
                     default_result_type="integer",
                 ),
                 fields.MetricsFunction(
                     "user_misery",
-                    optional_args=[],
+                    optional_args=[
+                        fields.NullableNumberRange("satisfaction", 0, None),
+                        fields.with_default(
+                            constants.MISERY_ALPHA, fields.NumberRange("alpha", 0, None)
+                        ),
+                        fields.with_default(
+                            constants.MISERY_BETA, fields.NumberRange("beta", 0, None)
+                        ),
+                    ],
                     calculated_args=[],
                     snql_set=self._resolve_user_misery_function,
                     default_result_type="number",
@@ -523,7 +531,7 @@ class MetricsDatasetConfig(DatasetConfig):
                         ],
                         alias,
                     ),
-                    default_result_type="integer",
+                    default_result_type="percentage",
                 ),
                 fields.MetricsFunction(
                     "histogram",
@@ -608,9 +616,15 @@ class MetricsDatasetConfig(DatasetConfig):
 
     def _resolve_apdex_function(
         self,
-        _: Mapping[str, Union[str, Column, SelectType, int, float]],
+        args: Mapping[str, Union[str, Column, SelectType, int, float]],
         alias: Optional[str] = None,
     ) -> SelectType:
+        """Apdex is tag based in metrics, which means we can't base it on the satsifaction parameter"""
+        if args["satisfaction"] is not None:
+            raise IncompatibleMetricsQuery(
+                "Cannot query apdex with a threshold parameter on the metrics dataset"
+            )
+
         metric_satisfied = self.resolve_tag_value(constants.METRIC_SATISFIED_TAG_VALUE)
         metric_tolerated = self.resolve_tag_value(constants.METRIC_TOLERATED_TAG_VALUE)
 
@@ -677,6 +691,10 @@ class MetricsDatasetConfig(DatasetConfig):
         args: Mapping[str, Union[str, Column, SelectType, int, float]],
         alias: Optional[str] = None,
     ) -> SelectType:
+        if args["satisfaction"] is not None:
+            raise IncompatibleMetricsQuery(
+                "Cannot query misery with a threshold parameter on the metrics dataset"
+            )
         metric_frustrated = self.resolve_tag_value(constants.METRIC_FRUSTRATED_TAG_VALUE)
 
         # Nobody is miserable, we can return 0
@@ -719,6 +737,10 @@ class MetricsDatasetConfig(DatasetConfig):
         args: Mapping[str, Union[str, Column, SelectType, int, float]],
         alias: Optional[str] = None,
     ) -> SelectType:
+        if args["satisfaction"] is not None:
+            raise IncompatibleMetricsQuery(
+                "Cannot query user_misery with a threshold parameter on the metrics dataset"
+            )
         return Function(
             "divide",
             [
@@ -726,7 +748,7 @@ class MetricsDatasetConfig(DatasetConfig):
                     "plus",
                     [
                         self.builder.resolve_function("count_miserable(user)"),
-                        constants.MISERY_ALPHA,
+                        args["alpha"],
                     ],
                 ),
                 Function(
@@ -735,7 +757,7 @@ class MetricsDatasetConfig(DatasetConfig):
                         Function(
                             "nullIf", [self.builder.resolve_function("count_unique(user)"), 0]
                         ),
-                        constants.MISERY_ALPHA + constants.MISERY_BETA,
+                        args["alpha"] + args["beta"],
                     ],
                 ),
             ],
