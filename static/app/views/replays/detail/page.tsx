@@ -33,7 +33,7 @@ function Page({children, crumbs, duration, event, orgId}: Props) {
         <DetailsPageBreadcrumbs orgId={orgId} event={event} />
       </HeaderContent>
       <ButtonActionsWrapper>
-        <FeatureFeedback featureName="replay" buttonProps={{size: 'sm'}} />
+        <FeatureFeedback featureName="replay" buttonProps={{size: 'xs'}} />
         <ChooseLayout />
       </ButtonActionsWrapper>
       <SubHeading>{pathname || <HeaderPlaceholder />}</SubHeading>
@@ -68,7 +68,7 @@ const ButtonActionsWrapper = styled(Layout.HeaderActions)`
   display: grid;
   grid-template-columns: repeat(2, max-content);
   justify-content: flex-end;
-  gap: ${space(2)};
+  gap: ${space(1)};
 `;
 
 const SubHeading = styled('div')`

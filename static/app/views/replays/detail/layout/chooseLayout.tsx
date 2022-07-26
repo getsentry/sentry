@@ -24,7 +24,7 @@ function ChooseLayout({}: Props) {
     <RelativeContainer>
       <DropdownControl
         label={getLayoutIcon(getParamValue())}
-        buttonProps={{size: 'sm'}}
+        buttonProps={{size: 'xs'}}
         alwaysRenderMenu={false}
         alignRight
       >
