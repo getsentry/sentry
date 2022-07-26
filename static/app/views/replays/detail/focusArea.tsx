@@ -62,7 +62,7 @@ function FocusArea({}: Props) {
     case 'network':
       return <NetworkList event={event} networkSpans={getNetworkSpans()} />;
     case 'trace':
-      const features = ['organizations:performance-views'];
+      const features = ['organizations:performance-view'];
       const noFeatureMessage = t('Requires performance monitoring.');
 
       const renderDisabled = () => (
