@@ -16,7 +16,6 @@ export const userMockData = {
 } as unknown as UserEventContextData;
 
 export const userMetaMockData = {
-  email: null,
   id: {
     '': {
       chunks: [
@@ -46,14 +45,14 @@ export const userMetaMockData = {
       val: '',
     },
   },
-  name: null,
-  username: null,
 };
 
 const event = {
   ...TestStubs.Event(),
   _meta: {
-    user: userMetaMockData,
+    contexts: {
+      user: userMetaMockData,
+    },
   },
 };
 
