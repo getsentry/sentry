@@ -1,33 +1,43 @@
-import {getMeta} from 'sentry/components/events/meta/metaProxy';
-import {KeyValueListData} from 'sentry/types';
+import {Event, KeyValueListData} from 'sentry/types';
 import {defined} from 'sentry/utils';
 
-import getOperatingSystemKnownDataDetails from './getOperatingSystemKnownDataDetails';
-import {OperatingSystemKnownData, OperatingSystemKnownDataType} from './types';
+import {getOperatingSystemKnownDataDetails} from './getOperatingSystemKnownDataDetails';
+import {OperatingSystemKnownData} from './types';
+import {operatingSystemKnownDataValues} from '.';
 
-function getOperatingSystemKnownData(
-  data: OperatingSystemKnownData,
-  operatingSystemKnownDataValues: Array<OperatingSystemKnownDataType>
-): KeyValueListData {
+type Props = {
+  data: OperatingSystemKnownData;
+  meta: NonNullable<Event['_meta']>['user'];
+};
+
+export function getOperatingSystemKnownData({data, meta}: Props): KeyValueListData {
   const knownData: KeyValueListData = [];
 
-  const dataKeys = operatingSystemKnownDataValues.filter(operatingSystemKnownDataValue =>
-    defined(data[operatingSystemKnownDataValue])
+  const dataKeys = operatingSystemKnownDataValues.filter(
+    operatingSystemKnownDataValue => {
+      if (!defined(data[operatingSystemKnownDataValue])) {
+        if (meta[operatingSystemKnownDataValue]) {
+          return true;
+        }
+        return false;
+      }
+      return true;
+    }
   );
 
-  for (const key of dataKeys) {
-    const knownDataDetails = getOperatingSystemKnownDataDetails(
-      data,
-      key as OperatingSystemKnownDataType
-    );
+  for (const type of dataKeys) {
+    const knownDataDetails = getOperatingSystemKnownDataDetails({data, type});
+
+    if (!knownDataDetails) {
+      continue;
+    }
 
     knownData.push({
-      key,
+      key: type,
       ...knownDataDetails,
-      meta: getMeta(data, key),
+      meta: meta[type]?.[''],
     });
   }
+
   return knownData;
 }
-
-export default getOperatingSystemKnownData;

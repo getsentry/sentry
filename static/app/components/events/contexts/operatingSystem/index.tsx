@@ -1,10 +1,11 @@
 import {Fragment} from 'react';
 
 import ContextBlock from 'sentry/components/events/contexts/contextBlock';
+import {Event} from 'sentry/types';
 
 import {getUnknownData} from '../getUnknownData';
 
-import getOperatingSystemKnownData from './getOperatingSystemKnownData';
+import {getOperatingSystemKnownData} from './getOperatingSystemKnownData';
 import {
   OperatingSystemIgnoredDataType,
   OperatingSystemKnownData,
@@ -13,9 +14,10 @@ import {
 
 type Props = {
   data: OperatingSystemKnownData;
+  event: Event;
 };
 
-const operatingSystemKnownDataValues = [
+export const operatingSystemKnownDataValues = [
   OperatingSystemKnownDataType.NAME,
   OperatingSystemKnownDataType.VERSION,
   OperatingSystemKnownDataType.KERNEL_VERSION,
@@ -24,12 +26,11 @@ const operatingSystemKnownDataValues = [
 
 const operatingSystemIgnoredDataValues = [OperatingSystemIgnoredDataType.BUILD];
 
-function OperatingSystem({data}: Props) {
+export function OperatingSystemEventContext({data, event}: Props) {
+  const meta = event._meta?.os ?? {};
   return (
     <Fragment>
-      <ContextBlock
-        data={getOperatingSystemKnownData(data, operatingSystemKnownDataValues)}
-      />
+      <ContextBlock data={getOperatingSystemKnownData({data, meta})} />
       <ContextBlock
         data={getUnknownData({
           allData: data,
@@ -37,10 +38,9 @@ function OperatingSystem({data}: Props) {
             ...operatingSystemKnownDataValues,
             ...operatingSystemIgnoredDataValues,
           ],
+          meta,
         })}
       />
     </Fragment>
   );
 }
-
-export default OperatingSystem;
