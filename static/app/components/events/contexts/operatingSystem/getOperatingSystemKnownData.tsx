@@ -7,7 +7,7 @@ import {operatingSystemKnownDataValues} from '.';
 
 type Props = {
   data: OperatingSystemKnownData;
-  meta: NonNullable<Event['_meta']>['user'];
+  meta: NonNullable<Event['_meta']>['os'];
 };
 
 export function getOperatingSystemKnownData({data, meta}: Props): KeyValueListData {
