@@ -12,15 +12,7 @@ import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAna
 import useApi from 'sentry/utils/useApi';
 import withOrganization from 'sentry/utils/withOrganization';
 
-import ProfilingOnboarding from './profilingOnboarding';
-
-function renderNoAccess() {
-  return (
-    <PageContent>
-      <Alert type="warning">{t("You don't have access to this feature")}</Alert>
-    </PageContent>
-  );
-}
+import LegacyProfilingOnboarding from './legacyProfilingOnboarding';
 
 function shouldShowProfilingOnboarding(state: RequestState<PromptData>): boolean {
   if (state.type === 'resolved') {
@@ -92,12 +84,16 @@ function ProfilingContainer({organization, children}: Props) {
       hookName="feature-disabled:profiling-page"
       features={['profiling']}
       organization={organization}
-      renderDisabled={renderNoAccess}
+      renderDisabled={() => (
+        <PageContent>
+          <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+        </PageContent>
+      )}
     >
       {requestState.type === 'loading' ? (
         <LoadingIndicator />
       ) : shouldShowProfilingOnboarding(requestState) ? (
-        <ProfilingOnboarding
+        <LegacyProfilingOnboarding
           organization={organization}
           onDismissClick={handleDismiss}
           onDoneClick={handleDone}

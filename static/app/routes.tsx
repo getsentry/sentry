@@ -1688,7 +1688,7 @@ function buildRoutes() {
       <IndexRoute component={make(() => import('sentry/views/profiling/content'))} />
       <Route
         path="onboarding/"
-        component={make(() => import('sentry/views/profiling/onboarding'))}
+        component={make(() => import('sentry/views/profiling/legacyOnboarding'))}
       />
       <Route
         path="summary/:projectId/"
