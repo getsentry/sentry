@@ -1,9 +1,6 @@
-import {Fragment, useMemo, useState} from 'react';
+import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import Button from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
-import {SectionHeading} from 'sentry/components/charts/styles';
 import Count from 'sentry/components/count';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
@@ -11,14 +8,11 @@ import GridEditable, {
 } from 'sentry/components/gridEditable';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import {ArrayLinks} from 'sentry/components/profiling/arrayLinks';
-import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
 import {Project} from 'sentry/types';
-import {FunctionCall} from 'sentry/types/profiling/core';
+import {SuspectFunction} from 'sentry/types/profiling/core';
 import {Container, NumberContainer} from 'sentry/utils/discover/styles';
 import {getShortEventId} from 'sentry/utils/events';
-import {formatPercentage} from 'sentry/utils/formatters';
 import {generateProfileFlamegraphRouteWithQuery} from 'sentry/utils/profiling/routes';
 import {renderTableHead} from 'sentry/utils/profiling/tableRenderer';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -26,104 +20,103 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 interface FunctionsTableProps {
   error: string | null;
-  functionCalls: FunctionCall[];
+  functions: SuspectFunction[];
   isLoading: boolean;
   project: Project;
-  limit?: number;
+  sort: string;
 }
 
 function FunctionsTable(props: FunctionsTableProps) {
-  const limit = props.limit ?? 5;
-  const [offset, setOffset] = useState(0);
-
   const location = useLocation();
   const organization = useOrganization();
 
-  const allFunctions: TableDataRow[] = useMemo(() => {
-    return props.functionCalls.map(functionCall => ({
-      symbol: functionCall.symbol,
-      image: functionCall.image,
-      p50Duration: functionCall.duration_ns.p50,
-      p75Duration: functionCall.duration_ns.p75,
-      p90Duration: functionCall.duration_ns.p90,
-      p95Duration: functionCall.duration_ns.p95,
-      p99Duration: functionCall.duration_ns.p99,
-      mainThreadPercent: functionCall.main_thread_percent,
-      p50Frequency: functionCall.frequency.p50,
-      p75Frequency: functionCall.frequency.p75,
-      p90Frequency: functionCall.frequency.p90,
-      p95Frequency: functionCall.frequency.p95,
-      p99Frequency: functionCall.frequency.p99,
-      profileIdToThreadId: Object.entries(functionCall.profile_id_to_thread_id).map(
-        ([profileId, threadId]) => {
+  const sort = useMemo(() => {
+    let column = props.sort;
+    let direction: 'asc' | 'desc' = 'asc' as const;
+
+    if (props.sort.startsWith('-')) {
+      column = props.sort.substring(1);
+      direction = 'desc' as const;
+    }
+
+    if (!SORTABLE_COLUMNS.has(column as any)) {
+      column = 'p99';
+    }
+
+    return {
+      column: column as TableColumnKey,
+      direction,
+    };
+  }, [props.sort]);
+
+  const functions: TableDataRow[] = useMemo(() => {
+    return props.functions.map(func => {
+      const {worst, examples, ...rest} = func;
+
+      const allExamples = examples.filter(example => example !== worst);
+      allExamples.unshift(worst);
+
+      return {
+        ...rest,
+        examples: allExamples.map(example => {
+          const profileId = example.replaceAll('-', '');
           return {
             value: getShortEventId(profileId),
             target: generateProfileFlamegraphRouteWithQuery({
               orgSlug: organization.slug,
               projectSlug: props.project.slug,
               profileId,
-              query: {tid: threadId.toString()},
+              query: {}, // TODO: we should try to go to the right thread
             }),
           };
-        }
-      ),
-    }));
-  }, [organization.slug, props.project.slug, props.functionCalls]);
+        }),
+      };
+    });
+  }, [organization.slug, props.project.slug, props.functions]);
 
-  const functions: TableDataRow[] = useMemo(() => {
-    return allFunctions.slice(offset, offset + limit);
-  }, [allFunctions, limit, offset]);
+  const generateSortLink = useCallback(
+    (column: TableColumnKey) => {
+      if (!SORTABLE_COLUMNS.has(column)) {
+        return () => undefined;
+      }
+
+      const direction =
+        sort.column !== column ? 'desc' : sort.direction === 'desc' ? 'asc' : 'desc';
+
+      return () => ({
+        ...location,
+        query: {
+          ...location.query,
+          functionsSort: `${direction === 'desc' ? '-' : ''}${column}`,
+        },
+      });
+    },
+    [location, sort]
+  );
 
   return (
-    <Fragment>
-      <TableHeader>
-        <SectionHeading>{t('Suspect Functions')}</SectionHeading>
-        <ButtonBar merged>
-          <Button
-            icon={<IconChevron direction="left" size="sm" />}
-            aria-label={t('Previous')}
-            size="xs"
-            disabled={offset === 0}
-            onClick={() => setOffset(offset - limit)}
-          />
-          <Button
-            icon={<IconChevron direction="right" size="sm" />}
-            aria-label={t('Next')}
-            size="xs"
-            disabled={offset + limit >= allFunctions.length}
-            onClick={() => setOffset(offset + limit)}
-          />
-        </ButtonBar>
-      </TableHeader>
-      <GridEditable
-        isLoading={props.isLoading}
-        error={props.error}
-        data={functions}
-        columnOrder={COLUMN_ORDER.map(key => COLUMNS[key])}
-        columnSortBy={[]}
-        grid={{
-          renderHeadCell: renderTableHead(RIGHT_ALIGNED_COLUMNS),
-          renderBodyCell: renderFunctionsTableCell,
-        }}
-        location={location}
-      />
-    </Fragment>
+    <GridEditable
+      isLoading={props.isLoading}
+      error={props.error}
+      data={functions}
+      columnOrder={COLUMN_ORDER.map(key => COLUMNS[key])}
+      columnSortBy={[]}
+      grid={{
+        renderHeadCell: renderTableHead({
+          currentSort: sort,
+          rightAlignedColumns: RIGHT_ALIGNED_COLUMNS,
+          sortableColumns: SORTABLE_COLUMNS,
+          generateSortLink,
+        }),
+        renderBodyCell: renderFunctionsTableCell,
+      }}
+      location={location}
+    />
   );
 }
 
-const RIGHT_ALIGNED_COLUMNS = new Set<TableColumnKey>([
-  'p50Duration',
-  'p75Duration',
-  'p90Duration',
-  'p95Duration',
-  'p99Duration',
-  'mainThreadPercent',
-  'p50Frequency',
-  'p75Frequency',
-  'p90Frequency',
-  'p95Frequency',
-  'p99Frequency',
-]);
+const RIGHT_ALIGNED_COLUMNS = new Set<TableColumnKey>(['p75', 'p95', 'p99', 'count']);
+const SORTABLE_COLUMNS = RIGHT_ALIGNED_COLUMNS;
 
 function renderFunctionsTableCell(
   column: TableColumn,
@@ -148,6 +141,10 @@ interface ProfilingFunctionsTableCellProps {
   rowIndex: number;
 }
 
+const EmptyValueContainer = styled('span')`
+  color: ${p => p.theme.gray300};
+`;
+
 function ProfilingFunctionsTableCell({
   column,
   dataRow,
@@ -155,144 +152,87 @@ function ProfilingFunctionsTableCell({
   const value = dataRow[column.key];
 
   switch (column.key) {
-    case 'p50Frequency':
-    case 'p75Frequency':
-    case 'p90Frequency':
-    case 'p95Frequency':
-    case 'p99Frequency':
+    case 'count':
       return (
         <NumberContainer>
           <Count value={value} />
         </NumberContainer>
       );
-    case 'mainThreadPercent':
-      return <NumberContainer>{formatPercentage(value)}</NumberContainer>;
-    case 'p50Duration':
-    case 'p75Duration':
-    case 'p90Duration':
-    case 'p95Duration':
-    case 'p99Duration':
+    case 'p75':
+    case 'p95':
+    case 'p99':
       return (
         <NumberContainer>
           <PerformanceDuration nanoseconds={value} abbreviation />
         </NumberContainer>
       );
-    case 'profileIdToThreadId':
+    case 'examples':
       return <ArrayLinks items={value} />;
+    case 'name':
+    case 'package':
+      const name = value || <EmptyValueContainer>{t('Unknown')}</EmptyValueContainer>;
+      return <Container>{name}</Container>;
     default:
       return <Container>{value}</Container>;
   }
 }
 
-type TableColumnKey =
-  | 'symbol'
-  | 'image'
-  | 'p50Duration'
-  | 'p75Duration'
-  | 'p90Duration'
-  | 'p95Duration'
-  | 'p99Duration'
-  | 'mainThreadPercent'
-  | 'p50Frequency'
-  | 'p75Frequency'
-  | 'p90Frequency'
-  | 'p95Frequency'
-  | 'p99Frequency'
-  | 'profileIdToThreadId';
+type TableColumnKey = keyof Omit<SuspectFunction, 'fingerprint' | 'worst'>;
 
 type TableDataRow = Record<TableColumnKey, any>;
 
 type TableColumn = GridColumnOrder<TableColumnKey>;
 
 const COLUMN_ORDER: TableColumnKey[] = [
-  'symbol',
-  'image',
-  'p75Duration',
-  'p99Duration',
-  'mainThreadPercent',
-  'p75Frequency',
-  'p99Frequency',
-  'profileIdToThreadId',
+  'name',
+  'package',
+  'count',
+  'p75',
+  'p99',
+  'examples',
 ];
 
-// TODO: looks like these column names change depending on the platform?
 const COLUMNS: Record<TableColumnKey, TableColumn> = {
-  symbol: {
-    key: 'symbol',
-    name: t('Symbol'),
+  name: {
+    key: 'name',
+    name: t('Name'),
     width: COL_WIDTH_UNDEFINED,
   },
-  image: {
-    key: 'image',
-    name: t('Binary'),
+  package: {
+    key: 'package',
+    name: t('Package'),
     width: COL_WIDTH_UNDEFINED,
   },
-  p50Duration: {
-    key: 'p50Duration',
-    name: t('P50 Duration'),
+  path: {
+    key: 'path',
+    name: t('Path'),
     width: COL_WIDTH_UNDEFINED,
   },
-  p75Duration: {
-    key: 'p75Duration',
+  p75: {
+    key: 'p75',
     name: t('P75 Duration'),
     width: COL_WIDTH_UNDEFINED,
   },
-  p90Duration: {
-    key: 'p90Duration',
-    name: t('P90 Duration'),
-    width: COL_WIDTH_UNDEFINED,
-  },
-  p95Duration: {
-    key: 'p95Duration',
+  p95: {
+    key: 'p95',
     name: t('P95 Duration'),
     width: COL_WIDTH_UNDEFINED,
   },
-  p99Duration: {
-    key: 'p99Duration',
+  p99: {
+    key: 'p99',
     name: t('P99 Duration'),
     width: COL_WIDTH_UNDEFINED,
   },
-  mainThreadPercent: {
-    key: 'mainThreadPercent',
-    name: t('Main Thread %'),
+  count: {
+    key: 'count',
+    name: t('Count'),
     width: COL_WIDTH_UNDEFINED,
   },
-  p50Frequency: {
-    key: 'p50Frequency',
-    name: t('P50 Frequency'),
-    width: COL_WIDTH_UNDEFINED,
-  },
-  p75Frequency: {
-    key: 'p75Frequency',
-    name: t('P75 Frequency'),
-    width: COL_WIDTH_UNDEFINED,
-  },
-  p90Frequency: {
-    key: 'p90Frequency',
-    name: t('P90 Frequency'),
-    width: COL_WIDTH_UNDEFINED,
-  },
-  p95Frequency: {
-    key: 'p95Frequency',
-    name: t('P95 Frequency'),
-    width: COL_WIDTH_UNDEFINED,
-  },
-  p99Frequency: {
-    key: 'p99Frequency',
-    name: t('P99 Frequency'),
-    width: COL_WIDTH_UNDEFINED,
-  },
-  profileIdToThreadId: {
-    key: 'profileIdToThreadId',
+  examples: {
+    key: 'examples',
     name: t('Example Profiles'),
     width: COL_WIDTH_UNDEFINED,
   },
 };
-
-const TableHeader = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: ${space(1)};
-`;
 
 export {FunctionsTable};
