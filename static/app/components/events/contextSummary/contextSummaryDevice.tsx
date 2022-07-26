@@ -2,11 +2,10 @@ import styled from '@emotion/styled';
 
 import {DeviceName} from 'sentry/components/deviceName';
 import AnnotatedText from 'sentry/components/events/meta/annotatedText';
-import {getMeta} from 'sentry/components/events/meta/metaProxy';
 import TextOverflow from 'sentry/components/textOverflow';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Meta} from 'sentry/types';
+import {Event, Meta} from 'sentry/types';
 
 import ContextSummaryNoSummary from './contextSummaryNoSummary';
 import generateClassName from './generateClassName';
@@ -14,6 +13,7 @@ import Item from './item';
 
 type Props = {
   data: Data;
+  meta: NonNullable<Event['_meta']>['device'];
 };
 
 type Data = {
@@ -28,7 +28,7 @@ type SubTitle = {
   meta?: Meta;
 };
 
-const ContextSummaryDevice = ({data}: Props) => {
+export function ContextSummaryDevice({data, meta}: Props) {
   if (Object.keys(data).length === 0) {
     return <ContextSummaryNoSummary title={t('Unknown Device')} />;
   }
@@ -38,12 +38,10 @@ const ContextSummaryDevice = ({data}: Props) => {
       return t('Unknown Device');
     }
 
-    const meta = getMeta(data, 'model');
-
     return (
       <DeviceName value={data.model}>
         {deviceName => {
-          return <AnnotatedText value={deviceName} meta={meta} />;
+          return <AnnotatedText value={deviceName} meta={meta.model?.['']} />;
         }}
       </DeviceName>
     );
@@ -54,7 +52,7 @@ const ContextSummaryDevice = ({data}: Props) => {
       return {
         subject: t('Arch:'),
         value: data.arch,
-        meta: getMeta(data, 'arch'),
+        meta: meta.arch?.[''],
       };
     }
 
@@ -62,7 +60,7 @@ const ContextSummaryDevice = ({data}: Props) => {
       return {
         subject: t('Model:'),
         value: data.model_id,
-        meta: getMeta(data, 'model_id'),
+        meta: meta.model_id?.[''],
       };
     }
 
@@ -84,9 +82,7 @@ const ContextSummaryDevice = ({data}: Props) => {
       )}
     </Item>
   );
-};
-
-export default ContextSummaryDevice;
+}
 
 const Subject = styled('strong')`
   margin-right: ${space(0.5)};
