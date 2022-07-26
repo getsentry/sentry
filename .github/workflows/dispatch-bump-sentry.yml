@@ -14,6 +14,10 @@ jobs:
     name: dispatch
     runs-on: ubuntu-20.04
     steps:
+      - uses: actions/checkout@v3
+      - name: Get commit author email
+        run: |
+           echo "bump_sentry_author=$(git show -s --format='%ae')" >> $GITHUB_ENV
       - name: Dispatch getsentry tests
         uses: actions/github-script@v6
         with:
@@ -27,6 +31,7 @@ jobs:
               workflow_id: 'bump-sentry.yml',
               ref: 'master',
               inputs: {
-                "sentry_sha": "${{ github.sha }}"
+                "sentry_sha": "${{ github.sha }}",
+                "author": "{{ env.bump_sentry_author }}"
               }
             })
