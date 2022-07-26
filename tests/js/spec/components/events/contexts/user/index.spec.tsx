@@ -1,6 +1,7 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import UserEventContext, {
+import {
+  UserEventContext,
   UserEventContextData,
 } from 'sentry/components/events/contexts/user';
 
@@ -15,7 +16,6 @@ export const userMockData = {
 } as unknown as UserEventContextData;
 
 export const userMetaMockData = {
-  email: null,
   id: {
     '': {
       chunks: [
@@ -45,19 +45,19 @@ export const userMetaMockData = {
       val: '',
     },
   },
-  name: null,
-  username: null,
 };
 
 const event = {
   ...TestStubs.Event(),
   _meta: {
-    user: userMetaMockData,
+    contexts: {
+      user: userMetaMockData,
+    },
   },
 };
 
 describe('user event context', function () {
-  it('display the right context data according to its value and meta', async function () {
+  it('display redacted data', async function () {
     render(<UserEventContext event={event} data={userMockData} />);
 
     expect(screen.getByText('ID')).toBeInTheDocument(); // subject
