@@ -1,33 +1,41 @@
-import {getMeta} from 'sentry/components/events/meta/metaProxy';
-import {KeyValueListData} from 'sentry/types';
+import {Event, KeyValueListData} from 'sentry/types';
 import {defined} from 'sentry/utils';
 
-import getBrowserKnownDataDetails from './getBrowserKnownDataDetails';
-import {BrowserKnownData, BrowserKnownDataType} from './types';
+import {getBrowserKnownDataDetails} from './getBrowserKnownDataDetails';
+import {BrowserKnownData} from './types';
+import {browserKnownDataValues} from '.';
 
-function getBrowserKnownData(
-  data: BrowserKnownData,
-  operatingSystemKnownDataValues: Array<BrowserKnownDataType>
-): KeyValueListData {
+type Props = {
+  data: BrowserKnownData;
+  meta: NonNullable<Event['_meta']>['browser'];
+};
+
+export function getBrowserKnownData({data, meta}: Props): KeyValueListData {
   const knownData: KeyValueListData = [];
 
-  const dataKeys = operatingSystemKnownDataValues.filter(operatingSystemKnownDataValue =>
-    defined(data[operatingSystemKnownDataValue])
-  );
+  const dataKeys = browserKnownDataValues.filter(browserKnownDataValue => {
+    if (!defined(data[browserKnownDataValue])) {
+      if (meta[browserKnownDataValue]) {
+        return true;
+      }
+      return false;
+    }
+    return true;
+  });
 
-  for (const key of dataKeys) {
-    const knownDataDetails = getBrowserKnownDataDetails(
-      data,
-      key as BrowserKnownDataType
-    );
+  for (const type of dataKeys) {
+    const knownDataDetails = getBrowserKnownDataDetails({data, type});
+
+    if (!knownDataDetails) {
+      continue;
+    }
 
     knownData.push({
-      key,
+      key: type,
       ...knownDataDetails,
-      meta: getMeta(data, key),
+      meta: meta[type]?.[''],
     });
   }
+
   return knownData;
 }
-
-export default getBrowserKnownData;

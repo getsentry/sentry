@@ -2,7 +2,7 @@ import {Event, KeyValueListData} from 'sentry/types';
 import {defined} from 'sentry/utils';
 
 import {getUserKnownDataDetails} from './getUserKnownDataDetails';
-import {UserEventContextData, UserKnownDataType, userKnownDataValues} from '.';
+import {UserEventContextData, userKnownDataValues} from '.';
 
 type Props = {
   data: UserEventContextData;
@@ -22,10 +22,10 @@ export function getUserKnownData({data, meta}: Props): KeyValueListData {
     return true;
   });
 
-  for (const key of dataKeys) {
+  for (const type of dataKeys) {
     const knownDataDetails = getUserKnownDataDetails({
       data,
-      type: key as UserKnownDataType,
+      type,
     });
 
     if (!knownDataDetails) {
@@ -33,10 +33,10 @@ export function getUserKnownData({data, meta}: Props): KeyValueListData {
     }
 
     knownData.push({
-      key,
+      key: type,
       ...knownDataDetails,
-      meta: meta[key]?.[''],
-      subjectDataTestId: `user-context-${key.toLowerCase()}-value`,
+      meta: meta[type]?.[''],
+      subjectDataTestId: `user-context-${type.toLowerCase()}-value`,
     });
   }
 

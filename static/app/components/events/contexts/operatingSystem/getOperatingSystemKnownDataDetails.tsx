@@ -8,10 +8,15 @@ type Output = {
   value: React.ReactNode | null;
 };
 
-function getOperatingSystemKnownDataDetails(
-  data: OperatingSystemKnownData,
-  type: OperatingSystemKnownDataType
-): Output {
+type Props = {
+  data: OperatingSystemKnownData;
+  type: OperatingSystemKnownDataType;
+};
+
+export function getOperatingSystemKnownDataDetails({
+  data,
+  type,
+}: Props): Output | undefined {
   switch (type) {
     case OperatingSystemKnownDataType.NAME:
       return {
@@ -34,11 +39,6 @@ function getOperatingSystemKnownDataDetails(
         value: defined(data.rooted) ? (data.rooted ? t('yes') : t('no')) : null,
       };
     default:
-      return {
-        subject: type,
-        value: data[type] || null,
-      };
+      return undefined;
   }
 }
-
-export default getOperatingSystemKnownDataDetails;
