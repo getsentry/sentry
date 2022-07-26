@@ -22,6 +22,7 @@ import {
   SIX_HOURS,
   TWENTY_FOUR_HOURS,
 } from 'sentry/components/charts/utils';
+import {normalizeDateTimeString} from 'sentry/components/organizations/pageFilters/parse';
 import {Organization, PageFilters} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {getUtcDateString, parsePeriodToHours} from 'sentry/utils/dates';
@@ -407,20 +408,20 @@ export function hasUnsavedFilterChanges(
   location: Location,
   newDashboardFilters: DashboardFilters
 ) {
-  return !isEqual(
-    {
-      projects: initialDashboard.projects,
-      environment: initialDashboard.environment,
-      period: initialDashboard.period,
-      start: initialDashboard.start,
-      end: initialDashboard.end,
-      filters: initialDashboard.filters,
-    },
-    {
-      ...getCurrentPageFilters(location),
-      filters: newDashboardFilters,
-    }
-  );
+  const savedFilters = {
+    projects: initialDashboard.projects,
+    environment: initialDashboard.environment,
+    period: initialDashboard.period,
+    start: normalizeDateTimeString(initialDashboard.start),
+    end: normalizeDateTimeString(initialDashboard.end),
+    filters: initialDashboard.filters,
+    utc: initialDashboard.utc,
+  };
+  const currentFilters = {
+    ...getCurrentPageFilters(location),
+    filters: newDashboardFilters,
+  };
+  return !isEqual(savedFilters, currentFilters);
 }
 
 export function getSavedPageFilters(dashboard: DashboardDetails) {
@@ -428,8 +429,9 @@ export function getSavedPageFilters(dashboard: DashboardDetails) {
     project: dashboard.projects,
     environment: dashboard.environment,
     statsPeriod: dashboard.period,
-    start: dashboard.start,
-    end: dashboard.end,
+    start: normalizeDateTimeString(dashboard.start),
+    end: normalizeDateTimeString(dashboard.end),
+    utc: dashboard.utc,
   };
 }
 
@@ -442,8 +444,11 @@ export function resetPageFilters(dashboard: DashboardDetails, location: Location
 
 export function getCurrentPageFilters(
   location: Location
-): Pick<DashboardDetails, 'projects' | 'environment' | 'period' | 'start' | 'end'> {
-  const {project, environment, statsPeriod, start, end} = location.query ?? {};
+): Pick<
+  DashboardDetails,
+  'projects' | 'environment' | 'period' | 'start' | 'end' | 'utc'
+> {
+  const {project, environment, statsPeriod, start, end, utc} = location.query ?? {};
   return {
     // Ensure projects and environment are sent as arrays, or undefined in the request
     // location.query will return a string if there's only one value
@@ -456,7 +461,8 @@ export function getCurrentPageFilters(
     environment:
       typeof environment === 'string' ? [environment] : environment ?? undefined,
     period: statsPeriod as string | undefined,
-    start: start as string | undefined,
-    end: end as string | undefined,
+    start: defined(start) ? normalizeDateTimeString(start as string) : undefined,
+    end: defined(end) ? normalizeDateTimeString(end as string) : undefined,
+    utc: defined(utc) ? utc === 'true' : undefined,
   };
 }
