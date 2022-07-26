@@ -66,9 +66,9 @@ function FocusArea({}: Props) {
 
       const renderDisabled = () => (
         <FeatureDisabled
-          featureName={t('Performance monitoring')}
+          featureName={t('Performance Monitoring')}
           features={features}
-          message={t('Requires Performance monitoring.')}
+          message={t('Requires performance monitoring.')}
           hideHelpToggle
         />
       );
