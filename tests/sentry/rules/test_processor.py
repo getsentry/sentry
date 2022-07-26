@@ -2,12 +2,13 @@ from datetime import datetime, timedelta
 from unittest import mock
 from unittest.mock import patch
 
+from django.core import mail
 from django.core.cache import cache
 from django.db import DEFAULT_DB_ALIAS, connections
 from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 
-from sentry.models import GroupRuleStatus, GroupStatus, Rule, RuleFireHistory
+from sentry.models import GroupRelease, GroupRuleStatus, GroupStatus, Release, Rule, RuleFireHistory
 from sentry.notifications.types import ActionTargetType
 from sentry.rules import init_registry
 from sentry.rules.conditions import EventCondition
@@ -422,3 +423,66 @@ class RuleProcessorTestFilters(TestCase):
         assert len(futures) == 1
         assert futures[0].rule == self.rule
         assert futures[0].kwargs == {}
+
+
+class RuleProcessorActiveReleaseTest(TestCase):
+    def setUp(self):
+        self.event = self.store_event(data={"message": "Hello world"}, project_id=self.project.id)
+        # self.event.title = "Hello world"
+        self.event.group._times_seen_pending = 0
+        self.event.group.save()
+
+        oldRelease = Release.objects.create(
+            organization_id=self.organization.id,
+            version="1",
+            date_added=timezone.now() - timedelta(hours=2),
+            date_released=timezone.now() - timedelta(hours=2),
+        )
+        GroupRelease.objects.create(
+            project_id=self.project.id,
+            group_id=self.event.group.id,
+            release_id=oldRelease.id,
+            environment=self.environment.name,
+            first_seen=timezone.now(),
+            last_seen=timezone.now(),
+        )
+        newRelease = Release.objects.create(
+            organization_id=self.organization.id,
+            version="2",
+            date_added=timezone.now() - timedelta(minutes=30),
+            date_released=timezone.now() - timedelta(minutes=30),
+        )
+        GroupRelease.objects.create(
+            project_id=self.project.id,
+            group_id=self.event.group.id,
+            release_id=newRelease.id,
+            environment=self.environment.name,
+            first_seen=timezone.now(),
+            last_seen=timezone.now(),
+        )
+        oldRelease.add_project(self.project)
+        newRelease.add_project(self.project)
+
+        self.event.data["tags"] = (("sentry:release", newRelease.version),)
+
+        Rule.objects.filter(project=self.event.project).delete()
+
+    @mock.patch("sentry.notifications.utils.participants.get_release_committers")
+    def test_no_other_rules(self, mock_get_release_committers):
+        mock_get_release_committers.return_value = [self.user]
+        with self.options({"system.url-prefix": "http://example.com"}), self.tasks(), self.feature(
+            "projects:active-release-monitor-default-on"
+        ):
+            mail.outbox = []
+            rp = RuleProcessor(
+                self.event,
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=True,
+                has_reappeared=False,
+            )
+            results = list(rp.apply())
+            assert len(results) == 0
+            assert len(mail.outbox) == 1
+            assert mail.outbox[0]
+            assert mail.outbox[0].subject == "**ARM** [Sentry] BAR-1 - Hello world"

@@ -261,17 +261,9 @@ class RuleProcessor:
         # TODO: we need this to be configurable on a pre-project level?
         return [
             NotifyActiveReleaseEmailAction(
-                data={"targetType": ActionTargetType.RELEASE_MEMBERS.value}
+                project=self.project, data={"targetType": ActionTargetType.RELEASE_MEMBERS.value}
             )
         ]
-
-    def _get_last_active_time_for_active_release(self) -> str | None:
-        # TODO:
-        return None
-
-    def _update_last_active_time_for_active_release(self) -> None:
-        # TODO:
-        pass
 
     def apply_active_release_rule(
         self,
@@ -281,7 +273,11 @@ class RuleProcessor:
     ) -> None:
         now = timezone.now()
         freq_offset = now - timedelta(minutes=frequency_minutes)
-        last_active_time = self._get_last_active_time_for_active_release()
+        last_active_cache_key = "{}:p-{}:g-{}".format(
+            "active-release-last-active", self.event.project_id, self.event.group_id
+        )
+        last_active_time = cache.get(last_active_cache_key)
+
         if last_active_time and last_active_time > freq_offset:
             return
 
@@ -299,21 +295,14 @@ class RuleProcessor:
         ):
             return
 
-        self._update_last_active_time_for_active_release()
+        cache.set(last_active_cache_key, now, 60)
 
         for action in self._get_active_release_rule_actions():
             results: Sequence[CallbackFuture] = safe_execute(
                 action.after, event=self.event, state=state, _with_transaction=False
             )
             for future in results or ():
-                key = future.key if future.key is not None else future.callback
-                # TODO: need to check if rule=None is legit
-                rule_future = RuleFuture(rule=None, kwargs=future.kwargs)
-
-                if key not in self.grouped_futures:
-                    self.grouped_futures[key] = (future.callback, [rule_future])
-                else:
-                    self.grouped_futures[key][1].append(rule_future)
+                safe_execute(future.callback, self.event, None, _with_transaction=False)
 
     def apply(
         self,
@@ -327,13 +316,11 @@ class RuleProcessor:
         rule_statuses = self.bulk_get_rule_status(rules)
         for rule in rules:
             self.apply_rule(rule, rule_statuses[rule.id])
+
         if features.has("projects:active-release-monitor-default-on", self.project):
-            condition_list: Sequence[EventCondition] = [
-                ActiveReleaseEventCondition(project=self.project)
-            ]
-            filter_list: Sequence[EventFilter] = [
-                IssueOccurrencesFilter(project=self.project, data={"value": "1"})
-            ]
-            self.apply_active_release_rule(condition_list, filter_list)
+            self.apply_active_release_rule(
+                [ActiveReleaseEventCondition(project=self.project)],
+                [IssueOccurrencesFilter(project=self.project, data={"value": "1"})],
+            )
 
         return self.grouped_futures.values()
