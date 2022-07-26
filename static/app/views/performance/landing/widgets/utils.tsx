@@ -1,6 +1,10 @@
+import {Organization} from 'sentry/types';
 import {objectIsEmpty} from 'sentry/utils';
 import localStorage from 'sentry/utils/localStorage';
-import {MetricsEnhancedSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
+import {
+  canUseMetricsData,
+  MetricsEnhancedSettingContext,
+} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 
 import {PROJECT_PERFORMANCE_TYPE} from '../../utils';
 
@@ -119,3 +123,21 @@ export const _setChartSetting = (
 
   setWidgetStorageObject(localObject);
 };
+
+const DISALLOWED_CHARTS_METRICS = [
+  PerformanceWidgetSetting.DURATION_HISTOGRAM,
+  PerformanceWidgetSetting.FCP_HISTOGRAM,
+  PerformanceWidgetSetting.LCP_HISTOGRAM,
+  PerformanceWidgetSetting.FID_HISTOGRAM,
+];
+
+export function filterAllowedChartsMetrics(
+  organization: Organization,
+  allowedCharts: PerformanceWidgetSetting[]
+) {
+  if (!canUseMetricsData(organization)) {
+    return allowedCharts;
+  }
+
+  return allowedCharts.filter(c => !DISALLOWED_CHARTS_METRICS.includes(c));
+}
