@@ -99,6 +99,7 @@ export type DashboardDetails = {
   environment?: string[];
   period?: string;
   start?: string;
+  utc?: boolean;
 };
 
 export enum DashboardState {
