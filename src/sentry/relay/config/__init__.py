@@ -410,7 +410,7 @@ ALL_MEASUREMENT_METRICS = frozenset(
         "d:transactions/measurements.lcp@millisecond",
         "d:transactions/measurements.app_start_cold@millisecond",
         "d:transactions/measurements.app_start_warm@millisecond",
-        "d:transactions/measurements.cls@millisecond",
+        "d:transactions/measurements.cls@none",
         "d:transactions/measurements.fid@millisecond",
         "d:transactions/measurements.fp@millisecond",
         "d:transactions/measurements.frames_frozen@none",

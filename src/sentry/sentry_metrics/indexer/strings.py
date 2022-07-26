@@ -41,7 +41,7 @@ TRANSACTION_METRICS_NAMES = {
     "d:transactions/measurements.lcp@millisecond": PREFIX + 103,
     "d:transactions/measurements.app_start_cold@millisecond": PREFIX + 104,
     "d:transactions/measurements.app_start_warm@millisecond": PREFIX + 105,
-    "d:transactions/measurements.cls@millisecond": PREFIX + 106,
+    "d:transactions/measurements.cls@millisecond": PREFIX + 106,  # unused
     "d:transactions/measurements.fid@millisecond": PREFIX + 107,
     "d:transactions/measurements.fp@millisecond": PREFIX + 108,
     "d:transactions/measurements.frames_frozen@none": PREFIX + 109,

@@ -29,7 +29,7 @@ class MetricsExtractionTest(RelayStoreHelper, TransactionTestCase):
                         "type": "trace",
                     }
                 },
-                "user": {"ip_address": "127.0.0.1"},
+                "user": {"id": "some_user"},
                 "measurements": {
                     "fp": {"value": 2258.060000000114},
                     "fcp": {"value": 2258.060000000114},
