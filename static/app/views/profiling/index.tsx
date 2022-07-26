@@ -14,7 +14,7 @@ import withOrganization from 'sentry/utils/withOrganization';
 
 import LegacyProfilingOnboarding from './legacyProfilingOnboarding';
 
-function shouldShowProfilingOnboarding(state: RequestState<PromptData>): boolean {
+function shouldShowLegacyProfilingOnboarding(state: RequestState<PromptData>): boolean {
   if (state.type === 'resolved') {
     return typeof state.data?.dismissedTime !== 'number';
   }
@@ -92,7 +92,7 @@ function ProfilingContainer({organization, children}: Props) {
     >
       {requestState.type === 'loading' ? (
         <LoadingIndicator />
-      ) : shouldShowProfilingOnboarding(requestState) ? (
+      ) : shouldShowLegacyProfilingOnboarding(requestState) ? (
         <LegacyProfilingOnboarding
           organization={organization}
           onDismissClick={handleDismiss}
