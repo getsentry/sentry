@@ -47,15 +47,16 @@ class MetricsExtractionTest(RelayStoreHelper, TransactionTestCase):
                     "ttfb": {"value": 5},
                     "ttfb.requesttime": {"value": 6},
                 },
-                "breakdowns": {
-                    "span_ops": {
-                        "ops.http": {"value": 2039.16049},
-                        "ops.db": {"value": 91.876},
-                        "ops.resource": {"value": 2024.234772},
-                        "ops.browser": {"value": 633.474827},
-                        "total.time": {"value": 2875.570536},
+                "spans": [
+                    {
+                        "op": op,
+                        "trace_id": 32 * "b",
+                        "span_id": 16 * "1",
+                        "start_timestamp": iso_format(before_now(seconds=2)),
+                        "timestamp": iso_format(before_now(seconds=1)),
                     }
-                },
+                    for op in ("db", "http", "resource", "browser", "ui")
+                ],
             }
 
             settings = {
@@ -72,7 +73,7 @@ class MetricsExtractionTest(RelayStoreHelper, TransactionTestCase):
 
             metrics_emitted = set()
             for _ in range(1000):
-                message = consumer.poll(timeout=0.1)
+                message = consumer.poll(timeout=1.0)
                 if message is None:
                     break
                 message = json.loads(message.value())
