@@ -188,6 +188,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
         self,
         entity: Union[Literal["all"], Literal["errors"], Literal["transactions"]],
         consumer_group: str,
+        topic: Optional[str],
         commit_log_topic: str,
         synchronize_commit_group: str,
         commit_batch_size: int = 100,
@@ -199,11 +200,11 @@ class KafkaEventStream(SnubaProtocolEventStream):
         if entity == PostProcessForwarderType.TRANSACTIONS:
             cluster_name = settings.KAFKA_TOPICS[settings.KAFKA_TRANSACTIONS]["cluster"]
             worker = TransactionsPostProcessForwarderWorker(concurrency=concurrency)
-            topic = self.transactions_topic
+            default_topic = self.transactions_topic
         elif entity == PostProcessForwarderType.ERRORS:
             cluster_name = settings.KAFKA_TOPICS[settings.KAFKA_EVENTS]["cluster"]
             worker = ErrorsPostProcessForwarderWorker(concurrency=concurrency)
-            topic = self.topic
+            default_topic = self.topic
         else:
             # Default implementation which processes both errors and transactions
             # irrespective of values in the header. This would most likely be the case
@@ -212,7 +213,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
             cluster_name = settings.KAFKA_TOPICS[settings.KAFKA_EVENTS]["cluster"]
             assert cluster_name == settings.KAFKA_TOPICS[settings.KAFKA_TRANSACTIONS]["cluster"]
             worker = PostProcessForwarderWorker(concurrency=concurrency)
-            topic = self.topic
+            default_topic = self.topic
             assert self.topic == self.transactions_topic
 
         synchronized_consumer = SynchronizedConsumer(
@@ -224,7 +225,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
         )
 
         consumer = BatchingKafkaConsumer(
-            topics=topic,
+            topics=topic or default_topic,
             worker=worker,
             max_batch_size=commit_batch_size,
             max_batch_time=commit_batch_timeout_ms,
@@ -237,6 +238,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
         self,
         entity: Union[Literal["all"], Literal["errors"], Literal["transactions"]],
         consumer_group: str,
+        topic: Optional[str],
         commit_log_topic: str,
         synchronize_commit_group: str,
         commit_batch_size: int = 100,
@@ -246,6 +248,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
         consumer = self._build_consumer(
             entity,
             consumer_group,
+            topic,
             commit_log_topic,
             synchronize_commit_group,
             commit_batch_size,
@@ -283,6 +286,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
         self,
         entity: Union[Literal["all"], Literal["errors"], Literal["transactions"]],
         consumer_group: str,
+        topic: Optional[str],
         commit_log_topic: str,
         synchronize_commit_group: str,
         commit_batch_size: int = 100,
@@ -294,6 +298,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
         self.run_batched_consumer(
             entity,
             consumer_group,
+            topic,
             commit_log_topic,
             synchronize_commit_group,
             commit_batch_size,
