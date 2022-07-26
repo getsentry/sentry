@@ -93,7 +93,7 @@ def where_should_recipient_be_notified(
         Mapping[NotificationScopeType, Mapping[ExternalProviders, NotificationSettingOptionValues]],
     ],
     recipient: Team | User,
-    type: NotificationSettingTypes = NotificationSettingTypes.ISSUE_ALERTS,
+    type: NotificationSettingTypes = NotificationSettingTypes.ACTIVE_RELEASE,
 ) -> list[ExternalProviders]:
     """
     Given a mapping of default and specific notification settings by user,
