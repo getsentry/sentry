@@ -105,7 +105,7 @@ describe('SentryAppRuleModal', function () {
       const descriptionInput = screen.getByTestId('description');
       userEvent.type(titleInput, 'v');
       userEvent.type(descriptionInput, 'v');
-      openSelectMenu('--');
+      openSelectMenu('Type to search');
       userEvent.click(screen.getByText('valor'));
       submitSuccess();
     });
