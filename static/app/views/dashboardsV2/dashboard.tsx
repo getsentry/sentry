@@ -48,7 +48,7 @@ import {
 } from './layoutUtils';
 import SortableWidget from './sortableWidget';
 import {DashboardDetails, DashboardWidgetSource, Widget, WidgetType} from './types';
-import {getInitialPageFilterValues} from './utils';
+import {getSavedPageFilters} from './utils';
 
 export const DRAG_HANDLE_CLASS = 'widget-drag';
 const DRAG_RESIZE_CLASS = 'widget-resize';
@@ -346,7 +346,7 @@ class Dashboard extends Component<Props, State> {
           query: {
             ...location.query,
             ...(organization.features.includes('dashboards-top-level-filter')
-              ? getInitialPageFilterValues(dashboard)
+              ? getSavedPageFilters(dashboard)
               : {}),
             source: DashboardWidgetSource.DASHBOARDS,
           },

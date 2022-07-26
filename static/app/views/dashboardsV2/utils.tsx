@@ -423,7 +423,7 @@ export function hasUnsavedFilterChanges(
   );
 }
 
-export function getInitialPageFilterValues(dashboard: DashboardDetails) {
+export function getSavedPageFilters(dashboard: DashboardDetails) {
   return {
     project: dashboard.projects,
     environment: dashboard.environment,
@@ -436,7 +436,7 @@ export function getInitialPageFilterValues(dashboard: DashboardDetails) {
 export function resetPageFilters(dashboard: DashboardDetails, location: Location) {
   browserHistory.replace({
     ...location,
-    query: getInitialPageFilterValues(dashboard),
+    query: getSavedPageFilters(dashboard),
   });
 }
 
