@@ -18,6 +18,7 @@ export enum AlertRuleTriggerType {
 export enum AlertRuleComparisonType {
   COUNT = 'count',
   CHANGE = 'change',
+  PERCENT = 'percent',
 }
 
 export enum Dataset {
