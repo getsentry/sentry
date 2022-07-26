@@ -5,7 +5,6 @@ from sentry import features
 from sentry.api.bases import OrganizationEndpoint
 from sentry.api.endpoints.organization_sentry_function import SentryFunctionSerializer
 from sentry.api.serializers import serialize
-from sentry.models.organization import Organization
 from sentry.models.sentryfunction import SentryFunction
 from sentry.utils.cloudfunctions import delete_function, update_function
 
@@ -19,8 +18,9 @@ class OrganizationSentryFunctionDetailsEndpoint(OrganizationEndpoint):
         args, kwargs = super().convert_args(request, organization_slug, *args, **kwargs)
 
         try:
-            organization = Organization.objects.get(slug=organization_slug)
-            function = SentryFunction.objects.get(slug=function_slug, organization=organization.id)
+            function = SentryFunction.objects.get(
+                slug=function_slug, organization=kwargs.get("organization").id
+            )
         except SentryFunction.DoesNotExist:
             raise Http404
 
@@ -47,15 +47,15 @@ class OrganizationSentryFunctionDetailsEndpoint(OrganizationEndpoint):
         return Response(serialize(function), status=201)
 
     def delete(self, request, organization, function):
-        # If an operation on the function is still in progress, it will raise
-        # an exception. Retrying when the operation has finished deletes the
-        # function successfully.
+        # If the function is being executed, the delete request will stop the function
+        # from executing and delete the function.
+        # If an operation is being performed on the function, the delete request will
+        # not go through
         try:
             delete_function(function.external_id)
-        except Exception:
-            # for hackweek, just eat the error and move on
-            pass
-        SentryFunction.objects.filter(
-            organization=organization, name=function.name, external_id=function.external_id
-        ).delete()
-        return Response(status=204)
+            SentryFunction.objects.filter(
+                organization=organization, name=function.name, external_id=function.external_id
+            ).delete()
+            return Response(status=204)
+        except Exception as e:
+            return Response(e, status=400)
