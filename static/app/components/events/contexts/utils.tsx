@@ -14,7 +14,7 @@ const CONTEXT_TYPES = {
   device: require('sentry/components/events/contexts/device').DeviceEventContext,
   os: require('sentry/components/events/contexts/operatingSystem/operatingSystem')
     .default,
-  runtime: require('sentry/components/events/contexts/runtime/runtime').default,
+  runtime: require('sentry/components/events/contexts/runtime').RuntimeEventContext,
   browser: require('sentry/components/events/contexts/browser/browser').default,
   user: require('sentry/components/events/contexts/user').UserEventContext,
   gpu: require('sentry/components/events/contexts/gpu/gpu').default,

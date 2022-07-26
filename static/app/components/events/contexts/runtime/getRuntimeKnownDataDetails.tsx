@@ -7,10 +7,12 @@ type Output = {
   value?: React.ReactNode;
 };
 
-function getRuntimeKnownDataDetails(
-  data: RuntimeData,
-  type: RuntimeKnownDataType
-): Output {
+type Props = {
+  data: RuntimeData;
+  type: RuntimeKnownDataType;
+};
+
+export function getRuntimeKnownDataDetails({type, data}: Props): Output | undefined {
   switch (type) {
     case RuntimeKnownDataType.NAME:
       return {
@@ -23,11 +25,6 @@ function getRuntimeKnownDataDetails(
         value: `${data.version}${data.build ? `(${data.build})` : ''}`,
       };
     default:
-      return {
-        subject: type,
-        value: data[type],
-      };
+      return undefined;
   }
 }
-
-export default getRuntimeKnownDataDetails;
