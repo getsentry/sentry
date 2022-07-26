@@ -13,6 +13,7 @@ export type AvatarUser = {
   username: string;
   avatar?: Avatar;
   avatarUrl?: string;
+  ip?: string;
   // Compatibility shim with EventUser serializer
   ipAddress?: string;
   lastSeen?: string;
