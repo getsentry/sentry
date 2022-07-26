@@ -377,7 +377,7 @@ export const MEASUREMENT_FIELDS: Record<string, FieldDefinition> = {
   },
 };
 
-export const FIELDS: Record<FieldKey & MobileVital, FieldDefinition> = {
+export const FIELDS: Record<FieldKey & AggregationKey & MobileVital, FieldDefinition> = {
   ...AGGREGATION_FIELDS,
   ...MEASUREMENT_FIELDS,
   [FieldKey.AGE]: {
