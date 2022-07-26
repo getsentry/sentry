@@ -166,7 +166,11 @@ class AlertRuleNotification(ProjectNotification):
         }
 
     def record_active_release_notification_sent(
-        self, participant: Team | User, event: Event, provider: str, release_version: str
+        self,
+        participant: Team | User,
+        event: Event,
+        provider: ExternalProviders,
+        release_version: str,
     ) -> None:
         suspect_committer_ids = [
             go.owner_id()
