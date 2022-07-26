@@ -16,15 +16,15 @@ class MSTeamsNotificationsMessageBuilder(MSTeamsIssueMessageBuilder):
         self, notification: BaseNotification, context: Mapping[str, Any], recipient: Team | User
     ):
         self.notification = notification
+        self.notification.url_format = MSTEAMS_URL_FORMAT
+        self.notification.provider = ExternalProviders.MSTEAMS
         self.context = context
         self.recipient = recipient
 
         super().__init__(self.notification.group, None, None, None)
 
     def create_footer_block(self) -> ColumnSetBlock | None:
-        footer_text = self.notification.build_notification_footer(
-            self.recipient, ExternalProviders.MSTEAMS, MSTEAMS_URL_FORMAT
-        )
+        footer_text = self.notification.build_notification_footer(self.recipient)
 
         if footer_text:
             footer = self.create_footer_text_block(footer_text)
