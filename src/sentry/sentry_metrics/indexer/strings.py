@@ -55,10 +55,10 @@ TRANSACTION_METRICS_NAMES = {
     "d:transactions/measurements.stall_total_time@millisecond": PREFIX + 117,
     "d:transactions/measurements.ttfb@millisecond": PREFIX + 118,
     "d:transactions/measurements.ttfb.requesttime@millisecond": PREFIX + 119,
-    "d:transactions/breakdowns.span_ops.http@millisecond": PREFIX + 120,
-    "d:transactions/breakdowns.span_ops.db@millisecond": PREFIX + 121,
-    "d:transactions/breakdowns.span_ops.browser@millisecond": PREFIX + 122,
-    "d:transactions/breakdowns.span_ops.resource@millisecond": PREFIX + 123,
+    "d:transactions/breakdowns.span_ops.ops.http@millisecond": PREFIX + 120,
+    "d:transactions/breakdowns.span_ops.ops.db@millisecond": PREFIX + 121,
+    "d:transactions/breakdowns.span_ops.ops.browser@millisecond": PREFIX + 122,
+    "d:transactions/breakdowns.span_ops.ops.resource@millisecond": PREFIX + 123,
 }
 
 # 200 - 299

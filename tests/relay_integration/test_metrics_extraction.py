@@ -29,7 +29,7 @@ class MetricsExtractionTest(RelayStoreHelper, TransactionTestCase):
                         "type": "trace",
                     }
                 },
-                "user": {"id": "some_user"},
+                "user": {"id": 123},
                 "measurements": {
                     "fp": {"value": 2258.060000000114},
                     "fcp": {"value": 2258.060000000114},
@@ -71,16 +71,14 @@ class MetricsExtractionTest(RelayStoreHelper, TransactionTestCase):
             self.post_and_retrieve_event(event_data)
 
             metrics_emitted = set()
-            for _ in range(10000):
+            for _ in range(1000):
                 message = consumer.poll(timeout=0.1)
                 if message is None:
                     break
                 message = json.loads(message.value())
                 if message["project_id"] == self.project.id:
-                    print(message)
                     metrics_emitted.add(message["name"])
 
-            print(len(metrics_emitted))
             consumer.close()
 
             project_config = compute_projectkey_config(self.projectkey)

@@ -474,7 +474,7 @@ def get_transaction_metrics_settings(
                 assert breakdown_config["type"] == "spanOperations"
 
                 for op_name in breakdown_config["matches"]:
-                    metrics.append(f"d:transactions/breakdowns.ops.{op_name}")
+                    metrics.append(f"d:transactions/breakdowns.span_ops.ops.{op_name}")
         except Exception:
             capture_exception()
 
