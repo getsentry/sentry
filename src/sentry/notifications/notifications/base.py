@@ -69,6 +69,13 @@ class BaseNotification(abc.ABC):
 
     @provider_options.setter
     def provider_options(self, provider_options: Mapping[str, Any]) -> None:
+        for option in ["url_format"]:
+            if option not in provider_options:
+                raise AttributeError(
+                    f"provider_options['{option}'] not set on {self.__class__.__name__}. "
+                    "Please set provider_options['{option}'] in the message builder."
+                )
+
         self._provider_options = provider_options
 
     def format_url(self, text: str, url: str) -> str:
