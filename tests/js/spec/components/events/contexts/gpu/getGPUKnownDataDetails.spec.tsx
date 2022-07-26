@@ -21,13 +21,13 @@ describe('getGPUKnownDataDetails', function () {
     }
 
     expect(allKnownData).toEqual([
-      {subject: 'Name', value: 'AMD Radeon Pro 560'},
+      {subject: 'Name', value: ''},
       {subject: 'Version', value: 'Metal'},
       {subject: 'Vendor Name', value: 'Apple'},
       {subject: 'Memory', value: '4.0 GiB'},
       {subject: 'NPOT Support', value: 'Full'},
       {subject: 'Multi-Thread rendering', value: true},
-      {subject: 'API Type', value: 'Metal'},
+      {subject: 'API Type', value: ''},
     ]);
   });
 });
