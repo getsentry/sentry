@@ -9,7 +9,7 @@ from sentry.testutils import APITestCase
 from . import EXAMPLE_ISSUE_SEARCH, EXAMPLE_USER_SEARCH_RESPONSE, get_integration
 
 
-class JiraSearchEndpointTest(APITestCase):
+class JiraServerSearchEndpointTest(APITestCase):
     @fixture
     def integration(self):
         return get_integration(self.organization, self.user)
