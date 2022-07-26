@@ -29,6 +29,7 @@ import {
 } from 'sentry/views/dashboardsV2/types';
 import {
   getSavedFiltersAsPageFilters,
+  getSavedPageFilters,
   hasSavedPageFilters,
 } from 'sentry/views/dashboardsV2/utils';
 import {NEW_DASHBOARD_ID} from 'sentry/views/dashboardsV2/widgetBuilder/utils';
@@ -125,7 +126,10 @@ function AddToDashboardModal({
 
     router.push({
       pathname,
-      query: widgetAsQueryParams,
+      query: {
+        ...widgetAsQueryParams,
+        ...(selectedDashboard ? getSavedPageFilters(selectedDashboard) : {}),
+      },
     });
     closeModal();
   }
