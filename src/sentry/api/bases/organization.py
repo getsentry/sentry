@@ -366,7 +366,11 @@ class OrganizationEndpoint(Endpoint):
         return params
 
     def convert_args(self, request: Request, organization_slug=None, *args, **kwargs):
-        if resolve_region(request) is None and request.subdomain is not None and request.subdomain != organization_slug:
+        if (
+            resolve_region(request) is None
+            and request.subdomain is not None
+            and request.subdomain != organization_slug
+        ):
             raise ResourceDoesNotExist
 
         if not organization_slug:
