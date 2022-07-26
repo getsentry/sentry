@@ -42,7 +42,7 @@ def get_user_conversation_id(integration: Integration, user_id: str) -> str:
     if tenant_id:
         conversation_id = client.get_user_conversation_id(user_id, tenant_id)
     else:
-        # This is definitely an integration of install_type == 'team',
+        # This is definitely an integration of `integration.metadata.installation_type` == `team`,
         # so use the `integration.external_id` (team_id) to get the tenant_id.
         members = client.get_member_list(integration.external_id)
         conversation_id = members[0].get("tenantId")
