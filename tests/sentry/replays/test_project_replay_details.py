@@ -113,7 +113,7 @@ class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
                     "ffb5344a-41dd-4b21-9288-187a2cd1ad6d",
                     "2a0dcb0e-a1fb-4350-b266-47ae1aa57dfb",
                 ],
-                urls=["", "", ""],
+                urls=[],
                 count_sequences=3,
             )
             assert_expected_response(response_data["data"], expected_response)
