@@ -67,7 +67,7 @@ import {
 import {
   cloneDashboard,
   getCurrentPageFilters,
-  getInitialPageFilterValues,
+  getSavedPageFilters,
   hasSavedPageFilters,
   hasUnsavedFilterChanges,
   resetPageFilters,
@@ -180,7 +180,7 @@ class DashboardDetail extends Component<Props, State> {
                   query: {
                     ...location.query,
                     ...(organization.features.includes('dashboards-top-level-filter')
-                      ? getInitialPageFilterValues(dashboard)
+                      ? getSavedPageFilters(dashboard)
                       : {}),
                     source: DashboardWidgetSource.DASHBOARDS,
                   },
@@ -442,6 +442,8 @@ class DashboardDetail extends Component<Props, State> {
       organization.features.includes('dashboards-top-level-filter') &&
       hasUnsavedFilterChanges(dashboard, location, newModifiedDashboard.filters)
     ) {
+      // Avoid carrying over unsaved filters from modifiedDashboard when conducting
+      // actions such as duplicate widget, delete widget
       newModifiedDashboard.filters = dashboard.filters;
     }
     this.setState({
@@ -503,7 +505,7 @@ class DashboardDetail extends Component<Props, State> {
           query: {
             ...location.query,
             ...(organization.features.includes('dashboards-top-level-filter')
-              ? getInitialPageFilterValues(dashboard)
+              ? getSavedPageFilters(dashboard)
               : {}),
             source: DashboardWidgetSource.DASHBOARDS,
           },

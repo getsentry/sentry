@@ -360,7 +360,7 @@ export function getNumEquations(possibleEquations: string[]) {
   return possibleEquations.filter(isEquation).length;
 }
 
-function isCustomMeasurement(field: string) {
+export function isCustomMeasurement(field: string) {
   const definedMeasurements = Object.keys(getMeasurements());
   return isMeasurement(field) && !definedMeasurements.includes(field);
 }
@@ -423,7 +423,7 @@ export function hasUnsavedFilterChanges(
   );
 }
 
-export function getInitialPageFilterValues(dashboard: DashboardDetails) {
+export function getSavedPageFilters(dashboard: DashboardDetails) {
   return {
     project: dashboard.projects,
     environment: dashboard.environment,
@@ -436,7 +436,7 @@ export function getInitialPageFilterValues(dashboard: DashboardDetails) {
 export function resetPageFilters(dashboard: DashboardDetails, location: Location) {
   browserHistory.replace({
     ...location,
-    query: getInitialPageFilterValues(dashboard),
+    query: getSavedPageFilters(dashboard),
   });
 }
 
