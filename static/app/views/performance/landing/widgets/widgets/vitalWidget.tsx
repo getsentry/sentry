@@ -383,6 +383,7 @@ export function VitalWidget(
           noPadding: true,
         },
       ]}
+      containerType={props.isVitalDetailView ? 'inline' : 'panel'}
     />
   );
 }

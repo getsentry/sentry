@@ -277,20 +277,22 @@ function VitalDetailContent(props: Props) {
         </FilterActions>
 
         {display === DisplayModes.WORST_VITALS ? (
-          <VitalWidget
-            chartDefinition={chartDefinition}
-            chartSetting={chartSetting}
-            chartHeight={180}
-            fields={['measurements.lcp']}
-            location={location}
-            ContainerActions={() => null}
-            eventView={eventView}
-            organization={organization}
-            title={WIDGET_DEFINITIONS({organization})[chartSetting].title}
-            titleTooltip={WIDGET_DEFINITIONS({organization})[chartSetting].titleTooltip}
-            isVitalDetailView
-            {...p75WidgetProps}
-          />
+          <VitalWidgetWrapper>
+            <VitalWidget
+              chartDefinition={chartDefinition}
+              chartSetting={chartSetting}
+              chartHeight={180}
+              fields={['measurements.lcp']}
+              location={location}
+              ContainerActions={() => null}
+              eventView={eventView}
+              organization={organization}
+              title={WIDGET_DEFINITIONS({organization})[chartSetting].title}
+              titleTooltip={WIDGET_DEFINITIONS({organization})[chartSetting].titleTooltip}
+              isVitalDetailView
+              {...p75WidgetProps}
+            />
+          </VitalWidgetWrapper>
         ) : (
           <VitalChart
             organization={organization}
@@ -440,4 +442,10 @@ const DropdownContainer = styled('div')`
   border-top: 0;
   border-radius: ${p => `0 0 ${p.theme.borderRadius} ${p.theme.borderRadius}`};
   box-shadow: ${p => p.theme.dropShadowLight};
+`;
+
+const VitalWidgetWrapper = styled('div')`
+  padding-top: ${space(2)};
+  border: 1px ${p => p.theme.border} solid;
+  border-radius: ${p => `${p.theme.borderRadius} ${p.theme.borderRadius} 0 0`};
 `;
