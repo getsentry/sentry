@@ -55,9 +55,12 @@ def main():
     replay_id = "44c586f7-bd12-4c1b-b609-189344a19e92"
     seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=22)
     seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=5)
+
+    print("Creating Clickhouse entries...")  # NOQA
     store_replay(mock_replay(seq1_timestamp, project.id, replay_id, sequence_id=0))
     store_replay(mock_replay(seq2_timestamp, project.id, replay_id, sequence_id=1))
 
+    print("Creating Postgres entries...")  # NOQA
     create_recording_segment(replay_id, project.id, make_filename("rrweb-1658770770892.json"), 0)
     create_recording_segment(replay_id, project.id, make_filename("rrweb-1658770772903.json"), 1)
 
