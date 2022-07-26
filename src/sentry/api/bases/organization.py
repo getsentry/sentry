@@ -6,7 +6,7 @@ from rest_framework.exceptions import ParseError, PermissionDenied
 from rest_framework.request import Request
 
 from sentry import options
-from sentry.api.base import Endpoint
+from sentry.api.base import Endpoint, resolve_region
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.environments import get_environments
 from sentry.api.permissions import SentryPermission
@@ -366,6 +366,9 @@ class OrganizationEndpoint(Endpoint):
         return params
 
     def convert_args(self, request: Request, organization_slug=None, *args, **kwargs):
+        if resolve_region(request) is None and request.subdomain is not None and request.subdomain != organization_slug:
+            raise ResourceDoesNotExist
+
         if not organization_slug:
             raise ResourceDoesNotExist
 
