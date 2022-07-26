@@ -29,7 +29,11 @@ from sentry.models import (
     Team,
     User,
 )
-from sentry.notifications.notifications.base import BaseNotification, ProjectNotification
+from sentry.notifications.notifications.base import (
+    BaseNotification,
+    ProjectNotification,
+    create_notification_with_properties,
+)
 from sentry.notifications.notifications.rules import AlertRuleNotification, CommitData
 from sentry.notifications.utils.actions import MessageAction
 from sentry.types.integrations import ExternalProviders
@@ -248,10 +252,13 @@ class SlackIssuesMessageBuilder(SlackMessageBuilder):
         self.rules = rules
         self.link_to_event = link_to_event
         self.issue_details = issue_details
-        self.notification = notification
-        if self.notification:
-            self.notification.url_format = SLACK_URL_FORMAT
-            self.notification.provider = ExternalProviders.SLACK
+        self.notification = (
+            create_notification_with_properties(
+                notification, url_format=SLACK_URL_FORMAT, provider=ExternalProviders.SLACK
+            )
+            if notification
+            else None
+        )
         self.recipient = recipient
 
     def build(self) -> SlackBody:
@@ -324,10 +331,13 @@ class SlackReleaseIssuesMessageBuilder(SlackMessageBuilder):
         self.rules = rules
         self.link_to_event = link_to_event
         self.issue_details = issue_details
-        self.notification = notification
-        if self.notification:
-            self.notification.url_format = SLACK_URL_FORMAT
-            self.notification.provider = ExternalProviders.SLACK
+        self.notification = (
+            create_notification_with_properties(
+                notification, url_format=SLACK_URL_FORMAT, provider=ExternalProviders.SLACK
+            )
+            if notification
+            else None
+        )
         self.recipient = recipient
         self.last_release = last_release
         self.last_release_link = last_release_link
