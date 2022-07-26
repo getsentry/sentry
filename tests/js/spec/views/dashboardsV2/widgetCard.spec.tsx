@@ -889,8 +889,12 @@ describe('Dashboards > WidgetCard', function () {
       await waitFor(function () {
         expect(eventsStatsMock).toHaveBeenCalled();
       });
-      const {tooltip, yAxis} = spy.mock.calls.pop()[0];
+      const {tooltip, yAxis} = spy.mock.calls.pop()?.[0] ?? {};
+      expect(tooltip).toBeDefined();
+      expect(yAxis).toBeDefined();
+      // @ts-ignore
       expect(tooltip.valueFormatter(24, 'duration')).toEqual('24.00ms');
+      // @ts-ignore
       expect(yAxis.axisLabel.formatter(24, 'duration')).toEqual('24ms');
     });
   });
