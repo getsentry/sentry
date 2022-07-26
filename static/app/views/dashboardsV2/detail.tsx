@@ -769,6 +769,7 @@ class DashboardDetail extends Component<Props, State> {
     const {filters} = modifiedDashboard || dashboard;
 
     const disableDashboardModifications =
+      organization.features.includes('dashboards-top-level-filter') &&
       dashboard.id !== 'default-overview' &&
       dashboardState !== DashboardState.CREATE &&
       hasUnsavedFilterChanges(dashboard, location, filters);
