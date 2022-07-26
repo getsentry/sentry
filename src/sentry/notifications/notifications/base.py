@@ -69,7 +69,7 @@ class BaseNotification(abc.ABC):
 
     @provider_options.setter
     def provider_options(self, provider_options: Mapping[str, Any]) -> None:
-        for option in ["url_format"]:
+        for option in ["provider", "url_format"]:
             if option not in provider_options:
                 raise AttributeError(
                     f"provider_options['{option}'] not set on {self.__class__.__name__}. "
@@ -77,6 +77,18 @@ class BaseNotification(abc.ABC):
                 )
 
         self._provider_options = provider_options
+
+    @property
+    def provider(self) -> str | None:
+        if self.provider_options:
+            # Explicitly typing to satisfy mypy.
+            _provider: str = self.provider_options["provider"]
+            return _provider
+
+        raise AttributeError(
+            f"'provider_options' not set on {self.__class__.__name__}. "
+            "Please set 'provider_options' in the message builder."
+        )
 
     def format_url(self, text: str, url: str) -> str:
         """
@@ -88,7 +100,8 @@ class BaseNotification(abc.ABC):
             return url_format.format(text=text, url=url)
 
         raise AttributeError(
-            f"provider_options['url_format'] not set on {self.__class__.__name__}. Please set provider_options['url_format'] in the message builder."
+            f"provider_options['url_format'] not set on {self.__class__.__name__}. "
+            "Please set provider_options['url_format'] in the message builder."
         )
 
     @property
@@ -209,7 +222,7 @@ class BaseNotification(abc.ABC):
         return str(
             urljoin(
                 absolute_uri(url_str),
-                self.get_sentry_query_params(self.provider_options["provider"], recipient),
+                self.get_sentry_query_params(self.provider, recipient),
             )
         )
 
