@@ -15,7 +15,7 @@ describe('getGPUKnownData', function () {
       {
         key: 'name',
         subject: 'Name',
-        value: 'AMD Radeon Pro 560',
+        value: '',
         meta: gpuMetaMockData.name[''],
       },
       {
@@ -44,7 +44,7 @@ describe('getGPUKnownData', function () {
       {
         key: 'api_type',
         subject: 'API Type',
-        value: 'Metal',
+        value: '',
         meta: gpuMetaMockData.api_type[''],
       },
     ]);
