@@ -66,9 +66,10 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):  # type
         # futures to finish before trying to read from redis in the final kafka message
         # https://github.com/getsentry/replay-backend/pull/38/files
         recording_segment_uuid = message_dict["id"]
+        replay_id = message_dict["replay_id"]
         project_id = message_dict["project_id"]
         chunk_index = message_dict["chunk_index"]
-        cache_key = replay_recording_segment_cache_id(project_id, recording_segment_uuid)
+        cache_key = replay_recording_segment_cache_id(project_id, replay_id)
 
         attachment_cache.set_chunk(
             key=cache_key,
@@ -120,13 +121,15 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):  # type
         cached_replay_recording_segment.delete()
 
         # TODO: how to handle failures in the above calls. what should happen?
+        # also: handling same message twice?
 
     def _get_from_cache(self, message_dict: RecordingSegmentMessage) -> CachedAttachment | None:
-        replay_recording = message_dict["replay_recording"]
-        recording_segment_uuid = message_dict["replay_recording"]["id"]
-        project_id = message_dict["project_id"]
-        cache_id = replay_recording_segment_cache_id(project_id, recording_segment_uuid)
-        cached_replay_recording = attachment_cache.get_from_chunks(key=cache_id, **replay_recording)
+        cache_id = replay_recording_segment_cache_id(
+            message_dict["project_id"], message_dict["replay_id"]
+        )
+        cached_replay_recording = attachment_cache.get_from_chunks(
+            key=cache_id, **message_dict["replay_recording"]
+        )
         try:
             # try accessing data to ensure that it exists, which loads it
             cached_replay_recording.data
@@ -208,5 +211,5 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):  # type
         self.__threadpool.shutdown(wait=False)
 
 
-def replay_recording_segment_cache_id(project_id: int, recording_segment_uuid: str) -> str:
-    return f"{project_id}:{recording_segment_uuid}"
+def replay_recording_segment_cache_id(project_id: int, replay_id: str) -> str:
+    return f"{project_id}:{replay_id}"
