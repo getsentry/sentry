@@ -3,13 +3,13 @@ from unittest import mock
 import responses
 from responses.matchers import query_string_matcher
 
-from sentry.integrations.jira.client import JiraApiClient
+from sentry.integrations.jira.client import JiraCloudClient
 from sentry.models import Integration
 from sentry.testutils import TestCase
 from sentry.utils import json
 
 
-class StubJiraCloud(JiraApiClient):
+class StubJiraCloud(JiraCloudClient):
     def request_hook(self, *args, **kwargs):
         r = super().request_hook(*args, **kwargs)
         r["params"]["jwt"] = "my-jwt-token"
@@ -17,7 +17,7 @@ class StubJiraCloud(JiraApiClient):
 
 
 class JiraClientTest(TestCase):
-    @mock.patch("sentry.integrations.jira.integration.JiraApiClient", new=StubJiraCloud)
+    @mock.patch("sentry.integrations.jira.integration.JiraCloudClient", new=StubJiraCloud)
     def setUp(self):
         integration = Integration.objects.create(
             provider="jira",

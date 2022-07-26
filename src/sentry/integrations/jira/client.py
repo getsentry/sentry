@@ -16,7 +16,7 @@ ISSUE_KEY_RE = re.compile(r"^[A-Za-z][A-Za-z0-9]*-\d+$")
 CUSTOMFIELD_PREFIX = "customfield_"
 
 
-class JiraApiClient(ApiClient):
+class JiraCloudClient(ApiClient):
     # TODO: Update to v3 endpoints
     COMMENTS_URL = "/rest/api/2/issue/%s/comment"
     COMMENT_URL = "/rest/api/2/issue/%s/comment/%s"

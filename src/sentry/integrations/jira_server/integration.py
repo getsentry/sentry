@@ -23,7 +23,7 @@ from sentry.integrations import (
     IntegrationMetadata,
     IntegrationProvider,
 )
-from sentry.integrations.jira.utils.choice import build_user_choice
+from sentry.integrations.jira_server.utils.choice import build_user_choice
 from sentry.integrations.mixins import IssueSyncMixin, ResolveSyncAction
 from sentry.models import (
     ExternalIssue,
@@ -295,14 +295,14 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
             {
                 "name": self.outbound_status_key,
                 "type": "choice_mapper",
-                "label": _("Sync Sentry Status to Jira"),
+                "label": _("Sync Sentry Status to Jira Server"),
                 "help": _(
-                    "When a Sentry issue changes status, change the status of the linked ticket in Jira."
+                    "When a Sentry issue changes status, change the status of the linked ticket in Jira Server."
                 ),
-                "addButtonText": _("Add Jira Project"),
+                "addButtonText": _("Add Jira Server Project"),
                 "addDropdown": {
                     "emptyMessage": _("All projects configured"),
-                    "noResultsMessage": _("Could not find Jira project"),
+                    "noResultsMessage": _("Could not find Jira Server project"),
                     "items": [],  # Populated with projects
                 },
                 "mappedSelectors": {
@@ -313,38 +313,38 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
                     "on_resolve": _("When resolved"),
                     "on_unresolve": _("When unresolved"),
                 },
-                "mappedColumnLabel": _("Jira Project"),
+                "mappedColumnLabel": _("Jira Server Project"),
                 "formatMessageValue": False,
             },
             {
                 "name": self.outbound_assignee_key,
                 "type": "boolean",
-                "label": _("Sync Sentry Assignment to Jira"),
+                "label": _("Sync Sentry Assignment to Jira Server"),
                 "help": _(
-                    "When an issue is assigned in Sentry, assign its linked Jira ticket to the same user."
+                    "When an issue is assigned in Sentry, assign its linked Jira Server ticket to the same user."
                 ),
             },
             {
                 "name": self.comment_key,
                 "type": "boolean",
-                "label": _("Sync Sentry Comments to Jira"),
-                "help": _("Post comments from Sentry issues to linked Jira tickets"),
+                "label": _("Sync Sentry Comments to Jira Server"),
+                "help": _("Post comments from Sentry issues to linked Jira Server tickets"),
             },
             {
                 "name": self.inbound_status_key,
                 "type": "boolean",
-                "label": _("Sync Jira Status to Sentry"),
+                "label": _("Sync Jira Server Status to Sentry"),
                 "help": _(
-                    "When a Jira ticket is marked done, resolve its linked issue in Sentry. "
-                    "When a Jira ticket is removed from being done, unresolve its linked Sentry issue."
+                    "When a Jira Server ticket is marked done, resolve its linked issue in Sentry. "
+                    "When a Jira Server ticket is removed from being done, unresolve its linked Sentry issue."
                 ),
             },
             {
                 "name": self.inbound_assignee_key,
                 "type": "boolean",
-                "label": _("Sync Jira Assignment to Sentry"),
+                "label": _("Sync Jira Server Assignment to Sentry"),
                 "help": _(
-                    "When a ticket is assigned in Jira, assign its linked Sentry issue to the same user."
+                    "When a ticket is assigned in Jira Server, assign its linked Sentry issue to the same user."
                 ),
             },
             {
@@ -353,7 +353,7 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
                 "type": "textarea",
                 "placeholder": _('e.g. "components, security, customfield_10006"'),
                 "help": _(
-                    "Comma-separated list of Jira fields that you don't want to show in issue creation form"
+                    "Comma-separated list of Jira Server fields that you don't want to show in issue creation form"
                 ),
             },
         ]
@@ -881,7 +881,7 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
                         },
                     )
                     continue
-                reporter_tuple = build_user_choice(reporter_info)
+                reporter_tuple = build_user_choice(reporter_info, client.user_id_field())
                 if not reporter_tuple:
                     continue
                 reporter_id, reporter_label = reporter_tuple
