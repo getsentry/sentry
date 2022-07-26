@@ -118,7 +118,7 @@ function ReplayLayout({
           }}
           right={{
             content: <SidebarContent video={video} crumbs={crumbs} />,
-            default: '325px',
+            default: '40%',
             min: MIN_VIDEO_WIDTH,
           }}
         />
@@ -133,7 +133,7 @@ function ReplayLayout({
         <SplitPanel
           left={{
             content: <SidebarContent video={video} crumbs={crumbs} />,
-            default: '325px',
+            default: '40%',
             min: MIN_VIDEO_WIDTH,
           }}
           right={{
@@ -164,7 +164,7 @@ function ReplayLayout({
               }}
             />
           ),
-          default: '325px',
+          default: '40%',
           min: MIN_VIDEO_HEIGHT,
         }}
         bottom={{
