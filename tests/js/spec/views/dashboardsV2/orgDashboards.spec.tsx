@@ -20,9 +20,7 @@ describe('OrgDashboards', () => {
       project: 1,
       projects: [],
       router: {
-        location: {
-          pathname: '/test',
-        },
+        location: TestStubs.location(),
         params: {orgId: 'org-slug'},
       },
     });
