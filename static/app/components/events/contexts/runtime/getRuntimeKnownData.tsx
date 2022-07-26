@@ -7,7 +7,7 @@ import {RuntimeData} from './types';
 
 type Props = {
   data: RuntimeData;
-  meta: NonNullable<Event['_meta']>['user'];
+  meta: NonNullable<Event['_meta']>['runtime'];
 };
 
 export function getRuntimeKnownData({data, meta}: Props): KeyValueListData {
