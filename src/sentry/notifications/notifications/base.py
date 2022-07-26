@@ -78,23 +78,24 @@ class BaseNotification(abc.ABC):
     def url_format(self, url_format: str) -> None:
         self._url_format = url_format
 
-    @property
-    def provider(self) -> str | None:
-        if self.provider_options:
-            # Explicitly typing to satisfy mypy.
-            _provider: str = self.provider_options["provider"]
-            return _provider
-
-        raise AttributeError(
-            f"'provider_options' not set on {self.__class__.__name__}. "
-            "Please set 'provider_options' in the message builder."
-        )
-
     def format_url(self, text: str, url: str) -> str:
         """
         Format URLs according to the provider options.
         """
         return self.url_format.format(text=text, url=url)
+
+    @property
+    def provider(self) -> ExternalProviders:
+        if not self._provider:
+            raise AttributeError(
+                f"'provider' not set on {self.__class__.__name__}. Please set 'provider' from the message builder."
+            )
+
+        return self._provider
+
+    @provider.setter
+    def provider(self, provider: ExternalProviders) -> None:
+        self._provider = provider
 
     @property
     @abc.abstractmethod

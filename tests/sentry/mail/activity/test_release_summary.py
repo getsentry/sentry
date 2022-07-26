@@ -54,6 +54,7 @@ class ReleaseSummaryTestCase(ActivityTestCase):
                 )
             )
             release_summary.url_format = SLACK_URL_FORMAT
+            release_summary.provider = ExternalProviders.SLACK
 
         # user1 is included because they committed
         participants = release_summary.get_participants_with_group_subscription_reason()[
