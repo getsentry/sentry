@@ -1,38 +1,44 @@
-import {getMeta} from 'sentry/components/events/meta/metaProxy';
 import {KeyValueListData} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 
-import getDeviceKnownDataDetails from './getDeviceKnownDataDetails';
-import {DeviceData, DeviceKnownDataType} from './types';
+import {getDeviceKnownDataDetails} from './getDeviceKnownDataDetails';
+import {DeviceData} from './types';
+import {deviceKnownDataValues} from '.';
 
-function getDeviceKnownData(
-  event: Event,
-  data: DeviceData,
-  deviceKnownDataValues: Array<DeviceKnownDataType>
-): KeyValueListData {
+type Props = {
+  data: DeviceData;
+  event: Event;
+  meta: NonNullable<Event['_meta']>['device'];
+};
+
+export function getDeviceKnownData({data, event, meta}: Props): KeyValueListData {
   const knownData: KeyValueListData = [];
 
-  const dataKeys = deviceKnownDataValues.filter(deviceKnownDataValue =>
-    defined(data[deviceKnownDataValue])
-  );
+  const dataKeys = deviceKnownDataValues.filter(deviceKnownDataValue => {
+    if (!defined(data[deviceKnownDataValue])) {
+      if (meta[deviceKnownDataValue]) {
+        return true;
+      }
+      return false;
+    }
+    return true;
+  });
 
-  for (const key of dataKeys) {
-    const knownDataDetails = getDeviceKnownDataDetails(
-      event,
-      data,
-      key as DeviceKnownDataType
-    );
+  for (const type of dataKeys) {
+    const knownDataDetails = getDeviceKnownDataDetails({event, data, type});
+
+    if (!knownDataDetails) {
+      continue;
+    }
 
     knownData.push({
-      key,
+      key: type,
       ...knownDataDetails,
-      meta: getMeta(data, key as keyof DeviceData),
-      subjectDataTestId: `device-context-${key.toLowerCase()}-value`,
+      meta: meta[type]?.[''],
+      subjectDataTestId: `device-context-${type.toLowerCase()}-value`,
     });
   }
 
   return knownData;
 }
-
-export default getDeviceKnownData;

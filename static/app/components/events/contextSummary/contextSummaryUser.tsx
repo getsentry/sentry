@@ -28,7 +28,7 @@ type UserDetails = {
   value?: string;
 };
 
-function ContextSummaryUser({data}: Props) {
+export function ContextSummaryUser({data}: Props) {
   const user = removeFilterMaskedEntries(data);
 
   if (Object.keys(user).length === 0) {
@@ -120,8 +120,6 @@ function ContextSummaryUser({data}: Props) {
     </Item>
   );
 }
-
-export default ContextSummaryUser;
 
 const Subject = styled('strong')`
   margin-right: ${space(0.5)};

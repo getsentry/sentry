@@ -42,7 +42,7 @@ export const userKnownDataValues = [
 
 const userIgnoredDataValues = [UserIgnoredDataType.DATA];
 
-function User({data, event}: Props) {
+export function UserEventContext({data, event}: Props) {
   const meta = event._meta?.user ?? {};
 
   return (
@@ -74,5 +74,3 @@ function User({data, event}: Props) {
     </div>
   );
 }
-
-export default User;
