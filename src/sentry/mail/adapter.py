@@ -99,8 +99,7 @@ class MailAdapter:
         project = event.group.project
         extra["project_id"] = project.id
 
-        notification = Notification(event=event, rules=None)
-        self.notify(notification, ActionTargetType.RELEASE_MEMBERS)
+        self.notify_active_release(Notification(event=event, rules=None))
 
         logger.info("mail.adapter.notification.active_release.%s" % log_event, extra=extra)
 
@@ -124,10 +123,13 @@ class MailAdapter:
 
     @staticmethod
     def notify(notification, target_type, target_identifier=None, **kwargs):
-        if target_type == ActionTargetType.RELEASE_MEMBERS:
-            ActiveReleaseAlertNotification(notification, target_type, target_identifier).send()
-        else:
-            AlertRuleNotification(notification, target_type, target_identifier).send()
+        AlertRuleNotification(notification, target_type, target_identifier).send()
+
+    @staticmethod
+    def notify_active_release(notification):
+        ActiveReleaseAlertNotification(
+            notification, target_type=ActionTargetType.RELEASE_MEMBERS
+        ).send()
 
     @staticmethod
     def notify_digest(
