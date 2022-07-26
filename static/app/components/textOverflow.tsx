@@ -4,6 +4,18 @@ type Props = {
   children: React.ReactNode;
   className?: string;
   ['data-test-id']?: string;
+  /**
+   * Change which side of the text is elided.
+   * Default: 'right'
+   *
+   * BROWSER COMPAT:
+   * When set to `left` the intention is for something like: `...xample.com/foo/`
+   * In FF/Chrome this is what happens.
+   *
+   * In Safari you will see this instead: `...https://exmaple.co`
+   *
+   * See: https://stackoverflow.com/a/24800788
+   */
   ellipsisDirection?: 'left' | 'right';
   isParagraph?: boolean;
 };
@@ -13,7 +25,7 @@ const TextOverflow = styled(
     const Component = isParagraph ? 'p' : 'div';
     return (
       <Component className={className} data-test-id={dataTestId}>
-        {children}
+        <bdi>{children}</bdi>
       </Component>
     );
   }
@@ -24,6 +36,7 @@ const TextOverflow = styled(
     `
       direction: rtl;
       text-align: left;
+      overflow: hidden;
     `};
   width: auto;
   line-height: 1.2;

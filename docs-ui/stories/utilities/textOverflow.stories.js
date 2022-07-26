@@ -3,6 +3,8 @@ import TextOverflow from 'sentry/components/textOverflow';
 export default {
   title: 'Utilities/Text/Overflow',
   args: {
+    width: 150,
+    text: 'https://example.com/foo/',
     isParagraph: false,
     ellipsisDirection: 'right',
   },
@@ -16,9 +18,9 @@ export default {
   },
 };
 
-export const _TextOverflow = ({...args}) => (
-  <div style={{width: 50}}>
-    <TextOverflow {...args}>AReallyLongTextString</TextOverflow>
+export const _TextOverflow = ({text, width, ...args}) => (
+  <div style={{width}}>
+    <TextOverflow {...args}>{text}</TextOverflow>
   </div>
 );
 
