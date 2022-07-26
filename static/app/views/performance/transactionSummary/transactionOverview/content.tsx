@@ -369,17 +369,19 @@ function SummaryContent({
       </Layout.Main>
       <Layout.Side>
         {(isUsingMetrics ?? null) && (
-          <SidebarMEPCharts
-            organization={organization}
-            isLoading={isLoading}
-            error={error}
-            totals={totalValues}
-            eventView={eventView}
-            transactionName={transactionName}
-            isShowingMetricsEventCount
-          />
+          <Fragment>
+            <SidebarMEPCharts
+              organization={organization}
+              isLoading={isLoading}
+              error={error}
+              totals={totalValues}
+              eventView={eventView}
+              transactionName={transactionName}
+              isShowingMetricsEventCount
+            />
+            <SidebarSpacer />
+          </Fragment>
         )}
-        <SidebarSpacer />
         <UserStats
           organization={organization}
           location={location}

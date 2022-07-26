@@ -445,12 +445,10 @@ function SidebarChartsContainer({
     ? ['count()', 'tpm()']
     : ['apdex()', 'failure_rate()'];
 
-  const fidelity = isShowingMetricsEventCount ? 'high' : 'high';
-
   const requestProps = {
     ...requestCommonProps,
     organization,
-    interval: getInterval(datetimeSelection, fidelity),
+    interval: getInterval(datetimeSelection),
     showLoading: false,
     includePrevious: false,
     yAxis,
