@@ -9,7 +9,7 @@ type Props = {
 };
 
 export function useRecommendedSdkUpgrades({orgSlug}: Props) {
-  const {samplingSdkVersions} = useLegacyStore(ServerSideSamplingStore);
+  const {samplingSdkVersions, fetching} = useLegacyStore(ServerSideSamplingStore);
 
   const notSendingSampleRateSdkUpgrades = samplingSdkVersions.filter(
     samplingSdkVersion => !samplingSdkVersion.isSendingSampleRate
@@ -39,5 +39,5 @@ export function useRecommendedSdkUpgrades({orgSlug}: Props) {
     })
     .filter(defined);
 
-  return {recommendedSdkUpgrades};
+  return {recommendedSdkUpgrades, fetching};
 }

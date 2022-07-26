@@ -86,11 +86,12 @@ function UniformRateModal({
     statsPeriod: '30d',
   });
 
-  const {recommendedSdkUpgrades} = useRecommendedSdkUpgrades({
-    orgSlug: organization.slug,
-  });
+  const {recommendedSdkUpgrades, fetching: fetchingRecommendedSdkUpgrades} =
+    useRecommendedSdkUpgrades({
+      orgSlug: organization.slug,
+    });
 
-  const loading = loading30d || !projectStats;
+  const loading = loading30d || !projectStats || fetchingRecommendedSdkUpgrades;
 
   const [activeStep, setActiveStep] = useState<Step>(Step.SET_UNIFORM_SAMPLE_RATE);
 
