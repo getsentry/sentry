@@ -741,6 +741,26 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
             )
         return meta
 
+    def get_projects(self):
+        client = self.get_client()
+
+        try:
+            jira_projects = client.get_projects_list()
+        except ApiError as e:
+            logger.info(
+                "jira_server.get-create-issue-config.no-projects",
+                extra={
+                    "integration_id": self.model.id,
+                    "organization_id": self.organization_id,
+                    "error": str(e),
+                },
+            )
+            raise IntegrationError(
+                "Could not fetch project list from Jira Server. Ensure that Jira Server is"
+                " available and your account is still active."
+            )
+        return jira_projects
+
     def get_create_issue_config(self, group, user, **kwargs):
         """
         We use the `group` to get three things: organization_slug, project
@@ -757,8 +777,6 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
                 example: "Bug", "Epic", "Story".
         :return:
         """
-        # TODO(ceo) not convinced it's actually changing anything in the form when the 
-        # issue type or project ID has changed
 
         kwargs = kwargs or {}
         kwargs["link_referrer"] = "jira_server_integration"
@@ -769,45 +787,33 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
             fields = super().get_create_issue_config(group, user, **kwargs)
             defaults = self.get_defaults(group.project, user)
 
-        client = self.get_client()
-        try:
-            jira_projects = client.get_projects_list()
-        except ApiError as e:
-            logger.info(
-                "jira_server.get-create-issue-config.no-projects",
-                extra={
-                    "integration_id": self.model.id,
-                    "organization_id": self.organization_id,
-                    "error": str(e),
-                },
-            )
-            raise IntegrationError(
-                "Could not fetch project list from Jira Server. Ensure that Jira Server is"
-                " available and your account is still active."
-            )
-
         project_id = params.get("project", defaults.get("project"))
-        print("project ID: ", project_id)
+        jira_projects = self.get_projects()
+
         if not project_id:
             project_id = jira_projects[0]["id"]
 
+        client = self.get_client()
         issue_type_choices = client.get_issue_types(project_id)
-        issue_type_choices_formatted = [(choice["id"], choice["name"]) for choice in issue_type_choices["values"]]
+        issue_type_choices_formatted = [
+            (choice["id"], choice["name"]) for choice in issue_type_choices["values"]
+        ]
 
         # check if the issuetype was passed as a parameter
         issue_type = params.get("issuetype", defaults.get("issuetype"))
-        print("issue type id: ", issue_type)
         # make sure default issue type is actually one that is allowed for project
-        valid_issue_type = any(choice for choice in issue_type_choices["values"] if choice["id"] == issue_type)
+        valid_issue_type = any(
+            choice for choice in issue_type_choices["values"] if choice["id"] == issue_type
+        )
 
         if not issue_type or not valid_issue_type:
             # pick the first issue type in the list
             issue_type = issue_type_choices["values"][0]["id"]
-        # meta = self.get_issue_create_meta(client, project_id, jira_projects)
+
         issue_type_meta = client.get_issue_fields(project_id, issue_type)
         if not issue_type_meta:
             raise IntegrationError(
-                "Could not fetch issue create metadata from Jira Server. Ensure that"
+                "Could not fetch issue creation metadata from Jira Server. Ensure that"
                 " the integration user has access to the requested project."
             )
 
@@ -828,7 +834,9 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
                 "type": "select",
                 "choices": issue_type_choices_formatted,
                 "updatesForm": True,
-                "required": bool(issue_type_choices_formatted),  # required if we have any type choices
+                "required": bool(
+                    issue_type_choices_formatted
+                ),  # required if we have any type choices
             },
         ]
 
@@ -846,8 +854,7 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
             "components": (-100, ""),
             "security": (-50, ""),
         }
-        # dynamic_fields = list(issue_type_meta["fields"].keys())
-        dynamic_fields = [val["name"] for val in issue_type_meta["values"]]
+        dynamic_fields = [val["fieldId"] for val in issue_type_meta["values"]]
         # Sort based on priority, then field name
         dynamic_fields.sort(key=lambda f: anti_gravity.get(f, (0, f)))
 
@@ -857,14 +864,14 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
                 # don't overwrite the fixed fields for the form.
                 continue
 
-            # TODO(ceo) put this back in, just temp commented out 
-
-            # mb_field = self.build_dynamic_field(issue_type_meta["fields"][field], group)
-            # if mb_field:
-            #     if mb_field["label"] in params.get("ignored", []):
-            #         continue
-            #     mb_field["name"] = field
-            #     fields.append(mb_field)
+            field_meta = [value for value in issue_type_meta["values"] if value["fieldId"] == field]
+            if len(field_meta) > 0:
+                mb_field = self.build_dynamic_field(field_meta[0], group)
+                if mb_field:
+                    if mb_field["label"] in params.get("ignored", []):
+                        continue
+                    mb_field["name"] = field
+                    fields.append(mb_field)
 
         for field in fields:
             if field["name"] == "priority":
@@ -873,7 +880,7 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
                 field["choices"] = self.make_choices(client.get_priorities())
                 field["default"] = defaults.get("priority", "")
             elif field["name"] == "fixVersions":
-                field["choices"] = self.make_choices(client.get_versions(meta["key"]))
+                field["choices"] = self.make_choices(client.get_versions(project_id))
             elif field["name"] == "labels":
                 field["default"] = defaults.get("labels", "")
             elif field["name"] == "reporter":
@@ -884,7 +891,7 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
                     reporter_info = client.get_user(reporter_id)
                 except ApiError as e:
                     logger.info(
-                        "jira.get-create-issue-config.no-matching-reporter",
+                        "jira_server.get-create-issue-config.no-matching-reporter",
                         extra={
                             "integration_id": self.model.id,
                             "organization_id": self.organization_id,
