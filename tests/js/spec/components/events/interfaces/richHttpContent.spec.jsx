@@ -1,6 +1,6 @@
 import {mountWithTheme, shallow} from 'sentry-test/enzyme';
 
-import RichHttpContent from 'sentry/components/events/interfaces/richHttpContent/richHttpContent';
+import {RichHttpContent} from 'sentry/components/events/interfaces/richHttpContent';
 
 describe('RichHttpContent', function () {
   let data;

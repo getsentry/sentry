@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import EventDataSection from 'sentry/components/events/eventDataSection';
-import RichHttpContent from 'sentry/components/events/interfaces/richHttpContent/richHttpContent';
+import {RichHttpContent} from 'sentry/components/events/interfaces/richHttpContent';
 import {getCurlCommand, getFullUrl} from 'sentry/components/events/interfaces/utils';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Truncate from 'sentry/components/truncate';
@@ -42,7 +42,7 @@ class RequestInterface extends Component<Props, State> {
   };
 
   render() {
-    const {data, type} = this.props;
+    const {data, type, event} = this.props;
     const view = this.state.view;
 
     let fullUrl = getFullUrl(data);
@@ -105,7 +105,7 @@ class RequestInterface extends Component<Props, State> {
         {view === 'curl' ? (
           <pre>{getCurlCommand(data)}</pre>
         ) : (
-          <RichHttpContent data={data} />
+          <RichHttpContent data={data} meta={event._meta?.entries} />
         )}
       </EventDataSection>
     );
