@@ -7,6 +7,7 @@ from sentry.models import Activity, Environment, Repository
 from sentry.notifications.notifications.activity.release_summary import (
     ReleaseSummaryActivityNotification,
 )
+from sentry.notifications.notifications.base import create_notification_with_properties
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.testutils.cases import ActivityTestCase
 from sentry.types.activity import ActivityType
@@ -53,8 +54,9 @@ class ReleaseSummaryTestCase(ActivityTestCase):
                     data={"version": self.release.version, "deploy_id": self.deploy.id},
                 )
             )
-            release_summary.url_format = SLACK_URL_FORMAT
-            release_summary.provider = ExternalProviders.SLACK
+            release_summary = create_notification_with_properties(
+                release_summary, url_format=SLACK_URL_FORMAT
+            )
 
         # user1 is included because they committed
         participants = release_summary.get_participants_with_group_subscription_reason()[
