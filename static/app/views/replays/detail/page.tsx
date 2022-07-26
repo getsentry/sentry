@@ -33,7 +33,7 @@ function Page({children, crumbs, duration, event, orgId}: Props) {
         <DetailsPageBreadcrumbs orgId={orgId} event={event} />
       </HeaderContent>
       <ButtonActionsWrapper>
-        <FeatureFeedback featureName="replay" buttonProps={{size: 'sm'}} />
+        <FeatureFeedback featureName="replay" buttonProps={{size: 'xs'}} />
         <ChooseLayout />
       </ButtonActionsWrapper>
       <SubHeading>{pathname || <HeaderPlaceholder />}</SubHeading>
