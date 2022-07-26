@@ -61,7 +61,7 @@ def get_vital_data_for_org_no_cache(organization: Organization, projects: Sequen
 
     def get_discover_result(columns, referrer):
         result = discover.query(
-            query="transaction.duration:<15m transaction.op:pageload event.type:transaction",
+            query="transaction.duration:<15m event.type:transaction",
             selected_columns=columns,
             limit=settings.ORGANIZATION_VITALS_OVERVIEW_PROJECT_LIMIT,
             params={

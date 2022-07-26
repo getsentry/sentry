@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import abc
+from copy import deepcopy
 from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Optional, Sequence
 from urllib.parse import urljoin
 
@@ -67,9 +68,9 @@ class BaseNotification(abc.ABC):
         Slack notifications should set this to `<{url}|{text}>`.
         Microsoft Teams notifications should set this to `[text](url)`.
         """
-        if not self._url_format:
+        if not getattr(self, "_url_format", None):
             raise AttributeError(
-                f"'url_format' not set on {self.__class__.__name__}. Please set 'url_format' in the message builder."
+                f"'url_format' not set on {self.__class__.__name__}. Please set 'url_format' from the message builder."
             )
 
         return self._url_format
@@ -86,7 +87,7 @@ class BaseNotification(abc.ABC):
 
     @property
     def provider(self) -> ExternalProviders:
-        if not self._provider:
+        if not getattr(self, "_provider", None):
             raise AttributeError(
                 f"'provider' not set on {self.__class__.__name__}. Please set 'provider' from the message builder."
             )
@@ -294,3 +295,18 @@ class ProjectNotification(BaseNotification, abc.ABC):
         footer += f" | {self.format_url(text='Notification Settings', url=settings_url)}"
 
         return footer
+
+
+def create_notification_with_properties(
+    notification: BaseNotification, **kwargs: Any
+) -> BaseNotification:
+    notification_copy = deepcopy(notification)
+
+    assert "url_format" in kwargs
+
+    for property in kwargs:
+        setattr(notification_copy, property, kwargs[property])
+
+    assert getattr(notification_copy, "url_format") == "<{url}|{text}>"
+
+    return notification_copy
