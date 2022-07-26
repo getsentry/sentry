@@ -54,7 +54,7 @@ type Props = {
    */
   menuTitle?: string;
   /**
-   * TODO: Description
+   * Custom renderer for the Item components in the Menu.
    */
   renderItem?: (
     props: MenuItemProps & {isDisabled: boolean}

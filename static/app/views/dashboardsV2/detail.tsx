@@ -203,7 +203,7 @@ class DashboardDetail extends Component<Props, State> {
           disableEditWidget:
             organization.features.includes('dashboards-top-level-filter') &&
             hasUnsavedFilterChanges(dashboard, location, dashboard.filters),
-          disabledMessage: UNSAVED_FILTERS_MESSAGE,
+          disabledEditMessage: UNSAVED_FILTERS_MESSAGE,
         });
         trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.open', {
           organization,
