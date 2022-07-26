@@ -472,7 +472,7 @@ class ReleaseAnalyticsMixin:
 
 
 def resolve_region(request: Request):
-    subdomain = getattr(request, 'subdomain', None)
+    subdomain = getattr(request, "subdomain", None)
     if subdomain is None:
         return None
     if subdomain in {"us", "eu"}:
