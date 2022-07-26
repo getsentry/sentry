@@ -9,8 +9,9 @@ import space from 'sentry/styles/space';
 import type {Crumb} from 'sentry/types/breadcrumbs';
 import type {EventTransaction} from 'sentry/types/event';
 import getUrlPathname from 'sentry/utils/getUrlPathname';
+import ChooseLayout from 'sentry/views/replays/detail/layout/chooseLayout';
 
-import EventMetaData from './eventMetaData';
+import EventMetaData, {HeaderPlaceholder} from './eventMetaData';
 
 type Props = {
   children: ReactNode;
@@ -32,9 +33,10 @@ function Page({children, crumbs, duration, event, orgId}: Props) {
         <DetailsPageBreadcrumbs orgId={orgId} event={event} />
       </HeaderContent>
       <ButtonActionsWrapper>
-        <FeatureFeedback featureName="replay" buttonProps={{size: 'sm'}} />
+        <FeatureFeedback featureName="replay" buttonProps={{size: 'xs'}} />
+        <ChooseLayout />
       </ButtonActionsWrapper>
-      <SubHeading>{pathname}</SubHeading>
+      <SubHeading>{pathname || <HeaderPlaceholder />}</SubHeading>
       <MetaDataColumn>
         <EventMetaData crumbs={crumbs} duration={duration} event={event} />
       </MetaDataColumn>
@@ -53,7 +55,7 @@ function Page({children, crumbs, duration, event, orgId}: Props) {
 
 const Header = styled(Layout.Header)`
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    padding-bottom: ${space(1.5)};
+    padding: ${space(2)} ${space(2)} ${space(1.5)} ${space(2)};
   }
 `;
 
@@ -66,6 +68,7 @@ const ButtonActionsWrapper = styled(Layout.HeaderActions)`
   display: grid;
   grid-template-columns: repeat(2, max-content);
   justify-content: flex-end;
+  gap: ${space(1)};
 `;
 
 const SubHeading = styled('div')`

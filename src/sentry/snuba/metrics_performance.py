@@ -170,8 +170,13 @@ def timeseries_query(
                     else result["data"]
                 )
                 sentry_sdk.set_tag("performance.dataset", "metrics")
+                result["meta"]["isMetricsData"] = True
                 return SnubaTSResult(
-                    {"data": result["data"], "isMetricsData": True},
+                    {
+                        "data": result["data"],
+                        "isMetricsData": True,
+                        "meta": result["meta"],
+                    },
                     params["start"],
                     params["end"],
                     rollup,

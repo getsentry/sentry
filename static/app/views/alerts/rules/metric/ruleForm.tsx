@@ -609,6 +609,8 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
           ...(organization.features.includes('metrics-performance-alerts')
             ? {queryType: DatasetMEPAlertQueryTypes[dataset]}
             : {}),
+          // Remove eventTypes as it is no longer requred for crash free
+          eventTypes: isCrashFreeAlert(rule.dataset) ? undefined : rule.eventTypes,
         },
         {
           duplicateRule: this.isDuplicateRule ? 'true' : 'false',

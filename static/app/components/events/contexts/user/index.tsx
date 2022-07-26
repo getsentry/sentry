@@ -42,8 +42,8 @@ export const userKnownDataValues = [
 
 const userIgnoredDataValues = [UserIgnoredDataType.DATA];
 
-function User({data, event}: Props) {
-  const meta = event._meta?.user ?? {};
+export function UserEventContext({data, event}: Props) {
+  const meta = event._meta?.contexts?.user ?? {};
 
   return (
     <div className="user-widget">
@@ -74,5 +74,3 @@ function User({data, event}: Props) {
     </div>
   );
 }
-
-export default User;
