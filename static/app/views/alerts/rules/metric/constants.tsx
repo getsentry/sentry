@@ -1,6 +1,7 @@
 import {t} from 'sentry/locale';
 import EventView from 'sentry/utils/discover/eventView';
 import {AggregationKeyWithAlias, LooseFieldKey} from 'sentry/utils/discover/fields';
+import {AggregationKey} from 'sentry/utils/fields';
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import {
   AlertRuleComparisonType,
@@ -50,25 +51,25 @@ export type OptionConfig = {
  * Allowed error aggregations for alerts
  */
 export const errorFieldConfig: OptionConfig = {
-  aggregations: ['count', 'count_unique'],
+  aggregations: [AggregationKey.Count, AggregationKey.CountUnique],
   fields: ['user'],
 };
 
-const commonAggregations: AggregationKeyWithAlias[] = [
-  'avg',
-  'percentile',
-  'p50',
-  'p75',
-  'p95',
-  'p99',
-  'p100',
+const commonAggregations = [
+  AggregationKey.Avg,
+  AggregationKey.Percentile,
+  AggregationKey.P50,
+  AggregationKey.P75,
+  AggregationKey.P95,
+  AggregationKey.P99,
+  AggregationKey.P100,
 ];
 
-const allAggregations: AggregationKeyWithAlias[] = [
+const allAggregations = [
   ...commonAggregations,
-  'failure_rate',
-  'apdex',
-  'count',
+  AggregationKey.FailureRate,
+  AggregationKey.Apdex,
+  AggregationKey.Count,
 ];
 
 export const DuplicateMetricFields: string[] = [
