@@ -122,6 +122,7 @@ class EventStream(Service):
         self,
         entity,
         consumer_group,
+        topic: Optional[str],
         commit_log_topic,
         synchronize_commit_group,
         commit_batch_size=100,
