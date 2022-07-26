@@ -124,7 +124,7 @@ class GetCustomMeasurementsTest(MetricsEnhancedPerformanceTestCase):
         )
         result = get_custom_measurements(
             project_ids=[self.project.id],
-            organization=self.organization,
+            organization_id=self.organization.id,
             start=self.day_ago,
             use_case_id=UseCaseKey.PERFORMANCE,
         )
@@ -171,7 +171,7 @@ class GetCustomMeasurementsTest(MetricsEnhancedPerformanceTestCase):
         )
         result = get_custom_measurements(
             project_ids=[self.project.id],
-            organization=self.organization,
+            organization_id=self.organization.id,
             start=self.day_ago,
             use_case_id=UseCaseKey.PERFORMANCE,
         )
@@ -213,6 +213,6 @@ class GetCustomMeasurementsTest(MetricsEnhancedPerformanceTestCase):
         # mock mri failing to parse the metric
         mock.return_value = None
         result = get_custom_measurements(
-            projects=[self.project], organization=self.organization, start=self.day_ago
+            project_ids=[self.project.id], organization_id=self.organization.id, start=self.day_ago
         )
         assert result == []
