@@ -23,7 +23,7 @@ export function tooltipFormatter(value: number | null, seriesName: string = ''):
   if (!defined(value)) {
     return '\u2014';
   }
-  return tooltipFormatter(value, aggregateOutputType(seriesName));
+  return tooltipFormatterUsingAggregateOutputType(value, aggregateOutputType(seriesName));
 }
 
 /**
