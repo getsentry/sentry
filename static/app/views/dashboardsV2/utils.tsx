@@ -357,7 +357,7 @@ export function getNumEquations(possibleEquations: string[]) {
   return possibleEquations.filter(isEquation).length;
 }
 
-function isCustomMeasurement(field: string) {
+export function isCustomMeasurement(field: string) {
   const definedMeasurements = Object.keys(getMeasurements());
   return isMeasurement(field) && !definedMeasurements.includes(field);
 }

@@ -109,7 +109,7 @@ export function nullableValue(value: string | null): string | React.ReactElement
   }
 }
 
-const SIZE_UNITS = {
+export const SIZE_UNITS = {
   bit: 1 / 8,
   byte: 1,
   kibibyte: 1024,
@@ -119,7 +119,8 @@ const SIZE_UNITS = {
   pebibyte: 1024 ** 5,
   exbibyte: 1024 ** 6,
 };
-const DURATION_UNITS = {
+
+export const DURATION_UNITS = {
   nanosecond: 1 / 1000 ** 2,
   microsecond: 1 / 1000,
   millisecond: 1,
@@ -129,6 +130,9 @@ const DURATION_UNITS = {
   day: 1000 * 60 * 60 * 24,
   week: 1000 * 60 * 60 * 24 * 7,
 };
+
+export const PERCENTAGE_UNITS = ['ratio', 'percent'];
+
 /**
  * A mapping of field types to their rendering function.
  * This mapping is used when a field is not defined in SPECIAL_FIELDS
