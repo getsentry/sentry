@@ -1,47 +1,56 @@
-import {getMeta} from 'sentry/components/events/meta/metaProxy';
 import {KeyValueListData, Organization} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 
-import getTraceKnownDataDetails from './getTraceKnownDataDetails';
+import {getTraceKnownDataDetails} from './getTraceKnownDataDetails';
 import {TraceKnownData, TraceKnownDataType} from './types';
+import {traceKnownDataValues} from '.';
 
-type TraceKnownDataKeys = Extract<keyof TraceKnownData, string>;
+type Props = {
+  data: TraceKnownData;
+  event: Event;
+  meta: NonNullable<Event['_meta']>['trace'];
+  organization: Organization;
+};
 
-function getTraceKnownData(
-  data: TraceKnownData,
-  traceKnownDataValues: Array<TraceKnownDataType>,
-  event: Event,
-  organization: Organization
-): KeyValueListData {
+export function getTraceKnownData({
+  data,
+  event,
+  organization,
+  meta,
+}: Props): KeyValueListData {
   const knownData: KeyValueListData = [];
 
   const dataKeys = traceKnownDataValues.filter(traceKnownDataValue => {
     if (traceKnownDataValue === TraceKnownDataType.TRANSACTION_NAME) {
-      return event?.tags.find(tag => {
+      return !!event?.tags.find(tag => {
         return tag.key === 'transaction';
       });
     }
 
-    return data[traceKnownDataValue];
+    if (!defined(data[traceKnownDataValue])) {
+      if (meta[traceKnownDataValue]) {
+        return true;
+      }
+      return false;
+    }
+    return true;
   });
 
-  for (const key of dataKeys) {
-    const knownDataDetails = getTraceKnownDataDetails(data, key, event, organization);
+  for (const type of dataKeys) {
+    const knownDataDetails = getTraceKnownDataDetails({data, type, event, organization});
 
-    if ((knownDataDetails && !defined(knownDataDetails.value)) || !knownDataDetails) {
+    if (!knownDataDetails) {
       continue;
     }
 
     knownData.push({
-      key,
+      key: type,
       ...knownDataDetails,
-      meta: getMeta(data, key as TraceKnownDataKeys),
-      subjectDataTestId: `trace-context-${key.toLowerCase()}-value`,
+      meta: meta[type]?.[''],
+      subjectDataTestId: `trace-context-${type.toLowerCase()}-value`,
     });
   }
 
   return knownData;
 }
-
-export default getTraceKnownData;

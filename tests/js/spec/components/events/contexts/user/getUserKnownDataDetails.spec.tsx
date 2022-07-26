@@ -1,7 +1,4 @@
-import {
-  UserKnownDataType,
-  userKnownDataValues,
-} from 'sentry/components/events/contexts/user';
+import {userKnownDataValues} from 'sentry/components/events/contexts/user';
 import {getUserKnownDataDetails} from 'sentry/components/events/contexts/user/getUserKnownDataDetails';
 
 import {userMockData} from './index.spec';
@@ -12,7 +9,7 @@ describe('getUserKnownDataDetails', function () {
 
     for (const type of Object.keys(userKnownDataValues)) {
       const userKnownData = getUserKnownDataDetails({
-        type: userKnownDataValues[type] as UserKnownDataType,
+        type: userKnownDataValues[type],
         data: userMockData,
       });
 

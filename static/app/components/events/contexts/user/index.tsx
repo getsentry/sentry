@@ -43,7 +43,7 @@ export const userKnownDataValues = [
 const userIgnoredDataValues = [UserIgnoredDataType.DATA];
 
 export function UserEventContext({data, event}: Props) {
-  const meta = event._meta?.user ?? {};
+  const meta = event._meta?.contexts?.user ?? {};
 
   return (
     <div className="user-widget">
