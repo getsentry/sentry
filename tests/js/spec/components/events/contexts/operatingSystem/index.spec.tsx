@@ -30,9 +30,9 @@ export const operatingSystemMetaMockData = {
 const event = {
   ...TestStubs.Event(),
   _meta: {
-   contexts: {
-   os: operatingSystemMetaMockData
-   }
+    contexts: {
+      os: operatingSystemMetaMockData,
+    },
   },
 };
 
