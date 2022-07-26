@@ -1,5 +1,5 @@
 ---
-created: '2022-07-22T12:59:33.487327Z'
+created: '2022-07-26T09:55:15.184167Z'
 creator: sentry
 source: tests/sentry/relay/test_config.py
 ---
@@ -869,7 +869,7 @@ transactionMetrics:
   - s:transactions/user@none
   - d:transactions/measurements.app_start_cold@millisecond
   - d:transactions/measurements.app_start_warm@millisecond
-  - d:transactions/measurements.cls@millisecond
+  - d:transactions/measurements.cls@none
   - d:transactions/measurements.fcp@millisecond
   - d:transactions/measurements.fid@millisecond
   - d:transactions/measurements.fp@millisecond
@@ -882,9 +882,9 @@ transactionMetrics:
   - d:transactions/measurements.stall_total_time@millisecond
   - d:transactions/measurements.ttfb.requesttime@millisecond
   - d:transactions/measurements.ttfb@millisecond
-  - d:transactions/breakdowns.ops.http
-  - d:transactions/breakdowns.ops.db
-  - d:transactions/breakdowns.ops.browser
-  - d:transactions/breakdowns.ops.resource
-  - d:transactions/breakdowns.ops.ui
+  - d:transactions/breakdowns.span_ops.ops.http
+  - d:transactions/breakdowns.span_ops.ops.db
+  - d:transactions/breakdowns.span_ops.ops.browser
+  - d:transactions/breakdowns.span_ops.ops.resource
+  - d:transactions/breakdowns.span_ops.ops.ui
   version: 1
