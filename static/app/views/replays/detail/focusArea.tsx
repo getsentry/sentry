@@ -69,8 +69,8 @@ function FocusArea({}: Props) {
         <FeatureDisabled
           featureName={noFeatureMessage}
           features={features}
-          alert
           message={noFeatureMessage}
+          hideHelpToggle
         />
       );
       return (
