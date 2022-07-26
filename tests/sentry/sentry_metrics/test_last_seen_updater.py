@@ -124,7 +124,9 @@ class TestLastSeenUpdaterEndToEnd(TestCase):
         with override_options({"sentry-metrics.last-seen-updater.accept-rate": 1.0}):
             # we can't use fixtures with unittest.TestCase
             message = kafka_message(headerless_kafka_payload(mixed_payload()))
-            processing_strategy = self.processing_factory().create(lambda x: None)
+            processing_strategy = self.processing_factory().create_with_partitions(
+                lambda x: None, {Partition(Topic("fake-topic"), 0): 0}
+            )
             processing_strategy.submit(message)
             processing_strategy.poll()
             processing_strategy.join(1)
@@ -141,7 +143,9 @@ class TestLastSeenUpdaterEndToEnd(TestCase):
         with override_options({"sentry-metrics.last-seen-updater.accept-rate": 1.0}):
             ok_message = kafka_message(headerless_kafka_payload(mixed_payload()))
             bad_message = kafka_message(headerless_kafka_payload(bad_payload()))
-            processing_strategy = self.processing_factory().create(lambda x: None)
+            processing_strategy = self.processing_factory().create_with_partitions(
+                lambda x: None, {Partition(Topic("fake-topic"), 0): 0}
+            )
             processing_strategy.submit(bad_message)
             processing_strategy.submit(ok_message)
             processing_strategy.poll()
