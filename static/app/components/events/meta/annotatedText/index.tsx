@@ -28,8 +28,13 @@ const AnnotatedText = ({value, meta, className, ...props}: Props) => {
     const element = <ValueElement value={value} meta={meta} />;
 
     if (meta?.rem?.length) {
-      const title = getTooltipText({rule_id: meta.rem[0][0], remark: meta.rem[0][1]});
-      return <Tooltip title={title}>{element}</Tooltip>;
+      return (
+        <Tooltip
+          title={getTooltipText({rule_id: meta.rem[0][0], remark: meta.rem[0][1]})}
+        >
+          {element}
+        </Tooltip>
+      );
     }
 
     return element;
