@@ -119,7 +119,7 @@ class MailAdapterActiveReleaseTest(BaseMailAdapterTest):
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks(), self.feature(
             "organizations:active-release-monitor-alpha"
         ):
-            self.adapter.notify(Notification(event=event), ActionTargetType.RELEASE_MEMBERS, None)
+            self.adapter.notify_active_release(Notification(event=event))
 
         assert len(mail.outbox) == 1
         to_committer = mail.outbox[0]
