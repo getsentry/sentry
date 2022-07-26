@@ -8,6 +8,8 @@ import {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import Alert from 'sentry/components/alert';
 import ButtonBar from 'sentry/components/buttonBar';
+import OptionSelector from 'sentry/components/charts/optionSelector';
+import {InlineContainer} from 'sentry/components/charts/styles';
 import {getInterval} from 'sentry/components/charts/utils';
 import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
 import DatePageFilter from 'sentry/components/datePageFilter';
@@ -49,9 +51,15 @@ import {
   vitalMap,
   vitalSupportedBrowsers,
 } from './utils';
+import VitalChart from './vitalChart';
 import VitalInfo from './vitalInfo';
 
 const FRONTEND_VITALS = [WebVital.FCP, WebVital.LCP, WebVital.FID, WebVital.CLS];
+
+enum DisplayModes {
+  WORST_VITALS = 'Worst Vitals',
+  DURATION_P75 = 'Duration P75',
+}
 
 type Props = {
   api: Client;
@@ -73,6 +81,8 @@ function getSummaryConditions(query: string) {
 function VitalDetailContent(props: Props) {
   const [incompatibleAlertNotice, setIncompatibleAlertNotice] = useState<ReactNode>(null);
   const [error, setError] = useState<string | undefined>(undefined);
+
+  const display = decodeScalar(props.location.query.display, DisplayModes.WORST_VITALS);
 
   function handleSearch(query: string) {
     const {location} = props;
@@ -184,6 +194,23 @@ function VitalDetailContent(props: Props) {
     );
   }
 
+  function generateDisplayOptions() {
+    return [
+      {value: DisplayModes.WORST_VITALS, label: t(DisplayModes.WORST_VITALS)},
+      {value: DisplayModes.DURATION_P75, label: t(DisplayModes.DURATION_P75)},
+    ];
+  }
+
+  function handleDisplayChange(value: string) {
+    browserHistory.push({
+      pathname: location.pathname,
+      query: {
+        ...location.query,
+        display: value,
+      },
+    });
+  }
+
   function renderContent(vital: WebVital) {
     const {location, organization, eventView, projects} = props;
 
@@ -248,20 +275,43 @@ function VitalDetailContent(props: Props) {
             onSearch={handleSearch}
           />
         </FilterActions>
-        <VitalWidget
-          chartDefinition={chartDefinition}
-          chartSetting={chartSetting}
-          chartHeight={180}
-          fields={['measurements.lcp']}
-          location={location}
-          ContainerActions={() => null}
-          eventView={eventView}
-          organization={organization}
-          title={WIDGET_DEFINITIONS({organization})[chartSetting].title}
-          titleTooltip={WIDGET_DEFINITIONS({organization})[chartSetting].titleTooltip}
-          isVitalDetailView
-          {...p75WidgetProps}
-        />
+
+        {display === DisplayModes.WORST_VITALS ? (
+          <VitalWidget
+            chartDefinition={chartDefinition}
+            chartSetting={chartSetting}
+            chartHeight={180}
+            fields={['measurements.lcp']}
+            location={location}
+            ContainerActions={() => null}
+            eventView={eventView}
+            organization={organization}
+            title={WIDGET_DEFINITIONS({organization})[chartSetting].title}
+            titleTooltip={WIDGET_DEFINITIONS({organization})[chartSetting].titleTooltip}
+            isVitalDetailView
+            {...p75WidgetProps}
+          />
+        ) : (
+          <VitalChart
+            organization={organization}
+            query={query}
+            project={project}
+            environment={environment}
+            start={localDateStart}
+            end={localDateEnd}
+            statsPeriod={statsPeriod}
+            interval={interval}
+          />
+        )}
+
+        <InlineContainer data-test-id="display-toggle">
+          <OptionSelector
+            title={t('Display')}
+            selected={display}
+            options={generateDisplayOptions()}
+            onChange={handleDisplayChange}
+          />
+        </InlineContainer>
         <StyledVitalInfo>
           <VitalInfo
             orgSlug={orgSlug}

@@ -1,17 +1,13 @@
 import {Fragment, useMemo, useState} from 'react';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
 import Button from 'sentry/components/button';
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
-import OptionSelector from 'sentry/components/charts/optionSelector';
-import {InlineContainer} from 'sentry/components/charts/styles';
 import {getInterval} from 'sentry/components/charts/utils';
 import Truncate from 'sentry/components/truncate';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {DateString} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import DiscoverQuery, {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {getAggregateAlias, WebVital} from 'sentry/utils/discover/fields';
@@ -22,7 +18,7 @@ import {decodeList} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withApi from 'sentry/utils/withApi';
 import {vitalDetailRouteWithQuery} from 'sentry/views/performance/vitalDetail/utils';
-import VitalChart, {_VitalChart} from 'sentry/views/performance/vitalDetail/vitalChart';
+import {_VitalChart} from 'sentry/views/performance/vitalDetail/vitalChart';
 
 import {excludeTransaction} from '../../utils';
 import {VitalBar} from '../../vitalsCards';
@@ -108,7 +104,8 @@ type VitalDetailWidgetProps = {
 
 export function VitalWidget(
   props: PerformanceWidgetProps &
-    VitalDetailWidgetProps & {
+    VitalDetailWidgetProps &
+    Partial<{
       end: string | undefined;
       environment: readonly string[];
       interval: string;
@@ -116,22 +113,10 @@ export function VitalWidget(
       query: string;
       start: string | undefined;
       statsPeriod: string | undefined;
-    }
+    }>
 ) {
   const mepSetting = useMEPSettingContext();
-  const {
-    ContainerActions,
-    eventView,
-    organization,
-    location,
-    project,
-    query,
-    environment,
-    start,
-    end,
-    statsPeriod,
-    interval,
-  } = props;
+  const {ContainerActions, eventView, organization, location} = props;
   const useEvents = organization.features.includes(
     'performance-frontend-use-events-endpoint'
   );
@@ -324,25 +309,13 @@ export function VitalWidget(
       Visualizations={[
         {
           component: provided => (
-            <Fragment>
-              <_VitalChart
-                {...provided.widgetData.chart}
-                {...provided}
-                field={field}
-                vitalFields={vitalFields}
-                grid={provided.grid}
-              />
-              <VitalChart
-                organization={organization}
-                environment={environment}
-                project={project}
-                query={query}
-                start={start as DateString}
-                end={end as DateString}
-                statsPeriod={statsPeriod}
-                interval={interval}
-              />
-            </Fragment>
+            <_VitalChart
+              {...provided.widgetData.chart}
+              {...provided}
+              field={field}
+              vitalFields={vitalFields}
+              grid={provided.grid}
+            />
           ),
           height: props.chartHeight,
         },
@@ -410,44 +383,6 @@ export function VitalWidget(
           noPadding: true,
         },
       ]}
-      Footer={
-        isVitalDetailView
-          ? () => {
-              enum DisplayModes {
-                WORST_VITALS = 'Worst Vitals',
-                DURATION_P75 = 'Duration P75',
-              }
-
-              function generateDisplayOptions() {
-                return [
-                  {value: DisplayModes.WORST_VITALS, label: t(DisplayModes.WORST_VITALS)},
-                  {value: DisplayModes.DURATION_P75, label: t(DisplayModes.DURATION_P75)},
-                ];
-              }
-
-              function handleDisplayChange(value: string) {
-                browserHistory.push({
-                  pathname: location.pathname,
-                  query: {
-                    ...location.query,
-                    display: value,
-                  },
-                });
-              }
-
-              return (
-                <InlineContainer data-test-id="display-toggle">
-                  <OptionSelector
-                    title={t('Display')}
-                    selected={DisplayModes.WORST_VITALS}
-                    options={generateDisplayOptions()}
-                    onChange={handleDisplayChange}
-                  />
-                </InlineContainer>
-              );
-            }
-          : null
-      }
     />
   );
 }
