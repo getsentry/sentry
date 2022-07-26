@@ -15,13 +15,11 @@ import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import SelectControl from 'sentry/components/forms/selectControl';
-import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {DateString, Organization, PageFilters, SelectValue} from 'sentry/types';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import useApi from 'sentry/utils/useApi';
-import {DEFAULT_STATS_PERIOD} from 'sentry/views/dashboardsV2/data';
 import {
   DashboardDetails,
   DashboardListItem,
@@ -35,7 +33,6 @@ import {
 } from 'sentry/views/dashboardsV2/utils';
 import {NEW_DASHBOARD_ID} from 'sentry/views/dashboardsV2/widgetBuilder/utils';
 import WidgetCard from 'sentry/views/dashboardsV2/widgetCard';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 
 type WidgetAsQueryParams = Query & {
   defaultTableColumns: string[];
@@ -169,103 +166,68 @@ function AddToDashboardModal({
 
   const canSubmit = selectedDashboardId !== null;
 
-  const defaultSelection = selectedDashboard
-    ? ({
-        datetime: {
-          start: selectedDashboard.start,
-          end: selectedDashboard.end,
-          utc: false,
-          period: selectedDashboard.period,
-        },
-        environments: selectedDashboard.environment || [],
-        projects: selectedDashboard.projects || [],
-      } as PageFilters)
-    : {
-        datetime: {
-          start: null,
-          end: null,
-          utc: false,
-          period: DEFAULT_STATS_PERIOD,
-        },
-      };
-
   return (
     <Fragment>
       <Header closeButton>
         <h4>{t('Add to Dashboard')}</h4>
       </Header>
-      <OrganizationContext.Provider value={organization}>
-        <PageFiltersContainer
-          defaultSelection={defaultSelection}
-          organization={organization}
-          skipInitializeUrlParams
-          shouldForceProject
-          skipLoadLastUsed={
-            organization.features.includes('dashboards-top-level-filter') &&
-            selectedDashboard
-              ? hasSavedPageFilters(selectedDashboard)
-              : false
-          }
-        >
-          <Body>
-            {selectedDashboard && hasSavedPageFilters(selectedDashboard) && (
-              <Alert type="info" showIcon>
-                {t(
-                  'Filters saved on the selected Dashboard have been applied to the visualization.'
-                )}
-              </Alert>
+      <Body>
+        {selectedDashboard && hasSavedPageFilters(selectedDashboard) && (
+          <Alert type="info" showIcon>
+            {t(
+              'Filters saved on the selected Dashboard have been applied to the visualization.'
             )}
-            <SelectControlWrapper>
-              <SelectControl
-                disabled={dashboards === null}
-                menuPlacement="auto"
-                name="dashboard"
-                placeholder={t('Select Dashboard')}
-                value={selectedDashboardId}
-                options={
-                  dashboards && [
-                    {label: t('+ Create New Dashboard'), value: 'new'},
-                    ...dashboards.map(({title, id, widgetDisplay}) => ({
-                      label: title,
-                      value: id,
-                      isDisabled: widgetDisplay.length >= MAX_WIDGETS,
-                      tooltip:
-                        widgetDisplay.length >= MAX_WIDGETS &&
-                        tct('Max widgets ([maxWidgets]) per dashboard reached.', {
-                          maxWidgets: MAX_WIDGETS,
-                        }),
-                      tooltipOptions: {position: 'right'},
-                    })),
-                  ]
-                }
-                onChange={(option: SelectValue<string>) => {
-                  if (option.disabled) {
-                    return;
-                  }
-                  setSelectedDashboardId(option.value);
-                }}
-              />
-            </SelectControlWrapper>
-            {t('This is a preview of how the widget will appear in your dashboard.')}
-            <WidgetCard
-              api={api}
-              organization={organization}
-              currentWidgetDragging={false}
-              isEditing={false}
-              isSorting={false}
-              widgetLimitReached={false}
-              selection={
-                selectedDashboard
-                  ? getSavedFiltersAsPageFilters(selectedDashboard)
-                  : selection
+          </Alert>
+        )}
+        <SelectControlWrapper>
+          <SelectControl
+            disabled={dashboards === null}
+            menuPlacement="auto"
+            name="dashboard"
+            placeholder={t('Select Dashboard')}
+            value={selectedDashboardId}
+            options={
+              dashboards && [
+                {label: t('+ Create New Dashboard'), value: 'new'},
+                ...dashboards.map(({title, id, widgetDisplay}) => ({
+                  label: title,
+                  value: id,
+                  isDisabled: widgetDisplay.length >= MAX_WIDGETS,
+                  tooltip:
+                    widgetDisplay.length >= MAX_WIDGETS &&
+                    tct('Max widgets ([maxWidgets]) per dashboard reached.', {
+                      maxWidgets: MAX_WIDGETS,
+                    }),
+                  tooltipOptions: {position: 'right'},
+                })),
+              ]
+            }
+            onChange={(option: SelectValue<string>) => {
+              if (option.disabled) {
+                return;
               }
-              dashboardFilters={selectedDashboard?.filters}
-              widget={widget}
-              showStoredAlert
-            />
-          </Body>
-        </PageFiltersContainer>
-      </OrganizationContext.Provider>
+              setSelectedDashboardId(option.value);
+            }}
+          />
+        </SelectControlWrapper>
+        {t('This is a preview of how the widget will appear in your dashboard.')}
+        <WidgetCard
+          api={api}
+          organization={organization}
+          currentWidgetDragging={false}
+          isEditing={false}
+          isSorting={false}
+          widgetLimitReached={false}
+          selection={
+            selectedDashboard
+              ? getSavedFiltersAsPageFilters(selectedDashboard)
+              : selection
+          }
+          dashboardFilters={selectedDashboard?.filters}
+          widget={widget}
+          showStoredAlert
+        />
+      </Body>
 
       <Footer>
         <StyledButtonBar gap={1.5}>
