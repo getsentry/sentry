@@ -5,7 +5,7 @@ import {Event} from 'sentry/types/event';
 
 import {getUnknownData} from '../getUnknownData';
 
-import getAppKnownData from './getAppKnownData';
+import {getAppKnownData} from './getAppKnownData';
 import {AppData, AppKnownDataType} from './types';
 
 type Props = {
@@ -13,7 +13,7 @@ type Props = {
   event: Event;
 };
 
-const appKnownDataValues = [
+export const appKnownDataValues = [
   AppKnownDataType.ID,
   AppKnownDataType.START_TIME,
   AppKnownDataType.DEVICE_HASH,
@@ -25,18 +25,18 @@ const appKnownDataValues = [
 
 const appIgnoredDataValues = [];
 
-function App({data, event}: Props) {
+export function AppEventContext({data, event}: Props) {
+  const meta = event._meta?.contexts?.app ?? {};
   return (
     <Fragment>
-      <ContextBlock data={getAppKnownData(event, data, appKnownDataValues)} />
+      <ContextBlock data={getAppKnownData({event, data, meta})} />
       <ContextBlock
         data={getUnknownData({
           allData: data,
           knownKeys: [...appKnownDataValues, ...appIgnoredDataValues],
+          meta,
         })}
       />
     </Fragment>
   );
 }
-
-export default App;

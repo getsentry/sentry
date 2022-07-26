@@ -25,19 +25,17 @@ const AnnotatedText = ({value, meta, className, ...props}: Props) => {
       return <Chunks chunks={meta.chunks} />;
     }
 
-    const element = <ValueElement value={value} meta={meta} />;
-
     if (meta?.rem?.length) {
       return (
         <Tooltip
           title={getTooltipText({rule_id: meta.rem[0][0], remark: meta.rem[0][1]})}
         >
-          {element}
+          <ValueElement value={value} meta={meta} />
         </Tooltip>
       );
     }
 
-    return element;
+    return <ValueElement value={value} meta={meta} />;
   };
 
   const formatErrorKind = (kind: string) => {
