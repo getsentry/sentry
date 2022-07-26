@@ -7,7 +7,6 @@ from sentry.utils.suspect_resolutions.metric_correlation import is_issue_error_r
 
 
 def get_suspect_resolutions(resolved_issue: Group) -> Set[int]:
-
     if resolved_issue.status != GroupStatus.RESOLVED:
         return set()
 
@@ -30,7 +29,6 @@ def get_suspect_resolutions(resolved_issue: Group) -> Set[int]:
     }
 
     if len(correlated_issue_ids) != 0:
-
         for issue_id in correlated_issue_ids:
             analytics.record(
                 "suspect_resolution.ids",
