@@ -171,7 +171,7 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
     def test_start_and_end_filters_are_returned_in_response(self):
         start = iso_format(datetime.now() - timedelta(seconds=10))
         end = iso_format(datetime.now())
-        filters = {"start": start, "end": end}
+        filters = {"start": start, "end": end, "utc": False}
         dashboard = Dashboard.objects.create(
             title="Dashboard With Filters",
             created_by=self.user,
@@ -183,6 +183,7 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
         response = self.do_request("get", self.url(dashboard.id))
         assert iso_format(response.data["start"]) == start
         assert iso_format(response.data["end"]) == end
+        assert not response.data["utc"]
 
     def test_response_truncates_with_retention(self):
         start = iso_format(datetime.now() - timedelta(days=3))
