@@ -1,15 +1,15 @@
-import {RuntimeData} from 'sentry/components/events/contexts/runtime/types';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+
+import {RuntimeEventContext} from 'sentry/components/events/contexts/runtime';
 
 export const runtimeMockData = {
   version: '1.7.13',
   type: 'runtime',
   build: '2.7.18 (default, Apr 20 2020, 19:34:11) \n[GCC 8.3.0]',
   name: '',
-} as unknown as RuntimeData;
+};
 
 export const runtimeMetaMockData = {
-  version: '1.7.13',
-  type: 'runtime',
   name: {
     '': {
       chunks: [
@@ -26,6 +26,24 @@ export const runtimeMetaMockData = {
   },
 };
 
+const event = {
+  ...TestStubs.Event(),
+  _meta: {
+    contexts: {
+      runtime: runtimeMetaMockData,
+    },
+  },
+};
+
 describe('runtime event context', function () {
-  it.todo('display redacted data'); // Data Scrubbing has a couple of bugs that we need to address before creating a test for this
+  it('display redacted data', async function () {
+    render(<RuntimeEventContext event={event} data={runtimeMockData} />);
+
+    expect(screen.getByText('Name')).toBeInTheDocument(); // subject
+    expect(screen.getByText(/redacted/)).toBeInTheDocument(); // value
+    userEvent.hover(screen.getByText(/redacted/));
+    expect(
+      await screen.findByText('Removed because of PII rule "project:0"')
+    ).toBeInTheDocument(); // tooltip description
+  });
 });
