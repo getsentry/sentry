@@ -13,12 +13,19 @@ type Output = {
   actionButton?: React.ReactNode;
 };
 
-function getUserKnownDataDetails(
-  data: TraceKnownData,
-  type: TraceKnownDataType,
-  event: Event,
-  organization: Organization
-): Output | undefined {
+type Props = {
+  data: TraceKnownData;
+  event: Event;
+  organization: Organization;
+  type: TraceKnownDataType;
+};
+
+export function getTraceKnownDataDetails({
+  data,
+  event,
+  organization,
+  type,
+}: Props): Output | undefined {
   switch (type) {
     case TraceKnownDataType.TRACE_ID: {
       const traceId = data.trace_id || '';
@@ -112,5 +119,3 @@ function getUserKnownDataDetails(
       return undefined;
   }
 }
-
-export default getUserKnownDataDetails;
