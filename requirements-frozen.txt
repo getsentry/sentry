@@ -1,6 +1,6 @@
 # DO NOT MODIFY. This file was generated with `make freeze-requirements`.
 
-amqp==2.6.1
+amqp==5.1.1
 async-generator==1.10
 attrs==19.2.0
 beautifulsoup4==4.7.1
@@ -9,11 +9,14 @@ boto3==1.22.12
 botocore==1.25.12
 brotli==1.0.9
 cachetools==4.2.4
-celery==4.4.7
+celery==5.2.7
 certifi==2022.5.18.1
 cffi==1.15.1
 chardet==4.0.0
 click==8.0.4
+click-didyoumean==0.3.0
+click-plugins==1.1.1
+click-repl==0.2.0
 confluent-kafka==1.7.0
 croniter==0.3.37
 cryptography==37.0.2
@@ -47,7 +50,7 @@ inflection==0.5.1
 isodate==0.6.1
 jmespath==0.10.0
 jsonschema==3.2.0
-kombu==4.6.11
+kombu==5.2.4
 libcst==0.4.3
 lxml==4.6.5
 maxminddb==2.0.3
@@ -66,6 +69,7 @@ phabricator==0.7.0
 phonenumberslite==8.12.0
 pillow==9.0.1
 progressbar2==3.41.0
+prompt-toolkit==3.0.30
 proto-plus==1.20.4
 protobuf==3.19.0
 psycopg2-binary==2.8.6
@@ -83,7 +87,7 @@ python-rapidjson==1.4
 python-u2flib-server==5.0.0
 python-utils==3.3.3
 python3-saml==1.14.0
-pytz==2018.9
+pytz==2022.1
 pyyaml==5.4
 rb==1.9.0
 redis==3.4.1
@@ -118,7 +122,8 @@ unidiff==0.7.4
 uritemplate==4.1.1
 urllib3[brotli,secure,socks]==1.26.9
 uwsgi==2.0.20.0
-vine==1.3.0
+vine==5.0.0
+wcwidth==0.2.5
 wsproto==1.1.0
 xmlsec==1.3.11
 zstandard==0.18.0
