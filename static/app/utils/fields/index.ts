@@ -161,7 +161,7 @@ export enum AggregationKey {
 
 export interface FieldDefinition {
   kind: FieldKind;
-  valueType: FieldValueType;
+  valueType: FieldValueType | null;
   deprecated?: boolean;
   desc?: string;
 }
@@ -215,67 +215,67 @@ export const AGGREGATION_FIELDS: Record<string, FieldDefinition> = {
   [AggregationKey.Min]: {
     desc: 'Returns the minimum value of the selected field',
     kind: FieldKind.FUNCTION,
-    valueType: FieldValueType.NEVER,
+    valueType: null,
   },
   [AggregationKey.Max]: {
     desc: 'Returns maximum value of the selected field',
     kind: FieldKind.FUNCTION,
-    valueType: FieldValueType.NEVER,
+    valueType: null,
   },
   [AggregationKey.Sum]: {
     desc: 'Returns the total value for the selected field',
     kind: FieldKind.FUNCTION,
-    valueType: FieldValueType.NEVER,
+    valueType: null,
   },
   [AggregationKey.Any]: {
     desc: 'Transactions with a specific duration',
     kind: FieldKind.FUNCTION,
-    valueType: FieldValueType.NEVER,
+    valueType: null,
   },
   [AggregationKey.P50]: {
     desc: 'Returns the 50th percentile of the selected field',
     kind: FieldKind.FUNCTION,
-    valueType: FieldValueType.NEVER,
+    valueType: null,
   },
   [AggregationKey.P75]: {
     desc: 'Returns the 75th percentile of the selected field',
     kind: FieldKind.FUNCTION,
-    valueType: FieldValueType.NEVER,
+    valueType: null,
   },
   [AggregationKey.P95]: {
     desc: 'Returns the 95th percentile of the selected field',
     kind: FieldKind.FUNCTION,
-    valueType: FieldValueType.NEVER,
+    valueType: null,
   },
   [AggregationKey.P99]: {
     desc: 'Returns the 99th percentile of the selected field',
     kind: FieldKind.FUNCTION,
-    valueType: FieldValueType.NEVER,
+    valueType: null,
   },
   [AggregationKey.P100]: {
     desc: 'Returns the 100th percentile of the selected field',
     kind: FieldKind.FUNCTION,
-    valueType: FieldValueType.NEVER,
+    valueType: null,
   },
   [AggregationKey.Percentile]: {
     desc: 'Returns the percentile of the selected field',
     kind: FieldKind.FUNCTION,
-    valueType: FieldValueType.NEVER,
+    valueType: null,
   },
   [AggregationKey.Avg]: {
     desc: 'Returns averages for a selected field',
     kind: FieldKind.FUNCTION,
-    valueType: FieldValueType.NEVER,
+    valueType: null,
   },
   [AggregationKey.Apdex]: {
     desc: 'Returns the apdex score based on a duration threshold',
     kind: FieldKind.FUNCTION,
-    valueType: FieldValueType.NEVER,
+    valueType: null,
   },
   [AggregationKey.UserMisery]: {
     desc: 'Returns transactions of miserable users between 0 to 1',
     kind: FieldKind.FUNCTION,
-    valueType: FieldValueType.NEVER,
+    valueType: null,
   },
   [AggregationKey.LastSeen]: {
     desc: 'Issues last seen at a date and time',
