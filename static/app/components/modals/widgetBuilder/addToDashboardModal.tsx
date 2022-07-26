@@ -14,19 +14,25 @@ import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import SelectControl from 'sentry/components/forms/selectControl';
+import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {DateString, Organization, PageFilters, SelectValue} from 'sentry/types';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import useApi from 'sentry/utils/useApi';
+import {DEFAULT_STATS_PERIOD} from 'sentry/views/dashboardsV2/data';
+import TopLevelFilters from 'sentry/views/dashboardsV2/topLevelFilters';
 import {
+  DashboardDetails,
   DashboardListItem,
   DisplayType,
   MAX_WIDGETS,
   Widget,
 } from 'sentry/views/dashboardsV2/types';
+import {hasSavedPageFilters} from 'sentry/views/dashboardsV2/utils';
 import {NEW_DASHBOARD_ID} from 'sentry/views/dashboardsV2/widgetBuilder/utils';
 import WidgetCard from 'sentry/views/dashboardsV2/widgetCard';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 
 type WidgetAsQueryParams = Query & {
   defaultTableColumns: string[];
@@ -66,6 +72,9 @@ function AddToDashboardModal({
 }: Props) {
   const api = useApi();
   const [dashboards, setDashboards] = useState<DashboardListItem[] | null>(null);
+  const [selectedDashboard, setSelectedDashboard] = useState<DashboardDetails | null>(
+    null
+  );
   const [selectedDashboardId, setSelectedDashboardId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -86,6 +95,28 @@ function AddToDashboardModal({
     };
   }, [api, organization.slug]);
 
+  useEffect(() => {
+    // Track mounted state so we dont call setState on unmounted components
+    let unmounted = false;
+
+    if (selectedDashboardId === NEW_DASHBOARD_ID || selectedDashboardId === null) {
+      setSelectedDashboard(null);
+    } else {
+      fetchDashboard(api, organization.slug, selectedDashboardId).then(response => {
+        // If component has unmounted, dont set state
+        if (unmounted) {
+          return;
+        }
+
+        setSelectedDashboard(response);
+      });
+    }
+
+    return () => {
+      unmounted = true;
+    };
+  }, [api, organization.slug, selectedDashboardId]);
+
   function handleGoToBuilder() {
     const pathname =
       selectedDashboardId === NEW_DASHBOARD_ID
@@ -100,7 +131,7 @@ function AddToDashboardModal({
   }
 
   async function handleAddAndStayInDiscover() {
-    if (selectedDashboardId === null || selectedDashboardId === NEW_DASHBOARD_ID) {
+    if (selectedDashboard === null) {
       return;
     }
 
@@ -117,10 +148,9 @@ function AddToDashboardModal({
     };
 
     try {
-      const dashboard = await fetchDashboard(api, organization.slug, selectedDashboardId);
       const newDashboard = {
-        ...dashboard,
-        widgets: [...dashboard.widgets, newWidget],
+        ...selectedDashboard,
+        widgets: [...selectedDashboard.widgets, newWidget],
       };
 
       await updateDashboard(api, organization.slug, newDashboard);
@@ -141,52 +171,77 @@ function AddToDashboardModal({
       <Header closeButton>
         <h4>{t('Add to Dashboard')}</h4>
       </Header>
-
-      <Body>
-        <SelectControlWrapper>
-          <SelectControl
-            disabled={dashboards === null}
-            menuPlacement="auto"
-            name="dashboard"
-            placeholder={t('Select Dashboard')}
-            value={selectedDashboardId}
-            options={
-              dashboards && [
-                {label: t('+ Create New Dashboard'), value: 'new'},
-                ...dashboards.map(({title, id, widgetDisplay}) => ({
-                  label: title,
-                  value: id,
-                  isDisabled: widgetDisplay.length >= MAX_WIDGETS,
-                  tooltip:
-                    widgetDisplay.length >= MAX_WIDGETS &&
-                    tct('Max widgets ([maxWidgets]) per dashboard reached.', {
-                      maxWidgets: MAX_WIDGETS,
-                    }),
-                  tooltipOptions: {position: 'right'},
-                })),
-              ]
-            }
-            onChange={(option: SelectValue<string>) => {
-              if (option.disabled) {
-                return;
-              }
-              setSelectedDashboardId(option.value);
-            }}
-          />
-        </SelectControlWrapper>
-        {t('This is a preview of how the widget will appear in your dashboard.')}
-        <WidgetCard
-          api={api}
+      <OrganizationContext.Provider value={organization}>
+        <PageFiltersContainer
+          defaultSelection={{
+            datetime: {
+              start: null,
+              end: null,
+              utc: false,
+              period: DEFAULT_STATS_PERIOD,
+            },
+          }}
           organization={organization}
-          currentWidgetDragging={false}
-          isEditing={false}
-          isSorting={false}
-          widgetLimitReached={false}
-          selection={selection}
-          widget={widget}
-          showStoredAlert
-        />
-      </Body>
+          skipLoadLastUsed={
+            organization.features.includes('dashboards-top-level-filter') &&
+            selectedDashboard
+              ? hasSavedPageFilters(selectedDashboard)
+              : false
+          }
+        >
+          <Body>
+            <TopLevelFilters
+              organization={organization}
+              selection={selection}
+              filters={selectedDashboard ? selectedDashboard.filters : {}}
+              disabled
+            />
+            <SelectControlWrapper>
+              <SelectControl
+                disabled={dashboards === null}
+                menuPlacement="auto"
+                name="dashboard"
+                placeholder={t('Select Dashboard')}
+                value={selectedDashboardId}
+                options={
+                  dashboards && [
+                    {label: t('+ Create New Dashboard'), value: 'new'},
+                    ...dashboards.map(({title, id, widgetDisplay}) => ({
+                      label: title,
+                      value: id,
+                      isDisabled: widgetDisplay.length >= MAX_WIDGETS,
+                      tooltip:
+                        widgetDisplay.length >= MAX_WIDGETS &&
+                        tct('Max widgets ([maxWidgets]) per dashboard reached.', {
+                          maxWidgets: MAX_WIDGETS,
+                        }),
+                      tooltipOptions: {position: 'right'},
+                    })),
+                  ]
+                }
+                onChange={(option: SelectValue<string>) => {
+                  if (option.disabled) {
+                    return;
+                  }
+                  setSelectedDashboardId(option.value);
+                }}
+              />
+            </SelectControlWrapper>
+            {t('This is a preview of how the widget will appear in your dashboard.')}
+            <WidgetCard
+              api={api}
+              organization={organization}
+              currentWidgetDragging={false}
+              isEditing={false}
+              isSorting={false}
+              widgetLimitReached={false}
+              selection={selection}
+              widget={widget}
+              showStoredAlert
+            />
+          </Body>
+        </PageFiltersContainer>
+      </OrganizationContext.Provider>
 
       <Footer>
         <StyledButtonBar gap={1.5}>
