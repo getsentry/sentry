@@ -23,7 +23,6 @@ const traceIgnoredDataValues = [];
 type Props = {
   data: TraceKnownData & Record<string, any>;
   event: Event;
-  organization: Organization;
 };
 
 export function TraceEventContext({event, data}: Props) {

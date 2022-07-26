@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {TraceEventContext} from 'sentry/components/events/contexts/trace';
 import {OrganizationContext} from 'sentry/views/organizationContext';
@@ -22,9 +22,17 @@ export const traceContextMetaMockData = {
   },
 };
 
+const event = {
+  ...TestStubs.Event(),
+  _meta: {
+    contexts: {
+      trace: traceContextMetaMockData,
+    },
+  },
+};
+
 describe('trace event context', function () {
   const {organization} = initializeOrg();
-  const event = TestStubs.Event();
   const data = {
     tags: {
       url: 'https://github.com/getsentry/sentry/',
@@ -34,7 +42,7 @@ describe('trace event context', function () {
   it('renders text url as a link', function () {
     render(
       <OrganizationContext.Provider value={organization}>
-        <TraceEventContext organization={organization} data={data} event={event} />
+        <TraceEventContext data={data} event={event} />
       </OrganizationContext.Provider>
     );
 
@@ -44,5 +52,18 @@ describe('trace event context', function () {
     );
   });
 
-  it.todo('display redacted data'); // Data Scrubbing has a couple of bugs that we need to address before creating a test for this
+  it('display redacted data', async function () {
+    render(
+      <OrganizationContext.Provider value={organization}>
+        <TraceEventContext data={data} event={event} />
+      </OrganizationContext.Provider>
+    );
+
+    expect(screen.getByText('Operation Name')).toBeInTheDocument(); // subject
+    expect(screen.getByText(/redacted/)).toBeInTheDocument(); // value
+    userEvent.hover(screen.getByText(/redacted/));
+    expect(
+      await screen.findByText('Replaced because of PII rule "project:1"')
+    ).toBeInTheDocument(); // tooltip description
+  });
 });
