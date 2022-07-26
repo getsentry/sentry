@@ -409,7 +409,7 @@ register("relay.drop-transaction-metrics", default=[])
 register("relay.transaction-metrics-org-sample-rate", default=0.0)
 
 # Write new kafka headers in eventstream
-register("eventstream:kafka-headers", default=False)
+register("eventstream:kafka-headers", default=True)
 
 # Post process forwarder options
 # Gets data from Kafka headers
@@ -446,6 +446,14 @@ register("kafka.send-project-events-to-random-partitions", default=[])
 # Rate to project_configs_v3, no longer used.
 register("relay.project-config-v3-enable", default=0.0)
 
+# [Unused] Use zstandard compression in redis project config cache
+# Set this value to a list of DSNs.
+register("relay.project-config-cache-compress", default=[])  # unused
+
+# [Unused] Use zstandard compression in redis project config cache
+# Set this value of the fraction of config writes you want to compress.
+register("relay.project-config-cache-compress-sample-rate", default=0.0)  # unused
+
 # Mechanism for dialing up the last-seen-updater, which isn't needed outside
 # of SaaS (last_seen is a marker for deleting stale customer data)
 register("sentry-metrics.last-seen-updater.accept-rate", default=0.0)
@@ -454,3 +462,6 @@ register("sentry-metrics.last-seen-updater.accept-rate", default=0.0)
 register("api.deprecation.brownout-cron", default="0 12 * * *", type=String)
 # Brownout duration to be stored in ISO8601 format for durations (See https://en.wikipedia.org/wiki/ISO_8601#Durations)
 register("api.deprecation.brownout-duration", default="PT1M")
+
+# switch all metrics usage over to using strings for tag values
+register("sentry-metrics.performance.tags-values-are-strings", default=False)

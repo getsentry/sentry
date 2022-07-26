@@ -113,9 +113,10 @@ export function ServerSideSampling({project}: Props) {
     statsPeriod: '48h',
   });
 
-  const {recommendedSdkUpgrades} = useRecommendedSdkUpgrades({
-    orgSlug: organization.slug,
-  });
+  const {recommendedSdkUpgrades, fetching: fetchingRecommendedSdkUpgrades} =
+    useRecommendedSdkUpgrades({
+      orgSlug: organization.slug,
+    });
 
   async function handleActivateToggle(rule: SamplingRule) {
     const newRules = rules.map(r => {
@@ -410,7 +411,7 @@ export function ServerSideSampling({project}: Props) {
             'These settings can only be edited by users with the organization owner, manager, or admin role.'
           )}
         />
-        {!!rules.length && (
+        {!!rules.length && !fetchingRecommendedSdkUpgrades && (
           <SamplingSDKAlert
             organization={organization}
             projectId={project.id}

@@ -1,20 +1,22 @@
-import {useCallback, useEffect, useState} from 'react';
 import {components, MultiValueProps} from 'react-select';
 import styled from '@emotion/styled';
+import debounce from 'lodash/debounce';
 
 import {fetchTagValues} from 'sentry/actionCreators/tags';
+import Count from 'sentry/components/count';
 import SelectField from 'sentry/components/forms/selectField';
 import {t} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
+import {Organization, Project, TagValue as IssueTagValue} from 'sentry/types';
 import {SamplingInnerName} from 'sentry/types/sampling';
 import useApi from 'sentry/utils/useApi';
 
 import {TruncatedLabel} from './truncatedLabel';
 import {formatCreateTagLabel, getMatchFieldPlaceholder} from './utils';
 
-type Tag = {
-  value: string;
-};
+type TagValue = Pick<
+  IssueTagValue,
+  'key' | 'name' | 'value' | 'count' | 'lastSeen' | 'firstSeen'
+>;
 
 export interface TagValueAutocompleteProps {
   category:
@@ -37,7 +39,6 @@ function TagValueAutocomplete({
   tagKey,
 }: TagValueAutocompleteProps) {
   const api = useApi();
-  const [tagValues, setTagValues] = useState<Tag[]>([]);
 
   function getAriaLabel() {
     switch (category) {
@@ -50,49 +51,59 @@ function TagValueAutocomplete({
     }
   }
 
-  const tagValueLoader = useCallback(async () => {
+  const debouncedFetchValues = debounce(async (inputValue, resolve) => {
     if (!tagKey) {
-      return;
+      return resolve([]);
     }
 
-    try {
-      const response = await fetchTagValues(
+    return resolve(
+      await fetchTagValues(
         api,
         orgSlug,
         tagKey,
-        null,
+        inputValue,
         [projectId],
         null,
-        true
-      );
-      setTagValues(response);
-    } catch {
-      // Do nothing. No results will be suggested
-    }
-  }, [tagKey, api, orgSlug, projectId]);
+        true,
+        undefined,
+        '-count'
+      )
+    );
+  }, 250);
 
-  useEffect(() => {
-    tagValueLoader();
-  }, [tagValueLoader]);
+  const loadOptions = async (inputValue: string) => {
+    const response: TagValue[] = await new Promise(resolve => {
+      debouncedFetchValues(inputValue, resolve);
+    });
 
-  // react-select doesn't seem to work very well when its value contains
-  // a created item that isn't listed in the options
-  const createdOptions: Tag[] = !value
-    ? []
-    : value
-        .split('\n')
-        .filter(v => !tagValues.some(tagValue => tagValue.value === v))
-        .map(v => ({value: v}));
+    // react-select doesn't seem to work very well when its value contains
+    // a created item that isn't listed in the options
+    const createdOptions: TagValue[] = value
+      ? value
+          .split('\n')
+          .filter(v => !response.some(tagValue => tagValue.value === v))
+          .map(v => ({
+            value: v,
+            name: v,
+            key: tagKey,
+            count: 0,
+            firstSeen: '',
+            lastSeen: '',
+          }))
+      : [];
+
+    return [...response, ...createdOptions].map(tagValue => ({
+      value: tagValue.value,
+      label: <TruncatedLabel value={tagValue.value} />,
+      trailingItems: <StyledCount value={tagValue.count} />,
+    }));
+  };
 
   return (
     <StyledSelectField
       name="match"
       aria-label={getAriaLabel()}
-      options={[...createdOptions, ...tagValues].map(tagValue => ({
-        value: tagValue.value,
-        label: <TruncatedLabel value={tagValue.value} />,
-      }))}
-      value={value?.split('\n')}
+      value={value ? value?.split('\n').map(v => ({value: v, label: v})) : []}
       onChange={newValue => {
         onChange(newValue?.join('\n'));
       }}
@@ -105,17 +116,22 @@ function TagValueAutocomplete({
         ),
       }}
       formatCreateLabel={formatCreateTagLabel}
-      isValidNewOption={newOption => {
+      isValidNewOption={(inputValue, _selectValue, optionsArray) => {
+        // Do not show "Add new" for existing options
+        if (optionsArray.some(option => option.value === inputValue)) {
+          return false;
+        }
         // Tag values cannot be empty and must have a maximum length of 200 characters
         // https://github.com/getsentry/relay/blob/d8223d8d03ed4764063855eb3480f22684163d92/relay-general/src/store/normalize.rs#L230-L236
         // In addition to that, it cannot contain a line-feed (newline) character
         // https://github.com/getsentry/relay/blob/d8223d8d03ed4764063855eb3480f22684163d92/relay-general/src/protocol/tags.rs#L8
         return (
-          !/\\n/.test(newOption) &&
-          newOption.trim().length > 0 &&
-          newOption.trim().length <= 200
+          !/\\n/.test(inputValue) &&
+          inputValue.trim().length > 0 &&
+          inputValue.trim().length <= 200
         );
       }}
+      filterOption={(option, filterText) => option.data.value.indexOf(filterText) > -1}
       placeholder={getMatchFieldPlaceholder(category)}
       inline={false}
       multiple
@@ -125,12 +141,20 @@ function TagValueAutocomplete({
       stacked
       creatable
       allowClear
+      async
+      cacheOptions
+      defaultOptions
+      loadOptions={loadOptions}
     />
   );
 }
 
 const StyledSelectField = styled(SelectField)`
   width: 100%;
+`;
+
+const StyledCount = styled(Count)`
+  color: ${p => p.theme.subText};
 `;
 
 export {TagValueAutocomplete};

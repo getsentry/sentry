@@ -1,8 +1,13 @@
+import re
+
 import pytest
 
 from sentry.integrations.msteams.card_builder.base import MSTeamsMessageBuilder
 from sentry.integrations.msteams.card_builder.block import (
     ActionType,
+    ImageSize,
+    TextSize,
+    TextWeight,
     create_action_block,
     create_column_block,
     create_column_set_block,
@@ -26,8 +31,12 @@ from sentry.integrations.msteams.card_builder.installation import (
     build_personal_installation_message,
     build_welcome_card,
 )
-from sentry.models import Organization
+from sentry.integrations.msteams.card_builder.issues import MSTeamsIssueMessageBuilder
+from sentry.models import Integration, Organization, OrganizationIntegration, Rule
+from sentry.models.group import GroupStatus
+from sentry.models.groupassignee import GroupAssignee
 from sentry.testutils import TestCase
+from sentry.utils import json
 
 
 class MSTeamsMessageBuilderTest(TestCase):
@@ -35,6 +44,31 @@ class MSTeamsMessageBuilderTest(TestCase):
     Tests to ensure these cards can be created without errors.
     These tests do NOT test all visual aspects of the card.
     """
+
+    def setUp(self):
+        self.user = self.create_user(is_superuser=False)
+        owner = self.create_user()
+        self.org = self.create_organization(owner=owner)
+
+        self.integration = Integration.objects.create(
+            provider="msteams",
+            name="Fellowship of the Ring",
+            external_id="f3ll0wsh1p",
+            metadata={},
+        )
+        OrganizationIntegration.objects.create(organization=self.org, integration=self.integration)
+
+        self.project1 = self.create_project(organization=self.org)
+        self.event1 = self.store_event(
+            data={"message": "oh no"},
+            project_id=self.project1.id,
+        )
+        self.group1 = self.event1.group
+
+        self.rules = [
+            Rule.objects.create(label="rule1", project=self.project1),
+            Rule.objects.create(label="rule2", project=self.project1),
+        ]
 
     def test_simple(self):
         card = MSTeamsMessageBuilder().build(
@@ -152,6 +186,7 @@ class MSTeamsMessageBuilderTest(TestCase):
         assert 1 == len(linked_card["body"])
         columns = linked_card["body"][0]["columns"]
         assert "Image" == columns[0]["items"][0]["type"]
+        assert ImageSize.LARGE == columns[0]["items"][0]["size"]
 
     def test_link_identity_message(self):
         url = "test-url"
@@ -175,3 +210,153 @@ class MSTeamsMessageBuilderTest(TestCase):
         assert 1 == len(unlink_identity_card["body"])
         assert 1 == len(unlink_identity_card["actions"])
         assert "test-url" == unlink_identity_card["actions"][0]["url"]
+
+    def test_issue_message_builder(self):
+        self.event1.data["metadata"].update({"value": "some error"})
+        self.group1.data["metadata"].update({"value": "some error"})
+        self.event1.data["type"] = self.group1.data["type"] = "error"
+
+        issue_card = MSTeamsIssueMessageBuilder(
+            group=self.group1, event=self.event1, rules=self.rules, integration=self.integration
+        ).build_group_card()
+
+        body = issue_card["body"]
+        assert 4 == len(body)
+
+        title = body[0]
+        assert "oh no" in title["text"]
+        assert TextSize.LARGE == title["size"]
+        assert TextWeight.BOLDER == title["weight"]
+
+        description = body[1]
+        assert "some error" == description["text"]
+        assert TextWeight.BOLDER == description["weight"]
+
+        footer = body[2]
+        assert "ColumnSet" == footer["type"]
+        assert 3 == len(footer["columns"])
+
+        logo = footer["columns"][0]["items"][0]
+        assert "20px" == logo["height"]
+
+        issue_id_and_rule = footer["columns"][1]["items"][0]
+        assert self.group1.qualified_short_id in issue_id_and_rule["text"]
+        assert "rule1" in issue_id_and_rule["text"]
+        assert "+1 other" in issue_id_and_rule["text"]
+
+        date = footer["columns"][2]["items"][0]
+        assert (
+            re.match(
+                r"""\{\{                # {{
+                DATE\(                  # DATE(
+                    [0-9T+:\-]+,\ SHORT #   2022-07-14T19:30:34, SHORT
+                \)                      # )
+                \}\}                    # }}
+                \                       # whitespace
+                at                      # at
+                \                       # whitespace
+                \{\{                    # {{
+                TIME\([0-9T+:\-]+\)     # TIME(2022-07-14T19:30:34)
+                \}\}                    # }}""",
+                date["text"],
+                re.VERBOSE,
+            )
+            is not None
+        )
+
+        actions_container = body[3]
+        assert "Container" == actions_container["type"]
+
+        action_set = actions_container["items"][0]
+        assert "ActionSet" == action_set["type"]
+
+        actions = action_set["actions"]
+        for action in actions:
+            assert ActionType.SHOW_CARD == action["type"]
+            card_body = action["card"]["body"]
+            assert 2 == len(card_body)
+            assert "Input.ChoiceSet" == card_body[-1]["type"]
+
+        resolve_action, ignore_action, assign_action = actions
+        assert "Resolve" == resolve_action["title"]
+        assert "Ignore" == ignore_action["title"]
+        assert "Assign" == assign_action["title"]
+
+        body = ignore_action["card"]["body"]
+        assert 2 == len(body)
+        assert "Ignore until this happens again..." == body[0]["text"]
+        assert "Ignore" == ignore_action["card"]["actions"][0]["title"]
+
+        body = assign_action["card"]["body"]
+        assert 2 == len(body)
+        assert "Assign to..." == body[0]["text"]
+        assert "Assign" == assign_action["card"]["actions"][0]["title"]
+
+        # Check if card is serializable to json
+        card_json = json.dumps(issue_card)
+        assert card_json[0] == "{" and card_json[-1] == "}"
+
+    def test_issue_without_description(self):
+        issue_card = MSTeamsIssueMessageBuilder(
+            group=self.group1, event=self.event1, rules=self.rules, integration=self.integration
+        ).build_group_card()
+
+        assert 3 == len(issue_card["body"])
+
+    def test_issue_with_only_one_rule(self):
+        one_rule = self.rules[:1]
+        issue_card = MSTeamsIssueMessageBuilder(
+            group=self.group1, event=self.event1, rules=one_rule, integration=self.integration
+        ).build_group_card()
+
+        issue_id_and_rule = issue_card["body"][1]["columns"][1]["items"][0]
+
+        assert "rule1" in issue_id_and_rule["text"]
+        assert "+1 other" not in issue_id_and_rule["text"]
+
+    def test_resolved_issue_message(self):
+        self.group1.status = GroupStatus.RESOLVED
+        self.group1.save()
+
+        issue_card = MSTeamsIssueMessageBuilder(
+            group=self.group1, event=self.event1, rules=self.rules, integration=self.integration
+        ).build_group_card()
+
+        action_set = issue_card["body"][2]["items"][0]
+
+        resolve_action = action_set["actions"][0]
+        assert ActionType.SUBMIT == resolve_action["type"]
+        assert "Unresolve" == resolve_action["title"]
+
+    def test_ignored_issue_message(self):
+        self.group1.status = GroupStatus.IGNORED
+
+        issue_card = MSTeamsIssueMessageBuilder(
+            group=self.group1, event=self.event1, rules=self.rules, integration=self.integration
+        ).build_group_card()
+
+        action_set = issue_card["body"][2]["items"][0]
+
+        ignore_action = action_set["actions"][1]
+        assert ActionType.SUBMIT == ignore_action["type"]
+        assert "Stop Ignoring" == ignore_action["title"]
+
+    def test_assigned_issue_message(self):
+        GroupAssignee.objects.assign(self.group1, self.user)
+
+        issue_card = MSTeamsIssueMessageBuilder(
+            group=self.group1, event=self.event1, rules=self.rules, integration=self.integration
+        ).build_group_card()
+
+        body = issue_card["body"]
+        assert 4 == len(body)
+
+        assignee_note = body[2]
+        user_name = self.user.get_display_name()
+        assert f"**Assigned to {user_name}**" == assignee_note["text"]
+
+        action_set = body[3]["items"][0]
+
+        assign_action = action_set["actions"][2]
+        assert ActionType.SUBMIT == assign_action["type"]
+        assert "Unassign" == assign_action["title"]

@@ -29,6 +29,7 @@ import {
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 } from 'sentry/utils/discover/fields';
 import {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
+import {canUseMetricsData} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {decodeScalar} from 'sentry/utils/queryString';
 import withProjects from 'sentry/utils/withProjects';
 import {Actions, updateQuery} from 'sentry/views/eventsV2/table/cellAction';
@@ -54,10 +55,10 @@ import {
   TransactionFilterOptions,
 } from '../utils';
 
-import {MetricsEventsDropdown} from './metricEvents/metricsEventsDropdown';
 import TransactionSummaryCharts from './charts';
 import RelatedIssues from './relatedIssues';
 import SidebarCharts from './sidebarCharts';
+import SidebarMEPCharts from './sidebarMEPCharts';
 import StatusBreakdown from './statusBreakdown';
 import SuspectSpans from './suspectSpans';
 import {TagExplorer} from './tagExplorer';
@@ -274,6 +275,8 @@ function SummaryContent({
     handleOpenAllEventsClick: handleAllEventsViewClick,
   };
 
+  const isUsingMetrics = canUseMetricsData(organization);
+
   return (
     <Fragment>
       <Layout.Main>
@@ -296,7 +299,6 @@ function SummaryContent({
             onSearch={handleSearch}
             maxQueryLength={MAX_QUERY_LENGTH}
           />
-          <MetricsEventsDropdown />
         </FilterActions>
         <TransactionSummaryCharts
           organization={organization}
@@ -366,6 +368,20 @@ function SummaryContent({
         />
       </Layout.Main>
       <Layout.Side>
+        {(isUsingMetrics ?? null) && (
+          <Fragment>
+            <SidebarMEPCharts
+              organization={organization}
+              isLoading={isLoading}
+              error={error}
+              totals={totalValues}
+              eventView={eventView}
+              transactionName={transactionName}
+              isShowingMetricsEventCount
+            />
+            <SidebarSpacer />
+          </Fragment>
+        )}
         <UserStats
           organization={organization}
           location={location}
@@ -384,14 +400,25 @@ function SummaryContent({
           />
         )}
         <SidebarSpacer />
-        <SidebarCharts
-          organization={organization}
-          isLoading={isLoading}
-          error={error}
-          totals={totalValues}
-          eventView={eventView}
-          transactionName={transactionName}
-        />
+        {isUsingMetrics ? (
+          <SidebarMEPCharts
+            organization={organization}
+            isLoading={isLoading}
+            error={error}
+            totals={totalValues}
+            eventView={eventView}
+            transactionName={transactionName}
+          />
+        ) : (
+          <SidebarCharts
+            organization={organization}
+            isLoading={isLoading}
+            error={error}
+            totals={totalValues}
+            eventView={eventView}
+            transactionName={transactionName}
+          />
+        )}
         <SidebarSpacer />
         <Tags
           generateUrl={generateTagUrl}

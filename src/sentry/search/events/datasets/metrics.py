@@ -4,6 +4,7 @@ from typing import Any, Callable, Dict, List, Mapping, Optional, Union
 
 from snuba_sdk import AliasedExpression, Column, Function
 
+from sentry import options
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.search.events import constants, fields
@@ -11,6 +12,7 @@ from sentry.search.events.builder import MetricsQueryBuilder
 from sentry.search.events.datasets import field_aliases, filter_aliases
 from sentry.search.events.datasets.base import DatasetConfig
 from sentry.search.events.types import SelectType, WhereType
+from sentry.utils.snuba import is_duration_measurement, is_span_op_breakdown
 
 
 class MetricsDatasetConfig(DatasetConfig):
@@ -52,6 +54,13 @@ class MetricsDatasetConfig(DatasetConfig):
         self.builder.metric_ids.add(metric_id)
         return metric_id
 
+    def resolve_tag_value(self, value: str) -> Union[str, int]:
+        if self.builder.is_performance and options.get(
+            "sentry-metrics.performance.tags-values-are-strings"
+        ):
+            return value
+        return self.resolve_value(value)
+
     def resolve_value(self, value: str) -> int:
         if self.builder.dry_run:
             return -1
@@ -59,7 +68,7 @@ class MetricsDatasetConfig(DatasetConfig):
 
         return value_id
 
-    def reflective_metric_type(
+    def metric_type_resolver(
         self, index: Optional[int] = 0
     ) -> Callable[[List[fields.FunctionArg], Dict[str, Any]], str]:
         """Return the type of the metric, default to duration
@@ -74,8 +83,22 @@ class MetricsDatasetConfig(DatasetConfig):
             value = parameter_values[argument.name]
             for measurement in self.builder.custom_measurement_map:
                 if measurement["name"] == value and measurement["metric_id"] is not None:
-                    return measurement["unit"]
-            return "duration"
+                    unit = measurement["unit"]
+                    if unit in constants.SIZE_UNITS or unit in constants.DURATION_UNITS:
+                        return unit
+                    elif unit == "none":
+                        return "integer"
+                    elif unit in constants.PERCENT_UNITS:
+                        return "percentage"
+                    else:
+                        return "number"
+            if (
+                value == "transaction.duration"
+                or is_duration_measurement(value)
+                or is_span_op_breakdown(value)
+            ):
+                return "duration"
+            return "number"
 
         return result_type_fn
 
@@ -98,10 +121,9 @@ class MetricsDatasetConfig(DatasetConfig):
                 # Note while the discover version of apdex, count_miserable, user_misery
                 # accepts arguments, because this is precomputed with tags no parameters
                 # are available
-                # TODO: Should raise IncompatibleMetricsQuery when params are passed
                 fields.MetricsFunction(
                     "apdex",
-                    optional_args=[],
+                    optional_args=[fields.NullableNumberRange("satisfaction", 0, None)],
                     snql_distribution=self._resolve_apdex_function,
                     default_result_type="number",
                 ),
@@ -128,7 +150,7 @@ class MetricsDatasetConfig(DatasetConfig):
                         ],
                         alias,
                     ),
-                    result_type_fn=self.reflective_metric_type(),
+                    result_type_fn=self.metric_type_resolver(),
                     default_result_type="integer",
                 ),
                 fields.MetricsFunction(
@@ -138,13 +160,22 @@ class MetricsDatasetConfig(DatasetConfig):
                             "column", allowed_columns=["user"], allow_custom_measurements=False
                         )
                     ],
+                    optional_args=[fields.NullableNumberRange("satisfaction", 0, None)],
                     calculated_args=[resolve_metric_id],
                     snql_set=self._resolve_count_miserable_function,
                     default_result_type="integer",
                 ),
                 fields.MetricsFunction(
                     "user_misery",
-                    optional_args=[],
+                    optional_args=[
+                        fields.NullableNumberRange("satisfaction", 0, None),
+                        fields.with_default(
+                            constants.MISERY_ALPHA, fields.NumberRange("alpha", 0, None)
+                        ),
+                        fields.with_default(
+                            constants.MISERY_BETA, fields.NumberRange("beta", 0, None)
+                        ),
+                    ],
                     calculated_args=[],
                     snql_set=self._resolve_user_misery_function,
                     default_result_type="number",
@@ -163,7 +194,7 @@ class MetricsDatasetConfig(DatasetConfig):
                     snql_distribution=lambda args, alias: self._resolve_percentile(
                         args, alias, 0.5
                     ),
-                    result_type_fn=self.reflective_metric_type(),
+                    result_type_fn=self.metric_type_resolver(),
                     default_result_type="duration",
                 ),
                 fields.MetricsFunction(
@@ -180,7 +211,7 @@ class MetricsDatasetConfig(DatasetConfig):
                     snql_distribution=lambda args, alias: self._resolve_percentile(
                         args, alias, 0.75
                     ),
-                    result_type_fn=self.reflective_metric_type(),
+                    result_type_fn=self.metric_type_resolver(),
                     default_result_type="duration",
                 ),
                 fields.MetricsFunction(
@@ -197,7 +228,7 @@ class MetricsDatasetConfig(DatasetConfig):
                     snql_distribution=lambda args, alias: self._resolve_percentile(
                         args, alias, 0.90
                     ),
-                    result_type_fn=self.reflective_metric_type(),
+                    result_type_fn=self.metric_type_resolver(),
                     default_result_type="duration",
                 ),
                 fields.MetricsFunction(
@@ -214,7 +245,7 @@ class MetricsDatasetConfig(DatasetConfig):
                     snql_distribution=lambda args, alias: self._resolve_percentile(
                         args, alias, 0.95
                     ),
-                    result_type_fn=self.reflective_metric_type(),
+                    result_type_fn=self.metric_type_resolver(),
                     default_result_type="duration",
                 ),
                 fields.MetricsFunction(
@@ -231,7 +262,7 @@ class MetricsDatasetConfig(DatasetConfig):
                     snql_distribution=lambda args, alias: self._resolve_percentile(
                         args, alias, 0.99
                     ),
-                    result_type_fn=self.reflective_metric_type(),
+                    result_type_fn=self.metric_type_resolver(),
                     default_result_type="duration",
                 ),
                 fields.MetricsFunction(
@@ -246,7 +277,7 @@ class MetricsDatasetConfig(DatasetConfig):
                     ],
                     calculated_args=[resolve_metric_id],
                     snql_distribution=lambda args, alias: self._resolve_percentile(args, alias, 1),
-                    result_type_fn=self.reflective_metric_type(),
+                    result_type_fn=self.metric_type_resolver(),
                     default_result_type="duration",
                 ),
                 fields.MetricsFunction(
@@ -263,7 +294,7 @@ class MetricsDatasetConfig(DatasetConfig):
                         ],
                         alias,
                     ),
-                    result_type_fn=self.reflective_metric_type(),
+                    result_type_fn=self.metric_type_resolver(),
                 ),
                 fields.MetricsFunction(
                     "min",
@@ -279,7 +310,7 @@ class MetricsDatasetConfig(DatasetConfig):
                         ],
                         alias,
                     ),
-                    result_type_fn=self.reflective_metric_type(),
+                    result_type_fn=self.metric_type_resolver(),
                 ),
                 fields.MetricsFunction(
                     "sum",
@@ -295,7 +326,7 @@ class MetricsDatasetConfig(DatasetConfig):
                         ],
                         alias,
                     ),
-                    result_type_fn=self.reflective_metric_type(),
+                    result_type_fn=self.metric_type_resolver(),
                 ),
                 fields.MetricsFunction(
                     "sumIf",
@@ -306,7 +337,7 @@ class MetricsDatasetConfig(DatasetConfig):
                     calculated_args=[
                         {
                             "name": "resolved_val",
-                            "fn": lambda args: self.resolve_value(args["if_val"]),
+                            "fn": lambda args: self.resolve_tag_value(args["if_val"]),
                         }
                     ],
                     snql_counter=lambda args, alias: Function(
@@ -332,7 +363,7 @@ class MetricsDatasetConfig(DatasetConfig):
                     ],
                     calculated_args=[resolve_metric_id],
                     snql_distribution=self._resolve_percentile,
-                    result_type_fn=self.reflective_metric_type(),
+                    result_type_fn=self.metric_type_resolver(),
                     default_result_type="duration",
                 ),
                 fields.MetricsFunction(
@@ -370,7 +401,7 @@ class MetricsDatasetConfig(DatasetConfig):
                     calculated_args=[
                         {
                             "name": "resolved_val",
-                            "fn": lambda args: self.resolve_value(args["if_val"]),
+                            "fn": lambda args: self.resolve_tag_value(args["if_val"]),
                         }
                     ],
                     snql_set=lambda args, alias: Function(
@@ -500,7 +531,7 @@ class MetricsDatasetConfig(DatasetConfig):
                         ],
                         alias,
                     ),
-                    default_result_type="integer",
+                    default_result_type="percentage",
                 ),
                 fields.MetricsFunction(
                     "histogram",
@@ -585,11 +616,17 @@ class MetricsDatasetConfig(DatasetConfig):
 
     def _resolve_apdex_function(
         self,
-        _: Mapping[str, Union[str, Column, SelectType, int, float]],
+        args: Mapping[str, Union[str, Column, SelectType, int, float]],
         alias: Optional[str] = None,
     ) -> SelectType:
-        metric_satisfied = self.resolve_value(constants.METRIC_SATISFIED_TAG_VALUE)
-        metric_tolerated = self.resolve_value(constants.METRIC_TOLERATED_TAG_VALUE)
+        """Apdex is tag based in metrics, which means we can't base it on the satsifaction parameter"""
+        if args["satisfaction"] is not None:
+            raise IncompatibleMetricsQuery(
+                "Cannot query apdex with a threshold parameter on the metrics dataset"
+            )
+
+        metric_satisfied = self.resolve_tag_value(constants.METRIC_SATISFIED_TAG_VALUE)
+        metric_tolerated = self.resolve_tag_value(constants.METRIC_TOLERATED_TAG_VALUE)
 
         # Nothing is satisfied or tolerated, the score must be 0
         if metric_satisfied is None and metric_tolerated is None:
@@ -654,7 +691,11 @@ class MetricsDatasetConfig(DatasetConfig):
         args: Mapping[str, Union[str, Column, SelectType, int, float]],
         alias: Optional[str] = None,
     ) -> SelectType:
-        metric_frustrated = self.resolve_value(constants.METRIC_FRUSTRATED_TAG_VALUE)
+        if args["satisfaction"] is not None:
+            raise IncompatibleMetricsQuery(
+                "Cannot query misery with a threshold parameter on the metrics dataset"
+            )
+        metric_frustrated = self.resolve_tag_value(constants.METRIC_FRUSTRATED_TAG_VALUE)
 
         # Nobody is miserable, we can return 0
         if metric_frustrated is None:
@@ -696,6 +737,10 @@ class MetricsDatasetConfig(DatasetConfig):
         args: Mapping[str, Union[str, Column, SelectType, int, float]],
         alias: Optional[str] = None,
     ) -> SelectType:
+        if args["satisfaction"] is not None:
+            raise IncompatibleMetricsQuery(
+                "Cannot query user_misery with a threshold parameter on the metrics dataset"
+            )
         return Function(
             "divide",
             [
@@ -703,7 +748,7 @@ class MetricsDatasetConfig(DatasetConfig):
                     "plus",
                     [
                         self.builder.resolve_function("count_miserable(user)"),
-                        constants.MISERY_ALPHA,
+                        args["alpha"],
                     ],
                 ),
                 Function(
@@ -712,7 +757,7 @@ class MetricsDatasetConfig(DatasetConfig):
                         Function(
                             "nullIf", [self.builder.resolve_function("count_unique(user)"), 0]
                         ),
-                        constants.MISERY_ALPHA + constants.MISERY_BETA,
+                        args["alpha"] + args["beta"],
                     ],
                 ),
             ],
@@ -724,7 +769,7 @@ class MetricsDatasetConfig(DatasetConfig):
         _: Mapping[str, Union[str, Column, SelectType, int, float]],
         alias: Optional[str] = None,
     ) -> SelectType:
-        statuses = [self.resolve_value(status) for status in constants.NON_FAILURE_STATUS]
+        statuses = [self.resolve_tag_value(status) for status in constants.NON_FAILURE_STATUS]
         return self._resolve_count_if(
             Function(
                 "equals",
@@ -812,7 +857,7 @@ class MetricsDatasetConfig(DatasetConfig):
                 alias,
             )
 
-        quality_id = self.resolve_value(quality)
+        quality_id = self.resolve_tag_value(quality)
         if quality_id is None:
             return Function(
                 # This matches the type from doing `select toTypeName(count()) ...` from clickhouse

@@ -535,6 +535,7 @@ def test_get_sessionsv2_schema():
     assert schema["avg(session.duration)"] == FixedList(22 * [Ct.Quantile] + 2 * [Ct.Ignore])
 
 
+@pytest.mark.xfail(reason="date-sensitive test")
 def test_sessionsv2_config():
     with Feature("organizations:release-health-return-metrics"):
         backend = DuplexReleaseHealthBackend(datetime(2022, 4, 28, 16, 0, tzinfo=timezone.utc))

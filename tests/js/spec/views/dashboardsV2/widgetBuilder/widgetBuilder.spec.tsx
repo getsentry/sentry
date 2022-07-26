@@ -1076,6 +1076,44 @@ describe('WidgetBuilder', function () {
       expect(screen.getByRole('button', {name: /all releases/i})).toBeDisabled();
     });
 
+    it('appends dashboard filters to widget builder fetch data request', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/releases/',
+        body: [TestStubs.Release()],
+      });
+
+      const mock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/eventsv2/',
+        body: [],
+      });
+
+      renderTestComponent({
+        dashboard: {
+          id: 'new',
+          title: 'Dashboard',
+          createdBy: undefined,
+          dateCreated: '2020-01-01T00:00:00.000Z',
+          widgets: [],
+          projects: [],
+          filters: {release: ['abc@1.2.0']},
+        },
+        params: {orgId: 'org-slug'},
+        query: {statsPeriod: '90d'},
+        orgFeatures: [...defaultOrgFeatures, 'dashboards-top-level-filter'],
+      });
+
+      await waitFor(() => {
+        expect(mock).toHaveBeenCalledWith(
+          '/organizations/org-slug/eventsv2/',
+          expect.objectContaining({
+            query: expect.objectContaining({
+              query: ' release:abc@1.2.0 ',
+            }),
+          })
+        );
+      });
+    });
+
     it('does not error when query conditions field is blurred', async function () {
       jest.useFakeTimers();
       const widget: Widget = {
@@ -3585,6 +3623,102 @@ describe('WidgetBuilder', function () {
         expect(
           screen.queryByText('measurements.custom.measurement')
         ).not.toBeInTheDocument();
+      });
+
+      it('renders custom performance metric using duration units from events meta', async function () {
+        eventsMock = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/events/',
+          method: 'GET',
+          statusCode: 200,
+          body: {
+            meta: {
+              fields: {'p99(measurements.custom.measurement)': 'duration'},
+              isMetricsData: true,
+              units: {'p99(measurements.custom.measurement)': 'hour'},
+            },
+            data: [{'p99(measurements.custom.measurement)': 12}],
+          },
+        });
+
+        renderTestComponent({
+          query: {source: DashboardWidgetSource.DISCOVERV2},
+          dashboard: {
+            ...testDashboard,
+            widgets: [
+              {
+                title: 'Custom Measurement Widget',
+                interval: '1d',
+                id: '1',
+                widgetType: WidgetType.DISCOVER,
+                displayType: DisplayType.TABLE,
+                queries: [
+                  {
+                    conditions: '',
+                    name: '',
+                    fields: ['p99(measurements.custom.measurement)'],
+                    columns: [],
+                    aggregates: ['p99(measurements.custom.measurement)'],
+                    orderby: '-p99(measurements.custom.measurement)',
+                  },
+                ],
+              },
+            ],
+          },
+          params: {
+            widgetIndex: '0',
+          },
+          orgFeatures: [...defaultOrgFeatures, 'discover-frontend-use-events-endpoint'],
+        });
+
+        await screen.findByText('12.00hr');
+      });
+
+      it('renders custom performance metric using size units from events meta', async function () {
+        eventsMock = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/events/',
+          method: 'GET',
+          statusCode: 200,
+          body: {
+            meta: {
+              fields: {'p99(measurements.custom.measurement)': 'size'},
+              isMetricsData: true,
+              units: {'p99(measurements.custom.measurement)': 'kibibyte'},
+            },
+            data: [{'p99(measurements.custom.measurement)': 12}],
+          },
+        });
+
+        renderTestComponent({
+          query: {source: DashboardWidgetSource.DISCOVERV2},
+          dashboard: {
+            ...testDashboard,
+            widgets: [
+              {
+                title: 'Custom Measurement Widget',
+                interval: '1d',
+                id: '1',
+                widgetType: WidgetType.DISCOVER,
+                displayType: DisplayType.TABLE,
+                queries: [
+                  {
+                    conditions: '',
+                    name: '',
+                    fields: ['p99(measurements.custom.measurement)'],
+                    columns: [],
+                    aggregates: ['p99(measurements.custom.measurement)'],
+                    orderby: '-p99(measurements.custom.measurement)',
+                  },
+                ],
+              },
+            ],
+          },
+          params: {
+            widgetIndex: '0',
+          },
+          orgFeatures: [...defaultOrgFeatures, 'discover-frontend-use-events-endpoint'],
+        });
+
+        await screen.findByText('12.0 KiB');
       });
     });
   });

@@ -343,7 +343,7 @@ type EventContexts = {
   trace?: TraceContextType;
 };
 
-export type Measurement = {value: number};
+export type Measurement = {value: number; unit?: string};
 
 export type EventTag = {key: string; value: string};
 
@@ -385,6 +385,7 @@ type EventBase = {
     | EventOrGroupType.EXPECTSTAPLE
     | EventOrGroupType.HPKP;
   user: EventUser | null;
+  _meta?: Record<string, any>;
   context?: Record<string, any>;
   dateCreated?: string;
   device?: Record<string, any>;
