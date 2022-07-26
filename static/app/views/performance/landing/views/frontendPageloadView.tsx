@@ -5,9 +5,22 @@ import Table from '../../table';
 import {PROJECT_PERFORMANCE_TYPE} from '../../utils';
 import {FRONTEND_PAGELOAD_COLUMN_TITLES} from '../data';
 import {DoubleChartRow, TripleChartRow} from '../widgets/components/widgetChartRow';
+import {filterAllowedChartsMetrics} from '../widgets/utils';
 import {PerformanceWidgetSetting} from '../widgets/widgetDefinitions';
 
 import {BasePerformanceViewProps} from './types';
+
+function getAllowedChartsSmall(props: BasePerformanceViewProps) {
+  const charts = [
+    PerformanceWidgetSetting.P75_LCP_AREA,
+    PerformanceWidgetSetting.LCP_HISTOGRAM,
+    PerformanceWidgetSetting.FCP_HISTOGRAM,
+    PerformanceWidgetSetting.USER_MISERY_AREA,
+    PerformanceWidgetSetting.TPM_AREA,
+  ];
+
+  return filterAllowedChartsMetrics(props.organization, charts);
+}
 
 export function FrontendPageloadView(props: BasePerformanceViewProps) {
   return (
@@ -15,16 +28,7 @@ export function FrontendPageloadView(props: BasePerformanceViewProps) {
       value={{performanceType: PROJECT_PERFORMANCE_TYPE.FRONTEND}}
     >
       <div data-test-id="frontend-pageload-view">
-        <TripleChartRow
-          {...props}
-          allowedCharts={[
-            PerformanceWidgetSetting.P75_LCP_AREA,
-            PerformanceWidgetSetting.LCP_HISTOGRAM,
-            PerformanceWidgetSetting.FCP_HISTOGRAM,
-            PerformanceWidgetSetting.USER_MISERY_AREA,
-            PerformanceWidgetSetting.TPM_AREA,
-          ]}
-        />
+        <TripleChartRow {...props} allowedCharts={getAllowedChartsSmall(props)} />
         <DoubleChartRow
           {...props}
           allowedCharts={[
