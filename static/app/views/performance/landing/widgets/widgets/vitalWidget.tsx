@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useState} from 'react';
+import {Dispatch, Fragment, SetStateAction, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
@@ -100,11 +100,13 @@ export function transformFieldsWithStops(props: {
 type VitalDetailWidgetProps = {
   Footer?: GenericPerformanceFooter<DataType>;
   isVitalDetailView?: boolean;
+  setTotalEventsCount?: Dispatch<SetStateAction<number>>;
 };
 
 export function VitalWidget(props: PerformanceWidgetProps & VitalDetailWidgetProps) {
   const mepSetting = useMEPSettingContext();
-  const {ContainerActions, eventView, organization, location} = props;
+  const {ContainerActions, eventView, organization, location, setTotalEventsCount} =
+    props;
   const useEvents = organization.features.includes(
     'performance-frontend-use-events-endpoint'
   );
@@ -265,6 +267,8 @@ export function VitalWidget(props: PerformanceWidgetProps & VitalDetailWidgetPro
               !useEvents
             ),
           };
+
+          setTotalEventsCount!(data[vital].total);
 
           return (
             <VitalBar

@@ -277,6 +277,7 @@ function VitalDetailContent(props: Props) {
               title={WIDGET_DEFINITIONS({organization})[chartSetting].title}
               titleTooltip={WIDGET_DEFINITIONS({organization})[chartSetting].titleTooltip}
               isVitalDetailView
+              setTotalEventsCount={setTotalEventsCount}
             />
           </VitalWidgetWrapper>
         ) : (
@@ -338,7 +339,6 @@ function VitalDetailContent(props: Props) {
                   location={location}
                   setError={setError}
                   summaryConditions={summaryConditions}
-                  setTotalEventsCount={setTotalEventsCount}
                 />
               </TeamKeyTransactionManager.Provider>
             ) : (
