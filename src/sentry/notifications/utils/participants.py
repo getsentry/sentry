@@ -101,8 +101,16 @@ def get_participants_for_release(
         note_setting_type: NotificationSettingTypes,
         parent: Iterable[Union[Project, Organization]],
         recipients: Iterable[Team | User],
-    ):
-        by_recipient = {}
+    ) -> Mapping[
+        Team | User,
+        Mapping[NotificationScopeType, Mapping[ExternalProviders, NotificationSettingOptionValues]],
+    ]:
+        by_recipient: MutableMapping[
+            Team | User,
+            Mapping[
+                NotificationScopeType, Mapping[ExternalProviders, NotificationSettingOptionValues]
+            ],
+        ] = {}
         for project_or_org in parent:
             notification_settings = NotificationSetting.objects.get_for_recipient_by_parent(
                 note_setting_type,
@@ -112,12 +120,10 @@ def get_participants_for_release(
             by_recipient.update(
                 transform_to_notification_settings_by_recipient(notification_settings, recipients)
             )
-
         return by_recipient
 
-    # Get all the involved users' settings for deploy-emails (including
-    # users' organization-independent settings.)
-
+    # Get all the involved users' settings for deploy-emails or active-release emails
+    # (including users' organization-independent settings.)
     notification_settings_by_recipient = (
         parent_notification_settings_by_recipient(notification_setting_type, projects, users)
         if parent_specific_scope_type == NotificationScopeType.PROJECT
