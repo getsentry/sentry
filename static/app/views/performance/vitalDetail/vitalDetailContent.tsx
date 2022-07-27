@@ -297,7 +297,11 @@ function VitalDetailContent(props: Props) {
           <InlineContainer>
             <SectionHeading textColor="gray500">{t('Total Events')}</SectionHeading>
             <SectionValue textColor="gray500" data-test-id="total-value">
-              {defined(totalEventsCount) ? <Count value={totalEventsCount} /> : '\u2014'}
+              {display === DisplayModes.WORST_VITALS && defined(totalEventsCount) ? (
+                <Count value={totalEventsCount} />
+              ) : (
+                '\u2014'
+              )}
             </SectionValue>
           </InlineContainer>
           <InlineContainer data-test-id="display-toggle">
