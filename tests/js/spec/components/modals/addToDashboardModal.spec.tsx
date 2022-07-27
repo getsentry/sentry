@@ -7,6 +7,7 @@ import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import AddToDashboardModal from 'sentry/components/modals/widgetBuilder/addToDashboardModal';
 import {
   DashboardDetails,
+  DashboardListItem,
   DashboardWidgetSource,
   DisplayType,
 } from 'sentry/views/dashboardsV2/types';
@@ -25,20 +26,25 @@ const mockWidgetAsQueryParams = {
 
 describe('add to dashboard modal', () => {
   let eventsStatsMock;
-  const initialData = initializeOrg({
-    ...initializeOrg(),
-    organization: {
-      features: ['new-widget-builder-experience-design'],
-    },
-  });
+  let initialData;
+
+  const testDashboardListItem: DashboardListItem = {
+    id: '1',
+    title: 'Test Dashboard',
+    createdBy: undefined,
+    dateCreated: '2020-01-01T00:00:00.000Z',
+    widgetDisplay: [DisplayType.AREA],
+    widgetPreview: [],
+  };
   const testDashboard: DashboardDetails = {
     id: '1',
     title: 'Test Dashboard',
     createdBy: undefined,
     dateCreated: '2020-01-01T00:00:00.000Z',
     widgets: [],
-    projects: [],
-    filters: {},
+    projects: [1],
+    period: '1h',
+    filters: {release: ['abc@v1.2.0']},
   };
   let widget = {
     title: 'Test title',
@@ -69,9 +75,21 @@ describe('add to dashboard modal', () => {
   };
 
   beforeEach(() => {
+    initialData = initializeOrg({
+      ...initializeOrg(),
+      organization: {
+        features: ['new-widget-builder-experience-design'],
+      },
+    });
+
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/',
-      body: [{...testDashboard, widgetDisplay: [DisplayType.AREA]}],
+      body: [{...testDashboardListItem, widgetDisplay: [DisplayType.AREA]}],
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/1/',
+      body: testDashboard,
     });
 
     eventsStatsMock = MockApiClient.addMockResponse({
@@ -165,6 +183,63 @@ describe('add to dashboard modal', () => {
     expect(screen.getByText('Test Dashboard')).toBeInTheDocument();
   });
 
+  it('applies dashboard saved filters to visualization', async function () {
+    initialData.organization = {
+      ...initialData.organization,
+      features: ['new-widget-builder-experience-design', 'dashboards-top-level-filter'],
+    };
+    render(
+      <AddToDashboardModal
+        Header={stubEl}
+        Footer={stubEl as ModalRenderProps['Footer']}
+        Body={stubEl as ModalRenderProps['Body']}
+        CloseButton={stubEl}
+        closeModal={() => undefined}
+        organization={initialData.organization}
+        widget={widget}
+        selection={defaultSelection}
+        router={initialData.router}
+        widgetAsQueryParams={mockWidgetAsQueryParams}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Select Dashboard')).toBeEnabled();
+    });
+
+    expect(eventsStatsMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/events-stats/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          environment: [],
+          project: [],
+          interval: '5m',
+          orderby: '',
+          statsPeriod: '24h',
+          yAxis: ['count()'],
+        }),
+      })
+    );
+
+    await selectEvent.select(screen.getByText('Select Dashboard'), 'Test Dashboard');
+
+    expect(eventsStatsMock).toHaveBeenLastCalledWith(
+      '/organizations/org-slug/events-stats/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          environment: [],
+          interval: '5m',
+          orderby: '',
+          partial: '1',
+          project: [1],
+          query: ' release:abc@v1.2.0 ',
+          statsPeriod: '1h',
+          yAxis: ['count()'],
+        }),
+      })
+    );
+  });
+
   it('calls the events stats endpoint with the query and selection values', async function () {
     render(
       <AddToDashboardModal
@@ -225,6 +300,47 @@ describe('add to dashboard modal', () => {
     expect(initialData.router.push).toHaveBeenCalledWith({
       pathname: '/organizations/org-slug/dashboard/1/widget/new/',
       query: mockWidgetAsQueryParams,
+    });
+  });
+
+  it('navigates to the widget builder with saved filters', async () => {
+    initialData.organization = {
+      ...initialData.organization,
+      features: ['new-widget-builder-experience-design', 'dashboards-top-level-filter'],
+    };
+
+    render(
+      <AddToDashboardModal
+        Header={stubEl}
+        Footer={stubEl as ModalRenderProps['Footer']}
+        Body={stubEl as ModalRenderProps['Body']}
+        CloseButton={stubEl}
+        closeModal={() => undefined}
+        organization={initialData.organization}
+        widget={widget}
+        selection={defaultSelection}
+        router={initialData.router}
+        widgetAsQueryParams={mockWidgetAsQueryParams}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Select Dashboard')).toBeEnabled();
+    });
+    await selectEvent.select(screen.getByText('Select Dashboard'), 'Test Dashboard');
+
+    userEvent.click(screen.getByText('Open in Widget Builder'));
+    expect(initialData.router.push).toHaveBeenCalledWith({
+      pathname: '/organizations/org-slug/dashboard/1/widget/new/',
+      query: expect.objectContaining({
+        defaultTableColumns: ['field1', 'field2'],
+        defaultTitle: 'Default title',
+        defaultWidgetQuery: '',
+        displayType: DisplayType.LINE,
+        project: [1],
+        source: DashboardWidgetSource.DISCOVERV2,
+        statsPeriod: '1h',
+      }),
     });
   });
 
