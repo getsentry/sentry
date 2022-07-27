@@ -449,6 +449,7 @@ describe('Dashboards > Detail', function () {
             ],
             title: 'Errors',
             type: 'line',
+            widgetType: 'discover',
           },
         })
       );
