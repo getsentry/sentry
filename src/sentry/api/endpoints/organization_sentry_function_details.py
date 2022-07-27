@@ -1,4 +1,5 @@
 from django.http import Http404
+from google.api_core.exceptions import FailedPrecondition, InvalidArgument, NotFound
 from rest_framework.response import Response
 
 from sentry import features
@@ -57,5 +58,11 @@ class OrganizationSentryFunctionDetailsEndpoint(OrganizationEndpoint):
                 organization=organization, name=function.name, external_id=function.external_id
             ).delete()
             return Response(status=204)
-        except Exception as e:
-            return Response(e, status=400)
+        except FailedPrecondition:
+            return Response("Function is currently busy, try again later", status=400)
+        except InvalidArgument:
+            return Response("Bad request", status=400)
+        except NotFound:
+            return Response("Function not found", status=404)
+        except Exception:
+            return Response("Unknown Error", status=500)
