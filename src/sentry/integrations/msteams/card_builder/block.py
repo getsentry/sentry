@@ -166,4 +166,9 @@ def create_footer_text_block(footer_text: str) -> TextBlock:
 
 
 def create_footer_column_block(footer_text_block: TextBlock) -> ColumnBlock:
-    return create_column_block(footer_text_block, isSubtle=True, spacing="none")
+    return create_column_block(
+        footer_text_block,
+        isSubtle=True,
+        spacing="none",
+        verticalContentAlignment=VerticalContentAlignment.CENTER,
+    )
