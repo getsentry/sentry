@@ -336,6 +336,7 @@ INSTALLED_APPS = (
     "sentry.discover",
     "sentry.analytics.events",
     "sentry.nodestore",
+    "sentry.replays",
     "sentry.release_health",
     "sentry.search",
     "sentry.sentry_metrics.indexer",
@@ -964,6 +965,8 @@ SENTRY_FEATURES = {
     # Enable creating organizations within sentry (if SENTRY_SINGLE_ORGANIZATION
     # is not enabled).
     "organizations:create": True,
+    # Enable usage of customer domains on the frontend
+    "organizations:customer-domains": False,
     # Enable the 'discover' interface.
     "organizations:discover": False,
     # Enables events endpoint usage on discover and dashboards frontend
@@ -1029,6 +1032,9 @@ SENTRY_FEATURES = {
     # XXX(ja): DO NOT ENABLE UNTIL THIS NOTICE IS GONE. Relay experiences
     # gradual slowdown when this is enabled for too many projects.
     "organizations:metrics-extraction": False,
+    # Allow performance alerts to be created on the metrics dataset. Allows UI to switch between
+    # sampled/unsampled performance data.
+    "organizations:metrics-performance-alerts": False,
     # Enable switch metrics button on Performance, allowing switch to unsampled transaction metrics
     "organizations:metrics-performance-ui": False,
     # True if release-health related queries should be run against both
@@ -1144,7 +1150,7 @@ SENTRY_FEATURES = {
     # Enable SAML2 based SSO functionality. getsentry/sentry-auth-saml2 plugin
     # must be installed to use this functionality.
     "organizations:sso-saml2": True,
-    # Enable new server-side sampling UI in the project settings
+    # Enable the server-side sampling feature (frontend, backend, relay)
     "organizations:server-side-sampling": False,
     # Enable the new images loaded design and features
     "organizations:images-loaded-v2": True,
@@ -1181,6 +1187,8 @@ SENTRY_FEATURES = {
     "projects:servicehooks": False,
     # Use Kafka (instead of Celery) for ingestion pipeline.
     "projects:kafka-ingest": False,
+    # Workflow 2.0 Auto associate commits to commit sha release
+    "projects:auto-associate-commits-to-release": False,
     # Automatically opt IN users to receiving Slack notifications.
     "users:notification-slack-automatic": False,
     # Don't add feature defaults down here! Please add them in their associated
@@ -2649,9 +2657,6 @@ DEMO_DATA_QUICK_GEN_PARAMS = {}
 # adds an extra JS to HTML template
 INJECTED_SCRIPT_ASSETS = []
 
-# Sentry post process forwarder use batching consumer
-SENTRY_POST_PROCESS_FORWARDER_BATCHING = True
-
 # Whether badly behaving projects will be automatically
 # sent to the low priority queue
 SENTRY_ENABLE_AUTO_LOW_PRIORITY_QUEUE = False
@@ -2707,3 +2712,10 @@ SENTRY_POST_PROCESS_LOCKS_BACKEND_OPTIONS = {
 
 # maximum number of projects allowed to query snuba with for the organization_vitals_overview endpoint
 ORGANIZATION_VITALS_OVERVIEW_PROJECT_LIMIT = 300
+
+
+# Default string indexer cache options
+SENTRY_STRING_INDEXER_CACHE_OPTIONS = {
+    "version": 1,
+    "cache_name": "default",
+}

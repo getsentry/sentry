@@ -144,8 +144,8 @@ class DashboardDetailsSerializer(Serializer):
         return result
 
     def serialize(self, obj, attrs, user, **kwargs):
-        page_filter_keys = ["environment", "period"]
-        dashboard_filter_keys = ["releases"]
+        page_filter_keys = ["environment", "period", "utc"]
+        dashboard_filter_keys = ["release"]
         data = {
             "id": str(obj.id),
             "title": obj.title,

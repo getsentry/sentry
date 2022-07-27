@@ -249,7 +249,9 @@ describe('IssueList', function () {
       // Update stores with saved searches
       await tick();
       await tick();
+
       wrapper.update();
+      wrapper.find('SmartSearchBar textarea').simulate('click');
 
       // auxillary requests being made
       expect(recentSearchesRequest).toHaveBeenCalledTimes(1);

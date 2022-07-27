@@ -25,7 +25,6 @@ from sentry.models import (
 from sentry.models.group import STATUS_QUERY_CHOICES
 from sentry.search.base import ANY
 from sentry.utils.auth import find_users
-from sentry.utils.compat import map
 
 
 class InvalidQuery(Exception):
@@ -84,6 +83,43 @@ def parse_duration(value, interval):
         )
 
     return delta.total_seconds() * 1000.0
+
+
+def parse_size(value, size):
+    """Returns in total bytes"""
+    try:
+        size_value = float(value)
+    except ValueError:
+        raise InvalidQuery(f"{value} is not a valid size value")
+
+    if size == "bit":
+        byte = size_value / 8
+    elif size == "nb":
+        byte = size_value / 2
+    elif size == "bytes":
+        byte = size_value
+    elif size == "kb":
+        byte = size_value * 1024
+    elif size == "mb":
+        byte = size_value * 1024**2
+    elif size == "gb":
+        byte = size_value * 1024**3
+    elif size == "tb":
+        byte = size_value * 1024**4
+    elif size == "pb":
+        byte = size_value * 1024**5
+    elif size == "eb":
+        byte = size_value * 1024**6
+    elif size == "zb":
+        byte = size_value * 1024**7
+    elif size == "yb":
+        byte = size_value * 1024**8
+    else:
+        raise InvalidQuery(
+            f"{size} is not a valid size type, must be bit, bytes, kb, mb, gb, tb, pb, eb, zb, yb"
+        )
+
+    return byte
 
 
 def parse_percentage(value):
@@ -458,7 +494,7 @@ def tokenize_query(query):
         query_params[state].append(token)
 
     if "query" in query_params:
-        result["query"] = map(format_query, query_params["query"])
+        result["query"] = [format_query(query) for query in query_params["query"]]
     for tag in query_params["tags"]:
         key, value = format_tag(tag)
         result[key].append(value)

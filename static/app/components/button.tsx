@@ -325,14 +325,19 @@ const getColors = ({
 
     ${size !== 'zero' &&
     `
-    &:hover,
-    &:active,
-    &.focus-visible,
-    &[aria-expanded="true"] {
-      color: ${colorActive || color};
-      background: ${backgroundActive};
-      border-color: ${borderless || priority === 'link' ? 'transparent' : borderActive};
-    }`}
+      &:hover,
+      &:active,
+      &[aria-expanded="true"] {
+        color: ${colorActive || color};
+        background: ${backgroundActive};
+        border-color: ${borderless || priority === 'link' ? 'transparent' : borderActive};
+      }
+
+      &.focus-visible {
+        color: ${colorActive || color};
+        border-color: ${borderActive};
+      }
+    `}
 
     &.focus-visible {
       ${getFocusState()}

@@ -39,12 +39,15 @@ function handleDownloadAsCsv(title: string, {organization, eventView, tableData}
 }
 
 function renderDownloadButton(canEdit: boolean, props: Props) {
+  const {tableData} = props;
   return (
     <Feature
       features={['organizations:discover-query']}
       renderDisabled={() => renderBrowserExportButton(canEdit, props)}
     >
-      {renderAsyncExportButton(canEdit, props)}
+      {tableData?.data && tableData.data.length < 50
+        ? renderBrowserExportButton(canEdit, props)
+        : renderAsyncExportButton(canEdit, props)}
     </Feature>
   );
 }
@@ -61,8 +64,11 @@ function renderBrowserExportButton(canEdit: boolean, props: Props) {
       onClick={onClick}
       data-test-id="grid-download-csv"
       icon={<IconDownload size="xs" />}
+      title={t(
+        "There aren't that many results, start your export and it'll download immediately."
+      )}
     >
-      {t('Export')}
+      {t('Export All')}
     </Button>
   );
 }

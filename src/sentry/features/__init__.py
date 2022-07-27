@@ -67,6 +67,7 @@ default_manager.add("organizations:api-keys", OrganizationFeature)
 default_manager.add("organizations:breadcrumb-linked-event", OrganizationFeature, True)
 default_manager.add("organizations:crash-rate-alerts", OrganizationFeature, True)
 default_manager.add("organizations:custom-event-title", OrganizationFeature)
+default_manager.add("organizations:customer-domains", OrganizationFeature, True)
 default_manager.add("organizations:dashboard-grid-layout", OrganizationFeature, True)
 default_manager.add("organizations:dashboards-mep", OrganizationFeature, True)
 default_manager.add("organizations:dashboards-releases", OrganizationFeature, True)
@@ -105,6 +106,7 @@ default_manager.add(
     "organizations:new-widget-builder-experience-modal-access", OrganizationFeature, True
 )
 default_manager.add("organizations:metrics-extraction", OrganizationFeature)
+default_manager.add("organizations:metrics-performance-alerts", OrganizationFeature, True)
 default_manager.add("organizations:metrics-performance-ui", OrganizationFeature, True)
 default_manager.add("organizations:minute-resolution-sessions", OrganizationFeature)
 default_manager.add("organizations:mobile-screenshots", OrganizationFeature, True)
@@ -143,7 +145,7 @@ default_manager.add("organizations:session-replay", OrganizationFeature, True)
 default_manager.add("organizations:set-grouping-config", OrganizationFeature)
 default_manager.add("organizations:slack-overage-notifications", OrganizationFeature, True)
 default_manager.add("organizations:symbol-sources", OrganizationFeature)
-default_manager.add("organizations:server-side-sampling", OrganizationFeature, True)
+default_manager.add("organizations:server-side-sampling", OrganizationFeature)
 default_manager.add("organizations:team-roles", OrganizationFeature, True)
 default_manager.add("organizations:transaction-metrics-extraction", OrganizationFeature, True)
 default_manager.add("organizations:unified-span-view", OrganizationFeature, True)
@@ -208,6 +210,9 @@ default_manager.add("projects:similarity-view-v2", ProjectFeature)
 # Project plugin features
 default_manager.add("projects:plugins", ProjectPluginFeature)
 default_manager.add("users:notification-slack-automatic", UserFeature)
+
+# Workflow 2.0 Project features
+default_manager.add("projects:auto-associate-commits-to-release", ProjectFeature)
 
 
 # This is a gross hardcoded list, but there's no

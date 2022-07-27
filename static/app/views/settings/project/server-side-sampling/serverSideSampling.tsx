@@ -74,10 +74,10 @@ export function ServerSideSampling({project}: Props) {
 
   useEffect(() => {
     trackAdvancedAnalyticsEvent('sampling.settings.view', {
-      organization: organization.slug,
+      organization,
       project_id: project.id,
     });
-  }, [project.id, organization.slug]);
+  }, [project.id, organization]);
 
   useEffect(() => {
     if (!isEqual(previousRules, currentRules)) {
@@ -113,9 +113,10 @@ export function ServerSideSampling({project}: Props) {
     statsPeriod: '48h',
   });
 
-  const {recommendedSdkUpgrades} = useRecommendedSdkUpgrades({
-    orgSlug: organization.slug,
-  });
+  const {recommendedSdkUpgrades, fetching: fetchingRecommendedSdkUpgrades} =
+    useRecommendedSdkUpgrades({
+      orgSlug: organization.slug,
+    });
 
   async function handleActivateToggle(rule: SamplingRule) {
     const newRules = rules.map(r => {
@@ -152,7 +153,7 @@ export function ServerSideSampling({project}: Props) {
           ? 'sampling.settings.rule.uniform_deactivate'
           : 'sampling.settings.rule.uniform_activate',
         {
-          organization: organization.slug,
+          organization,
           project_id: project.id,
           sampling_rate: rule.sampleRate,
         }
@@ -166,7 +167,7 @@ export function ServerSideSampling({project}: Props) {
           ? 'sampling.settings.rule.specific_deactivate'
           : 'sampling.settings.rule.specific_activate',
         {
-          organization: organization.slug,
+          organization,
           project_id: project.id,
           sampling_rate: rule.sampleRate,
           conditions: analyticsConditions,
@@ -178,7 +179,7 @@ export function ServerSideSampling({project}: Props) {
 
   function handleGetStarted() {
     trackAdvancedAnalyticsEvent('sampling.settings.view_get_started', {
-      organization: organization.slug,
+      organization,
       project_id: project.id,
     });
 
@@ -307,7 +308,7 @@ export function ServerSideSampling({project}: Props) {
 
   function handleReadDocs() {
     trackAdvancedAnalyticsEvent('sampling.settings.view_read_docs', {
-      organization: organization.slug,
+      organization,
       project_id: project.id,
     });
   }
@@ -336,7 +337,7 @@ export function ServerSideSampling({project}: Props) {
         ? 'sampling.settings.modal.uniform.rate_done'
         : 'sampling.settings.modal.recommended.next.steps_done',
       {
-        organization: organization.slug,
+        organization,
         project_id: project.id,
       }
     );
@@ -346,12 +347,19 @@ export function ServerSideSampling({project}: Props) {
         ? 'sampling.settings.rule.uniform_update'
         : 'sampling.settings.rule.uniform_create',
       {
-        organization: organization.slug,
+        organization,
         project_id: project.id,
         sampling_rate: newRule.sampleRate,
         old_sampling_rate: rule ? rule.sampleRate : null,
       }
     );
+
+    trackAdvancedAnalyticsEvent('sampling.settings.rule.uniform_save', {
+      organization,
+      project_id: project.id,
+      sampling_rate: newRule.sampleRate,
+      old_sampling_rate: rule ? rule.sampleRate : null,
+    });
 
     const newRules = rule
       ? rules.map(existingRule => (existingRule.id === rule.id ? newRule : existingRule))
@@ -368,7 +376,7 @@ export function ServerSideSampling({project}: Props) {
           ? t('Successfully edited sampling rule')
           : t('Successfully added sampling rule')
       );
-      onSuccess?.();
+      onSuccess?.(response.dynamicSampling?.rules ?? []);
     } catch (error) {
       addErrorMessage(
         typeof error === 'string'
@@ -394,7 +402,7 @@ export function ServerSideSampling({project}: Props) {
         <SettingsPageHeader title={t('Server-side Sampling')} />
         <TextBlock>
           {t(
-            'Server-side sampling provides an additional dial for dropping transactions. This comes in handy when your server-side sampling rules target the transactions you want to keep, but you need more of those transactions being sent by the SDK.'
+            'Server-side sampling lets you control what transactions Sentry retains by setting sample rules and rates so you see more of the transactions you want to explore further in Sentry – and less of the ones you don’t – without re-configuring the Sentry SDK and redeploying anything.'
           )}
         </TextBlock>
         <PermissionAlert
@@ -403,7 +411,7 @@ export function ServerSideSampling({project}: Props) {
             'These settings can only be edited by users with the organization owner, manager, or admin role.'
           )}
         />
-        {!!rules.length && (
+        {!!rules.length && !fetchingRecommendedSdkUpgrades && (
           <SamplingSDKAlert
             organization={organization}
             projectId={project.id}
@@ -551,7 +559,7 @@ const RulesPanelLayout = styled('div')<{isContent?: boolean}>`
   grid-template-columns: 1fr 0.5fr 74px;
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
-    grid-template-columns: 48px 95px 1fr 0.5fr 77px 74px;
+    grid-template-columns: 48px 97px 1fr 0.5fr 77px 74px;
   }
 
   ${p =>
