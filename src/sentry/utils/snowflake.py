@@ -3,11 +3,18 @@ from datetime import datetime, timedelta
 from typing import Tuple
 
 from django.conf import settings
-from django.db import IntegrityError
+from django.db import IntegrityError, transaction
+from rest_framework import status
+from rest_framework.exceptions import APIException
 
 from sentry.utils import redis
 
 _TTL = timedelta(minutes=5)
+
+
+class MaxSnowflakeRetryError(APIException):
+    status_code = status.HTTP_409_CONFLICT
+    default_detail = "Max allowed ID retry reached. Please try again in a second"
 
 
 class SnowflakeIdMixin:
@@ -16,11 +23,12 @@ class SnowflakeIdMixin:
             if not self.id:
                 self.id = generate_snowflake_id(snowflake_redis_key)
             try:
-                save_callback()
+                with transaction.atomic():
+                    save_callback()
                 return
             except IntegrityError:
                 self.id = None
-        raise Exception("Max allowed ID retry reached. Please try again in a second")
+        raise MaxSnowflakeRetryError
 
 
 @dataclass(frozen=True, eq=True)
