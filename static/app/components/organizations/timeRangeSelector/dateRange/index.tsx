@@ -1,5 +1,5 @@
 import {Component, lazy, Suspense} from 'react';
-import type {OnChangeProps, RangeWithKey} from 'react-date-range';
+import type {Range, RangeKeyDict} from 'react-date-range';
 // eslint-disable-next-line no-restricted-imports
 import {withRouter, WithRouterProps} from 'react-router';
 import {withTheme} from '@emotion/react';
@@ -28,11 +28,10 @@ const DateRangePicker = lazy(() => import('./dateRangeWrapper'));
 
 const getTimeStringFromDate = (date: Date) => moment(date).local().format('HH:mm');
 
-// react.date-range doesn't export this as a type.
-type RangeSelection = {selection: RangeWithKey};
+type RangeSelection = {selection: Range};
 
-function isRangeSelection(maybe: OnChangeProps): maybe is RangeSelection {
-  return (maybe as RangeSelection).selection !== undefined;
+function isRangeSelection(rangesByKey: RangeKeyDict): rangesByKey is RangeSelection {
+  return rangesByKey?.selection !== undefined;
 }
 
 type ChangeData = {end?: Date; hasDateRangeErrors?: boolean; start?: Date};
@@ -99,11 +98,11 @@ class BaseDateRange extends Component<Props, State> {
     hasEndErrors: false,
   };
 
-  handleSelectDateRange = (changeProps: OnChangeProps) => {
-    if (!isRangeSelection(changeProps)) {
+  handleSelectDateRange = (rangesByKey: RangeKeyDict) => {
+    if (!isRangeSelection(rangesByKey)) {
       return;
     }
-    const {selection} = changeProps;
+    const {selection} = rangesByKey;
     const {onChange} = this.props;
     const {startDate, endDate} = selection;
 
