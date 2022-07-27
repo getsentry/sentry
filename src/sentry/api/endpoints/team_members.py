@@ -3,6 +3,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases.team import TeamEndpoint
+from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.models import InviteStatus
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
@@ -37,13 +38,17 @@ class TeamMembersEndpoint(TeamEndpoint):
             organizationmember__invite_status=InviteStatus.APPROVED.value,
             team=team,
         )
-
         serializer = DetailedOrganizationMemberTeamSerializer(team=team)
 
-        # x["user"] may be None as invited members will not have a linked user
-        members = serialize(list(queryset), request.user, serializer=serializer)
-        result = sorted(
-            members,
-            key=lambda x: (x["user"]["name"] or x["user"]["email"]) if x["user"] else x["email"],
+        return self.paginate(
+            request=request,
+            queryset=queryset,
+            order_by=(
+                "organizationmember__user__name",
+                "organizationmember__user__email",
+                "organizationmember__email",
+                "id",
+            ),
+            paginator_cls=OffsetPaginator,
+            on_results=lambda x: serialize(x, request.user, serializer=serializer),
         )
-        return Response(result)
