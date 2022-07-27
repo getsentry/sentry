@@ -55,6 +55,7 @@ import {
   RateColumn,
   Rule,
 } from './rule';
+import {SamplingBreakdown} from './samplingBreakdown';
 import {SamplingSDKAlert} from './samplingSDKAlert';
 import {isUniformRule, SERVER_SIDE_SAMPLING_DOC_LINK} from './utils';
 
@@ -420,6 +421,7 @@ export function ServerSideSampling({project}: Props) {
             onReadDocs={handleReadDocs}
           />
         )}
+        <SamplingBreakdown orgSlug={organization.slug} />
         <RulesPanel>
           <RulesPanelHeader lightText>
             <RulesPanelLayout>
