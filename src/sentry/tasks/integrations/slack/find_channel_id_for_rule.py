@@ -28,25 +28,31 @@ def find_channel_id_for_rule(
     user_id: Optional[int] = None,
     **kwargs: Any,
 ) -> None:
+    print("--find_channel_id_for_rule")
+    print(project.id)
     redis_rule_status = RedisRuleStatus(uuid)
 
     try:
         project = Project.objects.get(id=project.id)
     except Project.DoesNotExist:
+        print("Project does not exist")
         redis_rule_status.set_value("failed")
         return
 
     user = None
+    print(user_id)
     if user_id:
         try:
             user = User.objects.get(id=user_id)
         except User.DoesNotExist:
             pass
+    print("User does not exist")
 
     organization = project.organization
     integration_id: Optional[int] = None
     channel_name: Optional[str] = None
 
+    print(actions)
     # TODO: make work for multiple Slack actions
     for action in actions:
         if action.get("workspace") and action.get("channel"):

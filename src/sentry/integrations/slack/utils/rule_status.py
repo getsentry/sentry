@@ -56,6 +56,10 @@ class RedisRuleStatus:
         error_message: str | None,
     ) -> str:
         value = {"status": status}
+        print("--_format_value")
+        print(value, flush=True)
+        print(rule_id)
+        print(error_message)
         if rule_id:
             value["rule_id"] = str(rule_id)
         if error_message:
