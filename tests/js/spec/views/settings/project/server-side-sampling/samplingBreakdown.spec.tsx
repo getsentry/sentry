@@ -6,7 +6,7 @@ import {SamplingBreakdown} from 'sentry/views/settings/project/server-side-sampl
 
 import {getMockData, mockedSamplingDistribution} from './utils';
 
-const headerTitle = 'Transaction Breakdown';
+export const samplingBreakdownTitle = 'Transaction Breakdown';
 
 describe('Server-side Sampling - SamplingBreakdown', function () {
   beforeEach(function () {
@@ -18,7 +18,7 @@ describe('Server-side Sampling - SamplingBreakdown', function () {
 
     render(<SamplingBreakdown orgSlug={organization.slug} />);
 
-    expect(screen.queryByText(headerTitle)).not.toBeInTheDocument();
+    expect(screen.queryByText(samplingBreakdownTitle)).not.toBeInTheDocument();
   });
 
   it('renders project breakdown', function () {
@@ -32,7 +32,7 @@ describe('Server-side Sampling - SamplingBreakdown', function () {
 
     render(<SamplingBreakdown orgSlug={organization.slug} />);
 
-    expect(screen.getByText(headerTitle)).toBeInTheDocument();
+    expect(screen.getByText(samplingBreakdownTitle)).toBeInTheDocument();
     expect(screen.getByText('javascript')).toBeInTheDocument();
     expect(screen.getByText('89.88%')).toBeInTheDocument();
     expect(screen.getByText('sentry')).toBeInTheDocument();
