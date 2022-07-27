@@ -1633,7 +1633,8 @@ class MetricsQueryBuilder(QueryBuilder):
             from sentry.snuba.metrics.datasource import get_custom_measurements
 
             self._custom_measurement_cache = get_custom_measurements(
-                Project.objects.filter(id__in=self.params["project_id"]),
+                project_ids=self.params["project_id"],
+                organization_id=self.organization_id,
                 start=self.start,
                 end=self.end,
             )
