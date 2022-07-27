@@ -707,12 +707,12 @@ class DashboardDetail extends Component<Props, State> {
                 widgetLimitReached={widgetLimitReached}
               />
             </StyledPageHeader>
-            <PageFilterBar condensed>
+            <HookHeader organization={organization} />
+            <StyledPageFilterBar condensed>
               <ProjectPageFilter />
               <EnvironmentPageFilter />
               <DatePageFilter alignDropdown="left" />
-            </PageFilterBar>
-            <HookHeader organization={organization} />
+            </StyledPageFilterBar>
             <Dashboard
               paramDashboardId={dashboardId}
               dashboard={modifiedDashboard ?? dashboard}
@@ -919,6 +919,10 @@ const StyledTitle = styled(Layout.Title)`
 
 const StyledPageContent = styled(PageContent)`
   padding: 0;
+`;
+
+const StyledPageFilterBar = styled(PageFilterBar)`
+  margin-bottom: ${space(2)};
 `;
 
 export default withApi(withOrganization(DashboardDetail));
