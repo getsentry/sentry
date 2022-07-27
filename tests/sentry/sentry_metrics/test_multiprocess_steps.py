@@ -12,22 +12,22 @@ from arroyo.processing.strategies import MessageRejected
 from arroyo.types import Message, Partition, Topic
 
 from sentry.sentry_metrics.configuration import UseCaseKey, get_ingest_config
+from sentry.sentry_metrics.consumers.indexer.batch import invalid_metric_tags, valid_metric_name
 from sentry.sentry_metrics.consumers.indexer.common import (
     BatchMessages,
     DuplicateMessage,
     MetricsBatchBuilder,
 )
 from sentry.sentry_metrics.consumers.indexer.multiprocess import TransformStep
-from sentry.sentry_metrics.consumers.indexer.processing import (
-    invalid_metric_tags,
-    process_messages,
-    valid_metric_name,
-)
+from sentry.sentry_metrics.consumers.indexer.processing import process_messages
 from sentry.sentry_metrics.indexer.mock import MockIndexer
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.utils import json
 
 logger = logging.getLogger(__name__)
+
+
+pytestmark = pytest.mark.sentry_metrics
 
 
 def compare_messages_ignoring_mapping_metadata(actual: Message, expected: Message) -> None:

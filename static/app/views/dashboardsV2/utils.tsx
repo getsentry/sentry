@@ -1,6 +1,8 @@
-import {Query} from 'history';
+import {browserHistory} from 'react-router';
+import {Location, Query} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 import isEmpty from 'lodash/isEmpty';
+import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 import trimStart from 'lodash/trimStart';
 import * as qs from 'query-string';
@@ -36,6 +38,7 @@ import {DisplayModes} from 'sentry/utils/discover/types';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
 import {
   DashboardDetails,
+  DashboardFilters,
   DisplayType,
   Widget,
   WidgetQuery,
@@ -357,7 +360,7 @@ export function getNumEquations(possibleEquations: string[]) {
   return possibleEquations.filter(isEquation).length;
 }
 
-function isCustomMeasurement(field: string) {
+export function isCustomMeasurement(field: string) {
   const definedMeasurements = Object.keys(getMeasurements());
   return isMeasurement(field) && !definedMeasurements.includes(field);
 }
@@ -389,13 +392,71 @@ export function getCustomMeasurementQueryParams() {
   };
 }
 
-export function hasSavedFilters(dashboard: DashboardDetails) {
+export function hasSavedPageFilters(dashboard: DashboardDetails) {
   return !(
-    isEmpty(dashboard.filters) &&
     isEmpty(dashboard.projects) &&
     dashboard.environment === undefined &&
     dashboard.start === undefined &&
     dashboard.end === undefined &&
     dashboard.period === undefined
   );
+}
+
+export function hasUnsavedFilterChanges(
+  initialDashboard: DashboardDetails,
+  location: Location,
+  newDashboardFilters: DashboardFilters
+) {
+  return !isEqual(
+    {
+      projects: initialDashboard.projects,
+      environment: initialDashboard.environment,
+      period: initialDashboard.period,
+      start: initialDashboard.start,
+      end: initialDashboard.end,
+      filters: initialDashboard.filters,
+    },
+    {
+      ...getCurrentPageFilters(location),
+      filters: newDashboardFilters,
+    }
+  );
+}
+
+export function getSavedPageFilters(dashboard: DashboardDetails) {
+  return {
+    project: dashboard.projects,
+    environment: dashboard.environment,
+    statsPeriod: dashboard.period,
+    start: dashboard.start,
+    end: dashboard.end,
+  };
+}
+
+export function resetPageFilters(dashboard: DashboardDetails, location: Location) {
+  browserHistory.replace({
+    ...location,
+    query: getSavedPageFilters(dashboard),
+  });
+}
+
+export function getCurrentPageFilters(
+  location: Location
+): Pick<DashboardDetails, 'projects' | 'environment' | 'period' | 'start' | 'end'> {
+  const {project, environment, statsPeriod, start, end} = location.query ?? {};
+  return {
+    // Ensure projects and environment are sent as arrays, or undefined in the request
+    // location.query will return a string if there's only one value
+    projects:
+      project === undefined || project === null
+        ? []
+        : typeof project === 'string'
+        ? [Number(project)]
+        : project.map(Number),
+    environment:
+      typeof environment === 'string' ? [environment] : environment ?? undefined,
+    period: statsPeriod as string | undefined,
+    start: start as string | undefined,
+    end: end as string | undefined,
+  };
 }

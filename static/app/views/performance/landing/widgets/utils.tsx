@@ -22,10 +22,14 @@ function setWidgetStorageObject(localObject: Record<string, string>) {
   localStorage.setItem(getContainerLocalStorageObjectKey, JSON.stringify(localObject));
 }
 
+const mepQueryParamBase = {
+  preventMetricAggregates: '1',
+};
+
 export function getMEPQueryParams(mepContext: MetricsEnhancedSettingContext) {
   let queryParams = {};
-  const base = {preventMetricAggregates: '1'};
-  if (mepContext.shouldQueryProvideMEPParams) {
+  const base = mepQueryParamBase;
+  if (mepContext.shouldQueryProvideMEPAutoParams) {
     queryParams = {
       ...queryParams,
       ...base,
@@ -42,6 +46,10 @@ export function getMEPQueryParams(mepContext: MetricsEnhancedSettingContext) {
 
   // Disallow any performance request from using aggregates since they aren't currently possible in all visualizations and we don't want to mix modes.
   return objectIsEmpty(queryParams) ? undefined : queryParams;
+}
+
+export function getMetricOnlyQueryParams() {
+  return {...mepQueryParamBase, dataset: 'metrics'};
 }
 
 export const WIDGET_MAP_DENY_LIST = [

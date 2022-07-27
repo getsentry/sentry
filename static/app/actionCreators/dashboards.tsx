@@ -40,18 +40,26 @@ export function createDashboard(
   newDashboard: DashboardDetails,
   duplicate?: boolean
 ): Promise<DashboardDetails> {
-  const {title, widgets} = newDashboard;
+  const {title, widgets, projects, environment, period, start, end, filters} =
+    newDashboard;
 
   const promise: Promise<DashboardDetails> = api.requestPromise(
     `/organizations/${orgId}/dashboards/`,
     {
       method: 'POST',
-      data: {title, widgets: widgets.map(widget => omit(widget, ['tempId'])), duplicate},
+      data: {
+        title,
+        widgets: widgets.map(widget => omit(widget, ['tempId'])),
+        duplicate,
+        projects,
+        environment,
+        period,
+        start,
+        end,
+        filters,
+      },
       query: {
-        // TODO: This should be replaced in the future with projects
-        // when we save Dashboard page filters. This is being sent to
-        // bypass validation when creating or updating dashboards
-        project: [ALL_ACCESS_PROJECTS],
+        project: projects,
       },
     }
   );
@@ -115,9 +123,16 @@ export function updateDashboard(
   orgId: string,
   dashboard: DashboardDetails
 ): Promise<DashboardDetails> {
+  const {title, widgets, projects, environment, period, start, end, filters} = dashboard;
   const data = {
-    title: dashboard.title,
-    widgets: dashboard.widgets.map(widget => omit(widget, ['tempId'])),
+    title,
+    widgets: widgets.map(widget => omit(widget, ['tempId'])),
+    projects,
+    environment,
+    period,
+    start,
+    end,
+    filters,
   };
 
   const promise: Promise<DashboardDetails> = api.requestPromise(
@@ -126,10 +141,7 @@ export function updateDashboard(
       method: 'PUT',
       data,
       query: {
-        // TODO: This should be replaced in the future with projects
-        // when we save Dashboard page filters. This is being sent to
-        // bypass validation when creating or updating dashboards
-        project: [ALL_ACCESS_PROJECTS],
+        project: projects,
       },
     }
   );
