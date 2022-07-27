@@ -5,8 +5,7 @@ from rest_framework.response import Response
 from sentry.api.bases.team import TeamEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.models import InviteStatus
-from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models import InviteStatus, OrganizationMemberTeam
 
 
 @register(OrganizationMemberTeam)
@@ -18,13 +17,25 @@ class DetailedOrganizationMemberTeamSerializer(Serializer):
     def get_attrs(self, item_list, user, **kwargs):
         prefetch_related_objects(item_list, "organizationmember")
         prefetch_related_objects(item_list, "organizationmember__user")
+
+        org_member_set = serialize(
+            {
+                org_member_team.organizationmember
+                for org_member_team in item_list
+                if org_member_team.organizationmember
+            }
+        )
+        org_member_dict = {om["id"]: om for om in org_member_set}
+
         attrs = {}
         for org_member_team in item_list:
-            attrs[org_member_team] = {"org_member": org_member_team.organizationmember}
+            attrs[org_member_team] = {
+                "org_member": org_member_dict[f"{org_member_team.organizationmember_id}"]
+            }
         return attrs
 
     def serialize(self, obj, attrs, user):
-        org_member = serialize(attrs["org_member"])
+        org_member = attrs["org_member"]
         org_member["teamRole"] = obj.role
         org_member["teamSlug"] = self.team.slug
         return org_member
