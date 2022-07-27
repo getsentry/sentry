@@ -24,7 +24,12 @@ import {IconWarning} from 'sentry/icons';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
 import {EChartDataZoomHandler, EChartEventHandler} from 'sentry/types/echarts';
-import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
+import {
+  axisLabelFormatter,
+  axisLabelFormatterUsingAggregateOutputType,
+  tooltipFormatter,
+  tooltipFormatterUsingAggregateOutputType,
+} from 'sentry/utils/discover/charts';
 import {getFieldFormatter} from 'sentry/utils/discover/fieldRenderers';
 import {
   getAggregateArg,
@@ -82,6 +87,7 @@ type WidgetCardChartProps = Pick<
   }>;
   onZoom?: AugmentedEChartDataZoomHandler;
   showSlider?: boolean;
+  timeseriesResultsType?: string;
   windowWidth?: number;
 };
 
@@ -290,6 +296,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
       showSlider,
       noPadding,
       chartZoomOptions,
+      timeseriesResultsType,
     } = this.props;
 
     if (widget.displayType === 'table') {
@@ -401,12 +408,18 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
       },
       tooltip: {
         trigger: 'axis',
-        valueFormatter: tooltipFormatter,
+        valueFormatter: (value: number, seriesName: string) =>
+          timeseriesResultsType
+            ? tooltipFormatterUsingAggregateOutputType(value, timeseriesResultsType)
+            : tooltipFormatter(value, seriesName),
       },
       yAxis: {
         axisLabel: {
           color: theme.chartLabel,
-          formatter: (value: number) => axisLabelFormatter(value, axisLabel),
+          formatter: (value: number) =>
+            timeseriesResultsType
+              ? axisLabelFormatterUsingAggregateOutputType(value, timeseriesResultsType)
+              : axisLabelFormatter(value, axisLabel),
         },
       },
     };
