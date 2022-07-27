@@ -223,12 +223,6 @@ describe('add to dashboard modal', () => {
 
     await selectEvent.select(screen.getByText('Select Dashboard'), 'Test Dashboard');
 
-    expect(
-      screen.getByText(
-        'Filters saved on the selected Dashboard have been applied to the visualization.'
-      )
-    ).toBeInTheDocument();
-
     expect(eventsStatsMock).toHaveBeenLastCalledWith(
       '/organizations/org-slug/events-stats/',
       expect.objectContaining({
