@@ -14,10 +14,9 @@ from sentry.eventstream.kafka.postprocessworker import (
     PostProcessForwarderWorker,
     TransactionsPostProcessForwarderWorker,
 )
-from sentry.eventstream.kafka.protocol import get_task_kwargs_for_message
 from sentry.eventstream.snuba import KW_SKIP_SEMANTIC_PARTITIONING, SnubaProtocolEventStream
 from sentry.killswitches import killswitch_matches_context
-from sentry.utils import json, kafka, metrics
+from sentry.utils import json, kafka
 from sentry.utils.batching_kafka_consumer import BatchingKafkaConsumer
 
 logger = logging.getLogger(__name__)
@@ -263,24 +262,6 @@ class KafkaEventStream(SnubaProtocolEventStream):
         signal.signal(signal.SIGTERM, handler)
 
         consumer.run()
-
-    def _get_task_kwargs_and_dispatch(self, message) -> None:
-        with metrics.timer("eventstream.duration", instance="get_task_kwargs_for_message"):
-            task_kwargs = get_task_kwargs_for_message(message.value())
-
-        if task_kwargs is not None:
-            if task_kwargs["group_id"] is None:
-                metrics.incr(
-                    "eventstream.messages",
-                    tags={"partition": message.partition(), "type": "transactions"},
-                )
-            else:
-                metrics.incr(
-                    "eventstream.messages",
-                    tags={"partition": message.partition(), "type": "errors"},
-                )
-            with metrics.timer("eventstream.duration", instance="dispatch_post_process_group_task"):
-                self._dispatch_post_process_group_task(**task_kwargs)
 
     def run_post_process_forwarder(
         self,
