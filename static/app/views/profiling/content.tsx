@@ -77,7 +77,7 @@ function ProfilingContent({location}: ProfilingContentProps) {
             <Layout.Header>
               <StyledLayoutHeaderContent>
                 <StyledHeading>{t('Profiling')}</StyledHeading>
-                <Button onClick={onSetupProfilingClick}>Setup Profiling</Button>
+                <Button onClick={onSetupProfilingClick}>Set Up Profiling</Button>
               </StyledLayoutHeaderContent>
             </Layout.Header>
             <Layout.Body>
