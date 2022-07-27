@@ -2,19 +2,28 @@ import {Organization} from 'sentry/types';
 import {BreadcrumbType, RawCrumb} from 'sentry/types/breadcrumbs';
 import {Event} from 'sentry/types/event';
 
-import Default from './default';
-import Exception from './exception';
-import Http from './http';
-import LinkedEvent from './linkedEvent';
+import {Default} from './default';
+import {Exception} from './exception';
+import {Http} from './http';
+import {LinkedEvent} from './linkedEvent';
 
 type Props = Pick<React.ComponentProps<typeof LinkedEvent>, 'route' | 'router'> & {
   breadcrumb: RawCrumb;
   event: Event;
   organization: Organization;
   searchTerm: string;
+  meta?: Record<any, any>;
 };
 
-function Data({breadcrumb, event, organization, searchTerm, route, router}: Props) {
+export function Data({
+  breadcrumb,
+  event,
+  organization,
+  searchTerm,
+  meta,
+  route,
+  router,
+}: Props) {
   const orgSlug = organization.slug;
 
   const linkedEvent =
@@ -30,7 +39,12 @@ function Data({breadcrumb, event, organization, searchTerm, route, router}: Prop
 
   if (breadcrumb.type === BreadcrumbType.HTTP) {
     return (
-      <Http breadcrumb={breadcrumb} searchTerm={searchTerm} linkedEvent={linkedEvent} />
+      <Http
+        breadcrumb={breadcrumb}
+        searchTerm={searchTerm}
+        linkedEvent={linkedEvent}
+        meta={meta}
+      />
     );
   }
 
@@ -43,6 +57,7 @@ function Data({breadcrumb, event, organization, searchTerm, route, router}: Prop
         breadcrumb={breadcrumb}
         searchTerm={searchTerm}
         linkedEvent={linkedEvent}
+        meta={meta}
       />
     );
   }
@@ -54,8 +69,7 @@ function Data({breadcrumb, event, organization, searchTerm, route, router}: Prop
       breadcrumb={breadcrumb}
       searchTerm={searchTerm}
       linkedEvent={linkedEvent}
+      meta={meta}
     />
   );
 }
-
-export default Data;
