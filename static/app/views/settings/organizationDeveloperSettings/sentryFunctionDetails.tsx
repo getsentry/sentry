@@ -100,7 +100,7 @@ function SentryFunctionDetails(props: Props) {
       // TODO: Not sure where to redirect to, so just redirect to the unbuilt Sentry Functions page
       browserHistory.push(`/settings/${orgId}/developer-settings/sentry-functions/`);
     } catch (err) {
-      addErrorMessage(t(err.responseJSON.detail));
+      addErrorMessage(err?.responseJSON?.detail || t('Unknown Error'));
     }
   }
 
