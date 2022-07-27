@@ -168,7 +168,7 @@ function VitalsComparison(props: Props) {
               vital={vital}
               value={industryStandard}
               tooltip={tct(
-                "Calculated as a Good [lookupName] based on Google's web.dev standards.",
+                "Calculated as a Good [lookupName] based on Google's industry standards.",
                 {lookupName}
               )}
             />
