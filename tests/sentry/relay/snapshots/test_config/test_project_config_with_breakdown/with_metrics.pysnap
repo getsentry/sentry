@@ -1,6 +1,4 @@
 ---
-created: '2022-07-22T12:59:33.487327Z'
-creator: sentry
 source: tests/sentry/relay/test_config.py
 ---
 breakdownsV2:
@@ -23,6 +21,7 @@ metricConditionalTagging:
   targetMetrics:
   - s:transactions/user@none
   - d:transactions/duration@millisecond
+  - d:transactions/measurements.lcp@millisecond
   targetTag: satisfaction
 - condition:
     inner:
@@ -34,6 +33,7 @@ metricConditionalTagging:
   targetMetrics:
   - s:transactions/user@none
   - d:transactions/duration@millisecond
+  - d:transactions/measurements.lcp@millisecond
   targetTag: satisfaction
 - condition:
     inner: []
@@ -42,6 +42,7 @@ metricConditionalTagging:
   targetMetrics:
   - s:transactions/user@none
   - d:transactions/duration@millisecond
+  - d:transactions/measurements.lcp@millisecond
   targetTag: satisfaction
 - condition:
     inner:
@@ -53,11 +54,31 @@ metricConditionalTagging:
       value: javascript
     - name: event.duration
       op: gte
-      value: 8784.25
+      value: 9531.75
     op: and
   tagValue: outlier
   targetMetrics:
-  - d:transactions/duration@millisecond
+    duration: d:transactions/duration@millisecond
+    fcp: d:transactions/measurements.fcp@millisecond
+    lcp: d:transactions/measurements.lcp@millisecond
+  targetTag: histogram_outlier
+- condition:
+    inner:
+    - name: event.contexts.trace.op
+      op: eq
+      value: pageload
+    - name: event.platform
+      op: eq
+      value: javascript
+    - name: event.duration
+      op: gte
+      value: 3963.7502431869507
+    op: and
+  tagValue: outlier
+  targetMetrics:
+    duration: d:transactions/duration@millisecond
+    fcp: d:transactions/measurements.fcp@millisecond
+    lcp: d:transactions/measurements.lcp@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
@@ -69,11 +90,13 @@ metricConditionalTagging:
       value: javascript
     - name: event.duration
       op: gte
-      value: 2433
+      value: 2298.0
     op: and
   tagValue: outlier
   targetMetrics:
-  - d:transactions/duration@millisecond
+    duration: d:transactions/duration@millisecond
+    fcp: d:transactions/measurements.fcp@millisecond
+    lcp: d:transactions/measurements.lcp@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
@@ -85,11 +108,13 @@ metricConditionalTagging:
       value: python
     - name: event.duration
       op: gte
-      value: 285
+      value: 327.0
     op: and
   tagValue: outlier
   targetMetrics:
-  - d:transactions/duration@millisecond
+    duration: d:transactions/duration@millisecond
+    fcp: d:transactions/measurements.fcp@millisecond
+    lcp: d:transactions/measurements.lcp@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
@@ -101,11 +126,13 @@ metricConditionalTagging:
       value: node
     - name: event.duration
       op: gte
-      value: 250
+      value: 269.0
     op: and
   tagValue: outlier
   targetMetrics:
-  - d:transactions/duration@millisecond
+    duration: d:transactions/duration@millisecond
+    fcp: d:transactions/measurements.fcp@millisecond
+    lcp: d:transactions/measurements.lcp@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
@@ -117,27 +144,13 @@ metricConditionalTagging:
       value: php
     - name: event.duration
       op: gte
-      value: 601
+      value: 570.0
     op: and
   tagValue: outlier
   targetMetrics:
-  - d:transactions/duration@millisecond
-  targetTag: histogram_outlier
-- condition:
-    inner:
-    - name: event.contexts.trace.op
-      op: eq
-      value: rails.request
-    - name: event.platform
-      op: eq
-      value: ruby
-    - name: event.duration
-      op: gte
-      value: 177
-    op: and
-  tagValue: outlier
-  targetMetrics:
-  - d:transactions/duration@millisecond
+    duration: d:transactions/duration@millisecond
+    fcp: d:transactions/measurements.fcp@millisecond
+    lcp: d:transactions/measurements.lcp@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
@@ -149,11 +162,31 @@ metricConditionalTagging:
       value: python
     - name: event.duration
       op: gte
-      value: 1276
+      value: 874.0
     op: and
   tagValue: outlier
   targetMetrics:
-  - d:transactions/duration@millisecond
+    duration: d:transactions/duration@millisecond
+    fcp: d:transactions/measurements.fcp@millisecond
+    lcp: d:transactions/measurements.lcp@millisecond
+  targetTag: histogram_outlier
+- condition:
+    inner:
+    - name: event.contexts.trace.op
+      op: eq
+      value: rails.request
+    - name: event.platform
+      op: eq
+      value: ruby
+    - name: event.duration
+      op: gte
+      value: 301.0
+    op: and
+  tagValue: outlier
+  targetMetrics:
+    duration: d:transactions/duration@millisecond
+    fcp: d:transactions/measurements.fcp@millisecond
+    lcp: d:transactions/measurements.lcp@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
@@ -165,11 +198,13 @@ metricConditionalTagging:
       value: javascript
     - name: event.duration
       op: gte
-      value: 1291493.25
+      value: 12903472.75
     op: and
   tagValue: outlier
   targetMetrics:
-  - d:transactions/duration@millisecond
+    duration: d:transactions/duration@millisecond
+    fcp: d:transactions/measurements.fcp@millisecond
+    lcp: d:transactions/measurements.lcp@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
@@ -181,11 +216,13 @@ metricConditionalTagging:
       value: cocoa
     - name: event.duration
       op: gte
-      value: 1611
+      value: 1687.0
     op: and
   tagValue: outlier
   targetMetrics:
-  - d:transactions/duration@millisecond
+    duration: d:transactions/duration@millisecond
+    fcp: d:transactions/measurements.fcp@millisecond
+    lcp: d:transactions/measurements.lcp@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
@@ -197,11 +234,13 @@ metricConditionalTagging:
       value: node
     - name: event.duration
       op: gte
-      value: 1334.75
+      value: 870.0
     op: and
   tagValue: outlier
   targetMetrics:
-  - d:transactions/duration@millisecond
+    duration: d:transactions/duration@millisecond
+    fcp: d:transactions/measurements.fcp@millisecond
+    lcp: d:transactions/measurements.lcp@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
@@ -213,11 +252,31 @@ metricConditionalTagging:
       value: csharp
     - name: event.duration
       op: gte
-      value: 138
+      value: 177.0
     op: and
   tagValue: outlier
   targetMetrics:
-  - d:transactions/duration@millisecond
+    duration: d:transactions/duration@millisecond
+    fcp: d:transactions/measurements.fcp@millisecond
+    lcp: d:transactions/measurements.lcp@millisecond
+  targetTag: histogram_outlier
+- condition:
+    inner:
+    - name: event.contexts.trace.op
+      op: eq
+      value: http.server
+    - name: event.platform
+      op: eq
+      value: java
+    - name: event.duration
+      op: gte
+      value: 198.75
+    op: and
+  tagValue: outlier
+  targetMetrics:
+    duration: d:transactions/duration@millisecond
+    fcp: d:transactions/measurements.fcp@millisecond
+    lcp: d:transactions/measurements.lcp@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
@@ -229,27 +288,13 @@ metricConditionalTagging:
       value: python
     - name: event.duration
       op: gte
-      value: 719.75
+      value: 1110.0
     op: and
   tagValue: outlier
   targetMetrics:
-  - d:transactions/duration@millisecond
-  targetTag: histogram_outlier
-- condition:
-    inner:
-    - name: event.contexts.trace.op
-      op: eq
-      value: http.server
-    - name: event.platform
-      op: eq
-      value: java
-    - name: event.duration
-      op: gte
-      value: 92
-    op: and
-  tagValue: outlier
-  targetMetrics:
-  - d:transactions/duration@millisecond
+    duration: d:transactions/duration@millisecond
+    fcp: d:transactions/measurements.fcp@millisecond
+    lcp: d:transactions/measurements.lcp@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
@@ -261,11 +306,13 @@ metricConditionalTagging:
       value: java
     - name: event.duration
       op: gte
-      value: 724.75
+      value: 1600.0
     op: and
   tagValue: outlier
   targetMetrics:
-  - d:transactions/duration@millisecond
+    duration: d:transactions/duration@millisecond
+    fcp: d:transactions/measurements.fcp@millisecond
+    lcp: d:transactions/measurements.lcp@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
@@ -277,11 +324,13 @@ metricConditionalTagging:
       value: ruby
     - name: event.duration
       op: gte
-      value: 1068
+      value: 625.0
     op: and
   tagValue: outlier
   targetMetrics:
-  - d:transactions/duration@millisecond
+    duration: d:transactions/duration@millisecond
+    fcp: d:transactions/measurements.fcp@millisecond
+    lcp: d:transactions/measurements.lcp@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
@@ -293,11 +342,13 @@ metricConditionalTagging:
       value: ruby
     - name: event.duration
       op: gte
-      value: 870
+      value: 606.0
     op: and
   tagValue: outlier
   targetMetrics:
-  - d:transactions/duration@millisecond
+    duration: d:transactions/duration@millisecond
+    fcp: d:transactions/measurements.fcp@millisecond
+    lcp: d:transactions/measurements.lcp@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
@@ -309,11 +360,13 @@ metricConditionalTagging:
       value: javascript
     - name: event.duration
       op: gte
-      value: 2532.75
+      value: 2858.0
     op: and
   tagValue: outlier
   targetMetrics:
-  - d:transactions/duration@millisecond
+    duration: d:transactions/duration@millisecond
+    fcp: d:transactions/measurements.fcp@millisecond
+    lcp: d:transactions/measurements.lcp@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
@@ -325,11 +378,13 @@ metricConditionalTagging:
       value: python
     - name: event.duration
       op: gte
-      value: 883
+      value: 2216.75
     op: and
   tagValue: outlier
   targetMetrics:
-  - d:transactions/duration@millisecond
+    duration: d:transactions/duration@millisecond
+    fcp: d:transactions/measurements.fcp@millisecond
+    lcp: d:transactions/measurements.lcp@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
@@ -341,11 +396,13 @@ metricConditionalTagging:
       value: other
     - name: event.duration
       op: gte
-      value: 7008
+      value: 7004.0
     op: and
   tagValue: outlier
   targetMetrics:
-  - d:transactions/duration@millisecond
+    duration: d:transactions/duration@millisecond
+    fcp: d:transactions/measurements.fcp@millisecond
+    lcp: d:transactions/measurements.lcp@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
@@ -357,11 +414,13 @@ metricConditionalTagging:
       value: php
     - name: event.duration
       op: gte
-      value: 2981.25
+      value: 4635.0
     op: and
   tagValue: outlier
   targetMetrics:
-  - d:transactions/duration@millisecond
+    duration: d:transactions/duration@millisecond
+    fcp: d:transactions/measurements.fcp@millisecond
+    lcp: d:transactions/measurements.lcp@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
@@ -373,11 +432,13 @@ metricConditionalTagging:
       value: node
     - name: event.duration
       op: gte
-      value: 1420
+      value: 822.0
     op: and
   tagValue: outlier
   targetMetrics:
-  - d:transactions/duration@millisecond
+    duration: d:transactions/duration@millisecond
+    fcp: d:transactions/measurements.fcp@millisecond
+    lcp: d:transactions/measurements.lcp@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
@@ -389,27 +450,13 @@ metricConditionalTagging:
       value: node
     - name: event.duration
       op: gte
-      value: 133
+      value: 148.0
     op: and
   tagValue: outlier
   targetMetrics:
-  - d:transactions/duration@millisecond
-  targetTag: histogram_outlier
-- condition:
-    inner:
-    - name: event.contexts.trace.op
-      op: eq
-      value: rq.task
-    - name: event.platform
-      op: eq
-      value: python
-    - name: event.duration
-      op: gte
-      value: 8083.5
-    op: and
-  tagValue: outlier
-  targetMetrics:
-  - d:transactions/duration@millisecond
+    duration: d:transactions/duration@millisecond
+    fcp: d:transactions/measurements.fcp@millisecond
+    lcp: d:transactions/measurements.lcp@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
@@ -421,27 +468,13 @@ metricConditionalTagging:
       value: go
     - name: event.duration
       op: gte
-      value: 399
+      value: 123.0
     op: and
   tagValue: outlier
   targetMetrics:
-  - d:transactions/duration@millisecond
-  targetTag: histogram_outlier
-- condition:
-    inner:
-    - name: event.contexts.trace.op
-      op: eq
-      value: pageload
-    - name: event.platform
-      op: eq
-      value: other
-    - name: event.duration
-      op: gte
-      value: 3000
-    op: and
-  tagValue: outlier
-  targetMetrics:
-  - d:transactions/duration@millisecond
+    duration: d:transactions/duration@millisecond
+    fcp: d:transactions/measurements.fcp@millisecond
+    lcp: d:transactions/measurements.lcp@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
@@ -453,27 +486,85 @@ metricConditionalTagging:
       value: ruby
     - name: event.duration
       op: gte
-      value: 12
+      value: 18.0
     op: and
   tagValue: outlier
   targetMetrics:
-  - d:transactions/duration@millisecond
+    duration: d:transactions/duration@millisecond
+    fcp: d:transactions/measurements.fcp@millisecond
+    lcp: d:transactions/measurements.lcp@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
     - name: event.contexts.trace.op
       op: eq
-      value: rack.request
+      value: rq.task
     - name: event.platform
       op: eq
-      value: ruby
+      value: python
     - name: event.duration
       op: gte
-      value: 116
+      value: 1764.0
     op: and
   tagValue: outlier
   targetMetrics:
-  - d:transactions/duration@millisecond
+    duration: d:transactions/duration@millisecond
+    fcp: d:transactions/measurements.fcp@millisecond
+    lcp: d:transactions/measurements.lcp@millisecond
+  targetTag: histogram_outlier
+- condition:
+    inner:
+    - name: event.contexts.trace.op
+      op: eq
+      value: pageload
+    - name: event.platform
+      op: eq
+      value: other
+    - name: event.duration
+      op: gte
+      value: 3000.0
+    op: and
+  tagValue: outlier
+  targetMetrics:
+    duration: d:transactions/duration@millisecond
+    fcp: d:transactions/measurements.fcp@millisecond
+    lcp: d:transactions/measurements.lcp@millisecond
+  targetTag: histogram_outlier
+- condition:
+    inner:
+    - name: event.contexts.trace.op
+      op: eq
+      value: pageload
+    - name: event.platform
+      op: eq
+      value: other
+    - name: event.duration
+      op: gte
+      value: 4589.822045672948
+    op: and
+  tagValue: outlier
+  targetMetrics:
+    duration: d:transactions/duration@millisecond
+    fcp: d:transactions/measurements.fcp@millisecond
+    lcp: d:transactions/measurements.lcp@millisecond
+  targetTag: histogram_outlier
+- condition:
+    inner:
+    - name: event.contexts.trace.op
+      op: eq
+      value: pageload
+    - name: event.platform
+      op: eq
+      value: other
+    - name: event.duration
+      op: gte
+      value: 3384.3555060724457
+    op: and
+  tagValue: outlier
+  targetMetrics:
+    duration: d:transactions/duration@millisecond
+    fcp: d:transactions/measurements.fcp@millisecond
+    lcp: d:transactions/measurements.lcp@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
@@ -485,27 +576,31 @@ metricConditionalTagging:
       value: node
     - name: event.duration
       op: gte
-      value: 571
+      value: 632.0
     op: and
   tagValue: outlier
   targetMetrics:
-  - d:transactions/duration@millisecond
+    duration: d:transactions/duration@millisecond
+    fcp: d:transactions/measurements.fcp@millisecond
+    lcp: d:transactions/measurements.lcp@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
     - name: event.contexts.trace.op
       op: eq
-      value: http.server
+      value: rack.request
     - name: event.platform
       op: eq
-      value: other
+      value: ruby
     - name: event.duration
       op: gte
-      value: 61
+      value: 224.0
     op: and
   tagValue: outlier
   targetMetrics:
-  - d:transactions/duration@millisecond
+    duration: d:transactions/duration@millisecond
+    fcp: d:transactions/measurements.fcp@millisecond
+    lcp: d:transactions/measurements.lcp@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
@@ -517,27 +612,13 @@ metricConditionalTagging:
       value: node
     - name: event.duration
       op: gte
-      value: 782
+      value: 5961.5
     op: and
   tagValue: outlier
   targetMetrics:
-  - d:transactions/duration@millisecond
-  targetTag: histogram_outlier
-- condition:
-    inner:
-    - name: event.contexts.trace.op
-      op: eq
-      value: default
-    - name: event.platform
-      op: eq
-      value: python
-    - name: event.duration
-      op: gte
-      value: 3264.75
-    op: and
-  tagValue: outlier
-  targetMetrics:
-  - d:transactions/duration@millisecond
+    duration: d:transactions/duration@millisecond
+    fcp: d:transactions/measurements.fcp@millisecond
+    lcp: d:transactions/measurements.lcp@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
@@ -549,91 +630,31 @@ metricConditionalTagging:
       value: node
     - name: event.duration
       op: gte
-      value: 4777.5
+      value: 1268.75
     op: and
   tagValue: outlier
   targetMetrics:
-  - d:transactions/duration@millisecond
+    duration: d:transactions/duration@millisecond
+    fcp: d:transactions/measurements.fcp@millisecond
+    lcp: d:transactions/measurements.lcp@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
     - name: event.contexts.trace.op
       op: eq
-      value: sentry.test
-    - name: event.platform
-      op: eq
-      value: php
-    - name: event.duration
-      op: gte
-      value: 772.5
-    op: and
-  tagValue: outlier
-  targetMetrics:
-  - d:transactions/duration@millisecond
-  targetTag: histogram_outlier
-- condition:
-    inner:
-    - name: event.contexts.trace.op
-      op: eq
-      value: websocket.server
+      value: default
     - name: event.platform
       op: eq
       value: python
     - name: event.duration
       op: gte
-      value: 4
+      value: 1378.75
     op: and
   tagValue: outlier
   targetMetrics:
-  - d:transactions/duration@millisecond
-  targetTag: histogram_outlier
-- condition:
-    inner:
-    - name: event.contexts.trace.op
-      op: eq
-      value: navigation
-    - name: event.platform
-      op: eq
-      value: java
-    - name: event.duration
-      op: gte
-      value: 4409.75
-    op: and
-  tagValue: outlier
-  targetMetrics:
-  - d:transactions/duration@millisecond
-  targetTag: histogram_outlier
-- condition:
-    inner:
-    - name: event.contexts.trace.op
-      op: eq
-      value: delayed_job
-    - name: event.platform
-      op: eq
-      value: ruby
-    - name: event.duration
-      op: gte
-      value: 2690.25
-    op: and
-  tagValue: outlier
-  targetMetrics:
-  - d:transactions/duration@millisecond
-  targetTag: histogram_outlier
-- condition:
-    inner:
-    - name: event.contexts.trace.op
-      op: eq
-      value: task
-    - name: event.platform
-      op: eq
-      value: python
-    - name: event.duration
-      op: gte
-      value: 3193.75
-    op: and
-  tagValue: outlier
-  targetMetrics:
-  - d:transactions/duration@millisecond
+    duration: d:transactions/duration@millisecond
+    fcp: d:transactions/measurements.fcp@millisecond
+    lcp: d:transactions/measurements.lcp@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
@@ -645,43 +666,103 @@ metricConditionalTagging:
       value: php
     - name: event.duration
       op: gte
-      value: 1254
+      value: 917.0
     op: and
   tagValue: outlier
   targetMetrics:
-  - d:transactions/duration@millisecond
+    duration: d:transactions/duration@millisecond
+    fcp: d:transactions/measurements.fcp@millisecond
+    lcp: d:transactions/measurements.lcp@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
     - name: event.contexts.trace.op
       op: eq
-      value: query
+      value: task
     - name: event.platform
       op: eq
       value: python
     - name: event.duration
       op: gte
-      value: 771
+      value: 891.0
     op: and
   tagValue: outlier
   targetMetrics:
-  - d:transactions/duration@millisecond
+    duration: d:transactions/duration@millisecond
+    fcp: d:transactions/measurements.fcp@millisecond
+    lcp: d:transactions/measurements.lcp@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
     - name: event.contexts.trace.op
       op: eq
-      value: mutation
+      value: http.server
+    - name: event.platform
+      op: eq
+      value: other
+    - name: event.duration
+      op: gte
+      value: 52.0
+    op: and
+  tagValue: outlier
+  targetMetrics:
+    duration: d:transactions/duration@millisecond
+    fcp: d:transactions/measurements.fcp@millisecond
+    lcp: d:transactions/measurements.lcp@millisecond
+  targetTag: histogram_outlier
+- condition:
+    inner:
+    - name: event.contexts.trace.op
+      op: eq
+      value: websocket.server
     - name: event.platform
       op: eq
       value: python
     - name: event.duration
       op: gte
-      value: 265
+      value: 370.0
     op: and
   tagValue: outlier
   targetMetrics:
-  - d:transactions/duration@millisecond
+    duration: d:transactions/duration@millisecond
+    fcp: d:transactions/measurements.fcp@millisecond
+    lcp: d:transactions/measurements.lcp@millisecond
+  targetTag: histogram_outlier
+- condition:
+    inner:
+    - name: event.contexts.trace.op
+      op: eq
+      value: sentry.test
+    - name: event.platform
+      op: eq
+      value: php
+    - name: event.duration
+      op: gte
+      value: 526.5
+    op: and
+  tagValue: outlier
+  targetMetrics:
+    duration: d:transactions/duration@millisecond
+    fcp: d:transactions/measurements.fcp@millisecond
+    lcp: d:transactions/measurements.lcp@millisecond
+  targetTag: histogram_outlier
+- condition:
+    inner:
+    - name: event.contexts.trace.op
+      op: eq
+      value: delayed_job
+    - name: event.platform
+      op: eq
+      value: ruby
+    - name: event.duration
+      op: gte
+      value: 150.0
+    op: and
+  tagValue: outlier
+  targetMetrics:
+    duration: d:transactions/duration@millisecond
+    fcp: d:transactions/measurements.fcp@millisecond
+    lcp: d:transactions/measurements.lcp@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
@@ -693,11 +774,67 @@ metricConditionalTagging:
       value: node
     - name: event.duration
       op: gte
-      value: 157
+      value: 709.0
     op: and
   tagValue: outlier
   targetMetrics:
-  - d:transactions/duration@millisecond
+    duration: d:transactions/duration@millisecond
+    fcp: d:transactions/measurements.fcp@millisecond
+    lcp: d:transactions/measurements.lcp@millisecond
+  targetTag: histogram_outlier
+- condition:
+    inner:
+    - name: event.contexts.trace.op
+      op: eq
+      value: query
+    - name: event.platform
+      op: eq
+      value: python
+    - name: event.duration
+      op: gte
+      value: 778.0
+    op: and
+  tagValue: outlier
+  targetMetrics:
+    duration: d:transactions/duration@millisecond
+    fcp: d:transactions/measurements.fcp@millisecond
+    lcp: d:transactions/measurements.lcp@millisecond
+  targetTag: histogram_outlier
+- condition:
+    inner:
+    - name: event.contexts.trace.op
+      op: eq
+      value: navigation
+    - name: event.platform
+      op: eq
+      value: java
+    - name: event.duration
+      op: gte
+      value: 5891.0
+    op: and
+  tagValue: outlier
+  targetMetrics:
+    duration: d:transactions/duration@millisecond
+    fcp: d:transactions/measurements.fcp@millisecond
+    lcp: d:transactions/measurements.lcp@millisecond
+  targetTag: histogram_outlier
+- condition:
+    inner:
+    - name: event.contexts.trace.op
+      op: eq
+      value: mutation
+    - name: event.platform
+      op: eq
+      value: python
+    - name: event.duration
+      op: gte
+      value: 164.0
+    op: and
+  tagValue: outlier
+  targetMetrics:
+    duration: d:transactions/duration@millisecond
+    fcp: d:transactions/measurements.fcp@millisecond
+    lcp: d:transactions/measurements.lcp@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
@@ -709,11 +846,13 @@ metricConditionalTagging:
       value: java
     - name: event.duration
       op: gte
-      value: 1941
+      value: 1881.0
     op: and
   tagValue: outlier
   targetMetrics:
-  - d:transactions/duration@millisecond
+    duration: d:transactions/duration@millisecond
+    fcp: d:transactions/measurements.fcp@millisecond
+    lcp: d:transactions/measurements.lcp@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
@@ -725,59 +864,13 @@ metricConditionalTagging:
       value: other
     - name: event.duration
       op: gte
-      value: 1138
+      value: 2138.0
     op: and
   tagValue: outlier
   targetMetrics:
-  - d:transactions/duration@millisecond
-  targetTag: histogram_outlier
-- condition:
-    inner:
-    - name: event.contexts.trace.op
-      op: eq
-      value: gcp.function.event
-    - name: event.platform
-      op: eq
-      value: node
-    - name: event.duration
-      op: gte
-      value: 6693
-    op: and
-  tagValue: outlier
-  targetMetrics:
-  - d:transactions/duration@millisecond
-  targetTag: histogram_outlier
-- condition:
-    inner:
-    - name: event.contexts.trace.op
-      op: eq
-      value: default
-    - name: event.platform
-      op: eq
-      value: php
-    - name: event.duration
-      op: gte
-      value: 327
-    op: and
-  tagValue: outlier
-  targetMetrics:
-  - d:transactions/duration@millisecond
-  targetTag: histogram_outlier
-- condition:
-    inner:
-    - name: event.contexts.trace.op
-      op: eq
-      value: queue.job
-    - name: event.platform
-      op: eq
-      value: php
-    - name: event.duration
-      op: gte
-      value: 791
-    op: and
-  tagValue: outlier
-  targetMetrics:
-  - d:transactions/duration@millisecond
+    duration: d:transactions/duration@millisecond
+    fcp: d:transactions/measurements.fcp@millisecond
+    lcp: d:transactions/measurements.lcp@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
@@ -789,27 +882,13 @@ metricConditionalTagging:
       value: php
     - name: event.duration
       op: gte
-      value: 794
+      value: 896.0
     op: and
   tagValue: outlier
   targetMetrics:
-  - d:transactions/duration@millisecond
-  targetTag: histogram_outlier
-- condition:
-    inner:
-    - name: event.contexts.trace.op
-      op: eq
-      value: grpc.server
-    - name: event.platform
-      op: eq
-      value: go
-    - name: event.duration
-      op: gte
-      value: 37
-    op: and
-  tagValue: outlier
-  targetMetrics:
-  - d:transactions/duration@millisecond
+    duration: d:transactions/duration@millisecond
+    fcp: d:transactions/measurements.fcp@millisecond
+    lcp: d:transactions/measurements.lcp@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
@@ -821,11 +900,85 @@ metricConditionalTagging:
       value: node
     - name: event.duration
       op: gte
-      value: 582
+      value: 599.0
     op: and
   tagValue: outlier
   targetMetrics:
-  - d:transactions/duration@millisecond
+    duration: d:transactions/duration@millisecond
+    fcp: d:transactions/measurements.fcp@millisecond
+    lcp: d:transactions/measurements.lcp@millisecond
+  targetTag: histogram_outlier
+- condition:
+    inner:
+    - name: event.contexts.trace.op
+      op: eq
+      value: gcp.function.event
+    - name: event.platform
+      op: eq
+      value: node
+    - name: event.duration
+      op: gte
+      value: 1182.0
+    op: and
+  tagValue: outlier
+  targetMetrics:
+    duration: d:transactions/duration@millisecond
+    fcp: d:transactions/measurements.fcp@millisecond
+    lcp: d:transactions/measurements.lcp@millisecond
+  targetTag: histogram_outlier
+- condition:
+    inner:
+    - name: event.contexts.trace.op
+      op: eq
+      value: ui.action
+    - name: event.platform
+      op: eq
+      value: cocoa
+    - name: event.duration
+      op: gte
+      value: 6572.75
+    op: and
+  tagValue: outlier
+  targetMetrics:
+    duration: d:transactions/duration@millisecond
+    fcp: d:transactions/measurements.fcp@millisecond
+    lcp: d:transactions/measurements.lcp@millisecond
+  targetTag: histogram_outlier
+- condition:
+    inner:
+    - name: event.contexts.trace.op
+      op: eq
+      value: default
+    - name: event.platform
+      op: eq
+      value: php
+    - name: event.duration
+      op: gte
+      value: 194.0
+    op: and
+  tagValue: outlier
+  targetMetrics:
+    duration: d:transactions/duration@millisecond
+    fcp: d:transactions/measurements.fcp@millisecond
+    lcp: d:transactions/measurements.lcp@millisecond
+  targetTag: histogram_outlier
+- condition:
+    inner:
+    - name: event.contexts.trace.op
+      op: eq
+      value: ui.action.click
+    - name: event.platform
+      op: eq
+      value: cocoa
+    - name: event.duration
+      op: gte
+      value: 7880.5
+    op: and
+  tagValue: outlier
+  targetMetrics:
+    duration: d:transactions/duration@millisecond
+    fcp: d:transactions/measurements.fcp@millisecond
+    lcp: d:transactions/measurements.lcp@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
@@ -837,11 +990,13 @@ metricConditionalTagging:
       value: node
     - name: event.duration
       op: gte
-      value: 679
+      value: 903.0
     op: and
   tagValue: outlier
   targetMetrics:
-  - d:transactions/duration@millisecond
+    duration: d:transactions/duration@millisecond
+    fcp: d:transactions/measurements.fcp@millisecond
+    lcp: d:transactions/measurements.lcp@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
@@ -852,6 +1007,8 @@ metricConditionalTagging:
   tagValue: inlier
   targetMetrics:
   - d:transactions/duration@millisecond
+  - d:transactions/measurements.lcp@millisecond
+  - d:transactions/measurements.fcp@millisecond
   targetTag: histogram_outlier
 - condition:
     inner: []
@@ -859,6 +1016,8 @@ metricConditionalTagging:
   tagValue: outlier
   targetMetrics:
   - d:transactions/duration@millisecond
+  - d:transactions/measurements.lcp@millisecond
+  - d:transactions/measurements.fcp@millisecond
   targetTag: histogram_outlier
 transactionMetrics:
   customMeasurements:
