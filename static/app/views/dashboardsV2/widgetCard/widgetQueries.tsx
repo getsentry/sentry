@@ -66,7 +66,7 @@ export function transformSeries(
  * }
  */
 export function flattenMultiSeriesDataWithGrouping(
-  result: EventsStats | MultiSeriesEventsStats,
+  result: SeriesResult,
   queryAlias: string
 ): SeriesWithOrdering[] {
   const seriesWithOrdering: SeriesWithOrdering[] = [];
