@@ -33,6 +33,7 @@ type BreadcrumbTypeBase = {
   level: BreadcrumbLevelType;
   // it's recommended
   category?: string | null;
+  color?: string;
   event_id?: string | null;
   message?: string;
   timestamp?: string;
@@ -52,7 +53,7 @@ export type BreadcrumbTypeSession = {
 
 export type BreadcrumbTypeNavigation = {
   type: BreadcrumbType.NAVIGATION;
-  data?: {
+  data?: null | {
     from?: string;
     to?: string;
   };
@@ -60,7 +61,7 @@ export type BreadcrumbTypeNavigation = {
 
 export type BreadcrumbTypeHTTP = {
   type: BreadcrumbType.HTTP;
-  data?: {
+  data?: null | {
     method?:
       | 'POST'
       | 'PUT'
@@ -92,7 +93,7 @@ export type BreadcrumbTypeDefault = {
     | BreadcrumbType.SESSION
     | BreadcrumbType.SYSTEM
     | BreadcrumbType.TRANSACTION;
-  data?: Record<string, any>;
+  data?: Record<string, any> | null;
 } & BreadcrumbTypeBase;
 
 export type RawCrumb =

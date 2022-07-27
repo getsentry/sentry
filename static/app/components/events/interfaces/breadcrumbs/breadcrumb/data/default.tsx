@@ -2,13 +2,8 @@ import AnnotatedText from 'sentry/components/events/meta/annotatedText';
 import Highlight from 'sentry/components/highlight';
 import Link from 'sentry/components/links/link';
 import {Organization, Project} from 'sentry/types';
-import {
-  BreadcrumbTypeDefault,
-  BreadcrumbTypeNavigation,
-  Crumb,
-} from 'sentry/types/breadcrumbs';
+import {BreadcrumbTypeDefault, BreadcrumbTypeNavigation} from 'sentry/types/breadcrumbs';
 import {Event} from 'sentry/types/event';
-import {Meta} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
 import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
@@ -22,7 +17,7 @@ type Props = {
   searchTerm: string;
   event?: Event;
   linkedEvent?: React.ReactElement;
-  meta?: Record<keyof Crumb, Meta>;
+  meta?: Record<any, any>;
 };
 
 export function Default({
@@ -34,18 +29,13 @@ export function Default({
   linkedEvent,
 }: Props) {
   const {message, data} = breadcrumb;
-
-  if (defined(data) && meta?.data?.['']) {
-    return <AnnotatedText value={data} meta={meta?.data?.['']} />;
-  }
-
   return (
-    <Summary kvData={data}>
+    <Summary kvData={data} meta={meta}>
       {linkedEvent}
-      {defined(message) &&
-        (meta?.message?.[''] ? (
-          <AnnotatedText value={message} meta={meta?.message?.['']} />
-        ) : (
+      {meta?.message?.[''] ? (
+        <AnnotatedText value={message} meta={meta?.message?.['']} />
+      ) : (
+        defined(message) && (
           <FormatMessage
             searchTerm={searchTerm}
             event={event}
@@ -53,7 +43,8 @@ export function Default({
             breadcrumb={breadcrumb}
             message={message}
           />
-        ))}
+        )
+      )}
     </Summary>
   );
 }

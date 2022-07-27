@@ -25,7 +25,7 @@ type Props = Pick<React.ComponentProps<typeof Data>, 'route' | 'router'> & {
   searchTerm: string;
   style: React.CSSProperties;
   height?: string;
-  meta?: Record<keyof Crumb, any>;
+  meta?: Record<any, any>;
 };
 
 export const Breadcrumb = memo(function Breadcrumb({

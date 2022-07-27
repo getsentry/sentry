@@ -1,5 +1,5 @@
 import {Organization} from 'sentry/types';
-import {BreadcrumbType, Crumb, RawCrumb} from 'sentry/types/breadcrumbs';
+import {BreadcrumbType, RawCrumb} from 'sentry/types/breadcrumbs';
 import {Event} from 'sentry/types/event';
 
 import {Default} from './default';
@@ -12,7 +12,7 @@ type Props = Pick<React.ComponentProps<typeof LinkedEvent>, 'route' | 'router'> 
   event: Event;
   organization: Organization;
   searchTerm: string;
-  meta?: Record<keyof Crumb, any>;
+  meta?: Record<any, any>;
 };
 
 export function Data({
