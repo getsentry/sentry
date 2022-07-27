@@ -1,8 +1,7 @@
 import {useMemo} from 'react';
 
+import useDiscoverQuery from 'sentry/utils/replays/hooks/useDiscoveryQuery';
 import {ReplayError} from 'sentry/views/replays/types';
-
-import useDiscoverQuery from './useDiscoveryQuery';
 
 interface Params {
   replayId: string;

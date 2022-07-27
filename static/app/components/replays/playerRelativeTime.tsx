@@ -1,9 +1,8 @@
 import styled from '@emotion/styled';
 
 import DateTime from 'sentry/components/dateTime';
+import {showPlayerTime} from 'sentry/components/replays/utils';
 import Tooltip from 'sentry/components/tooltip';
-
-import {showPlayerTime} from './utils';
 
 type Props = {
   relativeTime: number | undefined;

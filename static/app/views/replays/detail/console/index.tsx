@@ -10,10 +10,9 @@ import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import type {BreadcrumbLevelType, BreadcrumbTypeDefault} from 'sentry/types/breadcrumbs';
+import ConsoleMessage from 'sentry/views/replays/detail/console/consoleMessage';
+import {filterBreadcrumbs} from 'sentry/views/replays/detail/console/utils';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
-
-import ConsoleMessage from './consoleMessage';
-import {filterBreadcrumbs} from './utils';
 
 interface Props {
   breadcrumbs: BreadcrumbTypeDefault[];

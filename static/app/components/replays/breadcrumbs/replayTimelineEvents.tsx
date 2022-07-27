@@ -3,15 +3,14 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import * as Timeline from 'sentry/components/replays/breadcrumbs/timeline';
+import {useReplayContext} from 'sentry/components/replays/replayContext';
+import {getCrumbsByColumn, relativeTimeInMs} from 'sentry/components/replays/utils';
 import Tooltip from 'sentry/components/tooltip';
 import space from 'sentry/styles/space';
 import {Crumb} from 'sentry/types/breadcrumbs';
 import type {Color} from 'sentry/utils/theme';
 import theme from 'sentry/utils/theme';
 import BreadcrumbItem from 'sentry/views/replays/detail/breadcrumbs/breadcrumbItem';
-
-import {useReplayContext} from '../replayContext';
-import {getCrumbsByColumn, relativeTimeInMs} from '../utils';
 
 const EVENT_STICK_MARKER_WIDTH = 4;
 

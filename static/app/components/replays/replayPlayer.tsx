@@ -3,10 +3,9 @@ import styled from '@emotion/styled';
 import {useResizeObserver} from '@react-aria/utils';
 
 import {Panel as _Panel} from 'sentry/components/panels';
+import BufferingOverlay from 'sentry/components/replays/player/bufferingOverlay';
+import FastForwardBadge from 'sentry/components/replays/player/fastForwardBadge';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-
-import BufferingOverlay from './player/bufferingOverlay';
-import FastForwardBadge from './player/fastForwardBadge';
 
 interface Props {
   className?: string;
