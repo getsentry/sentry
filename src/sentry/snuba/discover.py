@@ -811,7 +811,7 @@ def span_count_histogram_query(
     """
     API for generating histograms for span exclusive time.
 
-    :param [str] span_op: A span op for which you want to generate histograms for.
+    :param str span_op: A span op for which you want to generate histograms for.
     :param str user_query: Filter query string to create conditions from.
     :param {str: str} params: Filtering parameters with start, end, project_id, environment
     :param int num_buckets: The number of buckets the histogram should contain.
@@ -842,7 +842,7 @@ def span_count_histogram_query(
     histogram_rows = None
 
     histogram_params = find_histogram_params(num_buckets, min_value, max_value, multiplier)
-    histogram_column = get_span_histogram_column(span_op, histogram_params)
+    histogram_column = get_span_count_histogram_column(span_op, histogram_params)
 
     builder = HistogramQueryBuilder(
         num_buckets,
@@ -1168,7 +1168,7 @@ def find_span_op_count_histogram_min_max(
     Find the min/max value of the specified span op count. If either min/max is already
     specified, it will be used and not queried for.
 
-    :param [str] span_op: A span op for which count you want to generate the histograms for.
+    :param str span_op: A span op for which count you want to generate the histograms for.
     :param float min_value: The minimum value allowed to be in the histogram.
         If left unspecified, it is queried using `user_query` and `params`.
     :param float max_value: The maximum value allowed to be in the histogram.

@@ -27,6 +27,7 @@ class SpansCountHistogramSerializer(serializers.Serializer):
     def validate_spanOp(self, spanOp: str):
         if len(spanOp) < 1:
             raise serializers.ValidationError("span op cannot be empty.")
+        return spanOp
 
 
 class OrganizationEventsSpansCountHistogramEndpoint(OrganizationEventsV2EndpointBase):
