@@ -123,6 +123,7 @@ const Item = styled('div')<{color?: string; numeric?: boolean}>`
   padding: ${space(0.75)} ${space(1.5)};
   background-color: ${p => p.theme.background};
   min-width: 0;
+  line-height: 16px;
 
   ${p => p.numeric && 'font-variant-numeric: tabular-nums;'}
 `;
@@ -130,7 +131,6 @@ const Item = styled('div')<{color?: string; numeric?: boolean}>`
 const StyledPanelTable = styled(PanelTable)<{columns: number}>`
   grid-template-columns: max-content minmax(200px, 1fr) repeat(3, max-content);
   font-size: ${p => p.theme.fontSizeSmall};
-  line-height: 16px;
   margin-bottom: 0;
   max-height: 100%;
   overflow: auto;
@@ -146,13 +146,13 @@ const StyledPanelTable = styled(PanelTable)<{columns: number}>`
     &:nth-child(${p => p.columns}n) {
       border-right: 0;
       text-align: right;
-      justify-content: end;
+      align-items: end;
     }
 
     /* 2nd last column */
     &:nth-child(${p => p.columns}n - 1) {
       text-align: right;
-      justify-content: end;
+      align-items: end;
     }
   }
 
@@ -161,6 +161,7 @@ const StyledPanelTable = styled(PanelTable)<{columns: number}>`
     padding: ${space(0.5)} ${space(1.5)};
     border-radius: 0;
     color: ${p => p.theme.subText};
+    line-height: 16px;
   }
 `;
 
@@ -176,14 +177,13 @@ const Text = styled('p')`
   text-overflow: ellipsis;
   white-space: nowrap;
   overflow: hidden;
-  line-height: 16px;
 `;
 
 const SortItem = styled('span')`
   cursor: pointer;
 
   svg {
-    vertical-align: top;
+    vertical-align: middle;
   }
 `;
 
