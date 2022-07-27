@@ -58,7 +58,7 @@ def process_messages(
 
     batch = IndexerBatch(use_case_id, outer_message)
 
-    org_strings, strings = batch.extract_strings()
+    org_strings = batch.extract_strings()
 
     with metrics.timer("metrics_consumer.bulk_record"):
         record_result = indexer.bulk_record(use_case_id=use_case_id, org_strings=org_strings)

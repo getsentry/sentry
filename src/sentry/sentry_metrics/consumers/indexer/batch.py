@@ -1,6 +1,6 @@
 import logging
 from collections import defaultdict
-from typing import List, Mapping, MutableMapping, NamedTuple, Optional, Sequence, Set, Tuple
+from typing import List, Mapping, MutableMapping, NamedTuple, Optional, Sequence, Set
 
 import rapidjson
 import sentry_sdk
@@ -52,7 +52,7 @@ class IndexerBatch:
         self.outer_message = outer_message
 
     @metrics.wraps("process_messages.parse_outer_message")
-    def extract_strings(self) -> Tuple[Mapping[int, Set[str]], Set[str]]:
+    def extract_strings(self) -> Mapping[int, Set[str]]:
         org_strings = defaultdict(set)
         strings = set()
 
@@ -125,7 +125,6 @@ class IndexerBatch:
                 *tags.values(),
             }
             org_strings[org_id].update(parsed_strings)
-            strings.update(parsed_strings)
 
         string_count = 0
         for org_set in org_strings:
@@ -133,13 +132,13 @@ class IndexerBatch:
         metrics.gauge("process_messages.lookups_per_batch", value=string_count)
         metrics.incr("process_messages.total_strings_indexer_lookup", amount=len(strings))
 
-        return org_strings, strings
+        return org_strings
 
     @metrics.wraps("process_messages.reconstruct_messages")
     def reconstruct_messages(
         self,
         mapping: Mapping[int, Mapping[str, Optional[int]]],
-        bulk_record_meta: Mapping[str, Metadata],
+        bulk_record_meta: Mapping[int, Mapping[str, Metadata]],
     ) -> List[Message[KafkaPayload]]:
         new_messages: List[Message[KafkaPayload]] = []
 
@@ -170,7 +169,7 @@ class IndexerBatch:
                     new_k = mapping[org_id][k]
                     new_v = mapping[org_id][v]
                     if new_k is None:
-                        metadata = bulk_record_meta.get(k)
+                        metadata = bulk_record_meta[org_id].get(k)
                         if (
                             metadata
                             and metadata.fetch_type_ext
@@ -182,7 +181,7 @@ class IndexerBatch:
                         continue
 
                     if new_v is None:
-                        metadata = bulk_record_meta.get(v)
+                        metadata = bulk_record_meta[org_id].get(v)
                         if (
                             metadata
                             and metadata.fetch_type_ext
@@ -212,25 +211,27 @@ class IndexerBatch:
 
             fetch_types_encountered = set()
             for tag in used_tags:
-                if tag in bulk_record_meta:
-                    metadata = bulk_record_meta[tag]
+                if tag in bulk_record_meta[org_id]:
+                    metadata = bulk_record_meta[org_id][tag]
                     fetch_types_encountered.add(metadata.fetch_type)
                     output_message_meta[metadata.fetch_type.value][str(metadata.id)] = tag
 
             mapping_header_content = bytes(
-                "".join([t.value for t in fetch_types_encountered]), "utf-8"
+                "".join(sorted(t.value for t in fetch_types_encountered)), "utf-8"
             )
             new_payload_value["tags"] = new_tags
             new_payload_value["metric_id"] = numeric_metric_id = mapping[org_id][metric_name]
             if numeric_metric_id is None:
-                metadata = bulk_record_meta.get(metric_name)
+                metadata = bulk_record_meta[org_id].get(metric_name)
                 logger.error(
                     "process_messages.dropped_message",
                     extra={
                         "string_type": "metric_id",
-                        "is_global_quota": metadata
-                        and metadata.fetch_type_ext
-                        and metadata.fetch_type_ext.is_global,
+                        "is_global_quota": bool(
+                            metadata
+                            and metadata.fetch_type_ext
+                            and metadata.fetch_type_ext.is_global
+                        ),
                         "org_batch_size": len(mapping[org_id]),
                     },
                 )
