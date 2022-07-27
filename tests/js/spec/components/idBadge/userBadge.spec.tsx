@@ -66,4 +66,16 @@ describe('UserBadge', function () {
     render(<UserBadge user={user} hideEmail />);
     expect(screen.queryByText(user.email)).not.toBeInTheDocument();
   });
+
+  it('can coalesce using ip', function () {
+    const ipUser = TestStubs.User({
+      name: null,
+      email: null,
+      username: null,
+      ip: '127.0.0.1',
+    });
+    render(<UserBadge user={ipUser} />);
+
+    expect(screen.getByText(ipUser.ip)).toBeInTheDocument();
+  });
 });

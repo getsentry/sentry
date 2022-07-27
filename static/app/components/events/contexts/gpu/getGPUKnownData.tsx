@@ -1,30 +1,45 @@
-import {getMeta} from 'sentry/components/events/meta/metaProxy';
-import {KeyValueListData} from 'sentry/types';
+import {Event, KeyValueListData} from 'sentry/types';
 import {defined} from 'sentry/utils';
 
-import getGpuKnownDataDetails from './getGPUKnownDataDetails';
+import {getGPUKnownDataDetails} from './getGPUKnownDataDetails';
 import {GPUData, GPUKnownDataType} from './types';
 
-function getGPUKnownData(
-  data: GPUData,
-  gpuKnownDataValues: Array<GPUKnownDataType>
-): KeyValueListData {
+type Props = {
+  data: GPUData;
+  gpuKnownDataValues: Array<GPUKnownDataType>;
+  meta: NonNullable<Event['_meta']>['gpu'];
+};
+
+export function getGPUKnownData({
+  data,
+  gpuKnownDataValues,
+  meta,
+}: Props): KeyValueListData {
   const knownData: KeyValueListData = [];
 
-  const dataKeys = gpuKnownDataValues.filter(gpuKnownDataValue =>
-    defined(data[gpuKnownDataValue])
-  );
+  const dataKeys = gpuKnownDataValues.filter(gpuKnownDataValue => {
+    if (!defined(data[gpuKnownDataValue])) {
+      if (meta[gpuKnownDataValue]) {
+        return true;
+      }
+      return false;
+    }
+    return true;
+  });
 
-  for (const key of dataKeys) {
-    const knownDataDetails = getGpuKnownDataDetails(data, key as GPUKnownDataType);
+  for (const type of dataKeys) {
+    const knownDataDetails = getGPUKnownDataDetails({data, type});
+
+    if (!knownDataDetails) {
+      continue;
+    }
 
     knownData.push({
-      key,
+      key: type,
       ...knownDataDetails,
-      meta: getMeta(data, key),
+      meta: meta[type]?.[''],
     });
   }
+
   return knownData;
 }
-
-export default getGPUKnownData;

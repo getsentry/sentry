@@ -13,7 +13,7 @@ export type OperatingSystemKnownData = {
   build: string;
   kernel_version: string;
   name: string;
-  type: string;
   rooted?: boolean;
+  type?: string;
   version?: string;
 };
