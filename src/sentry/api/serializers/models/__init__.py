@@ -1,3 +1,5 @@
+from sentry.replays.serializers import ReplayRecordingSegmentSerializer  # noqa: F401,F403
+
 from .activity import *  # noqa: F401,F403
 from .actor import *  # noqa: F401,F403
 from .alert_rule import *  # noqa: F401,F403

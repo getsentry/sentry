@@ -58,9 +58,3 @@ class ReplayRecordingSegment(Model):
             file.delete()
 
         return rv
-
-
-# For the register decorator to work the code has to be executed. Since
-# the serializer module is no longer imported anywhere it is imported
-# here.
-from .serializers import ReplayRecordingSegmentSerializer  # NOQA
