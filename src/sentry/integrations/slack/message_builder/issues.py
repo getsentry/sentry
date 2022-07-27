@@ -1,13 +1,19 @@
 from __future__ import annotations
 
-from typing import Any, Callable, Mapping, Optional, Sequence
+from typing import Any, Mapping, Optional, Sequence
 
 from django.core.cache import cache
 from sentry_relay import parse_release
 
 from sentry import tagstore
 from sentry.eventstore.models import Event
-from sentry.integrations.slack.message_builder import LEVEL_TO_COLOR, SlackBody
+from sentry.integrations.message_builder import (
+    build_attachment_text,
+    build_attachment_title,
+    build_footer,
+    format_actor_options,
+)
+from sentry.integrations.slack.message_builder import LEVEL_TO_COLOR, SLACK_URL_FORMAT, SlackBody
 from sentry.integrations.slack.message_builder.base.base import SlackMessageBuilder
 from sentry.integrations.slack.utils.escape import escape_slack_text
 from sentry.models import (
@@ -22,59 +28,18 @@ from sentry.models import (
     Team,
     User,
 )
-from sentry.notifications.notifications.base import BaseNotification, ProjectNotification
+from sentry.notifications.notifications.base import (
+    BaseNotification,
+    ProjectNotification,
+    create_notification_with_properties,
+)
 from sentry.notifications.notifications.rules import AlertRuleNotification, CommitData
 from sentry.notifications.utils.actions import MessageAction
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 from sentry.utils.dates import to_timestamp
-from sentry.utils.http import absolute_uri
 
 STATUSES = {"resolved": "resolved", "ignored": "ignored", "unresolved": "re-opened"}
-
-
-def format_actor_options(actors: Sequence[Team | User]) -> Sequence[Mapping[str, str]]:
-    sort_func: Callable[[Mapping[str, str]], Any] = lambda actor: actor["text"]
-    return sorted((format_actor_option(actor) for actor in actors), key=sort_func)
-
-
-def format_actor_option(actor: Team | User) -> Mapping[str, str]:
-    if isinstance(actor, User):
-        return {"text": actor.get_display_name(), "value": f"user:{actor.id}"}
-    if isinstance(actor, Team):
-        return {"text": f"#{actor.slug}", "value": f"team:{actor.id}"}
-
-    raise NotImplementedError
-
-
-def build_attachment_title(obj: Group | Event) -> str:
-    ev_metadata = obj.get_event_metadata()
-    ev_type = obj.get_event_type()
-
-    if ev_type == "error" and "type" in ev_metadata:
-        title = ev_metadata["type"]
-
-    elif ev_type == "csp":
-        title = f'{ev_metadata["directive"]} - {ev_metadata["uri"]}'
-
-    else:
-        title = obj.title
-
-    # Explicitly typing to satisfy mypy.
-    title_str: str = title
-    return title_str
-
-
-def build_attachment_text(group: Group, event: Event | None = None) -> Any | None:
-    # Group and Event both implement get_event_{type,metadata}
-    obj = event if event is not None else group
-    ev_metadata = obj.get_event_metadata()
-    ev_type = obj.get_event_type()
-
-    if ev_type == "error":
-        return ev_metadata.get("value") or ev_metadata.get("function")
-    else:
-        return None
 
 
 def build_assigned_text(identity: Identity, assignee: str) -> str | None:
@@ -117,33 +82,6 @@ def build_action_text(identity: Identity, action: MessageAction) -> str | None:
         return None
 
     return f"*Issue {status} by <@{identity.external_id}>*"
-
-
-def build_rule_url(rule: Any, group: Group, project: Project) -> str:
-    org_slug = group.organization.slug
-    project_slug = project.slug
-    rule_url = f"/organizations/{org_slug}/alerts/rules/{project_slug}/{rule.id}/details/"
-
-    # Explicitly typing to satisfy mypy.
-    url: str = absolute_uri(rule_url)
-    return url
-
-
-def build_footer(
-    group: Group,
-    project: Project,
-    rules: Sequence[Rule] | None = None,
-    url_format: str = "<{url}|{text}>",
-) -> str:
-    footer = f"{group.qualified_short_id}"
-    if rules:
-        rule_url = build_rule_url(rules[0], group, project)
-        footer += f" via {url_format.format(text=rules[0].label, url=rule_url)}"
-
-        if len(rules) > 1:
-            footer += f" (+{len(rules) - 1} other)"
-
-    return footer
 
 
 def build_tag_fields(
@@ -335,7 +273,13 @@ class SlackIssuesMessageBuilder(SlackMessageBuilder):
         self.rules = rules
         self.link_to_event = link_to_event
         self.issue_details = issue_details
-        self.notification = notification
+        self.notification = (
+            create_notification_with_properties(
+                notification, url_format=SLACK_URL_FORMAT, provider=ExternalProviders.SLACK
+            )
+            if notification
+            else None
+        )
         self.recipient = recipient
 
     def build(self) -> SlackBody:
@@ -350,7 +294,7 @@ class SlackIssuesMessageBuilder(SlackMessageBuilder):
         footer = (
             self.notification.build_notification_footer(self.recipient)
             if self.notification and self.recipient
-            else build_footer(self.group, project, self.rules)
+            else build_footer(self.group, project, self.rules, SLACK_URL_FORMAT)
         )
         obj = self.event if self.event is not None else self.group
         if not self.issue_details or (self.recipient and isinstance(self.recipient, Team)):
@@ -403,7 +347,13 @@ class SlackReleaseIssuesMessageBuilder(SlackMessageBuilder):
         self.rules = rules
         self.link_to_event = link_to_event
         self.issue_details = issue_details
-        self.notification = notification
+        self.notification = (
+            create_notification_with_properties(
+                notification, url_format=SLACK_URL_FORMAT, provider=ExternalProviders.SLACK
+            )
+            if notification
+            else None
+        )
         self.recipient = recipient
         self.last_release = last_release
         self.last_release_link = last_release_link
@@ -437,7 +387,7 @@ class SlackReleaseIssuesMessageBuilder(SlackMessageBuilder):
         footer = (
             self.notification.build_notification_footer(self.recipient)
             if self.notification and self.recipient
-            else build_footer(self.group, project, self.rules)
+            else build_footer(self.group, project, self.rules, SLACK_URL_FORMAT)
         )
         obj = self.event if self.event is not None else self.group
         if not self.issue_details or (self.recipient and isinstance(self.recipient, Team)):

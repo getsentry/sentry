@@ -104,7 +104,26 @@ class ClientConfigViewTest(TestCase):
         assert data["isAuthenticated"]
         assert data["user"]
         assert data["user"]["email"] == user.email
-        assert data["user"]["isSuperuser"]
+        assert data["user"]["isSuperuser"] is True
+        assert data["lastOrganization"] is None
+        assert "activeorg" not in self.client.session
+
+        # Induce last active organization
+        resp = self.client.get(
+            reverse("sentry-api-0-organization-projects", args=[self.organization.slug])
+        )
+        assert resp.status_code == 200
+        assert resp["Content-Type"] == "application/json"
+        assert "activeorg" not in self.client.session
+
+        # lastOrganization is not set
+        resp = self.client.get(self.path)
+        assert resp.status_code == 200
+        assert resp["Content-Type"] == "application/json"
+
+        data = json.loads(resp.content)
+        assert data["lastOrganization"] is None
+        assert "activeorg" not in self.client.session
 
     def test_organization_url_unauthenticated(self):
         resp = self.client.get(self.path)
@@ -137,7 +156,7 @@ class ClientConfigViewTest(TestCase):
         assert data["isAuthenticated"] is True
         assert data["lastOrganization"] == self.organization.slug
         assert data["sentryUrl"] == "http://testserver"
-        assert data["organizationUrl"] == "http://us.testserver"
+        assert data["organizationUrl"] == f"http://{self.organization.slug}.us.testserver"
 
     def test_organization_url_region(self):
         self.login_as(self.user)
@@ -159,7 +178,7 @@ class ClientConfigViewTest(TestCase):
             assert data["isAuthenticated"] is True
             assert data["lastOrganization"] == self.organization.slug
             assert data["sentryUrl"] == "http://testserver"
-            assert data["organizationUrl"] == "http://eu.testserver"
+            assert data["organizationUrl"] == f"http://{self.organization.slug}.eu.testserver"
 
     def test_organization_url_organization_base_hostname(self):
         self.login_as(self.user)
@@ -183,7 +202,7 @@ class ClientConfigViewTest(TestCase):
             assert data["sentryUrl"] == "http://testserver"
             assert data["organizationUrl"] == "http://testserver"
 
-        with self.options({"system.organization-base-hostname": "{region}.testserver"}):
+        with self.options({"system.organization-base-hostname": "{region}.{slug}.testserver"}):
             resp = self.client.get(self.path)
             assert resp.status_code == 200
             assert resp["Content-Type"] == "application/json"
@@ -193,7 +212,7 @@ class ClientConfigViewTest(TestCase):
             assert data["isAuthenticated"] is True
             assert data["lastOrganization"] == self.organization.slug
             assert data["sentryUrl"] == "http://testserver"
-            assert data["organizationUrl"] == "http://us.testserver"
+            assert data["organizationUrl"] == f"http://us.{self.organization.slug}.testserver"
 
     def test_organization_url_organization_url_template(self):
         self.login_as(self.user)
@@ -239,4 +258,4 @@ class ClientConfigViewTest(TestCase):
             assert data["isAuthenticated"] is True
             assert data["lastOrganization"] == self.organization.slug
             assert data["sentryUrl"] == "http://testserver"
-            assert data["organizationUrl"] == "ftp://us.testserver"
+            assert data["organizationUrl"] == f"ftp://{self.organization.slug}.us.testserver"

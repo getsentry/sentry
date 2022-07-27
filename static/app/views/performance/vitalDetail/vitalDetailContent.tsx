@@ -1,4 +1,4 @@
-import {Fragment, ReactNode, useState} from 'react';
+import {Fragment, useState} from 'react';
 import {browserHistory, InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -70,7 +70,6 @@ function getSummaryConditions(query: string) {
 }
 
 function VitalDetailContent(props: Props) {
-  const [incompatibleAlertNotice, setIncompatibleAlertNotice] = useState<ReactNode>(null);
   const [error, setError] = useState<string | undefined>(undefined);
 
   function handleSearch(query: string) {
@@ -90,13 +89,6 @@ function VitalDetailContent(props: Props) {
     });
   }
 
-  function handleIncompatibleQuery(incompatibleAlertNoticeFn) {
-    const _incompatibleAlertNotice = incompatibleAlertNoticeFn(() =>
-      setIncompatibleAlertNotice(null)
-    );
-    setIncompatibleAlertNotice(_incompatibleAlertNotice);
-  }
-
   function renderCreateAlertButton() {
     const {eventView, organization, projects, vitalName} = props;
 
@@ -105,8 +97,6 @@ function VitalDetailContent(props: Props) {
         eventView={eventView}
         organization={organization}
         projects={projects}
-        onIncompatibleQuery={handleIncompatibleQuery}
-        onSuccess={() => {}}
         useAlertWizardV3={organization.features.includes('alert-wizard-v3')}
         aria-label={t('Create Alert')}
         alertType={vitalAlertTypes[vitalName]}
@@ -302,9 +292,6 @@ function VitalDetailContent(props: Props) {
       </Layout.Header>
       <Layout.Body>
         {renderError()}
-        {incompatibleAlertNotice && (
-          <Layout.Main fullWidth>{incompatibleAlertNotice}</Layout.Main>
-        )}
         <Layout.Main fullWidth>
           <StyledDescription>{vitalDescription[vitalName]}</StyledDescription>
           <SupportedBrowsers>

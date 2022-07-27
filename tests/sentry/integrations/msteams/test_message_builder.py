@@ -5,6 +5,7 @@ import pytest
 from sentry.integrations.msteams.card_builder.base import MSTeamsMessageBuilder
 from sentry.integrations.msteams.card_builder.block import (
     ActionType,
+    ImageSize,
     TextSize,
     TextWeight,
     create_action_block,
@@ -185,6 +186,7 @@ class MSTeamsMessageBuilderTest(TestCase):
         assert 1 == len(linked_card["body"])
         columns = linked_card["body"][0]["columns"]
         assert "Image" == columns[0]["items"][0]["type"]
+        assert ImageSize.LARGE == columns[0]["items"][0]["size"]
 
     def test_link_identity_message(self):
         url = "test-url"
