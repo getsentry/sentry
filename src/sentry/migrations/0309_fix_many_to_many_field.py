@@ -112,6 +112,16 @@ class Migration(CheckedMigration):
                     name="authproviderdefaultteams",
                     unique_together={("authprovider", "team")},
                 ),
+                migrations.RunSQL(
+                    sql="ALTER TABLE sentry_authprovider_default_teams ALTER COLUMN id TYPE bigint",
+                    hints={"tables": ["sentry_authprovider_default_teams"]},
+                    reverse_sql="ALTER TABLE sentry_authprovider_default_teams ALTER COLUMN id TYPE int",
+                ),
+                migrations.RunSQL(
+                    sql="ALTER TABLE sentry_dashboardproject ALTER COLUMN id TYPE bigint",
+                    hints={"tables": ["sentry_dashboardproject"]},
+                    reverse_sql="ALTER TABLE sentry_dashboardproject ALTER COLUMN id TYPE int",
+                ),
             ],
         )
     ]
