@@ -90,18 +90,16 @@ class MailAdapter:
         event: Any,
     ) -> None:
         metrics.incr("mail_adapter.active_release_notify")
-        extra = {
-            "event_id": event.event_id,
-            "group_id": event.group_id,
-            "is_from_mail_action_adapter": True,
-        }
-        log_event = "dispatched"
-        project = event.group.project
-        extra["project_id"] = project.id
-
         self.notify_active_release(Notification(event=event, rules=None))
-
-        logger.info("mail.adapter.notification.active_release.%s" % log_event, extra=extra)
+        logger.info(
+            "mail.adapter.notification.active_release.dispatched",
+            extra={
+                "event_id": event.event_id,
+                "group_id": event.group_id,
+                "is_from_mail_action_adapter": True,
+                "project_id": event.group.project.id,
+            },
+        )
 
     @staticmethod
     def get_sendable_user_objects(project):
