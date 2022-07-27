@@ -28,6 +28,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         "good",
         "meh",
         "d:transactions/measurements.something_custom@millisecond",
+        "d:transactions/measurements.runtime@hour",
         "d:transactions/measurements.bytes_transfered@byte",
         "d:transactions/measurements.datacenter_memory@pebibyte",
         "d:transactions/measurements.longtaskcount@none",
@@ -392,6 +393,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
                         "apdex()",
                         "count_miserable(user)",
                         "user_misery()",
+                        "failure_rate()",
                     ],
                     "query": "event.type:transaction",
                     "dataset": dataset,
@@ -413,6 +415,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             assert data["apdex()"] == 1.0
             assert data["count_miserable(user)"] == 1.0
             assert data["user_misery()"] == 0.058
+            assert data["failure_rate()"] == 1
 
             assert meta["isMetricsData"]
             assert field_meta["transaction"] == "string"
@@ -424,6 +427,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             assert field_meta["apdex()"] == "number"
             assert field_meta["count_miserable(user)"] == "integer"
             assert field_meta["user_misery()"] == "number"
+            assert field_meta["failure_rate()"] == "percentage"
 
     def test_no_team_key_transactions(self):
         self.store_transaction_metric(
@@ -1195,6 +1199,86 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert meta["fields"]["max(measurements.cls)"] == "number"
         assert meta["units"]["max(measurements.cls)"] is None
 
+    def test_custom_measurement_size_filtering(self):
+        self.store_transaction_metric(
+            1,
+            metric="measurements.runtime",
+            internal_metric="d:transactions/measurements.runtime@hour",
+            entity="metrics_distributions",
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+        self.store_transaction_metric(
+            180,
+            metric="measurements.runtime",
+            internal_metric="d:transactions/measurements.runtime@hour",
+            entity="metrics_distributions",
+            tags={"transaction": "bar_transaction"},
+            timestamp=self.min_ago,
+        )
+
+        query = {
+            "project": [self.project.id],
+            "field": [
+                "transaction",
+                "max(measurements.runtime)",
+            ],
+            "query": "p50(measurements.runtime):>1wk",
+            "statsPeriod": "24h",
+            "dataset": "metricsEnhanced",
+            "per_page": 50,
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        data = response.data["data"]
+        meta = response.data["meta"]
+
+        assert data[0]["transaction"] == "bar_transaction"
+        assert data[0]["max(measurements.runtime)"] == 180
+        assert meta["isMetricsData"]
+
+    def test_custom_measurement_duration_filtering(self):
+        self.store_transaction_metric(
+            1,
+            metric="measurements.bytes_transfered",
+            internal_metric="d:transactions/measurements.datacenter_memory@pebibyte",
+            entity="metrics_distributions",
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+        self.store_transaction_metric(
+            100,
+            metric="measurements.bytes_transfered",
+            internal_metric="d:transactions/measurements.datacenter_memory@pebibyte",
+            entity="metrics_distributions",
+            tags={"transaction": "bar_transaction"},
+            timestamp=self.min_ago,
+        )
+
+        query = {
+            "project": [self.project.id],
+            "field": [
+                "transaction",
+                "max(measurements.datacenter_memory)",
+            ],
+            "query": "p50(measurements.datacenter_memory):>5pb",
+            "statsPeriod": "24h",
+            "dataset": "metricsEnhanced",
+            "per_page": 50,
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        data = response.data["data"]
+        meta = response.data["meta"]
+
+        assert data[0]["transaction"] == "bar_transaction"
+        assert data[0]["max(measurements.datacenter_memory)"] == 100
+        assert meta["isMetricsData"]
+
     def test_environment_param(self):
         self.create_environment(self.project, name="staging")
         self.store_transaction_metric(
@@ -1271,3 +1355,96 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert data[0]["environment"] is None
         assert data[0]["p50(transaction.duration)"] == 100
         assert meta["isMetricsData"]
+
+    def test_has_transaction(self):
+        self.store_transaction_metric(
+            1,
+            tags={},
+            timestamp=self.min_ago,
+        )
+
+        self.store_transaction_metric(
+            100,
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+
+        query = {
+            "project": [self.project.id],
+            "orderby": "p50(transaction.duration)",
+            "field": [
+                "transaction",
+                "p50(transaction.duration)",
+            ],
+            "query": "has:transaction",
+            "statsPeriod": "24h",
+            "dataset": "metricsEnhanced",
+            "per_page": 50,
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        data = response.data["data"]
+        meta = response.data["meta"]
+
+        assert data[0]["transaction"] == "foo_transaction"
+        assert data[0]["p50(transaction.duration)"] == 100
+        assert meta["isMetricsData"]
+
+        query = {
+            "project": [self.project.id],
+            "orderby": "p50(transaction.duration)",
+            "field": [
+                "transaction",
+                "p50(transaction.duration)",
+            ],
+            "query": "!has:transaction",
+            "statsPeriod": "24h",
+            "dataset": "metricsEnhanced",
+            "per_page": 50,
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        data = response.data["data"]
+        meta = response.data["meta"]
+
+        assert data[0]["transaction"] is None
+        assert data[0]["p50(transaction.duration)"] == 1
+        assert meta["isMetricsData"]
+
+    def test_apdex_satisfaction_param(self):
+        for function in ["apdex(300)", "user_misery(300)", "count_miserable(user, 300)"]:
+            query = {
+                "project": [self.project.id],
+                "field": [
+                    "transaction",
+                    function,
+                ],
+                "statsPeriod": "24h",
+                "dataset": "metricsEnhanced",
+                "per_page": 50,
+            }
+
+            response = self.do_request(query)
+            assert response.status_code == 200, response.content
+            assert len(response.data["data"]) == 0
+            meta = response.data["meta"]
+            assert not meta["isMetricsData"], function
+
+            query = {
+                "project": [self.project.id],
+                "field": [
+                    "transaction",
+                    function,
+                ],
+                "statsPeriod": "24h",
+                "dataset": "metrics",
+                "per_page": 50,
+            }
+
+            response = self.do_request(query)
+            assert response.status_code == 400, function
+            assert b"threshold parameter" in response.content, function

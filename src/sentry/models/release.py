@@ -540,6 +540,14 @@ class Release(Model):
     def is_semver_release(self):
         return self.package is not None
 
+    def get_previous_release(self, project):
+        """Get the release prior to this one. None if none exists"""
+        return (
+            ReleaseProject.objects.filter(project=project, release__date_added__lt=self.date_added)
+            .order_by("-release__date_added")
+            .first()
+        )
+
     @staticmethod
     def is_semver_version(version):
         """

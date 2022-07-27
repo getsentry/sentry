@@ -15,6 +15,7 @@ import withApi from 'sentry/utils/withApi';
 // 0 is a valid choice but empty string, undefined, and null are not
 const hasValue = value => !!value || value === 0;
 
+// See docs: https://docs.sentry.io/product/integrations/integration-platform/ui-components/formfield/
 export type FieldFromSchema = Omit<Field, 'choices' | 'type'> & {
   type: 'select' | 'textarea' | 'text';
   async?: boolean;
@@ -137,7 +138,7 @@ export class SentryAppExternalForm extends Component<Props, State> {
   getDefaultFieldValue = (field: FieldFromSchema) => {
     // Interpret the default if a getFieldDefault function is provided.
     const {resetValues, getFieldDefault} = this.props;
-    let defaultValue;
+    let defaultValue = field?.defaultValue;
 
     // Override this default if a reset value is provided
     if (field.default && getFieldDefault) {
@@ -273,10 +274,10 @@ export class SentryAppExternalForm extends Component<Props, State> {
       flexibleControlStateSize: true,
       required,
     };
-
-    // async only used for select components
-    const isAsync = typeof field.async === 'undefined' ? true : !!field.async; // default to true
-    if (fieldToPass.type === 'select') {
+    if (field?.uri && field?.async) {
+      fieldToPass.type = 'select_async';
+    }
+    if (['select', 'select_async'].includes(fieldToPass.type || '')) {
       // find the options from state to pass down
       const defaultOptions = (field.choices || []).map(([value, label]) => ({
         value,
@@ -287,6 +288,7 @@ export class SentryAppExternalForm extends Component<Props, State> {
       const defaultValue = this.getDefaultFieldValue(field);
       // filter by what the user is typing
       const filterOption = createFilter({});
+
       fieldToPass = {
         ...fieldToPass,
         options,
@@ -294,12 +296,8 @@ export class SentryAppExternalForm extends Component<Props, State> {
         defaultOptions,
         filterOption,
         allowClear,
-      };
-      // default message for async select fields
-      if (isAsync) {
-        fieldToPass.noOptionsMessage = () => 'Type to search';
-      }
-
+        placeholder: 'Type to search',
+      } as Field;
       if (field.depends_on) {
         // check if this is dependent on other fields which haven't been set yet
         const shouldDisable = field.depends_on.some(
@@ -321,7 +319,7 @@ export class SentryAppExternalForm extends Component<Props, State> {
     const extraProps = field.uri
       ? {
           loadOptions: (input: string) => this.getOptions(field, input),
-          async: isAsync,
+          async: field?.async ?? true,
           cache: false,
           onSelectResetsInput: false,
           onCloseResetsInput: false,
