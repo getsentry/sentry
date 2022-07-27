@@ -4,13 +4,16 @@ import {Fragment, useCallback, useEffect, useState} from 'react';
 import {browserHistory} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import {motion} from 'framer-motion';
+import {AnimatePresence, motion} from 'framer-motion';
 import * as qs from 'query-string';
 
 import {loadDocs} from 'sentry/actionCreators/projects';
 import Alert, {alertStyles} from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
+import {Panel} from 'sentry/components/panels';
+import {CollapsePanelBody} from 'sentry/components/panels/panelBody';
+import {CollapsePanelHeader} from 'sentry/components/panels/panelHeader';
 import {PlatformKey} from 'sentry/data/platformCategories';
 import platforms from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
@@ -34,7 +37,7 @@ import {usePersistedOnboardingState} from './utils';
  */
 const INCOMPLETE_DOC_FLAG = 'TODO-ADD-VERIFICATION-EXAMPLE';
 
-type PlatformDoc = {html: string; link: string};
+type PlatformDoc = {html: string; link: string; wizardSetup: string};
 
 type Props = {
   projects: Project[];
@@ -79,12 +82,39 @@ function ProjecDocs(props: {
     );
   };
 
-  const docs = props.platformDocs !== null && (
-    <DocsWrapper key={props.platformDocs.html}>
-      <Content dangerouslySetInnerHTML={{__html: props.platformDocs.html}} />
-      {missingExampleWarning()}
-    </DocsWrapper>
-  );
+  const showWizardSetup = true;
+  const [wizardSetupDetailsCollapsed, setWizardSetupDetailsCollapsed] = useState(true);
+  const docs =
+    props.platformDocs !== null &&
+    (showWizardSetup && props.platformDocs.wizardSetup ? (
+      <DocsWrapper key={props.platformDocs.html}>
+        <Content dangerouslySetInnerHTML={{__html: props.platformDocs.wizardSetup}} />
+        <Panel>
+          <CollapsePanelHeader
+            collapsed={wizardSetupDetailsCollapsed}
+            onClick={() => setWizardSetupDetailsCollapsed(!wizardSetupDetailsCollapsed)}
+          >
+            {t('More Details')}
+          </CollapsePanelHeader>
+          <AnimatePresence>
+            {!wizardSetupDetailsCollapsed && (
+              <CollapsePanelBody key="wizard-setup-details-collapse">
+                <Content
+                  dangerouslySetInnerHTML={{__html: props.platformDocs.html}}
+                  style={{margin: space(2)}}
+                />
+                {missingExampleWarning()}
+              </CollapsePanelBody>
+            )}
+          </AnimatePresence>
+        </Panel>
+      </DocsWrapper>
+    ) : (
+      <DocsWrapper key={props.platformDocs.html}>
+        <Content dangerouslySetInnerHTML={{__html: props.platformDocs.html}} />
+        {missingExampleWarning()}
+      </DocsWrapper>
+    ));
   const loadingError = (
     <LoadingError
       message={t(
