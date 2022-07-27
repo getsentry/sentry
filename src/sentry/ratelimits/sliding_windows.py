@@ -75,6 +75,7 @@ When using the quotas, the keys change as follows:
 
 """
 
+from collections import defaultdict
 from dataclasses import dataclass
 from time import time
 from typing import Any, Iterator, Optional, Sequence, Tuple
@@ -329,6 +330,16 @@ class RedisSlidingWindowRateLimiter(SlidingWindowRateLimiter):
 
         results = []
 
+        # for "global quotas" (=quotas using prefix_override, which may be
+        # present in multiple requests), we keep a cache of how much quota we
+        # have used within this function call
+        #
+        # the mapping is id(Quota) -> <already granted quota>
+        #
+        # this prevents us from seriously overcommitting on the global quota,
+        # just because each request happens to fit into it
+        quota_used_cache = defaultdict(int)
+
         for request in requests:
             # We start out with assuming the entire request can be granted in
             # its entirety.
@@ -343,14 +354,17 @@ class RedisSlidingWindowRateLimiter(SlidingWindowRateLimiter):
             # been overused, in those cases we want to truncate resulting
             # negative "grants" to zero.
             for quota in request.quotas:
-                used_quota = sum(
-                    int(
-                        redis_results.get(
-                            self._build_redis_key(request=request, quota=quota, granule=granule)
+                used_quota = (
+                    sum(
+                        int(
+                            redis_results.get(
+                                self._build_redis_key(request=request, quota=quota, granule=granule)
+                            )
+                            or 0
                         )
-                        or 0
+                        for granule in quota.iter_window(timestamp)
                     )
-                    for granule in quota.iter_window(timestamp)
+                    + quota_used_cache[id(quota)]
                 )
 
                 remaining_quota = max(0, quota.limit - used_quota)
@@ -358,6 +372,10 @@ class RedisSlidingWindowRateLimiter(SlidingWindowRateLimiter):
                 if remaining_quota < granted_quota:
                     granted_quota = remaining_quota
                     reached_quotas.append(quota)
+
+            for quota in request.quotas:
+                if quota.prefix_override:
+                    quota_used_cache[id(quota)] += granted_quota
 
             results.append(
                 GrantedQuota(
