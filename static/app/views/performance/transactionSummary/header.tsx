@@ -25,9 +25,11 @@ import {getSelectedProjectPlatforms} from '../utils';
 
 import {anomaliesRouteWithQuery} from './transactionAnomalies/utils';
 import {eventsRouteWithQuery} from './transactionEvents/utils';
+import {replaysRouteWithQuery} from './transactionReplays/utils';
 import {spansRouteWithQuery} from './transactionSpans/utils';
 import {tagsRouteWithQuery} from './transactionTags/utils';
 import {vitalsRouteWithQuery} from './transactionVitals/utils';
+import NoAccess from './noAccess';
 import Tab from './tabs';
 import TeamKeyTransactionButton from './teamKeyTransactionButton';
 import TransactionThresholdButton from './transactionThresholdButton';
@@ -222,6 +224,7 @@ class TransactionHeader extends Component<Props> {
     const eventsTarget = eventsRouteWithQuery(routeQuery);
     const spansTarget = spansRouteWithQuery(routeQuery);
     const anomaliesTarget = anomaliesRouteWithQuery(routeQuery);
+    const replaysTarget = replaysRouteWithQuery(routeQuery);
 
     const project = projects.find(p => p.id === projectId);
 
@@ -310,6 +313,20 @@ class TransactionHeader extends Component<Props> {
               </ListLink>
             </Feature>
             {this.renderWebVitalsTab()}
+            <Feature
+              features={['session-replay']}
+              organization={organization}
+              renderDisabled={NoAccess}
+            >
+              <ListLink
+                data-test-id="replays-tab"
+                to={replaysTarget}
+                isActive={() => currentTab === Tab.Replays}
+                onClick={this.trackTabClick(Tab.Replays)}
+              >
+                {t('Replays')}
+              </ListLink>
+            </Feature>
           </StyledNavTabs>
         </Fragment>
       </Layout.Header>

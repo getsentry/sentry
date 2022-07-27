@@ -1157,6 +1157,12 @@ function buildRoutes() {
           )}
         />
         <Route
+          path="replays/"
+          component={make(
+            () => import('sentry/views/performance/transactionSummary/transactionReplays')
+          )}
+        />
+        <Route
           path="vitals/"
           component={make(
             () => import('sentry/views/performance/transactionSummary/transactionVitals')
