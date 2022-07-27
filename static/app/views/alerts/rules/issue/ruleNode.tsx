@@ -12,7 +12,7 @@ import {releaseHealth} from 'sentry/data/platformCategories';
 import {IconDelete, IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Choices, Organization, Project} from 'sentry/types';
+import {Choices, IssueOwnership, Organization, Project} from 'sentry/types';
 import {
   AssigneeTargetType,
   IssueAlertRuleAction,
@@ -230,6 +230,7 @@ interface Props {
   organization: Organization;
   project: Project;
   node?: IssueAlertRuleActionTemplate | IssueAlertRuleConditionTemplate | null;
+  ownership?: null | IssueOwnership;
 }
 
 function RuleNode({
@@ -242,6 +243,7 @@ function RuleNode({
   onDelete,
   onPropertyChange,
   onReset,
+  ownership,
 }: Props) {
   const handleDelete = useCallback(() => {
     onDelete(index);
@@ -385,23 +387,59 @@ function RuleNode({
     ) {
       return (
         <MarginlessAlert type="warning">
-          {tct(
-            'If there are no matching [issueOwners], ownership is determined by the [ownershipSettings].',
-            {
-              issueOwners: (
-                <ExternalLink href="https://docs.sentry.io/product/error-monitoring/issue-owners/">
-                  {t('issue owners')}
-                </ExternalLink>
-              ),
-              ownershipSettings: (
-                <ExternalLink
-                  href={`/settings/${organization.slug}/projects/${project.slug}/ownership/`}
-                >
-                  {t('ownership settings')}
-                </ExternalLink>
-              ),
-            }
-          )}
+          {!ownership
+            ? tct(
+                'If there are no matching [issueOwners], ownership is determined by the [ownershipSettings].',
+                {
+                  issueOwners: (
+                    <ExternalLink href="https://docs.sentry.io/product/error-monitoring/issue-owners/">
+                      {t('issue owners')}
+                    </ExternalLink>
+                  ),
+                  ownershipSettings: (
+                    <ExternalLink
+                      href={`/settings/${organization.slug}/projects/${project.slug}/ownership/`}
+                    >
+                      {t('ownership settings')}
+                    </ExternalLink>
+                  ),
+                }
+              )
+            : ownership.fallthrough
+            ? tct(
+                'If there are no matching [issueOwners], all project members will receive this alert. To change this behavior, see [ownershipSettings].',
+                {
+                  issueOwners: (
+                    <ExternalLink href="https://docs.sentry.io/product/error-monitoring/issue-owners/">
+                      {t('issue owners')}
+                    </ExternalLink>
+                  ),
+                  ownershipSettings: (
+                    <ExternalLink
+                      href={`/settings/${organization.slug}/projects/${project.slug}/ownership/`}
+                    >
+                      {t('ownership settings')}
+                    </ExternalLink>
+                  ),
+                }
+              )
+            : tct(
+                'If there are no matching [issueOwners], this action will have no effect. To change this behavior, see [ownershipSettings].',
+                {
+                  issueOwners: (
+                    <ExternalLink href="https://docs.sentry.io/product/error-monitoring/issue-owners/">
+                      {t('issue owners')}
+                    </ExternalLink>
+                  ),
+                  ownershipSettings: (
+                    <ExternalLink
+                      href={`/settings/${organization.slug}/projects/${project.slug}/ownership/`}
+                    >
+                      {t('ownership settings')}
+                    </ExternalLink>
+                  ),
+                }
+              )}
         </MarginlessAlert>
       );
     }

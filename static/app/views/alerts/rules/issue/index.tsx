@@ -38,7 +38,14 @@ import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import HookStore from 'sentry/stores/hookStore';
 import space from 'sentry/styles/space';
-import {Environment, OnboardingTaskKey, Organization, Project, Team} from 'sentry/types';
+import {
+  Environment,
+  IssueOwnership,
+  OnboardingTaskKey,
+  Organization,
+  Project,
+  Team,
+} from 'sentry/types';
 import {
   IssueAlertRule,
   IssueAlertRuleAction,
@@ -135,6 +142,7 @@ type State = AsyncView['state'] & {
   project: Project;
   uuid: null | string;
   duplicateTargetRule?: UnsavedIssueAlertRule | IssueAlertRule | null;
+  ownership?: null | IssueOwnership;
   rule?: UnsavedIssueAlertRule | IssueAlertRule | null;
 };
 
@@ -261,6 +269,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
         },
       ],
       ['configs', `/projects/${orgId}/${project.slug}/rules/configuration/`],
+      ['ownership', `/projects/${orgId}/${project.slug}/ownership/`],
     ];
 
     if (ruleId) {
@@ -945,7 +954,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
 
   renderBody() {
     const {organization} = this.props;
-    const {project, rule, detailedError, loading} = this.state;
+    const {project, rule, detailedError, loading, ownership} = this.state;
     const {actions, filters, conditions, frequency} = rule || {};
 
     const environment =
@@ -1188,6 +1197,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                               organization={organization}
                               project={project}
                               disabled={disabled}
+                              ownership={ownership}
                               error={
                                 this.hasError('actions') && (
                                   <StyledAlert type="error">

@@ -142,6 +142,7 @@ export type SuggestedOwner = {
 
 export type IssueOwnership = {
   autoAssignment: boolean;
+  codeownersAutoSync: boolean;
   dateCreated: string;
   fallthrough: boolean;
   isActive: boolean;
