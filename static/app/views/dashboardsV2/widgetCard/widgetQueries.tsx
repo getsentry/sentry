@@ -1,4 +1,5 @@
 import {useContext} from 'react';
+import omit from 'lodash/omit';
 
 import {Client} from 'sentry/api';
 import {isMultiSeriesStats} from 'sentry/components/charts/utils';
@@ -8,7 +9,10 @@ import {
   Organization,
   PageFilters,
 } from 'sentry/types';
+import {Series} from 'sentry/types/echarts';
 import {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
+import {DURATION_UNITS, SIZE_UNITS} from 'sentry/utils/discover/fieldRenderers';
+import {getAggregateAlias} from 'sentry/utils/discover/fields';
 
 import {ErrorsAndTransactionsConfig} from '../datasetConfig/errorsAndTransactions';
 import {DashboardFilters, Widget} from '../types';
@@ -21,6 +25,71 @@ import GenericWidgetQueries, {
 
 type SeriesResult = EventsStats | MultiSeriesEventsStats;
 type TableResult = TableData | EventsTableData;
+
+type SeriesWithOrdering = [order: number, series: Series];
+
+export function transformSeries(
+  stats: EventsStats,
+  seriesName: string,
+  field: string
+): Series {
+  const unit = stats.meta?.units?.[getAggregateAlias(field)];
+  // Scale series values to milliseconds or bytes depending on units from meta
+  const scale = (unit && (DURATION_UNITS[unit] ?? SIZE_UNITS[unit])) ?? 1;
+  return {
+    seriesName,
+    data:
+      stats?.data?.map(([timestamp, counts]) => {
+        return {
+          name: timestamp * 1000,
+          value: counts.reduce((acc, {count}) => acc + count, 0) * scale,
+        };
+      }) ?? [],
+  };
+}
+
+/**
+ * Multiseries data with a grouping needs to be "flattened" because the aggregate data
+ * are stored under the group names. These names need to be combined with the aggregate
+ * names to show a series.
+ *
+ * e.g. count() and count_unique() grouped by environment
+ * {
+ *    "local": {
+ *      "count()": {...},
+ *      "count_unique()": {...}
+ *    },
+ *    "prod": {
+ *      "count()": {...},
+ *      "count_unique()": {...}
+ *    }
+ * }
+ */
+export function flattenMultiSeriesDataWithGrouping(
+  result: EventsStats | MultiSeriesEventsStats,
+  queryAlias: string
+): SeriesWithOrdering[] {
+  const seriesWithOrdering: SeriesWithOrdering[] = [];
+  const groupNames = Object.keys(result);
+
+  groupNames.forEach(groupName => {
+    // Each group contains an order key which we should ignore
+    const aggregateNames = Object.keys(omit(result[groupName], 'order'));
+
+    aggregateNames.forEach(aggregate => {
+      const seriesName = `${groupName} : ${aggregate}`;
+      const prefixedName = queryAlias ? `${queryAlias} > ${seriesName}` : seriesName;
+      const seriesData: EventsStats = result[groupName][aggregate];
+
+      seriesWithOrdering.push([
+        result[groupName].order || 0,
+        transformSeries(seriesData, prefixedName, seriesName),
+      ]);
+    });
+  });
+
+  return seriesWithOrdering;
+}
 
 export function getIsMetricsDataFromSeriesResponse(
   result: SeriesResult
