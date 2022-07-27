@@ -23,6 +23,8 @@ class ProjectReplayRecordingSegmentIndexEndpoint(ProjectEndpoint):
                 replay_id=replay_id.replace("-", ""),
             ),
             order_by="sequence_id",
-            on_results=lambda x: serialize(x, request.user, ReplayRecordingSegmentSerializer()),
+            on_results=lambda x: {
+                "data": serialize(x, request.user, ReplayRecordingSegmentSerializer())
+            },
             paginator_cls=OffsetPaginator,
         )

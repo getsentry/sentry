@@ -30,7 +30,7 @@ class ProjectReplayRecordingSegmentDetailsEndpoint(ProjectEndpoint):
             return self.download(attachment)
         else:
             return self.respond(
-                serialize(attachment, request.user, ReplayRecordingSegmentSerializer())
+                {"data": serialize(attachment, request.user, ReplayRecordingSegmentSerializer())}
             )
 
     def download(self, recording_segment: ReplayRecordingSegment) -> StreamingHttpResponse:
