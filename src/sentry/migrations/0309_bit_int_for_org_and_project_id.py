@@ -171,8 +171,8 @@ class Migration(CheckedMigration):
             field=sentry.db.models.fields.bounded.BoundedBigIntegerField(db_index=True),
         ),
         migrations.RunSQL(
-            sql="ALTER TABLE sentry_externalissue ALTER COLUMN organization_id bigint;",
+            sql="ALTER TABLE sentry_externalissue ALTER COLUMN organization_id TYPE bigint",
             hints={"tables": ["sentry_externalissue"]},
-            reverse_sql="ALTER TABLE sentry_externalissue ALTER COLUMN organization_id smallint;",
+            reverse_sql="ALTER TABLE sentry_externalissue ALTER COLUMN organization_id TYPE smallint",
         ),
     )
