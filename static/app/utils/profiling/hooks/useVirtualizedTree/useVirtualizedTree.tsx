@@ -346,7 +346,14 @@ export function useVirtualizedTree<T extends TreeLike>(
 
     dispatch({type: 'set tab index key', payload: tabIndex});
     setTree(newTree);
-  }, [props.tree, props.skipFunction, cleanupAllHoveredRows]);
+  }, [
+    tree,
+    props.tree,
+    props.skipFunction,
+    props.sortFunction,
+    cleanupAllHoveredRows,
+    props.rowHeight,
+  ]);
 
   const items = useMemo(() => {
     return findVisibleItems<T>({
