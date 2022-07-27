@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Sequence
+from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Sequence, Union
 
 from sentry import features
 from sentry.models import (
@@ -20,6 +20,7 @@ from sentry.models import (
     UserOption,
 )
 from sentry.notifications.helpers import (
+    get_scope_type,
     get_settings_by_provider,
     get_values_by_provider_by_type,
     transform_to_notification_settings_by_recipient,
@@ -94,15 +95,35 @@ def get_participants_for_release(
     # Collect all users with verified emails on a team in the related projects.
     users = set(User.objects.get_team_members_with_verified_email_for_projects(projects))
 
+    parent_specific_scope_type = get_scope_type(notification_setting_type)
+
+    def parent_notification_settings_by_recipient(
+        note_setting_type: NotificationSettingTypes,
+        parent: Iterable[Union[Project, Organization]],
+        recipients: Iterable[Team | User],
+    ):
+        by_recipient = {}
+        for project_or_org in parent:
+            notification_settings = NotificationSetting.objects.get_for_recipient_by_parent(
+                note_setting_type,
+                recipients=recipients,
+                parent=project_or_org,
+            )
+            by_recipient.update(
+                transform_to_notification_settings_by_recipient(notification_settings, recipients)
+            )
+
+        return by_recipient
+
     # Get all the involved users' settings for deploy-emails (including
     # users' organization-independent settings.)
-    notification_settings = NotificationSetting.objects.get_for_recipient_by_parent(
-        notification_setting_type,
-        recipients=users,
-        parent=organization,
-    )
-    notification_settings_by_recipient = transform_to_notification_settings_by_recipient(
-        notification_settings, users
+
+    notification_settings_by_recipient = (
+        parent_notification_settings_by_recipient(notification_setting_type, projects, users)
+        if parent_specific_scope_type == NotificationScopeType.PROJECT
+        else parent_notification_settings_by_recipient(
+            notification_setting_type, [organization], users
+        )
     )
 
     # Map users to their setting value. Prioritize user/org specific, then
