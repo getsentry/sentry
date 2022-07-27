@@ -81,12 +81,20 @@ class MailAdapterActiveReleaseTest(BaseMailAdapterTest):
     @mock.patch("sentry.notifications.utils.participants.get_release_committers")
     def test_simple(self, mock_get_release_committers, record):
         new_user = self.create_user(email="test@example.com", username="foo")
-        mock_get_release_committers.return_value = [new_user]
-        self.team = self.create_team(
-            name="Team Name", organization=self.organization, members=[new_user]
+        new_team = self.create_team(name="Team Name", organization=self.organization)
+        new_project = self.create_project(organization=self.organization, teams=[new_team])
+        self.create_member(
+            user=new_user, organization=self.organization, role="owner", teams=[new_team]
+        )
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.EMAIL,
+            NotificationSettingTypes.ACTIVE_RELEASE,
+            NotificationSettingOptionValues.ALWAYS,
+            user=new_user,
+            project=new_project,
         )
         event = self.store_event(
-            data={"message": "Hello world", "level": "error"}, project_id=self.project.id
+            data={"message": "Hello world", "level": "error"}, project_id=new_project.id
         )
         GroupOwner.objects.create(
             group_id=event.group.id,
@@ -97,7 +105,7 @@ class MailAdapterActiveReleaseTest(BaseMailAdapterTest):
         )
         newRelease = Release.objects.create(
             organization_id=self.organization.id,
-            project_id=self.project.id,
+            project_id=new_project.id,
             version="2",
             date_added=timezone.now() - timedelta(days=1),
             date_released=None,
@@ -111,21 +119,20 @@ class MailAdapterActiveReleaseTest(BaseMailAdapterTest):
             date_started=timezone.now() - timedelta(minutes=37),
             date_finished=timezone.now() - timedelta(minutes=20),
         )
-        newRelease.add_project(self.project)
+        newRelease.add_project(new_project)
 
         event.data["tags"] = (("sentry:release", newRelease.version),)
+        mock_get_release_committers.return_value = [new_user]
 
         mail.outbox = []
-        with self.options({"system.url-prefix": "http://example.com"}), self.tasks(), self.feature(
-            "organizations:active-release-monitor-alpha"
-        ):
+        with self.tasks(), self.feature("organizations:active-release-monitor-alpha"):
             self.adapter.notify_active_release(Notification(event=event))
 
         assert len(mail.outbox) == 1
         to_committer = mail.outbox[0]
-
-        assert to_committer
-        assert to_committer.subject == "**ARM** [Sentry] BAR-1 - Hello world"
+        assert to_committer.subject == "**ARM** [Sentry] {} - Hello world".format(
+            event.group.qualified_short_id
+        )
 
         notification_record = [
             r for r in record.call_args_list if r[0][0] == "active_release_notification.sent"
@@ -134,7 +141,7 @@ class MailAdapterActiveReleaseTest(BaseMailAdapterTest):
             mock.call(
                 "active_release_notification.sent",
                 organization_id=self.organization.id,
-                project_id=self.project.id,
+                project_id=new_project.id,
                 group_id=event.group.id,
                 provider="email",
                 release_version="2",
@@ -142,7 +149,7 @@ class MailAdapterActiveReleaseTest(BaseMailAdapterTest):
                 recipient_username="foo",
                 suspect_committer_ids=[f"user:{new_user.id}"],
                 code_owner_ids=[new_user.id],
-                team_ids=[self.team.id],
+                team_ids=[new_team.id],
             )
         ]
 
