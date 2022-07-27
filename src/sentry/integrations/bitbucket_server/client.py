@@ -166,14 +166,6 @@ class BitbucketServer(ApiClient):
             params={"merges": "exclude", "limit": limit},
         )["values"]
 
-    def get_commit(self, project, repo, sha):
-        return self.get(
-            BitbucketServerAPIPath.repository_commit_details.format(
-                project=project, repo=repo, commit=sha
-            ),
-            auth=self.get_auth(),
-        )
-
     def get_commit_filechanges(self, project, repo, commit, limit=1000):
         logger.info(
             "load.filechanges",
