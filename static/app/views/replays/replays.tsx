@@ -24,7 +24,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 
 import ReplaysFilters from './filters';
 import ReplayTable from './replayTable';
-import {Replay} from './types';
+import {DiscoReplayListItem} from './types';
 
 const columns = [t('Session'), t('Project')];
 
@@ -158,7 +158,7 @@ function Replays() {
                       <ReplayTable
                         idKey="id"
                         showProjectColumn
-                        replayList={data.tableData.data as Replay[]}
+                        replayList={data.tableData.data as DiscoReplayListItem[]}
                       />
                     ) : null}
                   </StyledPanelTable>

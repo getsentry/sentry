@@ -17,11 +17,11 @@ import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
-import {Replay} from './types';
+import {DiscoReplayListItem} from './types';
 
 type Props = {
   idKey: string;
-  replayList: Replay[];
+  replayList: DiscoReplayListItem[];
   showProjectColumn?: boolean;
 };
 

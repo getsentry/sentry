@@ -1,5 +1,4 @@
 import type {Crumb} from 'sentry/types/breadcrumbs';
-import type {Event, EventTransaction} from 'sentry/types/event';
 import {
   breadcrumbFactory,
   replayTimestamps,
@@ -9,6 +8,7 @@ import {
 import type {
   MemorySpanType,
   RecordingEvent,
+  Replay,
   ReplayCrumb,
   ReplayError,
   ReplaySpan,
@@ -21,7 +21,7 @@ interface ReplayReaderParams {
   /**
    * The root Replay event, created at the start of the browser session.
    */
-  event: Event | undefined;
+  replay: Replay | undefined;
 
   /**
    * The captured data from rrweb.
@@ -37,21 +37,23 @@ type RequiredNotNull<T> = {
 };
 
 export default class ReplayReader {
-  static factory({breadcrumbs, event, errors, rrwebEvents, spans}: ReplayReaderParams) {
-    if (!breadcrumbs || !event || !rrwebEvents || !spans || !errors) {
+  static factory({breadcrumbs, replay, errors, rrwebEvents, spans}: ReplayReaderParams) {
+    if (!breadcrumbs || !replay || !rrwebEvents || !spans || !errors) {
       return null;
     }
 
-    return new ReplayReader({breadcrumbs, event, errors, rrwebEvents, spans});
+    return new ReplayReader({breadcrumbs, replay, errors, rrwebEvents, spans});
   }
 
   private constructor({
     breadcrumbs,
-    event,
+    replay,
     errors,
     rrwebEvents,
     spans,
   }: RequiredNotNull<ReplayReaderParams>) {
+    // TODO: probably don't need this with the new api backend
+    // Could be `const {started_at, finished_at} = replay;`
     const {startTimestampMS, endTimestampMS} = replayTimestamps(
       rrwebEvents,
       breadcrumbs,
@@ -61,7 +63,7 @@ export default class ReplayReader {
     this.spans = spansFactory(spans);
     this.breadcrumbs = breadcrumbFactory(
       startTimestampMS,
-      event,
+      replay,
       errors,
       breadcrumbs,
       this.spans
@@ -73,20 +75,16 @@ export default class ReplayReader {
       rrwebEvents
     );
 
-    this.event = {
-      ...event,
-      startTimestamp: startTimestampMS / 1000,
-      endTimestamp: endTimestampMS / 1000,
-    } as EventTransaction;
+    this.replay = replay;
   }
 
-  private event: EventTransaction;
+  private replay: Replay;
   private rrwebEvents: RecordingEvent[];
   private breadcrumbs: Crumb[];
   private spans: ReplaySpan[];
 
-  getEvent = () => {
-    return this.event;
+  getReplay = () => {
+    return this.replay;
   };
 
   getRRWebEvents = () => {

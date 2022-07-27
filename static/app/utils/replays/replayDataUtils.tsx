@@ -9,9 +9,9 @@ import type {
   RawCrumb,
 } from 'sentry/types/breadcrumbs';
 import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
-import {Event} from 'sentry/types/event';
 import type {
   RecordingEvent,
+  Replay,
   ReplayCrumb,
   ReplayError,
   ReplaySpan,
@@ -41,12 +41,12 @@ export function rrwebEventListFactory(
 
 export function breadcrumbFactory(
   startTimestamp: number,
-  rootEvent: Event,
+  replay: Replay,
   errors: ReplayError[],
   rawCrumbs: ReplayCrumb[],
   spans: ReplaySpan[]
 ): Crumb[] {
-  const {tags} = rootEvent;
+  const {tags} = replay;
   const initialUrl = tags.find(tag => tag.key === 'url')?.value;
   const initBreadcrumb = {
     type: BreadcrumbType.INIT,
