@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import FunctionName from 'sentry/components/events/interfaces/frame/functionName';
+import {FunctionName} from 'sentry/components/events/interfaces/frame/functionName';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Frame} from 'sentry/types';

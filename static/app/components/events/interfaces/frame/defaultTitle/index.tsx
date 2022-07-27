@@ -13,7 +13,7 @@ import space from 'sentry/styles/space';
 import {Frame, Meta, PlatformType} from 'sentry/types';
 import {defined, isUrl} from 'sentry/utils';
 
-import FunctionName from '../functionName';
+import {FunctionName} from '../functionName';
 import GroupingIndicator from '../groupingIndicator';
 import {getPlatform, isDotnet, trimPackage} from '../utils';
 

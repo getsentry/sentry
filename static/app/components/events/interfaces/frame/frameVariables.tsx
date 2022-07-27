@@ -1,13 +1,13 @@
-import {getMeta} from 'sentry/components/events/meta/metaProxy';
-import {KeyValueListData} from 'sentry/types';
+import {Event, KeyValueListData} from 'sentry/types';
 
 import KeyValueList from '../keyValueList';
 
 type Props = {
   data: Record<string, string>;
+  meta: NonNullable<Event['_meta']>['frame'];
 };
 
-const FrameVariables = ({data}: Props) => {
+export function FrameVariables({data, meta}: Props) {
   // make sure that clicking on the variables does not actually do
   // anything on the containing element.
   const handlePreventToggling = () => (event: React.MouseEvent<HTMLTableElement>) => {
@@ -23,7 +23,7 @@ const FrameVariables = ({data}: Props) => {
         key,
         subject: key,
         value: data[key],
-        meta: getMeta(data, key),
+        meta: meta?.[key]?.[''],
       });
     }
     return transformedData;
@@ -34,6 +34,4 @@ const FrameVariables = ({data}: Props) => {
   return (
     <KeyValueList data={transformedData} onClick={handlePreventToggling} isContextData />
   );
-};
-
-export default FrameVariables;
+}
