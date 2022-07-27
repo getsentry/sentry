@@ -128,7 +128,10 @@ function AddToDashboardModal({
       pathname,
       query: {
         ...widgetAsQueryParams,
-        ...(selectedDashboard ? getSavedPageFilters(selectedDashboard) : {}),
+        ...(organization.features.includes('dashboards-top-level-filter') &&
+        selectedDashboard
+          ? getSavedPageFilters(selectedDashboard)
+          : {}),
       },
     });
     closeModal();
