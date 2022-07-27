@@ -1,5 +1,6 @@
 import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {PlatformIcon} from 'platformicons';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Button, {ButtonPropsWithoutAriaLabel} from 'sentry/components/button';
@@ -81,7 +82,7 @@ function asSelectOption(
     label: project.name,
     value: project,
     disabled: options.disabled,
-    leadingItems: null,
+    leadingItems: <PlatformIcon platform={project.platform} />,
   };
 }
 
