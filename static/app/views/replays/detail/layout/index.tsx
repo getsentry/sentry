@@ -111,6 +111,7 @@ function ReplayLayout({
       <BodyContent>
         {timeline}
         <SplitPanel
+          key={layout}
           left={{
             content,
             default: '60%',
@@ -118,7 +119,6 @@ function ReplayLayout({
           }}
           right={{
             content: <SidebarContent video={video} crumbs={crumbs} />,
-            default: '40%',
             min: MIN_VIDEO_WIDTH,
           }}
         />
@@ -131,9 +131,9 @@ function ReplayLayout({
       <BodyContent>
         {timeline}
         <SplitPanel
+          key={layout}
           left={{
             content: <SidebarContent video={video} crumbs={crumbs} />,
-            default: '40%',
             min: MIN_VIDEO_WIDTH,
           }}
           right={{
@@ -151,24 +151,26 @@ function ReplayLayout({
     <BodyContent>
       {timeline}
       <SplitPanel
+        key={layout}
         top={{
           content: (
             <SplitPanel
               left={{
                 content: video,
+                default: '70%',
                 min: MIN_VIDEO_WIDTH,
               }}
               right={{
                 content: crumbs,
-                default: '30%',
               }}
             />
           ),
-          default: '40%',
+
           min: MIN_VIDEO_HEIGHT,
         }}
         bottom={{
           content,
+          default: '60%',
           min: MIN_CONTENT_HEIGHT,
         }}
       />
