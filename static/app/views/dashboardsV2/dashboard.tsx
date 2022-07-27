@@ -400,7 +400,7 @@ class Dashboard extends Component<Props, State> {
       widgetLimitReached,
       isPreview,
       dashboard,
-      hasUnsavedFilters = false,
+      hasUnsavedFilters,
     } = this.props;
 
     const widgetProps = {

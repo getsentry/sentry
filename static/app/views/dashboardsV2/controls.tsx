@@ -35,7 +35,7 @@ function Controls({
   organization,
   dashboardState,
   dashboards,
-  hasUnsavedFilters = false,
+  hasUnsavedFilters,
   widgetLimitReached,
   onEdit,
   onCommit,

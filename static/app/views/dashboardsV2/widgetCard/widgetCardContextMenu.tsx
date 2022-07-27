@@ -69,7 +69,7 @@ function WidgetCardContextMenu({
   tableData,
   pageLinks,
   totalIssuesCount,
-  hasUnsavedFilters = false,
+  hasUnsavedFilters,
 }: Props) {
   const {isMetricsData} = useDashboardsMEPContext();
   if (!showContextMenu) {
