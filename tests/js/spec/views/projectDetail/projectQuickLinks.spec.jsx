@@ -1,43 +1,50 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectQuickLinks from 'sentry/views/projectDetail/projectQuickLinks';
 
 describe('ProjectDetail > ProjectQuickLinks', function () {
-  const {organization, router} = initializeOrg({
+  const {organization, router, routerContext} = initializeOrg({
     organization: {features: ['performance-view']},
   });
 
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
   it('renders a list', function () {
-    const wrapper = mountWithTheme(
+    render(
       <ProjectQuickLinks
         organization={organization}
         location={router.location}
         project={TestStubs.Project()}
-      />
+      />,
+      {context: routerContext}
     );
 
-    expect(wrapper.find('SectionHeading').text()).toBe('Quick Links');
-    expect(wrapper.find('QuickLink a').length).toBe(3);
+    expect(screen.getByRole('heading', {name: 'Quick Links'})).toBeInTheDocument();
+    expect(screen.getAllByRole('link')).toHaveLength(3);
 
-    const userFeedback = wrapper.find('QuickLink').at(0);
-    const keyTransactions = wrapper.find('QuickLink').at(1);
-    const mostChangedTransactions = wrapper.find('QuickLink').at(2);
+    const userFeedback = screen.getByRole('link', {name: 'User Feedback'});
+    const keyTransactions = screen.getByRole('link', {name: 'View Transactions'});
+    const mostChangedTransactions = screen.getByRole('link', {
+      name: 'Most Improved/Regressed Transactions',
+    });
 
-    expect(userFeedback.text()).toBe('User Feedback');
-    expect(userFeedback.prop('to')).toEqual({
+    userEvent.click(userFeedback);
+    expect(router.push).toHaveBeenCalledWith({
       pathname: '/organizations/org-slug/user-feedback/',
       query: {project: '2'},
     });
 
-    expect(keyTransactions.text()).toBe('View Transactions');
-    expect(keyTransactions.prop('to')).toEqual({
+    userEvent.click(keyTransactions);
+    expect(router.push).toHaveBeenCalledWith({
       pathname: '/organizations/org-slug/performance/',
       query: {project: '2'},
     });
 
-    expect(mostChangedTransactions.text()).toBe('Most Improved/Regressed Transactions');
-    expect(mostChangedTransactions.prop('to')).toEqual({
+    userEvent.click(mostChangedTransactions);
+    expect(router.push).toHaveBeenCalledWith({
       pathname: '/organizations/org-slug/performance/trends/',
       query: {
         cursor: undefined,
@@ -47,21 +54,24 @@ describe('ProjectDetail > ProjectQuickLinks', function () {
     });
   });
 
-  it('disables link if feature is missing', function () {
-    const wrapper = mountWithTheme(
+  it('disables link if feature is missing', async function () {
+    render(
       <ProjectQuickLinks
         organization={{...organization, features: []}}
         location={router.location}
         project={TestStubs.Project()}
-      />
+      />,
+      {context: routerContext}
     );
 
-    const keyTransactions = wrapper.find('QuickLink').at(1);
-    const tooltip = wrapper.find('Tooltip').at(1);
+    const keyTransactions = screen.getByText('View Transactions');
 
-    expect(keyTransactions.prop('disabled')).toBeTruthy();
-    expect(keyTransactions.find('a').exists()).toBeFalsy();
-    expect(tooltip.prop('title')).toBe("You don't have access to this feature");
-    expect(tooltip.prop('disabled')).toBeFalsy();
+    userEvent.click(keyTransactions);
+    expect(router.push).toHaveBeenCalledTimes(0);
+
+    userEvent.hover(keyTransactions);
+    expect(
+      await screen.findByText("You don't have access to this feature")
+    ).toBeInTheDocument();
   });
 });
