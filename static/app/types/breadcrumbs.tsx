@@ -33,7 +33,6 @@ type BreadcrumbTypeBase = {
   level: BreadcrumbLevelType;
   // it's recommended
   category?: string | null;
-  color?: string;
   event_id?: string | null;
   message?: string;
   timestamp?: string;
