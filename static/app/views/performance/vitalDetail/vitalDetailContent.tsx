@@ -9,7 +9,11 @@ import Feature from 'sentry/components/acl/feature';
 import Alert from 'sentry/components/alert';
 import ButtonBar from 'sentry/components/buttonBar';
 import OptionSelector from 'sentry/components/charts/optionSelector';
-import {InlineContainer} from 'sentry/components/charts/styles';
+import {
+  InlineContainer,
+  SectionHeading,
+  SectionValue,
+} from 'sentry/components/charts/styles';
 import {getInterval} from 'sentry/components/charts/utils';
 import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
 import DatePageFilter from 'sentry/components/datePageFilter';
@@ -81,6 +85,7 @@ function getSummaryConditions(query: string) {
 function VitalDetailContent(props: Props) {
   const [incompatibleAlertNotice, setIncompatibleAlertNotice] = useState<ReactNode>(null);
   const [error, setError] = useState<string | undefined>(undefined);
+  const [totalEventsCount, setTotalEventsCount] = useState<number>(0);
 
   const display = decodeScalar(props.location.query.display, DisplayModes.WORST_VITALS);
 
@@ -231,16 +236,6 @@ function VitalDetailContent(props: Props) {
     const chartDefinition = WIDGET_DEFINITIONS({organization})[chartSetting];
     chartDefinition.isVitalDetailView = true;
 
-    const p75WidgetProps = {
-      query,
-      project,
-      environment,
-      start,
-      end,
-      statsPeriod,
-      interval,
-    };
-
     // ContainerActions: React.FC<{isLoading: boolean}>;
     // chartDefinition: ChartDefinition;
     // chartHeight: number;
@@ -290,7 +285,7 @@ function VitalDetailContent(props: Props) {
               title={WIDGET_DEFINITIONS({organization})[chartSetting].title}
               titleTooltip={WIDGET_DEFINITIONS({organization})[chartSetting].titleTooltip}
               isVitalDetailView
-              {...p75WidgetProps}
+              setTotalEventsCount={setTotalEventsCount}
             />
           </VitalWidgetWrapper>
         ) : (
@@ -307,6 +302,12 @@ function VitalDetailContent(props: Props) {
         )}
 
         <DropdownContainer>
+          <InlineContainer>
+            <SectionHeading textColor="gray500">{t('Total Events')}</SectionHeading>
+            <SectionValue textColor="gray500" data-test-id="total-value">
+              {totalEventsCount}
+            </SectionValue>
+          </InlineContainer>
           <InlineContainer data-test-id="display-toggle">
             <OptionSelector
               title={t('Display')}
@@ -437,11 +438,18 @@ const FilterActions = styled('div')`
 `;
 
 const DropdownContainer = styled('div')`
-  margin-bottom: ${space(2)};
   border: 1px ${p => p.theme.border} solid;
   border-top: 0;
   border-radius: ${p => `0 0 ${p.theme.borderRadius} ${p.theme.borderRadius}`};
   box-shadow: ${p => p.theme.dropShadowLight};
+  margin-bottom: ${space(2)};
+
+  padding: ${space(1)} ${space(1)} ${space(1)} ${space(3)};
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+  }
 `;
 
 const VitalWidgetWrapper = styled('div')`

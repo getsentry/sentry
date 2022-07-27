@@ -12,18 +12,18 @@ export const SubHeading = styled('h3')`
   white-space: nowrap;
 `;
 
-export const SectionHeading = styled('h4')`
+export const SectionHeading = styled('h4')<{textColor?: string}>`
   display: inline-grid;
   grid-auto-flow: column;
   gap: ${space(1)};
   align-items: center;
-  color: ${p => p.theme.subText};
+  color: ${p => p.textColor ?? p.theme.subText};
   font-size: ${p => p.theme.fontSizeMedium};
   margin: ${space(1)} 0;
 `;
 
-export const SectionValue = styled('span')`
-  color: ${p => p.theme.subText};
+export const SectionValue = styled('span')<{textColor?: string}>`
+  color: ${p => p.textColor ?? p.theme.subText};
   font-size: ${p => p.theme.fontSizeMedium};
   margin-right: ${space(1)};
 `;
