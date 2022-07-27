@@ -43,9 +43,9 @@ const PanelHeader = styled('div')<Props>`
 
 export default PanelHeader;
 
-const ClickablePanelHeader = styled(PanelHeader)`
-  user-select: none;
+const ClickablePanelHeader = styled(PanelHeader)<{collapsed: boolean}>`
   cursor: pointer;
+  ${p => p.collapsed && 'border-bottom: none;'}
 `;
 
 export function CollapsePanelHeader(props: {
@@ -54,7 +54,7 @@ export function CollapsePanelHeader(props: {
   onClick?: () => void;
 }) {
   return (
-    <ClickablePanelHeader onClick={props.onClick}>
+    <ClickablePanelHeader onClick={props.onClick} collapsed={props.collapsed}>
       {props.children}
       <IconChevron direction={props.collapsed ? 'right' : 'down'} />
     </ClickablePanelHeader>
