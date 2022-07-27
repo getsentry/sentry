@@ -78,7 +78,7 @@ def get_vital_data_for_org_no_cache(organization: Organization, projects: Sequen
         )
         logger.info(
             "get_discover_result",
-            {
+            extra={
                 "organization_id": organization.id,
                 "num_projects": len(projects),
                 "columns": json.dumps(columns),
@@ -130,7 +130,7 @@ class OrganizationVitalsOverviewEndpoint(OrganizationEventsEndpointBase):
         if len(projects) >= settings.ORGANIZATION_VITALS_OVERVIEW_PROJECT_LIMIT:
             logger.info(
                 "too_many_projects",
-                {"organization_id": organization.id, "num_projects": len(projects)},
+                extra={"organization_id": organization.id, "num_projects": len(projects)},
             )
             return self.respond(NO_RESULT_RESPONSE)
 
@@ -141,7 +141,7 @@ class OrganizationVitalsOverviewEndpoint(OrganizationEventsEndpointBase):
             if not org_data:
                 logger.info(
                     "no_org_data",
-                    {"organization_id": organization.id},
+                    extra={"organization_id": organization.id},
                 )
                 return self.respond(NO_RESULT_RESPONSE)
 
