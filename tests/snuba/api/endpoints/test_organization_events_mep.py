@@ -1414,3 +1414,37 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert data[0]["transaction"] is None
         assert data[0]["p50(transaction.duration)"] == 1
         assert meta["isMetricsData"]
+
+    def test_apdex_satisfaction_param(self):
+        for function in ["apdex(300)", "user_misery(300)", "count_miserable(user, 300)"]:
+            query = {
+                "project": [self.project.id],
+                "field": [
+                    "transaction",
+                    function,
+                ],
+                "statsPeriod": "24h",
+                "dataset": "metricsEnhanced",
+                "per_page": 50,
+            }
+
+            response = self.do_request(query)
+            assert response.status_code == 200, response.content
+            assert len(response.data["data"]) == 0
+            meta = response.data["meta"]
+            assert not meta["isMetricsData"], function
+
+            query = {
+                "project": [self.project.id],
+                "field": [
+                    "transaction",
+                    function,
+                ],
+                "statsPeriod": "24h",
+                "dataset": "metrics",
+                "per_page": 50,
+            }
+
+            response = self.do_request(query)
+            assert response.status_code == 400, function
+            assert b"threshold parameter" in response.content, function

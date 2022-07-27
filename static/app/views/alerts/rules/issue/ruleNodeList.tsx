@@ -20,6 +20,8 @@ import {
 } from 'sentry/views/alerts/utils/constants';
 import {EVENT_FREQUENCY_PERCENT_CONDITION} from 'sentry/views/projectInstall/issueAlertOptions';
 
+import {AlertRuleComparisonType} from '../metric/types';
+
 import RuleNode from './ruleNode';
 
 type Props = {
@@ -107,7 +109,7 @@ class RuleNodeList extends Component<Props> {
         ),
       };
 
-      if (item.comparisonType === 'percent') {
+      if (item.comparisonType === AlertRuleComparisonType.PERCENT) {
         if (!item.comparisonInterval) {
           // comparisonInterval value in IssueRuleEditor state
           // is undefined even if initial value is defined
