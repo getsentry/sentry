@@ -23,7 +23,20 @@ export function tooltipFormatter(value: number | null, seriesName: string = ''):
   if (!defined(value)) {
     return '\u2014';
   }
-  switch (aggregateOutputType(seriesName)) {
+  return tooltipFormatterUsingAggregateOutputType(value, aggregateOutputType(seriesName));
+}
+
+/**
+ * Formatter for chart tooltips that takes the aggregate output type directly
+ */
+export function tooltipFormatterUsingAggregateOutputType(
+  value: number | null,
+  type: string
+): string {
+  if (!defined(value)) {
+    return '\u2014';
+  }
+  switch (type) {
     case 'integer':
     case 'number':
       return value.toLocaleString();
@@ -46,7 +59,25 @@ export function axisLabelFormatter(
   abbreviation: boolean = false,
   durationUnit?: number
 ): string {
-  switch (aggregateOutputType(seriesName)) {
+  return axisLabelFormatterUsingAggregateOutputType(
+    value,
+    aggregateOutputType(seriesName),
+    abbreviation,
+    durationUnit
+  );
+}
+
+/**
+ * Formatter for chart axis labels that takes the aggregate output type directly
+ */
+export function axisLabelFormatterUsingAggregateOutputType(
+  value: number,
+  type: string,
+  abbreviation: boolean = false,
+  durationUnit?: number
+): string {
+  // TODO: Add formatter for size type
+  switch (type) {
     case 'integer':
     case 'number':
       return abbreviation ? formatAbbreviatedNumber(value) : value.toLocaleString();
