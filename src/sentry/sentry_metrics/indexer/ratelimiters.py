@@ -1,3 +1,4 @@
+import dataclasses
 from typing import MutableMapping, Optional, Sequence, Tuple
 
 from sentry import options
@@ -77,7 +78,12 @@ def _construct_quota_requests(
     return org_ids, requests
 
 
-RateLimitState = Tuple[UseCaseKey, Sequence[RequestedQuota], Sequence[GrantedQuota], Timestamp]
+@dataclasses.dataclass
+class RateLimitState:
+    use_case_id: UseCaseKey
+    requests: Sequence[RequestedQuota]
+    grants: Sequence[GrantedQuota]
+    timestamp: Timestamp
 
 
 class WritesLimiter:
@@ -136,7 +142,9 @@ class WritesLimiter:
 
             granted_key_collection[org_id] = allowed_strings
 
-        state = use_case_id, requests, grants, timestamp
+        state = RateLimitState(
+            use_case_id=use_case_id, requests=requests, grants=grants, timestamp=timestamp
+        )
         return state, KeyCollection(granted_key_collection), dropped_key_results
 
     @metrics.wraps("sentry_metrics.indexer.apply_write_limits")
@@ -144,8 +152,9 @@ class WritesLimiter:
         """
         Consumes the rate limits returned by `check_write_limits`.
         """
-        use_case_id, requests, grants, timestamp = state
-        self._get_rate_limiter(use_case_id).use_quotas(requests, grants, timestamp)
+        self._get_rate_limiter(state.use_case_id).use_quotas(
+            state.requests, state.grants, state.timestamp
+        )
 
 
 writes_limiter = WritesLimiter()
