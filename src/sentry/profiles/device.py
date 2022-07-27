@@ -44,8 +44,8 @@ def classify_device(
         frequencies = ios_cpu_core_max_frequencies_mhz(model)
         if core_frequency(frequencies) < 2000:
             return DeviceClass.LOW_END  # less than 2GHz clock speed
-        if number_of_cores(frequencies) < 6:
-            return DeviceClass.MID_END  # less than 6 cores
+        if core_frequency(frequencies) < 3000:
+            return DeviceClass.MID_END  # less than 3Ghz clock speed
         return DeviceClass.HIGH_END
 
     if platform == Platform.ANDROID_DEVICE and cpu_frequencies and physical_memory_bytes:

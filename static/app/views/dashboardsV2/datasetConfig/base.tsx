@@ -137,6 +137,13 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     referrer?: string
   ) => Promise<[SeriesResponse, string | undefined, ResponseMeta | undefined]>;
   /**
+   * Get the result type of the series. ie duration, size, percentage, etc
+   */
+  getSeriesResultType?: (
+    data: SeriesResponse,
+    widgetQuery: WidgetQuery
+  ) => string | undefined;
+  /**
    * Generate the request promises for fetching
    * tabular data.
    */

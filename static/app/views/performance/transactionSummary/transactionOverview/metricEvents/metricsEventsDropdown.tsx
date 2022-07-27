@@ -1,3 +1,5 @@
+import {ReactNode} from 'react';
+
 import Feature from 'sentry/components/acl/feature';
 import CompactSelect from 'sentry/components/forms/compactSelect';
 import {t} from 'sentry/locale';
@@ -10,19 +12,20 @@ import {
 
 interface MetricsEventsOption {
   label: string;
-  prefix: string;
+  prefix: ReactNode;
   value: MEPState;
 }
 
 const autoTextMap: Record<AutoSampleState, string> = {
   [AutoSampleState.unset]: t('Auto'),
-  [AutoSampleState.metrics]: t('Auto (ingested)'),
-  [AutoSampleState.transactions]: t('Auto (stored)'),
+  [AutoSampleState.metrics]: t('Auto (metrics)'),
+  [AutoSampleState.transactions]: t('Auto (transactions)'),
 };
 
 function getOptions(mepContext: MetricsEnhancedSettingContext): MetricsEventsOption[] {
   const autoText = autoTextMap[mepContext.autoSampleState];
-  const prefix = t('Sample');
+
+  const prefix = <span>{t('Dataset')}</span>;
 
   return [
     {
@@ -33,12 +36,12 @@ function getOptions(mepContext: MetricsEnhancedSettingContext): MetricsEventsOpt
     {
       value: MEPState.metricsOnly,
       prefix,
-      label: t('Ingested only'),
+      label: t('Metrics'),
     },
     {
       value: MEPState.transactionsOnly,
       prefix,
-      label: t('Stored only'),
+      label: t('Transactions'),
     },
   ];
 }

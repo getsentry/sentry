@@ -1,10 +1,12 @@
 import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 
+import Feature from 'sentry/components/acl/feature';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import NotFound from 'sentry/components/errors/notFound';
+import EventCustomPerformanceMetrics from 'sentry/components/events/eventCustomPerformanceMetrics';
 import {BorderlessEventEntries} from 'sentry/components/events/eventEntries';
 import EventMetadata from 'sentry/components/events/eventMetadata';
 import EventVitals from 'sentry/components/events/eventVitals';
@@ -248,6 +250,16 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                         </Fragment>
                       )}
                       <EventVitals event={event} />
+                      <Feature
+                        organization={organization}
+                        features={['organizations:dashboard-custom-measurement-widgets']}
+                      >
+                        <EventCustomPerformanceMetrics
+                          event={event}
+                          location={location}
+                          organization={organization}
+                        />
+                      </Feature>
                       <TagsTable
                         event={event}
                         query={query}
