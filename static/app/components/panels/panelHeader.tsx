@@ -1,6 +1,7 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {IconChevron} from 'sentry/icons';
 import space from 'sentry/styles/space';
 
 type Props = {
@@ -41,3 +42,21 @@ const PanelHeader = styled('div')<Props>`
 `;
 
 export default PanelHeader;
+
+const ClickablePanelHeader = styled(PanelHeader)`
+  user-select: none;
+  cursor: pointer;
+`;
+
+export function CollapsePanelHeader(props: {
+  children: React.ReactNode;
+  collapsed?: boolean;
+  onClick?: () => void;
+}) {
+  return (
+    <ClickablePanelHeader onClick={props.onClick}>
+      {props.children}
+      <IconChevron direction={props.collapsed ? 'right' : 'down'} />
+    </ClickablePanelHeader>
+  );
+}

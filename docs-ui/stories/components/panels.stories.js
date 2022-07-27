@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {AnimatePresence} from 'framer-motion';
 
 import Button from 'sentry/components/button';
 import Field from 'sentry/components/forms/field';
@@ -10,6 +11,8 @@ import {
   PanelItem,
   PanelTable,
 } from 'sentry/components/panels';
+import {CollapsePanelBody} from 'sentry/components/panels/panelBody';
+import {CollapsePanelHeader} from 'sentry/components/panels/panelHeader';
 import {IconTelescope} from 'sentry/icons';
 
 import {_BulkController} from './bulkController.stories';
@@ -38,6 +41,31 @@ BasicPanel.parameters = {
       story: 'Basic Panel component used in most settings',
     },
   },
+};
+
+export const CollapsePanel = ({collapsed, ...args}) => (
+  <Panel {...args}>
+    <CollapsePanelHeader collapsed={collapsed}>Panel Header</CollapsePanelHeader>
+    <AnimatePresence>
+      {!collapsed && (
+        <CollapsePanelBody>
+          <PanelItem>Panel Item</PanelItem>
+          <PanelItem>Panel Item</PanelItem>
+          <PanelItem>Panel Item</PanelItem>
+        </CollapsePanelBody>
+      )}
+    </AnimatePresence>
+  </Panel>
+);
+CollapsePanel.parameters = {
+  docs: {
+    description: {
+      story: 'Collapsible Panel component',
+    },
+  },
+};
+CollapsePanel.args = {
+  collapsed: false,
 };
 
 export const PanelAlerts = ({...args}) => (
