@@ -1,4 +1,4 @@
-import {Component, Fragment} from 'react';
+import {Component, Dispatch, Fragment, SetStateAction} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location, LocationDescriptorObject} from 'history';
@@ -91,8 +91,9 @@ type Props = {
   organization: Organization;
   projects: Project[];
   setError: (msg: string | undefined) => void;
-
   summaryConditions: string;
+
+  setTotalEventsCount?: Dispatch<SetStateAction<number>>;
 };
 
 type State = {
@@ -138,7 +139,14 @@ class Table extends Component<Props, State> {
     dataRow: TableDataRow,
     vitalName: WebVital
   ): React.ReactNode {
-    const {eventView, organization, projects, location, summaryConditions} = this.props;
+    const {
+      eventView,
+      organization,
+      projects,
+      location,
+      summaryConditions,
+      setTotalEventsCount,
+    } = this.props;
 
     if (!tableData || !tableData.meta?.fields) {
       return dataRow[column.key];
@@ -146,6 +154,10 @@ class Table extends Component<Props, State> {
     const tableMeta = tableData.meta?.fields;
 
     const field = String(column.key);
+
+    if (field === 'count()' && setTotalEventsCount) {
+      setTotalEventsCount(dataRow['count()'] as number);
+    }
 
     if (field === getVitalDetailTablePoorStatusFunction(vitalName)) {
       if (dataRow[field]) {

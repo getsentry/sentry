@@ -15,6 +15,7 @@ import {
   SectionValue,
 } from 'sentry/components/charts/styles';
 import {getInterval} from 'sentry/components/charts/utils';
+import Count from 'sentry/components/count';
 import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import DropdownMenuControlV2 from 'sentry/components/dropdownMenuControlV2';
@@ -31,6 +32,7 @@ import {IconCheckmark, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
+import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
@@ -285,7 +287,6 @@ function VitalDetailContent(props: Props) {
               title={WIDGET_DEFINITIONS({organization})[chartSetting].title}
               titleTooltip={WIDGET_DEFINITIONS({organization})[chartSetting].titleTooltip}
               isVitalDetailView
-              setTotalEventsCount={setTotalEventsCount}
             />
           </VitalWidgetWrapper>
         ) : (
@@ -305,7 +306,7 @@ function VitalDetailContent(props: Props) {
           <InlineContainer>
             <SectionHeading textColor="gray500">{t('Total Events')}</SectionHeading>
             <SectionValue textColor="gray500" data-test-id="total-value">
-              {totalEventsCount}
+              {defined(totalEventsCount) ? <Count value={totalEventsCount} /> : '\u2014'}
             </SectionValue>
           </InlineContainer>
           <InlineContainer data-test-id="display-toggle">
@@ -347,6 +348,7 @@ function VitalDetailContent(props: Props) {
                   location={location}
                   setError={setError}
                   summaryConditions={summaryConditions}
+                  setTotalEventsCount={setTotalEventsCount}
                 />
               </TeamKeyTransactionManager.Provider>
             ) : (
