@@ -86,6 +86,32 @@ FUNCTION_PATTERN = re.compile(
 DURATION_PATTERN = re.compile(r"(\d+\.?\d?)(\D{1,3})")
 
 RESULT_TYPES = {"duration", "string", "number", "integer", "percentage", "date"}
+# event_search normalizes to bytes
+SIZE_UNITS = {
+    "bit": 8,
+    "byte": 1,
+    "kibibyte": 1 / 1024,
+    "mebibyte": 1 / 1024**2,
+    "gibibyte": 1 / 1024**3,
+    "tebibyte": 1 / 1024**4,
+    "pebibyte": 1 / 1024**5,
+    "exbibyte": 1 / 1024**6,
+}
+# event_search normalizes to seconds
+DURATION_UNITS = {
+    "nanosecond": 1000**2,
+    "microsecond": 1000,
+    "millisecond": 1,
+    "second": 1 / 1000,
+    "minute": 1 / (1000 * 60),
+    "hour": 1 / (1000 * 60 * 60),
+    "day": 1 / (1000 * 60 * 60 * 24),
+    "week": 1 / (1000 * 60 * 60 * 24 * 7),
+}
+RESULT_TYPES = RESULT_TYPES.union(SIZE_UNITS.keys())
+RESULT_TYPES = RESULT_TYPES.union(DURATION_UNITS.keys())
+PERCENT_UNITS = {"ratio", "percent"}
+
 NO_CONVERSION_FIELDS = {"start", "end"}
 EQUALITY_OPERATORS = frozenset(["=", "IN"])
 INEQUALITY_OPERATORS = frozenset(["!=", "NOT IN"])
@@ -192,11 +218,13 @@ METRICS_MAP = {
 }
 # 50 to match the size of tables in the UI + 1 for pagination reasons
 METRICS_MAX_LIMIT = 101
-METRICS_GRANULARITIES = [86400, 3600, 60, 10]
+
+METRICS_GRANULARITIES = [86400, 3600, 60]
 METRIC_TOLERATED_TAG_VALUE = "tolerated"
 METRIC_SATISFIED_TAG_VALUE = "satisfied"
 METRIC_FRUSTRATED_TAG_VALUE = "frustrated"
 METRIC_SATISFACTION_TAG_KEY = "satisfaction"
+
 # Only the metrics that are on the distributions & are in milliseconds
 METRIC_DURATION_COLUMNS = {
     key
@@ -233,7 +261,7 @@ METRIC_PERCENTILES = {
 
 CUSTOM_MEASUREMENT_PATTERN = re.compile(r"^measurements\..+$")
 METRIC_FUNCTION_LIST_BY_TYPE = {
-    "distribution": [
+    "generic_distribution": [
         "apdex",
         "avg",
         "p50",
@@ -247,10 +275,10 @@ METRIC_FUNCTION_LIST_BY_TYPE = {
         "sum",
         "percentile",
     ],
-    "set": [
+    "generic_set": [
         "count_miserable",
         "user_misery",
         "count_unique",
     ],
-    "counter": [],
+    "generic_counter": [],
 }

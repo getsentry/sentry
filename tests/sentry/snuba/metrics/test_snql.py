@@ -1,7 +1,9 @@
+import pytest
 from snuba_sdk import Column, Function
 
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.sentry_metrics.utils import resolve_tag_key, resolve_tag_value
 from sentry.snuba.metrics import (
     TransactionStatusTagValue,
     TransactionTagsKey,
@@ -30,6 +32,8 @@ from sentry.snuba.metrics.fields.snql import (
 from sentry.snuba.metrics.naming_layer.public import TransactionSatisfactionTagValue
 from sentry.testutils import TestCase
 
+pytestmark = pytest.mark.sentry_metrics
+
 
 class DerivedMetricSnQLTestCase(TestCase):
     def setUp(self):
@@ -46,6 +50,13 @@ class DerivedMetricSnQLTestCase(TestCase):
                     "exited",
                     "init",
                     "session.status",
+                ]
+            },
+        )
+        indexer.bulk_record(
+            use_case_id=UseCaseKey.PERFORMANCE,
+            org_strings={
+                self.org_id: [
                     TransactionSatisfactionTagValue.FRUSTRATED.value,
                     TransactionSatisfactionTagValue.SATISFIED.value,
                     TransactionSatisfactionTagValue.TOLERATED.value,
@@ -76,9 +87,13 @@ class DerivedMetricSnQLTestCase(TestCase):
                                 "equals",
                                 [
                                     Column(
-                                        f"tags[{indexer.resolve(self.org_id, 'session.status')}]"
+                                        resolve_tag_key(
+                                            UseCaseKey.RELEASE_HEALTH, self.org_id, "session.status"
+                                        ),
                                     ),
-                                    indexer.resolve(self.org_id, status),
+                                    resolve_tag_value(
+                                        UseCaseKey.RELEASE_HEALTH, self.org_id, status
+                                    ),
                                 ],
                             ),
                             Function("in", [Column("metric_id"), list(self.metric_ids)]),
@@ -106,9 +121,13 @@ class DerivedMetricSnQLTestCase(TestCase):
                                 "equals",
                                 [
                                     Column(
-                                        f"tags[{indexer.resolve(self.org_id, 'session.status')}]"
+                                        resolve_tag_key(
+                                            UseCaseKey.RELEASE_HEALTH, self.org_id, "session.status"
+                                        )
                                     ),
-                                    indexer.resolve(self.org_id, status),
+                                    resolve_tag_value(
+                                        UseCaseKey.RELEASE_HEALTH, self.org_id, status
+                                    ),
                                 ],
                             ),
                             Function("in", [Column("metric_id"), list(self.metric_ids)]),
@@ -180,17 +199,27 @@ class DerivedMetricSnQLTestCase(TestCase):
                             "notIn",
                             [
                                 Column(
-                                    f"tags[{indexer.resolve(self.org_id, TransactionTagsKey.TRANSACTION_STATUS.value)}]"
+                                    resolve_tag_key(
+                                        UseCaseKey.PERFORMANCE,
+                                        self.org_id,
+                                        TransactionTagsKey.TRANSACTION_STATUS.value,
+                                    )
                                 ),
                                 [
-                                    indexer.resolve(
-                                        self.org_id, TransactionStatusTagValue.OK.value
+                                    resolve_tag_value(
+                                        UseCaseKey.PERFORMANCE,
+                                        self.org_id,
+                                        TransactionStatusTagValue.OK.value,
                                     ),
-                                    indexer.resolve(
-                                        self.org_id, TransactionStatusTagValue.CANCELLED.value
+                                    resolve_tag_value(
+                                        UseCaseKey.PERFORMANCE,
+                                        self.org_id,
+                                        TransactionStatusTagValue.CANCELLED.value,
                                     ),
-                                    indexer.resolve(
-                                        self.org_id, TransactionStatusTagValue.UNKNOWN.value
+                                    resolve_tag_value(
+                                        UseCaseKey.PERFORMANCE,
+                                        self.org_id,
+                                        TransactionStatusTagValue.UNKNOWN.value,
                                     ),
                                 ],
                             ],
@@ -219,9 +248,14 @@ class DerivedMetricSnQLTestCase(TestCase):
                             "equals",
                             [
                                 Column(
-                                    f"tags[{indexer.resolve(self.org_id, TransactionTagsKey.TRANSACTION_SATISFACTION.value)}]"
+                                    resolve_tag_key(
+                                        UseCaseKey.PERFORMANCE,
+                                        self.org_id,
+                                        TransactionTagsKey.TRANSACTION_SATISFACTION.value,
+                                    )
                                 ),
-                                indexer.resolve(
+                                resolve_tag_value(
+                                    UseCaseKey.PERFORMANCE,
                                     self.org_id,
                                     TransactionSatisfactionTagValue.FRUSTRATED.value,
                                 ),
@@ -255,10 +289,16 @@ class DerivedMetricSnQLTestCase(TestCase):
                             "equals",
                             [
                                 Column(
-                                    f"tags[{indexer.resolve(self.org_id, TransactionTagsKey.TRANSACTION_SATISFACTION.value)}]"
+                                    resolve_tag_key(
+                                        UseCaseKey.PERFORMANCE,
+                                        self.org_id,
+                                        TransactionTagsKey.TRANSACTION_SATISFACTION.value,
+                                    )
                                 ),
-                                indexer.resolve(
-                                    self.org_id, TransactionSatisfactionTagValue.SATISFIED.value
+                                resolve_tag_value(
+                                    UseCaseKey.PERFORMANCE,
+                                    self.org_id,
+                                    TransactionSatisfactionTagValue.SATISFIED.value,
                                 ),
                             ],
                         ),
@@ -288,10 +328,16 @@ class DerivedMetricSnQLTestCase(TestCase):
                             "equals",
                             [
                                 Column(
-                                    f"tags[{indexer.resolve(self.org_id, TransactionTagsKey.TRANSACTION_SATISFACTION.value)}]"
+                                    resolve_tag_key(
+                                        UseCaseKey.PERFORMANCE,
+                                        self.org_id,
+                                        TransactionTagsKey.TRANSACTION_SATISFACTION.value,
+                                    )
                                 ),
-                                indexer.resolve(
-                                    self.org_id, TransactionSatisfactionTagValue.TOLERATED.value
+                                resolve_tag_value(
+                                    UseCaseKey.PERFORMANCE,
+                                    self.org_id,
+                                    TransactionSatisfactionTagValue.TOLERATED.value,
                                 ),
                             ],
                         ),
@@ -350,8 +396,10 @@ class DerivedMetricSnQLTestCase(TestCase):
             Function(
                 "equals",
                 (
-                    Column(f"tags[{indexer.resolve(self.org_id, 'session.status')}]"),
-                    indexer.resolve(self.org_id, "exited"),
+                    Column(
+                        resolve_tag_key(UseCaseKey.RELEASE_HEALTH, self.org_id, "session.status"),
+                    ),
+                    resolve_tag_value(UseCaseKey.RELEASE_HEALTH, self.org_id, "exited"),
                 ),
             )
         ]

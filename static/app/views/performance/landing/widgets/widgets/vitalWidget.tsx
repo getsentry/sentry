@@ -131,6 +131,13 @@ export function VitalWidget(props: PerformanceWidgetProps & VitalDetailWidgetPro
           }));
 
           _eventView.sorts = [{kind: 'desc', field: sortField}];
+          if (
+            props.organization.features.includes(
+              'performance-transaction-name-only-search'
+            )
+          ) {
+            _eventView.additionalConditions.setFilterValues('!transaction', ['']);
+          }
 
           _eventView.fields = [
             {field: 'transaction'},
@@ -145,7 +152,7 @@ export function VitalWidget(props: PerformanceWidgetProps & VitalDetailWidgetPro
               {...provided}
               eventView={_eventView}
               location={props.location}
-              limit={3}
+              limit={4}
               cursor="0:0:1"
               noPagination
               queryExtras={getMEPQueryParams(mepSetting)}
@@ -313,8 +320,8 @@ export function VitalWidget(props: PerformanceWidgetProps & VitalDetailWidgetPro
             <SelectableList
               selectedIndex={selectedListIndex}
               setSelectedIndex={setSelectListIndex}
-              items={provided.widgetData.list.data.map(listItem => () => {
-                const transaction = listItem?.transaction as string;
+              items={provided.widgetData.list.data.slice(0, 3).map(listItem => () => {
+                const transaction = (listItem?.transaction as string | undefined) ?? '';
                 const _eventView = eventView.clone();
 
                 const initialConditions = new MutableSearch(_eventView.query);

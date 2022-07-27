@@ -29,6 +29,19 @@ const defaultOrgFeatures = [
 // Mocking worldMapChart to avoid act warnings
 jest.mock('sentry/components/charts/worldMapChart');
 
+function mockDashboard(dashboard: Partial<DashboardDetails>): DashboardDetails {
+  return {
+    id: '1',
+    title: 'Dashboard',
+    createdBy: undefined,
+    dateCreated: '2020-01-01T00:00:00.000Z',
+    widgets: [],
+    projects: [],
+    filters: {},
+    ...dashboard,
+  };
+}
+
 function renderTestComponent({
   dashboard,
   query,
@@ -70,6 +83,8 @@ function renderTestComponent({
         createdBy: undefined,
         dateCreated: '2020-01-01T00:00:00.000Z',
         widgets: [],
+        projects: [],
+        filters: {},
         ...dashboard,
       }}
       onSave={onSave ?? jest.fn()}
@@ -95,6 +110,8 @@ describe('WidgetBuilder', function () {
     createdBy: undefined,
     dateCreated: '2020-01-01T00:00:00.000Z',
     widgets: [],
+    projects: [],
+    filters: {},
   };
 
   const testDashboard: DashboardDetails = {
@@ -103,6 +120,8 @@ describe('WidgetBuilder', function () {
     createdBy: undefined,
     dateCreated: '2020-01-01T00:00:00.000Z',
     widgets: [],
+    projects: [],
+    filters: {},
   };
 
   let eventsStatsMock: jest.Mock | undefined;
@@ -264,13 +283,7 @@ describe('WidgetBuilder', function () {
         id: '1',
       };
 
-      const dashboard: DashboardDetails = {
-        id: '1',
-        title: 'Dashboard',
-        createdBy: undefined,
-        dateCreated: '2020-01-01T00:00:00.000Z',
-        widgets: [widget],
-      };
+      const dashboard = mockDashboard({widgets: [widget]});
 
       renderTestComponent({
         dashboard,
@@ -303,13 +316,7 @@ describe('WidgetBuilder', function () {
         id: '1',
       };
 
-      const dashboard: DashboardDetails = {
-        id: '1',
-        title: 'Dashboard',
-        createdBy: undefined,
-        dateCreated: '2020-01-01T00:00:00.000Z',
-        widgets: [widget],
-      };
+      const dashboard = mockDashboard({widgets: [widget]});
 
       renderTestComponent({
         dashboard,
@@ -673,13 +680,7 @@ describe('WidgetBuilder', function () {
         ],
       };
 
-      const dashboard: DashboardDetails = {
-        id: '1',
-        title: 'Dashboard',
-        createdBy: undefined,
-        dateCreated: '2020-01-01T00:00:00.000Z',
-        widgets: [widget],
-      };
+      const dashboard = mockDashboard({widgets: [widget]});
 
       renderTestComponent({dashboard, params: {widgetIndex: '0'}});
 
@@ -755,13 +756,7 @@ describe('WidgetBuilder', function () {
         ],
       };
 
-      const dashboard: DashboardDetails = {
-        id: '1',
-        title: 'Dashboard',
-        createdBy: undefined,
-        dateCreated: '2020-01-01T00:00:00.000Z',
-        widgets: [widget],
-      };
+      const dashboard = mockDashboard({widgets: [widget]});
 
       const handleSave = jest.fn();
 
@@ -812,13 +807,7 @@ describe('WidgetBuilder', function () {
         ],
       };
 
-      const dashboard: DashboardDetails = {
-        id: '1',
-        title: 'Dashboard',
-        createdBy: undefined,
-        dateCreated: '2020-01-01T00:00:00.000Z',
-        widgets: [widget],
-      };
+      const dashboard = mockDashboard({widgets: [widget]});
 
       renderTestComponent({dashboard, params: {widgetIndex: '0'}});
 
@@ -855,13 +844,7 @@ describe('WidgetBuilder', function () {
         ],
       };
 
-      const dashboard: DashboardDetails = {
-        id: '1',
-        title: 'Dashboard',
-        createdBy: undefined,
-        dateCreated: '2020-01-01T00:00:00.000Z',
-        widgets: [widget],
-      };
+      const dashboard = mockDashboard({widgets: [widget]});
 
       const handleSave = jest.fn();
 
@@ -1006,13 +989,8 @@ describe('WidgetBuilder', function () {
           },
         ],
       };
-      const dashboard: DashboardDetails = {
-        id: '1',
-        title: 'Dashboard',
-        createdBy: undefined,
-        dateCreated: '2020-01-01T00:00:00.000Z',
-        widgets: [widget],
-      };
+
+      const dashboard = mockDashboard({widgets: [widget]});
 
       renderTestComponent({onSave: handleSave, dashboard, params: {widgetIndex: '0'}});
 
@@ -1046,13 +1024,8 @@ describe('WidgetBuilder', function () {
           },
         ],
       };
-      const dashboard: DashboardDetails = {
-        id: '1',
-        title: 'Dashboard',
-        createdBy: undefined,
-        dateCreated: '2020-01-01T00:00:00.000Z',
-        widgets: [widget],
-      };
+
+      const dashboard = mockDashboard({widgets: [widget]});
 
       const {router} = renderTestComponent({
         dashboard,
@@ -1063,6 +1036,8 @@ describe('WidgetBuilder', function () {
       await screen.findByText('Update Widget');
       await screen.findByText('90D');
 
+      expect(screen.getByTestId('page-filter-timerange-selector')).toBeEnabled();
+
       userEvent.click(screen.getByText('Update Widget'));
 
       await waitFor(() => {
@@ -1071,6 +1046,68 @@ describe('WidgetBuilder', function () {
             pathname: '/organizations/org-slug/dashboard/1/',
             query: expect.objectContaining({
               statsPeriod: '90d',
+            }),
+          })
+        );
+      });
+    });
+
+    it('renders page filters in the filter step', async () => {
+      const mockReleases = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/releases/',
+        body: [TestStubs.Release()],
+      });
+
+      renderTestComponent({
+        params: {orgId: 'org-slug'},
+        query: {statsPeriod: '90d'},
+        orgFeatures: [...defaultOrgFeatures, 'dashboards-top-level-filter'],
+      });
+
+      await screen.findByText('90D');
+      expect(screen.getByTestId('page-filter-timerange-selector')).toBeDisabled();
+      expect(screen.getByTestId('page-filter-environment-selector')).toBeDisabled();
+      expect(screen.getByTestId('page-filter-project-selector-loading')).toBeDisabled();
+
+      await waitFor(() => {
+        expect(mockReleases).toHaveBeenCalled();
+      });
+
+      expect(screen.getByRole('button', {name: /all releases/i})).toBeDisabled();
+    });
+
+    it('appends dashboard filters to widget builder fetch data request', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/releases/',
+        body: [TestStubs.Release()],
+      });
+
+      const mock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/eventsv2/',
+        body: [],
+      });
+
+      renderTestComponent({
+        dashboard: {
+          id: 'new',
+          title: 'Dashboard',
+          createdBy: undefined,
+          dateCreated: '2020-01-01T00:00:00.000Z',
+          widgets: [],
+          projects: [],
+          filters: {release: ['abc@1.2.0']},
+        },
+        params: {orgId: 'org-slug'},
+        query: {statsPeriod: '90d'},
+        orgFeatures: [...defaultOrgFeatures, 'dashboards-top-level-filter'],
+      });
+
+      await waitFor(() => {
+        expect(mock).toHaveBeenCalledWith(
+          '/organizations/org-slug/eventsv2/',
+          expect.objectContaining({
+            query: expect.objectContaining({
+              query: ' release:abc@1.2.0 ',
             }),
           })
         );
@@ -1096,13 +1133,7 @@ describe('WidgetBuilder', function () {
         ],
       };
 
-      const dashboard: DashboardDetails = {
-        id: '1',
-        title: 'Dashboard',
-        createdBy: undefined,
-        dateCreated: '2020-01-01T00:00:00.000Z',
-        widgets: [widget],
-      };
+      const dashboard = mockDashboard({widgets: [widget]});
 
       const handleSave = jest.fn();
 
@@ -1379,13 +1410,7 @@ describe('WidgetBuilder', function () {
           ],
         };
 
-        const dashboard: DashboardDetails = {
-          id: '1',
-          title: 'Dashboard',
-          createdBy: undefined,
-          dateCreated: '2020-01-01T00:00:00.000Z',
-          widgets: [widget],
-        };
+        const dashboard = mockDashboard({widgets: [widget]});
 
         renderTestComponent({
           orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
@@ -1439,13 +1464,7 @@ describe('WidgetBuilder', function () {
           ],
         };
 
-        const dashboard: DashboardDetails = {
-          id: '1',
-          title: 'Dashboard',
-          createdBy: undefined,
-          dateCreated: '2020-01-01T00:00:00.000Z',
-          widgets: [widget],
-        };
+        const dashboard = mockDashboard({widgets: [widget]});
 
         renderTestComponent({
           orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
@@ -1490,13 +1509,7 @@ describe('WidgetBuilder', function () {
           ],
         };
 
-        const dashboard: DashboardDetails = {
-          id: '1',
-          title: 'Dashboard',
-          createdBy: undefined,
-          dateCreated: '2020-01-01T00:00:00.000Z',
-          widgets: [widget],
-        };
+        const dashboard = mockDashboard({widgets: [widget]});
 
         renderTestComponent({
           orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
@@ -1720,13 +1733,7 @@ describe('WidgetBuilder', function () {
           ],
         };
 
-        const dashboard: DashboardDetails = {
-          id: '1',
-          title: 'Dashboard',
-          createdBy: undefined,
-          dateCreated: '2020-01-01T00:00:00.000Z',
-          widgets: [widget],
-        };
+        const dashboard = mockDashboard({widgets: [widget]});
         renderTestComponent({
           orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
           query: {
@@ -1907,13 +1914,7 @@ describe('WidgetBuilder', function () {
             ],
           };
 
-          const dashboard: DashboardDetails = {
-            id: '1',
-            title: 'Dashboard',
-            createdBy: undefined,
-            dateCreated: '2020-01-01T00:00:00.000Z',
-            widgets: [widget],
-          };
+          const dashboard = mockDashboard({widgets: [widget]});
 
           renderTestComponent({
             orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
@@ -1945,13 +1946,7 @@ describe('WidgetBuilder', function () {
           ],
         };
 
-        const dashboard: DashboardDetails = {
-          id: '1',
-          title: 'Dashboard',
-          createdBy: undefined,
-          dateCreated: '2020-01-01T00:00:00.000Z',
-          widgets: [widget],
-        };
+        const dashboard = mockDashboard({widgets: [widget]});
 
         renderTestComponent({
           orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
@@ -2038,13 +2033,7 @@ describe('WidgetBuilder', function () {
           ],
         };
 
-        const dashboard: DashboardDetails = {
-          id: '1',
-          title: 'Dashboard',
-          createdBy: undefined,
-          dateCreated: '2020-01-01T00:00:00.000Z',
-          widgets: [widget],
-        };
+        const dashboard = mockDashboard({widgets: [widget]});
 
         renderTestComponent({
           dashboard,
@@ -2216,13 +2205,7 @@ describe('WidgetBuilder', function () {
         ],
       };
 
-      const dashboard: DashboardDetails = {
-        id: '1',
-        title: 'Dashboard',
-        createdBy: undefined,
-        dateCreated: '2020-01-01T00:00:00.000Z',
-        widgets: [widget],
-      };
+      const dashboard = mockDashboard({widgets: [widget]});
 
       renderTestComponent({
         orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
@@ -2782,13 +2765,7 @@ describe('WidgetBuilder', function () {
           id: '1',
         };
 
-        const dashboard: DashboardDetails = {
-          id: '1',
-          title: 'Dashboard',
-          createdBy: undefined,
-          dateCreated: '2020-01-01T00:00:00.000Z',
-          widgets: [widget],
-        };
+        const dashboard = mockDashboard({widgets: [widget]});
 
         renderTestComponent({
           orgFeatures: releaseHealthFeatureFlags,
@@ -2843,7 +2820,7 @@ describe('WidgetBuilder', function () {
         );
 
         await waitFor(() => {
-          expect(screen.getByText('No items found')).toBeInTheDocument();
+          expect(screen.getByText("isn't supported here.")).toBeInTheDocument();
         });
 
         userEvent.click(screen.getByText('Releases (sessions, crash rates)'));
@@ -2852,9 +2829,9 @@ describe('WidgetBuilder', function () {
             'Search for release version, session status, and more'
           )
         );
-        expect(await screen.findByText('environment:')).toBeInTheDocument();
-        expect(screen.getByText('project:')).toBeInTheDocument();
-        expect(screen.getByText('release:')).toBeInTheDocument();
+        expect(await screen.findByText('environment')).toBeInTheDocument();
+        expect(screen.getByText('project')).toBeInTheDocument();
+        expect(screen.getByText('release')).toBeInTheDocument();
       });
 
       it('adds a function when the only column chosen in a table is a tag', async function () {
@@ -3110,13 +3087,7 @@ describe('WidgetBuilder', function () {
           id: '1',
         };
 
-        const dashboard: DashboardDetails = {
-          id: '1',
-          title: 'Dashboard',
-          createdBy: undefined,
-          dateCreated: '2020-01-01T00:00:00.000Z',
-          widgets: [widget],
-        };
+        const dashboard = mockDashboard({widgets: [widget]});
 
         renderTestComponent({
           dashboard,
@@ -3159,13 +3130,7 @@ describe('WidgetBuilder', function () {
           limit: 1,
         };
 
-        const dashboard: DashboardDetails = {
-          id: '1',
-          title: 'Dashboard',
-          createdBy: undefined,
-          dateCreated: '2020-01-01T00:00:00.000Z',
-          widgets: [widget],
-        };
+        const dashboard = mockDashboard({widgets: [widget]});
 
         renderTestComponent({
           dashboard,
@@ -3208,13 +3173,7 @@ describe('WidgetBuilder', function () {
           limit: 1,
         };
 
-        const dashboard: DashboardDetails = {
-          id: '1',
-          title: 'Dashboard',
-          createdBy: undefined,
-          dateCreated: '2020-01-01T00:00:00.000Z',
-          widgets: [widget],
-        };
+        const dashboard = mockDashboard({widgets: [widget]});
 
         renderTestComponent({
           dashboard,
@@ -3298,13 +3257,7 @@ describe('WidgetBuilder', function () {
           ],
         };
 
-        const dashboard: DashboardDetails = {
-          id: '1',
-          title: 'Dashboard',
-          createdBy: undefined,
-          dateCreated: '2020-01-01T00:00:00.000Z',
-          widgets: [widget],
-        };
+        const dashboard = mockDashboard({widgets: [widget]});
 
         renderTestComponent({
           orgFeatures: [
@@ -3487,17 +3440,17 @@ describe('WidgetBuilder', function () {
         });
       });
 
-      it('raises an alert banner and disables saving widget if widget result is not metrics data', async function () {
+      it('raises an alert banner and disables saving widget if widget result is not metrics data and widget is using custom measurements', async function () {
         eventsMock = MockApiClient.addMockResponse({
           url: '/organizations/org-slug/events/',
           method: 'GET',
           statusCode: 200,
           body: {
             meta: {
-              fields: {'p99(measurements.total.db.calls)': 'duration'},
+              fields: {'p99(measurements.custom.measurement)': 'duration'},
               isMetricsData: false,
             },
-            data: [{'p99(measurements.total.db.calls)': 10}],
+            data: [{'p99(measurements.custom.measurement)': 10}],
           },
         });
 
@@ -3536,6 +3489,236 @@ describe('WidgetBuilder', function () {
 
         screen.getByText('You have inputs that are incompatible with');
         expect(screen.getByText('Add Widget').closest('button')).toBeDisabled();
+      });
+
+      it('raises an alert banner if widget result is not metrics data', async function () {
+        eventsMock = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/events/',
+          method: 'GET',
+          statusCode: 200,
+          body: {
+            meta: {
+              fields: {'p99(measurements.lcp)': 'duration'},
+              isMetricsData: false,
+            },
+            data: [{'p99(measurements.lcp)': 10}],
+          },
+        });
+
+        const defaultWidgetQuery = {
+          name: '',
+          fields: ['p99(measurements.lcp)'],
+          columns: [],
+          aggregates: ['p99(measurements.lcp)'],
+          conditions: 'user:test.user@sentry.io',
+          orderby: '',
+        };
+
+        const defaultTableColumns = ['p99(measurements.lcp)'];
+
+        renderTestComponent({
+          query: {
+            source: DashboardWidgetSource.DISCOVERV2,
+            defaultWidgetQuery: urlEncode(defaultWidgetQuery),
+            displayType: DisplayType.TABLE,
+            defaultTableColumns,
+          },
+          orgFeatures: [
+            ...defaultOrgFeatures,
+            'discover-frontend-use-events-endpoint',
+            'dashboards-mep',
+          ],
+        });
+
+        await waitFor(() => {
+          expect(measurementsMetaMock).toHaveBeenCalled();
+        });
+
+        await waitFor(() => {
+          expect(eventsMock).toHaveBeenCalled();
+        });
+
+        screen.getByText('Your selection is only applicable to');
+      });
+
+      it('does not raise an alert banner if widget result is not metrics data but widget contains error fields', async function () {
+        eventsMock = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/events/',
+          method: 'GET',
+          statusCode: 200,
+          body: {
+            meta: {
+              fields: {'p99(measurements.lcp)': 'duration'},
+              isMetricsData: false,
+            },
+            data: [{'p99(measurements.lcp)': 10}],
+          },
+        });
+
+        const defaultWidgetQuery = {
+          name: '',
+          fields: ['p99(measurements.lcp)'],
+          columns: ['error.handled'],
+          aggregates: ['p99(measurements.lcp)'],
+          conditions: 'user:test.user@sentry.io',
+          orderby: '',
+        };
+
+        const defaultTableColumns = ['p99(measurements.lcp)'];
+
+        renderTestComponent({
+          query: {
+            source: DashboardWidgetSource.DISCOVERV2,
+            defaultWidgetQuery: urlEncode(defaultWidgetQuery),
+            displayType: DisplayType.TABLE,
+            defaultTableColumns,
+          },
+          orgFeatures: [
+            ...defaultOrgFeatures,
+            'discover-frontend-use-events-endpoint',
+            'dashboards-mep',
+          ],
+        });
+
+        await waitFor(() => {
+          expect(measurementsMetaMock).toHaveBeenCalled();
+        });
+
+        await waitFor(() => {
+          expect(eventsMock).toHaveBeenCalled();
+        });
+
+        expect(
+          screen.queryByText('Your selection is only applicable to')
+        ).not.toBeInTheDocument();
+      });
+
+      it('only displays custom measurements in supported functions', async function () {
+        measurementsMetaMock = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/measurements-meta/',
+          method: 'GET',
+          body: {
+            'measurements.custom.measurement': {functions: ['p99']},
+            'measurements.another.custom.measurement': {functions: ['p95']},
+          },
+        });
+
+        renderTestComponent({
+          query: {source: DashboardWidgetSource.DISCOVERV2},
+          dashboard: testDashboard,
+          orgFeatures: [...defaultOrgFeatures, 'discover-frontend-use-events-endpoint'],
+        });
+
+        expect(await screen.findAllByText('Custom Widget')).toHaveLength(2);
+
+        await selectEvent.select(screen.getAllByText('count()')[1], ['p99(…)']);
+        userEvent.click(screen.getByText('transaction.duration'));
+        screen.getByText('measurements.custom.measurement');
+        expect(
+          screen.queryByText('measurements.another.custom.measurement')
+        ).not.toBeInTheDocument();
+        await selectEvent.select(screen.getAllByText('p99(…)')[0], ['p95(…)']);
+        userEvent.click(screen.getByText('transaction.duration'));
+        screen.getByText('measurements.another.custom.measurement');
+        expect(
+          screen.queryByText('measurements.custom.measurement')
+        ).not.toBeInTheDocument();
+      });
+
+      it('renders custom performance metric using duration units from events meta', async function () {
+        eventsMock = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/events/',
+          method: 'GET',
+          statusCode: 200,
+          body: {
+            meta: {
+              fields: {'p99(measurements.custom.measurement)': 'duration'},
+              isMetricsData: true,
+              units: {'p99(measurements.custom.measurement)': 'hour'},
+            },
+            data: [{'p99(measurements.custom.measurement)': 12}],
+          },
+        });
+
+        renderTestComponent({
+          query: {source: DashboardWidgetSource.DISCOVERV2},
+          dashboard: {
+            ...testDashboard,
+            widgets: [
+              {
+                title: 'Custom Measurement Widget',
+                interval: '1d',
+                id: '1',
+                widgetType: WidgetType.DISCOVER,
+                displayType: DisplayType.TABLE,
+                queries: [
+                  {
+                    conditions: '',
+                    name: '',
+                    fields: ['p99(measurements.custom.measurement)'],
+                    columns: [],
+                    aggregates: ['p99(measurements.custom.measurement)'],
+                    orderby: '-p99(measurements.custom.measurement)',
+                  },
+                ],
+              },
+            ],
+          },
+          params: {
+            widgetIndex: '0',
+          },
+          orgFeatures: [...defaultOrgFeatures, 'discover-frontend-use-events-endpoint'],
+        });
+
+        await screen.findByText('12.00hr');
+      });
+
+      it('renders custom performance metric using size units from events meta', async function () {
+        eventsMock = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/events/',
+          method: 'GET',
+          statusCode: 200,
+          body: {
+            meta: {
+              fields: {'p99(measurements.custom.measurement)': 'size'},
+              isMetricsData: true,
+              units: {'p99(measurements.custom.measurement)': 'kibibyte'},
+            },
+            data: [{'p99(measurements.custom.measurement)': 12}],
+          },
+        });
+
+        renderTestComponent({
+          query: {source: DashboardWidgetSource.DISCOVERV2},
+          dashboard: {
+            ...testDashboard,
+            widgets: [
+              {
+                title: 'Custom Measurement Widget',
+                interval: '1d',
+                id: '1',
+                widgetType: WidgetType.DISCOVER,
+                displayType: DisplayType.TABLE,
+                queries: [
+                  {
+                    conditions: '',
+                    name: '',
+                    fields: ['p99(measurements.custom.measurement)'],
+                    columns: [],
+                    aggregates: ['p99(measurements.custom.measurement)'],
+                    orderby: '-p99(measurements.custom.measurement)',
+                  },
+                ],
+              },
+            ],
+          },
+          params: {
+            widgetIndex: '0',
+          },
+          orgFeatures: [...defaultOrgFeatures, 'discover-frontend-use-events-endpoint'],
+        });
+
+        await screen.findByText('12.0 KiB');
       });
     });
   });

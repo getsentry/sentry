@@ -2,9 +2,12 @@ import copy
 import time
 from unittest.mock import patch
 
+import pytest
+
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
-from sentry.snuba.metrics import SingularEntityDerivedMetric, resolve_weak
+from sentry.sentry_metrics.utils import resolve_weak
+from sentry.snuba.metrics import SingularEntityDerivedMetric
 from sentry.snuba.metrics.fields.snql import complement, division_float
 from sentry.snuba.metrics.naming_layer.mapping import get_mri, get_public_name_from_mri
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
@@ -28,6 +31,8 @@ MOCKED_DERIVED_METRICS_2.update(
         )
     }
 )
+
+pytestmark = pytest.mark.sentry_metrics
 
 
 def _indexer_record(org_id: int, string: str) -> int:
@@ -235,6 +240,7 @@ class OrganizationMetricDetailsIntegrationTest(OrganizationMetricMetaIntegration
         """
         mocked_derived_metrics.return_value = MOCKED_DERIVED_METRICS_2
         org_id = self.project.organization.id
+        use_key_id = UseCaseKey.RELEASE_HEALTH
         metric_id = _indexer_record(org_id, "metric_foo_doe")
 
         self.store_session(
@@ -254,7 +260,9 @@ class OrganizationMetricDetailsIntegrationTest(OrganizationMetricMetaIntegration
                     "metric_id": metric_id,
                     "timestamp": (time.time() // 60 - 2) * 60,
                     "tags": {
-                        resolve_weak(org_id, "release"): _indexer_record(org_id, "fooww"),
+                        resolve_weak(use_key_id, org_id, "release"): _indexer_record(
+                            org_id, "fooww"
+                        ),
                     },
                     "type": "c",
                     "value": 5,

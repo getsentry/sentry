@@ -1,5 +1,5 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
 import OnboardingWelcome from 'sentry/views/onboarding/welcome';
@@ -10,16 +10,16 @@ describe('OnboardingWelcome', function () {
     const name = 'Rick Sanchez';
     ConfigStore.loadInitialData({user: {name, options: {}}});
 
-    mountWithTheme(<OnboardingWelcome organization={organization} />);
+    render(<OnboardingWelcome organization={organization} />);
   });
 
   it('calls onComplete when progressing', function () {
     const onComplete = jest.fn();
-    const wrapper = mountWithTheme(
+    render(
       <OnboardingWelcome active onComplete={onComplete} organization={organization} />
     );
 
-    wrapper.find('Button[priority="primary"]').first().simulate('click');
+    userEvent.click(screen.getByRole('button', {name: 'Start'}));
 
     expect(onComplete).toHaveBeenCalled();
   });

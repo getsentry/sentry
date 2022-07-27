@@ -2,6 +2,7 @@ import copy
 import ipaddress
 import logging
 import random
+import re
 import time
 from datetime import datetime, timedelta
 from io import BytesIO
@@ -76,9 +77,13 @@ from sentry.models import (
     get_crashreport_key,
 )
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
+from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.plugins.base import plugins
+from sentry.projectoptions.defaults import BETA_GROUPING_CONFIG, DEFAULT_GROUPING_CONFIG
 from sentry.reprocessing2 import is_reprocessed_event, save_unprocessed_event
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.signals import first_event_received, first_transaction_received, issue_unresolved
+from sentry.tasks.commits import fetch_commits
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.tasks.process_buffer import buffer_incr
 from sentry.types.activity import ActivityType
@@ -308,6 +313,7 @@ class EventManager:
         start_time=None,
         cache_key=None,
         skip_send_first_transaction=False,
+        auto_upgrade_grouping=False,
     ):
         """
         After normalizing and processing an event, save adjacent models such as
@@ -585,7 +591,31 @@ class EventManager:
 
         self._data = job["event"].data.data
 
+        # Check if the project is configured for auto upgrading and we need to upgrade
+        # to the latest grouping config.
+        if (
+            auto_upgrade_grouping
+            and settings.SENTRY_GROUPING_AUTO_UPDATE_ENABLED
+            and project.get_option("sentry:grouping_auto_update")
+        ):
+            _auto_update_grouping(project)
+
         return job["event"]
+
+
+def _auto_update_grouping(project):
+    old_grouping = project.get_option("sentry:grouping_config")
+    new_grouping = DEFAULT_GROUPING_CONFIG
+
+    # update to latest grouping config but not if a user is already on
+    # beta.
+    if old_grouping != new_grouping and old_grouping != BETA_GROUPING_CONFIG:
+        project.update_option("sentry:secondary_grouping_config", old_grouping)
+        project.update_option(
+            "sentry:secondary_grouping_expiry",
+            int(time.time()) + settings.SENTRY_GROUPING_UPDATE_MIGRATION_PHASE,
+        )
+        project.update_option("sentry:grouping_config", new_grouping)
 
 
 @metrics.wraps("event_manager.background_grouping")
@@ -662,6 +692,53 @@ def _pull_out_data(jobs, projects):
         )
 
 
+def _is_commit_sha(version: str):
+    return re.match(r"[0-9a-f]{40}", version) is not None
+
+
+def _associate_commits_with_release(release: Release, project: Project):
+    previous_release = release.get_previous_release(project)
+    possible_repos = (
+        RepositoryProjectPathConfig.objects.select_related(
+            "repository", "organization_integration", "organization_integration__integration"
+        )
+        .filter(project=project, repository__provider="integrations:github")
+        .all()
+    )
+    if possible_repos:
+        # If it does exist, kick off a task to look if the commit exists in the repository
+        target_repo = None
+        for repo_proj_path_model in possible_repos:
+            integration_installation = (
+                repo_proj_path_model.organization_integration.integration.get_installation(
+                    organization_id=project.organization.id
+                )
+            )
+            repo_client = integration_installation.get_client()
+            try:
+                repo_client.get_commit(
+                    repo=repo_proj_path_model.repository.name, sha=release.version
+                )
+                target_repo = repo_proj_path_model.repository
+                break
+            except ApiError as exc:
+                if exc.code != 404:
+                    raise
+
+        if target_repo is not None:
+            # If it does exist, fetch the commits for that repo
+            fetch_commits.apply_async(
+                kwargs={
+                    "release_id": release.id,
+                    "user_id": None,
+                    "refs": [{"repository": target_repo.name, "commit": release.version}],
+                    "prev_release_id": previous_release.id
+                    if previous_release is not None
+                    else None,
+                }
+            )
+
+
 @metrics.wraps("save_event.get_or_create_release_many")
 def _get_or_create_release_many(jobs, projects):
     jobs_with_releases = {}
@@ -684,6 +761,11 @@ def _get_or_create_release_many(jobs, projects):
             version=version,
             date_added=release_date_added[(project_id, version)],
         )
+
+        if features.has(
+            "projects:auto-associate-commits-to-release", projects[project_id]
+        ) and _is_commit_sha(release.version):
+            safe_execute(_associate_commits_with_release, release, projects[project_id])
 
         for job in jobs_to_update:
             # Don't allow a conflicting 'release' tag

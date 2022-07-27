@@ -1,21 +1,20 @@
 import {useMemo} from 'react';
-import {uuid4} from '@sentry/utils';
 
-import Spans from 'sentry/components/events/interfaces/spans';
+import Feature from 'sentry/components/acl/feature';
+import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import Placeholder from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import TagsTable from 'sentry/components/tagsTable';
+import {t} from 'sentry/locale';
 import type {RawCrumb} from 'sentry/types/breadcrumbs';
 import {isBreadcrumbTypeDefault} from 'sentry/types/breadcrumbs';
-import type {EventTransaction} from 'sentry/types/event';
-import {EntryType} from 'sentry/types/event';
 import useActiveReplayTab from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import Console from './console';
+import DomMutations from './domMutations';
 import IssueList from './issueList';
 import MemoryChart from './memoryChart';
-import NetworkList from './networkList';
+import NetworkList from './network';
 import Trace from './trace';
 
 type Props = {};
@@ -60,43 +59,33 @@ function FocusArea({}: Props) {
           startTimestamp={event?.startTimestamp}
         />
       );
-    case 'network': {
-      // Fake the span and Trace context
-      const nonMemorySpansEntry = {
-        type: EntryType.SPANS,
-        data: getNetworkSpans().map(({startTimestamp, endTimestamp, ...span}) => ({
-          ...span,
-          timestamp: endTimestamp,
-          start_timestamp: startTimestamp,
-          span_id: uuid4(), // TODO(replays): used as a React key
-          parent_span_id: 'replay_network_trace',
-        })),
-      };
-
-      const performanceEvents = {
-        ...event,
-        contexts: {
-          trace: {
-            type: 'trace',
-            op: 'Network',
-            description: 'WIP',
-            span_id: 'replay_network_trace',
-            status: 'ok',
-          },
-        },
-        entries: [nonMemorySpansEntry],
-      } as EventTransaction;
-
-      return <Spans organization={organization} event={performanceEvents} />;
-    }
-    case 'network_table':
+    case 'network':
       return <NetworkList event={event} networkSpans={getNetworkSpans()} />;
     case 'trace':
-      return <Trace organization={organization} event={event} />;
+      const features = ['organizations:performance-view'];
+
+      const renderDisabled = () => (
+        <FeatureDisabled
+          featureName={t('Performance Monitoring')}
+          features={features}
+          message={t('Requires performance monitoring.')}
+          hideHelpToggle
+        />
+      );
+      return (
+        <Feature
+          organization={organization}
+          hookName="feature-disabled:configure-distributed-tracing"
+          features={features}
+          renderDisabled={renderDisabled}
+        >
+          <Trace organization={organization} event={event} />
+        </Feature>
+      );
     case 'issues':
       return <IssueList replayId={event.id} projectId={event.projectID} />;
-    case 'tags':
-      return <TagsTable generateUrl={() => ''} event={event} query="" />;
+    case 'dom':
+      return <DomMutations replay={replay} />;
     case 'memory':
       return (
         <MemoryChart

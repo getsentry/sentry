@@ -13,8 +13,9 @@ from sentry.search.events.builder import (
 )
 from sentry.search.events.fields import get_function_alias
 from sentry.sentry_metrics import indexer
+from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.snuba import discover
-from sentry.utils.snuba import SnubaTSResult
+from sentry.utils.snuba import Dataset, SnubaTSResult
 
 
 def resolve_tags(results: Any, query_definition: MetricsQueryBuilder) -> Any:
@@ -34,7 +35,9 @@ def resolve_tags(results: Any, query_definition: MetricsQueryBuilder) -> Any:
         for tag in tags:
             for row in results["data"]:
                 if row[tag] not in cached_resolves:
-                    resolved_tag = indexer.reverse_resolve(row[tag])
+                    resolved_tag = indexer.reverse_resolve(
+                        row[tag], use_case_id=UseCaseKey.PERFORMANCE
+                    )
                     cached_resolves[row[tag]] = resolved_tag
                 row[tag] = cached_resolves[row[tag]]
             if tag in results["meta"]:
@@ -77,6 +80,7 @@ def query(
             limit=limit,
             offset=offset,
             dry_run=dry_run,
+            dataset=Dataset.PerformanceMetrics,
         )
         if dry_run:
             metrics_referrer = referrer + ".dry-run"
@@ -134,6 +138,7 @@ def timeseries_query(
                 metrics_query = TimeseriesMetricQueryBuilder(
                     params,
                     rollup,
+                    dataset=Dataset.PerformanceMetrics,
                     query=query,
                     selected_columns=columns,
                     functions_acl=functions_acl,
@@ -165,8 +170,13 @@ def timeseries_query(
                     else result["data"]
                 )
                 sentry_sdk.set_tag("performance.dataset", "metrics")
+                result["meta"]["isMetricsData"] = True
                 return SnubaTSResult(
-                    {"data": result["data"], "isMetricsData": True},
+                    {
+                        "data": result["data"],
+                        "isMetricsData": True,
+                        "meta": result["meta"],
+                    },
                     params["start"],
                     params["end"],
                     rollup,
@@ -266,6 +276,7 @@ def histogram_query(
     builder = HistogramMetricQueryBuilder(
         histogram_params,
         # Arguments for QueryBuilder
+        dataset=Dataset.PerformanceMetrics,
         params=params,
         query=user_query,
         selected_columns=[f"histogram({field})" for field in fields],

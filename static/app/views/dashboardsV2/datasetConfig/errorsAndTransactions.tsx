@@ -15,6 +15,7 @@ import {
   TagCollection,
 } from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
+import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
 import {MetaType} from 'sentry/utils/discover/eventView';
 import {
@@ -41,10 +42,7 @@ import {
   generateEventSlug,
 } from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';
-import {
-  getMeasurements,
-  MeasurementCollection,
-} from 'sentry/utils/measurements/measurements';
+import {getMeasurements} from 'sentry/utils/measurements/measurements';
 import {FieldValueOption} from 'sentry/views/eventsV2/table/queryField';
 import {FieldValue, FieldValueKind} from 'sentry/views/eventsV2/table/types';
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
@@ -153,6 +151,7 @@ export const ErrorsAndTransactionsConfig: DatasetConfig<
   transformSeries: transformEventsResponseToSeries,
   transformTable: transformEventsResponseToTable,
   filterTableOptions,
+  filterAggregateParams,
 };
 
 function getTableSortOptions(_organization: Organization, widgetQuery: WidgetQuery) {
@@ -236,7 +235,7 @@ function getTimeseriesSortOptions(
 function getEventsTableFieldOptions(
   organization: Organization,
   tags?: TagCollection,
-  customMeasurements?: MeasurementCollection
+  customMeasurements?: CustomMeasurementCollection
 ) {
   const measurements = getMeasurements();
 
@@ -244,12 +243,15 @@ function getEventsTableFieldOptions(
     organization,
     tagKeys: Object.values(tags ?? {}).map(({key}) => key),
     measurementKeys: Object.values(measurements).map(({key}) => key),
-    customMeasurementKeys: organization.features.includes(
+    spanOperationBreakdownKeys: SPAN_OP_BREAKDOWN_FIELDS,
+    customMeasurements: organization.features.includes(
       'dashboard-custom-measurement-widgets'
     )
-      ? Object.values(customMeasurements ?? {}).map(({key}) => key)
+      ? Object.values(customMeasurements ?? {}).map(({key, functions}) => ({
+          key,
+          functions,
+        }))
       : undefined,
-    spanOperationBreakdownKeys: SPAN_OP_BREAKDOWN_FIELDS,
   });
 }
 
@@ -264,10 +266,10 @@ function transformEventsResponseToTable(
   );
   // events api uses a different response format so we need to construct tableData differently
   if (shouldUseEvents) {
-    const fieldsMeta = (data as EventsTableData).meta?.fields;
+    const {fields, ...otherMeta} = (data as EventsTableData).meta ?? {};
     tableData = {
       ...data,
-      meta: {...fieldsMeta, isMetricsData: data.meta?.isMetricsData},
+      meta: {...fields, ...otherMeta},
     } as TableData;
   }
   return tableData as TableData;
@@ -503,6 +505,7 @@ function getEventsSeriesRequest(
       field: [...widgetQuery.columns, ...widgetQuery.aggregates],
       queryExtras: getDashboardsMEPQueryParams(isMEPEnabled),
       includeAllArgs: true,
+      topEvents: TOP_N,
     };
     if (widgetQuery.orderby) {
       requestData.orderby = widgetQuery.orderby;
@@ -568,4 +571,17 @@ function getEventsSeriesRequest(
 // Custom Measurements aren't selectable as columns/yaxis without using an aggregate
 function filterTableOptions(option: FieldValueOption) {
   return option.value.kind !== FieldValueKind.CUSTOM_MEASUREMENT;
+}
+
+// Checks fieldValue to see what function is being used and only allow supported custom measurements
+function filterAggregateParams(option: FieldValueOption, fieldValue?: QueryFieldValue) {
+  if (
+    option.value.kind === FieldValueKind.CUSTOM_MEASUREMENT &&
+    fieldValue?.kind === 'function' &&
+    fieldValue?.function &&
+    !option.value.meta.functions.includes(fieldValue.function[0])
+  ) {
+    return false;
+  }
+  return true;
 }

@@ -1,14 +1,15 @@
 from unittest import mock
 
 import responses
+from responses.matchers import query_string_matcher
 
-from sentry.integrations.jira.client import JiraCloud
+from sentry.integrations.jira.client import JiraCloudClient
 from sentry.models import Integration
 from sentry.testutils import TestCase
 from sentry.utils import json
 
 
-class StubJiraCloud(JiraCloud):
+class StubJiraCloud(JiraCloudClient):
     def request_hook(self, *args, **kwargs):
         r = super().request_hook(*args, **kwargs)
         r["params"]["jwt"] = "my-jwt-token"
@@ -16,7 +17,7 @@ class StubJiraCloud(JiraCloud):
 
 
 class JiraClientTest(TestCase):
-    @mock.patch("sentry.integrations.jira.integration.JiraCloud", new=StubJiraCloud)
+    @mock.patch("sentry.integrations.jira.integration.JiraCloudClient", new=StubJiraCloud)
     def setUp(self):
         integration = Integration.objects.create(
             provider="jira",
@@ -37,11 +38,11 @@ class JiraClientTest(TestCase):
         body = {"results": [{"value": "ISSUE-1", "displayName": "My Issue (ISSUE-1)"}]}
         responses.add(
             method=responses.GET,
-            url="https://example.atlassian.net/rest/api/2/jql/autocompletedata/suggestions?fieldName=my_field&fieldValue=abc&jwt=my-jwt-token",
+            url="https://example.atlassian.net/rest/api/2/jql/autocompletedata/suggestions",
+            match=[query_string_matcher("fieldName=my_field&fieldValue=abc&jwt=my-jwt-token")],
             body=json.dumps(body),
             status=200,
             content_type="application/json",
-            match_querystring=True,
         )
         res = self.client.get_field_autocomplete("my_field", "abc")
         assert res == body
@@ -51,11 +52,11 @@ class JiraClientTest(TestCase):
         body = {"results": [{"value": "ISSUE-1", "displayName": "My Issue (ISSUE-1)"}]}
         responses.add(
             method=responses.GET,
-            url="https://example.atlassian.net/rest/api/2/jql/autocompletedata/suggestions?fieldName=cf[0123]&fieldValue=abc&jwt=my-jwt-token",
+            url="https://example.atlassian.net/rest/api/2/jql/autocompletedata/suggestions",
+            match=[query_string_matcher("fieldName=cf[0123]&fieldValue=abc&jwt=my-jwt-token")],
             body=json.dumps(body),
             status=200,
             content_type="application/json",
-            match_querystring=True,
         )
         res = self.client.get_field_autocomplete("customfield_0123", "abc")
         assert res == body

@@ -3,7 +3,7 @@ import base64
 from django.http import HttpRequest
 from rest_framework.response import Response
 
-from sentry.api.base import Endpoint
+from sentry.api.base import Endpoint, resolve_region
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.models import ApiKey
 from sentry.testutils import APITestCase
@@ -53,6 +53,13 @@ class EndpointTest(APITestCase):
         assert response.status_code == 200, response.content
 
         assert response["Access-Control-Allow-Origin"] == "http://example.com"
+        assert response["Access-Control-Allow-Headers"] == (
+            "X-Sentry-Auth, X-Requested-With, Origin, Accept, "
+            "Content-Type, Authentication, Authorization, Content-Encoding, "
+            "sentry-trace, baggage"
+        )
+        assert response["Access-Control-Expose-Headers"] == "X-Sentry-Error, Retry-After"
+        assert response["Access-Control-Allow-Methods"] == "GET, HEAD, OPTIONS"
 
     def test_invalid_cors_without_auth(self):
         request = self.make_request(method="GET")
@@ -86,6 +93,13 @@ class EndpointTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert response["Access-Control-Allow-Origin"] == "http://example.com"
+        assert response["Access-Control-Allow-Headers"] == (
+            "X-Sentry-Auth, X-Requested-With, Origin, Accept, "
+            "Content-Type, Authentication, Authorization, Content-Encoding, "
+            "sentry-trace, baggage"
+        )
+        assert response["Access-Control-Expose-Headers"] == "X-Sentry-Error, Retry-After"
+        assert response["Access-Control-Allow-Methods"] == "GET, HEAD, OPTIONS"
 
 
 class PaginateTest(APITestCase):
@@ -149,3 +163,15 @@ class EndpointJSONBodyTest(APITestCase):
         Endpoint().load_json_body(self.request)
 
         assert not self.request.json_body
+
+
+class CustomerDomainTest(APITestCase):
+    def test_resolve_region(self):
+        def request_with_subdomain(subdomain):
+            request = self.make_request(method="GET")
+            request.subdomain = subdomain
+            return resolve_region(request)
+
+        assert request_with_subdomain("us") == "us"
+        assert request_with_subdomain("eu") == "eu"
+        assert request_with_subdomain("sentry") is None

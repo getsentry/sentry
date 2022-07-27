@@ -132,7 +132,7 @@ const INITIAL_STATE: State = Object.freeze({
  * must be delegated to the `ReplayReader` class.
  *
  * @param {orgId, eventSlug} Where to find the root replay event
- * @returns An object representing a unified result of the network reqeusts. Either a single `ReplayReader` data object or fetch errors.
+ * @returns An object representing a unified result of the network requests. Either a single `ReplayReader` data object or fetch errors.
  */
 function useReplayData({eventSlug, orgId}: Options): Result {
   const [projectId, eventId] = eventSlug.split(':');
@@ -162,7 +162,7 @@ function useReplayData({eventSlug, orgId}: Options): Result {
 
         // for non-compressed events, parse and return
         try {
-          return JSON.parse(response[0]) as ReplayAttachment;
+          return mapRRWebAttachments(JSON.parse(response[0]));
         } catch (error) {
           // swallow exception.. if we can't parse it, it's going to be compressed
         }
@@ -173,8 +173,7 @@ function useReplayData({eventSlug, orgId}: Options): Result {
           const responseBlob = await response[2]?.rawResponse.blob();
           const responseArray = (await responseBlob?.arrayBuffer()) as Uint8Array;
           const parsedPayload = JSON.parse(inflate(responseArray, {to: 'string'}));
-          const replayAttachments = mapRRWebAttachments(parsedPayload);
-          return replayAttachments;
+          return mapRRWebAttachments(parsedPayload);
         } catch (error) {
           return {};
         }

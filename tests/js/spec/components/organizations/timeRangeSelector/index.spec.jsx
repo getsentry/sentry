@@ -41,7 +41,7 @@ describe('TimeRangeSelector', function () {
       />,
       {context: routerContext}
     );
-    expect(screen.getByText('Other')).toBeInTheDocument();
+    expect(screen.getByText('Last 9 days')).toBeInTheDocument();
   });
 
   it('renders when given an invalid relative period', function () {
@@ -50,7 +50,7 @@ describe('TimeRangeSelector', function () {
         organization={organization}
         showAbsolute={false}
         showRelative={false}
-        relative="1w"
+        relative="1y"
       />,
       {context: routerContext}
     );
@@ -78,6 +78,14 @@ describe('TimeRangeSelector', function () {
 
     // Ensure absolute option not shown
     expect(screen.queryByTestId('absolute')).not.toBeInTheDocument();
+  });
+
+  it('does not open selector menu when disabled', function () {
+    renderComponent({disabled: true});
+    userEvent.click(screen.getByRole('button'));
+
+    // Dropdown not open
+    expect(screen.queryByText(/last hour/i)).not.toBeInTheDocument();
   });
 
   it('selects absolute item', async function () {
@@ -342,6 +350,59 @@ describe('TimeRangeSelector', function () {
     userEvent.click(await screen.findByTestId('absolute'));
 
     // On change should not be called because start/end did not change
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it('can select arbitrary relative time ranges', () => {
+    renderComponent();
+
+    userEvent.click(screen.getByRole('button'));
+
+    const input = screen.getByRole('textbox');
+    userEvent.type(input, '5');
+
+    // With just the number "5", all unit options should be present
+    expect(screen.getByText('Last 5 seconds')).toBeInTheDocument();
+    expect(screen.getByText('Last 5 minutes')).toBeInTheDocument();
+    expect(screen.getByText('Last 5 hours')).toBeInTheDocument();
+    expect(screen.getByText('Last 5 days')).toBeInTheDocument();
+    expect(screen.getByText('Last 5 weeks')).toBeInTheDocument();
+
+    userEvent.type(input, 'd');
+
+    // With "5d", only "Last 5 days" should be shown
+    expect(screen.getByText('Last 5 days')).toBeInTheDocument();
+    expect(screen.queryByText('Last 5 seconds')).not.toBeInTheDocument();
+    expect(screen.queryByText('Last 5 minutes')).not.toBeInTheDocument();
+    expect(screen.queryByText('Last 5 hours')).not.toBeInTheDocument();
+    expect(screen.queryByText('Last 5 weeks')).not.toBeInTheDocument();
+
+    userEvent.type(input, 'ays');
+
+    // "5days" Should still show "Last 5 days" option
+    expect(screen.getByText('Last 5 days')).toBeInTheDocument();
+
+    userEvent.type(input, '{Enter}');
+
+    expect(onChange).toHaveBeenLastCalledWith({
+      relative: '5d',
+      start: undefined,
+      end: undefined,
+    });
+  });
+
+  it('cannot select arbitrary relative time ranges with disallowArbitraryRelativeRanges', () => {
+    renderComponent({disallowArbitraryRelativeRanges: true});
+
+    userEvent.click(screen.getByRole('button'));
+
+    const input = screen.getByRole('textbox');
+    userEvent.type(input, '5');
+
+    expect(screen.getByText('No items found')).toBeInTheDocument();
+
+    userEvent.type(input, '{Enter}');
+
     expect(onChange).not.toHaveBeenCalled();
   });
 });

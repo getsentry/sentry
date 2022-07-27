@@ -184,7 +184,6 @@ export function downloadAsCsv(tableData, columnOrder, filename) {
     fields: headings,
     data: data.map(row =>
       headings.map(col => {
-        col = getAggregateAlias(col);
         return disableMacros(row[col]);
       })
     ),
@@ -439,7 +438,7 @@ function generateExpandedConditions(
 type FieldGeneratorOpts = {
   organization: OrganizationSummary;
   aggregations?: Record<string, Aggregation>;
-  customMeasurementKeys?: string[] | null;
+  customMeasurements?: {functions: string[]; key: string}[] | null;
   fields?: Record<string, ColumnType>;
   measurementKeys?: string[] | null;
   spanOperationBreakdownKeys?: string[];
@@ -450,8 +449,8 @@ export function generateFieldOptions({
   organization,
   tagKeys,
   measurementKeys,
-  customMeasurementKeys,
   spanOperationBreakdownKeys,
+  customMeasurements,
   aggregations = AGGREGATIONS,
   fields = FIELDS,
 }: FieldGeneratorOpts) {
@@ -519,14 +518,20 @@ export function generateFieldOptions({
     });
   }
 
-  if (customMeasurementKeys !== undefined && customMeasurementKeys !== null) {
-    customMeasurementKeys.sort();
-    customMeasurementKeys.forEach(customMeasurement => {
-      fieldOptions[`measurement:${customMeasurement}`] = {
-        label: customMeasurement,
+  if (customMeasurements !== undefined && customMeasurements !== null) {
+    customMeasurements.sort(({key: currentKey}, {key: nextKey}) =>
+      currentKey > nextKey ? 1 : currentKey === nextKey ? 0 : -1
+    );
+    customMeasurements.forEach(({key, functions: supportedFunctions}) => {
+      fieldOptions[`measurement:${key}`] = {
+        label: key,
         value: {
           kind: FieldValueKind.CUSTOM_MEASUREMENT,
-          meta: {name: customMeasurement, dataType: measurementType(customMeasurement)},
+          meta: {
+            name: key,
+            dataType: measurementType(key),
+            functions: supportedFunctions,
+          },
         },
       };
     });
