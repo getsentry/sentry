@@ -285,12 +285,7 @@ def create_notification_with_properties(
     notification: BaseNotification, **kwargs: Any
 ) -> BaseNotification:
     notification_copy = deepcopy(notification)
-
-    assert "url_format" in kwargs
-
     for property in kwargs:
         setattr(notification_copy, property, kwargs[property])
-
-    assert getattr(notification_copy, "url_format") == "<{url}|{text}>"
 
     return notification_copy
