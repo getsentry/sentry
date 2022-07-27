@@ -57,7 +57,7 @@ class OrganizationSentryFunctionDetailsEndpoint(OrganizationEndpoint):
             ).delete()
             return Response(status=204)
         except FailedPrecondition:
-            return Response("Function is currently busy, try again later", status=400)
+            return Response({"detail": "Function is currently busy, try again later."}, status=400)
         except InvalidArgument:
             return Response(status=400)
         except NotFound:
