@@ -4,24 +4,24 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 import omit from 'lodash/omit';
 
-import Link from 'sentry/components/links/link';
-import Pagination from 'sentry/components/pagination';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import SearchBar from 'sentry/components/events/searchBar';
-import {IconArrow} from 'sentry/icons';
-import {PanelTable} from 'sentry/components/panels';
-import {t} from 'sentry/locale';
 import * as Layout from 'sentry/components/layouts/thirds';
+import Link from 'sentry/components/links/link';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import {getQueryParamAsString} from 'sentry/utils/replays/getQueryParamAsString';
+import Pagination from 'sentry/components/pagination';
+import {PanelTable} from 'sentry/components/panels';
+import {IconArrow} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
+import {TableData} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {decodeScalar} from 'sentry/utils/queryString';
-import {TableData} from 'sentry/utils/discover/discoverQuery';
+import {getQueryParamAsString} from 'sentry/utils/replays/getQueryParamAsString';
 import ReplayTable from 'sentry/views/replays/replayTable';
 import {Replay} from 'sentry/views/replays/types';
 
@@ -31,10 +31,10 @@ type Props = {
   eventView: EventView;
   location: Location;
   organization: Organization;
-  setError: SetStateAction<string | undefined>;
-  transactionName: string;
-  tableData: TableData;
   pageLinks: string | null;
+  setError: SetStateAction<string | undefined>;
+  tableData: TableData;
+  transactionName: string;
 };
 
 function ReplaysContent(props: Props) {
