@@ -8,7 +8,10 @@ const isCi = !!process.env.CI;
 
 // Strict ruleset that runs on pre-commit and in local environments
 const strictRulesNotCi = {
-  'react-hooks/exhaustive-deps': ['error'],
+  'react-hooks/exhaustive-deps': [
+    'error',
+    {additionalHooks: 'useEffectAfterFirstRender'},
+  ],
 };
 
 module.exports = {
@@ -24,6 +27,10 @@ module.exports = {
   },
 
   rules: {
+    'react-hooks/exhaustive-deps': [
+      'warn',
+      {additionalHooks: 'useEffectAfterFirstRender'},
+    ],
     ...(!isRelaxed && !isCi ? strictRulesNotCi : {}),
   },
 
