@@ -223,11 +223,12 @@ _HISTOGRAM_OUTLIERS_QUERY_RESULTS = """
 """
 
 
-def _parse_percentiles(value) -> Tuple[float, float]:
-    return tuple(map(float, value.strip("[]").split(",")))
+def _parse_percentiles(value: str) -> Tuple[float, float]:
+    p25, p75 = map(float, value.strip("[]").split(","))
+    return p25, p75
 
 
-def _produce_histogram_outliers(query_csv) -> Sequence[MetricConditionalTaggingRule]:
+def _produce_histogram_outliers(query_csv: str) -> Sequence[MetricConditionalTaggingRule]:
     rules: List[MetricConditionalTaggingRule] = []
     for platform, op, _, duration, lcp, fcp in csv.reader(query_csv.strip().splitlines()):
         duration_p25, duration_p75 = _parse_percentiles(duration)
@@ -259,7 +260,7 @@ def _produce_histogram_outliers(query_csv) -> Sequence[MetricConditionalTaggingR
                             },
                         ],
                     },
-                    "targetMetrics": _HISTOGRAM_OUTLIERS_TARGET_METRICS,
+                    "targetMetrics": [_HISTOGRAM_OUTLIERS_TARGET_METRICS[metric]],
                     "targetTag": "histogram_outlier",
                     "tagValue": "outlier",
                 }

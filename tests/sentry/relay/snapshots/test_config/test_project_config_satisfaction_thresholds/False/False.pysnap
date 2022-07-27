@@ -48,9 +48,7 @@ source: tests/sentry/relay/test_config.py
     op: and
   tagValue: outlier
   targetMetrics:
-    duration: d:transactions/duration@millisecond
-    fcp: d:transactions/measurements.fcp@millisecond
-    lcp: d:transactions/measurements.lcp@millisecond
+  - d:transactions/duration@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
@@ -66,9 +64,7 @@ source: tests/sentry/relay/test_config.py
     op: and
   tagValue: outlier
   targetMetrics:
-    duration: d:transactions/duration@millisecond
-    fcp: d:transactions/measurements.fcp@millisecond
-    lcp: d:transactions/measurements.lcp@millisecond
+  - d:transactions/measurements.fcp@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
@@ -84,9 +80,7 @@ source: tests/sentry/relay/test_config.py
     op: and
   tagValue: outlier
   targetMetrics:
-    duration: d:transactions/duration@millisecond
-    fcp: d:transactions/measurements.fcp@millisecond
-    lcp: d:transactions/measurements.lcp@millisecond
+  - d:transactions/duration@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
@@ -102,9 +96,7 @@ source: tests/sentry/relay/test_config.py
     op: and
   tagValue: outlier
   targetMetrics:
-    duration: d:transactions/duration@millisecond
-    fcp: d:transactions/measurements.fcp@millisecond
-    lcp: d:transactions/measurements.lcp@millisecond
+  - d:transactions/duration@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
@@ -120,9 +112,7 @@ source: tests/sentry/relay/test_config.py
     op: and
   tagValue: outlier
   targetMetrics:
-    duration: d:transactions/duration@millisecond
-    fcp: d:transactions/measurements.fcp@millisecond
-    lcp: d:transactions/measurements.lcp@millisecond
+  - d:transactions/duration@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
@@ -138,9 +128,7 @@ source: tests/sentry/relay/test_config.py
     op: and
   tagValue: outlier
   targetMetrics:
-    duration: d:transactions/duration@millisecond
-    fcp: d:transactions/measurements.fcp@millisecond
-    lcp: d:transactions/measurements.lcp@millisecond
+  - d:transactions/duration@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
@@ -156,9 +144,7 @@ source: tests/sentry/relay/test_config.py
     op: and
   tagValue: outlier
   targetMetrics:
-    duration: d:transactions/duration@millisecond
-    fcp: d:transactions/measurements.fcp@millisecond
-    lcp: d:transactions/measurements.lcp@millisecond
+  - d:transactions/duration@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
@@ -174,9 +160,7 @@ source: tests/sentry/relay/test_config.py
     op: and
   tagValue: outlier
   targetMetrics:
-    duration: d:transactions/duration@millisecond
-    fcp: d:transactions/measurements.fcp@millisecond
-    lcp: d:transactions/measurements.lcp@millisecond
+  - d:transactions/duration@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
@@ -192,9 +176,7 @@ source: tests/sentry/relay/test_config.py
     op: and
   tagValue: outlier
   targetMetrics:
-    duration: d:transactions/duration@millisecond
-    fcp: d:transactions/measurements.fcp@millisecond
-    lcp: d:transactions/measurements.lcp@millisecond
+  - d:transactions/duration@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
@@ -210,9 +192,7 @@ source: tests/sentry/relay/test_config.py
     op: and
   tagValue: outlier
   targetMetrics:
-    duration: d:transactions/duration@millisecond
-    fcp: d:transactions/measurements.fcp@millisecond
-    lcp: d:transactions/measurements.lcp@millisecond
+  - d:transactions/duration@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
@@ -228,9 +208,7 @@ source: tests/sentry/relay/test_config.py
     op: and
   tagValue: outlier
   targetMetrics:
-    duration: d:transactions/duration@millisecond
-    fcp: d:transactions/measurements.fcp@millisecond
-    lcp: d:transactions/measurements.lcp@millisecond
+  - d:transactions/duration@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
@@ -246,9 +224,7 @@ source: tests/sentry/relay/test_config.py
     op: and
   tagValue: outlier
   targetMetrics:
-    duration: d:transactions/duration@millisecond
-    fcp: d:transactions/measurements.fcp@millisecond
-    lcp: d:transactions/measurements.lcp@millisecond
+  - d:transactions/duration@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
@@ -264,9 +240,7 @@ source: tests/sentry/relay/test_config.py
     op: and
   tagValue: outlier
   targetMetrics:
-    duration: d:transactions/duration@millisecond
-    fcp: d:transactions/measurements.fcp@millisecond
-    lcp: d:transactions/measurements.lcp@millisecond
+  - d:transactions/duration@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
@@ -282,9 +256,7 @@ source: tests/sentry/relay/test_config.py
     op: and
   tagValue: outlier
   targetMetrics:
-    duration: d:transactions/duration@millisecond
-    fcp: d:transactions/measurements.fcp@millisecond
-    lcp: d:transactions/measurements.lcp@millisecond
+  - d:transactions/duration@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
@@ -300,9 +272,7 @@ source: tests/sentry/relay/test_config.py
     op: and
   tagValue: outlier
   targetMetrics:
-    duration: d:transactions/duration@millisecond
-    fcp: d:transactions/measurements.fcp@millisecond
-    lcp: d:transactions/measurements.lcp@millisecond
+  - d:transactions/duration@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
@@ -318,9 +288,7 @@ source: tests/sentry/relay/test_config.py
     op: and
   tagValue: outlier
   targetMetrics:
-    duration: d:transactions/duration@millisecond
-    fcp: d:transactions/measurements.fcp@millisecond
-    lcp: d:transactions/measurements.lcp@millisecond
+  - d:transactions/duration@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
@@ -336,9 +304,7 @@ source: tests/sentry/relay/test_config.py
     op: and
   tagValue: outlier
   targetMetrics:
-    duration: d:transactions/duration@millisecond
-    fcp: d:transactions/measurements.fcp@millisecond
-    lcp: d:transactions/measurements.lcp@millisecond
+  - d:transactions/duration@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
@@ -354,9 +320,7 @@ source: tests/sentry/relay/test_config.py
     op: and
   tagValue: outlier
   targetMetrics:
-    duration: d:transactions/duration@millisecond
-    fcp: d:transactions/measurements.fcp@millisecond
-    lcp: d:transactions/measurements.lcp@millisecond
+  - d:transactions/duration@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
@@ -372,9 +336,7 @@ source: tests/sentry/relay/test_config.py
     op: and
   tagValue: outlier
   targetMetrics:
-    duration: d:transactions/duration@millisecond
-    fcp: d:transactions/measurements.fcp@millisecond
-    lcp: d:transactions/measurements.lcp@millisecond
+  - d:transactions/duration@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
@@ -390,9 +352,7 @@ source: tests/sentry/relay/test_config.py
     op: and
   tagValue: outlier
   targetMetrics:
-    duration: d:transactions/duration@millisecond
-    fcp: d:transactions/measurements.fcp@millisecond
-    lcp: d:transactions/measurements.lcp@millisecond
+  - d:transactions/duration@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
@@ -408,9 +368,7 @@ source: tests/sentry/relay/test_config.py
     op: and
   tagValue: outlier
   targetMetrics:
-    duration: d:transactions/duration@millisecond
-    fcp: d:transactions/measurements.fcp@millisecond
-    lcp: d:transactions/measurements.lcp@millisecond
+  - d:transactions/duration@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
@@ -426,9 +384,7 @@ source: tests/sentry/relay/test_config.py
     op: and
   tagValue: outlier
   targetMetrics:
-    duration: d:transactions/duration@millisecond
-    fcp: d:transactions/measurements.fcp@millisecond
-    lcp: d:transactions/measurements.lcp@millisecond
+  - d:transactions/duration@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
@@ -444,9 +400,7 @@ source: tests/sentry/relay/test_config.py
     op: and
   tagValue: outlier
   targetMetrics:
-    duration: d:transactions/duration@millisecond
-    fcp: d:transactions/measurements.fcp@millisecond
-    lcp: d:transactions/measurements.lcp@millisecond
+  - d:transactions/duration@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
@@ -462,9 +416,7 @@ source: tests/sentry/relay/test_config.py
     op: and
   tagValue: outlier
   targetMetrics:
-    duration: d:transactions/duration@millisecond
-    fcp: d:transactions/measurements.fcp@millisecond
-    lcp: d:transactions/measurements.lcp@millisecond
+  - d:transactions/duration@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
@@ -480,9 +432,7 @@ source: tests/sentry/relay/test_config.py
     op: and
   tagValue: outlier
   targetMetrics:
-    duration: d:transactions/duration@millisecond
-    fcp: d:transactions/measurements.fcp@millisecond
-    lcp: d:transactions/measurements.lcp@millisecond
+  - d:transactions/duration@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
@@ -498,9 +448,7 @@ source: tests/sentry/relay/test_config.py
     op: and
   tagValue: outlier
   targetMetrics:
-    duration: d:transactions/duration@millisecond
-    fcp: d:transactions/measurements.fcp@millisecond
-    lcp: d:transactions/measurements.lcp@millisecond
+  - d:transactions/duration@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
@@ -516,9 +464,7 @@ source: tests/sentry/relay/test_config.py
     op: and
   tagValue: outlier
   targetMetrics:
-    duration: d:transactions/duration@millisecond
-    fcp: d:transactions/measurements.fcp@millisecond
-    lcp: d:transactions/measurements.lcp@millisecond
+  - d:transactions/duration@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
@@ -534,9 +480,7 @@ source: tests/sentry/relay/test_config.py
     op: and
   tagValue: outlier
   targetMetrics:
-    duration: d:transactions/duration@millisecond
-    fcp: d:transactions/measurements.fcp@millisecond
-    lcp: d:transactions/measurements.lcp@millisecond
+  - d:transactions/measurements.lcp@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
@@ -552,9 +496,7 @@ source: tests/sentry/relay/test_config.py
     op: and
   tagValue: outlier
   targetMetrics:
-    duration: d:transactions/duration@millisecond
-    fcp: d:transactions/measurements.fcp@millisecond
-    lcp: d:transactions/measurements.lcp@millisecond
+  - d:transactions/measurements.fcp@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
@@ -570,9 +512,7 @@ source: tests/sentry/relay/test_config.py
     op: and
   tagValue: outlier
   targetMetrics:
-    duration: d:transactions/duration@millisecond
-    fcp: d:transactions/measurements.fcp@millisecond
-    lcp: d:transactions/measurements.lcp@millisecond
+  - d:transactions/duration@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
@@ -588,9 +528,7 @@ source: tests/sentry/relay/test_config.py
     op: and
   tagValue: outlier
   targetMetrics:
-    duration: d:transactions/duration@millisecond
-    fcp: d:transactions/measurements.fcp@millisecond
-    lcp: d:transactions/measurements.lcp@millisecond
+  - d:transactions/duration@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
@@ -606,9 +544,7 @@ source: tests/sentry/relay/test_config.py
     op: and
   tagValue: outlier
   targetMetrics:
-    duration: d:transactions/duration@millisecond
-    fcp: d:transactions/measurements.fcp@millisecond
-    lcp: d:transactions/measurements.lcp@millisecond
+  - d:transactions/duration@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
@@ -624,9 +560,7 @@ source: tests/sentry/relay/test_config.py
     op: and
   tagValue: outlier
   targetMetrics:
-    duration: d:transactions/duration@millisecond
-    fcp: d:transactions/measurements.fcp@millisecond
-    lcp: d:transactions/measurements.lcp@millisecond
+  - d:transactions/duration@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
@@ -642,9 +576,7 @@ source: tests/sentry/relay/test_config.py
     op: and
   tagValue: outlier
   targetMetrics:
-    duration: d:transactions/duration@millisecond
-    fcp: d:transactions/measurements.fcp@millisecond
-    lcp: d:transactions/measurements.lcp@millisecond
+  - d:transactions/duration@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
@@ -660,9 +592,7 @@ source: tests/sentry/relay/test_config.py
     op: and
   tagValue: outlier
   targetMetrics:
-    duration: d:transactions/duration@millisecond
-    fcp: d:transactions/measurements.fcp@millisecond
-    lcp: d:transactions/measurements.lcp@millisecond
+  - d:transactions/duration@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
@@ -678,9 +608,7 @@ source: tests/sentry/relay/test_config.py
     op: and
   tagValue: outlier
   targetMetrics:
-    duration: d:transactions/duration@millisecond
-    fcp: d:transactions/measurements.fcp@millisecond
-    lcp: d:transactions/measurements.lcp@millisecond
+  - d:transactions/duration@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
@@ -696,9 +624,7 @@ source: tests/sentry/relay/test_config.py
     op: and
   tagValue: outlier
   targetMetrics:
-    duration: d:transactions/duration@millisecond
-    fcp: d:transactions/measurements.fcp@millisecond
-    lcp: d:transactions/measurements.lcp@millisecond
+  - d:transactions/duration@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
@@ -714,9 +640,7 @@ source: tests/sentry/relay/test_config.py
     op: and
   tagValue: outlier
   targetMetrics:
-    duration: d:transactions/duration@millisecond
-    fcp: d:transactions/measurements.fcp@millisecond
-    lcp: d:transactions/measurements.lcp@millisecond
+  - d:transactions/duration@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
@@ -732,9 +656,7 @@ source: tests/sentry/relay/test_config.py
     op: and
   tagValue: outlier
   targetMetrics:
-    duration: d:transactions/duration@millisecond
-    fcp: d:transactions/measurements.fcp@millisecond
-    lcp: d:transactions/measurements.lcp@millisecond
+  - d:transactions/duration@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
@@ -750,9 +672,7 @@ source: tests/sentry/relay/test_config.py
     op: and
   tagValue: outlier
   targetMetrics:
-    duration: d:transactions/duration@millisecond
-    fcp: d:transactions/measurements.fcp@millisecond
-    lcp: d:transactions/measurements.lcp@millisecond
+  - d:transactions/duration@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
@@ -768,9 +688,7 @@ source: tests/sentry/relay/test_config.py
     op: and
   tagValue: outlier
   targetMetrics:
-    duration: d:transactions/duration@millisecond
-    fcp: d:transactions/measurements.fcp@millisecond
-    lcp: d:transactions/measurements.lcp@millisecond
+  - d:transactions/duration@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
@@ -786,9 +704,7 @@ source: tests/sentry/relay/test_config.py
     op: and
   tagValue: outlier
   targetMetrics:
-    duration: d:transactions/duration@millisecond
-    fcp: d:transactions/measurements.fcp@millisecond
-    lcp: d:transactions/measurements.lcp@millisecond
+  - d:transactions/duration@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
@@ -804,9 +720,7 @@ source: tests/sentry/relay/test_config.py
     op: and
   tagValue: outlier
   targetMetrics:
-    duration: d:transactions/duration@millisecond
-    fcp: d:transactions/measurements.fcp@millisecond
-    lcp: d:transactions/measurements.lcp@millisecond
+  - d:transactions/duration@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
@@ -822,9 +736,7 @@ source: tests/sentry/relay/test_config.py
     op: and
   tagValue: outlier
   targetMetrics:
-    duration: d:transactions/duration@millisecond
-    fcp: d:transactions/measurements.fcp@millisecond
-    lcp: d:transactions/measurements.lcp@millisecond
+  - d:transactions/duration@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
@@ -840,9 +752,7 @@ source: tests/sentry/relay/test_config.py
     op: and
   tagValue: outlier
   targetMetrics:
-    duration: d:transactions/duration@millisecond
-    fcp: d:transactions/measurements.fcp@millisecond
-    lcp: d:transactions/measurements.lcp@millisecond
+  - d:transactions/duration@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
@@ -858,9 +768,7 @@ source: tests/sentry/relay/test_config.py
     op: and
   tagValue: outlier
   targetMetrics:
-    duration: d:transactions/duration@millisecond
-    fcp: d:transactions/measurements.fcp@millisecond
-    lcp: d:transactions/measurements.lcp@millisecond
+  - d:transactions/duration@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
@@ -876,9 +784,7 @@ source: tests/sentry/relay/test_config.py
     op: and
   tagValue: outlier
   targetMetrics:
-    duration: d:transactions/duration@millisecond
-    fcp: d:transactions/measurements.fcp@millisecond
-    lcp: d:transactions/measurements.lcp@millisecond
+  - d:transactions/duration@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
@@ -894,9 +800,7 @@ source: tests/sentry/relay/test_config.py
     op: and
   tagValue: outlier
   targetMetrics:
-    duration: d:transactions/duration@millisecond
-    fcp: d:transactions/measurements.fcp@millisecond
-    lcp: d:transactions/measurements.lcp@millisecond
+  - d:transactions/duration@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
@@ -912,9 +816,7 @@ source: tests/sentry/relay/test_config.py
     op: and
   tagValue: outlier
   targetMetrics:
-    duration: d:transactions/duration@millisecond
-    fcp: d:transactions/measurements.fcp@millisecond
-    lcp: d:transactions/measurements.lcp@millisecond
+  - d:transactions/duration@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
@@ -930,9 +832,7 @@ source: tests/sentry/relay/test_config.py
     op: and
   tagValue: outlier
   targetMetrics:
-    duration: d:transactions/duration@millisecond
-    fcp: d:transactions/measurements.fcp@millisecond
-    lcp: d:transactions/measurements.lcp@millisecond
+  - d:transactions/duration@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
@@ -948,9 +848,7 @@ source: tests/sentry/relay/test_config.py
     op: and
   tagValue: outlier
   targetMetrics:
-    duration: d:transactions/duration@millisecond
-    fcp: d:transactions/measurements.fcp@millisecond
-    lcp: d:transactions/measurements.lcp@millisecond
+  - d:transactions/duration@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
@@ -966,9 +864,7 @@ source: tests/sentry/relay/test_config.py
     op: and
   tagValue: outlier
   targetMetrics:
-    duration: d:transactions/duration@millisecond
-    fcp: d:transactions/measurements.fcp@millisecond
-    lcp: d:transactions/measurements.lcp@millisecond
+  - d:transactions/duration@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
@@ -984,9 +880,7 @@ source: tests/sentry/relay/test_config.py
     op: and
   tagValue: outlier
   targetMetrics:
-    duration: d:transactions/duration@millisecond
-    fcp: d:transactions/measurements.fcp@millisecond
-    lcp: d:transactions/measurements.lcp@millisecond
+  - d:transactions/duration@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
