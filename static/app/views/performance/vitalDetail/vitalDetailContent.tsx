@@ -218,7 +218,16 @@ function VitalDetailContent(props: Props) {
         </FilterActions>
         {organization.experiments.VitalsAlertExperiment ? (
           <VitalsComparison
-            {...{organization, location, vital, project, end, environment, statsPeriod}}
+            {...{
+              organization,
+              location,
+              vital,
+              project,
+              end,
+              environment,
+              statsPeriod,
+              start,
+            }}
           />
         ) : null}
         <VitalChart
