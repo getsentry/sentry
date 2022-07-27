@@ -10,6 +10,9 @@ from sentry.api.endpoints.organization_profiling_profiles import (
     OrganizationProfilingTransactionsEndpoint,
 )
 from sentry.api.endpoints.organization_sentry_function import OrganizationSentryFunctionEndpoint
+from sentry.api.endpoints.organization_sentry_function_details import (
+    OrganizationSentryFunctionDetailsEndpoint,
+)
 from sentry.api.endpoints.project_grouping_configs import ProjectGroupingConfigsEndpoint
 from sentry.api.endpoints.project_transaction_threshold_override import (
     ProjectTransactionThresholdOverrideEndpoint,
@@ -1565,6 +1568,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/functions/$",
                     OrganizationSentryFunctionEndpoint.as_view(),
                     name="sentry-api-0-organization-sentry-functions",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/functions/(?P<function_slug>[^\/]+)/$",
+                    OrganizationSentryFunctionDetailsEndpoint.as_view(),
+                    name="sentry-api-0-organization-sentry-function-details",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/request-project-creation/$",
