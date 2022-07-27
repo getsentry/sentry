@@ -1,3 +1,5 @@
+from unittest import mock
+
 from django.views.generic import View
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -16,8 +18,15 @@ from sentry.snuba.models import SnubaQuery
 from .mail import MailPreview
 
 
+class MockedIncidentTrigger:
+    date_added = "Some date"
+
+
 class DebugIncidentTriggerEmailView(View):
-    def get(self, request: Request) -> Response:
+    @mock.patch(
+        "sentry.incidents.models.IncidentTrigger.objects.get", return_value=MockedIncidentTrigger()
+    )
+    def get(self, request: Request, mock) -> Response:
         organization = Organization(slug="myorg")
         project = Project(slug="myproject", organization=organization)
 

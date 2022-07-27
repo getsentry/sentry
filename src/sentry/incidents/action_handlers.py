@@ -188,9 +188,7 @@ def generate_incident_trigger_email_context(
     project, incident, alert_rule_trigger, trigger_status, incident_status
 ):
     trigger = alert_rule_trigger
-    incident_trigger = IncidentTrigger.objects.filter(
-        incident=incident, alert_rule_trigger=trigger
-    ).first()
+    incident_trigger = IncidentTrigger.objects.get(incident=incident, alert_rule_trigger=trigger)
 
     alert_rule = trigger.alert_rule
     snuba_query = alert_rule.snuba_query
@@ -251,7 +249,7 @@ def generate_incident_trigger_email_context(
         "incident_name": incident.title,
         "environment": environment_string,
         "time_window": format_duration(snuba_query.time_window / 60),
-        "triggered_at": incident_trigger.date_added if incident_trigger else None,
+        "triggered_at": incident_trigger.date_added,
         "aggregate": aggregate,
         "query": snuba_query.query,
         "threshold": threshold,
