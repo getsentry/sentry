@@ -127,7 +127,7 @@ export function getCrumbsByColumn(
       Math.floor((sinceStart / safeDuration) * (totalColumns - 1)) + 1;
 
     // Should start at minimum in the first column
-    const column = columnPositionCalc <= 0 ? 1 : columnPositionCalc;
+    const column = Math.max(1, columnPositionCalc);
 
     return [column, breadcrumb] as [number, Crumb];
   });
