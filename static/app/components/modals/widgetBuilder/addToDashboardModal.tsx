@@ -179,13 +179,15 @@ function AddToDashboardModal({
         <h4>{t('Add to Dashboard')}</h4>
       </Header>
       <Body>
-        {selectedDashboard && hasSavedPageFilters(selectedDashboard) && (
-          <Alert type="info" showIcon>
-            {t(
-              'Filters saved on the selected Dashboard have been applied to the visualization.'
-            )}
-          </Alert>
-        )}
+        {organization.features.includes('dashboards-top-level-filter') &&
+          selectedDashboard &&
+          hasSavedPageFilters(selectedDashboard) && (
+            <Alert type="info" showIcon>
+              {t(
+                'Filters saved on the selected Dashboard have been applied to the visualization.'
+              )}
+            </Alert>
+          )}
         <SelectControlWrapper>
           <SelectControl
             disabled={dashboards === null}
@@ -226,11 +228,16 @@ function AddToDashboardModal({
           isSorting={false}
           widgetLimitReached={false}
           selection={
+            organization.features.includes('dashboards-top-level-filter') &&
             selectedDashboard
               ? getSavedFiltersAsPageFilters(selectedDashboard)
               : selection
           }
-          dashboardFilters={selectedDashboard?.filters}
+          dashboardFilters={
+            organization.features.includes('dashboards-top-level-filter')
+              ? selectedDashboard?.filters
+              : {}
+          }
           widget={widget}
           showStoredAlert
         />
