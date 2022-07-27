@@ -10,11 +10,6 @@ from sentry.testutils.helpers.notifications import (
 TEST_CARD = {"type": "test_card"}
 
 
-def additional_attachment_generator(integration, organization):
-    # nonsense to make sure we pass in the right fields
-    return {"title": organization.slug, "text": integration.id}
-
-
 @patch(
     "sentry.integrations.msteams.MSTeamsNotificationsMessageBuilder.build_notification_card",
     Mock(return_value=TEST_CARD),
