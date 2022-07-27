@@ -3,10 +3,12 @@ import {LegendComponentOption} from 'echarts';
 import {Series} from 'sentry/types/echarts';
 import {
   axisLabelFormatter,
+  axisLabelFormatterUsingAggregateOutputType,
   categorizeDuration,
   findRangeOfMultiSeries,
   getDurationUnit,
   tooltipFormatter,
+  tooltipFormatterUsingAggregateOutputType,
 } from 'sentry/utils/discover/charts';
 import {HOUR, MINUTE, SECOND} from 'sentry/utils/formatters';
 
@@ -24,6 +26,24 @@ describe('tooltipFormatter()', () => {
     ];
     for (const scenario of cases) {
       expect(tooltipFormatter(scenario[1], scenario[0])).toEqual(scenario[2]);
+    }
+  });
+});
+
+describe('tooltipFormatterUsingAggregateOutputType()', () => {
+  it('formats values', () => {
+    const cases: [string, number, string][] = [
+      // function, input, expected
+      ['number', 0.1, '0.1'],
+      ['integer', 0.125, '0.125'],
+      ['percentage', 0.6612, '66.12%'],
+      ['duration', 321, '321.00ms'],
+      ['', 444, '444'],
+    ];
+    for (const scenario of cases) {
+      expect(tooltipFormatterUsingAggregateOutputType(scenario[1], scenario[0])).toEqual(
+        scenario[2]
+      );
     }
   });
 });
@@ -74,6 +94,24 @@ describe('axisLabelFormatter()', () => {
       const labels = getAxisLabels(axisValues, durationUnit);
       expect(labels.length).toBe(labels.filter(label => label.endsWith('hr')).length);
     });
+  });
+});
+
+describe('axisLabelFormatterUsingAggregateOutputType()', () => {
+  it('formats values', () => {
+    const cases: [string, number, string][] = [
+      // type, input, expected
+      ['number', 0.1, '0.1'],
+      ['integer', 0.125, '0.125'],
+      ['percentage', 0.6612, '66%'],
+      ['duration', 321, '321ms'],
+      ['', 444, '444'],
+    ];
+    for (const scenario of cases) {
+      expect(
+        axisLabelFormatterUsingAggregateOutputType(scenario[1], scenario[0])
+      ).toEqual(scenario[2]);
+    }
   });
 });
 

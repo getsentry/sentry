@@ -40,7 +40,7 @@ export function createDashboard(
   newDashboard: DashboardDetails,
   duplicate?: boolean
 ): Promise<DashboardDetails> {
-  const {title, widgets, projects, environment, period, start, end, filters} =
+  const {title, widgets, projects, environment, period, start, end, filters, utc} =
     newDashboard;
 
   const promise: Promise<DashboardDetails> = api.requestPromise(
@@ -57,6 +57,7 @@ export function createDashboard(
         start,
         end,
         filters,
+        utc,
       },
       query: {
         project: projects,
@@ -123,7 +124,8 @@ export function updateDashboard(
   orgId: string,
   dashboard: DashboardDetails
 ): Promise<DashboardDetails> {
-  const {title, widgets, projects, environment, period, start, end, filters} = dashboard;
+  const {title, widgets, projects, environment, period, start, end, filters, utc} =
+    dashboard;
   const data = {
     title,
     widgets: widgets.map(widget => omit(widget, ['tempId'])),
@@ -133,6 +135,7 @@ export function updateDashboard(
     start,
     end,
     filters,
+    utc,
   };
 
   const promise: Promise<DashboardDetails> = api.requestPromise(
