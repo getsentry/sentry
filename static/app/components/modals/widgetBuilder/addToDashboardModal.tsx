@@ -11,7 +11,6 @@ import {
 } from 'sentry/actionCreators/dashboards';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
-import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import SelectControl from 'sentry/components/forms/selectControl';
@@ -30,7 +29,6 @@ import {
 import {
   getSavedFiltersAsPageFilters,
   getSavedPageFilters,
-  hasSavedPageFilters,
 } from 'sentry/views/dashboardsV2/utils';
 import {NEW_DASHBOARD_ID} from 'sentry/views/dashboardsV2/widgetBuilder/utils';
 import WidgetCard from 'sentry/views/dashboardsV2/widgetCard';
@@ -179,15 +177,6 @@ function AddToDashboardModal({
         <h4>{t('Add to Dashboard')}</h4>
       </Header>
       <Body>
-        {organization.features.includes('dashboards-top-level-filter') &&
-          selectedDashboard &&
-          hasSavedPageFilters(selectedDashboard) && (
-            <Alert type="info" showIcon>
-              {t(
-                'Filters saved on the selected Dashboard have been applied to the visualization.'
-              )}
-            </Alert>
-          )}
         <SelectControlWrapper>
           <SelectControl
             disabled={dashboards === null}
@@ -219,7 +208,11 @@ function AddToDashboardModal({
             }}
           />
         </SelectControlWrapper>
-        {t('This is a preview of how the widget will appear in your dashboard.')}
+        {organization.features.includes('dashboards-top-level-filter')
+          ? t(
+              'Any conflicting filters from this query will be overridden by Dashboard filters. This is a preview of how the widget will appear in your dashboard.'
+            )
+          : t('This is a preview of how the widget will appear in your dashboard.')}
         <WidgetCard
           api={api}
           organization={organization}
