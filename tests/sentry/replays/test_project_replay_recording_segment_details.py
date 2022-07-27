@@ -1,3 +1,4 @@
+import uuid
 from io import BytesIO
 
 from django.urls import reverse
@@ -16,10 +17,10 @@ class ReplayRecordingSegmentDetailsTestCase(APITestCase):
         self.file = File.objects.create(name="recording-segment-0", type="application/octet-stream")
         self.file.putfile(BytesIO(b"replay-recording-segment"))
 
-        replay_id = "6f959c5c-bc77-4683-8723-6e3367b0cfac"
+        replay_id = uuid.uuid4().hex
 
         self.recording_segment = ReplayRecordingSegment.objects.create(
-            replay_id=replay_id.replace("-", ""),
+            replay_id=replay_id,
             project_id=self.project.id,
             sequence_id=0,
             file_id=self.file.id,
