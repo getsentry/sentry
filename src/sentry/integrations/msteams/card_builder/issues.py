@@ -3,9 +3,16 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, List, Sequence, Tuple
 
+from sentry.integrations.message_builder import (
+    build_attachment_text,
+    build_attachment_title,
+    build_footer,
+    format_actor_option,
+    format_actor_options,
+)
 from sentry.integrations.msteams.card_builder import (
     ME,
-    URL_FORMAT,
+    MSTEAMS_URL_FORMAT,
     Action,
     AdaptiveCard,
     Block,
@@ -15,15 +22,6 @@ from sentry.integrations.msteams.card_builder import (
     TextBlock,
 )
 from sentry.integrations.msteams.card_builder.utils import IssueConstants
-
-# TODO: Move these to a location common to both msteams and slack.
-from sentry.integrations.slack.message_builder.issues import (
-    build_attachment_text,
-    build_attachment_title,
-    build_footer,
-    format_actor_option,
-    format_actor_options,
-)
 from sentry.models import Event, Group, GroupStatus, Integration, Project, Rule
 
 from ..utils import ACTION_TYPE
@@ -125,7 +123,7 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
         # TODO: implement with event as well
         image_column = self.create_footer_logo_block()
 
-        text = build_footer(self.group, project, self.rules, URL_FORMAT)
+        text = build_footer(self.group, project, self.rules, MSTEAMS_URL_FORMAT)
 
         text_column = create_column_block(
             self.create_footer_text_block(text), isSubtle=True, spacing="none"
