@@ -22,9 +22,13 @@ function splitCrumbs({
   const lastUrl = last(crumbs)?.data?.to;
 
   if (crumbs.length === 0) {
+    // This one shouldn't overflow, but by including the component css stays
+    // consistent with the other Segment types
     return [
       <Span key="summary">
-        <TextOverflow>{tn('%s Transaction', '%s Transactions', 0)}</TextOverflow>
+        <TextOverflow ellipsisDirection="left">
+          {tn('%s Transaction', '%s Transactions', 0)}
+        </TextOverflow>
       </Span>,
     ];
   }
@@ -58,7 +62,7 @@ function SingleLinkSegment({path}: {path: undefined | string}) {
   return (
     <Link href="#">
       <Tooltip title={path}>
-        <TextOverflow>{path}</TextOverflow>
+        <TextOverflow ellipsisDirection="left">{path}</TextOverflow>
       </Tooltip>
     </Link>
   );
@@ -89,7 +93,7 @@ function SummarySegment({
         bodyClassName="half-padding"
         position="right"
       >
-        <TextOverflow>
+        <TextOverflow ellipsisDirection="left">
           {tn('%s Transaction', '%s Transactions', summaryItems.length)}
         </TextOverflow>
       </HalfPaddingHovercard>
