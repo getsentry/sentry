@@ -26,7 +26,6 @@ class JiraServerClient(ApiClient):
     ISSUE_URL = "/rest/api/2/issue/%s"
     ISSUE_FIELDS_URL = "/rest/api/2/issue/createmeta/%s/issuetypes/%s"
     ISSUE_TYPES_URL = "/rest/api/2/issue/createmeta/%s/issuetypes"
-    META_URL = "/rest/api/2/issue/createmeta"  # TODO replace, this is deprecated
     PRIORITIES_URL = "/rest/api/2/priority"
     PROJECT_URL = "/rest/api/2/project"
     SEARCH_URL = "/rest/api/2/search/"
@@ -135,31 +134,6 @@ class JiraServerClient(ApiClient):
             if project["id"] == project_id:
                 return project["key"].encode("utf-8")
         return ""
-
-    def get_create_meta_for_project(self, project):
-        # TODO(ceo): remove this method, endpoint is deprecated
-        params = {"expand": "projects.issuetypes.fields", "projectIds": project}
-        metas = self.get_cached(self.META_URL, params=params)
-        # We saw an empty JSON response come back from the API :(
-        if not metas:
-            logger.info(
-                "jira.get-create-meta.empty-response",
-                extra={"base_url": self.base_url, "project": project},
-            )
-            return None
-
-        # XXX(dcramer): document how this is possible, if it even is
-        if len(metas["projects"]) > 1:
-            raise ApiError(f"More than one project found matching {project}.")
-
-        try:
-            return metas["projects"][0]
-        except IndexError:
-            logger.info(
-                "jira.get-create-meta.key-error",
-                extra={"base_url": self.base_url, "project": project},
-            )
-            return None
 
     def get_versions(self, project):
         return self.get_cached(self.VERSIONS_URL % project)
