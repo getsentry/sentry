@@ -144,7 +144,8 @@ class DashboardDetail extends Component<Props, State> {
       location,
       router,
     } = this.props;
-    const {seriesData, tableData, pageLinks, totalIssuesCount} = this.state;
+    const {seriesData, tableData, pageLinks, totalIssuesCount, modifiedDashboard} =
+      this.state;
     if (isWidgetViewerPath(location.pathname)) {
       const widget =
         defined(widgetId) &&
@@ -202,7 +203,11 @@ class DashboardDetail extends Component<Props, State> {
           },
           disableEditWidget:
             organization.features.includes('dashboards-top-level-filter') &&
-            hasUnsavedFilterChanges(dashboard, location, dashboard.filters),
+            hasUnsavedFilterChanges(
+              dashboard,
+              location,
+              (modifiedDashboard ?? dashboard).filters
+            ),
           disabledEditMessage: UNSAVED_FILTERS_MESSAGE,
         });
         trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.open', {
