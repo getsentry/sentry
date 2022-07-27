@@ -23,6 +23,9 @@ from sentry.utils.http import absolute_uri
 
 from . import get_integration
 
+default_project_id = 10000
+default_issue_type_id = 10000
+
 
 def get_client():
     return StubJiraApiClient()
@@ -55,22 +58,22 @@ class JiraServerIntegrationTest(APITestCase):
             assert self.installation.get_create_issue_config(group, self.user) == [
                 {
                     "name": "project",
-                    "default": "10000",
-                    "updatesForm": True,
-                    "choices": [("10000", "EX"), ("10001", "ABC")],
                     "label": "Jira Project",
+                    "choices": [("10000", "EX"), ("10001", "ABC")],
+                    "default": "10000",
                     "type": "select",
+                    "updatesForm": True,
                 },
                 {
-                    "default": "message",
-                    "required": True,
-                    "type": "string",
                     "name": "title",
                     "label": "Title",
+                    "default": "message",
+                    "type": "string",
+                    "required": True,
                 },
                 {
-                    "autosize": True,
                     "name": "description",
+                    "label": "Description",
                     "default": (
                         "Sentry Issue: [%s|%s]\n\n{code}\n"
                         "Stacktrace (most recent call first):\n\n  "
@@ -83,74 +86,135 @@ class JiraServerIntegrationTest(APITestCase):
                             group.get_absolute_url(params={"referrer": "jira_integration"})
                         ),
                     ),
-                    "label": "Description",
-                    "maxRows": 10,
                     "type": "textarea",
+                    "autosize": True,
+                    "maxRows": 10,
                 },
                 {
-                    "required": True,
                     "name": "issuetype",
-                    "default": "1",
-                    "updatesForm": True,
-                    "choices": [("1", "Bug")],
                     "label": "Issue Type",
+                    "default": "10000",
                     "type": "select",
+                    "choices": [
+                        ("10000", "Epic"),
+                        ("10001", "Story"),
+                        ("10002", "Task"),
+                        ("10003", "Sub-task"),
+                        ("10004", "Bug"),
+                    ],
+                    "updatesForm": True,
+                    "required": True,
                 },
                 {
-                    "name": "customfield_10200",
-                    "default": "",
+                    "label": "Priority",
                     "required": False,
-                    "choices": [("sad", "sad"), ("happy", "happy")],
-                    "label": "Mood",
+                    "choices": [
+                        ("1", "Highest"),
+                        ("2", "High"),
+                        ("3", "Medium"),
+                        ("4", "Low"),
+                        ("5", "Lowest"),
+                    ],
                     "type": "select",
+                    "name": "priority",
+                    "default": "",
                 },
                 {
+                    "label": "Fix Version/s",
+                    "required": False,
                     "multiple": True,
-                    "name": "customfield_10300",
+                    "choices": [("10000", "v1"), ("10001", "v2"), ("10002", "v3")],
                     "default": "",
-                    "required": False,
-                    "choices": [("Feature 1", "Feature 1"), ("Feature 2", "Feature 2")],
-                    "label": "Feature",
                     "type": "select",
+                    "name": "fixVersions",
                 },
                 {
-                    "name": "customfield_10400",
-                    "url": search_url,
-                    "choices": [],
-                    "label": "Epic Link",
+                    "label": "Component/s",
                     "required": False,
+                    "multiple": True,
+                    "choices": [("10000", "computers"), ("10001", "software")],
+                    "default": "",
                     "type": "select",
+                    "name": "components",
                 },
                 {
-                    "name": "customfield_10500",
+                    "label": "Assignee",
+                    "required": False,
                     "url": search_url,
                     "choices": [],
+                    "type": "select",
+                    "name": "assignee",
+                },
+                {
                     "label": "Sprint",
                     "required": False,
+                    "url": search_url,
+                    "choices": [],
                     "type": "select",
+                    "name": "customfield_10100",
                 },
                 {
-                    "name": "labels",
+                    "label": "Epic Link",
+                    "required": False,
+                    "url": search_url,
+                    "choices": [],
+                    "type": "select",
+                    "name": "customfield_10101",
+                },
+                {
+                    "label": "Mood",
+                    "required": False,
+                    "choices": [("sad", "sad"), ("happy", "happy")],
                     "default": "",
+                    "type": "select",
+                    "name": "customfield_10200",
+                },
+                {
+                    "label": "reactions",
+                    "required": False,
+                    "multiple": True,
+                    "choices": [("wow", "wow"), ("devil", "devil"), ("metal", "metal")],
+                    "default": "",
+                    "type": "select",
+                    "name": "customfield_10201",
+                },
+                {
+                    "label": "Feature",
+                    "required": False,
+                    "multiple": True,
+                    "choices": [
+                        ("Feature 1", "Feature 1"),
+                        ("Feature 2", "Feature 2"),
+                        ("Feature 3", "Feature 3"),
+                    ],
+                    "default": "",
+                    "type": "select",
+                    "name": "customfield_10202",
+                },
+                {"label": "Environment", "required": False, "type": "text", "name": "environment"},
+                {
+                    "label": "Labels",
                     "required": False,
                     "type": "text",
-                    "label": "Labels",
+                    "name": "labels",
+                    "default": "",
                 },
                 {
-                    "name": "parent",
-                    "url": search_url,
-                    "choices": [],
-                    "label": "Parent",
-                    "required": False,
-                    "type": "select",
-                },
-                {
-                    "name": "reporter",
-                    "url": search_url,
-                    "required": True,
-                    "choices": [],
                     "label": "Reporter",
+                    "required": True,
+                    "url": search_url,
+                    "choices": [],
                     "type": "select",
+                    "name": "reporter",
+                },
+                {
+                    "label": "Affects Version/s",
+                    "required": False,
+                    "multiple": True,
+                    "choices": [("10000", "v1"), ("10001", "v2"), ("10002", "v3")],
+                    "default": "",
+                    "type": "select",
+                    "name": "versions",
                 },
             ]
 
@@ -228,13 +292,19 @@ class JiraServerIntegrationTest(APITestCase):
                 "title",
                 "description",
                 "issuetype",
+                "priority",
+                "fixVersions",
+                "components",
+                "assignee",
+                "customfield_10100",
+                "customfield_10101",
                 "customfield_10200",
-                "customfield_10300",
-                "customfield_10400",
-                "customfield_10500",
+                "customfield_10201",
+                "customfield_10202",
+                "environment",
                 "labels",
-                "parent",
                 "reporter",
+                "versions",
             ]
 
             self.installation.org_integration.config = {
@@ -249,12 +319,18 @@ class JiraServerIntegrationTest(APITestCase):
                 "title",
                 "description",
                 "issuetype",
-                "customfield_10300",
-                "customfield_10400",
-                "customfield_10500",
+                "priority",
+                "fixVersions",
+                "components",
+                "assignee",
+                "customfield_10100",
+                "customfield_10101",
+                "customfield_10201",
+                "customfield_10202",
+                "environment",
                 "labels",
-                "parent",
                 "reporter",
+                "versions",
             ]
 
     def test_get_create_issue_config_with_default_and_param(self):
@@ -317,12 +393,8 @@ class JiraServerIntegrationTest(APITestCase):
                 "updatesForm": True,
             }
 
-    @patch(
-        "sentry.integrations.jira_server.integration.JiraServerIntegration.fetch_issue_create_meta"
-    )
-    def test_get_create_issue_config_with_default_project_deleted(
-        self, mock_fetch_issue_create_meta
-    ):
+    @patch("sentry.integrations.jira_server.client.JiraServerClient.get_issue_fields")
+    def test_get_create_issue_config_with_default_project_deleted(self, mock_get_issue_fields):
         event = self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -339,24 +411,24 @@ class JiraServerIntegrationTest(APITestCase):
         self.installation.org_integration.save()
 
         with mock.patch.object(self.installation, "get_client", get_client):
-            mock_fetch_issue_create_meta_return_value = json.loads(
-                StubService.get_stub_json("jira", "fetch_issue_create_meta.json")
+            mock_get_issue_fields_return_value = json.loads(
+                StubService.get_stub_json("jira", "issue_fields_response.json")
             )
             project_list_response = json.loads(
                 StubService.get_stub_json("jira", "project_list_response.json")
             )
             side_effect_values = [
-                mock_fetch_issue_create_meta_return_value for project in project_list_response
+                mock_get_issue_fields_return_value for project in project_list_response
             ]
-            # return None the first time fetch_issue_create_meta is called to mimic a deleted default project id (10004)
+            # return None the first time issue_fields_response is called to mimic a deleted default project id (10004)
             # so that we drop into the code block where it iterates over available projects
-            mock_fetch_issue_create_meta.side_effect = [None, *side_effect_values]
+            mock_get_issue_fields.side_effect = [None, *side_effect_values]
 
             fields = self.installation.get_create_issue_config(group, self.user)
             project_field = [field for field in fields if field["name"] == "project"][0]
 
             assert project_field == {
-                "default": "10001",
+                "default": "10004",
                 "choices": [("10000", "EX"), ("10001", "ABC")],
                 "type": "select",
                 "name": "project",
@@ -424,14 +496,21 @@ class JiraServerIntegrationTest(APITestCase):
                 {"id": "10000", "key": "SAMP"}
             ]""",
         )
+        responses.add(
+            responses.GET,
+            f"https://jira.example.org/rest/api/2/issue/createmeta/{default_project_id}/issuetypes",
+            body=StubService.get_stub_json("jira", "issue_types_response.json"),
+            content_type="json",
+        )
         # Fail to return metadata
         responses.add(
             responses.GET,
-            "https://jira.example.org/rest/api/2/issue/createmeta",
+            f"https://jira.example.org/rest/api/2/issue/createmeta/{default_project_id}/issuetypes/{default_issue_type_id}",
             content_type="json",
             status=401,
             body="",
         )
+
         with pytest.raises(IntegrationError):
             self.installation.get_create_issue_config(event.group, self.user)
 
@@ -475,8 +554,8 @@ class JiraServerIntegrationTest(APITestCase):
     def test_create_issue_labels_and_option(self):
         responses.add(
             responses.GET,
-            "https://jira.example.org/rest/api/2/issue/createmeta",
-            body=StubService.get_stub_json("jira", "createmeta_response.json"),
+            f"https://jira.example.org/rest/api/2/issue/createmeta/{default_project_id}/issuetypes/{default_issue_type_id}",
+            body=StubService.get_stub_json("jira", "issue_fields_response.json"),
             content_type="json",
         )
         responses.add(
@@ -490,9 +569,9 @@ class JiraServerIntegrationTest(APITestCase):
             body = json.loads(request.body)
             assert body["fields"]["labels"] == ["fuzzy", "bunnies"]
             assert body["fields"]["customfield_10200"] == {"value": "sad"}
-            assert body["fields"]["customfield_10300"] == [
-                {"value": "Feature 1"},
-                {"value": "Feature 2"},
+            assert body["fields"]["customfield_10201"] == [
+                {"value": "wow"},
+                {"value": "devil"},
             ]
             return (200, {"content-type": "application/json"}, '{"key":"APP-123"}')
 
@@ -506,10 +585,10 @@ class JiraServerIntegrationTest(APITestCase):
             {
                 "title": "example summary",
                 "description": "example bug report",
-                "issuetype": "1",
+                "issuetype": "10000",
                 "project": "10000",
                 "customfield_10200": "sad",
-                "customfield_10300": ["Feature 1", "Feature 2"],
+                "customfield_10201": ["wow", "devil"],
                 "labels": "fuzzy , ,  bunnies",
             }
         )

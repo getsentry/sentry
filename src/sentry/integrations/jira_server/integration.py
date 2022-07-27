@@ -661,7 +661,7 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
 
     def get_projects(self):
         client = self.get_client()
-
+        no_projects_error_message = "Could not fetch project list from Jira Server. Ensure that Jira Server is available and your account is still active."
         try:
             jira_projects = client.get_projects_list()
         except ApiError as e:
@@ -673,10 +673,9 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
                     "error": str(e),
                 },
             )
-            raise IntegrationError(
-                "Could not fetch project list from Jira Server. Ensure that Jira Server is"
-                " available and your account is still active."
-            )
+            raise IntegrationError(no_projects_error_message)
+        if len(jira_projects) == 0:
+            raise IntegrationError(no_projects_error_message)
         return jira_projects
 
     def get_create_issue_config(self, group, user, **kwargs):
@@ -727,9 +726,13 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
         if not issue_type or not valid_issue_type:
             # pick the first issue type in the list
             issue_type = issue_type_choices["values"][0]["id"]
-
-        issue_type_meta = client.get_issue_fields(project_id, issue_type)
-        if not issue_type_meta:
+        try:
+            issue_type_meta = client.get_issue_fields(project_id, issue_type)
+        except ApiUnauthorized:
+            logger.info(
+                "jira_server.fetch-issue-create-meta.unauthorized",
+                extra={"organization_id": self.organization_id, "jira_project": project_id},
+            )
             raise IntegrationError(
                 "Could not fetch issue creation metadata from Jira Server. Ensure that"
                 " the integration user has access to the requested project."
