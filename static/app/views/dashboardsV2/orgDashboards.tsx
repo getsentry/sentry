@@ -106,6 +106,7 @@ class OrgDashboards extends AsyncComponent<Props, State> {
             statsPeriod: data.period,
             start: data.start,
             end: data.end,
+            utc: data.utc,
           },
         });
       }
@@ -187,11 +188,11 @@ class OrgDashboards extends AsyncComponent<Props, State> {
     }
 
     if (
-      loading ||
-      (organization.features.includes('dashboards-top-level-filter') &&
-        selectedDashboard &&
-        hasSavedPageFilters(selectedDashboard) &&
-        isEmpty(location.query))
+      loading &&
+      organization.features.includes('dashboards-top-level-filter') &&
+      selectedDashboard &&
+      hasSavedPageFilters(selectedDashboard) &&
+      isEmpty(location.query)
     ) {
       // Block dashboard from rendering if the dashboard has filters and
       // the URL does not contain filters yet. The filters can either match the
