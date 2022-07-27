@@ -55,7 +55,7 @@ class ReleaseSummaryTestCase(ActivityTestCase):
                 )
             )
             release_summary = create_notification_with_properties(
-                release_summary, url_format=SLACK_URL_FORMAT
+                release_summary, url_format=SLACK_URL_FORMAT, provider=ExternalProviders.SLACK
             )
 
         # user1 is included because they committed
