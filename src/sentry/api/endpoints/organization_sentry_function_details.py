@@ -59,8 +59,6 @@ class OrganizationSentryFunctionDetailsEndpoint(OrganizationEndpoint):
         except FailedPrecondition:
             return Response("Function is currently busy, try again later", status=400)
         except InvalidArgument:
-            return Response("Bad request", status=400)
+            return Response(status=400)
         except NotFound:
-            return Response("Function not found", status=404)
-        except Exception:
-            return Response("Unknown Error", status=500)
+            return Response(status=404)
