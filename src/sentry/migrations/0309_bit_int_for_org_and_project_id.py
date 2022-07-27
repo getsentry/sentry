@@ -173,6 +173,11 @@ class Migration(CheckedMigration):
         migrations.RunSQL(
             sql="ALTER TABLE sentry_externalissue ALTER COLUMN organization_id TYPE bigint",
             hints={"tables": ["sentry_externalissue"]},
-            reverse_sql="ALTER TABLE sentry_externalissue ALTER COLUMN organization_id TYPE smallint",
+            reverse_sql="ALTER TABLE sentry_externalissue ALTER COLUMN organization_id TYPE int",
+        ),
+        migrations.RunSQL(
+            sql="ALTER TABLE sentry_externalissue ALTER COLUMN integration_id TYPE bigint",
+            hints={"tables": ["sentry_externalissue"]},
+            reverse_sql="ALTER TABLE sentry_externalissue ALTER COLUMN integration_id TYPE int",
         ),
     )
