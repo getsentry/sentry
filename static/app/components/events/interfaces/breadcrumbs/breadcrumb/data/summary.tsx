@@ -11,7 +11,7 @@ type Props = {
 };
 
 function Summary({kvData, children, meta}: Props) {
-  if (meta?.data?.['']) {
+  if (meta?.data?.[''] && typeof kvData !== 'object') {
     return (
       <Wrapper>
         {children && <StyledCode>{children}</StyledCode>}
