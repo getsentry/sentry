@@ -89,7 +89,7 @@ def get_participants_for_release(
     projects: Iterable[Project],
     organization: Organization,
     user_ids: set[int],
-    notification_setting_type=NotificationSettingTypes.DEPLOY,
+    notification_setting_type: NotificationSettingTypes = NotificationSettingTypes.DEPLOY,
 ) -> Mapping[ExternalProviders, Mapping[Team | User, int]]:
     # Collect all users with verified emails on a team in the related projects.
     users = set(User.objects.get_team_members_with_verified_email_for_projects(projects))
