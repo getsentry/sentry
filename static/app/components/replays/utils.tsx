@@ -124,7 +124,8 @@ export function getCrumbsByColumn(
       : timestampMilliSeconds - startMilliSeconds;
     const column = Math.floor((sinceStart / safeDuration) * (totalColumns - 1)) + 1;
 
-    return [column, breadcrumb] as [number, Crumb];
+    // Should start at minimum in the first column
+    return [column || 1, breadcrumb] as [number, Crumb];
   });
 
   const crumbsByColumn = columnCrumbPairs.reduce((map, [column, breadcrumb]) => {
