@@ -44,6 +44,7 @@ class VstsApiPath:
     # TODO(lb): Fix this url so that the base url is given by vsts rather than built by us
     users = "https://{account_name}.vssps.visualstudio.com/_apis/graph/users"
     work_item_categories = "{instance}{project}/_apis/wit/workitemtypecategories"
+    work_item_fields = "{instance}{project}/_apis/wit/workitemtypes/{type}"
 
 
 class VstsApiClient(ApiClient, OAuth2RefreshMixin):  # type: ignore
@@ -178,6 +179,13 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):  # type: ignore
 
     def get_work_item_categories(self, instance: str, project: str) -> Response:
         return self.get(VstsApiPath.work_item_categories.format(instance=instance, project=project))
+
+    def get_work_item_fields(self, instance, project, work_item_type):
+        return self.get(
+            VstsApiPath.work_item_fields.format(
+                instance=instance, project=project, type=work_item_type
+            )
+        )
 
     def get_repo(self, instance: str, name_or_id: str, project: Optional[str] = None) -> Response:
         return self.get(

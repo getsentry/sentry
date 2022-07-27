@@ -1,5 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import get from 'lodash/get';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import AbstractExternalIssueForm, {
@@ -51,10 +52,14 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
     const {instance} = this.props;
     const query = (instance.dynamic_form_fields || [])
       .filter(field => field.updatesForm)
-      .filter(field => instance.hasOwnProperty(field.name))
+      .filter(
+        field =>
+          instance.hasOwnProperty(field.name) ||
+          instance.hasOwnProperty(field.defaultValue)
+      )
       .reduce(
-        (accumulator, {name}) => {
-          accumulator[name] = instance[name];
+        (accumulator, {name, defaultValue}) => {
+          accumulator[name] = instance[name] || instance[defaultValue];
           return accumulator;
         },
         {action: 'create'}
@@ -161,15 +166,14 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
         disabled: true,
       } as IssueConfigField,
     ];
-
     return fields.concat(
       this.getCleanedFields()
         // Skip fields if they already exist.
         .filter(field => !fields.map(f => f.name).includes(field.name))
         .map(field => {
           // Overwrite defaults from cache.
-          if (instance.hasOwnProperty(field.name)) {
-            field.default = instance[field.name] || field.default;
+          if (get(instance, field.name)) {
+            field.default = get(instance, field.name) || field.default;
           }
           return field;
         })

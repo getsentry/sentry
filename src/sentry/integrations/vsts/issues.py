@@ -28,6 +28,7 @@ class VstsIssueSync(IssueSyncMixin):  # type: ignore
     def create_default_repo_choice(self, default_repo: str) -> Tuple[str, str]:
         # default_repo should be the project_id
         project = self.get_client().get_project(self.instance, default_repo)
+        print("create_default_repo_choice: ", project)
         return (project["id"], project["name"])
 
     def get_project_choices(
@@ -36,6 +37,7 @@ class VstsIssueSync(IssueSyncMixin):  # type: ignore
         client = self.get_client()
         try:
             projects = client.get_projects(self.instance)
+            print("fetch_projects: ", projects)
         except (ApiError, ApiUnauthorized, KeyError) as e:
             raise self.raise_error(e)
 
@@ -61,6 +63,8 @@ class VstsIssueSync(IssueSyncMixin):  # type: ignore
         # projects, stick it onto the front of the list so that it can be
         # selected.
         try:
+            print("project_choices: ", project_choices)
+            print("default_project: ", default_project)
             next(True for r in project_choices if r[0] == default_project)
         except StopIteration:
             try:
@@ -71,9 +75,12 @@ class VstsIssueSync(IssueSyncMixin):  # type: ignore
         return default_project, project_choices
 
     def get_work_item_choices(
-        self, project: str, group: Optional["Group"] = None
+        self, project: str, group: Optional["Group"] = None, **kwargs: Any
     ) -> Tuple[Optional[str], Sequence[Tuple[str, str]]]:
         client = self.get_client()
+
+        params = kwargs.get("params", {})
+
         try:
             item_categories = client.get_work_item_categories(self.instance, project)["value"]
         except (ApiError, ApiUnauthorized, KeyError) as e:
@@ -96,11 +103,36 @@ class VstsIssueSync(IssueSyncMixin):  # type: ignore
         if group:
             defaults = self.get_project_defaults(group.project_id)
         try:
-            default_item_type = defaults.get("work_item_type") or item_tuples[0][0]
+            default_item_type = params.get(
+                "work_item_type", defaults.get("work_item_type") or item_tuples[0][0]
+            )
+
         except IndexError:
             return None, item_tuples
 
         return default_item_type, item_tuples
+
+    def get_work_item_custom_fields(
+        self, project: str, type
+    ) -> Tuple[Optional[str], Sequence[Tuple[str, str]]]:
+        client = self.get_client()
+        custom_fields = []
+        try:
+            item_fields = client.get_work_item_fields(self.instance, project, type)["fields"]
+        except (ApiError, ApiUnauthorized, KeyError) as e:
+            raise self.raise_error(e)
+
+        for field in item_fields:
+            if field.get("referenceName", "").startswith("Custom."):
+                custom_fields.append(
+                    {
+                        "name": field.get("referenceName"),
+                        "required": field.get("alwaysRequired", False),
+                        "type": "text",
+                        "label": _(field.get("name") or field.get("referenceName")),
+                    }
+                )
+        return custom_fields
 
     def get_create_issue_config_no_group(self, project: str) -> Sequence[Mapping[str, Any]]:
         return self.get_create_issue_config(None, None, project=project)
@@ -120,8 +152,12 @@ class VstsIssueSync(IssueSyncMixin):  # type: ignore
         default_work_item: Optional[str] = None
         if default_project:
             default_work_item, work_item_choices = self.get_work_item_choices(
-                default_project, group
+                default_project, group, **kwargs
             )
+
+        print(default_work_item)
+        if default_work_item:
+            custom_fields = self.get_work_item_custom_fields(default_project, default_work_item)
 
         return [
             {
@@ -129,7 +165,7 @@ class VstsIssueSync(IssueSyncMixin):  # type: ignore
                 "required": True,
                 "type": "choice",
                 "choices": project_choices,
-                "defaultValue": default_project,
+                "default": default_project,
                 "label": _("Project"),
                 "placeholder": default_project or _("MyProject"),
                 "updatesForm": True,
@@ -139,11 +175,13 @@ class VstsIssueSync(IssueSyncMixin):  # type: ignore
                 "required": True,
                 "type": "choice",
                 "choices": work_item_choices,
-                "defaultValue": default_work_item,
+                "default": default_work_item,
                 "label": _("Work Item Type"),
                 "placeholder": _("Bug"),
+                "updatesForm": True,
             },
             *fields,
+            *custom_fields,
         ]
 
     def get_link_issue_config(self, group: "Group", **kwargs: Any) -> Sequence[Mapping[str, str]]:
@@ -160,6 +198,7 @@ class VstsIssueSync(IssueSyncMixin):  # type: ignore
         return f"{self.instance}_workitems/edit/{key}"
 
     def create_issue(self, data: Mapping[str, str], **kwargs: Any) -> Mapping[str, Any]:
+        print("create_issue: ", data)
         """
         Creates the issue on the remote service and returns an issue ID.
         """
@@ -351,3 +390,1082 @@ class VstsIssueSync(IssueSyncMixin):  # type: ignore
     def update_comment(self, issue_id: int, user_id: int, group_note: str) -> None:
         # Azure does not support updating comments.
         pass
+
+
+a = {
+    "name": "Bug",
+    "referenceName": "Microsoft.VSTS.WorkItemTypes.Bug",
+    "description": "Describes a divergence between required and actual behavior, and tracks the work done to correct the defect and verify the correction.",
+    "color": "CC293D",
+    "icon": {
+        "id": "icon_insect",
+        "url": "https://tfsprodcus7.visualstudio.com/_apis/wit/workItemIcons/icon_insect?color=CC293D&v=2",
+    },
+    "isDisabled": False,
+    "xmlForm": '<FORM><Layout HideReadOnlyEmptyFields="true" HideControlBorders="true"><Group Margin="(10,0,0,0)"><Column PercentWidth="94"><Control Label="" LabelPosition="Top" FieldName="System.Title" Type="FieldControl" EmptyText="Enter title here" ControlFontSize="large" /></Column><Column PercentWidth="6"><Control Label="" LabelPosition="Top" FieldName="System.Id" Type="FieldControl" ControlFontSize="large" /></Column></Group><Group Margin="(10,10,0,0)"><Column PercentWidth="30"><Control Label="Assi&amp;gned To" LabelPosition="Left" FieldName="System.AssignedTo" Type="FieldControl" EmptyText="Unassigned" /><Control Label="Stat&amp;e" LabelPosition="Left" FieldName="System.State" Type="FieldControl" /><Control Label="Reason" LabelPosition="Left" FieldName="System.Reason" Type="FieldControl" /></Column><Column PercentWidth="40"><Control Label="" LabelPosition="Top" Type="LabelControl" /><Control Label="&amp;Area" LabelPosition="Left" FieldName="System.AreaPath" Type="WorkItemClassificationControl" /><Control Label="Ite&amp;ration" LabelPosition="Left" FieldName="System.IterationPath" Type="WorkItemClassificationControl" /></Column><Column PercentWidth="30"><Control Label="" LabelPosition="Top" Name="2" Type="LabelControl" /><Control Label="" LabelPosition="Top" Name="3" Type="LabelControl" /><Control Label="Last Updated Date" LabelPosition="Left" FieldName="System.ChangedDate" Type="DateTimeControl" ReadOnly="True" /></Column></Group><TabGroup Margin="(0,10,0,0)"><Tab Label="Details"><Group><Column PercentWidth="50"><Group><Column PercentWidth="100"><Group Label="Repro Steps"><Column PercentWidth="100"><Control Label="" LabelPosition="Top" FieldName="Microsoft.VSTS.TCM.ReproSteps" Type="HtmlFieldControl" Margin="(0,0,0,10)" /></Column></Group><Group Label="System Info"><Column PercentWidth="100"><Control Label="" LabelPosition="Top" FieldName="Microsoft.VSTS.TCM.SystemInfo" Type="HtmlFieldControl" Margin="(0,0,0,10)" /></Column></Group></Column></Group></Column><Column PercentWidth="50"><Group Margin="(20,0,0,0)"><Column PercentWidth="25"><Group><Column PercentWidth="100"><Group Label="Planning"><Column PercentWidth="100"><Control Label="Resolved Reason" LabelPosition="Top" FieldName="Microsoft.VSTS.Common.ResolvedReason" Type="FieldControl" Margin="(0,0,0,10)" /><Control Label="Story Points" LabelPosition="Top" FieldName="Microsoft.VSTS.Scheduling.StoryPoints" Type="FieldControl" Margin="(0,0,0,10)" /><Control Label="Priority" LabelPosition="Top" FieldName="Microsoft.VSTS.Common.Priority" Type="FieldControl" Margin="(0,0,0,10)" /><Control Label="Severity" LabelPosition="Top" FieldName="Microsoft.VSTS.Common.Severity" Type="FieldControl" Margin="(0,0,0,10)" /><Control Label="Activity" LabelPosition="Top" FieldName="Microsoft.VSTS.Common.Activity" Type="FieldControl" Margin="(0,0,0,10)" /></Column></Group><Group Label="Effort (Hours)"><Column PercentWidth="100"><Control Label="Original Estimate" LabelPosition="Top" FieldName="Microsoft.VSTS.Scheduling.OriginalEstimate" Type="FieldControl" Margin="(0,0,0,10)" /><Control Label="Remaining" LabelPosition="Top" FieldName="Microsoft.VSTS.Scheduling.RemainingWork" Type="FieldControl" Margin="(0,0,0,10)" /><Control Label="Completed" LabelPosition="Top" FieldName="Microsoft.VSTS.Scheduling.CompletedWork" Type="FieldControl" Margin="(0,0,0,10)" /><Control Label="Environment" LabelPosition="Top" FieldName="Custom.Environment" Type="FieldControl" Margin="(0,0,0,10)" /></Column></Group></Column></Group></Column><Column PercentWidth="25"><Group><Column PercentWidth="100"><Group Label="Deployment"><Column PercentWidth="100"><Control Label="" LabelPosition="Top" FieldName="Deployments" Type="DeploymentsControl" Margin="(0,0,0,10)" /></Column></Group><Group Label="Development"><Column PercentWidth="100"><Control Label="" LabelPosition="Top" FieldName="Development" Type="LinksControl" Margin="(0,0,0,10)"><LinksControlOptions><WorkItemLinkFilters FilterType="excludeAll" /><ExternalLinkFilters FilterType="include"><Filter LinkType="Build" /><Filter LinkType="Integrated in build" /><Filter LinkType="Pull Request" /><Filter LinkType="Branch" /><Filter LinkType="Fixed in Commit" /><Filter LinkType="Fixed in Changeset" /><Filter LinkType="Source Code File" /><Filter LinkType="Found in build" /><Filter LinkType="GitHub Pull Request" /><Filter LinkType="GitHub Commit" /></ExternalLinkFilters><LinkColumns><LinkColumn RefName="System.Id" /><LinkColumn RefName="System.Title" /><LinkColumn LinkAttribute="System.Links.Comment" /></LinkColumns></LinksControlOptions></Control></Column></Group><Group Label="Related Work"><Column PercentWidth="100"><Control Label="" LabelPosition="Top" FieldName="Related Work" Type="LinksControl" Margin="(0,0,0,10)"><LinksControlOptions><WorkItemLinkFilters FilterType="include"><Filter LinkType="System.LinkTypes.Duplicate" /><Filter LinkType="System.LinkTypes.Hierarchy" /><Filter LinkType="Microsoft.VSTS.Common.TestedBy" /><Filter LinkType="System.LinkTypes.Dependency" /><Filter LinkType="System.LinkTypes.Related" /></WorkItemLinkFilters><ExternalLinkFilters FilterType="include"><Filter LinkType="GitHub Issue" /></ExternalLinkFilters><LinkColumns><LinkColumn RefName="System.Id" /><LinkColumn RefName="System.Title" /><LinkColumn RefName="System.AssignedTo" /><LinkColumn RefName="System.WorkItemType" /><LinkColumn RefName="System.State" /><LinkColumn RefName="System.ChangedDate" /><LinkColumn LinkAttribute="System.Links.Comment" /></LinkColumns></LinksControlOptions></Control></Column></Group><Group Label="System Info"><Column PercentWidth="100"><Control Label="Found in Build" LabelPosition="Top" FieldName="Microsoft.VSTS.Build.FoundIn" Type="FieldControl" Margin="(0,0,0,10)" /><Control Label="Integrated in Build" LabelPosition="Top" FieldName="Microsoft.VSTS.Build.IntegrationBuild" Type="FieldControl" Margin="(0,0,0,10)" /></Column></Group></Column></Group></Column></Group></Column></Group></Tab><Tab Label="History"><Group><Column PercentWidth="100"><Group><Column PercentWidth="100"><Group><Column PercentWidth="100"><Control Label="" LabelPosition="Top" FieldName="System.History" Type="WorkItemLogControl" Margin="(0,0,0,10)" /></Column></Group></Column></Group></Column></Group></Tab><Tab Label="Links"><Group><Column PercentWidth="100"><Group><Column PercentWidth="100"><Group><Column PercentWidth="100"><Control Label="" LabelPosition="Top" Type="LinksControl" Margin="(0,0,0,10)"><LinksControlOptions><LinkColumns><LinkColumn RefName="System.Id" /><LinkColumn RefName="System.Title" /><LinkColumn RefName="System.AssignedTo" /><LinkColumn RefName="System.WorkItemType" /><LinkColumn RefName="System.State" /><LinkColumn RefName="System.ChangedDate" /><LinkColumn LinkAttribute="System.Links.Comment" /></LinkColumns></LinksControlOptions></Control></Column></Group></Column></Group></Column></Group></Tab><Tab Label="Attachments"><Group><Column PercentWidth="100"><Group><Column PercentWidth="100"><Group><Column PercentWidth="100"><Control Label="Attachments" LabelPosition="Top" Type="AttachmentsControl" Margin="(0,0,0,10)" /></Column></Group></Column></Group></Column></Group></Tab></TabGroup></Layout></FORM>',
+    "fields": [
+        {
+            "defaultValue": None,
+            "helpText": "The iteration within which this bug will be fixed",
+            "alwaysRequired": False,
+            "referenceName": "System.IterationPath",
+            "name": "Iteration Path",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.IterationPath",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": True,
+            "referenceName": "System.IterationId",
+            "name": "Iteration ID",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.IterationId",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "System.ExternalLinkCount",
+            "name": "External Link Count",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.ExternalLinkCount",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "System.IterationLevel7",
+            "name": "Iteration Level 7",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.IterationLevel7",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "System.IterationLevel6",
+            "name": "Iteration Level 6",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.IterationLevel6",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "System.IterationLevel5",
+            "name": "Iteration Level 5",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.IterationLevel5",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "System.IterationLevel4",
+            "name": "Iteration Level 4",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.IterationLevel4",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "System.IterationLevel3",
+            "name": "Iteration Level 3",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.IterationLevel3",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "System.IterationLevel2",
+            "name": "Iteration Level 2",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.IterationLevel2",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "System.IterationLevel1",
+            "name": "Iteration Level 1",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.IterationLevel1",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "System.AreaLevel7",
+            "name": "Area Level 7",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.AreaLevel7",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "System.AreaLevel6",
+            "name": "Area Level 6",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.AreaLevel6",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "System.AreaLevel5",
+            "name": "Area Level 5",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.AreaLevel5",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "System.AreaLevel4",
+            "name": "Area Level 4",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.AreaLevel4",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "System.AreaLevel3",
+            "name": "Area Level 3",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.AreaLevel3",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "System.AreaLevel2",
+            "name": "Area Level 2",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.AreaLevel2",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "System.AreaLevel1",
+            "name": "Area Level 1",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.AreaLevel1",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "System.TeamProject",
+            "name": "Team Project",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.TeamProject",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "System.Parent",
+            "name": "Parent",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.Parent",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "System.RemoteLinkCount",
+            "name": "Remote Link Count",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.RemoteLinkCount",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "System.CommentCount",
+            "name": "Comment Count",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.CommentCount",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "System.HyperLinkCount",
+            "name": "Hyperlink Count",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.HyperLinkCount",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "System.AttachedFileCount",
+            "name": "Attached File Count",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.AttachedFileCount",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "System.NodeName",
+            "name": "Node Name",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.NodeName",
+        },
+        {
+            "defaultValue": None,
+            "helpText": "The area of the product with which this bug is associated",
+            "alwaysRequired": False,
+            "referenceName": "System.AreaPath",
+            "name": "Area Path",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.AreaPath",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "System.RevisedDate",
+            "name": "Revised Date",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.RevisedDate",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "System.ChangedDate",
+            "name": "Changed Date",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.ChangedDate",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "System.Id",
+            "name": "ID",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.Id",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": True,
+            "referenceName": "System.AreaId",
+            "name": "Area ID",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.AreaId",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "System.AuthorizedAs",
+            "name": "Authorized As",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.AuthorizedAs",
+        },
+        {
+            "defaultValue": None,
+            "helpText": "Stories affected and how",
+            "alwaysRequired": True,
+            "referenceName": "System.Title",
+            "name": "Title",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.Title",
+        },
+        {
+            "defaultValue": "New",
+            "helpText": "New = for triage; Active = not yet fixed; Resolved = fixed not yet verified; Closed = fix verified.",
+            "alwaysRequired": True,
+            "referenceName": "System.State",
+            "name": "State",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.State",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "System.AuthorizedDate",
+            "name": "Authorized Date",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.AuthorizedDate",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "System.Watermark",
+            "name": "Watermark",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.Watermark",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "System.Rev",
+            "name": "Rev",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.Rev",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "System.ChangedBy",
+            "name": "Changed By",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.ChangedBy",
+        },
+        {
+            "defaultValue": None,
+            "helpText": "The reason why the bug is in the current state",
+            "alwaysRequired": False,
+            "referenceName": "System.Reason",
+            "name": "Reason",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.Reason",
+        },
+        {
+            "defaultValue": None,
+            "helpText": "The person currently working on this bug",
+            "alwaysRequired": False,
+            "referenceName": "System.AssignedTo",
+            "name": "Assigned To",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.AssignedTo",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "System.WorkItemType",
+            "name": "Work Item Type",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.WorkItemType",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "System.CreatedDate",
+            "name": "Created Date",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.CreatedDate",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "System.CreatedBy",
+            "name": "Created By",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.CreatedBy",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "System.Description",
+            "name": "Description",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.Description",
+        },
+        {
+            "defaultValue": None,
+            "helpText": "Discussion thread plus automatic record of changes",
+            "alwaysRequired": False,
+            "referenceName": "System.History",
+            "name": "History",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.History",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "System.RelatedLinkCount",
+            "name": "Related Link Count",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.RelatedLinkCount",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "System.Tags",
+            "name": "Tags",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.Tags",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "System.BoardColumn",
+            "name": "Board Column",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.BoardColumn",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "System.BoardColumnDone",
+            "name": "Board Column Done",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.BoardColumnDone",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "System.BoardLane",
+            "name": "Board Lane",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.BoardLane",
+        },
+        {
+            "defaultValue": None,
+            "helpText": "The size of work estimated for fixing the bug",
+            "alwaysRequired": False,
+            "referenceName": "Microsoft.VSTS.Scheduling.StoryPoints",
+            "name": "Story Points",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/Microsoft.VSTS.Scheduling.StoryPoints",
+        },
+        {
+            "defaultValue": None,
+            "helpText": "An estimate of the number of units of work remaining to complete this bug",
+            "alwaysRequired": False,
+            "referenceName": "Microsoft.VSTS.Scheduling.RemainingWork",
+            "name": "Remaining Work",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/Microsoft.VSTS.Scheduling.RemainingWork",
+        },
+        {
+            "defaultValue": None,
+            "helpText": "Initial value for Remaining Work - set once, when work begins",
+            "alwaysRequired": False,
+            "referenceName": "Microsoft.VSTS.Scheduling.OriginalEstimate",
+            "name": "Original Estimate",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/Microsoft.VSTS.Scheduling.OriginalEstimate",
+        },
+        {
+            "defaultValue": None,
+            "helpText": "The number of units of work that have been spent on this bug",
+            "alwaysRequired": False,
+            "referenceName": "Microsoft.VSTS.Scheduling.CompletedWork",
+            "name": "Completed Work",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/Microsoft.VSTS.Scheduling.CompletedWork",
+        },
+        {
+            "defaultValue": None,
+            "helpText": "Type of work involved",
+            "alwaysRequired": False,
+            "referenceName": "Microsoft.VSTS.Common.Activity",
+            "name": "Activity",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/Microsoft.VSTS.Common.Activity",
+        },
+        {
+            "defaultValue": None,
+            "helpText": "Test context, provided automatically by test infrastructure",
+            "alwaysRequired": False,
+            "referenceName": "Microsoft.VSTS.TCM.SystemInfo",
+            "name": "System Info",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/Microsoft.VSTS.TCM.SystemInfo",
+        },
+        {
+            "defaultValue": None,
+            "helpText": "How to see the bug. End by contrasting expected with actual behavior.",
+            "alwaysRequired": False,
+            "referenceName": "Microsoft.VSTS.TCM.ReproSteps",
+            "name": "Repro Steps",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/Microsoft.VSTS.TCM.ReproSteps",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "Microsoft.VSTS.Common.StateChangeDate",
+            "name": "State Change Date",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/Microsoft.VSTS.Common.StateChangeDate",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "Microsoft.VSTS.Common.ActivatedDate",
+            "name": "Activated Date",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/Microsoft.VSTS.Common.ActivatedDate",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "Microsoft.VSTS.Common.ActivatedBy",
+            "name": "Activated By",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/Microsoft.VSTS.Common.ActivatedBy",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "Microsoft.VSTS.Common.ResolvedDate",
+            "name": "Resolved Date",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/Microsoft.VSTS.Common.ResolvedDate",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "Microsoft.VSTS.Common.ResolvedBy",
+            "name": "Resolved By",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/Microsoft.VSTS.Common.ResolvedBy",
+        },
+        {
+            "defaultValue": None,
+            "helpText": "The reason why the bug was resolved",
+            "alwaysRequired": False,
+            "referenceName": "Microsoft.VSTS.Common.ResolvedReason",
+            "name": "Resolved Reason",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/Microsoft.VSTS.Common.ResolvedReason",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "Microsoft.VSTS.Common.ClosedDate",
+            "name": "Closed Date",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/Microsoft.VSTS.Common.ClosedDate",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "Microsoft.VSTS.Common.ClosedBy",
+            "name": "Closed By",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/Microsoft.VSTS.Common.ClosedBy",
+        },
+        {
+            "defaultValue": "2",
+            "helpText": "Business importance. 1=must fix; 4=unimportant.",
+            "alwaysRequired": False,
+            "referenceName": "Microsoft.VSTS.Common.Priority",
+            "name": "Priority",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/Microsoft.VSTS.Common.Priority",
+        },
+        {
+            "defaultValue": "3 - Medium",
+            "helpText": "Assessment of the effect of the bug on the project.",
+            "alwaysRequired": False,
+            "referenceName": "Microsoft.VSTS.Common.Severity",
+            "name": "Severity",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/Microsoft.VSTS.Common.Severity",
+        },
+        {
+            "defaultValue": None,
+            "helpText": "Work first on items with lower-valued stack rank. Set in triage.",
+            "alwaysRequired": False,
+            "referenceName": "Microsoft.VSTS.Common.StackRank",
+            "name": "Stack Rank",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/Microsoft.VSTS.Common.StackRank",
+        },
+        {
+            "defaultValue": "Business",
+            "helpText": "The type should be set to Business primarily to represent customer-facing issues. Work to change the architecture should be added as a Requirement",
+            "alwaysRequired": True,
+            "referenceName": "Microsoft.VSTS.Common.ValueArea",
+            "name": "Value Area",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/Microsoft.VSTS.Common.ValueArea",
+        },
+        {
+            "defaultValue": None,
+            "helpText": "The build in which the bug was fixed",
+            "alwaysRequired": False,
+            "referenceName": "Microsoft.VSTS.Build.IntegrationBuild",
+            "name": "Integration Build",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/Microsoft.VSTS.Build.IntegrationBuild",
+        },
+        {
+            "defaultValue": None,
+            "helpText": "The build in which the bug was found",
+            "alwaysRequired": False,
+            "referenceName": "Microsoft.VSTS.Build.FoundIn",
+            "name": "Found In",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/Microsoft.VSTS.Build.FoundIn",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "Custom.Environment",
+            "name": "Environment",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/Custom.Environment",
+        },
+    ],
+    "fieldInstances": [
+        {
+            "defaultValue": None,
+            "helpText": "The iteration within which this bug will be fixed",
+            "alwaysRequired": False,
+            "referenceName": "System.IterationPath",
+            "name": "Iteration Path",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.IterationPath",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": True,
+            "referenceName": "System.IterationId",
+            "name": "Iteration ID",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.IterationId",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "System.ExternalLinkCount",
+            "name": "External Link Count",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.ExternalLinkCount",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "System.IterationLevel7",
+            "name": "Iteration Level 7",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.IterationLevel7",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "System.IterationLevel6",
+            "name": "Iteration Level 6",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.IterationLevel6",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "System.IterationLevel5",
+            "name": "Iteration Level 5",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.IterationLevel5",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "System.IterationLevel4",
+            "name": "Iteration Level 4",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.IterationLevel4",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "System.IterationLevel3",
+            "name": "Iteration Level 3",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.IterationLevel3",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "System.IterationLevel2",
+            "name": "Iteration Level 2",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.IterationLevel2",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "System.IterationLevel1",
+            "name": "Iteration Level 1",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.IterationLevel1",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "System.AreaLevel7",
+            "name": "Area Level 7",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.AreaLevel7",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "System.AreaLevel6",
+            "name": "Area Level 6",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.AreaLevel6",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "System.AreaLevel5",
+            "name": "Area Level 5",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.AreaLevel5",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "System.AreaLevel4",
+            "name": "Area Level 4",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.AreaLevel4",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "System.AreaLevel3",
+            "name": "Area Level 3",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.AreaLevel3",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "System.AreaLevel2",
+            "name": "Area Level 2",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.AreaLevel2",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "System.AreaLevel1",
+            "name": "Area Level 1",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.AreaLevel1",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "System.TeamProject",
+            "name": "Team Project",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.TeamProject",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "System.Parent",
+            "name": "Parent",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.Parent",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "System.RemoteLinkCount",
+            "name": "Remote Link Count",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.RemoteLinkCount",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "System.CommentCount",
+            "name": "Comment Count",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.CommentCount",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "System.HyperLinkCount",
+            "name": "Hyperlink Count",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.HyperLinkCount",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "System.AttachedFileCount",
+            "name": "Attached File Count",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.AttachedFileCount",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "System.NodeName",
+            "name": "Node Name",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.NodeName",
+        },
+        {
+            "defaultValue": None,
+            "helpText": "The area of the product with which this bug is associated",
+            "alwaysRequired": False,
+            "referenceName": "System.AreaPath",
+            "name": "Area Path",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.AreaPath",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "System.RevisedDate",
+            "name": "Revised Date",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.RevisedDate",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "System.ChangedDate",
+            "name": "Changed Date",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.ChangedDate",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "System.Id",
+            "name": "ID",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.Id",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": True,
+            "referenceName": "System.AreaId",
+            "name": "Area ID",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.AreaId",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "System.AuthorizedAs",
+            "name": "Authorized As",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.AuthorizedAs",
+        },
+        {
+            "defaultValue": None,
+            "helpText": "Stories affected and how",
+            "alwaysRequired": True,
+            "referenceName": "System.Title",
+            "name": "Title",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.Title",
+        },
+        {
+            "defaultValue": "New",
+            "helpText": "New = for triage; Active = not yet fixed; Resolved = fixed not yet verified; Closed = fix verified.",
+            "alwaysRequired": True,
+            "referenceName": "System.State",
+            "name": "State",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.State",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "System.AuthorizedDate",
+            "name": "Authorized Date",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.AuthorizedDate",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "System.Watermark",
+            "name": "Watermark",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.Watermark",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "System.Rev",
+            "name": "Rev",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.Rev",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "System.ChangedBy",
+            "name": "Changed By",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.ChangedBy",
+        },
+        {
+            "defaultValue": None,
+            "helpText": "The reason why the bug is in the current state",
+            "alwaysRequired": False,
+            "referenceName": "System.Reason",
+            "name": "Reason",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.Reason",
+        },
+        {
+            "defaultValue": None,
+            "helpText": "The person currently working on this bug",
+            "alwaysRequired": False,
+            "referenceName": "System.AssignedTo",
+            "name": "Assigned To",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.AssignedTo",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "System.WorkItemType",
+            "name": "Work Item Type",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.WorkItemType",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "System.CreatedDate",
+            "name": "Created Date",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.CreatedDate",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "System.CreatedBy",
+            "name": "Created By",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.CreatedBy",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "System.Description",
+            "name": "Description",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.Description",
+        },
+        {
+            "defaultValue": None,
+            "helpText": "Discussion thread plus automatic record of changes",
+            "alwaysRequired": False,
+            "referenceName": "System.History",
+            "name": "History",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.History",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "System.RelatedLinkCount",
+            "name": "Related Link Count",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.RelatedLinkCount",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "System.Tags",
+            "name": "Tags",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.Tags",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "System.BoardColumn",
+            "name": "Board Column",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.BoardColumn",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "System.BoardColumnDone",
+            "name": "Board Column Done",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.BoardColumnDone",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "System.BoardLane",
+            "name": "Board Lane",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/System.BoardLane",
+        },
+        {
+            "defaultValue": None,
+            "helpText": "The size of work estimated for fixing the bug",
+            "alwaysRequired": False,
+            "referenceName": "Microsoft.VSTS.Scheduling.StoryPoints",
+            "name": "Story Points",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/Microsoft.VSTS.Scheduling.StoryPoints",
+        },
+        {
+            "defaultValue": None,
+            "helpText": "An estimate of the number of units of work remaining to complete this bug",
+            "alwaysRequired": False,
+            "referenceName": "Microsoft.VSTS.Scheduling.RemainingWork",
+            "name": "Remaining Work",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/Microsoft.VSTS.Scheduling.RemainingWork",
+        },
+        {
+            "defaultValue": None,
+            "helpText": "Initial value for Remaining Work - set once, when work begins",
+            "alwaysRequired": False,
+            "referenceName": "Microsoft.VSTS.Scheduling.OriginalEstimate",
+            "name": "Original Estimate",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/Microsoft.VSTS.Scheduling.OriginalEstimate",
+        },
+        {
+            "defaultValue": None,
+            "helpText": "The number of units of work that have been spent on this bug",
+            "alwaysRequired": False,
+            "referenceName": "Microsoft.VSTS.Scheduling.CompletedWork",
+            "name": "Completed Work",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/Microsoft.VSTS.Scheduling.CompletedWork",
+        },
+        {
+            "defaultValue": None,
+            "helpText": "Type of work involved",
+            "alwaysRequired": False,
+            "referenceName": "Microsoft.VSTS.Common.Activity",
+            "name": "Activity",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/Microsoft.VSTS.Common.Activity",
+        },
+        {
+            "defaultValue": None,
+            "helpText": "Test context, provided automatically by test infrastructure",
+            "alwaysRequired": False,
+            "referenceName": "Microsoft.VSTS.TCM.SystemInfo",
+            "name": "System Info",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/Microsoft.VSTS.TCM.SystemInfo",
+        },
+        {
+            "defaultValue": None,
+            "helpText": "How to see the bug. End by contrasting expected with actual behavior.",
+            "alwaysRequired": False,
+            "referenceName": "Microsoft.VSTS.TCM.ReproSteps",
+            "name": "Repro Steps",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/Microsoft.VSTS.TCM.ReproSteps",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "Microsoft.VSTS.Common.StateChangeDate",
+            "name": "State Change Date",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/Microsoft.VSTS.Common.StateChangeDate",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "Microsoft.VSTS.Common.ActivatedDate",
+            "name": "Activated Date",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/Microsoft.VSTS.Common.ActivatedDate",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "Microsoft.VSTS.Common.ActivatedBy",
+            "name": "Activated By",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/Microsoft.VSTS.Common.ActivatedBy",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "Microsoft.VSTS.Common.ResolvedDate",
+            "name": "Resolved Date",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/Microsoft.VSTS.Common.ResolvedDate",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "Microsoft.VSTS.Common.ResolvedBy",
+            "name": "Resolved By",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/Microsoft.VSTS.Common.ResolvedBy",
+        },
+        {
+            "defaultValue": None,
+            "helpText": "The reason why the bug was resolved",
+            "alwaysRequired": False,
+            "referenceName": "Microsoft.VSTS.Common.ResolvedReason",
+            "name": "Resolved Reason",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/Microsoft.VSTS.Common.ResolvedReason",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "Microsoft.VSTS.Common.ClosedDate",
+            "name": "Closed Date",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/Microsoft.VSTS.Common.ClosedDate",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "Microsoft.VSTS.Common.ClosedBy",
+            "name": "Closed By",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/Microsoft.VSTS.Common.ClosedBy",
+        },
+        {
+            "defaultValue": "2",
+            "helpText": "Business importance. 1=must fix; 4=unimportant.",
+            "alwaysRequired": False,
+            "referenceName": "Microsoft.VSTS.Common.Priority",
+            "name": "Priority",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/Microsoft.VSTS.Common.Priority",
+        },
+        {
+            "defaultValue": "3 - Medium",
+            "helpText": "Assessment of the effect of the bug on the project.",
+            "alwaysRequired": False,
+            "referenceName": "Microsoft.VSTS.Common.Severity",
+            "name": "Severity",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/Microsoft.VSTS.Common.Severity",
+        },
+        {
+            "defaultValue": None,
+            "helpText": "Work first on items with lower-valued stack rank. Set in triage.",
+            "alwaysRequired": False,
+            "referenceName": "Microsoft.VSTS.Common.StackRank",
+            "name": "Stack Rank",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/Microsoft.VSTS.Common.StackRank",
+        },
+        {
+            "defaultValue": "Business",
+            "helpText": "The type should be set to Business primarily to represent customer-facing issues. Work to change the architecture should be added as a Requirement",
+            "alwaysRequired": True,
+            "referenceName": "Microsoft.VSTS.Common.ValueArea",
+            "name": "Value Area",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/Microsoft.VSTS.Common.ValueArea",
+        },
+        {
+            "defaultValue": None,
+            "helpText": "The build in which the bug was fixed",
+            "alwaysRequired": False,
+            "referenceName": "Microsoft.VSTS.Build.IntegrationBuild",
+            "name": "Integration Build",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/Microsoft.VSTS.Build.IntegrationBuild",
+        },
+        {
+            "defaultValue": None,
+            "helpText": "The build in which the bug was found",
+            "alwaysRequired": False,
+            "referenceName": "Microsoft.VSTS.Build.FoundIn",
+            "name": "Found In",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/Microsoft.VSTS.Build.FoundIn",
+        },
+        {
+            "defaultValue": None,
+            "alwaysRequired": False,
+            "referenceName": "Custom.Environment",
+            "name": "Environment",
+            "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/fields/Custom.Environment",
+        },
+    ],
+    "transitions": {
+        "Active": [
+            {"to": "Active", "actions": None},
+            {"to": "Closed", "actions": None},
+            {"to": "Resolved", "actions": ["Microsoft.VSTS.Actions.Checkin"]},
+            {"to": "New", "actions": ["Microsoft.VSTS.Actions.StopWork"]},
+        ],
+        "Closed": [
+            {"to": "Closed", "actions": None},
+            {"to": "Resolved", "actions": None},
+            {"to": "Active", "actions": None},
+            {"to": "New", "actions": None},
+        ],
+        "New": [
+            {"to": "New", "actions": None},
+            {"to": "Closed", "actions": None},
+            {"to": "Resolved", "actions": ["Microsoft.VSTS.Actions.Checkin"]},
+            {"to": "Active", "actions": ["Microsoft.VSTS.Actions.StartWork"]},
+        ],
+        "Resolved": [
+            {"to": "Resolved", "actions": None},
+            {"to": "Closed", "actions": None},
+            {"to": "Active", "actions": None},
+            {"to": "New", "actions": None},
+        ],
+        "": [{"to": "New", "actions": None}],
+    },
+    "states": [
+        {"name": "New", "color": "b2b2b2", "category": "Proposed"},
+        {"name": "Active", "color": "007acc", "category": "InProgress"},
+        {"name": "Resolved", "color": "ff9d00", "category": "Resolved"},
+        {"name": "Closed", "color": "339933", "category": "Completed"},
+    ],
+    "_links": {
+        "self": {
+            "href": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/workItemTypes/Bug"
+        }
+    },
+    "url": "https://dev.azure.com/santry1/b642045a-0d24-4d5a-bf44-126a171bea26/_apis/wit/workItemTypes/Bug",
+}

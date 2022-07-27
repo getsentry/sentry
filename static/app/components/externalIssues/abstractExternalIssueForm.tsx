@@ -104,6 +104,7 @@ export default class AbstractExternalIssueForm<
     const {integrationDetails: integrationDetailsFromState} = this.state;
     const integrationDetails = integrationDetailsParam || integrationDetailsFromState;
     const config = (integrationDetails || {})[this.getConfigName()];
+    console.log({config});
     return Object.fromEntries(
       (config || [])
         .filter((field: IssueConfigField) => field.updatesForm)
