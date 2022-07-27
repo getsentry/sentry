@@ -23,8 +23,8 @@ from sentry.utils.http import absolute_uri
 
 from . import get_integration
 
-default_project_id = 10000
-default_issue_type_id = 10000
+DFAULT_PROJECT_ID = 10000
+DEFAULT_ISSUE_TYPE_ID = 10000
 
 
 def get_client():
@@ -498,14 +498,14 @@ class JiraServerIntegrationTest(APITestCase):
         )
         responses.add(
             responses.GET,
-            f"https://jira.example.org/rest/api/2/issue/createmeta/{default_project_id}/issuetypes",
+            f"https://jira.example.org/rest/api/2/issue/createmeta/{DFAULT_PROJECT_ID}/issuetypes",
             body=StubService.get_stub_json("jira", "issue_types_response.json"),
             content_type="json",
         )
         # Fail to return metadata
         responses.add(
             responses.GET,
-            f"https://jira.example.org/rest/api/2/issue/createmeta/{default_project_id}/issuetypes/{default_issue_type_id}",
+            f"https://jira.example.org/rest/api/2/issue/createmeta/{DFAULT_PROJECT_ID}/issuetypes/{DEFAULT_ISSUE_TYPE_ID}",
             content_type="json",
             status=401,
             body="",
@@ -554,7 +554,7 @@ class JiraServerIntegrationTest(APITestCase):
     def test_create_issue_labels_and_option(self):
         responses.add(
             responses.GET,
-            f"https://jira.example.org/rest/api/2/issue/createmeta/{default_project_id}/issuetypes/{default_issue_type_id}",
+            f"https://jira.example.org/rest/api/2/issue/createmeta/{DFAULT_PROJECT_ID}/issuetypes/{DEFAULT_ISSUE_TYPE_ID}",
             body=StubService.get_stub_json("jira", "issue_fields_response.json"),
             content_type="json",
         )
