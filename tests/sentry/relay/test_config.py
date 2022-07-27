@@ -224,3 +224,26 @@ def test_has_metric_extraction(default_project, feature_flag, org_sample, killsw
             config = config.to_dict()["config"]["transactionMetrics"]
             assert config["extractMetrics"]
             assert config["customMeasurements"]["limit"] > 0
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("org_sample", (0.0, 1.0), ids=("no_orgs", "all_orgs"))
+def test_accept_transaction_names(default_project, org_sample):
+    options = override_options(
+        {
+            "relay.transaction-names-client-based": org_sample,
+        }
+    )
+    feature = Feature(
+        {
+            "organizations:transaction-metrics-extraction": True,
+        }
+    )
+    with feature, options:
+        config = get_project_config(default_project).to_dict()["config"]
+        transaction_metrics_config = config["transactionMetrics"]
+        assert (
+            transaction_metrics_config["acceptTransactionNames"] == "clientBased"
+            if org_sample
+            else "strict"
+        )
