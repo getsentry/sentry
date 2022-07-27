@@ -41,6 +41,7 @@ export const frontend = [
   'javascript-gatsby',
   'javascript-vue',
   'javascript-nextjs',
+  'javascript-remix',
   'unity',
 ] as const;
 
@@ -212,6 +213,7 @@ export const releaseHealth: PlatformKey[] = [
   'javascript-gatsby',
   'javascript-vue',
   'javascript-nextjs',
+  'javascript-remix',
   // mobile
   'android',
   'apple-ios',

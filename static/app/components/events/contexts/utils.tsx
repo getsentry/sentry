@@ -12,10 +12,10 @@ const CONTEXT_TYPES = {
   default: require('sentry/components/events/contexts/default').default,
   app: require('sentry/components/events/contexts/app').AppEventContext,
   device: require('sentry/components/events/contexts/device').DeviceEventContext,
-  os: require('sentry/components/events/contexts/operatingSystem/operatingSystem')
-    .default,
+  browser: require('sentry/components/events/contexts/browser').BrowserEventContext,
+  os: require('sentry/components/events/contexts/operatingSystem')
+    .OperatingSystemEventContext,
   runtime: require('sentry/components/events/contexts/runtime').RuntimeEventContext,
-  browser: require('sentry/components/events/contexts/browser/browser').default,
   user: require('sentry/components/events/contexts/user').UserEventContext,
   gpu: require('sentry/components/events/contexts/gpu').GPUEventContext,
   trace: require('sentry/components/events/contexts/trace').TraceEventContext,

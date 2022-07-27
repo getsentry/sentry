@@ -343,7 +343,7 @@ type EventContexts = {
   trace?: TraceContextType;
 };
 
-export type Measurement = {value: number};
+export type Measurement = {value: number; unit?: string};
 
 export type EventTag = {key: string; value: string};
 
