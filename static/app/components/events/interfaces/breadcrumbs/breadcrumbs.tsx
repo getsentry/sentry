@@ -13,9 +13,10 @@ import Tooltip from 'sentry/components/tooltip';
 import {IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
+import {EntryType} from 'sentry/types';
 import {Crumb} from 'sentry/types/breadcrumbs';
 
-import Breadcrumb from './breadcrumb';
+import {Breadcrumb} from './breadcrumb';
 
 const PANEL_MAX_HEIGHT = 400;
 
@@ -56,6 +57,9 @@ function Breadcrumbs({
 }: Props) {
   const [scrollToIndex, setScrollToIndex] = useState<number | undefined>(undefined);
   const [scrollbarSize, setScrollbarSize] = useState(0);
+  const breadcrumbEntryIndex = event.entries.findIndex(
+    entry => entry.type === EntryType.BREADCRUMBS
+  );
 
   let listRef: List | null = null;
   const contentRef = useRef<HTMLDivElement>(null);
@@ -106,6 +110,7 @@ function Breadcrumbs({
             organization={organization}
             searchTerm={searchTerm}
             breadcrumb={breadcrumb}
+            meta={event._meta?.entries?.[breadcrumbEntryIndex]?.data?.values?.[index]}
             event={event}
             relativeTime={relativeTime}
             displayRelativeTime={displayRelativeTime}
