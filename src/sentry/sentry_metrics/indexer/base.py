@@ -177,8 +177,11 @@ class KeyResults:
         for org_id, strings in [*other.results.items(), *self.results.items()]:
             new_results.results[org_id].update(strings)
 
-        new_results.meta.update(self.meta)
-        new_results.meta.update(other.meta)
+        for org_id, org_meta in self.meta.items():
+            new_results.meta[org_id].update(org_meta)
+
+        for org_id, org_meta in other.meta.items():
+            new_results.meta[org_id].update(org_meta)
 
         return new_results
 

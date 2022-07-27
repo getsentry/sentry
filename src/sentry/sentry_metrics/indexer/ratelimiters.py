@@ -86,6 +86,13 @@ class RateLimitState:
     timestamp: Timestamp
 
 
+@dataclasses.dataclass
+class DroppedString:
+    key_result: KeyResult
+    fetch_type: FetchType
+    fetch_type_ext: FetchTypeExt
+
+
 class WritesLimiter:
     def __init__(self) -> None:
         self.rate_limiters: MutableMapping[UseCaseKey, RedisSlidingWindowRateLimiter] = {}
@@ -100,7 +107,7 @@ class WritesLimiter:
     @metrics.wraps("sentry_metrics.indexer.check_write_limits")
     def check_write_limits(
         self, use_case_id: UseCaseKey, keys: KeyCollection
-    ) -> Tuple[RateLimitState, KeyCollection, Sequence[Tuple[KeyResult, FetchType, FetchTypeExt]]]:
+    ) -> Tuple[RateLimitState, KeyCollection, Sequence[DroppedString]]:
         """
         Takes a KeyCollection and applies DB write limits as configured via sentry.options.
 
@@ -119,7 +126,7 @@ class WritesLimiter:
         timestamp, grants = self._get_rate_limiter(use_case_id).check_within_quotas(requests)
 
         granted_key_collection = dict(keys.mapping)
-        dropped_key_results = []
+        dropped_strings = []
 
         for org_id, request, grant in zip(org_ids, requests, grants):
             allowed_strings = granted_key_collection[org_id]
@@ -127,11 +134,13 @@ class WritesLimiter:
                 allowed_strings = set(allowed_strings)
 
                 while len(allowed_strings) > grant.granted:
-                    dropped_key_results.append(
-                        (
-                            KeyResult(org_id=org_id, string=allowed_strings.pop(), id=None),
-                            FetchType.RATE_LIMITED,
-                            FetchTypeExt(
+                    dropped_strings.append(
+                        DroppedString(
+                            key_result=KeyResult(
+                                org_id=org_id, string=allowed_strings.pop(), id=None
+                            ),
+                            fetch_type=FetchType.RATE_LIMITED,
+                            fetch_type_ext=FetchTypeExt(
                                 is_global=any(
                                     quota.prefix_override is not None
                                     for quota in grant.reached_quotas
@@ -145,7 +154,7 @@ class WritesLimiter:
         state = RateLimitState(
             use_case_id=use_case_id, requests=requests, grants=grants, timestamp=timestamp
         )
-        return state, KeyCollection(granted_key_collection), dropped_key_results
+        return state, KeyCollection(granted_key_collection), dropped_strings
 
     @metrics.wraps("sentry_metrics.indexer.apply_write_limits")
     def apply_write_limits(self, state: RateLimitState) -> None:

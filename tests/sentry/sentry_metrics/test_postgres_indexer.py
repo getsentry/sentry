@@ -93,10 +93,12 @@ class StaticStringsIndexerTest(TestCase):
         assert results[3]["2.0.0"] == v2.id
 
         meta = results.get_fetch_metadata()
+        assert_fetch_type_for_tag_string_set(meta[2], FetchType.HARDCODED, {"release"})
         assert_fetch_type_for_tag_string_set(
-            meta, FetchType.HARDCODED, {"release", "production", "environment"}
+            meta[3], FetchType.HARDCODED, {"release", "production", "environment"}
         )
-        assert_fetch_type_for_tag_string_set(meta, FetchType.FIRST_SEEN, {"1.0.0", "2.0.0"})
+        assert_fetch_type_for_tag_string_set(meta[2], FetchType.FIRST_SEEN, {"1.0.0"})
+        assert_fetch_type_for_tag_string_set(meta[3], FetchType.FIRST_SEEN, {"2.0.0"})
 
 
 class PostgresIndexerV2Test(TestCase):
@@ -221,9 +223,9 @@ class PostgresIndexerV2Test(TestCase):
 
         fetch_meta = results.get_fetch_metadata()
         assert_fetch_type_for_tag_string_set(
-            fetch_meta, FetchType.CACHE_HIT, {"v1.2.0", "v1.2.1", "v1.2.2"}
+            fetch_meta[org_id], FetchType.CACHE_HIT, {"v1.2.0", "v1.2.1", "v1.2.2"}
         )
-        assert_fetch_type_for_tag_string_set(fetch_meta, FetchType.FIRST_SEEN, {"v1.2.3"})
+        assert_fetch_type_for_tag_string_set(fetch_meta[org_id], FetchType.FIRST_SEEN, {"v1.2.3"})
 
     def test_already_cached_plus_read_results(self) -> None:
         """
@@ -254,8 +256,10 @@ class PostgresIndexerV2Test(TestCase):
         assert results[org_id]["bam"] == bam.id
 
         fetch_meta = results.get_fetch_metadata()
-        assert_fetch_type_for_tag_string_set(fetch_meta, FetchType.CACHE_HIT, {"beep", "boop"})
-        assert_fetch_type_for_tag_string_set(fetch_meta, FetchType.DB_READ, {"bam"})
+        assert_fetch_type_for_tag_string_set(
+            fetch_meta[org_id], FetchType.CACHE_HIT, {"beep", "boop"}
+        )
+        assert_fetch_type_for_tag_string_set(fetch_meta[org_id], FetchType.DB_READ, {"bam"})
 
     def test_get_db_records(self):
         """
@@ -304,13 +308,13 @@ class PostgresIndexerV2Test(TestCase):
         for org_id in 1, 2, 3:
             for k, v in results[org_id].items():
                 if v is None:
-                    rate_limited_strings.add(k)
+                    rate_limited_strings.add((org_id, k))
 
         assert len(rate_limited_strings) == 3
-        assert "g" not in rate_limited_strings
+        assert (3, "g") not in rate_limited_strings
 
-        for string in rate_limited_strings:
-            assert results.get_fetch_metadata()[string] == Metadata(
+        for org_id, string in rate_limited_strings:
+            assert results.get_fetch_metadata()[org_id][string] == Metadata(
                 id=None,
                 fetch_type=FetchType.RATE_LIMITED,
                 fetch_type_ext=FetchTypeExt(is_global=False),
@@ -458,12 +462,18 @@ class KeyResultsTest(TestCase):
         assert len(kr_merged.get_mapped_results()[org_id]) == len(mappings)
         meta = kr_merged.get_fetch_metadata()
 
-        assert_fetch_type_for_tag_string_set(meta, FetchType.DB_READ, set(read_mappings.keys()))
         assert_fetch_type_for_tag_string_set(
-            meta, FetchType.HARDCODED, set(hardcode_mappings.keys())
+            meta[org_id], FetchType.DB_READ, set(read_mappings.keys())
         )
-        assert_fetch_type_for_tag_string_set(meta, FetchType.FIRST_SEEN, set(write_mappings.keys()))
-        assert_fetch_type_for_tag_string_set(meta, FetchType.CACHE_HIT, set(cache_mappings.keys()))
         assert_fetch_type_for_tag_string_set(
-            meta, FetchType.RATE_LIMITED, set(rate_limited_mappings.keys())
+            meta[org_id], FetchType.HARDCODED, set(hardcode_mappings.keys())
+        )
+        assert_fetch_type_for_tag_string_set(
+            meta[org_id], FetchType.FIRST_SEEN, set(write_mappings.keys())
+        )
+        assert_fetch_type_for_tag_string_set(
+            meta[org_id], FetchType.CACHE_HIT, set(cache_mappings.keys())
+        )
+        assert_fetch_type_for_tag_string_set(
+            meta[org_id], FetchType.RATE_LIMITED, set(rate_limited_mappings.keys())
         )

@@ -161,9 +161,11 @@ class PGStringIndexerV2(StringIndexer):
         writes_limiter.apply_write_limits(write_limits_state)
 
         db_write_key_results = KeyResults()
-        for key_result, fetch_type, fetch_type_ext in rate_limited_write_results:
+        for dropped_string in rate_limited_write_results:
             db_write_key_results.add_key_result(
-                key_result, fetch_type=fetch_type, fetch_type_ext=fetch_type_ext
+                dropped_string.key_result,
+                fetch_type=dropped_string.fetch_type,
+                fetch_type_ext=dropped_string.fetch_type_ext,
             )
 
         db_write_key_results.add_key_results(
