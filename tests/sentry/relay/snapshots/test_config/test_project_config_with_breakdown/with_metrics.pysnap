@@ -1,6 +1,4 @@
 ---
-created: '2022-07-27T10:44:43.700505Z'
-creator: sentry
 source: tests/sentry/relay/test_config.py
 ---
 breakdownsV2:
@@ -56,7 +54,7 @@ metricConditionalTagging:
       value: javascript
     - name: event.duration
       op: gte
-      value: 9531.75
+      value: 12229.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -74,7 +72,7 @@ metricConditionalTagging:
       value: javascript
     - name: event.duration
       op: gte
-      value: 3963.7502431869507
+      value: 5285.000324249268
     op: and
   tagValue: outlier
   targetMetrics:
@@ -92,7 +90,7 @@ metricConditionalTagging:
       value: javascript
     - name: event.duration
       op: gte
-      value: 2298.0
+      value: 2929.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -110,7 +108,7 @@ metricConditionalTagging:
       value: python
     - name: event.duration
       op: gte
-      value: 327.0
+      value: 435.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -128,7 +126,7 @@ metricConditionalTagging:
       value: node
     - name: event.duration
       op: gte
-      value: 269.0
+      value: 358.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -146,7 +144,7 @@ metricConditionalTagging:
       value: php
     - name: event.duration
       op: gte
-      value: 570.0
+      value: 749.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -164,7 +162,7 @@ metricConditionalTagging:
       value: python
     - name: event.duration
       op: gte
-      value: 874.0
+      value: 1159.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -182,7 +180,7 @@ metricConditionalTagging:
       value: ruby
     - name: event.duration
       op: gte
-      value: 301.0
+      value: 399.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -200,7 +198,7 @@ metricConditionalTagging:
       value: javascript
     - name: event.duration
       op: gte
-      value: 12903472.75
+      value: 17204061.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -218,7 +216,7 @@ metricConditionalTagging:
       value: cocoa
     - name: event.duration
       op: gte
-      value: 1687.0
+      value: 2218.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -236,7 +234,7 @@ metricConditionalTagging:
       value: node
     - name: event.duration
       op: gte
-      value: 870.0
+      value: 1155.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -254,7 +252,7 @@ metricConditionalTagging:
       value: csharp
     - name: event.duration
       op: gte
-      value: 177.0
+      value: 236.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -272,7 +270,7 @@ metricConditionalTagging:
       value: java
     - name: event.duration
       op: gte
-      value: 198.75
+      value: 264.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -290,7 +288,7 @@ metricConditionalTagging:
       value: python
     - name: event.duration
       op: gte
-      value: 1110.0
+      value: 1473.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -308,7 +306,7 @@ metricConditionalTagging:
       value: java
     - name: event.duration
       op: gte
-      value: 1600.0
+      value: 2110.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -326,7 +324,7 @@ metricConditionalTagging:
       value: ruby
     - name: event.duration
       op: gte
-      value: 625.0
+      value: 829.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -344,7 +342,7 @@ metricConditionalTagging:
       value: ruby
     - name: event.duration
       op: gte
-      value: 606.0
+      value: 804.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -362,7 +360,7 @@ metricConditionalTagging:
       value: javascript
     - name: event.duration
       op: gte
-      value: 2858.0
+      value: 3749.75
     op: and
   tagValue: outlier
   targetMetrics:
@@ -380,7 +378,7 @@ metricConditionalTagging:
       value: python
     - name: event.duration
       op: gte
-      value: 2216.75
+      value: 2905.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -398,7 +396,7 @@ metricConditionalTagging:
       value: other
     - name: event.duration
       op: gte
-      value: 7004.0
+      value: 9005.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -416,7 +414,7 @@ metricConditionalTagging:
       value: php
     - name: event.duration
       op: gte
-      value: 4635.0
+      value: 6164.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -434,7 +432,7 @@ metricConditionalTagging:
       value: node
     - name: event.duration
       op: gte
-      value: 822.0
+      value: 1082.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -452,7 +450,7 @@ metricConditionalTagging:
       value: node
     - name: event.duration
       op: gte
-      value: 148.0
+      value: 197.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -470,7 +468,7 @@ metricConditionalTagging:
       value: go
     - name: event.duration
       op: gte
-      value: 123.0
+      value: 164.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -488,7 +486,7 @@ metricConditionalTagging:
       value: ruby
     - name: event.duration
       op: gte
-      value: 18.0
+      value: 24.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -506,7 +504,7 @@ metricConditionalTagging:
       value: python
     - name: event.duration
       op: gte
-      value: 1764.0
+      value: 2319.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -578,7 +576,7 @@ metricConditionalTagging:
       value: node
     - name: event.duration
       op: gte
-      value: 632.0
+      value: 838.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -596,7 +594,7 @@ metricConditionalTagging:
       value: ruby
     - name: event.duration
       op: gte
-      value: 224.0
+      value: 298.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -614,7 +612,7 @@ metricConditionalTagging:
       value: node
     - name: event.duration
       op: gte
-      value: 5961.5
+      value: 7943.75
     op: and
   tagValue: outlier
   targetMetrics:
@@ -632,7 +630,7 @@ metricConditionalTagging:
       value: node
     - name: event.duration
       op: gte
-      value: 1268.75
+      value: 1690.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -650,7 +648,7 @@ metricConditionalTagging:
       value: python
     - name: event.duration
       op: gte
-      value: 1378.75
+      value: 1837.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -668,7 +666,7 @@ metricConditionalTagging:
       value: php
     - name: event.duration
       op: gte
-      value: 917.0
+      value: 1216.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -686,7 +684,7 @@ metricConditionalTagging:
       value: python
     - name: event.duration
       op: gte
-      value: 891.0
+      value: 1187.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -704,7 +702,7 @@ metricConditionalTagging:
       value: other
     - name: event.duration
       op: gte
-      value: 52.0
+      value: 68.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -722,7 +720,7 @@ metricConditionalTagging:
       value: python
     - name: event.duration
       op: gte
-      value: 370.0
+      value: 493.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -740,7 +738,7 @@ metricConditionalTagging:
       value: php
     - name: event.duration
       op: gte
-      value: 526.5
+      value: 702.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -758,7 +756,7 @@ metricConditionalTagging:
       value: ruby
     - name: event.duration
       op: gte
-      value: 150.0
+      value: 198.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -776,7 +774,7 @@ metricConditionalTagging:
       value: node
     - name: event.duration
       op: gte
-      value: 709.0
+      value: 944.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -794,7 +792,7 @@ metricConditionalTagging:
       value: python
     - name: event.duration
       op: gte
-      value: 778.0
+      value: 1024.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -812,7 +810,7 @@ metricConditionalTagging:
       value: java
     - name: event.duration
       op: gte
-      value: 5891.0
+      value: 7819.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -830,7 +828,7 @@ metricConditionalTagging:
       value: python
     - name: event.duration
       op: gte
-      value: 164.0
+      value: 216.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -848,7 +846,7 @@ metricConditionalTagging:
       value: java
     - name: event.duration
       op: gte
-      value: 1881.0
+      value: 2458.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -866,7 +864,7 @@ metricConditionalTagging:
       value: other
     - name: event.duration
       op: gte
-      value: 2138.0
+      value: 2805.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -884,7 +882,7 @@ metricConditionalTagging:
       value: php
     - name: event.duration
       op: gte
-      value: 896.0
+      value: 1180.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -902,7 +900,7 @@ metricConditionalTagging:
       value: node
     - name: event.duration
       op: gte
-      value: 599.0
+      value: 791.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -920,7 +918,7 @@ metricConditionalTagging:
       value: node
     - name: event.duration
       op: gte
-      value: 1182.0
+      value: 1576.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -938,7 +936,7 @@ metricConditionalTagging:
       value: cocoa
     - name: event.duration
       op: gte
-      value: 6572.75
+      value: 8525.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -956,7 +954,7 @@ metricConditionalTagging:
       value: php
     - name: event.duration
       op: gte
-      value: 194.0
+      value: 254.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -974,7 +972,7 @@ metricConditionalTagging:
       value: cocoa
     - name: event.duration
       op: gte
-      value: 7880.5
+      value: 10326.75
     op: and
   tagValue: outlier
   targetMetrics:
@@ -992,7 +990,7 @@ metricConditionalTagging:
       value: node
     - name: event.duration
       op: gte
-      value: 903.0
+      value: 1200.0
     op: and
   tagValue: outlier
   targetMetrics:

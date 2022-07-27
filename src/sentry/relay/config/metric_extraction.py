@@ -255,7 +255,7 @@ def _produce_histogram_outliers(query_csv) -> Sequence[MetricConditionalTaggingR
                             {
                                 "op": "gte",
                                 "name": "event.duration",
-                                "value": p25 + 3 * abs(p75 - p25),
+                                "value": p75 + 3 * abs(p75 - p25),
                             },
                         ],
                     },
