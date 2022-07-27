@@ -116,6 +116,7 @@ export type PerformanceEventParameters = {
   };
   'performance_views.vital_detail.comparison_viewed': {
     count: number;
+    p75: number;
     vital: string;
   };
   'performance_views.vital_detail.switch_vital': {

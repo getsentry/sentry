@@ -102,17 +102,20 @@ function ContentWrapper({
   vital,
   children,
   count,
+  p75,
 }: {
   children: React.ReactNode;
   count: number;
   organization: Organization;
+  p75: number;
   vital: WebVital;
 }) {
   useEffect(() => {
-    trackAdvancedAnalyticsEvent('performance_views.vital_detail.comparsion_viewed', {
+    trackAdvancedAnalyticsEvent('performance_views.vital_detail.comparison_viewed', {
       organization,
       vital,
       count,
+      p75,
     });
   });
   return <Container>{children}</Container>;
@@ -144,7 +147,7 @@ function VitalsComparison(props: Props) {
           return null;
         }
         return (
-          <ContentWrapper {...{organization, vital, count}}>
+          <ContentWrapper {...{organization, vital, count, p75}}>
             <MetricsCard
               title={t('Selected Projects')}
               vital={vital}
@@ -159,7 +162,7 @@ function VitalsComparison(props: Props) {
               vital={vital}
               value={sentryStandard}
               tooltip={tct(
-                'Calculated as 50th percentile of top 33% p75 [lookupName] time across all web projects instrumenting their performance with Sentry.',
+                '20% of Sentry customers have a p75 [lookupName] lower than this.',
                 {lookupName}
               )}
             />
