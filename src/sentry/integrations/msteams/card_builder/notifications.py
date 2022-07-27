@@ -3,35 +3,44 @@ from __future__ import annotations
 from typing import Any, Mapping
 
 from sentry.integrations.msteams.card_builder import MSTEAMS_URL_FORMAT, ColumnSetBlock, TextBlock
+from sentry.integrations.msteams.card_builder.base import MSTeamsMessageBuilder
 from sentry.models import Team, User
-from sentry.notifications.notifications.base import BaseNotification
+from sentry.notifications.notifications.base import (
+    BaseNotification,
+    create_notification_with_properties,
+)
 from sentry.types.integrations import ExternalProviders
 
-from .block import TextSize, TextWeight, create_column_set_block, create_text_block
-from .issues import MSTeamsIssueMessageBuilder
+from .block import (
+    TextSize,
+    TextWeight,
+    create_column_set_block,
+    create_footer_column_block,
+    create_footer_logo_block,
+    create_footer_text_block,
+    create_text_block,
+)
 
 
-class MSTeamsNotificationsMessageBuilder(MSTeamsIssueMessageBuilder):
+class MSTeamsNotificationsMessageBuilder(MSTeamsMessageBuilder):
     def __init__(
         self, notification: BaseNotification, context: Mapping[str, Any], recipient: Team | User
     ):
-        self.notification = notification
-        self.notification.url_format = MSTEAMS_URL_FORMAT
-        self.notification.provider = ExternalProviders.MSTEAMS
+        self.notification = create_notification_with_properties(
+            notification, url_format=MSTEAMS_URL_FORMAT, provider=ExternalProviders.MSTEAMS
+        )
         self.context = context
         self.recipient = recipient
-
-        super().__init__(self.notification.group, None, None, None)
 
     def create_footer_block(self) -> ColumnSetBlock | None:
         footer_text = self.notification.build_notification_footer(self.recipient)
 
         if footer_text:
-            footer = self.create_footer_text_block(footer_text)
+            footer = create_footer_text_block(footer_text)
 
             return create_column_set_block(
-                self.create_footer_logo_block(),
-                self.create_footer_column_block(footer),
+                create_footer_logo_block(),
+                create_footer_column_block(footer),
             )
 
         return None
