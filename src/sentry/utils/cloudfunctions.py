@@ -3,16 +3,15 @@ from zipfile import ZipFile
 
 import requests
 from google.cloud.functions_v1.services.cloud_functions_service import CloudFunctionsServiceClient
-from google.cloud.functions_v1.types import (  # UpdateFunctionRequest,
+from google.cloud.functions_v1.types import (
     CloudFunction,
     EventTrigger,
     GenerateUploadUrlRequest,
+    UpdateFunctionRequest,
 )
-
-# from google.cloud.functions_v1.types.functions import DeleteFunctionRequest
+from google.cloud.functions_v1.types.functions import DeleteFunctionRequest
 from google.cloud.pubsub_v1 import PublisherClient
-
-# from google.protobuf.field_mask_pb2 import FieldMask
+from google.protobuf.field_mask_pb2 import FieldMask
 
 
 def function_pubsub_name(funcId):
@@ -55,7 +54,7 @@ def create_function(code, funcId, description):
             name="projects/hackweek-sentry-functions/locations/us-central1/functions/fn-" + funcId,
             description=description,
             source_upload_url=upload_url,
-            runtime="nodejs14",
+            runtime="nodejs16",
             entry_point="yourFunction",
             event_trigger=EventTrigger(
                 event_type="providers/cloud.pubsub/eventTypes/topic.publish",
@@ -66,32 +65,32 @@ def create_function(code, funcId, description):
     )
 
 
-# def update_function(code, funcId, description):
-#     client = CloudFunctionsServiceClient()
-#     upload_url = upload_function_files(client, code)
-#     client.update_function(
-#         request=UpdateFunctionRequest(
-#             function=CloudFunction(
-#                 name="projects/hackweek-sentry-functions/locations/us-central1/functions/fn-"
-#                 + funcId,
-#                 description=description,
-#                 source_upload_url=upload_url,
-#                 runtime="nodejs14",
-#                 entry_point="yourFunction",
-#                 event_trigger=EventTrigger(
-#                     event_type="providers/cloud.pubsub/eventTypes/topic.publish",
-#                     resource=function_pubsub_name(funcId),
-#                 ),
-#             ),
-#             update_mask=FieldMask(paths=["source_upload_url"]),
-#         )
-#     )
+def update_function(code, funcId, description):
+    client = CloudFunctionsServiceClient()
+    upload_url = upload_function_files(client, code)
+    client.update_function(
+        request=UpdateFunctionRequest(
+            function=CloudFunction(
+                name="projects/hackweek-sentry-functions/locations/us-central1/functions/fn-"
+                + funcId,
+                description=description,
+                source_upload_url=upload_url,
+                runtime="nodejs16",
+                entry_point="yourFunction",
+                event_trigger=EventTrigger(
+                    event_type="providers/cloud.pubsub/eventTypes/topic.publish",
+                    resource=function_pubsub_name(funcId),
+                ),
+            ),
+            update_mask=FieldMask(paths=["source_upload_url"]),
+        )
+    )
 
 
-# def delete_function(funcId):
-#     client = CloudFunctionsServiceClient()
-#     client.delete_function(
-#         request=DeleteFunctionRequest(
-#             name="projects/hackweek-sentry-functions/locations/us-central1/functions/fn-" + funcId,
-#         ),
-#     )
+def delete_function(funcId):
+    client = CloudFunctionsServiceClient()
+    client.delete_function(
+        request=DeleteFunctionRequest(
+            name="projects/hackweek-sentry-functions/locations/us-central1/functions/fn-" + funcId,
+        ),
+    )
