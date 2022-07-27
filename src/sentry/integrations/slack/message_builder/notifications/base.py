@@ -2,10 +2,13 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
-from sentry.integrations.slack.message_builder import SlackBody
+from sentry.integrations.slack.message_builder import SLACK_URL_FORMAT, SlackBody
 from sentry.integrations.slack.message_builder.base.base import SlackMessageBuilder
 from sentry.models import Team, User
-from sentry.notifications.notifications.base import BaseNotification
+from sentry.notifications.notifications.base import (
+    BaseNotification,
+    create_notification_with_properties,
+)
 from sentry.utils import json
 
 
@@ -17,7 +20,9 @@ class SlackNotificationsMessageBuilder(SlackMessageBuilder):
         recipient: Team | User,
     ) -> None:
         super().__init__()
-        self.notification = notification
+        self.notification = create_notification_with_properties(
+            notification, url_format=SLACK_URL_FORMAT
+        )
         self.context = context
         self.recipient = recipient
 
