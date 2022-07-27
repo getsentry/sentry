@@ -192,8 +192,13 @@ function VitalDetailContent(props: Props) {
   }
 
   function generateDisplayOptions() {
+    const chartSetting = VITAL_TO_SETTING[vital];
+
     return [
-      {value: DisplayModes.WORST_VITALS, label: t(DisplayModes.WORST_VITALS)},
+      {
+        value: DisplayModes.WORST_VITALS,
+        label: WIDGET_DEFINITIONS({organization})[chartSetting].title,
+      },
       {value: DisplayModes.DURATION_P75, label: t(DisplayModes.DURATION_P75)},
     ];
   }
