@@ -16,9 +16,9 @@ const BUILTIN_TAGS = ISSUE_FIELDS.reduce<TagCollection>((acc, tag) => {
 }, {});
 
 interface TagStoreDefinition extends CommonStoreDefinition<TagCollection> {
-  getAllTags(): TagCollection;
-  getBuiltInTags(): TagCollection;
   getIssueAttributes(): TagCollection;
+  getIssueTags(): TagCollection;
+  getStateTags(): TagCollection;
   loadTagsSuccess(data: Tag[]): void;
   reset(): void;
   state: TagCollection;
@@ -32,10 +32,9 @@ const storeConfig: TagStoreDefinition = {
     this.state = {};
   },
 
-  getBuiltInTags() {
-    return {...BUILTIN_TAGS, ...SEMVER_TAGS};
-  },
-
+  /**
+   * Gets only predefined issue attributes
+   */
   getIssueAttributes() {
     // TODO(mitsuhiko): what do we do with translations here?
     const isSuggestions = [
@@ -121,17 +120,34 @@ const storeConfig: TagStoreDefinition = {
     };
   },
 
-  reset() {
-    this.state = {};
-    this.trigger(this.state);
+  /**
+   * Get all tags including builtin issue tags and issue attributes
+   */
+  getIssueTags() {
+    return {
+      ...BUILTIN_TAGS,
+      ...SEMVER_TAGS,
+      // State tags should overwrite built ins.
+      ...this.state,
+      // We want issue attributes to overwrite any built in and state tags
+      ...this.getIssueAttributes(),
+    };
   },
 
-  getAllTags() {
-    return this.state;
+  /**
+   * Get only tags loaded from the backend
+   */
+  getStateTags() {
+    return this.getState();
   },
 
   getState() {
-    return this.getAllTags();
+    return this.state;
+  },
+
+  reset() {
+    this.state = {};
+    this.trigger(this.state);
   },
 
   loadTagsSuccess(data) {
