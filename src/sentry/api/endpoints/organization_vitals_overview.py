@@ -15,6 +15,7 @@ from sentry.api.bases import OrganizationEventsEndpointBase
 from sentry.api.serializers.models.project import get_access_by_project
 from sentry.models import Organization, Project, ProjectStatus
 from sentry.snuba import discover
+from sentry.utils import json
 
 logger = logging.getLogger(__name__)
 
@@ -77,11 +78,11 @@ def get_vital_data_for_org_no_cache(organization: Organization, projects: Sequen
         )
         logger.info(
             "get_discover_result",
-            {
+            extra={
                 "organization_id": organization.id,
                 "num_projects": len(projects),
-                "columns": columns,
-                "data": result["data"],
+                "columns": json.dumps(columns),
+                "data": json.dumps(result["data"]),
             },
         )
         return result["data"]
@@ -129,7 +130,7 @@ class OrganizationVitalsOverviewEndpoint(OrganizationEventsEndpointBase):
         if len(projects) >= settings.ORGANIZATION_VITALS_OVERVIEW_PROJECT_LIMIT:
             logger.info(
                 "too_many_projects",
-                {"organization_id": organization.id, "num_projects": len(projects)},
+                extra={"organization_id": organization.id, "num_projects": len(projects)},
             )
             return self.respond(NO_RESULT_RESPONSE)
 
@@ -140,7 +141,7 @@ class OrganizationVitalsOverviewEndpoint(OrganizationEventsEndpointBase):
             if not org_data:
                 logger.info(
                     "no_org_data",
-                    {"organization_id": organization.id},
+                    extra={"organization_id": organization.id},
                 )
                 return self.respond(NO_RESULT_RESPONSE)
 

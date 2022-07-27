@@ -53,5 +53,6 @@ class ProjectDocsPlatformEndpoint(ProjectEndpoint):
                 "name": data["name"],
                 "html": replace_keys(data["html"], project_key),
                 "link": data["link"],
+                "wizardSetup": data.get("wizard_setup", None),
             }
         )
