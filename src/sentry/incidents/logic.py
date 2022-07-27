@@ -1096,16 +1096,16 @@ def create_alert_rule_trigger_action(
             raise InvalidTriggerActionError("Must specify specific target type")
 
         target_identifier, target_display = get_target_identifier_display_for_integration(
-            type.value,
-            target_identifier,
-            trigger.alert_rule.organization,
-            integration.id,
+            type=type.value,
+            target_value=target_identifier,
+            organization_id=trigger.alert_rule.organization,
+            integration_id=integration.id,
             use_async_lookup=use_async_lookup,
             input_channel_id=input_channel_id,
         )
     elif type == AlertRuleTriggerAction.Type.SENTRY_APP:
         target_identifier, target_display = get_alert_rule_trigger_action_sentry_app(
-            trigger.alert_rule.organization, sentry_app.id
+            trigger.alert_rule.organization.id, sentry_app.id
         )
 
     return AlertRuleTriggerAction.objects.create(
@@ -1162,10 +1162,9 @@ def update_alert_rule_trigger_action(
             organization = trigger_action.alert_rule_trigger.alert_rule.organization
 
             target_identifier, target_display = get_target_identifier_display_for_integration(
-                type,
-                target_identifier,
-                organization,
-                integration.id,
+                type=type,
+                target_value=target_identifier,
+                integration_id=integration.id,
                 use_async_lookup=use_async_lookup,
                 input_channel_id=input_channel_id,
             )
@@ -1176,7 +1175,7 @@ def update_alert_rule_trigger_action(
             organization = trigger_action.alert_rule_trigger.alert_rule.organization
 
             target_identifier, target_display = get_alert_rule_trigger_action_sentry_app(
-                organization, sentry_app.id
+                organization.id, sentry_app.id
             )
             updated_fields["target_display"] = target_display
 
@@ -1185,28 +1184,39 @@ def update_alert_rule_trigger_action(
     return trigger_action
 
 
-def get_target_identifier_display_for_integration(type, target_value, *args, **kwargs):
+def get_target_identifier_display_for_integration(
+    type: str,
+    target_value: str,
+    organization: Any,
+    integration_id: int,
+    use_async_lookup: Optional[bool] = False,
+    input_channel_id: Optional[int] = None,
+):
     # target_value is the Slack username or channel name
     if type == AlertRuleTriggerAction.Type.SLACK.value:
         # if we have a value for input_channel_id, just set target_identifier to that
-        target_identifier = kwargs.pop("input_channel_id")
+        target_identifier = input_channel_id
+
         if target_identifier is not None:
             return (
                 target_identifier,
                 target_value,
             )
         target_identifier = get_alert_rule_trigger_action_slack_channel_id(
-            target_value, *args, **kwargs
+            name=target_value,
+            integration_id=integration_id,
+            use_async_lookup=use_async_lookup,
         )
     # target_value is the MSTeams username or channel name
     elif type == AlertRuleTriggerAction.Type.MSTEAMS.value:
         target_identifier = get_alert_rule_trigger_action_msteams_channel_id(
-            target_value, *args, **kwargs
+            name=target_value,
+            organization=organization,
         )
     # target_value is the ID of the PagerDuty service
     elif type == AlertRuleTriggerAction.Type.PAGERDUTY.value:
         target_identifier, target_value = get_alert_rule_trigger_action_pagerduty_service(
-            target_value, *args, **kwargs
+            target_value,
         )
     else:
         raise Exception("Not implemented")
@@ -1215,8 +1225,8 @@ def get_target_identifier_display_for_integration(type, target_value, *args, **k
 
 
 def get_alert_rule_trigger_action_slack_channel_id(
-    name, organization, integration_id, use_async_lookup
-):
+    name: str, integration_id: int, use_async_lookup: bool
+) -> str:
     from sentry.integrations.slack.utils import get_channel_id
 
     try:
@@ -1225,9 +1235,7 @@ def get_alert_rule_trigger_action_slack_channel_id(
         raise InvalidTriggerActionError("Slack workspace is a required field.")
 
     try:
-        _prefix, channel_id, timed_out = get_channel_id(
-            organization, integration, name, use_async_lookup
-        )
+        _prefix, channel_id, timed_out = get_channel_id(integration, name, use_async_lookup)
     except DuplicateDisplayNameError as e:
         domain = integration.metadata["domain_name"]
 
@@ -1251,11 +1259,9 @@ def get_alert_rule_trigger_action_slack_channel_id(
 
 
 def get_alert_rule_trigger_action_msteams_channel_id(
-    name,
-    organization,
-    integration_id,
-    use_async_lookup=False,
-    input_channel_id=None,
+    name: str,
+    organization: Any,
+    integration_id: int,
 ):
     from sentry.integrations.msteams.utils import get_channel_id
 
@@ -1269,11 +1275,7 @@ def get_alert_rule_trigger_action_msteams_channel_id(
 
 
 def get_alert_rule_trigger_action_pagerduty_service(
-    target_value,
-    organization,
-    integration_id,
-    use_async_lookup=False,
-    input_channel_id=None,
+    target_value: str,
 ):
     try:
         # TODO: query the org as well to make sure we don't allow
@@ -1285,11 +1287,11 @@ def get_alert_rule_trigger_action_pagerduty_service(
     return (service.id, service.service_name)
 
 
-def get_alert_rule_trigger_action_sentry_app(organization, sentry_app_id):
+def get_alert_rule_trigger_action_sentry_app(organization_id: int, sentry_app_id: int):
     try:
         # query for the sentry app but make sure it's installed on that org
         sentry_app = SentryApp.objects.get(
-            installations__organization_id=organization.id,
+            installations__organization_id=organization_id,
             installations__status=SentryAppInstallationStatus.INSTALLED,
             installations__date_deleted=None,
             id=sentry_app_id,
@@ -1327,7 +1329,7 @@ def get_available_action_integrations_for_org(organization):
     )
 
 
-def get_pagerduty_services(organization, integration_id):
+def get_pagerduty_services(organization, integration_id: int):
     return PagerDutyService.objects.filter(
         organization_integration__organization=organization,
         organization_integration__integration_id=integration_id,
@@ -1422,10 +1424,9 @@ def get_slack_channel_ids(organization, user, data):
                 mapped_slack_channels[action["target_identifier"]],
                 _,
             ) = get_target_identifier_display_for_integration(
-                action["type"].value,
-                action["target_identifier"],
-                organization,
-                action["integration"].id,
+                type=action["type"].value,
+                target_value=action["target_identifier"],
+                integration_id=action["integration"].id,
                 use_async_lookup=True,
                 input_channel_id=None,
             )
