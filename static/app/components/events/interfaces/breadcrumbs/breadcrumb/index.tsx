@@ -8,7 +8,7 @@ import {BreadcrumbType, Crumb} from 'sentry/types/breadcrumbs';
 import {Event} from 'sentry/types/event';
 
 import Category from './category';
-import Data from './data';
+import {Data} from './data';
 import Level from './level';
 import Time from './time';
 import Type from './type';
@@ -25,9 +25,10 @@ type Props = Pick<React.ComponentProps<typeof Data>, 'route' | 'router'> & {
   searchTerm: string;
   style: React.CSSProperties;
   height?: string;
+  meta?: Record<keyof Crumb, any>;
 };
 
-const Breadcrumb = memo(function Breadcrumb({
+export const Breadcrumb = memo(function Breadcrumb({
   organization,
   event,
   breadcrumb,
@@ -39,6 +40,7 @@ const Breadcrumb = memo(function Breadcrumb({
   style,
   route,
   router,
+  meta,
   ['data-test-id']: dataTestId,
 }: Props) {
   const {type, description, color, level, category, timestamp} = breadcrumb;
@@ -61,6 +63,7 @@ const Breadcrumb = memo(function Breadcrumb({
         searchTerm={searchTerm}
         route={route}
         router={router}
+        meta={meta}
       />
       <div>
         <Level level={level} searchTerm={searchTerm} />
@@ -74,8 +77,6 @@ const Breadcrumb = memo(function Breadcrumb({
     </Wrapper>
   );
 });
-
-export default Breadcrumb;
 
 const Wrapper = styled('div')<{error: boolean; scrollbarSize: number}>`
   display: grid;

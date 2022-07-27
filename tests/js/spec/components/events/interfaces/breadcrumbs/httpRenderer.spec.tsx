@@ -1,13 +1,13 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import HttpRenderer from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/data/http';
+import {Http} from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/data/http';
 import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
 
 describe('HttpRenderer', () => {
   describe('render', () => {
     it('should work', () => {
       const httpRendererWrapper = mountWithTheme(
-        <HttpRenderer
+        <Http
           searchTerm=""
           breadcrumb={{
             type: BreadcrumbType.HTTP,
@@ -42,7 +42,7 @@ describe('HttpRenderer', () => {
 
     it("shouldn't blow up if crumb.data is missing", () => {
       const httpRendererWrapper = mountWithTheme(
-        <HttpRenderer
+        <Http
           searchTerm=""
           breadcrumb={{
             category: 'xhr',
@@ -59,7 +59,7 @@ describe('HttpRenderer', () => {
 
     it("shouldn't blow up if url is not a string", () => {
       const httpRendererWrapper = mountWithTheme(
-        <HttpRenderer
+        <Http
           searchTerm=""
           breadcrumb={{
             category: 'xhr',

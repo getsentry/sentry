@@ -1,10 +1,15 @@
 import AnnotatedText from 'sentry/components/events/meta/annotatedText';
-import {getMeta} from 'sentry/components/events/meta/metaProxy';
 import Highlight from 'sentry/components/highlight';
 import Link from 'sentry/components/links/link';
 import {Organization, Project} from 'sentry/types';
-import {BreadcrumbTypeDefault, BreadcrumbTypeNavigation} from 'sentry/types/breadcrumbs';
+import {
+  BreadcrumbTypeDefault,
+  BreadcrumbTypeNavigation,
+  Crumb,
+} from 'sentry/types/breadcrumbs';
 import {Event} from 'sentry/types/event';
+import {Meta} from 'sentry/types/group';
+import {defined} from 'sentry/utils';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
 import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
 import withProjects from 'sentry/utils/withProjects';
@@ -17,32 +22,41 @@ type Props = {
   searchTerm: string;
   event?: Event;
   linkedEvent?: React.ReactElement;
+  meta?: Record<keyof Crumb, Meta>;
 };
 
-function Default({breadcrumb, event, orgSlug, searchTerm, linkedEvent}: Props) {
-  const {message} = breadcrumb;
+export function Default({
+  meta,
+  breadcrumb,
+  event,
+  orgSlug,
+  searchTerm,
+  linkedEvent,
+}: Props) {
+  const {message, data} = breadcrumb;
+
+  if (defined(data) && meta?.data?.['']) {
+    return <AnnotatedText value={data} meta={meta?.data?.['']} />;
+  }
+
   return (
-    <Summary kvData={breadcrumb.data}>
+    <Summary kvData={data}>
       {linkedEvent}
-      {message && (
-        <AnnotatedText
-          value={
-            <FormatMessage
-              searchTerm={searchTerm}
-              event={event}
-              orgSlug={orgSlug}
-              breadcrumb={breadcrumb}
-              message={message}
-            />
-          }
-          meta={getMeta(breadcrumb, 'message')}
-        />
-      )}
+      {defined(message) &&
+        (meta?.message?.[''] ? (
+          <AnnotatedText value={message} meta={meta?.message?.['']} />
+        ) : (
+          <FormatMessage
+            searchTerm={searchTerm}
+            event={event}
+            orgSlug={orgSlug}
+            breadcrumb={breadcrumb}
+            message={message}
+          />
+        ))}
     </Summary>
   );
 }
-
-export default Default;
 
 function isEventId(maybeEventId: string): boolean {
   // maybeEventId is an event id if it's a hex string of 32 characters long
