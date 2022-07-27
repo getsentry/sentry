@@ -196,6 +196,6 @@ export const performanceEventMap: Record<PerformanceEventKey, string | null> = {
   'performance_views.transaction_summary.view':
     'Performance Views: Transaction Summary View',
   'performance_views.filter_dropdown.selection': 'Performance Views: Filter Dropdown',
-  'performance_views.vital_detail.comparsion_viewed':
+  'performance_views.vital_detail.comparison_viewed':
     'Performance Views: Vital Detail Comparison Viewed',
 };
