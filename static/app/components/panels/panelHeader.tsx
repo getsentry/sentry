@@ -54,7 +54,7 @@ export function CollapsePanelHeader(props: {
   onClick?: () => void;
 }) {
   return (
-    <ClickablePanelHeader onClick={props.onClick} collapsed={props.collapsed}>
+    <ClickablePanelHeader onClick={props.onClick} collapsed={!!props.collapsed}>
       {props.children}
       <IconChevron direction={props.collapsed ? 'right' : 'down'} />
     </ClickablePanelHeader>
