@@ -198,6 +198,12 @@ class IndexerBatch:
                 continue
 
             if exceeded_org_quotas or exceeded_global_quotas:
+                metrics.incr(
+                    "sentry_metrics.indexer.process_messages.dropped_message",
+                    tags={
+                        "string_type": "tags",
+                    },
+                )
                 logger.error(
                     "process_messages.dropped_message",
                     extra={
@@ -223,6 +229,12 @@ class IndexerBatch:
             new_payload_value["metric_id"] = numeric_metric_id = mapping[org_id][metric_name]
             if numeric_metric_id is None:
                 metadata = bulk_record_meta[org_id].get(metric_name)
+                metrics.incr(
+                    "sentry_metrics.indexer.process_messages.dropped_message",
+                    tags={
+                        "string_type": "metric_id",
+                    },
+                )
                 logger.error(
                     "process_messages.dropped_message",
                     extra={
