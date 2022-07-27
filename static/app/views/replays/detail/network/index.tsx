@@ -48,13 +48,15 @@ function NetworkList({event, networkSpans}: Props) {
     [networkSpans, sortConfig]
   );
 
-  const sortArrow = (sortedBy: string) => (
-    <IconArrow
-      color={sortConfig.by === sortedBy ? 'gray300' : 'gray200'}
-      size="xs"
-      direction={sortConfig.by === sortedBy && !sortConfig.asc ? 'up' : 'down'}
-    />
-  );
+  const sortArrow = (sortedBy: string) => {
+    return sortConfig.by === sortedBy ? (
+      <IconArrow
+        color="gray300"
+        size="xs"
+        direction={sortConfig.by === sortedBy && !sortConfig.asc ? 'up' : 'down'}
+      />
+    ) : null;
+  };
 
   const columns = [
     t('Status'),
@@ -146,13 +148,13 @@ const StyledPanelTable = styled(PanelTable)<{columns: number}>`
     &:nth-child(${p => p.columns}n) {
       border-right: 0;
       text-align: right;
-      align-items: end;
+      justify-content: end;
     }
 
     /* 2nd last column */
     &:nth-child(${p => p.columns}n - 1) {
       text-align: right;
-      align-items: end;
+      justify-content: end;
     }
   }
 
@@ -162,6 +164,13 @@ const StyledPanelTable = styled(PanelTable)<{columns: number}>`
     border-radius: 0;
     color: ${p => p.theme.subText};
     line-height: 16px;
+
+    /* Last and 2nd last header columns. As this are flex direction column we have to treat them separately */
+    &:nth-child(${p => p.columns}n),
+    &:nth-child(${p => p.columns}n - 1) {
+      justify-content: center;
+      align-items: end;
+    }
   }
 `;
 
