@@ -1,5 +1,5 @@
 ---
-created: '2022-07-22T12:59:33.487327Z'
+created: '2022-07-27T10:44:43.700505Z'
 creator: sentry
 source: tests/sentry/relay/test_config.py
 ---
@@ -861,6 +861,7 @@ metricConditionalTagging:
   - d:transactions/duration@millisecond
   targetTag: histogram_outlier
 transactionMetrics:
+  acceptTransactionNames: strict
   customMeasurements:
     limit: 5
   extractCustomTags: []
