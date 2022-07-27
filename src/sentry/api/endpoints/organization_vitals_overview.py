@@ -1,3 +1,4 @@
+import logging
 from datetime import timedelta
 from typing import Sequence
 
@@ -14,6 +15,9 @@ from sentry.api.bases import OrganizationEventsEndpointBase
 from sentry.api.serializers.models.project import get_access_by_project
 from sentry.models import Organization, Project, ProjectStatus
 from sentry.snuba import discover
+from sentry.utils import json
+
+logger = logging.getLogger(__name__)
 
 # Web vitals: p75 for LCP and FCP
 # Mobile vitals: Cold Start and Warm Start
@@ -72,6 +76,15 @@ def get_vital_data_for_org_no_cache(organization: Organization, projects: Sequen
             },
             referrer=referrer,
         )
+        logger.info(
+            "get_discover_result",
+            {
+                "organization_id": organization.id,
+                "num_projects": len(projects),
+                "columns": json.dumps(columns),
+                "data": json.dumps(result["data"]),
+            },
+        )
         return result["data"]
 
     org_data = get_discover_result(BASIC_COLUMNS, "api.organization-vitals")
@@ -115,6 +128,10 @@ class OrganizationVitalsOverviewEndpoint(OrganizationEventsEndpointBase):
         # so the result we are returning for the organization aggregatation would not be accurate
         # as result, just return the payload for no data so the UI won't display the banner
         if len(projects) >= settings.ORGANIZATION_VITALS_OVERVIEW_PROJECT_LIMIT:
+            logger.info(
+                "too_many_projects",
+                {"organization_id": organization.id, "num_projects": len(projects)},
+            )
             return self.respond(NO_RESULT_RESPONSE)
 
         with self.handle_query_errors():
@@ -122,6 +139,10 @@ class OrganizationVitalsOverviewEndpoint(OrganizationEventsEndpointBase):
             org_data, project_data = get_vital_data_for_org(organization, projects)
             # no data at all for any vital
             if not org_data:
+                logger.info(
+                    "no_org_data",
+                    {"organization_id": organization.id},
+                )
                 return self.respond(NO_RESULT_RESPONSE)
 
             # take data and transform output
