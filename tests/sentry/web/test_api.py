@@ -104,7 +104,26 @@ class ClientConfigViewTest(TestCase):
         assert data["isAuthenticated"]
         assert data["user"]
         assert data["user"]["email"] == user.email
-        assert data["user"]["isSuperuser"]
+        assert data["user"]["isSuperuser"] is True
+        assert data["lastOrganization"] is None
+        assert "activeorg" not in self.client.session
+
+        # Induce last active organization
+        resp = self.client.get(
+            reverse("sentry-api-0-organization-projects", args=[self.organization.slug])
+        )
+        assert resp.status_code == 200
+        assert resp["Content-Type"] == "application/json"
+        assert "activeorg" not in self.client.session
+
+        # lastOrganization is not set
+        resp = self.client.get(self.path)
+        assert resp.status_code == 200
+        assert resp["Content-Type"] == "application/json"
+
+        data = json.loads(resp.content)
+        assert data["lastOrganization"] is None
+        assert "activeorg" not in self.client.session
 
     def test_organization_url_unauthenticated(self):
         resp = self.client.get(self.path)
