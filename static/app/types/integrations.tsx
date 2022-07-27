@@ -526,3 +526,11 @@ export type ServerlessFunction = {
   runtime: string;
   version: number;
 };
+
+export type SentryFunction = {
+  author: string;
+  code: string;
+  name: string;
+  slug: string;
+  overview?: string;
+};

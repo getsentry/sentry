@@ -819,6 +819,16 @@ function buildRoutes() {
                 )
             )}
           />
+          <Route
+            path=":functionSlug/"
+            name={t('Edit Sentry Function')}
+            component={make(
+              () =>
+                import(
+                  'sentry/views/settings/organizationDeveloperSettings/sentryFunctionDetails'
+                )
+            )}
+          />
         </Route>
       </Route>
     </Route>
