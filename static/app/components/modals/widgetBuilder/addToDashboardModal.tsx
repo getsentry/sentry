@@ -177,7 +177,7 @@ function AddToDashboardModal({
         <h4>{t('Add to Dashboard')}</h4>
       </Header>
       <Body>
-        <SelectControlWrapper>
+        <Wrapper>
           <SelectControl
             disabled={dashboards === null}
             menuPlacement="auto"
@@ -207,12 +207,14 @@ function AddToDashboardModal({
               setSelectedDashboardId(option.value);
             }}
           />
-        </SelectControlWrapper>
-        {organization.features.includes('dashboards-top-level-filter')
-          ? t(
-              'Any conflicting filters from this query will be overridden by Dashboard filters. This is a preview of how the widget will appear in your dashboard.'
-            )
-          : t('This is a preview of how the widget will appear in your dashboard.')}
+        </Wrapper>
+        <Wrapper>
+          {organization.features.includes('dashboards-top-level-filter')
+            ? t(
+                'Any conflicting filters from this query will be overridden by Dashboard filters. This is a preview of how the widget will appear in your dashboard.'
+              )
+            : t('This is a preview of how the widget will appear in your dashboard.')}
+        </Wrapper>
         <WidgetCard
           api={api}
           organization={organization}
@@ -261,7 +263,7 @@ function AddToDashboardModal({
 
 export default AddToDashboardModal;
 
-const SelectControlWrapper = styled('div')`
+const Wrapper = styled('div')`
   margin-bottom: ${space(2)};
 `;
 
