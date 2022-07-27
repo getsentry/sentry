@@ -429,7 +429,7 @@ export function getDocsLinkForEventType(event: 'error' | 'transaction' | 'attach
     case 'transaction':
       return 'https://docs.sentry.io/product/performance/transaction-summary/#what-is-a-transaction';
     case 'attachment':
-      return 'https://docs.sentry.io/product/accounts/quotas/#attachment-limits';
+      return 'https://docs.sentry.io/product/accounts/quotas/manage-attachments-quota/#2-rate-limiting';
     default:
       return 'https://docs.sentry.io/product/accounts/quotas/manage-event-stream-guide/#common-workflows-for-managing-your-event-stream';
   }
