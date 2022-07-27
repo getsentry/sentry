@@ -11,6 +11,8 @@ from sentry.replays.serializers import ReplayRecordingSegmentSerializer
 
 
 class ProjectReplayRecordingSegmentDetailsEndpoint(ProjectEndpoint):
+    private = True
+
     def get(self, request: Request, project, replay_id, segment_id) -> Response:
         if not features.has(
             "organizations:session-replay", project.organization, actor=request.user
@@ -18,7 +20,7 @@ class ProjectReplayRecordingSegmentDetailsEndpoint(ProjectEndpoint):
             return self.respond(status=404)
 
         try:
-            attachment = ReplayRecordingSegment.objects.filter(
+            segment = ReplayRecordingSegment.objects.filter(
                 project_id=project.id,
                 replay_id=replay_id.replace("-", ""),
                 sequence_id=segment_id,
@@ -27,10 +29,10 @@ class ProjectReplayRecordingSegmentDetailsEndpoint(ProjectEndpoint):
             return self.respond({"detail": "Replay recording segment not found."}, status=404)
 
         if request.GET.get("download") is not None:
-            return self.download(attachment)
+            return self.download(segment)
         else:
             return self.respond(
-                serialize(attachment, request.user, ReplayRecordingSegmentSerializer())
+                {"data": serialize(segment, request.user, ReplayRecordingSegmentSerializer())}
             )
 
     def download(self, recording_segment: ReplayRecordingSegment) -> StreamingHttpResponse:

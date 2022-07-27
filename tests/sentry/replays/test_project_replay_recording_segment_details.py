@@ -1,3 +1,4 @@
+import uuid
 from io import BytesIO
 
 from django.urls import reverse
@@ -16,10 +17,10 @@ class ReplayRecordingSegmentDetailsTestCase(APITestCase):
         self.file = File.objects.create(name="recording-segment-0", type="application/octet-stream")
         self.file.putfile(BytesIO(b"replay-recording-segment"))
 
-        replay_id = "6f959c5c-bc77-4683-8723-6e3367b0cfac"
+        replay_id = uuid.uuid4().hex
 
         self.recording_segment = ReplayRecordingSegment.objects.create(
-            replay_id=replay_id.replace("-", ""),
+            replay_id=replay_id,
             project_id=self.project.id,
             sequence_id=0,
             file_id=self.file.id,
@@ -42,11 +43,10 @@ class ReplayRecordingSegmentDetailsTestCase(APITestCase):
             response = self.client.get(self.url)
 
             assert response.status_code == 200, response.content
-            assert response.data["id"] == str(self.recording_segment.id)
-            assert response.data["replay_id"] == self.recording_segment.replay_id
-            assert response.data["sequence_id"] == self.recording_segment.sequence_id
-            assert response.data["project_id"] == self.recording_segment.project_id
-            assert response.data["date_added"] == self.recording_segment.date_added
+            assert response.data["data"]["replay_id"] == self.recording_segment.replay_id
+            assert response.data["data"]["segment_id"] == self.recording_segment.sequence_id
+            assert response.data["data"]["project_id"] == self.recording_segment.project_id
+            assert response.data["data"]["date_added"] == self.recording_segment.date_added
 
     def test_get_replay_recording_segment_download(self):
         self.login_as(user=self.user)

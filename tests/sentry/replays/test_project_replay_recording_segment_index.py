@@ -1,3 +1,5 @@
+import uuid
+
 from django.urls import reverse
 
 from sentry.models import File
@@ -11,7 +13,7 @@ class ProjectReplayRecordingSegmentTestCase(APITestCase):
     def setUp(self):
         super().setUp()
 
-        self.replay_id = "6f959c5c-bc77-4683-8723-6e3367b0cfac"
+        self.replay_id = uuid.uuid4().hex
         self.url = reverse(
             self.endpoint,
             args=(self.organization.slug, self.project.slug, self.replay_id),
@@ -21,19 +23,19 @@ class ProjectReplayRecordingSegmentTestCase(APITestCase):
         self.login_as(user=self.user)
 
         recording_segment = ReplayRecordingSegment.objects.create(
-            replay_id=self.replay_id.replace("-", ""),
+            replay_id=self.replay_id,
             project_id=self.project.id,
             sequence_id=0,
             file_id=File.objects.create(name="hello.png", type="image/png").id,
         )
         ReplayRecordingSegment.objects.create(
-            replay_id=self.replay_id.replace("-", ""),
+            replay_id=self.replay_id,
             project_id=self.project.id,
             sequence_id=1,
             file_id=File.objects.create(name="hello.png", type="image/png").id,
         )
         ReplayRecordingSegment.objects.create(
-            replay_id=self.replay_id.replace("-", ""),
+            replay_id=self.replay_id,
             project_id=self.project.id,
             sequence_id=2,
             file_id=File.objects.create(name="hello.png", type="image/png").id,
@@ -43,13 +45,12 @@ class ProjectReplayRecordingSegmentTestCase(APITestCase):
             response = self.client.get(self.url)
 
         assert response.status_code == 200, response.content
-        assert len(response.data) == 3
-        assert response.data[0]["id"] == str(recording_segment.id)
-        assert response.data[0]["replay_id"] == recording_segment.replay_id
-        assert response.data[0]["sequence_id"] == recording_segment.sequence_id
-        assert response.data[0]["project_id"] == recording_segment.project_id
-        assert response.data[0]["date_added"] == recording_segment.date_added
+        assert len(response.data["data"]) == 3
+        assert response.data["data"][0]["replay_id"] == recording_segment.replay_id
+        assert response.data["data"][0]["segment_id"] == recording_segment.sequence_id
+        assert response.data["data"][0]["project_id"] == recording_segment.project_id
+        assert response.data["data"][0]["date_added"] == recording_segment.date_added
 
-        assert response.data[0]["sequence_id"] == 0
-        assert response.data[1]["sequence_id"] == 1
-        assert response.data[2]["sequence_id"] == 2
+        assert response.data["data"][0]["segment_id"] == 0
+        assert response.data["data"][1]["segment_id"] == 1
+        assert response.data["data"][2]["segment_id"] == 2
