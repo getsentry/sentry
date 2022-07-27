@@ -1,5 +1,6 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {OrganizationContext} from 'sentry/views/organizationContext';
 import ProjectFilters from 'sentry/views/projectDetail/projectFilters';
 
 describe('ProjectDetail > ProjectFilters', () => {
@@ -11,6 +12,7 @@ describe('ProjectDetail > ProjectFilters', () => {
   });
 
   it('recommends semver search tag', async () => {
+    const organization = TestStubs.Organization();
     tagValueLoader.mockResolvedValue([
       {
         count: null,
@@ -22,8 +24,10 @@ describe('ProjectDetail > ProjectFilters', () => {
       },
     ]);
     render(
-      <ProjectFilters query="" onSearch={onSearch} tagValueLoader={tagValueLoader} />,
-      {context: TestStubs.routerContext(), organization: TestStubs.Organization()}
+      <OrganizationContext.Provider value={organization}>
+        <ProjectFilters query="" onSearch={onSearch} tagValueLoader={tagValueLoader} />
+      </OrganizationContext.Provider>,
+      {context: TestStubs.routerContext()}
     );
 
     userEvent.click(screen.getByRole('textbox'));
