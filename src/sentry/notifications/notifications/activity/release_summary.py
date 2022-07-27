@@ -80,7 +80,7 @@ class ReleaseSummaryActivityNotification(ActivityNotification):
             self.projects,
             self.organization,
             self.user_ids,
-            notification_setting_type=self.notification_setting_type,
+            self.notification_setting_type,
         )
 
     def get_users_by_teams(self) -> Mapping[int, list[int]]:
