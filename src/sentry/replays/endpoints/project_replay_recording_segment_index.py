@@ -6,6 +6,7 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.replays.models import ReplayRecordingSegment
+from sentry.replays.serializers import ReplayRecordingSegmentSerializer
 
 
 class ProjectReplayRecordingSegmentIndexEndpoint(ProjectEndpoint):
@@ -24,6 +25,8 @@ class ProjectReplayRecordingSegmentIndexEndpoint(ProjectEndpoint):
                 replay_id=replay_id.replace("-", ""),
             ),
             order_by="sequence_id",
-            on_results=lambda x: {"data": serialize(x, request.user)},
+            on_results=lambda x: {
+                "data": serialize(x, request.user, ReplayRecordingSegmentSerializer())
+            },
             paginator_cls=OffsetPaginator,
         )
