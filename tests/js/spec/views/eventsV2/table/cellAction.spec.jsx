@@ -11,7 +11,7 @@ const defaultData = {
   release: 'F2520C43515BD1F0E8A6BD46233324641A370BF6',
   nullValue: null,
   'measurements.fcp': 1234,
-  percentile_measurements_fcp_0_5: 1234,
+  'percentile(measurements.fcp, 0.5)': 1234,
   'error.handled': [null],
   'error.type': [
     'ServerException',
@@ -340,7 +340,7 @@ describe('Discover -> CellAction', function () {
 
       wrapper = makeWrapper(view, handleCellAction, 6, {
         ...defaultData,
-        percentile_measurements_fcp_0_5: null,
+        'percentile(measurements.fcp, 0.5)': null,
       });
       wrapper.find('Container').simulate('mouseEnter');
       expect(wrapper.find('MenuButton').exists()).toBeFalsy();
