@@ -673,6 +673,7 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
         return issue_type_meta
 
     def get_issue_create_meta(self, client, project_id, jira_projects):
+        # TODO(ceo): Delete this method, it's unused now
         meta = None
         if project_id:
             meta = self.fetch_issue_create_meta(client, project_id)
@@ -924,42 +925,43 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
         cleaned_data = {}
         # protect against mis-configured integration submitting a form without an
         # issuetype assigned.
-        if not data.get("issuetype"):
+        issue_type = data.get("issuetype")
+        if not issue_type:
             raise IntegrationFormError({"issuetype": ["Issue type is required."]})
 
         jira_project = data.get("project")
         if not jira_project:
             raise IntegrationFormError({"project": ["Jira project is required"]})
 
-        meta = client.get_create_meta_for_project(jira_project)
-        if not meta:
+        issue_type_meta = client.get_issue_fields(jira_project, issue_type)
+        if not issue_type_meta:
             raise IntegrationError("Could not fetch issue create configuration from Jira.")
 
-        issue_type_meta = self.get_issue_type_meta(data["issuetype"], meta)
         user_id_field = client.user_id_field()
 
-        fs = issue_type_meta["fields"]
-        for field in fs.keys():
-            f = fs[field]
-            if field == "description":
-                cleaned_data[field] = data[field]
+        issue_type_fields = issue_type_meta["values"]
+
+        for field in issue_type_fields:
+            field_name = field["fieldId"]
+            if field_name == "description":
+                cleaned_data[field_name] = data[field_name]
                 continue
-            elif field == "summary":
+            elif field_name == "summary":
                 cleaned_data["summary"] = data["title"]
                 continue
-            elif field == "labels" and "labels" in data:
+            elif field_name == "labels" and "labels" in data:
                 labels = [label.strip() for label in data["labels"].split(",") if label.strip()]
                 cleaned_data["labels"] = labels
                 continue
-            if field in data.keys():
-                v = data.get(field)
+            if field_name in data.keys():
+                v = data.get(field_name)
                 if not v:
                     continue
 
-                schema = f.get("schema")
+                schema = field.get("schema")
                 if schema:
                     if schema.get("type") == "string" and not schema.get("custom"):
-                        cleaned_data[field] = v
+                        cleaned_data[field_name] = v
                         continue
                     if schema["type"] == "user" or schema.get("items") == "user":
                         if schema.get("custom") == JIRA_CUSTOM_FIELD_TYPES.get("multiuserpicker"):
@@ -1003,7 +1005,7 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
                         or schema.get("custom") == JIRA_CUSTOM_FIELD_TYPES.get("select")
                     ):
                         v = {"id": v}
-                cleaned_data[field] = v
+                cleaned_data[field_name] = v
 
         if not (isinstance(cleaned_data["issuetype"], dict) and "id" in cleaned_data["issuetype"]):
             # something fishy is going on with this field, working on some Jira
