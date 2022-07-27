@@ -15,6 +15,7 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
 class GroupSuspectReleasesEndpoint(GroupEndpoint, EnvironmentMixin):
+    private = True
     enforce_rate_limit = True
     rate_limits = {
         "GET": {

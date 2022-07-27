@@ -74,7 +74,6 @@ from sentry.api.endpoints.group_participants import GroupParticipantsEndpoint
 from sentry.api.endpoints.group_reprocessing import GroupReprocessingEndpoint
 from sentry.api.endpoints.group_similar_issues import GroupSimilarIssuesEndpoint
 from sentry.api.endpoints.group_stats import GroupStatsEndpoint
-from sentry.api.endpoints.group_suspect_releases import GroupSuspectReleasesEndpoint
 from sentry.api.endpoints.group_tagkey_details import GroupTagKeyDetailsEndpoint
 from sentry.api.endpoints.group_tagkey_values import GroupTagKeyValuesEndpoint
 from sentry.api.endpoints.group_tags import GroupTagsEndpoint
@@ -743,7 +742,6 @@ __EXCLUDED_FROM_PUBLIC_ENDPOINTS = {
     OrganizationIssuesCountEndpoint,
     OrganizationGroupIndexStatsEndpoint,
     GroupActivitiesEndpoint,
-    GroupSuspectReleasesEndpoint,
     GroupNotesEndpoint,
     GroupNotesDetailsEndpoint,
     GroupingLevelsEndpoint,
