@@ -9,7 +9,7 @@ import re
 import socket
 import sys
 import tempfile
-from datetime import timedelta
+from datetime import datetime, timedelta
 from urllib.parse import urlparse
 
 import sentry
@@ -2703,7 +2703,7 @@ MAX_REDIS_SNOWFLAKE_RETRY_COUNTER = 5
 
 SNOWFLAKE_VERSION_ID = 1
 SNOWFLAKE_REGION_ID = 0
-
+SENTRY_SNOWFLAKE_EPOCH_START = datetime(2022, 7, 21, 0, 0).timestamp()
 
 SENTRY_POST_PROCESS_LOCKS_BACKEND_OPTIONS = {
     "path": "sentry.utils.locking.backends.redis.RedisLockBackend",
