@@ -35,12 +35,7 @@ function withIssueTags<Props extends WithIssueTagsProps>(
 ) {
   function ComponentWithTags(props: Omit<Props, keyof WithIssueTagsProps>) {
     const [state, setState] = useState<WrappedComponentState>({
-      tags: assign(
-        {},
-        TagStore.getAllTags(),
-        TagStore.getIssueAttributes(),
-        TagStore.getBuiltInTags()
-      ),
+      tags: TagStore.getIssueTags(),
       users: MemberListStore.getAll(),
       teams: TeamStore.getAll(),
     });
@@ -96,12 +91,7 @@ function withIssueTags<Props extends WithIssueTagsProps>(
     // Listen to tag store updates and cleanup listener on unmount
     useEffect(() => {
       const unsubscribeTags = TagStore.listen((storeTags: TagCollection) => {
-        const tags = assign(
-          {},
-          storeTags,
-          TagStore.getIssueAttributes(),
-          TagStore.getBuiltInTags()
-        );
+        const tags = assign({}, TagStore.getIssueTags(), storeTags);
 
         setAssigned({tags});
       }, undefined);
@@ -116,7 +106,7 @@ function withIssueTags<Props extends WithIssueTagsProps>(
       }, undefined);
 
       return () => unsubscribeMembers();
-    }, []);
+    }, [setAssigned]);
 
     return <WrappedComponent {...(props as Props)} tags={state.tags} />;
   }
