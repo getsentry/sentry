@@ -6,6 +6,7 @@ from typing import Any, Dict, Mapping, Optional, Union
 
 from django.db import transaction
 from django.db.models.signals import post_save
+from django.forms import ValidationError
 from django.utils import timezone
 from snuba_sdk import Column, Condition, Limit, Op
 
@@ -36,7 +37,7 @@ from sentry.incidents.models import (
 from sentry.models import Integration, PagerDutyService, Project, SentryApp
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.fields import resolve_field
-from sentry.shared_integrations.exceptions import DuplicateDisplayNameError
+from sentry.shared_integrations.exceptions import DuplicateDisplayNameError, IntegrationError
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.entity_subscription import (
     ENTITY_TIME_COLUMNS,
@@ -1191,6 +1192,18 @@ def get_target_identifier_display_for_integration(type, target_value, *args, **k
         # if we have a value for input_channel_id, just set target_identifier to that
         target_identifier = kwargs.pop("input_channel_id")
         if target_identifier is not None:
+            from sentry.integrations.slack.utils.channel import validate_channel_id
+
+            try:
+                validate_channel_id(
+                    name=target_value,
+                    # The way this function is called we can do this but we should refactor the signatures
+                    integration_id=args[1],
+                    input_channel_id=target_identifier,
+                )
+            except (IntegrationError, ValidationError) as e:
+                raise InvalidTriggerActionError(e.message)
+
             return (
                 target_identifier,
                 target_value,
