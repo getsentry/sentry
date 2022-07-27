@@ -29,8 +29,10 @@ from .block import (
     ActionType,
     TextSize,
     TextWeight,
+    VerticalContentAlignment,
     create_action_block,
     create_action_set_block,
+    create_column_block,
     create_column_set_block,
     create_container_block,
     create_footer_column_block,
@@ -102,19 +104,22 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
             size=TextSize.SMALL,
             weight=TextWeight.LIGHTER,
             horizontalAlignment="Center",
+            wrap=False,
         )
 
     def build_group_footer(self) -> ColumnSetBlock:
         project = Project.objects.get_from_cache(id=self.group.project_id)
 
-        # TODO: implement with event as well
         image_column = create_footer_logo_block()
 
         text = build_footer(self.group, project, self.rules, MSTEAMS_URL_FORMAT)
 
         text_column = create_footer_column_block(create_footer_text_block(text))
 
-        date_column = self.create_date_block()
+        date_column = create_column_block(
+            self.create_date_block(),
+            verticalContentAlignment=VerticalContentAlignment.CENTER,
+        )
 
         return create_column_set_block(
             image_column,
