@@ -645,9 +645,13 @@ class DashboardDetail extends Component<Props, State> {
 
   renderWidgetBuilder() {
     const {children, dashboard, organization, location} = this.props;
-    const {modifiedDashboard} = this.state;
+    const {dashboardState, modifiedDashboard} = this.state;
 
+    // By definition, a new dashboard has unsaved filter changes
+    // so only attempt to set state when there are actually
+    // saved filters to compare to
     if (
+      dashboardState !== DashboardState.CREATE &&
       organization.features.includes('dashboards-top-level-filter') &&
       modifiedDashboard &&
       hasUnsavedFilterChanges(dashboard, location, modifiedDashboard.filters)
