@@ -2,13 +2,17 @@ from urllib.parse import quote
 
 from django.core import mail
 
-from sentry.integrations.slack.message_builder import SLACK_URL_FORMAT
-from sentry.models import Activity, Environment, Repository
+from sentry.integrations.slack import SLACK_URL_FORMAT
+from sentry.models import Activity, Environment, NotificationSetting, Repository
 from sentry.notifications.notifications.activity.release_summary import (
     ReleaseSummaryActivityNotification,
 )
 from sentry.notifications.notifications.base import create_notification_with_properties
-from sentry.notifications.types import GroupSubscriptionReason
+from sentry.notifications.types import (
+    GroupSubscriptionReason,
+    NotificationSettingOptionValues,
+    NotificationSettingTypes,
+)
 from sentry.testutils.cases import ActivityTestCase
 from sentry.types.activity import ActivityType
 from sentry.types.integrations import ExternalProviders
@@ -58,6 +62,14 @@ class ReleaseSummaryTestCase(ActivityTestCase):
                 release_summary, url_format=SLACK_URL_FORMAT
             )
 
+        # opt-in to getting active_release notifications
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.EMAIL,
+            NotificationSettingTypes.ACTIVE_RELEASE,
+            NotificationSettingOptionValues.ALWAYS,
+            user=self.user1,
+            project=self.project,
+        )
         # user1 is included because they committed
         participants = release_summary.get_participants_with_group_subscription_reason()[
             ExternalProviders.EMAIL
