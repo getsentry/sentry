@@ -1,6 +1,6 @@
 import logging
 from collections import defaultdict
-from typing import List, Mapping, MutableMapping, NamedTuple, Optional, Sequence, Set
+from typing import List, Mapping, MutableMapping, MutableSet, NamedTuple, Optional, Sequence, Set
 
 import rapidjson
 import sentry_sdk
@@ -54,7 +54,7 @@ class IndexerBatch:
     @metrics.wraps("process_messages.parse_outer_message")
     def extract_strings(self) -> Mapping[int, Set[str]]:
         org_strings = defaultdict(set)
-        strings = set()
+        strings: MutableSet[str] = set()
 
         self.skipped_offsets: Set[PartitionIdxOffset] = set()
         self.parsed_payloads_by_offset: MutableMapping[PartitionIdxOffset, json.JSONData] = {}

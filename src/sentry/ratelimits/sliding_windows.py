@@ -78,7 +78,7 @@ When using the quotas, the keys change as follows:
 from collections import defaultdict
 from dataclasses import dataclass
 from time import time
-from typing import Any, Iterator, Optional, Sequence, Tuple
+from typing import Any, Iterator, MutableMapping, Optional, Sequence, Tuple
 
 from sentry.exceptions import InvalidConfiguration
 from sentry.utils import redis
@@ -338,7 +338,7 @@ class RedisSlidingWindowRateLimiter(SlidingWindowRateLimiter):
         #
         # this prevents us from seriously overcommitting on the global quota,
         # just because each request happens to fit into it
-        quota_used_cache = defaultdict(int)
+        quota_used_cache: MutableMapping[int, int] = defaultdict(int)
 
         for request in requests:
             # We start out with assuming the entire request can be granted in
