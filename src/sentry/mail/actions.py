@@ -41,7 +41,13 @@ class NotifyEmailAction(EventAction):
 
 
 class NotifyActiveReleaseEmailAction(NotifyEmailAction):
-    """Send an 'active_release' notification to all release committers when a new issue is seen."""
+    """Send an 'active_release' notification to all release committers when a new issue is seen.
+    This is a specialized form of `NotifyEmailAction` in that:
+        1. This action should never be configurable as a rule action by a user.
+        2. The `target_type` is pinned to `RELEASE_MEMBERS`
+        3. The callback invoked in `after()` does not make any use of the `RuleFuture`s since
+            this action is not rule-aware.
+    """
 
     id = "sentry.mail.actions.NotifyActiveReleaseEmailAction"
     form_cls = NotifyEmailForm
