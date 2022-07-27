@@ -26,9 +26,7 @@ function splitCrumbs({
     // consistent with the other Segment types
     return [
       <Span key="summary">
-        <TextOverflow ellipsisDirection="left">
-          {tn('%s Transaction', '%s Transactions', 0)}
-        </TextOverflow>
+        <TextOverflow>{tn('%s Transaction', '%s Transactions', 0)}</TextOverflow>
       </Span>,
     ];
   }
@@ -93,7 +91,7 @@ function SummarySegment({
         bodyClassName="half-padding"
         position="right"
       >
-        <TextOverflow ellipsisDirection="left">
+        <TextOverflow>
           {tn('%s Transaction', '%s Transactions', summaryItems.length)}
         </TextOverflow>
       </HalfPaddingHovercard>
