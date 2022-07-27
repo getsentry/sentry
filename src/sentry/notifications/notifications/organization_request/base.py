@@ -11,6 +11,7 @@ from sentry.notifications.notifications.strategies.role_based_recipient_strategy
     RoleBasedRecipientStrategy,
 )
 from sentry.notifications.types import NotificationSettingTypes
+from sentry.types.integrations import ExternalProviders
 
 if TYPE_CHECKING:
     from sentry.models import Organization, User
@@ -45,7 +46,7 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
         if isinstance(recipient, Team):
             raise NotImplementedError
 
-        settings_url = self.get_settings_url(recipient)
+        settings_url = self.get_settings_url(recipient, ExternalProviders.SLACK)
         recipient_role_string = self.role_based_recipient_strategy.get_recipient_role_string(
             recipient
         )
