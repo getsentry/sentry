@@ -85,21 +85,11 @@ def get_participants_for_group(
     return participants_by_provider
 
 
-def get_reason(
-    user: User, value: NotificationSettingOptionValues, user_ids: set[int]
-) -> int | None:
-    # Members who opt into all deploy emails.
-    if value == NotificationSettingOptionValues.ALWAYS:
-        return GroupSubscriptionReason.deploy_setting
-
-    # Members which have been seen in the commit log.
-    elif value == NotificationSettingOptionValues.COMMITTED_ONLY and user.id in user_ids:
-        return GroupSubscriptionReason.committed
-    return None
-
-
 def get_participants_for_release(
-    projects: Iterable[Project], organization: Organization, user_ids: set[int]
+    projects: Iterable[Project],
+    organization: Organization,
+    user_ids: set[int],
+    notification_setting_type=NotificationSettingTypes.DEPLOY,
 ) -> Mapping[ExternalProviders, Mapping[Team | User, int]]:
     # Collect all users with verified emails on a team in the related projects.
     users = set(User.objects.get_team_members_with_verified_email_for_projects(projects))
@@ -107,7 +97,7 @@ def get_participants_for_release(
     # Get all the involved users' settings for deploy-emails (including
     # users' organization-independent settings.)
     notification_settings = NotificationSetting.objects.get_for_recipient_by_parent(
-        NotificationSettingTypes.DEPLOY,
+        notification_setting_type,
         recipients=users,
         parent=organization,
     )
@@ -120,16 +110,38 @@ def get_participants_for_release(
     users_to_reasons_by_provider: MutableMapping[
         ExternalProviders, MutableMapping[Team | User, int]
     ] = defaultdict(dict)
+
+    def get_reason(
+        user: User,
+        value: NotificationSettingOptionValues,
+        user_ids: set[int],
+        notification_setting_type: NotificationSettingTypes,
+    ) -> int | None:
+        if notification_setting_type == NotificationSettingTypes.DEPLOY:
+            # Members who opt into all deploy emails.
+            if value == NotificationSettingOptionValues.ALWAYS:
+                return GroupSubscriptionReason.deploy_setting
+
+            # Members which have been seen in the commit log.
+            elif value == NotificationSettingOptionValues.COMMITTED_ONLY and user.id in user_ids:
+                return GroupSubscriptionReason.committed
+        elif notification_setting_type == NotificationSettingTypes.ACTIVE_RELEASE:
+            if value == NotificationSettingOptionValues.ALWAYS:
+                # user must be a committer and a part of this release
+                return GroupSubscriptionReason.committed
+
+        return None
+
     for user in users:
         notification_settings_by_scope = notification_settings_by_recipient.get(user, {})
         values_by_provider = get_values_by_provider_by_type(
             notification_settings_by_scope,
             notification_providers(),
-            NotificationSettingTypes.DEPLOY,
+            notification_setting_type,
             user,
         )
         for provider, value in values_by_provider.items():
-            reason_option = get_reason(user, value, user_ids)
+            reason_option = get_reason(user, value, user_ids, notification_setting_type)
             if reason_option:
                 users_to_reasons_by_provider[provider][user] = reason_option
     return users_to_reasons_by_provider
