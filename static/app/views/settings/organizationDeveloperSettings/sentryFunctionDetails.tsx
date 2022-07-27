@@ -1,4 +1,4 @@
-import React, {useEffect, useRef} from 'react';
+import React, {useRef} from 'react';
 import {browserHistory} from 'react-router';
 import Editor from '@monaco-editor/react';
 
@@ -66,10 +66,6 @@ function SentryFunctionDetails(props: Props) {
     res.status(200).send(message);
   };`;
 
-  useEffect(() => {
-    form.current.setValue('code', defaultCode);
-  }, [defaultCode]);
-
   const handleSubmitError = err => {
     let errorMessage = t('Unknown Error');
     if (err.status >= 400 && err.status < 500) {
@@ -104,7 +100,7 @@ function SentryFunctionDetails(props: Props) {
       // TODO: Not sure where to redirect to, so just redirect to the unbuilt Sentry Functions page
       browserHistory.push(`/settings/${orgId}/developer-settings/sentry-functions/`);
     } catch (err) {
-      addErrorMessage(t(err.responseJSON));
+      addErrorMessage(t(err.responseJSON.detail));
     }
   }
 
@@ -125,6 +121,7 @@ function SentryFunctionDetails(props: Props) {
             addLoadingMessage(t('Saving changes..'));
           }}
           initialData={{
+            code: defaultCode,
             ...props.sentryFunction,
           }}
           onSubmitError={handleSubmitError}
