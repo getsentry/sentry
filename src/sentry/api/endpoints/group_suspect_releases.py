@@ -6,8 +6,7 @@ from rest_framework.response import Response
 
 from sentry.api.base import EnvironmentMixin
 from sentry.api.bases import GroupEndpoint
-from sentry.api.helpers.environments import get_environments
-from sentry.api.serializers import GroupSerializerSnuba, serialize
+from sentry.api.serializers import serialize
 from sentry.models.deploy import Deploy
 from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
 from sentry.models.release import Release
@@ -38,10 +37,6 @@ class GroupSuspectReleasesEndpoint(GroupEndpoint, EnvironmentMixin):
         """
 
         organization = group.project.organization
-        environment_ids = [e.id for e in get_environments(request, organization)]
-
-        data = serialize(group, request.user, GroupSerializerSnuba(environment_ids=environment_ids))
-
         suspect_releases = set()
         regression = (
             GroupHistory.objects.filter(group=group, status=GroupHistoryStatus.REGRESSED)
