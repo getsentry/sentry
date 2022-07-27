@@ -117,7 +117,7 @@ class AlertRuleNotification(ProjectNotification):
 
         if self.rules:
             rule_url = build_rule_url(self.rules[0], self.group, self.project)
-            title_str += f" {self.format_url(text=self.rules[0].label, url=rule_url)}"
+            title_str += f" <{rule_url}|{self.rules[0].label}>"
 
             if len(self.rules) > 1:
                 title_str += f" (+{len(self.rules) - 1} other)"
@@ -253,7 +253,7 @@ class ActiveReleaseAlertNotification(AlertRuleNotification):
 
         if self.rules:
             rule_url = build_rule_url(self.rules[0], self.group, self.project)
-            title_str += f" {self.format_url(text=self.rules[0].label, url=rule_url)}"
+            title_str += f" <{rule_url}|{self.rules[0].label}>"
 
             if len(self.rules) > 1:
                 title_str += f" (+{len(self.rules) - 1} other)"
