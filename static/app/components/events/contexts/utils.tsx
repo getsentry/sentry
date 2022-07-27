@@ -21,7 +21,7 @@ const CONTEXT_TYPES = {
   trace: require('sentry/components/events/contexts/trace').TraceEventContext,
   // 'redux.state' will be replaced with more generic context called 'state'
   'redux.state': require('sentry/components/events/contexts/redux').default,
-  state: require('sentry/components/events/contexts/state').default,
+  state: require('sentry/components/events/contexts/state').StateEventContext,
 };
 
 export function getContextComponent(type: string) {
