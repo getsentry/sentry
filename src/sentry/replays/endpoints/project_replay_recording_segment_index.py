@@ -9,6 +9,8 @@ from sentry.replays.models import ReplayRecordingSegment
 
 
 class ProjectReplayRecordingSegmentIndexEndpoint(ProjectEndpoint):
+    private = True
+
     def get(self, request: Request, project, replay_id: str) -> Response:
         if not features.has(
             "organizations:session-replay", project.organization, actor=request.user
