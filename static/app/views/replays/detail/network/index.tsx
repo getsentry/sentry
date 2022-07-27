@@ -107,6 +107,7 @@ function NetworkList({event, networkSpans}: Props) {
       emptyMessage={t('No related network requests found.')}
       headers={columns}
       disablePadding
+      stickyHeaders
     >
       {networkData.map(renderTableRow) || null}
     </StyledPanelTable>
@@ -131,14 +132,8 @@ const StyledPanelTable = styled(PanelTable)<{columns: number}>`
   font-size: ${p => p.theme.fontSizeSmall};
   line-height: 16px;
   margin-bottom: 0;
-  height: 100%;
+  max-height: 100%;
   overflow: auto;
-  /* Make the header row sticky */
-  > :nth-child(-n + ${p => p.columns}) {
-    justify-content: center; /* because justify-content:end is applied to some columns, the content, but the flex-direction is different for content and headers, so we need to remove that. */
-    position: sticky;
-    top: 0;
-  }
 
   > * {
     border-right: 1px solid ${p => p.theme.innerBorder};
