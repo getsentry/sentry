@@ -161,18 +161,8 @@ class ReleaseSummaryActivityNotification(ActivityNotification):
             f"/organizations/{self.organization.slug}/issues/?query={quote(f'firstRelease:{self.version}')}{project_query}&referrer=release_summary"
         )
         new_issue_counts = sum(self.group_counts_by_project.get(p.id, 0) for p in self.projects)
-        release_url_text = self.format_url(
-            text=escape_slack_text(self.version_parsed), url=release_link
-        )
-        issue_url_text = self.format_url(
-            text=f"{new_issue_counts} issues",
-            url=issues_link,
-        )
-        message = (
-            f"Release {release_url_text} has been deployed to {self.environment} for an hour"
-            f" with {issue_url_text} associated with it"
-        )
-
+        message = f"Release <{release_link}|{escape_slack_text(self.version_parsed)}> has been deployed to {self.environment} for an hour"
+        message += f" with <{issues_link}|{new_issue_counts} issues> associated with it"
         return message
 
     def get_message_actions(self, recipient: Team | User) -> Sequence[MessageAction]:
@@ -189,13 +179,9 @@ class ReleaseSummaryActivityNotification(ActivityNotification):
         settings_url = self.get_settings_url(recipient, ExternalProviders.SLACK)
 
         # no environment related to a deploy
-        footer = ""
         if self.release:
-            footer += f"{self.release.projects.all()[0].slug} | "
-
-        footer += f"{self.format_url(text='Notification Settings', url=settings_url)}"
-
-        return footer
+            return f"{self.release.projects.all()[0].slug} | <{settings_url}|Notification Settings>"
+        return f"<{settings_url}|Notification Settings>"
 
     def send(self) -> None:
         # Don't create a message when the Activity doesn't have a release and deploy.
