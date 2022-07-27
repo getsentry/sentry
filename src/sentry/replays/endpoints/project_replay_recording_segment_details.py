@@ -7,7 +7,6 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.models import File
 from sentry.replays.models import ReplayRecordingSegment
-from sentry.replays.serializers import ReplayRecordingSegmentSerializer
 
 
 class ProjectReplayRecordingSegmentDetailsEndpoint(ProjectEndpoint):
@@ -31,9 +30,7 @@ class ProjectReplayRecordingSegmentDetailsEndpoint(ProjectEndpoint):
         if request.GET.get("download") is not None:
             return self.download(segment)
         else:
-            return self.respond(
-                {"data": serialize(segment, request.user, ReplayRecordingSegmentSerializer())}
-            )
+            return self.respond({"data": serialize(segment, request.user)})
 
     def download(self, recording_segment: ReplayRecordingSegment) -> StreamingHttpResponse:
         file = File.objects.get(id=recording_segment.file_id)
