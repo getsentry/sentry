@@ -114,7 +114,7 @@ class Errors extends Component<Props, State> {
   render() {
     const {event, proGuardErrors} = this.props;
     const {releaseArtifacts} = this.state;
-    const {dist: eventDistribution, errors: eventErrors = []} = event;
+    const {dist: eventDistribution, errors: eventErrors = [], _meta} = event;
 
     // XXX: uniqWith returns unique errors and is not performant with large datasets
     const otherErrors: Array<Error> =
@@ -136,6 +136,8 @@ class Errors extends Component<Props, State> {
             >
               {errors.map((error, errorIdx) => {
                 const data = error.data ?? {};
+                const meta = _meta?.errors?.[errorIdx];
+
                 if (
                   error.type === JavascriptProcessingErrors.JS_MISSING_SOURCE &&
                   data.url &&
@@ -166,7 +168,7 @@ class Errors extends Component<Props, State> {
                   }
                 }
 
-                return <ErrorItem key={errorIdx} error={{...error, data}} />;
+                return <ErrorItem key={errorIdx} error={{...error, data}} meta={meta} />;
               })}
             </ErrorList>,
           ]}

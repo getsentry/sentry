@@ -24,4 +24,35 @@ describe('Issue error item', function () {
 
     expect(screen.getByText('Mapping Uuid')).toBeInTheDocument();
   });
+
+  it('display redacted data', async function () {
+    render(
+      <ErrorItem
+        error={{
+          data: {
+            image_path: '',
+            image_uuid: '6b77ffb6-5aba-3b5f-9171-434f9660f738',
+            message: '',
+          },
+          message: 'A required debug information file was missing.',
+          type: 'native_missing_dsym',
+        }}
+        meta={{
+          image_path: {'': {rem: [['project:2', 's', 0, 0]], len: 117}},
+        }}
+      />
+    );
+
+    userEvent.click(screen.getByLabelText('Expand'));
+
+    expect(screen.getByText('File Name')).toBeInTheDocument();
+    expect(screen.getByText('File Path')).toBeInTheDocument();
+    expect(screen.getAllByText(/redacted/)).toHaveLength(2);
+
+    userEvent.hover(screen.getAllByText(/redacted/)[0]);
+
+    expect(
+      await screen.findByText('Replaced because of PII rule "project:2"')
+    ).toBeInTheDocument(); // tooltip description
+  });
 });
