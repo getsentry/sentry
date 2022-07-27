@@ -3433,5 +3433,6 @@
       }
     ]
   },
+  "event_id": "BFE4379D82934B2B91D70B1167BCAE8D",
   "user": {"id": "1234", "email": "hello@sentry.io"}
 }
