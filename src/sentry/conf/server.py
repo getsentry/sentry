@@ -547,7 +547,7 @@ CELERY_REDIRECT_STDOUTS = False
 CELERYD_HIJACK_ROOT_LOGGER = False
 CELERY_TASK_SERIALIZER = "pickle"
 CELERY_RESULT_SERIALIZER = "pickle"
-CELERY_ACCEPT_CONTENT = {"pickle"}
+CELERY_ACCEPT_CONTENT = {"pickle", "json"}
 CELERY_IMPORTS = (
     "sentry.data_export.tasks",
     "sentry.discover.tasks",
