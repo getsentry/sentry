@@ -9,8 +9,6 @@ from sentry.api.serializers import serialize
 from sentry.models.sentryfunction import SentryFunction
 from sentry.utils.cloudfunctions import delete_function, update_function
 
-# from sentry.utils.cloudfunctions import delete_function, update_function
-
 
 class OrganizationSentryFunctionDetailsEndpoint(OrganizationEndpoint):
     private = True
