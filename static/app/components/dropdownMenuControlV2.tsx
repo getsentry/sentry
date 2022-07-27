@@ -7,7 +7,6 @@ import {useResizeObserver} from '@react-aria/utils';
 import {Item, Section} from '@react-stately/collections';
 import {useMenuTriggerState} from '@react-stately/menu';
 import {MenuTriggerProps} from '@react-types/menu';
-import {CollectionElement} from '@react-types/shared';
 
 import DropdownButton, {DropdownButtonProps} from 'sentry/components/dropdownButtonV2';
 import {MenuItemProps} from 'sentry/components/dropdownMenuItemV2';
@@ -54,12 +53,6 @@ type Props = {
    */
   menuTitle?: string;
   /**
-   * Custom renderer for the Item components in the Menu.
-   */
-  renderItem?: (
-    props: MenuItemProps & {isDisabled: boolean}
-  ) => CollectionElement<MenuItemProps>;
-  /**
    * Tag name for the outer wrap, defaults to `div`
    */
   renderWrapAs?: React.ElementType;
@@ -101,7 +94,6 @@ function MenuControl({
   closeCurrentSubmenu,
   renderWrapAs = 'div',
   className,
-  renderItem,
   ...props
 }: Props) {
   const ref = useRef<HTMLButtonElement>(null);
@@ -207,12 +199,6 @@ function MenuControl({
               </Section>
             );
           }
-
-          if (renderItem) {
-            const isItemDisabled = [...(props.disabledKeys ?? [])].includes(item.key);
-            return renderItem({isDisabled: isItemDisabled, ...item});
-          }
-
           return <Item {...item}>{item.label}</Item>;
         }}
       </Menu>

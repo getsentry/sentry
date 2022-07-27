@@ -1,6 +1,5 @@
 import {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
-import {Item} from '@react-stately/collections';
 import {Location} from 'history';
 
 import {openDashboardWidgetQuerySelectorModal} from 'sentry/actionCreators/modal';
@@ -25,6 +24,7 @@ import {
   isCustomMeasurementWidget,
 } from 'sentry/views/dashboardsV2/utils';
 
+import {UNSAVED_FILTERS_MESSAGE} from '../detail';
 import {Widget, WidgetType} from '../types';
 import {WidgetViewerContext} from '../widgetViewer/widgetViewerContext';
 
@@ -206,6 +206,8 @@ function WidgetCardContextMenu({
       key: 'duplicate-widget',
       label: t('Duplicate Widget'),
       onAction: () => onDuplicate?.(),
+      tooltip: hasUnsavedFilters && UNSAVED_FILTERS_MESSAGE,
+      tooltipOptions: {position: 'left'},
     });
     widgetLimitReached && disabledKeys.push('duplicate-widget');
 
@@ -213,6 +215,8 @@ function WidgetCardContextMenu({
       key: 'edit-widget',
       label: t('Edit Widget'),
       onAction: () => onEdit?.(),
+      tooltip: hasUnsavedFilters && UNSAVED_FILTERS_MESSAGE,
+      tooltipOptions: {position: 'left'},
     });
 
     menuOptions.push({
@@ -226,6 +230,8 @@ function WidgetCardContextMenu({
           onConfirm: () => onDelete?.(),
         });
       },
+      tooltip: hasUnsavedFilters && UNSAVED_FILTERS_MESSAGE,
+      tooltipOptions: {position: 'left'},
     });
   }
 
@@ -262,22 +268,6 @@ function WidgetCardContextMenu({
                 ? ['duplicate-widget', 'edit-widget', 'delete-widget']
                 : []),
             ]}
-            renderItem={({isDisabled, ...item}) => (
-              <Item {...item}>
-                <Tooltip
-                  title={
-                    isDisabled && hasUnsavedFilters
-                      ? t(
-                          'You have unsaved dashboard filters. You can save or discard them.'
-                        )
-                      : ''
-                  }
-                  position="left"
-                >
-                  {item.label}
-                </Tooltip>
-              </Item>
-            )}
           />
           {showWidgetViewerButton && (
             <OpenWidgetViewerButton
