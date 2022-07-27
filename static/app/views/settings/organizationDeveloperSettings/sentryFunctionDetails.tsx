@@ -65,7 +65,7 @@ function SentryFunctionDetails(props: Props) {
     console.log('Body: ' + req.body);
     res.status(200).send(message);
   };`;
-  // TODO: This doesn't work, figure this out
+
   useEffect(() => {
     form.current.setValue('code', defaultCode);
   }, [defaultCode]);
