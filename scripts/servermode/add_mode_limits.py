@@ -17,7 +17,7 @@ Instructions for use:
 1. Commit or stash any Git changes in progress.
 2. Scroll down to "Fill these predicates in..." and write what you want to do.
 3. From the Sentry project root, do
-     ./scripts/audit_mode_limits.py | ./scripts/add_mode_limits.py
+     ./scripts/servermode/audit_mode_limits.py | ./scripts/servermode/add_mode_limits.py
 4. Do `git status` or `git diff` to observe the results. Commit if you're happy.
 """
 
