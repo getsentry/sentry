@@ -19,7 +19,6 @@ from sentry.rules.base import CallbackFuture
 from sentry.rules.conditions.active_release import ActiveReleaseEventCondition
 from sentry.rules.conditions.base import EventCondition
 from sentry.rules.filters.base import EventFilter
-from sentry.rules.filters.issue_occurrences import IssueOccurrencesFilter
 from sentry.types.rules import RuleFuture
 from sentry.utils.hashlib import hash_values
 from sentry.utils.safe import safe_execute
@@ -269,35 +268,46 @@ class RuleProcessor:
         self,
         conditions: Sequence[EventCondition],
         filters: Sequence[EventFilter],
-        frequency_minutes: int = 5,
+        actions: Sequence[EventAction],
+        action_frequency_minutes: int,
+        predicate_eval_frequency_minutes: int,
     ) -> None:
         now = timezone.now()
-        freq_offset = now - timedelta(minutes=frequency_minutes)
-        last_active_cache_key = "{}:p-{}:g-{}".format(
-            "active-release-last-active", self.event.project_id, self.event.group_id
+        freq_offset = now - timedelta(minutes=action_frequency_minutes)
+        predicate_freq_offset = now - timedelta(minutes=predicate_eval_frequency_minutes)
+        last_action_cache_key = "{}:p-{}:g-{}".format(
+            "active-release-last-action", self.event.project_id, self.event.group_id
         )
-        last_active_time = cache.get(last_active_cache_key)
+        last_eval_cache_key = "{}:p-{}:g-{}".format(
+            "active-release-last-eval", self.event.project_id, self.event.group_id
+        )
+        last_action_time = cache.get(last_action_cache_key)
+        last_eval_time = cache.get(last_eval_cache_key)
 
-        if last_active_time and last_active_time > freq_offset:
+        if last_action_time and last_action_time > freq_offset:
+            return
+
+        if last_eval_time and last_eval_time > predicate_freq_offset:
             return
 
         state = self.get_state()
 
+        cache.set(last_eval_cache_key, now, 60)
         if not all(
             safe_execute(f.passes, event=self.event, state=state, _with_transaction=False)
-            for f in filters
+            for f in (filters or ())
         ):
             return
 
         if not all(
             safe_execute(c.passes, event=self.event, state=state, _with_transaction=False)
-            for c in conditions
+            for c in conditions or ()
         ):
             return
 
-        cache.set(last_active_cache_key, now, 60)
+        cache.set(last_action_cache_key, now, 60)
 
-        for action in self._get_active_release_rule_actions():
+        for action in actions or ():
             results: Sequence[CallbackFuture] = safe_execute(
                 action.after, event=self.event, state=state, _with_transaction=False
             )
@@ -320,7 +330,10 @@ class RuleProcessor:
         if features.has("projects:active-release-monitor-default-on", self.project):
             self.apply_active_release_rule(
                 [ActiveReleaseEventCondition(project=self.project)],
-                [IssueOccurrencesFilter(project=self.project, data={"value": "1"})],
+                [],
+                self._get_active_release_rule_actions(),
+                1,
+                1,
             )
 
         return self.grouped_futures.values()
