@@ -241,7 +241,7 @@ class DebugMeta extends PureComponent<Props, State> {
         : undefined;
 
     const mod = await import(
-      'sentry/components/events/interfaces/debugMeta-v2/debugImageDetails'
+      'sentry/components/events/interfaces/debugMeta/debugImageDetails'
     );
 
     const {default: Modal, modalCss} = mod;

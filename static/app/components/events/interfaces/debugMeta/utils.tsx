@@ -1,6 +1,5 @@
 import {Fragment} from 'react';
 
-import {DebugImage} from 'sentry/components/events/interfaces/debugMeta-v2/types';
 import {formatAddress, getImageRange} from 'sentry/components/events/interfaces/utils';
 import {Image, ImageStatus} from 'sentry/types/debugImage';
 import {defined} from 'sentry/utils';
@@ -44,10 +43,9 @@ export function normalizeId(id?: string) {
   return id?.trim().toLowerCase().replace(/[- ]/g, '') ?? '';
 }
 
-// TODO(ts): When replacing debugMeta with debugMetaV2, also replace {type: string} with the Image type defined in 'sentry/types/debugImage'
 export function shouldSkipSection(
-  filteredImages: Array<{type: string}>,
-  images: Array<{type: string} | null>
+  filteredImages: Array<Image>,
+  images: Array<Image | null>
 ) {
   if (!!filteredImages.length) {
     return false;
@@ -67,7 +65,7 @@ export function shouldSkipSection(
 }
 
 export function getImageAddress(image: Image) {
-  const [startAddress, endAddress] = getImageRange(image as DebugImage);
+  const [startAddress, endAddress] = getImageRange(image);
 
   if (startAddress && endAddress) {
     return (
