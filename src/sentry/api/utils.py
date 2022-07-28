@@ -120,12 +120,12 @@ def generate_organization_hostname(org_slug: str) -> str:
     org_base_hostname_template = options.get("system.organization-base-hostname")
     if not org_base_hostname_template:
         return url_prefix_hostname
-    if "{region}" not in org_base_hostname_template:
-        return url_prefix_hostname
     org_hostname = org_base_hostname_template.replace("{slug}", org_slug)
+    if "{region}" not in org_hostname:
+        return org_hostname
     region = options.get("system.region") or None
     if region is None:
-        return url_prefix_hostname
+        return org_hostname
     org_hostname = org_hostname.replace("{region}", region)
     return org_hostname
 
