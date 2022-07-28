@@ -100,7 +100,6 @@ function Hovercard({
 
 const StyledHovercard = styled(Overlay)`
   width: 295px;
-  line-height: 1.2;
 
   h6 {
     color: ${p => p.theme.subText};

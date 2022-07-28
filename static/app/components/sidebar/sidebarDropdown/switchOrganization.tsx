@@ -94,7 +94,6 @@ const StyledIconAdd = styled(IconAdd)`
 `;
 
 const MenuItemLabelWithIcon = styled('span')`
-  line-height: 1;
   display: flex;
   align-items: center;
   padding: ${space(1)} 0;

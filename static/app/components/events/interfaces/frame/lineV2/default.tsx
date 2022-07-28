@@ -89,7 +89,6 @@ const VertCenterWrapper = styled('div')`
 const Title = styled('div')`
   > * {
     vertical-align: middle;
-    line-height: 1;
   }
 `;
 

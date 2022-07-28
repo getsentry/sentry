@@ -20,7 +20,6 @@ const ModalHeader = styled('header')`
     font-size: 20px;
     font-weight: 600;
     margin-bottom: 0;
-    line-height: 1.1;
   }
 `;
 

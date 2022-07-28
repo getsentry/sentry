@@ -29,8 +29,6 @@ function HTMLCode({code}: Props) {
 }
 
 const CodeWrapper = styled('div')`
-  line-height: 1.5;
-
   pre {
     word-break: break-all;
     white-space: pre-wrap;

@@ -373,7 +373,6 @@ export const CodeMappingButtonContainer = styled(OpenInContainer)`
 
 const StyledIconWrapper = styled('span')`
   color: inherit;
-  line-height: 0;
 `;
 
 const StyledIconClose = styled(IconClose)`
@@ -385,13 +384,12 @@ const StyledIconInfo = styled(IconInfo)`
   margin-right: ${space(0.5)};
   margin-bottom: -2px;
   cursor: pointer;
-  line-height: 0;
 `;
 
 const StyledHovercard = styled(Hovercard)`
   font-weight: normal;
   width: inherit;
-  line-height: 0;
+
   ${Header} {
     font-weight: strong;
     font-size: ${p => p.theme.fontSizeSmall};

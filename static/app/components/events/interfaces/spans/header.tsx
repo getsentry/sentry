@@ -661,7 +661,7 @@ const TickLabelContainer = styled('div')`
 
 const TickText = styled('span')<{align: TickAlignment}>`
   position: absolute;
-  line-height: 1;
+
   white-space: nowrap;
 
   ${({align}) => {
@@ -717,7 +717,7 @@ const DurationGuideBox = styled('div')<{alignLeft: boolean}>`
   height: 100%;
   border-radius: 3px;
   border: 1px solid rgba(0, 0, 0, 0.1);
-  line-height: 1;
+
   white-space: nowrap;
 
   ${({alignLeft}) => {

@@ -76,7 +76,7 @@ export const TreeToggle = styled('div')<SpanTreeTogglerAndDivProps>`
   padding: 0px ${space(0.5)};
   transition: all 0.15s ease-in-out;
   font-size: 10px;
-  line-height: 0;
+
   z-index: 1;
   box-shadow: ${p => p.theme.dropShadowLightest};
 

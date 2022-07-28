@@ -48,7 +48,6 @@ const ControlState = ({isSaving, isSaved, error}: ControlStateProps) => (
 );
 
 const ControlStateWrapper = styled('div')`
-  line-height: 0;
   padding: 0 8px;
 `;
 

@@ -37,7 +37,7 @@ const EventMessage = styled(BaseEventMessage)`
   display: flex;
   align-items: center;
   position: relative;
-  line-height: 1.2;
+
   overflow: hidden;
 `;
 

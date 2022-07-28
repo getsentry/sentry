@@ -101,7 +101,7 @@ export default withRouter(SearchResult);
 
 const SearchDetail = styled('div')`
   font-size: 0.8em;
-  line-height: 1.3;
+
   margin-top: 4px;
   opacity: 0.8;
 `;
@@ -113,7 +113,6 @@ const ExtraDetail = styled('div')`
 `;
 
 const BadgeDetail = styled('div')<{highlighted: boolean}>`
-  line-height: 1.3;
   color: ${p => (p.highlighted ? p.theme.purple300 : null)};
 `;
 

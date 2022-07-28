@@ -154,7 +154,6 @@ const IssueLink = styled('div')`
 `;
 
 const IssueLinkContainer = styled('div')`
-  line-height: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;

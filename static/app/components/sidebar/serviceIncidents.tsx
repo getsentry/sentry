@@ -258,7 +258,6 @@ const ComponentList = styled(List)`
 
 const ComponentStatus = styled(ListItem)`
   font-size: ${p => p.theme.fontSizeSmall};
-  line-height: 2;
 `;
 
 export default ServiceIncidents;

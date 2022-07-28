@@ -174,7 +174,6 @@ export const OutdatedVersion = styled('span')`
 
 export const SdkProjectBadge = styled(ProjectBadge)`
   font-size: ${p => p.theme.fontSizeExtraLarge};
-  line-height: 1;
 `;
 
 const StyledAlert = styled(Alert)`

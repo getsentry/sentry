@@ -425,7 +425,7 @@ const responsiveFlex = css`
 export const SidebarWrapper = styled('nav')<{collapsed: boolean}>`
   background: ${p => p.theme.sidebarGradient};
   color: ${p => p.theme.sidebar.color};
-  line-height: 1;
+
   padding: 12px 0 2px; /* Allows for 32px avatars  */
   width: ${p => p.theme.sidebar[p.collapsed ? 'collapsedWidth' : 'expandedWidth']};
   position: fixed;

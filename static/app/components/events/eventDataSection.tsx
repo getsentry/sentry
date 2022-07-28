@@ -145,14 +145,14 @@ const SectionHeader = styled('div')<{isCentered?: boolean}>`
   & h3 a {
     font-size: 14px;
     font-weight: 600;
-    line-height: 1.2;
+
     color: ${p => p.theme.gray300};
   }
 
   & h3 {
     font-size: 14px;
     font-weight: 600;
-    line-height: 1.2;
+
     padding: ${space(0.75)} 0;
     margin-bottom: 0;
     text-transform: uppercase;

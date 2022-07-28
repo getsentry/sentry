@@ -30,6 +30,6 @@ export default SentryAppComponentIcon;
 const SentryAppAvatarWrapper = styled('span')<{isDark: boolean; isDefault: boolean}>`
   color: ${({isDark}) => (isDark ? 'white' : 'black')};
   filter: ${p => (p.isDark && !p.isDefault ? 'invert(1)' : 'invert(0)')};
-  line-height: 0;
+
   flex-shrink: 0;
 `;

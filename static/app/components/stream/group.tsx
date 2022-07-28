@@ -554,7 +554,6 @@ const Wrapper = styled(PanelItem)<{
 }>`
   position: relative;
   padding: ${space(1.5)} 0;
-  line-height: 1.1;
 
   ${p =>
     p.useTintRow &&

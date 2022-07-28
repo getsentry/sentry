@@ -157,7 +157,6 @@ const TimeSinceWrapper = styled('div')`
 
 const StyledTimeSince = styled(TimeSince)`
   font-size: ${p => p.theme.fontSizeMedium};
-  line-height: 1.2;
 `;
 
 const StyledHovercard = styled(Hovercard)`

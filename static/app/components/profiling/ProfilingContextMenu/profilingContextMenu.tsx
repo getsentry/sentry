@@ -103,7 +103,7 @@ const MenuContent = styled('div')`
   text-transform: capitalize;
 
   margin-bottom: 0;
-  line-height: 1.4;
+
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -189,7 +189,7 @@ const MenuHeading = styled((props: MenuHeadingProps) => {
   return <div {...rest}>{children}</div>;
 })`
   text-transform: uppercase;
-  line-height: 1.5;
+
   font-weight: 600;
   color: ${p => p.theme.subText};
   margin-bottom: 0;

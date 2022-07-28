@@ -261,7 +261,7 @@ const MenuListItem = styled('li')<MenuListItemProps>`
     `
     padding: ${space(0.25)} ${space(0.5)};
     font-size: ${p.theme.fontSizeSmall};
-    line-height: 1.4;
+
     color: ${p.theme.gray300};
   `}
 

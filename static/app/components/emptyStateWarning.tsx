@@ -37,7 +37,6 @@ const EmptyStreamWrapper = styled('div')`
   padding: ${space(4)} ${space(2)};
 
   p {
-    line-height: 1.2;
     margin: 0 auto 20px;
     &:last-child {
       margin-bottom: 0;

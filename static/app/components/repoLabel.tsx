@@ -13,7 +13,7 @@ const RepoLabel = styled('span')`
 
   display: inline-block;
   vertical-align: text-bottom;
-  line-height: 1;
+
   background: ${p => p.theme.gray200};
   padding: 3px;
   max-width: 86px;

@@ -126,7 +126,6 @@ export const GridHeadCell = styled('th')<{isFirst: boolean}>`
   a,
   div,
   span {
-    line-height: 1.1;
     color: inherit;
     white-space: nowrap;
     text-overflow: ellipsis;
@@ -160,7 +159,7 @@ export const GridHeadCellStatic = styled('th')`
   background-color: ${p => p.theme.backgroundSecondary};
   font-size: ${p => p.theme.fontSizeSmall};
   font-weight: 600;
-  line-height: 1;
+
   text-transform: uppercase;
   text-overflow: ellipsis;
   white-space: nowrap;

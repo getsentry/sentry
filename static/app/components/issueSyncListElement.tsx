@@ -127,7 +127,6 @@ class IssueSyncListElement extends Component<Props> {
 }
 
 export const IssueSyncListElementContainer = styled('div')`
-  line-height: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -144,7 +143,7 @@ export const IntegrationLink = styled('a')`
   color: ${p => p.theme.textColor};
   border-bottom: 1px solid ${p => p.theme.textColor};
   cursor: pointer;
-  line-height: 1;
+
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

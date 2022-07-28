@@ -129,7 +129,6 @@ class InlineDocs extends Component<Props, State> {
 
 const DocumentationWrapper = styled('div')`
   p {
-    line-height: 1.5;
   }
   pre {
     word-break: break-all;

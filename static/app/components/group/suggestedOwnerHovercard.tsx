@@ -220,7 +220,6 @@ const ViewMoreButton = styled(Button)`
 
 const OwnershipValue = styled('code')`
   word-break: break-all;
-  line-height: 1.2;
 `;
 
 const EmailAlert = styled(Alert)`

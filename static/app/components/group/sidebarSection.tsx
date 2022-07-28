@@ -8,7 +8,6 @@ const Heading = styled('h5')`
   align-items: center;
   margin-bottom: ${space(2)};
   font-size: ${p => p.theme.fontSizeMedium};
-  line-height: 1;
 
   &:after {
     flex: 1;
@@ -26,7 +25,6 @@ const Subheading = styled('h6')`
   font-size: ${p => p.theme.fontSizeExtraSmall};
   text-transform: uppercase;
   margin-bottom: ${space(1)};
-  line-height: 1;
 `;
 
 interface SidebarSectionProps
@@ -52,7 +50,6 @@ function SidebarSection({title, children, secondary, ...props}: SidebarSectionPr
 
 const SectionContent = styled('div')`
   margin-bottom: ${space(4)};
-  line-height: 1;
 `;
 
 export default SidebarSection;

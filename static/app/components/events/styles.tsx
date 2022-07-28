@@ -96,7 +96,7 @@ export const CauseHeader = styled('div')`
     color: ${p => p.theme.gray300};
     font-size: 14px;
     font-weight: 600;
-    line-height: 1.2;
+
     text-transform: uppercase;
   }
 

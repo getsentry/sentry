@@ -206,7 +206,6 @@ const Title = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   justify-content: space-between;
   margin-bottom: ${space(0.25)};
-  line-height: 1.1;
 `;
 
 const TitleType = styled('div')`

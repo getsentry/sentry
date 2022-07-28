@@ -218,7 +218,7 @@ const OrgAndUserWrapper = styled('div')`
 `;
 const OrgOrUserName = styled(TextOverflow)`
   font-size: ${p => p.theme.fontSizeLarge};
-  line-height: 1.2;
+
   font-weight: bold;
   color: ${p => p.theme.white};
   text-shadow: 0 0 6px rgba(255, 255, 255, 0);

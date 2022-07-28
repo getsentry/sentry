@@ -307,7 +307,7 @@ const Heading = styled('div')`
   font-size: ${p => p.theme.fontSizeExtraSmall};
   text-transform: uppercase;
   font-weight: 600;
-  line-height: 1;
+
   margin-top: ${space(3)};
 `;
 

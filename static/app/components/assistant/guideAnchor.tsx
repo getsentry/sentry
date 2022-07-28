@@ -260,7 +260,7 @@ const GuideContainer = styled('div')`
   grid-template-rows: repeat(2, auto);
   gap: ${space(2)};
   text-align: center;
-  line-height: 1.5;
+
   background-color: ${p => p.theme.purple300};
   border-color: ${p => p.theme.purple300};
   color: ${p => p.theme.white};

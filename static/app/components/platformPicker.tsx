@@ -280,7 +280,6 @@ const PlatformCard = styled(({platform, selected, onClear, ...props}) => (
     text-transform: uppercase;
     margin: 0;
     padding: 0 ${space(0.5)};
-    line-height: 1.2;
   }
 `;
 

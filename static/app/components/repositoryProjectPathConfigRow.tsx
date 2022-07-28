@@ -97,9 +97,7 @@ const ProjectAndBranch = styled('div')`
 `;
 
 // match the line height of the badge
-const BranchWrapper = styled('div')`
-  line-height: 1.2;
-`;
+const BranchWrapper = styled('div')``;
 
 // Columns below
 const Column = styled('span')`

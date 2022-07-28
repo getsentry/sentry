@@ -79,7 +79,7 @@ export const ScoreWrapper = styled('div')`
 export const Score = styled('span')`
   flex-shrink: 1;
   font-size: 32px;
-  line-height: 1;
+
   color: ${p => p.theme.headingColor};
   white-space: nowrap;
 `;
@@ -89,7 +89,7 @@ type TrendProps = {trendStatus: Props['trendStatus']};
 export const Trend = styled('div')<TrendProps>`
   color: ${getTrendColor};
   margin-left: ${space(1)};
-  line-height: 1;
+
   overflow: hidden;
 `;
 

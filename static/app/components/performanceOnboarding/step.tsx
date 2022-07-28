@@ -70,8 +70,6 @@ const TaskCheckBox = styled('div')`
 `;
 
 const DocumentationWrapper = styled('div')`
-  line-height: 1.5;
-
   .gatsby-highlight {
     margin-bottom: ${space(3)};
 

@@ -641,7 +641,7 @@ const ChartContainer = styled('div')<{autoHeightResize: boolean}>`
     position: relative;
     font-weight: bold;
     font-size: ${p => p.theme.fontSizeSmall};
-    line-height: 1.4;
+
     font-family: ${p => p.theme.text.family};
     max-width: 230px;
     min-width: 230px;

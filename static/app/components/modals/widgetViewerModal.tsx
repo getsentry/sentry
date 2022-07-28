@@ -1098,7 +1098,7 @@ const HighlightContainer = styled('span')<{display?: 'block' | 'flex'}>`
   gap: ${space(1)};
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSizeSmall};
-  line-height: 2;
+
   flex: 1;
 `;
 

@@ -105,7 +105,7 @@ const AvatarWrapper = styled('div')`
 
 const EmailWarning = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
-  line-height: 1.4;
+
   margin: -4px;
 `;
 
@@ -138,13 +138,13 @@ const CommitMessage = styled('div')`
 
 const Message = styled(TextOverflow)`
   font-size: 15px;
-  line-height: 1.1;
+
   font-weight: bold;
 `;
 
 const Meta = styled(TextOverflow)`
   font-size: 13px;
-  line-height: 1.5;
+
   margin: 0;
   color: ${p => p.theme.subText};
 `;

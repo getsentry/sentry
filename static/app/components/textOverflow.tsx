@@ -26,7 +26,6 @@ const TextOverflow = styled(
       text-align: left;
     `};
   width: auto;
-  line-height: 1.2;
 `;
 
 TextOverflow.defaultProps = {
