@@ -1,3 +1,5 @@
+import time
+
 import pytest
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.keys import Keys
@@ -290,6 +292,7 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
             )
 
             self.wait_until_page_loaded()
+            time.sleep(1)
 
             # Tries to drag specific rules below an uniform rule
             dragHandleSource = self.browser.elements(
@@ -352,6 +355,7 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
             )
 
             self.wait_until_page_loaded()
+            time.sleep(1)
 
             # Before
             rules_before = self.browser.elements('[data-test-id="sampling-rule"]')
