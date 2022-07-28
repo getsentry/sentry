@@ -192,7 +192,7 @@ class OrganizationEventsSpansHistogramEndpointTest(APITestCase, SnubaTestCase):
         }
 
         response = self.do_request(query)
-        assert response.data == {"non_field_errors": ["min cannot be greater than max."]}
+        assert response.data == {"non_field_errors": ["min must be less than max."]}
 
     def test_bad_params_invalid_min(self):
         query = {

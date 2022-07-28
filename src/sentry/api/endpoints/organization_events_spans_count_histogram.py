@@ -20,12 +20,12 @@ class SpansCountHistogramSerializer(serializers.Serializer):
     dataFilter = serializers.ChoiceField(choices=DATA_FILTERS, required=False)
 
     def validate(self, data):
-        if "min" in data and "max" in data and data["min"] > data["max"]:
-            raise serializers.ValidationError("min cannot be greater than max.")
+        if "min" in data and "max" in data and data["min"] >= data["max"]:
+            raise serializers.ValidationError("min must be less than max.")
         return data
 
     def validate_spanOp(self, spanOp: str):
-        if len(spanOp) < 1:
+        if spanOp == "":
             raise serializers.ValidationError("span op cannot be empty.")
         return spanOp
 
