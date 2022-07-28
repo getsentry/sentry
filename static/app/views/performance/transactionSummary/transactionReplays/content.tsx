@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -87,39 +86,37 @@ function ReplaysContent(props: Props) {
           onSearch={handleChange('query')}
         />
       </FilterActions>
-      <Fragment>
-        <StyledPanelTable
-          isEmpty={tableData.data.length === 0}
-          headers={[
-            t('Session'),
-            <SortLink
-              key="timestamp"
-              role="columnheader"
-              aria-sort={
-                !sort.field.endsWith('timestamp')
-                  ? 'none'
-                  : sort.field === '-timestamp'
-                  ? 'descending'
-                  : 'ascending'
-              }
-              to={{
-                pathname: location.pathname,
-                query: {
-                  ...currentQuery,
-                  sort: sort.field === '-timestamp' ? 'timestamp' : '-timestamp',
-                },
-              }}
-            >
-              {t('Timestamp')} {sort.field.endsWith('timestamp') && sortArrow}
-            </SortLink>,
-            t('Duration'),
-            t('Errors'),
-          ]}
-        >
-          <ReplayTable idKey="replayId" replayList={tableData.data as Replay[]} />
-        </StyledPanelTable>
-        <Pagination pageLinks={pageLinks} />
-      </Fragment>
+      <StyledPanelTable
+        isEmpty={tableData.data.length === 0}
+        headers={[
+          t('Session'),
+          <SortLink
+            key="timestamp"
+            role="columnheader"
+            aria-sort={
+              !sort.field.endsWith('timestamp')
+                ? 'none'
+                : sort.field === '-timestamp'
+                ? 'descending'
+                : 'ascending'
+            }
+            to={{
+              pathname: location.pathname,
+              query: {
+                ...currentQuery,
+                sort: sort.field === '-timestamp' ? 'timestamp' : '-timestamp',
+              },
+            }}
+          >
+            {t('Timestamp')} {sort.field.endsWith('timestamp') && sortArrow}
+          </SortLink>,
+          t('Duration'),
+          t('Errors'),
+        ]}
+      >
+        <ReplayTable idKey="replayId" replayList={tableData.data as Replay[]} />
+      </StyledPanelTable>
+      <Pagination pageLinks={pageLinks} />
     </Layout.Main>
   );
 }

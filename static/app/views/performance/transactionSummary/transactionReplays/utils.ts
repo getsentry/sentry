@@ -1,9 +1,5 @@
 import {Query} from 'history';
 
-export function generateReplaysRoute({orgSlug}: {orgSlug: String}): string {
-  return `/organizations/${orgSlug}/performance/summary/replays/`;
-}
-
 export function replaysRouteWithQuery({
   orgSlug,
   transaction,
@@ -15,9 +11,7 @@ export function replaysRouteWithQuery({
   transaction: string;
   projectID?: string | string[];
 }) {
-  const pathname = generateReplaysRoute({
-    orgSlug,
-  });
+  const pathname = `/organizations/${orgSlug}/performance/summary/replays/`;
 
   return {
     pathname,

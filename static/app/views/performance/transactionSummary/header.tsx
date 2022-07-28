@@ -11,6 +11,7 @@ import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ListLink from 'sentry/components/links/listLink';
 import NavTabs from 'sentry/components/navTabs';
+import ReplaysFeatureBadge from 'sentry/components/replays/replaysFeatureBadge';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
@@ -29,7 +30,6 @@ import {replaysRouteWithQuery} from './transactionReplays/utils';
 import {spansRouteWithQuery} from './transactionSpans/utils';
 import {tagsRouteWithQuery} from './transactionTags/utils';
 import {vitalsRouteWithQuery} from './transactionVitals/utils';
-import NoAccess from './noAccess';
 import Tab from './tabs';
 import TeamKeyTransactionButton from './teamKeyTransactionButton';
 import TransactionThresholdButton from './transactionThresholdButton';
@@ -313,11 +313,7 @@ class TransactionHeader extends Component<Props> {
               </ListLink>
             </Feature>
             {this.renderWebVitalsTab()}
-            <Feature
-              features={['session-replay']}
-              organization={organization}
-              renderDisabled={NoAccess}
-            >
+            <Feature features={['session-replay']} organization={organization}>
               <ListLink
                 data-test-id="replays-tab"
                 to={replaysTarget}
@@ -325,6 +321,7 @@ class TransactionHeader extends Component<Props> {
                 onClick={this.trackTabClick(Tab.Replays)}
               >
                 {t('Replays')}
+                <ReplaysFeatureBadge />
               </ListLink>
             </Feature>
           </StyledNavTabs>

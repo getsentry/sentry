@@ -23,7 +23,7 @@ type Props = {
   projects: Project[];
 };
 
-function TransactionVitals(props: Props) {
+function TransactionReplays(props: Props) {
   const {location, organization, projects} = props;
 
   return (
@@ -135,4 +135,4 @@ function generateEventView({
   );
 }
 
-export default withProjects(withOrganization(TransactionVitals));
+export default withProjects(withOrganization(TransactionReplays));
