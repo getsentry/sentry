@@ -30,6 +30,7 @@ class GetParticipantsTest(TestCase):
         assert notification.get_participants() == {
             ExternalProviders.EMAIL: {self.user, self.user2},
             ExternalProviders.SLACK: {self.user, self.user2},
+            ExternalProviders.MSTEAMS: {self.user, self.user2},
         }
 
     def test_turn_off_settings(self):
@@ -52,4 +53,5 @@ class GetParticipantsTest(TestCase):
         assert notification.get_participants() == {
             ExternalProviders.EMAIL: {self.user, self.user2},
             ExternalProviders.SLACK: {self.user, self.user2},
+            ExternalProviders.MSTEAMS: {self.user, self.user2},
         }
