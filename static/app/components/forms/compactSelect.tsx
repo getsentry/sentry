@@ -22,7 +22,7 @@ import SelectControl, {
 } from 'sentry/components/forms/selectControl';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import space from 'sentry/styles/space';
-import {Theme} from 'sentry/utils/theme';
+import {FormSize} from 'sentry/utils/theme';
 
 interface TriggerRenderingProps {
   props: Omit<DropdownButtonProps, 'children'>;
@@ -57,7 +57,7 @@ interface Props<OptionType>
   /**
    * Affects the size of the trigger button and menu items.
    */
-  size?: keyof Theme['form'];
+  size?: FormSize;
   /**
    * Optionally replace the trigger button with a different component. Note
    * that the replacement must have the `props` and `ref` (supplied in

@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import Tooltip, {InternalTooltipProps} from 'sentry/components/tooltip';
 import space from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
-import {Theme} from 'sentry/utils/theme';
+import {FormSize} from 'sentry/utils/theme';
 
 /**
  * Menu item priority. Determines the text and background color.
@@ -44,7 +44,7 @@ export type MenuListItemProps = {
   /**
    * Determines the item's font sizes and internal paddings.
    */
-  size?: keyof Theme['form'];
+  size?: FormSize;
   /**
    * Optional tooltip that appears when the use hovers over the item. This is
    * not very visible - if possible, add additional text via the `details`

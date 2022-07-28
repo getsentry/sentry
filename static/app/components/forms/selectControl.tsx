@@ -18,7 +18,7 @@ import {IconChevron, IconClose} from 'sentry/icons';
 import space from 'sentry/styles/space';
 import {Choices, SelectValue} from 'sentry/types';
 import convertFromSelect2Choices from 'sentry/utils/convertFromSelect2Choices';
-import {Theme} from 'sentry/utils/theme';
+import {FormSize} from 'sentry/utils/theme';
 
 import Option from './selectOption';
 
@@ -122,7 +122,7 @@ export type ControlProps<OptionType = GeneralSelectValue> = Omit<
    * Show line dividers between options
    */
   showDividers?: boolean;
-  size?: keyof Theme['form'];
+  size?: FormSize;
   /**
    * Unlike react-select which expects an OptionType as its value
    * we accept the option.value and resolve the option object.

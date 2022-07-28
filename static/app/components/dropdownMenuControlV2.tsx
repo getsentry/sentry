@@ -11,7 +11,7 @@ import {MenuTriggerProps} from '@react-types/menu';
 import DropdownButton, {DropdownButtonProps} from 'sentry/components/dropdownButtonV2';
 import {MenuItemProps} from 'sentry/components/dropdownMenuItemV2';
 import Menu from 'sentry/components/dropdownMenuV2';
-import {Theme} from 'sentry/utils/theme';
+import {FormSize} from 'sentry/utils/theme';
 
 type TriggerProps = {
   props: Omit<React.HTMLAttributes<Element>, 'children'> & {
@@ -60,7 +60,7 @@ type Props = {
   /**
    * Affects the size of the trigger button and menu items.
    */
-  size?: keyof Theme['form'];
+  size?: FormSize;
   /**
    * Optionally replace the trigger button with a different component. Note
    * that the replacement must have the `props` and `ref` (supplied in
