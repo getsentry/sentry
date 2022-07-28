@@ -14,11 +14,11 @@ import useProjects from 'sentry/utils/useProjects';
 
 type Props = {
   crumbs: Crumb[] | undefined;
-  duration: number | undefined;
+  durationMS: number | undefined;
   event: EventTransaction | undefined;
 };
 
-function EventMetaData({crumbs, duration, event}: Props) {
+function EventMetaData({crumbs, durationMS, event}: Props) {
   const {projects} = useProjects();
   const errors = crumbs?.filter(crumb => crumb.type === 'error').length;
 
@@ -48,11 +48,11 @@ function EventMetaData({crumbs, duration, event}: Props) {
         )}
       </KeyMetricData>
       <KeyMetricData>
-        {duration !== undefined ? (
+        {durationMS !== undefined ? (
           <React.Fragment>
             <IconClock color="gray300" />
             <Duration
-              seconds={Math.floor(msToSec(duration || 0)) || 1}
+              seconds={Math.floor(msToSec(durationMS || 0)) || 1}
               abbreviation
               exact
             />
