@@ -594,6 +594,19 @@ def profiles_consumer(**options):
     get_profiles_consumer(**options).run()
 
 
+@run.command("ingest-replay-recordings")
+@log_options()
+@configuration
+@batching_kafka_options("ingest-replay-recordings")
+@click.option(
+    "--topic", default="ingest-replay-recordings", help="Topic to get replay recording data from"
+)
+def replays_recordings_consumer(**options):
+    from sentry.replays.consumers import get_replays_recordings_consumer
+
+    get_replays_recordings_consumer(**options).run()
+
+
 @run.command("indexer-last-seen-updater")
 @log_options()
 @configuration
