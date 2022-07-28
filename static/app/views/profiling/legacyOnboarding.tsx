@@ -4,9 +4,9 @@ import {browserHistory} from 'react-router';
 import {generateProfilingRoute} from 'sentry/utils/profiling/routes';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import ProfilingOnboarding from './profilingOnboarding';
+import LegacyProfilingOnboarding from './legacyProfilingOnboarding';
 
-export default function Onboarding() {
+export default function LegacyOnboarding() {
   const organization = useOrganization();
 
   const onDismissClick = useCallback(() => {
@@ -14,7 +14,7 @@ export default function Onboarding() {
   }, [organization.slug]);
 
   return (
-    <ProfilingOnboarding
+    <LegacyProfilingOnboarding
       organization={organization}
       onDoneClick={onDismissClick}
       onDismissClick={onDismissClick}
