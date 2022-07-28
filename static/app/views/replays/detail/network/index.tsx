@@ -132,17 +132,15 @@ const Item = styled('div')<{color?: string; numeric?: boolean}>`
 
 const StyledPanelTable = styled(PanelTable)<{columns: number}>`
   grid-template-columns: max-content minmax(200px, 1fr) repeat(3, max-content);
+  grid-template-rows: 24px repeat(auto-fit, 28px);
   font-size: ${p => p.theme.fontSizeSmall};
   margin-bottom: 0;
-  max-height: 100%;
+  height: 100%;
   overflow: auto;
 
   > * {
     border-right: 1px solid ${p => p.theme.innerBorder};
-
-    &:nth-last-child(n + ${p => p.columns + 1}) {
-      border-bottom: 1px solid ${p => p.theme.innerBorder};
-    }
+    border-bottom: 1px solid ${p => p.theme.innerBorder};
 
     /* Last column */
     &:nth-child(${p => p.columns}n) {
@@ -165,7 +163,7 @@ const StyledPanelTable = styled(PanelTable)<{columns: number}>`
     color: ${p => p.theme.subText};
     line-height: 16px;
 
-    /* Last and 2nd last header columns. As this are flex direction column we have to treat them separately */
+    /* Last and 2nd last header columns. As these are flex direction columns we have to treat them separately */
     &:nth-child(${p => p.columns}n),
     &:nth-child(${p => p.columns}n - 1) {
       justify-content: center;
@@ -192,7 +190,7 @@ const SortItem = styled('span')`
   cursor: pointer;
 
   svg {
-    vertical-align: middle;
+    vertical-align: text-top;
   }
 `;
 
