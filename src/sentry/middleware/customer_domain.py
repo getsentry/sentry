@@ -36,6 +36,12 @@ class CustomerDomainMiddleware:
             return self.get_response(request)
         auth.set_active_org(request, subdomain)
         result = resolve(request.path)
-        if result.kwargs and "organization_slug" in result.kwargs and result.kwargs["organization_slug"] != subdomain:
-            return HttpResponseRedirect(reverse(result.url_name, kwargs={**result.kwargs, "organization_slug": subdomain}))
+        if (
+            result.kwargs
+            and "organization_slug" in result.kwargs
+            and result.kwargs["organization_slug"] != subdomain
+        ):
+            return HttpResponseRedirect(
+                reverse(result.url_name, kwargs={**result.kwargs, "organization_slug": subdomain})
+            )
         return self.get_response(request)
