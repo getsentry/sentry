@@ -34,6 +34,10 @@ class LimitedClass:
     category: ClassCategory
     is_decorated: bool
 
+    def name_contains_word(self, *target_words: str) -> bool:
+        words_in_name = set(re.findall(r"[A-Z][a-z]*", self.name))
+        return any(word in words_in_name for word in target_words)
+
 
 def parse_audit(audit) -> Iterable[LimitedClass]:
     def split_qualname(value):
@@ -100,7 +104,7 @@ def apply_decorators(
                 src_code = f.read()
             new_code = re.sub(
                 rf"\nclass\s+{class_name}\(",
-                f"\n@{decorator_name}\nclass {class_name}(",
+                rf"\n@{decorator_name}\g<0>",
                 src_code,
             )
             new_code = insert_import(new_code, import_stmt)
