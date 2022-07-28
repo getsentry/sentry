@@ -131,8 +131,15 @@ export type Member = {
     teamSlug: string;
   }[];
   teams: string[]; // # Deprecated, use teamRoles
-
   user: User;
+};
+
+/**
+ * Returned from TeamMembersEndpoint
+ */
+export type TeamMember = Member & {
+  teamRole?: string | null;
+  teamSlug?: string;
 };
 
 /**

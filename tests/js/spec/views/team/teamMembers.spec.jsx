@@ -174,9 +174,7 @@ describe('TeamMembers', function () {
       url: `/organizations/${organization.slug}/members/${me.id}/teams/${team.slug}/`,
       method: 'DELETE',
     });
-    const organizationMember = TestStubs.Organization({
-      access: [],
-    });
+    const organizationMember = TestStubs.Organization({access: []});
 
     render(
       <TeamMembers
@@ -197,5 +195,56 @@ describe('TeamMembers', function () {
     expect(screen.getByRole('button', {name: 'Remove'})).toBeInTheDocument();
     userEvent.click(screen.getByRole('button', {name: 'Remove'}));
     expect(deleteMock).toHaveBeenCalled();
+  });
+
+  it('does not renders team-level roles', async function () {
+    const me = TestStubs.Member({
+      id: '123',
+      email: 'foo@example.com',
+      role: 'owner',
+    });
+    Client.addMockResponse({
+      url: `/teams/${organization.slug}/${team.slug}/members/`,
+      method: 'GET',
+      body: [...members, me],
+    });
+
+    await render(
+      <TeamMembers
+        params={{orgId: organization.slug, teamId: team.slug}}
+        organization={organization}
+      />
+    );
+
+    const admins = screen.queryByText('Team Admin');
+    expect(admins).not.toBeInTheDocument();
+    const contributors = screen.queryByText('Team Contributor');
+    expect(contributors).not.toBeInTheDocument();
+  });
+
+  it('renders team-level roles with flag', async function () {
+    const manager = TestStubs.Member({
+      id: '123',
+      email: 'foo@example.com',
+      orgRole: 'manager',
+    });
+    Client.addMockResponse({
+      url: `/teams/${organization.slug}/${team.slug}/members/`,
+      method: 'GET',
+      body: [...members, manager],
+    });
+
+    const orgWithTeamRoles = TestStubs.Organization({features: ['team-roles']});
+
+    await render(
+      <TeamMembers
+        params={{orgId: orgWithTeamRoles.slug, teamId: team.slug}}
+        organization={orgWithTeamRoles}
+      />
+    );
+    const admins = screen.queryAllByText('Team Admin');
+    expect(admins).toHaveLength(3);
+    const contributors = screen.queryAllByText('Contributor');
+    expect(contributors).toHaveLength(2);
   });
 });

@@ -17,7 +17,7 @@ type Props = Omit<ControlProps<OptionType>, 'onChange' | 'value'> & {
    * Narrower type than SelectControl because there is no empty value
    */
   onChange?: (value: OptionType) => void;
-  value?: string;
+  value?: string | null;
 };
 
 function RoleSelectControl({roles, disableUnallowed, ...props}: Props) {
