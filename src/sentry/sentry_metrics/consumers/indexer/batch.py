@@ -137,7 +137,7 @@ class IndexerBatch:
     @metrics.wraps("process_messages.reconstruct_messages")
     def reconstruct_messages(
         self,
-        mapping: Mapping[int, Mapping[str, Optional[int]]],
+        mapping: Mapping[int, Mapping[str, int]],
         bulk_record_meta: Mapping[int, Mapping[str, Metadata]],
     ) -> List[Message[KafkaPayload]]:
         new_messages: List[Message[KafkaPayload]] = []
@@ -168,30 +168,6 @@ class IndexerBatch:
                     used_tags.update({k, v})
                     new_k = mapping[org_id][k]
                     new_v = mapping[org_id][v]
-                    if new_k is None:
-                        metadata = bulk_record_meta[org_id].get(k)
-                        if (
-                            metadata
-                            and metadata.fetch_type_ext
-                            and metadata.fetch_type_ext.is_global
-                        ):
-                            exceeded_global_quotas += 1
-                        else:
-                            exceeded_org_quotas += 1
-                        continue
-
-                    if new_v is None:
-                        metadata = bulk_record_meta[org_id].get(v)
-                        if (
-                            metadata
-                            and metadata.fetch_type_ext
-                            and metadata.fetch_type_ext.is_global
-                        ):
-                            exceeded_global_quotas += 1
-                        else:
-                            exceeded_org_quotas += 1
-                        continue
-
                     new_tags[str(new_k)] = new_v
             except KeyError:
                 logger.error("process_messages.key_error", extra={"tags": tags}, exc_info=True)
@@ -226,29 +202,7 @@ class IndexerBatch:
                 "".join(sorted(t.value for t in fetch_types_encountered)), "utf-8"
             )
             new_payload_value["tags"] = new_tags
-            new_payload_value["metric_id"] = numeric_metric_id = mapping[org_id][metric_name]
-            if numeric_metric_id is None:
-                metadata = bulk_record_meta[org_id].get(metric_name)
-                metrics.incr(
-                    "sentry_metrics.indexer.process_messages.dropped_message",
-                    tags={
-                        "string_type": "metric_id",
-                    },
-                )
-                logger.error(
-                    "process_messages.dropped_message",
-                    extra={
-                        "string_type": "metric_id",
-                        "is_global_quota": bool(
-                            metadata
-                            and metadata.fetch_type_ext
-                            and metadata.fetch_type_ext.is_global
-                        ),
-                        "org_batch_size": len(mapping[org_id]),
-                    },
-                )
-                continue
-
+            new_payload_value["metric_id"] = mapping[org_id][metric_name]
             new_payload_value["retention_days"] = 90
             new_payload_value["mapping_meta"] = output_message_meta
             new_payload_value["use_case_id"] = self.use_case_id.value
