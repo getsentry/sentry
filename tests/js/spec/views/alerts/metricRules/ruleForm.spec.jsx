@@ -104,7 +104,7 @@ describe('Incident Rules Form', () => {
       userEvent.clear(screen.getByPlaceholderText('Something really bad happened'));
 
       // Enter in name so we can submit
-      userEvent.type(
+      userEvent.paste(
         screen.getByPlaceholderText('Something really bad happened'),
         'Incident Rule'
       );
@@ -141,15 +141,6 @@ describe('Incident Rules Form', () => {
         },
       });
 
-      // Clear field
-      userEvent.clear(screen.getByPlaceholderText('Something really bad happened'));
-
-      // Enter in name so we can submit
-      userEvent.type(
-        screen.getByPlaceholderText('Something really bad happened'),
-        'Incident Rule'
-      );
-
       await waitFor(() =>
         expect(screen.getByTestId('alert-total-events')).toHaveTextContent(
           'Total Events5'
@@ -162,7 +153,7 @@ describe('Incident Rules Form', () => {
         expect.anything(),
         expect.objectContaining({
           data: expect.objectContaining({
-            name: 'Incident Rule',
+            name: 'My Incident Rule',
             projects: ['project-slug'],
             aggregate: 'count()',
             eventTypes: ['transaction'],
@@ -205,7 +196,7 @@ describe('Incident Rules Form', () => {
       // Clear field
       userEvent.clear(screen.getByPlaceholderText('Something really bad happened'));
 
-      userEvent.type(
+      userEvent.paste(
         screen.getByPlaceholderText('Something really bad happened'),
         'new name'
       );
@@ -289,7 +280,7 @@ describe('Incident Rules Form', () => {
         onSubmitSuccess,
       });
 
-      userEvent.type(
+      userEvent.paste(
         screen.getByPlaceholderText('Something really bad happened'),
         'Slack Alert Rule'
       );
@@ -360,7 +351,7 @@ describe('Incident Rules Form', () => {
         rule: alertRule,
         onSubmitSuccess,
       });
-      userEvent.type(
+      userEvent.paste(
         screen.getByPlaceholderText('Something really bad happened'),
         'Slack Alert Rule'
       );
