@@ -8,7 +8,7 @@ import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {DateString} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
-import HistogramQuery from 'sentry/utils/performance/histogram/histogramQuery';
+import SpanCountHistogramQuery from 'sentry/utils/performance/histogram/spanCountHistogramQuery';
 import {HistogramData} from 'sentry/utils/performance/histogram/types';
 import {
   computeBuckets,
@@ -19,9 +19,8 @@ import theme from 'sentry/utils/theme';
 export function SpanCountChart({issue, event, location, organization}: any) {
   const [zoomError, setZoomError] = useState(false);
 
-  // const transactionName = event.culprit;
-  // const allEventsQuery = `event.type:transaction transaction:${transactionName}`;
-  const allEventsQuery = 'event.type:transaction';
+  const transactionName = event.culprit;
+  const allEventsQuery = `event.type:transaction transaction:${transactionName}`;
   const [now] = useState<DateString>(new Date());
 
   const query = allEventsQuery;
@@ -29,6 +28,7 @@ export function SpanCountChart({issue, event, location, organization}: any) {
   const end = now;
   const environment = [];
   const project = [];
+  const spanOp = event.contexts.performance_issue.op;
 
   function handleMouseOver() {
     // Hide the zoom error tooltip on the next hover.
@@ -37,7 +37,7 @@ export function SpanCountChart({issue, event, location, organization}: any) {
     }
   }
 
-  function renderChart(data: HistogramData) {
+  function renderChart(data: HistogramData, anotherData: HistogramData) {
     const xAxis = {
       type: 'category' as const,
       truncate: true,
@@ -84,14 +84,9 @@ export function SpanCountChart({issue, event, location, organization}: any) {
       data: formatHistogramData(data, {type: 'number'}),
     };
 
-    const fakeSeries = _series => {
-      return {
-        seriesName: 'Affected Events',
-        data: _series.data.map(point => ({
-          name: (parseInt(point.name, 10) + 8).toString(),
-          value: parseInt(point.value * 0.25, 10),
-        })),
-      };
+    const fakeSeries = {
+      seriesName: 'AffectedEvents',
+      data: formatHistogramData(anotherData, {type: 'number'}),
     };
 
     return (
@@ -108,8 +103,8 @@ export function SpanCountChart({issue, event, location, organization}: any) {
           <BarChart
             grid={{left: '0', right: '0', top: '0', bottom: '0'}}
             xAxis={xAxis}
-            yAxis={{type: 'value', show: false, axisLabel: {formatter: e => ''}}}
-            series={[series, fakeSeries(series)]}
+            yAxis={{type: 'value', show: false, axisLabel: {formatter: _ => ''}}}
+            series={[series, fakeSeries]}
             tooltip={tooltip}
             colors={colors}
             onMouseOver={handleMouseOver}
@@ -136,32 +131,41 @@ export function SpanCountChart({issue, event, location, organization}: any) {
     location
   );
 
-  const field = 'transaction.duration';
-
   return (
-    <HistogramQuery
+    <SpanCountHistogramQuery
       location={location}
       orgSlug={organization.slug}
       eventView={eventView}
       numBuckets={100}
-      fields={[field]}
+      spanOp={spanOp}
       dataFilter="exclude_outliers"
     >
-      {({histograms, isLoading, error}) => {
-        if (isLoading) {
-          return <LoadingPanel data-test-id="histogram-loading" />;
-        }
+      {({histogram: allHistogram}) => (
+        <SpanCountHistogramQuery
+          location={location}
+          orgSlug={organization.slug}
+          eventView={eventView}
+          numBuckets={100}
+          spanOp={spanOp}
+          dataFilter="exclude_outliers"
+        >
+          {({histogram, isLoading, error}) => {
+            if (isLoading) {
+              return <LoadingPanel data-test-id="histogram-loading" />;
+            }
 
-        if (error) {
-          return (
-            <ErrorPanel>
-              <IconWarning color="gray300" size="lg" />
-            </ErrorPanel>
-          );
-        }
+            if (error) {
+              return (
+                <ErrorPanel>
+                  <IconWarning color="gray300" size="lg" />
+                </ErrorPanel>
+              );
+            }
 
-        return renderChart(histograms?.[field] ?? []);
-      }}
-    </HistogramQuery>
+            return renderChart(histogram || [], allHistogram || []);
+          }}
+        </SpanCountHistogramQuery>
+      )}
+    </SpanCountHistogramQuery>
   );
 }
