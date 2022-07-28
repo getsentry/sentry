@@ -101,7 +101,7 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):  # type
             return
 
         # create a File for our recording segment.
-        recording_segment_file_name = f"rr:{message_dict['replay_id']}:{headers['sequence_id']}"
+        recording_segment_file_name = f"rr:{message_dict['replay_id']}:{headers['segment_id']}"
         file = File.objects.create(
             name=recording_segment_file_name,
             type="replay.recording",
@@ -114,7 +114,7 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):  # type
         ReplayRecordingSegment.objects.create(
             replay_id=message_dict["replay_id"],
             project_id=message_dict["project_id"],
-            sequence_id=headers["sequence_id"],
+            sequence_id=headers["segment_id"],
             file_id=file.id,
         )
         # delete the recording segment from cache after we've stored it
