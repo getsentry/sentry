@@ -77,7 +77,7 @@ def create_text_block(text: str, **kwargs: str | bool) -> TextBlock:
 
 def create_logo_block(**kwargs: str) -> ImageBlock:
     # Default size if no size is given
-    if "height" not in kwargs:
+    if "height" not in kwargs and "size" not in kwargs:
         kwargs["size"] = ImageSize.MEDIUM
 
     return create_image_block(get_asset_url("sentry", SENTRY_ICON_URL), **kwargs)

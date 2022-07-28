@@ -92,7 +92,7 @@ describe('TableView > CellActions', function () {
       meta: {
         title: 'string',
         transaction: 'string',
-        count: 'integer',
+        'count()': 'integer',
         timestamp: 'date',
         release: 'string',
         'equation[0]': 'integer',
@@ -101,7 +101,7 @@ describe('TableView > CellActions', function () {
         {
           title: 'some title',
           transaction: '/organizations/',
-          count: 9,
+          'count()': 9,
           timestamp: '2019-05-23T22:12:48+00:00',
           release: 'v1.0.2',
           'equation[0]': 109,
@@ -332,7 +332,7 @@ describe('TableView > CellActions', function () {
   });
 
   it('has tooltip on integer value greater than 999', function () {
-    rows.data[0].count = 1000;
+    rows.data[0]['count()'] = 1000;
     const wrapper = makeWrapper(initialData, rows, eventView);
     const tooltip = wrapper.find('GridBody Tooltip').at(1);
 

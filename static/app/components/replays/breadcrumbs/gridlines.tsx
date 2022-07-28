@@ -2,8 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import * as Timeline from 'sentry/components/replays/breadcrumbs/timeline';
-
-import {countColumns, formatTime} from '../utils';
+import {countColumns, formatTime} from 'sentry/components/replays/utils';
 
 type LineStyle = 'dotted' | 'solid' | 'none';
 
