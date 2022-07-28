@@ -48,7 +48,7 @@ export const NOTIFICATION_SETTING_FIELDS: Record<string, Field> = {
     label: t('Deploys'),
     choices: [
       ['always', t('On')],
-      ['committed_only', t('Only Committed Issues')],
+      ['committed_only', t('Releases with My Commits')],
       ['never', t('Off')],
     ],
     help: t('Release, environment, and commit overviews.'),
