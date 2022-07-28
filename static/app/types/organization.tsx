@@ -16,6 +16,7 @@ export interface OrganizationSummary {
   isEarlyAdopter: boolean;
   name: string;
   organizationUrl: string;
+  regionUrl: string;
   require2FA: boolean;
   slug: string;
   status: {
