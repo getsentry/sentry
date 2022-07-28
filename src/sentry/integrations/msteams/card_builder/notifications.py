@@ -2,9 +2,11 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
+from sentry.integrations.message_builder import build_attachment_text
 from sentry.integrations.msteams.card_builder import MSTEAMS_URL_FORMAT, ColumnSetBlock, TextBlock
 from sentry.integrations.msteams.card_builder.base import MSTeamsMessageBuilder
 from sentry.models import Team, User
+from sentry.notifications.notifications.activity.base import GroupActivityNotification
 from sentry.notifications.notifications.base import (
     BaseNotification,
     create_notification_with_properties,
@@ -45,7 +47,7 @@ class MSTeamsNotificationsMessageBuilder(MSTeamsMessageBuilder):
 
         return None
 
-    def build_attachment_title_block(self) -> TextBlock:
+    def create_attachment_title_block(self) -> TextBlock:
         title = self.notification.build_attachment_title(self.recipient)
         title_link = self.notification.get_title_link(self.recipient)
 
@@ -55,22 +57,53 @@ class MSTeamsNotificationsMessageBuilder(MSTeamsMessageBuilder):
             weight=TextWeight.BOLDER,
         )
 
-    def build_notification_card(self):
-        title_block = create_text_block(
+    def create_title_block(self) -> TextBlock:
+        return create_text_block(
             self.notification.get_notification_title(self.context),
             size=TextSize.LARGE,
         )
 
+    def build_notification_card(self):
         description_block = create_text_block(
             self.notification.get_message_description(self.recipient),
             size=TextSize.MEDIUM,
         )
 
-        fields = [self.build_attachment_title_block(), description_block]
+        fields = [self.create_attachment_title_block(), description_block]
 
         # TODO: Add support for notification actions.
         return super().build(
-            title=title_block,
+            title=self.create_title_block(),
+            fields=fields,
+            footer=self.create_footer_block(),
+        )
+
+
+class MSTeamsIssueNotificationsMessageBuilder(MSTeamsNotificationsMessageBuilder):
+    def __init__(
+        self,
+        notification: GroupActivityNotification,
+        context: Mapping[str, Any],
+        recipient: Team | User,
+    ):
+        super().__init__(notification, context, recipient)
+        self.group = getattr(notification, "group", None)
+
+    def build_notification_card(self):
+        description_block = (
+            create_text_block(
+                build_attachment_text(self.group),
+                size=TextSize.MEDIUM,
+            )
+            if self.group
+            else None
+        )
+
+        fields = [self.create_attachment_title_block(), description_block]
+
+        # TODO: Add support for notification actions.
+        return super().build(
+            title=self.create_title_block(),
             fields=fields,
             footer=self.create_footer_block(),
         )
