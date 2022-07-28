@@ -186,11 +186,6 @@ class Migration(CheckedMigration):
             reverse_sql="ALTER TABLE sentry_dashboardproject ALTER COLUMN project_id TYPE int",
         ),
         migrations.RunSQL(
-            sql="ALTER TABLE sentry_dashboardproject ALTER COLUMN id TYPE bigint",
-            hints={"tables": ["sentry_dashboardproject"]},
-            reverse_sql="ALTER TABLE sentry_dashboardproject ALTER COLUMN id TYPE int",
-        ),
-        migrations.RunSQL(
             sql="ALTER TABLE sentry_dashboardproject ALTER COLUMN dashboard_id TYPE bigint",
             hints={"tables": ["sentry_dashboardproject"]},
             reverse_sql="ALTER TABLE sentry_dashboardproject ALTER COLUMN dashboard_id TYPE int",
