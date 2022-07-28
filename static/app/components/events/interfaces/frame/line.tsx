@@ -15,8 +15,8 @@ import {Event} from 'sentry/types/event';
 import withOrganization from 'sentry/utils/withOrganization';
 import withSentryAppComponents from 'sentry/utils/withSentryAppComponents';
 
-import DebugImage from '../debugMeta/debugImage';
-import {combineStatus} from '../debugMeta/utils';
+import DebugImage from '../debugMeta-v2/debugImage';
+import {combineStatus} from '../debugMeta-v2/utils';
 import {SymbolicatorStatus} from '../types';
 
 import Context from './context';
@@ -321,7 +321,7 @@ export class Line extends Component<Props, State> {
             {data.instructionAddr && (
               <TogglableAddress
                 address={data.instructionAddr}
-                startingAddress={image ? image.image_addr : null}
+                startingAddress={image ? image.image_addr ?? null : null}
                 isAbsolute={!!showingAbsoluteAddress}
                 isFoundByStackScanning={this.isFoundByStackScanning()}
                 isInlineFrame={!!this.isInlineFrame()}

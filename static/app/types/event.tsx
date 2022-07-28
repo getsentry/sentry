@@ -1,4 +1,4 @@
-import type {DebugImage} from 'sentry/components/events/interfaces/debugMeta/types';
+import type {DebugImage} from 'sentry/components/events/interfaces/debugMeta-v2/types';
 import type {TraceContextType} from 'sentry/components/events/interfaces/spans/types';
 import type {SymbolicatorStatus} from 'sentry/components/events/interfaces/types';
 import type {PlatformKey} from 'sentry/data/platformCategories';
