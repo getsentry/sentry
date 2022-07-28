@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import abc
-from copy import deepcopy
 from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Optional, Sequence
 from urllib.parse import urljoin
 
@@ -60,43 +59,6 @@ class BaseNotification(abc.ABC):
         example, an Activity or a Group.
         """
         raise NotImplementedError
-
-    @property
-    def url_format(self) -> str:
-        """
-        The URL format used when embedding links in text.
-        Slack notifications should set this to `<{url}|{text}>`.
-        Microsoft Teams notifications should set this to `[text](url)`.
-        """
-        if not getattr(self, "_url_format", None):
-            raise AttributeError(
-                f"'url_format' not set on {self.__class__.__name__}. Please set 'url_format' from the message builder."
-            )
-
-        return self._url_format
-
-    @url_format.setter
-    def url_format(self, url_format: str) -> None:
-        self._url_format = url_format
-
-    def format_url(self, text: str, url: str) -> str:
-        """
-        Format URLs according to the provider options.
-        """
-        return self.url_format.format(text=text, url=url)
-
-    @property
-    def provider(self) -> ExternalProviders:
-        if not getattr(self, "_provider", None):
-            raise AttributeError(
-                f"'provider' not set on {self.__class__.__name__}. Please set 'provider' from the message builder."
-            )
-
-        return self._provider
-
-    @provider.setter
-    def provider(self, provider: ExternalProviders) -> None:
-        self._provider = provider
 
     @property
     @abc.abstractmethod
@@ -203,7 +165,7 @@ class BaseNotification(abc.ABC):
         """
         return f"?referrer={self.get_referrer(provider, recipient)}"
 
-    def get_settings_url(self, recipient: Team | User) -> str:
+    def get_settings_url(self, recipient: Team | User, provider: ExternalProviders) -> str:
         # Settings url is dependant on the provider so we know which provider is sending them into Sentry.
         if isinstance(recipient, Team):
             url_str = f"/settings/{self.organization.slug}/teams/{recipient.slug}/notifications/"
@@ -214,10 +176,7 @@ class BaseNotification(abc.ABC):
                 if fine_tuning_key:
                     url_str += f"{fine_tuning_key}/"
         return str(
-            urljoin(
-                absolute_uri(url_str),
-                self.get_sentry_query_params(self.provider, recipient),
-            )
+            urljoin(absolute_uri(url_str), self.get_sentry_query_params(provider, recipient))
         )
 
     def determine_recipients(self) -> Iterable[Team | User]:
@@ -276,7 +235,7 @@ class ProjectNotification(BaseNotification, abc.ABC):
 
     def build_notification_footer(self, recipient: Team | User) -> str:
         # notification footer only used for Slack for now
-        settings_url = self.get_settings_url(recipient)
+        settings_url = self.get_settings_url(recipient, ExternalProviders.SLACK)
 
         parent = getattr(self, "project", self.organization)
         footer: str = parent.slug
@@ -288,20 +247,7 @@ class ProjectNotification(BaseNotification, abc.ABC):
                 environment = latest_event.get_environment()
             except Environment.DoesNotExist:
                 pass
-
         if environment and getattr(environment, "name", None) != "":
             footer += f" | {environment.name}"
-
-        footer += f" | {self.format_url(text='Notification Settings', url=settings_url)}"
-
+        footer += f" | <{settings_url}|Notification Settings>"
         return footer
-
-
-def create_notification_with_properties(
-    notification: BaseNotification, **kwargs: Any
-) -> BaseNotification:
-    notification_copy = deepcopy(notification)
-    for property in kwargs:
-        setattr(notification_copy, property, kwargs[property])
-
-    return notification_copy

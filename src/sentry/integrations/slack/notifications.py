@@ -9,14 +9,11 @@ import sentry_sdk
 from sentry.integrations.mixins import NotifyBasicMixin
 from sentry.integrations.notifications import get_context, get_integrations_by_channel_by_recipient
 from sentry.integrations.slack.client import SlackClient
-from sentry.integrations.slack.message_builder import SLACK_URL_FORMAT, SlackAttachment
+from sentry.integrations.slack.message_builder import SlackAttachment
 from sentry.integrations.slack.message_builder.notifications import get_message_builder
 from sentry.models import Integration, Team, User
 from sentry.notifications.additional_attachment_manager import get_additional_attachment
-from sentry.notifications.notifications.base import (
-    BaseNotification,
-    create_notification_with_properties,
-)
+from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notify import register_notification_provider
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.tasks.integrations.slack import post_message
@@ -122,16 +119,11 @@ def send_notification_as_slack(
         data = get_integrations_by_channel_by_recipient(
             notification.organization, recipients, ExternalProviders.SLACK
         )
-
-    notification_with_properties = create_notification_with_properties(
-        notification, url_format=SLACK_URL_FORMAT, provider=ExternalProviders.SLACK
-    )
-
     for recipient, integrations_by_channel in data.items():
         with sentry_sdk.start_span(op="notification.send_slack", description="send_one"):
             with sentry_sdk.start_span(op="notification.send_slack", description="gen_attachments"):
                 attachments = get_attachments(
-                    notification_with_properties,
+                    notification,
                     recipient,
                     shared_context,
                     extra_context_by_actor_id,
@@ -139,7 +131,7 @@ def send_notification_as_slack(
 
             for channel, integration in integrations_by_channel.items():
                 _notify_recipient(
-                    notification=notification_with_properties,
+                    notification=notification,
                     recipient=recipient,
                     attachments=attachments,
                     channel=channel,

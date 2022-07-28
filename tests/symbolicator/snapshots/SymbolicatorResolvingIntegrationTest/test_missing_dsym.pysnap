@@ -1,5 +1,5 @@
 ---
-created: '2022-03-28T11:45:09.928480Z'
+created: '2022-07-28T11:40:36.847586Z'
 creator: sentry
 source: tests/symbolicator/test_payload_full.py
 ---
@@ -7,6 +7,11 @@ contexts: null
 debug_meta:
   images:
   - arch: x86_64
+    candidates:
+    - download:
+        status: notfound
+      source: sentry:project
+      source_name: Sentry
     code_file: Foo.app/Contents/Foo
     debug_id: 502fc0a5-1ec1-3e47-9998-684fa139dca7
     debug_status: missing
