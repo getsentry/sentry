@@ -11,23 +11,23 @@ import {
 import {joinTeam, leaveTeam} from 'sentry/actionCreators/teams';
 import {Client} from 'sentry/api';
 import UserAvatar from 'sentry/components/avatar/userAvatar';
-import Button from 'sentry/components/button';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 import {Item} from 'sentry/components/dropdownAutoComplete/types';
 import DropdownButton from 'sentry/components/dropdownButton';
-import IdBadge from 'sentry/components/idBadge';
 import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {Panel, PanelHeader, PanelItem} from 'sentry/components/panels';
-import {IconSubtract, IconUser} from 'sentry/icons';
+import {Panel, PanelHeader} from 'sentry/components/panels';
+import {IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Config, Member, Organization} from 'sentry/types';
+import {Config, Member, Organization, TeamMember} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 import withConfig from 'sentry/utils/withConfig';
 import withOrganization from 'sentry/utils/withOrganization';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
+
+import TeamMembersRow from './teamMembersRow';
 
 type RouteParams = {
   orgId: string;
@@ -45,7 +45,7 @@ type State = {
   error: boolean;
   loading: boolean;
   orgMemberList: Member[];
-  teamMemberList: Member[];
+  teamMemberList: TeamMember[];
 };
 
 class TeamMembers extends Component<Props, State> {
@@ -82,30 +82,6 @@ class TeamMembers extends Component<Props, State> {
       this.setState({dropdownBusy: true}, () => this.fetchMembersRequest(query)),
     200
   );
-
-  removeMember(member: Member) {
-    const {params} = this.props;
-    leaveTeam(
-      this.props.api,
-      {
-        orgId: params.orgId,
-        teamId: params.teamId,
-        memberId: member.id,
-      },
-      {
-        success: () => {
-          this.setState({
-            teamMemberList: this.state.teamMemberList.filter(m => m.id !== member.id),
-          });
-          addSuccessMessage(t('Successfully removed member from team.'));
-        },
-        error: () =>
-          addErrorMessage(
-            t('There was an error while trying to remove a member from the team.')
-          ),
-      }
-    );
-  }
 
   fetchMembersRequest = async (query: string) => {
     const {params, api} = this.props;
@@ -178,7 +154,7 @@ class TeamMembers extends Component<Props, State> {
           this.setState({
             loading: false,
             error: false,
-            teamMemberList: this.state.teamMemberList.concat([orgMember]),
+            teamMemberList: this.state.teamMemberList.concat([orgMember as TeamMember]),
           });
           addSuccessMessage(t('Successfully added member to team.'));
         },
@@ -190,6 +166,55 @@ class TeamMembers extends Component<Props, State> {
         },
       }
     );
+  };
+
+  removeTeamMember = (member: Member) => {
+    const {params} = this.props;
+    leaveTeam(
+      this.props.api,
+      {
+        orgId: params.orgId,
+        teamId: params.teamId,
+        memberId: member.id,
+      },
+      {
+        success: () => {
+          this.setState({
+            teamMemberList: this.state.teamMemberList.filter(m => m.id !== member.id),
+          });
+          addSuccessMessage(t('Successfully removed member from team.'));
+        },
+        error: () =>
+          addErrorMessage(
+            t('There was an error while trying to remove a member from the team.')
+          ),
+      }
+    );
+  };
+
+  updateTeamMemberRole = (member: Member, newRole: string) => {
+    const {orgId, teamId} = this.props.params;
+    const endpoint = `/organizations/${orgId}/members/${member.id}/teams/${teamId}/`;
+
+    this.props.api.request(endpoint, {
+      method: 'PUT',
+      data: {teamRole: newRole},
+      success: data => {
+        const teamMemberList: any = [...this.state.teamMemberList];
+        const i = teamMemberList.findIndex(m => m.id === member.id);
+        teamMemberList[i] = {
+          ...member,
+          teamRole: data.teamRole,
+        };
+        this.setState({teamMemberList});
+        addSuccessMessage(t('Successfully changed role for team member.'));
+      },
+      error: () => {
+        addErrorMessage(
+          t('There was an error while trying to change the roles for a team member.')
+        );
+      },
+    });
   };
 
   /**
@@ -266,19 +291,6 @@ class TeamMembers extends Component<Props, State> {
     );
   }
 
-  removeButton(member: Member) {
-    return (
-      <Button
-        size="sm"
-        icon={<IconSubtract size="xs" isCircled />}
-        onClick={() => this.removeMember(member)}
-        aria-label={t('Remove')}
-      >
-        {t('Remove')}
-      </Button>
-    );
-  }
-
   render() {
     if (this.state.loading) {
       return <LoadingIndicator />;
@@ -288,7 +300,7 @@ class TeamMembers extends Component<Props, State> {
       return <LoadingError onRetry={this.fetchData} />;
     }
 
-    const {params, organization, config} = this.props;
+    const {organization, config} = this.props;
     const {access} = organization;
     const hasWriteAccess = access.includes('org:write') || access.includes('team:admin');
 
@@ -300,13 +312,16 @@ class TeamMembers extends Component<Props, State> {
         </PanelHeader>
         {this.state.teamMemberList.length ? (
           this.state.teamMemberList.map(member => {
-            const isSelf = member.email === config.user.email;
-            const canRemoveMember = hasWriteAccess || isSelf;
             return (
-              <StyledMemberContainer key={member.id}>
-                <IdBadge avatarSize={36} member={member} useLink orgId={params.orgId} />
-                {canRemoveMember && this.removeButton(member)}
-              </StyledMemberContainer>
+              <TeamMembersRow
+                key={member.id}
+                hasWriteAccess={hasWriteAccess}
+                member={member}
+                organization={organization}
+                removeMember={this.removeTeamMember}
+                updateMemberRole={this.updateTeamMemberRole}
+                user={config.user}
+              />
             );
           })
         ) : (
@@ -318,11 +333,6 @@ class TeamMembers extends Component<Props, State> {
     );
   }
 }
-
-const StyledMemberContainer = styled(PanelItem)`
-  justify-content: space-between;
-  align-items: center;
-`;
 
 const StyledUserListElement = styled('div')`
   display: grid;

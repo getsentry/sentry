@@ -4,7 +4,7 @@ describe('projectStatsToPredictedSeries', function () {
   it('returns correct series', function () {
     expect(projectStatsToPredictedSeries(TestStubs.Outcomes(), 0.3, 0.1)).toEqual([
       {
-        seriesName: 'Indexed',
+        seriesName: 'Indexed and Processed',
         color: 'hsl(340.79999999999995, 61%, 79.4%)',
         barMinHeight: 1,
         type: 'bar',
