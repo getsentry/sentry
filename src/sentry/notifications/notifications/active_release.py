@@ -59,9 +59,9 @@ class ActiveReleaseAlertNotification(AlertRuleNotification):
     def send(self) -> None:
         from sentry.notifications.notify import notify
 
-        metrics.incr("mail_adapter.notify")
+        metrics.incr("mail_adapter.notify_active_release")
         logger.info(
-            "mail.adapter.notify",
+            "mail.adapter.notify_active_release",
             extra={
                 "target_type": self.target_type.value,
                 "target_identifier": self.target_identifier,
@@ -73,7 +73,7 @@ class ActiveReleaseAlertNotification(AlertRuleNotification):
         participants_by_provider = self.get_participants()
         if not participants_by_provider:
             logger.info(
-                "notifications.notification.rules.activereleasealertrulenotification.skip.no_participants",
+                "notifications.notification.rules.active_release.skip.no_participants",
                 extra={
                     "target_type": self.target_type.value,
                     "target_identifier": self.target_identifier,
@@ -83,9 +83,7 @@ class ActiveReleaseAlertNotification(AlertRuleNotification):
             )
             return
 
-        # Only calculate shared context once.
         shared_context = self.get_context()
-
         for provider, participants in participants_by_provider.items():
             if self.target_type == ActionTargetType.RELEASE_MEMBERS:
                 last_release = shared_context.get("last_release", None)
