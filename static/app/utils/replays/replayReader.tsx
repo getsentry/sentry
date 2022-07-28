@@ -80,22 +80,7 @@ export default class ReplayReader {
       startTimestamp: startTimestampMS / 1000,
       endTimestamp: endTimestampMS / 1000,
     } as EventTransaction;
-  }
 
-  private event: EventTransaction;
-  private rrwebEvents: RecordingEvent[];
-  private breadcrumbs: Crumb[];
-  private spans: ReplaySpan[];
-
-  getEvent = () => {
-    return this.event;
-  };
-
-  getDuration = () => {
-    return (this.event.endTimestamp - this.event.startTimestamp) * 1000;
-  };
-
-  getReplay = () => {
     const urls = (
       this.getRawCrumbs().filter(
         crumb => crumb.category === BreadcrumbType.NAVIGATION
@@ -104,14 +89,14 @@ export default class ReplayReader {
       .map(crumb => crumb.data?.to)
       .filter(Boolean) as string[];
 
-    return {
+    this.replayRecord = {
       count_errors: this.getRawCrumbs().filter(
         crumb => crumb.category === BreadcrumbType.ERROR
       ).length,
       count_segments: 0,
       count_urls: urls.length,
       dist: this.event.dist,
-      duration: this.getDuration(),
+      duration: this.getDurationMS(),
       environment: null,
       finished_at: new Date(this.event.endTimestamp),
       ip_address_v4: this.event.user?.ip_address,
@@ -137,6 +122,24 @@ export default class ReplayReader {
       user_id: this.event.user?.id,
       user_name: this.event.user?.name,
     } as ReplayRecord;
+  }
+
+  private event: EventTransaction;
+  private replayRecord: ReplayRecord;
+  private rrwebEvents: RecordingEvent[];
+  private breadcrumbs: Crumb[];
+  private spans: ReplaySpan[];
+
+  getEvent = () => {
+    return this.event;
+  };
+
+  getDurationMS = () => {
+    return (this.event.endTimestamp - this.event.startTimestamp) * 1000;
+  };
+
+  getReplay = () => {
+    return this.replayRecord;
   };
 
   getEventUser = () => {

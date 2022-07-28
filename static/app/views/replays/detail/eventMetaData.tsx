@@ -8,26 +8,26 @@ import TimeSince from 'sentry/components/timeSince';
 import {IconCalendar, IconClock, IconFire} from 'sentry/icons';
 import space from 'sentry/styles/space';
 import type {Crumb} from 'sentry/types/breadcrumbs';
-import type {EventTransaction} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import useProjects from 'sentry/utils/useProjects';
+import type {ReplayRecord} from 'sentry/views/replays/types';
 
 type Props = {
   crumbs: Crumb[] | undefined;
   duration: number | undefined;
-  event: EventTransaction | undefined;
+  replayRecord: ReplayRecord | undefined;
 };
 
-function EventMetaData({crumbs, duration, event}: Props) {
+function EventMetaData({crumbs, duration, replayRecord}: Props) {
   const {projects} = useProjects();
   const errors = crumbs?.filter(crumb => crumb.type === 'error').length;
 
   return (
     <KeyMetrics>
-      {event ? (
+      {replayRecord ? (
         <ProjectBadge
           project={
-            projects.find(p => p.id === event.projectID) || {
+            projects.find(p => p.id === replayRecord.project_id) || {
               slug: event.projectSlug || '',
             }
           }
@@ -38,10 +38,10 @@ function EventMetaData({crumbs, duration, event}: Props) {
       )}
 
       <KeyMetricData>
-        {event ? (
+        {replayRecord ? (
           <React.Fragment>
             <IconCalendar color="gray300" />
-            <TimeSince date={event.dateReceived} shorten />
+            <TimeSince date={replayRecord.started_at} shorten />
           </React.Fragment>
         ) : (
           <HeaderPlaceholder />

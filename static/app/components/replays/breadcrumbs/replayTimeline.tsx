@@ -31,7 +31,7 @@ function ReplayTimeline({}: Props) {
     return <Placeholder height="48px" bottomGutter={2} />;
   }
 
-  const {startTimestamp} = replay.getEvent();
+  const startTimestampMS = replay.getReplay().started_at.getTime();
   const crumbs = replay.getRawCrumbs() || [];
   const spans = replay.getRawSpans() || [];
   const userCrumbs = crumbs.filter(crumb => USER_ACTIONS.includes(crumb.type));
@@ -51,14 +51,14 @@ function ReplayTimeline({}: Props) {
                 <ReplayTimelineSpans
                   duration={duration}
                   spans={networkSpans}
-                  startTimestamp={startTimestamp}
+                  startTimestampMS={startTimestampMS}
                 />
               </UnderTimestamp>
               <UnderTimestamp paddingTop="0">
                 <ReplayTimelineEvents
                   crumbs={userCrumbs}
                   duration={duration}
-                  startTimestamp={startTimestamp}
+                  startTimestampMS={startTimestampMS}
                   width={width}
                 />
               </UnderTimestamp>

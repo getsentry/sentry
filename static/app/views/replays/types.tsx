@@ -11,26 +11,26 @@ export type ReplayRecord = {
   dist: null | string;
   duration: number;
   environment: null | string;
-  finished_at: Date; // API will send a string
-  ip_address_v4: null | string;
-  ip_address_v6: null | string;
+  finished_at: Date; // API will send a string, needs to be hydrated
   longest_transaction: number;
   platform: string;
   project_id: string;
+  project_slug: string;
   release: null | string;
   replay_id: string;
   sdk_name: string;
   sdk_version: string;
-  started_at: Date; // API will send a string
+  started_at: Date; // API will send a string, needs to be hydrated
   tags: Record<string, string>;
   title: string;
   trace_ids: string[];
   urls: string[];
-  user: string;
-  user_email: null | string;
-  user_hash: string;
-  user_id: null | string;
-  user_name: null | string;
+  user: {
+    email: null | string;
+    id: null | string;
+    ip: null | string;
+    name: null | string;
+  };
 };
 
 export type ReplayDiscoveryListItem = {

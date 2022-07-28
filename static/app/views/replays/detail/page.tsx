@@ -7,31 +7,32 @@ import DetailsPageBreadcrumbs from 'sentry/components/replays/header/detailsPage
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import space from 'sentry/styles/space';
 import type {Crumb} from 'sentry/types/breadcrumbs';
-import type {EventTransaction} from 'sentry/types/event';
 import getUrlPathname from 'sentry/utils/getUrlPathname';
 import EventMetaData, {
   HeaderPlaceholder,
 } from 'sentry/views/replays/detail/eventMetaData';
 import ChooseLayout from 'sentry/views/replays/detail/layout/chooseLayout';
+import type {ReplayRecord} from 'sentry/views/replays/types';
 
 type Props = {
   children: ReactNode;
   orgId: string;
   crumbs?: Crumb[];
   duration?: number;
-  event?: EventTransaction;
+  replayRecord?: ReplayRecord;
 };
 
-function Page({children, crumbs, duration, event, orgId}: Props) {
-  const title = event ? `${event.id} - Replays - ${orgId}` : `Replays - ${orgId}`;
+function Page({children, crumbs, duration, orgId, replayRecord}: Props) {
+  const title = replayRecord
+    ? `${replayRecord.replay_id} - Replays - ${orgId}`
+    : `Replays - ${orgId}`;
 
-  const urlTag = event?.tags?.find(({key}) => key === 'url');
-  const pathname = getUrlPathname(urlTag?.value ?? '') ?? '';
+  const pathname = getUrlPathname(replayRecord?.tags.url ?? '') ?? '';
 
   const header = (
     <Header>
       <HeaderContent>
-        <DetailsPageBreadcrumbs orgId={orgId} event={event} />
+        <DetailsPageBreadcrumbs orgId={orgId} replayRecord={replayRecord} />
       </HeaderContent>
       <ButtonActionsWrapper>
         <FeatureFeedback featureName="replay" buttonProps={{size: 'xs'}} />
@@ -39,7 +40,7 @@ function Page({children, crumbs, duration, event, orgId}: Props) {
       </ButtonActionsWrapper>
       <SubHeading>{pathname || <HeaderPlaceholder />}</SubHeading>
       <MetaDataColumn>
-        <EventMetaData crumbs={crumbs} duration={duration} event={event} />
+        <EventMetaData crumbs={crumbs} duration={duration} replayRecord={replayRecord} />
       </MetaDataColumn>
     </Header>
   );

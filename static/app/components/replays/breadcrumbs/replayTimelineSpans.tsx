@@ -21,7 +21,7 @@ type Props = {
   /**
    * Timestamp when the timeline begins, in milliseconds
    */
-  startTimestamp: number;
+  startTimestampMS: number;
 
   /**
    * Extra classNames
@@ -29,14 +29,13 @@ type Props = {
   className?: string;
 };
 
-function ReplayTimelineEvents({className, duration, spans, startTimestamp}: Props) {
+function ReplayTimelineEvents({className, duration, spans, startTimestampMS}: Props) {
   const flattenedSpans = flattenSpans(spans);
 
-  const startMs = startTimestamp * 1000;
   return (
     <Spans className={className}>
       {flattenedSpans.map((span, i) => {
-        const sinceStart = span.startTimestamp - startMs;
+        const sinceStart = span.startTimestamp - startTimestampMS;
         const startPct = divide(sinceStart, duration);
         const widthPct = divide(span.duration, duration);
 

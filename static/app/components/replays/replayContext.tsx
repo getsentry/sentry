@@ -447,7 +447,7 @@ export function Provider({children, replay, initialTimeOffset = 0, value = {}}: 
     setBufferTime({target: -1, previous: -1});
   }
 
-  const duration = replay?.getDuration();
+  const duration = replay?.getDurationMS();
 
   return (
     <ReplayPlayerContext.Provider

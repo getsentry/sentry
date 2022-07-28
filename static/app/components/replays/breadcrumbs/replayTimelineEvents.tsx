@@ -17,7 +17,7 @@ const EVENT_STICK_MARKER_WIDTH = 4;
 type Props = {
   crumbs: Crumb[];
   duration: number;
-  startTimestamp: number;
+  startTimestampMS: number;
   width: number;
   className?: string;
 };
@@ -26,17 +26,17 @@ function ReplayTimelineEvents({
   className,
   crumbs,
   duration,
-  startTimestamp,
+  startTimestampMS,
   width,
 }: Props) {
   const totalColumns = Math.floor(width / EVENT_STICK_MARKER_WIDTH);
-  const eventsByCol = getCrumbsByColumn(startTimestamp, duration, crumbs, totalColumns);
+  const eventsByCol = getCrumbsByColumn(startTimestampMS, duration, crumbs, totalColumns);
 
   return (
     <Timeline.Columns className={className} totalColumns={totalColumns} remainder={0}>
       {Array.from(eventsByCol.entries()).map(([column, breadcrumbs]) => (
         <EventColumn key={column} column={column}>
-          <Event crumbs={breadcrumbs} startTimestamp={startTimestamp} />
+          <Event crumbs={breadcrumbs} startTimestampMS={startTimestampMS} />
         </EventColumn>
       ))}
     </Timeline.Columns>
@@ -55,10 +55,10 @@ const EventColumn = styled(Timeline.Col)<{column: number}>`
 
 function Event({
   crumbs,
-  startTimestamp,
+  startTimestampMS,
 }: {
   crumbs: Crumb[];
-  startTimestamp: number;
+  startTimestampMS: number;
   className?: string;
 }) {
   const {setCurrentTime} = useReplayContext();
@@ -66,17 +66,17 @@ function Event({
   const handleClick = useCallback(
     (crumb: Crumb) => {
       crumb.timestamp !== undefined
-        ? setCurrentTime(relativeTimeInMs(crumb.timestamp, startTimestamp))
+        ? setCurrentTime(relativeTimeInMs(crumb.timestamp, startTimestampMS))
         : null;
     },
-    [setCurrentTime, startTimestamp]
+    [setCurrentTime, startTimestampMS]
   );
 
   const title = crumbs.map(crumb => (
     <BreadcrumbItem
       key={crumb.id}
       crumb={crumb}
-      startTimestamp={startTimestamp}
+      startTimestampMS={startTimestampMS}
       isHovered={false}
       isSelected={false}
       onClick={handleClick}

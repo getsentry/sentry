@@ -108,12 +108,11 @@ export function countColumns(duration: number, width: number, minWidth: number =
  * and the timestamp of the crumb.
  */
 export function getCrumbsByColumn(
-  startTimestamp: number,
+  startTimestampMS: number,
   duration: number,
   crumbs: Crumb[],
   totalColumns: number
 ) {
-  const startMilliSeconds = startTimestamp * 1000;
   const safeDuration = isNaN(duration) ? 1 : duration;
 
   const columnCrumbPairs = crumbs.map(breadcrumb => {
@@ -121,7 +120,7 @@ export function getCrumbsByColumn(
     const timestampMilliSeconds = +new Date(String(timestamp));
     const sinceStart = isNaN(timestampMilliSeconds)
       ? 0
-      : timestampMilliSeconds - startMilliSeconds;
+      : timestampMilliSeconds - startTimestampMS;
 
     const columnPositionCalc =
       Math.floor((sinceStart / safeDuration) * (totalColumns - 1)) + 1;
