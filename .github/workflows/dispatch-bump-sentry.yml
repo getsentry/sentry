@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: Dispatch getsentry tests
-        uses: actions/github-script@v6
+        uses: actions/github-script@7a5c598405937d486b0331594b5da2b14db670da  # v6
         with:
           # This Personal Access Token belongs to getsentry-bot,
           # who can write to getsentry and is SAML+SSO ready.

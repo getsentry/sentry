@@ -64,7 +64,6 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = parser.parse_args(argv)
     files = args.file
 
-    # TODO: stop capturing spaces in ref
     ACTION_VERSION_RE = re.compile(r"(?<=uses: )(?P<action>.*)@(?P<ref>.+?)\b")
     for f in files:
         newlines = []
@@ -75,7 +74,8 @@ def main(argv: Sequence[str] | None = None) -> int:
                     continue
                 d = m.groupdict()
                 sha = get_sha(extract_repo(d["action"]), ref=d["ref"])
-                line = ACTION_VERSION_RE.sub(rf"\1@{sha}  # \2", line)
+                if sha != d["ref"]:
+                    line = ACTION_VERSION_RE.sub(rf"\1@{sha}  # \2", line)
             newlines.append(line)
         f.seek(0)
         f.truncate()
