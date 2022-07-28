@@ -19,6 +19,8 @@ class Migration(CheckedMigration):
     # - Adding indexes to large tables. Since this can take a long time, we'd generally prefer to
     #   have ops run this and not block the deploy. Note that while adding an index is a schema
     #   change, it's completely safe to run the operation after the code has deployed.
+
+    # this doesn't need to be run in prod as the db fields are already bigints
     is_dangerous = True
 
     # This flag is used to decide whether to run this migration in a transaction or not. Generally
