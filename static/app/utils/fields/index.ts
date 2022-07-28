@@ -133,12 +133,158 @@ export enum MobileVital {
   StallPercentage = 'measurements.stall_percentage',
 }
 
+export enum AggregationKey {
+  Count = 'count',
+  CountUnique = 'count_unique',
+  CountMiserable = 'count_miserable',
+  CountIf = 'count_if',
+  CountWebVitals = 'count_web_vitals',
+  Eps = 'eps',
+  Epm = 'epm',
+  FailureCount = 'failure_count',
+  Min = 'min',
+  Max = 'max',
+  Sum = 'sum',
+  Any = 'any',
+  P50 = 'p50',
+  P75 = 'p75',
+  P95 = 'p95',
+  P99 = 'p99',
+  P100 = 'p100',
+  Percentile = 'percentile',
+  Avg = 'avg',
+  Apdex = 'apdex',
+  UserMisery = 'user_misery',
+  FailureRate = 'failure_rate',
+  LastSeen = 'last_seen',
+}
+
 export interface FieldDefinition {
   kind: FieldKind;
-  valueType: FieldValueType;
+  valueType: FieldValueType | null;
   deprecated?: boolean;
   desc?: string;
 }
+
+export const AGGREGATION_FIELDS: Record<string, FieldDefinition> = {
+  [AggregationKey.Count]: {
+    desc: t('count of events'),
+    kind: FieldKind.FUNCTION,
+    valueType: FieldValueType.NUMBER,
+  },
+  [AggregationKey.CountUnique]: {
+    desc: t('Unique count of the field values'),
+    kind: FieldKind.FUNCTION,
+    valueType: FieldValueType.INTEGER,
+  },
+  [AggregationKey.CountMiserable]: {
+    desc: t('Count of unique miserable users'),
+    kind: FieldKind.FUNCTION,
+    valueType: FieldValueType.NUMBER,
+  },
+  [AggregationKey.CountIf]: {
+    desc: t('Count of events matching the parameter conditions'),
+    kind: FieldKind.FUNCTION,
+    valueType: FieldValueType.NUMBER,
+  },
+  [AggregationKey.CountWebVitals]: {
+    desc: t('Count of web vitals with a specific status'),
+    kind: FieldKind.FUNCTION,
+    valueType: FieldValueType.NUMBER,
+  },
+  [AggregationKey.Eps]: {
+    desc: t('Events per second'),
+    kind: FieldKind.FUNCTION,
+    valueType: FieldValueType.NUMBER,
+  },
+  [AggregationKey.Epm]: {
+    desc: t('Events per minute'),
+    kind: FieldKind.FUNCTION,
+    valueType: FieldValueType.NUMBER,
+  },
+  [AggregationKey.FailureRate]: {
+    desc: t('Failed event percentage based on transaction.status'),
+    kind: FieldKind.FUNCTION,
+    valueType: FieldValueType.PERCENTAGE,
+  },
+  [AggregationKey.FailureCount]: {
+    desc: t('Failed event count based on transaction.status'),
+    kind: FieldKind.FUNCTION,
+    valueType: FieldValueType.NUMBER,
+  },
+  [AggregationKey.Min]: {
+    desc: t('Returns the minimum value of the selected field'),
+    kind: FieldKind.FUNCTION,
+    valueType: null,
+  },
+  [AggregationKey.Max]: {
+    desc: t('Returns maximum value of the selected field'),
+    kind: FieldKind.FUNCTION,
+    valueType: null,
+  },
+  [AggregationKey.Sum]: {
+    desc: t('Returns the total value for the selected field'),
+    kind: FieldKind.FUNCTION,
+    valueType: null,
+  },
+  [AggregationKey.Any]: {
+    desc: t('Not Recommended, a random field value'),
+    kind: FieldKind.FUNCTION,
+    valueType: null,
+  },
+  [AggregationKey.P50]: {
+    desc: t('Returns the 50th percentile of the selected field'),
+    kind: FieldKind.FUNCTION,
+    valueType: null,
+  },
+  [AggregationKey.P75]: {
+    desc: t('Returns the 75th percentile of the selected field'),
+    kind: FieldKind.FUNCTION,
+    valueType: null,
+  },
+  [AggregationKey.P95]: {
+    desc: t('Returns the 95th percentile of the selected field'),
+    kind: FieldKind.FUNCTION,
+    valueType: null,
+  },
+  [AggregationKey.P99]: {
+    desc: t('Returns the 99th percentile of the selected field'),
+    kind: FieldKind.FUNCTION,
+    valueType: null,
+  },
+  [AggregationKey.P100]: {
+    desc: t('Returns the 100th percentile of the selected field'),
+    kind: FieldKind.FUNCTION,
+    valueType: null,
+  },
+  [AggregationKey.Percentile]: {
+    desc: t('Returns the percentile of the selected field'),
+    kind: FieldKind.FUNCTION,
+    valueType: null,
+  },
+  [AggregationKey.Avg]: {
+    desc: t('Returns averages for a selected field'),
+    kind: FieldKind.FUNCTION,
+    valueType: null,
+  },
+  [AggregationKey.Apdex]: {
+    desc: t('Performance score based on a duration threshold'),
+    kind: FieldKind.FUNCTION,
+    valueType: null,
+  },
+  [AggregationKey.UserMisery]: {
+    desc: t(
+      'User-weighted performance metric that counts the number of unique users who were frustrated'
+    ),
+    kind: FieldKind.FUNCTION,
+    valueType: null,
+  },
+  [AggregationKey.LastSeen]: {
+    desc: t('Issues last seen at a date and time'),
+    kind: FieldKind.FUNCTION,
+    valueType: FieldValueType.DATE,
+  },
+};
 
 export const MEASUREMENT_FIELDS: Record<string, FieldDefinition> = {
   [WebVital.FP]: {
@@ -233,7 +379,8 @@ export const MEASUREMENT_FIELDS: Record<string, FieldDefinition> = {
   },
 };
 
-export const FIELDS: Record<FieldKey & MobileVital, FieldDefinition> = {
+export const FIELDS: Record<FieldKey & AggregationKey & MobileVital, FieldDefinition> = {
+  ...AGGREGATION_FIELDS,
   ...MEASUREMENT_FIELDS,
   [FieldKey.AGE]: {
     desc: t('The age of the issue in relative time'),
