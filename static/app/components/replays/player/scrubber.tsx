@@ -13,7 +13,7 @@ type Props = {
 
 function Scrubber({className}: Props) {
   const {currentHoverTime, currentTime, replay, setCurrentTime} = useReplayContext();
-  const duration = replay?.getDuration();
+  const duration = replay?.getDurationMS();
 
   const percentComplete = divide(currentTime, duration);
   const hoverPlace = divide(currentHoverTime || 0, duration);

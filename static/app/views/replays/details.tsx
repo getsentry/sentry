@@ -73,13 +73,13 @@ function ReplayDetails() {
 function LoadedDetails({orgId}: {orgId: string}) {
   const {getParamValue} = useUrlParam('l_page', 'topbar');
   const {replay} = useReplayContext();
-  const duration = replay?.getDuration();
+  const durationMS = replay?.getDurationMS();
 
   return (
     <Page
       orgId={orgId}
       crumbs={replay?.getRawCrumbs()}
-      duration={duration}
+      durationMS={durationMS}
       event={replay?.getEvent()}
     >
       <Layout
