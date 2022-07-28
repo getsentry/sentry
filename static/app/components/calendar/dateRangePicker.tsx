@@ -1,8 +1,6 @@
 import {useCallback, useMemo} from 'react';
 import {DateRange, DateRangeProps, Range, RangeKeyDict} from 'react-date-range';
 
-import {callIfFunction} from 'sentry/utils/callIfFunction';
-
 import CalendarStylesWrapper from './calendarStylesWrapper';
 
 export type DateRangePickerProps = Omit<DateRangeProps, 'ranges' | 'onChange'> & {
@@ -19,21 +17,26 @@ function isRangeSelection(rangesByKey: RangeKeyDict): rangesByKey is RangeSelect
   return rangesByKey?.[PRIMARY_RANGE_KEY] !== undefined;
 }
 
-const DateRangePicker = (props: DateRangePickerProps) => {
+const DateRangePicker = ({
+  onChange: incomingOnChange,
+  startDate,
+  endDate,
+  ...props
+}: DateRangePickerProps) => {
   const onChange = useCallback(
     (rangesByKey: RangeKeyDict) => {
       if (!isRangeSelection(rangesByKey)) {
         return;
       }
 
-      callIfFunction(props.onChange, rangesByKey[PRIMARY_RANGE_KEY]);
+      incomingOnChange?.(rangesByKey[PRIMARY_RANGE_KEY]);
     },
-    [props.onChange]
+    [incomingOnChange]
   );
 
   const ranges: Range[] = useMemo(() => {
-    return [{startDate: props.startDate, endDate: props.endDate, key: PRIMARY_RANGE_KEY}];
-  }, [props.endDate, props.startDate]);
+    return [{startDate, endDate, key: PRIMARY_RANGE_KEY}];
+  }, [endDate, startDate]);
 
   return (
     <CalendarStylesWrapper>

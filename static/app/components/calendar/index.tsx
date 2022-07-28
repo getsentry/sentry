@@ -1,4 +1,4 @@
-import {FunctionComponent, lazy, Suspense} from 'react';
+import React, {lazy, Suspense} from 'react';
 
 import LoadingIndicator from '../loadingIndicator';
 import Placeholder from '../placeholder';
@@ -9,7 +9,7 @@ import type {DateRangePickerProps} from './dateRangePicker';
 const LazyDatePicker = lazy(() => import('./datePicker'));
 const LazyDateRangePicker = lazy(() => import('./dateRangePicker'));
 
-const CalendarSuspenseWrapper: FunctionComponent = ({children}) => {
+const CalendarSuspenseWrapper: React.FC = ({children}) => {
   return (
     <Suspense
       fallback={

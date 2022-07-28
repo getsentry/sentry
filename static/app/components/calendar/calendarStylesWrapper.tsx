@@ -8,14 +8,8 @@ import space from 'sentry/styles/space';
 const CalendarStylesWrapper = styled('div')`
   padding: ${space(3)};
 
-  .rdrCalendarWrapper:not(.rdrDateRangeWrapper) {
-    .rdrDayHovered {
-      .rdrDayNumber {
-        &:after {
-          border: 0;
-        }
-      }
-    }
+  .rdrCalendarWrapper:not(.rdrDateRangeWrapper) .rdrDayHovered .rdrDayNumber:after {
+    border: 0;
   }
 
   .rdrSelected,
