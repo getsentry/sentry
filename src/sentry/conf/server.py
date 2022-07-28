@@ -2719,3 +2719,6 @@ SENTRY_STRING_INDEXER_CACHE_OPTIONS = {
     "version": 1,
     "cache_name": "default",
 }
+
+SERVER_COMPONENT_MODE = os.environ.get("SENTRY_SERVER_COMPONENT_MODE", None)
+FAIL_ON_UNAVAILABLE_API_CALL = False
