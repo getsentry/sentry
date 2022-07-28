@@ -7,7 +7,10 @@ const isBrowser = typeof window !== 'undefined';
 function readStorageValue<T>(key, initialValue: T) {
   const value = sessionStorage.getItem(key);
 
-  if (value === null) {
+  // We check for 'undefined' because the value may have
+  // previously been serialized as 'undefined'. This should no longer
+  // happen, but want to handle it gracefully.
+  if (value === null || value === 'undefined') {
     return initialValue;
   }
 
@@ -48,8 +51,8 @@ function useSessionStorage<T>(
   );
 
   const removeItem = useCallback(() => {
-    sessionStorageWrapper.removeItem(key);
     setState(undefined);
+    sessionStorageWrapper.removeItem(key);
   }, [key]);
 
   if (!isBrowser) {
