@@ -2056,7 +2056,6 @@ urlpatterns = [
                     ProjectRulesEndpoint.as_view(),
                     name="sentry-api-0-project-rules",
                 ),
-                # Replays
                 url(
                     r"^(?P<organization_slug>[^/]+)/(?P<project_slug>[^\/]+)/replays/(?P<replay_id>[\w-]+)/$",
                     ProjectReplayDetailsEndpoint.as_view(),
