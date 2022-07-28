@@ -180,4 +180,19 @@ class Migration(CheckedMigration):
             hints={"tables": ["sentry_externalissue"]},
             reverse_sql="ALTER TABLE sentry_externalissue ALTER COLUMN integration_id TYPE int",
         ),
+        migrations.RunSQL(
+            sql="ALTER TABLE sentry_dashboardproject ALTER COLUMN project_id TYPE bigint",
+            hints={"tables": ["sentry_dashboardproject"]},
+            reverse_sql="ALTER TABLE sentry_dashboardproject ALTER COLUMN project_id TYPE int",
+        ),
+        migrations.RunSQL(
+            sql="ALTER TABLE sentry_dashboardproject ALTER COLUMN id TYPE bigint",
+            hints={"tables": ["sentry_dashboardproject"]},
+            reverse_sql="ALTER TABLE sentry_dashboardproject ALTER COLUMN id TYPE int",
+        ),
+        migrations.RunSQL(
+            sql="ALTER TABLE sentry_dashboardproject ALTER COLUMN dashboard_id TYPE bigint",
+            hints={"tables": ["sentry_dashboardproject"]},
+            reverse_sql="ALTER TABLE sentry_dashboardproject ALTER COLUMN dashboard_id TYPE int",
+        ),
     )
