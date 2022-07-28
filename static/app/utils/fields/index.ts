@@ -168,47 +168,47 @@ export interface FieldDefinition {
 
 export const AGGREGATION_FIELDS: Record<string, FieldDefinition> = {
   [AggregationKey.Count]: {
-    desc: t('Returns the count for the selected field'),
+    desc: t('count of events'),
     kind: FieldKind.FUNCTION,
     valueType: FieldValueType.NUMBER,
   },
   [AggregationKey.CountUnique]: {
-    desc: t('Returns the unique count for the unique field'),
+    desc: t('Unique count of the field values'),
     kind: FieldKind.FUNCTION,
     valueType: FieldValueType.INTEGER,
   },
   [AggregationKey.CountMiserable]: {
-    desc: t('Returns a score of miserable users'),
+    desc: t('Count of unique miserable users'),
     kind: FieldKind.FUNCTION,
     valueType: FieldValueType.NUMBER,
   },
   [AggregationKey.CountIf]: {
-    desc: t('Returns results based on conditional case'),
+    desc: t('Count of events matching the parameter conditions'),
     kind: FieldKind.FUNCTION,
     valueType: FieldValueType.NUMBER,
   },
   [AggregationKey.CountWebVitals]: {
-    desc: t('Returns count of web vitals with a specific status'),
+    desc: t('Count of web vitals with a specific status'),
     kind: FieldKind.FUNCTION,
     valueType: FieldValueType.NUMBER,
   },
   [AggregationKey.Eps]: {
-    desc: t('Returns events per second'),
+    desc: t('Events per second'),
     kind: FieldKind.FUNCTION,
     valueType: FieldValueType.NUMBER,
   },
   [AggregationKey.Epm]: {
-    desc: t('Returns events per minute'),
+    desc: t('Events per minute'),
     kind: FieldKind.FUNCTION,
     valueType: FieldValueType.NUMBER,
   },
   [AggregationKey.FailureRate]: {
-    desc: t('Returns percentage of failed transactions'),
+    desc: t('Failed event percentage based on transaction.status'),
     kind: FieldKind.FUNCTION,
     valueType: FieldValueType.PERCENTAGE,
   },
   [AggregationKey.FailureCount]: {
-    desc: t('Returns failed event count based on transaction.status'),
+    desc: t('Failed event count based on transaction.status'),
     kind: FieldKind.FUNCTION,
     valueType: FieldValueType.NUMBER,
   },
@@ -228,7 +228,7 @@ export const AGGREGATION_FIELDS: Record<string, FieldDefinition> = {
     valueType: null,
   },
   [AggregationKey.Any]: {
-    desc: t('Transactions with a specific duration'),
+    desc: t('Not Recommended, a random field value'),
     kind: FieldKind.FUNCTION,
     valueType: null,
   },
@@ -268,12 +268,12 @@ export const AGGREGATION_FIELDS: Record<string, FieldDefinition> = {
     valueType: null,
   },
   [AggregationKey.Apdex]: {
-    desc: t('Returns the apdex score based on a duration threshold'),
+    desc: t('Performance score based on a duration threshold'),
     kind: FieldKind.FUNCTION,
     valueType: null,
   },
   [AggregationKey.UserMisery]: {
-    desc: t('Returns transactions of miserable users between 0 to 1'),
+    desc: t('User-weighted performance metric that counts the number of unique users who were frustrated'),
     kind: FieldKind.FUNCTION,
     valueType: null,
   },
