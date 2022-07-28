@@ -275,7 +275,6 @@ class ProjectNotification(BaseNotification, abc.ABC):
         return {"project_id": self.project.id, **super().get_log_params(recipient)}
 
     def build_notification_footer(self, recipient: Team | User) -> str:
-        # notification footer only used for Slack for now
         settings_url = self.get_settings_url(recipient)
 
         parent = getattr(self, "project", self.organization)
