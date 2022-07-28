@@ -1,6 +1,10 @@
+import {Organization} from 'sentry/types';
 import {objectIsEmpty} from 'sentry/utils';
 import localStorage from 'sentry/utils/localStorage';
-import {MetricsEnhancedSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
+import {
+  canUseMetricsData,
+  MetricsEnhancedSettingContext,
+} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 
 import {PROJECT_PERFORMANCE_TYPE} from '../../utils';
 
@@ -22,10 +26,14 @@ function setWidgetStorageObject(localObject: Record<string, string>) {
   localStorage.setItem(getContainerLocalStorageObjectKey, JSON.stringify(localObject));
 }
 
+const mepQueryParamBase = {
+  preventMetricAggregates: '1',
+};
+
 export function getMEPQueryParams(mepContext: MetricsEnhancedSettingContext) {
   let queryParams = {};
-  const base = {preventMetricAggregates: '1'};
-  if (mepContext.shouldQueryProvideMEPParams) {
+  const base = mepQueryParamBase;
+  if (mepContext.shouldQueryProvideMEPAutoParams) {
     queryParams = {
       ...queryParams,
       ...base,
@@ -42,6 +50,10 @@ export function getMEPQueryParams(mepContext: MetricsEnhancedSettingContext) {
 
   // Disallow any performance request from using aggregates since they aren't currently possible in all visualizations and we don't want to mix modes.
   return objectIsEmpty(queryParams) ? undefined : queryParams;
+}
+
+export function getMetricOnlyQueryParams() {
+  return {...mepQueryParamBase, dataset: 'metrics'};
 }
 
 export const WIDGET_MAP_DENY_LIST = [
@@ -111,3 +123,21 @@ export const _setChartSetting = (
 
   setWidgetStorageObject(localObject);
 };
+
+const DISALLOWED_CHARTS_METRICS = [
+  PerformanceWidgetSetting.DURATION_HISTOGRAM,
+  PerformanceWidgetSetting.FCP_HISTOGRAM,
+  PerformanceWidgetSetting.LCP_HISTOGRAM,
+  PerformanceWidgetSetting.FID_HISTOGRAM,
+];
+
+export function filterAllowedChartsMetrics(
+  organization: Organization,
+  allowedCharts: PerformanceWidgetSetting[]
+) {
+  if (!canUseMetricsData(organization)) {
+    return allowedCharts;
+  }
+
+  return allowedCharts.filter(c => !DISALLOWED_CHARTS_METRICS.includes(c));
+}

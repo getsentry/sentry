@@ -80,6 +80,7 @@ type Props = {
   router: InjectedRouter;
   selection: PageFilters;
   widgetLimitReached: boolean;
+  hasUnsavedFilters?: boolean;
   isPreview?: boolean;
   newWidget?: Widget;
   onSetNewWidget?: () => void;
@@ -389,8 +390,14 @@ class Dashboard extends Component<Props, State> {
 
   renderWidget(widget: Widget, index: number) {
     const {isMobile, windowWidth} = this.state;
-    const {isEditing, organization, widgetLimitReached, isPreview, dashboard} =
-      this.props;
+    const {
+      isEditing,
+      organization,
+      widgetLimitReached,
+      isPreview,
+      dashboard,
+      hasUnsavedFilters,
+    } = this.props;
 
     const widgetProps = {
       widget,
@@ -401,6 +408,7 @@ class Dashboard extends Component<Props, State> {
       onDuplicate: this.handleDuplicateWidget(widget, index),
       isPreview,
       dashboardFilters: dashboard.filters,
+      hasUnsavedFilters,
     };
 
     if (organization.features.includes('dashboard-grid-layout')) {
