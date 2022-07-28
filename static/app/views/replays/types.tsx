@@ -1,10 +1,10 @@
 import type {eventWithTime} from 'rrweb/typings/types';
 
 import type {RawCrumb} from 'sentry/types/breadcrumbs';
-import type {EventTag} from 'sentry/types/event';
 
 // Keep this in sync with the backend blueprint
-export type Replay = {
+// "ReplayRecord" which is distinct from the common: "replay = new ReplayReader()"
+export type ReplayRecord = {
   count_errors: number;
   count_segments: number;
   count_urls: number;

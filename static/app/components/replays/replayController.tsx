@@ -85,8 +85,8 @@ function ReplayPlayPauseBar({isCompact}: {isCompact: boolean}) {
           title={t('Next breadcrumb')}
           icon={<IconNext size="sm" />}
           onClick={() => {
-            const startTimestampSec = replay?.getEvent().startTimestamp;
-            if (!startTimestampSec) {
+            const startTimestampMs = replay?.getReplay().started_at?.getDate();
+            if (!startTimestampMs) {
               return;
             }
             const transformedCrumbs = transformCrumbs(replay?.getRawCrumbs() || []);
@@ -94,11 +94,11 @@ function ReplayPlayPauseBar({isCompact}: {isCompact: boolean}) {
               crumbs: transformedCrumbs.filter(crumb =>
                 USER_ACTIONS.includes(crumb.type)
               ),
-              targetTimestampMs: startTimestampSec * 1000 + currentTime,
+              targetTimestampMs: startTimestampMs + currentTime,
             });
 
-            if (startTimestampSec !== undefined && next?.timestamp) {
-              setCurrentTime(relativeTimeInMs(next.timestamp, startTimestampSec));
+            if (startTimestampMs !== undefined && next?.timestamp) {
+              setCurrentTime(relativeTimeInMs(next.timestamp, startTimestampMs));
             }
           }}
           aria-label={t('Fast-forward to next breadcrumb')}

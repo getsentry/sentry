@@ -10,9 +10,9 @@ import {
 import type {
   MemorySpanType,
   RecordingEvent,
-  Replay,
   ReplayCrumb,
   ReplayError,
+  ReplayRecord,
   ReplaySpan,
 } from 'sentry/views/replays/types';
 
@@ -113,7 +113,7 @@ export default class ReplayReader {
       dist: this.event.dist,
       duration: this.getDuration(),
       environment: null,
-      finished_at: new Date(),
+      finished_at: new Date(this.event.endTimestamp),
       ip_address_v4: this.event.user?.ip_address,
       ip_address_v6: null,
       longest_transaction: 0,
@@ -123,11 +123,11 @@ export default class ReplayReader {
       replay_id: this.event.id,
       sdk_name: this.event.sdk?.name,
       sdk_version: this.event.sdk?.version,
-      started_at: new Date(),
+      started_at: new Date(this.event.startTimestamp),
       tags: this.event.tags.reduce(({key, val}, tags) => {
         tags[key] = val;
         return tags;
-      }, {} as Replay['tags']),
+      }, {} as ReplayRecord['tags']),
       title: this.event.title,
       trace_ids: [],
       urls,
@@ -136,7 +136,7 @@ export default class ReplayReader {
       user_hash: JSON.stringify(this.event.user),
       user_id: this.event.user?.id,
       user_name: this.event.user?.name,
-    } as Replay;
+    } as ReplayRecord;
   };
 
   getEventUser = () => {
