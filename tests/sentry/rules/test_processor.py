@@ -444,8 +444,8 @@ class RuleProcessorActiveReleaseTest(TestCase):
             data={"message": "Hello world"},
             project_id=self.project.id,
         )
-        self.event.group._times_seen_pending = 0
-        self.event.group.save()
+        # self.event.group._times_seen_pending = 0
+        # self.event.group.save()
 
         self.oldRelease = Release.objects.create(
             organization_id=self.organization.id,
