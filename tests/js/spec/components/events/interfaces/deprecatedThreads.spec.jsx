@@ -1,6 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import Threads from 'sentry/components/events/interfaces/threads';
+import Threads from 'sentry/components/events/interfaces/deprecatedThreads';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 describe('Threads', () => {

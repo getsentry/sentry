@@ -16,8 +16,8 @@ import {defined} from 'sentry/utils';
 import {isNativePlatform} from 'sentry/utils/platform';
 import useApi from 'sentry/utils/useApi';
 
-import findBestThread from './events/interfaces/threads/threadSelector/findBestThread';
-import getThreadStacktrace from './events/interfaces/threads/threadSelector/getThreadStacktrace';
+import findBestThread from './events/interfaces/deprecatedThreads/threadSelector/findBestThread';
+import getThreadStacktrace from './events/interfaces/deprecatedThreads/threadSelector/getThreadStacktrace';
 
 const REQUEST_DELAY = 100;
 const HOVERCARD_CONTENT_DELAY = 400;

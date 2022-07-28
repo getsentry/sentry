@@ -49,8 +49,8 @@ import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import {projectProcessingIssuesMessages} from 'sentry/views/settings/project/projectProcessingIssues';
 
-import findBestThread from './interfaces/threads/threadSelector/findBestThread';
-import getThreadException from './interfaces/threads/threadSelector/getThreadException';
+import findBestThread from './interfaces/deprecatedThreads/threadSelector/findBestThread';
+import getThreadException from './interfaces/deprecatedThreads/threadSelector/getThreadException';
 import EventEntry from './eventEntry';
 import EventTagsAndScreenshot from './eventTagsAndScreenshot';
 

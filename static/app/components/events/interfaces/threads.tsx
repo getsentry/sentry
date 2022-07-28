@@ -19,10 +19,10 @@ import {TraceEventDataSection} from '../traceEventDataSection';
 
 import Exception from './crashContent/exception';
 import StackTrace from './crashContent/stackTrace';
-import ThreadSelector from './threads/threadSelector';
-import findBestThread from './threads/threadSelector/findBestThread';
-import getThreadException from './threads/threadSelector/getThreadException';
-import getThreadStacktrace from './threads/threadSelector/getThreadStacktrace';
+import ThreadSelector from './deprecatedThreads/threadSelector';
+import findBestThread from './deprecatedThreads/threadSelector/findBestThread';
+import getThreadException from './deprecatedThreads/threadSelector/getThreadException';
+import getThreadStacktrace from './deprecatedThreads/threadSelector/getThreadStacktrace';
 import NoStackTraceMessage from './noStackTraceMessage';
 import {isStacktraceNewestFirst} from './utils';
 

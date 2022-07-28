@@ -1,17 +1,17 @@
 import Breadcrumbs from 'sentry/components/events/interfaces/breadcrumbs';
 import Csp from 'sentry/components/events/interfaces/csp';
 import DebugMetaV2 from 'sentry/components/events/interfaces/debugMeta-v2';
-import Exception from 'sentry/components/events/interfaces/exception';
-import ExceptionV2 from 'sentry/components/events/interfaces/exceptionV2';
+import Exception from 'sentry/components/events/interfaces/deprecatedException';
+import StackTrace from 'sentry/components/events/interfaces/deprecatedStackTrace';
+import Threads from 'sentry/components/events/interfaces/deprecatedThreads';
+import ExceptionV2 from 'sentry/components/events/interfaces/exception';
 import Generic from 'sentry/components/events/interfaces/generic';
 import Message from 'sentry/components/events/interfaces/message';
 import Request from 'sentry/components/events/interfaces/request';
 import Spans from 'sentry/components/events/interfaces/spans';
-import StackTrace from 'sentry/components/events/interfaces/stackTrace';
-import StackTraceV2 from 'sentry/components/events/interfaces/stackTraceV2';
+import StackTraceV2 from 'sentry/components/events/interfaces/stackTrace';
 import Template from 'sentry/components/events/interfaces/template';
-import Threads from 'sentry/components/events/interfaces/threads';
-import ThreadsV2 from 'sentry/components/events/interfaces/threadsV2';
+import ThreadsV2 from 'sentry/components/events/interfaces/threads';
 import {Group, Organization, Project, SharedViewOrganization} from 'sentry/types';
 import {Entry, EntryType, Event, EventTransaction} from 'sentry/types/event';
 

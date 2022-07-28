@@ -1,14 +1,14 @@
-import {useState} from 'react';
+import styled from '@emotion/styled';
 
-import EventDataSection from 'sentry/components/events/eventDataSection';
 import CrashContent from 'sentry/components/events/interfaces/crashContent';
-import CrashActions from 'sentry/components/events/interfaces/crashHeader/crashActions';
-import CrashTitle from 'sentry/components/events/interfaces/crashHeader/crashTitle';
 import {t} from 'sentry/locale';
-import {Group, Project} from 'sentry/types';
+import {Group, PlatformType, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {STACK_TYPE, STACK_VIEW} from 'sentry/types/stacktrace';
 
+import {TraceEventDataSection} from '../traceEventDataSection';
+
+import CrashContentStackTrace from './crashContent/stackTrace';
 import NoStackTraceMessage from './noStackTraceMessage';
 import {isStacktraceNewestFirst} from './utils';
 
@@ -26,8 +26,7 @@ type Props = Pick<
   hideGuide?: boolean;
 };
 
-function StacktraceInterface({
-  hideGuide = false,
+function StackTrace({
   projectId,
   event,
   data,
@@ -35,55 +34,69 @@ function StacktraceInterface({
   hasHierarchicalGrouping,
   groupingCurrentLevel,
 }: Props) {
-  const [stackView, setStackView] = useState<STACK_VIEW>(
-    data.hasSystemFrames ? STACK_VIEW.APP : STACK_VIEW.FULL
-  );
-  const [newestFirst, setNewestFirst] = useState(isStacktraceNewestFirst());
+  function getPlatform(): PlatformType {
+    const framePlatform = data.frames?.find(frame => !!frame.platform);
+    return framePlatform?.platform ?? event.platform ?? 'other';
+  }
 
+  const platform = getPlatform();
   const stackTraceNotFound = !(data.frames ?? []).length;
 
   return (
-    <EventDataSection
+    <TraceEventDataSection
       type={type}
-      title={
-        <CrashTitle
-          title={t('Stack Trace')}
-          hideGuide={hideGuide}
-          newestFirst={newestFirst}
-          onChange={
-            !stackTraceNotFound ? value => setNewestFirst(value.newestFirst) : undefined
-          }
-        />
+      stackType={STACK_TYPE.ORIGINAL}
+      projectId={projectId}
+      eventId={event.id}
+      platform={platform}
+      stackTraceNotFound={stackTraceNotFound}
+      recentFirst={isStacktraceNewestFirst()}
+      fullStackTrace={!data.hasSystemFrames}
+      title={<Title>{t('Stack Trace')}</Title>}
+      wrapTitle={false}
+      hasMinified={false}
+      hasVerboseFunctionNames={
+        !!data.frames?.some(
+          frame =>
+            !!frame.rawFunction &&
+            !!frame.function &&
+            frame.rawFunction !== frame.function
+        )
       }
-      actions={
-        !stackTraceNotFound && (
-          <CrashActions
-            stackView={stackView}
-            platform={event.platform}
+      hasAbsoluteFilePaths={!!data.frames?.some(frame => !!frame.filename)}
+      hasAbsoluteAddresses={!!data.frames?.some(frame => !!frame.instructionAddr)}
+      hasAppOnlyFrames={!!data.frames?.some(frame => frame.inApp !== true)}
+      hasNewestFirst={(data.frames ?? []).length > 1}
+      showPermalink
+    >
+      {({recentFirst, display, fullStackTrace}) =>
+        stackTraceNotFound ? (
+          <NoStackTraceMessage />
+        ) : (
+          <CrashContentStackTrace
+            event={event}
+            platform={platform}
+            stackView={
+              display.includes('raw-stack-trace')
+                ? STACK_VIEW.RAW
+                : fullStackTrace
+                ? STACK_VIEW.FULL
+                : STACK_VIEW.APP
+            }
+            newestFirst={recentFirst}
             stacktrace={data}
+            groupingCurrentLevel={groupingCurrentLevel}
             hasHierarchicalGrouping={hasHierarchicalGrouping}
-            onChange={value => setStackView(value.stackView ?? stackView)}
+            nativeV2
           />
         )
       }
-      wrapTitle={false}
-    >
-      {stackTraceNotFound ? (
-        <NoStackTraceMessage />
-      ) : (
-        <CrashContent
-          projectId={projectId}
-          event={event}
-          stackView={stackView}
-          newestFirst={newestFirst}
-          stacktrace={data}
-          stackType={STACK_TYPE.ORIGINAL}
-          groupingCurrentLevel={groupingCurrentLevel}
-          hasHierarchicalGrouping={hasHierarchicalGrouping}
-        />
-      )}
-    </EventDataSection>
+    </TraceEventDataSection>
   );
 }
 
-export default StacktraceInterface;
+export default StackTrace;
+
+const Title = styled('h3')`
+  margin-bottom: 0;
+`;

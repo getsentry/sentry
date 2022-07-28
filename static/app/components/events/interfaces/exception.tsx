@@ -1,22 +1,21 @@
-import {useState} from 'react';
+import styled from '@emotion/styled';
 
-import EventDataSection from 'sentry/components/events/eventDataSection';
-import CrashContent from 'sentry/components/events/interfaces/crashContent';
-import CrashActions from 'sentry/components/events/interfaces/crashHeader/crashActions';
-import CrashTitle from 'sentry/components/events/interfaces/crashHeader/crashTitle';
 import {t} from 'sentry/locale';
-import {ExceptionType, Group} from 'sentry/types';
+import {ExceptionType, Group, PlatformType, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {STACK_TYPE, STACK_VIEW} from 'sentry/types/stacktrace';
-import {defined} from 'sentry/utils';
 
+import {TraceEventDataSection} from '../traceEventDataSection';
+
+import CrashContentException from './crashContent/exception';
+import NoStackTraceMessage from './noStackTraceMessage';
 import {isStacktraceNewestFirst} from './utils';
 
 type Props = {
   data: ExceptionType;
   event: Event;
   hasHierarchicalGrouping: boolean;
-  projectId: string;
+  projectId: Project['id'];
   type: string;
   groupingCurrentLevel?: Group['metadata']['current_level'];
   hideGuide?: boolean;
@@ -29,15 +28,8 @@ function Exception({
   projectId,
   hasHierarchicalGrouping,
   groupingCurrentLevel,
-  hideGuide = false,
 }: Props) {
-  const [stackView, setStackView] = useState<STACK_VIEW>(
-    data.hasSystemFrames ? STACK_VIEW.APP : STACK_VIEW.FULL
-  );
-  const [stackType, setStackType] = useState<STACK_TYPE>(STACK_TYPE.ORIGINAL);
-  const [newestFirst, setNewestFirst] = useState(isStacktraceNewestFirst());
-
-  const eventHasThreads = !!event.entries.find(entry => entry.type === 'threads');
+  const eventHasThreads = !!event.entries.some(entry => entry.type === 'threads');
 
   /* in case there are threads in the event data, we don't render the
    exception block.  Instead the exception is contained within the
@@ -46,62 +38,100 @@ function Exception({
     return null;
   }
 
-  function handleChange({
-    stackView: newStackView,
-    stackType: newStackType,
-    newestFirst: newNewestFirst,
-  }: {
-    newestFirst?: boolean;
-    stackType?: STACK_TYPE;
-    stackView?: STACK_VIEW;
-  }) {
-    if (newStackView) {
-      setStackView(newStackView);
+  function getPlatform(): PlatformType {
+    const dataValue = data.values?.find(
+      value => !!value.stacktrace?.frames?.some(frame => !!frame.platform)
+    );
+
+    if (dataValue) {
+      const framePlatform = dataValue.stacktrace?.frames?.find(frame => !!frame.platform);
+
+      if (framePlatform?.platform) {
+        return framePlatform.platform;
+      }
     }
 
-    if (defined(newNewestFirst)) {
-      setNewestFirst(newNewestFirst);
-    }
-
-    if (newStackType) {
-      setStackType(newStackType);
-    }
+    return event.platform ?? 'other';
   }
 
-  const commonCrashHeaderProps = {
-    newestFirst,
-    hideGuide,
-    onChange: handleChange,
-  };
+  const stackTraceNotFound = !(data.values ?? []).length;
+  const platform = getPlatform();
 
   return (
-    <EventDataSection
+    <TraceEventDataSection
+      title={<Title>{t('Exception')}</Title>}
       type={type}
-      title={<CrashTitle title={t('Exception')} {...commonCrashHeaderProps} />}
-      actions={
-        <CrashActions
-          stackType={stackType}
-          stackView={stackView}
-          platform={event.platform}
-          exception={data}
-          hasHierarchicalGrouping={hasHierarchicalGrouping}
-          {...commonCrashHeaderProps}
-        />
+      stackType={STACK_TYPE.ORIGINAL}
+      projectId={projectId}
+      eventId={event.id}
+      recentFirst={isStacktraceNewestFirst()}
+      fullStackTrace={!data.hasSystemFrames}
+      platform={platform}
+      hasMinified={!!data.values?.some(value => value.rawStacktrace)}
+      hasVerboseFunctionNames={
+        !!data.values?.some(
+          value =>
+            !!value.stacktrace?.frames?.some(
+              frame =>
+                !!frame.rawFunction &&
+                !!frame.function &&
+                frame.rawFunction !== frame.function
+            )
+        )
       }
+      hasAbsoluteFilePaths={
+        !!data.values?.some(
+          value => !!value.stacktrace?.frames?.some(frame => !!frame.filename)
+        )
+      }
+      hasAbsoluteAddresses={
+        !!data.values?.some(
+          value => !!value.stacktrace?.frames?.some(frame => !!frame.instructionAddr)
+        )
+      }
+      hasAppOnlyFrames={
+        !!data.values?.some(
+          value => !!value.stacktrace?.frames?.some(frame => frame.inApp !== true)
+        )
+      }
+      hasNewestFirst={
+        !!data.values?.some(value => (value.stacktrace?.frames ?? []).length > 1)
+      }
+      stackTraceNotFound={stackTraceNotFound}
+      showPermalink
       wrapTitle={false}
     >
-      <CrashContent
-        projectId={projectId}
-        event={event}
-        stackType={stackType}
-        stackView={stackView}
-        newestFirst={newestFirst}
-        exception={data}
-        groupingCurrentLevel={groupingCurrentLevel}
-        hasHierarchicalGrouping={hasHierarchicalGrouping}
-      />
-    </EventDataSection>
+      {({recentFirst, display, fullStackTrace}) =>
+        stackTraceNotFound ? (
+          <NoStackTraceMessage />
+        ) : (
+          <CrashContentException
+            stackType={
+              display.includes('minified') ? STACK_TYPE.MINIFIED : STACK_TYPE.ORIGINAL
+            }
+            stackView={
+              display.includes('raw-stack-trace')
+                ? STACK_VIEW.RAW
+                : fullStackTrace
+                ? STACK_VIEW.FULL
+                : STACK_VIEW.APP
+            }
+            projectId={projectId}
+            newestFirst={recentFirst}
+            event={event}
+            platform={platform}
+            values={data.values}
+            groupingCurrentLevel={groupingCurrentLevel}
+            hasHierarchicalGrouping={hasHierarchicalGrouping}
+          />
+        )
+      }
+    </TraceEventDataSection>
   );
 }
 
 export default Exception;
+
+const Title = styled('h3')`
+  margin-bottom: 0;
+`;
