@@ -43,7 +43,7 @@ function ReplayDetails() {
 
   if (!fetching && replay && replay.getRRWebEvents().length < 2) {
     return (
-      <Page orgId={orgId} event={replay.getEvent()}>
+      <Page orgId={orgId} replayRecord={replay.getReplay()}>
         <DetailedError
           onRetry={onRetry}
           hideSupportLinks
@@ -78,7 +78,7 @@ function LoadedDetails({orgId}: {orgId: string}) {
       orgId={orgId}
       crumbs={replay?.getRawCrumbs()}
       duration={duration}
-      event={replay?.getEvent()}
+      replayRecord={replay?.getReplay()}
     >
       <Layout
         layout={

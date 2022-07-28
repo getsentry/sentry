@@ -28,7 +28,7 @@ function EventMetaData({crumbs, duration, replayRecord}: Props) {
         <ProjectBadge
           project={
             projects.find(p => p.id === replayRecord.project_id) || {
-              slug: event.projectSlug || '',
+              slug: replayRecord.project_slug || '',
             }
           }
           avatarSize={16}

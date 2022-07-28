@@ -1,6 +1,6 @@
 import type {BreadcrumbTypeNavigation, Crumb} from 'sentry/types/breadcrumbs';
 import {BreadcrumbType} from 'sentry/types/breadcrumbs';
-import type {Event, EventTransaction, EventUser} from 'sentry/types/event';
+import type {Event, EventTransaction} from 'sentry/types/event';
 import {
   breadcrumbFactory,
   replayTimestamps,
@@ -104,6 +104,7 @@ export default class ReplayReader {
       longest_transaction: 0,
       platform: this.event.platform,
       project_id: this.event.projectID,
+      project_slug: '',
       release: null, // event.release is not a string, expected to be `version@1.4`
       replay_id: this.event.id,
       sdk_name: this.event.sdk?.name,
@@ -116,11 +117,12 @@ export default class ReplayReader {
       title: this.event.title,
       trace_ids: [],
       urls,
-      user: this.event.user?.id,
-      user_email: this.event.user?.email,
-      user_hash: JSON.stringify(this.event.user),
-      user_id: this.event.user?.id,
-      user_name: this.event.user?.name,
+      user: {
+        email: this.event.user?.email,
+        id: this.event.user?.id,
+        ip: this.event.user?.ip_address,
+        name: this.event.user?.name,
+      },
     } as ReplayRecord;
   }
 
@@ -140,16 +142,6 @@ export default class ReplayReader {
 
   getReplay = () => {
     return this.replayRecord;
-  };
-
-  getEventUser = () => {
-    const replay = this.getReplay();
-    return {
-      email: replay.user_email,
-      id: replay.user_id,
-      ip_address: replay.ip_address_v6 || replay.ip_address_v4,
-      name: replay.user_name,
-    } as EventUser;
   };
 
   getRRWebEvents = () => {
