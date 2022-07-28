@@ -87,7 +87,7 @@ export function projectStatsToPredictedSeries(
 
   return [
     {
-      seriesName: t('Indexed'),
+      seriesName: t('Indexed and Processed'),
       color: COLOR_TRANSACTIONS,
       ...commonSeriesConfig,
       data: seriesData.accepted,

@@ -141,7 +141,7 @@ export function RecommendedStepsModal({
               <h5>{t('Update the following SDK versions')}</h5>
               <TextBlock>
                 {t(
-                  'To ensure you are properly monitoring the performance of all your other services, we require you update to the latest version of the following SDK(s):'
+                  'To activate server-side sampling rules, it’s a requirement to update the following project SDK(s):'
                 )}
               </TextBlock>
               <UpgradeSDKfromProjects>
@@ -171,7 +171,7 @@ export function RecommendedStepsModal({
             <h5>{t('Increase your client-side transaction sample rate')}</h5>
             <TextBlock>
               {t(
-                'Once you’ve updated the above SDK(s), you can increase the client-side transaction sample rate in your application. This helps to ensure you are sending enough transactions to accurately monitor overall performance and ensure all transactions you have deemed important in your server-side sample rules are available. Below is the suggested rate we’ve calculated based on your organization’s usage and quota.'
+                'Here’s your optimal client(SDK) sample rate based on your organization’s usage and quota. To make this change, find the tracesSampleRate option in your SDK Config, modify it’s value to what’s suggested below and re-deploy.'
               )}
             </TextBlock>
             <div>

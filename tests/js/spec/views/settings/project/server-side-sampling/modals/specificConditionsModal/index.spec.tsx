@@ -16,7 +16,7 @@ import {getInnerNameLabel} from 'sentry/views/settings/project/server-side-sampl
 
 import {getMockData, specificRule, uniformRule} from '../../utils';
 
-describe('Server-side Sampling - Specific Conditions Modal', function () {
+describe('Server-Side Sampling - Specific Conditions Modal', function () {
   afterEach(function () {
     MockApiClient.clearMockResponses();
   });
@@ -78,7 +78,7 @@ describe('Server-side Sampling - Specific Conditions Modal', function () {
     // Dialog Content
     expect(
       screen.getByText(
-        'Using a Trace ID, select all Transactions distributed across multiple projects/services which match your conditions.'
+        'Sample transactions under specific conditions. Multiple conditions are logically expressed as AND and OR for multiple values.'
       )
     ).toBeInTheDocument();
 

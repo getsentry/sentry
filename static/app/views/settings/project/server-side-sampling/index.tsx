@@ -22,7 +22,7 @@ export default function ServerSideSamplingContainer({project}: Props) {
         <FeatureDisabled
           alert={PanelAlert}
           features={['organization:server-side-sampling']}
-          featureName={t('Server-side Sampling')}
+          featureName={t('Server-Side Sampling')}
         />
       )}
     >

@@ -21,10 +21,10 @@ export function Promo({onGetStarted, onReadDocs, hasAccess}: Props) {
     <StyledEmptyStateWarning withIcon={false}>
       <img src={onboardingServerSideSampling} />
       <Description>
-        <h3>{t('Set sample rules for your project')}</h3>
+        <h3>{t('Sample for relevancy')}</h3>
         <p>
           {t(
-            'Because every project is different – some need more events from high converting pages, critical API endpoints, or just want to focus on latency issues from the latest release – set multiple sample rules with different sample rates per project so you can keep what you need and drop what you don’t.'
+            'Create rules to sample transactions under specific conditions, keeping what you need and dropping what you don’t.'
           )}
         </p>
         <Actions gap={1}>

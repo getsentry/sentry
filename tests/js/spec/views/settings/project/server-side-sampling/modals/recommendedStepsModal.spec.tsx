@@ -14,7 +14,7 @@ import {
   uniformRule,
 } from '../utils';
 
-describe('Server-side Sampling - Recommended Steps Modal', function () {
+describe('Server-Side Sampling - Recommended Steps Modal', function () {
   beforeEach(function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/release/values/',
@@ -51,7 +51,7 @@ describe('Server-side Sampling - Recommended Steps Modal', function () {
 
     expect(
       screen.getByText(
-        'To ensure you are properly monitoring the performance of all your other services, we require you update to the latest version of the following SDK(s):'
+        'To activate server-side sampling rules, it’s a requirement to update the following project SDK(s):'
       )
     ).toBeInTheDocument();
 
@@ -79,7 +79,7 @@ describe('Server-side Sampling - Recommended Steps Modal', function () {
 
     expect(
       screen.getByText(
-        'Once you’ve updated the above SDK(s), you can increase the client-side transaction sample rate in your application. This helps to ensure you are sending enough transactions to accurately monitor overall performance and ensure all transactions you have deemed important in your server-side sample rules are available. Below is the suggested rate we’ve calculated based on your organization’s usage and quota.'
+        'Here’s your optimal client(SDK) sample rate based on your organization’s usage and quota. To make this change, find the tracesSampleRate option in your SDK Config, modify it’s value to what’s suggested below and re-deploy.'
       )
     ).toBeInTheDocument();
 

@@ -7,7 +7,7 @@ import {SamplingSDKAlert} from 'sentry/views/settings/project/server-side-sampli
 
 import {getMockData, mockedProjects, recommendedSdkUpgrades, uniformRule} from './utils';
 
-describe('Server-side Sampling - Sampling SDK Alert', function () {
+describe('Server-Side Sampling - Sampling SDK Alert', function () {
   it('does not render content', function () {
     const {organization, project} = getMockData();
 
@@ -50,7 +50,7 @@ describe('Server-side Sampling - Sampling SDK Alert', function () {
 
     expect(
       screen.getByText(
-        'To ensure you are properly monitoring the performance of all your other services, we require you update to the latest version of the following SDK(s):'
+        'To activate server-side sampling rules, it’s a requirement to update the following project SDK(s):'
       )
     ).toBeInTheDocument();
 

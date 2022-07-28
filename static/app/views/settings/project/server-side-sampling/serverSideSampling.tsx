@@ -398,12 +398,12 @@ export function ServerSideSampling({project}: Props) {
   const uniformRule = rules.find(isUniformRule);
 
   return (
-    <SentryDocumentTitle title={t('Server-side Sampling')}>
+    <SentryDocumentTitle title={t('Server-Side Sampling')}>
       <Fragment>
-        <SettingsPageHeader title={t('Server-side Sampling')} />
+        <SettingsPageHeader title={t('Server-Side Sampling')} />
         <TextBlock>
           {t(
-            'Server-side sampling lets you control what transactions Sentry retains by setting sample rules and rates so you see more of the transactions you want to explore further in Sentry – and less of the ones you don’t – without re-configuring the Sentry SDK and redeploying anything.'
+            'Enhance the performance monitoring experience by targeting which transactions are most valuable to your organization without the need for re-deployment.'
           )}
         </TextBlock>
         <PermissionAlert
