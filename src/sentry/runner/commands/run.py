@@ -614,6 +614,7 @@ def replays_recordings_consumer(**options):
 @click.option("commit_max_batch_size", "--commit-max-batch-size", type=int, default=25000)
 @click.option("commit_max_batch_time", "--commit-max-batch-time-ms", type=int, default=10000)
 @click.option("--topic", default="snuba-metrics", help="Topic to read indexer output from.")
+@click.option("--ingest-profile")
 def last_seen_updater(**options):
     from sentry.sentry_metrics.consumers.last_seen_updater import get_last_seen_updater
 
