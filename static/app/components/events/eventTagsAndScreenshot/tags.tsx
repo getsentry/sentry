@@ -1,12 +1,13 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import {SectionContents} from 'sentry/components/events/eventDataSection';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
-import {Event} from 'sentry/types/event';
+import type {Organization, Project} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
+import {objectIsEmpty} from 'sentry/utils';
 
 import EventTags from '../eventTags/eventTags';
 
@@ -22,9 +23,12 @@ type Props = {
 };
 
 function Tags({event, organization, projectSlug, location, hasContext}: Props) {
+  // Check for context bailout condition. No context is rendered if only user is provided
+  const hasEventContext = !objectIsEmpty(event.contexts);
+
   return (
     <div>
-      {hasContext && (
+      {hasContext && hasEventContext && (
         <Fragment>
           <TagsHighlightWrapper>
             <TagsHighlight event={event} />
