@@ -481,6 +481,12 @@ const LatestEventNotAvailable = styled('div')`
 
 const BorderlessEventEntries = styled(EventEntries)`
   padding: 0;
+
+  & > div:first-child {
+    padding-top: 0;
+    border-top: none;
+  }
+
   @media (max-width: ${p => p.theme.breakpoints.medium}) {
     padding: 0;
   }

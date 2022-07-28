@@ -7,14 +7,11 @@ export const DataSection = styled('div')`
   display: flex;
   flex-direction: column;
   margin: 0;
+  border-top: 1px solid ${p => p.theme.innerBorder};
 
   /* Padding aligns with Layout.Body */
   padding-top: ${space(3)};
   padding-bottom: ${space(2)};
-
-  :not(:first-child) {
-    border-top: 1px solid ${p => p.theme.innerBorder};
-  }
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
     padding-bottom: ${space(3)};
