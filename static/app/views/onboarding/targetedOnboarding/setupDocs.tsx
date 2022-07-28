@@ -105,7 +105,7 @@ function ProjecDocs(props: {
               trackAdvancedAnalyticsEvent('growth.onboarding_wizard_interacted', {
                 organization: props.organization,
                 project_id: props.project.id,
-                platform: props.platform || undefined,
+                platform: props.platform || 'unknown',
                 wizard_instructions: true,
               });
             setInteracted(true);
@@ -117,7 +117,7 @@ function ProjecDocs(props: {
             trackAdvancedAnalyticsEvent('growth.onboarding_wizard_clicked_more_details', {
               organization: props.organization,
               project_id: props.project.id,
-              platform: props.platform || undefined,
+              platform: props.platform || 'unknown',
             });
             setWizardSetupDetailsCollapsed(!wizardSetupDetailsCollapsed);
           }}
