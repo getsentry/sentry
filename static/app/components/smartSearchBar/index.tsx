@@ -14,6 +14,7 @@ import ButtonBar from 'sentry/components/buttonBar';
 import DropdownLink from 'sentry/components/dropdownLink';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {
+  allOperators,
   FilterType,
   ParseResult,
   parseSearch,
@@ -40,19 +41,29 @@ import {Organization, SavedSearchType, Tag, User} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {callIfFunction} from 'sentry/utils/callIfFunction';
+import {FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
 import getDynamicComponent from 'sentry/utils/getDynamicComponent';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import {ActionButton} from './actions';
+import SearchBarDatePicker from './searchBarDatePicker';
 import SearchDropdown from './searchDropdown';
 import SearchHotkeysListener from './searchHotkeysListener';
-import {ItemType, SearchGroup, SearchItem, Shortcut, ShortcutType} from './types';
+import {
+  AutocompleteGroup,
+  ItemType,
+  SearchGroup,
+  SearchItem,
+  Shortcut,
+  ShortcutType,
+} from './types';
 import {
   addSpace,
   createSearchGroups,
   filterKeysFromQuery,
   generateOperatorEntryMap,
+  getDateTagAutocompleteGroups,
   getSearchGroupWithItemMarkedActive,
   getTagItemsFromKeys,
   getValidOps,
@@ -126,13 +137,6 @@ type ActionBarItem = {
    * Name of the action
    */
   key: string;
-};
-
-type AutocompleteGroup = {
-  recentSearchItems: SearchItem[] | undefined;
-  searchItems: SearchItem[];
-  tagName: string;
-  type: ItemType;
 };
 
 type Props = WithRouterProps & {
@@ -277,7 +281,6 @@ type State = {
    */
   query: string;
   searchGroups: SearchGroup[];
-
   /**
    * The current search term (or 'key') that that we will be showing
    * autocompletion for.
@@ -865,6 +868,68 @@ class SmartSearchBar extends Component<Props, State> {
   }
 
   /**
+   * Get the active filter
+   */
+  get cursorFilter() {
+    const matchedTokens = [Token.Filter] as const;
+    return this.findTokensAtCursor(matchedTokens);
+  }
+
+  get cursorValueIsoDate(): TokenResult<Token.ValueIso8601Date> | null {
+    const matchedTokens = [Token.ValueIso8601Date] as const;
+    return this.findTokensAtCursor(matchedTokens);
+  }
+
+  get cursorValueRelativeDate() {
+    const matchedTokens = [Token.ValueRelativeDate] as const;
+    return this.findTokensAtCursor(matchedTokens);
+  }
+
+  get currentFieldDefinition() {
+    if (!this.cursorToken || this.cursorToken.type !== Token.Filter) {
+      return null;
+    }
+
+    const tagName = getKeyName(this.cursorToken.key, {aggregateWithArgs: true});
+
+    const fieldDefinition = getFieldDefinition(tagName);
+
+    return fieldDefinition;
+  }
+
+  /**
+   * Determines when the date picker should be shown instead of normal dropdown options
+   * This should return true when the cursor is within a date filter and the user has
+   */
+  get shouldShowDatePicker() {
+    if (
+      !this.state.showDropdown ||
+      !this.cursorToken ||
+      this.currentFieldDefinition?.valueType !== FieldValueType.DATE ||
+      this.cursorValueRelativeDate ||
+      !(
+        this.cursorToken.type === Token.Filter &&
+        isWithinToken(this.cursorToken.value, this.cursorPosition)
+      )
+    ) {
+      return false;
+    }
+
+    const operator = this.cursorFilter?.operator ?? '';
+    const textValue = this.cursorFilter?.value?.text ?? '';
+
+    if (
+      this.cursorValueIsoDate ||
+      operator ||
+      (textValue && allOperators.find(op => op === textValue))
+    ) {
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
    * Get the current cursor position within the input
    */
   get cursorPosition() {
@@ -978,7 +1043,7 @@ class SmartSearchBar extends Component<Props, State> {
    * with data when ready
    */
   getTagValues = debounce(
-    async (tag: Tag, query: string) => {
+    async (tag: Tag, query: string): Promise<SearchItem[]> => {
       // Strip double quotes if there are any
       query = query.replace(/"/g, '').trim();
 
@@ -1284,12 +1349,23 @@ class SmartSearchBar extends Component<Props, State> {
           searchText = '';
         }
 
+        const fieldDefinition = getFieldDefinition(tagName);
+        const isDate = fieldDefinition?.valueType === FieldValueType.DATE;
+
+        if (isDate) {
+          const groups = getDateTagAutocompleteGroups(tagName);
+
+          this.updateAutoCompleteStateMultiHeader(groups);
+
+          return;
+        }
+
         const valueGroup = await this.generateValueAutocompleteGroup(tagName, searchText);
         const autocompleteGroups = valueGroup ? [valueGroup] : [];
         // show operator group if at beginning of value
         if (cursor === node.location.start.offset) {
           const opGroup = generateOpAutocompleteGroup(getValidOps(cursorToken), tagName);
-          if (valueGroup?.type !== ItemType.INVALID_TAG) {
+          if (valueGroup?.type !== ItemType.INVALID_TAG && !isDate) {
             autocompleteGroups.unshift(opGroup);
           }
         }
@@ -1492,7 +1568,10 @@ class SmartSearchBar extends Component<Props, State> {
             clauseStart += 1;
             clauseEnd -= 2;
           } else {
-            replaceToken += ' ';
+            // For ISO date values, we want to keep the cursor within the token
+            if (item.type !== ItemType.TAG_VALUE_ISO_DATE) {
+              replaceToken += ' ';
+            }
           }
         }
       } else if (isWithinToken(cursorToken.key, cursor)) {
@@ -1512,7 +1591,15 @@ class SmartSearchBar extends Component<Props, State> {
     if (clauseStart !== null && clauseEnd !== null) {
       const beforeClause = query.substring(0, clauseStart);
       const endClause = query.substring(clauseEnd);
-      const newQuery = `${beforeClause}${replaceToken}${endClause}`;
+      // Adds a space between the relaceToken and endClause when necessary
+      const replaceTokenEndClauseJoiner =
+        !endClause ||
+        endClause.startsWith(' ') ||
+        replaceToken.endsWith(' ') ||
+        replaceToken.endsWith(':')
+          ? ''
+          : ' ';
+      const newQuery = `${beforeClause}${replaceToken}${replaceTokenEndClauseJoiner}${endClause}`;
       this.updateQuery(newQuery, beforeClause.length + replaceToken.length);
     }
   };
@@ -1535,6 +1622,23 @@ class SmartSearchBar extends Component<Props, State> {
     }
 
     this.onAutoCompleteFromAst(replaceText, item);
+  };
+
+  onAutoCompleteIsoDate = (isoDate: string) => {
+    const dateItem = {type: ItemType.TAG_VALUE_ISO_DATE};
+
+    if (
+      this.cursorFilter?.filter === FilterType.Date ||
+      this.cursorFilter?.filter === FilterType.SpecificDate
+    ) {
+      this.onAutoCompleteFromAst(`${this.cursorFilter.operator}${isoDate}`, dateItem);
+    } else if (this.cursorFilter?.filter === FilterType.Text) {
+      const valueText = this.cursorFilter.value.text;
+
+      if (allOperators.find(op => op === valueText)) {
+        this.onAutoCompleteFromAst(`${valueText}${isoDate}`, dateItem);
+      }
+    }
   };
 
   get showSearchDropdown(): boolean {
@@ -1671,7 +1775,17 @@ class SmartSearchBar extends Component<Props, State> {
           )}
         </ActionsBar>
 
-        {this.state.showDropdown && (
+        {this.shouldShowDatePicker && (
+          <SearchBarDatePicker
+            date={this.cursorValueIsoDate?.value}
+            dateString={this.cursorValueIsoDate?.text}
+            handleSelectDateTime={value => {
+              this.onAutoCompleteIsoDate(value);
+            }}
+          />
+        )}
+
+        {this.state.showDropdown && !this.shouldShowDatePicker && (
           <SearchDropdown
             className={dropdownClassName}
             items={searchGroups}
