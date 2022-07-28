@@ -4,6 +4,8 @@ import {inflate} from 'pako';
 
 import {IssueAttachment} from 'sentry/types';
 import {EventTransaction} from 'sentry/types/event';
+import flattenListOfObjects from 'sentry/utils/replays/flattenListOfObjects';
+import useReplayErrors from 'sentry/utils/replays/hooks/useReplayErrors';
 import ReplayReader from 'sentry/utils/replays/replayReader';
 import RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
@@ -13,10 +15,6 @@ import type {
   ReplayError,
   ReplaySpan,
 } from 'sentry/views/replays/types';
-
-import flattenListOfObjects from '../flattenListOfObjects';
-
-import useReplayErrors from './useReplayErrors';
 
 type State = {
   breadcrumbs: undefined | ReplayCrumb[];

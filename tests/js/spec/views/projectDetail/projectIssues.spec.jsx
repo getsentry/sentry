@@ -1,10 +1,10 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectIssues from 'sentry/views/projectDetail/projectIssues';
 
 describe('ProjectDetail > ProjectIssues', function () {
-  let endpointMock, filteredEndpointMock, wrapper;
+  let endpointMock, filteredEndpointMock;
   const {organization, router, routerContext} = initializeOrg({
     organization: {
       features: ['discover-basic'],
@@ -30,7 +30,7 @@ describe('ProjectDetail > ProjectIssues', function () {
 
   afterEach(function () {
     MockApiClient.clearMockResponses();
-    wrapper.unmount();
+    jest.clearAllMocks();
   });
 
   it('renders a list', async function () {
@@ -38,27 +38,24 @@ describe('ProjectDetail > ProjectIssues', function () {
       url: `/organizations/org-slug/issues/?limit=5&query=error.unhandled%3Atrue%20is%3Aunresolved&sort=freq&statsPeriod=14d`,
       body: [TestStubs.Group(), TestStubs.Group({id: '2'})],
     });
-    wrapper = mountWithTheme(
-      <ProjectIssues organization={organization} location={router.location} />,
-      routerContext
-    );
+    render(<ProjectIssues organization={organization} location={router.location} />, {
+      context: routerContext,
+    });
 
-    await tick();
-    wrapper.update();
-
-    expect(wrapper.find('StreamGroup').length).toBe(2);
+    expect(await screen.findAllByTestId('group')).toHaveLength(2);
   });
 
   it('renders a link to Issues', function () {
-    wrapper = mountWithTheme(
-      <ProjectIssues organization={organization} location={router.location} />,
-      routerContext
-    );
+    render(<ProjectIssues organization={organization} location={router.location} />, {
+      context: routerContext,
+    });
 
-    expect(
-      wrapper.find('ControlsWrapper Link[aria-label="Open in Issues"]').at(0).prop('to')
-    ).toEqual({
-      pathname: `/organizations/${organization.slug}/issues/`,
+    const link = screen.getByLabelText('Open in Issues');
+    expect(link).toBeInTheDocument();
+    userEvent.click(link);
+
+    expect(router.push).toHaveBeenCalledWith({
+      pathname: '/organizations/org-slug/issues/',
       query: {
         limit: 5,
         query: 'error.unhandled:true is:unresolved',
@@ -69,14 +66,15 @@ describe('ProjectDetail > ProjectIssues', function () {
   });
 
   it('renders a link to Discover', function () {
-    wrapper = mountWithTheme(
-      <ProjectIssues organization={organization} location={router.location} />,
-      routerContext
-    );
+    render(<ProjectIssues organization={organization} location={router.location} />, {
+      context: routerContext,
+    });
 
-    expect(
-      wrapper.find('ControlsWrapper Link[aria-label="Open in Discover"]').at(0).prop('to')
-    ).toEqual({
+    const link = screen.getByLabelText('Open in Discover');
+    expect(link).toBeInTheDocument();
+    userEvent.click(link);
+
+    expect(router.push).toHaveBeenCalledWith({
       pathname: `/organizations/${organization.slug}/discover/results/`,
       query: {
         display: 'top5',
@@ -90,22 +88,24 @@ describe('ProjectDetail > ProjectIssues', function () {
   });
 
   it('changes according to global header', function () {
-    wrapper = mountWithTheme(
+    render(
       <ProjectIssues
         organization={organization}
         location={{
           query: {statsPeriod: '7d', environment: 'staging', somethingBad: 'nope'},
         }}
       />,
-      routerContext
+      {context: routerContext}
     );
 
     expect(endpointMock).toHaveBeenCalledTimes(0);
     expect(filteredEndpointMock).toHaveBeenCalledTimes(1);
 
-    expect(
-      wrapper.find('ControlsWrapper Link[aria-label="Open in Issues"]').at(0).prop('to')
-    ).toEqual({
+    const link = screen.getByLabelText('Open in Issues');
+    expect(link).toBeInTheDocument();
+    userEvent.click(link);
+
+    expect(router.push).toHaveBeenCalledWith({
       pathname: `/organizations/${organization.slug}/issues/`,
       query: {
         limit: 5,
