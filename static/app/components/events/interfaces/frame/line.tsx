@@ -321,7 +321,7 @@ export class Line extends Component<Props, State> {
             {data.instructionAddr && (
               <TogglableAddress
                 address={data.instructionAddr}
-                startingAddress={image ? image.image_addr : null}
+                startingAddress={image ? image.image_addr ?? null : null}
                 isAbsolute={!!showingAbsoluteAddress}
                 isFoundByStackScanning={this.isFoundByStackScanning()}
                 isInlineFrame={!!this.isInlineFrame()}
