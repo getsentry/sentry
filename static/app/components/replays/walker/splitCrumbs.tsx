@@ -100,17 +100,15 @@ function SummarySegment({
 }
 
 const Span = styled('span')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
   line-height: 0;
-  font-family: ${p => p.theme.text.familyMono};
 `;
 
 const Link = styled('a')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
   line-height: 0;
-  font-family: ${p => p.theme.text.familyMono};
   text-decoration: underline;
 `;
 

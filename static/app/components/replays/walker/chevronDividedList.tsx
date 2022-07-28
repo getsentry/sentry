@@ -19,7 +19,7 @@ function ChevronDividedList({items}: Props) {
           : [
               <Item key={`${i}-chev`}>
                 <Chevron>
-                  <IconChevron color="gray300" size="sm" direction="right" />
+                  <IconChevron color="gray300" size="xs" direction="right" />
                 </Chevron>
               </Item>,
               li,
