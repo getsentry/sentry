@@ -1,14 +1,13 @@
 from functools import reduce
 from operator import or_
-from typing import Any, Mapping, Optional, Set, Type
+from typing import Any, Mapping, Optional, Set
 
 from django.db.models import Q
 
-from sentry.sentry_metrics.configuration import DbKey, UseCaseKey, get_ingest_config
+from sentry.sentry_metrics.configuration import UseCaseKey, get_ingest_config
 from sentry.sentry_metrics.indexer.base import KeyCollection, KeyResult, KeyResults, StringIndexer
 from sentry.sentry_metrics.indexer.cache import indexer_cache
-from sentry.sentry_metrics.indexer.models import BaseIndexer, PerfStringIndexer
-from sentry.sentry_metrics.indexer.models import StringIndexer as StringIndexerTable
+from sentry.sentry_metrics.indexer.db import TABLE_MAPPING, IndexerTable
 from sentry.sentry_metrics.indexer.strings import REVERSE_SHARED_STRINGS, SHARED_STRINGS
 from sentry.utils import metrics
 
@@ -18,13 +17,6 @@ _INDEXER_CACHE_METRIC = "sentry_metrics.indexer.memcache"
 _INDEXER_DB_METRIC = "sentry_metrics.indexer.postgres"
 # only used to compare to the older version of the PGIndexer
 _INDEXER_CACHE_FETCH_METRIC = "sentry_metrics.indexer.memcache.fetch"
-
-IndexerTable = Type[BaseIndexer]
-
-TABLE_MAPPING: Mapping[DbKey, IndexerTable] = {
-    DbKey.STRING_INDEXER: StringIndexerTable,
-    DbKey.PERF_STRING_INDEXER: PerfStringIndexer,
-}
 
 
 class PGStringIndexerV2(StringIndexer):

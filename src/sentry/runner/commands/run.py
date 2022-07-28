@@ -614,15 +614,14 @@ def replays_recordings_consumer(**options):
 @click.option("commit_max_batch_size", "--commit-max-batch-size", type=int, default=25000)
 @click.option("commit_max_batch_time", "--commit-max-batch-time-ms", type=int, default=10000)
 @click.option("--topic", default="snuba-metrics", help="Topic to read indexer output from.")
-@click.option("--ingest-profile")
+@click.option("--ingest-profile", required=True)
 def last_seen_updater(**options):
     from sentry.sentry_metrics.configuration import UseCaseKey, get_ingest_config
     from sentry.sentry_metrics.consumers.last_seen_updater import get_last_seen_updater
 
-    if options["ingest_profile"]:
-        get_ingest_config(UseCaseKey(options["ingest_profile"]))
+    ingest_config = get_ingest_config(UseCaseKey(options["ingest_profile"]))
 
-    consumer = get_last_seen_updater(**options)
+    consumer = get_last_seen_updater(ingest_config=ingest_config, **options)
 
     def handler(signum, frame):
         consumer.signal_shutdown()
