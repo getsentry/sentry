@@ -384,7 +384,7 @@ class SlackReleaseIssuesMessageBuilder(SlackMessageBuilder):
 
         issue_title = build_attachment_title(obj)
         event_id = self.event.event_id if self.event else None
-        # TODO(workflow): Remove referrer experiement with flag "organizations:alert-release-notification-workflow"
+        # TODO(workflow): Remove referrer experiement with flag "organizations:active-release-monitor-alpha"
         title_url = self.group.get_absolute_url(
             params={"referrer": "alert_slack_release"}, event_id=event_id
         )

@@ -949,8 +949,6 @@ SENTRY_FEATURES = {
     "organizations:advanced-search": True,
     # Use metrics as the dataset for crash free metric alerts
     "organizations:alert-crash-free-metrics": False,
-    # Workflow 2.0 notifications following a release
-    "organizations:alert-release-notification-workflow": False,
     # Alert wizard redesign version 3
     "organizations:alert-wizard-v3": True,
     "organizations:api-keys": False,
