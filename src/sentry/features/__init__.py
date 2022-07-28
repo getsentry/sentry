@@ -88,7 +88,6 @@ default_manager.add("organizations:grouping-stacktrace-ui", OrganizationFeature,
 default_manager.add("organizations:grouping-title-ui", OrganizationFeature, True)
 default_manager.add("organizations:grouping-tree-ui", OrganizationFeature, True)
 default_manager.add("organizations:higher-ownership-limit", OrganizationFeature)
-default_manager.add("organizations:images-loaded-v2", OrganizationFeature)
 default_manager.add("organizations:invite-members", OrganizationFeature)
 default_manager.add("organizations:invite-members-rate-limits", OrganizationFeature)
 default_manager.add("organizations:issue-id-breadcrumbs", OrganizationFeature, True)

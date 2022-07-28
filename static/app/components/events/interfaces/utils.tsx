@@ -11,7 +11,7 @@ import {EntryRequest} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {fileExtensionToPlatform, getFileExtension} from 'sentry/utils/fileExtension';
 
-import {DebugImage} from './debugMeta/types';
+import {DebugImage} from './debugMeta-v2/types';
 
 export function escapeQuotes(v: string) {
   return v.replace(/\\/g, '\\\\').replace(/"/g, '\\"');

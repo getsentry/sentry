@@ -1152,8 +1152,6 @@ SENTRY_FEATURES = {
     "organizations:sso-saml2": True,
     # Enable the server-side sampling feature (frontend, backend, relay)
     "organizations:server-side-sampling": False,
-    # Enable the new images loaded design and features
-    "organizations:images-loaded-v2": True,
     # Enable the mobile screenshots feature
     "organizations:mobile-screenshots": False,
     # Enable the release details performance section

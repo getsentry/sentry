@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import {DebugImage} from 'sentry/components/events/interfaces/debugMeta/types';
+import {DebugImage} from 'sentry/components/events/interfaces/debugMeta-v2/types';
 import {formatAddress, getImageRange} from 'sentry/components/events/interfaces/utils';
 import {Image, ImageStatus} from 'sentry/types/debugImage';
 import {defined} from 'sentry/utils';

@@ -67,7 +67,6 @@ class SymbolicatorMinidumpIntegrationTest(RelayStoreHelper, TransactionTestCase)
         "organizations:event-attachments": True,
         "organizations:symbol-sources": False,
         "organizations:custom-symbol-sources": False,
-        "organizations:images-loaded-v2": False,
     }
 
     def test_full_minidump(self):

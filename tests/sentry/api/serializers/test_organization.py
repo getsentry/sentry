@@ -39,7 +39,6 @@ class OrganizationSerializerTest(TestCase):
             "discover-query",
             "duplicate-alert-rule",
             "event-attachments",
-            "images-loaded-v2",
             "integrations-alert-rule",
             "integrations-chat-unfurl",
             "integrations-event-hooks",
