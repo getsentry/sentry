@@ -16,11 +16,11 @@ import theme from 'sentry/utils/theme';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import {Replay} from 'sentry/views/replays/types';
+import {ReplayDiscoveryListItem} from 'sentry/views/replays/types';
 
 type Props = {
   idKey: string;
-  replayList: Replay[];
+  replayList: ReplayDiscoveryListItem[];
   showProjectColumn?: boolean;
 };
 
