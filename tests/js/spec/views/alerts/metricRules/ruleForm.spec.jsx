@@ -101,13 +101,10 @@ describe('Incident Rules Form', () => {
       });
 
       // Clear field
-      userEvent.clear(screen.getByPlaceholderText('Something really bad happened'));
+      userEvent.clear(screen.getByPlaceholderText('Enter Alert Name'));
 
       // Enter in name so we can submit
-      userEvent.paste(
-        screen.getByPlaceholderText('Something really bad happened'),
-        'Incident Rule'
-      );
+      userEvent.paste(screen.getByPlaceholderText('Enter Alert Name'), 'Incident Rule');
 
       // Set thresholdPeriod
       await selectEvent.select(screen.getAllByText('For 1 minute')[0], 'For 10 minutes');
@@ -194,12 +191,9 @@ describe('Incident Rules Form', () => {
       });
 
       // Clear field
-      userEvent.clear(screen.getByPlaceholderText('Something really bad happened'));
+      userEvent.clear(screen.getByPlaceholderText('Enter Alert Name'));
 
-      userEvent.paste(
-        screen.getByPlaceholderText('Something really bad happened'),
-        'new name'
-      );
+      userEvent.paste(screen.getByPlaceholderText('Enter Alert Name'), 'new name');
 
       userEvent.click(screen.getByLabelText('Save Rule'));
 
@@ -225,11 +219,12 @@ describe('Incident Rules Form', () => {
         },
       });
 
-      expect(screen.getByLabelText('Select Percent Change')).toBeInTheDocument();
-      expect(screen.getByLabelText('Select Percent Change')).toBeChecked();
+      expect(screen.getByLabelText('Static: above or below {x}')).not.toBeChecked();
+      userEvent.click(screen.getByText('Static: above or below {x}'));
 
-      userEvent.click(screen.getByLabelText('Select Count'));
-      await waitFor(() => expect(screen.getByLabelText('Select Count')).toBeChecked());
+      await waitFor(() =>
+        expect(screen.getByLabelText('Static: above or below {x}')).toBeChecked()
+      );
 
       userEvent.click(screen.getByLabelText('Save Rule'));
 
@@ -281,7 +276,7 @@ describe('Incident Rules Form', () => {
       });
 
       userEvent.paste(
-        screen.getByPlaceholderText('Something really bad happened'),
+        screen.getByPlaceholderText('Enter Alert Name'),
         'Slack Alert Rule'
       );
       userEvent.click(screen.getByLabelText('Save Rule'));
@@ -352,7 +347,7 @@ describe('Incident Rules Form', () => {
         onSubmitSuccess,
       });
       userEvent.paste(
-        screen.getByPlaceholderText('Something really bad happened'),
+        screen.getByPlaceholderText('Enter Alert Name'),
         'Slack Alert Rule'
       );
       userEvent.click(screen.getByLabelText('Save Rule'));

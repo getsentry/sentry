@@ -18,11 +18,11 @@ type Props = {
   children: ReactNode;
   orgId: string;
   crumbs?: Crumb[];
-  duration?: number;
+  durationMS?: number;
   event?: EventTransaction;
 };
 
-function Page({children, crumbs, duration, event, orgId}: Props) {
+function Page({children, crumbs, durationMS, event, orgId}: Props) {
   const title = event ? `${event.id} - Replays - ${orgId}` : `Replays - ${orgId}`;
 
   const urlTag = event?.tags?.find(({key}) => key === 'url');
@@ -39,7 +39,7 @@ function Page({children, crumbs, duration, event, orgId}: Props) {
       </ButtonActionsWrapper>
       <SubHeading>{pathname || <HeaderPlaceholder />}</SubHeading>
       <MetaDataColumn>
-        <EventMetaData crumbs={crumbs} duration={duration} event={event} />
+        <EventMetaData crumbs={crumbs} durationMS={durationMS} event={event} />
       </MetaDataColumn>
     </Header>
   );

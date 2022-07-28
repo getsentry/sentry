@@ -16,7 +16,7 @@ const EVENT_STICK_MARKER_WIDTH = 4;
 
 type Props = {
   crumbs: Crumb[];
-  duration: number;
+  durationMS: number;
   startTimestamp: number;
   width: number;
   className?: string;
@@ -25,12 +25,12 @@ type Props = {
 function ReplayTimelineEvents({
   className,
   crumbs,
-  duration,
+  durationMS,
   startTimestamp,
   width,
 }: Props) {
   const totalColumns = Math.floor(width / EVENT_STICK_MARKER_WIDTH);
-  const eventsByCol = getCrumbsByColumn(startTimestamp, duration, crumbs, totalColumns);
+  const eventsByCol = getCrumbsByColumn(startTimestamp, durationMS, crumbs, totalColumns);
 
   return (
     <Timeline.Columns className={className} totalColumns={totalColumns} remainder={0}>

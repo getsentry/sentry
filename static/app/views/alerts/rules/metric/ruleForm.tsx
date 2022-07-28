@@ -126,10 +126,6 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     return Boolean(this.props.isDuplicateRule);
   }
 
-  get hasAlertWizardV3(): boolean {
-    return this.props.organization.features.includes('alert-wizard-v3');
-  }
-
   get chartQuery(): string {
     const {query, eventTypes, dataset} = this.state;
     const eventTypeFilter = getEventTypeFilter(this.state.dataset, eventTypes);
@@ -619,7 +615,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
         },
         {
           duplicateRule: this.isDuplicateRule ? 'true' : 'false',
-          wizardV3: this.hasAlertWizardV3 ? 'true' : 'false',
+          wizardV3: 'true',
           referrer: location?.query?.referrer,
           sessionId,
         }
@@ -851,7 +847,6 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
         currentProject={project.slug}
         organization={organization}
         availableActions={this.state.availableActions}
-        hasAlertWizardV3={this.hasAlertWizardV3}
         onChange={this.handleChangeTriggers}
         onThresholdTypeChange={this.handleThresholdTypeChange}
         onThresholdPeriodChange={this.handleThresholdPeriodChange}
@@ -860,11 +855,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     );
 
     const ruleNameOwnerForm = (disabled: boolean) => (
-      <RuleNameOwnerForm
-        disabled={disabled}
-        project={project}
-        hasAlertWizardV3={this.hasAlertWizardV3}
-      />
+      <RuleNameOwnerForm disabled={disabled} project={project} />
     );
 
     const thresholdTypeForm = (disabled: boolean) => (
@@ -877,7 +868,6 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
         }
         onComparisonTypeChange={this.handleComparisonTypeChange}
         organization={organization}
-        hasAlertWizardV3={this.hasAlertWizardV3}
         comparisonDelta={comparisonDelta}
       />
     );
@@ -976,7 +966,6 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
                         alertType === 'custom' || dataset === Dataset.ERRORS
                       }
                       alertType={alertType}
-                      hasAlertWizardV3={this.hasAlertWizardV3}
                       dataset={dataset}
                       timeWindow={timeWindow}
                       comparisonType={comparisonType}
@@ -990,13 +979,8 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
                       disableProjectSelector={disableProjectSelector}
                       showMEPAlertBanner={showMEPAlertBanner}
                     />
-                    {!this.hasAlertWizardV3 && thresholdTypeForm(disabled)}
-                    <AlertListItem>
-                      {this.hasAlertWizardV3
-                        ? t('Set thresholds')
-                        : t('Set thresholds to trigger alert')}
-                    </AlertListItem>
-                    {this.hasAlertWizardV3 && thresholdTypeForm(disabled)}
+                    <AlertListItem>{t('Set thresholds')}</AlertListItem>
+                    {thresholdTypeForm(disabled)}
                     {triggerForm(disabled)}
                     {ruleNameOwnerForm(disabled)}
                   </List>
