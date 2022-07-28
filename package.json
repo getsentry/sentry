@@ -32,7 +32,7 @@
     "@react-aria/utils": "^3.11.0",
     "@react-stately/collections": "^3.3.3",
     "@react-stately/menu": "^3.2.3",
-    "@react-stately/tree": "^3.2.0",
+    "@react-stately/tree": "^3.3.2",
     "@react-types/menu": "^3.3.0",
     "@react-types/shared": "^3.8.0",
     "@sentry-internal/global-search": "^0.3.0",
