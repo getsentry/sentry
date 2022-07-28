@@ -273,7 +273,9 @@ export const AGGREGATION_FIELDS: Record<string, FieldDefinition> = {
     valueType: null,
   },
   [AggregationKey.UserMisery]: {
-    desc: t('User-weighted performance metric that counts the number of unique users who were frustrated'),
+    desc: t(
+      'User-weighted performance metric that counts the number of unique users who were frustrated'
+    ),
     kind: FieldKind.FUNCTION,
     valueType: null,
   },
