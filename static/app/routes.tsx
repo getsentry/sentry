@@ -464,7 +464,7 @@ function buildRoutes() {
       </Route>
       <Route
         path="server-side-sampling/"
-        name={t('Server-side Sampling')}
+        name={t('Server-Side Sampling')}
         component={make(
           () => import('sentry/views/settings/project/server-side-sampling')
         )}
@@ -812,6 +812,16 @@ function buildRoutes() {
           <Route
             path="new/"
             name={t('Create Sentry Function')}
+            component={make(
+              () =>
+                import(
+                  'sentry/views/settings/organizationDeveloperSettings/sentryFunctionDetails'
+                )
+            )}
+          />
+          <Route
+            path=":functionSlug/"
+            name={t('Edit Sentry Function')}
             component={make(
               () =>
                 import(
@@ -1688,7 +1698,7 @@ function buildRoutes() {
       <IndexRoute component={make(() => import('sentry/views/profiling/content'))} />
       <Route
         path="onboarding/"
-        component={make(() => import('sentry/views/profiling/onboarding'))}
+        component={make(() => import('sentry/views/profiling/legacyOnboarding'))}
       />
       <Route
         path="summary/:projectId/"

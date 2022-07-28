@@ -27,7 +27,6 @@ import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {
   Column,
   fieldAlignment,
-  getAggregateAlias,
   getEquationAliasIndex,
   isEquationAlias,
 } from 'sentry/utils/discover/fields';
@@ -292,7 +291,7 @@ class TableView extends Component<TableViewProps> {
       }
     }
 
-    const fieldName = getAggregateAlias(columnKey);
+    const fieldName = columnKey;
     const value = dataRow[fieldName];
     if (tableData.meta[fieldName] === 'integer' && defined(value) && value > 999) {
       return (
