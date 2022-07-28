@@ -12,18 +12,20 @@ class CustomerDomainMiddlewareTest(TestCase):
         request = RequestFactory().get("/")
         request.subdomain = "test"
         request.session = session
-        CustomerDomainMiddleware(lambda request: request)(request)
+        response = CustomerDomainMiddleware(lambda request: request)(request)
 
         assert session == {"activeorg": "test"}
+        assert response == request
 
     def test_removes_active_organization(self):
         session = {"activeorg": "test"}
         request = RequestFactory().get("/")
         request.subdomain = "does-not-exist"
         request.session = session
-        CustomerDomainMiddleware(lambda request: request)(request)
+        response = CustomerDomainMiddleware(lambda request: request)(request)
 
         assert session == {}
+        assert response == request
 
     def test_no_session_dict(self):
         request = RequestFactory().get("/")
@@ -35,24 +37,27 @@ class CustomerDomainMiddlewareTest(TestCase):
         self.create_organization(name="test")
         request = RequestFactory().get("/")
         request.subdomain = "test"
-        CustomerDomainMiddleware(lambda request: request)(request)
+        response = CustomerDomainMiddleware(lambda request: request)(request)
 
         assert "session" not in request
+        assert response == request
 
     def test_no_subdomain(self):
         session = {"activeorg": "test"}
         request = RequestFactory().get("/")
         request.session = session
-        CustomerDomainMiddleware(lambda request: request)(request)
+        response = CustomerDomainMiddleware(lambda request: request)(request)
 
         assert request.session == {"activeorg": "test"}
+        assert response == request
 
     def test_no_op(self):
         request = RequestFactory().get("/")
-        CustomerDomainMiddleware(lambda request: request)(request)
+        response = CustomerDomainMiddleware(lambda request: request)(request)
 
         assert "session" not in request
         assert "subdomain" not in request
+        assert response == request
 
     def test_ignores_region_subdomains(self):
         regions = {"us", "eu"}
@@ -61,6 +66,19 @@ class CustomerDomainMiddlewareTest(TestCase):
             request = RequestFactory().get("/")
             request.subdomain = region
             request.session = session
-            CustomerDomainMiddleware(lambda request: request)(request)
+            response = CustomerDomainMiddleware(lambda request: request)(request)
 
             assert request.session == {"activeorg": "test"}
+            assert response == request
+
+    def test_handles_redirects(self):
+        self.create_organization(name="sentry")
+        session = {"activeorg": "test"}
+        request = RequestFactory().get("/organizations/albertos-apples/issues/")
+        request.subdomain = "sentry"
+        request.session = session
+        response = CustomerDomainMiddleware(lambda request: request)(request)
+
+        assert request.session == {"activeorg": "sentry"}
+        assert response.status_code == 302
+        assert response["Location"] == "/organizations/sentry/issues/"
