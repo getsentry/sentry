@@ -173,6 +173,9 @@ class BigtableKVStorage(KVStorage[str, bytes]):
         try:
             return self._set(key, value, ttl)
         except exceptions.InternalServerError:
+            # Delete cached client before retry
+            with self.__table_lock:
+                del self.__table
             # Retry once on InternalServerError
             # 500 Received RST_STREAM with error code 2
             # SENTRY-S6D
