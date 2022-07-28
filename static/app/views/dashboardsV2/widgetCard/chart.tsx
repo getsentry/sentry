@@ -269,6 +269,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
 
     switch (widget.displayType) {
       case 'bar':
+      case 'histogram':
         return <BarChart {...chartProps} stacked={stacked} />;
       case 'area':
       case 'top_n':

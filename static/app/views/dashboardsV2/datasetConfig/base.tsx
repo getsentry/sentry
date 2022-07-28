@@ -62,6 +62,21 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     organization: Organization,
     pageFilters: PageFilters
   ) => TableData;
+  defaultHistogramWidgetQuery?: WidgetQuery;
+  getHistogramRequest?: (
+    api: Client,
+    query: WidgetQuery,
+    organization: Organization,
+    pageFilters: PageFilters,
+    limit?: number,
+    cursor?: string,
+    referrer?: string
+  ) => Promise<any>;
+  transformHistogramData?: (
+    data: SeriesResponse,
+    widgetQuery: WidgetQuery,
+    organization: Organization
+  ) => Series[];
   /**
    * Configure enabling/disabling sort/direction options with an
    * optional message for why it is disabled.

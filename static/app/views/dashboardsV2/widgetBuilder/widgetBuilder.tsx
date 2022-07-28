@@ -237,10 +237,9 @@ function WidgetBuilder({
             ...defaultWidgetQuery,
             orderby:
               defaultWidgetQuery.orderby ||
-              (datasetConfig.getTableSortOptions
-                ? datasetConfig.getTableSortOptions(organization, defaultWidgetQuery)[0]
-                    .value
-                : ''),
+              (datasetConfig.getTableSortOptions?.(organization, defaultWidgetQuery)[0]
+                .value ??
+                ''),
           },
         ];
       } else {
@@ -432,6 +431,24 @@ function WidgetBuilder({
   function updateFieldsAccordingToDisplayType(newDisplayType: DisplayType) {
     setState(prevState => {
       const newState = cloneDeep(prevState);
+
+      if (newDisplayType === DisplayType.HISTOGRAM) {
+        set(newState, 'dataSet', DataSet.EVENTS);
+        setDataSetConfig(getDatasetConfig(WidgetType.DISCOVER));
+        set(
+          newState,
+          'queries',
+          normalizeQueries({
+            displayType: newDisplayType,
+            queries: [
+              {...getDatasetConfig(WidgetType.DISCOVER).defaultHistogramWidgetQuery!},
+            ],
+            widgetType: WidgetType.DISCOVER,
+            widgetBuilderNewDesign,
+          })
+        );
+        return {...newState, errors: undefined};
+      }
 
       if (!!!datasetConfig.supportedDisplayTypes.includes(newDisplayType)) {
         // Set to Events dataset if Display Type is not supported by

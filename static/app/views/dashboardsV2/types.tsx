@@ -18,6 +18,7 @@ export enum DisplayType {
   WORLD_MAP = 'world_map',
   BIG_NUMBER = 'big_number',
   TOP_N = 'top_n',
+  HISTOGRAM = 'histogram',
 }
 
 export enum WidgetType {

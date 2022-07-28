@@ -59,6 +59,7 @@ export const displayTypes = {
   [DisplayType.TABLE]: t('Table'),
   [DisplayType.WORLD_MAP]: t('World Map'),
   [DisplayType.BIG_NUMBER]: t('Big Number'),
+  [DisplayType.HISTOGRAM]: t('Histogram'),
 };
 
 export function mapErrors(

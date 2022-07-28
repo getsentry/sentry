@@ -35,6 +35,7 @@ function getReferrer(displayType: DisplayType) {
 }
 
 export type OnDataFetchedProps = {
+  histogramResults?: any;
   pageLinks?: string;
   tableResults?: TableDataWithTitle[];
   timeseriesResults?: Series[];
@@ -44,6 +45,7 @@ export type OnDataFetchedProps = {
 export type GenericWidgetQueriesChildrenProps = {
   loading: boolean;
   errorMessage?: string;
+  histogramResults?: any;
   pageLinks?: string;
   tableResults?: TableDataWithTitle[];
   timeseriesResults?: Series[];
@@ -354,6 +356,60 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
     }
   }
 
+  async fetchHistogramData(queryFetchID: symbol) {
+    const {
+      widget: originalWidget,
+      config,
+      api,
+      organization,
+      selection,
+      onDataFetched,
+    } = this.props;
+    const widget = this.applyDashboardFilters(cloneDeep(originalWidget));
+
+    const responses = await Promise.all(
+      widget.queries.map(query => {
+        return config.getHistogramRequest!(api, query, organization, selection);
+      })
+    );
+    const rawResultsClone = cloneDeep(this.state.rawResults) ?? [];
+    const transformedHistogramResults: Series[] = [];
+    responses.forEach(([data], requestIndex) => {
+      rawResultsClone[requestIndex] = data;
+      const transformedResult = config.transformHistogramData!(
+        data,
+        widget.queries[requestIndex],
+        organization
+      );
+      // When charting timeseriesData on echarts, color association to a timeseries result
+      // is order sensitive, ie series at index i on the timeseries array will use color at
+      // index i on the color array. This means that on multi series results, we need to make
+      // sure that the order of series in our results do not change between fetches to avoid
+      // coloring inconsistencies between renders.
+      transformedResult.forEach((result, resultIndex) => {
+        transformedHistogramResults[
+          requestIndex * transformedResult.length + resultIndex
+        ] = result;
+      });
+    });
+
+    // Get series result type
+    // Only used by custom measurements in errorsAndTransactions at the moment
+    const timeseriesResultsType = config.getSeriesResultType?.(
+      responses[0][0],
+      widget.queries[0]
+    );
+
+    if (this._isMounted && this.state.queryFetchID === queryFetchID) {
+      onDataFetched?.({timeseriesResults: transformedHistogramResults});
+      this.setState({
+        timeseriesResults: transformedHistogramResults,
+        rawResults: rawResultsClone,
+        timeseriesResultsType,
+      });
+    }
+  }
+
   async fetchData() {
     const {widget} = this.props;
 
@@ -373,6 +429,8 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
         )
       ) {
         await this.fetchTableData(queryFetchID);
+      } else if ([DisplayType.HISTOGRAM].includes(widget.displayType)) {
+        await this.fetchHistogramData(queryFetchID);
       } else {
         await this.fetchSeriesData(queryFetchID);
       }

@@ -93,6 +93,17 @@ export const ErrorsAndTransactionsConfig: DatasetConfig<
   getTableSortOptions,
   getGroupByFieldOptions: getEventsTableFieldOptions,
   handleOrderByReset,
+  defaultHistogramWidgetQuery: {
+    name: '',
+    fields: ['measurements.lcp'],
+    columns: ['measurements.lcp'],
+    fieldAliases: [],
+    aggregates: [],
+    conditions: '',
+    orderby: '',
+  },
+  getHistogramRequest,
+  transformHistogramData,
   supportedDisplayTypes: [
     DisplayType.AREA,
     DisplayType.BAR,
@@ -457,6 +468,73 @@ export function getCustomEventsFieldRenderer(
   }
 
   return getFieldRenderer(field, meta, isAlias);
+}
+
+function getHistogramRequest(
+  api: Client,
+  query: WidgetQuery,
+  organization: Organization,
+  pageFilters: PageFilters,
+  limit?: number,
+  cursor?: string,
+  referrer?: string
+) {
+  const isMEPEnabled = organization.features.includes('dashboards-mep');
+
+  const eventView = eventViewFromWidget('', query, pageFilters);
+
+  const params: DiscoverQueryRequestParams = {
+    per_page: limit,
+    cursor,
+    referrer,
+    ...getDashboardsMEPQueryParams(isMEPEnabled),
+  };
+
+  const eventViewAsParams = {
+    ...eventView.generateQueryStringObject(),
+    dataFilter: 'exclude_outliers',
+    numBuckets: 50,
+    dataset: 'metrics',
+    field: ['measurements.lcp'],
+  };
+
+  // TODO: eventually need to replace this with just EventsTableData as we deprecate eventsv2
+  return doDiscoverQuery<any>(
+    api,
+    `/organizations/${organization.slug}/events-histogram/`,
+    {
+      ...eventViewAsParams,
+      ...params,
+    }
+  );
+}
+
+export function transformHistogramData(data: any, _widgetQuery: WidgetQuery) {
+  if (data === null) {
+    return [];
+  }
+
+  const results: Series[] = [];
+
+  console.log(Object.keys(data));
+
+  const {meta, ...rest} = data;
+
+  console.log(meta);
+  console.log(rest);
+
+  Object.keys(rest).forEach(series => {
+    console.log(rest[series]);
+    results.push({
+      seriesName: series,
+      data: rest[series].map(d => ({
+        name: d.bin,
+        value: d.count,
+      })),
+    });
+  });
+
+  return results;
 }
 
 function getEventsRequest(
