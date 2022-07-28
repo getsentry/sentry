@@ -1,6 +1,5 @@
 import Breadcrumbs from 'sentry/components/events/interfaces/breadcrumbs';
 import Csp from 'sentry/components/events/interfaces/csp';
-import DebugMeta from 'sentry/components/events/interfaces/debugMeta';
 import DebugMetaV2 from 'sentry/components/events/interfaces/debugMeta-v2';
 import Exception from 'sentry/components/events/interfaces/exception';
 import ExceptionV2 from 'sentry/components/events/interfaces/exceptionV2';
