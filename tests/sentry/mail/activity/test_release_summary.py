@@ -5,7 +5,7 @@ from django.core import mail
 from sentry.integrations.slack import SLACK_URL_FORMAT
 from sentry.models import Activity, Environment, NotificationSetting, Repository
 from sentry.notifications.notifications.activity.release_summary import (
-    ReleaseSummaryActivityNotification,
+    ActiveReleaseSummaryNotification,
 )
 from sentry.notifications.notifications.base import create_notification_with_properties
 from sentry.notifications.types import (
@@ -50,7 +50,7 @@ class ReleaseSummaryTestCase(ActivityTestCase):
 
     def test_simple(self):
         with self.feature("organizations:active-release-notification-opt-in"):
-            release_summary = ReleaseSummaryActivityNotification(
+            release_summary = ActiveReleaseSummaryNotification(
                 Activity(
                     project=self.project,
                     user=self.user1,
