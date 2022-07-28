@@ -66,7 +66,12 @@ from sentry.incidents.endpoints.project_alert_rule_task_details import (
 )
 from sentry.replays.endpoints.organization_replay_index import OrganizationReplayIndexEndpoint
 from sentry.replays.endpoints.project_replay_details import ProjectReplayDetailsEndpoint
-from sentry.replays.endpoints.project_replay_recordings import ProjectReplayRecordingsEndpoint
+from sentry.replays.endpoints.project_replay_recording_segment_details import (
+    ProjectReplayRecordingSegmentDetailsEndpoint,
+)
+from sentry.replays.endpoints.project_replay_recording_segment_index import (
+    ProjectReplayRecordingSegmentIndexEndpoint,
+)
 from sentry.rules.history.endpoints.project_rule_group_history import (
     ProjectRuleGroupHistoryIndexEndpoint,
 )
@@ -145,6 +150,7 @@ from .endpoints.group_participants import GroupParticipantsEndpoint
 from .endpoints.group_reprocessing import GroupReprocessingEndpoint
 from .endpoints.group_similar_issues import GroupSimilarIssuesEndpoint
 from .endpoints.group_stats import GroupStatsEndpoint
+from .endpoints.group_suspect_releases import GroupSuspectReleasesEndpoint
 from .endpoints.group_tagkey_details import GroupTagKeyDetailsEndpoint
 from .endpoints.group_tagkey_values import GroupTagKeyValuesEndpoint
 from .endpoints.group_tags import GroupTagsEndpoint
@@ -504,6 +510,7 @@ GROUP_URLS = [
     url(r"^(?P<issue_id>[^\/]+)/events/$", GroupEventsEndpoint.as_view()),
     url(r"^(?P<issue_id>[^\/]+)/events/latest/$", GroupEventsLatestEndpoint.as_view()),
     url(r"^(?P<issue_id>[^\/]+)/events/oldest/$", GroupEventsOldestEndpoint.as_view()),
+    url(r"^(?P<issue_id>[^\/]+)/suspect-releases/$", GroupSuspectReleasesEndpoint.as_view()),
     url(r"^(?P<issue_id>[^\/]+)/(?:notes|comments)/$", GroupNotesEndpoint.as_view()),
     url(
         r"^(?P<issue_id>[^\/]+)/(?:notes|comments)/(?P<note_id>[^\/]+)/$",
@@ -2055,9 +2062,14 @@ urlpatterns = [
                     name="sentry-api-0-project-replay-details",
                 ),
                 url(
-                    r"^(?P<organization_slug>[^/]+)/(?P<project_slug>[^\/]+)/replays/(?P<replay_id>[\w-]+)/recordings/$",
-                    ProjectReplayRecordingsEndpoint.as_view(),
-                    name="sentry-api-0-project-replay-recordings",
+                    r"^(?P<organization_slug>[^/]+)/(?P<project_slug>[^\/]+)/replays/(?P<replay_id>[\w-]+)/recording-segments/$",
+                    ProjectReplayRecordingSegmentIndexEndpoint.as_view(),
+                    name="sentry-api-0-project-replay-recording-segment-index",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^/]+)/(?P<project_slug>[^\/]+)/replays/(?P<replay_id>[\w-]+)/recording-segments/(?P<segment_id>\d+)/$",
+                    ProjectReplayRecordingSegmentDetailsEndpoint.as_view(),
+                    name="sentry-api-0-project-replay-recording-segment-details",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/rules/configuration/$",
