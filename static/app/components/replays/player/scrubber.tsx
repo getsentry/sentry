@@ -13,10 +13,10 @@ type Props = {
 
 function Scrubber({className}: Props) {
   const {currentHoverTime, currentTime, replay, setCurrentTime} = useReplayContext();
-  const duration = replay?.getDurationMS();
+  const durationMS = replay?.getDurationMS();
 
-  const percentComplete = divide(currentTime, duration);
-  const hoverPlace = divide(currentHoverTime || 0, duration);
+  const percentComplete = divide(currentTime, durationMS);
+  const hoverPlace = divide(currentHoverTime || 0, durationMS);
 
   return (
     <Wrapper className={className}>
@@ -28,7 +28,7 @@ function Scrubber({className}: Props) {
         <Range
           name="replay-timeline"
           min={0}
-          max={duration}
+          max={durationMS}
           value={Math.round(currentTime)}
           onChange={value => setCurrentTime(value || 0)}
           showLabel={false}

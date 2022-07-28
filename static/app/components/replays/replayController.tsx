@@ -110,11 +110,11 @@ function ReplayPlayPauseBar({isCompact}: {isCompact: boolean}) {
 
 function ReplayCurrentTime() {
   const {currentTime, replay} = useReplayContext();
-  const duration = replay?.getDurationMS();
+  const durationMS = replay?.getDurationMS();
 
   return (
     <span>
-      {formatTime(currentTime)} / {duration ? formatTime(duration) : '??:??'}
+      {formatTime(currentTime)} / {durationMS ? formatTime(durationMS) : '??:??'}
     </span>
   );
 }

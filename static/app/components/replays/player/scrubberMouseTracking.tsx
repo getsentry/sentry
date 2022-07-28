@@ -9,11 +9,11 @@ type Props = {
 
 function ScrubberMouseTracking({children}: Props) {
   const {replay, setCurrentHoverTime} = useReplayContext();
-  const duration = replay?.getDurationMS();
+  const durationMS = replay?.getDurationMS();
 
   const handlePositionChange = useCallback(
     params => {
-      if (!params || duration === undefined) {
+      if (!params || durationMS === undefined) {
         setCurrentHoverTime(undefined);
         return;
       }
@@ -21,13 +21,13 @@ function ScrubberMouseTracking({children}: Props) {
 
       if (left >= 0) {
         const percent = left / width;
-        const time = percent * duration;
+        const time = percent * durationMS;
         setCurrentHoverTime(time);
       } else {
         setCurrentHoverTime(undefined);
       }
     },
-    [duration, setCurrentHoverTime]
+    [durationMS, setCurrentHoverTime]
   );
 
   const mouseTrackingProps = useMouseTracking<HTMLDivElement>({
