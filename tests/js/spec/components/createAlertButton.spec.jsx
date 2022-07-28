@@ -1,6 +1,6 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import * as navigation from 'sentry/actionCreators/navigation';
+import {navigateTo} from 'sentry/actionCreators/navigation';
 import CreateAlertButton, {
   CreateAlertFromViewButton,
 } from 'sentry/components/createAlertButton';
@@ -10,6 +10,8 @@ import {DEFAULT_EVENT_VIEW} from 'sentry/views/eventsV2/data';
 
 const onClickMock = jest.fn();
 const context = TestStubs.routerContext();
+
+jest.mock('sentry/actionCreators/navigation');
 
 function renderComponent(organization, eventView) {
   return render(
@@ -86,12 +88,10 @@ describe('CreateAlertFromViewButton', () => {
   });
 
   it('redirects to alert wizard with no project', () => {
-    jest.spyOn(navigation, 'navigateTo');
-
     renderSimpleComponent(organization);
     userEvent.click(screen.getByRole('button'));
-    expect(navigation.navigateTo).toHaveBeenCalledWith(
-      `/organizations/org-slug/alerts/:projectId/wizard/`,
+    expect(navigateTo).toHaveBeenCalledWith(
+      `/organizations/org-slug/alerts/wizard/`,
       undefined
     );
   });
@@ -103,7 +103,7 @@ describe('CreateAlertFromViewButton', () => {
 
     expect(screen.getByRole('button')).toHaveAttribute(
       'href',
-      '/organizations/org-slug/alerts/proj-slug/wizard/'
+      '/organizations/org-slug/alerts/wizard/?project=proj-slug'
     );
   });
 
@@ -116,9 +116,10 @@ describe('CreateAlertFromViewButton', () => {
     renderComponent(organization, eventView);
     userEvent.click(screen.getByRole('button'));
     expect(context.context.router.push).toHaveBeenCalledWith({
-      pathname: `/organizations/org-slug/alerts/project-slug/new/`,
+      pathname: `/organizations/org-slug/alerts/new/metric/`,
       query: expect.objectContaining({
         query: 'event.type:error ',
+        project: 'project-slug',
       }),
     });
   });

@@ -352,7 +352,6 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
           referrer="discover"
           aria-label={t('Create Alert')}
           data-test-id="discover2-create-from-discover"
-          useAlertWizardV3={organization.features.includes('alert-wizard-v3')}
         />
       </GuideAnchor>
     );

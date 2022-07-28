@@ -327,7 +327,7 @@ describe('ProjectAlerts -> IssueRuleEditor', function () {
       createWrapper({
         organization: {
           access: ['alerts:write'],
-          features: ['alert-wizard-v3', 'duplicate-alert-rule'],
+          features: ['duplicate-alert-rule'],
         },
         router: {
           location: {

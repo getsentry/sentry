@@ -27,8 +27,7 @@ function AlertBuilderProjectProvider(props: Props) {
 
   const {children, params, organization, ...other} = props;
   const projectId = params.projectId || props.location.query.project;
-  const hasAlertWizardV3 = organization.features.includes('alert-wizard-v3');
-  const useFirstProject = hasAlertWizardV3 && projectId === undefined;
+  const useFirstProject = projectId === undefined;
 
   // calling useProjects() without args fetches all projects
   const {projects, initiallyLoaded, fetching, fetchError} = useProjects(
@@ -58,9 +57,7 @@ function AlertBuilderProjectProvider(props: Props) {
   // If there's no project show the project selector modal
   if (!project && !fetchError) {
     navigateTo(
-      hasAlertWizardV3
-        ? `/organizations/${organization.slug}/alerts/wizard/?referrer=${props.location.query.referrer}&project=:projectId`
-        : `/organizations/${organization.slug}/alerts/:projectId/wizard/?referrer=${props.location.query.referrer}`,
+      `/organizations/${organization.slug}/alerts/wizard/?referrer=${props.location.query.referrer}&project=:projectId`,
       props.router
     );
   }

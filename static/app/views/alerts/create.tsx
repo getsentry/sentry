@@ -45,49 +45,24 @@ class Create extends Component<Props, State> {
 
   getInitialState(): State {
     const {organization, location, project, params, router} = this.props;
-    const {
-      createFromDiscover,
-      createFromWizard,
-      aggregate,
-      dataset,
-      eventTypes,
-      createFromDuplicate,
-    } = location?.query ?? {};
-    let alertType = AlertRuleType.ISSUE;
+    const {aggregate, dataset, eventTypes, createFromDuplicate} = location?.query ?? {};
+    const alertType = params.alertType || AlertRuleType.METRIC;
 
-    const hasAlertWizardV3 = organization.features.includes('alert-wizard-v3');
-
-    // Alerts can only be created via create from discover or alert wizard, until alert-wizard-v3 is fully implemented
-    if (hasAlertWizardV3) {
-      alertType = params.alertType || AlertRuleType.METRIC;
-
-      // TODO(taylangocmen): Remove redirect with aggregate && dataset && eventTypes, init from template
-      if (
-        alertType === AlertRuleType.METRIC &&
-        !(aggregate && dataset && eventTypes) &&
-        !createFromDuplicate
-      ) {
-        router.replace({
-          ...location,
-          pathname: `/organizations/${organization.slug}/alerts/new/${alertType}`,
-          query: {
-            ...location.query,
-            ...DEFAULT_WIZARD_TEMPLATE,
-            project: project.slug,
-          },
-        });
-      }
-    } else if (createFromDiscover) {
-      alertType = AlertRuleType.METRIC;
-    } else if (createFromWizard) {
-      if (aggregate && dataset && eventTypes) {
-        alertType = AlertRuleType.METRIC;
-      } else {
-        // Just to be explicit
-        alertType = AlertRuleType.ISSUE;
-      }
-    } else {
-      router.replace(`/organizations/${organization.slug}/alerts/${project.slug}/wizard`);
+    // TODO(taylangocmen): Remove redirect with aggregate && dataset && eventTypes, init from template
+    if (
+      alertType === AlertRuleType.METRIC &&
+      !(aggregate && dataset && eventTypes) &&
+      !createFromDuplicate
+    ) {
+      router.replace({
+        ...location,
+        pathname: `/organizations/${organization.slug}/alerts/new/${alertType}`,
+        query: {
+          ...location.query,
+          ...DEFAULT_WIZARD_TEMPLATE,
+          project: project.slug,
+        },
+      });
     }
 
     return {alertType};
@@ -96,15 +71,13 @@ class Create extends Component<Props, State> {
   componentDidMount() {
     const {organization, project} = this.props;
 
-    const hasAlertWizardV3 = organization.features.includes('alert-wizard-v3');
-
     trackAdvancedAnalyticsEvent('new_alert_rule.viewed', {
       organization,
       project_id: project.id,
       session_id: this.sessionId,
       alert_type: this.state.alertType,
       duplicate_rule: this.isDuplicateRule ? 'true' : 'false',
-      wizard_v3: hasAlertWizardV3 ? 'true' : 'false',
+      wizard_v3: 'true',
     });
   }
 
