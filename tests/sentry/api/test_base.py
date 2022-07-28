@@ -1,11 +1,14 @@
 import base64
 
 from django.http import HttpRequest
+from django.test import override_settings
+from pytest import raises
 from rest_framework.response import Response
 
-from sentry.api.base import Endpoint, resolve_region
+from sentry.api.base import ApiAvailableOn, Endpoint, resolve_region
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.models import ApiKey
+from sentry.servermode import ServerComponentMode
 from sentry.testutils import APITestCase
 
 
@@ -175,3 +178,41 @@ class CustomerDomainTest(APITestCase):
         assert request_with_subdomain("us") == "us"
         assert request_with_subdomain("eu") == "eu"
         assert request_with_subdomain("sentry") is None
+
+
+class ServerComponentModeTest(APITestCase):
+    def _test_active_on(self, endpoint_mode, active_mode, expect_to_be_active):
+        @ApiAvailableOn(endpoint_mode)
+        class DecoratedEndpoint(DummyEndpoint):
+            pass
+
+        class EndpointWithDecoratedMethod(DummyEndpoint):
+            @ApiAvailableOn(endpoint_mode)
+            def get(self, request):
+                return super().get(request)
+
+        with override_settings(SERVER_COMPONENT_MODE=active_mode):
+            request = self.make_request(method="GET")
+
+            for endpoint_class in (DecoratedEndpoint, EndpointWithDecoratedMethod):
+                view = endpoint_class.as_view()
+                response = view(request)
+                assert response.status_code == (200 if expect_to_be_active else 404)
+
+            if not expect_to_be_active:
+                with override_settings(FAIL_ON_UNAVAILABLE_API_CALL=True):
+                    with raises(ApiAvailableOn.ApiAvailabilityError):
+                        DecoratedEndpoint.as_view()(request)
+                    # TODO: Make work with EndpointWithDecoratedMethod
+
+    def test_with_active_mode(self):
+        self._test_active_on(ServerComponentMode.CUSTOMER, ServerComponentMode.CUSTOMER, True)
+        self._test_active_on(ServerComponentMode.CONTROL, ServerComponentMode.CONTROL, True)
+
+    def test_with_inactive_mode(self):
+        self._test_active_on(ServerComponentMode.CUSTOMER, ServerComponentMode.CONTROL, False)
+        self._test_active_on(ServerComponentMode.CONTROL, ServerComponentMode.CUSTOMER, False)
+
+    def test_with_monolith_mode(self):
+        self._test_active_on(ServerComponentMode.CUSTOMER, ServerComponentMode.MONOLITH, True)
+        self._test_active_on(ServerComponentMode.CONTROL, ServerComponentMode.MONOLITH, True)
