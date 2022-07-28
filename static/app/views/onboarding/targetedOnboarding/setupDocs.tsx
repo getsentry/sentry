@@ -9,13 +9,12 @@ import * as qs from 'query-string';
 
 import {loadDocs} from 'sentry/actionCreators/projects';
 import Alert, {alertStyles} from 'sentry/components/alert';
+import Button from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
-import {Panel} from 'sentry/components/panels';
-import {CollapsePanelBody} from 'sentry/components/panels/panelBody';
-import {CollapsePanelHeader} from 'sentry/components/panels/panelHeader';
 import {PlatformKey} from 'sentry/data/platformCategories';
 import platforms from 'sentry/data/platforms';
+import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
@@ -82,32 +81,33 @@ function ProjecDocs(props: {
     );
   };
 
-  const showWizardSetup = true;
+  const showWizardSetup =
+    props.organization.experiments.OnboardingHighlightWizardExperiment;
   const [wizardSetupDetailsCollapsed, setWizardSetupDetailsCollapsed] = useState(true);
   const docs =
     props.platformDocs !== null &&
     (showWizardSetup && props.platformDocs.wizardSetup ? (
       <DocsWrapper key={props.platformDocs.html}>
         <Content dangerouslySetInnerHTML={{__html: props.platformDocs.wizardSetup}} />
-        <Panel>
-          <CollapsePanelHeader
-            collapsed={wizardSetupDetailsCollapsed}
-            onClick={() => setWizardSetupDetailsCollapsed(!wizardSetupDetailsCollapsed)}
-          >
-            {t('More Details')}
-          </CollapsePanelHeader>
-          <AnimatePresence>
-            {!wizardSetupDetailsCollapsed && (
-              <CollapsePanelBody key="wizard-setup-details-collapse">
-                <Content
-                  dangerouslySetInnerHTML={{__html: props.platformDocs.html}}
-                  style={{margin: space(2)}}
-                />
-                {missingExampleWarning()}
-              </CollapsePanelBody>
-            )}
-          </AnimatePresence>
-        </Panel>
+        <Button
+          priority="link"
+          onClick={() => setWizardSetupDetailsCollapsed(!wizardSetupDetailsCollapsed)}
+        >
+          <IconChevron
+            direction={wizardSetupDetailsCollapsed ? 'down' : 'up'}
+            style={{marginRight: space(1)}}
+          />
+          {wizardSetupDetailsCollapsed ? t('More Details') : t('Less Details')}
+        </Button>
+
+        <AnimatePresence>
+          {!wizardSetupDetailsCollapsed && (
+            <AnimatedContentWrapper>
+              <Content dangerouslySetInnerHTML={{__html: props.platformDocs.html}} />
+              {missingExampleWarning()}
+            </AnimatedContentWrapper>
+          )}
+        </AnimatePresence>
       </DocsWrapper>
     ) : (
       <DocsWrapper key={props.platformDocs.html}>
@@ -339,6 +339,21 @@ const mapAlertStyles = (p: {theme: Theme}, type: AlertType) =>
       display: block;
     }
   `;
+
+const AnimatedContentWrapper = styled(motion.div)`
+  overflow: hidden;
+`;
+AnimatedContentWrapper.defaultProps = {
+  initial: {
+    height: 0,
+  },
+  animate: {
+    height: 'auto',
+  },
+  exit: {
+    height: 0,
+  },
+};
 
 const Content = styled(motion.div)`
   h1,
