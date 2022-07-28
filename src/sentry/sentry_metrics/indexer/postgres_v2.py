@@ -9,7 +9,6 @@ from sentry.sentry_metrics.indexer.base import KeyCollection, KeyResult, KeyResu
 from sentry.sentry_metrics.indexer.cache import indexer_cache
 from sentry.sentry_metrics.indexer.models import BaseIndexer, PerfStringIndexer
 from sentry.sentry_metrics.indexer.models import StringIndexer as StringIndexerTable
-from sentry.sentry_metrics.indexer.ratelimiters import writes_limiter
 from sentry.sentry_metrics.indexer.strings import REVERSE_SHARED_STRINGS, SHARED_STRINGS
 from sentry.utils import metrics
 
@@ -137,12 +136,6 @@ class PGStringIndexerV2(StringIndexer):
             indexer_cache.set_many(new_results_to_cache, use_case_id.value)
             return cache_key_results.merge(db_read_key_results)
 
-        (
-            write_limits_state,
-            db_write_keys,
-            rate_limited_write_results,
-        ) = writes_limiter.check_write_limits(use_case_id, db_write_keys)
-
         new_records = []
         for write_pair in db_write_keys.as_tuples():
             organization_id, string = write_pair
@@ -156,18 +149,7 @@ class PGStringIndexerV2(StringIndexer):
             # attempt to create the rows down below.
             self._table(use_case_id).objects.bulk_create(new_records, ignore_conflicts=True)
 
-        # After the DB has successfully committed writes, apply rate limits. If
-        # the DB crashes we shouldn't consume quota.
-        writes_limiter.apply_write_limits(write_limits_state)
-
         db_write_key_results = KeyResults()
-        for dropped_string in rate_limited_write_results:
-            db_write_key_results.add_key_result(
-                dropped_string.key_result,
-                fetch_type=dropped_string.fetch_type,
-                fetch_type_ext=dropped_string.fetch_type_ext,
-            )
-
         db_write_key_results.add_key_results(
             [
                 KeyResult(org_id=db_obj.organization_id, string=db_obj.string, id=db_obj.id)
