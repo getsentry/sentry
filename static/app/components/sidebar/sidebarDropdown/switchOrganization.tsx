@@ -52,10 +52,24 @@ const SwitchOrganization = ({organizations, canCreateOrganization}: Props) => (
           >
             <OrganizationList role="list">
               {sortBy(organizations, ['status.id']).map(organization => {
-                const url = `/organizations/${organization.slug}/`;
+                const {slug, organizationUrl} = organization;
+
+                const shouldUseLegacyRoute =
+                  !organizationUrl || !organization.features.includes('customer-domains');
+
+                const menuItemProps: Partial<
+                  React.ComponentProps<typeof SidebarMenuItem>
+                > = {};
+
+                if (shouldUseLegacyRoute) {
+                  menuItemProps.to = `/organizations/${slug}/`;
+                } else {
+                  menuItemProps.href = organizationUrl;
+                  menuItemProps.openInNewTab = false;
+                }
 
                 return (
-                  <SidebarMenuItem key={organization.slug} to={url}>
+                  <SidebarMenuItem key={slug} href={organizationUrl} {...menuItemProps}>
                     <SidebarOrgSummary organization={organization} />
                   </SidebarMenuItem>
                 );
