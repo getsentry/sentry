@@ -33,8 +33,8 @@ import {defined} from 'sentry/utils';
 import {Color} from 'sentry/utils/theme';
 import withSentryAppComponents from 'sentry/utils/withSentryAppComponents';
 
-import DebugImage from './debugMeta/debugImage';
-import {combineStatus} from './debugMeta/utils';
+import DebugImage from './debugMeta-v2/debugImage';
+import {combineStatus} from './debugMeta-v2/utils';
 import Context from './frame/context';
 import {SymbolicatorStatus} from './types';
 
