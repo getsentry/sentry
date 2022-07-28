@@ -150,7 +150,7 @@ class GroupActivityNotification(ActivityNotification, abc.ABC):
         issue_name = self.group.qualified_short_id or "an issue"
         if url and self.group.qualified_short_id:
             group_url = self.group.get_absolute_url(params={"referrer": "activity_notification"})
-            issue_name = f"{self.format_url(text=self.group.qualified_short_id, url=group_url)}"
+            issue_name = f"<{group_url}|{self.group.qualified_short_id}>"
 
         context = {"author": name, "an issue": issue_name}
         context.update(params)
