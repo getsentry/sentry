@@ -21,7 +21,7 @@ NOTIFICATION_SETTINGS_ALL_SOMETIMES = {
     NotificationSettingTypes.QUOTA_WARNINGS: NotificationSettingOptionValues.ALWAYS,
 }
 
-NOTIFICATION_SETTINGS_SLACK = {
+NOTIFICATION_SETTINGS_INSTANT_MESSAGING = {
     NotificationSettingTypes.DEPLOY: NotificationSettingOptionValues.NEVER,
     NotificationSettingTypes.ISSUE_ALERTS: NotificationSettingOptionValues.NEVER,
     NotificationSettingTypes.ACTIVE_RELEASE: NotificationSettingOptionValues.NEVER,
@@ -36,5 +36,6 @@ NOTIFICATION_SETTINGS_SLACK = {
 
 NOTIFICATION_SETTING_DEFAULTS = {
     ExternalProviders.EMAIL: NOTIFICATION_SETTINGS_ALL_SOMETIMES,
-    ExternalProviders.SLACK: NOTIFICATION_SETTINGS_SLACK,
+    ExternalProviders.SLACK: NOTIFICATION_SETTINGS_INSTANT_MESSAGING,
+    ExternalProviders.MSTEAMS: NOTIFICATION_SETTINGS_INSTANT_MESSAGING,
 }
