@@ -14,13 +14,13 @@ Django>=2.2.28
 djangorestframework>=3.12.4
 drf-spectacular>=0.22.1
 email-reply-parser>=0.5.12
-google-api-core>=1.32.0
-google-auth>=1.24.0
-google-cloud-bigtable>=1.6.1
-google-cloud-core>=1.5.0
-googleapis-common-protos>=1.56.2
-google-cloud-pubsub>=2.2.0
-google-cloud-storage>=1.35.0
+google-api-core>=2.8.2
+google-auth>=2.9.1
+google-cloud-bigtable>=2.10.1
+google-cloud-core>=2.3.2
+googleapis-common-protos>=1.56.4
+google-cloud-pubsub>=2.13.4
+google-cloud-storage>=2.4.0
 google-cloud-functions>=1.8.0
 # Only necessary to prevent installing the latest version
 # https://github.com/googleapis/python-crc32c/issues/83
