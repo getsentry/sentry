@@ -234,7 +234,8 @@ def generate_incident_trigger_email_context(
                     "incident_id": incident.identifier,
                 },
             )
-        ),
+        )
+        + "?referrer=alert_email",
         "rule_link": absolute_uri(
             reverse(
                 "sentry-alert-rule",

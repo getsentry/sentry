@@ -183,6 +183,7 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
                         "incident_id": incident.identifier,
                     },
                 )
+                + "?referrer=alert_email"
             ),
             "rule_link": absolute_uri(
                 reverse(
