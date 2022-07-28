@@ -17,16 +17,18 @@ type Props = {
 /**
  * Reirects from an incident to the incident's metric alert details page
  */
-function IncidentRedirect({organization, params}: Props) {
+function IncidentRedirect({organization, params, location}: Props) {
   const api = useApi();
   const [hasError, setHasError] = useState(false);
+  const referrer = location.query?.referrer;
 
   const track = useCallback(() => {
     trackAdvancedAnalyticsEvent('alert_details.viewed', {
       organization,
       alert_id: parseInt(params.alertId, 10),
+      referrer: referrer || '',
     });
-  }, [organization, params.alertId]);
+  }, [organization, params.alertId, referrer]);
 
   const fetchData = useCallback(async () => {
     setHasError(false);
@@ -35,12 +37,12 @@ function IncidentRedirect({organization, params}: Props) {
       const incident = await fetchIncident(api, params.orgId, params.alertId);
       browserHistory.replace({
         pathname: alertDetailsLink(organization, incident),
-        query: {alert: incident.identifier},
+        query: {alert: incident.identifier, referrer},
       });
     } catch (err) {
       setHasError(true);
     }
-  }, [setHasError, api, params.orgId, params.alertId, organization]);
+  }, [setHasError, api, params.orgId, params.alertId, organization, referrer]);
 
   useEffect(() => {
     fetchData();
