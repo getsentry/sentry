@@ -11,6 +11,7 @@ import {MenuTriggerProps} from '@react-types/menu';
 import DropdownButton, {DropdownButtonProps} from 'sentry/components/dropdownButtonV2';
 import {MenuItemProps} from 'sentry/components/dropdownMenuItemV2';
 import Menu from 'sentry/components/dropdownMenuV2';
+import {Theme} from 'sentry/utils/theme';
 
 type TriggerProps = {
   props: Omit<React.HTMLAttributes<Element>, 'children'> & {
@@ -57,6 +58,10 @@ type Props = {
    */
   renderWrapAs?: React.ElementType;
   /**
+   * Affects the size of the trigger button and menu items.
+   */
+  size?: keyof Theme['form'];
+  /**
    * Optionally replace the trigger button with a different component. Note
    * that the replacement must have the `props` and `ref` (supplied in
    * TriggerProps) forwarded its outer wrap, otherwise the accessibility
@@ -93,6 +98,7 @@ function MenuControl({
   closeRootMenu,
   closeCurrentSubmenu,
   renderWrapAs = 'div',
+  size = 'md',
   className,
   ...props
 }: Props) {
@@ -159,15 +165,22 @@ function MenuControl({
     if (trigger) {
       return trigger({
         props: {
+          size,
+          isOpen: state.isOpen,
           ...triggerProps,
           ...buttonProps,
-          isOpen: state.isOpen,
         },
         ref,
       });
     }
     return (
-      <DropdownButton ref={ref} isOpen={state.isOpen} {...triggerProps} {...buttonProps}>
+      <DropdownButton
+        ref={ref}
+        size={size}
+        isOpen={state.isOpen}
+        {...triggerProps}
+        {...buttonProps}
+      >
         {triggerLabel}
       </DropdownButton>
     );
@@ -195,11 +208,19 @@ function MenuControl({
           if (item.children && item.children.length > 0 && !item.isSubmenu) {
             return (
               <Section key={item.key} title={item.label} items={item.children}>
-                {sectionItem => <Item {...sectionItem}>{sectionItem.label}</Item>}
+                {sectionItem => (
+                  <Item size={size} {...sectionItem}>
+                    {sectionItem.label}
+                  </Item>
+                )}
               </Section>
             );
           }
-          return <Item {...item}>{item.label}</Item>;
+          return (
+            <Item size={size} {...item}>
+              {item.label}
+            </Item>
+          );
         }}
       </Menu>
     );

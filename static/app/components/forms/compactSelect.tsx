@@ -22,6 +22,7 @@ import SelectControl, {
 } from 'sentry/components/forms/selectControl';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import space from 'sentry/styles/space';
+import {Theme} from 'sentry/utils/theme';
 
 interface TriggerRenderingProps {
   props: Omit<DropdownButtonProps, 'children'>;
@@ -53,6 +54,10 @@ interface Props<OptionType>
    * Tag name for the outer wrap, defaults to `div`
    */
   renderWrapAs?: React.ElementType;
+  /**
+   * Affects the size of the trigger button and menu items.
+   */
+  size?: keyof Theme['form'];
   /**
    * Optionally replace the trigger button with a different component. Note
    * that the replacement must have the `props` and `ref` (supplied in
@@ -206,6 +211,7 @@ function CompactSelect<OptionType extends GeneralSelectValue = GeneralSelectValu
   trigger,
   triggerLabel,
   triggerProps,
+  size = 'md',
   className,
   renderWrapAs,
   closeOnSelect = true,
@@ -290,9 +296,10 @@ function CompactSelect<OptionType extends GeneralSelectValue = GeneralSelectValu
     if (trigger) {
       return trigger({
         props: {
+          size,
+          isOpen: state.isOpen,
           ...triggerProps,
           ...buttonProps,
-          isOpen: state.isOpen,
         },
         ref: triggerRef,
       });
@@ -300,6 +307,7 @@ function CompactSelect<OptionType extends GeneralSelectValue = GeneralSelectValu
     return (
       <DropdownButton
         ref={triggerRef}
+        size={size}
         isOpen={state.isOpen}
         {...triggerProps}
         {...buttonProps}
@@ -334,6 +342,7 @@ function CompactSelect<OptionType extends GeneralSelectValue = GeneralSelectValu
             value={valueProp ?? internalValue}
             multiple={multiple}
             onChange={onValueChange}
+            size={size}
             menuTitle={menuTitle}
             placeholder={placeholder}
             isSearchable={isSearchable}

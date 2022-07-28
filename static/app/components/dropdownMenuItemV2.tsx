@@ -113,6 +113,7 @@ const MenuItem = ({
   const isDisabled = state.disabledKeys.has(node.key);
   const isFocused = state.selectionManager.focusedKey === node.key;
   const {key, onAction, to, label, showDividers, ...itemProps} = node.value;
+  const {size} = node.props;
 
   const ref = submenuTriggerRef ?? ourRef;
 
@@ -193,6 +194,7 @@ const MenuItem = ({
       innerWrapProps={innerWrapProps}
       labelProps={labelProps}
       detailsProps={descriptionProps}
+      size={size}
       {...props}
       {...itemProps}
       {...(isSubmenuTrigger && {
