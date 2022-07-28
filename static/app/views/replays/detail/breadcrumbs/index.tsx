@@ -13,9 +13,8 @@ import space from 'sentry/styles/space';
 import {Crumb} from 'sentry/types/breadcrumbs';
 import {getPrevBreadcrumb} from 'sentry/utils/replays/getBreadcrumb';
 import {useCurrentItemScroller} from 'sentry/utils/replays/hooks/useCurrentItemScroller';
+import BreadcrumbItem from 'sentry/views/replays/detail/breadcrumbs/breadcrumbItem';
 import FluidPanel from 'sentry/views/replays/detail/layout/fluidPanel';
-
-import BreadcrumbItem from './breadcrumbItem';
 
 function CrumbPlaceholder({number}: {number: number}) {
   return (
