@@ -16,7 +16,7 @@ import {getMockData} from '../utils';
 
 jest.mock('sentry/utils/analytics/trackAdvancedAnalyticsEvent');
 
-describe('Server-side Sampling - Uniform Rate Modal', function () {
+describe('Server-Side Sampling - Uniform Rate Modal', function () {
   beforeAll(function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/stats_v2/',
@@ -46,14 +46,14 @@ describe('Server-side Sampling - Uniform Rate Modal', function () {
     // Header
     expect(
       await screen.findByRole('heading', {
-        name: 'Define a global sample rate',
+        name: 'Set a global sample rate',
       })
     ).toBeInTheDocument();
 
     expect(
       screen.getByText(
         textWithMarkupMatcher(
-          'Set a global sample rate for the percent of transactions you want to process (Client) and those you want to index (Server) for your project. Below are suggested rates based on your organization’s usage and quota. Once set, the number of transactions processed and indexed for this project come from your organization’s overall quota and might impact the amount of transactions retained for other projects. Learn more about quota management.'
+          'Set a server-side sample rate for all transactions using our suggestion as a starting point.'
         )
       )
     ).toBeInTheDocument();
