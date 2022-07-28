@@ -1,7 +1,7 @@
 import {browserHistory} from 'react-router';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import DashboardDetail from 'sentry/views/dashboardsV2/detail';
 import OrgDashboards from 'sentry/views/dashboardsV2/orgDashboards';
@@ -20,9 +20,7 @@ describe('OrgDashboards', () => {
       project: 1,
       projects: [],
       router: {
-        location: {
-          pathname: '/test',
-        },
+        location: TestStubs.location(),
         params: {orgId: 'org-slug'},
       },
     });
@@ -138,5 +136,80 @@ describe('OrgDashboards', () => {
     );
 
     expect(browserHistory.replace).not.toHaveBeenCalled();
+  });
+
+  it('does not redirect to add query params if location is cleared manually', async () => {
+    const mockDashboardWithFilters = {
+      dateCreated: '2021-08-10T21:20:46.798237Z',
+      id: '1',
+      title: 'Test Dashboard',
+      widgets: [],
+      projects: [1],
+      filters: {},
+    };
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/dashboards/1/`,
+      method: 'GET',
+      body: mockDashboardWithFilters,
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/',
+      body: [mockDashboardWithFilters],
+    });
+    const {rerender} = render(
+      <OrgDashboards
+        api={api}
+        location={TestStubs.location()}
+        organization={initialData.organization}
+        params={{orgId: 'org-slug', dashboardId: '1'}}
+      >
+        {({dashboard, dashboards}) => {
+          return dashboard ? (
+            <DashboardDetail
+              api={api}
+              initialState={DashboardState.VIEW}
+              location={initialData.routerContext.location}
+              router={initialData.router}
+              dashboard={dashboard}
+              dashboards={dashboards}
+              {...initialData.router}
+            />
+          ) : (
+            <div>loading</div>
+          );
+        }}
+      </OrgDashboards>,
+      {context: initialData.routerContext}
+    );
+
+    await waitFor(() => expect(browserHistory.replace).toHaveBeenCalledTimes(1));
+
+    rerender(
+      <OrgDashboards
+        api={api}
+        location={{...initialData.routerContext.location, query: {}}}
+        organization={initialData.organization}
+        params={{orgId: 'org-slug', dashboardId: '1'}}
+      >
+        {({dashboard, dashboards}) => {
+          return dashboard ? (
+            <DashboardDetail
+              api={api}
+              initialState={DashboardState.VIEW}
+              location={initialData.routerContext.location}
+              router={initialData.router}
+              dashboard={dashboard}
+              dashboards={dashboards}
+              {...initialData.router}
+            />
+          ) : (
+            <div>loading</div>
+          );
+        }}
+      </OrgDashboards>
+    );
+
+    expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
+    expect(browserHistory.replace).toHaveBeenCalledTimes(1);
   });
 });

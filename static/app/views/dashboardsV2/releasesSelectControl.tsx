@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import Badge from 'sentry/components/badge';
@@ -25,6 +25,10 @@ function ReleasesSelectControl({
 }: Props) {
   const {releases, loading} = useReleases();
   const [activeReleases, setActiveReleases] = useState<string[]>(selectedReleases);
+
+  useEffect(() => {
+    setActiveReleases(selectedReleases);
+  }, [selectedReleases]);
 
   const triggerLabel = activeReleases.length ? (
     <TextOverflow>{activeReleases[0]} </TextOverflow>
