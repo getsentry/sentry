@@ -66,7 +66,12 @@ from sentry.incidents.endpoints.project_alert_rule_task_details import (
 )
 from sentry.replays.endpoints.organization_replay_index import OrganizationReplayIndexEndpoint
 from sentry.replays.endpoints.project_replay_details import ProjectReplayDetailsEndpoint
-from sentry.replays.endpoints.project_replay_recordings import ProjectReplayRecordingsEndpoint
+from sentry.replays.endpoints.project_replay_recording_segment_details import (
+    ProjectReplayRecordingSegmentDetailsEndpoint,
+)
+from sentry.replays.endpoints.project_replay_recording_segment_index import (
+    ProjectReplayRecordingSegmentIndexEndpoint,
+)
 from sentry.rules.history.endpoints.project_rule_group_history import (
     ProjectRuleGroupHistoryIndexEndpoint,
 )
@@ -252,6 +257,9 @@ from .endpoints.organization_events_meta import (
     OrganizationEventsRelatedIssuesEndpoint,
 )
 from .endpoints.organization_events_span_ops import OrganizationEventsSpanOpsEndpoint
+from .endpoints.organization_events_spans_count_histogram import (
+    OrganizationEventsSpansCountHistogramEndpoint,
+)
 from .endpoints.organization_events_spans_histogram import OrganizationEventsSpansHistogramEndpoint
 from .endpoints.organization_events_spans_performance import (
     OrganizationEventsSpansExamplesEndpoint,
@@ -1179,6 +1187,14 @@ urlpatterns = [
                     name="sentry-api-0-organization-events-spans-histogram",
                 ),
                 url(
+                    # TODO (@udameli): This is a temporary endpoint necessary for the performance issue experiment.
+                    # If the span count histogram proves to be valuable, then OrganizationEventsSpansHistogramEndpoint
+                    # functionality will be extended so it can return span count distribution data
+                    r"^(?P<organization_slug>[^\/]+)/events-spans-counts-histogram/$",
+                    OrganizationEventsSpansCountHistogramEndpoint.as_view(),
+                    name="sentry-api-0-organization-events-spans-count-histogram",
+                ),
+                url(
                     r"^(?P<organization_slug>[^\/]+)/events-trends/$",
                     OrganizationEventsTrendsEndpoint.as_view(),
                     name="sentry-api-0-organization-events-trends",
@@ -2057,9 +2073,14 @@ urlpatterns = [
                     name="sentry-api-0-project-replay-details",
                 ),
                 url(
-                    r"^(?P<organization_slug>[^/]+)/(?P<project_slug>[^\/]+)/replays/(?P<replay_id>[\w-]+)/recordings/$",
-                    ProjectReplayRecordingsEndpoint.as_view(),
-                    name="sentry-api-0-project-replay-recordings",
+                    r"^(?P<organization_slug>[^/]+)/(?P<project_slug>[^\/]+)/replays/(?P<replay_id>[\w-]+)/recording-segments/$",
+                    ProjectReplayRecordingSegmentIndexEndpoint.as_view(),
+                    name="sentry-api-0-project-replay-recording-segment-index",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^/]+)/(?P<project_slug>[^\/]+)/replays/(?P<replay_id>[\w-]+)/recording-segments/(?P<segment_id>\d+)/$",
+                    ProjectReplayRecordingSegmentDetailsEndpoint.as_view(),
+                    name="sentry-api-0-project-replay-recording-segment-details",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/rules/configuration/$",
