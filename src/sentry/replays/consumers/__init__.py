@@ -17,9 +17,12 @@ def get_replays_recordings_consumer(
     group_id: str,
     max_batch_size: int,
     auto_offset_reset: str,
+    force_topic: str | None,
+    force_cluster: str | None,
+    **options: dict[str, str],
 ) -> StreamProcessor:
-
-    consumer_config = get_config(topic, group_id, auto_offset_reset)
+    topic = force_topic or topic
+    consumer_config = get_config(topic, group_id, auto_offset_reset, force_cluster)
     consumer = KafkaConsumer(consumer_config)
     processor = StreamProcessor(
         consumer=consumer,
@@ -35,8 +38,10 @@ def get_replays_recordings_consumer(
     return processor
 
 
-def get_config(topic: str, group_id: str, auto_offset_reset: str) -> MutableMapping[Any, Any]:
-    cluster_name: str = settings.KAFKA_TOPICS[topic]["cluster"]
+def get_config(
+    topic: str, group_id: str, auto_offset_reset: str, force_cluster: str | None
+) -> MutableMapping[Any, Any]:
+    cluster_name: str = force_cluster or settings.KAFKA_TOPICS[topic]["cluster"]
     consumer_config: MutableMapping[Any, Any] = kafka_config.get_kafka_consumer_cluster_options(
         cluster_name,
         override_params={
