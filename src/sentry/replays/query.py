@@ -154,7 +154,6 @@ def make_select_statement() -> List[Union[Column, Function]]:
         _grouped_unique_scalar_value(column_name="user"),
         _grouped_unique_scalar_value(column_name="user_id"),
         _grouped_unique_scalar_value(column_name="user_email"),
-        _grouped_unique_scalar_value(column_name="user_hash"),
         _grouped_unique_scalar_value(column_name="user_name"),
         _grouped_unique_scalar_value(column_name="sdk_name"),
         _grouped_unique_scalar_value(column_name="sdk_version"),
@@ -185,7 +184,7 @@ def make_select_statement() -> List[Union[Column, Function]]:
         ),
         Function("groupArray", parameters=[Column("url")], alias="urls"),
         Function("count", parameters=[Column("url")], alias="count_urls"),
-        Function("count", parameters=[Column("sequence_id")], alias="count_sequences"),
+        Function("count", parameters=[Column("sequence_id")], alias="count_segments"),
     ]
 
 

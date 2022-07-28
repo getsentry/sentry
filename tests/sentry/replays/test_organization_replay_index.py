@@ -56,7 +56,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 seq1_timestamp,
                 seq2_timestamp,
                 urls=[],
-                count_sequences=2,
+                count_segments=2,
             )
             assert_expected_response(response_data["data"][0], expected_response)
 
