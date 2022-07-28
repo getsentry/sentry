@@ -616,7 +616,11 @@ def replays_recordings_consumer(**options):
 @click.option("--topic", default="snuba-metrics", help="Topic to read indexer output from.")
 @click.option("--ingest-profile")
 def last_seen_updater(**options):
+    from sentry.sentry_metrics.configuration import UseCaseKey, get_ingest_config
     from sentry.sentry_metrics.consumers.last_seen_updater import get_last_seen_updater
+
+    if options["ingest_profile"]:
+        get_ingest_config(UseCaseKey(options["ingest_profile"]))
 
     consumer = get_last_seen_updater(**options)
 
