@@ -10,9 +10,39 @@ import {IconAdd, IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {OrganizationSummary} from 'sentry/types';
+import shouldUseLegacyRoute from 'sentry/utils/shouldUseLegacyRoute';
+import useOrganization from 'sentry/utils/useOrganization';
+import useResolveRoute from 'sentry/utils/useResolveRoute';
 import withOrganizations from 'sentry/utils/withOrganizations';
 
 import Divider from './divider.styled';
+
+function OrganizationMenuItem({organization}: {organization: OrganizationSummary}) {
+  const currentOrganization = useOrganization();
+  const {slug} = organization;
+
+  const menuItemProps: Partial<React.ComponentProps<typeof SidebarMenuItem>> = {};
+
+  const route = useResolveRoute(organization, `/organizations/${slug}/`);
+
+  if (shouldUseLegacyRoute(organization)) {
+    if (currentOrganization.features.includes('customer-domains')) {
+      menuItemProps.href = route;
+      menuItemProps.openInNewTab = false;
+    } else {
+      menuItemProps.to = route;
+    }
+  } else {
+    menuItemProps.href = route;
+    menuItemProps.openInNewTab = false;
+  }
+
+  return (
+    <SidebarMenuItem {...menuItemProps}>
+      <SidebarOrgSummary organization={organization} />
+    </SidebarMenuItem>
+  );
+}
 
 type Props = {
   canCreateOrganization: boolean;
@@ -21,67 +51,68 @@ type Props = {
 /**
  * Switch Organization Menu Label + Sub Menu
  */
-const SwitchOrganization = ({organizations, canCreateOrganization}: Props) => (
-  <DeprecatedDropdownMenu isNestedDropdown>
-    {({isOpen, getMenuProps, getActorProps}) => (
-      <Fragment>
-        <SwitchOrganizationMenuActor
-          data-test-id="sidebar-switch-org"
-          {...getActorProps({})}
-          onClick={e => {
-            // This overwrites `DropdownMenu.getActorProps.onClick` which normally handles clicks on actor
-            // to toggle visibility of menu. Instead, do nothing because it is nested and we only want it
-            // to appear when hovered on. Will also stop menu from closing when clicked on (which seems to be common
-            // behavior);
+function SwitchOrganization({organizations, canCreateOrganization}: Props) {
+  return (
+    <DeprecatedDropdownMenu isNestedDropdown>
+      {({isOpen, getMenuProps, getActorProps}) => (
+        <Fragment>
+          <SwitchOrganizationMenuActor
+            data-test-id="sidebar-switch-org"
+            {...getActorProps({})}
+            onClick={e => {
+              // This overwrites `DropdownMenu.getActorProps.onClick` which normally handles clicks on actor
+              // to toggle visibility of menu. Instead, do nothing because it is nested and we only want it
+              // to appear when hovered on. Will also stop menu from closing when clicked on (which seems to be common
+              // behavior);
 
-            // Stop propagation so that dropdown menu doesn't close here
-            e.stopPropagation();
-          }}
-        >
-          {t('Switch organization')}
-
-          <SubMenuCaret>
-            <IconChevron size="xs" direction="right" />
-          </SubMenuCaret>
-        </SwitchOrganizationMenuActor>
-
-        {isOpen && (
-          <SwitchOrganizationMenu
-            data-test-id="sidebar-switch-org-menu"
-            {...getMenuProps({})}
+              // Stop propagation so that dropdown menu doesn't close here
+              e.stopPropagation();
+            }}
           >
-            <OrganizationList role="list">
-              {sortBy(organizations, ['status.id']).map(organization => {
-                const url = `/organizations/${organization.slug}/`;
+            {t('Switch organization')}
 
-                return (
-                  <SidebarMenuItem key={organization.slug} to={url}>
-                    <SidebarOrgSummary organization={organization} />
-                  </SidebarMenuItem>
-                );
-              })}
-            </OrganizationList>
-            {organizations && !!organizations.length && canCreateOrganization && (
-              <Divider css={{marginTop: 0}} />
-            )}
-            {canCreateOrganization && (
-              <SidebarMenuItem
-                data-test-id="sidebar-create-org"
-                to="/organizations/new/"
-                style={{alignItems: 'center'}}
-              >
-                <MenuItemLabelWithIcon>
-                  <StyledIconAdd />
-                  <span>{t('Create a new organization')}</span>
-                </MenuItemLabelWithIcon>
-              </SidebarMenuItem>
-            )}
-          </SwitchOrganizationMenu>
-        )}
-      </Fragment>
-    )}
-  </DeprecatedDropdownMenu>
-);
+            <SubMenuCaret>
+              <IconChevron size="xs" direction="right" />
+            </SubMenuCaret>
+          </SwitchOrganizationMenuActor>
+
+          {isOpen && (
+            <SwitchOrganizationMenu
+              data-test-id="sidebar-switch-org-menu"
+              {...getMenuProps({})}
+            >
+              <OrganizationList role="list">
+                {sortBy(organizations, ['status.id']).map(organization => {
+                  return (
+                    <OrganizationMenuItem
+                      key={organization.slug}
+                      organization={organization}
+                    />
+                  );
+                })}
+              </OrganizationList>
+              {organizations && !!organizations.length && canCreateOrganization && (
+                <Divider css={{marginTop: 0}} />
+              )}
+              {canCreateOrganization && (
+                <SidebarMenuItem
+                  data-test-id="sidebar-create-org"
+                  to="/organizations/new/"
+                  style={{alignItems: 'center'}}
+                >
+                  <MenuItemLabelWithIcon>
+                    <StyledIconAdd />
+                    <span>{t('Create a new organization')}</span>
+                  </MenuItemLabelWithIcon>
+                </SidebarMenuItem>
+              )}
+            </SwitchOrganizationMenu>
+          )}
+        </Fragment>
+      )}
+    </DeprecatedDropdownMenu>
+  );
+}
 
 const SwitchOrganizationContainer = withOrganizations(SwitchOrganization);
 

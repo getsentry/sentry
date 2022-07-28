@@ -2,6 +2,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import SidebarDropdown from 'sentry/components/sidebar/sidebarDropdown';
 import ConfigStore from 'sentry/stores/configStore';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 
 function renderDropdown(props) {
   const user = ConfigStore.get('user');
@@ -13,14 +14,16 @@ function renderDropdown(props) {
     },
   ]);
   return render(
-    <SidebarDropdown
-      orientation="left"
-      collapsed={false}
-      user={user}
-      config={config}
-      org={organization}
-      {...props}
-    />,
+    <OrganizationContext.Provider value={organization}>
+      <SidebarDropdown
+        orientation="left"
+        collapsed={false}
+        user={user}
+        config={config}
+        org={organization}
+        {...props}
+      />
+    </OrganizationContext.Provider>,
     {context: routerContext}
   );
 }
