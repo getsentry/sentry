@@ -17,6 +17,7 @@ class SentryFunctionSerializer(CamelSnakeSerializer):
     author = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     code = serializers.CharField(required=True)
     overview = serializers.CharField()
+    events = serializers.ListField(child=serializers.CharField(), required=False)
 
 
 class OrganizationSentryFunctionEndpoint(OrganizationEndpoint):
