@@ -1,5 +1,4 @@
 import {lazy, Suspense} from 'react';
-import type {OnChangeProps} from 'react-date-range';
 import styled from '@emotion/styled';
 import moment from 'moment';
 
@@ -17,7 +16,7 @@ interface DatePickerFieldProps extends Omit<InputFieldProps, 'field'> {}
 function handleChangeDate(
   onChange: onEvent,
   onBlur: onEvent,
-  date: OnChangeProps,
+  date: Date,
   close: Function
 ) {
   onChange(date);

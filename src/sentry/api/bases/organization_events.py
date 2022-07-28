@@ -385,8 +385,11 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                 for key, event_result in result.items():
                     if is_multiple_axis:
                         results[key] = self.serialize_multiple_axis(
+                            request,
+                            organization,
                             serializer,
                             event_result,
+                            params,
                             columns,
                             query_columns,
                             allow_partial_buckets,
@@ -403,8 +406,11 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                 serialized_result = results
             elif is_multiple_axis:
                 serialized_result = self.serialize_multiple_axis(
+                    request,
+                    organization,
                     serializer,
                     result,
+                    params,
                     columns,
                     query_columns,
                     allow_partial_buckets,
@@ -423,13 +429,19 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                     zerofill_results=zerofill_results,
                     extra_columns=extra_columns,
                 )
+                serialized_result["meta"] = self.handle_results_with_meta(
+                    request, organization, params.get("project_id", []), result.data, True
+                )["meta"]
 
             return serialized_result
 
     def serialize_multiple_axis(
         self,
+        request: Request,
+        organization: Organization,
         serializer: BaseSnubaSerializer,
         event_result: SnubaTSResult,
+        params: Dict[str, Any],
         columns: Sequence[str],
         query_columns: Sequence[str],
         allow_partial_buckets: bool,
@@ -438,6 +450,9 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         # Return with requested yAxis as the key
         result = {}
         equations = 0
+        meta = self.handle_results_with_meta(
+            request, organization, params.get("project_id", []), event_result.data, True
+        )["meta"]
         for index, query_column in enumerate(query_columns):
             result[columns[index]] = serializer.serialize(
                 event_result,
@@ -448,6 +463,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             )
             if is_equation(query_column):
                 equations += 1
+            result[columns[index]]["meta"] = meta
         # Set order if multi-axis + top events
         if "order" in event_result.data:
             result["order"] = event_result.data["order"]

@@ -35,7 +35,7 @@ from sentry.shared_integrations.exceptions import (
 from sentry.utils.decorators import classproperty
 from sentry.utils.http import absolute_uri
 
-from .client import JiraApiClient, JiraCloud
+from .client import JiraCloudClient
 from .utils import build_user_choice
 
 logger = logging.getLogger("sentry.integrations.jira")
@@ -342,9 +342,9 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
             logging_context["integration_id"] = attrgetter("org_integration.integration.id")(self)
             logging_context["org_integration_id"] = attrgetter("org_integration.id")(self)
 
-        return JiraApiClient(
+        return JiraCloudClient(
             self.model.metadata["base_url"],
-            JiraCloud(self.model.metadata["shared_secret"]),
+            self.model.metadata["shared_secret"],
             verify_ssl=True,
             logging_context=logging_context,
         )

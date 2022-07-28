@@ -153,6 +153,7 @@ useRecommendedSdkUpgrades.mockImplementation(() => ({
       latestSDKVersion: mockedSamplingSdkVersions[1].latestSDKVersion,
     },
   ],
+  fetching: false,
 }));
 
 export function getMockData({

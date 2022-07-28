@@ -10,6 +10,9 @@ from sentry.api.endpoints.organization_profiling_profiles import (
     OrganizationProfilingTransactionsEndpoint,
 )
 from sentry.api.endpoints.organization_sentry_function import OrganizationSentryFunctionEndpoint
+from sentry.api.endpoints.organization_sentry_function_details import (
+    OrganizationSentryFunctionDetailsEndpoint,
+)
 from sentry.api.endpoints.project_grouping_configs import ProjectGroupingConfigsEndpoint
 from sentry.api.endpoints.project_transaction_threshold_override import (
     ProjectTransactionThresholdOverrideEndpoint,
@@ -147,6 +150,7 @@ from .endpoints.group_participants import GroupParticipantsEndpoint
 from .endpoints.group_reprocessing import GroupReprocessingEndpoint
 from .endpoints.group_similar_issues import GroupSimilarIssuesEndpoint
 from .endpoints.group_stats import GroupStatsEndpoint
+from .endpoints.group_suspect_releases import GroupSuspectReleasesEndpoint
 from .endpoints.group_tagkey_details import GroupTagKeyDetailsEndpoint
 from .endpoints.group_tagkey_values import GroupTagKeyValuesEndpoint
 from .endpoints.group_tags import GroupTagsEndpoint
@@ -506,6 +510,7 @@ GROUP_URLS = [
     url(r"^(?P<issue_id>[^\/]+)/events/$", GroupEventsEndpoint.as_view()),
     url(r"^(?P<issue_id>[^\/]+)/events/latest/$", GroupEventsLatestEndpoint.as_view()),
     url(r"^(?P<issue_id>[^\/]+)/events/oldest/$", GroupEventsOldestEndpoint.as_view()),
+    url(r"^(?P<issue_id>[^\/]+)/suspect-releases/$", GroupSuspectReleasesEndpoint.as_view()),
     url(r"^(?P<issue_id>[^\/]+)/(?:notes|comments)/$", GroupNotesEndpoint.as_view()),
     url(
         r"^(?P<issue_id>[^\/]+)/(?:notes|comments)/(?P<note_id>[^\/]+)/$",
@@ -1565,6 +1570,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/functions/$",
                     OrganizationSentryFunctionEndpoint.as_view(),
                     name="sentry-api-0-organization-sentry-functions",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/functions/(?P<function_slug>[^\/]+)/$",
+                    OrganizationSentryFunctionDetailsEndpoint.as_view(),
+                    name="sentry-api-0-organization-sentry-function-details",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/request-project-creation/$",
