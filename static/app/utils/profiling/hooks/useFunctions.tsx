@@ -36,12 +36,12 @@ export function isFunctionsResultV2(
 }
 
 interface UseFunctionsOptions {
-  functionType: 'application' | 'system' | 'all';
   project: Project;
   query: string;
   sort: string;
   transaction: string;
   cursor?: string;
+  functionType?: 'application' | 'system' | 'all';
   selection?: PageFilters;
 }
 
@@ -133,7 +133,7 @@ function fetchFunctions(
     transaction,
   }: {
     cursor: string | undefined;
-    functionType: 'application' | 'system' | 'all';
+    functionType: 'application' | 'system' | 'all' | undefined;
     projectSlug: Project['slug'];
     query: string;
     selection: PageFilters;
