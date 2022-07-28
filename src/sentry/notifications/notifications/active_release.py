@@ -31,7 +31,7 @@ from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
 
 
-class ActiveReleaseAlertNotification(AlertRuleNotification):
+class ActiveReleaseIssueNotification(AlertRuleNotification):
     message_builder = "ActiveReleaseIssueNotificationMessageBuilder"
     metrics_key = "release_issue_alert"
     notification_setting_type = NotificationSettingTypes.ACTIVE_RELEASE

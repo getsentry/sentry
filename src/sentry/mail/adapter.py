@@ -7,7 +7,7 @@ from sentry.digests import Digest
 from sentry.digests import get_option_key as get_digest_option_key
 from sentry.digests.notifications import event_to_record, unsplit_key
 from sentry.models import NotificationSetting, Project, ProjectOption
-from sentry.notifications.notifications.active_release import ActiveReleaseAlertNotification
+from sentry.notifications.notifications.active_release import ActiveReleaseIssueNotification
 from sentry.notifications.notifications.activity import EMAIL_CLASSES_BY_TYPE
 from sentry.notifications.notifications.digest import DigestNotification
 from sentry.notifications.notifications.rules import AlertRuleNotification
@@ -125,7 +125,7 @@ class MailAdapter:
 
     @staticmethod
     def notify_active_release(notification):
-        ActiveReleaseAlertNotification(
+        ActiveReleaseIssueNotification(
             notification, target_type=ActionTargetType.RELEASE_MEMBERS
         ).send()
 
