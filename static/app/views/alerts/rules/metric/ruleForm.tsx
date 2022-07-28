@@ -23,7 +23,7 @@ import ListItem from 'sentry/components/list/listItem';
 import {t} from 'sentry/locale';
 import IndicatorStore from 'sentry/stores/indicatorStore';
 import space from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import {EventsStats, MultiSeriesEventsStats, Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {logExperiment, metric} from 'sentry/utils/analytics';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
@@ -611,6 +611,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
             : {}),
           // Remove eventTypes as it is no longer requred for crash free
           eventTypes: isCrashFreeAlert(rule.dataset) ? undefined : rule.eventTypes,
+          dataset,
         },
         {
           duplicateRule: this.isDuplicateRule ? 'true' : 'false',
@@ -741,17 +742,17 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     this.goBack();
   };
 
-  handleMEPAlertDataset = data => {
-    const {organization} = this.props;
-    const {dataset, showMEPAlertBanner} = this.state;
+  handleMEPAlertDataset = (data: EventsStats | MultiSeriesEventsStats | null) => {
     const {isMetricsData} = data ?? {};
 
     if (
       isMetricsData === undefined ||
-      !organization.features.includes('metrics-performance-alerts')
+      !this.props.organization.features.includes('metrics-performance-alerts')
     ) {
       return;
     }
+
+    const {dataset, showMEPAlertBanner} = this.state;
 
     if (isMetricsData && dataset === Dataset.TRANSACTIONS) {
       this.setState({dataset: Dataset.GENERIC_METRICS, showMEPAlertBanner: false});
