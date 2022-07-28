@@ -9,9 +9,10 @@ import space from 'sentry/styles/space';
 import type {Crumb} from 'sentry/types/breadcrumbs';
 import type {EventTransaction} from 'sentry/types/event';
 import getUrlPathname from 'sentry/utils/getUrlPathname';
+import EventMetaData, {
+  HeaderPlaceholder,
+} from 'sentry/views/replays/detail/eventMetaData';
 import ChooseLayout from 'sentry/views/replays/detail/layout/chooseLayout';
-
-import EventMetaData, {HeaderPlaceholder} from './eventMetaData';
 
 type Props = {
   children: ReactNode;
@@ -33,7 +34,7 @@ function Page({children, crumbs, duration, event, orgId}: Props) {
         <DetailsPageBreadcrumbs orgId={orgId} event={event} />
       </HeaderContent>
       <ButtonActionsWrapper>
-        <FeatureFeedback featureName="replay" buttonProps={{size: 'sm'}} />
+        <FeatureFeedback featureName="replay" buttonProps={{size: 'xs'}} />
         <ChooseLayout />
       </ButtonActionsWrapper>
       <SubHeading>{pathname || <HeaderPlaceholder />}</SubHeading>
@@ -68,7 +69,7 @@ const ButtonActionsWrapper = styled(Layout.HeaderActions)`
   display: grid;
   grid-template-columns: repeat(2, max-content);
   justify-content: flex-end;
-  gap: ${space(2)};
+  gap: ${space(1)};
 `;
 
 const SubHeading = styled('div')`
