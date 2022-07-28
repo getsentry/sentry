@@ -8,7 +8,8 @@ type Props = {
 };
 
 function ScrubberMouseTracking({children}: Props) {
-  const {duration = 0, setCurrentHoverTime} = useReplayContext();
+  const {replay, setCurrentHoverTime} = useReplayContext();
+  const duration = replay?.getDuration();
 
   const handlePositionChange = useCallback(
     params => {

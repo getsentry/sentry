@@ -25,12 +25,13 @@ const USER_ACTIONS = [
 ];
 
 function ReplayTimeline({}: Props) {
-  const {duration = 0, replay} = useReplayContext();
+  const {replay} = useReplayContext();
 
   if (!replay) {
     return <Placeholder height="48px" bottomGutter={2} />;
   }
 
+  const duration = replay.getDuration();
   const {startTimestamp} = replay.getEvent();
   const crumbs = replay.getRawCrumbs() || [];
   const spans = replay.getRawSpans() || [];

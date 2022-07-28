@@ -72,7 +72,9 @@ function ReplayDetails() {
 
 function LoadedDetails({orgId}: {orgId: string}) {
   const {getParamValue} = useUrlParam('l_page', 'topbar');
-  const {duration, replay} = useReplayContext();
+  const {replay} = useReplayContext();
+  const duration = replay?.getDuration();
+
   return (
     <Page
       orgId={orgId}
