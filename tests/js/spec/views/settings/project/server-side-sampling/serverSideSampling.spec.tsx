@@ -8,6 +8,7 @@ import {
 
 import {SERVER_SIDE_SAMPLING_DOC_LINK} from 'sentry/views/settings/project/server-side-sampling/utils';
 
+import {samplingBreakdownTitle} from './samplingBreakdown.spec';
 import {
   getMockData,
   mockedProjects,
@@ -18,7 +19,7 @@ import {
   uniformRule,
 } from './utils';
 
-describe('Server-side Sampling', function () {
+describe('Server-Side Sampling', function () {
   let distributionMock: ReturnType<typeof MockApiClient.addMockResponse> | undefined =
     undefined;
   let sdkVersionsMock: ReturnType<typeof MockApiClient.addMockResponse> | undefined =
@@ -36,13 +37,21 @@ describe('Server-side Sampling', function () {
       method: 'GET',
       body: mockedSamplingSdkVersions,
     });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/projects/',
+      method: 'GET',
+      body: mockedSamplingDistribution.project_breakdown!.map(p =>
+        TestStubs.Project({id: p.project_id, slug: p.project})
+      ),
+    });
   });
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders onboarding promo', function () {
+  it('renders onboarding promo', async function () {
     const {router, organization, project} = getMockData();
 
     const {container} = render(
@@ -50,22 +59,25 @@ describe('Server-side Sampling', function () {
     );
 
     expect(
-      screen.getByRole('heading', {name: 'Server-side Sampling'})
+      screen.getByRole('heading', {name: 'Server-Side Sampling'})
     ).toBeInTheDocument();
 
     expect(
       screen.getByText(
-        'Server-side sampling lets you control what transactions Sentry retains by setting sample rules and rates so you see more of the transactions you want to explore further in Sentry – and less of the ones you don’t – without re-configuring the Sentry SDK and redeploying anything.'
+        'Enhance the performance monitoring experience by targeting which transactions are most valuable to your organization without the need for re-deployment.'
       )
     ).toBeInTheDocument();
 
+    // Assert that project breakdown is there
+    expect(await screen.findByText(samplingBreakdownTitle)).toBeInTheDocument();
+
     expect(
-      screen.getByRole('heading', {name: 'Set sample rules for your project'})
+      screen.getByRole('heading', {name: 'Sample for relevancy'})
     ).toBeInTheDocument();
 
     expect(
       screen.getByText(
-        'Because every project is different – some need more events from high converting pages, critical API endpoints, or just want to focus on latency issues from the latest release – set multiple sample rules with different sample rates per project so you can keep what you need and drop what you don’t.'
+        'Create rules to sample transactions under specific conditions, keeping what you need and dropping what you don’t.'
       )
     ).toBeInTheDocument();
 
@@ -79,7 +91,7 @@ describe('Server-side Sampling', function () {
     expect(container).toSnapshot();
   });
 
-  it('renders rules panel', function () {
+  it('renders rules panel', async function () {
     const {router, organization, project} = getMockData({
       projects: [
         TestStubs.Project({
@@ -93,6 +105,9 @@ describe('Server-side Sampling', function () {
     const {container} = render(
       <TestComponent router={router} organization={organization} project={project} />
     );
+
+    // Assert that project breakdown is there
+    expect(await screen.findByText(samplingBreakdownTitle)).toBeInTheDocument();
 
     // Rule Panel Header
     expect(screen.getByText('Operator')).toBeInTheDocument();
@@ -119,7 +134,7 @@ describe('Server-side Sampling', function () {
     expect(container).toSnapshot();
   });
 
-  it('does not let you delete the base rule', function () {
+  it('does not let you delete the base rule', async function () {
     const {router, organization, project} = getMockData({
       projects: [
         TestStubs.Project({
@@ -162,6 +177,9 @@ describe('Server-side Sampling', function () {
       <TestComponent router={router} organization={organization} project={project} />
     );
 
+    // Assert that project breakdown is there (avoids 'act' warnings)
+    expect(await screen.findByText(samplingBreakdownTitle)).toBeInTheDocument();
+
     const deleteButtons = screen.getAllByLabelText('Delete');
     expect(deleteButtons[0]).not.toHaveAttribute('disabled'); // eslint-disable-line jest-dom/prefer-enabled-disabled
     expect(deleteButtons[1]).toHaveAttribute('disabled'); // eslint-disable-line jest-dom/prefer-enabled-disabled
@@ -193,7 +211,7 @@ describe('Server-side Sampling', function () {
 
     expect(
       within(recommendedSdkUpgradesAlert).getByText(
-        'To ensure you are properly monitoring the performance of all your other services, we require you update to the latest version of the following SDK(s):'
+        'To activate server-side sampling rules, it’s a requirement to update the following project SDK(s):'
       )
     ).toBeInTheDocument();
 
@@ -333,7 +351,7 @@ describe('Server-side Sampling', function () {
 
     expect(
       await screen.findByRole('heading', {
-        name: 'Define a global sample rate',
+        name: 'Set a global sample rate',
       })
     ).toBeInTheDocument();
   });

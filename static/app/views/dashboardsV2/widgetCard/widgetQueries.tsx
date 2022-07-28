@@ -11,6 +11,8 @@ import {
 } from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
+import {DURATION_UNITS, SIZE_UNITS} from 'sentry/utils/discover/fieldRenderers';
+import {getAggregateAlias} from 'sentry/utils/discover/fields';
 
 import {ErrorsAndTransactionsConfig} from '../datasetConfig/errorsAndTransactions';
 import {DashboardFilters, Widget} from '../types';
@@ -26,14 +28,23 @@ type TableResult = TableData | EventsTableData;
 
 type SeriesWithOrdering = [order: number, series: Series];
 
-export function transformSeries(stats: EventsStats, seriesName: string): Series {
+export function transformSeries(
+  stats: EventsStats,
+  seriesName: string,
+  field: string
+): Series {
+  const unit = stats.meta?.units?.[getAggregateAlias(field)];
+  // Scale series values to milliseconds or bytes depending on units from meta
+  const scale = (unit && (DURATION_UNITS[unit] ?? SIZE_UNITS[unit])) ?? 1;
   return {
     seriesName,
     data:
-      stats?.data?.map(([timestamp, counts]) => ({
-        name: timestamp * 1000,
-        value: counts.reduce((acc, {count}) => acc + count, 0),
-      })) ?? [],
+      stats?.data?.map(([timestamp, counts]) => {
+        return {
+          name: timestamp * 1000,
+          value: counts.reduce((acc, {count}) => acc + count, 0) * scale,
+        };
+      }) ?? [],
   };
 }
 
@@ -72,7 +83,7 @@ export function flattenMultiSeriesDataWithGrouping(
 
       seriesWithOrdering.push([
         result[groupName].order || 0,
-        transformSeries(seriesData, prefixedName),
+        transformSeries(seriesData, prefixedName, seriesName),
       ]);
     });
   });

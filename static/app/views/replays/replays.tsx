@@ -21,10 +21,9 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-
-import ReplaysFilters from './filters';
-import ReplayTable from './replayTable';
-import {Replay} from './types';
+import ReplaysFilters from 'sentry/views/replays/filters';
+import ReplayTable from 'sentry/views/replays/replayTable';
+import {Replay} from 'sentry/views/replays/types';
 
 const columns = [t('Session'), t('Project')];
 
