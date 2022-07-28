@@ -17,6 +17,18 @@ SCIM_INTERNAL_INTEGRATION_OVERVIEW = (
 )
 
 
+class AuthProviderDefaultTeams(Model):
+    __include_in_export__ = False
+
+    authprovider = FlexibleForeignKey("sentry.AuthProvider")
+    team = FlexibleForeignKey("sentry.Team")
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_authprovider_default_teams"
+        unique_together = (("authprovider", "team"),)
+
+
 class AuthProvider(Model):
     __include_in_export__ = True
 
@@ -33,7 +45,9 @@ class AuthProvider(Model):
     # TODO(dcramer): ManyToMany has the same issue as ForeignKey and we need
     # to either write our own which works w/ BigAuto or switch this to use
     # through.
-    default_teams = models.ManyToManyField("sentry.Team", blank=True)
+    default_teams = models.ManyToManyField(
+        "sentry.Team", blank=True, through=AuthProviderDefaultTeams
+    )
 
     flags = BitField(
         flags=(
