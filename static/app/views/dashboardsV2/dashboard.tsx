@@ -48,7 +48,6 @@ import {
 } from './layoutUtils';
 import SortableWidget from './sortableWidget';
 import {DashboardDetails, DashboardWidgetSource, Widget, WidgetType} from './types';
-import {getSavedPageFilters} from './utils';
 
 export const DRAG_HANDLE_CLASS = 'widget-drag';
 const DRAG_RESIZE_CLASS = 'widget-resize';
@@ -81,6 +80,7 @@ type Props = {
   router: InjectedRouter;
   selection: PageFilters;
   widgetLimitReached: boolean;
+  hasUnsavedFilters?: boolean;
   isPreview?: boolean;
   newWidget?: Widget;
   onSetNewWidget?: () => void;
@@ -345,9 +345,6 @@ class Dashboard extends Component<Props, State> {
           pathname: `/organizations/${organization.slug}/dashboard/${paramDashboardId}/widget/${index}/edit/`,
           query: {
             ...location.query,
-            ...(organization.features.includes('dashboards-top-level-filter')
-              ? getSavedPageFilters(dashboard)
-              : {}),
             source: DashboardWidgetSource.DASHBOARDS,
           },
         });
@@ -393,8 +390,14 @@ class Dashboard extends Component<Props, State> {
 
   renderWidget(widget: Widget, index: number) {
     const {isMobile, windowWidth} = this.state;
-    const {isEditing, organization, widgetLimitReached, isPreview, dashboard} =
-      this.props;
+    const {
+      isEditing,
+      organization,
+      widgetLimitReached,
+      isPreview,
+      dashboard,
+      hasUnsavedFilters,
+    } = this.props;
 
     const widgetProps = {
       widget,
@@ -405,6 +408,7 @@ class Dashboard extends Component<Props, State> {
       onDuplicate: this.handleDuplicateWidget(widget, index),
       isPreview,
       dashboardFilters: dashboard.filters,
+      hasUnsavedFilters,
     };
 
     if (organization.features.includes('dashboard-grid-layout')) {

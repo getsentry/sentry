@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -5,6 +6,7 @@ import {HeaderTitle} from 'sentry/components/charts/styles';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Panel, PanelBody} from 'sentry/components/panels';
+import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import Tooltip from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
@@ -25,7 +27,7 @@ type Props = {
 
 export function SamplingBreakdown({orgSlug}: Props) {
   const theme = useTheme();
-  const {samplingDistribution} = useLegacyStore(ServerSideSamplingStore);
+  const {samplingDistribution, fetching} = useLegacyStore(ServerSideSamplingStore);
   const projectBreakdown = samplingDistribution.project_breakdown;
   const {projects} = useProjects({
     slugs: projectBreakdown?.map(project => project.project) ?? [],
@@ -45,7 +47,7 @@ export function SamplingBreakdown({orgSlug}: Props) {
     }))
     .sort((a, z) => z.percentage - a.percentage);
 
-  if (projectsWithPercentages.length === 0) {
+  if (projectsWithPercentages.length === 0 && !fetching) {
     return null;
   }
 
@@ -73,27 +75,35 @@ export function SamplingBreakdown({orgSlug}: Props) {
           />
         </TitleWrapper>
 
-        <ColorBar
-          colorStops={projectsWithPercentages.map(({project, percentage}, index) => ({
-            color: theme.charts.getColorPalette(projectsWithPercentages.length)[index],
-            percent: percentage,
-            renderBarStatus: (barStatus, key) => (
-              <Tooltip
-                title={projectWithPercentage(project, percentage)}
-                skipWrapper
-                isHoverable
-                key={key}
-              >
-                {barStatus}
-              </Tooltip>
-            ),
-          }))}
-        />
-        <Projects>
-          {projectsWithPercentages.map(({project, percentage}) =>
-            projectWithPercentage(project, percentage)
-          )}
-        </Projects>
+        {fetching ? (
+          <Placeholder height="49px" />
+        ) : (
+          <Fragment>
+            <ColorBar
+              colorStops={projectsWithPercentages.map(({project, percentage}, index) => ({
+                color: theme.charts.getColorPalette(projectsWithPercentages.length)[
+                  index
+                ],
+                percent: percentage,
+                renderBarStatus: (barStatus, key) => (
+                  <Tooltip
+                    title={projectWithPercentage(project, percentage)}
+                    skipWrapper
+                    isHoverable
+                    key={key}
+                  >
+                    {barStatus}
+                  </Tooltip>
+                ),
+              }))}
+            />
+            <Projects>
+              {projectsWithPercentages.map(({project, percentage}) =>
+                projectWithPercentage(project, percentage)
+              )}
+            </Projects>
+          </Fragment>
+        )}
       </PanelBody>
     </Panel>
   );

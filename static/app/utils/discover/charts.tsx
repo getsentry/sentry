@@ -2,7 +2,7 @@ import {LegendComponentOption} from 'echarts';
 
 import {t} from 'sentry/locale';
 import {Series} from 'sentry/types/echarts';
-import {defined} from 'sentry/utils';
+import {defined, formatBytesBase2} from 'sentry/utils';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {
   DAY,
@@ -44,6 +44,8 @@ export function tooltipFormatterUsingAggregateOutputType(
       return formatPercentage(value, 2);
     case 'duration':
       return getDuration(value / 1000, 2, true);
+    case 'size':
+      return formatBytesBase2(value);
     default:
       return value.toString();
   }
@@ -76,7 +78,6 @@ export function axisLabelFormatterUsingAggregateOutputType(
   abbreviation: boolean = false,
   durationUnit?: number
 ): string {
-  // TODO: Add formatter for size type
   switch (type) {
     case 'integer':
     case 'number':
@@ -85,6 +86,8 @@ export function axisLabelFormatterUsingAggregateOutputType(
       return formatPercentage(value, 0);
     case 'duration':
       return axisDuration(value, durationUnit);
+    case 'size':
+      return formatBytesBase2(value, 0);
     default:
       return value.toString();
   }
