@@ -1,5 +1,6 @@
-import type {Crumb} from 'sentry/types/breadcrumbs';
-import type {Event, EventTransaction} from 'sentry/types/event';
+import type {BreadcrumbTypeNavigation, Crumb} from 'sentry/types/breadcrumbs';
+import {BreadcrumbType} from 'sentry/types/breadcrumbs';
+import type {Event, EventTransaction, EventUser} from 'sentry/types/event';
 import {
   breadcrumbFactory,
   replayTimestamps,
@@ -9,6 +10,7 @@ import {
 import type {
   MemorySpanType,
   RecordingEvent,
+  Replay,
   ReplayCrumb,
   ReplayError,
   ReplaySpan,
@@ -87,6 +89,64 @@ export default class ReplayReader {
 
   getEvent = () => {
     return this.event;
+  };
+
+  getDuration = () => {
+    return (this.event.endTimestamp - this.event.startTimestamp) * 1000;
+  };
+
+  getReplay = () => {
+    const urls = (
+      this.getRawCrumbs().filter(
+        crumb => crumb.category === BreadcrumbType.NAVIGATION
+      ) as BreadcrumbTypeNavigation[]
+    )
+      .map(crumb => crumb.data?.to)
+      .filter(Boolean) as string[];
+
+    return {
+      count_errors: this.getRawCrumbs().filter(
+        crumb => crumb.category === BreadcrumbType.ERROR
+      ).length,
+      count_segments: 0,
+      count_urls: urls.length,
+      dist: this.event.dist,
+      duration: this.getDuration(),
+      environment: null,
+      finished_at: new Date(),
+      ip_address_v4: this.event.user?.ip_address,
+      ip_address_v6: null,
+      longest_transaction: 0,
+      platform: this.event.platform,
+      project_id: this.event.projectID,
+      release: null, // event.release is not a string, expected to be `version@1.4`
+      replay_id: this.event.id,
+      sdk_name: this.event.sdk?.name,
+      sdk_version: this.event.sdk?.version,
+      started_at: new Date(),
+      tags: this.event.tags.reduce(({key, val}, tags) => {
+        tags[key] = val;
+        return tags;
+      }, {} as Replay['tags']),
+      title: this.event.title,
+      trace_ids: [],
+      urls,
+      user: this.event.user?.id,
+      user_email: this.event.user?.email,
+      user_hash: JSON.stringify(this.event.user),
+      user_id: this.event.user?.id,
+      user_name: this.event.user?.name,
+    } as Replay;
+  };
+
+  getEventUser = () => {
+    const replay = this.getReplay();
+    return {
+      email: replay.user_email,
+      id: replay.user_id,
+      ip_address: replay.ip_address_v6 || replay.ip_address_v4,
+      name: replay.user_name,
+    } as EventUser;
   };
 
   getRRWebEvents = () => {

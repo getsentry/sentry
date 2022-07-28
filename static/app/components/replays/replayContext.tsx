@@ -47,6 +47,8 @@ type ReplayPlayerContextProps = {
   dimensions: Dimensions;
 
   /**
+   * Deprecated: use `replayReader.getDuration()` instead.
+   *
    * Duration of the video, in milliseconds
    */
   duration: undefined | number;
@@ -445,8 +447,7 @@ export function Provider({children, replay, initialTimeOffset = 0, value = {}}: 
     setBufferTime({target: -1, previous: -1});
   }
 
-  const event = replay?.getEvent();
-  const duration = event ? (event.endTimestamp - event.startTimestamp) * 1000 : undefined;
+  const duration = replay?.getDuration();
 
   return (
     <ReplayPlayerContext.Provider
