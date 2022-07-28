@@ -315,7 +315,6 @@ class TeamMembers extends AsyncView<Props, State> {
           )}
         </Panel>
         <Pagination pageLinks={teamMembersPageLinks} />
-        <div>....</div>
       </Fragment>
     );
   }
