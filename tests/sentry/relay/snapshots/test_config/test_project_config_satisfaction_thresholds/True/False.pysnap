@@ -1,6 +1,4 @@
 ---
-created: '2022-04-20T13:21:42.435740Z'
-creator: sentry
 source: tests/sentry/relay/test_config.py
 ---
 - condition:
@@ -16,6 +14,7 @@ source: tests/sentry/relay/test_config.py
   targetMetrics:
   - s:transactions/user@none
   - d:transactions/duration@millisecond
+  - d:transactions/measurements.lcp@millisecond
   targetTag: satisfaction
 - condition:
     inner:
@@ -30,6 +29,7 @@ source: tests/sentry/relay/test_config.py
   targetMetrics:
   - s:transactions/user@none
   - d:transactions/duration@millisecond
+  - d:transactions/measurements.lcp@millisecond
   targetTag: satisfaction
 - condition:
     inner:
@@ -41,6 +41,7 @@ source: tests/sentry/relay/test_config.py
   targetMetrics:
   - s:transactions/user@none
   - d:transactions/duration@millisecond
+  - d:transactions/measurements.lcp@millisecond
   targetTag: satisfaction
 - condition:
     inner:
@@ -55,6 +56,7 @@ source: tests/sentry/relay/test_config.py
   targetMetrics:
   - s:transactions/user@none
   - d:transactions/duration@millisecond
+  - d:transactions/measurements.lcp@millisecond
   targetTag: satisfaction
 - condition:
     inner:
@@ -69,6 +71,7 @@ source: tests/sentry/relay/test_config.py
   targetMetrics:
   - s:transactions/user@none
   - d:transactions/duration@millisecond
+  - d:transactions/measurements.lcp@millisecond
   targetTag: satisfaction
 - condition:
     inner:
@@ -80,6 +83,7 @@ source: tests/sentry/relay/test_config.py
   targetMetrics:
   - s:transactions/user@none
   - d:transactions/duration@millisecond
+  - d:transactions/measurements.lcp@millisecond
   targetTag: satisfaction
 - condition:
     inner:
@@ -91,6 +95,7 @@ source: tests/sentry/relay/test_config.py
   targetMetrics:
   - s:transactions/user@none
   - d:transactions/duration@millisecond
+  - d:transactions/measurements.lcp@millisecond
   targetTag: satisfaction
 - condition:
     inner:
@@ -102,6 +107,7 @@ source: tests/sentry/relay/test_config.py
   targetMetrics:
   - s:transactions/user@none
   - d:transactions/duration@millisecond
+  - d:transactions/measurements.lcp@millisecond
   targetTag: satisfaction
 - condition:
     inner: []
@@ -110,6 +116,7 @@ source: tests/sentry/relay/test_config.py
   targetMetrics:
   - s:transactions/user@none
   - d:transactions/duration@millisecond
+  - d:transactions/measurements.lcp@millisecond
   targetTag: satisfaction
 - condition:
     inner:
@@ -121,11 +128,27 @@ source: tests/sentry/relay/test_config.py
       value: javascript
     - name: event.duration
       op: gte
-      value: 8784.25
+      value: 12229.0
     op: and
   tagValue: outlier
   targetMetrics:
   - d:transactions/duration@millisecond
+  targetTag: histogram_outlier
+- condition:
+    inner:
+    - name: event.contexts.trace.op
+      op: eq
+      value: pageload
+    - name: event.platform
+      op: eq
+      value: javascript
+    - name: event.duration
+      op: gte
+      value: 5285.000324249268
+    op: and
+  tagValue: outlier
+  targetMetrics:
+  - d:transactions/measurements.fcp@millisecond
   targetTag: histogram_outlier
 - condition:
     inner:
@@ -137,7 +160,7 @@ source: tests/sentry/relay/test_config.py
       value: javascript
     - name: event.duration
       op: gte
-      value: 2433
+      value: 2929.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -153,7 +176,7 @@ source: tests/sentry/relay/test_config.py
       value: python
     - name: event.duration
       op: gte
-      value: 285
+      value: 435.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -169,7 +192,7 @@ source: tests/sentry/relay/test_config.py
       value: node
     - name: event.duration
       op: gte
-      value: 250
+      value: 358.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -185,23 +208,7 @@ source: tests/sentry/relay/test_config.py
       value: php
     - name: event.duration
       op: gte
-      value: 601
-    op: and
-  tagValue: outlier
-  targetMetrics:
-  - d:transactions/duration@millisecond
-  targetTag: histogram_outlier
-- condition:
-    inner:
-    - name: event.contexts.trace.op
-      op: eq
-      value: rails.request
-    - name: event.platform
-      op: eq
-      value: ruby
-    - name: event.duration
-      op: gte
-      value: 177
+      value: 749.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -217,7 +224,23 @@ source: tests/sentry/relay/test_config.py
       value: python
     - name: event.duration
       op: gte
-      value: 1276
+      value: 1159.0
+    op: and
+  tagValue: outlier
+  targetMetrics:
+  - d:transactions/duration@millisecond
+  targetTag: histogram_outlier
+- condition:
+    inner:
+    - name: event.contexts.trace.op
+      op: eq
+      value: rails.request
+    - name: event.platform
+      op: eq
+      value: ruby
+    - name: event.duration
+      op: gte
+      value: 399.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -233,7 +256,7 @@ source: tests/sentry/relay/test_config.py
       value: javascript
     - name: event.duration
       op: gte
-      value: 1291493.25
+      value: 17204061.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -249,7 +272,7 @@ source: tests/sentry/relay/test_config.py
       value: cocoa
     - name: event.duration
       op: gte
-      value: 1611
+      value: 2218.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -265,7 +288,7 @@ source: tests/sentry/relay/test_config.py
       value: node
     - name: event.duration
       op: gte
-      value: 1334.75
+      value: 1155.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -281,7 +304,23 @@ source: tests/sentry/relay/test_config.py
       value: csharp
     - name: event.duration
       op: gte
-      value: 138
+      value: 236.0
+    op: and
+  tagValue: outlier
+  targetMetrics:
+  - d:transactions/duration@millisecond
+  targetTag: histogram_outlier
+- condition:
+    inner:
+    - name: event.contexts.trace.op
+      op: eq
+      value: http.server
+    - name: event.platform
+      op: eq
+      value: java
+    - name: event.duration
+      op: gte
+      value: 264.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -297,23 +336,7 @@ source: tests/sentry/relay/test_config.py
       value: python
     - name: event.duration
       op: gte
-      value: 719.75
-    op: and
-  tagValue: outlier
-  targetMetrics:
-  - d:transactions/duration@millisecond
-  targetTag: histogram_outlier
-- condition:
-    inner:
-    - name: event.contexts.trace.op
-      op: eq
-      value: http.server
-    - name: event.platform
-      op: eq
-      value: java
-    - name: event.duration
-      op: gte
-      value: 92
+      value: 1473.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -329,7 +352,7 @@ source: tests/sentry/relay/test_config.py
       value: java
     - name: event.duration
       op: gte
-      value: 724.75
+      value: 2110.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -345,7 +368,7 @@ source: tests/sentry/relay/test_config.py
       value: ruby
     - name: event.duration
       op: gte
-      value: 1068
+      value: 829.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -361,7 +384,7 @@ source: tests/sentry/relay/test_config.py
       value: ruby
     - name: event.duration
       op: gte
-      value: 870
+      value: 804.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -377,7 +400,7 @@ source: tests/sentry/relay/test_config.py
       value: javascript
     - name: event.duration
       op: gte
-      value: 2532.75
+      value: 3749.75
     op: and
   tagValue: outlier
   targetMetrics:
@@ -393,7 +416,7 @@ source: tests/sentry/relay/test_config.py
       value: python
     - name: event.duration
       op: gte
-      value: 883
+      value: 2905.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -409,7 +432,7 @@ source: tests/sentry/relay/test_config.py
       value: other
     - name: event.duration
       op: gte
-      value: 7008
+      value: 9005.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -425,7 +448,7 @@ source: tests/sentry/relay/test_config.py
       value: php
     - name: event.duration
       op: gte
-      value: 2981.25
+      value: 6164.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -441,7 +464,7 @@ source: tests/sentry/relay/test_config.py
       value: node
     - name: event.duration
       op: gte
-      value: 1420
+      value: 1082.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -457,23 +480,7 @@ source: tests/sentry/relay/test_config.py
       value: node
     - name: event.duration
       op: gte
-      value: 133
-    op: and
-  tagValue: outlier
-  targetMetrics:
-  - d:transactions/duration@millisecond
-  targetTag: histogram_outlier
-- condition:
-    inner:
-    - name: event.contexts.trace.op
-      op: eq
-      value: rq.task
-    - name: event.platform
-      op: eq
-      value: python
-    - name: event.duration
-      op: gte
-      value: 8083.5
+      value: 197.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -489,23 +496,7 @@ source: tests/sentry/relay/test_config.py
       value: go
     - name: event.duration
       op: gte
-      value: 399
-    op: and
-  tagValue: outlier
-  targetMetrics:
-  - d:transactions/duration@millisecond
-  targetTag: histogram_outlier
-- condition:
-    inner:
-    - name: event.contexts.trace.op
-      op: eq
-      value: pageload
-    - name: event.platform
-      op: eq
-      value: other
-    - name: event.duration
-      op: gte
-      value: 3000
+      value: 164.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -521,7 +512,87 @@ source: tests/sentry/relay/test_config.py
       value: ruby
     - name: event.duration
       op: gte
-      value: 12
+      value: 24.0
+    op: and
+  tagValue: outlier
+  targetMetrics:
+  - d:transactions/duration@millisecond
+  targetTag: histogram_outlier
+- condition:
+    inner:
+    - name: event.contexts.trace.op
+      op: eq
+      value: rq.task
+    - name: event.platform
+      op: eq
+      value: python
+    - name: event.duration
+      op: gte
+      value: 2319.0
+    op: and
+  tagValue: outlier
+  targetMetrics:
+  - d:transactions/duration@millisecond
+  targetTag: histogram_outlier
+- condition:
+    inner:
+    - name: event.contexts.trace.op
+      op: eq
+      value: pageload
+    - name: event.platform
+      op: eq
+      value: other
+    - name: event.duration
+      op: gte
+      value: 3000.0
+    op: and
+  tagValue: outlier
+  targetMetrics:
+  - d:transactions/duration@millisecond
+  targetTag: histogram_outlier
+- condition:
+    inner:
+    - name: event.contexts.trace.op
+      op: eq
+      value: pageload
+    - name: event.platform
+      op: eq
+      value: other
+    - name: event.duration
+      op: gte
+      value: 4589.822045672948
+    op: and
+  tagValue: outlier
+  targetMetrics:
+  - d:transactions/measurements.lcp@millisecond
+  targetTag: histogram_outlier
+- condition:
+    inner:
+    - name: event.contexts.trace.op
+      op: eq
+      value: pageload
+    - name: event.platform
+      op: eq
+      value: other
+    - name: event.duration
+      op: gte
+      value: 3384.3555060724457
+    op: and
+  tagValue: outlier
+  targetMetrics:
+  - d:transactions/measurements.fcp@millisecond
+  targetTag: histogram_outlier
+- condition:
+    inner:
+    - name: event.contexts.trace.op
+      op: eq
+      value: gql
+    - name: event.platform
+      op: eq
+      value: node
+    - name: event.duration
+      op: gte
+      value: 838.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -537,39 +608,7 @@ source: tests/sentry/relay/test_config.py
       value: ruby
     - name: event.duration
       op: gte
-      value: 116
-    op: and
-  tagValue: outlier
-  targetMetrics:
-  - d:transactions/duration@millisecond
-  targetTag: histogram_outlier
-- condition:
-    inner:
-    - name: event.contexts.trace.op
-      op: eq
-      value: gql
-    - name: event.platform
-      op: eq
-      value: node
-    - name: event.duration
-      op: gte
-      value: 571
-    op: and
-  tagValue: outlier
-  targetMetrics:
-  - d:transactions/duration@millisecond
-  targetTag: histogram_outlier
-- condition:
-    inner:
-    - name: event.contexts.trace.op
-      op: eq
-      value: http.server
-    - name: event.platform
-      op: eq
-      value: other
-    - name: event.duration
-      op: gte
-      value: 61
+      value: 298.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -585,23 +624,7 @@ source: tests/sentry/relay/test_config.py
       value: node
     - name: event.duration
       op: gte
-      value: 782
-    op: and
-  tagValue: outlier
-  targetMetrics:
-  - d:transactions/duration@millisecond
-  targetTag: histogram_outlier
-- condition:
-    inner:
-    - name: event.contexts.trace.op
-      op: eq
-      value: default
-    - name: event.platform
-      op: eq
-      value: python
-    - name: event.duration
-      op: gte
-      value: 3264.75
+      value: 7943.75
     op: and
   tagValue: outlier
   targetMetrics:
@@ -617,7 +640,7 @@ source: tests/sentry/relay/test_config.py
       value: node
     - name: event.duration
       op: gte
-      value: 4777.5
+      value: 1690.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -627,77 +650,13 @@ source: tests/sentry/relay/test_config.py
     inner:
     - name: event.contexts.trace.op
       op: eq
-      value: sentry.test
-    - name: event.platform
-      op: eq
-      value: php
-    - name: event.duration
-      op: gte
-      value: 772.5
-    op: and
-  tagValue: outlier
-  targetMetrics:
-  - d:transactions/duration@millisecond
-  targetTag: histogram_outlier
-- condition:
-    inner:
-    - name: event.contexts.trace.op
-      op: eq
-      value: websocket.server
+      value: default
     - name: event.platform
       op: eq
       value: python
     - name: event.duration
       op: gte
-      value: 4
-    op: and
-  tagValue: outlier
-  targetMetrics:
-  - d:transactions/duration@millisecond
-  targetTag: histogram_outlier
-- condition:
-    inner:
-    - name: event.contexts.trace.op
-      op: eq
-      value: navigation
-    - name: event.platform
-      op: eq
-      value: java
-    - name: event.duration
-      op: gte
-      value: 4409.75
-    op: and
-  tagValue: outlier
-  targetMetrics:
-  - d:transactions/duration@millisecond
-  targetTag: histogram_outlier
-- condition:
-    inner:
-    - name: event.contexts.trace.op
-      op: eq
-      value: delayed_job
-    - name: event.platform
-      op: eq
-      value: ruby
-    - name: event.duration
-      op: gte
-      value: 2690.25
-    op: and
-  tagValue: outlier
-  targetMetrics:
-  - d:transactions/duration@millisecond
-  targetTag: histogram_outlier
-- condition:
-    inner:
-    - name: event.contexts.trace.op
-      op: eq
-      value: task
-    - name: event.platform
-      op: eq
-      value: python
-    - name: event.duration
-      op: gte
-      value: 3193.75
+      value: 1837.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -713,7 +672,7 @@ source: tests/sentry/relay/test_config.py
       value: php
     - name: event.duration
       op: gte
-      value: 1254
+      value: 1216.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -723,13 +682,13 @@ source: tests/sentry/relay/test_config.py
     inner:
     - name: event.contexts.trace.op
       op: eq
-      value: query
+      value: task
     - name: event.platform
       op: eq
       value: python
     - name: event.duration
       op: gte
-      value: 771
+      value: 1187.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -739,13 +698,61 @@ source: tests/sentry/relay/test_config.py
     inner:
     - name: event.contexts.trace.op
       op: eq
-      value: mutation
+      value: http.server
+    - name: event.platform
+      op: eq
+      value: other
+    - name: event.duration
+      op: gte
+      value: 68.0
+    op: and
+  tagValue: outlier
+  targetMetrics:
+  - d:transactions/duration@millisecond
+  targetTag: histogram_outlier
+- condition:
+    inner:
+    - name: event.contexts.trace.op
+      op: eq
+      value: websocket.server
     - name: event.platform
       op: eq
       value: python
     - name: event.duration
       op: gte
-      value: 265
+      value: 493.0
+    op: and
+  tagValue: outlier
+  targetMetrics:
+  - d:transactions/duration@millisecond
+  targetTag: histogram_outlier
+- condition:
+    inner:
+    - name: event.contexts.trace.op
+      op: eq
+      value: sentry.test
+    - name: event.platform
+      op: eq
+      value: php
+    - name: event.duration
+      op: gte
+      value: 702.0
+    op: and
+  tagValue: outlier
+  targetMetrics:
+  - d:transactions/duration@millisecond
+  targetTag: histogram_outlier
+- condition:
+    inner:
+    - name: event.contexts.trace.op
+      op: eq
+      value: delayed_job
+    - name: event.platform
+      op: eq
+      value: ruby
+    - name: event.duration
+      op: gte
+      value: 198.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -761,7 +768,55 @@ source: tests/sentry/relay/test_config.py
       value: node
     - name: event.duration
       op: gte
-      value: 157
+      value: 944.0
+    op: and
+  tagValue: outlier
+  targetMetrics:
+  - d:transactions/duration@millisecond
+  targetTag: histogram_outlier
+- condition:
+    inner:
+    - name: event.contexts.trace.op
+      op: eq
+      value: query
+    - name: event.platform
+      op: eq
+      value: python
+    - name: event.duration
+      op: gte
+      value: 1024.0
+    op: and
+  tagValue: outlier
+  targetMetrics:
+  - d:transactions/duration@millisecond
+  targetTag: histogram_outlier
+- condition:
+    inner:
+    - name: event.contexts.trace.op
+      op: eq
+      value: navigation
+    - name: event.platform
+      op: eq
+      value: java
+    - name: event.duration
+      op: gte
+      value: 7819.0
+    op: and
+  tagValue: outlier
+  targetMetrics:
+  - d:transactions/duration@millisecond
+  targetTag: histogram_outlier
+- condition:
+    inner:
+    - name: event.contexts.trace.op
+      op: eq
+      value: mutation
+    - name: event.platform
+      op: eq
+      value: python
+    - name: event.duration
+      op: gte
+      value: 216.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -777,7 +832,7 @@ source: tests/sentry/relay/test_config.py
       value: java
     - name: event.duration
       op: gte
-      value: 1941
+      value: 2458.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -793,55 +848,7 @@ source: tests/sentry/relay/test_config.py
       value: other
     - name: event.duration
       op: gte
-      value: 1138
-    op: and
-  tagValue: outlier
-  targetMetrics:
-  - d:transactions/duration@millisecond
-  targetTag: histogram_outlier
-- condition:
-    inner:
-    - name: event.contexts.trace.op
-      op: eq
-      value: gcp.function.event
-    - name: event.platform
-      op: eq
-      value: node
-    - name: event.duration
-      op: gte
-      value: 6693
-    op: and
-  tagValue: outlier
-  targetMetrics:
-  - d:transactions/duration@millisecond
-  targetTag: histogram_outlier
-- condition:
-    inner:
-    - name: event.contexts.trace.op
-      op: eq
-      value: default
-    - name: event.platform
-      op: eq
-      value: php
-    - name: event.duration
-      op: gte
-      value: 327
-    op: and
-  tagValue: outlier
-  targetMetrics:
-  - d:transactions/duration@millisecond
-  targetTag: histogram_outlier
-- condition:
-    inner:
-    - name: event.contexts.trace.op
-      op: eq
-      value: queue.job
-    - name: event.platform
-      op: eq
-      value: php
-    - name: event.duration
-      op: gte
-      value: 791
+      value: 2805.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -857,23 +864,7 @@ source: tests/sentry/relay/test_config.py
       value: php
     - name: event.duration
       op: gte
-      value: 794
-    op: and
-  tagValue: outlier
-  targetMetrics:
-  - d:transactions/duration@millisecond
-  targetTag: histogram_outlier
-- condition:
-    inner:
-    - name: event.contexts.trace.op
-      op: eq
-      value: grpc.server
-    - name: event.platform
-      op: eq
-      value: go
-    - name: event.duration
-      op: gte
-      value: 37
+      value: 1180.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -889,7 +880,71 @@ source: tests/sentry/relay/test_config.py
       value: node
     - name: event.duration
       op: gte
-      value: 582
+      value: 791.0
+    op: and
+  tagValue: outlier
+  targetMetrics:
+  - d:transactions/duration@millisecond
+  targetTag: histogram_outlier
+- condition:
+    inner:
+    - name: event.contexts.trace.op
+      op: eq
+      value: gcp.function.event
+    - name: event.platform
+      op: eq
+      value: node
+    - name: event.duration
+      op: gte
+      value: 1576.0
+    op: and
+  tagValue: outlier
+  targetMetrics:
+  - d:transactions/duration@millisecond
+  targetTag: histogram_outlier
+- condition:
+    inner:
+    - name: event.contexts.trace.op
+      op: eq
+      value: ui.action
+    - name: event.platform
+      op: eq
+      value: cocoa
+    - name: event.duration
+      op: gte
+      value: 8525.0
+    op: and
+  tagValue: outlier
+  targetMetrics:
+  - d:transactions/duration@millisecond
+  targetTag: histogram_outlier
+- condition:
+    inner:
+    - name: event.contexts.trace.op
+      op: eq
+      value: default
+    - name: event.platform
+      op: eq
+      value: php
+    - name: event.duration
+      op: gte
+      value: 254.0
+    op: and
+  tagValue: outlier
+  targetMetrics:
+  - d:transactions/duration@millisecond
+  targetTag: histogram_outlier
+- condition:
+    inner:
+    - name: event.contexts.trace.op
+      op: eq
+      value: ui.action.click
+    - name: event.platform
+      op: eq
+      value: cocoa
+    - name: event.duration
+      op: gte
+      value: 10326.75
     op: and
   tagValue: outlier
   targetMetrics:
@@ -905,7 +960,7 @@ source: tests/sentry/relay/test_config.py
       value: node
     - name: event.duration
       op: gte
-      value: 679
+      value: 1200.0
     op: and
   tagValue: outlier
   targetMetrics:
@@ -920,6 +975,8 @@ source: tests/sentry/relay/test_config.py
   tagValue: inlier
   targetMetrics:
   - d:transactions/duration@millisecond
+  - d:transactions/measurements.lcp@millisecond
+  - d:transactions/measurements.fcp@millisecond
   targetTag: histogram_outlier
 - condition:
     inner: []
@@ -927,4 +984,6 @@ source: tests/sentry/relay/test_config.py
   tagValue: outlier
   targetMetrics:
   - d:transactions/duration@millisecond
+  - d:transactions/measurements.lcp@millisecond
+  - d:transactions/measurements.fcp@millisecond
   targetTag: histogram_outlier
