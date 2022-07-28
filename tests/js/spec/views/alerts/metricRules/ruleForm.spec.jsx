@@ -19,9 +19,7 @@ jest.mock('sentry/utils/analytics', () => ({
 }));
 
 describe('Incident Rules Form', () => {
-  const {organization, project, routerContext} = initializeOrg({
-    organization: {features: ['metric-alert-threshold-period', 'change-alerts']},
-  });
+  let organization, project, routerContext;
   const createWrapper = props =>
     render(
       <RuleFormContainer
@@ -34,7 +32,12 @@ describe('Incident Rules Form', () => {
     );
 
   beforeEach(() => {
-    MockApiClient.clearMockResponses();
+    const initialData = initializeOrg({
+      organization: {features: ['metric-alert-threshold-period', 'change-alerts']},
+    });
+    organization = initialData.organization;
+    project = initialData.project;
+    routerContext = initialData.routerContext;
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/',
       body: [],
@@ -49,7 +52,9 @@ describe('Incident Rules Form', () => {
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
-      body: TestStubs.EventsStats(),
+      body: TestStubs.EventsStats({
+        isMetricsData: true,
+      }),
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-meta/',
@@ -68,6 +73,11 @@ describe('Incident Rules Form', () => {
     });
   });
 
+  afterEach(() => {
+    MockApiClient.clearMockResponses();
+    jest.clearAllMocks();
+  });
+
   describe('Creating a new rule', () => {
     let createRule;
     beforeEach(() => {
@@ -75,7 +85,6 @@ describe('Incident Rules Form', () => {
         url: '/projects/org-slug/project-slug/alert-rules/',
         method: 'POST',
       });
-      metric.startTransaction.mockClear();
     });
 
     /**
@@ -117,6 +126,51 @@ describe('Incident Rules Form', () => {
         })
       );
       expect(metric.startTransaction).toHaveBeenCalledWith({name: 'saveAlertRule'});
+    });
+
+    it('creates a rule with generic_metrics dataset', async () => {
+      organization.features = [...organization.features, 'metrics-performance-alerts'];
+      const rule = TestStubs.MetricRule();
+      createWrapper({
+        rule: {
+          ...rule,
+          id: undefined,
+          aggregate: 'count()',
+          eventTypes: ['transaction'],
+          dataset: 'transactions',
+        },
+      });
+
+      // Clear field
+      userEvent.clear(screen.getByPlaceholderText('Something really bad happened'));
+
+      // Enter in name so we can submit
+      userEvent.type(
+        screen.getByPlaceholderText('Something really bad happened'),
+        'Incident Rule'
+      );
+
+      await waitFor(() =>
+        expect(screen.getByTestId('alert-total-events')).toHaveTextContent(
+          'Total Events5'
+        )
+      );
+
+      userEvent.click(screen.getByLabelText('Save Rule'));
+
+      expect(createRule).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            name: 'Incident Rule',
+            projects: ['project-slug'],
+            aggregate: 'count()',
+            eventTypes: ['transaction'],
+            dataset: 'generic_metrics',
+            thresholdPeriod: 1,
+          }),
+        })
+      );
     });
   });
 
