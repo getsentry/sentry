@@ -5,6 +5,7 @@ import Exception from 'sentry/components/events/interfaces/exception';
 import ExceptionV2 from 'sentry/components/events/interfaces/exceptionV2';
 import Generic from 'sentry/components/events/interfaces/generic';
 import Message from 'sentry/components/events/interfaces/message';
+import {PerformanceIssueSection} from 'sentry/components/events/interfaces/performance';
 import Request from 'sentry/components/events/interfaces/request';
 import Spans from 'sentry/components/events/interfaces/spans';
 import StackTrace from 'sentry/components/events/interfaces/stackTrace';
@@ -180,6 +181,18 @@ function EventEntry({
           event={event as EventTransaction}
           organization={organization as Organization}
           focusedSpanIds={focusedSpanIds}
+        />
+      );
+    case EntryType.PERFORMANCE:
+      if (!organization.features?.includes('performance-extraneous-spans-poc')) {
+        return null;
+      }
+
+      return (
+        <PerformanceIssueSection
+          issue={group as Group}
+          event={event}
+          organization={organization as Organization}
         />
       );
     default:

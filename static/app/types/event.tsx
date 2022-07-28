@@ -210,6 +210,7 @@ export enum EntryType {
   DEBUGMETA = 'debugmeta',
   SPANS = 'spans',
   SPANTREE = 'spantree',
+  PERFORMANCE = 'performance',
 }
 
 type EntryDebugMeta = {
@@ -281,6 +282,12 @@ export type EntryRequest = {
   type: EntryType.REQUEST;
 };
 
+export type EntryPerformance = {
+  // TODO(udameli): update type here
+  data: any;
+  type: EntryType.PERFORMANCE;
+};
+
 type EntryTemplate = {
   data: Frame;
   type: EntryType.TEMPLATE;
@@ -308,7 +315,8 @@ export type Entry =
   | EntryRequest
   | EntryTemplate
   | EntryCsp
-  | EntryGeneric;
+  | EntryGeneric
+  | EntryPerformance;
 
 // Contexts
 type RuntimeContext = {
@@ -338,6 +346,9 @@ type EventContexts = {
   client_os?: OSContext;
   device?: DeviceContext;
   os?: OSContext;
+  // TODO (udameli): add better types here
+  // once perf issue data shape is more clear
+  performance_issue?: any;
   runtime?: RuntimeContext;
   trace?: TraceContextType;
 };
@@ -425,6 +436,8 @@ export type EventError = Omit<EventBase, 'entries' | 'type'> & {
     | EntryRequest
     | EntryThreads
     | EntryDebugMeta
+    | EntryPerformance
+    | EntrySpanTree
   )[];
   type: EventOrGroupType.ERROR;
 };
