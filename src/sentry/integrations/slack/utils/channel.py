@@ -49,9 +49,7 @@ def get_channel_id(
         2. channel_id: string or `None`
         3. timed_out: boolean (whether we hit our self-imposed time limit)
     """
-    print(channel_name)
     channel_name = strip_channel_name(channel_name)
-    print(channel_name)
 
     # longer lookup for the async job
     if use_async_lookup:
@@ -90,9 +88,6 @@ def validate_channel_id(name: str, integration_id: Optional[int], input_channel_
         logger.info("rule.slack.conversation_info_failed", extra={"error": str(e)})
         raise IntegrationError("Could not retrieve Slack channel information.")
 
-    import pprint
-
-    pprint.pprint(results)
     if not isinstance(results, dict):
         raise IntegrationError("Bad slack channel list response.")
 
@@ -133,19 +128,14 @@ def get_channel_id_with_timeout(
 
     list_types = LIST_TYPES
 
-    print(timeout)
     time_to_quit = time.time() + timeout
 
     client = SlackClient()
     id_data: Optional[Tuple[str, Optional[str], bool]] = None
     found_duplicate = False
     prefix = ""
-    print("BEFORE LOOP")
     for list_type, result_name, prefix in list_types:
         cursor = ""
-        print(list_type)
-        print(result_name)
-        print(prefix)
         while True:
             endpoint = f"/{list_type}.list"  # /coversations.list
             try:
@@ -164,12 +154,10 @@ def get_channel_id_with_timeout(
                 continue
 
             for c in items[result_name]:
-                print(f'{c["name"]} {c["id"]}')
                 # The "name" field is unique (this is the username for users)
                 # so we return immediately if we find a match.
                 # convert to lower case since all names in Slack are lowercase
                 if name and c["name"].lower() == name.lower():
-                    print("COMING OUT!")
                     return prefix, c["id"], False
                 # If we don't get a match on a unique identifier, we look through
                 # the users' display names, and error if there is a repeat.
@@ -182,8 +170,6 @@ def get_channel_id_with_timeout(
                             id_data = (prefix, c["id"], False)
 
             cursor = items.get("response_metadata", {}).get("next_cursor", None)
-            print(time.time())
-            print(time_to_quit)
             if time.time() > time_to_quit:
                 return prefix, None, True
 

@@ -1104,7 +1104,6 @@ def create_alert_rule_trigger_action(
             use_async_lookup=use_async_lookup,
             input_channel_id=input_channel_id,
         )
-        print("--create_alert_rule_trigger_action")
     elif type == AlertRuleTriggerAction.Type.SENTRY_APP:
         target_identifier, target_display = get_alert_rule_trigger_action_sentry_app(
             trigger.alert_rule.organization, sentry_app.id
@@ -1172,7 +1171,6 @@ def update_alert_rule_trigger_action(
                 input_channel_id=input_channel_id,
             )
             updated_fields["target_display"] = target_display
-            print("--update_alert_rule_trigger_action")
 
         elif type == AlertRuleTriggerAction.Type.SENTRY_APP.value:
             sentry_app = updated_fields.get("sentry_app", trigger_action.sentry_app)
@@ -1185,12 +1183,10 @@ def update_alert_rule_trigger_action(
 
         updated_fields["target_identifier"] = target_identifier
     trigger_action.update(**updated_fields)
-    print(trigger_action)
     return trigger_action
 
 
 def get_target_identifier_display_for_integration(type, target_value, *args, **kwargs):
-    print("--get_target_identifier_display_for_integration!")
     # target_value is the Slack username or channel name
     if type == AlertRuleTriggerAction.Type.SLACK.value:
         # if we have a value for input_channel_id, just set target_identifier to that
@@ -1228,8 +1224,6 @@ def get_target_identifier_display_for_integration(type, target_value, *args, **k
     else:
         raise Exception("Not implemented")
 
-    print(target_identifier)
-    print(target_value)
     return target_identifier, target_value
 
 
@@ -1238,20 +1232,14 @@ def get_alert_rule_trigger_action_slack_channel_id(
 ):
     from sentry.integrations.slack.utils import get_channel_id
 
-    print("1")
-    print(organization)
-    print(integration_id)
-
     try:
         integration = Integration.objects.get(id=integration_id)
     except Integration.DoesNotExist:
         raise InvalidTriggerActionError("Slack workspace is a required field.")
-    print("2")
     try:
         _prefix, channel_id, timed_out = get_channel_id(
             organization, integration, name, use_async_lookup
         )
-        print(f"{_prefix}, {channel_id}, {timed_out}")
     except DuplicateDisplayNameError as e:
         domain = integration.metadata["domain_name"]
 
@@ -1259,7 +1247,6 @@ def get_alert_rule_trigger_action_slack_channel_id(
             'Multiple users were found with display name "%s". Please use your username, found at %s/account/settings.'
             % (e, domain)
         )
-    print("HOORAY!!")
 
     if timed_out:
         raise ChannelLookupTimeoutError(
@@ -1454,8 +1441,6 @@ def get_slack_channel_ids(organization, user, data):
                 use_async_lookup=True,
                 input_channel_id=None,
             )
-    print("--get-slack-channel")
-    print(mapped_slack_channels)
     return mapped_slack_channels
 
 
