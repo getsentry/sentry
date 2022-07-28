@@ -31,7 +31,7 @@ function ReplayTimeline({}: Props) {
     return <Placeholder height="48px" bottomGutter={2} />;
   }
 
-  const duration = replay.getDuration();
+  const durationMS = replay.getDurationMS();
   const {startTimestamp} = replay.getEvent();
   const crumbs = replay.getRawCrumbs() || [];
   const spans = replay.getRawSpans() || [];
@@ -45,12 +45,12 @@ function ReplayTimeline({}: Props) {
         <Resizeable>
           {({width}) => (
             <Stacked>
-              <MinorGridlines duration={duration} width={width} />
-              <MajorGridlines duration={duration} width={width} />
+              <MinorGridlines duration={durationMS} width={width} />
+              <MajorGridlines duration={durationMS} width={width} />
               <TimelineScrubber />
               <UnderTimestamp paddingTop="36px">
                 <ReplayTimelineSpans
-                  duration={duration}
+                  durationMS={durationMS}
                   spans={networkSpans}
                   startTimestamp={startTimestamp}
                 />
@@ -58,7 +58,7 @@ function ReplayTimeline({}: Props) {
               <UnderTimestamp paddingTop="0">
                 <ReplayTimelineEvents
                   crumbs={userCrumbs}
-                  duration={duration}
+                  durationMS={durationMS}
                   startTimestamp={startTimestamp}
                   width={width}
                 />
