@@ -183,6 +183,7 @@ describe('Dashboards > Detail', function () {
           {
             title: 'Errors',
             interval: '1d',
+            widgetType: 'discover',
             id: '1',
           }
         ),
@@ -199,6 +200,7 @@ describe('Dashboards > Detail', function () {
           {
             title: 'Transactions',
             interval: '1d',
+            widgetType: 'discover',
             id: '2',
           }
         ),
@@ -447,6 +449,7 @@ describe('Dashboards > Detail', function () {
             ],
             title: 'Errors',
             type: 'line',
+            widgetType: 'discover',
           },
         })
       );
@@ -1195,6 +1198,73 @@ describe('Dashboards > Detail', function () {
             environment: undefined,
           }),
         })
+      );
+    });
+
+    it('disables dashboard actions when there are unsaved filters', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/releases/',
+        body: [
+          TestStubs.Release({
+            shortVersion: 'sentry-android-shop@1.2.0',
+            version: 'sentry-android-shop@1.2.0',
+          }),
+        ],
+      });
+      const testData = initializeOrg({
+        organization: TestStubs.Organization({
+          features: [
+            'global-views',
+            'dashboards-basic',
+            'dashboards-edit',
+            'discover-basic',
+            'discover-query',
+            'dashboard-grid-layout',
+            'dashboards-top-level-filter',
+          ],
+        }),
+        router: {
+          location: {
+            ...TestStubs.location(),
+            query: {
+              statsPeriod: '7d',
+              project: [1, 2],
+              environment: ['alpha', 'beta'],
+            },
+          },
+        },
+      });
+      render(
+        <ViewEditDashboard
+          organization={testData.organization}
+          params={{orgId: 'org-slug', dashboardId: '1'}}
+          router={testData.router}
+          location={testData.router.location}
+        />,
+        {context: testData.routerContext, organization: testData.organization}
+      );
+
+      expect(await screen.findByText('Save')).toBeInTheDocument();
+      expect(screen.getByText('Cancel')).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Add Widget'})).toBeDisabled();
+      expect(screen.getByRole('button', {name: 'Edit Dashboard'})).toBeDisabled();
+
+      userEvent.click(screen.getAllByLabelText('Widget actions')[0]);
+
+      expect(screen.getByTestId('edit-widget')).toHaveAttribute('aria-disabled', 'true');
+      expect(screen.getByTestId('duplicate-widget')).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
+      expect(screen.getByTestId('delete-widget')).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
+
+      // Open in discover shouldn't be disabled
+      expect(screen.getByTestId('open-in-discover')).toHaveAttribute(
+        'aria-disabled',
+        'false'
       );
     });
   });
