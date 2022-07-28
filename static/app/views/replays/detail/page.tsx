@@ -9,9 +9,10 @@ import space from 'sentry/styles/space';
 import type {Crumb} from 'sentry/types/breadcrumbs';
 import type {EventTransaction} from 'sentry/types/event';
 import getUrlPathname from 'sentry/utils/getUrlPathname';
+import EventMetaData, {
+  HeaderPlaceholder,
+} from 'sentry/views/replays/detail/eventMetaData';
 import ChooseLayout from 'sentry/views/replays/detail/layout/chooseLayout';
-
-import EventMetaData, {HeaderPlaceholder} from './eventMetaData';
 
 type Props = {
   children: ReactNode;
