@@ -235,7 +235,7 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
           title: t('Activate your first rule'),
           target: 'sampling_rule_toggle',
           description: t(
-            'Start keeping what you need and dropping what you don’t - get up and running in minutes.'
+            'Activating a rule will take immediate effect, as well as any changes given to an active rule.'
           ),
           nextText: t('Activate Rule'),
           dismissText: t('Later'),
@@ -252,7 +252,7 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
           title: t('Create a new sample rule'),
           target: 'add_conditional_rule',
           description: t(
-            'Define sample rules to retain the transactions you care about most such as the highest converting pages, critical API endpoints, or latency issues from your latest release. '
+            'Sample transactions under specific conditions, keeping what you need and dropping what you don’t.'
           ),
           dismissText: t('Enough already'),
         },

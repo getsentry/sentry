@@ -44,12 +44,6 @@ specific_rule_with_all_current_trace_conditions = {
                 "options": {"ignoreCase": True},
             },
             {"op": "glob", "name": "trace.release", "value": ["frontend@22*"]},
-            {
-                "op": "eq",
-                "name": "trace.user.segment",
-                "value": ["paid", "common"],
-                "options": {"ignoreCase": True},
-            },
         ],
     },
     "sampleRate": 0.3,
@@ -237,23 +231,24 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
             # Add Release
             self.browser.element('[data-test-id="trace.release"]').click()
 
-            # Add User Segment
-            self.browser.element('[data-test-id="trace.user.segment"]').click()
-
             # Fill in Environment
+            self.browser.element('[aria-label="Search or add an environment"]').send_keys("prod")
+            self.browser.wait_until_not('[data-test-id="loading-indicator"]')
             self.browser.element('[aria-label="Search or add an environment"]').send_keys(
-                "prod", Keys.ENTER, "production", Keys.ENTER
+                Keys.ENTER
+            )
+            self.browser.element('[aria-label="Search or add an environment"]').send_keys(
+                "production"
+            )
+            self.browser.wait_until_not('[data-test-id="loading-indicator"]')
+            self.browser.element('[aria-label="Search or add an environment"]').send_keys(
+                Keys.ENTER
             )
 
             # Fill in Release
-            self.browser.element('[aria-label="Search or add a release"]').send_keys(
-                "frontend@22*", Keys.ENTER
-            )
-
-            # Fill in User Segment
-            self.browser.element('[placeholder="ex. paid, common (Multiline)"]').send_keys(
-                "paid\ncommon"
-            )
+            self.browser.element('[aria-label="Search or add a release"]').send_keys("frontend@22*")
+            self.browser.wait_until_not('[data-test-id="loading-indicator"]')
+            self.browser.element('[aria-label="Search or add a release"]').send_keys(Keys.ENTER)
 
             # Fill in sample rate
             self.browser.element('[placeholder="%"]').send_keys("30")

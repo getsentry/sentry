@@ -86,11 +86,12 @@ function UniformRateModal({
     statsPeriod: '30d',
   });
 
-  const {recommendedSdkUpgrades} = useRecommendedSdkUpgrades({
-    orgSlug: organization.slug,
-  });
+  const {recommendedSdkUpgrades, fetching: fetchingRecommendedSdkUpgrades} =
+    useRecommendedSdkUpgrades({
+      orgSlug: organization.slug,
+    });
 
-  const loading = loading30d || !projectStats;
+  const loading = loading30d || !projectStats || fetchingRecommendedSdkUpgrades;
 
   const [activeStep, setActiveStep] = useState<Step>(Step.SET_UNIFORM_SAMPLE_RATE);
 
@@ -242,14 +243,14 @@ function UniformRateModal({
   return (
     <Fragment>
       <Header closeButton>
-        <h4>{t('Define a global sample rate')}</h4>
+        <h4>{t('Set a global sample rate')}</h4>
       </Header>
       <Body>
         <TextBlock>
           {tct(
-            'Set a global sample rate for the percent of transactions you want to process (Client) and those you want to index (Server) for your project. Below are suggested rates based on your organization’s usage and quota. Once set, the number of transactions processed and indexed for this project come from your organization’s overall quota and might impact the amount of transactions retained for other projects. [learnMoreLink:Learn more about quota management.]',
+            'Set a server-side sample rate for all transactions using our suggestion as a starting point. To accurately monitor overall performance, we also suggest changing your client(SDK) sample rate to allow more metrics to be processed. [learnMoreLink: Learn more about quota management].',
             {
-              learnMoreLink: <ExternalLink href="" />,
+              learnMoreLink: <ExternalLink href={SERVER_SIDE_SAMPLING_DOC_LINK} />,
             }
           )}
         </TextBlock>
@@ -311,7 +312,7 @@ function UniformRateModal({
                   {!isEdited && (
                     <QuestionTooltip
                       title={t(
-                        'These are suggested sample rates you can set based on your organization’s overall usage and quota.'
+                        'Optimal sample rates based on your organization’s usage and quota.'
                       )}
                       size="sm"
                     />
