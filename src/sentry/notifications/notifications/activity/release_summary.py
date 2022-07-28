@@ -31,7 +31,7 @@ from sentry.utils.http import absolute_uri
 from .base import ActivityNotification
 
 
-class ReleaseSummaryActivityNotification(ActivityNotification):
+class ActiveReleaseSummaryNotification(ActivityNotification):
     metrics_key = "release_summary"
     notification_setting_type = NotificationSettingTypes.ACTIVE_RELEASE
     template_path = "sentry/emails/activity/release_summary"
