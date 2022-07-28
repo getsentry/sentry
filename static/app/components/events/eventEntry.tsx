@@ -15,6 +15,7 @@ import ThreadsV2 from 'sentry/components/events/interfaces/threadsV2';
 import {Group, Organization, Project, SharedViewOrganization} from 'sentry/types';
 import {Entry, EntryType, Event, EventTransaction} from 'sentry/types/event';
 
+import {EmbeddedSpanTree} from './interfaces/spans/embeddedSpanTree';
 import {FocusedSpanIDMap} from './interfaces/spans/types';
 
 type Props = Pick<React.ComponentProps<typeof Breadcrumbs>, 'route' | 'router'> & {
@@ -170,15 +171,19 @@ function EventEntry({
         return null;
       }
 
-      const {focusedSpanIds: _focusedSpanIds} = entry;
+      const {focusedSpanIds: _focusedSpanIds} = entry.data;
 
       const focusedSpanIds: FocusedSpanIDMap = {};
       _focusedSpanIds.forEach(spanId => (focusedSpanIds[spanId] = new Set()));
 
+      // TODO: Need to dynamically determine the project slug for this issue
+      const INTERNAL_PROJECT = 'sentry';
+
       return (
-        <Spans
-          event={event as EventTransaction}
+        <EmbeddedSpanTree
+          event={event}
           organization={organization as Organization}
+          projectSlug={INTERNAL_PROJECT}
           focusedSpanIds={focusedSpanIds}
         />
       );
