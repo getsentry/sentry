@@ -3801,10 +3801,10 @@
   resolved "https://registry.yarnpkg.com/@types/range-parser/-/range-parser-1.2.3.tgz#7ee330ba7caafb98090bece86a5ee44115904c2c"
   integrity sha512-ewFXqrQHlFsgc09MK5jP5iR7vumV/BYayNC6PgJO2LPe8vrnNFyjQjSppfEngITi0qvfKtzFvgKymGheFM9UOA==
 
-"@types/react-date-range@^1.1.5":
-  version "1.1.5"
-  resolved "https://registry.yarnpkg.com/@types/react-date-range/-/react-date-range-1.1.5.tgz#ea25c4038e3d6b64b0f76dfe489a49673acab44b"
-  integrity sha512-6Qu8xZikZtjliZ3mY4gfHfZzF7EDAGJsSI59ZtqI8hNRHZtGRhShEJKvhXidqAEgPGMxhFKwlITjwxLgVtaJLw==
+"@types/react-date-range@^1.4.4":
+  version "1.4.4"
+  resolved "https://registry.yarnpkg.com/@types/react-date-range/-/react-date-range-1.4.4.tgz#235910d6c00d9be905fc5de037a8820616bb2a79"
+  integrity sha512-9Y9NyNgaCsEVN/+O4HKuxzPbVjRVBGdOKRxMDcsTRWVG62lpYgnxefNckTXDWup8FvczoqPW0+ESZR6R1yymDg==
   dependencies:
     "@types/react" "*"
     date-fns "^2.16.1"
@@ -11469,10 +11469,10 @@ platform@^1.3.3:
   resolved "https://registry.yarnpkg.com/platform/-/platform-1.3.6.tgz#48b4ce983164b209c2d45a107adb31f473a6e7a7"
   integrity sha512-fnWVljUchTro6RiCFvCXBbNhJc2NijN7oIQxbwsyL0buWJPG85v81ehlHI9fXrJsMNgTofEoWIQeClKpgxFLrg==
 
-platformicons@5.0.3:
-  version "5.0.3"
-  resolved "https://registry.yarnpkg.com/platformicons/-/platformicons-5.0.3.tgz#526b88396d9347abbfe6d9ddc460f82fdf0bbb6e"
-  integrity sha512-P6paDW62nuARnx6ZaohYhRjMBrHwqcDhJJqVi3rGLoVhq2dDLD9DaPfTg9ynj4/W/yLNqkUwoQwRW49yLrH92w==
+platformicons@^5.2.1:
+  version "5.2.1"
+  resolved "https://registry.yarnpkg.com/platformicons/-/platformicons-5.2.1.tgz#4edbb1db58bf84c3f2fd3ed65afb90110253929e"
+  integrity sha512-56S/1RHaSYeeYCpumg+jWGAnL2iCd3i3xVLqwN9F26LzGz2SMZA8LBkEEbFWf2DbBv3N5GnsgUDtJrnN1f0SqA==
   dependencies:
     "@types/node" "*"
     "@types/react" "^16 || ^17"
@@ -12165,10 +12165,10 @@ react-autosize-textarea@7.1.0:
     line-height "^0.3.1"
     prop-types "^15.5.6"
 
-react-date-range@^1.3.0:
-  version "1.3.0"
-  resolved "https://registry.yarnpkg.com/react-date-range/-/react-date-range-1.3.0.tgz#109be685873372c3da975b1cf175d33980ce5c4a"
-  integrity sha512-ximAsbdf28tT7jMRLenSUeMacZ+s3opgvlUKbXIg7qvpehVfjlcYfQ3MF1C59rUghk44yckPsCxqPm0l8Lb+KA==
+react-date-range@^1.4.0:
+  version "1.4.0"
+  resolved "https://registry.yarnpkg.com/react-date-range/-/react-date-range-1.4.0.tgz#d2073b85bdb4185e4dde288ce29198dd90074045"
+  integrity sha512-+9t0HyClbCqw1IhYbpWecjsiaftCeRN5cdhsi9v06YdimwyMR2yYHWcgVn3URwtN/txhqKpEZB6UX1fHpvK76w==
   dependencies:
     classnames "^2.2.6"
     prop-types "^15.7.2"
