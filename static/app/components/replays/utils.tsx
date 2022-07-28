@@ -122,7 +122,12 @@ export function getCrumbsByColumn(
     const sinceStart = isNaN(timestampMilliSeconds)
       ? 0
       : timestampMilliSeconds - startMilliSeconds;
-    const column = Math.floor((sinceStart / safeDurationMS) * (totalColumns - 1)) + 1;
+
+    const columnPositionCalc =
+      Math.floor((sinceStart / safeDurationMS) * (totalColumns - 1)) + 1;
+
+    // Should start at minimum in the first column
+    const column = Math.max(1, columnPositionCalc);
 
     return [column, breadcrumb] as [number, Crumb];
   });
