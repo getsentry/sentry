@@ -31,7 +31,7 @@ class Migration(CheckedMigration):
     atomic = False
 
     dependencies = [
-        ("sentry", "0308_remove_alert_type_column"),
+        ("sentry", "0309_fix_many_to_many_field"),
     ]
 
     operations = (
