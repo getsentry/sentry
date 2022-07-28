@@ -6,8 +6,8 @@ from typing import Any, Dict, Mapping, Optional, Union
 
 from django.db import transaction
 from django.db.models.signals import post_save
-from django.forms import ValidationError
 from django.utils import timezone
+from rest_framework import serializers
 from snuba_sdk import Column, Condition, Limit, Op
 
 from sentry import analytics, audit_log, features, quotas
@@ -37,7 +37,7 @@ from sentry.incidents.models import (
 from sentry.models import Integration, PagerDutyService, Project, SentryApp
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.fields import resolve_field
-from sentry.shared_integrations.exceptions import DuplicateDisplayNameError, IntegrationError
+from sentry.shared_integrations.exceptions import DuplicateDisplayNameError
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.entity_subscription import (
     ENTITY_TIME_COLUMNS,
@@ -1192,18 +1192,6 @@ def get_target_identifier_display_for_integration(type, target_value, *args, **k
         # if we have a value for input_channel_id, just set target_identifier to that
         target_identifier = kwargs.pop("input_channel_id")
         if target_identifier is not None:
-            from sentry.integrations.slack.utils.channel import validate_channel_id
-
-            try:
-                validate_channel_id(
-                    name=target_value,
-                    # The way this function is called we can do this but we should refactor the signatures
-                    integration_id=args[1],
-                    input_channel_id=target_identifier,
-                )
-            except (IntegrationError, ValidationError) as e:
-                raise InvalidTriggerActionError(str(e))
-
             return (
                 target_identifier,
                 target_value,
@@ -1396,6 +1384,7 @@ def translate_aggregate_field(aggregate, reverse=False):
 
 # TODO(Ecosystem): Convert to using get_filtered_actions
 def get_slack_actions_with_async_lookups(organization, user, data):
+    """Return Slack trigger actions that have async lookup"""
     try:
         from sentry.incidents.serializers import AlertRuleTriggerActionSerializer
 
@@ -1412,12 +1401,17 @@ def get_slack_actions_with_async_lookups(organization, user, data):
                     },
                     data=action,
                 )
+                # If the channel or channel ID provided by the user fails we should raise it
+                # and let the API inform the client
                 if a_s.is_valid():
                     if (
                         a_s.validated_data["type"].value == AlertRuleTriggerAction.Type.SLACK.value
                         and not a_s.validated_data["input_channel_id"]
                     ):
                         slack_actions.append(a_s.validated_data)
+                else:
+                    # e.g. {'nonFieldErrors': [ErrorDetail(string='Channel not found. Invalid ID provided.', code='invalid')]}
+                    raise serializers.ValidationError(a_s.errors["nonFieldErrors"])
         return slack_actions
     except KeyError:
         # If we have any KeyErrors reading the data, we can just return nothing
