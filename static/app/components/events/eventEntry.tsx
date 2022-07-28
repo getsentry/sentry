@@ -1,6 +1,6 @@
 import Breadcrumbs from 'sentry/components/events/interfaces/breadcrumbs';
 import Csp from 'sentry/components/events/interfaces/csp';
-import DebugMetaV2 from 'sentry/components/events/interfaces/debugMeta-v2';
+import DebugMeta from 'sentry/components/events/interfaces/debugMeta';
 import Exception from 'sentry/components/events/interfaces/exception';
 import ExceptionV2 from 'sentry/components/events/interfaces/exceptionV2';
 import Generic from 'sentry/components/events/interfaces/generic';
@@ -150,12 +150,12 @@ function EventEntry({
       const {data} = entry;
 
       return (
-        <DebugMetaV2
+        <DebugMeta
           event={event}
           projectId={projectSlug}
           groupId={group?.id}
           organization={organization as Organization}
-          data={data as React.ComponentProps<typeof DebugMetaV2>['data']}
+          data={data}
         />
       );
     case EntryType.SPANS:
