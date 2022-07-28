@@ -15,8 +15,8 @@ import {Event} from 'sentry/types/event';
 import withOrganization from 'sentry/utils/withOrganization';
 import withSentryAppComponents from 'sentry/utils/withSentryAppComponents';
 
-import DebugImage from '../debugMeta/debugImage';
-import {combineStatus} from '../debugMeta/utils';
+import DebugImage from '../debugMeta-v2/debugImage';
+import {combineStatus} from '../debugMeta-v2/utils';
 import {SymbolicatorStatus} from '../types';
 
 import Context from './context';

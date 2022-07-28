@@ -149,30 +149,16 @@ function EventEntry({
     }
     case EntryType.DEBUGMETA:
       const {data} = entry;
-      const hasImagesLoadedV2Feature =
-        !!organization.features?.includes('images-loaded-v2');
-
-      if (hasImagesLoadedV2Feature) {
-        return (
-          <DebugMetaV2
-            event={event}
-            projectId={projectSlug}
-            groupId={group?.id}
-            organization={organization as Organization}
-            data={data as React.ComponentProps<typeof DebugMetaV2>['data']}
-          />
-        );
-      }
 
       return (
-        <DebugMeta
+        <DebugMetaV2
           event={event}
           projectId={projectSlug}
+          groupId={group?.id}
           organization={organization as Organization}
-          data={data}
+          data={data as React.ComponentProps<typeof DebugMetaV2>['data']}
         />
       );
-
     case EntryType.SPANS:
       return (
         <Spans
