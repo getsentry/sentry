@@ -37,7 +37,13 @@ from .authentication import ApiKeyAuthentication, TokenAuthentication
 from .paginator import BadPaginationError, Paginator
 from .permissions import NoPermission
 
-__all__ = ["Endpoint", "EnvironmentMixin", "StatsMixin"]
+__all__ = [
+    "Endpoint",
+    "EnvironmentMixin",
+    "StatsMixin",
+    "control_silo_endpoint",
+    "customer_silo_endpoint",
+]
 
 ONE_MINUTE = 60
 ONE_HOUR = ONE_MINUTE * 60
@@ -485,7 +491,14 @@ def resolve_region(request: Request):
 class ApiAvailableOn(ModeLimited):
     def modify_endpoint_class(self, decorated_class: Type[Endpoint]) -> type:
         dispatch_override = self.create_override(decorated_class.dispatch)
-        return type(decorated_class.__name__, (decorated_class,), {"dispatch": dispatch_override})
+        return type(
+            decorated_class.__name__,
+            (decorated_class,),
+            {
+                "dispatch": dispatch_override,
+                "__mode_limit": self,  # For internal tooling only
+            },
+        )
 
     def modify_endpoint_method(self, decorated_method: Callable[..., Any]) -> Callable[..., Any]:
         return self.create_override(decorated_method)
@@ -523,3 +536,7 @@ class ApiAvailableOn(ModeLimited):
             return self.modify_endpoint_method(decorated_obj)
 
         raise TypeError("`@ApiAvailableOn` must decorate a class or method")
+
+
+control_silo_endpoint = ApiAvailableOn(ServerComponentMode.CONTROL)
+customer_silo_endpoint = ApiAvailableOn(ServerComponentMode.CUSTOMER)

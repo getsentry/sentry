@@ -12,7 +12,14 @@ from .fields.bounded import BoundedBigAutoField
 from .manager import BaseManager, M
 from .query import update
 
-__all__ = ("BaseModel", "Model", "DefaultFieldsModel", "sane_repr", "ModelAvailableOn")
+__all__ = (
+    "BaseModel",
+    "Model",
+    "DefaultFieldsModel",
+    "sane_repr",
+    "control_silo_model",
+    "customer_silo_model",
+)
 
 
 def sane_repr(*attrs: str) -> Callable[[models.Model], str]:
@@ -197,4 +204,14 @@ class ModelAvailableOn(ModeLimited):
                 # trigger hooks in Django's ModelBase metaclass a second time.
                 setattr(model_class, model_attr_name, override)
 
+        # For internal tooling only. Having any production logic depend on this is
+        # strongly discouraged.
+        model_class._meta.__mode_limit = self
+
         return model_class
+
+
+control_silo_model = ModelAvailableOn(
+    ServerComponentMode.CONTROL, read_only=ServerComponentMode.CUSTOMER
+)
+customer_silo_model = ModelAvailableOn(ServerComponentMode.CUSTOMER)
