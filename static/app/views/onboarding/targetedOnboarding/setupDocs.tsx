@@ -83,11 +83,12 @@ function ProjecDocs(props: {
   };
 
   useEffect(() => {
-    logExperiment({
-      key: 'OnboardingHighlightWizardExperiment',
-      organization: props.organization,
-    });
-  }, [props.organization]);
+    props.platformDocs?.wizardSetup &&
+      logExperiment({
+        key: 'OnboardingHighlightWizardExperiment',
+        organization: props.organization,
+      });
+  }, [props.organization, props.platformDocs?.wizardSetup]);
 
   const showWizardSetup =
     props.organization.experiments.OnboardingHighlightWizardExperiment;
