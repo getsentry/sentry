@@ -52,6 +52,10 @@ class RoleBasedRecipientStrategy(metaclass=ABCMeta):
         role_string: str = roles.get(member.role).name
         return role_string
 
+    def get_recipient_role_string(self, recipient: User) -> str:
+        recipient_member = self.get_member(recipient)
+        return self.get_role_string(recipient_member)
+
     def build_notification_footer_from_settings_url(
         self, settings_url: str, recipient: User
     ) -> str:

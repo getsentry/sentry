@@ -167,9 +167,13 @@ class ReleaseActivityNotification(ActivityNotification):
         settings_url = self.get_settings_url(recipient, ExternalProviders.SLACK)
 
         # no environment related to a deploy
+        footer = ""
         if self.release:
-            return f"{self.release.projects.all()[0].slug} | <{settings_url}|Notification Settings>"
-        return f"<{settings_url}|Notification Settings>"
+            footer += f"{self.release.projects.all()[0].slug} | "
+
+        footer += f"{self.format_url(text='Notification Settings', url=settings_url)}"
+
+        return footer
 
     def send(self) -> None:
         # Don't create a message when the Activity doesn't have a release and deploy.
