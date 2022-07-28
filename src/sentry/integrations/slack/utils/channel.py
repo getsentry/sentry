@@ -49,11 +49,12 @@ def get_channel_id(
         2. channel_id: string or `None`
         3. timed_out: boolean (whether we hit our self-imposed time limit)
     """
+
     channel_name = strip_channel_name(channel_name)
 
     # longer lookup for the async job
     if use_async_lookup:
-        timeout = 15
+        timeout = 3 * 60
     else:
         timeout = SLACK_DEFAULT_TIMEOUT
 
@@ -137,7 +138,7 @@ def get_channel_id_with_timeout(
     for list_type, result_name, prefix in list_types:
         cursor = ""
         while True:
-            endpoint = f"/{list_type}.list"  # /coversations.list
+            endpoint = f"/{list_type}.list"
             try:
                 # Slack limits the response of `<list_type>.list` to 1000 channels
                 items = client.get(

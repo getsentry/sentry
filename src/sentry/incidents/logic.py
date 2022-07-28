@@ -1236,6 +1236,7 @@ def get_alert_rule_trigger_action_slack_channel_id(
         integration = Integration.objects.get(id=integration_id)
     except Integration.DoesNotExist:
         raise InvalidTriggerActionError("Slack workspace is a required field.")
+
     try:
         _prefix, channel_id, timed_out = get_channel_id(
             organization, integration, name, use_async_lookup
