@@ -45,8 +45,8 @@ function ReplayTimeline({}: Props) {
         <Resizeable>
           {({width}) => (
             <Stacked>
-              <MinorGridlines duration={durationMS} width={width} />
-              <MajorGridlines duration={durationMS} width={width} />
+              <MinorGridlines durationMS={durationMS} width={width} />
+              <MajorGridlines durationMS={durationMS} width={width} />
               <TimelineScrubber />
               <UnderTimestamp paddingTop="36px">
                 <ReplayTimelineSpans

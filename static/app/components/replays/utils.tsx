@@ -58,14 +58,14 @@ export function formatTime(ms: number): string {
  * of time (like every second) but if the duration is long one tick may
  * represent an hour.
  *
- * @param duration The amount of time that we need to chop up into even sections
+ * @param durationMS The amount of time that we need to chop up into even sections
  * @param width Total width available, pixels
  * @param minWidth Minimum space for each column, pixels. Ex: So we can show formatted time like `1:00:00` between major ticks
  * @returns
  */
-export function countColumns(duration: number, width: number, minWidth: number = 50) {
+export function countColumns(durationMS: number, width: number, minWidth: number = 50) {
   let maxCols = Math.floor(width / minWidth);
-  const remainder = duration - maxCols * width > 0 ? 1 : 0;
+  const remainder = durationMS - maxCols * width > 0 ? 1 : 0;
   maxCols -= remainder;
 
   // List of all the possible time granularities to display
@@ -86,7 +86,7 @@ export function countColumns(duration: number, width: number, minWidth: number =
   ];
 
   const timeBasedCols = timeOptions.reduce<Map<number, number>>((map, time) => {
-    map.set(time, Math.floor(duration / time));
+    map.set(time, Math.floor(durationMS / time));
     return map;
   }, new Map());
 
@@ -94,7 +94,7 @@ export function countColumns(duration: number, width: number, minWidth: number =
     .filter(([_span, c]) => c <= maxCols) // Filter for any valid timespan option where all ticks would fit
     .reduce((best, next) => (next[1] > best[1] ? next : best), [0, 0]); // select the timespan option with the most ticks
 
-  const remaining = (duration - timespan * cols) / timespan;
+  const remaining = (durationMS - timespan * cols) / timespan;
   return {timespan, cols, remaining};
 }
 
