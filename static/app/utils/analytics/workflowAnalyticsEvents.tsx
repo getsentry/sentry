@@ -18,7 +18,7 @@ type IssueDetailsWithAlert = {
 
 export type TeamInsightsEventParameters = {
   'alert_builder.filter': {query: string; session_id?: string};
-  'alert_details.viewed': {alert_id: number; referrer: string};
+  'alert_details.viewed': {alert_id: number};
   'alert_rule_details.viewed': {alert: string; has_chartcuterie: string; rule_id: number};
   'alert_rules.viewed': {sort: string};
   'alert_stream.viewed': {};
