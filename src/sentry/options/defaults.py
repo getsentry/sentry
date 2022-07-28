@@ -408,12 +408,17 @@ register("relay.drop-transaction-metrics", default=[])
 #       given fraction of orgs even if the corresponding feature flag is disabled.
 register("relay.transaction-metrics-org-sample-rate", default=0.0)
 
+# Sample rate for opting in orgs into the new transaction name handling.
+# old behavior: Treat transactions from old SDKs as high-cardinality.
+# new behavior: Treat transactions from old SDKs as low-cardinality, except for browser JS.
+register("relay.transaction-names-client-based", default=0.0)
+
 # Write new kafka headers in eventstream
 register("eventstream:kafka-headers", default=True)
 
 # Post process forwarder options
 # Gets data from Kafka headers
-register("post-process-forwarder:kafka-headers", default=False)
+register("post-process-forwarder:kafka-headers", default=True)
 # Number of threads to use for post processing
 register("post-process-forwarder:concurrency", default=1)
 

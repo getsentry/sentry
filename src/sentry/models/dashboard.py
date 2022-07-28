@@ -6,6 +6,18 @@ from sentry.db.models.fields.bounded import BoundedBigIntegerField
 from sentry.db.models.fields.jsonfield import JSONField
 
 
+class DashboardProject(Model):
+    __include_in_export__ = False
+
+    project = FlexibleForeignKey("sentry.Project")
+    dashboard = FlexibleForeignKey("sentry.Dashboard")
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_dashboardproject"
+        unique_together = (("project", "dashboard"),)
+
+
 class Dashboard(Model):
     """
     A dashboard.
@@ -19,7 +31,7 @@ class Dashboard(Model):
     date_added = models.DateTimeField(default=timezone.now)
     visits = BoundedBigIntegerField(null=True, default=1)
     last_visited = models.DateTimeField(null=True, default=timezone.now)
-    projects = models.ManyToManyField("sentry.Project", db_table="sentry_dashboardproject")
+    projects = models.ManyToManyField("sentry.Project", through=DashboardProject)
     filters = JSONField(null=True)
 
     class Meta:

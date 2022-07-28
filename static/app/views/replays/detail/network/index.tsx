@@ -9,8 +9,11 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {EventTransaction} from 'sentry/types';
 import theme from 'sentry/utils/theme';
-
-import {ISortConfig, NetworkSpan, sortNetwork} from './utils';
+import {
+  ISortConfig,
+  NetworkSpan,
+  sortNetwork,
+} from 'sentry/views/replays/detail/network/utils';
 
 type Props = {
   event: EventTransaction;

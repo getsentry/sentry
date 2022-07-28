@@ -206,7 +206,7 @@ class ModelAvailableOn(ModeLimited):
 
         # For internal tooling only. Having any production logic depend on this is
         # strongly discouraged.
-        model_class._meta.__mode_limit = self  # type: ignore
+        model_class._meta.__mode_limit = self
 
         return model_class
 
