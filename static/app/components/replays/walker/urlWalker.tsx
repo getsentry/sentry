@@ -1,5 +1,7 @@
-import {memo} from 'react';
+import {memo, useCallback} from 'react';
 
+import {useReplayContext} from 'sentry/components/replays/replayContext';
+import {relativeTimeInMs} from 'sentry/components/replays/utils';
 import ChevronDividedList from 'sentry/components/replays/walker/chevronDividedList';
 import splitCrumbs from 'sentry/components/replays/walker/splitCrumbs';
 import {
@@ -20,6 +22,19 @@ type StringProps = {
 };
 
 export const CrumbWalker = memo(function CrumbWalker({crumbs, event}: CrumbProps) {
+  const {setCurrentTime} = useReplayContext();
+
+  const startTimestamp = event.startTimestamp;
+
+  const handleClick = useCallback(
+    (crumb: Crumb) => {
+      crumb.timestamp !== undefined
+        ? setCurrentTime(relativeTimeInMs(crumb.timestamp, startTimestamp))
+        : null;
+    },
+    [setCurrentTime, startTimestamp]
+  );
+
   const navCrumbs = crumbs.filter(
     crumb => crumb.type === BreadcrumbType.NAVIGATION
   ) as BreadcrumbTypeNavigation[];
@@ -28,7 +43,8 @@ export const CrumbWalker = memo(function CrumbWalker({crumbs, event}: CrumbProps
     <ChevronDividedList
       items={splitCrumbs({
         crumbs: navCrumbs,
-        startTimestamp: event.startTimestamp,
+        startTimestamp,
+        onClick: handleClick,
       })}
     />
   );
@@ -40,6 +56,7 @@ export const StringWalker = memo(function StringWalker({urls}: StringProps) {
       items={splitCrumbs({
         crumbs: urls.map(urlToCrumb),
         startTimestamp: 0,
+        onClick: null,
       })}
     />
   );

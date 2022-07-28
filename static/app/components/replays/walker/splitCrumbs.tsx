@@ -10,11 +10,15 @@ import space from 'sentry/styles/space';
 import {BreadcrumbTypeNavigation, Crumb} from 'sentry/types/breadcrumbs';
 import BreadcrumbItem from 'sentry/views/replays/detail/breadcrumbs/breadcrumbItem';
 
+type MaybeOnClickHandler = null | ((crumb: Crumb) => void);
+
 function splitCrumbs({
   crumbs,
+  onClick,
   startTimestamp,
 }: {
   crumbs: BreadcrumbTypeNavigation[];
+  onClick: MaybeOnClickHandler;
   startTimestamp: number;
 }) {
   const firstUrl = first(crumbs)?.data?.to;
@@ -32,45 +36,82 @@ function splitCrumbs({
   }
 
   if (crumbs.length === 1) {
-    return [<SingleLinkSegment key="single" path={firstUrl} />];
+    return [
+      <SingleLinkSegment
+        key="single"
+        path={firstUrl}
+        onClick={onClick ? () => onClick(first(crumbs) as Crumb) : null}
+      />,
+    ];
   }
 
   if (crumbs.length === 2) {
     return [
-      <SingleLinkSegment key="first" path={firstUrl} />,
-      <SingleLinkSegment key="last" path={lastUrl} />,
+      <SingleLinkSegment
+        key="first"
+        path={firstUrl}
+        onClick={onClick ? () => onClick(first(crumbs) as Crumb) : null}
+      />,
+      <SingleLinkSegment
+        key="last"
+        path={lastUrl}
+        onClick={onClick ? () => onClick(last(crumbs) as Crumb) : null}
+      />,
     ];
   }
 
   return [
-    <SingleLinkSegment key="first" path={firstUrl} />,
+    <SingleLinkSegment
+      key="first"
+      path={firstUrl}
+      onClick={onClick ? () => onClick(first(crumbs) as Crumb) : null}
+    />,
     <SummarySegment
       key="summary"
       crumbs={summarizedCrumbs}
       startTimestamp={startTimestamp}
+      handleOnClick={onClick}
     />,
-    <SingleLinkSegment key="last" path={lastUrl} />,
+    <SingleLinkSegment
+      key="last"
+      path={lastUrl}
+      onClick={onClick ? () => onClick(last(crumbs) as Crumb) : null}
+    />,
   ];
 }
 
-function SingleLinkSegment({path}: {path: undefined | string}) {
+function SingleLinkSegment({
+  onClick,
+  path,
+}: {
+  onClick: null | (() => void);
+  path: undefined | string;
+}) {
   if (!path) {
     return null;
   }
-  return (
-    <Link href="#">
-      <Tooltip title={path}>
-        <TextOverflow ellipsisDirection="left">{path}</TextOverflow>
-      </Tooltip>
-    </Link>
+  const content = (
+    <Tooltip title={path}>
+      <TextOverflow ellipsisDirection="left">{path}</TextOverflow>
+    </Tooltip>
   );
+  if (onClick) {
+    return (
+      <Link href="#" onClick={onClick}>
+        {content}
+      </Link>
+    );
+  }
+  return <Span>{content}</Span>;
 }
 
 function SummarySegment({
   crumbs,
+  handleOnClick,
   startTimestamp,
 }: {
   crumbs: Crumb[];
+  handleOnClick: MaybeOnClickHandler;
   startTimestamp: number;
 }) {
   const summaryItems = crumbs.map(crumb => (
@@ -80,7 +121,7 @@ function SummarySegment({
       startTimestamp={startTimestamp}
       isHovered={false}
       isSelected={false}
-      onClick={() => {}}
+      onClick={handleOnClick}
     />
   ));
 
