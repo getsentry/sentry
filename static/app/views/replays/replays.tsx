@@ -23,7 +23,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import ReplaysFilters from 'sentry/views/replays/filters';
 import ReplayTable from 'sentry/views/replays/replayTable';
-import {Replay} from 'sentry/views/replays/types';
+import {ReplayDiscoveryListItem} from 'sentry/views/replays/types';
 
 const columns = [t('Session'), t('Project')];
 
@@ -157,7 +157,7 @@ function Replays() {
                       <ReplayTable
                         idKey="id"
                         showProjectColumn
-                        replayList={data.tableData.data as Replay[]}
+                        replayList={data.tableData.data as ReplayDiscoveryListItem[]}
                       />
                     ) : null}
                   </StyledPanelTable>

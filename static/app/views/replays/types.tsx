@@ -2,7 +2,7 @@ import type {eventWithTime} from 'rrweb/typings/types';
 
 import type {RawCrumb} from 'sentry/types/breadcrumbs';
 
-export type Replay = {
+export type ReplayDiscoveryListItem = {
   eventID: string;
   id: string;
   project: string;

@@ -22,7 +22,7 @@ import EventView from 'sentry/utils/discover/eventView';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {getQueryParamAsString} from 'sentry/utils/replays/getQueryParamAsString';
 import ReplayTable from 'sentry/views/replays/replayTable';
-import {Replay} from 'sentry/views/replays/types';
+import {ReplayDiscoveryListItem} from 'sentry/views/replays/types';
 
 import {SetStateAction} from '../types';
 
@@ -114,7 +114,10 @@ function ReplaysContent(props: Props) {
           t('Errors'),
         ]}
       >
-        <ReplayTable idKey="replayId" replayList={tableData.data as Replay[]} />
+        <ReplayTable
+          idKey="replayId"
+          replayList={tableData.data as ReplayDiscoveryListItem[]}
+        />
       </StyledPanelTable>
       <Pagination pageLinks={pageLinks} />
     </Layout.Main>
