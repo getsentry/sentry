@@ -51,6 +51,15 @@ class CustomerDomainMiddlewareTest(TestCase):
         assert request.session == {"activeorg": "test"}
         assert response == request
 
+    def test_no_activeorg(self):
+        session = {}
+        request = RequestFactory().get("/")
+        request.session = session
+        response = CustomerDomainMiddleware(lambda request: request)(request)
+
+        assert request.session == {}
+        assert response == request
+
     def test_no_op(self):
         request = RequestFactory().get("/")
         response = CustomerDomainMiddleware(lambda request: request)(request)
