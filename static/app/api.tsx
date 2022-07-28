@@ -605,10 +605,10 @@ export function resolveUrl(
   routeParams: {[key: string]: string | number | undefined} = {}
 ) {
   const [route] = routeRenderMap[routeType];
-  const {organizationUrl} = organization;
+  const {regionUrl} = organization;
 
   const shouldUseLegacyRoute =
-    !organizationUrl || !organization.features.includes('customer-domains');
+    !regionUrl || !organization.features.includes('customer-domains');
 
   const renderedRoute = replaceRouterParams(route, {
     org_slug: organization.slug,
@@ -617,13 +617,12 @@ export function resolveUrl(
 
   const result = shouldUseLegacyRoute
     ? renderedRoute
-    : `${generateOrganizationBaseUrl(organizationUrl)}${renderedRoute}`;
+    : `${generateOrganizationBaseUrl(regionUrl)}${renderedRoute}`;
 
   const currentTransaction = Sentry.getCurrentHub().getScope()?.getTransaction();
-  if (currentTransaction && currentTransaction.tags.hasOrganizationUrl !== String(true)) {
-    const hasOrganizationUrl =
-      organizationUrl !== undefined ? result.includes(organizationUrl) : false;
-    currentTransaction.setTag('hasOrganizationUrl', String(hasOrganizationUrl));
+  if (currentTransaction && currentTransaction.tags.hasRegionUrl !== String(true)) {
+    const hasRegionUrl = regionUrl !== undefined ? result.includes(regionUrl) : false;
+    currentTransaction.setTag('hasRegionUrl', String(hasRegionUrl));
   }
 
   return result;
