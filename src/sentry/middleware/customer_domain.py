@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Callable
 
+from django.http import HttpResponseRedirect
+from django.urls import resolve, reverse
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -33,4 +35,7 @@ class CustomerDomainMiddleware:
                 del session["activeorg"]
             return self.get_response(request)
         auth.set_active_org(request, subdomain)
+        result = resolve(request.path)
+        if result.kwargs and "organization_slug" in result.kwargs and result.kwargs["organization_slug"] != subdomain:
+            return HttpResponseRedirect(reverse(result.url_name, kwargs={**result.kwargs, "organization_slug": subdomain}))
         return self.get_response(request)
