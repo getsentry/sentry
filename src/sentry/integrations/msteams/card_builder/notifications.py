@@ -63,13 +63,14 @@ class MSTeamsNotificationsMessageBuilder(MSTeamsMessageBuilder):
             size=TextSize.LARGE,
         )
 
-    def build_notification_card(self):
-        description_block = create_text_block(
+    def create_description_block(self) -> TextBlock:
+        return create_text_block(
             self.notification.get_message_description(self.recipient),
             size=TextSize.MEDIUM,
         )
 
-        fields = [self.create_attachment_title_block(), description_block]
+    def build_notification_card(self):
+        fields = [self.create_attachment_title_block(), self.create_description_block()]
 
         # TODO: Add support for notification actions.
         return super().build(
@@ -89,21 +90,12 @@ class MSTeamsIssueNotificationsMessageBuilder(MSTeamsNotificationsMessageBuilder
         super().__init__(notification, context, recipient)
         self.group = getattr(notification, "group", None)
 
-    def build_notification_card(self):
-        description_block = (
+    def create_description_block(self) -> TextBlock | None:
+        return (
             create_text_block(
                 build_attachment_text(self.group),
                 size=TextSize.MEDIUM,
             )
             if self.group
             else None
-        )
-
-        fields = [self.create_attachment_title_block(), description_block]
-
-        # TODO: Add support for notification actions.
-        return super().build(
-            title=self.create_title_block(),
-            fields=fields,
-            footer=self.create_footer_block(),
         )
