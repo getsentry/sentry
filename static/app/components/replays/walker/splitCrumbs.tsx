@@ -1,3 +1,4 @@
+import React from 'react';
 import styled from '@emotion/styled';
 import first from 'lodash/first';
 import last from 'lodash/last';
@@ -127,11 +128,7 @@ function SummarySegment({
 
   return (
     <Span>
-      <HalfPaddingHovercard
-        body={summaryItems}
-        bodyClassName="half-padding"
-        position="right"
-      >
+      <HalfPaddingHovercard body={summaryItems} position="right">
         <TextOverflow>
           {tn('%s Transaction', '%s Transactions', summaryItems.length)}
         </TextOverflow>
@@ -153,7 +150,13 @@ const Link = styled('a')`
   text-decoration: underline;
 `;
 
-const HalfPaddingHovercard = styled(Hovercard)`
+const HalfPaddingHovercard = styled(
+  ({children, bodyClassName, ...props}: React.ComponentProps<typeof Hovercard>) => (
+    <Hovercard bodyClassName={bodyClassName || '' + ' half-padding'} {...props}>
+      {children}
+    </Hovercard>
+  )
+)`
   .half-padding {
     padding: ${space(0.5)};
   }
