@@ -170,15 +170,6 @@ class BigtableKVStorage(KVStorage[str, bytes]):
         return value
 
     def set(self, key: str, value: bytes, ttl: Optional[timedelta] = None) -> None:
-        try:
-            return self._set(key, value, ttl)
-        except exceptions.InternalServerError:
-            # Retry once on InternalServerError
-            # 500 Received RST_STREAM with error code 2
-            # SENTRY-S6D
-            return self._set(key, value, ttl)
-
-    def _set(self, key: str, value: bytes, ttl: Optional[timedelta] = None) -> None:
         # XXX: There is a type mismatch here -- ``direct_row`` expects
         # ``bytes`` but we are providing it with ``str``.
         row = self._get_table().direct_row(key)
