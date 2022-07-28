@@ -22,11 +22,11 @@ import {
 } from '../utils';
 
 import Default from './default';
+import DeprecatedNative from './deprecatedNative';
 import Native from './native';
-import NativeV2 from './nativeV2';
 
 type Props = Omit<
-  React.ComponentProps<typeof Native>,
+  React.ComponentProps<typeof DeprecatedNative>,
   'onToggleContext' | 'isExpandable' | 'leadsToApp' | 'hasGroupingBadge'
 > &
   Omit<
@@ -98,7 +98,7 @@ function Line({
       case 'cocoa':
       case 'native':
         return nativeV2 ? (
-          <NativeV2
+          <Native
             leadsToApp={leadsToApp}
             frame={frame}
             prevFrame={prevFrame}
@@ -115,7 +115,7 @@ function Line({
             isUsedForGrouping={isUsedForGrouping}
           />
         ) : (
-          <Native
+          <DeprecatedNative
             leadsToApp={leadsToApp}
             frame={frame}
             prevFrame={prevFrame}

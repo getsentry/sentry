@@ -10,7 +10,7 @@ import {Frame, Group, PlatformType} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {StacktraceType} from 'sentry/types/stacktrace';
 
-import Line from '../../frame/lineV2';
+import Line from '../../frame/line';
 import {getImageRange, parseAddress, stackTracePlatformIcon} from '../../utils';
 
 type Props = {

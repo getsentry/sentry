@@ -8,7 +8,7 @@ import {Event} from 'sentry/types/event';
 import {StacktraceType} from 'sentry/types/stacktrace';
 import withOrganization from 'sentry/utils/withOrganization';
 
-import Line from '../../frame/line';
+import Line from '../../frame/deprecatedLine';
 import {getImageRange, parseAddress, stackTracePlatformIcon} from '../../utils';
 
 const defaultProps = {

@@ -1,6 +1,6 @@
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
-import Line from 'sentry/components/events/interfaces/frame/line';
+import Line from 'sentry/components/events/interfaces/frame/deprecatedLine';
 import {Frame} from 'sentry/types';
 
 describe('Frame - Line', function () {

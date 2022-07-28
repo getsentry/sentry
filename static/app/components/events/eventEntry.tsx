@@ -1,17 +1,17 @@
 import Breadcrumbs from 'sentry/components/events/interfaces/breadcrumbs';
 import Csp from 'sentry/components/events/interfaces/csp';
 import DebugMetaV2 from 'sentry/components/events/interfaces/debugMeta-v2';
-import Exception from 'sentry/components/events/interfaces/deprecatedException';
-import StackTrace from 'sentry/components/events/interfaces/deprecatedStackTrace';
-import Threads from 'sentry/components/events/interfaces/deprecatedThreads';
-import ExceptionV2 from 'sentry/components/events/interfaces/exception';
+import DeprecatedException from 'sentry/components/events/interfaces/deprecatedException';
+import DeprecatedStackTrace from 'sentry/components/events/interfaces/deprecatedStackTrace';
+import DeprecatedThreads from 'sentry/components/events/interfaces/deprecatedThreads';
+import Exception from 'sentry/components/events/interfaces/exception';
 import Generic from 'sentry/components/events/interfaces/generic';
 import Message from 'sentry/components/events/interfaces/message';
 import Request from 'sentry/components/events/interfaces/request';
 import Spans from 'sentry/components/events/interfaces/spans';
-import StackTraceV2 from 'sentry/components/events/interfaces/stackTrace';
+import StackTrace from 'sentry/components/events/interfaces/stackTrace';
 import Template from 'sentry/components/events/interfaces/template';
-import ThreadsV2 from 'sentry/components/events/interfaces/threads';
+import Threads from 'sentry/components/events/interfaces/threads';
 import {Group, Organization, Project, SharedViewOrganization} from 'sentry/types';
 import {Entry, EntryType, Event, EventTransaction} from 'sentry/types/event';
 
@@ -48,7 +48,7 @@ function EventEntry({
     case EntryType.EXCEPTION: {
       const {data, type} = entry;
       return hasNativeStackTraceV2 ? (
-        <ExceptionV2
+        <Exception
           type={type}
           event={event}
           data={data}
@@ -57,7 +57,7 @@ function EventEntry({
           hasHierarchicalGrouping={hasHierarchicalGrouping}
         />
       ) : (
-        <Exception
+        <DeprecatedException
           type={type}
           event={event}
           data={data}
@@ -78,7 +78,7 @@ function EventEntry({
     case EntryType.STACKTRACE: {
       const {data, type} = entry;
       return hasNativeStackTraceV2 ? (
-        <StackTraceV2
+        <StackTrace
           type={type}
           event={event}
           data={data}
@@ -87,7 +87,7 @@ function EventEntry({
           hasHierarchicalGrouping={hasHierarchicalGrouping}
         />
       ) : (
-        <StackTrace
+        <DeprecatedStackTrace
           type={type}
           event={event}
           data={data}
@@ -127,7 +127,7 @@ function EventEntry({
     case EntryType.THREADS: {
       const {data, type} = entry;
       return hasNativeStackTraceV2 ? (
-        <ThreadsV2
+        <Threads
           type={type}
           event={event}
           data={data}
@@ -136,7 +136,7 @@ function EventEntry({
           hasHierarchicalGrouping={hasHierarchicalGrouping}
         />
       ) : (
-        <Threads
+        <DeprecatedThreads
           type={type}
           event={event}
           data={data}

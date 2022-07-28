@@ -4,7 +4,7 @@ import {Event} from 'sentry/types/event';
 
 import EventDataSection from '../../events/eventDataSection';
 
-import Line from './frame/line';
+import Line from './frame/deprecatedLine';
 
 type Props = {
   data: Frame;
