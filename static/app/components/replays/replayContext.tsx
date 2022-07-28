@@ -142,7 +142,6 @@ const ReplayPlayerContext = React.createContext<ReplayPlayerContextProps>({
   currentHoverTime: undefined,
   currentTime: 0,
   dimensions: {height: 0, width: 0},
-  duration: undefined,
   fastForwardSpeed: 0,
   highlight: () => {},
   initRoot: () => {},
