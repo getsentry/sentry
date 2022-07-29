@@ -65,7 +65,7 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
     expect(screen.getByText('100%')).toBeInTheDocument(); // Current client-side sample rate
     expect(screen.getByText('N/A')).toBeInTheDocument(); // Current server-side sample rate
     expect(screen.getAllByRole('spinbutton')[0]).toHaveValue(30); // Suggested client-side sample rate
-    expect(screen.getAllByRole('spinbutton')[1]).toHaveValue(100); // Suggested server-side sample rate
+    expect(screen.getAllByRole('spinbutton')[1]).toHaveValue(30); // Suggested server-side sample rate
     expect(screen.queryByLabelText('Reset to suggested values')).not.toBeInTheDocument();
 
     // Enter invalid client-side sample rate
