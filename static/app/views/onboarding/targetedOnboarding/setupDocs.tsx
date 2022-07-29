@@ -18,6 +18,7 @@ import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
+import {logExperiment} from 'sentry/utils/analytics';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {Theme} from 'sentry/utils/theme';
@@ -81,17 +82,45 @@ function ProjecDocs(props: {
     );
   };
 
+  useEffect(() => {
+    props.platformDocs?.wizardSetup &&
+      logExperiment({
+        key: 'OnboardingHighlightWizardExperiment',
+        organization: props.organization,
+      });
+  }, [props.organization, props.platformDocs?.wizardSetup]);
+
   const showWizardSetup =
     props.organization.experiments.OnboardingHighlightWizardExperiment;
   const [wizardSetupDetailsCollapsed, setWizardSetupDetailsCollapsed] = useState(true);
+  const [interacted, setInteracted] = useState(false);
   const docs =
     props.platformDocs !== null &&
     (showWizardSetup && props.platformDocs.wizardSetup ? (
       <DocsWrapper key={props.platformDocs.html}>
-        <Content dangerouslySetInnerHTML={{__html: props.platformDocs.wizardSetup}} />
+        <Content
+          dangerouslySetInnerHTML={{__html: props.platformDocs.wizardSetup}}
+          onMouseDown={() => {
+            !interacted &&
+              trackAdvancedAnalyticsEvent('growth.onboarding_wizard_interacted', {
+                organization: props.organization,
+                project_id: props.project.id,
+                platform: props.platform || 'unknown',
+                wizard_instructions: true,
+              });
+            setInteracted(true);
+          }}
+        />
         <Button
           priority="link"
-          onClick={() => setWizardSetupDetailsCollapsed(!wizardSetupDetailsCollapsed)}
+          onClick={() => {
+            trackAdvancedAnalyticsEvent('growth.onboarding_wizard_clicked_more_details', {
+              organization: props.organization,
+              project_id: props.project.id,
+              platform: props.platform || 'unknown',
+            });
+            setWizardSetupDetailsCollapsed(!wizardSetupDetailsCollapsed);
+          }}
         >
           <IconChevron
             direction={wizardSetupDetailsCollapsed ? 'down' : 'up'}
@@ -111,7 +140,19 @@ function ProjecDocs(props: {
       </DocsWrapper>
     ) : (
       <DocsWrapper key={props.platformDocs.html}>
-        <Content dangerouslySetInnerHTML={{__html: props.platformDocs.html}} />
+        <Content
+          dangerouslySetInnerHTML={{__html: props.platformDocs.html}}
+          onMouseDown={() => {
+            !interacted &&
+              trackAdvancedAnalyticsEvent('growth.onboarding_wizard_interacted', {
+                organization: props.organization,
+                project_id: props.project.id,
+                platform: props.platform || undefined,
+                wizard_instructions: false,
+              });
+            setInteracted(true);
+          }}
+        />
         {missingExampleWarning()}
       </DocsWrapper>
     ));
