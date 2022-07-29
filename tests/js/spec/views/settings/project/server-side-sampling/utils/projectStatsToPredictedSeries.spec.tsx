@@ -118,7 +118,7 @@ describe('projectStatsToPredictedSeries', function () {
         stack: 'predictedUsage',
       },
       {
-        seriesName: 'Dropped',
+        seriesName: 'Discarded',
         color: '#F55459',
         data: [
           {name: 1656788400000, value: 206057},

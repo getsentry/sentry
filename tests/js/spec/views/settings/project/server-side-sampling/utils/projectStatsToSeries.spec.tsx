@@ -118,7 +118,7 @@ describe('projectStatsToSeries', function () {
         stack: 'usage',
       },
       {
-        seriesName: 'Dropped',
+        seriesName: 'Discarded',
         color: '#F55459',
         data: [
           {name: 1656788400000, value: 0},
