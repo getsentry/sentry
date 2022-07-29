@@ -322,6 +322,7 @@ def _get_event_instance(profile: Profile) -> Any:
     }
 
 
+@metrics.wraps("process_profile.insert_vroom_profile")
 def _insert_vroom_profile(profile: Profile) -> bool:
     original_timestamp = profile["received"]
 
