@@ -20,7 +20,7 @@ type Props = {
 function DomMutations({replay}: Props) {
   const {isLoading, actions} = useExtractedCrumbHtml({replay});
 
-  const startTimestampMS = replay.getEvent().startTimestamp;
+  const startTimestampMS = replay.getReplay().started_at.getTime();
 
   return (
     <Fragment>
