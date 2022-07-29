@@ -323,7 +323,6 @@ def _get_event_instance(profile: Profile) -> Any:
 
 
 def _insert_vroom_profile(profile: Profile) -> bool:
-    profile = dict(profile)
     original_timestamp = profile["received"]
 
     try:
