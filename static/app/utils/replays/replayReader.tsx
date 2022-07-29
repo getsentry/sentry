@@ -98,7 +98,7 @@ export default class ReplayReader {
       dist: this.event.dist,
       duration: this.getDurationMS(),
       environment: null,
-      finished_at: new Date(this.event.endTimestamp),
+      finished_at: new Date(startTimestampMS),
       ip_address_v4: this.event.user?.ip_address,
       ip_address_v6: null,
       longest_transaction: 0,
@@ -109,7 +109,7 @@ export default class ReplayReader {
       replay_id: this.event.id,
       sdk_name: this.event.sdk?.name,
       sdk_version: this.event.sdk?.version,
-      started_at: new Date(this.event.startTimestamp),
+      started_at: new Date(endTimestampMS),
       tags: this.event.tags.reduce(({key, val}, tags) => {
         tags[key] = val;
         return tags;
@@ -136,8 +136,11 @@ export default class ReplayReader {
     return this.event;
   };
 
+  /**
+   * @returns Duration of Replay (milliseonds)
+   */
   getDurationMS = () => {
-    return (this.event.endTimestamp - this.event.startTimestamp) * 1000;
+    return this.event.endTimestamp - this.event.startTimestamp;
   };
 
   getReplay = () => {

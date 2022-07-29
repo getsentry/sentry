@@ -47,13 +47,6 @@ type ReplayPlayerContextProps = {
   dimensions: Dimensions;
 
   /**
-   * Deprecated: use `replayReader.getDuration()` instead.
-   *
-   * Duration of the video, in milliseconds
-   */
-  duration: undefined | number;
-
-  /**
    * The calculated speed of the player when fast-forwarding through idle moments in the video
    * The value is set to `0` when the video is not fast-forwarding
    * The speed is automatically determined by the length of each idle period
@@ -149,7 +142,6 @@ const ReplayPlayerContext = React.createContext<ReplayPlayerContextProps>({
   currentHoverTime: undefined,
   currentTime: 0,
   dimensions: {height: 0, width: 0},
-  duration: undefined,
   fastForwardSpeed: 0,
   highlight: () => {},
   initRoot: () => {},
@@ -447,8 +439,6 @@ export function Provider({children, replay, initialTimeOffset = 0, value = {}}: 
     setBufferTime({target: -1, previous: -1});
   }
 
-  const duration = replay?.getDurationMS();
-
   return (
     <ReplayPlayerContext.Provider
       value={{
@@ -456,7 +446,6 @@ export function Provider({children, replay, initialTimeOffset = 0, value = {}}: 
         currentHoverTime,
         currentTime,
         dimensions,
-        duration,
         fastForwardSpeed,
         highlight,
         initRoot,

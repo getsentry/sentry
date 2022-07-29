@@ -27,8 +27,8 @@ CACHE_TIME = ONE_HOUR * 4
 NAME_MAPPING = {
     "p75_measurements_fcp": "FCP",
     "p75_measurements_lcp": "LCP",
-    "p75_measurements.app_start_warm": "appStartWarm",
-    "p75_measurements.app_start_cold": "appStartCold",
+    "p75_measurements_app_start_warm": "appStartWarm",
+    "p75_measurements_app_start_cold": "appStartCold",
     "count_if_measurements_fcp_greaterOrEquals_0": "fcpCount",
     "count_if_measurements_lcp_greaterOrEquals_0": "lcpCount",
     "count_if_measurements_app_start_warm_greaterOrEquals_0": "appWarmStartCount",
