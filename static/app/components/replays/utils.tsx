@@ -21,11 +21,17 @@ const HOUR = 60 * MINUTE;
  * @param diffMs Number of milliseconds to adjust the timestamp by, either positive (future) or negative (past)
  * @returns Unix timestamp of the adjusted timestamp, in milliseconds
  */
-export function relativeTimeInMs(timestamp: string, diffMs: number): number {
+export function relativeTimeInMs(
+  timestamp: ConstructorParameters<typeof Date>[0],
+  diffMs: number
+): number {
   return Math.abs(new Date(timestamp).getTime() - diffMs);
 }
 
-export function showPlayerTime(timestamp: string, relativeTimeMs: number): string {
+export function showPlayerTime(
+  timestamp: ConstructorParameters<typeof Date>[0],
+  relativeTimeMs: number
+): string {
   return formatTime(relativeTimeInMs(timestamp, relativeTimeMs));
 }
 
