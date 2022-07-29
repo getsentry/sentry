@@ -67,7 +67,6 @@ describe('Login', function () {
 
     userEvent.click(screen.getByRole('link', {name: 'Single Sign-On'}));
     expect(screen.getByRole('textbox', {name: 'Organization ID'})).toBeInTheDocument();
-    // expect(wrapper.find('SsoForm').exists()).toBe(true);
 
     userEvent.click(screen.getByRole('link', {name: 'Register'}));
     expect(screen.getByRole('textbox', {name: 'Name'})).toBeInTheDocument();
