@@ -86,19 +86,6 @@ class BaseNotification(abc.ABC):
         return self.url_format.format(text=text, url=url)
 
     @property
-    def provider(self) -> ExternalProviders:
-        if not getattr(self, "_provider", None):
-            raise AttributeError(
-                f"'provider' not set on {self.__class__.__name__}. Please set 'provider' from the message builder."
-            )
-
-        return self._provider
-
-    @provider.setter
-    def provider(self, provider: ExternalProviders) -> None:
-        self._provider = provider
-
-    @property
     @abc.abstractmethod
     def template_path(self) -> str:
         """
@@ -203,7 +190,7 @@ class BaseNotification(abc.ABC):
         """
         return f"?referrer={self.get_referrer(provider, recipient)}"
 
-    def get_settings_url(self, recipient: Team | User) -> str:
+    def get_settings_url(self, recipient: Team | User, provider: ExternalProviders) -> str:
         # Settings url is dependant on the provider so we know which provider is sending them into Sentry.
         if isinstance(recipient, Team):
             url_str = f"/settings/{self.organization.slug}/teams/{recipient.slug}/notifications/"
@@ -214,10 +201,7 @@ class BaseNotification(abc.ABC):
                 if fine_tuning_key:
                     url_str += f"{fine_tuning_key}/"
         return str(
-            urljoin(
-                absolute_uri(url_str),
-                self.get_sentry_query_params(self.provider, recipient),
-            )
+            urljoin(absolute_uri(url_str), self.get_sentry_query_params(provider, recipient))
         )
 
     def determine_recipients(self) -> Iterable[Team | User]:
@@ -275,7 +259,8 @@ class ProjectNotification(BaseNotification, abc.ABC):
         return {"project_id": self.project.id, **super().get_log_params(recipient)}
 
     def build_notification_footer(self, recipient: Team | User) -> str:
-        settings_url = self.get_settings_url(recipient)
+        # notification footer only used for Slack for now
+        settings_url = self.get_settings_url(recipient, ExternalProviders.SLACK)
 
         parent = getattr(self, "project", self.organization)
         footer: str = parent.slug

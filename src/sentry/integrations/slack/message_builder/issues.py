@@ -274,9 +274,7 @@ class SlackIssuesMessageBuilder(SlackMessageBuilder):
         self.link_to_event = link_to_event
         self.issue_details = issue_details
         self.notification = (
-            create_notification_with_properties(
-                notification, url_format=SLACK_URL_FORMAT, provider=ExternalProviders.SLACK
-            )
+            create_notification_with_properties(notification, url_format=SLACK_URL_FORMAT)
             if notification
             else None
         )
@@ -348,9 +346,7 @@ class SlackReleaseIssuesMessageBuilder(SlackMessageBuilder):
         self.link_to_event = link_to_event
         self.issue_details = issue_details
         self.notification = (
-            create_notification_with_properties(
-                notification, url_format=SLACK_URL_FORMAT, provider=ExternalProviders.SLACK
-            )
+            create_notification_with_properties(notification, url_format=SLACK_URL_FORMAT)
             if notification
             else None
         )
