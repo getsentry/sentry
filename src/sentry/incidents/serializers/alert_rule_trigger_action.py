@@ -143,8 +143,7 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
             # See NotifyEventSentryAppAction::self_validate for more details
 
         attrs["use_async_lookup"] = self.context.get("use_async_lookup")
-        # The empty string should be converted to None
-        attrs["input_channel_id"] = self.context.get("input_channel_id") or None
+        attrs["input_channel_id"] = self.context.get("input_channel_id")
         should_validate_channel_id = self.context.get("validate_channel_id", True)
         # validate_channel_id is assumed to be true unless explicitly passed as false
         if attrs["input_channel_id"] and should_validate_channel_id:
