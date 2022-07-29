@@ -1,7 +1,9 @@
+from sentry.eventstore.models import Event
 from sentry.mail import mail_adapter
 from sentry.mail.forms.notify_email import NotifyEmailForm
 from sentry.notifications.types import ACTION_CHOICES, ActionTargetType
 from sentry.notifications.utils.participants import determine_eligible_recipients
+from sentry.rules import EventState
 from sentry.rules.actions.base import EventAction
 from sentry.utils import metrics
 
@@ -55,7 +57,7 @@ class NotifyActiveReleaseEmailAction(NotifyEmailAction):
     label = f"Send a notification to {ActionTargetType.RELEASE_MEMBERS.value}"
     metrics_slug = "ActiveReleaseEmailAction"
 
-    def after(self, event, state):
+    def after(self, event: Event, state: EventState):
         if not determine_eligible_recipients(
             event.group.project,
             ActionTargetType.RELEASE_MEMBERS,
@@ -69,4 +71,4 @@ class NotifyActiveReleaseEmailAction(NotifyEmailAction):
             return
 
         metrics.incr("notifications.sent", instance=self.metrics_slug, skip_internal=False)
-        yield self.future(lambda evt, futures: mail_adapter.active_release_notify(evt))
+        yield self.future(lambda evt, futures: mail_adapter.active_release_notify(evt, state))
