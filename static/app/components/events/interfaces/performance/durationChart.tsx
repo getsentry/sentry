@@ -24,21 +24,22 @@ export function DurationChart({issue, event, organization}: Props) {
   const api1 = useApi();
   const [now] = useState<DateString>(new Date());
 
-  // const diff = moment(now).diff(issue.firstSeen);
-  // const start = moment(issue.firstSeen).subtract(diff).format();
-  const start = new Date('2022-07-09T07:14:35').toString();
-  const end = new Date('2022-07-12T12:57:44').toString();
-  const end1 = new Date('2022-07-12T12:57:40');
+  // TODO (udameli): Project ID is hardcoded to sentry for the experiment
+  // because performance issues from sentry project are sent to a different project
+  const PROJECT_ID = 1;
+
+  const diff = moment(now).diff(issue.firstSeen);
+  const start = moment(issue.firstSeen).subtract(diff).format();
   const interval = '30m';
-  const issueStart = new Date('2022-07-11T13:41:21').toString();
+  const issueStart = issue.firstSeen;
 
   return (
     <EventsRequest
       api={api}
-      project={[1]}
+      project={[PROJECT_ID]}
       environment={[]}
       start={start}
-      end={end}
+      end={now}
       query={allEventsQuery}
       organization={organization}
       yAxis={['p75(transaction.duration)']}
@@ -50,10 +51,10 @@ export function DurationChart({issue, event, organization}: Props) {
       {({timeseriesData: allEvents}) => (
         <EventsRequest
           api={api1}
-          project={[1]}
+          project={[PROJECT_ID]}
           environment={[]}
           start={issueStart}
-          end={end}
+          end={now}
           query={affectedEventsQuery}
           organization={organization}
           yAxis={['p75(transaction.duration)']}
