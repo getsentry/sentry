@@ -251,7 +251,6 @@ type EntrySpans = {
 export type EntrySpanTree = {
   data: {
     focusedSpanIds: string[];
-    transactionID: string;
   };
   type: EntryType.SPANTREE;
 };

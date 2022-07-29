@@ -167,7 +167,6 @@ class GroupDetails extends Component<Props, State> {
     const spanTreeEntry: EntrySpanTree = {
       data: {
         focusedSpanIds: performanceData.spans,
-        transactionID: performanceData.caught_on_transaction,
       },
       type: EntryType.SPANTREE,
     };
