@@ -66,14 +66,6 @@ def test_version_is_semver_invalid(release_version):
     assert Release.is_semver_version(release_version) is False
 
 
-class ReleasesTest(TestCase):
-    def test_empty_version(self):
-        org = self.create_organization()
-        self.assertRaises(
-            ValidationError, lambda: Release.objects.create(version="", organization=org)
-        )
-
-
 class MergeReleasesTest(TestCase):
     def test_simple(self):
         org = self.create_organization()
@@ -683,8 +675,17 @@ class SetRefsTest(SetRefsTestCase):
         assert len(mock_fetch_commit.method_calls) == 0
 
     def test_invalid_version(self):
-        release = Release.objects.create(organization=self.org)
-        assert not release.is_valid_version(None)
+        cases = ["", "latest", ".", "..", "\t", "\n", "  "]
+
+        for case in cases:
+            self.assertRaises(
+                ValidationError,
+                lambda: Release.objects.create(version=case, organization=self.org),
+            )
+        self.assertRaises(
+            ValidationError,
+            lambda: Release.objects.create(organization=self.org),
+        )
 
     @staticmethod
     def test_invalid_chars_in_version():

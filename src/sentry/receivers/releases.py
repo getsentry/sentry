@@ -36,8 +36,10 @@ from sentry.types.releaseactivity import ReleaseActivityType
 
 
 def validate_release_empty_version(instance: Release, **kwargs):
-    if instance.version == "":
-        raise ValidationError(f"release_id({instance.id}) failed to save because of empty version")
+    if not Release.is_valid_version(instance.version):
+        raise ValidationError(
+            f"release_id({instance.id}) failed to save because of invalid version"
+        )
 
 
 def resolve_group_resolutions(instance, created, **kwargs):
