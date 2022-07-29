@@ -45,7 +45,6 @@ const ButtonList = styled(ButtonBar)`
   grid-template-columns: repeat(auto-fit, minmax(130px, max-content));
 `;
 
-// <p>s are smaller in settings, override back to default
 const Paragraph = styled('p')`
   font-size: ${p => p.theme.fontSizeLarge};
 `;
