@@ -10,7 +10,7 @@ from uuid import uuid4
 
 from django.conf import settings
 from django.db import models, transaction
-from django.db.models import QuerySet
+from django.db.models import F, QuerySet
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.encoding import force_bytes
@@ -64,19 +64,13 @@ class OrganizationMemberManager(BaseManager):
     def delete_expired(self, threshold: int) -> None:
         """Delete un-accepted member invitations that expired `threshold` days ago."""
 
-        # if SCIM is enabled, let SCIM control creation, modification, and deletion of users
-        orgs_without_scim = [
-            org_id
-            for org_id in AuthProvider.objects.exclude(flags__gt=1).values_list(
-                "organization_id", flat=True
-            )
-        ]
+        orgs_with_scim = AuthProvider.objects.filter(
+            flags=F("flags").bitor(AuthProvider.flags.scim_enabled)
+        ).values_list("organization_id", flat=True)
 
-        self.filter(
-            token_expires_at__lt=threshold,
-            user_id__exact=None,
-            organization_id__in=orgs_without_scim,
-        ).exclude(email__exact=None).delete()
+        self.filter(token_expires_at__lt=threshold, user_id__exact=None,).exclude(
+            email__exact=None
+        ).exclude(organization_id__in=orgs_with_scim).delete()
 
     def get_for_integration(self, integration: Integration, actor: User) -> QuerySet:
         return self.filter(
