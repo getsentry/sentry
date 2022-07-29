@@ -164,11 +164,9 @@ class GroupDetails extends Component<Props, State> {
   addPerformanceSpecificEntries(event: Event) {
     const performanceData = event.contexts.performance_issue;
 
-    // create span tree entry
     const spanTreeEntry: EntrySpanTree = {
       data: {
         focusedSpanIds: performanceData.spans,
-        transactionID: performanceData.caught_on_transaction,
       },
       type: EntryType.SPANTREE,
     };
@@ -181,7 +179,7 @@ class GroupDetails extends Component<Props, State> {
 
     const updatedEvent = {
       ...event,
-      entries: [performanceEntry, event.entries[0], event.entries[1]],
+      entries: [performanceEntry, spanTreeEntry, event.entries[0], event.entries[1]],
     };
     return updatedEvent;
   }

@@ -7,7 +7,7 @@ import {AvatarUser} from 'sentry/types';
 type Props = {
   avatarSize?: UserAvatar['props']['size'];
   className?: string;
-  displayEmail?: string;
+  displayEmail?: React.ReactNode | string;
   displayName?: React.ReactNode;
   hideEmail?: boolean;
   user?: AvatarUser;

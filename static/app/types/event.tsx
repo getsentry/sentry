@@ -249,9 +249,10 @@ type EntrySpans = {
   type: EntryType.SPANS; // data is not used
 };
 
-type EntrySpanTree = {
-  data: any;
-  focusedSpanIds: string[];
+export type EntrySpanTree = {
+  data: {
+    focusedSpanIds: string[];
+  };
   type: EntryType.SPANTREE;
 };
 

@@ -1,8 +1,20 @@
+from __future__ import annotations
+
 import logging
 import threading
 import weakref
 from contextlib import contextmanager
-from typing import Any, Generator, Generic, Mapping, MutableMapping, Optional, Sequence, Tuple
+from typing import (
+    Any,
+    Generator,
+    Generic,
+    Iterable,
+    Mapping,
+    MutableMapping,
+    Optional,
+    Sequence,
+    Tuple,
+)
 
 from django.conf import settings
 from django.db import router
@@ -13,6 +25,7 @@ from django.db.models.signals import class_prepared, post_delete, post_init, pos
 from sentry.db.models.manager import M, make_key
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.db.models.query import create_or_update
+from sentry.servermode import ModeLimited, ServerComponentMode
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
 
@@ -438,3 +451,54 @@ class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  #
         if hasattr(self, "_hints"):
             return self._queryset_class(self.model, using=self._db, hints=self._hints)
         return self._queryset_class(self.model, using=self._db)
+
+    def create_mode_limited_copy(
+        self, limit: ModeLimited, read_modes: Iterable[ServerComponentMode]
+    ) -> BaseManager[M]:
+        """Create a copy of this manager that enforces server mode limitations."""
+
+        # Dynamically create a subclass of this manager's class, adding overrides.
+        cls = type(self)
+        overrides = {
+            "get_queryset": limit.create_override(cls.get_queryset, extra_modes=read_modes),
+            "bulk_create": limit.create_override(cls.bulk_create),
+            "bulk_update": limit.create_override(cls.bulk_update),
+            "create": limit.create_override(cls.create),
+            "create_or_update": limit.create_override(cls.create_or_update),
+            "get_or_create": limit.create_override(cls.get_or_create),
+            "post_delete": limit.create_override(cls.post_delete),
+            "select_for_update": limit.create_override(cls.select_for_update),
+            "update": limit.create_override(cls.update),
+            "update_or_create": limit.create_override(cls.update_or_create),
+        }
+        manager_subclass = type(cls.__name__, (cls,), overrides)
+        manager_instance = manager_subclass()
+
+        # Ordinarily a pointer to the model class is set after the class is defined,
+        # meaning we can't inherit it. Manually copy it over now.
+        manager_instance.model = self.model
+
+        # Copy over some more stuff that would be set in __init__
+        # (warning: this is brittle)
+        manager_instance.cache_fields = self.cache_fields
+        manager_instance.cache_ttl = self.cache_ttl
+        manager_instance._cache_version = self._cache_version
+        manager_instance.__local_cache = threading.local()
+
+        # Dynamically extend and replace the queryset class. This will affect all
+        # queryset objects later returned from the new manager.
+        qs_cls = manager_instance._queryset_class
+        assert issubclass(qs_cls, BaseQuerySet)
+        queryset_overrides = {
+            "bulk_create": limit.create_override(qs_cls.bulk_create),
+            "bulk_update": limit.create_override(qs_cls.bulk_update),
+            "create": limit.create_override(qs_cls.create),
+            "delete": limit.create_override(qs_cls.delete),
+            "get_or_create": limit.create_override(qs_cls.get_or_create),
+            "update": limit.create_override(qs_cls.update),
+            "update_or_create": limit.create_override(qs_cls.update_or_create),
+        }
+        queryset_subclass = type(qs_cls.__name__, (qs_cls,), queryset_overrides)
+        manager_instance._queryset_class = queryset_subclass
+
+        return manager_instance  # type: ignore
