@@ -95,7 +95,7 @@ export function projectStatsToPredictedSeries(
       ...commonSeriesConfig,
     },
     {
-      seriesName: t('Dropped'),
+      seriesName: t('Discarded'),
       color: commonTheme.red300,
       data: seriesData.droppedClient,
       ...commonSeriesConfig,

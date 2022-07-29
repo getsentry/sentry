@@ -66,7 +66,7 @@ export function projectStatsToSeries(projectStats: SeriesApi | undefined): Serie
       ...commonSeriesConfig,
     },
     {
-      seriesName: t('Dropped'),
+      seriesName: t('Discarded'),
       color: commonTheme.red300,
       data: seriesData.droppedClient,
       ...commonSeriesConfig,
