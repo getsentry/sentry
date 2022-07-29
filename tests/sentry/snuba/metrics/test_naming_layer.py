@@ -98,8 +98,8 @@ def test_invalid_mri_schema_regex(name):
             ParsedMRI("d", "transactions", "measurements.stall_longest_time", "millisecond"),
         ),
         (
-            "d:transactions/breakdowns.span_ops.http@millisecond",
-            ParsedMRI("d", "transactions", "breakdowns.span_ops.http", "millisecond"),
+            "d:transactions/breakdowns.span_ops.ops.http@millisecond",
+            ParsedMRI("d", "transactions", "breakdowns.span_ops.ops.http", "millisecond"),
         ),
         (
             "c:transactions/measurements.db_calls@none",
@@ -125,7 +125,7 @@ def test_parse_mri(name, expected):
             False,
         ),
         (
-            ParsedMRI("d", "transactions", "breakdowns.span_ops.http", "millisecond"),
+            ParsedMRI("d", "transactions", "breakdowns.span_ops.ops.http", "millisecond"),
             False,
         ),
         (

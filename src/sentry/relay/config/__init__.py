@@ -410,7 +410,7 @@ ALL_MEASUREMENT_METRICS = frozenset(
         "d:transactions/measurements.lcp@millisecond",
         "d:transactions/measurements.app_start_cold@millisecond",
         "d:transactions/measurements.app_start_warm@millisecond",
-        "d:transactions/measurements.cls@millisecond",
+        "d:transactions/measurements.cls@none",
         "d:transactions/measurements.fid@millisecond",
         "d:transactions/measurements.fp@millisecond",
         "d:transactions/measurements.frames_frozen@none",
@@ -483,7 +483,7 @@ def get_transaction_metrics_settings(
                 assert breakdown_config["type"] == "spanOperations"
 
                 for op_name in breakdown_config["matches"]:
-                    metrics.append(f"d:transactions/breakdowns.ops.{op_name}")
+                    metrics.append(f"d:transactions/breakdowns.span_ops.ops.{op_name}@millisecond")
         except Exception:
             capture_exception()
 

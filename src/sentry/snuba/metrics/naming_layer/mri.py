@@ -75,7 +75,7 @@ class TransactionMRI(Enum):
     MEASUREMENTS_LCP = "d:transactions/measurements.lcp@millisecond"
     MEASUREMENTS_APP_START_COLD = "d:transactions/measurements.app_start_cold@millisecond"
     MEASUREMENTS_APP_START_WARM = "d:transactions/measurements.app_start_warm@millisecond"
-    MEASUREMENTS_CLS = "d:transactions/measurements.cls@millisecond"
+    MEASUREMENTS_CLS = "d:transactions/measurements.cls@none"
     MEASUREMENTS_FID = "d:transactions/measurements.fid@millisecond"
     MEASUREMENTS_FP = "d:transactions/measurements.fp@millisecond"
     MEASUREMENTS_FRAMES_FROZEN = "d:transactions/measurements.frames_frozen@none"
@@ -89,10 +89,10 @@ class TransactionMRI(Enum):
     MEASUREMENTS_STALL_TOTAL_TIME = "d:transactions/measurements.stall_total_time@millisecond"
     MEASUREMENTS_TTFB = "d:transactions/measurements.ttfb@millisecond"
     MEASUREMENTS_TTFB_REQUEST_TIME = "d:transactions/measurements.ttfb.requesttime@millisecond"
-    BREAKDOWNS_HTTP = "d:transactions/breakdowns.span_ops.http@millisecond"
-    BREAKDOWNS_DB = "d:transactions/breakdowns.span_ops.db@millisecond"
-    BREAKDOWNS_BROWSER = "d:transactions/breakdowns.span_ops.browser@millisecond"
-    BREAKDOWNS_RESOURCE = "d:transactions/breakdowns.span_ops.resource@millisecond"
+    BREAKDOWNS_HTTP = "d:transactions/breakdowns.span_ops.ops.http@millisecond"
+    BREAKDOWNS_DB = "d:transactions/breakdowns.span_ops.ops.db@millisecond"
+    BREAKDOWNS_BROWSER = "d:transactions/breakdowns.span_ops.ops.browser@millisecond"
+    BREAKDOWNS_RESOURCE = "d:transactions/breakdowns.span_ops.ops.resource@millisecond"
 
     # Derived
     ALL = "e:transactions/all@none"
