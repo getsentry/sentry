@@ -2,16 +2,24 @@ from __future__ import annotations
 
 from typing import Any, Callable, Dict, List, Mapping, Optional, Union
 
+import sentry_sdk
+from django.utils.functional import cached_property
 from snuba_sdk import AliasedExpression, Column, Function
 
 from sentry import options
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
+from sentry.models.transaction_threshold import (
+    TRANSACTION_METRICS,
+    ProjectTransactionThreshold,
+    ProjectTransactionThresholdOverride,
+)
 from sentry.search.events import constants, fields
 from sentry.search.events.builder import MetricsQueryBuilder
 from sentry.search.events.datasets import field_aliases, filter_aliases
 from sentry.search.events.datasets.base import DatasetConfig
 from sentry.search.events.types import SelectType, WhereType
+from sentry.utils.numbers import format_grouped_length
 from sentry.utils.snuba import is_duration_measurement, is_span_op_breakdown
 
 
@@ -39,6 +47,7 @@ class MetricsDatasetConfig(DatasetConfig):
             constants.PROJECT_NAME_ALIAS: self._resolve_project_slug_alias,
             constants.TEAM_KEY_TRANSACTION_ALIAS: self._resolve_team_key_transaction_alias,
             constants.TITLE_ALIAS: self._resolve_title_alias,
+            constants.PROJECT_THRESHOLD_CONFIG_ALIAS: lambda _: self._resolve_project_threshold_config,
         }
 
     def resolve_metric(self, value: str) -> int:
@@ -567,6 +576,204 @@ class MetricsDatasetConfig(DatasetConfig):
             return field_aliases.dry_run_default(self.builder, alias)
         return field_aliases.resolve_project_slug_alias(self.builder, alias)
 
+    @cached_property
+    def _resolve_project_threshold_config(self) -> SelectType:
+        """This is mostly duplicated code from the discover dataset version
+        TODO: try to make this more DRY with the discover version
+        """
+        org_id = self.builder.params.get("organization_id")
+        project_ids = self.builder.params.get("project_id")
+
+        project_threshold_configs = (
+            ProjectTransactionThreshold.objects.filter(
+                organization_id=org_id,
+                project_id__in=project_ids,
+            )
+            .order_by("project_id")
+            .values_list("project_id", "threshold", "metric")
+        )
+
+        transaction_threshold_configs = (
+            ProjectTransactionThresholdOverride.objects.filter(
+                organization_id=org_id,
+                project_id__in=project_ids,
+            )
+            .order_by("project_id")
+            .values_list("transaction", "project_id", "threshold", "metric")
+        )
+
+        num_project_thresholds = project_threshold_configs.count()
+        sentry_sdk.set_tag("project_threshold.count", num_project_thresholds)
+        sentry_sdk.set_tag(
+            "project_threshold.count.grouped",
+            format_grouped_length(num_project_thresholds, [10, 100, 250, 500]),
+        )
+
+        num_transaction_thresholds = transaction_threshold_configs.count()
+        sentry_sdk.set_tag("txn_threshold.count", num_transaction_thresholds)
+        sentry_sdk.set_tag(
+            "txn_threshold.count.grouped",
+            format_grouped_length(num_transaction_thresholds, [10, 100, 250, 500]),
+        )
+
+        if (
+            num_project_thresholds + num_transaction_thresholds
+            > constants.MAX_QUERYABLE_TRANSACTION_THRESHOLDS
+        ):
+            raise InvalidSearchQuery(
+                f"Exceeded {constants.MAX_QUERYABLE_TRANSACTION_THRESHOLDS} configured transaction thresholds limit, try with fewer Projects."
+            )
+
+        # Arrays need to have toUint64 casting because clickhouse will define the type as the narrowest possible type
+        # that can store listed argument types, which means the comparison will fail because of mismatched types
+        project_thresholds = {}
+        project_threshold_config_keys = []
+        project_threshold_config_values = []
+        for project_id, threshold, metric in project_threshold_configs:
+            metric = TRANSACTION_METRICS[metric]
+            if (
+                threshold == constants.DEFAULT_PROJECT_THRESHOLD
+                and metric == constants.DEFAULT_PROJECT_THRESHOLD_METRIC
+            ):
+                # small optimization, if the configuration is equal to the default,
+                # we can skip it in the final query
+                continue
+
+            project_thresholds[project_id] = (metric, threshold)
+            project_threshold_config_keys.append(Function("toUInt64", [project_id]))
+            project_threshold_config_values.append((metric, threshold))
+
+        project_threshold_override_config_keys = []
+        project_threshold_override_config_values = []
+        for transaction, project_id, threshold, metric in transaction_threshold_configs:
+            metric = TRANSACTION_METRICS[metric]
+            if (
+                project_id in project_thresholds
+                and threshold == project_thresholds[project_id][1]
+                and metric == project_thresholds[project_id][0]
+            ):
+                # small optimization, if the configuration is equal to the project
+                # configs, we can skip it in the final query
+                continue
+
+            elif (
+                project_id not in project_thresholds
+                and threshold == constants.DEFAULT_PROJECT_THRESHOLD
+                and metric == constants.DEFAULT_PROJECT_THRESHOLD_METRIC
+            ):
+                # small optimization, if the configuration is equal to the default
+                # and no project configs were set, we can skip it in the final query
+                continue
+
+            transaction_id = self.resolve_tag_value(transaction)
+            # Don't add to the config if we can't resolve it
+            if transaction_id is None:
+                continue
+            project_threshold_override_config_keys.append(
+                (Function("toUInt64", [project_id]), (Function("toUInt64", [transaction_id])))
+            )
+            project_threshold_override_config_values.append((metric, threshold))
+
+        project_threshold_config_index: SelectType = Function(
+            "indexOf",
+            [
+                project_threshold_config_keys,
+                self.builder.column("project_id"),
+            ],
+            constants.PROJECT_THRESHOLD_CONFIG_INDEX_ALIAS,
+        )
+
+        project_threshold_override_config_index: SelectType = Function(
+            "indexOf",
+            [
+                project_threshold_override_config_keys,
+                (self.builder.column("project_id"), self.builder.column("transaction")),
+            ],
+            constants.PROJECT_THRESHOLD_OVERRIDE_CONFIG_INDEX_ALIAS,
+        )
+
+        def _project_threshold_config(alias: Optional[str] = None) -> SelectType:
+            if project_threshold_config_keys and project_threshold_config_values:
+                return Function(
+                    "if",
+                    [
+                        Function(
+                            "equals",
+                            [
+                                project_threshold_config_index,
+                                0,
+                            ],
+                        ),
+                        (
+                            constants.DEFAULT_PROJECT_THRESHOLD_METRIC,
+                            constants.DEFAULT_PROJECT_THRESHOLD,
+                        ),
+                        Function(
+                            "arrayElement",
+                            [
+                                project_threshold_config_values,
+                                project_threshold_config_index,
+                            ],
+                        ),
+                    ],
+                    alias,
+                )
+
+            return Function(
+                "tuple",
+                [constants.DEFAULT_PROJECT_THRESHOLD_METRIC, constants.DEFAULT_PROJECT_THRESHOLD],
+                alias,
+            )
+
+        if project_threshold_override_config_keys and project_threshold_override_config_values:
+            return Function(
+                "if",
+                [
+                    Function(
+                        "equals",
+                        [
+                            project_threshold_override_config_index,
+                            0,
+                        ],
+                    ),
+                    _project_threshold_config(),
+                    Function(
+                        "arrayElement",
+                        [
+                            project_threshold_override_config_values,
+                            project_threshold_override_config_index,
+                        ],
+                    ),
+                ],
+                constants.PROJECT_THRESHOLD_CONFIG_ALIAS,
+            )
+
+        return _project_threshold_config(constants.PROJECT_THRESHOLD_CONFIG_ALIAS)
+
+    def _project_threshold_multi_if_function(self) -> SelectType:
+        """Accessed by `_resolve_apdex_function` and `_resolve_count_miserable_function`,
+        this returns the right duration value (for example, lcp or duration) based
+        on project or transaction thresholds that have been configured by the user.
+        """
+
+        return Function(
+            "multiIf",
+            [
+                Function(
+                    "equals",
+                    [
+                        Function(
+                            "tupleElement",
+                            [self.builder.resolve_field_alias("project_threshold_config"), 1],
+                        ),
+                        "lcp",
+                    ],
+                ),
+                self.resolve_metric("measurements.lcp"),
+                self.resolve_metric("transaction.duration"),
+            ],
+        )
+
     # Query Filters
     def _event_type_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         """Not really a converter, check its transaction, error otherwise"""
@@ -643,7 +850,7 @@ class MetricsDatasetConfig(DatasetConfig):
             "equals", [self.builder.column(constants.METRIC_SATISFACTION_TAG_KEY), metric_tolerated]
         )
         metric_condition = Function(
-            "equals", [Column("metric_id"), self.resolve_metric("transaction.duration")]
+            "equals", [Column("metric_id"), self._project_threshold_multi_if_function()]
         )
 
         return Function(
