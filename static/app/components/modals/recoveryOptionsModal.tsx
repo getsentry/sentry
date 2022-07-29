@@ -44,7 +44,8 @@ class RecoveryOptionsModal extends AsyncComponent<Props, State> {
       {}
     );
     const recoveryEnrolled = recovery && recovery.isEnrolled;
-    const displaySmsPrompt = sms && !sms.isEnrolled && !skipSms;
+    const displaySmsPrompt =
+      sms && !sms.isEnrolled && !skipSms && !sms.disallowNewEnrollment;
 
     return (
       <Fragment>
