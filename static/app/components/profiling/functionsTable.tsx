@@ -169,6 +169,7 @@ function ProfilingFunctionsTableCell({
     case 'examples':
       return <ArrayLinks items={value} />;
     case 'name':
+    case 'package':
       const name = value || <EmptyValueContainer>{t('Unknown')}</EmptyValueContainer>;
       return <Container>{name}</Container>;
     default:

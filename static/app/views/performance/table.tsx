@@ -1,5 +1,6 @@
 import {Component, Fragment} from 'react';
 import {browserHistory} from 'react-router';
+import styled from '@emotion/styled';
 import {Location, LocationDescriptorObject} from 'history';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -350,12 +351,14 @@ class _Table extends Component<Props, State> {
       if (teamKeyTransactionColumn) {
         if (isHeader) {
           const star = (
-            <IconStar
-              key="keyTransaction"
-              color="yellow300"
-              isSolid
-              data-test-id="team-key-transaction-header"
-            />
+            <TeamKeyTransactionWrapper>
+              <IconStar
+                key="keyTransaction"
+                color="yellow300"
+                isSolid
+                data-test-id="team-key-transaction-header"
+              />
+            </TeamKeyTransactionWrapper>
           );
           return [this.renderHeadCell(tableData?.meta, teamKeyTransactionColumn, star)];
         }
@@ -474,5 +477,11 @@ function Table(props: Omit<Props, 'summaryConditions'> & {summaryConditions?: st
 
   return <_Table {...props} summaryConditions={summaryConditions} />;
 }
+
+// Align the contained IconStar with the IconStar buttons in individual table
+// rows, which have 2px padding + 1px border.
+const TeamKeyTransactionWrapper = styled('div')`
+  padding: 3px;
+`;
 
 export default Table;

@@ -1,10 +1,9 @@
 import Breadcrumbs from 'sentry/components/events/interfaces/breadcrumbs';
 import Csp from 'sentry/components/events/interfaces/csp';
 import DebugMeta from 'sentry/components/events/interfaces/debugMeta';
-import DebugMetaV2 from 'sentry/components/events/interfaces/debugMeta-v2';
 import Exception from 'sentry/components/events/interfaces/exception';
 import ExceptionV2 from 'sentry/components/events/interfaces/exceptionV2';
-import Generic from 'sentry/components/events/interfaces/generic';
+import {Generic} from 'sentry/components/events/interfaces/generic';
 import Message from 'sentry/components/events/interfaces/message';
 import Request from 'sentry/components/events/interfaces/request';
 import Spans from 'sentry/components/events/interfaces/spans';
@@ -110,7 +109,7 @@ function EventEntry({
     case EntryType.EXPECTSTAPLE:
     case EntryType.HPKP: {
       const {data, type} = entry;
-      return <Generic type={type} data={data} />;
+      return <Generic type={type} data={data} meta={event._meta?.hpkp ?? {}} />;
     }
     case EntryType.BREADCRUMBS: {
       const {data, type} = entry;
@@ -149,30 +148,16 @@ function EventEntry({
     }
     case EntryType.DEBUGMETA:
       const {data} = entry;
-      const hasImagesLoadedV2Feature =
-        !!organization.features?.includes('images-loaded-v2');
-
-      if (hasImagesLoadedV2Feature) {
-        return (
-          <DebugMetaV2
-            event={event}
-            projectId={projectSlug}
-            groupId={group?.id}
-            organization={organization as Organization}
-            data={data as React.ComponentProps<typeof DebugMetaV2>['data']}
-          />
-        );
-      }
 
       return (
         <DebugMeta
           event={event}
           projectId={projectSlug}
+          groupId={group?.id}
           organization={organization as Organization}
           data={data}
         />
       );
-
     case EntryType.SPANS:
       return (
         <Spans

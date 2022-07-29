@@ -6,22 +6,21 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import Link from 'sentry/components/links/link';
 import Placeholder from 'sentry/components/placeholder';
+import {StringWalker} from 'sentry/components/replays/walker/urlWalker';
 import TimeSince from 'sentry/components/timeSince';
 import {IconCalendar} from 'sentry/icons';
 import space from 'sentry/styles/space';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
-import getUrlPathname from 'sentry/utils/getUrlPathname';
 import useDiscoverQuery from 'sentry/utils/replays/hooks/useDiscoveryQuery';
 import theme from 'sentry/utils/theme';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-
-import {Replay} from './types';
+import {ReplayDiscoveryListItem} from 'sentry/views/replays/types';
 
 type Props = {
   idKey: string;
-  replayList: Replay[];
+  replayList: ReplayDiscoveryListItem[];
   showProjectColumn?: boolean;
 };
 
@@ -86,7 +85,7 @@ function ReplayTable({replayList, idKey, showProjectColumn}: Props) {
               email: replay['user.email'] ?? '',
             }}
             // this is the subheading for the avatar, so displayEmail in this case is a misnomer
-            displayEmail={getUrlPathname(replay.url) ?? ''}
+            displayEmail={<StringWalker urls={[]} />}
           />
           {isScreenLarge && showProjectColumn && (
             <Item>

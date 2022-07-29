@@ -12,10 +12,11 @@ type Props = {
 };
 
 function Scrubber({className}: Props) {
-  const {currentHoverTime, currentTime, duration, setCurrentTime} = useReplayContext();
+  const {currentHoverTime, currentTime, replay, setCurrentTime} = useReplayContext();
+  const durationMS = replay?.getDurationMS();
 
-  const percentComplete = divide(currentTime, duration);
-  const hoverPlace = divide(currentHoverTime || 0, duration);
+  const percentComplete = divide(currentTime, durationMS);
+  const hoverPlace = divide(currentHoverTime || 0, durationMS);
 
   return (
     <Wrapper className={className}>
@@ -27,7 +28,7 @@ function Scrubber({className}: Props) {
         <Range
           name="replay-timeline"
           min={0}
-          max={duration}
+          max={durationMS}
           value={Math.round(currentTime)}
           onChange={value => setCurrentTime(value || 0)}
           showLabel={false}
@@ -125,6 +126,10 @@ export const PlayerScrubber = styled(Scrubber)`
     height: ${space(1)};
   }
 
+  ${Meter} {
+    border-radius: ${p => p.theme.borderRadiusBottom};
+  }
+
   ${RangeWrapper} {
     height: ${space(0.5)};
   }
@@ -134,7 +139,7 @@ export const PlayerScrubber = styled(Scrubber)`
 
   ${PlaybackTimeValue} {
     background: ${p => p.theme.purple200};
-    border-bottom-left-radius: 3px;
+    border-bottom-left-radius: ${p => p.theme.borderRadius};
   }
 
   /**
