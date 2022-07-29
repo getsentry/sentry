@@ -22,6 +22,7 @@ export default function SpanDetailsHeader(props: HeaderProps) {
     description,
     frequency,
     avgOccurrences,
+    p50ExclusiveTime,
     p75ExclusiveTime,
     p95ExclusiveTime,
     p99ExclusiveTime,
@@ -40,6 +41,16 @@ export default function SpanDetailsHeader(props: HeaderProps) {
       <HeaderInfo data-test-id="header-percentiles">
         <StyledSectionHeading>{t('Self Time Percentiles')}</StyledSectionHeading>
         <PercentileHeaderBodyWrapper>
+          <div data-test-id="section-p50">
+            <SectionBody>
+              {defined(p50ExclusiveTime) ? (
+                <PerformanceDuration abbreviation milliseconds={p50ExclusiveTime} />
+              ) : (
+                '\u2014'
+              )}
+            </SectionBody>
+            <SectionSubtext>{t('p50')}</SectionSubtext>
+          </div>
           <div data-test-id="section-p75">
             <SectionBody>
               {defined(p75ExclusiveTime) ? (
@@ -137,7 +148,7 @@ const SectionSubtext = styled('div')`
 
 const PercentileHeaderBodyWrapper = styled('div')`
   display: grid;
-  grid-template-columns: repeat(3, max-content);
+  grid-template-columns: repeat(4, max-content);
   gap: ${space(3)};
 `;
 
