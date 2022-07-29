@@ -7,8 +7,14 @@ const isRelaxed = !!process.env.SENTRY_ESLINT_RELAXED;
 const isCi = !!process.env.CI;
 
 // Strict ruleset that runs on pre-commit and in local environments
+const ADDITIONAL_HOOKS_TO_CHECK_DEPS_FOR =
+  '(useEffectAfterFirstRender|useMemoWithPrevious)';
+
 const strictRulesNotCi = {
-  'react-hooks/exhaustive-deps': ['error'],
+  'react-hooks/exhaustive-deps': [
+    'error',
+    {additionalHooks: ADDITIONAL_HOOKS_TO_CHECK_DEPS_FOR},
+  ],
 };
 
 module.exports = {
@@ -24,6 +30,10 @@ module.exports = {
   },
 
   rules: {
+    'react-hooks/exhaustive-deps': [
+      'warn',
+      {additionalHooks: ADDITIONAL_HOOKS_TO_CHECK_DEPS_FOR},
+    ],
     ...(!isRelaxed && !isCi ? strictRulesNotCi : {}),
   },
 

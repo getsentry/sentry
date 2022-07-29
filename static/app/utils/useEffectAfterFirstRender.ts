@@ -1,10 +1,8 @@
 import {useEffect, useRef} from 'react';
 
-const NOOP: [] = [];
-
 const useEffectAfterFirstRender = (
   cb: React.EffectCallback,
-  deps: React.DependencyList = NOOP
+  deps: React.DependencyList
 ): void => {
   const firstRender = useRef<boolean>(true);
 
@@ -15,6 +13,8 @@ const useEffectAfterFirstRender = (
     }
 
     cb();
+    // Dependencies are explicitly managed and the deps warning is enabled for the custom hook.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps);
 };
 

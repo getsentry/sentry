@@ -112,7 +112,7 @@ function ProfileDetails() {
 
   useEffectAfterFirstRender(() => {
     setSlowestFunctions(search(query));
-  }, [allFunctions]);
+  }, [allFunctions, query, search]);
 
   const pageLinks = useMemo(() => {
     const prevResults = cursor >= RESULTS_PER_PAGE ? 'true' : 'false';
