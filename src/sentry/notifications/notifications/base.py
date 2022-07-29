@@ -203,7 +203,9 @@ class BaseNotification(abc.ABC):
         """
         return f"?referrer={self.get_referrer(provider, recipient)}"
 
-    def get_settings_url(self, recipient: Team | User) -> str:
+    def get_settings_url(
+        self, recipient: Team | User, provider: ExternalProviders | None = None
+    ) -> str:
         # Settings url is dependant on the provider so we know which provider is sending them into Sentry.
         if isinstance(recipient, Team):
             url_str = f"/settings/{self.organization.slug}/teams/{recipient.slug}/notifications/"
@@ -213,10 +215,12 @@ class BaseNotification(abc.ABC):
                 fine_tuning_key = get_notification_setting_type_name(self.notification_setting_type)
                 if fine_tuning_key:
                     url_str += f"{fine_tuning_key}/"
+
         return str(
             urljoin(
                 absolute_uri(url_str),
-                self.get_sentry_query_params(self.provider, recipient),
+                # TODO: Use `self.provider` only once the references are updated in getsentry.
+                self.get_sentry_query_params(provider if provider else self.provider, recipient),
             )
         )
 
