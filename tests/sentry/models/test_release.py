@@ -66,6 +66,14 @@ def test_version_is_semver_invalid(release_version):
     assert Release.is_semver_version(release_version) is False
 
 
+class ReleasesTest(TestCase):
+    def test_empty_version(self):
+        org = self.create_organization()
+        self.assertRaises(
+            ValidationError, lambda: Release.objects.create(version="", organization=org)
+        )
+
+
 class MergeReleasesTest(TestCase):
     def test_simple(self):
         org = self.create_organization()
