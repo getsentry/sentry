@@ -23,6 +23,7 @@ class GitlabRefreshAuthTest(GitLabTestCase):
     def setUp(self):
         super().setUp()
         self.client = self.installation.get_client()
+        self.client.base_url = "https://example.gitlab.com/"
         self.request_data = {"id": "user_id"}
         self.request_url = "https://example.gitlab.com/api/v4/user"
         self.refresh_url = "https://example.gitlab.com/oauth/token"
