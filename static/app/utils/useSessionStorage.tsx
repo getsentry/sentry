@@ -17,7 +17,7 @@ function readStorageValue<T>(key, initialValue: T) {
   // Try parse storage value.
   try {
     return JSON.parse(value);
-  } catch (e) {
+  } catch  {
     // If parsing fails, return initial value.
     return initialValue;
   }
