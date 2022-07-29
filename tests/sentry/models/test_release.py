@@ -678,14 +678,11 @@ class SetRefsTest(SetRefsTestCase):
         cases = ["", "latest", ".", "..", "\t", "\n", "  "]
 
         for case in cases:
-            self.assertRaises(
-                ValidationError,
-                lambda: Release.objects.create(version=case, organization=self.org),
-            )
-        self.assertRaises(
-            ValidationError,
-            lambda: Release.objects.create(organization=self.org),
-        )
+            with pytest.raises(ValidationError):
+                Release.objects.create(version=case, organization=self.org)
+
+        with pytest.raises(ValidationError):
+            Release.objects.create(organization=self.org)
 
     @staticmethod
     def test_invalid_chars_in_version():
