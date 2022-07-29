@@ -52,7 +52,9 @@ export function EmbeddedSpanTree(props: Props) {
             }
 
             if (!results.currentEvent) {
-              return <LoadingError />;
+              return (
+                <LoadingError message="Error loading the span tree because the root transaction is missing." />
+              );
             }
 
             return (
@@ -69,7 +71,9 @@ export function EmbeddedSpanTree(props: Props) {
                   }
 
                   if (!_results.tableData) {
-                    return <LoadingError />;
+                    return (
+                      <LoadingError message="Error loading the span tree because the root transaction is missing." />
+                    );
                   }
 
                   return (
@@ -103,9 +107,9 @@ export const Wrapper = styled('div')`
   border-radius: ${p => p.theme.borderRadius};
   margin: 0;
   /* Padding aligns with Layout.Body */
-  padding: ${space(3)} ${space(2)} ${space(2)};
+  padding: ${space(3)} 0 ${space(2)};
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    padding: ${space(3)} ${space(4)} ${space(3)};
+    padding: ${space(3)} 0 ${space(3)};
   }
   & h3,
   & h3 a {
