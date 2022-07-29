@@ -2,6 +2,7 @@ import uuid
 
 import confluent_kafka as kafka
 
+from sentry.sentry_metrics.indexer.strings import SHARED_STRINGS
 from sentry.tasks.relay import compute_projectkey_config
 from sentry.testutils import RelayStoreHelper, TransactionTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -72,6 +73,7 @@ class MetricsExtractionTest(RelayStoreHelper, TransactionTestCase):
             self.post_and_retrieve_event(event_data)
 
             metrics_emitted = set()
+            strings_emitted = set()
             for _ in range(1000):
                 message = consumer.poll(timeout=1.0)
                 if message is None:
@@ -79,11 +81,24 @@ class MetricsExtractionTest(RelayStoreHelper, TransactionTestCase):
                 message = json.loads(message.value())
                 if message["project_id"] == self.project.id:
                     metrics_emitted.add(message["name"])
+                    strings_emitted.add(message["name"])
+                    for key, value in message["tags"].items():
+                        strings_emitted.add(key)
+                        strings_emitted.add(value)
 
             consumer.close()
 
+            # Make sure that all expected metrics were extracted:
             project_config = compute_projectkey_config(self.projectkey)
             extraction_config = project_config["config"]["transactionMetrics"]
             metrics_expected = set(extraction_config["extractMetrics"])
-
             assert sorted(metrics_emitted) == sorted(metrics_expected)
+
+            #: These strings should be common strings, but we cannot add them
+            #: to the indexer because they already exist in the release health
+            #: indexer db.
+            known_non_common_strings = {"other", "platform"}
+
+            # Make sure that all the standard strings are part of the list of common strings:
+            non_common_strings = strings_emitted - SHARED_STRINGS.keys()
+            assert non_common_strings == known_non_common_strings
