@@ -8,7 +8,7 @@ import {Project} from 'sentry/types';
 import {Series, SeriesDataUnit} from 'sentry/types/echarts';
 import EventView from 'sentry/utils/discover/eventView';
 import {
-  AggregationKey,
+  AggregationKeyWithAlias,
   Field,
   generateFieldAsString,
   Sort,
@@ -201,7 +201,12 @@ export function generateTrendFunctionAsString(
 ): string {
   return generateFieldAsString({
     kind: 'function',
-    function: [trendFunction as AggregationKey, trendParameter, undefined, undefined],
+    function: [
+      trendFunction as AggregationKeyWithAlias,
+      trendParameter,
+      undefined,
+      undefined,
+    ],
   });
 }
 
