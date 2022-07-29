@@ -280,11 +280,20 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             raise ParseError(err)
 
         referrer = request.GET.get("referrer")
-        use_metrics = features.has(
-            "organizations:performance-use-metrics", organization=organization, actor=request.user
-        ) or features.has(
-            "organizations:dashboards-mep", organization=organization, actor=request.user
+        use_metrics = (
+            features.has(
+                "organizations:mep-rollout-flag", organization=organization, actor=request.user
+            )
+            or features.has(
+                "organizations:performance-use-metrics",
+                organization=organization,
+                actor=request.user,
+            )
+            or features.has(
+                "organizations:dashboards-mep", organization=organization, actor=request.user
+            )
         )
+
         performance_dry_run_mep = features.has(
             "organizations:performance-dry-run-mep", organization=organization, actor=request.user
         )
