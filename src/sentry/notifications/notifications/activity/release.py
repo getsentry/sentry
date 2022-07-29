@@ -133,7 +133,9 @@ class ReleaseActivityNotification(ActivityNotification):
     def title(self) -> str:
         return self.get_subject()
 
-    def get_notification_title(self, context: Mapping[str, Any] | None = None) -> str:
+    def get_notification_title(
+        self, provider: ExternalProviders, context: Mapping[str, Any] | None = None
+    ) -> str:
         projects_text = ""
         if len(self.projects) == 1:
             projects_text = " for this project"
@@ -162,15 +164,15 @@ class ReleaseActivityNotification(ActivityNotification):
     def get_title_link(self, recipient: Team | User) -> str | None:
         return None
 
-    def build_notification_footer(self, recipient: Team | User) -> str:
-        settings_url = self.get_settings_url(recipient)
+    def build_notification_footer(self, recipient: Team | User, provider: ExternalProviders) -> str:
+        settings_url = self.get_settings_url(recipient, provider)
 
         # no environment related to a deploy
         footer = ""
         if self.release:
             footer += f"{self.release.projects.all()[0].slug} | "
 
-        footer += f"{self.format_url(text='Notification Settings', url=settings_url)}"
+        footer += f"{self.format_url(provider, text='Notification Settings', url=settings_url)}"
 
         return footer
 
