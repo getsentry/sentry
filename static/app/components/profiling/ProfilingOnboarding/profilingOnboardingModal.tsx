@@ -65,14 +65,6 @@ export function ProfilingOnboardingModal(props: ModalRenderProps) {
   );
 }
 
-const SUPPORTED_PLATFORMS = new Set(['android', 'apple-ios']);
-function isProfilingSupportedFor(project: Project): boolean {
-  if (!project.platform) {
-    return false;
-  }
-  return SUPPORTED_PLATFORMS.has(project.platform);
-}
-
 // Generate an option for the select field from project
 function asSelectOption(
   project: Project,
@@ -86,6 +78,14 @@ function asSelectOption(
   };
 }
 
+const platformToInstructionsMapping: Record<
+  string,
+  React.ComponentType<OnboardingStepProps>
+> = {
+  android: AndroidSendDebugFilesInstruction,
+  'apple-ios': IOSSendDebugFilesInstruction,
+};
+
 // Splits a list of projects into supported and unsuported list
 function splitProjectsByProfilingSupport(projects: Project[]): {
   supported: Project[];
@@ -95,7 +95,7 @@ function splitProjectsByProfilingSupport(projects: Project[]): {
   const unsupported: Project[] = [];
 
   for (const project of projects) {
-    if (isProfilingSupportedFor(project)) {
+    if (project.platform && platformToInstructionsMapping[project.platform]) {
       supported.push(project);
     } else {
       unsupported.push(project);
@@ -104,14 +104,6 @@ function splitProjectsByProfilingSupport(projects: Project[]): {
 
   return {supported, unsupported};
 }
-
-const platformToInstructionsMapping: Record<
-  string,
-  React.ComponentType<OnboardingStepProps>
-> = {
-  android: AndroidSendDebugFilesInstruction,
-  'apple-ios': IOSSendDebugFilesInstruction,
-};
 
 // Individual modal steps are defined here.
 // We proxy the modal props to each individaul modal component
@@ -145,8 +137,9 @@ function SelectProjectStep({
 
       const nextStep = platformToInstructionsMapping[project.platform];
       if (nextStep === undefined) {
-        // We should probably be throwing here
-        return;
+        throw new TypeError(
+          "Platform doesn't have a onboarding step, user should not be able to select it"
+        );
       }
 
       toStep({
@@ -156,13 +149,6 @@ function SelectProjectStep({
       });
     },
     [project, step, toStep]
-  );
-
-  const onProjectSelect = useCallback(
-    (value: Project) => {
-      setProject(value);
-    },
-    [setProject]
   );
 
   const projectSelectOptions = useMemo((): SelectFieldProps<Project>['options'] => {
@@ -197,7 +183,7 @@ function SelectProjectStep({
                 id="project-select"
                 name="select"
                 options={projectSelectOptions}
-                onChange={onProjectSelect}
+                onChange={setProject}
               />
             </div>
           </li>
