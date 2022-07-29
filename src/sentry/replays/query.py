@@ -131,6 +131,9 @@ def make_select_statement() -> List[Union[Column, Function]]:
         _grouped_unique_scalar_value(column_name="environment"),
         _grouped_unique_scalar_value(column_name="release"),
         _grouped_unique_scalar_value(column_name="dist"),
+        _grouped_unique_scalar_value(column_name="user_id"),
+        _grouped_unique_scalar_value(column_name="user_email"),
+        _grouped_unique_scalar_value(column_name="user_name"),
         Function(
             "IPv4NumToString",
             parameters=[
@@ -139,22 +142,8 @@ def make_select_statement() -> List[Union[Column, Function]]:
                     aliased=False,
                 )
             ],
-            alias="ip_address_v4",
+            alias="user_ip_address",
         ),
-        Function(
-            "IPv6NumToString",
-            parameters=[
-                _grouped_unique_scalar_value(
-                    column_name="ip_address_v6",
-                    aliased=False,
-                )
-            ],
-            alias="ip_address_v6",
-        ),
-        _grouped_unique_scalar_value(column_name="user"),
-        _grouped_unique_scalar_value(column_name="user_id"),
-        _grouped_unique_scalar_value(column_name="user_email"),
-        _grouped_unique_scalar_value(column_name="user_name"),
         _grouped_unique_scalar_value(column_name="sdk_name"),
         _grouped_unique_scalar_value(column_name="sdk_version"),
         _grouped_unique_scalar_value(column_name="tags.key"),

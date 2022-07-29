@@ -5,18 +5,24 @@ REPLAYS_RECORDING_SEQUENCE_KEY = "p:{project_id}:r:{replay_id}:seq:{sequence_id}
 
 def process_raw_response(response: List[Dict[str, Any]], fields: List[str]) -> Dict[str, Any]:
     """Process the response further into the expected output."""
-    normalize_aliased_fields(response)
-    make_tags_object(response)
+    normalize_fields(response)
     add_trace_id_computed_fields(response)  # 2 queries
 
     restricted_response = restrict_response_by_fields(fields, response)
     return restricted_response
 
 
-def normalize_aliased_fields(response: List[Dict[str, Any]]) -> None:
+def normalize_fields(response: List[Dict[str, Any]]) -> None:
     """For each payload in the response strip "agg_" prefixes."""
     for item in response:
         item["project_id"] = item.pop("agg_project_id")
+        item["tags"] = dict(zip(item.pop("tags.key") or [], item.pop("tags.value") or []))
+        item["user"] = {
+            "id": item.pop("user_id"),
+            "name": item.pop("user_name"),
+            "email": item.pop("user_email"),
+            "ip_address": item.pop("user_ip_address"),
+        }
 
 
 def restrict_response_by_fields(
@@ -28,18 +34,6 @@ def restrict_response_by_fields(
         return [{field: item[field] for field in fields} for item in payload]
     else:
         return payload
-
-
-def make_tags_object(payload: List[Dict[str, Any]]) -> None:
-    """Zip the tag keys and values into a tags dictionary."""
-    for item in payload:
-        keys = item.pop("tags.key", []) or []
-        values = item.pop("tags.value", []) or []
-
-        if len(keys) != len(values):
-            item["tags"] = {}
-        else:
-            item["tags"] = dict(zip(keys, values))
 
 
 def add_trace_id_computed_fields(payload: List[Dict[str, Any]]) -> None:

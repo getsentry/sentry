@@ -44,6 +44,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
         with self.feature(REPLAYS_FEATURES):
             response = self.client.get(self.url)
             assert response.status_code == 200
+            print(response.content.decode("utf-8"))
 
             response_data = response.json()
             assert "data" in response_data
