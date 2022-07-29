@@ -84,10 +84,14 @@ backend_any_type: &backend_any_type
   - *plugins
 
 migrations_added:
-  - added: 'src/sentry/migrations/*'
+  - added:
+   - 'src/sentry/migrations/*'
+   - 'src/sentry/**/migrations/*'
 
 migrations_modified:
-  - modified: 'src/sentry/migrations/*'
+  - modified:
+   - 'src/sentry/migrations/*'
+   - 'src/sentry/**/migrations/*'
 
 # These files will trigger our wokrflow to check if lockfile
 # updates are needed

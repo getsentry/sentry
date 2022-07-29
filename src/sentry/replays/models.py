@@ -16,6 +16,7 @@ class ReplayRecordingSegment(Model):
     project_id = BoundedBigIntegerField()
     replay_id = models.CharField(max_length=32, db_index=True)
     file_id = BoundedBigIntegerField(db_index=True)
+    file_id_2 = BoundedBigIntegerField(db_index=True)
     # recordings have multiple segments, ordered by their sequence_id
     sequence_id = BoundedIntegerField()
     date_added = models.DateTimeField(default=timezone.now, db_index=True)
