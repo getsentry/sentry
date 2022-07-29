@@ -145,8 +145,8 @@ export function findRangeOfMultiSeries(series: Series[], legend?: LegendComponen
   if (series[0]?.data) {
     let minSeries = series[0];
     let maxSeries;
-    series.forEach(({seriesName}, idx) => {
-      if (legend?.selected?.[seriesName] !== false) {
+    series.forEach(({seriesName, data}, idx) => {
+      if (legend?.selected?.[seriesName] !== false && data.length) {
         minSeries = series[idx];
         maxSeries ??= series[idx];
       }
