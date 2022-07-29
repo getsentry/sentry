@@ -137,7 +137,7 @@ const MenuItem = ({
       }
       state.selectionManager.clearSelection();
     }
-  }, [isHovering, isFocused, isSubmenuTrigger, state.selectionManager, node.key]);
+  }, [isHovering, isFocused]);
 
   // Open submenu on arrow right key press
   const {keyboardProps} = useKeyboard({
