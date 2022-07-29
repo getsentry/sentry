@@ -43,7 +43,7 @@ function useSessionStorage<T>(
 
       try {
         sessionStorageWrapper.setItem(key, JSON.stringify(value));
-      } catch (e) {
+      } catch {
         // Best effort and just update the in-memory value.
       }
     },
