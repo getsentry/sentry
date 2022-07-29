@@ -3,7 +3,7 @@ import type {eventWithTime} from 'rrweb/typings/types';
 import type {RawCrumb} from 'sentry/types/breadcrumbs';
 
 // Keep this in sync with the backend blueprint
-// "ReplayRecord" which is distinct from the common: "replay = new ReplayReader()"
+// "ReplayRecord" is distinct from the common: "replay = new ReplayReader()"
 export type ReplayRecord = {
   count_errors: number;
   count_segments: number;

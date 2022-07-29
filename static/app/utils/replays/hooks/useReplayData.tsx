@@ -236,11 +236,6 @@ function useReplayData({eventSlug, orgId}: Options): Result {
     });
   }, [state.event, state.rrwebEvents, state.breadcrumbs, state.spans, state.errors]);
 
-  console.log({
-    event: replay?.getEvent(),
-    replay: replay?.getReplay(),
-  });
-
   return {
     fetchError: state.fetchError,
     fetching: state.fetching,
