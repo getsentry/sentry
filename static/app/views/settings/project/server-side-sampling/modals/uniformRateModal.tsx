@@ -247,6 +247,7 @@ function UniformRateModal({
       </Header>
       <Body>
         <TextBlock>
+          {/* TODO(sampling): replace docs link */}
           {tct(
             'Set a server-side sample rate for all transactions using our suggestion as a starting point. To accurately monitor overall performance, we also suggest changing your client(SDK) sample rate to allow more metrics to be processed. [learnMoreLink: Learn more about quota management].',
             {
