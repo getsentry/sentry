@@ -66,7 +66,12 @@ function FunctionsTable(props: FunctionsTableProps) {
               orgSlug: organization.slug,
               projectSlug: props.project.slug,
               profileId,
-              query: {}, // TODO: we should try to go to the right thread
+              query: {
+                // specify the frame to focus, the flamegraph will switch
+                // to the appropriate thread when these are specified
+                frameName: func.name,
+                framePackage: func.package,
+              },
             }),
           };
         }),

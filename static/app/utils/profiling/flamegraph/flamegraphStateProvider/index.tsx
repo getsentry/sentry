@@ -78,6 +78,13 @@ export function decodeFlamegraphStateFromQueryParams(
 ): DeepPartial<FlamegraphState> {
   return {
     profiles: {
+      focusFrame:
+        typeof query.frameName === 'string' && typeof query.framePackage === 'string'
+          ? {
+              name: query.frameName,
+              package: query.framePackage,
+            }
+          : null,
       threadId:
         typeof query.tid === 'string' && !isNaN(parseInt(query.tid, 10))
           ? parseInt(query.tid, 10)
@@ -198,8 +205,9 @@ interface FlamegraphStateProviderProps {
 
 export const DEFAULT_FLAMEGRAPH_STATE: FlamegraphState = {
   profiles: {
-    threadId: null,
     selectedRoot: null,
+    threadId: null,
+    focusFrame: null,
   },
   position: {
     view: Rect.Empty(),
@@ -222,8 +230,17 @@ export function FlamegraphStateProvider(
   props: FlamegraphStateProviderProps
 ): React.ReactElement {
   const [profileGroup] = useProfileGroup();
+
   const reducer = useUndoableReducer(combinedReducers, {
     profiles: {
+      focusFrame:
+        props.initialState?.profiles?.focusFrame?.name &&
+        props.initialState?.profiles?.focusFrame?.package
+          ? {
+              name: props.initialState.profiles.focusFrame.name,
+              package: props.initialState.profiles.focusFrame.package,
+            }
+          : DEFAULT_FLAMEGRAPH_STATE.profiles.focusFrame,
       selectedRoot: null,
       threadId:
         props.initialState?.profiles?.threadId ??

@@ -7,6 +7,7 @@ import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
 import {CanvasPoolManager, CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
 import {DifferentialFlamegraph} from 'sentry/utils/profiling/differentialFlamegraph';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
+import {useFlamegraphProfiles} from 'sentry/utils/profiling/flamegraph/useFlamegraphProfiles';
 import {useFlamegraphSearch} from 'sentry/utils/profiling/flamegraph/useFlamegraphSearch';
 import {
   useDispatchFlamegraphState,
@@ -62,6 +63,7 @@ function FlamegraphZoomView({
   setFlamegraphOverlayCanvasRef,
 }: FlamegraphZoomViewProps): React.ReactElement {
   const flamegraphTheme = useFlamegraphTheme();
+  const [flamegraphProfile] = useFlamegraphProfiles();
   const [flamegraphSearch] = useFlamegraphSearch();
   const isInternalFlamegraphDebugModeEnabled = useInternalFlamegraphDebugMode();
 
@@ -124,12 +126,37 @@ function FlamegraphZoomView({
     return new SelectedFrameRenderer(flamegraphOverlayCanvasRef);
   }, [flamegraphOverlayCanvasRef]);
 
-  const hoveredNode = useMemo(() => {
+  const hoveredNode: FlamegraphFrame | null = useMemo(() => {
     if (!configSpaceCursor || !flamegraphRenderer) {
       return null;
     }
     return flamegraphRenderer.getHoveredNode(configSpaceCursor);
   }, [configSpaceCursor, flamegraphRenderer]);
+
+  const focusedRects: Rect[] = useMemo(() => {
+    if (!flamegraphProfile.focusFrame) {
+      return [];
+    }
+
+    const rects: Rect[] = [];
+
+    const frames: FlamegraphFrame[] = [...flamegraph.root.children];
+    while (frames.length > 0) {
+      const frame = frames.pop()!;
+      if (
+        frame.frame.name === flamegraphProfile.focusFrame.name &&
+        frame.frame.image === flamegraphProfile.focusFrame.package
+      ) {
+        rects.push(new Rect(frame.start, frame.depth, frame.end - frame.start, 1));
+      }
+
+      for (let i = 0; i < frame.children.length; i++) {
+        frames.push(frame.children[i]);
+      }
+    }
+
+    return rects;
+  }, [flamegraph, flamegraphProfile.focusFrame]);
 
   useEffect(() => {
     const onKeyDown = (evt: KeyboardEvent) => {
@@ -301,10 +328,40 @@ function FlamegraphZoomView({
     flamegraphTheme,
     textRenderer,
     gridRenderer,
-    selectedFrameRenderer,
     sampleTickRenderer,
     canvasPoolManager,
     flamegraphSearch,
+  ]);
+
+  useEffect(() => {
+    if (!flamegraphCanvas || !flamegraphView || !selectedFrameRenderer) {
+      return undefined;
+    }
+
+    const drawFocusedFrameBorder = () => {
+      selectedFrameRenderer.draw(
+        focusedRects,
+        {
+          BORDER_COLOR: flamegraphTheme.COLORS.FOCUSED_FRAME_BORDER_COLOR,
+          BORDER_WIDTH: flamegraphTheme.SIZES.FOCUSED_FRAME_BORDER_WIDTH,
+        },
+        flamegraphView.fromConfigView(flamegraphCanvas.physicalSpace)
+      );
+    };
+
+    scheduler.registerAfterFrameCallback(drawFocusedFrameBorder);
+    scheduler.draw();
+
+    return () => {
+      scheduler.unregisterAfterFrameCallback(drawFocusedFrameBorder);
+    };
+  }, [
+    flamegraphCanvas,
+    flamegraphView,
+    flamegraphTheme,
+    focusedRects,
+    scheduler,
+    selectedFrameRenderer,
   ]);
 
   useEffect(() => {

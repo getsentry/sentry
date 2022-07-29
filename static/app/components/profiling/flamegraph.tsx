@@ -8,6 +8,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import * as Sentry from '@sentry/react';
 import {mat3, vec2} from 'gl-matrix';
 
 import {FlamegraphOptionsMenu} from 'sentry/components/profiling/flamegraphOptionsMenu';
@@ -22,8 +23,10 @@ import {
   ProfileDragDropImportProps,
 } from 'sentry/components/profiling/profileDragDropImport';
 import {ThreadMenuSelector} from 'sentry/components/profiling/threadSelector';
+import {defined} from 'sentry/utils';
 import {CanvasPoolManager, CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
 import {Flamegraph as FlamegraphModel} from 'sentry/utils/profiling/flamegraph';
+import {FlamegraphProfiles} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphProfiles';
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/useFlamegraphPreferences';
 import {useFlamegraphProfiles} from 'sentry/utils/profiling/flamegraph/useFlamegraphProfiles';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
@@ -44,6 +47,39 @@ import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
 
 import {ProfilingFlamechartLayout} from './profilingFlamechartLayout';
 
+type Candidate = {
+  score: number;
+  threadId: number | null;
+};
+
+function scoreFlamegraph(
+  flamegraph: FlamegraphModel,
+  focusFrame: FlamegraphProfiles['focusFrame']
+): number {
+  if (!defined(focusFrame)) {
+    return 0;
+  }
+
+  let score = 0;
+
+  const frames: FlamegraphFrame[] = [...flamegraph.root.children];
+  while (frames.length > 0) {
+    const frame = frames.pop()!;
+    if (
+      frame.frame.name === focusFrame.name &&
+      frame.frame.image === focusFrame.package
+    ) {
+      score += frame.node.totalWeight;
+    }
+
+    for (let i = 0; i < frame.children.length; i++) {
+      frames.push(frame.children[i]);
+    }
+  }
+
+  return score;
+}
+
 function getTransactionConfigSpace(profiles: Profile[]): Rect {
   const startedAt = Math.min(...profiles.map(p => p.startedAt));
   const endedAt = Math.max(...profiles.map(p => p.endedAt));
@@ -62,7 +98,8 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
 
   const flamegraphTheme = useFlamegraphTheme();
   const [{sorting, view, xAxis}, dispatch] = useFlamegraphPreferences();
-  const [{threadId, selectedRoot}, dispatchThreadId] = useFlamegraphProfiles();
+  const [{focusFrame, threadId, selectedRoot}, dispatchThreadId] =
+    useFlamegraphProfiles();
 
   const [flamegraphCanvasRef, setFlamegraphCanvasRef] =
     useState<HTMLCanvasElement | null>(null);
@@ -76,6 +113,63 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
 
   const canvasPoolManager = useMemo(() => new CanvasPoolManager(), []);
   const scheduler = useMemo(() => new CanvasScheduler(), []);
+
+  /**
+   * When a focus frame is specified, we need to override the active thread.
+   * We look at each thread and pick the one that scores the highest.
+   */
+  useEffect(
+    () => {
+      // If a focus frame is not specified or we're looking at the placeholder
+      // profile during loading, this override is unnecessary.
+      if (props.profiles.loading || !defined(focusFrame)) {
+        return;
+      }
+
+      // If either name/package is falsy, we won't be able to find the suspect
+      // function in the profile. So stop early and display a toast.
+      if (!focusFrame.name || !focusFrame.package) {
+        return;
+      }
+
+      const candidate = props.profiles.profiles.reduce(
+        (prevCandidate, profile) => {
+          const flamegraph = new FlamegraphModel(profile, profile.threadId, {
+            inverted: false,
+            leftHeavy: false,
+            configSpace: undefined,
+          });
+
+          const score = scoreFlamegraph(flamegraph, focusFrame);
+
+          return score <= prevCandidate.score
+            ? prevCandidate
+            : {
+                score,
+                threadId: profile.threadId,
+              };
+        },
+        {score: 0, threadId: null} as Candidate
+      );
+
+      if (defined(candidate.threadId)) {
+        dispatchThreadId({type: 'set thread id', payload: candidate.threadId});
+      } else {
+        // We didn't find a candidate to highlight, but it should be there.
+        // This is most likely a bug, so let's report it so we can investigate.
+        Sentry.withScope(function (scope) {
+          scope.setContext('suspect function', {
+            ...focusFrame,
+            id: props.profiles.traceID,
+          });
+          Sentry.captureException(new Error('No candidate thread was found'));
+        });
+      }
+    },
+    // should only run once for a set of profiles
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [focusFrame, props.profiles]
+  );
 
   const flamegraph = useMemo(() => {
     if (typeof threadId !== 'number') {
