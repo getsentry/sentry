@@ -24,7 +24,8 @@ class JiraServerClient(ApiClient):
     STATUS_URL = "/rest/api/2/status"
     CREATE_URL = "/rest/api/2/issue"
     ISSUE_URL = "/rest/api/2/issue/%s"
-    META_URL = "/rest/api/2/issue/createmeta"  # TODO replace, this is deprecated
+    ISSUE_FIELDS_URL = "/rest/api/2/issue/createmeta/%s/issuetypes/%s"
+    ISSUE_TYPES_URL = "/rest/api/2/issue/createmeta/%s/issuetypes"
     PRIORITIES_URL = "/rest/api/2/priority"
     PROJECT_URL = "/rest/api/2/project"
     SEARCH_URL = "/rest/api/2/search/"
@@ -117,6 +118,14 @@ class JiraServerClient(ApiClient):
     def get_projects_list(self):
         return self.get_cached(self.PROJECT_URL)
 
+    def get_issue_types(self, project_id):
+        # Get a list of issue types for the given project
+        return self.get_cached(self.ISSUE_TYPES_URL % (project_id))
+
+    def get_issue_fields(self, project_id, issue_type_id):
+        # Get a list of fields for the issue type and project
+        return self.get_cached(self.ISSUE_FIELDS_URL % (project_id, issue_type_id))
+
     def get_project_key_for_id(self, project_id):
         if not project_id:
             return ""
@@ -125,30 +134,6 @@ class JiraServerClient(ApiClient):
             if project["id"] == project_id:
                 return project["key"].encode("utf-8")
         return ""
-
-    def get_create_meta_for_project(self, project):
-        params = {"expand": "projects.issuetypes.fields", "projectIds": project}
-        metas = self.get_cached(self.META_URL, params=params)
-        # We saw an empty JSON response come back from the API :(
-        if not metas:
-            logger.info(
-                "jira.get-create-meta.empty-response",
-                extra={"base_url": self.base_url, "project": project},
-            )
-            return None
-
-        # XXX(dcramer): document how this is possible, if it even is
-        if len(metas["projects"]) > 1:
-            raise ApiError(f"More than one project found matching {project}.")
-
-        try:
-            return metas["projects"][0]
-        except IndexError:
-            logger.info(
-                "jira.get-create-meta.key-error",
-                extra={"base_url": self.base_url, "project": project},
-            )
-            return None
 
     def get_versions(self, project):
         return self.get_cached(self.VERSIONS_URL % project)
