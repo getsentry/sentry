@@ -464,7 +464,7 @@ function buildRoutes() {
       </Route>
       <Route
         path="server-side-sampling/"
-        name={t('Server-side Sampling')}
+        name={t('Server-Side Sampling')}
         component={make(
           () => import('sentry/views/settings/project/server-side-sampling')
         )}
@@ -1164,6 +1164,12 @@ function buildRoutes() {
           component={make(
             () =>
               import('sentry/views/performance/transactionSummary/transactionOverview')
+          )}
+        />
+        <Route
+          path="replays/"
+          component={make(
+            () => import('sentry/views/performance/transactionSummary/transactionReplays')
           )}
         />
         <Route

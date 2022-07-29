@@ -18,12 +18,12 @@ const EventTagsPillValue = ({
   streamPath,
   locationSearch,
 }: Props) => {
-  const content = (
-    <AnnotatedText
-      value={defined(value) && <DeviceName value={String(value)} />}
-      meta={meta}
-    />
-  );
+  const content =
+    !!meta && !value ? (
+      <AnnotatedText value={value} meta={meta} />
+    ) : (
+      <DeviceName value={String(value)} />
+    );
 
   if (!meta?.err?.length && defined(key)) {
     return <Link to={{pathname: streamPath, search: locationSearch}}>{content}</Link>;
