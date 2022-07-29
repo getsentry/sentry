@@ -78,6 +78,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
             "organizations:performance-chart-interpolation",
             "organizations:performance-use-metrics",
             "organizations:dashboards-mep",
+            "organizations:mep-rollout-flag",
             "organizations:performance-dry-run-mep",
         ]
         batch_features = features.batch_has(
@@ -139,9 +140,11 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
             has_chart_interpolation = batch_features.get(
                 "organizations:performance-chart-interpolation", False
             )
-            use_metrics = batch_features.get(
-                "organizations:performance-use-metrics", False
-            ) or batch_features.get("organizations:dashboards-mep", False)
+            use_metrics = (
+                batch_features.get("organizations:performance-use-metrics", False)
+                or batch_features.get("organizations:dashboards-mep", False)
+                or batch_features.get("organizations:mep-rollout-flag", False)
+            )
             performance_dry_run_mep = batch_features.get(
                 "organizations:performance-dry-run-mep", False
             )

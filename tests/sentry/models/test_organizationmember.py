@@ -8,13 +8,8 @@ from django.utils import timezone
 from sentry import roles
 from sentry.auth import manager
 from sentry.exceptions import UnableToAcceptMemberInvitationException
-from sentry.models import (
-    INVITE_DAYS_VALID,
-    AuthProvider,
-    InviteStatus,
-    OrganizationMember,
-    OrganizationOption,
-)
+from sentry.models import INVITE_DAYS_VALID, InviteStatus, OrganizationMember, OrganizationOption
+from sentry.models.authprovider import AuthProvider
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import with_feature
 
@@ -130,7 +125,7 @@ class OrganizationMemberTest(TestCase):
 
     def test_delete_expired_clear(self):
         organization = self.create_organization()
-        ninety_one_days = timezone.now() - timedelta(days=91)
+        ninety_one_days = timezone.now() - timedelta(days=1)
         member = OrganizationMember.objects.create(
             organization=organization,
             role="member",

@@ -22,7 +22,7 @@ from sentry import features
 from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
 from sentry.db.models.manager import BaseManager
 from sentry.exceptions import UnableToAcceptMemberInvitationException
-from sentry.models import AuthProvider
+from sentry.models.authprovider import AuthProvider
 from sentry.models.team import TeamStatus
 from sentry.roles import organization_roles
 from sentry.signals import member_invited

@@ -1196,7 +1196,7 @@ export const FIELDS_DOCS: Readonly<Record<string, string>> = {
   [MobileVital.AppStartCold]: t('first launch duration'),
   [MobileVital.AppStartWarm]: t('subsequent launch duration'),
   [MobileVital.FramesFrozenRate]: t('frames_frozen/frames_total'),
-  [MobileVital.FramesFrozen]: t('framse slower than 700ms'),
+  [MobileVital.FramesFrozen]: t('frames slower than 700ms'),
   [MobileVital.FramesSlowRate]: t('frames_slow/frames_total'),
   [MobileVital.FramesSlow]: t('frames slower than 16ms'),
   [MobileVital.FramesTotal]: t('number of frames'),
