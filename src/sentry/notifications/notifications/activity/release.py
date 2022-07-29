@@ -174,7 +174,9 @@ class ReleaseActivityNotification(ActivityNotification):
         if self.release:
             footer += f"{self.release.projects.all()[0].slug} | "
 
-        footer += f"{self.format_url(provider, text='Notification Settings', url=settings_url)}"
+        footer += (
+            f"{self.format_url(text='Notification Settings', url=settings_url, provider=provider)}"
+        )
 
         return footer
 

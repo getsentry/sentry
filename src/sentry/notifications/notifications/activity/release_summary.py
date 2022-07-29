@@ -164,12 +164,10 @@ class ReleaseSummaryActivityNotification(ActivityNotification):
         )
         new_issue_counts = sum(self.group_counts_by_project.get(p.id, 0) for p in self.projects)
         release_url_text = self.format_url(
-            provider, text=escape_slack_text(self.version_parsed), url=release_link
+            text=escape_slack_text(self.version_parsed), url=release_link, provider=provider
         )
         issue_url_text = self.format_url(
-            provider,
-            text=f"{new_issue_counts} issues",
-            url=issues_link,
+            text=f"{new_issue_counts} issues", url=issues_link, provider=provider
         )
         message = (
             f"Release {release_url_text} has been deployed to {self.environment} for an hour"
@@ -197,7 +195,9 @@ class ReleaseSummaryActivityNotification(ActivityNotification):
         if self.release:
             footer += f"{self.release.projects.all()[0].slug} | "
 
-        footer += f"{self.format_url(provider, text='Notification Settings', url=settings_url)}"
+        footer += (
+            f"{self.format_url(text='Notification Settings', url=settings_url, provider=provider)}"
+        )
 
         return footer
 

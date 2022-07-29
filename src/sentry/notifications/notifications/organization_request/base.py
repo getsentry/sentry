@@ -54,7 +54,7 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
         )
         return (
             "You are receiving this notification because you're listed as an organization "
-            f"{recipient_role_string} | {self.format_url(provider, text='Notification Settings', url=settings_url)}"
+            f"{recipient_role_string} | {self.format_url(text='Notification Settings', url=settings_url, provider=provider)}"
         )
 
     def get_title_link(self, recipient: Team | User) -> str | None:

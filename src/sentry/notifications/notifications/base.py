@@ -64,7 +64,7 @@ class BaseNotification(abc.ABC):
         """
         raise NotImplementedError
 
-    def format_url(self, provider: ExternalProviders, text: str, url: str) -> str:
+    def format_url(self, text: str, url: str, provider: ExternalProviders) -> str:
         """
         Format URLs according to the provider options.
         """
@@ -268,6 +268,6 @@ class ProjectNotification(BaseNotification, abc.ABC):
         if environment and getattr(environment, "name", None) != "":
             footer += f" | {environment.name}"
 
-        footer += f" | {self.format_url(provider, text='Notification Settings', url=settings_url)}"
+        footer += f" | {self.format_url(text='Notification Settings', url=settings_url, provider=provider)}"
 
         return footer

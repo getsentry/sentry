@@ -60,7 +60,7 @@ class NewProcessingIssuesActivityNotification(ActivityNotification):
         project_url = absolute_uri(
             f"/settings/{self.organization.slug}/projects/{self.project.slug}/processing-issues/"
         )
-        return f"Processing issues on {self.format_url(provider, text=self.project.slug, url=project_url)}"
+        return f"Processing issues on {self.format_url(text=self.project.slug, url=project_url, provider=provider)}"
 
     def build_attachment_title(self, recipient: Team | User) -> str:
         return self.get_subject()
