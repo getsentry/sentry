@@ -12,6 +12,7 @@ import MenuListItem, {
   MenuListItemProps,
 } from 'sentry/components/menuListItem';
 import {IconChevron} from 'sentry/icons';
+import usePrevious from 'sentry/utils/usePrevious';
 
 export type MenuItemProps = MenuListItemProps & {
   /**
@@ -129,27 +130,28 @@ const MenuItem = ({
   // Open submenu on hover
   const [isHovering, setIsHovering] = useState(false);
   const {hoverProps} = useHover({onHoverChange: setIsHovering});
+  const prevIsHovering = usePrevious(isHovering);
+  const prevIsFocused = usePrevious(isFocused);
   useEffect(() => {
-    if (isHovering && isFocused) {
-      // We need to redeclare `select` & `clearSelection` as new constants. Otherwise
-      // eslint will throw a react-hooks/exhaustive-deps warning requiring that the entire
-      // state (`state.selectionManager`) be listed in the deps array.
-      const select = state.selectionManager.select;
-      const clearSelection = state.selectionManager.clearSelection;
+    if (isHovering === prevIsHovering && isFocused === prevIsFocused) {
+      return;
+    }
 
+    if (isHovering && isFocused) {
       if (isSubmenuTrigger) {
-        select(node.key);
+        state.selectionManager.select(node.key);
         return;
       }
-      clearSelection();
+      state.selectionManager.clearSelection();
     }
   }, [
     isHovering,
     isFocused,
+    prevIsHovering,
+    prevIsFocused,
     isSubmenuTrigger,
     node.key,
-    state.selectionManager.select,
-    state.selectionManager.clearSelection,
+    state.selectionManager,
   ]);
 
   // Open submenu on arrow right key press
