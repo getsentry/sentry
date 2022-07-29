@@ -25,6 +25,7 @@ from sentry.notifications.utils import (
 )
 from sentry.notifications.utils.participants import get_owners
 from sentry.plugins.base import Notification
+from sentry.rules import EventState
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.types.releaseactivity import ReleaseActivityType
 from sentry.utils import metrics
@@ -40,6 +41,7 @@ class ActiveReleaseIssueNotification(AlertRuleNotification):
     def __init__(
         self,
         notification: Notification,
+        event_state: EventState,
         target_type: ActionTargetType,
         target_identifier: int | None = None,
         last_release: Optional[Release] = None,
@@ -52,6 +54,7 @@ class ActiveReleaseIssueNotification(AlertRuleNotification):
             if last_release
             else ActiveReleaseEventCondition.latest_release(notification.event)
         )
+        self.event_state = event_state
 
     def get_notification_title(self, context: Mapping[str, Any] | None = None) -> str:
         return "Active Release alert triggered"
@@ -127,7 +130,9 @@ class ActiveReleaseIssueNotification(AlertRuleNotification):
             "environment": environment,
             "slack_link": get_integration_link(self.organization, "slack"),
             "has_alert_integration": has_alert_integration(self.project),
-            "regression": False,
+            "regression": self.event_state.is_regression
+            if self.event_state and self.event_state.is_regression
+            else False,
         }
 
         # if the organization has enabled enhanced privacy controls we don't send

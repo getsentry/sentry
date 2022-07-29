@@ -47,6 +47,7 @@ from sentry.notifications.utils.digest import get_digest_subject
 from sentry.ownership import grammar
 from sentry.ownership.grammar import Matcher, Owner, dump_schema
 from sentry.plugins.base import Notification
+from sentry.rules import EventState
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.types.activity import ActivityType
@@ -126,7 +127,15 @@ class MailAdapterActiveReleaseTest(BaseMailAdapterTest):
 
         mail.outbox = []
         with self.tasks(), self.feature("organizations:active-release-monitor-alpha"):
-            self.adapter.notify_active_release(Notification(event=event))
+            self.adapter.notify_active_release(
+                Notification(event=event),
+                EventState(
+                    is_new=True,
+                    is_regression=False,
+                    is_new_group_environment=False,
+                    has_reappeared=False,
+                ),
+            )
 
         assert len(mail.outbox) == 1
         to_committer = mail.outbox[0]
