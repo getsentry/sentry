@@ -1,13 +1,12 @@
-import type {DebugImage} from 'sentry/components/events/interfaces/debugMeta-v2/types';
 import type {TraceContextType} from 'sentry/components/events/interfaces/spans/types';
 import type {SymbolicatorStatus} from 'sentry/components/events/interfaces/types';
 import type {PlatformKey} from 'sentry/data/platformCategories';
 
 import type {RawCrumb} from './breadcrumbs';
+import type {Image} from './debugImage';
 import type {IssueAttachment} from './group';
 import type {Release} from './release';
 import type {RawStacktrace, StackTraceMechanism, StacktraceType} from './stacktrace';
-
 // TODO(epurkhiser): objc and cocoa should almost definitely be moved into PlatformKey
 export type PlatformType = PlatformKey | 'objc' | 'cocoa';
 
@@ -215,7 +214,7 @@ export enum EntryType {
 
 type EntryDebugMeta = {
   data: {
-    images: Array<DebugImage>;
+    images: Array<Image | null>;
   };
   type: EntryType.DEBUGMETA;
 };

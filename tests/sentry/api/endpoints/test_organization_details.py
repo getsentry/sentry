@@ -66,6 +66,27 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         assert len(response.data["teams"]) == 0
         assert len(response.data["projects"]) == 0
 
+    def test_simple_customer_domain(self):
+        HTTP_HOST = f"{self.organization.slug}.testserver"
+        response = self.get_success_response(
+            self.organization.slug, extra_headers={"HTTP_HOST": HTTP_HOST}
+        )
+
+        assert response.data["slug"] == self.organization.slug
+        assert response.data["organizationUrl"] == f"http://{self.organization.slug}.us.testserver"
+        assert response.data["onboardingTasks"] == []
+        assert response.data["id"] == str(self.organization.id)
+        assert response.data["role"] == "owner"
+        assert response.data["orgRole"] == "owner"
+        assert len(response.data["teams"]) == 0
+        assert len(response.data["projects"]) == 0
+
+    def test_org_mismatch_customer_domain(self):
+        HTTP_HOST = f"{self.organization.slug}-apples.testserver"
+        self.get_error_response(
+            self.organization.slug, status_code=404, extra_headers={"HTTP_HOST": HTTP_HOST}
+        )
+
     def test_with_projects(self):
         # Create non-member team to test response shape
         self.create_team(name="no-member", organization=self.organization)
