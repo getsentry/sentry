@@ -4,11 +4,11 @@ import styled from '@emotion/styled';
 import {FeatureFeedback} from 'sentry/components/featureFeedback';
 import * as Layout from 'sentry/components/layouts/thirds';
 import DetailsPageBreadcrumbs from 'sentry/components/replays/header/detailsPageBreadcrumbs';
+import {CrumbWalker} from 'sentry/components/replays/walker/urlWalker';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import space from 'sentry/styles/space';
 import type {Crumb} from 'sentry/types/breadcrumbs';
 import type {EventTransaction} from 'sentry/types/event';
-import getUrlPathname from 'sentry/utils/getUrlPathname';
 import EventMetaData, {
   HeaderPlaceholder,
 } from 'sentry/views/replays/detail/eventMetaData';
@@ -18,15 +18,12 @@ type Props = {
   children: ReactNode;
   orgId: string;
   crumbs?: Crumb[];
-  duration?: number;
+  durationMS?: number;
   event?: EventTransaction;
 };
 
-function Page({children, crumbs, duration, event, orgId}: Props) {
+function Page({children, crumbs, durationMS, event, orgId}: Props) {
   const title = event ? `${event.id} - Replays - ${orgId}` : `Replays - ${orgId}`;
-
-  const urlTag = event?.tags?.find(({key}) => key === 'url');
-  const pathname = getUrlPathname(urlTag?.value ?? '') ?? '';
 
   const header = (
     <Header>
@@ -37,9 +34,15 @@ function Page({children, crumbs, duration, event, orgId}: Props) {
         <FeatureFeedback featureName="replay" buttonProps={{size: 'xs'}} />
         <ChooseLayout />
       </ButtonActionsWrapper>
-      <SubHeading>{pathname || <HeaderPlaceholder />}</SubHeading>
+
+      {event && crumbs ? (
+        <CrumbWalker event={event} crumbs={crumbs} />
+      ) : (
+        <HeaderPlaceholder />
+      )}
+
       <MetaDataColumn>
-        <EventMetaData crumbs={crumbs} duration={duration} event={event} />
+        <EventMetaData crumbs={crumbs} durationMS={durationMS} event={event} />
       </MetaDataColumn>
     </Header>
   );
@@ -70,14 +73,6 @@ const ButtonActionsWrapper = styled(Layout.HeaderActions)`
   grid-template-columns: repeat(2, max-content);
   justify-content: flex-end;
   gap: ${space(1)};
-`;
-
-const SubHeading = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
-  line-height: ${p => p.theme.text.lineHeightBody};
-  color: ${p => p.theme.subText};
-  align-self: end;
-  ${p => p.theme.overflowEllipsis};
 `;
 
 const MetaDataColumn = styled(Layout.HeaderActions)`

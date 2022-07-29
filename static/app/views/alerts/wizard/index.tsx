@@ -87,8 +87,6 @@ class AlertWizard extends Component<Props, State> {
     const isMetricAlert = !!metricRuleTemplate;
     const isTransactionDataset = metricRuleTemplate?.dataset === Dataset.TRANSACTIONS;
 
-    const hasAlertWizardV3 = organization.features.includes('alert-wizard-v3');
-
     if (
       organization.features.includes('alert-crash-free-metrics') &&
       metricRuleTemplate?.dataset === Dataset.SESSIONS
@@ -99,25 +97,16 @@ class AlertWizard extends Component<Props, State> {
     const supportedPreset = PRESET_AGGREGATES.filter(
       agg => agg.alertType === alertOption
     )[0];
-    const to = hasAlertWizardV3
-      ? {
-          pathname: `/organizations/${organization.slug}/alerts/new/${
-            isMetricAlert ? AlertRuleType.METRIC : AlertRuleType.ISSUE
-          }/`,
-          query: {
-            ...(metricRuleTemplate ? metricRuleTemplate : {}),
-            project: projectId,
-            referrer: location?.query?.referrer,
-          },
-        }
-      : {
-          pathname: `/organizations/${organization.slug}/alerts/${projectId}/new/`,
-          query: {
-            ...(metricRuleTemplate ? metricRuleTemplate : {}),
-            createFromWizard: true,
-            referrer: location?.query?.referrer,
-          },
-        };
+    const to = {
+      pathname: `/organizations/${organization.slug}/alerts/new/${
+        isMetricAlert ? AlertRuleType.METRIC : AlertRuleType.ISSUE
+      }/`,
+      query: {
+        ...(metricRuleTemplate ? metricRuleTemplate : {}),
+        project: projectId,
+        referrer: location?.query?.referrer,
+      },
+    };
 
     const renderNoAccess = p => (
       <Hovercard
