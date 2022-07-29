@@ -69,7 +69,7 @@ export default function getConfiguration({
         },
         {
           path: `${pathPrefix}/server-side-sampling/`,
-          title: t('Server-side Sampling'),
+          title: t('Server-Side Sampling'),
           show: () => !!organization?.features?.includes('server-side-sampling'),
           description: t(
             "Per-Project basis solution to configure sampling rules within Sentry's UI"

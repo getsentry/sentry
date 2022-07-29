@@ -9,19 +9,20 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import space from 'sentry/styles/space';
 import type {Crumb} from 'sentry/types/breadcrumbs';
 import type {EventTransaction} from 'sentry/types/event';
+import EventMetaData, {
+  HeaderPlaceholder,
+} from 'sentry/views/replays/detail/eventMetaData';
 import ChooseLayout from 'sentry/views/replays/detail/layout/chooseLayout';
-
-import EventMetaData, {HeaderPlaceholder} from './eventMetaData';
 
 type Props = {
   children: ReactNode;
   orgId: string;
   crumbs?: Crumb[];
-  duration?: number;
+  durationMS?: number;
   event?: EventTransaction;
 };
 
-function Page({children, crumbs, duration, event, orgId}: Props) {
+function Page({children, crumbs, durationMS, event, orgId}: Props) {
   const title = event ? `${event.id} - Replays - ${orgId}` : `Replays - ${orgId}`;
 
   const header = (
@@ -41,7 +42,7 @@ function Page({children, crumbs, duration, event, orgId}: Props) {
       )}
 
       <MetaDataColumn>
-        <EventMetaData crumbs={crumbs} duration={duration} event={event} />
+        <EventMetaData crumbs={crumbs} durationMS={durationMS} event={event} />
       </MetaDataColumn>
     </Header>
   );

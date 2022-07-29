@@ -128,6 +128,10 @@ type EventsRequestPartialProps = {
    */
   currentSeriesNames?: string[];
   /**
+   * Optional callback to further process raw events request response data
+   */
+  dataLoadedCallback?: (any: EventsStats | MultiSeriesEventsStats | null) => void;
+  /**
    * List of environments to query
    */
   environment?: Readonly<string[]>;
@@ -164,10 +168,6 @@ type EventsRequestPartialProps = {
    */
   orderby?: string;
   previousSeriesNames?: string[];
-  /**
-   * Optional callback to further process events request response data
-   */
-  processDataCallback?: (any) => void;
   /**
    * List of project ids to query
    */
@@ -330,6 +330,9 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
       timeseriesData,
       fetchedWithPrevious: props.includePrevious,
     });
+    if (props.dataLoadedCallback) {
+      props.dataLoadedCallback(timeseriesData);
+    }
   };
 
   /**
@@ -447,7 +450,6 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
       currentSeriesNames,
       previousSeriesNames,
       comparisonDelta,
-      processDataCallback,
     } = this.props;
     const {current, previous} = this.getData(data);
     const transformedData = includeTransformedData
@@ -497,10 +499,6 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
       timeAggregatedData,
       timeframe,
     };
-
-    if (processDataCallback) {
-      processDataCallback(processedData);
-    }
 
     return processedData;
   }
