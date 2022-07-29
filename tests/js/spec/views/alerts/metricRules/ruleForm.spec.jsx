@@ -19,9 +19,7 @@ jest.mock('sentry/utils/analytics', () => ({
 }));
 
 describe('Incident Rules Form', () => {
-  const {organization, project, routerContext} = initializeOrg({
-    organization: {features: ['metric-alert-threshold-period', 'change-alerts']},
-  });
+  let organization, project, routerContext;
   const createWrapper = props =>
     render(
       <RuleFormContainer
@@ -34,7 +32,12 @@ describe('Incident Rules Form', () => {
     );
 
   beforeEach(() => {
-    MockApiClient.clearMockResponses();
+    const initialData = initializeOrg({
+      organization: {features: ['metric-alert-threshold-period', 'change-alerts']},
+    });
+    organization = initialData.organization;
+    project = initialData.project;
+    routerContext = initialData.routerContext;
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/',
       body: [],
@@ -49,7 +52,9 @@ describe('Incident Rules Form', () => {
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
-      body: TestStubs.EventsStats(),
+      body: TestStubs.EventsStats({
+        isMetricsData: true,
+      }),
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-meta/',
@@ -68,6 +73,11 @@ describe('Incident Rules Form', () => {
     });
   });
 
+  afterEach(() => {
+    MockApiClient.clearMockResponses();
+    jest.clearAllMocks();
+  });
+
   describe('Creating a new rule', () => {
     let createRule;
     beforeEach(() => {
@@ -75,7 +85,6 @@ describe('Incident Rules Form', () => {
         url: '/projects/org-slug/project-slug/alert-rules/',
         method: 'POST',
       });
-      metric.startTransaction.mockClear();
     });
 
     /**
@@ -92,13 +101,10 @@ describe('Incident Rules Form', () => {
       });
 
       // Clear field
-      userEvent.clear(screen.getByPlaceholderText('Something really bad happened'));
+      userEvent.clear(screen.getByPlaceholderText('Enter Alert Name'));
 
       // Enter in name so we can submit
-      userEvent.type(
-        screen.getByPlaceholderText('Something really bad happened'),
-        'Incident Rule'
-      );
+      userEvent.paste(screen.getByPlaceholderText('Enter Alert Name'), 'Incident Rule');
 
       // Set thresholdPeriod
       await selectEvent.select(screen.getAllByText('For 1 minute')[0], 'For 10 minutes');
@@ -117,6 +123,42 @@ describe('Incident Rules Form', () => {
         })
       );
       expect(metric.startTransaction).toHaveBeenCalledWith({name: 'saveAlertRule'});
+    });
+
+    it('creates a rule with generic_metrics dataset', async () => {
+      organization.features = [...organization.features, 'metrics-performance-alerts'];
+      const rule = TestStubs.MetricRule();
+      createWrapper({
+        rule: {
+          ...rule,
+          id: undefined,
+          aggregate: 'count()',
+          eventTypes: ['transaction'],
+          dataset: 'transactions',
+        },
+      });
+
+      await waitFor(() =>
+        expect(screen.getByTestId('alert-total-events')).toHaveTextContent(
+          'Total Events5'
+        )
+      );
+
+      userEvent.click(screen.getByLabelText('Save Rule'));
+
+      expect(createRule).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            name: 'My Incident Rule',
+            projects: ['project-slug'],
+            aggregate: 'count()',
+            eventTypes: ['transaction'],
+            dataset: 'generic_metrics',
+            thresholdPeriod: 1,
+          }),
+        })
+      );
     });
   });
 
@@ -149,12 +191,9 @@ describe('Incident Rules Form', () => {
       });
 
       // Clear field
-      userEvent.clear(screen.getByPlaceholderText('Something really bad happened'));
+      userEvent.clear(screen.getByPlaceholderText('Enter Alert Name'));
 
-      userEvent.type(
-        screen.getByPlaceholderText('Something really bad happened'),
-        'new name'
-      );
+      userEvent.paste(screen.getByPlaceholderText('Enter Alert Name'), 'new name');
 
       userEvent.click(screen.getByLabelText('Save Rule'));
 
@@ -180,11 +219,12 @@ describe('Incident Rules Form', () => {
         },
       });
 
-      expect(screen.getByLabelText('Select Percent Change')).toBeInTheDocument();
-      expect(screen.getByLabelText('Select Percent Change')).toBeChecked();
+      expect(screen.getByLabelText('Static: above or below {x}')).not.toBeChecked();
+      userEvent.click(screen.getByText('Static: above or below {x}'));
 
-      userEvent.click(screen.getByLabelText('Select Count'));
-      await waitFor(() => expect(screen.getByLabelText('Select Count')).toBeChecked());
+      await waitFor(() =>
+        expect(screen.getByLabelText('Static: above or below {x}')).toBeChecked()
+      );
 
       userEvent.click(screen.getByLabelText('Save Rule'));
 
@@ -235,8 +275,8 @@ describe('Incident Rules Form', () => {
         onSubmitSuccess,
       });
 
-      userEvent.type(
-        screen.getByPlaceholderText('Something really bad happened'),
+      userEvent.paste(
+        screen.getByPlaceholderText('Enter Alert Name'),
         'Slack Alert Rule'
       );
       userEvent.click(screen.getByLabelText('Save Rule'));
@@ -306,8 +346,8 @@ describe('Incident Rules Form', () => {
         rule: alertRule,
         onSubmitSuccess,
       });
-      userEvent.type(
-        screen.getByPlaceholderText('Something really bad happened'),
+      userEvent.paste(
+        screen.getByPlaceholderText('Enter Alert Name'),
         'Slack Alert Rule'
       );
       userEvent.click(screen.getByLabelText('Save Rule'));

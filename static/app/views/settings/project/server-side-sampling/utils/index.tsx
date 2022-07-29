@@ -14,8 +14,6 @@ export function getInnerNameLabel(name: SamplingInnerName | string) {
       return t('Environment');
     case SamplingInnerName.TRACE_RELEASE:
       return t('Release');
-    case SamplingInnerName.TRACE_USER_SEGMENT:
-      return t('User Segment');
     default:
       return '';
   }
