@@ -63,16 +63,19 @@ class OrganizationMemberManager(BaseManager):
 
     def delete_expired(self, threshold: int) -> None:
         """Delete un-accepted member invitations that expired `threshold` days ago."""
-        auth_provider_query = AuthProvider.objects.filter(
-            organization_id=self.get().organization.id
-        )
-        # early return if SCIM is enabled, let SCIM control creation, modification, and deletion of users
-        if auth_provider_query.exists() and bool(auth_provider_query[0].flags.scim_enabled):
-            return
+
+        # if SCIM is enabled, let SCIM control creation, modification, and deletion of users
+        orgs_without_scim = [
+            org_id
+            for org_id in AuthProvider.objects.exclude(flags__gt=1).values_list(
+                "organization_id", flat=True
+            )
+        ]
 
         self.filter(
             token_expires_at__lt=threshold,
             user_id__exact=None,
+            organization_id__in=orgs_without_scim,
         ).exclude(email__exact=None).delete()
 
     def get_for_integration(self, integration: Integration, actor: User) -> QuerySet:

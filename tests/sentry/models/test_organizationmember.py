@@ -143,8 +143,16 @@ class OrganizationMemberTest(TestCase):
 
     def test_delete_expired_SCIM_enabled(self):
         organization = self.create_organization()
+        org2 = self.create_organization()
+        org3 = self.create_organization()
         AuthProvider.objects.create(
             provider="saml2", organization=organization, flags=AuthProvider.flags["scim_enabled"]
+        )
+        AuthProvider.objects.create(
+            provider="saml2", organization=org3, flags=AuthProvider.flags["allow_unlinked"]
+        )
+        AuthProvider.objects.create(
+            provider="okta", organization=org2, flags=AuthProvider.flags["scim_enabled"]
         )
         ninety_one_days = timezone.now() - timedelta(days=91)
         member = OrganizationMember.objects.create(
