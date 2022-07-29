@@ -52,7 +52,9 @@ export function EmbeddedSpanTree(props: Props) {
             }
 
             if (!results.currentEvent) {
-              return <LoadingError />;
+              return (
+                <LoadingError message="Error loading the span tree because the root transaction is missing." />
+              );
             }
 
             return (
@@ -69,7 +71,9 @@ export function EmbeddedSpanTree(props: Props) {
                   }
 
                   if (!_results.tableData) {
-                    return <LoadingError />;
+                    return (
+                      <LoadingError message="Error loading the span tree because the root transaction is missing." />
+                    );
                   }
 
                   return (
