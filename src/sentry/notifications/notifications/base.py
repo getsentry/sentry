@@ -64,24 +64,6 @@ class BaseNotification(abc.ABC):
         """
         raise NotImplementedError
 
-    @property
-    def url_format(self) -> str:
-        """
-        The URL format used when embedding links in text.
-        Slack notifications should set this to `<{url}|{text}>`.
-        Microsoft Teams notifications should set this to `[text](url)`.
-        """
-        if not getattr(self, "_url_format", None):
-            raise AttributeError(
-                f"'url_format' not set on {self.__class__.__name__}. Please set 'url_format' from the message builder."
-            )
-
-        return self._url_format
-
-    @url_format.setter
-    def url_format(self, url_format: str) -> None:
-        self._url_format = url_format
-
     def format_url(self, provider: ExternalProviders, text: str, url: str) -> str:
         """
         Format URLs according to the provider options.
