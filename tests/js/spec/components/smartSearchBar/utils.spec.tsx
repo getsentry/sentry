@@ -215,7 +215,7 @@ describe('getTagItemsFromKeys()', function () {
         name: 'Device Family',
       },
     };
-    const tagKeys = Object.keys(supportedTags);
+    const tagKeys = Object.keys(supportedTags).sort((a, b) => a.localeCompare(b));
 
     const items = getTagItemsFromKeys(tagKeys, supportedTags);
 
