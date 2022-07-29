@@ -46,7 +46,7 @@ function Breadcrumbs({}: Props) {
   const crumbListContainerRef = useRef<HTMLDivElement>(null);
   useCurrentItemScroller(crumbListContainerRef);
 
-  const startTimestampMS = replayRecord?.started_at.getTime() || 0;
+  const startTimestampMs = replayRecord?.started_at.getTime() || 0;
 
   const isLoaded = Boolean(replayRecord);
 
@@ -55,7 +55,7 @@ function Breadcrumbs({}: Props) {
 
   const currentUserAction = getPrevBreadcrumb({
     crumbs,
-    targetTimestampMs: startTimestampMS + currentTime,
+    targetTimestampMs: startTimestampMs + currentTime,
     allowExact: true,
   });
 
@@ -63,15 +63,15 @@ function Breadcrumbs({}: Props) {
     currentHoverTime !== undefined
       ? getPrevBreadcrumb({
           crumbs,
-          targetTimestampMs: startTimestampMS + (currentHoverTime ?? 0),
+          targetTimestampMs: startTimestampMs + (currentHoverTime ?? 0),
           allowExact: true,
         })
       : undefined;
 
   const handleMouseEnter = useCallback(
     (item: Crumb) => {
-      if (startTimestampMS) {
-        setCurrentHoverTime(relativeTimeInMs(item.timestamp ?? '', startTimestampMS));
+      if (startTimestampMs) {
+        setCurrentHoverTime(relativeTimeInMs(item.timestamp ?? '', startTimestampMs));
       }
 
       if (item.data && 'nodeId' in item.data) {
@@ -81,7 +81,7 @@ function Breadcrumbs({}: Props) {
         highlight({nodeId: item.data.nodeId, annotation: item.data.label});
       }
     },
-    [setCurrentHoverTime, startTimestampMS, highlight, clearAllHighlights]
+    [setCurrentHoverTime, startTimestampMs, highlight, clearAllHighlights]
   );
 
   const handleMouseLeave = useCallback(
@@ -98,10 +98,10 @@ function Breadcrumbs({}: Props) {
   const handleClick = useCallback(
     (crumb: Crumb) => {
       crumb.timestamp !== undefined
-        ? setCurrentTime(relativeTimeInMs(crumb.timestamp, startTimestampMS))
+        ? setCurrentTime(relativeTimeInMs(crumb.timestamp, startTimestampMs))
         : null;
     },
-    [setCurrentTime, startTimestampMS]
+    [setCurrentTime, startTimestampMs]
   );
 
   const content = isLoaded ? (
@@ -110,7 +110,7 @@ function Breadcrumbs({}: Props) {
         <BreadcrumbItem
           key={crumb.id}
           crumb={crumb}
-          startTimestampMS={startTimestampMS}
+          startTimestampMs={startTimestampMs}
           isHovered={closestUserAction?.id === crumb.id}
           isSelected={currentUserAction?.id === crumb.id}
           onMouseEnter={handleMouseEnter}

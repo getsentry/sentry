@@ -5,12 +5,12 @@ import {showPlayerTime} from 'sentry/components/replays/utils';
 import Tooltip from 'sentry/components/tooltip';
 
 type Props = {
-  relativeTimeMS: number | undefined;
+  relativeTimeMs: number | undefined;
   timestamp: string | undefined;
 };
 
-const PlayerRelativeTime = ({relativeTimeMS, timestamp}: Props) => {
-  if (!timestamp || !relativeTimeMS) {
+const PlayerRelativeTime = ({relativeTimeMs, timestamp}: Props) => {
+  if (!timestamp || !relativeTimeMs) {
     return <div />;
   }
 
@@ -23,7 +23,7 @@ const PlayerRelativeTime = ({relativeTimeMS, timestamp}: Props) => {
       underlineColor="gray300"
       showUnderline
     >
-      <Value>{showPlayerTime(timestamp, relativeTimeMS)}</Value>
+      <Value>{showPlayerTime(timestamp, relativeTimeMs)}</Value>
     </Tooltip>
   );
 };

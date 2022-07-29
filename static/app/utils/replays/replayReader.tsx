@@ -54,7 +54,7 @@ export default class ReplayReader {
     rrwebEvents,
     spans,
   }: RequiredNotNull<ReplayReaderParams>) {
-    const {startTimestampMS, endTimestampMS} = replayTimestamps(
+    const {startTimestampMs, endTimestampMs} = replayTimestamps(
       rrwebEvents,
       breadcrumbs,
       spans
@@ -62,7 +62,7 @@ export default class ReplayReader {
 
     this.spans = spansFactory(spans);
     this.breadcrumbs = breadcrumbFactory(
-      startTimestampMS,
+      startTimestampMs,
       event,
       errors,
       breadcrumbs,
@@ -70,15 +70,15 @@ export default class ReplayReader {
     );
 
     this.rrwebEvents = rrwebEventListFactory(
-      startTimestampMS,
-      endTimestampMS,
+      startTimestampMs,
+      endTimestampMs,
       rrwebEvents
     );
 
     this.event = {
       ...event,
-      startTimestamp: startTimestampMS / 1000,
-      endTimestamp: endTimestampMS / 1000,
+      startTimestamp: startTimestampMs / 1000,
+      endTimestamp: endTimestampMs / 1000,
     } as EventTransaction;
 
     const urls = (
@@ -96,9 +96,9 @@ export default class ReplayReader {
       count_segments: 0,
       count_urls: urls.length,
       dist: this.event.dist,
-      duration: this.getDurationMS(),
+      duration: this.getDurationMs(),
       environment: null,
-      finished_at: new Date(endTimestampMS),
+      finished_at: new Date(endTimestampMs),
       ip_address_v4: this.event.user?.ip_address,
       ip_address_v6: null,
       longest_transaction: 0,
@@ -109,7 +109,7 @@ export default class ReplayReader {
       replay_id: this.event.id,
       sdk_name: this.event.sdk?.name,
       sdk_version: this.event.sdk?.version,
-      started_at: new Date(startTimestampMS),
+      started_at: new Date(startTimestampMs),
       tags: this.event.tags.reduce((tags, {key, value}) => {
         tags[key] = value;
         return tags;
@@ -139,8 +139,10 @@ export default class ReplayReader {
   /**
    * @returns Duration of Replay (milliseonds)
    */
-  getDurationMS = () => {
-    return (this.event.endTimestamp - this.event.startTimestamp) * 1000;
+  getDurationMs = () => {
+    const startTimestampMs = this.replayRecord.started_at.getTime();
+    const endTimestampMs = this.replayRecord.finished_at.getTime();
+    return endTimestampMs - startTimestampMs;
   };
 
   getReplay = () => {

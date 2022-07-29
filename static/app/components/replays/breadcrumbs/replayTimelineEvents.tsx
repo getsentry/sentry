@@ -16,8 +16,8 @@ const EVENT_STICK_MARKER_WIDTH = 4;
 
 type Props = {
   crumbs: Crumb[];
-  durationMS: number;
-  startTimestampMS: number;
+  durationMs: number;
+  startTimestampMs: number;
   width: number;
   className?: string;
 };
@@ -25,14 +25,14 @@ type Props = {
 function ReplayTimelineEvents({
   className,
   crumbs,
-  durationMS,
-  startTimestampMS,
+  durationMs,
+  startTimestampMs,
   width,
 }: Props) {
   const totalColumns = Math.floor(width / EVENT_STICK_MARKER_WIDTH);
   const eventsByCol = getCrumbsByColumn(
-    startTimestampMS,
-    durationMS,
+    startTimestampMs,
+    durationMs,
     crumbs,
     totalColumns
   );
@@ -41,7 +41,7 @@ function ReplayTimelineEvents({
     <Timeline.Columns className={className} totalColumns={totalColumns} remainder={0}>
       {Array.from(eventsByCol.entries()).map(([column, breadcrumbs]) => (
         <EventColumn key={column} column={column}>
-          <Event crumbs={breadcrumbs} startTimestampMS={startTimestampMS} />
+          <Event crumbs={breadcrumbs} startTimestampMs={startTimestampMs} />
         </EventColumn>
       ))}
     </Timeline.Columns>
@@ -60,10 +60,10 @@ const EventColumn = styled(Timeline.Col)<{column: number}>`
 
 function Event({
   crumbs,
-  startTimestampMS,
+  startTimestampMs,
 }: {
   crumbs: Crumb[];
-  startTimestampMS: number;
+  startTimestampMs: number;
   className?: string;
 }) {
   const {setCurrentTime} = useReplayContext();
@@ -71,17 +71,17 @@ function Event({
   const handleClick = useCallback(
     (crumb: Crumb) => {
       crumb.timestamp !== undefined
-        ? setCurrentTime(relativeTimeInMs(crumb.timestamp, startTimestampMS))
+        ? setCurrentTime(relativeTimeInMs(crumb.timestamp, startTimestampMs))
         : null;
     },
-    [setCurrentTime, startTimestampMS]
+    [setCurrentTime, startTimestampMs]
   );
 
   const title = crumbs.map(crumb => (
     <BreadcrumbItem
       key={crumb.id}
       crumb={crumb}
-      startTimestampMS={startTimestampMS}
+      startTimestampMs={startTimestampMs}
       isHovered={false}
       isSelected={false}
       onClick={handleClick}

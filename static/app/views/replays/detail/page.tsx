@@ -18,11 +18,11 @@ type Props = {
   children: ReactNode;
   orgId: string;
   crumbs?: Crumb[];
-  durationMS?: number;
+  durationMs?: number;
   replayRecord?: ReplayRecord;
 };
 
-function Page({children, crumbs, durationMS, orgId, replayRecord}: Props) {
+function Page({children, crumbs, durationMs, orgId, replayRecord}: Props) {
   const title = replayRecord
     ? `${replayRecord.replay_id} - Replays - ${orgId}`
     : `Replays - ${orgId}`;
@@ -46,7 +46,7 @@ function Page({children, crumbs, durationMS, orgId, replayRecord}: Props) {
       <MetaDataColumn>
         <EventMetaData
           crumbs={crumbs}
-          durationMS={durationMS}
+          durationMs={durationMs}
           replayRecord={replayRecord}
         />
       </MetaDataColumn>

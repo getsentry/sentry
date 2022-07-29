@@ -115,14 +115,14 @@ interface ConsoleMessageProps extends MessageFormatterProps {
   hasOccurred: boolean;
   isActive: boolean;
   isLast: boolean;
-  startTimestampMS: number;
+  startTimestampMs: number;
 }
 function ConsoleMessage({
   breadcrumb,
   isActive = false,
   hasOccurred,
   isLast,
-  startTimestampMS = 0,
+  startTimestampMs = 0,
 }: ConsoleMessageProps) {
   const ICONS = {
     error: <IconClose isCircled size="xs" />,
@@ -131,7 +131,7 @@ function ConsoleMessage({
 
   const {setCurrentTime, setCurrentHoverTime} = useReplayContext();
 
-  const diff = relativeTimeInMs(breadcrumb.timestamp || '', startTimestampMS);
+  const diff = relativeTimeInMs(breadcrumb.timestamp || '', startTimestampMs);
   const handleOnClick = () => setCurrentTime(diff);
   const handleOnMouseOver = () => setCurrentHoverTime(diff);
   const handleOnMouseOut = () => setCurrentHoverTime(undefined);
@@ -162,7 +162,7 @@ function ConsoleMessage({
             onMouseOver={handleOnMouseOver}
             onMouseOut={handleOnMouseOut}
           >
-            {showPlayerTime(breadcrumb.timestamp || '', startTimestampMS)}
+            {showPlayerTime(breadcrumb.timestamp || '', startTimestampMs)}
           </div>
         </Tooltip>
       </ConsoleTimestamp>

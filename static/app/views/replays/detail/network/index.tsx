@@ -21,7 +21,7 @@ type Props = {
 };
 
 function NetworkList({replayRecord, networkSpans}: Props) {
-  const startTimestampMS = replayRecord.started_at.getTime();
+  const startTimestampMs = replayRecord.started_at.getTime();
   const [sortConfig, setSortConfig] = useState<ISortConfig>({
     by: 'startTimestamp',
     asc: true,
@@ -100,7 +100,7 @@ function NetworkList({replayRecord, networkSpans}: Props) {
         <Item numeric>
           {`${(networkEndTimestamp - networkStartTimestamp).toFixed(2)}ms`}
         </Item>
-        <Item numeric>{showPlayerTime(networkStartTimestamp, startTimestampMS)}</Item>
+        <Item numeric>{showPlayerTime(networkStartTimestamp, startTimestampMs)}</Item>
       </Fragment>
     );
   };

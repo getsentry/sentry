@@ -20,7 +20,7 @@ type Props = {
 function DomMutations({replay}: Props) {
   const {isLoading, actions} = useExtractedCrumbHtml({replay});
 
-  const startTimestampMS = replay.getReplay().started_at.getTime();
+  const startTimestampMs = replay.getReplay().started_at.getTime();
 
   return (
     <Fragment>
@@ -55,7 +55,7 @@ function DomMutations({replay}: Props) {
 
             <Column>
               <PlayerRelativeTime
-                relativeTimeMS={startTimestampMS}
+                relativeTimeMs={startTimestampMs}
                 timestamp={mutation.crumb.timestamp}
               />
               {}

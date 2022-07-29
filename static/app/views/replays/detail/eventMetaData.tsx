@@ -14,11 +14,11 @@ import type {ReplayRecord} from 'sentry/views/replays/types';
 
 type Props = {
   crumbs: Crumb[] | undefined;
-  durationMS: number | undefined;
+  durationMs: number | undefined;
   replayRecord: ReplayRecord | undefined;
 };
 
-function EventMetaData({crumbs, durationMS, replayRecord}: Props) {
+function EventMetaData({crumbs, durationMs, replayRecord}: Props) {
   const {projects} = useProjects();
   const errors = crumbs?.filter(crumb => crumb.type === 'error').length;
 
@@ -48,11 +48,11 @@ function EventMetaData({crumbs, durationMS, replayRecord}: Props) {
         )}
       </KeyMetricData>
       <KeyMetricData>
-        {durationMS !== undefined ? (
+        {durationMs !== undefined ? (
           <React.Fragment>
             <IconClock color="gray300" />
             <Duration
-              seconds={Math.floor(msToSec(durationMS || 0)) || 1}
+              seconds={Math.floor(msToSec(durationMs || 0)) || 1}
               abbreviation
               exact
             />

@@ -41,7 +41,7 @@ function FocusArea({}: Props) {
   }
 
   const replayRecord = replay.getReplay();
-  const startTimestampMS = replayRecord.started_at.getTime();
+  const startTimestampMs = replayRecord.started_at.getTime();
 
   const getNetworkSpans = () => {
     return replay.getRawSpans().filter(replay.isNotMemorySpan);
@@ -56,7 +56,7 @@ function FocusArea({}: Props) {
       return (
         <Console
           breadcrumbs={consoleMessages ?? []}
-          startTimestampMS={replayRecord.started_at.getTime()}
+          startTimestampMs={replayRecord.started_at.getTime()}
         />
       );
     case 'network':
@@ -99,7 +99,7 @@ function FocusArea({}: Props) {
           memorySpans={memorySpans}
           setCurrentTime={setCurrentTime}
           setCurrentHoverTime={setCurrentHoverTime}
-          startTimestampMS={startTimestampMS}
+          startTimestampMs={startTimestampMs}
         />
       );
     default:

@@ -11,7 +11,7 @@ type Props = {
   /**
    * Duration, in milliseconds, of the timeline
    */
-  durationMS: number;
+  durationMs: number;
 
   /**
    * The spans to render into the timeline
@@ -21,7 +21,7 @@ type Props = {
   /**
    * Timestamp when the timeline begins, in milliseconds
    */
-  startTimestampMS: number;
+  startTimestampMs: number;
 
   /**
    * Extra classNames
@@ -29,15 +29,15 @@ type Props = {
   className?: string;
 };
 
-function ReplayTimelineEvents({className, durationMS, spans, startTimestampMS}: Props) {
+function ReplayTimelineEvents({className, durationMs, spans, startTimestampMs}: Props) {
   const flattenedSpans = flattenSpans(spans);
 
   return (
     <Spans className={className}>
       {flattenedSpans.map((span, i) => {
-        const sinceStart = span.startTimestamp - startTimestampMS;
-        const startPct = divide(sinceStart, durationMS);
-        const widthPct = divide(span.duration, durationMS);
+        const sinceStart = span.startTimestamp - startTimestampMs;
+        const startPct = divide(sinceStart, durationMs);
+        const widthPct = divide(span.duration, durationMs);
 
         const requestsCount = tn(
           '%s network request',

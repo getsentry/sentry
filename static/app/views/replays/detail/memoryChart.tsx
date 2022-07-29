@@ -21,7 +21,7 @@ interface Props {
   memorySpans: MemorySpanType[];
   setCurrentHoverTime: (time: undefined | number) => void;
   setCurrentTime: (time: number) => void;
-  startTimestampMS: number | undefined;
+  startTimestampMs: number | undefined;
 }
 
 interface MemoryChartProps extends Props {
@@ -34,7 +34,7 @@ const formatTimestamp = timestamp =>
 function MemoryChart({
   forwardedRef,
   memorySpans,
-  startTimestampMS = 0,
+  startTimestampMs = 0,
   setCurrentTime,
   setCurrentHoverTime,
 }: MemoryChartProps) {
@@ -83,7 +83,7 @@ function MemoryChart({
               moment(values[0].axisValue * 1000)
                 .toDate()
                 .toUTCString(),
-              startTimestampMS
+              startTimestampMs
             )}
           </div>`,
           '<div class="tooltip-arrow"></div>',
@@ -124,7 +124,7 @@ function MemoryChart({
     // with the "area" under the line.
     onMouseOver: ({data}) => {
       if (data[0]) {
-        setCurrentHoverTime(data[0] * 1000 - startTimestampMS);
+        setCurrentHoverTime(data[0] * 1000 - startTimestampMs);
       }
     },
     onMouseOut: () => {
@@ -132,7 +132,7 @@ function MemoryChart({
     },
     onClick: ({data}) => {
       if (data.value) {
-        setCurrentTime(data.value * 1000 - startTimestampMS);
+        setCurrentTime(data.value * 1000 - startTimestampMs);
       }
     },
   };
@@ -239,7 +239,7 @@ interface MemoryChartContainerProps extends Props {
 function MemoryChartContainer({
   currentTime,
   currentHoverTime,
-  startTimestampMS = 0,
+  startTimestampMs = 0,
   ...props
 }: MemoryChartContainerProps) {
   const chart = useRef<ReactEchartsRef>(null);
@@ -258,14 +258,14 @@ function MemoryChartContainer({
           markLine: {
             data: [
               {
-                xAxis: currentTime + startTimestampMS,
+                xAxis: currentTime + startTimestampMs,
               },
             ],
           },
         },
       ],
     });
-  }, [currentTime, startTimestampMS, theme]);
+  }, [currentTime, startTimestampMs, theme]);
 
   useEffect(() => {
     if (!chart.current) {
@@ -282,7 +282,7 @@ function MemoryChartContainer({
               ...(currentHoverTime
                 ? [
                     {
-                      xAxis: currentHoverTime + startTimestampMS,
+                      xAxis: currentHoverTime + startTimestampMs,
                     },
                   ]
                 : []),
@@ -291,10 +291,10 @@ function MemoryChartContainer({
         },
       ],
     });
-  }, [currentHoverTime, startTimestampMS, theme]);
+  }, [currentHoverTime, startTimestampMs, theme]);
 
   return (
-    <MemoizedMemoryChart ref={chart} startTimestampMS={startTimestampMS} {...props} />
+    <MemoizedMemoryChart ref={chart} startTimestampMs={startTimestampMs} {...props} />
   );
 }
 

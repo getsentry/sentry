@@ -24,15 +24,15 @@ type StringProps = {
 export const CrumbWalker = memo(function CrumbWalker({crumbs, replayRecord}: CrumbProps) {
   const {setCurrentTime} = useReplayContext();
 
-  const startTimestampMS = replayRecord.started_at.getTime();
+  const startTimestampMs = replayRecord.started_at.getTime();
 
   const handleClick = useCallback(
     (crumb: Crumb) => {
       crumb.timestamp !== undefined
-        ? setCurrentTime(relativeTimeInMs(crumb.timestamp, startTimestampMS))
+        ? setCurrentTime(relativeTimeInMs(crumb.timestamp, startTimestampMs))
         : null;
     },
-    [setCurrentTime, startTimestampMS]
+    [setCurrentTime, startTimestampMs]
   );
 
   const navCrumbs = crumbs.filter(
@@ -43,7 +43,7 @@ export const CrumbWalker = memo(function CrumbWalker({crumbs, replayRecord}: Cru
     <ChevronDividedList
       items={splitCrumbs({
         crumbs: navCrumbs,
-        startTimestampMS,
+        startTimestampMs,
         onClick: handleClick,
       })}
     />
@@ -55,7 +55,7 @@ export const StringWalker = memo(function StringWalker({urls}: StringProps) {
     <ChevronDividedList
       items={splitCrumbs({
         crumbs: urls.map(urlToCrumb),
-        startTimestampMS: 0,
+        startTimestampMs: 0,
         onClick: null,
       })}
     />
