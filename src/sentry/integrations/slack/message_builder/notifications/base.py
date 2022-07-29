@@ -9,7 +9,6 @@ from sentry.notifications.notifications.base import (
     BaseNotification,
     create_notification_with_properties,
 )
-from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 
 
@@ -22,7 +21,7 @@ class SlackNotificationsMessageBuilder(SlackMessageBuilder):
     ) -> None:
         super().__init__()
         self.notification = create_notification_with_properties(
-            notification, url_format=SLACK_URL_FORMAT, provider=ExternalProviders.SLACK
+            notification, url_format=SLACK_URL_FORMAT
         )
         self.context = context
         self.recipient = recipient

@@ -185,7 +185,8 @@ class ReleaseSummaryActivityNotification(ActivityNotification):
         return None
 
     def build_notification_footer(self, recipient: Team | User) -> str:
-        settings_url = self.get_settings_url(recipient)
+        # notification footer only used for Slack for now
+        settings_url = self.get_settings_url(recipient, ExternalProviders.SLACK)
 
         # no environment related to a deploy
         footer = ""
