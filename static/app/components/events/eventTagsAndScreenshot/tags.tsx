@@ -8,7 +8,7 @@ import space from 'sentry/styles/space';
 import type {Organization, Project} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
 
-import EventTags from '../eventTags/eventTags';
+import {EventTags} from '../eventTags';
 
 import DataSection from './dataSection';
 import TagsHighlight from './tagsHighlight';

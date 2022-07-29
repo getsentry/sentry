@@ -17,10 +17,10 @@ import {
   IconUser,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
 
 import {ItemType, SearchGroup, SearchItem, Shortcut, ShortcutType} from './types';
 import {Tag} from 'sentry/types';
+import {FieldKind, getFieldDefinition} from 'sentry/utils/fields';
 
 export function addSpace(query = '') {
   if (query.length !== 0 && query[query.length - 1] !== ' ') {
@@ -297,7 +297,7 @@ export const shortcuts: Shortcut[] = [
     text: 'Delete',
     shortcutType: ShortcutType.Delete,
     hotkeys: {
-      actual: 'option+backspace',
+      actual: 'ctrl+option+backspace',
     },
     icon: <IconDelete size="xs" color="gray300" />,
     canRunShortcut: token => {
@@ -308,7 +308,7 @@ export const shortcuts: Shortcut[] = [
     text: 'Exclude',
     shortcutType: ShortcutType.Negate,
     hotkeys: {
-      actual: 'option+1',
+      actual: 'ctrl+option+1',
     },
     icon: <IconExclamation size="xs" color="gray300" />,
     canRunShortcut: token => {
@@ -319,7 +319,7 @@ export const shortcuts: Shortcut[] = [
     text: 'Include',
     shortcutType: ShortcutType.Negate,
     hotkeys: {
-      actual: 'option+1',
+      actual: 'ctrl+option+1',
     },
     icon: <IconExclamation size="xs" color="gray300" />,
     canRunShortcut: token => {
@@ -331,7 +331,7 @@ export const shortcuts: Shortcut[] = [
     text: 'Previous',
     shortcutType: ShortcutType.Previous,
     hotkeys: {
-      actual: 'option+left',
+      actual: 'ctrl+option+left',
     },
     icon: <IconArrow direction="left" size="xs" color="gray300" />,
     canRunShortcut: (token, count) => {
@@ -342,7 +342,7 @@ export const shortcuts: Shortcut[] = [
     text: 'Next',
     shortcutType: ShortcutType.Next,
     hotkeys: {
-      actual: 'option+right',
+      actual: 'ctrl+option+right',
     },
     icon: <IconArrow direction="right" size="xs" color="gray300" />,
     canRunShortcut: (token, count) => {
@@ -350,6 +350,15 @@ export const shortcuts: Shortcut[] = [
     },
   },
 ];
+
+const getItemTitle = (key: string, kind: FieldKind) => {
+  if (kind === FieldKind.FUNCTION) {
+    // Replace the function innards with ... for cleanliness
+    return key.replace(/\(.*\)/g, '(...)');
+  }
+
+  return key;
+};
 
 /**
  * Groups tag keys based on the "." character in their key.
@@ -360,29 +369,33 @@ export const getTagItemsFromKeys = (
   tagKeys: string[],
   supportedTags: {
     [key: string]: Tag;
-  },
-  getFieldDoc?: (key: string) => React.ReactNode
+  }
 ) => {
   return [...tagKeys]
     .sort((a, b) => a.localeCompare(b))
     .reduce((groups, key) => {
       const keyWithColon = `${key}:`;
       const sections = key.split('.');
-      const kind = supportedTags[key]?.kind;
-      const documentation = getFieldDoc?.(key) || '-';
+
+      const definition =
+        supportedTags[key]?.kind === FieldKind.FUNCTION
+          ? getFieldDefinition(key.split('(')[0])
+          : getFieldDefinition(key);
+      const kind = supportedTags[key]?.kind ?? definition?.kind ?? FieldKind.FIELD;
 
       const item: SearchItem = {
         value: keyWithColon,
-        title: key,
-        documentation,
+        title: getItemTitle(key, kind),
+        documentation: definition?.desc ?? '-',
         kind,
+        deprecated: definition?.deprecated,
       };
 
       const lastGroup = groups.at(-1);
 
       const [title] = sections;
 
-      if (kind !== FieldValueKind.FUNCTION && lastGroup) {
+      if (kind !== FieldKind.FUNCTION && lastGroup) {
         if (lastGroup.children && lastGroup.title === title) {
           lastGroup.children.push(item);
           return groups;

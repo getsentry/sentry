@@ -96,7 +96,7 @@ const Provider = ({children, project, organization}: ProviderProps) => {
     return () => {
       unmounted = true;
     };
-  }, [projectDetails, organization, appStoreConnectSymbolSources]);
+  }, [projectDetails, organization, appStoreConnectSymbolSources, api]);
 
   function getUpdateAlertMessage(
     respository: NonNullable<Parameters<typeof getAppStoreValidationErrorMessage>[1]>,

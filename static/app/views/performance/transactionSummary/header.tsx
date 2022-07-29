@@ -110,7 +110,6 @@ class TransactionHeader extends Component<Props> {
         projects={projects}
         onClick={this.handleCreateAlertSuccess}
         referrer="performance"
-        useAlertWizardV3={organization.features.includes('alert-wizard-v3')}
         alertType="trans_duration"
         aria-label={t('Create Alert')}
       />
