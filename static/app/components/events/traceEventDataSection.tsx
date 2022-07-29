@@ -273,8 +273,10 @@ interface PermalinkTitleProps
 export function PermalinkTitle(props: PermalinkTitleProps) {
   return (
     <Permalink href={'#' + props.type} className="permalink" {...props}>
-      <StyledIconAnchor />
-      {props.children}
+      <h3>
+        <StyledIconAnchor />
+        {props.children}
+      </h3>
     </Permalink>
   );
 }
