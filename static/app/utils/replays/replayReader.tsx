@@ -93,7 +93,7 @@ export default class ReplayReader {
    * @returns Duration of Replay (milliseonds)
    */
   getDurationMS = () => {
-    return this.event.endTimestamp - this.event.startTimestamp;
+    return (this.event.endTimestamp - this.event.startTimestamp) * 1000;
   };
 
   getRRWebEvents = () => {

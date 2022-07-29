@@ -132,7 +132,7 @@ function UniformRateModal({
       : undefined;
   const recommendedServerSampling = shouldUseConservativeSampleRate
     ? CONSERVATIVE_SAMPLE_RATE
-    : currentClientSampling;
+    : Math.min(currentClientSampling ?? 1, recommendedClientSampling ?? 1);
 
   const [selectedStrategy, setSelectedStrategy] = useState<Strategy>(Strategy.CURRENT);
   const [clientInput, setClientInput] = useState(
@@ -247,6 +247,7 @@ function UniformRateModal({
       </Header>
       <Body>
         <TextBlock>
+          {/* TODO(sampling): replace docs link */}
           {tct(
             'Set a server-side sample rate for all transactions using our suggestion as a starting point. To accurately monitor overall performance, we also suggest changing your client(SDK) sample rate to allow more metrics to be processed. [learnMoreLink: Learn more about quota management].',
             {
