@@ -1,5 +1,3 @@
-import moment from 'moment';
-
 import {Crumb} from 'sentry/types/breadcrumbs';
 import type {ReplaySpan} from 'sentry/views/replays/types';
 
@@ -23,14 +21,11 @@ const HOUR = 60 * MINUTE;
  * @param diffMs Number of milliseconds to adjust the timestamp by, either positive (future) or negative (past)
  * @returns Unix timestamp of the adjusted timestamp, in milliseconds
  */
-export function relativeTimeInMs(timestamp: moment.MomentInput, diffMs: number): number {
-  return moment(timestamp).diff(moment(diffMs)).valueOf();
+export function relativeTimeInMs(timestamp: string, diffMs: number): number {
+  return Math.abs(new Date(timestamp).getTime() - diffMs);
 }
 
-export function showPlayerTime(
-  timestamp: moment.MomentInput,
-  relativeTimeMS: number
-): string {
+export function showPlayerTime(timestamp: string, relativeTimeMS: number): string {
   return formatTime(relativeTimeInMs(timestamp, relativeTimeMS));
 }
 
