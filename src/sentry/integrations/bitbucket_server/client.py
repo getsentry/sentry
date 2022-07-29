@@ -21,6 +21,7 @@ class BitbucketServerAPIPath:
     repository_hook = "/rest/api/1.0/projects/{project}/repos/{repo}/webhooks/{id}"
     repository_hooks = "/rest/api/1.0/projects/{project}/repos/{repo}/webhooks"
     repository_commits = "/rest/api/1.0/projects/{project}/repos/{repo}/commits"
+    repository_commit_details = "/rest/api/1.0/projects/{project}/repos/{repo}/commits/{commit}"
     commit_changes = "/rest/api/1.0/projects/{project}/repos/{repo}/commits/{commit}/changes"
 
 
