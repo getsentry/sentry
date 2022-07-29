@@ -132,7 +132,7 @@ function UniformRateModal({
       : undefined;
   const recommendedServerSampling = shouldUseConservativeSampleRate
     ? CONSERVATIVE_SAMPLE_RATE
-    : currentClientSampling;
+    : Math.min(currentClientSampling ?? 1, recommendedClientSampling ?? 1);
 
   const [selectedStrategy, setSelectedStrategy] = useState<Strategy>(Strategy.CURRENT);
   const [clientInput, setClientInput] = useState(
