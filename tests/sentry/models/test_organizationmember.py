@@ -157,8 +157,16 @@ class OrganizationMemberTest(TestCase):
             token="abc-def",
             token_expires_at=ninety_one_days,
         )
+        member2 = OrganizationMember.objects.create(
+            organization=org3,
+            role="member",
+            email="test2@example.com",
+            token="abc-defg",
+            token_expires_at=ninety_one_days,
+        )
         OrganizationMember.objects.delete_expired(timezone.now())
         assert OrganizationMember.objects.filter(id=member.id).exists()
+        assert not OrganizationMember.objects.filter(id=member2.id).exists()
 
     def test_delete_expired_miss(self):
         organization = self.create_organization()
