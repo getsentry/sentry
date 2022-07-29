@@ -20,7 +20,7 @@ interface Props {
   organization: Organization;
 }
 
-export default function ProfilingOnboarding(props: Props) {
+export default function LegacyProfilingOnboarding(props: Props) {
   useEffect(() => {
     trackAdvancedAnalyticsEvent('profiling_views.onboarding', {
       organization: props.organization,

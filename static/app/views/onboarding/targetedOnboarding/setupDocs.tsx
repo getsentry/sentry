@@ -4,18 +4,20 @@ import {Fragment, useCallback, useEffect, useState} from 'react';
 import {browserHistory} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import {motion} from 'framer-motion';
+import {AnimatePresence, motion} from 'framer-motion';
 import * as qs from 'query-string';
 
 import {loadDocs} from 'sentry/actionCreators/projects';
 import Alert, {alertStyles} from 'sentry/components/alert';
+import Button from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import {PlatformKey} from 'sentry/data/platformCategories';
 import platforms from 'sentry/data/platforms';
+import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Project} from 'sentry/types';
+import {Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {Theme} from 'sentry/utils/theme';
@@ -34,13 +36,109 @@ import {usePersistedOnboardingState} from './utils';
  */
 const INCOMPLETE_DOC_FLAG = 'TODO-ADD-VERIFICATION-EXAMPLE';
 
-type PlatformDoc = {html: string; link: string};
+type PlatformDoc = {html: string; link: string; wizardSetup: string};
 
 type Props = {
   projects: Project[];
   search: string;
   loadingProjects?: boolean;
 } & StepProps;
+
+function ProjecDocs(props: {
+  hasError: boolean;
+  onRetry: () => void;
+  organization: Organization;
+  platform: PlatformKey | null;
+  platformDocs: PlatformDoc | null;
+  project: Project;
+}) {
+  const testOnlyAlert = (
+    <Alert type="warning">
+      Platform documentation is not rendered in for tests in CI
+    </Alert>
+  );
+  const missingExampleWarning = () => {
+    const missingExample =
+      props.platformDocs && props.platformDocs.html.includes(INCOMPLETE_DOC_FLAG);
+
+    if (!missingExample) {
+      return null;
+    }
+
+    return (
+      <Alert type="warning" showIcon>
+        {tct(
+          `Looks like this getting started example is still undergoing some
+           work and doesn't include an example for triggering an event quite
+           yet. If you have trouble sending your first event be sure to consult
+           the [docsLink:full documentation] for [platform].`,
+          {
+            docsLink: <ExternalLink href={props.platformDocs?.link} />,
+            platform: platforms.find(p => p.id === props.platform)?.name,
+          }
+        )}
+      </Alert>
+    );
+  };
+
+  const showWizardSetup =
+    props.organization.experiments.OnboardingHighlightWizardExperiment;
+  const [wizardSetupDetailsCollapsed, setWizardSetupDetailsCollapsed] = useState(true);
+  const docs =
+    props.platformDocs !== null &&
+    (showWizardSetup && props.platformDocs.wizardSetup ? (
+      <DocsWrapper key={props.platformDocs.html}>
+        <Content dangerouslySetInnerHTML={{__html: props.platformDocs.wizardSetup}} />
+        <Button
+          priority="link"
+          onClick={() => setWizardSetupDetailsCollapsed(!wizardSetupDetailsCollapsed)}
+        >
+          <IconChevron
+            direction={wizardSetupDetailsCollapsed ? 'down' : 'up'}
+            style={{marginRight: space(1)}}
+          />
+          {wizardSetupDetailsCollapsed ? t('More Details') : t('Less Details')}
+        </Button>
+
+        <AnimatePresence>
+          {!wizardSetupDetailsCollapsed && (
+            <AnimatedContentWrapper>
+              <Content dangerouslySetInnerHTML={{__html: props.platformDocs.html}} />
+              {missingExampleWarning()}
+            </AnimatedContentWrapper>
+          )}
+        </AnimatePresence>
+      </DocsWrapper>
+    ) : (
+      <DocsWrapper key={props.platformDocs.html}>
+        <Content dangerouslySetInnerHTML={{__html: props.platformDocs.html}} />
+        {missingExampleWarning()}
+      </DocsWrapper>
+    ));
+  const loadingError = (
+    <LoadingError
+      message={t(
+        'Failed to load documentation for the %s platform.',
+        props.project?.platform
+      )}
+      onRetry={props.onRetry}
+    />
+  );
+
+  const currentPlatform = props.platform ?? props.project?.platform ?? 'other';
+  return (
+    <Fragment>
+      <FullIntroduction
+        currentPlatform={currentPlatform}
+        organization={props.organization}
+      />
+      {getDynamicText({
+        value: !props.hasError ? docs : loadingError,
+        fixed: testOnlyAlert,
+      })}
+    </Fragment>
+  );
+}
 
 function SetupDocs({
   organization,
@@ -158,50 +256,6 @@ function SetupDocs({
     setNewProject(newProjectId);
   };
 
-  const missingExampleWarning = () => {
-    const missingExample =
-      platformDocs && platformDocs.html.includes(INCOMPLETE_DOC_FLAG);
-
-    if (!missingExample) {
-      return null;
-    }
-
-    return (
-      <Alert type="warning" showIcon>
-        {tct(
-          `Looks like this getting started example is still undergoing some
-           work and doesn't include an example for triggering an event quite
-           yet. If you have trouble sending your first event be sure to consult
-           the [docsLink:full documentation] for [platform].`,
-          {
-            docsLink: <ExternalLink href={platformDocs?.link} />,
-            platform: platforms.find(p => p.id === loadedPlatform)?.name,
-          }
-        )}
-      </Alert>
-    );
-  };
-
-  const docs = platformDocs !== null && (
-    <DocsWrapper key={platformDocs.html}>
-      <Content dangerouslySetInnerHTML={{__html: platformDocs.html}} />
-      {missingExampleWarning()}
-    </DocsWrapper>
-  );
-
-  const loadingError = (
-    <LoadingError
-      message={t('Failed to load documentation for the %s platform.', project?.platform)}
-      onRetry={fetchData}
-    />
-  );
-
-  const testOnlyAlert = (
-    <Alert type="warning">
-      Platform documentation is not rendered in for tests in CI
-    </Alert>
-  );
-
   return (
     <Fragment>
       <Wrapper>
@@ -219,14 +273,14 @@ function SetupDocs({
           />
         </SidebarWrapper>
         <MainContent>
-          <FullIntroduction
-            currentPlatform={currentPlatform}
+          <ProjecDocs
+            platform={loadedPlatform}
             organization={organization}
+            project={project}
+            hasError={hasError}
+            platformDocs={platformDocs}
+            onRetry={fetchData}
           />
-          {getDynamicText({
-            value: !hasError ? docs : loadingError,
-            fixed: testOnlyAlert,
-          })}
         </MainContent>
       </Wrapper>
 
@@ -285,6 +339,21 @@ const mapAlertStyles = (p: {theme: Theme}, type: AlertType) =>
       display: block;
     }
   `;
+
+const AnimatedContentWrapper = styled(motion.div)`
+  overflow: hidden;
+`;
+AnimatedContentWrapper.defaultProps = {
+  initial: {
+    height: 0,
+  },
+  animate: {
+    height: 'auto',
+  },
+  exit: {
+    height: 0,
+  },
+};
 
 const Content = styled(motion.div)`
   h1,

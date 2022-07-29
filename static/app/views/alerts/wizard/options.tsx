@@ -187,28 +187,6 @@ export const hideParameterSelectorSet = new Set<AlertType>([
   'cls',
 ]);
 
-export function getFunctionHelpText(alertType: AlertType): {
-  labelText: string;
-  timeWindowText?: string;
-} {
-  const timeWindowText = t('over');
-  if (alertType === 'apdex') {
-    return {
-      labelText: t('Select apdex threshold and time interval'),
-      timeWindowText,
-    };
-  }
-  if (hidePrimarySelectorSet.has(alertType)) {
-    return {
-      labelText: t('Select time interval'),
-    };
-  }
-  return {
-    labelText: t('Select function and time interval'),
-    timeWindowText,
-  };
-}
-
 export function getMEPAlertsDataset(
   dataset: Dataset,
   newAlert: boolean
