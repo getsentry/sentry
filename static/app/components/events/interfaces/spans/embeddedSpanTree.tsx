@@ -2,6 +2,8 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import space from 'sentry/styles/space';
 import {Event, EventTransaction, Organization} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
@@ -46,20 +48,28 @@ export function EmbeddedSpanTree(props: Props) {
         <QuickTraceQuery event={event} location={location} orgSlug={organization.slug}>
           {results => {
             if (results.isLoading) {
-              return null;
+              return <LoadingIndicator />;
+            }
+
+            if (!results.currentEvent) {
+              return <LoadingError />;
             }
 
             return (
               <GenericDiscoverQuery
                 eventView={eventView}
                 orgSlug={organization.slug}
-                route={`events/${projectSlug}:${results.currentEvent?.event_id}/`}
+                route={`events/${projectSlug}:${results.currentEvent?.event_id}`}
                 api={api}
                 location={location}
               >
                 {_results => {
                   if (_results.isLoading) {
-                    return null;
+                    return <LoadingIndicator />;
+                  }
+
+                  if (!_results.tableData) {
+                    return <LoadingError />;
                   }
 
                   return (
