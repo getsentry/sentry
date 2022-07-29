@@ -1,9 +1,15 @@
-from typing import Mapping, Set, Tuple
+from typing import Mapping, Set
 
 import pytest
 
 from sentry.sentry_metrics.configuration import UseCaseKey
-from sentry.sentry_metrics.indexer.base import KeyCollection, KeyResult, KeyResults
+from sentry.sentry_metrics.indexer.base import (
+    FetchTypeExt,
+    KeyCollection,
+    KeyResult,
+    KeyResults,
+    Metadata,
+)
 from sentry.sentry_metrics.indexer.cache import indexer_cache
 from sentry.sentry_metrics.indexer.models import MetricsKeyIndexer, StringIndexer
 from sentry.sentry_metrics.indexer.postgres import PGStringIndexer
@@ -18,9 +24,9 @@ from sentry.utils.cache import cache
 
 
 def assert_fetch_type_for_tag_string_set(
-    meta: Mapping[str, Tuple[int, FetchType]], fetch_type: FetchType, str_set: Set[str]
+    meta: Mapping[str, Metadata], fetch_type: FetchType, str_set: Set[str]
 ):
-    assert all([meta[string][1] == fetch_type for string in str_set])
+    assert all([meta[string].fetch_type == fetch_type for string in str_set])
 
 
 pytestmark = pytest.mark.sentry_metrics
@@ -86,10 +92,12 @@ class StaticStringsIndexerTest(TestCase):
         assert results[3]["2.0.0"] == v2.id
 
         meta = results.get_fetch_metadata()
+        assert_fetch_type_for_tag_string_set(meta[2], FetchType.HARDCODED, {"release"})
         assert_fetch_type_for_tag_string_set(
-            meta, FetchType.HARDCODED, {"release", "production", "environment"}
+            meta[3], FetchType.HARDCODED, {"release", "production", "environment"}
         )
-        assert_fetch_type_for_tag_string_set(meta, FetchType.FIRST_SEEN, {"1.0.0", "2.0.0"})
+        assert_fetch_type_for_tag_string_set(meta[2], FetchType.FIRST_SEEN, {"1.0.0"})
+        assert_fetch_type_for_tag_string_set(meta[3], FetchType.FIRST_SEEN, {"2.0.0"})
 
 
 class PostgresIndexerV2Test(TestCase):
@@ -152,6 +160,7 @@ class PostgresIndexerV2Test(TestCase):
         """
         Test `resolve` and `reverse_resolve` methods
         """
+
         org1_id = self.organization.id
         org_strings = {org1_id: self.strings}
         self.indexer.bulk_record(use_case_id=self.use_case_id, org_strings=org_strings)
@@ -213,9 +222,9 @@ class PostgresIndexerV2Test(TestCase):
 
         fetch_meta = results.get_fetch_metadata()
         assert_fetch_type_for_tag_string_set(
-            fetch_meta, FetchType.CACHE_HIT, {"v1.2.0", "v1.2.1", "v1.2.2"}
+            fetch_meta[org_id], FetchType.CACHE_HIT, {"v1.2.0", "v1.2.1", "v1.2.2"}
         )
-        assert_fetch_type_for_tag_string_set(fetch_meta, FetchType.FIRST_SEEN, {"v1.2.3"})
+        assert_fetch_type_for_tag_string_set(fetch_meta[org_id], FetchType.FIRST_SEEN, {"v1.2.3"})
 
     def test_already_cached_plus_read_results(self) -> None:
         """
@@ -246,8 +255,10 @@ class PostgresIndexerV2Test(TestCase):
         assert results[org_id]["bam"] == bam.id
 
         fetch_meta = results.get_fetch_metadata()
-        assert_fetch_type_for_tag_string_set(fetch_meta, FetchType.CACHE_HIT, {"beep", "boop"})
-        assert_fetch_type_for_tag_string_set(fetch_meta, FetchType.DB_READ, {"bam"})
+        assert_fetch_type_for_tag_string_set(
+            fetch_meta[org_id], FetchType.CACHE_HIT, {"beep", "boop"}
+        )
+        assert_fetch_type_for_tag_string_set(fetch_meta[org_id], FetchType.DB_READ, {"bam"})
 
     def test_get_db_records(self):
         """
@@ -337,22 +348,26 @@ class KeyResultsTest(TestCase):
         read_mappings = {"read3": 3, "read4": 4}
         hardcode_mappings = {"hardcode5": 5, "hardcode6": 6}
         write_mappings = {"write7": 7, "write8": 8}
+        rate_limited_mappings = {"limited9": None, "limited10": None}
 
         mappings = {
             *cache_mappings,
             *read_mappings,
             *hardcode_mappings,
             *write_mappings,
+            *rate_limited_mappings,
         }
 
         kr_cache = KeyResults()
         kr_dbread = KeyResults()
         kr_hardcoded = KeyResults()
         kr_write = KeyResults()
+        kr_limited = KeyResults()
         assert kr_cache.results == {} and kr_cache.meta == {}
         assert kr_dbread.results == {} and kr_dbread.meta == {}
         assert kr_hardcoded.results == {} and kr_hardcoded.meta == {}
         assert kr_write.results == {} and kr_write.meta == {}
+        assert kr_limited.results == {} and kr_limited.meta == {}
 
         kr_cache.add_key_results(
             [KeyResult(org_id=org_id, string=k, id=v) for k, v in cache_mappings.items()],
@@ -371,14 +386,29 @@ class KeyResultsTest(TestCase):
             FetchType.FIRST_SEEN,
         )
 
-        kr_merged = kr_cache.merge(kr_dbread).merge(kr_hardcoded).merge(kr_write)
+        kr_limited.add_key_results(
+            [KeyResult(org_id=org_id, string=k, id=v) for k, v in rate_limited_mappings.items()],
+            FetchType.RATE_LIMITED,
+            FetchTypeExt(is_global=False),
+        )
+
+        kr_merged = kr_cache.merge(kr_dbread).merge(kr_hardcoded).merge(kr_write).merge(kr_limited)
 
         assert len(kr_merged.get_mapped_results()[org_id]) == len(mappings)
         meta = kr_merged.get_fetch_metadata()
 
-        assert_fetch_type_for_tag_string_set(meta, FetchType.DB_READ, set(read_mappings.keys()))
         assert_fetch_type_for_tag_string_set(
-            meta, FetchType.HARDCODED, set(hardcode_mappings.keys())
+            meta[org_id], FetchType.DB_READ, set(read_mappings.keys())
         )
-        assert_fetch_type_for_tag_string_set(meta, FetchType.FIRST_SEEN, set(write_mappings.keys()))
-        assert_fetch_type_for_tag_string_set(meta, FetchType.CACHE_HIT, set(cache_mappings.keys()))
+        assert_fetch_type_for_tag_string_set(
+            meta[org_id], FetchType.HARDCODED, set(hardcode_mappings.keys())
+        )
+        assert_fetch_type_for_tag_string_set(
+            meta[org_id], FetchType.FIRST_SEEN, set(write_mappings.keys())
+        )
+        assert_fetch_type_for_tag_string_set(
+            meta[org_id], FetchType.CACHE_HIT, set(cache_mappings.keys())
+        )
+        assert_fetch_type_for_tag_string_set(
+            meta[org_id], FetchType.RATE_LIMITED, set(rate_limited_mappings.keys())
+        )

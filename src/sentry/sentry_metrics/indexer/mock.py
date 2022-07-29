@@ -24,7 +24,7 @@ class SimpleIndexer(StringIndexer):
     ) -> KeyResults:
         acc = KeyResults()
         for org_id, strs in org_strings.items():
-            strings_to_ints = {}
+            strings_to_ints: Dict[str, int] = {}
             for string in strs:
                 if string in SHARED_STRINGS:
                     strings_to_ints[string] = SHARED_STRINGS[string]
@@ -57,7 +57,8 @@ class SimpleIndexer(StringIndexer):
 
     def _record(self, org_id: int, string: str) -> int:
         index = self._strings[org_id][string]
-        self._reverse[index] = string
+        if index is not None:
+            self._reverse[index] = string
         return index
 
 
