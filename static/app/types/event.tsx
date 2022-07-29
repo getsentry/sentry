@@ -248,9 +248,10 @@ type EntrySpans = {
   type: EntryType.SPANS; // data is not used
 };
 
-type EntrySpanTree = {
-  data: any;
-  focusedSpanIds: string[];
+export type EntrySpanTree = {
+  data: {
+    focusedSpanIds: string[];
+  };
   type: EntryType.SPANTREE;
 };
 
@@ -338,6 +339,9 @@ type EventContexts = {
   client_os?: OSContext;
   device?: DeviceContext;
   os?: OSContext;
+  // TODO (udameli): add better types here
+  // once perf issue data shape is more clear
+  performance_issue?: any;
   runtime?: RuntimeContext;
   trace?: TraceContextType;
 };
