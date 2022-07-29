@@ -46,7 +46,7 @@ function Breadcrumbs({}: Props) {
   const crumbListContainerRef = useRef<HTMLDivElement>(null);
   useCurrentItemScroller(crumbListContainerRef);
 
-  const startTimestampMS = replayRecord?.started_at.getDate() || 0;
+  const startTimestampMS = replayRecord?.started_at.getTime() || 0;
 
   const isLoaded = Boolean(replayRecord);
 

@@ -62,7 +62,7 @@ function BreadcrumbItem({
         <TitleContainer>
           <Title>{title}</Title>
           <PlayerRelativeTime
-            relativeTime={startTimestampMS}
+            relativeTimeMS={startTimestampMS}
             timestamp={crumb.timestamp}
           />
         </TitleContainer>

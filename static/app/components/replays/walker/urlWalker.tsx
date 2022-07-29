@@ -24,7 +24,7 @@ type StringProps = {
 export const CrumbWalker = memo(function CrumbWalker({crumbs, replayRecord}: CrumbProps) {
   const {setCurrentTime} = useReplayContext();
 
-  const startTimestampMS = replayRecord.started_at.getDate();
+  const startTimestampMS = replayRecord.started_at.getTime();
 
   const handleClick = useCallback(
     (crumb: Crumb) => {

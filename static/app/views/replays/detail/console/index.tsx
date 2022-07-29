@@ -16,13 +16,13 @@ import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 interface Props {
   breadcrumbs: BreadcrumbTypeDefault[];
-  startTimestamp: number;
+  startTimestampMS: number;
 }
 
 const getDistinctLogLevels = (breadcrumbs: BreadcrumbTypeDefault[]) =>
   Array.from(new Set<string>(breadcrumbs.map(breadcrumb => breadcrumb.level)));
 
-function Console({breadcrumbs, startTimestamp = 0}: Props) {
+function Console({breadcrumbs, startTimestampMS = 0}: Props) {
   const {currentHoverTime, currentTime} = useReplayContext();
   const [searchTerm, setSearchTerm] = useState('');
   const [logLevel, setLogLevel] = useState<BreadcrumbLevelType[]>([]);
@@ -43,30 +43,32 @@ function Console({breadcrumbs, startTimestamp = 0}: Props) {
     const finalBreadcrumbTimestamp =
       filteredBreadcrumbs[finalBreadCrumbIndex].timestamp || '';
 
-    if (currentHoverTime >= relativeTimeInMs(finalBreadcrumbTimestamp, startTimestamp)) {
+    if (
+      currentHoverTime >= relativeTimeInMs(finalBreadcrumbTimestamp, startTimestampMS)
+    ) {
       indexUpperBound = finalBreadCrumbIndex;
     } else {
       indexUpperBound =
         filteredBreadcrumbs.findIndex(
           breadcrumb =>
-            relativeTimeInMs(breadcrumb.timestamp || '', startTimestamp) >=
+            relativeTimeInMs(breadcrumb.timestamp || '', startTimestampMS) >=
             (currentHoverTime || 0)
         ) - 1;
     }
 
     const activeMessageBoundary = showPlayerTime(
       filteredBreadcrumbs[indexUpperBound]?.timestamp || '',
-      startTimestamp
+      startTimestampMS
     );
 
     const indexLowerBound = filteredBreadcrumbs.findIndex(
       breadcrumb =>
-        showPlayerTime(breadcrumb.timestamp || '', startTimestamp) ===
+        showPlayerTime(breadcrumb.timestamp || '', startTimestampMS) ===
         activeMessageBoundary
     );
 
     return [indexLowerBound, indexUpperBound];
-  }, [currentHoverTime, filteredBreadcrumbs, startTimestamp]);
+  }, [currentHoverTime, filteredBreadcrumbs, startTimestampMS]);
 
   return (
     <Fragment>
@@ -93,13 +95,13 @@ function Console({breadcrumbs, startTimestamp = 0}: Props) {
             return (
               <ConsoleMessage
                 isActive={i >= activeConsoleBounds[0] && i <= activeConsoleBounds[1]}
-                startTimestamp={startTimestamp}
+                startTimestampMS={startTimestampMS}
                 key={i}
                 isLast={i === breadcrumbs.length - 1}
                 breadcrumb={breadcrumb}
                 hasOccurred={
                   currentTime >=
-                  relativeTimeInMs(breadcrumb?.timestamp || '', startTimestamp)
+                  relativeTimeInMs(breadcrumb?.timestamp || '', startTimestampMS)
                 }
               />
             );

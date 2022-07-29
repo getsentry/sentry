@@ -55,7 +55,7 @@ function DomMutations({replay}: Props) {
 
             <Column>
               <PlayerRelativeTime
-                relativeTime={startTimestamp}
+                relativeTimeMS={startTimestamp}
                 timestamp={mutation.crumb.timestamp}
               />
               {}

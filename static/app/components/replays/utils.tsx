@@ -24,14 +24,14 @@ const HOUR = 60 * MINUTE;
  * @returns Unix timestamp of the adjusted timestamp, in milliseconds
  */
 export function relativeTimeInMs(timestamp: moment.MomentInput, diffMs: number): number {
-  return moment(timestamp).diff(moment.unix(diffMs)).valueOf();
+  return moment(timestamp).diff(moment(diffMs)).valueOf();
 }
 
 export function showPlayerTime(
   timestamp: moment.MomentInput,
-  relativeTime: number
+  relativeTimeMS: number
 ): string {
-  return formatTime(relativeTimeInMs(timestamp, relativeTime));
+  return formatTime(relativeTimeInMs(timestamp, relativeTimeMS));
 }
 
 // TODO: move into 'sentry/utils/formatters'
