@@ -408,12 +408,17 @@ register("relay.drop-transaction-metrics", default=[])
 #       given fraction of orgs even if the corresponding feature flag is disabled.
 register("relay.transaction-metrics-org-sample-rate", default=0.0)
 
+# Sample rate for opting in orgs into the new transaction name handling.
+# old behavior: Treat transactions from old SDKs as high-cardinality.
+# new behavior: Treat transactions from old SDKs as low-cardinality, except for browser JS.
+register("relay.transaction-names-client-based", default=0.0)
+
 # Write new kafka headers in eventstream
 register("eventstream:kafka-headers", default=True)
 
 # Post process forwarder options
 # Gets data from Kafka headers
-register("post-process-forwarder:kafka-headers", default=False)
+register("post-process-forwarder:kafka-headers", default=True)
 # Number of threads to use for post processing
 register("post-process-forwarder:concurrency", default=1)
 
@@ -446,13 +451,13 @@ register("kafka.send-project-events-to-random-partitions", default=[])
 # Rate to project_configs_v3, no longer used.
 register("relay.project-config-v3-enable", default=0.0)
 
-# Use zstandard compression in redis project config cache
+# [Unused] Use zstandard compression in redis project config cache
 # Set this value to a list of DSNs.
-register("relay.project-config-cache-compress", default=[])
+register("relay.project-config-cache-compress", default=[])  # unused
 
-# Use zstandard compression in redis project config cache
+# [Unused] Use zstandard compression in redis project config cache
 # Set this value of the fraction of config writes you want to compress.
-register("relay.project-config-cache-compress-sample-rate", default=0.0)
+register("relay.project-config-cache-compress-sample-rate", default=0.0)  # unused
 
 # Mechanism for dialing up the last-seen-updater, which isn't needed outside
 # of SaaS (last_seen is a marker for deleting stale customer data)

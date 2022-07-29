@@ -3,10 +3,12 @@ import {LegendComponentOption} from 'echarts';
 import {Series} from 'sentry/types/echarts';
 import {
   axisLabelFormatter,
+  axisLabelFormatterUsingAggregateOutputType,
   categorizeDuration,
   findRangeOfMultiSeries,
   getDurationUnit,
   tooltipFormatter,
+  tooltipFormatterUsingAggregateOutputType,
 } from 'sentry/utils/discover/charts';
 import {HOUR, MINUTE, SECOND} from 'sentry/utils/formatters';
 
@@ -24,6 +26,25 @@ describe('tooltipFormatter()', () => {
     ];
     for (const scenario of cases) {
       expect(tooltipFormatter(scenario[1], scenario[0])).toEqual(scenario[2]);
+    }
+  });
+});
+
+describe('tooltipFormatterUsingAggregateOutputType()', () => {
+  it('formats values', () => {
+    const cases: [string, number, string][] = [
+      // function, input, expected
+      ['number', 0.1, '0.1'],
+      ['integer', 0.125, '0.125'],
+      ['percentage', 0.6612, '66.12%'],
+      ['duration', 321, '321.00ms'],
+      ['size', 416 * 1024, '416.0 KiB'],
+      ['', 444, '444'],
+    ];
+    for (const scenario of cases) {
+      expect(tooltipFormatterUsingAggregateOutputType(scenario[1], scenario[0])).toEqual(
+        scenario[2]
+      );
     }
   });
 });
@@ -77,6 +98,25 @@ describe('axisLabelFormatter()', () => {
   });
 });
 
+describe('axisLabelFormatterUsingAggregateOutputType()', () => {
+  it('formats values', () => {
+    const cases: [string, number, string][] = [
+      // type, input, expected
+      ['number', 0.1, '0.1'],
+      ['integer', 0.125, '0.125'],
+      ['percentage', 0.6612, '66%'],
+      ['duration', 321, '321ms'],
+      ['size', 416 * 1024, '416 KiB'],
+      ['', 444, '444'],
+    ];
+    for (const scenario of cases) {
+      expect(
+        axisLabelFormatterUsingAggregateOutputType(scenario[1], scenario[0])
+      ).toEqual(scenario[2]);
+    }
+  });
+});
+
 describe('findRangeOfMultiSeries()', () => {
   const series: Series[] = [
     {
@@ -107,6 +147,28 @@ describe('findRangeOfMultiSeries()', () => {
 
   it('should find min and max when no items selected in legend', () => {
     expect(findRangeOfMultiSeries(series)).toStrictEqual({max: 2300, min: 50});
+  });
+
+  it('should find min and max when series has no data', () => {
+    const noDataSeries: Series[] = [
+      {
+        seriesName: 'p100()',
+        data: [
+          {name: 1, value: 2300},
+          {name: 2, value: 1900},
+          {name: 3, value: 1950},
+        ],
+      },
+      {
+        seriesName: 'p95()',
+        data: [],
+      },
+      {
+        seriesName: 'p50()',
+        data: [],
+      },
+    ];
+    expect(findRangeOfMultiSeries(noDataSeries)).toStrictEqual({max: 2300, min: 1900});
   });
 
   it('should not find range if no items selected', () => {

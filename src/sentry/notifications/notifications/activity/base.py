@@ -150,7 +150,7 @@ class GroupActivityNotification(ActivityNotification, abc.ABC):
         issue_name = self.group.qualified_short_id or "an issue"
         if url and self.group.qualified_short_id:
             group_url = self.group.get_absolute_url(params={"referrer": "activity_notification"})
-            issue_name = f"<{group_url}|{self.group.qualified_short_id}>"
+            issue_name = f"{self.format_url(text=self.group.qualified_short_id, url=group_url)}"
 
         context = {"author": name, "an issue": issue_name}
         context.update(params)
@@ -182,7 +182,7 @@ class GroupActivityNotification(ActivityNotification, abc.ABC):
         return get_title_link(self.group, None, False, True, self)
 
     def build_attachment_title(self, recipient: Team | User) -> str:
-        from sentry.integrations.slack.message_builder.issues import build_attachment_title
+        from sentry.integrations.message_builder import build_attachment_title
 
         return build_attachment_title(self.group)
 

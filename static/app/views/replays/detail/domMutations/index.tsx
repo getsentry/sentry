@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import BreadcrumbIcon from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/type/icon';
+import HTMLCode from 'sentry/components/htmlCode';
 import {PanelTable} from 'sentry/components/panels';
 import {getDetails} from 'sentry/components/replays/breadcrumbs/utils';
 import PlayerRelativeTime from 'sentry/components/replays/playerRelativeTime';
@@ -47,7 +48,9 @@ function DomMutations({replay}: Props) {
             </Column>
 
             <Column>
-              <HTMLCode>{mutation.html}</HTMLCode>
+              <CodeContainer>
+                <HTMLCode code={mutation.html} />
+              </CodeContainer>
             </Column>
 
             <Column>
@@ -72,6 +75,7 @@ const StyledPanelTable = styled(PanelTable)`
 const Column = styled('div')`
   display: flex;
   align-items: flex-start;
+  overflow: hidden;
 `;
 
 /**
@@ -102,16 +106,9 @@ const Title = styled('span')`
   line-height: ${p => p.theme.text.lineHeightBody};
 `;
 
-const HTMLCode = styled(
-  ({children, className}: {children: string; className?: string}) => (
-    <textarea className={className} readOnly value={children} />
-  )
-)`
-  border: none;
-  width: 100%;
-  resize: vertical;
-
-  font-family: ${p => p.theme.text.familyMono};
+const CodeContainer = styled('div')`
+  overflow: auto;
+  max-height: 400px;
 `;
 
 export default DomMutations;

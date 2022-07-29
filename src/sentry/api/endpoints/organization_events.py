@@ -19,40 +19,38 @@ from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.search.events.fields import is_function
 from sentry.snuba import discover, metrics_enhanced_performance
+from sentry.snuba.referrer import Referrer
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 logger = logging.getLogger(__name__)
 
-METRICS_ENHANCED_REFERRERS = {
-    "api.performance.landing-table",
-}
+METRICS_ENHANCED_REFERRERS = {Referrer.API_PERFORMANCE_LANDING_TABLE.value}
 
 ALLOWED_EVENTS_REFERRERS = {
-    "api.organization-events",
-    "api.organization-events-v2",
-    "api.dashboards.tablewidget",
-    "api.dashboards.bignumberwidget",
-    "api.discover.transactions-list",
-    "api.discover.query-table",
-    "api.performance.vitals-cards",
-    "api.performance.landing-table",
-    "api.performance.transaction-summary",
-    "api.performance.transaction-spans",
-    "api.performance.status-breakdown",
-    "api.performance.vital-detail",
-    "api.performance.durationpercentilechart",
-    "api.performance.tag-page",
-    "api.trace-view.span-detail",
-    "api.trace-view.errors-view",
-    "api.trace-view.hover-card",
+    Referrer.API_ORGANIZATION_EVENTS.value,
+    Referrer.API_ORGANIZATION_EVENTS_V2.value,
+    Referrer.API_DASHBOARDS_TABLEWIDGET.value,
+    Referrer.API_DASHBOARDS_BIGNUMBERWIDGET.value,
+    Referrer.API_DISCOVER_TRANSACTIONS_LIST.value,
+    Referrer.API_DISCOVER_QUERY_TABLE.value,
+    Referrer.API_PERFORMANCE_VITALS_CARDS.value,
+    Referrer.API_PERFORMANCE_LANDING_TABLE.value,
+    Referrer.API_PERFORMANCE_TRANSACTION_SUMMARY.value,
+    Referrer.API_PERFORMANCE_TRANSACTION_SPANS.value,
+    Referrer.API_PERFORMANCE_STATUS_BREAKDOWN.value,
+    Referrer.API_PERFORMANCE_VITAL_DETAIL.value,
+    Referrer.API_PERFORMANCE_DURATIONPERCENTILECHART.value,
+    Referrer.API_TRACE_VIEW_SPAN_DETAIL.value,
+    Referrer.API_TRACE_VIEW_ERRORS_VIEW.value,
+    Referrer.API_TRACE_VIEW_HOVER_CARD.value,
 }
 
 ALLOWED_EVENTS_GEO_REFERRERS = {
-    "api.organization-events-geo",
-    "api.dashboards.worldmapwidget",
+    Referrer.API_ORGANIZATION_EVENTS_GEO.value,
+    Referrer.API_DASHBOARDS_WORLDMAPWIDGET.value,
 }
 
-API_TOKEN_REFERRER = "api.auth-token.events"
+API_TOKEN_REFERRER = Referrer.API_AUTH_TOKEN_EVENTS.value
 
 RATE_LIMIT = 15
 RATE_LIMIT_WINDOW = 1
@@ -133,19 +131,16 @@ class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
             "organizations:performance-dry-run-mep", organization=organization, actor=request.user
         )
 
-        # This param will be deprecated in favour of dataset
-        if "metricsEnhanced" in request.GET:
-            metrics_enhanced = request.GET.get("metricsEnhanced") == "1" and use_metrics
-            dataset = discover if not metrics_enhanced else metrics_enhanced_performance
-        else:
-            dataset = self.get_dataset(request) if use_metrics else discover
-            metrics_enhanced = dataset != discover
+        dataset = self.get_dataset(request) if use_metrics else discover
+        metrics_enhanced = dataset != discover
 
         sentry_sdk.set_tag("performance.metrics_enhanced", metrics_enhanced)
         allow_metric_aggregates = request.GET.get("preventMetricAggregates") != "1"
 
         referrer = (
-            referrer if referrer in ALLOWED_EVENTS_REFERRERS else "api.organization-events-v2"
+            referrer
+            if referrer in ALLOWED_EVENTS_REFERRERS
+            else Referrer.API_ORGANIZATION_EVENTS_V2.value
         )
 
         def data_fn(offset, limit):
@@ -285,22 +280,26 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             raise ParseError(err)
 
         referrer = request.GET.get("referrer")
-        use_metrics = features.has(
-            "organizations:performance-use-metrics", organization=organization, actor=request.user
-        ) or features.has(
-            "organizations:dashboards-mep", organization=organization, actor=request.user
+        use_metrics = (
+            features.has(
+                "organizations:mep-rollout-flag", organization=organization, actor=request.user
+            )
+            or features.has(
+                "organizations:performance-use-metrics",
+                organization=organization,
+                actor=request.user,
+            )
+            or features.has(
+                "organizations:dashboards-mep", organization=organization, actor=request.user
+            )
         )
+
         performance_dry_run_mep = features.has(
             "organizations:performance-dry-run-mep", organization=organization, actor=request.user
         )
 
-        # This param will be deprecated in favour of dataset
-        if "metricsEnhanced" in request.GET:
-            metrics_enhanced = request.GET.get("metricsEnhanced") == "1" and use_metrics
-            dataset = discover if not metrics_enhanced else metrics_enhanced_performance
-        else:
-            dataset = self.get_dataset(request) if use_metrics else discover
-            metrics_enhanced = dataset != discover
+        dataset = self.get_dataset(request) if use_metrics else discover
+        metrics_enhanced = dataset != discover
 
         sentry_sdk.set_tag("performance.metrics_enhanced", metrics_enhanced)
         allow_metric_aggregates = request.GET.get("preventMetricAggregates") != "1"
@@ -308,7 +307,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
         if request.auth:
             referrer = API_TOKEN_REFERRER
         elif referrer not in ALLOWED_EVENTS_REFERRERS:
-            referrer = "api.organization-events"
+            referrer = Referrer.API_ORGANIZATION_EVENTS.value
 
         def data_fn(offset, limit):
             query_details = {
@@ -380,7 +379,9 @@ class OrganizationEventsGeoEndpoint(OrganizationEventsV2EndpointBase):
 
         referrer = request.GET.get("referrer")
         referrer = (
-            referrer if referrer in ALLOWED_EVENTS_GEO_REFERRERS else "api.organization-events-geo"
+            referrer
+            if referrer in ALLOWED_EVENTS_GEO_REFERRERS
+            else Referrer.API_ORGANIZATION_EVENTS_GEO.value
         )
 
         def data_fn(offset, limit):

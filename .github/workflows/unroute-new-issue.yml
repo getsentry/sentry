@@ -6,7 +6,7 @@ jobs:
   unroute-new-issue:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@7884fcad6b5d53d10323aee724dc68d8b9096a2e  # v2
       - name: "Unroute new issue"
         shell: bash
         env:

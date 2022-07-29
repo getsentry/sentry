@@ -5,32 +5,38 @@ import Duration from 'sentry/components/duration';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Placeholder from 'sentry/components/placeholder';
 import TimeSince from 'sentry/components/timeSince';
-import {PlatformKey} from 'sentry/data/platformCategories';
 import {IconCalendar, IconClock, IconFire} from 'sentry/icons';
 import space from 'sentry/styles/space';
 import type {Crumb} from 'sentry/types/breadcrumbs';
 import type {EventTransaction} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
+import useProjects from 'sentry/utils/useProjects';
 
 type Props = {
   crumbs: Crumb[] | undefined;
-  duration: number | undefined;
+  durationMS: number | undefined;
   event: EventTransaction | undefined;
 };
 
-function EventMetaData({crumbs, duration, event}: Props) {
+function EventMetaData({crumbs, durationMS, event}: Props) {
+  const {projects} = useProjects();
   const errors = crumbs?.filter(crumb => crumb.type === 'error').length;
 
   return (
     <KeyMetrics>
-      <ProjectBadge
-        project={{
-          slug: event?.projectSlug || '',
-          id: event?.projectID,
-          platform: event?.platform as PlatformKey,
-        }}
-        avatarSize={16}
-      />
+      {event ? (
+        <ProjectBadge
+          project={
+            projects.find(p => p.id === event.projectID) || {
+              slug: event.projectSlug || '',
+            }
+          }
+          avatarSize={16}
+        />
+      ) : (
+        <HeaderPlaceholder />
+      )}
+
       <KeyMetricData>
         {event ? (
           <React.Fragment>
@@ -42,11 +48,11 @@ function EventMetaData({crumbs, duration, event}: Props) {
         )}
       </KeyMetricData>
       <KeyMetricData>
-        {duration !== undefined ? (
+        {durationMS !== undefined ? (
           <React.Fragment>
             <IconClock color="gray300" />
             <Duration
-              seconds={Math.floor(msToSec(duration || 0)) || 1}
+              seconds={Math.floor(msToSec(durationMS || 0)) || 1}
               abbreviation
               exact
             />
@@ -73,10 +79,10 @@ function msToSec(ms: number) {
   return ms / 1000;
 }
 
-const HeaderPlaceholder = styled(function HeaderPlaceholder(
+export const HeaderPlaceholder = styled(function HeaderPlaceholder(
   props: React.ComponentProps<typeof Placeholder>
 ) {
-  return <Placeholder width="100%" height="19px" {...props} />;
+  return <Placeholder width="80px" height="19px" {...props} />;
 })`
   background-color: ${p => p.theme.background};
 `;
@@ -97,6 +103,7 @@ const KeyMetricData = styled('div')`
   grid-template-columns: repeat(2, max-content);
   align-items: center;
   gap: ${space(1)};
+  line-height: ${p => p.theme.text.lineHeightBody};
 `;
 
 export default EventMetaData;
