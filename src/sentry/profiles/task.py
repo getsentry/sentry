@@ -52,13 +52,20 @@ def process_profile(
     _normalize(profile=profile, organization=organization)
 
     if not _insert_vroom_profile(profile=profile):
+        _track_outcome(
+            profile=profile,
+            project=project,
+            key_id=key_id,
+            outcome=Outcome.FILTERED,
+            reason="failed-vroom-insertion",
+        )
         return
 
     _initialize_publisher()
     _insert_eventstream_call_tree(profile=profile)
     _insert_eventstream_profile(profile=profile)
 
-    _track_outcome(profile=profile, project=project, key_id=key_id)
+    _track_outcome(profile=profile, project=project, key_id=key_id, outcome=Outcome.ACCEPTED)
 
 
 SHOULD_SYMBOLICATE = frozenset(["cocoa", "rust"])
@@ -230,13 +237,19 @@ def _deobfuscate(profile: Profile, project: Project) -> None:
 
 
 @metrics.wraps("process_profile.track_outcome")
-def _track_outcome(profile: Profile, project: Project, key_id: Optional[int]) -> None:
+def _track_outcome(
+    profile: Profile,
+    project: Project,
+    key_id: Optional[int],
+    reason: Optional[str],
+    outcome: Outcome,
+) -> None:
     track_outcome(
         org_id=project.organization_id,
         project_id=project.id,
         key_id=key_id,
-        outcome=Outcome.ACCEPTED,
-        reason=None,
+        outcome=outcome,
+        reason=reason,
         timestamp=datetime.utcnow().replace(tzinfo=UTC),
         event_id=profile["transaction_id"],
         category=DataCategory.PROFILE,
