@@ -5,6 +5,8 @@ import {Organization} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {defined, generateQueryWithTag} from 'sentry/utils';
 
+import AnnotatedText from '../meta/annotatedText';
+
 import EventTagsPill from './eventTagsPill';
 
 type Props = {
@@ -14,8 +16,14 @@ type Props = {
   projectId: string;
 };
 
-const EventTags = ({event: {tags = []}, organization, projectId, location}: Props) => {
-  if (!tags.length) {
+export function EventTags({event, organization, projectId, location}: Props) {
+  const meta = event._meta?.tags;
+
+  if (!!meta && !event.tags) {
+    return <AnnotatedText value={event.tags} meta={meta?.['']} />;
+  }
+
+  if (!(event.tags ?? []).length) {
     return null;
   }
 
@@ -24,7 +32,7 @@ const EventTags = ({event: {tags = []}, organization, projectId, location}: Prop
 
   return (
     <Pills>
-      {tags.map((tag, index) => (
+      {event.tags.map((tag, index) => (
         <EventTagsPill
           key={!defined(tag.key) ? `tag-pill-${index}` : tag.key}
           tag={tag}
@@ -32,10 +40,9 @@ const EventTags = ({event: {tags = []}, organization, projectId, location}: Prop
           organization={organization}
           query={generateQueryWithTag(location.query, tag)}
           streamPath={streamPath}
+          meta={meta?.[index]}
         />
       ))}
     </Pills>
   );
-};
-
-export default EventTags;
+}

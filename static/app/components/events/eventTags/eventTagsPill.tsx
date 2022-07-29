@@ -3,7 +3,6 @@ import {Query} from 'history';
 import * as qs from 'query-string';
 
 import AnnotatedText from 'sentry/components/events/meta/annotatedText';
-import {getMeta} from 'sentry/components/events/meta/metaProxy';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Pill from 'sentry/components/pill';
 import Version from 'sentry/components/version';
@@ -26,18 +25,25 @@ type Props = {
   query: Query;
   streamPath: string;
   tag: EventTag;
+  meta?: Record<any, any>;
 };
 
-const EventTagsPill = ({tag, query, organization, projectId, streamPath}: Props) => {
+const EventTagsPill = ({
+  tag,
+  query,
+  organization,
+  projectId,
+  streamPath,
+  meta,
+}: Props) => {
   const locationSearch = `?${qs.stringify(query)}`;
   const {key, value} = tag;
-  const isRelease = key === 'release';
-  const name = !key ? <AnnotatedText value={key} meta={getMeta(tag, 'key')} /> : key;
+  const name = !key ? <AnnotatedText value={key} meta={meta?.key?.['']} /> : key;
   const type = !key ? 'error' : undefined;
 
   return (
     <Pill name={name} value={value} type={type}>
-      {isRelease ? (
+      {key === 'release' ? (
         <VersionHoverCard
           organization={organization}
           projectSlug={projectId}
@@ -50,7 +56,7 @@ const EventTagsPill = ({tag, query, organization, projectId, streamPath}: Props)
       ) : (
         <EventTagsPillValue
           tag={tag}
-          meta={getMeta(tag, 'value')}
+          meta={meta?.value?.['']}
           streamPath={streamPath}
           locationSearch={locationSearch}
         />

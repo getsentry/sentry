@@ -3,7 +3,7 @@ import Csp from 'sentry/components/events/interfaces/csp';
 import DebugMeta from 'sentry/components/events/interfaces/debugMeta';
 import Exception from 'sentry/components/events/interfaces/exception';
 import ExceptionV2 from 'sentry/components/events/interfaces/exceptionV2';
-import Generic from 'sentry/components/events/interfaces/generic';
+import {Generic} from 'sentry/components/events/interfaces/generic';
 import Message from 'sentry/components/events/interfaces/message';
 import Request from 'sentry/components/events/interfaces/request';
 import Spans from 'sentry/components/events/interfaces/spans';
@@ -109,7 +109,7 @@ function EventEntry({
     case EntryType.EXPECTSTAPLE:
     case EntryType.HPKP: {
       const {data, type} = entry;
-      return <Generic type={type} data={data} />;
+      return <Generic type={type} data={data} meta={event._meta?.hpkp ?? {}} />;
     }
     case EntryType.BREADCRUMBS: {
       const {data, type} = entry;

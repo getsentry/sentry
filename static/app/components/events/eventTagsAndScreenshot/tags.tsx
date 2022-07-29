@@ -6,7 +6,7 @@ import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 
-import EventTags from '../eventTags/eventTags';
+import {EventTags} from '../eventTags';
 
 import DataSection from './dataSection';
 import TagsHighlight from './tagsHighlight';
