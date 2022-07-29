@@ -67,7 +67,6 @@ import {
 import {
   cloneDashboard,
   getCurrentPageFilters,
-  getSavedPageFilters,
   hasSavedPageFilters,
   hasUnsavedFilterChanges,
   resetPageFilters,
@@ -180,9 +179,6 @@ class DashboardDetail extends Component<Props, State> {
                   pathname: `/organizations/${organization.slug}/dashboard/${dashboardId}/widget/${widgetIndex}/edit/`,
                   query: {
                     ...location.query,
-                    ...(organization.features.includes('dashboards-top-level-filter')
-                      ? getSavedPageFilters(dashboard)
-                      : {}),
                     source: DashboardWidgetSource.DASHBOARDS,
                   },
                 });
@@ -274,20 +270,13 @@ class DashboardDetail extends Component<Props, State> {
   }
 
   onEdit = () => {
-    const {organization, dashboard, location} = this.props;
+    const {dashboard} = this.props;
 
     trackAnalyticsEvent({
       eventKey: 'dashboards2.edit.start',
       eventName: 'Dashboards2: Edit start',
       organization_id: parseInt(this.props.organization.id, 10),
     });
-
-    if (
-      organization.features.includes('dashboards-top-level-filter') &&
-      hasUnsavedFilterChanges(dashboard, location, dashboard.filters)
-    ) {
-      resetPageFilters(dashboard, location);
-    }
 
     this.setState({
       dashboardState: DashboardState.EDIT,
@@ -426,17 +415,6 @@ class DashboardDetail extends Component<Props, State> {
     const {organization, dashboard, api, onDashboardUpdate, location} = this.props;
     const {modifiedDashboard} = this.state;
 
-    if (
-      organization.features.includes('dashboards-top-level-filter') &&
-      hasUnsavedFilterChanges(
-        dashboard,
-        location,
-        (modifiedDashboard || dashboard).filters
-      )
-    ) {
-      resetPageFilters(dashboard, location);
-    }
-
     // Use the new widgets for calculating layout because widgets has
     // the most up to date information in edit state
     const currentLayout = getDashboardLayout(widgets);
@@ -445,14 +423,6 @@ class DashboardDetail extends Component<Props, State> {
       ...cloneDashboard(modifiedDashboard || dashboard),
       widgets: assignDefaultLayout(widgets, layoutColumnDepths),
     };
-    if (
-      organization.features.includes('dashboards-top-level-filter') &&
-      hasUnsavedFilterChanges(dashboard, location, newModifiedDashboard.filters)
-    ) {
-      // Avoid carrying over unsaved filters from modifiedDashboard when conducting
-      // actions such as duplicate widget, delete widget
-      newModifiedDashboard.filters = dashboard.filters;
-    }
     this.setState({
       modifiedDashboard: newModifiedDashboard,
       widgetLimitReached: widgets.length >= MAX_WIDGETS,
@@ -511,9 +481,6 @@ class DashboardDetail extends Component<Props, State> {
           pathname: `/organizations/${organization.slug}/dashboard/${dashboardId}/widget/new/`,
           query: {
             ...location.query,
-            ...(organization.features.includes('dashboards-top-level-filter')
-              ? getSavedPageFilters(dashboard)
-              : {}),
             source: DashboardWidgetSource.DASHBOARDS,
           },
         });
@@ -657,18 +624,8 @@ class DashboardDetail extends Component<Props, State> {
   };
 
   renderWidgetBuilder() {
-    const {children, dashboard, organization, location} = this.props;
+    const {children, dashboard} = this.props;
     const {modifiedDashboard} = this.state;
-
-    if (
-      organization.features.includes('dashboards-top-level-filter') &&
-      modifiedDashboard &&
-      hasUnsavedFilterChanges(dashboard, location, modifiedDashboard.filters)
-    ) {
-      this.setState({
-        modifiedDashboard: {...modifiedDashboard, filters: dashboard.filters},
-      });
-    }
 
     return isValidElement(children)
       ? cloneElement(children, {
