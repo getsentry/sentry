@@ -55,8 +55,8 @@ def process_profile(
         _track_outcome(
             profile=profile,
             project=project,
-            key_id=key_id,
             outcome=Outcome.FILTERED,
+            key_id=key_id,
             reason="failed-vroom-insertion",
         )
         return
@@ -65,7 +65,7 @@ def process_profile(
     _insert_eventstream_call_tree(profile=profile)
     _insert_eventstream_profile(profile=profile)
 
-    _track_outcome(profile=profile, project=project, key_id=key_id, outcome=Outcome.ACCEPTED)
+    _track_outcome(profile=profile, project=project, outcome=Outcome.ACCEPTED, key_id=key_id)
 
 
 SHOULD_SYMBOLICATE = frozenset(["cocoa", "rust"])
@@ -240,9 +240,9 @@ def _deobfuscate(profile: Profile, project: Project) -> None:
 def _track_outcome(
     profile: Profile,
     project: Project,
-    key_id: Optional[int],
-    reason: Optional[str],
     outcome: Outcome,
+    key_id: Optional[int],
+    reason: Optional[str] = None,
 ) -> None:
     track_outcome(
         org_id=project.organization_id,
