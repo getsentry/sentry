@@ -1,6 +1,7 @@
 from unittest.mock import patch
 
 import pytest
+from django.core.exceptions import ValidationError
 from django.utils import timezone
 from freezegun import freeze_time
 
@@ -63,6 +64,14 @@ def test_version_is_semver_valid(release_version):
 )
 def test_version_is_semver_invalid(release_version):
     assert Release.is_semver_version(release_version) is False
+
+
+class ReleasesTest(TestCase):
+    def test_empty_version(self):
+        org = self.create_organization()
+        self.assertRaises(
+            ValidationError, lambda: Release.objects.create(version="", organization=org)
+        )
 
 
 class MergeReleasesTest(TestCase):
