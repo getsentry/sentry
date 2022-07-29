@@ -98,6 +98,7 @@ SHARED_TAG_STRINGS = {
     "inlier": PREFIX + 229,
     # added after the initial definition
     "sdk": PREFIX + 230,  # release health
+    "<< unparameterized >>": PREFIX + 231,  # placeholder for high-cardinality transaction names
     # GENERAL/MISC (don't have a category)
     "": PREFIX + 1000,
 }
