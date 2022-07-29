@@ -416,11 +416,11 @@ class MSTeamsNotificationMessageBuilderTest(TestCase):
         assert TextSize.SMALL == footer_text["size"]
 
     def test_without_footer(self):
-        dummy_notifcation = DummyNotification(self.org)
-        dummy_notifcation.group = self.group1
+        dummy_notification = DummyNotification(self.org)
+        dummy_notification.group = self.group1
 
         notification_card = MSTeamsNotificationsMessageBuilder(
-            dummy_notifcation,
+            dummy_notification,
             self.context,
             self.recipient,
         ).build_notification_card()
