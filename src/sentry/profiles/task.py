@@ -337,7 +337,9 @@ def _insert_vroom_profile(profile: Profile) -> bool:
         elif response.status == 200:
             profile["call_trees"] = json.loads(response.data)["call_trees"]
         else:
-            metrics.incr("profiling.insert_vroom_profile", tags={"platform": profile["platform"]})
+            metrics.incr(
+                "profiling.insert_vroom_profile.error", tags={"platform": profile["platform"]}
+            )
             return False
         return True
     finally:
