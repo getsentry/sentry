@@ -7,6 +7,8 @@ import pick from 'lodash/pick';
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import {getInterval, getPreviousSeriesName} from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
+import {axisLabelFormatter} from 'sentry/utils/discover/charts';
+import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import {QueryBatchNode} from 'sentry/utils/performance/contexts/genericQueryBatcher';
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {usePageError} from 'sentry/utils/performance/contexts/pageError';
@@ -14,12 +16,14 @@ import withApi from 'sentry/utils/withApi';
 import _DurationChart from 'sentry/views/performance/charts/chart';
 
 import {GenericPerformanceWidget} from '../components/performanceWidget';
+import {transformDiscoverToSingleValue} from '../transforms/transformDiscoverToSingleValue';
 import {transformEventsRequestToArea} from '../transforms/transformEventsToArea';
 import {PerformanceWidgetProps, QueryDefinition, WidgetDataResult} from '../types';
 import {eventsRequestQueryProps, getMEPQueryParams} from '../utils';
 
 type DataType = {
   chart: WidgetDataResult & ReturnType<typeof transformEventsRequestToArea>;
+  overall: WidgetDataResult & ReturnType<typeof transformDiscoverToSingleValue>;
 };
 
 export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
@@ -27,13 +31,16 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
   const globalSelection = props.eventView.getPageFilters();
   const pageError = usePageError();
   const mepSetting = useMEPSettingContext();
+  const useEvents = props.organization.features.includes(
+    'performance-frontend-use-events-endpoint'
+  );
 
   if (props.fields.length !== 1) {
     throw new Error(`Single field area can only accept a single field (${props.fields})`);
   }
   const field = props.fields[0];
 
-  const chart = useMemo<QueryDefinition<DataType, WidgetDataResult>>(
+  const chartQuery = useMemo<QueryDefinition<DataType, WidgetDataResult>>(
     () => ({
       fields: props.fields[0],
       component: provided => (
@@ -70,8 +77,34 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
     [props.chartSetting, mepSetting.memoizationKey]
   );
 
+  const overallQuery = useMemo<QueryDefinition<DataType, WidgetDataResult>>(
+    () => ({
+      fields: field,
+      component: provided => {
+        const eventView = provided.eventView.clone();
+
+        eventView.sorts = [];
+        eventView.fields = props.fields.map(fieldName => ({field: fieldName}));
+
+        return (
+          <DiscoverQuery
+            {...provided}
+            eventView={eventView}
+            location={props.location}
+            queryExtras={getMEPQueryParams(mepSetting)}
+            useEvents={useEvents}
+          />
+        );
+      },
+      transform: transformDiscoverToSingleValue,
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [props.chartSetting, mepSetting.memoizationKey]
+  );
+
   const Queries = {
-    chart,
+    chart: chartQuery,
+    overall: overallQuery,
   };
 
   return (
@@ -86,11 +119,18 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
       )}
       HeaderActions={provided => (
         <Fragment>
-          <HighlightNumber color={props.chartColor}>
-            {provided.widgetData.chart?.hasData
-              ? provided.widgetData.chart?.dataMean?.[0].label
-              : null}
-          </HighlightNumber>
+          {provided.widgetData?.overall?.hasData ? (
+            <Fragment>
+              {props.fields.map(fieldName => (
+                <HighlightNumber key={fieldName} color={props.chartColor}>
+                  {axisLabelFormatter(
+                    provided.widgetData?.overall?.[fieldName],
+                    fieldName
+                  )}
+                </HighlightNumber>
+              ))}
+            </Fragment>
+          ) : null}
           <ContainerActions {...provided.widgetData.chart} />
         </Fragment>
       )}
