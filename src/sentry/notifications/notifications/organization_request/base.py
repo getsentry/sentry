@@ -57,7 +57,7 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
             f"{recipient_role_string} | {self.format_url(text='Notification Settings', url=settings_url, provider=provider)}"
         )
 
-    def get_title_link(self, recipient: Team | User) -> str | None:
+    def get_title_link(self, recipient: Team | User, provider: ExternalProviders) -> str | None:
         return None
 
     def get_log_params(self, recipient: Team | User) -> MutableMapping[str, Any]:
