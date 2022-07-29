@@ -16,7 +16,8 @@ import {quantityField} from '.';
 export function projectStatsToPredictedSeries(
   projectStats?: SeriesApi,
   client?: number,
-  server?: number
+  server?: number,
+  specifiedClientRate?: number
 ): Series[] {
   if (!projectStats || !defined(client) || !defined(server)) {
     return [];
@@ -62,7 +63,13 @@ export function projectStatsToPredictedSeries(
       serverRate = clientRate;
     }
 
-    const total = accepted + filtered + invalid + rateLimited + clientDiscard;
+    let total = accepted + filtered + invalid + rateLimited + clientDiscard;
+
+    if (defined(specifiedClientRate)) {
+      // Calculates the discard client (SDK) bucket according to the specified client rate
+      const newClientDiscard = total / specifiedClientRate - total;
+      total += newClientDiscard;
+    }
 
     const newSentClient = total * clientRate;
     const newDroppedClient = total - newSentClient;

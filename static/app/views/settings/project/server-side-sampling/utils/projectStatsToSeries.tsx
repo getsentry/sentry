@@ -4,6 +4,7 @@ import moment from 'moment';
 import {t} from 'sentry/locale';
 import {SeriesApi} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
+import {defined} from 'sentry/utils';
 import commonTheme from 'sentry/utils/theme';
 import {Outcome} from 'sentry/views/organizationStats/types';
 import {
@@ -13,7 +14,10 @@ import {
 
 import {quantityField} from '.';
 
-export function projectStatsToSeries(projectStats: SeriesApi | undefined): Series[] {
+export function projectStatsToSeries(
+  projectStats: SeriesApi | undefined,
+  specifiedClientRate?: number
+): Series[] {
   if (!projectStats) {
     return [];
   }
@@ -55,6 +59,19 @@ export function projectStatsToSeries(projectStats: SeriesApi | undefined): Serie
       }
     });
   });
+
+  // Calculates the discard client (SDK) bucket according to the specified client rate
+  if (defined(specifiedClientRate)) {
+    seriesData.droppedClient = seriesData.droppedClient.map((bucket, index) => {
+      const totalHitServer =
+        seriesData.droppedServer[index].value + seriesData.accepted[index].value;
+
+      return {
+        ...bucket,
+        value: totalHitServer / specifiedClientRate - totalHitServer,
+      };
+    });
+  }
 
   return [
     {

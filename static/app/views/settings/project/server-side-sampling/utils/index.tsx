@@ -1,6 +1,7 @@
 import round from 'lodash/round';
 
 import {t} from 'sentry/locale';
+import {SeriesDataUnit} from 'sentry/types/echarts';
 import {SamplingInnerName, SamplingRule, SamplingRuleType} from 'sentry/types/sampling';
 import {defined} from 'sentry/utils';
 
@@ -51,4 +52,23 @@ export function percentageToRate(rate: number | undefined, decimalPlaces: number
   }
 
   return round(rate / 100, decimalPlaces);
+}
+
+export function discardedSeriesAccordingToSpecifiedRate(
+  seriesData: Record<string, SeriesDataUnit[]>,
+  specifiedClientRate: number | undefined
+): SeriesDataUnit[] {
+  if (!defined(specifiedClientRate)) {
+    return seriesData.droppedClient;
+  }
+
+  return seriesData.droppedClient.map((bucket, index) => {
+    const totalHitServer =
+      seriesData.droppedServer[index].value + seriesData.accepted[index].value;
+
+    return {
+      ...bucket,
+      value: totalHitServer / specifiedClientRate - totalHitServer,
+    };
+  });
 }
