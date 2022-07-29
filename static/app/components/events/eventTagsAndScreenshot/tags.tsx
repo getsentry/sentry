@@ -7,7 +7,6 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import type {Organization, Project} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
-import {objectIsEmpty} from 'sentry/utils';
 
 import EventTags from '../eventTags/eventTags';
 
@@ -16,19 +15,16 @@ import TagsHighlight from './tagsHighlight';
 
 type Props = {
   event: Event;
-  hasContext: boolean;
+  hasEventContext: boolean;
   location: Location;
   organization: Organization;
   projectSlug: Project['slug'];
 };
 
-function Tags({event, organization, projectSlug, location, hasContext}: Props) {
-  // Check for context bailout condition. No context is rendered if only user is provided
-  const hasEventContext = !objectIsEmpty(event.contexts);
-
+function Tags({event, organization, projectSlug, location, hasEventContext}: Props) {
   return (
     <div>
-      {hasContext && hasEventContext && (
+      {hasEventContext && (
         <Fragment>
           <TagsHighlightWrapper>
             <TagsHighlight event={event} />

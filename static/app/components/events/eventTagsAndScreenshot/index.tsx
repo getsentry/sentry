@@ -3,13 +3,17 @@ import styled from '@emotion/styled';
 
 import {DataSection} from 'sentry/components/events/styles';
 import space from 'sentry/styles/space';
+import {objectIsEmpty} from 'sentry/utils';
 
 import Screenshot from './screenshot';
 import Tags from './tags';
 
 type ScreenshotProps = React.ComponentProps<typeof Screenshot>;
 
-type Props = Omit<React.ComponentProps<typeof Tags>, 'projectSlug' | 'hasContext'> & {
+type Props = Omit<
+  React.ComponentProps<typeof Tags>,
+  'projectSlug' | 'hasEventContext'
+> & {
   attachments: ScreenshotProps['screenshot'][];
   onDeleteScreenshot: ScreenshotProps['onDelete'];
   projectId: string;
@@ -38,10 +42,16 @@ function EventTagsAndScreenshots({
   }
 
   const showScreenshot = !isShare && !!screenshot;
+  // Check for context bailout condition. No context is rendered if only user is provided
+  const hasEventContext = hasContext && !objectIsEmpty(event.contexts);
   const showTags = !!tags.length || hasContext;
 
   return (
-    <Wrapper showScreenshot={showScreenshot} showTags={showTags} hasContext={hasContext}>
+    <Wrapper
+      showScreenshot={showScreenshot}
+      showTags={showTags}
+      hasContext={hasEventContext}
+    >
       {showScreenshot && (
         <Screenshot
           organization={organization}
@@ -57,7 +67,7 @@ function EventTagsAndScreenshots({
           organization={organization}
           event={event}
           projectSlug={projectSlug}
-          hasContext={hasContext}
+          hasEventContext={hasEventContext}
           location={location}
         />
       )}
