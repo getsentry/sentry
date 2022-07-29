@@ -1,4 +1,10 @@
-import {AnchorHTMLAttributes, createContext, Fragment, useState} from 'react';
+import {
+  AnchorHTMLAttributes,
+  cloneElement,
+  createContext,
+  Fragment,
+  useState,
+} from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
@@ -54,7 +60,7 @@ type Props = {
   recentFirst: boolean;
   stackTraceNotFound: boolean;
   stackType: STACK_TYPE;
-  title: React.ReactNode;
+  title: React.ReactElement<any, any>;
   type: string;
   wrapTitle?: boolean;
 };
@@ -186,7 +192,7 @@ export function TraceEventDataSection({
       type={type}
       title={
         <Header>
-          <Title>{title}</Title>
+          <Title>{cloneElement(title, {type})}</Title>
           {!stackTraceNotFound && (
             <Fragment>
               {!state.display.includes('raw-stack-trace') && (
@@ -272,11 +278,9 @@ interface PermalinkTitleProps
 
 export function PermalinkTitle(props: PermalinkTitleProps) {
   return (
-    <Permalink href={'#' + props.type} className="permalink" {...props}>
-      <h3>
-        <StyledIconAnchor />
-        {props.children}
-      </h3>
+    <Permalink {...props} href={'#' + props.type} className="permalink">
+      <StyledIconAnchor />
+      <h3>{props.children}</h3>
     </Permalink>
   );
 }
