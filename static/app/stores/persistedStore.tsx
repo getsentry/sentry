@@ -73,7 +73,7 @@ export function PersistedStoreProvider(props: {children: React.ReactNode}) {
     return () => {
       shouldCancelRequest = true;
     };
-  }, [organization]);
+  }, [api, organization]);
 
   return (
     <PersistedStoreContext.Provider value={[state, setState]}>
@@ -109,7 +109,7 @@ export function usePersistedStoreCategory<C extends keyof PersistedStore>(
         data: val,
       });
     },
-    [category, organization]
+    [category, organization, api]
   );
 
   const stableState: UsePersistedCategory<PersistedStore[C]> = useMemo(() => {

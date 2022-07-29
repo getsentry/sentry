@@ -40,7 +40,7 @@ export function GroupEventDetailsContainer(props: GroupEventDetailsProps) {
       fetchOrganizationEnvironments(props.api, props.organization.slug);
     }
     // XXX: Missing dependencies, but it reflects the old of componentDidMount
-  }, []);
+  }, [props.api]);
 
   if (state.error) {
     return (

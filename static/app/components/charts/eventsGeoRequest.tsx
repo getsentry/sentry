@@ -89,7 +89,7 @@ const EventsGeoRequest = ({
       // Prevent setState leaking on unmounted component
       mounted = false;
     };
-  }, [query, yAxis, start, end, period, environments, projects]);
+  }, [query, yAxis, start, end, period, environments, projects, api]);
 
   return children({
     errored,
