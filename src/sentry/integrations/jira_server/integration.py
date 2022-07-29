@@ -666,7 +666,7 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
             jira_projects = client.get_projects_list()
         except ApiError as e:
             logger.info(
-                "jira_server.get-create-issue-config.no-projects",
+                "jira_server.get_projects.error",
                 extra={
                     "integration_id": self.model.id,
                     "organization_id": self.organization_id,
@@ -675,6 +675,13 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
             )
             raise IntegrationError(no_projects_error_message)
         if len(jira_projects) == 0:
+            logger.info(
+                "jira_server.get_projects.no_projects",
+                extra={
+                    "integration_id": self.model.id,
+                    "organization_id": self.organization_id,
+                },
+            )
             raise IntegrationError(no_projects_error_message)
         return jira_projects
 
@@ -730,7 +737,7 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
             issue_type_meta = client.get_issue_fields(project_id, issue_type)
         except ApiUnauthorized:
             logger.info(
-                "jira_server.fetch-issue-create-meta.unauthorized",
+                "jira_server.get_create_issue_config.unauthorized",
                 extra={"organization_id": self.organization_id, "jira_project": project_id},
             )
             raise IntegrationError(
@@ -812,7 +819,7 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
                     reporter_info = client.get_user(reporter_id)
                 except ApiError as e:
                     logger.info(
-                        "jira_server.get-create-issue-config.no-matching-reporter",
+                        "jira_server.get_create_issue_config.no-matching-reporter",
                         extra={
                             "integration_id": self.model.id,
                             "organization_id": self.organization_id,
