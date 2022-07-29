@@ -108,7 +108,6 @@ const MenuItem = ({
   renderAs = 'li' as React.ElementType,
   ...submenuTriggerProps
 }: Props) => {
-  const [isHovering, setIsHovering] = useState(false);
   const ourRef = useRef(null);
   const isDisabled = state.disabledKeys.has(node.key);
   const isFocused = state.selectionManager.focusedKey === node.key;
@@ -128,16 +127,30 @@ const MenuItem = ({
   };
 
   // Open submenu on hover
+  const [isHovering, setIsHovering] = useState(false);
   const {hoverProps} = useHover({onHoverChange: setIsHovering});
   useEffect(() => {
     if (isHovering && isFocused) {
+      // We need to redeclare `select` & `clearSelection` as new constants. Otherwise
+      // eslint will throw a react-hooks/exhaustive-deps warning requiring that the entire
+      // state (`state.selectionManager`) be listed in the deps array.
+      const select = state.selectionManager.select;
+      const clearSelection = state.selectionManager.clearSelection;
+
       if (isSubmenuTrigger) {
-        state.selectionManager.select(node.key);
+        select(node.key);
         return;
       }
-      state.selectionManager.clearSelection();
+      clearSelection();
     }
-  }, [isHovering, isFocused]);
+  }, [
+    isHovering,
+    isFocused,
+    isSubmenuTrigger,
+    node.key,
+    state.selectionManager.select,
+    state.selectionManager.clearSelection,
+  ]);
 
   // Open submenu on arrow right key press
   const {keyboardProps} = useKeyboard({
