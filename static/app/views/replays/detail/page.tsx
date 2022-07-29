@@ -37,7 +37,7 @@ function Page({children, crumbs, durationMS, orgId, replayRecord}: Props) {
         <ChooseLayout />
       </ButtonActionsWrapper>
 
-      {event && crumbs ? (
+      {replayRecord && crumbs ? (
         <CrumbWalker replayRecord={replayRecord} crumbs={crumbs} />
       ) : (
         <HeaderPlaceholder />
