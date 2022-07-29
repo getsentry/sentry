@@ -55,7 +55,7 @@ def process_profile(
         _track_outcome(
             profile=profile,
             project=project,
-            outcome=Outcome.FILTERED,
+            outcome=Outcome.INVALID,
             key_id=key_id,
             reason="failed-vroom-insertion",
         )
