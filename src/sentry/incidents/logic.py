@@ -7,7 +7,6 @@ from typing import Any, Dict, Mapping, Optional, Union
 from django.db import transaction
 from django.db.models.signals import post_save
 from django.utils import timezone
-from rest_framework import serializers
 from snuba_sdk import Column, Condition, Limit, Op
 
 from sentry import analytics, audit_log, features, quotas
@@ -1409,9 +1408,6 @@ def get_slack_actions_with_async_lookups(organization, user, data):
                         and not a_s.validated_data["input_channel_id"]
                     ):
                         slack_actions.append(a_s.validated_data)
-                else:
-                    # e.g. {'nonFieldErrors': [ErrorDetail(string='Channel not found. Invalid ID provided.', code='invalid')]}
-                    raise serializers.ValidationError(a_s.errors["nonFieldErrors"])
         return slack_actions
     except KeyError:
         # If we have any KeyErrors reading the data, we can just return nothing

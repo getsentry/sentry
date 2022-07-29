@@ -33,6 +33,7 @@ class ProjectAlertRuleDetailsEndpoint(ProjectAlertRuleEndpoint):
                 "organization": project.organization,
                 "access": request.access,
                 "user": request.user,
+                "validate_channel_id": True,
             },
             instance=alert_rule,
             data=data,
