@@ -88,6 +88,8 @@ class IntegrationRequestNotification(OrganizationRequestNotification):
         )
         return f"{requester_name} is requesting to install the {self.provider_name} integration into {self.organization.name}.{optional_message}"
 
-    def get_message_actions(self, recipient: Team | User) -> Sequence[MessageAction]:
+    def get_message_actions(
+        self, recipient: Team | User, provider: ExternalProviders
+    ) -> Sequence[MessageAction]:
         # TODO: update referrer
         return [MessageAction(name="Check it out", url=self.integration_link)]

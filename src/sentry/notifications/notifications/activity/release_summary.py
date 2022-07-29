@@ -178,7 +178,9 @@ class ReleaseSummaryActivityNotification(ActivityNotification):
 
         return message
 
-    def get_message_actions(self, recipient: Team | User) -> Sequence[MessageAction]:
+    def get_message_actions(
+        self, recipient: Team | User, provider: ExternalProviders
+    ) -> Sequence[MessageAction]:
         return []
 
     def build_attachment_title(self, recipient: Team | User) -> str:

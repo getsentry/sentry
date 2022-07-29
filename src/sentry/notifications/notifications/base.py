@@ -125,7 +125,9 @@ class BaseNotification(abc.ABC):
         """
         return self.get_log_params(recipient)
 
-    def get_message_actions(self, recipient: Team | User) -> Sequence[MessageAction]:
+    def get_message_actions(
+        self, recipient: Team | User, provider: ExternalProviders
+    ) -> Sequence[MessageAction]:
         return []
 
     def get_callback_data(self) -> Mapping[str, Any] | None:
