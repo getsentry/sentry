@@ -27,7 +27,6 @@ import {
   isEquation,
   isLegalYAxisType,
   Sort,
-  WebVital,
 } from 'sentry/utils/discover/fields';
 import {
   CHART_AXIS_OPTIONS,
@@ -47,6 +46,7 @@ import {SpanOperationBreakdownFilter} from 'sentry/views/performance/transaction
 import {EventsDisplayFilterName} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
 
 import {statsPeriodToDays} from '../dates';
+import {WebVital} from '../fields';
 import {MutableSearch} from '../tokenizeSearch';
 
 import {getSortField} from './fieldRenderers';

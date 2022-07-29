@@ -17,7 +17,7 @@ import {Organization, ReleaseProject} from 'sentry/types';
 import DiscoverQuery, {TableData} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import {MobileVital, WebVital} from 'sentry/utils/discover/fields';
+import {MobileVital, WebVital} from 'sentry/utils/fields';
 import {
   MOBILE_VITAL_DETAILS,
   WEB_VITAL_DETAILS,

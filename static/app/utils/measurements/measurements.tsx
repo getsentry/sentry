@@ -1,11 +1,12 @@
 import {Fragment} from 'react';
 
-import {MobileVital, WebVital} from 'sentry/utils/discover/fields';
 import {
   MOBILE_VITAL_DETAILS,
   WEB_VITAL_DETAILS,
 } from 'sentry/utils/performance/vitals/constants';
 import {Vital} from 'sentry/utils/performance/vitals/types';
+
+import {MobileVital, WebVital} from '../fields';
 
 export type Measurement = {
   key: string;

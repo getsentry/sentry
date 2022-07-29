@@ -16,7 +16,7 @@ import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {DateString, MetricsApiResponse} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
-import {WebVital} from 'sentry/utils/discover/fields';
+import {WebVital} from 'sentry/utils/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
 
 import {replaceSeriesName, transformEventStatsSmoothed} from '../trends/utils';

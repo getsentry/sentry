@@ -14,7 +14,7 @@ import space from 'sentry/styles/space';
 import {SelectValue} from 'sentry/types';
 import {
   AggregateParameter,
-  AggregationKey,
+  AggregationKeyWithAlias,
   AGGREGATIONS,
   Column,
   ColumnType,
@@ -161,7 +161,7 @@ class QueryField extends Component<Props> {
           fieldValue = {
             kind: 'function',
             function: [
-              value.meta.name as AggregationKey,
+              value.meta.name as AggregationKeyWithAlias,
               current.function[1],
               current.function[2],
               current.function[3],
@@ -170,7 +170,12 @@ class QueryField extends Component<Props> {
         } else {
           fieldValue = {
             kind: 'function',
-            function: [value.meta.name as AggregationKey, '', undefined, undefined],
+            function: [
+              value.meta.name as AggregationKeyWithAlias,
+              '',
+              undefined,
+              undefined,
+            ],
           };
         }
         break;

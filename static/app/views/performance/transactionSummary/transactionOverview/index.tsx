@@ -8,12 +8,8 @@ import {Organization, PageFilters, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
-import {
-  Column,
-  isAggregateField,
-  QueryFieldValue,
-  WebVital,
-} from 'sentry/utils/discover/fields';
+import {Column, isAggregateField, QueryFieldValue} from 'sentry/utils/discover/fields';
+import {WebVital} from 'sentry/utils/fields';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {removeHistogramQueryStrings} from 'sentry/utils/performance/histogram';
 import {decodeScalar} from 'sentry/utils/queryString';

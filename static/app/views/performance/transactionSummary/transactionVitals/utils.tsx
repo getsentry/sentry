@@ -1,7 +1,7 @@
 import type {ECharts} from 'echarts';
 import {Query} from 'history';
 
-import {WebVital} from 'sentry/utils/discover/fields';
+import {WebVital} from 'sentry/utils/fields';
 import {HistogramData} from 'sentry/utils/performance/histogram/types';
 import {getBucketWidth} from 'sentry/utils/performance/histogram/utils';
 import {VitalsData} from 'sentry/utils/performance/vitals/vitalsCardsDiscoverQuery';
