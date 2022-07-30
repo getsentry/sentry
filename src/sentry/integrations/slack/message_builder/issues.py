@@ -28,7 +28,6 @@ from sentry.models import (
     Team,
     User,
 )
-
 from sentry.notifications.notifications.active_release import CommitData
 from sentry.notifications.notifications.base import (
     BaseNotification,
