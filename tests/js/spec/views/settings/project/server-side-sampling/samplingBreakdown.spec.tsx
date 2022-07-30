@@ -8,7 +8,7 @@ import {getMockData, mockedSamplingDistribution} from './utils';
 
 export const samplingBreakdownTitle = 'Transaction Breakdown';
 
-describe('Server-side Sampling - SamplingBreakdown', function () {
+describe('Server-Side Sampling - SamplingBreakdown', function () {
   beforeEach(function () {
     ServerSideSamplingStore.reset();
   });

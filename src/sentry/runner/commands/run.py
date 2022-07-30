@@ -558,7 +558,7 @@ def ingest_consumer(consumer_types, all_consumer_types, **options):
 @click.option("--input-block-size", type=int, default=DEFAULT_BLOCK_SIZE)
 @click.option("--output-block-size", type=int, default=DEFAULT_BLOCK_SIZE)
 @click.option("--factory-name", default="default")
-@click.option("--ingest-profile")
+@click.option("--ingest-profile", required=True)
 @click.option("commit_max_batch_size", "--commit-max-batch-size", type=int, default=25000)
 @click.option("commit_max_batch_time", "--commit-max-batch-time-ms", type=int, default=10000)
 def metrics_streaming_consumer(**options):
@@ -592,6 +592,19 @@ def profiles_consumer(**options):
     from sentry.profiles.consumer import get_profiles_consumer
 
     get_profiles_consumer(**options).run()
+
+
+@run.command("ingest-replay-recordings")
+@log_options()
+@configuration
+@batching_kafka_options("ingest-replay-recordings")
+@click.option(
+    "--topic", default="ingest-replay-recordings", help="Topic to get replay recording data from"
+)
+def replays_recordings_consumer(**options):
+    from sentry.replays.consumers import get_replays_recordings_consumer
+
+    get_replays_recordings_consumer(**options).run()
 
 
 @run.command("indexer-last-seen-updater")

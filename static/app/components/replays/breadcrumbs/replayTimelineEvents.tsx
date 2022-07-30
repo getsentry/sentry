@@ -3,6 +3,8 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import * as Timeline from 'sentry/components/replays/breadcrumbs/timeline';
+import {useReplayContext} from 'sentry/components/replays/replayContext';
+import {getCrumbsByColumn, relativeTimeInMs} from 'sentry/components/replays/utils';
 import Tooltip from 'sentry/components/tooltip';
 import space from 'sentry/styles/space';
 import {Crumb} from 'sentry/types/breadcrumbs';
@@ -10,14 +12,11 @@ import type {Color} from 'sentry/utils/theme';
 import theme from 'sentry/utils/theme';
 import BreadcrumbItem from 'sentry/views/replays/detail/breadcrumbs/breadcrumbItem';
 
-import {useReplayContext} from '../replayContext';
-import {getCrumbsByColumn, relativeTimeInMs} from '../utils';
-
 const EVENT_STICK_MARKER_WIDTH = 4;
 
 type Props = {
   crumbs: Crumb[];
-  duration: number;
+  durationMS: number;
   startTimestamp: number;
   width: number;
   className?: string;
@@ -26,12 +25,12 @@ type Props = {
 function ReplayTimelineEvents({
   className,
   crumbs,
-  duration,
+  durationMS,
   startTimestamp,
   width,
 }: Props) {
   const totalColumns = Math.floor(width / EVENT_STICK_MARKER_WIDTH);
-  const eventsByCol = getCrumbsByColumn(startTimestamp, duration, crumbs, totalColumns);
+  const eventsByCol = getCrumbsByColumn(startTimestamp, durationMS, crumbs, totalColumns);
 
   return (
     <Timeline.Columns className={className} totalColumns={totalColumns} remainder={0}>
