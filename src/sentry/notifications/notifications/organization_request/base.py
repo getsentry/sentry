@@ -48,13 +48,14 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
         if isinstance(recipient, Team):
             raise NotImplementedError
 
-        settings_url = self.get_settings_url(recipient, provider)
-        recipient_role_string = self.role_based_recipient_strategy.get_recipient_role_string(
-            recipient
+        settings_url = self.format_url(
+            text="Notification Settings",
+            url=self.get_settings_url(recipient, provider),
+            provider=provider,
         )
-        return (
-            "You are receiving this notification because you're listed as an organization "
-            f"{recipient_role_string} | {self.format_url(text='Notification Settings', url=settings_url, provider=provider)}"
+
+        return self.role_based_recipient_strategy.build_notification_footer_from_settings_url(
+            settings_url, recipient
         )
 
     def get_title_link(self, recipient: Team | User) -> str | None:
