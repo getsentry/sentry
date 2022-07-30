@@ -67,6 +67,7 @@ def send_comment_deleted_webhook(project, user, group, data, **kwargs):
 
 
 def send_comment_webhooks(organization, issue, user, event, data=None):
+    # print("send_comment_webhooks")
     data = data or {}
 
     for install in installations_to_notify(organization, event):
@@ -78,6 +79,33 @@ def send_comment_webhooks(organization, issue, user, event, data=None):
             data=data,
         )
 
+    from sentry.models.sentryfunction import SentryFunction
+
+    data["user"] = serialize(User.objects.get(id=user.id), user, UserSerializer())
+    data["issue"] = serialize(Group.objects.get(id=issue.id))
+
+    for fn in SentryFunction.objects.filter(organization=organization).all():
+        if "issue" not in fn.events:
+            continue
+        from google.cloud import pubsub_v1
+
+        from sentry.utils import json
+
+        google_pubsub_name = "projects/hackweek-sentry-functions/topics/fn-" + fn.external_id
+        publisher = pubsub_v1.PublisherClient()
+        publisher.publish(
+            google_pubsub_name,
+            json.dumps(
+                {
+                    "data": data,
+                    "type": event,
+                }
+            ).encode(),
+        )
+        # print(
+        #     f"--------------------------------called fn {fn.external_id} for comment: {issue.id}-------------------------"
+        # )
+
 
 def send_workflow_webhooks(
     organization: Organization,
@@ -86,6 +114,7 @@ def send_workflow_webhooks(
     event: str,
     data: Mapping[str, Any] | None = None,
 ) -> None:
+    # print("send_workflow_webhooks")
     data = data or {}
 
     for install in installations_to_notify(organization, event):
@@ -120,7 +149,9 @@ def send_workflow_webhooks(
                 }
             ).encode(),
         )
-        # print(f"called fn {fn.external_id} for issue: {issue.id}")
+        # print(
+        #     f"----------------------------------called fn {fn.external_id} for issue: {issue.id}----------------------------------"
+        # )
 
 
 def installations_to_notify(organization, event):

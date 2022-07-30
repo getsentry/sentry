@@ -16,7 +16,7 @@ class SentryFunctionSerializer(CamelSnakeSerializer):
     name = serializers.CharField(required=True)
     author = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     code = serializers.CharField(required=True)
-    overview = serializers.CharField()
+    overview = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     events = serializers.ListField(child=serializers.CharField(), required=False)
 
 
@@ -40,6 +40,7 @@ class OrganizationSentryFunctionEndpoint(OrganizationEndpoint):
         data["external_id"] = data["slug"] + "-" + uuid4().hex
         create_function(data["code"], data["external_id"], data.get("overview", None))
         function = SentryFunction.objects.create(**data)
+        # print(data)
         return Response(serialize(function), status=201)
 
     # def get(self, request, organization):

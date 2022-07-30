@@ -456,7 +456,11 @@ def post_process_group(
                     google_pubsub_name,
                     json.dumps({"data": dict(event.data), "type": "error"}).encode(),
                 )
-                # print("called " + fn.external_id)
+                # print(
+                #     "-------------------------------------called--------error--------"
+                #     + fn.external_id
+                #     + "----------------------"
+                # )
 
             from sentry import similarity
 

@@ -39,11 +39,13 @@ class OrganizationSentryFunctionDetailsEndpoint(OrganizationEndpoint):
             return Response(serializer.errors, status=400)
 
         data = serializer.validated_data
-        function.update(**data)
 
-        update_function(function.code, function.external_id, data.get("overview", None))
-
-        return Response(serialize(function), status=201)
+        try:
+            update_function(function.code, function.external_id, data.get("overview", None))
+            function.update(**data)
+            return Response(serialize(function), status=201)
+        except FailedPrecondition:
+            return Response({"detail": "Function is currently busy, try again later."}, status=400)
 
     def delete(self, request, organization, function):
         # If the function is being executed, the delete request will stop the function
