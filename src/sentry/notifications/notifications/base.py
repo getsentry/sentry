@@ -96,7 +96,7 @@ class BaseNotification(abc.ABC):
         """The subject line when sending this notifications as a chat notification."""
         raise NotImplementedError
 
-    def get_title_link(self, recipient: Team | User) -> str | None:
+    def get_title_link(self, recipient: Team | User, provider: ExternalProviders) -> str | None:
         raise NotImplementedError
 
     def build_attachment_title(self, recipient: Team | User) -> str:
@@ -118,9 +118,7 @@ class BaseNotification(abc.ABC):
             "actor_id": recipient.actor_id,
         }
 
-    def get_custom_analytics_params(
-        self, recipient: Team | User, provider: ExternalProviders
-    ) -> Mapping[str, Any]:
+    def get_custom_analytics_params(self, recipient: Team | User) -> Mapping[str, Any]:
         """
         Returns a mapping of params used to record the event associated with self.analytics_event.
         By default, use the log params.
