@@ -2,8 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import * as Timeline from 'sentry/components/replays/breadcrumbs/timeline';
-
-import {countColumns, formatTime} from '../utils';
+import {countColumns, formatTime} from 'sentry/components/replays/utils';
 
 type LineStyle = 'dotted' | 'solid' | 'none';
 
@@ -36,13 +35,13 @@ function Gridlines({
 }
 
 type Props = {
-  duration: number;
+  durationMS: number;
   width: number;
   minWidth?: number;
 };
 
-export function MajorGridlines({duration, minWidth = 50, width}: Props) {
-  const {timespan, cols, remaining} = countColumns(duration, width, minWidth);
+export function MajorGridlines({durationMS, minWidth = 50, width}: Props) {
+  const {timespan, cols, remaining} = countColumns(durationMS, width, minWidth);
 
   return (
     <Gridlines cols={cols} lineStyle="solid" remaining={remaining}>
@@ -51,8 +50,8 @@ export function MajorGridlines({duration, minWidth = 50, width}: Props) {
   );
 }
 
-export function MinorGridlines({duration, minWidth = 20, width}: Props) {
-  const {cols, remaining} = countColumns(duration, width, minWidth);
+export function MinorGridlines({durationMS, minWidth = 20, width}: Props) {
+  const {cols, remaining} = countColumns(durationMS, width, minWidth);
 
   return <Gridlines cols={cols} lineStyle="dotted" remaining={remaining} />;
 }
