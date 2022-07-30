@@ -26,7 +26,7 @@ class ResolvedInActiveReleaseTest(TestCase):
             date_finished=timezone.now() - timedelta(minutes=20),
         )
 
-        assert not is_resolved_issue_within_active_release(group, project)
+        assert not is_resolved_issue_within_active_release(group)
 
     def test_resolved_issue_in_active_release(self):
         project = self.create_project()
@@ -44,13 +44,7 @@ class ResolvedInActiveReleaseTest(TestCase):
             date_finished=timezone.now() - timedelta(minutes=20),
         )
 
-        issue = Group.objects.filter(id=group.id, project_id=project.id)
-        print(issue)
-        assert GroupRelease.objects.filter(
-            project_id=project.id, group_id=group.id, release_id=release.id
-        )
-
-        assert is_resolved_issue_within_active_release(group, project)
+        assert is_resolved_issue_within_active_release(group)
 
     def test_resolved_issue_in_old_deploy(self):
         project = self.create_project()
@@ -68,7 +62,7 @@ class ResolvedInActiveReleaseTest(TestCase):
             date_finished=timezone.now() - timedelta(days=3),
         )
 
-        assert not is_resolved_issue_within_active_release(group, project)
+        assert not is_resolved_issue_within_active_release(group)
 
     def test_resolved_issue_in_active_release_not_deployed(self):
         project = self.create_project()
@@ -79,4 +73,4 @@ class ResolvedInActiveReleaseTest(TestCase):
             group_id=group.id,
             release_id=release.id,
         )
-        assert not is_resolved_issue_within_active_release(group, project)
+        assert not is_resolved_issue_within_active_release(group)

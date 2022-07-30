@@ -2,10 +2,10 @@ from datetime import timedelta
 
 from django.utils import timezone
 
-from sentry.models import Deploy, Group, GroupStatus, Project, Release
+from sentry.models import Deploy, Group, GroupStatus, Release
 
 
-def is_resolved_issue_within_active_release(issue: Group, project: Project) -> bool:
+def is_resolved_issue_within_active_release(issue: Group) -> bool:
 
     if issue is None or issue.status != GroupStatus.RESOLVED or issue.get_last_release() is None:
         return False
@@ -13,7 +13,7 @@ def is_resolved_issue_within_active_release(issue: Group, project: Project) -> b
     latest_release_version_issue = issue.get_last_release()
 
     latest_release_issue = Release.objects.filter(
-        version=latest_release_version_issue, organization_id=project.organization.id
+        version=latest_release_version_issue, organization_id=issue.project.organization.id
     )
 
     if len(latest_release_issue) == 0:

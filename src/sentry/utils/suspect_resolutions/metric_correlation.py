@@ -27,23 +27,21 @@ def is_issue_error_rate_correlated(
     x = [events for _, events in data[resolved_issue.id]]
     y = [events for _, events in data[candidate_suspect_resolution.id]]
 
-    return calculate_pearson_correlation_coefficient(x, y) > 0.4
+    coefficient = calculate_pearson_correlation_coefficient(x, y)
+
+    return (coefficient > 0.4, coefficient, resolution_time, start_time, end_time)
 
 
 def calculate_pearson_correlation_coefficient(x: List[int], y: List[int]) -> int:
     # source: https://inside-machinelearning.com/en/pearson-formula-in-python-linear-correlation-coefficient/
-
     if len(x) and len(y) == 0:
         return 0
 
-    # calculate average
     mean_x = sum(x) / len(x)
     mean_y = sum(y) / len(y)
 
-    # calculate covariance
     cov = sum((a - mean_x) * (b - mean_y) for (a, b) in zip(x, y)) / len(x)
 
-    # calculate standard deviation
     st_dev_x = (sum((a - mean_x) ** 2 for a in x) / len(x)) ** 0.5
     st_dev_y = (sum((b - mean_y) ** 2 for b in y) / len(y)) ** 0.5
 

@@ -15,11 +15,9 @@ from sentry.models import (
 from sentry.types.activity import ActivityType
 
 
-def is_issue_commit_correlated(
-    resolved_issue_id: int, candidate_issue_id: int, project_id: int
-) -> bool:
-    resolved_issue_files = get_files_changed(resolved_issue_id, project_id)
-    candidate_suspect_resolution_files = get_files_changed(candidate_issue_id, project_id)
+def is_issue_commit_correlated(resolved_issue: int, candidate_issue: int, project: int) -> bool:
+    resolved_issue_files = get_files_changed(resolved_issue, project)
+    candidate_suspect_resolution_files = get_files_changed(candidate_issue, project)
 
     if len(resolved_issue_files) == 0 or len(candidate_suspect_resolution_files) == 0:
         return False
@@ -30,6 +28,11 @@ def is_issue_commit_correlated(
 def get_files_changed(issue: Group, project: Project) -> Set:
 
     activity = Activity.objects.filter(project=project, group=issue).first()
+
+    if activity is None:
+        return set()
+
+    # print(issue.status)
 
     if (
         activity.type == ActivityType.SET_RESOLVED_IN_RELEASE.value

@@ -11,42 +11,44 @@ from sentry.utils.suspect_resolutions.metric_correlation import (
     is_issue_error_rate_correlated,
 )
 
-now = datetime.datetime.now()
-start = now - datetime.timedelta(hours=1)
-end = now
-START = int(start.timestamp())
-END = int(now.timestamp())
 WINDOW = 60
 
 
-def generate_empty_issue_events(
-    start_timestamp, end_timestamp, data_fill, empty_fill=0, time_window=60
-):
-    """
-    Fill the time-series data with 0 events within a specific time-window to model a scenario where there is a
-    significant drop in events after an issue has been resolved
-    """
-    return data_fill + [(t, empty_fill) for t in range(start_timestamp, end_timestamp, time_window)]
+class MetricCorrelationTest(TestCase):
+    def generate_timestamps(self):
+        now = datetime.datetime.now()
+        start = int((now - datetime.timedelta(hours=1)).timestamp())
+        end = int(now.timestamp())
+        return start, end
 
+    def generate_empty_issue_events(
+        self, start_timestamp, end_timestamp, data_fill, empty_fill=0, time_window=60
+    ):
+        """
+        Fill the time-series data with 0 events within a specific time-window to model a scenario where there is a
+        significant drop in events after an issue has been resolved
+        """
+        return data_fill + [
+            (t, empty_fill) for t in range(start_timestamp, end_timestamp, time_window)
+        ]
 
-def generate_random_issue_events(start, end, window):
-    """
-    Generate time-series data with a random number of events within a specific time-window
-    """
-    return [(t, random.randint(0, 30)) for t in range(start, end, window)]
+    def generate_random_issue_events(self, start, end, window):
+        """
+        Generate time-series data with a random number of events within a specific time-window
+        """
+        return [(t, random.randint(0, 30)) for t in range(start, end, window)]
 
-
-class TestMetricCorrelation(TestCase):
     @mock.patch("sentry.tsdb.get_range")
     def test_correlated_issues(self, mock_get_range):
+        start, end = self.generate_timestamps()
         group1 = self.create_group(status=GroupStatus.RESOLVED, resolved_at=timezone.now())
         group2 = self.create_group()
 
-        group1_data = generate_random_issue_events(START, END, WINDOW)
-        group2_data = generate_random_issue_events(START, END, WINDOW)
+        group1_data = self.generate_random_issue_events(start, end, WINDOW)
+        group2_data = self.generate_random_issue_events(start, end, WINDOW)
 
-        group1_events = generate_empty_issue_events(START, END, group1_data)
-        group2_events = generate_empty_issue_events(START, END, group2_data)
+        group1_events = self.generate_empty_issue_events(start, end, group1_data)
+        group2_events = self.generate_empty_issue_events(start, end, group2_data)
 
         mock_get_range.return_value = {group1.id: group1_events, group2.id: group2_events}
 
@@ -54,22 +56,26 @@ class TestMetricCorrelation(TestCase):
 
     @mock.patch("sentry.tsdb.get_range")
     def test_uncorrelated_issues(self, mock_get_range):
+        start, end = self.generate_timestamps()
         group1 = self.create_group(status=GroupStatus.RESOLVED, resolved_at=timezone.now())
         group2 = self.create_group()
 
-        group1_events = generate_random_issue_events(START, END, WINDOW)
-        group2_events = generate_random_issue_events(START, END, WINDOW)
+        group1_events = self.generate_random_issue_events(start, end, WINDOW)
+        group2_events = self.generate_random_issue_events(start, end, WINDOW)
 
         mock_get_range.return_value = {group1.id: group1_events, group2.id: group2_events}
 
-        assert not is_issue_error_rate_correlated(group1, group2)
+        result = is_issue_error_rate_correlated(group1, group2)[0]
+
+        assert not result
 
     @mock.patch("sentry.tsdb.get_range")
     def test_perfect_correlation(self, mock_get_range):
+        start, end = self.generate_timestamps()
         group1 = self.create_group(status=GroupStatus.RESOLVED, resolved_at=timezone.now())
         group2 = self.create_group()
 
-        group1_events = generate_random_issue_events(START, END, WINDOW)
+        group1_events = self.generate_random_issue_events(start, end, WINDOW)
 
         mock_get_range.return_value = {group1.id: group1_events, group2.id: group1_events}
 
