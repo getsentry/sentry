@@ -1,4 +1,3 @@
-import os
 from io import BytesIO
 from zipfile import ZipFile
 
@@ -13,10 +12,6 @@ from google.cloud.functions_v1.types import (
 from google.cloud.functions_v1.types.functions import DeleteFunctionRequest
 from google.cloud.pubsub_v1 import PublisherClient
 from google.protobuf.field_mask_pb2 import FieldMask
-
-os.environ[
-    "GOOGLE_APPLICATION_CREDENTIALS"
-] = "/Users/vpandiar/Documents/testing-sentry/vignesh-dev.json"
 
 
 def function_pubsub_name(funcId):
