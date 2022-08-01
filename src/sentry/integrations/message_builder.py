@@ -5,6 +5,8 @@ from typing import Any, Callable, Mapping, Sequence
 
 from sentry.integrations.slack.message_builder import SLACK_URL_FORMAT
 from sentry.models import Event, Group, Project, Rule, Team, User
+from sentry.notifications.notifications.base import BaseNotification
+from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.utils.http import absolute_uri
 
 
@@ -42,6 +44,31 @@ def build_attachment_title(obj: Group | Event) -> str:
     # Explicitly typing to satisfy mypy.
     title_str: str = title
     return title_str
+
+
+def get_title_link(
+    group: Group,
+    event: Event | None,
+    link_to_event: bool,
+    issue_details: bool,
+    notification: BaseNotification | None,
+    provider: ExternalProviders = ExternalProviders.SLACK,
+) -> str:
+    if event and link_to_event:
+        url = group.get_absolute_url(
+            params={"referrer": EXTERNAL_PROVIDERS[provider]}, event_id=event.event_id
+        )
+
+    elif issue_details and notification:
+        referrer = notification.get_referrer(provider)
+        url = group.get_absolute_url(params={"referrer": referrer})
+
+    else:
+        url = group.get_absolute_url(params={"referrer": EXTERNAL_PROVIDERS[provider]})
+
+    # Explicitly typing to satisfy mypy.
+    url_str: str = url
+    return url_str
 
 
 def build_attachment_text(group: Group, event: Event | None = None) -> Any | None:

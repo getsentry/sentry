@@ -82,7 +82,7 @@ class DigestNotification(ProjectNotification):
             date="{date_pretty}",
         )
 
-    def get_title_link(self, recipient: Team | User) -> str | None:
+    def get_title_link(self, recipient: Team | User, provider: ExternalProviders) -> str | None:
         return None
 
     def build_attachment_title(self, recipient: Team | User) -> str:
