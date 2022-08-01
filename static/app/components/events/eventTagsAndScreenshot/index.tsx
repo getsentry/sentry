@@ -1,4 +1,4 @@
-import {css} from '@emotion/react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {DataSection} from 'sentry/components/events/styles';
@@ -7,6 +7,7 @@ import {objectIsEmpty} from 'sentry/utils';
 
 import Screenshot from './screenshot';
 import Tags from './tags';
+import TagsHighlight from './tagsHighlight';
 
 type ScreenshotProps = React.ComponentProps<typeof Screenshot>;
 
@@ -53,24 +54,37 @@ function EventTagsAndScreenshots({
       hasContext={hasEventContext}
     >
       {showScreenshot && (
-        <Screenshot
-          organization={organization}
-          event={event}
-          projectSlug={projectSlug}
-          screenshot={screenshot}
-          onDelete={onDeleteScreenshot}
-        />
+        <ScreenshotWrapper>
+          <Screenshot
+            organization={organization}
+            event={event}
+            projectSlug={projectSlug}
+            screenshot={screenshot}
+            onDelete={onDeleteScreenshot}
+          />
+        </ScreenshotWrapper>
       )}
-      {showScreenshot && showTags && <Divider />}
-      {showTags && (
-        <Tags
-          organization={organization}
-          event={event}
-          projectSlug={projectSlug}
-          hasEventContext={hasEventContext}
-          location={location}
-        />
-      )}
+      {showScreenshot && showTags && <VerticalDivider />}
+      <TagWrapper hasEventContext={hasEventContext}>
+        {hasEventContext && (
+          <Fragment>
+            <TagsHighlightWrapper showScreenshot={showScreenshot}>
+              <TagsHighlight event={event} />
+            </TagsHighlightWrapper>
+            <Divider />
+          </Fragment>
+        )}
+        {showTags && (
+          <TagsHighlightWrapper showScreenshot={showScreenshot}>
+            <Tags
+              organization={organization}
+              event={event}
+              projectSlug={projectSlug}
+              location={location}
+            />
+          </TagsHighlightWrapper>
+        )}
+      </TagWrapper>
     </Wrapper>
   );
 }
@@ -88,27 +102,7 @@ const Wrapper = styled(DataSection)<{
   showScreenshot: boolean;
   showTags: boolean;
 }>`
-  ${p => !p.hasContext && !p.showScreenshot && `padding: 0;`}
-
-  > * {
-    :first-child,
-    :last-child {
-      border: 0;
-    }
-
-    ${p =>
-      p.showScreenshot
-        ? css`
-            :first-child {
-              padding: 0 ${space(3)} ${space(3)} ${space(3)};
-            }
-          `
-        : css`
-            :first-child {
-              padding: 0;
-            }
-          `}
-  }
+  padding: 0;
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     display: grid;
@@ -116,38 +110,10 @@ const Wrapper = styled(DataSection)<{
       p.showScreenshot && p.showTags ? 'max-content auto 1fr' : '1fr'};
     padding-top: 0;
     padding-bottom: 0;
-    && {
-      > * {
-        ${p =>
-          p.hasContext &&
-          css`
-            :last-child {
-              padding: ${space(3)} 0;
-            }
-          `}
-
-        ${p =>
-          p.showScreenshot &&
-          css`
-            :first-child {
-              padding: ${space(3)} ${space(4)};
-            }
-          `}
-
-        :last-child {
-          overflow: hidden;
-        }
-      }
-    }
-  }
-
-  && {
-    padding-left: 0;
-    padding-right: 0;
   }
 `;
 
-const Divider = styled('div')`
+const VerticalDivider = styled('div')`
   background: ${p => p.theme.innerBorder};
   height: 1px;
   width: 100%;
@@ -156,4 +122,36 @@ const Divider = styled('div')`
     height: 100%;
     width: 1px;
   }
+`;
+
+const ScreenshotWrapper = styled('div')`
+  & > div {
+    border: 0;
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    padding: 0 ${space(4)} ${space(1)} 0;
+  }
+`;
+
+const TagWrapper = styled('div')<{hasEventContext: boolean}>`
+  padding: ${p => (p.hasEventContext ? `${space(2)} 0` : '0')};
+
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    padding: ${p => (p.hasEventContext ? `${space(2)} 0` : '0')};
+  }
+`;
+
+const TagsHighlightWrapper = styled('div')<{showScreenshot: boolean}>`
+  overflow: hidden;
+
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    padding: ${p => (p.showScreenshot ? `0 ${space(4)}` : '0')};
+  }
+`;
+
+const Divider = styled('div')`
+  height: 1px;
+  width: 100%;
+  background: ${p => p.theme.innerBorder};
 `;
