@@ -6,7 +6,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {closeModal, openModal} from 'sentry/actionCreators/modal';
+import {openModal} from 'sentry/actionCreators/modal';
 import GlobalModal from 'sentry/components/globalModal';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {UniformRateModal} from 'sentry/views/settings/project/server-side-sampling/modals/uniformRateModal';
