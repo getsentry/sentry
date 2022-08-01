@@ -10,6 +10,7 @@ from io import BytesIO
 import sentry_sdk
 from django.conf import settings
 from django.core.cache import cache
+from django.core.exceptions import ValidationError
 from django.db import IntegrityError, OperationalError, connection, transaction
 from django.db.models import Func
 from django.utils.encoding import force_text
@@ -756,31 +757,38 @@ def _get_or_create_release_many(jobs, projects):
             release_date_added[release_key] = new_datetime
 
     for (project_id, version), jobs_to_update in jobs_with_releases.items():
-        release = Release.get_or_create(
-            project=projects[project_id],
-            version=version,
-            date_added=release_date_added[(project_id, version)],
-        )
+        try:
+            release = Release.get_or_create(
+                project=projects[project_id],
+                version=version,
+                date_added=release_date_added[(project_id, version)],
+            )
+        except ValidationError:
+            release = None
+            logger.exception(
+                "Failed creating Release(project=%s, version=%s)", projects[project_id], version
+            )
 
-        if features.has(
-            "projects:auto-associate-commits-to-release", projects[project_id]
-        ) and _is_commit_sha(release.version):
-            safe_execute(_associate_commits_with_release, release, projects[project_id])
+        if release:
+            if features.has(
+                "projects:auto-associate-commits-to-release", projects[project_id]
+            ) and _is_commit_sha(release.version):
+                safe_execute(_associate_commits_with_release, release, projects[project_id])
 
-        for job in jobs_to_update:
-            # Don't allow a conflicting 'release' tag
-            data = job["data"]
-            pop_tag(data, "release")
-            set_tag(data, "sentry:release", release.version)
+            for job in jobs_to_update:
+                # Don't allow a conflicting 'release' tag
+                data = job["data"]
+                pop_tag(data, "release")
+                set_tag(data, "sentry:release", release.version)
 
-            job["release"] = release
+                job["release"] = release
 
-            if job["dist"]:
-                job["dist"] = job["release"].add_dist(job["dist"], job["event"].datetime)
+                if job["dist"]:
+                    job["dist"] = job["release"].add_dist(job["dist"], job["event"].datetime)
 
-                # don't allow a conflicting 'dist' tag
-                pop_tag(job["data"], "dist")
-                set_tag(job["data"], "sentry:dist", job["dist"].name)
+                    # don't allow a conflicting 'dist' tag
+                    pop_tag(job["data"], "dist")
+                    set_tag(job["data"], "sentry:dist", job["dist"].name)
 
 
 @metrics.wraps("save_event.get_event_user_many")
