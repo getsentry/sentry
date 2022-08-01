@@ -281,8 +281,10 @@ class RuleProcessor:
         last_eval_cache_key = "{}:p-{}:g-{}".format(
             "active-release-last-eval", self.event.project_id, self.event.group_id
         )
-        last_action_time = cache.get(last_action_cache_key)
-        last_eval_time = cache.get(last_eval_cache_key)
+
+        bulk = cache.get_many([last_action_cache_key, last_eval_cache_key])
+        last_action_time = bulk.get(last_action_cache_key) if bulk else None
+        last_eval_time = bulk.get(last_eval_cache_key) if bulk else None
 
         if last_action_time and last_action_time > freq_offset:
             return
