@@ -25,7 +25,6 @@ from sentry.notifications.utils import (
 )
 from sentry.notifications.utils.participants import get_owners
 from sentry.plugins.base import Notification
-from sentry.rules import EventState
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.types.releaseactivity import ReleaseActivityType
 from sentry.utils import metrics
@@ -41,7 +40,7 @@ class ActiveReleaseIssueNotification(AlertRuleNotification):
     def __init__(
         self,
         notification: Notification,
-        event_state: EventState,
+        event_state,
         target_type: ActionTargetType,
         target_identifier: int | None = None,
         last_release: Optional[Release] = None,
