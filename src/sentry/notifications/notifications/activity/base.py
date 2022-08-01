@@ -131,15 +131,21 @@ class GroupActivityNotification(ActivityNotification, abc.ABC):
             "referrer": self.__class__.__name__,
         }
 
-    def get_notification_title(self, context: Mapping[str, Any] | None = None) -> str:
+    def get_notification_title(
+        self, provider: ExternalProviders, context: Mapping[str, Any] | None = None
+    ) -> str:
         description, params, _ = self.get_description()
-        return self.description_as_text(description, params, True)
+        return self.description_as_text(description, params, True, provider)
 
     def get_subject(self, context: Mapping[str, Any] | None = None) -> str:
         return f"{self.group.qualified_short_id} - {self.group.title}"
 
     def description_as_text(
-        self, description: str, params: Mapping[str, Any], url: bool | None = False
+        self,
+        description: str,
+        params: Mapping[str, Any],
+        url: bool | None = False,
+        provider: ExternalProviders | None = None,
     ) -> str:
         user = self.activity.user
         if user:
@@ -150,7 +156,7 @@ class GroupActivityNotification(ActivityNotification, abc.ABC):
         issue_name = self.group.qualified_short_id or "an issue"
         if url and self.group.qualified_short_id:
             group_url = self.group.get_absolute_url(params={"referrer": "activity_notification"})
-            issue_name = f"{self.format_url(text=self.group.qualified_short_id, url=group_url)}"
+            issue_name = f"{self.format_url(text=self.group.qualified_short_id, url=group_url, provider=provider)}"
 
         context = {"author": name, "an issue": issue_name}
         context.update(params)
