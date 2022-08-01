@@ -62,7 +62,7 @@ class MSTeamsNotificationsMessageBuilder(MSTeamsMessageBuilder):
 
     def create_description_block(self) -> TextBlock:
         return create_text_block(
-            self.notification.get_message_description(self.recipient),
+            self.notification.get_message_description(self.recipient, ExternalProviders.MSTEAMS),
             size=TextSize.MEDIUM,
         )
 
