@@ -11,6 +11,7 @@ import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ListLink from 'sentry/components/links/listLink';
 import NavTabs from 'sentry/components/navTabs';
+import ReplaysFeatureBadge from 'sentry/components/replays/replaysFeatureBadge';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
@@ -25,6 +26,7 @@ import {getSelectedProjectPlatforms} from '../utils';
 
 import {anomaliesRouteWithQuery} from './transactionAnomalies/utils';
 import {eventsRouteWithQuery} from './transactionEvents/utils';
+import {replaysRouteWithQuery} from './transactionReplays/utils';
 import {spansRouteWithQuery} from './transactionSpans/utils';
 import {tagsRouteWithQuery} from './transactionTags/utils';
 import {vitalsRouteWithQuery} from './transactionVitals/utils';
@@ -108,7 +110,6 @@ class TransactionHeader extends Component<Props> {
         projects={projects}
         onClick={this.handleCreateAlertSuccess}
         referrer="performance"
-        useAlertWizardV3={organization.features.includes('alert-wizard-v3')}
         alertType="trans_duration"
         aria-label={t('Create Alert')}
       />
@@ -222,6 +223,7 @@ class TransactionHeader extends Component<Props> {
     const eventsTarget = eventsRouteWithQuery(routeQuery);
     const spansTarget = spansRouteWithQuery(routeQuery);
     const anomaliesTarget = anomaliesRouteWithQuery(routeQuery);
+    const replaysTarget = replaysRouteWithQuery(routeQuery);
 
     const project = projects.find(p => p.id === projectId);
 
@@ -310,6 +312,17 @@ class TransactionHeader extends Component<Props> {
               </ListLink>
             </Feature>
             {this.renderWebVitalsTab()}
+            <Feature features={['session-replay']} organization={organization}>
+              <ListLink
+                data-test-id="replays-tab"
+                to={replaysTarget}
+                isActive={() => currentTab === Tab.Replays}
+                onClick={this.trackTabClick(Tab.Replays)}
+              >
+                {t('Replays')}
+                <ReplaysFeatureBadge />
+              </ListLink>
+            </Feature>
           </StyledNavTabs>
         </Fragment>
       </Layout.Header>

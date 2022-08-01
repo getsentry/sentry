@@ -7,11 +7,7 @@ from sentry.integrations.msteams.card_builder import MSTEAMS_URL_FORMAT, ColumnS
 from sentry.integrations.msteams.card_builder.base import MSTeamsMessageBuilder
 from sentry.models import Team, User
 from sentry.notifications.notifications.activity.base import GroupActivityNotification
-from sentry.notifications.notifications.base import (
-    BaseNotification,
-    create_notification_with_properties,
-)
-from sentry.types.integrations import ExternalProviders
+from sentry.notifications.notifications.base import BaseNotification
 
 from .block import (
     TextSize,
@@ -28,9 +24,7 @@ class MSTeamsNotificationsMessageBuilder(MSTeamsMessageBuilder):
     def __init__(
         self, notification: BaseNotification, context: Mapping[str, Any], recipient: Team | User
     ):
-        self.notification = create_notification_with_properties(
-            notification, url_format=MSTEAMS_URL_FORMAT, provider=ExternalProviders.MSTEAMS
-        )
+        self.notification = notification
         self.context = context
         self.recipient = recipient
 
