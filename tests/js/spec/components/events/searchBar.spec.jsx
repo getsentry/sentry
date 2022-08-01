@@ -194,7 +194,6 @@ describe('Events > SearchBar', function () {
     const wrapper = mountWithTheme(<SearchBar {...props} maxQueryLength={5} />, options);
     await tick();
     wrapper.update();
-    wrapper.setState;
 
     setQuery(wrapper, 'g');
     await tick();
@@ -202,16 +201,16 @@ describe('Events > SearchBar', function () {
 
     expect(wrapper.find('SearchDropdown').prop('searchSubstring')).toEqual('g');
     expect(wrapper.find('SearchDropdown SearchItemTitleWrapper')).toEqual({});
+
     expect(
       wrapper.find('SearchListItem[data-test-id="search-autocomplete-item"]')
-    ).toHaveLength(1);
+    ).toHaveLength(2);
   });
 
   it('returns zero dropdown suggestions if out of characters', async function () {
     const wrapper = mountWithTheme(<SearchBar {...props} maxQueryLength={2} />, options);
     await tick();
     wrapper.update();
-    wrapper.setState;
 
     setQuery(wrapper, 'g');
     await tick();

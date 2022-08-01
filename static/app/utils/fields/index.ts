@@ -164,6 +164,7 @@ export interface FieldDefinition {
   valueType: FieldValueType | null;
   deprecated?: boolean;
   desc?: string;
+  keywords?: string[];
 }
 
 export const AGGREGATION_FIELDS: Record<string, FieldDefinition> = {
@@ -553,6 +554,7 @@ export const FIELDS: Record<FieldKey & AggregationKey & MobileVital, FieldDefini
     desc: t('The properties of an issue (i.e. Resolved, unresolved)'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+    keywords: ['ignored', 'assigned', 'for_review', 'unassigned', 'linked', 'unlinked'],
   },
   [FieldKey.ISSUE]: {
     desc: t('The issue identification code'),
@@ -711,6 +713,7 @@ export const FIELDS: Record<FieldKey & AggregationKey & MobileVital, FieldDefini
     desc: t('Total number of events'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.NUMBER,
+    keywords: ['count'],
   },
   [FieldKey.TIMESTAMP]: {
     desc: t('The time an event finishes'),
