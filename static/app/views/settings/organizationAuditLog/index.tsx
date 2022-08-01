@@ -41,7 +41,7 @@ function OrganizationAuditLog({organization}: Props) {
 
   const fetchAuditLogData = useCallback(async () => {
     try {
-      const payload = {cursor: state.currentCursor, event: state.eventType, version: '2'};
+      const payload = {cursor: state.currentCursor, event: state.eventType};
       if (!payload.cursor) {
         delete payload.cursor;
       }
