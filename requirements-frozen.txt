@@ -52,7 +52,7 @@ libcst==0.4.3
 lxml==4.6.5
 maxminddb==2.0.3
 milksnake==0.1.5
-mistune==2.0.2
+mistune==2.0.4
 mmh3==3.0.0
 msgpack==1.0.4
 mypy-extensions==0.4.3
