@@ -437,25 +437,28 @@ def post_process_group(
                 plugin_post_process_group(
                     plugin_slug=plugin.slug, event=event, is_new=is_new, is_regresion=is_regression
                 )
+            if features.has(
+                "organizations:sentry-functions", event.organization, actor=event.actor
+            ):
 
-            from sentry.models import SentryFunction
+                from sentry.models import SentryFunction
 
-            for fn in SentryFunction.objects.filter(organization=event.organization).all():
-                if "error" not in fn.events:
-                    continue
-                # call the function
-                from google.cloud import pubsub_v1
+                for fn in SentryFunction.objects.filter(organization=event.organization).all():
+                    if "error" not in fn.events:
+                        continue
+                    # call the function
+                    from google.cloud import pubsub_v1
 
-                from sentry.utils import json
+                    from sentry.utils import json
 
-                google_pubsub_name = (
-                    "projects/hackweek-sentry-functions/topics/fn-" + fn.external_id
-                )
-                publisher = pubsub_v1.PublisherClient()
-                publisher.publish(
-                    google_pubsub_name,
-                    json.dumps({"data": dict(event.data), "type": "error"}).encode(),
-                )
+                    google_pubsub_name = (
+                        "projects/hackweek-sentry-functions/topics/fn-" + fn.external_id
+                    )
+                    publisher = pubsub_v1.PublisherClient()
+                    publisher.publish(
+                        google_pubsub_name,
+                        json.dumps({"data": dict(event.data), "type": "error"}).encode(),
+                    )
 
             from sentry import similarity
 
