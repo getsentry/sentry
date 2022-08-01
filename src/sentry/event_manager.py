@@ -766,7 +766,11 @@ def _get_or_create_release_many(jobs, projects):
         except ValidationError:
             release = None
             logger.exception(
-                "Failed creating Release(project=%s, version=%s)", projects[project_id], version
+                "Failed creating Release due to ValidationError",
+                extra={
+                    "project": projects[project_id],
+                    "version": version,
+                },
             )
 
         if release:
