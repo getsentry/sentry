@@ -181,14 +181,15 @@ def parse_unix_timestamp(value):
 
 
 def parse_iso_timestamp(value):
-    # fromisoformat does not support parsing 'Z'
+    # datetime.fromisoformat does not support parsing 'Z'
     date = datetime.fromisoformat(value.replace("Z", "+00:00"))
 
-    # values with no timezone info will default to UTC
+    # Values with no timezone info will default to UTC
     if not date.tzinfo:
         date.replace(tzinfo=timezone.utc)
 
-    return date
+    # Convert to UTC
+    return datetime.fromtimestamp(date.timestamp(), tz=timezone.utc)
 
 
 def parse_datetime_string(value):
