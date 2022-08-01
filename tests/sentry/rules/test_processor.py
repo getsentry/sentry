@@ -2,18 +2,32 @@ from datetime import datetime, timedelta
 from unittest import mock
 from unittest.mock import patch
 
+from django.core import mail
 from django.core.cache import cache
 from django.db import DEFAULT_DB_ALIAS, connections
 from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 
-from sentry.models import GroupRuleStatus, GroupStatus, Rule, RuleFireHistory
-from sentry.notifications.types import ActionTargetType
+from sentry.models import (
+    GroupRelease,
+    GroupRuleStatus,
+    GroupStatus,
+    NotificationSetting,
+    Release,
+    Rule,
+    RuleFireHistory,
+)
+from sentry.notifications.types import (
+    ActionTargetType,
+    NotificationSettingOptionValues,
+    NotificationSettingTypes,
+)
 from sentry.rules import init_registry
 from sentry.rules.conditions import EventCondition
 from sentry.rules.filters.base import EventFilter
 from sentry.rules.processor import RuleProcessor
 from sentry.testutils import TestCase
+from sentry.types.integrations import ExternalProviders
 
 EMAIL_ACTION_DATA = {
     "id": "sentry.mail.actions.NotifyEmailAction",
@@ -422,3 +436,165 @@ class RuleProcessorTestFilters(TestCase):
         assert len(futures) == 1
         assert futures[0].rule == self.rule
         assert futures[0].kwargs == {}
+
+
+class RuleProcessorActiveReleaseTest(TestCase):
+    def setUp(self):
+        self.event = self.store_event(
+            data={"message": "Hello world"},
+            project_id=self.project.id,
+        )
+        # self.event.group._times_seen_pending = 0
+        # self.event.group.save()
+
+        self.oldRelease = Release.objects.create(
+            organization_id=self.organization.id,
+            version="1",
+            date_added=timezone.now() - timedelta(hours=2),
+            date_released=timezone.now() - timedelta(hours=2),
+        )
+        GroupRelease.objects.create(
+            project_id=self.project.id,
+            group_id=self.event.group.id,
+            release_id=self.oldRelease.id,
+            first_seen=timezone.now(),
+            last_seen=timezone.now(),
+        )
+        self.newRelease = Release.objects.create(
+            organization_id=self.organization.id,
+            version="2",
+            date_added=timezone.now() - timedelta(minutes=30),
+            date_released=timezone.now() - timedelta(minutes=30),
+        )
+        GroupRelease.objects.create(
+            project_id=self.project.id,
+            group_id=self.event.group.id,
+            release_id=self.newRelease.id,
+            first_seen=timezone.now(),
+            last_seen=timezone.now(),
+        )
+        self.oldRelease.add_project(self.project)
+        self.newRelease.add_project(self.project)
+
+        self.event.data["tags"] = (("sentry:release", self.newRelease.version),)
+
+        Rule.objects.filter(project=self.event.project).delete()
+
+    @mock.patch("sentry.notifications.utils.participants.get_release_committers")
+    def test_default_notification_setting_off(self, mock_get_release_committers):
+        mock_get_release_committers.return_value = [self.user]
+        with self.tasks(), self.feature("projects:active-release-monitor-default-on"):
+            mail.outbox = []
+            rp = RuleProcessor(
+                self.event,
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=True,
+                has_reappeared=False,
+            )
+            results = list(rp.apply())
+            assert len(results) == 0
+            assert len(mail.outbox) == 0
+
+    @mock.patch("sentry.notifications.utils.participants.get_release_committers")
+    def test_no_other_rules(self, mock_get_release_committers):
+        mock_get_release_committers.return_value = [self.user]
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.EMAIL,
+            NotificationSettingTypes.ACTIVE_RELEASE,
+            NotificationSettingOptionValues.ALWAYS,
+            user=self.user,
+            project=self.project,
+        )
+        with self.tasks(), self.feature("projects:active-release-monitor-default-on"):
+            mail.outbox = []
+            rp = RuleProcessor(
+                self.event,
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=True,
+                has_reappeared=False,
+            )
+            results = list(rp.apply())
+            assert len(results) == 0
+            assert len(mail.outbox) == 1
+            assert mail.outbox[0]
+            assert mail.outbox[0].subject == "**ARM** [Sentry] BAR-1 - Hello world"
+            assert mail.outbox[0].to == [x.email for x in mock_get_release_committers.return_value]
+
+    @mock.patch("sentry.notifications.utils.participants.get_release_committers")
+    def test_one_extra_rule(self, mock_get_release_committers):
+        mock_get_release_committers.return_value = [self.user]
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.EMAIL,
+            NotificationSettingTypes.ACTIVE_RELEASE,
+            NotificationSettingOptionValues.ALWAYS,
+            user=self.user,
+            project=self.project,
+        )
+        Rule.objects.create(
+            project=self.event.project,
+            data={
+                "actions": [EMAIL_ACTION_DATA],
+                "filter_match": "any",
+                "conditions": [
+                    {
+                        "id": "sentry.rules.filters.latest_release.LatestReleaseFilter",
+                        "name": "The event is from the latest release",
+                    },
+                ],
+            },
+        )
+        with self.tasks(), self.feature("projects:active-release-monitor-default-on"):
+            mail.outbox = []
+            rp = RuleProcessor(
+                self.event,
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=True,
+                has_reappeared=False,
+            )
+            results = list(rp.apply())
+            assert len(results) == 1
+            assert len(mail.outbox) == 1
+            assert mail.outbox[0]
+            assert mail.outbox[0].subject == "**ARM** [Sentry] BAR-1 - Hello world"
+            assert mail.outbox[0].to == [x.email for x in mock_get_release_committers.return_value]
+
+    @mock.patch("sentry.notifications.utils.participants.get_release_committers")
+    def test_multiple_committers_notification_opt_in_out(self, mock_get_release_committers):
+        user2 = self.create_user("foo@example.com")
+        # explicitly opt-in for user
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.EMAIL,
+            NotificationSettingTypes.ACTIVE_RELEASE,
+            NotificationSettingOptionValues.ALWAYS,
+            user=self.user,
+            project=self.project,
+        )
+
+        # opt-out for user2
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.EMAIL,
+            NotificationSettingTypes.ACTIVE_RELEASE,
+            NotificationSettingOptionValues.NEVER,
+            user=user2,
+            project=self.project,
+        )
+
+        mock_get_release_committers.return_value = [self.user, user2]
+        with self.tasks(), self.feature("projects:active-release-monitor-default-on"):
+            mail.outbox = []
+            rp = RuleProcessor(
+                self.event,
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=True,
+                has_reappeared=False,
+            )
+            results = list(rp.apply())
+            assert len(results) == 0
+            assert len(mail.outbox) == 1
+            assert mail.outbox[0]
+            assert mail.outbox[0].subject == "**ARM** [Sentry] BAR-1 - Hello world"
+            assert mail.outbox[0].to == [self.user.email]

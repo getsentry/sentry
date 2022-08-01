@@ -16,7 +16,7 @@ from sentry.integrations.slack.message_builder.issues import (
 )
 from sentry.integrations.slack.message_builder.metric_alerts import SlackMetricAlertMessageBuilder
 from sentry.models import Group, Team, User
-from sentry.notifications.notifications.rules import ActiveReleaseAlertNotification
+from sentry.notifications.notifications.active_release import ActiveReleaseIssueNotification
 from sentry.testutils import TestCase
 from sentry.utils.dates import to_timestamp
 from sentry.utils.http import absolute_uri
@@ -150,7 +150,7 @@ class BuildGroupAttachmentTest(TestCase):
         )
         release = self.create_release(version="1.0.0", project=self.project)
 
-        release_link = ActiveReleaseAlertNotification.slack_release_url(release)
+        release_link = ActiveReleaseIssueNotification.slack_release_url(release)
         attachments = SlackReleaseIssuesMessageBuilder(
             group, last_release=release, last_release_link=release_link
         ).build()
@@ -164,7 +164,7 @@ class BuildGroupAttachmentTest(TestCase):
         group = self.create_group(project=self.project)
         release = self.create_release(version="1.0.0", project=self.project)
 
-        release_link = ActiveReleaseAlertNotification.slack_release_url(release)
+        release_link = ActiveReleaseIssueNotification.slack_release_url(release)
         release_commits = [
             {"author": None, "key": "sha789", "subject": "third commit"},
             {"author": self.user, "key": "sha456", "subject": "second commit"},
