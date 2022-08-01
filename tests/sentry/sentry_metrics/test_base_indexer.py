@@ -1,5 +1,4 @@
 from typing import Mapping, Set
-
 from unittest import TestCase
 
 from sentry.sentry_metrics.indexer.base import (
