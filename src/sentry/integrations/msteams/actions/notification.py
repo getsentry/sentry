@@ -30,6 +30,8 @@ class MsTeamsNotifyServiceAction(IntegrationEventAction):
         }
 
     def get_integrations(self) -> QuerySet[Integration]:
+        # NOTE: We exclude installations of `tenant` type to NOT show up in the team choices dropdown in alert rule actions
+        # as currently, there is no way to query the API for users or channels within a `tenant` to send alerts to.
         return (
             super().get_integrations().exclude(metadata__contains={"installation_type": "tenant"})
         )
