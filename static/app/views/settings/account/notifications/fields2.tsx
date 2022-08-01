@@ -63,6 +63,11 @@ export const NOTIFICATION_SETTING_FIELDS: Record<string, Field> = {
       ['msteams', t('Microsoft Teams')],
     ],
     multiple: true,
+    onChange: val => {
+      if (!val || val.length === 0) {
+        throw Error('Invalid selection. Field cannot be empty.');
+      }
+    },
   },
   approval: {
     name: 'approval',
