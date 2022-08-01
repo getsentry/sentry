@@ -16,7 +16,7 @@ interface Props {
   isHovered: boolean;
   isSelected: boolean;
   onClick: null | MouseCallback;
-  startTimestamp: number;
+  startTimestampMs: number;
   onMouseEnter?: MouseCallback;
   onMouseLeave?: MouseCallback;
 }
@@ -25,7 +25,7 @@ function BreadcrumbItem({
   crumb,
   isHovered,
   isSelected,
-  startTimestamp,
+  startTimestampMs,
   onMouseEnter,
   onMouseLeave,
   onClick,
@@ -61,7 +61,10 @@ function BreadcrumbItem({
       <CrumbDetails>
         <TitleContainer>
           <Title>{title}</Title>
-          <PlayerRelativeTime relativeTime={startTimestamp} timestamp={crumb.timestamp} />
+          <PlayerRelativeTime
+            relativeTimeMs={startTimestampMs}
+            timestamp={crumb.timestamp}
+          />
         </TitleContainer>
 
         <Description title={description}>{description}</Description>
