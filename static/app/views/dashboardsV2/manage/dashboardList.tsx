@@ -12,8 +12,8 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {Client} from 'sentry/api';
 import Button from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
-import DropdownMenuControlV2 from 'sentry/components/dropdownMenuControlV2';
-import {MenuItemProps} from 'sentry/components/dropdownMenuItemV2';
+import DropdownMenuControlV2 from 'sentry/components/dropdownMenuControl';
+import {MenuItemProps} from 'sentry/components/dropdownMenuItem';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import Pagination from 'sentry/components/pagination';
 import TimeSince from 'sentry/components/timeSince';

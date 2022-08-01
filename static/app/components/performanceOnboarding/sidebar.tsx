@@ -4,8 +4,8 @@ import styled from '@emotion/styled';
 import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.svg';
 
 import Button from 'sentry/components/button';
-import DropdownMenuControlV2 from 'sentry/components/dropdownMenuControlV2';
-import {MenuItemProps} from 'sentry/components/dropdownMenuItemV2';
+import DropdownMenuControlV2 from 'sentry/components/dropdownMenuControl';
+import {MenuItemProps} from 'sentry/components/dropdownMenuItem';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
