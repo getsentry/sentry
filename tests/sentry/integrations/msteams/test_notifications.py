@@ -24,7 +24,7 @@ TEST_CARD = {"type": "test_card"}
 )
 @patch(
     "sentry.integrations.msteams.MsTeamsAbstractClient.get_member_list",
-    Mock(return_value=[{"user": "some_user", "tenantId": "some_tenant_id"}]),
+    Mock(return_value={"members": [{"user": "some_user", "tenantId": "some_tenant_id"}]}),
 )
 @patch("sentry.integrations.msteams.MsTeamsAbstractClient.send_card")
 class MSTeamsNotificationTest(TestCase):
